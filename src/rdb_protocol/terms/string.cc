@@ -97,14 +97,12 @@ private:
 };
 
 template <typename It>
-It find_utf8_pred(It &&start, It &&end, std::function<bool(char32_t)> &&fn) {
+It find_utf8_pred(It start, It end, std::function<bool(char32_t)> &&fn) {
     It pos(start);
     char32_t codepoint;
     utf8::reason_t reason;
     while (pos != end) {
-        It next = utf8::next_codepoint(std::forward<It>(pos),
-                                       std::forward<It>(end), &codepoint,
-                                       &reason);
+        It next = utf8::next_codepoint(pos, end, &codepoint, &reason);
         if (fn(codepoint)) {
             break;
         }
@@ -112,19 +110,17 @@ It find_utf8_pred(It &&start, It &&end, std::function<bool(char32_t)> &&fn) {
     }
     return pos;
 }
-template <typename It> It find_space(It &&start, It &&end) {
+template <typename It> It find_space(It start, It end) {
     return find_utf8_pred(std::forward<It>(start), std::forward<It>(end), is_whitespace_character);
 }
 template <typename It>
-It find_non_space(It &&start, It &&end) {
-    return find_utf8_pred(
-        std::forward<It>(start), std::forward<It>(end),
+It find_non_space(It start, It end) {
+    return find_utf8_pred(start, end,
         [](char32_t ch) { return !is_whitespace_character(ch); });
 }
 template <typename It>
-It find_non_combining(It &&start, It &&end) {
-    return find_utf8_pred(
-        std::forward<It>(start), std::forward<It>(end),
+It find_non_combining(It start, It end) {
+    return find_utf8_pred(start, end,
         [](char32_t ch) { return !is_combining_character(ch); });
 }
 template <typename It>

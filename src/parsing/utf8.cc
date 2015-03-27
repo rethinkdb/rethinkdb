@@ -51,8 +51,7 @@ inline unsigned int extract_and_shift(char c, unsigned int bits, unsigned int am
 }
 
 template <class Iterator>
-inline bool is_valid_internal(Iterator &&begin, Iterator &&end,
-                              reason_t *reason) {
+inline bool is_valid_internal(Iterator begin, Iterator end, reason_t *reason) {
     char32_t codepoint;
     Iterator cbegin = begin;
     Iterator cend = begin;
@@ -123,7 +122,7 @@ void iterator_t<Iterator>::advance(void) {
 }
 
 template <class Iterator>
-Iterator fail(const char *explanation, Iterator &&start, Iterator &&position,
+Iterator fail(const char *explanation, Iterator start, Iterator position,
               char32_t *codepoint, reason_t *reason) {
     reason->explanation = explanation;
     reason->position = position - start - 1; // -1 corrects for postincrement
@@ -134,7 +133,7 @@ Iterator fail(const char *explanation, Iterator &&start, Iterator &&position,
 }
 
 template <class Iterator>
-const char *is_valid_continuation_byte(const Iterator &position, const Iterator &end) {
+const char *is_valid_continuation_byte(Iterator position, Iterator end) {
     if (position == end) {
         return "Expected continuation byte, saw end of string";
     } else if (!is_continuation(*position)) {
@@ -145,7 +144,7 @@ const char *is_valid_continuation_byte(const Iterator &position, const Iterator 
 }
 
 template <class Iterator>
-Iterator next_codepoint(Iterator &&start, Iterator &&end, char32_t *codepoint,
+Iterator next_codepoint(Iterator start, Iterator end, char32_t *codepoint,
                         reason_t *reason) {
     Iterator position = start;
     reason->explanation = "";
@@ -233,17 +232,17 @@ Iterator next_codepoint(Iterator &&start, Iterator &&end, char32_t *codepoint,
     }
 }
 
-template const char *next_codepoint<const char *>(const char *&&start,
-                                                  const char *&&end,
+template const char *next_codepoint<const char *>(const char *start,
+                                                  const char *end,
                                                   char32_t *codepoint,
                                                   reason_t *reason);
 template std::string::iterator
-next_codepoint<std::string::iterator>(std::string::iterator &&start,
-                                      std::string::iterator &&end,
+next_codepoint<std::string::iterator>(std::string::iterator start,
+                                      std::string::iterator end,
                                       char32_t *codepoint, reason_t *reason);
 template std::string::const_iterator
-next_codepoint<std::string::const_iterator>(std::string::const_iterator &&start,
-                                            std::string::const_iterator &&end,
+next_codepoint<std::string::const_iterator>(std::string::const_iterator start,
+                                            std::string::const_iterator end,
                                             char32_t *codepoint,
                                             reason_t *reason);
 
