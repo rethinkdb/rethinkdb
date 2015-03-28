@@ -16,14 +16,14 @@ namespace ql {
 // Combining characters in Unicode have a character class starting with M. There
 // are three types, which affect layout; we don't distinguish between them here.
 static bool is_combining_character(char32_t c) {
-    return (U_GET_GC_MASK(c) & U_GC_M_MASK);
+    return (U_GET_GC_MASK(c) & U_GC_M_MASK) > 0;
 }
 
 // ICU provides several different whitespace functions.  We use
 // `u_isUWhiteSpace` which is the Unicode White_Space property.  It is highly
 // unlikely that the details will matter.
 static bool is_whitespace_character(char32_t c) {
-    return (U_GET_GC_MASK(c) & U_GC_M_MASK);
+    return u_isUWhiteSpace(c);
 }
 
 class match_term_t : public op_term_t {
@@ -104,7 +104,7 @@ It find_utf8_pred(It start, It end, std::function<bool(char32_t)> &&fn) {
     while (pos != end) {
         It next = utf8::next_codepoint(pos, end, &codepoint, &reason);
         if (fn(codepoint)) {
-            break;
+            return pos;
         }
         pos = next;
     }
@@ -159,35 +159,56 @@ private:
         std::vector<datum_t> res;
         std::string::const_iterator current = s.cbegin();
         std::string::const_iterator end = s.cend();
-        while (current != end) {
+        bool done = false;
+        while (!done) {
             if (res.size() == maxnum) {
-                auto it = delim ? current : find_non_space(current, end);
-                if (it != s.end()) {
-                    push_datum(&res, it, end);
+                if (delim) {
+                    if (delim->size() > 0 || current != end) {
+                        push_datum(&res, current, end);
+                    }
+                } else {
+                    auto start = find_non_space(current, end);
+                    if (start != end) {
+                        push_datum(&res, start, end);
+                    }
                 }
-                current = s.end();
+                current = end;
+                done = true;
             } else if (is_delim_empty) {
-                auto ch = utf8::next_codepoint(current, end);
-                auto with_combining = find_non_combining(ch, end);
-                // empty delimiters are special; need to push even empty
-                // strings.
-                push_datum(&res, current, with_combining);
+                auto next = utf8::next_codepoint(current, end);
+                auto with_combining = find_non_combining(next, end);
+
+                if (current != with_combining) {
+                    push_datum(&res, current, with_combining);
+                }
                 current = with_combining;
+                done = (current == end);
             } else if (delim) {
-                auto next_delim = std::search(current, end,
-                                              delim->begin(), delim->end());
-                if (current != next_delim) {
-                    push_datum(&res, current, next_delim);
+                auto next = std::search(current, end, delim->begin(), delim->end());
+                push_datum(&res, current, next);
+                if (next == end) {
+                    current = end;
+                    done = true;
+                } else {
+                    current = next + delim->size();
                 }
-                current = next_delim == end ? end : next_delim + delim->size();
             } else {
-                auto it = find_space(current, end);
-                if (current != it) {
-                    push_datum(&res, current, it);
+                auto next = find_space(current, end);
+                if (next == end) {
+                    auto start = find_non_space(current, end);
+                    if (start != end) {
+                        push_datum(&res, start, end);
+                    }
+                    current = end;
+                    done = true;
+                } else {
+                    if (current != next) {
+                        push_datum(&res, current, next);
+                    }
+                    current = utf8::next_codepoint(next, end);
                 }
-                current = find_non_space(it, end);
             }
-        }
+        } while (current != end);
 
         return new_val(datum_t(std::move(res), env->env->limits()));
     }
