@@ -32,6 +32,12 @@ std::string print(const datum_t &d) {
 std::string print(const std::string &s) {
     return "str(" + s + ")";
 }
+std::string print(uint64_t i) {
+    return strprintf("%zu", i);
+}
+std::string print(const key_range_t &rng) {
+    return rng.print();
+}
 template<class A, class B>
 std::string print(const std::pair<A, B> &p) {
     return strprintf("pair(%s, %s)", print(p.first).c_str(), print(p.second).c_str());
@@ -45,6 +51,23 @@ std::string print(const msg_t::limit_change_t &change) {
                      print(change.sub).c_str(),
                      print(change.old_key).c_str(),
                      print(change.new_val).c_str());
+}
+template<class T>
+std::string print(const std::deque<T> &d) {
+    std::string s = "[";
+    for (const auto &t : d) {
+        if (s.size() != 1) s += ", ";
+        s += print(t);
+    }
+    s += "]";
+    return s;
+}
+template<class stamped_range_t>
+std::string print(const stamped_range_t &srng) {
+    return strprintf("stamped_range_t(%zu, %s, %s)",
+                     srng.latest_change_stamp,
+                     key_to_debug_str(srng.left_fencepost).c_str(),
+                     print(srng.ranges).c_str());
 }
 } // namespace debug
 
@@ -279,7 +302,7 @@ void server_t::add_client(const client_t::addr_t &addr, region_t region) {
     // The entry might already exist if we have multiple shards per btree, but
     // that's fine.
     if (!info->cond.has()) {
-        info->stamp = 0;
+        info->stamp = 1;
         cond_t *stopped = new cond_t();
         info->cond.init(stopped);
         // We spawn now so the auto drainer lock is acquired immediately.
@@ -1085,11 +1108,14 @@ protected:
 private:
     friend class splice_stream_t;
     const double min_interval;
+
     virtual bool has_el() = 0;
     virtual datum_t pop_el() = 0;
+    virtual bool has_change_val() = 0;
     virtual change_val_t pop_change_val() = 0;
     virtual void apply_queued_changes() = 0;
     virtual bool active() = 0;
+
     // Used to block on more changes.  NULL unless we're waiting.
     cond_t *cond;
     auto_drainer_t drainer;
@@ -1124,6 +1150,7 @@ public:
             maybe_signal_cond();
         }
     }
+    bool has_change_val() final { return queue->size() != 0; }
 protected:
     // The queue of changes we've accumulated since the last time we were read from.
     const scoped_ptr_t<maybe_squashing_queue_t> queue;
@@ -1234,6 +1261,7 @@ private:
     std::vector<scoped_ptr_t<disconnect_watcher_t> > disconnect_watchers;
 
     struct queue_t {
+        queue_t(uint64_t _next) : next(_next) { }
         rwlock_t lock;
         uint64_t next;
         struct lt_t {
@@ -1287,9 +1315,8 @@ real_feed_t::real_feed_t(auto_drainer_t::lock_t _client_lock,
 
         for (const auto &server_uuid : resp->server_uuids) {
             auto res = queues.insert(
-                std::make_pair(server_uuid, make_scoped<queue_t>()));
+                std::make_pair(server_uuid, make_scoped<queue_t>(1)));
             guarantee(res.second);
-            res.first->second->next = 0;
 
             // In debug mode we put some junk messages in the queues to make sure
             // the queue logic actually does something (since mailboxes are
@@ -1450,7 +1477,7 @@ public:
         return change_val_to_change(pop_change_val());
     }
     virtual bool has_el() {
-        return (include_states && state != sent_state) || queue->size() != 0;
+        return (include_states && state != sent_state) || has_change_val();
     }
 private:
     virtual bool active() { return started; }
@@ -1557,7 +1584,7 @@ public:
         return change_val_to_change(pop_change_val());
     }
     virtual bool has_el() {
-        return (include_states && state != sent_state) || queue->size() != 0;
+        return (include_states && state != sent_state) || has_change_val();
     }
 private:
     scoped_ptr_t<env_t> make_env(env_t *outer_env) {
@@ -1868,10 +1895,8 @@ public:
 
     // This should never be called on `limit` changefeeds because they already
     // support `return_initial` in their own way.
-    virtual change_val_t pop_change_val() {
-        r_sanity_check(false);
-        unreachable();
-    }
+    change_val_t pop_change_val() final { r_sanity_fail(); }
+    bool has_change_val() final { r_sanity_fail(); }
 
     uuid_u uuid;
     int64_t need_init, got_init;
@@ -2107,6 +2132,18 @@ protected:
     }
 };
 
+struct stamped_range_t {
+    stamped_range_t()
+        : latest_change_stamp(0),
+          left_fencepost(store_key_t::min()) { }
+    const store_key_t &get_right_fencepost() {
+        return ranges.size() == 0 ? left_fencepost : ranges.back().first.right.key;
+    }
+    uint64_t latest_change_stamp;
+    store_key_t left_fencepost;
+    std::deque<std::pair<key_range_t, uint64_t> > ranges;
+};
+
 // RSI: pick up here
 class splice_stream_t : public stream_t {
 public:
@@ -2121,9 +2158,13 @@ public:
 private:
     std::vector<datum_t> next_stream_batch(env_t *env, const batchspec_t &bs) final {
         // If there's nothing left to read, behave like a normal feed.
-        if (src->is_exhausted() && ready()) {
-            // This will send the `ready` state as its first doc.
-            return stream_t::next_stream_batch(env, bs);
+        debugf("nsb %d\n", src->is_exhausted());
+        if (src->is_exhausted()) {
+            debugf("ready %d\n", ready());
+            if (ready()) {
+                // This will send the `ready` state as its first doc.
+                return stream_t::next_stream_batch(env, bs);
+            }
         }
 
         std::vector<datum_t> ret;
@@ -2134,7 +2175,7 @@ private:
         // once we're no longer backwards-compatible with pre-1.16 (I think?)
         // skey versions.
         if (read_once) {
-            while (sub->has_el() && !batcher.should_send_batch()) {
+            while (sub->has_change_val() && !batcher.should_send_batch()) {
                 change_val_t cv = sub->pop_change_val();
                 if (cv.old_val && discard(cv.pkey, cv.source_stamp, *cv.old_val)) {
                     cv.old_val = boost::none;
@@ -2220,10 +2261,20 @@ private:
     void remove_outdated_ranges() {
         for (auto &&pair : stamped_ranges) {
             auto *ranges = &pair.second.ranges;
-            while (ranges->size() > 0
-                   && ranges->front().second <= pair.second.latest_change_stamp) {
-                pair.second.left_fencepost = ranges->front().first.right.key;
-                ranges->pop_front();
+            while (ranges->size() > 0) {
+                uint64_t read_stamp = ranges->front().second;
+                r_sanity_check(read_stamp > 0);
+                // Reads with a stamp equal to the stamp of the read aren't discarded.
+                uint64_t largest_discard_stamp = read_stamp - 1;
+                // If the last change we've seen was >= the largest discard
+                // stamp, we know then next one will be > and won't be
+                // discarded, so we can drop the range.
+                if (pair.second.latest_change_stamp >= largest_discard_stamp) {
+                    pair.second.left_fencepost = ranges->front().first.right.key;
+                    ranges->pop_front();
+                } else {
+                    break;
+                }
             }
         }
     }
@@ -2245,25 +2296,17 @@ private:
         // It's OK to cache this because we only ever call `ready` once we're
         // done doing reads.
         if (!cached_ready) {
+            remove_outdated_ranges();
             for (const auto &pair : stamped_ranges) {
+                debugf("%s %s\n",
+                       uuid_to_str(pair.first).c_str(),
+                       debug::print(pair.second).c_str());
                 if (pair.second.ranges.size() != 0) return cached_ready;
             }
             cached_ready = true;
         }
         return cached_ready;
     }
-
-    struct stamped_range_t {
-        stamped_range_t()
-            : latest_change_stamp(0),
-              left_fencepost(store_key_t::min()) { }
-        const store_key_t &get_right_fencepost() {
-            return ranges.size() == 0 ? left_fencepost : ranges.back().first.right.key;
-        }
-        uint64_t latest_change_stamp;
-        store_key_t left_fencepost;
-        std::deque<std::pair<key_range_t, uint64_t> > ranges;
-    };
 
     bool read_once, cached_ready;
     counted_t<datum_stream_t> src;

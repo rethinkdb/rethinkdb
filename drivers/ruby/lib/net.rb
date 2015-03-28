@@ -316,6 +316,9 @@ module RethinkDB
     def run(*args, &b)
       unbound_if(@body == RQL)
       args = parse(*args, &b)
+      if args[:block].is_a?(Handler)
+        raise RuntimeError, "Cannot call `run` with a handler, did you mean `em_run`?"
+      end
       args[:conn].run(@body, args[:opts], args[:block])
     end
     def em_run(*args, &b)
@@ -332,6 +335,7 @@ module RethinkDB
       end
 
       # If the user has defined the `on_state` method, we assume they want states.
+      PP.pp args[:block]
       if args[:block].respond_to?(:on_state)
         args[:opts] = args[:opts].merge(include_states: true)
       end
