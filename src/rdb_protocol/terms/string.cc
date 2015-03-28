@@ -20,8 +20,11 @@ static bool is_combining_character(char32_t c) {
 }
 
 // ICU provides several different whitespace functions.  We use
-// `u_isUWhiteSpace` which is the Unicode White_Space property.  It is highly
-// unlikely that the details will matter.
+// `u_isUWhiteSpace` which is the Unicode White_Space property.  It is
+// highly unlikely that the details will matter, but for the record
+// WSpace=Y includes characters that do not exist in the Z categories
+// (Z designating separators) and some of the Z category marks do not
+// have the WSpace=Y property; principally zero width spacers).
 static bool is_whitespace_character(char32_t c) {
     return u_isUWhiteSpace(c);
 }
