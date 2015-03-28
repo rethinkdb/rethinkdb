@@ -521,7 +521,7 @@ void query_server_t::connection_loop(tcp_conn_t *conn,
             bool replied = false;
 
             save_exception(&err, &err_str, &abort, [&]() {
-                    handler->run_query(query_id, query_pb, &response,
+                    handler->run_query(std::move(query_id), query_pb, &response,
                                        query_cache, &cb_interruptor);
                     if (should_reply(query_pb)) {
                         response.set_token(query_pb->token());
@@ -655,7 +655,7 @@ void query_server_t::handle(const http_req_t &req,
                                         drainer.get_drain_signal());
             ql::query_id_t query_id(conn->get_query_cache());
             try {
-                handler->run_query(query_id, query, &response,
+                handler->run_query(std::move(query_id), query, &response,
                                    conn->get_query_cache(), &true_interruptor);
             } catch (const interrupted_exc_t &ex) {
                 if (http_conn_cache.is_expired(*conn)) {

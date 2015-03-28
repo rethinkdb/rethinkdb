@@ -163,6 +163,22 @@ void query_cache_t::noreply_wait(const query_id_t &query_id,
         }, interruptor);
 }
 
+void query_cache_t::terminate_query(int64_t token) {
+    assert_thread();
+    auto entry_it = queries.find(token);
+    if (entry_it != queries.end()) {
+        terminate_internal(entry_it->second.get());
+    }
+}
+
+void query_cache_t::terminate_internal(query_cache_t::entry_t *entry) {
+    if (entry->state == entry_t::state_t::START ||
+        entry->state == entry_t::state_t::STREAM) {
+        entry->state = entry_t::state_t::DONE;
+    }
+    entry->persistent_interruptor.pulse_if_not_already_pulsed();
+}
+
 query_cache_t::ref_t::ref_t(query_cache_t *_query_cache,
                             int64_t _token,
                             query_cache_t::entry_t *_entry,
@@ -201,15 +217,6 @@ query_cache_t::ref_t::~ref_t() {
                                          it->second.release()));
         query_cache->queries.erase(it);
     }
-}
-
-void query_cache_t::ref_t::terminate() {
-    query_cache->assert_thread();
-    if (entry->state == entry_t::state_t::START ||
-        entry->state == entry_t::state_t::STREAM) {
-        entry->state = entry_t::state_t::DONE;
-    }
-    entry->persistent_interruptor.pulse_if_not_already_pulsed();
 }
 
 void query_cache_t::ref_t::fill_response(Response *res) {
@@ -253,11 +260,11 @@ void query_cache_t::ref_t::fill_response(Response *res) {
             res->Clear();
             res->set_type(Response::SUCCESS_SEQUENCE);
         } else {
-            terminate();
+            query_cache->terminate_internal(entry);
             throw;
         }
     } catch (...) {
-        terminate();
+        query_cache->terminate_internal(entry);
         throw;
     }
 }

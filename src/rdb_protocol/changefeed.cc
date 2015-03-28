@@ -1058,7 +1058,8 @@ public:
         return_empty_normal_batches_t return_empty_normal_batches,
         const signal_t *interruptor);
     virtual void start_artificial(env_t *, const uuid_u &,
-                                  artificial_table_backend_t *) = 0;
+                                  const std::string &primary_key_name,
+                                  const std::vector<datum_t> &initial_values) = 0;
     virtual void start_real(env_t *env,
                             std::string table,
                             namespace_interface_t *nif,
@@ -1376,23 +1377,24 @@ public:
     }
     feed_type_t cfeed_type() const final { return feed_type_t::point; }
 
-    virtual void start_artificial(env_t *env, const uuid_u &,
-                                  artificial_table_backend_t *subscriber) {
-        std::string err;
-        datum_t d;
-        // `subscriber` should only be `NULL` in the unit tests.
-        if (subscriber != NULL) {
-            if (subscriber->read_row(pkey, env->interruptor, &d, &err)) {
-                queue->add(change_val_t(
-                    std::make_pair(nil_uuid(), 0),
-                    store_key_t(pkey.print_primary()),
-                    boost::none,
-                    indexed_datum_t(d.has() ? d : datum_t::null(), datum_t()),
-                    DEBUG_ONLY(boost::none)));
-            } else {
-                rfail_datum(base_exc_t::GENERIC, "%s", err.c_str());
+    virtual void start_artificial(env_t *, const uuid_u &,
+                                  const std::string &primary_key_name,
+                                  const std::vector<datum_t> &initial_values) {
+        datum_t initial = datum_t::null();
+        /* Linear search is slow, but in practice there are few enough values that
+        it's OK. */
+        for (const datum_t &d : initial_values) {
+            if (d.get_field(datum_string_t(primary_key_name)) == pkey) {
+                initial = d;
+                break;
             }
         }
+        queue->add(change_val_t(
+            std::make_pair(nil_uuid(), 0),
+            store_key_t(pkey.print_primary()),
+            boost::none,
+            indexed_datum_t(initial, datum_t()),
+            DEBUG_ONLY(boost::none)));
         started = true;
     }
     virtual void start_real(env_t *env,
@@ -1476,7 +1478,8 @@ public:
         destructor_cleanup(std::bind(&feed_t::del_range_sub, feed, this));
     }
     virtual void start_artificial(env_t *outer_env, const uuid_u &uuid,
-                                  artificial_table_backend_t *) {
+                                  const std::string &,
+                                  const std::vector<datum_t> &) {
         assert_thread();
         env = make_env(outer_env);
         start_stamps[uuid] = 0;
@@ -1686,7 +1689,8 @@ public:
     }
 
     NORETURN virtual void start_artificial(env_t *, const uuid_u &,
-                                           artificial_table_backend_t *) {
+                                           const std::string &,
+                                           const std::vector<datum_t> &) {
         crash("Cannot start a limit subscription on an artificial table.");
     }
     virtual void start_real(env_t *env,
@@ -2814,7 +2818,8 @@ counted_t<datum_stream_t> artificial_t::subscribe(
     env_t *env,
     bool include_states,
     const keyspec_t::spec_t &spec,
-    artificial_table_backend_t *subscriber,
+    const std::string &primary_key_name,
+    const std::vector<datum_t> &initial_values,
     const protob_t<const Backtrace> &bt) {
     // It's OK not to switch threads here because `feed.get()` can be called
     // from any thread and `new_sub` ends up calling `feed_t::add_sub_with_lock`
@@ -2824,7 +2829,7 @@ counted_t<datum_stream_t> artificial_t::subscribe(
     guarantee(feed.has());
     scoped_ptr_t<subscription_t> sub = new_sub(
         feed.get(), datum_t::boolean(false), include_states, spec);
-    sub->start_artificial(env, uuid, subscriber);
+    sub->start_artificial(env, uuid, primary_key_name, initial_values);
     return make_counted<stream_t>(std::move(sub), bt);
 }
 

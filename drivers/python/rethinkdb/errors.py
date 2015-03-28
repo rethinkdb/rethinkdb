@@ -1,14 +1,22 @@
 # Copyright 2010-2014 RethinkDB, all rights reserved.
 
-__all__ = ['RqlError', 'RqlClientError', 'RqlCompileError', 'RqlRuntimeError', 'RqlDriverError']
+__all__ = ['RqlError',
+           'RqlClientError',
+           'RqlCompileError',
+           'RqlRuntimeError',
+           'RqlDriverError',
+           'RqlTimeoutError',
+           'RqlCursorEmpty']
 
 import sys
 
 try:
     unicode
+
     def convertForPrint(inputString):
         if type(inputString) == unicode:
-            return inputString.encode(sys.stdout.encoding or 'utf-8', 'replace')
+            return inputString.encode(sys.stdout.encoding or 'utf-8',
+                                      'replace')
         else:
             return str(inputString)
 except NameError:
@@ -21,33 +29,55 @@ except AttributeError:
     dict_items = lambda d: d.items()
 
 class RqlError(Exception):
-    def __init__(self, message, term, frames):
-        self.message = message
-        self.frames = frames
-        self.query_printer = QueryPrinter(term, self.frames)
-
-    def __str__(self):
-        return convertForPrint(self.__class__.__name__ + ": " + self.message + " in:\n" + self.query_printer.print_query() + '\n' + self.query_printer.print_carrots())
-
-    def __repr__(self):
-        return self.__class__.__name__ + "(" + repr(self.message) + ")"
-
-class RqlClientError(RqlError):
-    pass
-
-class RqlCompileError(RqlError):
-    pass
-
-class RqlRuntimeError(RqlError):
-    def __str__(self):
-        return convertForPrint(self.message + " in:\n" + self.query_printer.print_query() + '\n' + self.query_printer.print_carrots())
-
-class RqlDriverError(Exception):
     def __init__(self, message):
         self.message = message
 
     def __str__(self):
         return convertForPrint(self.message)
+
+    def __repr__(self):
+        return self.__class__.__name__ + "(" + repr(self.message) + ")"
+
+class RqlQueryError(RqlError):
+    def __init__(self, message, term, frames):
+        RqlError.__init__(self, message)
+        self.frames = frames
+        self.query_printer = QueryPrinter(term, self.frames)
+
+    def __str__(self):
+        return convertForPrint(self.__class__.__name__ + ": " + self.message +
+                               " in:\n" + self.query_printer.print_query() +
+                               '\n' + self.query_printer.print_carrots())
+
+
+class RqlClientError(RqlQueryError):
+    pass
+
+
+class RqlCompileError(RqlQueryError):
+    pass
+
+
+class RqlRuntimeError(RqlQueryError):
+    def __str__(self):
+        return convertForPrint(self.message + " in:\n" +
+                               self.query_printer.print_query() + '\n' +
+                               self.query_printer.print_carrots())
+
+
+class RqlDriverError(RqlError):
+    pass
+
+
+class RqlTimeoutError(RqlError):
+    def __init__(self):
+        RqlError.__init__(self, 'Operation timed out.')
+
+
+class RqlCursorEmpty(RqlQueryError):
+    def __init__(self, term):
+        RqlQueryError.__init__(self, 'Cursor is empty.', term, [])
+
 
 class QueryPrinter(object):
     def __init__(self, root, frames=[]):
@@ -73,7 +103,9 @@ class QueryPrinter(object):
             return ['^' for i in self.compose_term(term)]
 
         cur_frame = frames[0]
-        args = [self.compose_carrots(arg, frames[1:]) if cur_frame == i else self.compose_term(arg) for i,arg in enumerate(term.args)]
+        args = [self.compose_carrots(arg, frames[1:])
+                if cur_frame == i else self.compose_term(arg)
+                for i, arg in enumerate(term.args)]
 
         optargs = {}
         for k, v in dict_items(term.optargs):
@@ -83,6 +115,7 @@ class QueryPrinter(object):
                 optargs[k] = self.compose_term(v)
 
         return [' ' if i != '^' else '^' for i in term.compose(args, optargs)]
+
 
 # This 'enhanced' tuple recursively iterates over it's elements allowing us to
 # construct nested heirarchies that insert subsequences into tree. It's used

@@ -38,6 +38,10 @@ public:
         rwlock_in_line_.reset();
     }
 
+    void guarantee_is_for_lock(const new_mutex_t *mutex) const {
+        rwlock_in_line_.guarantee_is_for_lock(&mutex->rwlock_);
+    }
+
 private:
     rwlock_in_line_t rwlock_in_line_;
 
@@ -56,6 +60,10 @@ public:
     // is acquired or the interruptor is pulsed.
     new_mutex_acq_t(new_mutex_t *lock, signal_t *interruptor) : in_line(lock) {
         wait_interruptible(in_line.acq_signal(), interruptor);
+    }
+
+    void guarantee_is_holding(const new_mutex_t *new_mutex) const {
+        in_line.guarantee_is_for_lock(new_mutex);
     }
 
 private:

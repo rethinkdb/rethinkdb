@@ -49,6 +49,10 @@ public:
 
     void reset();
 
+    void guarantee_is_for_lock(const rwlock_t *lock) const {
+        guarantee(lock_ == lock);
+    }
+
 private:
     friend class rwlock_t;
     rwlock_t *lock_;

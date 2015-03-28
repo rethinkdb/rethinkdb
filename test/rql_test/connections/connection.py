@@ -158,7 +158,7 @@ class TestNoConnection(TestCaseCompatible):
         self.assertRaisesRegexp(
             r.RqlDriverError, "Could not connect to 0.0.0.0:%d." % DEFAULT_DRIVER_PORT, r.connect, host="0.0.0.0")
 
-    def test_connnect_timeout(self):
+    def test_connect_timeout(self):
         '''Test that we get a ReQL error if we connect to a non-responsive port'''
         useSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         useSocket.bind(('localhost', 0))
@@ -167,7 +167,9 @@ class TestNoConnection(TestCaseCompatible):
         host, port = useSocket.getsockname()
 
         try:
-            self.assertRaisesRegexp(r.RqlDriverError, "Could not connect to %s:%d. Error: timed out" % (host, port), r.connect, host=host, port=port, timeout=2)
+            self.assertRaisesRegexp(r.RqlDriverError,
+                "Could not connect to %s:%d. Error: Operation timed out." % (host, port),
+                r.connect, host=host, port=port, timeout=2)
         finally:
             useSocket.close()
 
@@ -502,7 +504,7 @@ class TestGetIntersectingBatching(TestWithConnection):
             query_circle = r.circle([random.uniform(-180.0, 180.0), random.uniform(-90.0, 90.0)], 8000000);
             reference = t1.filter(r.row['geo'].intersects(query_circle)).coerce_to("ARRAY").run(c)
             cursor = t1.get_intersecting(query_circle, index='geo').run(c, max_batch_rows=batch_size)
-            if not cursor.end_flag:
+            if cursor.error is None:
                 seen_lazy = True
 
             itr = iter(cursor)
@@ -510,8 +512,7 @@ class TestGetIntersectingBatching(TestWithConnection):
                 row = next(itr)
                 self.assertEqual(reference.count(row), 1)
                 reference.remove(row)
-            self.assertRaises(StopIteration, lambda: next(itr))
-            self.assertTrue(cursor.end_flag)
+            self.assertRaises(r.RqlCursorEmpty, lambda: next(itr))
 
         self.assertTrue(seen_lazy)
 
@@ -541,8 +542,7 @@ class TestBatching(TestWithConnection):
             ids.remove(row['id'])
 
         self.assertEqual(next(itr)['id'], ids.pop())
-        self.assertRaises(StopIteration, lambda: next(itr))
-        self.assertTrue(cursor.end_flag)
+        self.assertRaises(r.RqlCursorEmpty, lambda: next(itr))
         r.db('test').table_drop('t1').run(c)
 
 class TestGroupWithTimeKey(TestWithConnection):
@@ -591,8 +591,9 @@ class TestSuccessAtomFeed(TestWithConnection):
         t1.index_create('a', lambda x: x['a']).run(c)
         t1.index_wait('a').run(c)
 
-        self.assertEqual(p.Response.ResponseType.SUCCESS_PARTIAL,
-                         t1.get(0).changes().run(c).responses[0].type)
+        changes = t1.get(0).changes().run(c)
+        self.assertTrue(changes.error is None)
+        self.assertEqual(len(changes.items), 1)
 
 
 if __name__ == '__main__':

@@ -695,8 +695,10 @@ message Term {
         NOVEMBER = 124;  // -> 11
         DECEMBER = 125;  // -> 12
 
-        // Indicates to MERGE to replace the other object rather than merge it.
-        LITERAL = 137; // JSON -> Merging
+        // Indicates to MERGE to replace, or remove in case of an empty literal, the
+        // other object rather than merge it.
+        LITERAL = 137; // -> Merging
+                       // JSON -> Merging
 
         // SEQUENCE, STRING -> GROUPED_SEQUENCE | SEQUENCE, FUNCTION -> GROUPED_SEQUENCE
         GROUP = 144;
