@@ -2073,10 +2073,10 @@ void real_feed_t::mailbox_cb(signal_t *, stamped_msg_t msg) {
     }
 }
 
-class subscription_stream_t : public eager_datum_stream_t {
+class stream_t : public eager_datum_stream_t {
 public:
     template<class... Args>
-    subscription_stream_t(scoped_ptr_t<subscription_t> &&_sub, Args &&... args)
+    stream_t(scoped_ptr_t<subscription_t> &&_sub, Args &&... args)
         : eager_datum_stream_t(std::forward<Args>(args)...),
           sub(std::move(_sub)) { }
     virtual bool is_array() const { return false; }
@@ -2095,18 +2095,7 @@ public:
     }
 protected:
     scoped_ptr_t<subscription_t> sub;
-private:
-    virtual std::vector<datum_t>next_stream_batch(
-        env_t *env, const batchspec_t &bs) = 0;
-};
-
-class stream_t : public subscription_stream_t {
-public:
-    template<class... Args>
-    stream_t(Args &&... args)
-        : subscription_stream_t(std::forward<Args>(args)...) { }
-private:
-    std::vector<datum_t> next_stream_batch(env_t *env, const batchspec_t &bs) final {
+    virtual std::vector<datum_t> next_stream_batch(env_t *env, const batchspec_t &bs) {
         batcher_t batcher = bs.to_batcher();
         return sub->get_els(&batcher,
                             env->return_empty_normal_batches,
@@ -2115,20 +2104,32 @@ private:
 };
 
 // RSI: pick up here
-class splice_stream_t : public subscription_stream_t {
+class splice_stream_t : public stream_t {
 public:
     template<class... Args>
     splice_stream_t(counted_t<datum_stream_t> _src, Args &&... args)
-        : subscription_stream_t(std::forward<Args>(args)...),
+        : stream_t(std::forward<Args>(args)...),
           read_once(false),
+          cached_ready(false),
           src(std::move(_src)) {
         r_sanity_check(src.has());
     }
 private:
     std::vector<datum_t> next_stream_batch(env_t *env, const batchspec_t &bs) final {
+        // If there's nothing left to read, behave like a normal feed.
+        if (src->is_exhausted() && ready()) {
+            // This will send the `ready` state as its first doc.
+            return stream_t::next_stream_batch(env, bs);
+        }
+
         std::vector<datum_t> ret;
         batcher_t batcher = bs.to_batcher();
-        if (!read_once) {
+        // We have to do a little song and dance to make sure we've read at
+        // least once before deciding whether or not to discard changes, because
+        // otherwise we don't know the `skey_version`.  We can remove this hack
+        // once we're no longer backwards-compatible with pre-1.16 (I think?)
+        // skey versions.
+        if (read_once) {
             while (sub->has_el() && !batcher.should_send_batch()) {
                 change_val_t cv = sub->pop_change_val();
                 if (cv.old_val && discard(cv.pkey, cv.source_stamp, *cv.old_val)) {
@@ -2144,19 +2145,21 @@ private:
                 }
             }
             remove_outdated_ranges();
+        } else {
+            if (sub->include_states) {
+                ret.push_back(state_datum(state_t::INITIALIZING));
+            }
         }
-        if (!src->is_exhausted() && !batcher.should_send_batch()) {
+        if (!batcher.should_send_batch()) {
             std::vector<datum_t> batch = src->next_batch(env, bs);
-            // We have to do a little song and dance to make sure we've read at
-            // least once before deciding whether or not to discard changes,
-            // because otherwise we don't know the `skey_version`.  We can
-            // remove this hack once we're no longer backwards-compatible with
-            // pre-1.16 (I think?) skey versions.
             update_ranges();
             r_sanity_check(active_state);
             read_once = true;
             std::move(batch.begin(), batch.end(), std::back_inserter(ret));
         }
+
+        // RSI: if we aren't ready yet we'll send a lot of empty batches for no
+        // reason, fix that!
         return std::move(ret);
     }
 
@@ -2234,6 +2237,17 @@ private:
         r_sanity_check(active_state->skey_version);
         return *(active_state->skey_version);
     }
+    bool ready() {
+        // It's OK to cache this because we only ever call `ready` once we're
+        // done doing reads.
+        if (!cached_ready) {
+            for (const auto &pair : stamped_ranges) {
+                if (pair.second.ranges.size() != 0) return cached_ready;
+            }
+            cached_ready = true;
+        }
+        return cached_ready;
+    }
 
     struct stamped_range_t {
         stamped_range_t()
@@ -2247,7 +2261,7 @@ private:
         std::deque<std::pair<key_range_t, uint64_t> > ranges;
     };
 
-    bool read_once;
+    bool read_once, cached_ready;
     counted_t<datum_stream_t> src;
     boost::optional<active_state_t> active_state;
     std::map<uuid_u, stamped_range_t> stamped_ranges;
