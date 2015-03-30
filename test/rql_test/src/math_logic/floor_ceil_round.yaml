@@ -55,6 +55,11 @@ tests:
     - cd: r.expr(1.0).round()
       ot: 1.0
 
+    - cd: r.round(0.5)
+      ot: 1.0
+    - cd: r.round(-0.5)
+      ot: -1.0
+
     - cd: r.round(0.0)
       ot: 0.0
     - cd: r.round(1.0)
