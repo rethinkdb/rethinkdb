@@ -741,6 +741,11 @@ message Term {
         // Constants for specifying key ranges
         MINVAL = 180;
         MAXVAL = 181;
+
+        // Constants for rounding
+        FLOOR = 183;
+        CEIL = 184;
+        ROUND = 185;
     }
     optional TermType type = 1;
 

@@ -274,6 +274,9 @@ private:
         case Term::POLYGON_SUB:
         case Term::MINVAL:
         case Term::MAXVAL:
+        case Term::FLOOR:
+        case Term::CEIL:
+        case Term::ROUND:
             return false;
         default: unreachable();
         }
@@ -469,6 +472,9 @@ private:
         case Term::POLYGON_SUB:
         case Term::MINVAL:
         case Term::MAXVAL:
+        case Term::FLOOR:
+        case Term::CEIL:
+        case Term::ROUND:
             return false;
         default: unreachable();
         }

@@ -16,6 +16,12 @@ counted_t<term_t> make_arith_term(
     compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_mod_term(
     compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_floor_term(
+    compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_ceil_term(
+    compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_round_term(
+    compile_env_t *env, const protob_t<const Term> &term);
 
 // random.cc
 counted_t<term_t> make_sample_term(

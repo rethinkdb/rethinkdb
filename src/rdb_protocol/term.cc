@@ -198,6 +198,9 @@ counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t)
     case Term::POLYGON_SUB:        return make_polygon_sub_term(env, t);
     case Term::MINVAL:             return make_minval_term(env, t);
     case Term::MAXVAL:             return make_maxval_term(env, t);
+    case Term::FLOOR:              return make_floor_term(env, t);
+    case Term::CEIL:               return make_ceil_term(env, t);
+    case Term::ROUND:              return make_round_term(env, t);
     default: unreachable();
     }
     unreachable();
