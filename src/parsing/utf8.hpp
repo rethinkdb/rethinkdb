@@ -60,24 +60,20 @@ class iterator_t : public std::iterator<std::forward_iterator_tag, char32_t> {
     void advance();
 public:
     iterator_t() : start(), position(start), end(position), seen_end(true) {}
-    iterator_t(iterator_t<Iterator> &&it)
-        : start(it.start), position(it.position), end(it.end),
-          last_seen(it.last_seen), reason(it.reason), seen_end(it.seen_end) {}
-    iterator_t(const iterator_t<Iterator> &it)
-        : start(it.start), position(it.position), end(it.end), last_seen(it.last_seen),
-          reason(it.reason), seen_end(it.seen_end) {}
+    iterator_t(iterator_t<Iterator> &&it) = default;
+    iterator_t(const iterator_t<Iterator> &it) = default;
     template <class T>
     iterator_t(const T &t)
         : start(t.begin()), position(t.begin()), end(t.end()),
           seen_end(t.begin() == t.end()) {
         advance();
     }
-    iterator_t(const Iterator &begin,
+    iterator_t(const Iterator &_begin,
                const Iterator &_end)
-        : start(begin), position(begin), end(_end), seen_end(begin == end) {
+        : start(_begin), position(_begin), end(_end), seen_end(_begin == _end) {
         advance();
     }
-    iterator_t<Iterator> & operator ++() {
+    iterator_t<Iterator> &operator++() {
         advance();
         return *this;
     }
@@ -87,32 +83,16 @@ public:
         return std::move(it);
     }
 
-    char32_t operator *() const { return last_seen; }
+    char32_t operator*() const { return last_seen; }
 
-    iterator_t<Iterator> & operator =(iterator_t<Iterator> &&it) {
-        start = it.start;
-        position = it.position;
-        end = it.end;
-        last_seen = it.last_seen;
-        reason = it.reason;
-        seen_end = it.seen_end;
-        return *this;
-    }
-    iterator_t<Iterator> & operator =(const iterator_t<Iterator> &it) {
-        start = it.start;
-        position = it.position;
-        end = it.end;
-        last_seen = it.last_seen;
-        reason = it.reason;
-        seen_end = it.seen_end;
-        return *this;
-    }
+    iterator_t<Iterator> &operator=(iterator_t<Iterator> &&it) = default;
+    iterator_t<Iterator> &operator=(const iterator_t<Iterator> &it) = default;
 
-    bool operator ==(const iterator_t<Iterator> &it) const {
+    bool operator==(const iterator_t<Iterator> &it) const {
         if (seen_end && it.seen_end) return true;
         return start == it.start && position == it.position && end == it.end;
     }
-    bool operator !=(const iterator_t<Iterator> &it) const {
+    bool operator!=(const iterator_t<Iterator> &it) const {
         return !(*this == it);
     }
 
