@@ -24,18 +24,15 @@ public:
 
     typedef mailbox_t<void(
         fifo_enforcer_write_token_t,
-        session_id_t
-        )> go_mailbox_t;
+        key_range_t::right_bound_t
+        )> begin_session_mailbox_t;
 
     typedef mailbox_t<void(
         fifo_enforcer_write_token_t,
-        session_id_t
-        )> stop_mailbox_t;
+        )> end_session_mailbox_t;
 
     typedef mailbox_t<void(
         fifo_enforcer_write_token_t,
-        session_id_t,
-        key_range_t::right_bound_t,
         size_t
         )> ack_atoms_mailbox_t;
 
@@ -56,6 +53,10 @@ public:
         )> atoms_mailbox_t;
 
     typedef mailbox_t<void(
+        fifo_enforcer_write_token_t
+        )> ack_end_session_mailbox_t;
+
+    typedef mailbox_t<void(
         fifo_enforcer_write_token_t,
         size_t
         )> ack_pre_atoms_mailbox_t;
@@ -65,8 +66,9 @@ public:
         region_map_t<version_t> initial_version;
         branch_history_t initial_version_history;
         mailbox_t<void(intro_2_t)>::address_t intro_mailbox;
-        ack_pre_atoms_mailbox_t::address_t ack_pre_atoms_mailbox;
         atoms_mailbox_t::address_t atoms_mailbox;
+        ack_end_session_mailbox_t::address_t ack_end_session_mailbox;
+        ack_pre_atoms_mailbox_t::address_t ack_pre_atoms_mailbox;
     };
 
     region_t region;

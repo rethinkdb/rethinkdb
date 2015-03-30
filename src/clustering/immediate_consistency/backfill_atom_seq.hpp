@@ -38,6 +38,26 @@ public:
     bool empty() const { return atoms.empty(); }
     const atom_t &front() const { return atoms.front(); }
 
+    /* Sets `*first_out` to the first atom whose left bound is to the left of
+    `threshold`, or to `nullptr` if there is no such atom. The key-space beyond the end
+    of the `backfill_atom_seq_t` is considered "unknown" space; if `threshold` is after
+    `get_right_key()` and the seq is empty, we have no way of knowing what atom comes
+    next. In this case we return `false`. */
+    bool first_before_threshold(
+            const key_range_t::right_bound_t &threshold,
+            atom_t const **first_out) {
+        if (atoms.empty() && right_key < threshold) {
+            return false;
+        }
+        if (atoms.empty() || key_range_t::right_bound_t(
+                front().get_region().inner.left) >= threshold) {
+            *next_out = nullptr;
+        } else {
+            *next_out = &front();
+        }
+        return true;
+    }
+
     /* Deletes the leftmost atom in the seq. */
     void pop_front() {
         left_key = atoms.front().get_region().inner.right;

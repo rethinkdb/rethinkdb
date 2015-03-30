@@ -141,32 +141,21 @@ public:
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
-    /* Return values for callbacks that process backfill chunks. `CONTINUE` means to keep
-    doing the backfill. `STOP_AFTER` means that the current chunk will be completed, but
-    no further chunks should be processed. `STOP_BEFORE` means that the current chunk
-    should be discarded and no further chunks should be processed. */
-    enum class backfill_continue_t { CONTINUE, STOP_AFTER, STOP_BEFORE };
-
     /* `send_backfill_pre()` expresses the keys that have changed since `start_point` as
     a series of `backfill_pre_atom_t` objects, ignoring the values of the changed keys.
     It passes the atoms to `callback`, aborting if `on_pre_atom()` returns `STOP_*`. */
-    class send_backfill_pre_callback_t {
+    class backfill_pre_atom_consumer_t {
     public:
-        /* For each range, `on_pre_atom()` will be called zero or more times, and then
-        `on_done_range()` will be called. The atoms and ranges will be processed in
-        lexicographical ordeer. If `on_pre_atom()` returns `STOP_*`, then there will be
-        one last call to `on_done_range()` covering any calls to `on_pre_atom()` up to
-        that point that were not covered by an earlier call to `on_done_range()`. The
-        last atom will be included if the return value was `STOP_AFTER` but not if it was
-        `STOP_BEFORE`. */
-        virtual backfill_continue_t on_pre_atom(backfill_pre_atom_t &&atom) = 0;
-        virtual void on_done_range(const key_range_t::right_bound_t &threshold) = 0;
+        virtual bool on_pre_atom(
+            backfill_pre_atom_t &&atom) THROWS_NOTHING = 0;
+        virtual bool on_empty_range(
+            const key_range_t::right_bound_t &threshold) THROWS_NOTHING = 0;
     protected:
-        virtual ~send_backfill_pre_callback_t() { }
+        virtual ~backfill_pre_atom_consumer_t() { }
     };
-    virtual void send_backfill_pre(
+    virtual bool send_backfill_pre(
             const region_map_t<state_timestamp_t> &start_point,
-            send_backfill_pre_callback_t *callback,
+            backfill_pre_atom_consumer_t *pre_atom_consumer,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
@@ -175,46 +164,57 @@ public:
     everything that is listed in the `backfill_pre_atom_t`s and also for everything that
     changed since `start_point`. It passes the atoms and their associated metainfo to
     `callback`. */
-    class send_backfill_callback_t {
+    class backfill_atom_consumer_t {
     public:
-        /* This works the same way as `on_pre_atom()` and `on_done_range()` in
-        `send_backfill_pre_callback_t`. */
-        virtual backfill_continue_t on_atom(backfill_atom_t &&atom) = 0;
-        virtual void on_done_range(const region_map_t<binary_blob_t> &metainfo) = 0;
-
+        virtual bool on_atom(
+            const region_map_t<binary_blob_t> &metainfo,
+            backfill_atom_t &&atom) THROWS_NOTHING = 0;
+        virtual bool on_empty_range(
+            const region_map_t<binary_blob_t> &metainfo,
+            const key_range_t::right_bound_t &threshold) THROWS_NOTHING = 0;
+    protected:
+        virtual ~backfill_atom_consumer_t() { }
+    };
+    class backfill_pre_atom_producer_t {
+    public:
         /* `next_pre_atom()` should set `*pre_atom_out` to the next pre atom which starts
-        earlier than `threshold`, or `nullptr` if there are no more pre atoms in that
-        range. It should return `false` if the next pre atom is not available yet; this
-        has the same effect as returning `STOP_*` from `on_atom()`. */
+        earlier than `horizon`, or `nullptr` if there are no more pre atoms in that
+        range. */
         virtual bool next_pre_atom(
-            const key_range_t::right_bound_t &threshold,
-            backfill_pre_atom_t const **next_out) = 0;
+            const key_range_t::right_bound_t &horizon,
+            backfill_pre_atom_t const **next_out) THROWS_NOTHING = 0;
 
         /* The pointer given to `next_pre_atom()` should remain valid until
-        `release_pre_atom()` is called. Calls to `next_pre_atom()` will alternate with
-        calls to `release_pre_atom`. A pre atom will always be released before
-        `on_atom()` is called for any atom that is to the right of the pre atom. */
-        virtual void release_pre_atom() = 0;
+        `release_pre_atom()` is called. Every call to `next_pre_atom()` that returns
+        sets `*next_out` to a non-null value will be followed by a call to
+        `next_pre_atom()`. */
+        virtual void release_pre_atom() THROWS_NOTHING = 0;
     protected:
-        virtual ~send_backfill_callback_t() { }
+        virtual ~backfill_pre_atom_producer_t() { }
     };
     virtual void send_backfill(
             const region_map_t<state_timestamp_t> &start_point,
-            send_backfill_callback_t *callback,
+            backfill_pre_atom_producer_t *pre_atom_producer,
+            backfill_atom_consumer_t *atom_consumer,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
     /* Applies backfill atom(s) sent by `send_backfill()`. The `new_metainfo` is applied
     atomically as the backfill atoms are applied. */
-    class receive_backfill_callback_t {
+    class backfill_atom_producer_t {
     public:
-        virtual void next_atom(backfill_atom_t const **next_out) = 0;
-        virtual void release_atom();
+        virtual bool next_atom(
+            const key_range_t::right_bound_t &horizon,
+            region_map_t<binary_blob_t> const **metainfo_out,
+            backfill_atom_t const **atom_out) THROWS_NOTHING = 0;
+        virtual void release_atom() THROWS_NOTHING = 0;
+        virtual void on_commit(
+            const key_range_t::right_bound_t &threshold) THROWS_NOTHING = 0;
     protected:
         virtual ~receive_backfill_callback_t() { }
     };
     virtual void receive_backfill(
-            const region_map_t<binary_blob_t> &new_metainfo,
+            const region_t &region,
             receive_backfill_callback_t *callback,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;

@@ -35,59 +35,37 @@ private:
         client_t(backfiller_t *, const backfiller_bcard_t::intro_1_t &intro, signal_t *);
 
     private:
-        class session_t {
-        public:
-            session_t(
-                client_t *_parent,
-                const backfiller_bcard_t::session_id_t &_session_id,
-                const key_range_t::right_bound_t &_);
-            void on_ack_atoms(size_t size);
-            const backfiller_bcard_t::session_id_t session_id;
-            scoped_ptr_t<cond_t> pulse_when_pre_atoms_arrive;
-
-        private:
-            void run(auto_drainer_t::lock_t keepalive);
-            client_t *parent;
-            key_range_t::right_bound_t threshold;
-            new_semaphore_t atom_throttler;
-            new_semaphore_acq_t atom_throttler_acq;
-            backfill_atom_seq_t<backfill_pre_atom_t> pre_atoms_consumed;
-            auto_drainer_t drainer;
-        };
-
+        class session_t;
+        void on_begin_session(
+            signal_t *interruptor,
+            const fifo_enforcer_write_token_t &write_token,
+            const key_range_t::right_bound_t &threshold);
+        void on_end_session(
+            signal_t *interruptor,
+            const fifo_enforcer_write_token_t &write_token);
+        void on_ack_atoms(
+            signal_t *interruptor,
+            const fifo_enforcer_write_token_t &write_token,
+            size_t mem_size);
         void on_pre_atoms(
             signal_t *interruptor,
             const fifo_enforcer_write_token_t &write_token,
             const backfill_atom_seq_t<backfill_pre_atom_t> &chunk);
-        void on_go(
-            signal_t *interruptor,
-            const fifo_enforcer_write_token_t &write_token,
-            const backfiller_bcard_t::session_id_t &session_id,
-            const key_range_t::right_bound_t &threshold);
-        void on_stop(
-            signal_t *interruptor,
-            const fifo_enforcer_write_token_t &write_token,
-            const backfiller_bcard_t::session_id_t &session_id,
-            const key_range_t::right_bound_t &threshold);
-        void on_ack_atoms(
-            signal_t *interruptor,
-            const fifo_enforcer_write_token_t &write_token,
-            const backfiller_bcard_t::session_id_t &session_id,
-            const key_range_t::right_bound_t &threshold,
-            size_t size);
 
         backfiller_t *const parent;
         backfiller_bcard_t::intro_1_t const intro;
         region_t const full_region;
-        region_map_t<state_timestamp_t> common_version;
-
-        backfill_atom_seq_t<backfill_pre_atom_t> pre_atoms_past, pre_atoms_future;
-
-        key_range_t::right_bound_t acked_threshold;
-        scoped_ptr_t<session_t> current_session;
 
         fifo_enforcer_source_t fifo_source;
         fifo_enforcer_sink_t fifo_sink;
+
+        region_map_t<state_timestamp_t> common_version;
+        backfill_atom_seq_t<backfill_pre_atom_t> pre_atoms;
+
+        scoped_ptr_t<session_t> current_session;
+
+        new_semaphore_t atom_throttler;
+        new_semaphore_acq_t atom_throttler_acq;
 
         backfiller_bcard_t::pre_atoms_mailbox_t pre_atoms_mailbox;
         backfiller_bcard_t::go_mailbox_t go_mailbox;

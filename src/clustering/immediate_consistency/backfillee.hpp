@@ -39,8 +39,8 @@ class backfillee_t : public home_thread_mixin_debug_only_t {
 public:
     class callback_t {
     public:
-        virtual store_view_t::backfill_continue_t on_progress(
-            const region_map_t<version_t> &chunk) = 0;
+        virtual bool on_progress(
+            const region_map_t<version_t> &chunk) THROWS_ONLY(...) = 0;
     protected:
         virtual ~callback_t() { }
     };
@@ -55,42 +55,31 @@ public:
         signal_t *interruptor);
 
     /* Pulsing `interruptor` invalidates the `backfillee_t`. */
-    void go(callback_t *callback, signal_t *interruptor);
+    void go(callback_t *callback, const key_range_t::right_bound_t &start_point,
+        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
 private:
-    class session_info_t {
-    public:
-        callback_t *callback;
-        bool callback_returned_false;
-        backfiller_bcard_t::session_id_t session_id;
-        cond_t stop;
-        new_mutex_t mutex;
-        auto_drainer_t drainer;
-    };
+    class session_t;
+
+    void on_atoms(
+        signal_t *interruptor,
+        const fifo_enforcer_write_token_t &fifo_token,
+        const region_map_t<version_t> &version,
+        backfill_atom_seq_t<backfill_atom_t> &&chunk);
+
+    void send_pre_atoms(
+        auto_drainer_t::lock_t keepalive);
 
     void on_ack_pre_atoms(
         signal_t *interruptor,
         const fifo_enforcer_write_token_t &fifo_token,
         size_t chunk_size);
 
-    void on_atoms(
-        signal_t *interruptor,
-        const fifo_enforcer_write_token_t &fifo_token,
-        const backfiller_bcard_t::session_id_t &session_id,
-        const region_map_t<version_t> &version,
-        const backfill_atom_seq_t<backfill_atom_t> &chunk);
-
-    void send_pre_atoms(
-        auto_drainer_t::lock_t keepalive);
-
     mailbox_manager_t *const mailbox_manager;
     branch_history_manager_t *const branch_history_manager;
     store_view_t *const store;
 
-    /* `completed_threshold` is the point that we've completely backfilled up to. */
-    key_range_t::right_bound_t completed_threshold;
-
-    session_info_t *current_session;
+    backfiller_bcard_t::intro_2_t intro;
 
     fifo_enforcer_source_t fifo_source;
     fifo_enforcer_sink_t fifo_sink;
@@ -101,11 +90,12 @@ private:
     new_semaphore_t pre_atom_throttler;
     new_semaphore_acq_t pre_atom_throttler_acq;
 
-    backfiller_bcard_t::intro_2_t intro;
+    scoped_ptr_t<session_t> current_session;
 
     auto_drainer_t drainer;
     backfiller_bcard_t::ack_pre_atoms_mailbox_t ack_pre_atoms_mailbox;
     backfiller_bcard_t::atoms_mailbox_t atoms_mailbox;
+    backfiller_bcard_t::ack_end_session_mailbox_t ack_end_session_mailbox;
     scoped_ptr_t<registrant_t<backfiller_bcard_t::intro_1_t> > registrant;
 };
 
