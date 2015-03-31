@@ -46,8 +46,10 @@ private:
             public intrusive_list_node_t<client_t>,
             private repeating_timer_callback_t {
     public:
-        client_t(multi_throttling_server_t *p,
-                const client_business_card_t &client_bc) :
+        client_t(
+                multi_throttling_server_t *p,
+                const client_business_card_t &client_bc,
+                UNUSED signal_t *interruptor) :
             parent(p),
             target_tickets(0), held_tickets(0), in_use_tickets(0),
 

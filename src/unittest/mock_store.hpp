@@ -66,17 +66,18 @@ public:
 
     void send_backfill_pre(
             const region_map_t<state_timestamp_t> &start_point,
-            send_backfill_pre_callback_t *callback,
+            backfill_pre_atom_consumer_t *pre_atom_consumer,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
     void send_backfill(
             const region_map_t<state_timestamp_t> &start_point,
-            send_backfill_callback_t *callback,
+            backfill_pre_atom_producer_t *pre_atom_producer,
+            backfill_atom_consumer_t *atom_consumer,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
     void receive_backfill(
-            const region_map_t<binary_blob_t> &new_metainfo,
-            receive_backfill_callback_t *callback,
+            const region_t &region,
+            backfill_atom_producer_t *atom_producer,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
 

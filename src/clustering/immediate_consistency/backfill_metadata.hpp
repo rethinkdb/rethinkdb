@@ -15,8 +15,6 @@ public:
     /* The backfillee sends the backfiller a `backfiller_bcard_t::intro_1_t` to start the
     backfill. The backfiller responds with a `backfiller_bcard_t::intro_2_t`. */
 
-    typedef uuid_u session_id_t;
-
     typedef mailbox_t<void(
         fifo_enforcer_write_token_t,
         backfill_atom_seq_t<backfill_pre_atom_t>
@@ -28,7 +26,7 @@ public:
         )> begin_session_mailbox_t;
 
     typedef mailbox_t<void(
-        fifo_enforcer_write_token_t,
+        fifo_enforcer_write_token_t
         )> end_session_mailbox_t;
 
     typedef mailbox_t<void(
@@ -40,16 +38,15 @@ public:
     public:
         region_map_t<state_timestamp_t> common_version;
         pre_atoms_mailbox_t::address_t pre_atoms_mailbox;
-        go_mailbox_t::address_t go_mailbox;
-        stop_mailbox_t::address_t stop_mailbox;
+        begin_session_mailbox_t::address_t begin_session_mailbox;
+        end_session_mailbox_t::address_t end_session_mailbox;
         ack_atoms_mailbox_t::address_t ack_atoms_mailbox;
     };
 
     typedef mailbox_t<void(
         fifo_enforcer_write_token_t,
-        session_id_t,
         region_map_t<version_t>,
-        backfill_atom_seq_t<backfill_pre_atom_t>
+        backfill_atom_seq_t<backfill_atom_t>
         )> atoms_mailbox_t;
 
     typedef mailbox_t<void(

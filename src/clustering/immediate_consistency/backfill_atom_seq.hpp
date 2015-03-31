@@ -20,7 +20,8 @@ public:
 
     key_range_t::right_bound_t get_left_key() const { return left_key; }
     key_range_t::right_bound_t get_right_key() const { return right_key; }
-    size_t get_mem_size() const { return mem_size; }
+    uint64_t get_beg_hash() const { return beg_hash; }
+    uint64_t get_end_hash() const { return end_hash; }
 
     region_t get_region() const {
         if (left_key == right_key) {
@@ -32,6 +33,8 @@ public:
             return region_t(beg_hash, end_hash, kr);
         }
     }
+
+    size_t get_mem_size() const { return mem_size; }
 
     typename std::list<atom_t>::const_iterator begin() const { return atoms.begin(); }
     typename std::list<atom_t>::const_iterator end() const { return atoms.end(); }
@@ -50,17 +53,17 @@ public:
             return false;
         }
         if (atoms.empty() || key_range_t::right_bound_t(
-                front().get_region().inner.left) >= threshold) {
-            *next_out = nullptr;
+                front().get_range().left) >= threshold) {
+            *first_out = nullptr;
         } else {
-            *next_out = &front();
+            *first_out = &front();
         }
         return true;
     }
 
     /* Deletes the leftmost atom in the seq. */
     void pop_front() {
-        left_key = atoms.front().get_region().inner.right;
+        left_key = atoms.front().get_range().right;
         mem_size -= atoms.front().get_mem_size();
         atoms.pop_front();
     }
@@ -71,7 +74,7 @@ public:
         guarantee(beg_hash == other->beg_hash && end_hash == other->end_hash);
         guarantee(get_left_key() == other->get_right_key());
         size_t atom_size = atoms.front().get_mem_size();
-        left_key = atoms.front().get_region().inner.right;
+        left_key = atoms.front().get_range().right;
         other->right_key = left_key;
         mem_size -= atom_size;
         other->mem_size += atom_size;
@@ -84,16 +87,16 @@ public:
         guarantee(cut >= get_left_key());
         guarantee(cut <= get_right_key());
         while (!atoms.empty()) {
-            region_t reg = atoms.begin().get_region();
-            if (reg.inner.right <= cut) {
+            key_range_t range = atoms.front().get_range();
+            if (range.right <= cut) {
                 mem_size -= atoms.front().get_mem_size();
                 atoms.pop_front();
-            } else if (key_range_t::right_bound_t(reg.inner.left) >= cut) {
+            } else if (key_range_t::right_bound_t(range.left) >= cut) {
                 break;
             } else {
-                reg.inner.left = cut.key;
+                range.left = cut.key;
                 mem_size -= atoms.front().get_mem_size();
-                atoms.front() = atoms.front().mask(reg);
+                atoms.front().mask_in_place(range);
                 mem_size += atoms.front().get_mem_size();
                 break;
             }
@@ -104,10 +107,9 @@ public:
     /* Appends an atom to the end of the seq. Atoms must be appended in lexicographical
     order. */
     void push_back(atom_t &&atom) {
-        region_t atom_region = atom.get_region();
-        guarantee(atom_region.beg == beg_hash && atom_region.end == end_hash);
-        guarantee(key_range_t::right_bound_t(atom_region.inner.left) >= right_key);
-        right_key = atom_region.inner.right;
+        key_range_t atom_range = atom.get_range();
+        guarantee(key_range_t::right_bound_t(atom_range.left) >= right_key);
+        right_key = atom_range.right;
         mem_size += atom.get_mem_size();
         atoms.push_back(std::move(atom));
     }
@@ -141,6 +143,9 @@ private:
     size_t mem_size;
 
     std::list<atom_t> atoms;
+
+    RDB_MAKE_ME_SERIALIZABLE_6(backfill_atom_seq_t,
+        beg_hash, end_hash, left_key, right_key, mem_size, atoms);
 };
 
 #endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_HPP_ */

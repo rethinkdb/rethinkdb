@@ -90,7 +90,7 @@ binary blob (`binary_blob_t`).
 class store_view_t : public home_thread_mixin_t {
 public:
     virtual ~store_view_t() {
-        assert_thread();
+        home_thread_mixin_t::assert_thread();
     }
 
     region_t get_region() {
@@ -143,7 +143,7 @@ public:
 
     /* `send_backfill_pre()` expresses the keys that have changed since `start_point` as
     a series of `backfill_pre_atom_t` objects, ignoring the values of the changed keys.
-    It passes the atoms to `callback`, aborting if `on_pre_atom()` returns `STOP_*`. */
+    It passes the atoms to `callback`, aborting if `on_pre_atom()` returns `false`. */
     class backfill_pre_atom_consumer_t {
     public:
         virtual bool on_pre_atom(
@@ -153,7 +153,7 @@ public:
     protected:
         virtual ~backfill_pre_atom_consumer_t() { }
     };
-    virtual bool send_backfill_pre(
+    virtual void send_backfill_pre(
             const region_map_t<state_timestamp_t> &start_point,
             backfill_pre_atom_consumer_t *pre_atom_consumer,
             signal_t *interruptor)
@@ -211,11 +211,11 @@ public:
         virtual void on_commit(
             const key_range_t::right_bound_t &threshold) THROWS_NOTHING = 0;
     protected:
-        virtual ~receive_backfill_callback_t() { }
+        virtual ~backfill_atom_producer_t() { }
     };
     virtual void receive_backfill(
             const region_t &region,
-            receive_backfill_callback_t *callback,
+            backfill_atom_producer_t *atom_producer,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
 

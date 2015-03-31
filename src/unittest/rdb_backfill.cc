@@ -101,8 +101,6 @@ void run_backfill_test(size_t value_padding_length) {
     in_memory_branch_history_manager_t bhm2;
     cond_t interruptor;
     remote_replicator_client_t remote_replicator_client(
-        base_path_t("."),
-        &io_backender,
         &backfill_throttler,
         cluster.get_mailbox_manager(),
         generate_uuid(),
@@ -111,10 +109,7 @@ void run_backfill_test(size_t value_padding_length) {
         local_replicator.get_replica_bcard(),
         &store2.store,
         &bhm2,
-        &get_global_perfmon_collection(),
-        &order_source,
-        &interruptor,
-        nullptr);
+        &interruptor);
 
     nap(10000);
 

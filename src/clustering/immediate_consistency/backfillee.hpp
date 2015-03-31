@@ -36,6 +36,9 @@ change the `backfillee_t`'s minimum version during the backfill. Here are the de
 */
 
 class backfillee_t : public home_thread_mixin_debug_only_t {
+private:
+    class session_t;
+
 public:
     class callback_t {
     public:
@@ -53,19 +56,22 @@ public:
         store_view_t *_store,
         const backfiller_bcard_t &backfiller,
         signal_t *interruptor);
+    ~backfillee_t();
 
     /* Pulsing `interruptor` invalidates the `backfillee_t`. */
     void go(callback_t *callback, const key_range_t::right_bound_t &start_point,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
 private:
-    class session_t;
-
     void on_atoms(
         signal_t *interruptor,
         const fifo_enforcer_write_token_t &fifo_token,
-        const region_map_t<version_t> &version,
+        region_map_t<version_t> &&version,
         backfill_atom_seq_t<backfill_atom_t> &&chunk);
+
+    void on_ack_end_session(
+        signal_t *interruptor,
+        const fifo_enforcer_write_token_t &fifo_token);
 
     void send_pre_atoms(
         auto_drainer_t::lock_t keepalive);
@@ -93,9 +99,9 @@ private:
     scoped_ptr_t<session_t> current_session;
 
     auto_drainer_t drainer;
-    backfiller_bcard_t::ack_pre_atoms_mailbox_t ack_pre_atoms_mailbox;
     backfiller_bcard_t::atoms_mailbox_t atoms_mailbox;
     backfiller_bcard_t::ack_end_session_mailbox_t ack_end_session_mailbox;
+    backfiller_bcard_t::ack_pre_atoms_mailbox_t ack_pre_atoms_mailbox;
     scoped_ptr_t<registrant_t<backfiller_bcard_t::intro_1_t> > registrant;
 };
 

@@ -13,6 +13,7 @@ namespace unittest {
 
 TPTEST(ClusteringBackfill, BackfillTest) {
     order_source_t order_source;
+    cond_t non_interruptor;
 
     /* Set up two stores */
 
@@ -28,7 +29,6 @@ TPTEST(ClusteringBackfill, BackfillTest) {
         dummy_branch.region = region;
         dummy_branch.initial_timestamp = state_timestamp_t::zero();
         dummy_branch.origin = region_map_t<version_t>(region, version_t::zero());
-        cond_t non_interruptor;
         branch_history_manager.create_branch(dummy_branch_id, dummy_branch, &non_interruptor);
     }
 
@@ -37,7 +37,6 @@ TPTEST(ClusteringBackfill, BackfillTest) {
     // initialize the metainfo in a store
     store_view_t *stores[] = { &backfiller_store, &backfillee_store };
     for (size_t i = 0; i < sizeof(stores) / sizeof(stores[0]); i++) {
-        cond_t non_interruptor;
         write_token_t token;
         stores[i]->new_write_token(&token);
         stores[i]->set_metainfo(
@@ -58,7 +57,6 @@ TPTEST(ClusteringBackfill, BackfillTest) {
         for (int j = 0; j < (i < 10 ? 2 : 1); j++) {
             timestamp = timestamp.next();
 
-            cond_t non_interruptor;
             write_token_t token;
             backfiller_store.new_write_token(&token);
 
@@ -97,15 +95,24 @@ TPTEST(ClusteringBackfill, BackfillTest) {
 
     /* Run a backfill */
 
-    cond_t interruptor;
-    backfillee(
-        cluster.get_mailbox_manager(),
-        &branch_history_manager,
-        &backfillee_store,
-        backfillee_store.get_region(),
-        backfiller.get_business_card(),
-        &interruptor,
-        nullptr);
+    {
+        backfillee_t backfillee(
+            cluster.get_mailbox_manager(),
+            &branch_history_manager,
+            &backfillee_store,
+            backfiller.get_business_card(),
+            &non_interruptor);
+        class callback_t : public backfillee_t::callback_t {
+        public:
+            bool on_progress(const region_map_t<version_t> &) {
+                return true;
+            }
+        } callback;
+        backfillee.go(
+            &callback,
+            key_range_t::right_bound_t(backfillee_store.get_region().inner.left),
+            &non_interruptor);
+    }
 
     /* Make sure everything got transferred properly */
 
@@ -120,7 +127,7 @@ TPTEST(ClusteringBackfill, BackfillTest) {
 
     region_map_t<binary_blob_t> blob_backfillee_metadata;
     backfillee_store.do_get_metainfo(order_source.check_in("backfillee_store.do_get_metainfo").with_read_mode(),
-                                     &token1, &interruptor, &blob_backfillee_metadata);
+                                     &token1, &non_interruptor, &blob_backfillee_metadata);
 
     region_map_t<version_t> backfillee_metadata =
         to_version_map(blob_backfillee_metadata);
@@ -130,7 +137,7 @@ TPTEST(ClusteringBackfill, BackfillTest) {
 
     region_map_t<binary_blob_t> blob_backfiller_metadata;
     backfiller_store.do_get_metainfo(order_source.check_in("backfiller_store.do_get_metainfo").with_read_mode(),
-                                     &token2, &interruptor, &blob_backfiller_metadata);
+                                     &token2, &non_interruptor, &blob_backfiller_metadata);
 
     region_map_t<version_t> backfiller_metadata =
         to_version_map(blob_backfiller_metadata);

@@ -37,7 +37,11 @@ public:
         DEBUG_ONLY(get_domain());
     }
 
-public:
+    region_map_t(const region_map_t &) = default;
+    region_map_t(region_map_t &&) = default;
+    region_map_t &operator=(const region_map_t &) = default;
+    region_map_t &operator=(region_map_t &&) = default;
+
     region_t get_domain() const THROWS_NOTHING {
         std::vector<region_t> regions;
         for (const_iterator it = begin(); it != end(); ++it) {
@@ -101,6 +105,13 @@ public:
         std::copy(new_values.begin(), new_values.end(), std::back_inserter(updated_pairs));
 
         regions_and_values = updated_pairs;
+    }
+
+    void concat(region_map_t &&new_values) {
+        rassert(!region_overlaps(get_domain(), new_values.get_domain()));
+        regions_and_values.insert(regions_and_values.end(),
+            new_values.regions_and_values.begin(), new_values.regions_and_values.end());
+        DEBUG_ONLY(get_domain());
     }
 
     void set(const region_t &r, const value_t &v) {

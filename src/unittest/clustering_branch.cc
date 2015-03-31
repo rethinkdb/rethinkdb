@@ -17,15 +17,13 @@ namespace unittest {
 namespace {
 
 void run_with_primary(
-        std::function<void(io_backender_t *,
-                           simple_mailbox_cluster_t *,
+        std::function<void(simple_mailbox_cluster_t *,
                            primary_dispatcher_t *,
                            mock_store_t *,
                            local_replicator_t *,
                            order_source_t *)> fun) {
     order_source_t order_source;
     simple_mailbox_cluster_t cluster;
-    io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
     cond_t interruptor;
 
     primary_dispatcher_t primary_dispatcher(
@@ -42,8 +40,7 @@ void run_with_primary(
         &branch_history_manager,
         &interruptor);
 
-    fun(&io_backender,
-        &cluster,
+    fun(&cluster,
         &primary_dispatcher,
         &initial_store,
         &local_replicator,
@@ -56,7 +53,6 @@ void run_with_primary(
 local replica. */
 
 void run_read_write_test(
-        UNUSED io_backender_t *io_backender,
         UNUSED simple_mailbox_cluster_t *cluster,
         primary_dispatcher_t *dispatcher,
         UNUSED mock_store_t *store,
@@ -116,7 +112,6 @@ static void write_to_dispatcher(
 }
 
 void run_backfill_test(
-        io_backender_t *io_backender,
         simple_mailbox_cluster_t *cluster,
         primary_dispatcher_t *dispatcher,
         mock_store_t *store1,
@@ -144,8 +139,6 @@ void run_backfill_test(
     in_memory_branch_history_manager_t bhm2;
     cond_t interruptor;
     remote_replicator_client_t remote_replicator_client(
-        base_path_t("."),
-        io_backender,
         &backfill_throttler,
         cluster->get_mailbox_manager(),
         generate_uuid(),
@@ -154,10 +147,7 @@ void run_backfill_test(
         local_replicator->get_replica_bcard(),
         &store2,
         &bhm2,
-        &get_global_perfmon_collection(),
-        order_source,
-        &interruptor,
-        nullptr);
+        &interruptor);
 
     nap(100);
 

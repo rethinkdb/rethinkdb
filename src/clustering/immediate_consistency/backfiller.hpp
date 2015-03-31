@@ -50,7 +50,7 @@ private:
         void on_pre_atoms(
             signal_t *interruptor,
             const fifo_enforcer_write_token_t &write_token,
-            const backfill_atom_seq_t<backfill_pre_atom_t> &chunk);
+            backfill_atom_seq_t<backfill_pre_atom_t> &&chunk);
 
         backfiller_t *const parent;
         backfiller_bcard_t::intro_1_t const intro;
@@ -68,8 +68,8 @@ private:
         new_semaphore_acq_t atom_throttler_acq;
 
         backfiller_bcard_t::pre_atoms_mailbox_t pre_atoms_mailbox;
-        backfiller_bcard_t::go_mailbox_t go_mailbox;
-        backfiller_bcard_t::stop_mailbox_t stop_mailbox;
+        backfiller_bcard_t::begin_session_mailbox_t begin_session_mailbox;
+        backfiller_bcard_t::end_session_mailbox_t end_session_mailbox;
         backfiller_bcard_t::ack_atoms_mailbox_t ack_atoms_mailbox;
     };
 

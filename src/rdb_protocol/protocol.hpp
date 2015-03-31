@@ -691,25 +691,43 @@ RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(write_t);
 
 class backfill_pre_atom_t {
 public:
+    key_range_t get_range() const {
+        return range;
+    }
+    size_t get_mem_size() const {
+        return sizeof(backfill_pre_atom_t);
+    }
+    void mask_in_place(const key_range_t &m) {
+        range = region_intersection(m, range);
+    }
     key_range_t range;
 };
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(backfill_pre_atom_t);
 
 class backfill_atom_t {
 public:
-    class key_t {
+    class pair_t {
     public:
         store_key_t key;
         repli_timestamp_t recency;
         ql::datum_t value;   /* empty for deletion */
     };
-    class range_t {
-    public:
-        key_range_t keys;
-        std::vector<key_t> content;
-    };
-    typedef boost::variant<key_t, range_t> value_t;
-    value_t value;
+    key_range_t get_range() const {
+        return range;
+    }
+    size_t get_mem_size() const {
+        /* There's no easy way to estimate the size of a `datum_t`, so we just pretend
+        it's probably about a kilobyte.
+        RSI(raft): This could blow up badly if the documents are actually much larger
+        than a kilobyte. */
+        return sizeof(backfill_atom_t) + pairs.size() * (sizeof(pair_t) + KILOBYTE);
+    }
+    void mask_in_place(const key_range_t &m);
+    key_range_t range;
+    std::vector<pair_t> pairs;
 };
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(backfill_atom_t::pair_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(backfill_atom_t);
 
 class store_t;
 
