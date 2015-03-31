@@ -366,15 +366,12 @@ void find_keyvalue_location_for_write(
         superblock_t *superblock, const btree_key_t *key,
         const value_deleter_t *balancing_detacher,
         keyvalue_location_t *keyvalue_location_out,
-        btree_stats_t *stats,
         profile::trace_t *trace,
         promise_t<superblock_t *> *pass_back_superblock) THROWS_NOTHING {
     keyvalue_location_out->superblock = superblock;
     keyvalue_location_out->pass_back_superblock = pass_back_superblock;
 
     keyvalue_location_out->stat_block = keyvalue_location_out->superblock->get_stat_block_id();
-
-    keyvalue_location_out->stats = stats;
 
     buf_lock_t last_buf;
     buf_lock_t buf;
@@ -587,9 +584,6 @@ void apply_keyvalue_change(
                          tstamp,
                          km_proof);
         }
-
-        kv_loc->stats->pm_keys_set.record();
-        kv_loc->stats->pm_total_keys_set += 1;
     } else {
         // Delete the value if it's there.
         if (kv_loc->there_originally_was_value) {
@@ -615,8 +609,6 @@ void apply_keyvalue_change(
 
             }
             population_change = -1;
-            kv_loc->stats->pm_keys_set.record();
-            kv_loc->stats->pm_total_keys_set += 1;
         } else {
             population_change = 0;
         }
