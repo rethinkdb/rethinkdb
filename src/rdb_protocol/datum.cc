@@ -415,7 +415,8 @@ inline void fail_if_invalid(reql_version_t reql_version, const std::string &stri
         case reql_version_t::v1_14: // v1_15 is the same as v1_14
             break;
         case reql_version_t::v1_16:
-        case reql_version_t::v2_0_is_latest:
+        case reql_version_t::v2_0:
+        case reql_version_t::v2_1_is_latest:
             utf8::reason_t reason;
             if (!utf8::is_valid(string, &reason)) {
                 int truncation_length = std::min<size_t>(reason.position, 20);
@@ -438,7 +439,8 @@ inline void fail_if_invalid(reql_version_t reql_version, const char *string)
         case reql_version_t::v1_14: // v1_15 is the same as v1_14
             break;
         case reql_version_t::v1_16:
-        case reql_version_t::v2_0_is_latest:
+        case reql_version_t::v2_0:
+        case reql_version_t::v2_1_is_latest:
             utf8::reason_t reason;
             if (!utf8::is_valid(string, &reason)) {
                 int truncation_length = std::min<size_t>(reason.position, 20);
@@ -1068,7 +1070,8 @@ std::string datum_t::print_secondary(reql_version_t reql_version,
         break;
     case reql_version_t::v1_14: // v1_15 is the same as v1_14
     case reql_version_t::v1_16:
-    case reql_version_t::v2_0_is_latest:
+    case reql_version_t::v2_0:
+    case reql_version_t::v2_1_is_latest:
         secondary_key_string.append(1, '\x00');
         break;
     default:
@@ -1086,7 +1089,8 @@ skey_version_t skey_version_from_reql_version(reql_version_t rv) {
     case reql_version_t::v1_14: // v1_15 == v1_14
         return skey_version_t::pre_1_16;
     case reql_version_t::v1_16:
-    case reql_version_t::v2_0_is_latest:
+    case reql_version_t::v2_0:
+    case reql_version_t::v2_1_is_latest:
         return skey_version_t::post_1_16;
     default: unreachable();
     }
@@ -1587,7 +1591,8 @@ int datum_t::cmp(reql_version_t reql_version, const datum_t &rhs) const {
         return v1_13_cmp(rhs);
     case reql_version_t::v1_14: // v1_15 is the same as v1_14
     case reql_version_t::v1_16:
-    case reql_version_t::v2_0_is_latest:
+    case reql_version_t::v2_0:
+    case reql_version_t::v2_1_is_latest:
         return modern_cmp(rhs);
     default:
         unreachable();
@@ -2015,7 +2020,8 @@ void datum_array_builder_t::insert(reql_version_t reql_version, size_t index,
         break;
     case reql_version_t::v1_14: // v1_15 is the same as v1_14
     case reql_version_t::v1_16:
-    case reql_version_t::v2_0_is_latest:
+    case reql_version_t::v2_0:
+    case reql_version_t::v2_1_is_latest:
         rcheck_array_size_datum(vector, limits, base_exc_t::GENERIC);
         break;
     default:
@@ -2047,7 +2053,8 @@ void datum_array_builder_t::splice(reql_version_t reql_version, size_t index,
         break;
     case reql_version_t::v1_14: // v1_15 is the same as v1_14
     case reql_version_t::v1_16:
-    case reql_version_t::v2_0_is_latest:
+    case reql_version_t::v2_0:
+    case reql_version_t::v2_1_is_latest:
         rcheck_array_size_datum(vector, limits, base_exc_t::GENERIC);
         break;
     default:
@@ -2070,7 +2077,8 @@ void datum_array_builder_t::erase_range(reql_version_t reql_version,
         break;
     case reql_version_t::v1_14: // v1_15 is the same as v1_14
     case reql_version_t::v1_16:
-    case reql_version_t::v2_0_is_latest:
+    case reql_version_t::v2_0:
+    case reql_version_t::v2_1_is_latest:
         rcheck_datum(start <= vector.size(),
                      base_exc_t::NON_EXISTENCE,
                      strprintf("Index `%zu` out of bounds for array of size: `%zu`.",

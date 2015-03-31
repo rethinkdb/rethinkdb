@@ -51,88 +51,19 @@ inline unsigned int extract_and_shift(char c, unsigned int bits, unsigned int am
 }
 
 template <class Iterator>
-inline bool check_continuation(const Iterator &p, const Iterator &end,
-                               size_t position, reason_t *reason) {
-    if (p == end) {
-        reason->position = position;
-        reason->explanation = "Expected continuation byte, saw end of string";
-        return false;
-    }
-    if (!is_continuation(*p)) {
-        reason->position = position;
-        reason->explanation = "Expected continuation byte, saw something else";
-        return false;
-    }
-    return true;
-}
-
-template <class Iterator>
-inline bool is_valid_internal(const Iterator &begin, const Iterator &end,
-                              reason_t *reason) {
-    Iterator p = begin;
-    size_t position = 0;
-    while (p != end) {
-        if (is_standalone(*p)) {
-            // 0xxxxxxx - ASCII character
-            // don't need to do anything
-        } else if (is_twobyte_start(*p)) {
-            // 110xxxxx - two character multibyte
-            unsigned int result = extract_and_shift(*p, HIGH_THREE_BITS, 6);
-            ++p; ++position;
-            if (!check_continuation(p, end, position, reason)) return false;
-            result |= continuation_data(*p);
-            if (result < 0x0080) {
-                // can be represented in one byte, so using two is illegal
-                reason->position = position;
-                reason->explanation = "Overlong encoding seen";
-                return false;
-            }
-        } else if (is_threebyte_start(*p)) {
-            // 1110xxxx - three character multibyte
-            unsigned int result = extract_and_shift(*p, HIGH_FOUR_BITS, 12);
-            ++p; ++position;
-            if (!check_continuation(p, end, position, reason)) return false;
-            result |= continuation_data(*p) << 6;
-            ++p; ++position;
-            if (!check_continuation(p, end, position, reason)) return false;
-            result |= continuation_data(*p);
-            if (result < 0x0800) {
-                // can be represented in two bytes, so using three is illegal
-                reason->position = position;
-                reason->explanation = "Overlong encoding seen";
-                return false;
-            }
-        } else if (is_fourbyte_start(*p)) {
-            // 11110xxx - four character multibyte
-            unsigned int result = extract_and_shift(*p, HIGH_FIVE_BITS, 18);
-            ++p; ++position;
-            if (!check_continuation(p, end, position, reason)) return false;
-            result |= continuation_data(*p) << 12;
-            ++p; ++position;
-            if (!check_continuation(p, end, position, reason)) return false;
-            result |= continuation_data(*p) << 6;
-            ++p; ++position;
-            if (!check_continuation(p, end, position, reason)) return false;
-            result |= continuation_data(*p);
-            if (result < 0x10000) {
-                // can be represented in three bytes, so using four is illegal
-                reason->position = position;
-                reason->explanation = "Overlong encoding seen";
-                return false;
-            }
-            if (result > 0x10FFFF) {
-                // UTF-8 defined by RFC 3629 to end at U+10FFFF now
-                reason->position = position;
-                reason->explanation = "Non-Unicode character encoded (beyond U+10FFFF)";
-                return false;
-            }
-        } else {
-            // high bit character outside of a surrogate context
-            reason->position = position;
-            reason->explanation = "Invalid initial byte seen";
+inline bool is_valid_internal(Iterator begin, Iterator end, reason_t *reason) {
+    char32_t codepoint;
+    Iterator cbegin = begin;
+    Iterator cend = begin;
+    while (cbegin != end) {
+        cend = next_codepoint(cbegin, end, &codepoint, reason);
+        if (*(reason->explanation) != 0) {
+            // need to correct offset, because `next_codepoint`
+            // computes from `cbegin` not `begin`
+            reason->position += cbegin - begin;
             return false;
         }
-        ++p; ++position;
+        cbegin = cend;
     }
     return true;
 }
@@ -163,5 +94,159 @@ bool is_valid(const std::string &str, reason_t *reason) {
 bool is_valid(const char *start, const char *end, reason_t *reason) {
     return is_valid_internal(start, end, reason);
 }
+
+bool is_valid(const char *str, reason_t *reason) {
+    size_t len = strlen(str);
+    const char *end = str + len;
+    return is_valid_internal(str, end, reason);
+}
+
+template <class Iterator>
+void iterator_t<Iterator>::advance(void) {
+    if (seen_end) return;
+    if (position == end) {
+         // would be advancing to the last position
+        seen_end = true;
+        last_seen = 0;
+        reason.position = 0;
+        reason.explanation = "";
+        return;
+    }
+
+    Iterator new_position = next_codepoint(position, end, &last_seen, &reason);
+    if (saw_error()) {
+        // need to correct offset, because `next_codepoint` computes from `position`
+        reason.position += position - start;
+    }
+    position = new_position;
+}
+
+template <class Iterator>
+Iterator fail(const char *explanation, Iterator start, Iterator position,
+              char32_t *codepoint, reason_t *reason) {
+    reason->explanation = explanation;
+    reason->position = position - start - 1; // -1 corrects for postincrement
+    // U+FFFD is the "replacement character", commonly used
+    // for parsing errors like this
+    *codepoint = U'\uFFFD';
+    return position;
+}
+
+template <class Iterator>
+const char *is_valid_continuation_byte(Iterator position, Iterator end) {
+    if (position == end) {
+        return "Expected continuation byte, saw end of string";
+    } else if (!is_continuation(*position)) {
+        return "Expected continuation byte, saw something else";
+    } else {
+        return 0;
+    }
+}
+
+template <class Iterator>
+Iterator next_codepoint(Iterator start, Iterator end, char32_t *codepoint,
+                        reason_t *reason) {
+    Iterator position = start;
+    reason->explanation = "";
+    reason->position = 0;
+
+    if (position == end) {
+        return position;
+    }
+
+    char current = *position++;
+    const char *explanation;
+
+    if (is_standalone(current)) {
+        // 0xxxxxxx - ASCII character
+        *codepoint = current;
+        return position;
+    } else if (is_twobyte_start(current)) {
+        // 110xxxxx - two character multibyte
+        *codepoint = extract_and_shift(current, HIGH_THREE_BITS, 6);
+        explanation = is_valid_continuation_byte(position, end);
+        if (explanation != 0) {
+            return fail(explanation, start, position, codepoint, reason);
+        }
+        *codepoint |= continuation_data(*position++);
+        if (*codepoint < 0x0080) {
+            // Not minimum bytes required to represent character, so wrong
+            return fail("Overlong encoding seen",
+                        start, position, codepoint, reason);
+        } else {
+            return position;
+        }
+    } else if (is_threebyte_start(current)) {
+        // 1110xxxx - three character multibyte
+        *codepoint = extract_and_shift(current, HIGH_FOUR_BITS, 12);
+        explanation = is_valid_continuation_byte(position, end);
+        if (explanation != 0) {
+            return fail(explanation, start, position, codepoint, reason);
+        }
+        *codepoint |= continuation_data(*position++) << 6;
+        explanation = is_valid_continuation_byte(position, end);
+        if (explanation != 0) {
+            return fail(explanation, start, position, codepoint, reason);
+        }
+        *codepoint |= continuation_data(*position++);
+        if (*codepoint < 0x0800) {
+            // Not minimum bytes required to represent character, so wrong
+            return fail("Overlong encoding seen",
+                        start, position, codepoint, reason);
+        } else {
+            return position;
+        }
+    } else if (is_fourbyte_start(current)) {
+        // 11110xxx - four character multibyte
+        *codepoint = extract_and_shift(current, HIGH_FIVE_BITS, 18);
+        explanation = is_valid_continuation_byte(position, end);
+        if (explanation != 0) {
+            return fail(explanation, start, position, codepoint, reason);
+        }
+        *codepoint |= continuation_data(*position++) << 12;
+        explanation = is_valid_continuation_byte(position, end);
+        if (explanation != 0) {
+            return fail(explanation, start, position, codepoint, reason);
+        }
+        *codepoint |= continuation_data(*position++) << 6;
+        explanation = is_valid_continuation_byte(position, end);
+        if (explanation != 0) {
+            return fail(explanation, start, position, codepoint, reason);
+        }
+        *codepoint |= continuation_data(*position++);
+        if (*codepoint < 0x10000) {
+            // Not minimum bytes required to represent character, so wrong
+            return fail("Overlong encoding seen",
+                        start, position, codepoint, reason);
+        } else if (*codepoint > 0x10FFFF) {
+            // UTF-8 defined by RFC 3629 to end at U+10FFFF, as Unicode does
+            return fail("Non-Unicode character encoded (beyond U+10FFFF)",
+                        start, position, codepoint, reason);
+        } else {
+            return position;
+        }
+    } else {
+        // high bit character outside of a surrogate context
+        return fail("Invalid initial byte seen", start, position,
+                    codepoint, reason);
+    }
+}
+
+template const char *next_codepoint<const char *>(const char *start,
+                                                  const char *end,
+                                                  char32_t *codepoint,
+                                                  reason_t *reason);
+template std::string::iterator
+next_codepoint<std::string::iterator>(std::string::iterator start,
+                                      std::string::iterator end,
+                                      char32_t *codepoint, reason_t *reason);
+template std::string::const_iterator
+next_codepoint<std::string::const_iterator>(std::string::const_iterator start,
+                                            std::string::const_iterator end,
+                                            char32_t *codepoint,
+                                            reason_t *reason);
+
+template class iterator_t<std::string::const_iterator>;
+template class iterator_t<const char *>;
 
 } // namespace utf8

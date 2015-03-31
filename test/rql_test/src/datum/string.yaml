@@ -11,9 +11,9 @@ tests:
       ot: "\"str\""
 
     # Unicode
-    
+
     # Python supports unicode strings with the u'' pattern, except 3.0-3.2
-    - py: 
+    - py:
         cd: r.expr(u'str')
         ot: u'str'
       py3.0: r.expr('str')
@@ -21,7 +21,7 @@ tests:
       py3.2: r.expr('str')
       cd: []
       ot: "'str'"
-      
+
     - py:
         cd: "r.expr(u'こんにちは')"
         ot: "u'こんにちは'"
@@ -233,3 +233,51 @@ tests:
       ot: ("ABC-DEF-GHJ")
     - cd: r.expr("abc-dEf-GHJ").downcase()
       ot: ("abc-def-ghj")
+
+    # Same 3.0-3.2 caveats
+    - py:
+        cd: r.expr(u"f\u00e9oo").split("")
+        ot: ([u"f", u"\u00e9", u"o", u"o"])
+      py3.0: r.expr("f\u00e9oo").split("")
+      py3.1: r.expr("f\u00e9oo").split("")
+      py3.2: r.expr("f\u00e9oo").split("")
+      cd: r.expr("f\u00e9oo").split("")
+      ot: (["f", "\u00e9", "o", "o"])
+
+    - py:
+        cd: r.expr(u"fe\u0301oo").split("")
+        ot: ([u"f", u"e\u0301", u"o", u"o"])
+      py3.0: r.expr("fe\u0301oo").split("")
+      py3.1: r.expr("fe\u0301oo").split("")
+      py3.2: r.expr("fe\u0301oo").split("")
+      cd: r.expr("fe\u0301oo").split("")
+      ot: (["f", "e\u0301", "o", "o"])
+
+    ## Unicode spacing characters.
+
+    ## original set from previous work:
+    - py:
+        cd: r.expr(u"foo bar\tbaz\nquux\rfred\u000bbarney\u000cwilma").split()
+        ot: (["foo", "bar", "baz", "quux", "fred", "barney", "wilma"])
+      py3.0: r.expr("foo bar\tbaz\nquux\rfred\u000bbarney\u000cwilma").split()
+      py3.1: r.expr("foo bar\tbaz\nquux\rfred\u000bbarney\u000cwilma").split()
+      py3.2: r.expr("foo bar\tbaz\nquux\rfred\u000bbarney\u000cwilma").split()
+      cd: r.expr("foo bar\tbaz\nquux\rfred\u000bbarney\u000cwilma").split()
+      ot: (["foo", "bar", "baz", "quux", "fred", "barney", "wilma"])
+
+    ## some specialized Unicode horrors:
+    ## - U+00A0 is nonbreaking space and is in the Zs category
+    ## - U+0085 is the next line character and is not in the Zs category but is considered whitespace
+    ## - U+2001 is em quad space and is in the Zs category
+    ## - U+200B is a zero width space and is not in the Zs category and is not considered whitespace
+    ## - U+2060 is a word joining zero width nonbreaking space and is NOT in any of the Z categories
+    ## - U+2028 is a line separator and is in the Zl category
+    ## - U+2029 is a paragraph separator and is in the Zp category
+    - py:
+        cd: r.expr(u"foo\u00a0bar\u2001baz\u2060quux\u2028fred\u2028barney\u2029wilma\u0085betty\u200b").split()
+        ot: (["foo", "bar", u"baz\u2060quux", "fred", "barney", "wilma", u"betty\u200b"])
+      py3.0: r.expr("foo\u00a0bar\u2001baz\u2060quux\u2028fred\u2028barney\u2029wilma\u0085betty\u200b").split()
+      py3.1: r.expr("foo\u00a0bar\u2001baz\u2060quux\u2028fred\u2028barney\u2029wilma\u0085betty\u200b").split()
+      py3.2: r.expr("foo\u00a0bar\u2001baz\u2060quux\u2028fred\u2028barney\u2029wilma\u0085betty\u200b").split()
+      cd: r.expr("foo\u00a0bar\u2001baz\u2060quux\u2028fred\u2028barney\u2029wilma\u0085betty\u200b").split()
+      ot: (["foo", "bar", "baz\u2060quux", "fred", "barney", "wilma", "betty\u200b"])
