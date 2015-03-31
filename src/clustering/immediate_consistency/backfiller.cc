@@ -168,7 +168,7 @@ private:
                         bool on_empty_range(
                                 const region_map_t<binary_blob_t> &range_metainfo,
                                 const key_range_t::right_bound_t &new_threshold)
-                                THROWS_NOTHING{
+                                THROWS_NOTHING {
                             region_t mask;
                             mask.beg = chunk->get_beg_hash();
                             mask.end = chunk->get_end_hash();

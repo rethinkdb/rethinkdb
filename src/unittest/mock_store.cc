@@ -227,10 +227,48 @@ void mock_store_t::send_backfill_pre(
         backfill_pre_atom_consumer_t *pre_atom_consumer,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
-    (void)start_point;
-    (void)pre_atom_consumer;
-    (void)interruptor;
-    crash("not implemented");
+    /* We iterate by remembering the last key we visited, rather than by using a
+    `std::map` iterator, because this lets us block between iterations. */
+    store_key_t cursor = start_point.get_domain().inner.left;
+    key_range_t::right_bound_t right_bound = start_point.get_domain().inner.right;
+    while (true) {
+        /* Randomly block in order to more effectively test the code */
+        if (rng_.randint(2) == 0) {
+            nap(rng_.randint(10), interruptor);
+        }
+        auto it = table_.lower_bound(cursor);
+        if (it == table_.end() || key_range_t::right_bound_t(it->first) >= right_bound) {
+            /* There are no more keys in the range */
+            break;
+        }
+        if (it->second.first > start_point.get_point(it->first).to_repli_timestamp()) {
+            /* We need to rewind this key */
+            backfill_pre_atom_t atom;
+            if (rng_.randint(10) != 0) {
+                atom.range = key_range_t(
+                    key_range_t::open, it->first, key_range_t::open, it->first);
+            } else {
+                /* Occasionally we send a large range, just to test the code. However,
+                the large range only ever contains one key (otherwise it's non-trivial to
+                find large ranges) */
+                atom.range = key_range_t(
+                    key_range_t::open, cursor, key_range_t::open, it->first);
+            }
+            if (!pre_atom_consumer->on_pre_atom(std::move(atom))) {
+                break;
+            }
+        }
+        cursor = it->first;
+        /* We `cursor.increment()` so we don't get the exact same key again. If it fails,
+        that means that `cursor` was the maximum possible key, so there can't possibly be
+        any more keys, so we can stop. */
+        if (!cursor.increment()) {
+            break;
+        }
+    }
+    if (rng_.randint(2) == 0) {
+        nap(rng_.randint(10), interruptor);
+    }
 }
 
 void mock_store_t::send_backfill(
@@ -239,11 +277,105 @@ void mock_store_t::send_backfill(
         backfill_atom_consumer_t *atom_consumer,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
-    (void)start_point;
-    (void)pre_atom_producer;
-    (void)atom_consumer;
-    (void)interruptor;
-    crash("not implemented");
+    store_key_t cursor = start_point.get_domain().inner.left;
+    key_range_t::right_bound_t right_bound = start_point.get_domain().inner.right;
+    while (true) {
+        /* Randomly block in order to more effectively test the code */
+        if (rng_.randint(2) == 0) {
+            nap(rng_.randint(10), interruptor);
+        }
+
+        /* On each iteration through the loop, we emit at most one atom. There are two
+        places this atom can come from:
+        1. Because of a key in the local copy with higher recency than `start_point`
+        2. Because of a pre atom we received
+        So here's how we handle this: We find the next key in our database, then we check
+        if there are any pre atoms prior to that key. If there's a pre atom prior to that
+        key, we transmit an atom for that pre atom. Otherwise, we handle that next key.
+        */
+
+        auto it = table_.lower_bound(cursor);
+
+        backfill_pre_atom_t const *pre_atom;
+        {
+            /* We only look for pre atoms up to the first key we found, plus one. So
+            we'll find pre atoms that start before the key and pre atoms that include the
+            key, but not later pre atoms. This serves two purposes. One is making sure we
+            don't accept any pre atoms from `pre_atom_producer` before we're ready to
+            process them; this makes the implementation simpler. The other purpose is so
+            that we don't immediately request pre atoms all the way to the end of the key
+            space, which would force the backfill to wait until it had finished checking
+            for pre atoms before it sent any real atoms. */
+            key_range_t::right_bound_t pre_atom_horizon;
+            if (it == table_.end() ||
+                    key_range_t::right_bound_t(it->first) >= right_bound) {
+                pre_atom_horizon = right_bound;
+            } else {
+                pre_atom_horizon = key_range_t::right_bound_t(it->first);
+                /* Make sure we include pre atoms that start precisely on `it->first` */
+                if (!pre_atom_horizon.key.increment()) {
+                    pre_atom_horizon.unbounded = true;
+                }
+            }
+            if (!pre_atom_producer->next_pre_atom(pre_atom_horizon, &pre_atom)) {
+                break;
+            }
+        }
+
+        if (pre_atom == nullptr) {
+            /* The next thing in lexicographical order is a key in our local copy, not a
+            pre atom. */
+            if (it->second.first >
+                    start_point.get_point(it->first).to_repli_timestamp()) {
+                /* The key has changed since `start_point`, so we'll transmit it. */
+                backfill_atom_t atom;
+                atom.range = key_range_t(
+                    key_range_t::open, it->first, key_range_t::open, it->first);
+                backfill_atom_t::pair_t pair;
+                pair.key = it->first;
+                pair.recency = it->second.first;
+                pair.value = it->second.second;
+                atom.pairs.push_back(std::move(pair));
+                if (!atom_consumer->on_atom(metainfo_, std::move(atom))) {
+                    break;
+                }
+            }
+            cursor = it->first;
+            if (!cursor.increment()) {
+                break;
+            }
+        } else {
+            /* The next thing in lexicographical order is a pre atom, so handle it */
+            backfill_atom_t atom;
+            atom.range = pre_atom->range;
+            /* Iterate over all keys in our local copy within `pre_atom->range` and
+            copy them into `atom`, whether or not they've changed since `start_point`. */
+            auto jt = table_.lower_bound(atom.range.left);
+            auto end = atom.range.right.unbounded
+                ? table_.end() : table_.upper_bound(atom.range.right.key);
+            for (; jt != end; ++jt) {
+                backfill_atom_t::pair_t pair;
+                pair.key = jt->first;
+                pair.recency = jt->second.first;
+                pair.value = jt->second.second;
+                atom.pairs.push_back(std::move(pair));
+            }
+            if (!atom_consumer->on_atom(metainfo_, std::move(atom))) {
+                break;
+            }
+            /* Move the cursor to after the end of the pre atom, because we don't want to
+            re-process any keys that we processed as part of the pre atom. */
+            if (pre_atom->range.right.unbounded) {
+                break;
+            } else {
+                cursor = pre_atom->range.right.key;
+            }
+            pre_atom_producer->release_pre_atom();
+        }
+    }
+    if (rng_.randint(2) == 0) {
+        nap(rng_.randint(10), interruptor);
+    }
 }
 
 void mock_store_t::receive_backfill(
@@ -251,10 +383,38 @@ void mock_store_t::receive_backfill(
         backfill_atom_producer_t *atom_producer,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
-    (void)region;
-    (void)atom_producer;
-    (void)interruptor;
-    crash("not implemented");
+    store_key_t prev = region.inner.left;
+    while (true) {
+        /* Introduce a random delay to test more code paths */
+        if (rng_.randint(2) == 0) {
+            nap(rng_.randint(10), interruptor);
+        }
+
+        /* Fetch the next atom from the producer */
+        region_map_t<binary_blob_t> const *atom_metainfo;
+        backfill_atom_t const *atom;
+        if (!atom_producer->next_atom(region.inner.right, &atom_metainfo, &atom)) {
+            return;
+        }
+        if (atom == nullptr) {
+            return;
+        }
+
+        /* Apply the atom to the table */
+        for (const auto &pair : atom->pairs) {
+            table_[pair.key] = std::make_pair(pair.recency, pair.value);
+        }
+
+        /* Apply the atom to the metainfo */
+        guarantee(atom_metainfo != nullptr);
+        region_t mask = region;
+        mask.inner.left = prev;
+        mask.inner.right = atom->range.right;
+        metainfo_.update(atom_metainfo->mask(mask));
+        prev = atom->range.right.key;
+
+        atom_producer->release_atom();
+    }
 }
 
 void mock_store_t::reset_data(

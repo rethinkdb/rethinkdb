@@ -84,6 +84,15 @@ public:
         return region_map_t(masked_pairs.begin(), masked_pairs.end());
     }
 
+    const value_t &get_point(const store_key_t &key) const {
+        for (const auto &pair : regions_and_values) {
+            if (region_contains_key(pair.first, key)) {
+                return pair.second;
+            }
+        }
+        crash("region_map_t::get_point() called with point not in domain");
+    }
+
     // Important: 'update' assumes that new_values regions do not intersect
     void update(const region_map_t& new_values) {
         rassert(region_is_superset(get_domain(), new_values.get_domain()), "Update cannot expand the domain of a region_map.");
