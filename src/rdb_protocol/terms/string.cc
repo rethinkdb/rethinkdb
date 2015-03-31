@@ -2,8 +2,8 @@
 #include "rdb_protocol/terms/terms.hpp"
 
 #include <re2/re2.h>
-#include <unicode/uchar.h>
-#include <unicode/utypes.h>
+#include <unicode/uchar.h>      // NOLINT(build/include_order)
+#include <unicode/utypes.h>     // NOLINT(build/include_order)
 
 #include <algorithm>
 

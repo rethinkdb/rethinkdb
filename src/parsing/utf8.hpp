@@ -60,10 +60,10 @@ class iterator_t : public std::iterator<std::forward_iterator_tag, char32_t> {
     void advance();
 public:
     iterator_t() : start(), position(start), end(position), seen_end(true) {}
-    iterator_t(iterator_t<Iterator> &&it) = default;
-    iterator_t(const iterator_t<Iterator> &it) = default;
+    explicit iterator_t(iterator_t<Iterator> &&it) = default;
+    explicit iterator_t(const iterator_t<Iterator> &it) = default;
     template <class T>
-    iterator_t(const T &t)
+    explicit iterator_t(const T &t)
         : start(t.begin()), position(t.begin()), end(t.end()),
           seen_end(t.begin() == t.end()) {
         advance();
