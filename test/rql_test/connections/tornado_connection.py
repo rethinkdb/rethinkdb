@@ -720,12 +720,14 @@ class TestCursor(TestWithConnection):
         cursor = yield r.range().run(self.conn)
         yield self.conn.close()
 
-        while (yield cursor.fetch_next()):
-            yield cursor.next()
-            cursor.close()
+        @gen.coroutine
+        def read_cursor(cursor):
+            while (yield cursor.fetch_next()):
+                yield cursor.next()
+                cursor.close()
 
         yield self.asyncAssertRaisesRegexp(r.RqlRuntimeError,
-            "Connection is closed.", cursor.next())
+            "Connection is closed.", read_cursor(cursor))
 
     @gen.coroutine
     def test_cursor_after_cursor_close(self):
