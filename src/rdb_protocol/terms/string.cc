@@ -103,9 +103,8 @@ template <typename It>
 It find_utf8_pred(It start, It end, std::function<bool(char32_t)> &&fn) {
     It pos(start);
     char32_t codepoint;
-    utf8::reason_t reason;
     while (pos != end) {
-        It next = utf8::next_codepoint(pos, end, &codepoint, &reason);
+        It next = utf8::next_codepoint(pos, end, &codepoint);
         if (fn(codepoint)) {
             return pos;
         }
