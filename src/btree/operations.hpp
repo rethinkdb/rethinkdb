@@ -101,8 +101,7 @@ class keyvalue_location_t {
 public:
     keyvalue_location_t()
         : superblock(NULL), pass_back_superblock(NULL),
-          there_originally_was_value(false), stat_block(NULL_BLOCK_ID),
-          stats(NULL) { }
+          there_originally_was_value(false), stat_block(NULL_BLOCK_ID) { }
 
     ~keyvalue_location_t() {
         if (pass_back_superblock != NULL && superblock != NULL) {
@@ -131,8 +130,6 @@ public:
     // Stat block when modifications are made using this class the statblock is
     // update.
     block_id_t stat_block;
-
-    btree_stats_t *stats;
 private:
 
     DISABLE_COPYING(keyvalue_location_t);
@@ -199,7 +196,6 @@ void find_keyvalue_location_for_write(
         superblock_t *superblock, const btree_key_t *key,
         const value_deleter_t *balancing_detacher,
         keyvalue_location_t *keyvalue_location_out,
-        btree_stats_t *stats,
         profile::trace_t *trace,
         promise_t<superblock_t *> *pass_back_superblock = NULL) THROWS_NOTHING;
 

@@ -55,7 +55,7 @@ with driver.Metacluster() as metacluster:
     def get_stats(server):
         return r.db('rethinkdb').table('stats').get(['table_server', table_id, server['id']]) \
                 .do({'reads':  r.row['query_engine']['read_docs_total'],
-                     'writes': r.row['query_engine']['written_docs_total']}).run ()
+                     'writes': r.row['query_engine']['written_docs_total']}).run()
 
     def check_stats_internal(query, reads, writes):
         stats = get_stats(servers[0])
@@ -72,15 +72,15 @@ with driver.Metacluster() as metacluster:
     check_stats_internal.last_reads = 0
     check_stats_internal.last_writes = 0
 
-    def check_error_stats(query, reads=0, writes=0):
+    def check_error_stats(query, reads, writes):
         try:
             query.run()
-            print("Failed to error in query (%s)", r.errors.QueryPrinter(query).print_query())
+            print("Failed to error in query (%s)" % r.errors.QueryPrinter(query).print_query())
         except r.RqlError as e:
             pass
         check_stats_internal(query, reads, writes)
 
-    def check_query_stats(query, reads=0, writes=0):
+    def check_query_stats(query, reads, writes):
         query.run()
         check_stats_internal(query, reads, writes)
 
@@ -96,7 +96,7 @@ with driver.Metacluster() as metacluster:
     check_query_stats(tbl.index_create('value'), reads=0, writes=0)
 
     # batch of writes
-    check_query_stats(tbl.insert(r.range(100).map(lambda x: {'id': x})), writes=100)
+    check_query_stats(tbl.insert(r.range(100).map(lambda x: {'id': x})), reads=0, writes=100)
 
     # point operations
     check_query_stats(tbl.insert({'id': 100}), reads=0, writes=1)
@@ -131,10 +131,20 @@ with driver.Metacluster() as metacluster:
     check_query_stats(tbl.get(101).update({}), reads=0, writes=1)
     check_query_stats(tbl.get(101).update(lambda x: {}), reads=0, writes=1)
     check_query_stats(tbl.get(101).replace(lambda x: x), reads=0, writes=1)
-    check_error_stats(tbl.insert(0), reads=0, writes=1)
+    check_query_stats(tbl.insert({'id': 0}), reads=0, writes=1)
 
     # Add a sindex, make sure that all rows are represented
     check_query_stats(r.expr([tbl.index_create('fake', r.row['id']), tbl.index_wait()]), reads=100, writes=100)
+
+    check_query_stats(tbl.count(), reads=100, writes=0)
+    check_query_stats(tbl.between(20, 40).count(), reads=20, writes=0)
+    check_query_stats(tbl.between(20, 40).update(r.branch(r.row['id'].mod(2).eq(1), {}, {'value': 'dummy'})),
+                      reads=20, writes=20)
+
+    # Count on a sindex
+    check_query_stats(tbl.between(r.minval, r.maxval, index='double').count(), reads=100, writes=0)
+    check_query_stats(tbl.between(r.minval, r.maxval, index='value').count(), reads=10, writes=0)
+    # Can't test dropping the index because the stats will disappear once it's gone
 
     backfiller_stats_before = get_stats(servers[0])
     backfillee_stats_before = get_stats(servers[1])

@@ -105,9 +105,10 @@ done_traversing_t rdb_erase_small_range(
             find_keyvalue_location_for_write(&sizer, superblock, key.btree_key(),
                                              deletion_context->balancing_detacher(),
                                              &kv_location,
-                                             &btree_slice->stats,
                                              NULL /* profile::trace_t */,
                                              &pass_back_superblock_promise);
+            btree_slice->stats.pm_keys_set.record();
+            btree_slice->stats.pm_total_keys_set += 1;
 
             // We're still holding a write lock on the superblock, so if the value
             // disappeared since we've populated key_collector, something fishy

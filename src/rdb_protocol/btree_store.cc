@@ -695,7 +695,7 @@ void store_t::clear_sindex(
                 keyvalue_location_t kv_location;
                 find_keyvalue_location_for_write(sizer, sindex_superblock.release(),
                         keys[i].btree_key(), deletion_context->balancing_detacher(),
-                        &kv_location, NULL /* stats */, NULL /* trace */,
+                        &kv_location, NULL /* trace */,
                         &superblock_promise);
 
                 deletion_context->in_tree_deleter()->delete_value(
