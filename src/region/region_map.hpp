@@ -30,6 +30,12 @@ public:
         regions_and_values.push_back(std::make_pair(r, v));
     }
 
+    static region_map_t empty() {
+        region_map_t r;
+        r.regions_and_values.clear();
+        return r;
+    }
+
     template <class input_iterator_t>
     region_map_t(const input_iterator_t &_begin, const input_iterator_t &_end)
         : regions_and_values(_begin, _end)

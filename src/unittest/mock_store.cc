@@ -239,6 +239,7 @@ void mock_store_t::send_backfill_pre(
         auto it = table_.lower_bound(cursor);
         if (it == table_.end() || key_range_t::right_bound_t(it->first) >= right_bound) {
             /* There are no more keys in the range */
+            pre_atom_consumer->on_empty_range(right_bound);
             break;
         }
         if (it->second.first > start_point.get_point(it->first).to_repli_timestamp()) {
@@ -246,13 +247,13 @@ void mock_store_t::send_backfill_pre(
             backfill_pre_atom_t atom;
             if (rng_.randint(10) != 0) {
                 atom.range = key_range_t(
-                    key_range_t::open, it->first, key_range_t::open, it->first);
+                    key_range_t::closed, it->first, key_range_t::closed, it->first);
             } else {
                 /* Occasionally we send a large range, just to test the code. However,
                 the large range only ever contains one key (otherwise it's non-trivial to
                 find large ranges) */
                 atom.range = key_range_t(
-                    key_range_t::open, cursor, key_range_t::open, it->first);
+                    key_range_t::closed, cursor, key_range_t::closed, it->first);
             }
             if (!pre_atom_consumer->on_pre_atom(std::move(atom))) {
                 break;
@@ -295,6 +296,9 @@ void mock_store_t::send_backfill(
         */
 
         auto it = table_.lower_bound(cursor);
+        if (it != table_.end() && key_range_t::right_bound_t(it->first) >= right_bound) {
+            it = table_.end();
+        }
 
         backfill_pre_atom_t const *pre_atom;
         {
@@ -307,8 +311,7 @@ void mock_store_t::send_backfill(
             space, which would force the backfill to wait until it had finished checking
             for pre atoms before it sent any real atoms. */
             key_range_t::right_bound_t pre_atom_horizon;
-            if (it == table_.end() ||
-                    key_range_t::right_bound_t(it->first) >= right_bound) {
+            if (it == table_.end()) {
                 pre_atom_horizon = right_bound;
             } else {
                 pre_atom_horizon = key_range_t::right_bound_t(it->first);
@@ -322,7 +325,11 @@ void mock_store_t::send_backfill(
             }
         }
 
-        if (pre_atom == nullptr) {
+        if (pre_atom == nullptr && it == table_.end()) {
+            /* There aren't any more things. */
+            atom_consumer->on_empty_range(metainfo_, right_bound);
+            break;
+        } else if (pre_atom == nullptr) {
             /* The next thing in lexicographical order is a key in our local copy, not a
             pre atom. */
             if (it->second.first >
@@ -330,7 +337,7 @@ void mock_store_t::send_backfill(
                 /* The key has changed since `start_point`, so we'll transmit it. */
                 backfill_atom_t atom;
                 atom.range = key_range_t(
-                    key_range_t::open, it->first, key_range_t::open, it->first);
+                    key_range_t::closed, it->first, key_range_t::closed, it->first);
                 backfill_atom_t::pair_t pair;
                 pair.key = it->first;
                 pair.recency = it->second.first;
@@ -397,15 +404,15 @@ void mock_store_t::receive_backfill(
             return;
         }
         if (atom == nullptr) {
-            return;
+            break;
         }
 
-        /* Apply the atom to the table */
+        /* Apply the atom's value to the table */
         for (const auto &pair : atom->pairs) {
             table_[pair.key] = std::make_pair(pair.recency, pair.value);
         }
 
-        /* Apply the atom to the metainfo */
+        /* Apply the atom's metainfo to the metainfo */
         guarantee(atom_metainfo != nullptr);
         region_t mask = region;
         mask.inner.left = prev;
@@ -414,7 +421,10 @@ void mock_store_t::receive_backfill(
         prev = atom->range.right.key;
 
         atom_producer->release_atom();
+
+        atom_producer->on_commit(atom->range.right);
     }
+    atom_producer->on_commit(region.inner.right);
 }
 
 void mock_store_t::reset_data(

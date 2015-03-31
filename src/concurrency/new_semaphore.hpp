@@ -52,7 +52,6 @@ public:
     new_semaphore_acq_t();
     new_semaphore_acq_t(new_semaphore_t *semaphore, int64_t count);
     new_semaphore_acq_t(new_semaphore_acq_t &&movee);
-    new_semaphore_acq_t &operator=(new_semaphore_acq_t &&movee);
 
     // Returns "how much" of the semaphore this acq has acquired or would acquire.
     int64_t count() const;
@@ -65,8 +64,7 @@ public:
     void change_count(int64_t new_count);
 
     // Transfers the "semaphore credits" that `other` owns to `this` and resets `other`.
-    // `other` must have already acquired the semaphore; `this` must have already
-    // acquired the semaphore or be uninitialized.
+    // `other` and `this` must both already own the semaphore.
     //
     // For example, if `this->count() == 1` and `other->count() == 2` before the call,
     // then after the call `this->count() == 3` and `other` is invalid.

@@ -111,15 +111,11 @@ void new_semaphore_acq_t::change_count(int64_t new_count) {
 }
 
 void new_semaphore_acq_t::transfer_in(new_semaphore_acq_t &&other) {
-    guarantee(other.semaphore_ != nullptr);
+    guarantee(semaphore_ != nullptr);
+    guarantee(other.semaphore_ == semaphore_);
+    guarantee(cond_.is_pulsed());
     guarantee(other.cond_.is_pulsed());
-    if (semaphore_ != nullptr) {
-        guarantee(semaphore_ == other.semaphore_);
-        guarantee(cond_.is_pulsed());
-        change_count(count_ + other.count_);
-        other.reset();
-    } else {
-        new_semaphore_acq_t(std::move(other));
-    }
+    change_count(count_ + other.count_);
+    other.reset();
 }
 

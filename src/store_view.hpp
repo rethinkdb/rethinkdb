@@ -200,7 +200,9 @@ public:
             THROWS_ONLY(interrupted_exc_t) = 0;
 
     /* Applies backfill atom(s) sent by `send_backfill()`. The `new_metainfo` is applied
-    atomically as the backfill atoms are applied. */
+    atomically as the backfill atoms are applied. `receive_backfill()` continues until
+    `next_atom()` returns `false` or it calls `on_commit()` with the right-hand side of
+    the region. */
     class backfill_atom_producer_t {
     public:
         virtual bool next_atom(
@@ -208,6 +210,10 @@ public:
             region_map_t<binary_blob_t> const **metainfo_out,
             backfill_atom_t const **atom_out) THROWS_NOTHING = 0;
         virtual void release_atom() THROWS_NOTHING = 0;
+
+        /* By the time `receive_backfill()` returns, the store must have called
+        `on_commit()` with a threshold greater than or equal to the last atom returned
+        from `next_atom()`. */
         virtual void on_commit(
             const key_range_t::right_bound_t &threshold) THROWS_NOTHING = 0;
     protected:

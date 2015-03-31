@@ -113,7 +113,7 @@ private:
                 backfill_atom_seq_t<backfill_atom_t> chunk(
                     parent->full_region.beg, parent->full_region.end,
                     threshold);
-                region_map_t<version_t> metainfo;
+                region_map_t<version_t> metainfo = region_map_t<version_t>::empty();
 
                 {
                     class producer_t :
@@ -160,7 +160,7 @@ private:
                                 backfill_atom_t &&atom) THROWS_NOTHING {
                             region_t mask(chunk->get_beg_hash(), chunk->get_end_hash(),
                                 atom.get_range());
-                            mask.inner.left = chunk->get_left_key().key;
+                            mask.inner.left = chunk->get_right_key().key;
                             metainfo->concat(to_version_map(atom_metainfo.mask(mask)));
                             chunk->push_back(std::move(atom));
                             return (chunk->get_mem_size() < ATOM_CHUNK_SIZE);
@@ -172,7 +172,7 @@ private:
                             region_t mask;
                             mask.beg = chunk->get_beg_hash();
                             mask.end = chunk->get_end_hash();
-                            mask.inner.left = chunk->get_left_key().key;
+                            mask.inner.left = chunk->get_right_key().key;
                             mask.inner.right = new_threshold;
                             metainfo->concat(to_version_map(range_metainfo.mask(mask)));
                             chunk->push_back_nothing(new_threshold);
@@ -190,40 +190,47 @@ private:
                     what it was before */
                 }
 
-                /* Adjust for the fact that `chunk.get_mem_size()` isn't precisely equal
-                to `ATOM_CHUNK_SIZE`, and then transfer the semaphore ownership. */
-                sem_acq.change_count(chunk.get_mem_size());
-                parent->atom_throttler_acq.transfer_in(std::move(sem_acq));
+                /* Check if we actually got a non-trivial chunk */
+                if (chunk.get_left_key() != chunk.get_right_key()) {
+                    /* Adjust for the fact that `chunk.get_mem_size()` isn't precisely
+                    equal to `ATOM_CHUNK_SIZE`, and then transfer the semaphore
+                    ownership. */
+                    sem_acq.change_count(chunk.get_mem_size());
+                    parent->atom_throttler_acq.transfer_in(std::move(sem_acq));
 
-                /* Update `threshold` */
-                guarantee(chunk.get_left_key() == threshold);
-                threshold = chunk.get_right_key();
+                    /* Update `threshold` */
+                    guarantee(chunk.get_left_key() == threshold);
+                    threshold = chunk.get_right_key();
 
-                /* Note: It's essential that we update `common_version` and `pre_atoms_*`
-                if and only if we send the chunk over the network. So we shouldn't e.g.
-                check the interruptor in between. */
-                try {
-                    /* Send the chunk over the network */
-                    send(parent->parent->mailbox_manager, parent->intro.atoms_mailbox,
-                        parent->fifo_source.enter_write(), metainfo, chunk);
+                    /* Note: It's essential that we update `common_version` and
+                    `pre_atoms_*` if and only if we send the chunk over the network. So
+                    we shouldn't e.g. check the interruptor in between. */
+                    try {
+                        /* Send the chunk over the network */
+                        send(parent->parent->mailbox_manager,
+                            parent->intro.atoms_mailbox,
+                            parent->fifo_source.enter_write(), metainfo, chunk);
 
-                    /* Update `common_version` to reflect the changes that will happen on
-                    the backfillee in response to the chunk */
-                    parent->common_version.update(
-                        region_map_transform<version_t, state_timestamp_t>(
-                            metainfo, [](const version_t &v) { return v.timestamp; }));
+                        /* Update `common_version` to reflect the changes that will
+                        happen on the backfillee in response to the chunk */
+                        parent->common_version.update(
+                            region_map_transform<version_t, state_timestamp_t>(
+                                metainfo,
+                                [](const version_t &v) { return v.timestamp; }));
 
-                    /* Discard pre-atoms we don't need anymore */
-                    size_t old_size = parent->pre_atoms.get_mem_size();
-                    parent->pre_atoms.delete_to_key(threshold);
-                    size_t new_size = parent->pre_atoms.get_mem_size();
+                        /* Discard pre-atoms we don't need anymore */
+                        size_t old_size = parent->pre_atoms.get_mem_size();
+                        parent->pre_atoms.delete_to_key(threshold);
+                        size_t new_size = parent->pre_atoms.get_mem_size();
 
-                    /* Notify the backfiller that it's OK to send us more pre atoms */
-                    send(parent->parent->mailbox_manager,
-                        parent->intro.ack_pre_atoms_mailbox,
-                        parent->fifo_source.enter_write(), old_size - new_size);
-                } catch (const interrupted_exc_t &) {
-                    crash("We shouldn't be interrupted during this block");
+                        /* Notify the backfiller that it's OK to send us more pre atoms
+                        */
+                        send(parent->parent->mailbox_manager,
+                            parent->intro.ack_pre_atoms_mailbox,
+                            parent->fifo_source.enter_write(), old_size - new_size);
+                    } catch (const interrupted_exc_t &) {
+                        crash("We shouldn't be interrupted during this block");
+                    }
                 }
 
                 if (pulse_when_pre_atoms_arrive.has()) {

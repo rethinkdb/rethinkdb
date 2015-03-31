@@ -2,6 +2,7 @@
 #include "clustering/immediate_consistency/backfillee.hpp"
 
 #include "clustering/immediate_consistency/history.hpp"
+#include "concurrency/wait_any.hpp"
 
 /* `PRE_ATOM_PIPELINE_SIZE` is the maximum combined size of the pre-atoms that we send to
 the backfiller that it hasn't consumed yet. So the other server may use up to this size
@@ -17,13 +18,17 @@ public:
             const key_range_t::right_bound_t &_threshold,
             callback_t *_callback) :
         parent(_parent), threshold(_threshold), callback(_callback),
-        no_more_atoms_coming(false)
+        atoms(_parent->store->get_region().beg, _parent->store->get_region().end,
+            threshold),
+        metainfo(region_map_t<version_t>::empty()),
+        metainfo_binary(region_map_t<binary_blob_t>::empty())
     {
         coro_t::spawn_sometime(std::bind(&session_t::run, this, drainer.lock()));
     }
     void on_atoms(
             region_map_t<version_t> &&metainfo_chunk,
             backfill_atom_seq_t<backfill_atom_t> &&chunk) {
+        debugf("backfillee on_atoms()\n");
         rassert(metainfo_chunk.get_domain() == chunk.get_region());
         atoms.concat(std::move(chunk));
         metainfo.concat(std::move(metainfo_chunk));
@@ -33,19 +38,23 @@ public:
         }
     }
     void on_ack_end_session() {
-        guarantee(!no_more_atoms_coming);
-        no_more_atoms_coming = true;
+        debugf("backfillee on_ack_end_session()\n");
+        got_ack_end_session.pulse();
         if (pulse_when_atoms_arrive.has()) {
             pulse_when_atoms_arrive->pulse_if_not_already_pulsed();
         }
     }
-    cond_t should_end, ended;
+    cond_t callback_returned_false;
+    cond_t got_ack_end_session;
+    cond_t run_stopped;
 
 private:
     void run(auto_drainer_t::lock_t keepalive) {
+        debugf("backfillee run() begin\n");
+        debugf_in_dtor_t d1("backfillee run() end\n");
         try {
             while (threshold != parent->store->get_region().inner.right &&
-                    !no_more_atoms_coming) {
+                    !got_ack_end_session.is_pulsed()) {
                 /* Set up a `region_t` describing the range that still needs to be
                 backfilled */
                 region_t subregion = parent->store->get_region();
@@ -60,6 +69,7 @@ private:
                             const key_range_t::right_bound_t &horizon,
                             region_map_t<binary_blob_t> const **metainfo_out,
                             backfill_atom_t const **atom_out) THROWS_NOTHING {
+                        debugf("backfillee next_atom()\n");
                         if (parent->atoms.first_before_threshold(horizon, atom_out)) {
                             *metainfo_out = &parent->metainfo_binary;
                             return true;
@@ -73,13 +83,14 @@ private:
                     }
                     void on_commit(const key_range_t::right_bound_t &new_threshold)
                             THROWS_NOTHING {
-                        if (!parent->should_end.is_pulsed()) {
+                        debugf("backfillee on_commit()\n");
+                        if (!parent->callback_returned_false.is_pulsed()) {
                             region_t mask = parent->parent->store->get_region();
                             mask.inner.left = parent->threshold.key;
                             mask.inner.right = new_threshold;
                             if (!parent->callback->on_progress(
                                     parent->metainfo.mask(mask))) {
-                                parent->should_end.pulse();
+                                parent->callback_returned_false.pulse();
                             }
                         }
                         parent->threshold = new_threshold;
@@ -87,11 +98,14 @@ private:
                     session_t *parent;
                 } producer(this);
 
+                debugf("backfillee begin receive_backfill()\n");
                 parent->store->receive_backfill(
                     subregion, &producer, keepalive.get_drain_signal());
+                debugf("backfillee end receive_backfill()\n");
 
                 /* Wait for more atoms, if that's the reason we stopped */
                 if (pulse_when_atoms_arrive.has()) {
+                    debugf("waiting for more atoms\n");
                     wait_interruptible(pulse_when_atoms_arrive.get(),
                         keepalive.get_drain_signal());
                     pulse_when_atoms_arrive.reset();
@@ -100,6 +114,7 @@ private:
         } catch (const interrupted_exc_t &) {
             /* The backfillee was destroyed */
         }
+        run_stopped.pulse();
     }
     backfillee_t *parent;
     key_range_t::right_bound_t threshold;
@@ -107,7 +122,6 @@ private:
     backfill_atom_seq_t<backfill_atom_t> atoms;
     region_map_t<version_t> metainfo;
     region_map_t<binary_blob_t> metainfo_binary;
-    bool no_more_atoms_coming;
     scoped_ptr_t<cond_t> pulse_when_atoms_arrive;
     auto_drainer_t drainer;
 };
@@ -122,6 +136,7 @@ backfillee_t::backfillee_t(
     branch_history_manager(_branch_history_manager),
     store(_store),
     pre_atom_throttler(PRE_ATOM_PIPELINE_SIZE),
+    pre_atom_throttler_acq(&pre_atom_throttler, 0),
     atoms_mailbox(mailbox_manager,
         std::bind(&backfillee_t::on_atoms, this, ph::_1, ph::_2, ph::_3, ph::_4)),
     ack_end_session_mailbox(mailbox_manager,
@@ -136,6 +151,7 @@ backfillee_t::backfillee_t(
     backfiller_bcard_t::intro_1_t our_intro;
     our_intro.ack_pre_atoms_mailbox = ack_pre_atoms_mailbox.get_address();
     our_intro.atoms_mailbox = atoms_mailbox.get_address();
+    our_intro.ack_end_session_mailbox = ack_end_session_mailbox.get_address();
 
     /* Fetch the `initial_version` and `initial_version_history` fields for the
     `intro_1_t` that we'll send to the backfiller */
@@ -182,20 +198,29 @@ void backfillee_t::go(
         const key_range_t::right_bound_t &threshold,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
+    debugf("backfillee go()\n");
     guarantee(!current_session.has());
     current_session.init(new session_t(this, threshold, callback));
 
     send(mailbox_manager, intro.begin_session_mailbox,
         fifo_source.enter_write(), threshold);
 
-    wait_interruptible(&current_session->should_end, interruptor);
+    {
+        wait_any_t combiner(
+            &current_session->callback_returned_false, &current_session->run_stopped);
+        wait_interruptible(&combiner, interruptor);
+    }
 
     send(mailbox_manager, intro.end_session_mailbox,
         fifo_source.enter_write());
 
-    wait_interruptible(&current_session->ended, interruptor);
+    wait_interruptible(&current_session->got_ack_end_session, interruptor);
+
+    debugf("backfillee go() ended was pulsed\n");
 
     current_session.reset();
+
+    debugf("backfillee go() finished\n");
 }
 
 void backfillee_t::on_atoms(
