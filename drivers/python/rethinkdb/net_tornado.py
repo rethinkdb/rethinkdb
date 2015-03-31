@@ -90,6 +90,7 @@ class ConnectionInstance(object):
             self._io_loop = IOLoop.current()
 
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
+        self._socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         self._stream = iostream.IOStream(self._socket, io_loop=self._io_loop)
 
     @gen.coroutine

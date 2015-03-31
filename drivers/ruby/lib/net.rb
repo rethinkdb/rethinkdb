@@ -613,6 +613,7 @@ module RethinkDB
     def connect()
       raise RuntimeError, "Connection must be closed before calling connect." if @socket
       @socket = TCPSocket.open(@host, @port)
+      @socket.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1)
       @listener_mutex = Mutex.new
       class << @listener_mutex
         def safe_synchronize(&block)
