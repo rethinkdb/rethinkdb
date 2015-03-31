@@ -2201,9 +2201,9 @@ public:
 private:
     std::vector<datum_t> next_stream_batch(env_t *env, const batchspec_t &bs) final {
         // If there's nothing left to read, behave like a normal feed.
-        debugf("nsb %d\n", src->is_exhausted());
+        // debugf("nsb %d\n", src->is_exhausted());
         if (src->is_exhausted()) {
-            debugf("ready %d\n", ready());
+            // debugf("ready %d\n", ready());
             if (ready()) {
                 // This will send the `ready` state as its first doc.
                 return stream_t::next_stream_batch(env, bs);
@@ -2240,10 +2240,16 @@ private:
         }
         if (!batcher.should_send_batch()) {
             std::vector<datum_t> batch = src->next_batch(env, bs);
+            debugf("ready %zu\n", batch.size());
             update_ranges();
             r_sanity_check(active_state);
             read_once = true;
-            std::move(batch.begin(), batch.end(), std::back_inserter(ret));
+            ret.reserve(ret.size() + batch.size());
+            for (auto &&datum : batch) {
+                ret.push_back(
+                    datum_t(std::map<datum_string_t, datum_t>{
+                            { datum_string_t("new_val"), std::move(datum)}}));
+            }
         }
 
         // RSI: if we aren't ready yet we'll send a lot of empty batches for no
@@ -2337,9 +2343,9 @@ private:
         if (!cached_ready) {
             remove_outdated_ranges();
             for (const auto &pair : stamped_ranges) {
-                debugf("%s %s\n",
-                       uuid_to_str(pair.first).c_str(),
-                       debug::print(pair.second).c_str());
+                // debugf("%s %s\n",
+                //        uuid_to_str(pair.first).c_str(),
+                //        debug::print(pair.second).c_str());
                 if (pair.second.ranges.size() != 0) return cached_ready;
             }
             cached_ready = true;
