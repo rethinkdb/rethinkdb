@@ -65,7 +65,7 @@ std::string print(const std::deque<T> &d) {
 template<class stamped_range_t>
 std::string print(const stamped_range_t &srng) {
     return strprintf("stamped_range_t(%zu, %s, %s)",
-                     srng.latest_change_stamp,
+                     srng.next_expected_stamp,
                      key_to_debug_str(srng.left_fencepost).c_str(),
                      print(srng.ranges).c_str());
 }
@@ -302,7 +302,7 @@ void server_t::add_client(const client_t::addr_t &addr, region_t region) {
     // The entry might already exist if we have multiple shards per btree, but
     // that's fine.
     if (!info->cond.has()) {
-        info->stamp = 1;
+        info->stamp = 0;
         cond_t *stopped = new cond_t();
         info->cond.init(stopped);
         // We spawn now so the auto drainer lock is acquired immediately.
@@ -1069,6 +1069,37 @@ datum_t state_datum(state_t state) {
     unreachable();
 }
 
+template<class Sub>
+class stream_t : public eager_datum_stream_t {
+public:
+    template<class... Args>
+    stream_t(scoped_ptr_t<Sub> &&_sub, Args &&... args)
+        : eager_datum_stream_t(std::forward<Args>(args)...),
+          sub(std::move(_sub)) { }
+    virtual bool is_array() const { return false; }
+    virtual bool is_exhausted() const { return false; }
+    void set_notes(Response *res) const final { sub->set_notes(res); }
+    feed_type_t cfeed_type() const final { return sub->cfeed_type(); }
+    virtual bool is_infinite() const { return true; }
+    virtual std::vector<datum_t>
+    next_raw_batch(env_t *env, const batchspec_t &bs) {
+        rcheck(bs.get_batch_type() == batch_type_t::NORMAL
+               || bs.get_batch_type() == batch_type_t::NORMAL_FIRST,
+               base_exc_t::GENERIC,
+               "Cannot call a terminal (`reduce`, `count`, etc.) on an "
+               "infinite stream (such as a changefeed).");
+        return next_stream_batch(env, bs);
+    }
+protected:
+    scoped_ptr_t<Sub> sub;
+    virtual std::vector<datum_t> next_stream_batch(env_t *env, const batchspec_t &bs) {
+        batcher_t batcher = bs.to_batcher();
+        return sub->get_els(&batcher,
+                            env->return_empty_normal_batches,
+                            env->interruptor);
+    }
+};
+
 // Uses the home thread of the subscriber, not the client.
 class feed_t;
 class subscription_t : public home_thread_mixin_t {
@@ -1088,6 +1119,11 @@ public:
                             namespace_interface_t *nif,
                             client_t::addr_t *addr) = 0;
     void stop(std::exception_ptr exc, detach_t should_detach);
+    virtual counted_t<datum_stream_t> to_stream(
+        const client_t::addr_t &addr,
+        counted_t<datum_stream_t> maybe_src,
+        scoped_ptr_t<subscription_t> &&self,
+        const protob_t<const Backtrace> &bt) = 0;
 protected:
     explicit subscription_t(feed_t *_feed, const datum_t &squash, bool include_states);
     void maybe_signal_cond() THROWS_NOTHING;
@@ -1111,8 +1147,6 @@ private:
 
     virtual bool has_el() = 0;
     virtual datum_t pop_el() = 0;
-    virtual bool has_change_val() = 0;
-    virtual change_val_t pop_change_val() = 0;
     virtual void apply_queued_changes() = 0;
     virtual bool active() = 0;
 
@@ -1150,7 +1184,8 @@ public:
             maybe_signal_cond();
         }
     }
-    bool has_change_val() final { return queue->size() != 0; }
+    bool has_change_val() { return queue->size() != 0; }
+    change_val_t pop_change_val() { return queue->pop(); }
 protected:
     // The queue of changes we've accumulated since the last time we were read from.
     const scoped_ptr_t<maybe_squashing_queue_t> queue;
@@ -1315,7 +1350,7 @@ real_feed_t::real_feed_t(auto_drainer_t::lock_t _client_lock,
 
         for (const auto &server_uuid : resp->server_uuids) {
             auto res = queues.insert(
-                std::make_pair(server_uuid, make_scoped<queue_t>(1)));
+                std::make_pair(server_uuid, make_scoped<queue_t>(0)));
             guarantee(res.second);
 
             // In debug mode we put some junk messages in the queues to make sure
@@ -1457,7 +1492,7 @@ public:
         // into an initial value change?
         started = true;
     }
-    virtual bool update_stamp(const uuid_u &, uint64_t new_stamp) {
+    bool update_stamp(const uuid_u &, uint64_t new_stamp) final {
         if (new_stamp >= stamp) {
             stamp = new_stamp;
             return true;
@@ -1465,10 +1500,7 @@ public:
         return false;
     }
 
-    virtual change_val_t pop_change_val() {
-        return queue->pop();
-    }
-    virtual datum_t pop_el() {
+    datum_t pop_el() final {
         if (state != sent_state && include_states) {
             sent_state = state;
             return state_datum(state);
@@ -1476,17 +1508,33 @@ public:
         state = state_t::READY; // We only pop one initial value.
         return change_val_to_change(pop_change_val());
     }
-    virtual bool has_el() {
+    bool has_el() final {
         return (include_states && state != sent_state) || has_change_val();
     }
+    virtual counted_t<datum_stream_t> to_stream(
+        const client_t::addr_t &,
+        counted_t<datum_stream_t>,
+        scoped_ptr_t<subscription_t> &&self,
+        const protob_t<const Backtrace> &bt) final {
+        return make_counted<stream_t<subscription_t> >(std::move(self), bt);
+    }
 private:
-    virtual bool active() { return started; }
+    bool active() final { return started; }
 
     datum_t pkey;
     uint64_t stamp;
     bool started;
     state_t state, sent_state;
 };
+
+// This gets around some class ordering issues; `range_sub_t` needs to know how
+// to construct a `splice_stream_t` and `splice_stream_t` needs to know about
+// `range_sub_t`.
+class splice_stream_t;
+template<class... Args>
+counted_t<splice_stream_t> make_splice_stream(Args &&...args) {
+    return make_counted<splice_stream_t>(std::forward<Args>(args)...);
+}
 
 class range_sub_t : public flat_sub_t {
 public:
@@ -1562,7 +1610,7 @@ public:
         return changefeed::apply_ops(val, ops, env.get(), datum_t());
     }
 
-    virtual bool update_stamp(const uuid_u &uuid, uint64_t new_stamp) {
+    bool update_stamp(const uuid_u &uuid, uint64_t new_stamp) final {
         guarantee(active());
         auto it = start_stamps.find(uuid);
         guarantee(it != start_stamps.end());
@@ -1573,19 +1621,38 @@ public:
         return new_stamp >= it->second;
     }
 
-    virtual change_val_t pop_change_val() {
-        return queue->pop();
-    }
-    virtual datum_t pop_el() {
+    datum_t pop_el() final {
         if (state != sent_state && include_states) {
             sent_state = state;
             return state_datum(state);
         }
         return change_val_to_change(pop_change_val());
     }
-    virtual bool has_el() {
+    bool has_el() final {
         return (include_states && state != sent_state) || has_change_val();
     }
+
+    virtual counted_t<datum_stream_t> to_stream(
+        const client_t::addr_t &addr,
+        counted_t<datum_stream_t> maybe_src,
+        scoped_ptr_t<subscription_t> &&self,
+        const protob_t<const Backtrace> &bt) final {
+        r_sanity_check(self.get() == this);
+
+        if (maybe_src) {
+            // Nothing can happen between constructing the new `scoped_ptr_t` and
+            // releasing the old one.
+            scoped_ptr_t<range_sub_t> sub_self(this);
+            UNUSED subscription_t *super_self = self.release();
+            bool stamped = maybe_src->add_stamp(changefeed_stamp_t(addr));
+            rcheck_datum(stamped, base_exc_t::GENERIC,
+                         "Cannot call `return_initial` on an unstampable stream.");
+            return make_splice_stream(maybe_src, std::move(sub_self), bt);
+        } else {
+            return make_counted<stream_t<subscription_t> >(std::move(self), bt);
+        }
+    }
+    const std::map<uuid_u, uint64_t> &get_start_stamps() { return start_stamps; }
 private:
     scoped_ptr_t<env_t> make_env(env_t *outer_env) {
         // This is to support fake environments from the unit tests that don't
@@ -1893,10 +1960,13 @@ public:
         return ret;
     }
 
-    // This should never be called on `limit` changefeeds because they already
-    // support `return_initial` in their own way.
-    change_val_t pop_change_val() final { r_sanity_fail(); }
-    bool has_change_val() final { r_sanity_fail(); }
+    virtual counted_t<datum_stream_t> to_stream(
+        const client_t::addr_t &,
+        counted_t<datum_stream_t>,
+        scoped_ptr_t<subscription_t> &&self,
+        const protob_t<const Backtrace> &bt) final {
+        return make_counted<stream_t<subscription_t> >(std::move(self), bt);
+    }
 
     uuid_u uuid;
     int64_t need_init, got_init;
@@ -2102,50 +2172,20 @@ void real_feed_t::mailbox_cb(signal_t *, stamped_msg_t msg) {
     }
 }
 
-class stream_t : public eager_datum_stream_t {
-public:
-    template<class... Args>
-    stream_t(scoped_ptr_t<subscription_t> &&_sub, Args &&... args)
-        : eager_datum_stream_t(std::forward<Args>(args)...),
-          sub(std::move(_sub)) { }
-    virtual bool is_array() const { return false; }
-    virtual bool is_exhausted() const { return false; }
-    void set_notes(Response *res) const final { sub->set_notes(res); }
-    feed_type_t cfeed_type() const final { return sub->cfeed_type(); }
-    virtual bool is_infinite() const { return true; }
-    virtual std::vector<datum_t>
-    next_raw_batch(env_t *env, const batchspec_t &bs) {
-        rcheck(bs.get_batch_type() == batch_type_t::NORMAL
-               || bs.get_batch_type() == batch_type_t::NORMAL_FIRST,
-               base_exc_t::GENERIC,
-               "Cannot call a terminal (`reduce`, `count`, etc.) on an "
-               "infinite stream (such as a changefeed).");
-        return next_stream_batch(env, bs);
-    }
-protected:
-    scoped_ptr_t<subscription_t> sub;
-    virtual std::vector<datum_t> next_stream_batch(env_t *env, const batchspec_t &bs) {
-        batcher_t batcher = bs.to_batcher();
-        return sub->get_els(&batcher,
-                            env->return_empty_normal_batches,
-                            env->interruptor);
-    }
-};
-
 struct stamped_range_t {
-    stamped_range_t()
-        : latest_change_stamp(0),
+    stamped_range_t(uint64_t _next_expected_stamp)
+        : next_expected_stamp(_next_expected_stamp),
           left_fencepost(store_key_t::min()) { }
     const store_key_t &get_right_fencepost() {
         return ranges.size() == 0 ? left_fencepost : ranges.back().first.right.key;
     }
-    uint64_t latest_change_stamp;
+    uint64_t next_expected_stamp;
     store_key_t left_fencepost;
     std::deque<std::pair<key_range_t, uint64_t> > ranges;
 };
 
 // RSI: pick up here
-class splice_stream_t : public stream_t {
+class splice_stream_t : public stream_t<range_sub_t> {
 public:
     template<class... Args>
     splice_stream_t(counted_t<datum_stream_t> _src, Args &&... args)
@@ -2154,6 +2194,9 @@ public:
           cached_ready(false),
           src(std::move(_src)) {
         r_sanity_check(src.has());
+        for (const auto &p : sub->get_start_stamps()) {
+            stamped_ranges.insert(std::make_pair(p.first, stamped_range_t(p.second)));
+        }
     }
 private:
     std::vector<datum_t> next_stream_batch(env_t *env, const batchspec_t &bs) final {
@@ -2221,12 +2264,13 @@ private:
         }
 
         // Default construct if we have a new shard uuid.
-        stamped_range_t *stamped_range = &stamped_ranges[source_stamp.first];
-        stamped_range->latest_change_stamp = source_stamp.second;
-        if (key < stamped_range->left_fencepost) return false;
-        if (key >= stamped_range->get_right_fencepost()) return true;
+        auto it = stamped_ranges.find(source_stamp.first);
+        r_sanity_check(it != stamped_ranges.end());
+        it->second.next_expected_stamp = source_stamp.second + 1;
+        if (key < it->second.left_fencepost) return false;
+        if (key >= it->second.get_right_fencepost()) return true;
         // `ranges` should be extremely small
-        for (const auto &pair : stamped_range->ranges) {
+        for (const auto &pair : it->second.ranges) {
             if (pair.first.contains_key(key)) {
                 return source_stamp.second < pair.second;
             }
@@ -2241,14 +2285,15 @@ private:
             range.right.key = store_key_t::max();
         }
         // Default construct if we have a new shard uuid.
-        stamped_range_t *stamped_range = &stamped_ranges[uuid];
-        if (stamped_range->ranges.size() == 0) {
-            stamped_range->left_fencepost = range.left;
-            stamped_range->ranges.push_back(std::make_pair(std::move(range), stamp));
-        } else if (stamped_range->ranges.back().second == stamp) {
-            stamped_range->ranges.back().first.right = range.right;
+        auto it = stamped_ranges.find(uuid);
+        r_sanity_check(it != stamped_ranges.end());
+        if (it->second.ranges.size() == 0) {
+            it->second.left_fencepost = range.left;
+            it->second.ranges.push_back(std::make_pair(std::move(range), stamp));
+        } else if (it->second.ranges.back().second == stamp) {
+            it->second.ranges.back().first.right = range.right;
         } else {
-            stamped_range->ranges.push_back(std::make_pair(std::move(range), stamp));
+            it->second.ranges.push_back(std::make_pair(std::move(range), stamp));
         }
     }
     void update_ranges() {
@@ -2263,13 +2308,7 @@ private:
             auto *ranges = &pair.second.ranges;
             while (ranges->size() > 0) {
                 uint64_t read_stamp = ranges->front().second;
-                r_sanity_check(read_stamp > 0);
-                // Reads with a stamp equal to the stamp of the read aren't discarded.
-                uint64_t largest_discard_stamp = read_stamp - 1;
-                // If the last change we've seen was >= the largest discard
-                // stamp, we know then next one will be > and won't be
-                // discarded, so we can drop the range.
-                if (pair.second.latest_change_stamp >= largest_discard_stamp) {
+                if (pair.second.next_expected_stamp >= read_stamp) {
                     pair.second.left_fencepost = ranges->front().first.right.key;
                     ranges->pop_front();
                 } else {
@@ -2787,14 +2826,7 @@ counted_t<datum_stream_t> client_t::new_stream(
         }
         namespace_interface_access_t access = namespace_source(uuid, env->interruptor);
         sub->start_real(env, table_name, access.get(), &addr);
-        if (maybe_src) {
-            bool stamped = maybe_src->add_stamp(changefeed_stamp_t(addr));
-            rcheck_datum(stamped, base_exc_t::GENERIC,
-                         "Cannot call `return_initial` on an unstampable stream.");
-            return make_counted<splice_stream_t>(maybe_src, std::move(sub), bt);
-        } else {
-            return make_counted<stream_t>(std::move(sub), bt);
-        }
+        return sub->to_stream(addr, std::move(maybe_src), std::move(sub), bt);
     } catch (const cannot_perform_query_exc_t &e) {
         rfail_datum(base_exc_t::GENERIC,
                     "cannot subscribe to table `%s`: %s",
@@ -2873,7 +2905,7 @@ counted_t<datum_stream_t> artificial_t::subscribe(
     scoped_ptr_t<subscription_t> sub = new_sub(
         feed.get(), datum_t::boolean(false), include_states, spec);
     sub->start_artificial(env, uuid, primary_key_name, initial_values);
-    return make_counted<stream_t>(std::move(sub), bt);
+    return make_counted<stream_t<subscription_t> >(std::move(sub), bt);
 }
 
 void artificial_t::send_all(const msg_t &msg) {
