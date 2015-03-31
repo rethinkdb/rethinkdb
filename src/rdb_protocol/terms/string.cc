@@ -253,9 +253,10 @@ private:
         case reql_version_t::v1_13:
         case reql_version_t::v1_14:
         case reql_version_t::v1_16: // v1_15 is the same as v1_14
+        case reql_version_t::v2_0:
             res = old_split(s, delim, maxnum);
             break;
-        case reql_version_t::v2_0_is_latest:
+        case reql_version_t::v2_1_is_latest:
             res = utf8_aware_split(s, delim, maxnum);
             break;
         default:
