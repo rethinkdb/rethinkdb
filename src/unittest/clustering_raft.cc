@@ -104,18 +104,6 @@ public:
 
     /* `set_live()` puts the given member into the given state. */
     void set_live(const raft_member_id_t &member_id, live_t live) {
-        switch (live) {
-            case live_t::alive:
-                debugf("%s state alive\n", uuid_to_str(member_id.uuid).substr(0,4).c_str());
-                break;
-            case live_t::isolated:
-                debugf("%s state isolated\n", uuid_to_str(member_id.uuid).substr(0,4).c_str());
-                break;
-            case live_t::dead:
-                debugf("%s state dead\n", uuid_to_str(member_id.uuid).substr(0,4).c_str());
-                break;
-            default: unreachable();
-        }
         member_info_t *i = members.at(member_id).get();
         if (i->rpc_drainer.has() && live != live_t::alive) {
             member_directory.delete_key(member_id);
@@ -178,9 +166,6 @@ public:
     /* Tries to perform the given change on the member with the given ID. */
     bool try_change(raft_member_id_t id, const uuid_u &change,
             signal_t *interruptor) {
-        debugf("%s propose_change(%s) begin\n",
-            uuid_to_str(id.uuid).substr(0,4).c_str(),
-            uuid_to_str(change).substr(0,2).c_str());
         bool res;
         run_on_member(id, [&](dummy_raft_member_t *member, signal_t *interruptor2) {
             res = false;
@@ -204,10 +189,6 @@ public:
                         throw;
                     }
                 }
-            } else {
-                debugf("%s propose_change(%s) failing because dead\n",
-                    uuid_to_str(id.uuid).substr(0,4).c_str(),
-                    uuid_to_str(change).substr(0,2).c_str());
             }
         });
         if (interruptor->is_pulsed()) {
@@ -373,7 +354,7 @@ public:
             all_changes.insert(change);
         }
         for (const uuid_u &change : committed_changes) {
-            ASSERT_TRUE(all_changes.count(change) == 1);
+            ASSERT_EQ(1, all_changes.count(change));
         }
     }
 
@@ -419,39 +400,26 @@ TPTEST(ClusteringRaft, Basic) {
 }
 
 TPTEST(ClusteringRaft, Failover) {
-    debugf("failover test begin\n");
     std::vector<raft_member_id_t> member_ids;
     dummy_raft_cluster_t cluster(5, dummy_raft_state_t(), &member_ids);
     dummy_raft_traffic_generator_t traffic_generator(&cluster, 3);
     raft_member_id_t leader = cluster.find_leader(60000);
-    debugf("failover elected 1st leader: %s\n",
-        uuid_to_str(leader.uuid).substr(0,4).c_str());
     do_writes(&cluster, leader, 2000, 100);
-    debugf("failover did 1st writes\n");
     cluster.set_live(member_ids[0], dummy_raft_cluster_t::live_t::dead);
     cluster.set_live(member_ids[1], dummy_raft_cluster_t::live_t::dead);
     leader = cluster.find_leader(60000);
-    debugf("failover elected 2nd leader: %s\n",
-        uuid_to_str(leader.uuid).substr(0,4).c_str());
     do_writes(&cluster, leader, 2000, 100);
-    debugf("failover did 2nd writes\n");
     cluster.set_live(member_ids[2], dummy_raft_cluster_t::live_t::dead);
     cluster.set_live(member_ids[3], dummy_raft_cluster_t::live_t::dead);
     cluster.set_live(member_ids[0], dummy_raft_cluster_t::live_t::alive);
     cluster.set_live(member_ids[1], dummy_raft_cluster_t::live_t::alive);
     leader = cluster.find_leader(60000);
-    debugf("failover elected 3rd leader: %s\n",
-        uuid_to_str(leader.uuid).substr(0,4).c_str());
     do_writes(&cluster, leader, 2000, 100);
-    debugf("failover did 3rd writes\n");
     cluster.set_live(member_ids[4], dummy_raft_cluster_t::live_t::dead);
     cluster.set_live(member_ids[2], dummy_raft_cluster_t::live_t::alive);
     cluster.set_live(member_ids[3], dummy_raft_cluster_t::live_t::alive);
     leader = cluster.find_leader(60000);
-    debugf("failover elected 4th leader: %s\n",
-        uuid_to_str(leader.uuid).substr(0,4).c_str());
     do_writes(&cluster, leader, 2000, 100);
-    debugf("failover did 4th writes\n");
     ASSERT_LT(100, traffic_generator.get_num_changes());
     cluster.run_on_member(leader, [&](dummy_raft_member_t *member, signal_t *) {
         dummy_raft_state_t state = member->get_committed_state()->get().state;
