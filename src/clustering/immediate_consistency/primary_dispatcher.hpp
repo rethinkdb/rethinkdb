@@ -210,8 +210,8 @@ private:
 
     std::map<dispatchee_registration_t *, auto_drainer_t::lock_t> dispatchees;
 
-    /* This is just a set that contains the peer ID of each dispatchee in
-    `ready_dispatchees`. We store it separately so we can expose it to code that needs to
+    /* This is just a set that contains the peer ID of each dispatchee in `dispatchees`
+    that's readable. We store it separately so we can expose it to code that needs to
     know which replicas are available. */
     watchable_variable_t<std::set<server_id_t> > ready_dispatchees_as_set;
 

@@ -61,7 +61,6 @@ remote_replicator_client_t::remote_replicator_client_t(
         "backfill-serialization-" + uuid_to_str(uuid_)),
     write_queue_(new disk_backed_queue_wrapper_t<write_queue_entry_t>(
         io_backender,
-        /* TODO: Put the file in the data directory, not here */
         serializer_filepath_t(base_path, "backfill-serialization-" + uuid_to_str(uuid_)),
         &perfmon_collection_)),
     write_queue_semaphore_(

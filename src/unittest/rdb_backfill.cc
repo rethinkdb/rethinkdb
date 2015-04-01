@@ -56,6 +56,8 @@ void write_to_dispatcher(size_t value_padding_length,
 
 void run_backfill_test(size_t value_padding_length) {
 
+    recreate_temporary_directory(base_path_t("."));
+
     order_source_t order_source;
     simple_mailbox_cluster_t cluster;
     in_memory_branch_history_manager_t branch_history_manager;
