@@ -241,6 +241,7 @@ class SocketWrapper(object):
         try:
             self._socket = \
                 socket.create_connection((self.host, self.port), timeout)
+            self._socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 
             self.sendall(parent._parent.handshake)
 
