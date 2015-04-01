@@ -937,9 +937,11 @@ bool read_t::use_snapshot() const THROWS_NOTHING {
 
 
 struct route_to_primary_visitor_t : public boost::static_visitor<bool> {
+    bool operator()(const rget_read_t &rget) const {
+        return rget.stamp;
+    }
     bool operator()(const point_read_t &) const {                 return false; }
     bool operator()(const dummy_read_t &) const {                 return false; }
-    bool operator()(const rget_read_t &) const {                  return false; }
     bool operator()(const intersecting_geo_read_t &) const {      return false; }
     bool operator()(const nearest_geo_read_t &) const {           return false; }
     bool operator()(const changefeed_subscribe_t &) const {       return true;  }
@@ -955,8 +957,6 @@ struct route_to_primary_visitor_t : public boost::static_visitor<bool> {
 bool read_t::route_to_primary() const THROWS_NOTHING {
     return boost::apply_visitor(route_to_primary_visitor_t(), read);
 }
-
-
 
 /* write_t::get_region() implementation */
 
