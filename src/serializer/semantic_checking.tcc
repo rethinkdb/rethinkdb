@@ -179,7 +179,7 @@ semantic_checking_serializer_t<inner_serializer_t>::block_writes(const std::vect
     std::vector<counted_t<typename serializer_traits_t<inner_serializer_t>::block_token_type> > tmp
         = inner_serializer.block_writes(write_infos, io_account, cb);
 
-    std::vector<counted_t<standard_block_token_t> > ret;
+    std::vector<counted_t<block_token_t> > ret;
     ret.reserve(tmp.size());
     for (size_t i = 0; i < tmp.size(); ++i) {
         ret.push_back(wrap_buf_token(write_infos[i].block_id, write_infos[i].buf,

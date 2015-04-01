@@ -78,7 +78,7 @@ class current_page_t {
 public:
     current_page_t(block_id_t block_id, buf_ptr_t buf, page_cache_t *page_cache);
     current_page_t(block_id_t block_id, buf_ptr_t buf,
-                   const counted_t<standard_block_token_t> &token,
+                   const counted_t<block_token_t> &token,
                    page_cache_t *page_cache);
     // Constructs a page to be loaded from the serializer.
     explicit current_page_t(block_id_t block_id);
@@ -269,7 +269,7 @@ public:
 
     void offer_read_ahead_buf(block_id_t block_id,
                               buf_ptr_t *buf,
-                              const counted_t<standard_block_token_t> &token);
+                              const counted_t<block_token_t> &token);
 
     void destroy_self();
 
@@ -356,7 +356,7 @@ private:
     friend class page_read_ahead_cb_t;
     void add_read_ahead_buf(block_id_t block_id,
                             ser_buffer_t *buf,
-                            const counted_t<standard_block_token_t> &token);
+                            const counted_t<block_token_t> &token);
 
     void read_ahead_cb_is_destroyed();
 

@@ -16,6 +16,8 @@
 // A relatively "lightweight" header file (we wish), in a sense.
 class buf_ptr_t;
 
+class block_token_t;
+
 class printf_buffer_t;
 
 typedef uint64_t block_id_t;
@@ -113,51 +115,7 @@ private:
 
 class repli_timestamp_t;
 
-template <class serializer_type> struct serializer_traits_t;
-
 class log_serializer_t;
-
-class ls_block_token_pointee_t {
-public:
-    int64_t offset() const { return offset_; }
-    block_size_t block_size() const { return block_size_; }
-
-private:
-    friend class log_serializer_t;
-    friend class dbm_read_ahead_fsm_t;  // For read-ahead tokens.
-
-    friend void counted_add_ref(ls_block_token_pointee_t *p);
-    friend void counted_release(ls_block_token_pointee_t *p);
-
-    ls_block_token_pointee_t(log_serializer_t *serializer,
-                             int64_t initial_offset,
-                             block_size_t initial_ser_block_size);
-
-    log_serializer_t *serializer_;
-    intptr_t ref_count_;
-
-    // The block's size.
-    block_size_t block_size_;
-
-    // The block's offset on disk.
-    int64_t offset_;
-
-    void do_destroy();
-
-    DISABLE_COPYING(ls_block_token_pointee_t);
-};
-
-void debug_print(printf_buffer_t *buf,
-                 const counted_t<ls_block_token_pointee_t> &token);
-
-void counted_add_ref(ls_block_token_pointee_t *p);
-void counted_release(ls_block_token_pointee_t *p);
-
-template <>
-struct serializer_traits_t<log_serializer_t> {
-    typedef ls_block_token_pointee_t block_token_type;
-};
-
 class file_t;
 class semantic_checking_file_t;
 
@@ -268,25 +226,18 @@ void debug_print(printf_buffer_t *buf,
 #else  // SEMANTIC_SERIALIZER_CHECK
 
 typedef log_serializer_t standard_serializer_t;
+class ls_block_token_pointee_t;
 
 // God this is such a hack (Part 2 of 2)
-inline
-counted_t<ls_block_token_pointee_t>
-to_standard_block_token(UNUSED block_id_t block_id,
-                        counted_t<ls_block_token_pointee_t> tok) {
-    return tok;
-}
+// TODO: We can probably remove this
+// Defined in log_serializer.cc
+counted_t<block_token_t>
+to_standard_block_token(block_id_t block_id,
+                        counted_t<ls_block_token_pointee_t> tok);
 
 #endif
 
-typedef serializer_traits_t<standard_serializer_t>::block_token_type standard_block_token_t;
-
 class serializer_t;
-
-template <>
-struct serializer_traits_t<serializer_t> {
-    typedef standard_block_token_t block_token_type;
-};
 
 // TODO: This is obsolete because the serializer multiplexer isn't used with multiple
 // files any more.
@@ -302,7 +253,7 @@ public:
     // ownership, by leaving `*buf` untouched.
     virtual void offer_read_ahead_buf(block_id_t block_id,
                                       buf_ptr_t *buf,
-                                      const counted_t<standard_block_token_t> &token) = 0;
+                                      const counted_t<block_token_t> &token) = 0;
 };
 
 struct buf_write_info_t {

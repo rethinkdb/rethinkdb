@@ -54,7 +54,7 @@ public:
     }
 
     // Reading a block from the serializer.  Reads a block, blocks the coroutine.
-    buf_ptr_t block_read(const counted_t<standard_block_token_t> &token,
+    buf_ptr_t block_read(const counted_t<block_token_t> &token,
                        file_account_t *io_account) {
         return inner->block_read(token, io_account);
     }
@@ -82,7 +82,7 @@ public:
     bool get_delete_bit(block_id_t id) { return inner->get_delete_bit(id); }
 
     /* Reads the block's actual data */
-    counted_t<standard_block_token_t> index_read(block_id_t block_id) {
+    counted_t<block_token_t> index_read(block_id_t block_id) {
         return inner->index_read(block_id);
     }
 
@@ -92,7 +92,7 @@ public:
                      const std::vector<index_write_op_t> &write_ops);
 
     // Returns block tokens in the same order as write_infos.
-    std::vector<counted_t<standard_block_token_t> >
+    std::vector<counted_t<block_token_t> >
     block_writes(const std::vector<buf_write_info_t> &write_infos,
                  UNUSED file_account_t *io_account,
                  iocallback_t *cb) {

@@ -47,7 +47,7 @@ void run_AddDeleteRepeatedly(bool perform_index_write) {
             }
         } cb;
 
-        std::vector<counted_t<standard_block_token_t> > tokens
+        std::vector<counted_t<block_token_t> > tokens
             = ser.block_writes(infos, account.get(), &cb);
 
         // Wait for it to be written (because we're nice).
@@ -67,7 +67,7 @@ void run_AddDeleteRepeatedly(bool perform_index_write) {
             tokens.clear();
             {
                 std::vector<index_write_op_t> write_ops;
-                write_ops.push_back(index_write_op_t(block_id, counted_t<standard_block_token_t>()));
+                write_ops.push_back(index_write_op_t(block_id, counted_t<block_token_t>()));
 
                 // There are no other index_write operations to maintain ordering with.
                 new_mutex_in_line_t dummy_acq;

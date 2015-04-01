@@ -102,6 +102,36 @@ private:
 };
 
 
+class ls_block_token_pointee_t : public block_token_t {
+public:
+    int64_t offset() const { return offset_; }
+    block_size_t block_size() const { return block_size_; }
+
+private:
+    friend class log_serializer_t;
+    friend class dbm_read_ahead_fsm_t;  // For read-ahead tokens.
+
+    ls_block_token_pointee_t(log_serializer_t *serializer,
+                             int64_t initial_offset,
+                             block_size_t initial_ser_block_size);
+
+    log_serializer_t *serializer_;
+
+    // The block's size.
+    block_size_t block_size_;
+
+    // The block's offset on disk.
+    int64_t offset_;
+
+    void do_destroy();
+
+    DISABLE_COPYING(ls_block_token_pointee_t);
+};
+
+void debug_print(printf_buffer_t *buf,
+                 const counted_t<ls_block_token_pointee_t> &token);
+
+
 // Used internally
 struct ls_start_existing_fsm_t;
 
@@ -147,16 +177,16 @@ public:
                                                             block_id_t step);
 
     bool get_delete_bit(block_id_t id);
-    counted_t<ls_block_token_pointee_t> index_read(block_id_t block_id);
+    counted_t<block_token_t> index_read(block_id_t block_id);
 
-    buf_ptr_t block_read(const counted_t<ls_block_token_pointee_t> &token,
+    buf_ptr_t block_read(const counted_t<block_token_t> &token,
                        file_account_t *io_account);
 
     void index_write(new_mutex_in_line_t *mutex_acq,
                      const std::vector<index_write_op_t> &write_ops);
 
-    std::vector<counted_t<ls_block_token_pointee_t> > block_writes(const std::vector<buf_write_info_t> &write_infos,
-                                                                   file_account_t *io_account, iocallback_t *cb);
+    std::vector<counted_t<block_token_t> > block_writes(const std::vector<buf_write_info_t> &write_infos,
+                                                        file_account_t *io_account, iocallback_t *cb);
 
     max_block_size_t max_block_size() const;
 
@@ -175,7 +205,7 @@ private:
     void offer_buf_to_read_ahead_callbacks(
             block_id_t block_id,
             buf_ptr_t &&buf,
-            const counted_t<standard_block_token_t> &token);
+            const counted_t<block_token_t> &token);
     bool should_perform_read_ahead();
 
     /* Starts a new transaction, updates perfmons etc. */

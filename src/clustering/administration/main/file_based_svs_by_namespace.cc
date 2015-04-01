@@ -10,6 +10,7 @@
 #include "rdb_protocol/store.hpp"
 #include "serializer/config.hpp"
 #include "serializer/translator.hpp"
+#include "serializer/memory/memory_serializer.hpp"
 #include "serializer/merger.hpp"
 #include "utils.hpp"
 
@@ -99,8 +100,7 @@ void do_create_new_store(
     store_views, true);
 }
 
-void
-file_based_svs_by_namespace_t::get_svs(
+void file_based_svs_by_namespace_t::get_svs(
             perfmon_collection_t *serializers_perfmon_collection,
             namespace_id_t namespace_id,
             stores_lifetimer_t *stores_out,
@@ -133,6 +133,12 @@ file_based_svs_by_namespace_t::get_svs(
     scoped_ptr_t<serializer_multiplexer_t> multiplexer;
     scoped_ptr_t<multistore_ptr_t> mptr;
     {
+        // TODO: For testing
+        // This should a) be made configurable through table metadata
+        //  b) moved out of file_based_svs_by_namespace_t (or that type should
+        //     be renamed)
+        bool use_memory_serializer = true;
+
         on_thread_t th(serializer_thread);
         scoped_array_t<store_view_t *> store_views(num_stores);
 
@@ -144,15 +150,16 @@ file_based_svs_by_namespace_t::get_svs(
                                 &outdated_index_tracker, namespace_id);
         filepath_file_opener_t file_opener(serializer_filepath, io_backender_);
         if (res == 0) {
+            guarantee(!use_memory_serializer);
             // TODO: Could we handle failure when loading the serializer?  Right
             // now, we don't.
 
             {
                 scoped_ptr_t<serializer_t> ser
                     = make_scoped<standard_serializer_t>(
-                        standard_serializer_t::dynamic_config_t(),
-                        &file_opener,
-                        serializers_perfmon_collection);
+                            standard_serializer_t::dynamic_config_t(),
+                            &file_opener,
+                            serializers_perfmon_collection);
                 ser = make_scoped<merger_serializer_t>(std::move(ser),
                                                        MERGER_SERIALIZER_MAX_ACTIVE_WRITES);
                 serializer = std::move(ser);
@@ -171,9 +178,12 @@ file_based_svs_by_namespace_t::get_svs(
                                          stores_out_stores, store_views.data()));
             mptr.init(new multistore_ptr_t(store_views.data(), num_stores));
         } else {
-            standard_serializer_t::create(&file_opener,
-                                          standard_serializer_t::static_config_t());
-            {
+            if (use_memory_serializer) {
+                serializer = make_scoped<memory_serializer_t>();
+            } else {
+                standard_serializer_t::create(&file_opener,
+                                              standard_serializer_t::static_config_t());
+
                 scoped_ptr_t<serializer_t> ser
                     = make_scoped<standard_serializer_t>(
                         standard_serializer_t::dynamic_config_t(),
@@ -214,8 +224,10 @@ file_based_svs_by_namespace_t::get_svs(
                 &write_token,
                 &dummy_interruptor);
 
-            // Finally, the store is created.
-            file_opener.move_serializer_file_to_permanent_location();
+            if (!use_memory_serializer) {
+                // Finally, the store is created.
+                file_opener.move_serializer_file_to_permanent_location();
+            }
         }
     } // back on calling thread
 

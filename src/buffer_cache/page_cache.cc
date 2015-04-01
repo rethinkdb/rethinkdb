@@ -55,7 +55,7 @@ page_read_ahead_cb_t::~page_read_ahead_cb_t() { }
 void page_read_ahead_cb_t::offer_read_ahead_buf(
         block_id_t block_id,
         buf_ptr_t *buf,
-        const counted_t<standard_block_token_t> &token) {
+        const counted_t<block_token_t> &token) {
     assert_thread();
     buf_ptr_t local_buf = std::move(*buf);
 
@@ -120,7 +120,7 @@ void page_cache_t::resize_current_pages_to_id(block_id_t block_id) {
 
 void page_cache_t::add_read_ahead_buf(block_id_t block_id,
                                       ser_buffer_t *ser_buffer,
-                                      const counted_t<standard_block_token_t> &token) {
+                                      const counted_t<block_token_t> &token) {
     assert_thread();
 
     scoped_malloc_t<ser_buffer_t> ptr(ser_buffer);
@@ -660,7 +660,7 @@ current_page_t::current_page_t(block_id_t block_id,
 
 current_page_t::current_page_t(block_id_t block_id,
                                buf_ptr_t buf,
-                               const counted_t<standard_block_token_t> &token,
+                               const counted_t<block_token_t> &token,
                                page_cache_t *page_cache)
     : block_id_(block_id),
       page_(new page_t(block_id, std::move(buf), token, page_cache)),
@@ -1159,7 +1159,7 @@ void page_cache_t::remove_txn_set_from_graph(page_cache_t *page_cache,
 struct block_token_tstamp_t {
     block_token_tstamp_t(block_id_t _block_id,
                          bool _is_deleted,
-                         counted_t<standard_block_token_t> _block_token,
+                         counted_t<block_token_t> _block_token,
                          repli_timestamp_t _tstamp,
                          page_t *_page)
         : block_id(_block_id), is_deleted(_is_deleted),
@@ -1167,7 +1167,7 @@ struct block_token_tstamp_t {
           page(_page) { }
     block_id_t block_id;
     bool is_deleted;
-    counted_t<standard_block_token_t> block_token;
+    counted_t<block_token_t> block_token;
     repli_timestamp_t tstamp;
     // The page, or NULL, if we don't know it.
     page_t *page;
@@ -1202,7 +1202,7 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
                     // The block is deleted.
                     blocks_by_tokens.push_back(block_token_tstamp_t(it->first,
                                                                     true,
-                                                                    counted_t<standard_block_token_t>(),
+                                                                    counted_t<block_token_t>(),
                                                                     repli_timestamp_t::invalid,
                                                                     NULL));
                 } else {
@@ -1241,7 +1241,7 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
                 // We only touched the page.
                 blocks_by_tokens.push_back(block_token_tstamp_t(it->first,
                                                                 false,
-                                                                counted_t<standard_block_token_t>(),
+                                                                counted_t<block_token_t>(),
                                                                 it->second.tstamp,
                                                                 NULL));
             }
@@ -1257,7 +1257,7 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
             }
         } blocks_releasable_cb;
 
-        std::vector<counted_t<standard_block_token_t> > tokens
+        std::vector<counted_t<block_token_t> > tokens
             = page_cache->serializer_->block_writes(write_infos,
                                                     /* disk account is overridden
                                                      * by merger_serializer_t */
@@ -1283,7 +1283,7 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
              ++it) {
             if (it->is_deleted) {
                 write_ops.push_back(index_write_op_t(it->block_id,
-                                                     counted_t<standard_block_token_t>(),
+                                                     counted_t<block_token_t>(),
                                                      repli_timestamp_t::invalid));
             } else if (it->block_token.has()) {
                 write_ops.push_back(index_write_op_t(it->block_id,
