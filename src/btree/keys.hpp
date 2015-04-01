@@ -269,14 +269,6 @@ struct key_range_t {
         return left_ok && right_ok;
     }
 
-    store_key_t last_key_in_range() const {
-        if (right.unbounded) {
-            return store_key_t::max();
-        } else {
-            return right.key;
-        }
-    }
-
     std::string print();
     bool is_superset(const key_range_t &other) const;
     bool overlaps(const key_range_t &other) const;

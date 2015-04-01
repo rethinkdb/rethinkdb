@@ -177,12 +177,9 @@ public:
     };
     class backfill_pre_atom_producer_t {
     public:
-        /* `next_pre_atom()` should set `*pre_atom_out` to the next pre atom which starts
-        earlier than `horizon`, or `nullptr` if there are no more pre atoms in that
-        range. */
         virtual bool next_pre_atom(
-            const key_range_t::right_bound_t &horizon,
-            backfill_pre_atom_t const **next_out) THROWS_NOTHING = 0;
+            backfill_pre_atom_t const **next_out,
+            key_range_t::right_bound_t *edge_out) THROWS_NOTHING = 0;
 
         /* The pointer given to `next_pre_atom()` should remain valid until
         `release_pre_atom()` is called. Every call to `next_pre_atom()` that returns
@@ -206,9 +203,9 @@ public:
     class backfill_atom_producer_t {
     public:
         virtual bool next_atom(
-            const key_range_t::right_bound_t &horizon,
             region_map_t<binary_blob_t> const **metainfo_out,
-            backfill_atom_t const **atom_out) THROWS_NOTHING = 0;
+            backfill_atom_t const **atom_out,
+            key_range_t::right_bound_t *edge_out) THROWS_NOTHING = 0;
         virtual void release_atom() THROWS_NOTHING = 0;
 
         /* By the time `receive_backfill()` returns, the store must have called

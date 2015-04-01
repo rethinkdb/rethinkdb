@@ -132,10 +132,18 @@ private:
                             *pre_atoms = std::move(temp_buf);
                         }
                         bool next_pre_atom(
-                                const key_range_t::right_bound_t &horizon,
-                                backfill_pre_atom_t const **next_out)
+                                backfill_pre_atom_t const **next_out,
+                                key_range_t::right_bound_t *edge_out)
                                 THROWS_NOTHING {
-                            if (pre_atoms->first_before_threshold(horizon, next_out)) {
+                            if (!pre_atoms->empty()) {
+                                *next_out = &pre_atoms->front();
+                                return true;
+                            } else if (pre_atoms->get_left_key() <
+                                    pre_atoms->get_right_key()) {
+                                *next_out = nullptr;
+                                *edge_out = pre_atoms->get_right_key();
+                                pre_atoms->delete_to_key(*edge_out);
+                                temp_buf.push_back_nothing(*edge_out);
                                 return true;
                             } else {
                                 pulse_when_pre_atoms_arrive->init(new cond_t);

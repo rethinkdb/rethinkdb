@@ -28,7 +28,6 @@ public:
     void on_atoms(
             region_map_t<version_t> &&metainfo_chunk,
             backfill_atom_seq_t<backfill_atom_t> &&chunk) {
-        debugf("backfillee on_atoms()\n");
         rassert(metainfo_chunk.get_domain() == chunk.get_region());
         atoms.concat(std::move(chunk));
         metainfo.concat(std::move(metainfo_chunk));
@@ -38,7 +37,6 @@ public:
         }
     }
     void on_ack_end_session() {
-        debugf("backfillee on_ack_end_session()\n");
         got_ack_end_session.pulse();
         if (pulse_when_atoms_arrive.has()) {
             pulse_when_atoms_arrive->pulse_if_not_already_pulsed();
@@ -50,8 +48,6 @@ public:
 
 private:
     void run(auto_drainer_t::lock_t keepalive) {
-        debugf("backfillee run() begin\n");
-        debugf_in_dtor_t d1("backfillee run() end\n");
         try {
             while (threshold != parent->store->get_region().inner.right &&
                     !got_ack_end_session.is_pulsed()) {
@@ -66,12 +62,18 @@ private:
                 public:
                     producer_t(session_t *_parent) : parent(_parent) { }
                     bool next_atom(
-                            const key_range_t::right_bound_t &horizon,
                             region_map_t<binary_blob_t> const **metainfo_out,
-                            backfill_atom_t const **atom_out) THROWS_NOTHING {
-                        debugf("backfillee next_atom()\n");
-                        if (parent->atoms.first_before_threshold(horizon, atom_out)) {
-                            *metainfo_out = &parent->metainfo_binary;
+                            backfill_atom_t const **atom_out,
+                            key_range_t::right_bound_t *edge_out) THROWS_NOTHING {
+                        *metainfo_out = &parent->metainfo_binary;
+                        if (!parent->atoms.empty()) {
+                            *atom_out = &parent->atoms.front();
+                            return true;
+                        } else if (parent->atoms.get_left_key() <=
+                                parent->atoms.get_right_key()) {
+                            *atom_out = nullptr;
+                            *edge_out = parent->atoms.get_right_key();
+                            parent->atoms.delete_to_key(*edge_out);
                             return true;
                         } else {
                             parent->pulse_when_atoms_arrive.init(new cond_t);
@@ -83,7 +85,6 @@ private:
                     }
                     void on_commit(const key_range_t::right_bound_t &new_threshold)
                             THROWS_NOTHING {
-                        debugf("backfillee on_commit()\n");
                         if (!parent->callback_returned_false.is_pulsed()) {
                             region_t mask = parent->parent->store->get_region();
                             mask.inner.left = parent->threshold.key;
@@ -98,14 +99,11 @@ private:
                     session_t *parent;
                 } producer(this);
 
-                debugf("backfillee begin receive_backfill()\n");
                 parent->store->receive_backfill(
                     subregion, &producer, keepalive.get_drain_signal());
-                debugf("backfillee end receive_backfill()\n");
 
                 /* Wait for more atoms, if that's the reason we stopped */
                 if (pulse_when_atoms_arrive.has()) {
-                    debugf("waiting for more atoms\n");
                     wait_interruptible(pulse_when_atoms_arrive.get(),
                         keepalive.get_drain_signal());
                     pulse_when_atoms_arrive.reset();
@@ -198,7 +196,6 @@ void backfillee_t::go(
         const key_range_t::right_bound_t &threshold,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
-    debugf("backfillee go()\n");
     guarantee(!current_session.has());
     current_session.init(new session_t(this, threshold, callback));
 
@@ -216,11 +213,7 @@ void backfillee_t::go(
 
     wait_interruptible(&current_session->got_ack_end_session, interruptor);
 
-    debugf("backfillee go() ended was pulsed\n");
-
     current_session.reset();
-
-    debugf("backfillee go() finished\n");
 }
 
 void backfillee_t::on_atoms(
