@@ -434,7 +434,7 @@ void server_t::send_all(const msg_t &msg,
 
     rwlock_acq_t acq(&clients_lock, access_t::read);
     std::map<client_t::addr_t, uint64_t> stamps;
-    for (const auto &pair : clients) {
+    for (auto &&pair : clients) {
         // We don't need a write lock as long as we make sure the coroutine
         // doesn't block between reading and updating the stamp.
         ASSERT_NO_CORO_WAITING;
@@ -442,7 +442,7 @@ void server_t::send_all(const msg_t &msg,
     }
     stamp_spot->reset(); // Done stamping, no need to hold onto it while we send.
     for (const auto &pair : stamps) {
-        send(manager, pair.first, stamped_msg_t(uuid, stamp, msg));
+        send(manager, pair.first, stamped_msg_t(uuid, pair.second, msg));
     }
 
     rwlock_in_line_t spot(&clients_lock, access_t::read);
@@ -475,8 +475,8 @@ server_t::limit_addr_t server_t::get_limit_stop_addr() {
 
 uint64_t server_t::get_stamp(const client_t::addr_t &addr) {
     auto_drainer_t::lock_t lock(&drainer);
-    rwlock_in_line_t spot(&clients_lock, access_t::read);
-    spot.read_signal()->wait_lazily_unordered();
+    rwlock_acq_t stamp_acq(&stamp_lock, access_t::read);
+    rwlock_acq_t client_acq(&clients_lock, access_t::read);
     auto it = clients.find(addr);
     if (it == clients.end()) {
         // The client was removed, so no future messages are coming.

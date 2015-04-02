@@ -384,10 +384,11 @@ public:
     const uuid_u uuid;
 private:
     // Can throw `exc_t` exceptions if an error occurs while reading from disk.
-    std::vector<item_t> read_more(const boost::variant<primary_ref_t, sindex_ref_t> &ref,
-                         sorting_t sorting,
-                         const boost::optional<item_queue_t::iterator> &start,
-                         size_t n);
+    std::vector<item_t> read_more(
+        const boost::variant<primary_ref_t, sindex_ref_t> &ref,
+        sorting_t sorting,
+        const boost::optional<item_queue_t::iterator> &start,
+        size_t n);
     void send(msg_t &&msg);
 
     scoped_ptr_t<env_t> env;
@@ -432,7 +433,9 @@ public:
         limit_order_t lt,
         std::vector<item_t> &&start_data);
     // `key` should be non-NULL if there is a key associated with the message.
-    void send_all(const msg_t &msg, const store_key_t &key);
+    void send_all(const msg_t &msg,
+                  const store_key_t &key,
+                  rwlock_in_line_t *stamp_spot);
     void stop_all();
     addr_t get_stop_addr();
     limit_addr_t get_limit_stop_addr();
@@ -447,6 +450,9 @@ public:
                                           rwlock_in_line_t *,
                                           limit_manager_t *)> f) THROWS_NOTHING;
     bool has_limit(const boost::optional<std::string> &s);
+    rwlock_in_line_t get_in_line_for_stamp(access_t access) {
+        return rwlock_in_line_t(&stamp_lock, access);
+    }
 private:
     friend class limit_manager_t;
     void stop_mailbox_cb(signal_t *interruptor, client_t::addr_t addr);
@@ -489,6 +495,10 @@ private:
                             std::pair<const client_t::addr_t, client_info_t> *client,
                             msg_t msg);
 
+    // Used to control access to stamps.  We need this so that `do_stamp` in
+    // `store.cc` can synchronize with with the `rdb_modification_report_cb_t`
+    // in `btree.cc`.
+    rwlock_t stamp_lock;
     // Controls access to `clients`.  A `server_t` needs to read `clients` when:
     // * `send_all` is called
     // * `get_stamp` is called

@@ -332,7 +332,7 @@ void do_a_replace_from_batched_replace(
     const one_replace_t one_replace,
     const ql::configured_limits_t &limits,
     promise_t<superblock_t *> *superblock_promise,
-    rdb_modification_report_cb_t *sindex_cb,
+    rdb_modification_report_cb_t *mod_cb,
     bool update_pkey_cfeeds,
     batched_replace_response_t *stats_out,
     profile::sampler_t *sampler,
@@ -353,9 +353,11 @@ void do_a_replace_from_batched_replace(
     // We wait to make sure we acquire `acq` in the same order we were
     // originally called.
     exiter.wait();
-    scoped_ptr_t<new_mutex_in_line_t> acq = sindex_cb->get_in_line();
+    scoped_ptr_t<new_mutex_in_line_t> sindex_spot = mod_cb->get_in_line_for_sindex();
+    rwlock_in_line_t stamp_spot = mod_cb->get_in_line_for_stamp();
 
-    sindex_cb->on_mod_report(mod_report, update_pkey_cfeeds, acq.get());
+    mod_cb->on_mod_report(
+        mod_report, update_pkey_cfeeds, sindex_spot.get(), &stamp_spot);
 }
 
 batched_replace_response_t rdb_batched_replace(
@@ -1046,8 +1048,11 @@ void rdb_modification_report_cb_t::finish(
         });
 }
 
-scoped_ptr_t<new_mutex_in_line_t> rdb_modification_report_cb_t::get_in_line() {
+scoped_ptr_t<new_mutex_in_line_t> rdb_modification_report_cb_t::get_in_line_for_sindex() {
     return store_->get_in_line_for_sindex_queue(sindex_block_);
+}
+rwlock_in_line_t rdb_modification_report_cb_t::get_in_line_for_stamp() {
+    return store_->changefeed_server->get_in_line_for_stamp(access_t::write);
 }
 
 void rdb_modification_report_cb_t::on_mod_report(
@@ -1060,12 +1065,12 @@ void rdb_modification_report_cb_t::on_mod_report(
         // hold the sindex update for the changefeed update or vice-versa.
         cond_t sindexes_updated_cond, keys_available_cond;
         std::map<std::string, std::vector<ql::datum_t> > old_keys, new_keys;
-        spot->acq_signal()->wait_lazily_unordered();
+        sindex_spot->acq_signal()->wait_lazily_unordered();
         coro_t::spawn_now_dangerously(
             std::bind(&rdb_modification_report_cb_t::on_mod_report_sub,
                       this,
                       report,
-                      spot,
+                      sindex_spot,
                       &keys_available_cond,
                       &sindexes_updated_cond,
                       &old_keys,

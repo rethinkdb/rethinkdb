@@ -303,15 +303,17 @@ public:
             store_t *store,
             buf_lock_t *sindex_block,
             auto_drainer_t::lock_t lock);
+    ~rdb_modification_report_cb_t();
 
-    scoped_ptr_t<new_mutex_in_line_t> get_in_line();
+    scoped_ptr_t<new_mutex_in_line_t> get_in_line_for_sindex();
+    rwlock_in_line_t get_in_line_for_stamp();
+
     void on_mod_report(const rdb_modification_report_t &mod_report,
                        bool update_pkey_cfeeds,
-                       new_mutex_in_line_t *spot);
+                       new_mutex_in_line_t *sindex_spot,
+                       rwlock_in_line_t *stamp_spot);
     bool has_pkey_cfeeds();
     void finish(btree_slice_t *btree, real_superblock_t *superblock);
-
-    ~rdb_modification_report_cb_t();
 
 private:
     void on_mod_report_sub(
