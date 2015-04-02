@@ -623,6 +623,7 @@ protected:
     const scoped_ptr_t<const readgen_t> readgen;
     store_key_t last_read_start;
     boost::optional<key_range_t> active_range;
+    boost::optional<skey_version_t> skey_version;
     std::map<uuid_u, uint64_t> shard_stamps;
 
     // We need this to handle the SINDEX_CONSTANT case.
