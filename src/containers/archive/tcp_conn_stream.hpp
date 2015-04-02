@@ -20,7 +20,7 @@ public:
     virtual MUST_USE int64_t read(void *p, int64_t n);
     virtual MUST_USE int64_t write(const void *p, int64_t n);
     virtual MUST_USE int64_t write_buffered(const void *p, int64_t n);
-    virtual void flush_buffer();
+    virtual bool flush_buffer();
 
     void rethread(threadnum_t new_thread);
 
@@ -70,7 +70,7 @@ public:
     virtual MUST_USE int64_t read(void *p, int64_t n);
     virtual MUST_USE int64_t write(const void *p, int64_t n);
     virtual MUST_USE int64_t write_buffered(const void *p, int64_t n);
-    virtual void flush_buffer();
+    virtual bool flush_buffer();
 
 private:
     keepalive_callback_t *keepalive_callback;

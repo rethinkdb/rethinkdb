@@ -130,12 +130,13 @@ connectivity_cluster_t::connection_t::connection_t(run_t *p,
                                                    keepalive_tcp_conn_stream_t *c,
                                                    const peer_address_t &a) THROWS_NOTHING :
     conn(c),
-        // TODO! Handle exception!
     flusher([&]() {
         if (this->conn) {
             // We need to acquire the send_mutex because flushing the buffer
             // must not interleave with other writes (restriction of linux_tcp_conn_t).
-            mutex_t::acq_t acq(&send_mutex);
+            mutex_t::acq_t acq(&this->send_mutex);
+            // We ignore the return value of flush_buffer(). Closed connections
+            // must be handled elsewhere.
             this->conn->flush_buffer();
         }
     }, 1),
@@ -1261,8 +1262,10 @@ void connectivity_cluster_t::send_message(connection_t *connection,
                 serialize_universal(&wm, tag);
                 make_buffered_tcp_conn_stream_wrapper_t buffered_conn(connection->conn);
                 int res = send_write_message(&buffered_conn, &wm);
-                // TODO! Revisit this closed handler
                 if (res == -1) {
+                    /* Close the other half of the connection to make sure that
+                       `connectivity_cluster_t::run_t::handle()` notices that something is
+                       up */
                     if (connection->conn->is_read_open()) {
                         connection->conn->shutdown_read();
                     }
@@ -1274,11 +1277,7 @@ void connectivity_cluster_t::send_message(connection_t *connection,
             {
                 int64_t res = connection->conn->write_buffered(buffer.vector().data(),
                                                                buffer.vector().size());
-                // TODO! Revisit this closed handler
                 if (res == -1) {
-                    /* Close the other half of the connection to make sure that
-                       `connectivity_cluster_t::run_t::handle()` notices that something is
-                       up */
                     if (connection->conn->is_read_open()) {
                         connection->conn->shutdown_read();
                     }
@@ -1289,8 +1288,13 @@ void connectivity_cluster_t::send_message(connection_t *connection,
             }
         } /* Releases the send_mutex */
 
-        // TODO! Handle closed connection errors
         connection->flusher.sync();
+        if (!connection->conn->is_write_open()) {
+            if (connection->conn->is_read_open()) {
+                connection->conn->shutdown_read();
+            }
+            return;
+        }
     }
 
     connection->pm_bytes_sent.record(bytes_sent);

@@ -49,9 +49,14 @@ int64_t tcp_conn_stream_t::write_buffered(const void *p, int64_t n) {
     }
 }
 
-void tcp_conn_stream_t::flush_buffer() {
-    cond_t non_closer;
-    conn_->flush_buffer(&non_closer);
+bool tcp_conn_stream_t::flush_buffer() {
+    try {
+        cond_t non_closer;
+        conn_->flush_buffer(&non_closer);
+        return true;
+    } catch (const tcp_conn_write_closed_exc_t &) {
+        return false;
+    }
 }
 
 void tcp_conn_stream_t::rethread(threadnum_t new_thread) {
@@ -130,7 +135,7 @@ int64_t keepalive_tcp_conn_stream_t::write_buffered(const void *p, int64_t n) {
     return tcp_conn_stream_t::write_buffered(p, n);
 }
 
-void keepalive_tcp_conn_stream_t::flush_buffer() {
+bool keepalive_tcp_conn_stream_t::flush_buffer() {
     if (keepalive_callback != NULL) {
         keepalive_callback->keepalive_write();
     }
