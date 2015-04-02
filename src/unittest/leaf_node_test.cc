@@ -245,7 +245,10 @@ public:
             ASSERT_TRUE(false);
         }
 
-        void keys_values(const std::vector<const btree_key_t *> &ks, const std::vector<const void *> &values, const std::vector<repli_timestamp_t> &) {
+        void keys_values(
+                std::vector<const btree_key_t *> &&ks,
+                std::vector<const void *> &&values,
+                std::vector<repli_timestamp_t> &&) {
             ASSERT_TRUE(got_lost_deletions_);
             for (size_t i = 0; i < ks.size(); ++i) {
                 const short_value_t *value = static_cast<const short_value_t *>(values[i]);

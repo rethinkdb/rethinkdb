@@ -1563,7 +1563,7 @@ void dump_entries_since_time(value_sizer_t *sizer, const leaf_node_t *node, repl
             iter.step(sizer, node);
         }
         if (!keys.empty()) {
-            cb->keys_values(keys, values, tstamps);
+            cb->keys_values(std::move(keys), std::move(values), std::move(tstamps));
         }
     }
 }

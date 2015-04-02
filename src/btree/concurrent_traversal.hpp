@@ -51,6 +51,8 @@ public:
     virtual done_traversing_t handle_pre_leaf(
             UNUSED const counted_t<counted_buf_lock_t> &buf_lock,
             UNUSED const counted_t<counted_buf_read_t> &buf_read,
+            UNUSED const btree_key_t *left_excl_or_null,
+            UNUSED const btree_key_t *right_incl_or_null,
             bool *skip_out) {
         *skip_out = false;
         return done_traversing_t::NO;

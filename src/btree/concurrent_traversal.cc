@@ -93,8 +93,11 @@ public:
     virtual done_traversing_t handle_pre_leaf(
             const counted_t<counted_buf_lock_t> &buf_lock,
             const counted_t<counted_buf_read_t> &buf_read,
+            const btree_key_t *left_excl_or_null,
+            const btree_key_t *right_incl_or_null,
             bool *skip_out) {
-        return cb_->handle_pre_leaf(buf_lock, buf_read, skip_out);
+        return cb_->handle_pre_leaf(
+            buf_lock, buf_read, left_excl_or_null, right_incl_or_null, skip_out);
     }
 
     virtual bool is_range_interesting(

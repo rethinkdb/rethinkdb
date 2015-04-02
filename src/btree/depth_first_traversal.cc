@@ -5,23 +5,6 @@
 #include "btree/operations.hpp"
 #include "rdb_protocol/profile.hpp"
 
-class counted_buf_lock_t : public buf_lock_t,
-                           public single_threaded_countable_t<counted_buf_lock_t> {
-public:
-    template <class... Args>
-    explicit counted_buf_lock_t(Args &&... args)
-        : buf_lock_t(std::forward<Args>(args)...) { }
-};
-
-class counted_buf_read_t : public buf_read_t,
-                           public single_threaded_countable_t<counted_buf_read_t> {
-public:
-    template <class... Args>
-    explicit counted_buf_read_t(Args &&... args)
-        : buf_read_t(std::forward<Args>(args)...) { }
-};
-
-
 scoped_key_value_t::scoped_key_value_t(const btree_key_t *key,
                                        const void *value,
                                        movable_t<counted_buf_lock_t> &&buf,
@@ -174,7 +157,8 @@ bool btree_depth_first_traversal(counted_t<counted_buf_lock_t> block,
         return true;
     } else {
         bool skip;
-        if (done_traversing_t::YES == cb->handle_pre_leaf(block, read, &skip)) {
+        if (done_traversing_t::YES == cb->handle_pre_leaf(
+                block, read, left_excl_or_null, right_incl_or_null, &skip)) {
             return false;
         }
         if (skip) {

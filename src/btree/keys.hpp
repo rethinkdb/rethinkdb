@@ -212,6 +212,18 @@ struct key_range_t {
     struct right_bound_t {
         right_bound_t() : unbounded(true) { }
         explicit right_bound_t(store_key_t k) : unbounded(false), key(k) { }
+
+        bool increment() {
+            if (unbounded) {
+                return false;
+            } else {
+                if (!key.increment()) {
+                    unbounded = true;
+                }
+                return true;
+            }
+        }
+
         bool unbounded;
         store_key_t key;
     };
@@ -267,6 +279,10 @@ struct key_range_t {
         bool left_ok = sized_strcmp(left.contents(), left.size(), key, size) <= 0;
         bool right_ok = right.unbounded || sized_strcmp(key, size, right.key.contents(), right.key.size()) < 0;
         return left_ok && right_ok;
+    }
+
+    bool contains_key(const btree_key_t *key) const {
+        return contains_key(key->contents, key->size);
     }
 
     std::string print();

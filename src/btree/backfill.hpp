@@ -10,6 +10,7 @@
 #include <boost/optional.hpp>
 
 #include "btree/keys.hpp"
+#include "btree/types.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/interruptor.hpp"
 #include "repli_timestamp.hpp"
@@ -17,6 +18,7 @@
 
 class buf_parent_t;
 class superblock_t;
+class value_sizer_t;
 
 class backfill_pre_atom_t {
 public:
@@ -72,6 +74,8 @@ private:
 
 bool btree_backfill_pre_atoms(
     superblock_t *superblock,
+    release_superblock_t release_superblock,
+    const value_sizer_t *sizer,
     const key_range_t &range,
     repli_timestamp_t since_when,
     btree_backfill_pre_atom_consumer_t *pre_atom_consumer,
@@ -95,13 +99,15 @@ public:
         buf_parent_t buf_parent,
         const void *value_in_leaf_node,
         signal_t *interruptor,
-        std::vector<uint8_t> *value_out) = 0;
+        std::vector<char> *value_out) = 0;
 public:
     virtual ~btree_backfill_atom_consumer_t() { }
 };
 
 bool btree_backfill_atoms(
     superblock_t *superblock,
+    release_superblock_t release_superblock,
+    const value_sizer_t *sizer,
     const key_range_t &range,
     repli_timestamp_t since_when,
     btree_backfill_pre_atom_producer_t *pre_atom_producer,

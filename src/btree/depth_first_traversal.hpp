@@ -4,6 +4,7 @@
 
 #include "btree/keys.hpp"
 #include "btree/types.hpp"
+#include "buffer_cache/alt.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/counted.hpp"
 #include "repli_timestamp.hpp"
@@ -11,10 +12,23 @@
 namespace profile { class trace_t; }
 
 class buf_parent_t;
-class counted_buf_lock_t;
-class counted_buf_read_t;
-struct leaf_node_t;
 class superblock_t;
+
+class counted_buf_lock_t : public buf_lock_t,
+                           public single_threaded_countable_t<counted_buf_lock_t> {
+public:
+    template <class... Args>
+    explicit counted_buf_lock_t(Args &&... args)
+        : buf_lock_t(std::forward<Args>(args)...) { }
+};
+
+class counted_buf_read_t : public buf_read_t,
+                           public single_threaded_countable_t<counted_buf_read_t> {
+public:
+    template <class... Args>
+    explicit counted_buf_read_t(Args &&... args)
+        : buf_read_t(std::forward<Args>(args)...) { }
+};
 
 // A btree leaf key/value pair that also owns a reference to the buf_lock_t that
 // contains said key/value pair.
@@ -62,6 +76,8 @@ public:
     virtual done_traversing_t handle_pre_leaf(
             UNUSED const counted_t<counted_buf_lock_t> &buf_lock,
             UNUSED const counted_t<counted_buf_read_t> &buf_read,
+            UNUSED const btree_key_t *left_excl_or_null,
+            UNUSED const btree_key_t *right_incl_or_null,
             bool *skip_out) {
         *skip_out = false;
         return done_traversing_t::NO;
