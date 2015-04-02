@@ -335,7 +335,6 @@ module RethinkDB
       end
 
       # If the user has defined the `on_state` method, we assume they want states.
-      PP.pp args[:block]
       if args[:block].respond_to?(:on_state)
         args[:opts] = args[:opts].merge(include_states: true)
       end

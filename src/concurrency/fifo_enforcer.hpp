@@ -25,14 +25,15 @@ checkpoint. The objects in transit between the checkpoints are identified by
 `fifo_enforcer_write_token_t`. Read tokens are allowed to be reordered relative
 to each other but not relative to write tokens. */
 
-/* A clinic can be used as metaphor for how `fifo_enforcer_{source,sink}_t` are used.
- * First you get an appointment (`fifo_enforcer_source_t::enter_{read,write}()`), then you
- * come to a waiting room (construct `fifo_enforcer_sink_t::exit_{read,write}_t`), where
- * you are notified when the doctor is ready to see you (the `exit_{read,write}_t` object
- * gets pulsed). When you finish seeing the doctor (destroy the `exit_{read,write}_t`),
- * the person who has the next appointment is notified.  If you leave the waiting room
- * (destroy the `exit_{read,write}_t` before it is pulsed), you forfeit your appointment
- * and place in line.
+/* A clinic can be used as metaphor for how `fifo_enforcer_{source,sink}_t` are
+ * used.  First you get an appointment
+ * (`fifo_enforcer_source_t::enter_{read,write}()`), then you come to a waiting
+ * room (construct `fifo_enforcer_sink_t::exit_{read,write}_t`), where you are
+ * notified when the doctor is ready to see you (the `exit_{read,write}_t`
+ * object gets pulsed). When you finish seeing the doctor (destroy the
+ * `exit_{read,write}_t`), the person who has the next appointment is notified.
+ * If you leave the waiting room (destroy the `exit_{read,write}_t` before it is
+ * pulsed), you forfeit your appointment and place in line.
  *
  * The metaphor breaks down in that, if you don't show up for your appointment, all the
  * later appointments are delayed indefinitely. That means that if you never construct a
@@ -105,14 +106,16 @@ public:
     create more subclasses to do interesting things. You should probably use one
     of its subclasses. */
 
-    class internal_exit_read_t : public intrusive_priority_queue_node_t<internal_exit_read_t> {
+    class internal_exit_read_t
+        : public intrusive_priority_queue_node_t<internal_exit_read_t> {
     protected:
         virtual ~internal_exit_read_t() { }
 
     private:
         friend class fifo_enforcer_sink_t;
-        friend bool left_is_higher_priority(const fifo_enforcer_sink_t::internal_exit_read_t *left,
-                                            const fifo_enforcer_sink_t::internal_exit_read_t *right);
+        friend bool left_is_higher_priority(
+            const fifo_enforcer_sink_t::internal_exit_read_t *left,
+            const fifo_enforcer_sink_t::internal_exit_read_t *right);
 
         /* Returns the read token for this operation. It will be used to sort
         the operation in the queue. */
@@ -127,14 +130,16 @@ public:
         virtual void on_early_shutdown() = 0;
     };
 
-    class internal_exit_write_t : public intrusive_priority_queue_node_t<internal_exit_write_t> {
+    class internal_exit_write_t
+        : public intrusive_priority_queue_node_t<internal_exit_write_t> {
     protected:
         virtual ~internal_exit_write_t() { }
 
     private:
         friend class fifo_enforcer_sink_t;
-        friend bool left_is_higher_priority(const fifo_enforcer_sink_t::internal_exit_write_t *left,
-                                            const fifo_enforcer_sink_t::internal_exit_write_t *right);
+        friend bool left_is_higher_priority(
+            const fifo_enforcer_sink_t::internal_exit_write_t *left,
+            const fifo_enforcer_sink_t::internal_exit_write_t *right);
 
         /* Returns the write token for this operation. It will be used to sort
         the operation in the queue. */

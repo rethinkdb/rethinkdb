@@ -346,6 +346,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void do_stamp(const changefeed_stamp_t &s, changefeed_stamp_response_t *out) {
+        new_mutex_in_line_t = store->get_in_line_for_changefeeds();
         guarantee(store->changefeed_server.has());
         out->stamps[store->changefeed_server->get_uuid()]
             = store->changefeed_server->get_stamp(s.addr);

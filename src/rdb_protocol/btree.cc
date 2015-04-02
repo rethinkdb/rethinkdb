@@ -337,8 +337,8 @@ void do_a_replace_from_batched_replace(
     batched_replace_response_t *stats_out,
     profile::sampler_t *sampler,
     profile::trace_t *trace,
-    std::set<std::string> *conditions)
-{
+    std::set<std::string> *conditions) {
+
     sampler->new_sample();
     fifo_enforcer_sink_t::exit_write_t exiter(
         batched_replaces_fifo_sink, batched_replaces_fifo_token);
@@ -1053,7 +1053,8 @@ scoped_ptr_t<new_mutex_in_line_t> rdb_modification_report_cb_t::get_in_line() {
 void rdb_modification_report_cb_t::on_mod_report(
     const rdb_modification_report_t &report,
     bool update_pkey_cfeeds,
-    new_mutex_in_line_t *spot) {
+    new_mutex_in_line_t *sindex_spot,
+    rwlock_in_line_t *cfeed_stamp_spot) {
     if (report.info.deleted.first.has() || report.info.added.first.has()) {
         // We spawn the sindex update in its own coroutine because we don't want to
         // hold the sindex update for the changefeed update or vice-versa.
@@ -1103,7 +1104,8 @@ void rdb_modification_report_cb_t::on_mod_report(
                     report.primary_key,
                     report.info.deleted.first,
                     report.info.added.first}),
-            report.primary_key);
+            report.primary_key,
+            cfeed_stamp_spot);
         sindexes_updated_cond.wait_lazily_unordered();
     }
 }

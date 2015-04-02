@@ -20,6 +20,27 @@ namespace ql {
 
 namespace changefeed {
 
+struct indexed_datum_t {
+    indexed_datum_t(datum_t _val, datum_t _index)
+        : val(std::move(_val)), index(std::move(_index)) {
+        guarantee(val.has());
+    }
+    // RSI: sometimes this should be `null`.
+    datum_t val, index;
+};
+
+struct stamped_range_t {
+    stamped_range_t(uint64_t _next_expected_stamp)
+        : next_expected_stamp(_next_expected_stamp),
+          left_fencepost(store_key_t::min()) { }
+    const store_key_t &get_right_fencepost() {
+        return ranges.size() == 0 ? left_fencepost : ranges.back().first.right.key;
+    }
+    uint64_t next_expected_stamp;
+    store_key_t left_fencepost;
+    std::deque<std::pair<key_range_t, uint64_t> > ranges;
+};
+
 namespace debug {
 std::string print(const uuid_u &u) {
     printf_buffer_t buf;
@@ -28,6 +49,11 @@ std::string print(const uuid_u &u) {
 }
 std::string print(const datum_t &d) {
     return "datum(" + d.print() + ")";
+}
+std::string print(const indexed_datum_t &d) {
+    return strprintf("indexed_datum_t(val: %s, index: %s)",
+                     print(d.val).c_str(),
+                     print(d.index).c_str());
 }
 std::string print(const std::string &s) {
     return "str(" + s + ")";
@@ -53,7 +79,7 @@ std::string print(const msg_t::limit_change_t &change) {
                      print(change.new_val).c_str());
 }
 template<class T>
-std::string print(const std::deque<T> &d) {
+std::string print(const T &d) {
     std::string s = "[";
     for (const auto &t : d) {
         if (s.size() != 1) s += ", ";
@@ -62,7 +88,11 @@ std::string print(const std::deque<T> &d) {
     s += "]";
     return s;
 }
-template<class stamped_range_t>
+std::string print(const store_key_t &key) {
+    printf_buffer_t buf;
+    debug_print(&buf, key);
+    return strprintf("store_key_t(%s)", buf.c_str());
+}
 std::string print(const stamped_range_t &srng) {
     return strprintf("stamped_range_t(%zu, %s, %s)",
                      srng.next_expected_stamp,
@@ -70,15 +100,6 @@ std::string print(const stamped_range_t &srng) {
                      print(srng.ranges).c_str());
 }
 } // namespace debug
-
-struct indexed_datum_t {
-    indexed_datum_t(datum_t _val, datum_t _index)
-        : val(std::move(_val)), index(std::move(_index)) {
-        guarantee(val.has());
-    }
-    // RSI: sometimes this should be `null`.
-    datum_t val, index;
-};
 
 struct change_val_t {
     change_val_t(std::pair<uuid_u, uint64_t> _source_stamp,
@@ -386,13 +407,14 @@ struct stamped_msg_t {
 RDB_MAKE_SERIALIZABLE_3(stamped_msg_t, server_uuid, stamp, submsg);
 
 // This function takes a `lock_t` to make sure you have one.  (We can't just
-// always ackquire a drainer lock before sending because we sometimes send a
+// always acquire a drainer lock before sending because we sometimes send a
 // `stop_t` during destruction, and you can't acquire a drain lock on a draining
 // `auto_drainer_t`.)
 void server_t::send_one_with_lock(
     const auto_drainer_t::lock_t &,
     std::pair<const client_t::addr_t, client_info_t> *client,
     msg_t msg) {
+    rwlock_acq_t acq(&stamp_lock, access_t::write);
     uint64_t stamp;
     {
         // We don't need a write lock as long as we make sure the coroutine
@@ -403,8 +425,26 @@ void server_t::send_one_with_lock(
     send(manager, client->first, stamped_msg_t(uuid, stamp, std::move(msg)));
 }
 
-void server_t::send_all(const msg_t &msg, const store_key_t &key) {
+void server_t::send_all(const msg_t &msg,
+                        const store_key_t &key,
+                        rwlock_in_line_t *stamp_spot) {
     auto_drainer_t::lock_t lock(&drainer);
+    stamp_spot->guarantee_is_for_lock(&stamp_lock);
+    stamp_spot->write_signal()->wait_lazily_unordered();
+
+    rwlock_acq_t acq(&clients_lock, access_t::read);
+    std::map<client_t::addr_t, uint64_t> stamps;
+    for (const auto &pair : clients) {
+        // We don't need a write lock as long as we make sure the coroutine
+        // doesn't block between reading and updating the stamp.
+        ASSERT_NO_CORO_WAITING;
+        stamps[pair.first] = pair.second.stamp++;
+    }
+    stamp_spot->reset(); // Done stamping, no need to hold onto it while we send.
+    for (const auto &pair : stamps) {
+        send(manager, pair.first, stamped_msg_t(uuid, stamp, msg));
+    }
+
     rwlock_in_line_t spot(&clients_lock, access_t::read);
     spot.read_signal()->wait_lazily_unordered();
     for (auto it = clients.begin(); it != clients.end(); ++it) {
@@ -2172,18 +2212,6 @@ void real_feed_t::mailbox_cb(signal_t *, stamped_msg_t msg) {
     }
 }
 
-struct stamped_range_t {
-    stamped_range_t(uint64_t _next_expected_stamp)
-        : next_expected_stamp(_next_expected_stamp),
-          left_fencepost(store_key_t::min()) { }
-    const store_key_t &get_right_fencepost() {
-        return ranges.size() == 0 ? left_fencepost : ranges.back().first.right.key;
-    }
-    uint64_t next_expected_stamp;
-    store_key_t left_fencepost;
-    std::deque<std::pair<key_range_t, uint64_t> > ranges;
-};
-
 // RSI: pick up here
 class splice_stream_t : public stream_t<range_sub_t> {
 public:
@@ -2197,6 +2225,9 @@ public:
         for (const auto &p : sub->get_start_stamps()) {
             stamped_ranges.insert(std::make_pair(p.first, stamped_range_t(p.second)));
         }
+    }
+    ~splice_stream_t() {
+        debugf("DESTROYING %s\n", log.c_str());
     }
 private:
     std::vector<datum_t> next_stream_batch(env_t *env, const batchspec_t &bs) final {
@@ -2226,9 +2257,12 @@ private:
                 if (cv.new_val && discard(cv.pkey, cv.source_stamp, *cv.new_val)) {
                     cv.new_val = boost::none;
                 }
+                log += strprintf("old_val: %s\n", debug::print(cv.old_val).c_str());
+                log += strprintf("new_val: %s\n", debug::print(cv.new_val).c_str());
                 if (cv.old_val || cv.new_val) {
                     datum_t el = change_val_to_change(std::move(cv));
                     batcher.note_el(el);
+                    log += strprintf("pushing %s\n", debug::print(el).c_str());
                     ret.push_back(std::move(el));
                 }
             }
@@ -2240,7 +2274,8 @@ private:
         }
         if (!batcher.should_send_batch()) {
             std::vector<datum_t> batch = src->next_batch(env, bs);
-            debugf("ready %zu\n", batch.size());
+            log += strprintf("batch: %s\n", debug::print(batch).c_str());
+            // debugf("ready %zu\n", batch.size());
             update_ranges();
             r_sanity_check(active_state);
             read_once = true;
@@ -2260,6 +2295,10 @@ private:
     bool discard(const store_key_t &pkey,
                  const std::pair<uuid_u, uint64_t> &source_stamp,
                  const indexed_datum_t &val) {
+        log += strprintf("discard(%s, %s, %s)\n",
+                         debug::print(pkey).c_str(),
+                         debug::print(source_stamp).c_str(),
+                         debug::print(val).c_str());
         store_key_t key;
         if (val.index.has()) {
             key = store_key_t(
@@ -2273,7 +2312,15 @@ private:
         auto it = stamped_ranges.find(source_stamp.first);
         r_sanity_check(it != stamped_ranges.end());
         it->second.next_expected_stamp = source_stamp.second + 1;
+        log += strprintf("%s < %s = %d\n",
+                         debug::print(key).c_str(),
+                         debug::print(it->second.left_fencepost).c_str(),
+                         key < it->second.left_fencepost);
         if (key < it->second.left_fencepost) return false;
+        log += strprintf("%s >= %s = %d\n",
+                         debug::print(key).c_str(),
+                         debug::print(it->second.get_right_fencepost()).c_str(),
+                         key >= it->second.get_right_fencepost());
         if (key >= it->second.get_right_fencepost()) return true;
         // `ranges` should be extremely small
         for (const auto &pair : it->second.ranges) {
@@ -2285,6 +2332,10 @@ private:
         r_sanity_fail();
     }
     void add_range(uuid_u uuid, uint64_t stamp, key_range_t range) {
+        log += strprintf("add_range(%s %zu %s)\n",
+                         debug::print(uuid).c_str(),
+                         stamp,
+                         debug::print(range).c_str());
         // Safe because we never generate `store_key_t::max()`.
         if (range.right.unbounded) {
             range.right.unbounded = false;
@@ -2357,6 +2408,7 @@ private:
     counted_t<datum_stream_t> src;
     boost::optional<active_state_t> active_state;
     std::map<uuid_u, stamped_range_t> stamped_ranges;
+    std::string log;
 };
 
 subscription_t::subscription_t(
