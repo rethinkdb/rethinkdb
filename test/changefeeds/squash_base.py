@@ -3,6 +3,11 @@
 
 import itertools, os, sys, time
 
+try:
+    xrange
+except NameError:
+    xrange = range
+
 sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common'))
 import rdb_unittest, utils
 
@@ -11,24 +16,35 @@ import rdb_unittest, utils
 class SquashBase(rdb_unittest.RdbTestCase):
     '''Squash tests'''
 
+    # `rdb_unittest.RdbTestCase` variables
     recordsToGenerate = 0
 
-    def setUp(self, squash, field, generator, records, limit, multi=False):
+    # Local variables
+    squash = True
+    field = "id"
+    generator = itertools.count()
+    records = 0
+    limit = 0
+    multi = False
+
+    def setUp(self):
         super(SquashBase, self).setUp()
 
-        self._squash = squash
-        self._field = field
-        self._generator = generator
-        self._records = records
-        self._limit = limit
-        self._multi = multi
-
+        # The generator emits values in increasing order thus we store the first twenty
+        # values for later use, specifically to do inserts and updates, and test that no
+        # change is emitted.
+        self._generator_initial_len = 20
         self._generator_initial = []
-        for x in xrange(20):
-            self._generator_initial.append((x, next(self._generator)))
+        for x in xrange(self._generator_initial_len):
+            self._generator_initial.append((x, next(self.generator)))
 
-        if self._multi:
-            self._multi_id_generator = itertools.count(20)
+        # The primary key is used to break ties in a multi index thus `self._document`
+        # has the option of generating an increasing key instead of them being
+        # auto-generated.
+        self._key_generator = itertools.count(self._generator_initial_len)
+        if self.multi:
+            # The generator for multi indices return an array, and the length of that
+            # array is a factor in the number of results from a changefeed.
             self._multi_len = len(self._generator_initial[0][1])
 
         self._primary_key = self.r.db(self.dbName) \
@@ -36,48 +52,44 @@ class SquashBase(rdb_unittest.RdbTestCase):
                                   .info()["primary_key"] \
                                   .run(self.conn)
 
-        for x in xrange(self._records):
+        # Generate the records ..
+        for x in xrange(self.records):
             self.r.db(self.dbName) \
                   .table(self.tableName) \
-                  .insert(self._document(next(self._generator))) \
+                  .insert(self._document(next(self.generator))) \
                   .run(self.conn)
 
-        if self._field != self._primary_key:
+        # .. and add the requested index if necessary
+        if self.field != self._primary_key:
             self.r.db(self.dbName) \
                   .table(self.tableName) \
-                  .index_create(self._field, multi=self._multi) \
+                  .index_create(self.field, multi=self.multi) \
                   .run(self.conn)
 
             self.r.db(self.dbName) \
                   .table(self.tableName) \
-                  .index_wait(self._field) \
+                  .index_wait(self.field) \
                   .run(self.conn)
 
+        # The changefeeds are requested through a separate connection
         self._feed_conn = self.r.connect(
             self.cluster[0].host, self.cluster[0].driver_port) 
 
-    def tearDown(self):
-        self.r.db(self.dbName) \
-              .table(self.tableName) \
-              .filter({"insert": True}) \
-              .delete() \
-              .run(self.conn)
+    def _document(self, value, key=None, key_generate=None):
+        # An increasing primary key is automatically added to multi indices as they
+        # influence sorting.
+        if key_generate is None:
+            key_generate = self.multi
 
-        super(SquashBase, self).tearDown()
-
-    def _document(self, value, key=None, key_generate=True):
         document = {
-            self._field: value,
-            "insert": True
+            self.field: value
         }
 
-        # An increasing primary key is automatically added to multi tests as they
-        # may influence sorting.
-        if key is None and key_generate and self._multi:
-            key = "g-%i" % next(self._multi_id_generator)
+        if key is None and key_generate:
+            key = "g-%i" % next(self._key_generator)
 
         if key is not None:
-            self.assertTrue(self._field != self._primary_key)
+            self.assertTrue(self.field != self._primary_key)
             document[self._primary_key] = key
 
         return document
@@ -85,21 +97,23 @@ class SquashBase(rdb_unittest.RdbTestCase):
     def test_insert(self):
         query = self.r.db(self.dbName) \
                       .table(self.tableName) \
-                      .order_by(index=self.r.desc(self._field)) \
-                      .limit(self._limit) \
-                      .changes(squash=self._squash)
+                      .order_by(index=self.r.desc(self.field)) \
+                      .limit(self.limit) \
+                      .changes(squash=self.squash)
 
         with utils.NextWithTimeout(query.run(self._feed_conn), stopOnEmpty=False) as feed:
-            changes = min(self._records, self._limit)
-            if self._multi:
+            changes = min(self.records, self.limit)
+            if self.multi:
                 changes = min(
-                    self._records * self._multi_len, self._limit)
+                    self.records * self._multi_len, self.limit)
 
             initial = []
             for x in xrange(changes):
                 initial.append(next(feed))
 
-            if self._records >= self._limit:
+            # If the number of records is greater than the limit then then insert a low
+            # value and verify it does not show up as a change, due to the `order_by`.
+            if self.records >= self.limit:
                 _, value = self._generator_initial.pop()
                 self.r.db(self.dbName) \
                       .table(self.tableName) \
@@ -108,7 +122,8 @@ class SquashBase(rdb_unittest.RdbTestCase):
                 
                 self.assertRaises(Exception, feed.next)
 
-            value = next(self._generator)
+            # Insert a value and verify it does show up.
+            value = next(self.generator)
             document = self._document(value)
             key = self.r.db(self.dbName) \
                         .table(self.tableName) \
@@ -116,59 +131,64 @@ class SquashBase(rdb_unittest.RdbTestCase):
                         .run(self.conn) \
                         .get("generated_keys", [document.get("id", value)])[0]
 
+            # With multi indices a single document may show up multiple times in the
+            # changefeed, `changes` calculates the number to verify it does indeed show
+            # up the expected number of times.
             changes = 1
-            if self._multi:
-                changes = min(self._multi_len, self._limit)
+            if self.multi:
+                changes = min(self._multi_len, self.limit)
 
             for x in xrange(changes):
                 feed_next = next(feed)
 
                 self.assertTrue("old_val" in feed_next)
                 self.assertTrue("new_val" in feed_next)
-                if len(initial) + x >= self._limit:
+                # It depends on whether the initial limit was fulfilled whether the
+                # change has an "old_val" set to `None` or a document.
+                if len(initial) + x >= self.limit:
                     self.assertEqual(
-                        feed_next["old_val"][self._field],
-                        initial[x]["new_val"][self._field])
+                        feed_next["old_val"][self.field],
+                        initial[x]["new_val"][self.field])
                 else:
                     self.assertEqual(feed_next["old_val"], None)
                 self.assertEqual(feed_next["new_val"]["id"], key)
-                self.assertEqual(feed_next["new_val"][self._field], value)
+                self.assertEqual(feed_next["new_val"][self.field], value)
 
     def test_insert_batch(self):
         # FIXME: Python 2.7 has new facilities allowing tests to be skipped, use those
         # when we no longer need to support 2.6
-        if self._squash == True:
+        if self.squash == True:
             # With squash True it might not squash agressively enough for this to be
             # predictable, skip it
             return
 
         query = self.r.db(self.dbName) \
                       .table(self.tableName) \
-                      .order_by(index=self.r.desc(self._field)) \
-                      .limit(self._limit) \
-                      .changes(squash=self._squash)
+                      .order_by(index=self.r.desc(self.field)) \
+                      .limit(self.limit) \
+                      .changes(squash=self.squash)
 
         with utils.NextWithTimeout(query.run(self._feed_conn), stopOnEmpty=False) as feed:
-            changes = min(self._records, self._limit)
-            if self._multi:
+            changes = min(self.records, self.limit)
+            if self.multi:
                 changes = min(
-                    self._records * self._multi_len, self._limit)
+                    self.records * self._multi_len, self.limit)
 
             initial = []
             for x in xrange(changes): 
                 initial.append(next(feed))
 
-            keys, documents = [], []
-            for x in xrange(self._limit + 2):
-                value = next(self._generator)
-                if self._field == self._primary_key:
-                    keys.append(value)
+            # Insert two more documents than the limit as a single batch, due to the
+            # squashing we should never get a change for the first two.
+            documents = []
+            for x in xrange(self.limit + 2):
+                value = next(self.generator)
+                if self.field == self._primary_key:
                     documents.append(self._document(value))
                 else:
-                    keys.append(x)
-                    documents.append(self._document(value, x))
+                    documents.append(self._document(value, key=x))
 
-            # A document with duplicate primary key should be ignored
+            # A document with duplicate primary key should be ignored as well.
             error = documents[-1].copy()
             error.update({"error": True})
             documents.append(error)
@@ -178,12 +198,12 @@ class SquashBase(rdb_unittest.RdbTestCase):
                   .insert(documents) \
                   .run(self.conn)
 
-            for x in xrange(self._limit):
+            for x in xrange(self.limit):
                 feed_next = next(feed)
 
                 self.assertTrue("old_val" in feed_next)
                 self.assertTrue("new_val" in feed_next)
-                if len(initial) + x >= self._limit:
+                if len(initial) + x >= self.limit:
                     self.assertTrue(
                         feed_next["old_val"] in map(lambda x: x["new_val"], initial))
                 else:
@@ -191,28 +211,27 @@ class SquashBase(rdb_unittest.RdbTestCase):
                 self.assertTrue(feed_next["new_val"] in documents[2:])
                 self.assertTrue(not "error" in feed_next["new_val"])
 
-        # self.assertRaises(Exception, feed.next)
-
     def test_delete(self):
         query = self.r.db(self.dbName) \
                       .table(self.tableName) \
-                      .order_by(index=self.r.desc(self._field)) \
-                      .limit(self._limit) \
-                      .changes(squash=self._squash) 
+                      .order_by(index=self.r.desc(self.field)) \
+                      .limit(self.limit) \
+                      .changes(squash=self.squash) 
 
         with utils.NextWithTimeout(query.run(self._feed_conn), stopOnEmpty=False) as feed:
-            changes = min(self._records, self._limit)
-            if self._multi:
+            changes = min(self.records, self.limit)
+            if self.multi:
                 changes = min(
-                    self._records * self._multi_len, self._limit)
+                    self.records * self._multi_len, self.limit)
 
             initial = []
             for x in xrange(changes): 
                 initial.append(next(feed))
 
-            # self.assertRaises(Exception, feed.next)
-
-            if self._records >= self._limit:
+            # If the number of records is greater than the limit then insert and
+            # subsequently delete a low value, and verify it does not show up as a
+            # change because of the `order_by`.
+            if self.records >= self.limit:
                 _, value = self._generator_initial.pop()
                 key = self.r.db(self.dbName) \
                             .table(self.tableName) \
@@ -225,9 +244,10 @@ class SquashBase(rdb_unittest.RdbTestCase):
                       .delete() \
                       .run(self.conn)
     
-                # self.assertRaises(Exception, feed.next)
-
-            value = next(self._generator)
+            # In inserting this document we have to do somewhat of a dance to get its
+            # primary key as it might either be the field, generated by us because of a
+            # multi index, or auto-generated.
+            value = next(self.generator)
             document = self._document(value)
             key = self.r.db(self.dbName) \
                         .table(self.tableName) \
@@ -236,14 +256,13 @@ class SquashBase(rdb_unittest.RdbTestCase):
                         .get("generated_keys", [document.get("id", value)])[0]
 
             changes = 1
-            if self._multi:
-                changes = min(self._multi_len, self._limit)
+            if self.multi:
+                changes = min(self._multi_len, self.limit)
 
             for x in xrange(changes):
                 next(feed)
 
-            # self.assertRaises(Exception, feed.next)
-
+            # With the primary key delete the record again.
             self.r.db(self.dbName) \
                   .table(self.tableName) \
                   .get(key) \
@@ -255,39 +274,37 @@ class SquashBase(rdb_unittest.RdbTestCase):
 
                 self.assertTrue("old_val" in feed_next)
                 self.assertTrue("new_val" in feed_next)
-                self.assertTrue(feed_next["old_val"][self._field] < value or (
-                                    feed_next["old_val"][self._field] == value and
+                self.assertTrue(feed_next["old_val"][self.field] < value or (
+                                    feed_next["old_val"][self.field] == value and
                                     feed_next["old_val"]["id"] <= key))
-                if len(initial) + x < self._limit:
+                if len(initial) + x < self.limit:
                     self.assertEqual(feed_next["new_val"], None)
-
-            # self.assertRaises(Exception, feed.next)
 
     def test_replace_key(self):
         # FIXME: Python 2.7 has new facilities allowing tests to be skipped, use those
         # when we no longer need to support 2.6
-        if self._field == self._primary_key:
+        if self.field == self._primary_key:
             # The primary key can not be updated, skip it
             return
 
         query = self.r.db(self.dbName) \
                       .table(self.tableName) \
-                      .order_by(index=self.r.desc(self._field)) \
-                      .limit(self._limit) \
-                      .changes(squash=self._squash)
+                      .order_by(index=self.r.desc(self.field)) \
+                      .limit(self.limit) \
+                      .changes(squash=self.squash)
 
         with utils.NextWithTimeout(query.run(self._feed_conn), stopOnEmpty=False) as feed:
-            changes = min(self._records, self._limit)
-            if self._multi:
+            changes = min(self.records, self.limit)
+            if self.multi:
                 changes = min(
-                    self._records * self._multi_len, self._limit)
+                    self.records * self._multi_len, self.limit)
 
             initial = []
             for x in xrange(changes): 
                 initial.append(next(feed))
 
-            # self.assertRaises(Exception, feed.next)
-
+            # Insert a low value, this may or may not cause changes depending on whether
+            # we've had more initial changes than the limit.
             index, value = self._generator_initial.pop()
             document = self._document(value, "g-%i" % index)
             key = self.r.db(self.dbName) \
@@ -297,35 +314,35 @@ class SquashBase(rdb_unittest.RdbTestCase):
                       .get("generated_keys", [document.get("id", value)])[0]
 
             changes = 0
-            if len(initial) < self._limit:
+            if len(initial) < self.limit:
                 changes = 1
-                if self._multi:
-                    changes = min(self._multi_len, self._limit - len(initial))
+                if self.multi:
+                    changes = min(self._multi_len, self.limit - len(initial))
 
             for x in xrange(changes):
                 feed_next = next(feed)
 
                 self.assertTrue("old_val" in feed_next)
                 self.assertTrue("new_val" in feed_next)
-                if len(initial) + x < self._limit:
+                if len(initial) + x < self.limit:
                     self.assertEqual(feed_next["old_val"], None)
                 self.assertEqual(feed_next["new_val"]["id"], key)
-                self.assertEqual(feed_next["new_val"][self._field], value)
+                self.assertEqual(feed_next["new_val"][self.field], value)
 
-            # self.assertRaises(Exception, feed.next)
-
-            update = next(self._generator)
+            # Update the key to a higher value, this should produce a change (or changes
+            # in the case of a multi index).
+            update = next(self.generator)
             self.r.db(self.dbName) \
                   .table(self.tableName) \
                   .get(key) \
                   .update({
-                      self._field: update
+                      self.field: update
                   }) \
                   .run(self.conn)
 
             changes = 1
-            if self._multi:
-                changes = min(self._multi_len, self._limit)
+            if self.multi:
+                changes = min(self._multi_len, self.limit)
 
             for x in xrange(changes):
                 feed_next = next(feed)
@@ -333,58 +350,57 @@ class SquashBase(rdb_unittest.RdbTestCase):
                 self.assertTrue("old_val" in feed_next)
                 self.assertTrue("new_val" in feed_next)
                 self.assertTrue(
-                    feed_next["old_val"][self._field] <= feed_next["new_val"][self._field])
+                    feed_next["old_val"][self.field] <= feed_next["new_val"][self.field])
                 self.assertEqual(feed_next["new_val"]["id"], key)
-                self.assertEqual(feed_next["new_val"][self._field], update)
+                self.assertEqual(feed_next["new_val"][self.field], update)
 
-            # self.assertRaises(Exception, feed.next)
-
+            # Update the key back to the lower value.
             self.r.db(self.dbName) \
                   .table(self.tableName) \
                   .get(key) \
                   .update({
-                      self._field: value
+                      self.field: value
                   }) \
                   .run(self.conn)
 
             changes = 1
-            if self._multi:
-                changes = min(self._multi_len, self._limit)
+            if self.multi:
+                changes = min(self._multi_len, self.limit)
 
             for x in xrange(changes):
                 feed_next = next(feed)
 
                 self.assertTrue("old_val" in feed_next)
                 self.assertTrue("new_val" in feed_next)
-                self.assertTrue(feed_next["old_val"][self._field] <= update)
-                self.assertTrue(feed_next["new_val"][self._field] >= value)
-
-            # self.assertRaises(Exception, feed.next)
+                self.assertTrue(feed_next["old_val"][self.field] <= update)
+                self.assertTrue(feed_next["new_val"][self.field] >= value)
 
     def bare_test_squash_to_nothing_insert_delete(self):
         # FIXME: Python 2.7 has new facilities allowing tests to be skipped, use those
         # when we no longer need to support 2.6
-        if self._squash == True:
+        if self.squash == True:
             # This is too unpredictable
             return
 
         query = self.r.db(self.dbName) \
                     .table(self.tableName) \
-                    .order_by(index=self.r.desc(self._field)) \
-                    .limit(self._limit) \
-                    .changes(squash=self._squash)
+                    .order_by(index=self.r.desc(self.field)) \
+                    .limit(self.limit) \
+                    .changes(squash=self.squash)
 
         with utils.NextWithTimeout(query.run(self._feed_conn), stopOnEmpty=False) as feed:
-            changes = min(self._records, self._limit)
-            if self._multi:
+            changes = min(self.records, self.limit)
+            if self.multi:
                 changes = min(
-                    self._records * self._multi_len, self._limit)
+                    self.records * self._multi_len, self.limit)
 
             initial = []
             for x in xrange(changes): 
                 initial.append(next(feed))
 
-            value = next(self._generator)
+            # An insert followed by a delete within a two-second squashing period should
+            # not lead to a change being emitted.
+            value = next(self.generator)
             key = self.r.db(self.dbName) \
                       .table(self.tableName) \
                       .insert(self._document(value, key_generate=False), return_changes=True) \
@@ -396,34 +412,34 @@ class SquashBase(rdb_unittest.RdbTestCase):
                   .delete() \
                   .run(self.conn)
 
-            # self.assertRaises(Exception, feed.next)
-
     def test_squash_to_nothing_delete_insert(self):
         # This test is similar to the one above but must be done in a separate function
         # due to timing issues
 
         # FIXME: Python 2.7 has new facilities allowing tests to be skipped, use those
         # when we no longer need to support 2.6
-        if self._squash == True:
+        if self.squash == True:
             # This is too unpredictable
             return
 
         query = self.r.db(self.dbName) \
                     .table(self.tableName) \
-                    .order_by(index=self.r.desc(self._field)) \
-                    .limit(self._limit) \
-                    .changes(squash=self._squash)
+                    .order_by(index=self.r.desc(self.field)) \
+                    .limit(self.limit) \
+                    .changes(squash=self.squash)
 
         with utils.NextWithTimeout(query.run(self._feed_conn), stopOnEmpty=False) as feed:
-            changes = min(self._records, self._limit)
-            if self._multi:
+            changes = min(self.records, self.limit)
+            if self.multi:
                 changes = min(
-                    self._records * self._multi_len, self._limit)
+                    self.records * self._multi_len, self.limit)
 
             initial = []
             for x in xrange(changes): 
                 initial.append(next(feed))
 
+            # As above, deleting and re-inserting a value should not lead to a change
+            # being emitted.
             if len(initial):
                 self.r.db(self.dbName) \
                       .table(self.tableName) \
@@ -435,8 +451,6 @@ class SquashBase(rdb_unittest.RdbTestCase):
                       .table(self.tableName) \
                       .insert(initial[0]["new_val"]) \
                       .run(self.conn)
-
-                # self.assertRaises(Exception, feed.next)
 
 
 class MultiGenerator(object):

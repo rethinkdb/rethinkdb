@@ -1,47 +1,27 @@
 #!/usr/bin/env python
 # Copyright 2014-2015 RethinkDB, all rights reserved.
 
-import itertools, squash_base
+import squash_base
 
 class SquashTrueSecondaryEmpty(squash_base.SquashBase):
-    def setUp(self):
-        super(SquashTrueSecondaryEmpty, self).setUp(
-            True,
-            'secondary',
-            itertools.count(),
-            0,
-            10,
-            False)
+    field = "secondary"
+    records = 0
+    limit = 10
 
 class SquashTrueSecondaryHalfFull(squash_base.SquashBase):
-    def setUp(self):
-        super(SquashTrueSecondaryHalfFull, self).setUp(
-            True,
-            'secondary',
-            itertools.count(),
-            5,
-            10,
-            False)
+    field = "secondary"
+    records = 5
+    limit = 10
 
 class SquashTrueSecondarySingleHashShard(squash_base.SquashBase):
-    def setUp(self):
-        super(SquashTrueSecondarySingleHashShard, self).setUp(
-            True,
-            'secondary',
-            itertools.count(),
-            10,
-            2,
-            False)
+    field = "secondary"
+    records = 10
+    limit = 2
 
 class SquashTrueSecondaryMultipleHashShards(squash_base.SquashBase):
-    def setUp(self):
-        super(SquashTrueSecondaryMultipleHashShards, self).setUp(
-            True,
-            'secondary',
-            itertools.count(),
-            20,
-            2,
-            False)
+    field = "secondary"
+    records = 20
+    limit = 2
 
 # ===== main
 
