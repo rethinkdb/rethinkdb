@@ -1117,17 +1117,6 @@ void write_t::unshard(write_response_t *responses, size_t count,
     }
 }
 
-void backfill_atom_t::mask_in_place(const key_range_t &m) {
-    range = region_intersection(m, range);
-    std::vector<pair_t> new_pairs;
-    for (auto &&pair : pairs) {
-        if (m.contains_key(pair.key)) {
-            new_pairs.push_back(std::move(pair));
-        }
-    }
-    pairs = std::move(new_pairs);
-}
-
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(point_read_response_t, data);
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
     ql::skey_version_t, int8_t,
@@ -1181,8 +1170,6 @@ RDB_IMPL_SERIALIZABLE_0_FOR_CLUSTER(dummy_write_response_t);
 
 RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(write_response_t, response, event_log, n_shards);
 
-// Serialization format for these changed in 1.14.  We only support the
-// latest version, since these are cluster-only types.
 RDB_IMPL_SERIALIZABLE_5_FOR_CLUSTER(
         batched_replace_t, keys, pkey, f, optargs, return_changes);
 RDB_IMPL_SERIALIZABLE_5_FOR_CLUSTER(
@@ -1193,13 +1180,7 @@ RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(point_delete_t, key);
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(sync_t, region);
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(dummy_write_t, region);
 
-// Serialization format changed in 1.14.0. We only support the latest version,
-// since this is a cluster-only type.
 RDB_IMPL_SERIALIZABLE_4_FOR_CLUSTER(
     write_t, write, durability_requirement, profile, limits);
-
-RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(backfill_pre_atom_t, range);
-RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(backfill_atom_t::pair_t, key, recency, value);
-RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(backfill_atom_t, range, pairs);
 
 

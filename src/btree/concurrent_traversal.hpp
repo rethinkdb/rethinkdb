@@ -36,12 +36,36 @@ public:
                                concurrent_traversal_fifo_enforcer_signal_t waiter)
         THROWS_ONLY(interrupted_exc_t) = 0;
 
-    // Can be overloaded if you don't want to query a contiguous range of keys,
-    // but only parts of it. Will be called before traversing into any child node.
-    // Note: returning false here does not guarantee that a given range is never
-    // encountered by handle_pair(). is_range_interesting() is just a pre-filter.
-    virtual bool is_range_interesting(UNUSED const btree_key_t *left_excl_or_null,
-                                      UNUSED const btree_key_t *right_incl_or_null) {
+    /* Called before every call to `handle_pair`. If it returns `false`, no call to
+    `handle_pair()` will be generated. This is useful because we spawn a coroutine for
+    every call to `handle_pair()`, and if we're only interested in a fraction of
+    key-value pairs, this will reduce the number of coroutines we spawn. */
+    virtual bool is_key_interesting(
+            UNUSED const btree_key_t *key) {
+        return true;
+    }
+
+    /* Called on every leaf node before the calls to `handle_pair()`. If it sets
+    `*skip_out` to `true`, no calls to `is_key_interesting()` or `handle_pair()` will be
+    generated for the leaf. */
+    virtual done_traversing_t handle_pre_leaf(
+            UNUSED const counted_t<counted_buf_lock_t> &buf_lock,
+            UNUSED const counted_t<counted_buf_read_t> &buf_read,
+            bool *skip_out) {
+        *skip_out = false;
+        return done_traversing_t::NO;
+    }
+
+    /* See `depth_first_traversal_callback_t` for an explanation of these methods. */
+    virtual bool is_range_interesting(
+            UNUSED const btree_key_t *left_excl_or_null,
+            UNUSED const btree_key_t *right_incl_or_null) {
+        return true;
+    }
+    virtual bool is_range_ts_interesting(
+            UNUSED const btree_key_t *left_excl_or_null,
+            UNUSED const btree_key_t *right_incl_or_null,
+            UNUSED repli_timestamp_t timestamp) {
         return true;
     }
 

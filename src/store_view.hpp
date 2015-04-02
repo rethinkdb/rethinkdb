@@ -4,6 +4,9 @@
 #include "protocol_api.hpp"
 #include "region/region_map.hpp"
 
+class backfill_atom_t;
+class backfill_pre_atom_t;
+
 #ifndef NDEBUG
 // Checks that the metainfo has a certain value, or certain kind of value.
 class metainfo_checker_callback_t {

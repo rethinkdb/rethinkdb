@@ -2,6 +2,7 @@
 #ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_BACKFILL_METADATA_HPP_
 #define CLUSTERING_IMMEDIATE_CONSISTENCY_BACKFILL_METADATA_HPP_
 
+#include "btree/backfill.hpp"
 #include "clustering/generic/registration_metadata.hpp"
 #include "clustering/immediate_consistency/backfill_atom_seq.hpp"
 #include "clustering/immediate_consistency/history.hpp"

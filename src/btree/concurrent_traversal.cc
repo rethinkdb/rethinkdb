@@ -70,6 +70,11 @@ public:
     }
 
     virtual done_traversing_t handle_pair(scoped_key_value_t &&keyvalue) {
+
+        if (!cb_->is_key_interesting(keyvalue.key())) {
+            return done_traversing_t::NO;
+        }
+
         // First thing first: Get in line with the token enforcer.
 
         fifo_enforcer_write_token_t token = source_.enter_write();
@@ -85,9 +90,25 @@ public:
         return failure_cond_->is_pulsed() ? done_traversing_t::YES : done_traversing_t::NO;
     }
 
-    virtual bool is_range_interesting(const btree_key_t *left_excl_or_null,
-                                      const btree_key_t *right_incl_or_null) {
+    virtual done_traversing_t handle_pre_leaf(
+            const counted_t<counted_buf_lock_t> &buf_lock,
+            const counted_t<counted_buf_read_t> &buf_read,
+            bool *skip_out) {
+        return cb_->handle_pre_leaf(buf_lock, buf_read, skip_out);
+    }
+
+    virtual bool is_range_interesting(
+            const btree_key_t *left_excl_or_null,
+            const btree_key_t *right_incl_or_null) {
         return cb_->is_range_interesting(left_excl_or_null, right_incl_or_null);
+    }
+
+    virtual bool is_range_ts_interesting(
+            const btree_key_t *left_excl_or_null,
+            const btree_key_t *right_incl_or_null,
+            repli_timestamp_t timestamp) {
+        return cb_->is_range_ts_interesting(
+            left_excl_or_null, right_incl_or_null, timestamp);
     }
 
     virtual profile::trace_t *get_trace() THROWS_NOTHING {

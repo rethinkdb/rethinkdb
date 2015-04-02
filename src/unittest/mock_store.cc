@@ -1,6 +1,7 @@
 #include "unittest/mock_store.hpp"
 
 #include "arch/timing.hpp"
+#include "btree/backfill.hpp"
 #include "rdb_protocol/store.hpp"
 
 namespace unittest {
@@ -272,6 +273,25 @@ void mock_store_t::send_backfill_pre(
     }
 }
 
+std::vector<char> datum_to_vector(const ql::datum_t &datum) {
+    write_message_t wm;
+    serialize<cluster_version_t::CLUSTER>(&wm, datum);
+    vector_stream_t vs;
+    int res = send_write_message(&vs, &wm);
+    guarantee(res == 0);
+    std::vector<char> vector;
+    vs.swap(&vector);
+    return vector;
+}
+
+ql::datum_t vector_to_datum(std::vector<char> &&vector) {
+    vector_read_stream_t vs(std::move(vector));
+    ql::datum_t datum;
+    archive_result_t res = deserialize<cluster_version_t::CLUSTER>(&vs, &datum);
+    guarantee(res == archive_result_t::SUCCESS);
+    return datum;
+}
+
 void mock_store_t::send_backfill(
         const region_map_t<state_timestamp_t> &start_point,
         backfill_pre_atom_producer_t *pre_atom_producer,
@@ -339,7 +359,8 @@ void mock_store_t::send_backfill(
                     backfill_atom_t::pair_t pair;
                     pair.key = jt->first;
                     pair.recency = jt->second.first;
-                    pair.value = jt->second.second;
+                    pair.value =
+                        boost::make_optional(datum_to_vector(jt->second.second));
                     atom.pairs.push_back(std::move(pair));
                 }
                 if (!atom_consumer->on_atom(metainfo_, std::move(atom))) {
@@ -372,7 +393,7 @@ void mock_store_t::send_backfill(
                 backfill_atom_t::pair_t pair;
                 pair.key = it->first;
                 pair.recency = it->second.first;
-                pair.value = it->second.second;
+                pair.value = boost::make_optional(datum_to_vector(it->second.second));
                 atom.pairs.push_back(std::move(pair));
                 if (!atom_consumer->on_atom(metainfo_, std::move(atom))) {
                     break;
@@ -416,7 +437,9 @@ void mock_store_t::receive_backfill(
             guarantee(key_range_t::right_bound_t(atom->range.left) >= cursor);
             cursor = atom->range.right;
             for (const auto &pair : atom->pairs) {
-                table_[pair.key] = std::make_pair(pair.recency, pair.value);
+                guarantee(static_cast<bool>(pair.value));
+                table_[pair.key] = std::make_pair(
+                    pair.recency, vector_to_datum(std::vector<char>(*pair.value)));
             }
         } else {
            cursor = edge;

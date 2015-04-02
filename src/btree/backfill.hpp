@@ -6,53 +6,107 @@
 #include <string>
 #include <vector>
 
-#include "buffer_cache/types.hpp"
-#include "containers/uuid.hpp"
-#include "concurrency/interruptor.hpp"
+#include "errors.hpp"
+#include <boost/optional.hpp>
 
-// Implementations of agnostic_backfill_callback_t::on_pairs() should use
-// this limit to split up large chunks of key/value pairs into smaller chunks,
-// each not too much larger than this value.
-#define BACKFILL_MAX_KVPAIRS_SIZE (1024 * 64)
+#include "btree/keys.hpp"
+#include "buffer_cache/types.hpp"
+#include "concurrency/interruptor.hpp"
+#include "repli_timestamp.hpp"
+#include "rpc/serialize_macros.hpp"
 
 class buf_parent_t;
-class buf_lock_t;
-struct btree_key_t;
-struct key_range_t;
-class parallel_traversal_progress_t;
 class superblock_t;
-class value_sizer_t;
-class repli_timestamp_t;
-struct secondary_index_t;
-class signal_t;
 
-
-class agnostic_backfill_callback_t {
+class backfill_pre_atom_t {
 public:
-    virtual void on_delete_range(const key_range_t &range, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
-    virtual void on_deletion(const btree_key_t *key, repli_timestamp_t recency, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
-    virtual void on_pairs(buf_parent_t leaf_node,
-                          const std::vector<repli_timestamp_t> &recencies,
-                          const std::vector<const btree_key_t *> &keys,
-                          const std::vector<const void *> &values,
-                          signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
-    virtual void on_sindexes(const std::map<std::string, secondary_index_t> &sindexes, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
-    virtual ~agnostic_backfill_callback_t() { }
+    key_range_t get_range() const {
+        return range;
+    }
+    size_t get_mem_size() const {
+        return sizeof(backfill_pre_atom_t);
+    }
+    void mask_in_place(const key_range_t &m) {
+        range = range.intersection(m);
+    }
+    key_range_t range;
+};
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(backfill_pre_atom_t);
+
+class backfill_atom_t {
+public:
+    class pair_t {
+    public:
+        store_key_t key;
+        repli_timestamp_t recency;
+        boost::optional<std::vector<char> > value;   /* empty indicates deletion */
+    };
+    key_range_t get_range() const {
+        return range;
+    }
+    size_t get_mem_size() const {
+        size_t s = sizeof(backfill_atom_t);
+        for (const auto &pair : pairs) {
+            s += sizeof(pair_t);
+            if (static_cast<bool>(pair.value)) {
+                s += pair.value->size();
+            }
+        }
+        return s;
+    }
+    void mask_in_place(const key_range_t &m);
+    key_range_t range;
+    std::vector<pair_t> pairs;
+};
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(backfill_atom_t::pair_t);
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(backfill_atom_t);
+
+class btree_backfill_pre_atom_consumer_t {
+public:
+    virtual bool on_pre_atom(backfill_pre_atom_t &&atom) THROWS_NOTHING = 0;
+    virtual bool on_empty_range(const key_range_t::right_bound_t &threshold)
+        THROWS_NOTHING = 0;
+private:
+    virtual ~btree_backfill_pre_atom_consumer_t() { }
 };
 
-/* `do_agnostic_btree_backfill()` is guaranteed to find all changes whose
-timestamps are greater than or equal than `since_when` but which reached the
-tree before `btree_backfill()` was called. It may also find changes that
-happened before `since_when`. */
+bool btree_backfill_pre_atoms(
+    superblock_t *superblock,
+    const key_range_t &range,
+    repli_timestamp_t since_when,
+    btree_backfill_pre_atom_consumer_t *pre_atom_consumer,
+    signal_t *interruptor);
 
-void do_agnostic_btree_backfill(value_sizer_t *sizer,
-                                const key_range_t &key_range,
-                                repli_timestamp_t since_when,
-                                agnostic_backfill_callback_t *callback,
-                                superblock_t *superblock,
-                                buf_lock_t *sindex_block,
-                                parallel_traversal_progress_t *p,
-                                signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t);
+class btree_backfill_pre_atom_producer_t {
+public:
+    virtual void move_cursor(
+        const btree_key_t *left_excl_or_null) = 0;
+    virtual bool first_before(
+        const btree_key_t *right_incl, const key_range_t **out) = 0;
+protected:
+    virtual ~btree_backfill_pre_atom_producer_t() { }
+};
+
+class btree_backfill_atom_consumer_t {
+public:
+    virtual bool on_atom(backfill_atom_t &&atom) = 0;
+    virtual bool on_empty_range(const key_range_t::right_bound_t &threshold) = 0;
+    virtual void copy_value(
+        buf_parent_t buf_parent,
+        const void *value_in_leaf_node,
+        signal_t *interruptor,
+        std::vector<uint8_t> *value_out) = 0;
+public:
+    virtual ~btree_backfill_atom_consumer_t() { }
+};
+
+bool btree_backfill_atoms(
+    superblock_t *superblock,
+    const key_range_t &range,
+    repli_timestamp_t since_when,
+    btree_backfill_pre_atom_producer_t *pre_atom_producer,
+    btree_backfill_atom_consumer_t *atom_consumer,
+    signal_t *interruptor);
 
 #endif  // BTREE_BACKFILL_HPP_
+

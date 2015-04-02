@@ -6,12 +6,14 @@
 #include "btree/types.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/counted.hpp"
+#include "repli_timestamp.hpp"
 
 namespace profile { class trace_t; }
 
 class buf_parent_t;
 class counted_buf_lock_t;
 class counted_buf_read_t;
+struct leaf_node_t;
 class superblock_t;
 
 // A btree leaf key/value pair that also owns a reference to the buf_lock_t that
@@ -54,12 +56,31 @@ public:
     /* Return value of `NO` indicates to keep going; `YES` indicates to stop
     traversing the tree. */
     virtual done_traversing_t handle_pair(scoped_key_value_t &&keyvalue) = 0;
-    /* Can be overloaded if you don't want to query a contiguous range of keys,
-    but only parts of it. Will be called before traversing into any child node.
-    Note: returning false here does not guarantee that a given range is never
-    encountered by handle_pair(). is_range_interesting() is just a pre-filter. */
-    virtual bool is_range_interesting(UNUSED const btree_key_t *left_excl_or_null,
-                                      UNUSED const btree_key_t *right_incl_or_null) {
+
+    /* Called on every leaf node before the calls to `handle_pair()`. If it sets
+    `*skip_out` to `true`, no calls to `handle_pair()` will be generated for the leaf. */
+    virtual done_traversing_t handle_pre_leaf(
+            UNUSED const counted_t<counted_buf_lock_t> &buf_lock,
+            UNUSED const counted_t<counted_buf_read_t> &buf_read,
+            bool *skip_out) {
+        *skip_out = false;
+        return done_traversing_t::NO;
+    } 
+
+    /* Can be overloaded if you don't want to query a contiguous range of keys, but only
+    parts of it. Both `is_range_interesting()` and `is_range_ts_interesting()` will be
+    called before traversing into any child node; if either returns `false`, the range
+    will be ignored. Note: returning false here does not guarantee that a given range is
+    never encountered by handle_pair(); it's just a pre-filter. */
+    virtual bool is_range_interesting(
+            UNUSED const btree_key_t *left_excl_or_null,
+            UNUSED const btree_key_t *right_incl_or_null) {
+        return true;
+    }
+    virtual bool is_range_ts_interesting(
+            UNUSED const btree_key_t *left_excl_or_null,
+            UNUSED const btree_key_t *right_incl_or_null,
+            UNUSED repli_timestamp_t timestamp) {
         return true;
     }
     virtual profile::trace_t *get_trace() THROWS_NOTHING { return NULL; }

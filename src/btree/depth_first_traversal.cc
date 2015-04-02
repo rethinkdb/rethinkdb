@@ -128,6 +128,10 @@ bool btree_depth_first_traversal(counted_t<counted_buf_lock_t> block,
                                  direction_t direction,
                                  const btree_key_t *left_excl_or_null,
                                  const btree_key_t *right_incl_or_null) {
+    if (!cb->is_range_ts_interesting(
+            left_excl_or_null, right_incl_or_null, block->get_recency())) {
+        return true;
+    }
     auto read = make_counted<counted_buf_read_t>(block.get());
     const node_t *node = static_cast<const node_t *>(read->get_data_read());
     if (node::is_internal(node)) {
@@ -169,6 +173,14 @@ bool btree_depth_first_traversal(counted_t<counted_buf_lock_t> block,
         }
         return true;
     } else {
+        bool skip;
+        if (done_traversing_t::YES == cb->handle_pre_leaf(block, read, &skip)) {
+            return false;
+        }
+        if (skip) {
+            return true;
+        }
+
         const leaf_node_t *lnode = reinterpret_cast<const leaf_node_t *>(node);
         const btree_key_t *key;
 
