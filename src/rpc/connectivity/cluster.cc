@@ -131,7 +131,14 @@ connectivity_cluster_t::connection_t::connection_t(run_t *p,
                                                    const peer_address_t &a) THROWS_NOTHING :
     conn(c),
         // TODO! Handle exception!
-    flusher([&]() { assert_thread(); if (this->conn) this->conn->flush_buffer(); }, 1),
+    flusher([&]() {
+        if (this->conn) {
+            // We need to acquire the send_mutex because flushing the buffer
+            // must not interleave with other writes (restriction of linux_tcp_conn_t).
+            mutex_t::acq_t acq(&send_mutex);
+            this->conn->flush_buffer();
+        }
+    }, 1),
     peer_address(a),
     pm_collection(),
     pm_bytes_sent(secs_to_ticks(1), true),
@@ -1238,7 +1245,7 @@ void connectivity_cluster_t::send_message(connection_t *connection,
         /* Acquire the send-mutex so we don't collide with other things trying
         to send on the same connection. */
         {
-            mutex_t::acq_t acq(&connection->send_mutex, true);
+            mutex_t::acq_t acq(&connection->send_mutex);
 
             /* Write the tag to the network */
             {
