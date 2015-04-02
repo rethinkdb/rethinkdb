@@ -1,47 +1,27 @@
 #!/usr/bin/env python
 # Copyright 2014-2015 RethinkDB, all rights reserved.
 
-import itertools, squash_base
+import squash_base
 
-class SquashTrueIdEmpty(squash_base.SquashBase):
-    def setUp(self):
-        super(SquashTrueIdEmpty, self).setUp(
-            2.0,
-            'id',
-            itertools.count(),
-            0,
-            10,
-            False)
+class SquashTwoIdEmpty(squash_base.SquashBase):
+    squash = 2.0
+    records = 0
+    limit = 10
 
-class SquashTrueIdHalfFull(squash_base.SquashBase):
-    def setUp(self):
-        super(SquashTrueIdHalfFull, self).setUp(
-            2.0,
-            'id',
-            itertools.count(),
-            5,
-            10,
-            False)
+class SquashTwoIdHalfFull(squash_base.SquashBase):
+    squash = 2.0
+    records = 5
+    limit = 10
 
-class SquashTrueIdSingleHashShard(squash_base.SquashBase):
-    def setUp(self):
-        super(SquashTrueIdSingleHashShard, self).setUp(
-            2.0,
-            'id',
-            itertools.count(),
-            10,
-            2,
-            False)
+class SquashTwoIdSingleHashShard(squash_base.SquashBase):
+    squash = 2.0
+    records = 10
+    limit = 2
 
-class SquashTrueIdMultipleHashShards(squash_base.SquashBase):
-    def setUp(self):
-        super(SquashTrueIdMultipleHashShards, self).setUp(
-            2.0,
-            'id',
-            itertools.count(),
-            20,
-            2,
-            False)
+class SquashTwoIdMultipleHashShards(squash_base.SquashBase):
+    squash = 2.0
+    records = 20
+    limit = 2
 
 # ===== main
 
