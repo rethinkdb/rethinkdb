@@ -342,6 +342,9 @@ void do_a_replace_from_batched_replace(
     sampler->new_sample();
     fifo_enforcer_sink_t::exit_write_t exiter(
         batched_replaces_fifo_sink, batched_replaces_fifo_token);
+    // We need to get in line for this while still holding the superblock so
+    // that stamp read operations can't queue-skip.
+    rwlock_in_line_t stamp_spot = mod_cb->get_in_line_for_stamp();
 
     rdb_live_deletion_context_t deletion_context;
     rdb_modification_report_t mod_report(*info.key);
@@ -354,7 +357,6 @@ void do_a_replace_from_batched_replace(
     // originally called.
     exiter.wait();
     scoped_ptr_t<new_mutex_in_line_t> sindex_spot = mod_cb->get_in_line_for_sindex();
-    rwlock_in_line_t stamp_spot = mod_cb->get_in_line_for_stamp();
 
     mod_cb->on_mod_report(
         mod_report, update_pkey_cfeeds, sindex_spot.get(), &stamp_spot);

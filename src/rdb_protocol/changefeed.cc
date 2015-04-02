@@ -414,7 +414,6 @@ void server_t::send_one_with_lock(
     const auto_drainer_t::lock_t &,
     std::pair<const client_t::addr_t, client_info_t> *client,
     msg_t msg) {
-    rwlock_acq_t acq(&stamp_lock, access_t::write);
     uint64_t stamp;
     {
         // We don't need a write lock as long as we make sure the coroutine
@@ -438,21 +437,15 @@ void server_t::send_all(const msg_t &msg,
         // We don't need a write lock as long as we make sure the coroutine
         // doesn't block between reading and updating the stamp.
         ASSERT_NO_CORO_WAITING;
-        stamps[pair.first] = pair.second.stamp++;
+        if (std::any_of(pair.second.regions.begin(),
+                        pair.second.regions.end(),
+                        std::bind(&region_contains_key, ph::_1, std::cref(key)))) {
+            stamps[pair.first] = pair.second.stamp++;
+        }
     }
     stamp_spot->reset(); // Done stamping, no need to hold onto it while we send.
     for (const auto &pair : stamps) {
         send(manager, pair.first, stamped_msg_t(uuid, pair.second, msg));
-    }
-
-    rwlock_in_line_t spot(&clients_lock, access_t::read);
-    spot.read_signal()->wait_lazily_unordered();
-    for (auto it = clients.begin(); it != clients.end(); ++it) {
-        if (std::any_of(it->second.regions.begin(),
-                        it->second.regions.end(),
-                        std::bind(&region_contains_key, ph::_1, std::cref(key)))) {
-            send_one_with_lock(lock, &*it, msg);
-        }
     }
 }
 
@@ -2227,7 +2220,7 @@ public:
         }
     }
     ~splice_stream_t() {
-        debugf("DESTROYING %s\n", log.c_str());
+        // debugf("DESTROYING %s\n", log.c_str());
     }
 private:
     std::vector<datum_t> next_stream_batch(env_t *env, const batchspec_t &bs) final {
