@@ -1245,7 +1245,9 @@ void connectivity_cluster_t::send_message(connection_t *connection,
         /* Acquire the send-mutex so we don't collide with other things trying
         to send on the same connection. */
         {
-            mutex_t::acq_t acq(&connection->send_mutex);
+            /* The `true` is for eager waiting, which is a significant performance
+            optimization in this case. */
+            mutex_t::acq_t acq(&connection->send_mutex, true);
 
             /* Write the tag to the network */
             {
