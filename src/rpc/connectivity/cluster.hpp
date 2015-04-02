@@ -15,6 +15,7 @@
 #include "concurrency/watchable_map.hpp"
 #include "containers/archive/tcp_conn_stream.hpp"
 #include "containers/map_sentries.hpp"
+#include "concurrency/throttled_committer.hpp"
 #include "perfmon/perfmon.hpp"
 #include "rpc/connectivity/peer_id.hpp"
 #include "utils.hpp"
@@ -118,6 +119,8 @@ public:
 
         /* NULL for the loopback connection (i.e. our "connection" to ourself) */
         keepalive_tcp_conn_stream_t *conn;
+
+        throttled_committer_t flusher;
 
         /* `connection_t` contains the addresses so that we can call
         `get_peers_list()` on any thread. Otherwise, we would have to go

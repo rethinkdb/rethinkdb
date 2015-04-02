@@ -19,6 +19,8 @@ public:
 
     virtual MUST_USE int64_t read(void *p, int64_t n);
     virtual MUST_USE int64_t write(const void *p, int64_t n);
+    virtual MUST_USE int64_t write_buffered(const void *p, int64_t n);
+    virtual void flush_buffer();
 
     void rethread(threadnum_t new_thread);
 
@@ -37,6 +39,15 @@ private:
     tcp_conn_t *conn_;
 
     DISABLE_COPYING(tcp_conn_stream_t);
+};
+
+// Wraps around a `tcp_conn_stream_t` and redirects `write()` to `write_buffered()`
+class make_buffered_tcp_conn_stream_wrapper_t : public write_stream_t {
+public:
+    explicit make_buffered_tcp_conn_stream_wrapper_t(tcp_conn_stream_t *inner);
+    virtual MUST_USE int64_t write(const void *p, int64_t n);
+private:
+    tcp_conn_stream_t *inner_;
 };
 
 class keepalive_tcp_conn_stream_t : public tcp_conn_stream_t {
@@ -58,6 +69,8 @@ public:
 
     virtual MUST_USE int64_t read(void *p, int64_t n);
     virtual MUST_USE int64_t write(const void *p, int64_t n);
+    virtual MUST_USE int64_t write_buffered(const void *p, int64_t n);
+    virtual void flush_buffer();
 
 private:
     keepalive_callback_t *keepalive_callback;

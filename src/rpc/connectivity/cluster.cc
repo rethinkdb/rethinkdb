@@ -24,7 +24,7 @@
 #include "utils.hpp"
 
 // Number of messages after which the message handling loop yields
-#define MESSAGE_HANDLER_MAX_BATCH_SIZE           8
+#define MESSAGE_HANDLER_MAX_BATCH_SIZE           16
 
 // The cluster communication protocol version.
 static_assert(cluster_version_t::CLUSTER == cluster_version_t::v2_0_is_latest,
@@ -126,10 +126,13 @@ void connectivity_cluster_t::connection_t::kill_connection() {
 }
 
 connectivity_cluster_t::connection_t::connection_t(run_t *p,
-                                              peer_id_t id,
-                                              keepalive_tcp_conn_stream_t *c,
-                                              const peer_address_t &a) THROWS_NOTHING :
-    conn(c), peer_address(a),
+                                                   peer_id_t id,
+                                                   keepalive_tcp_conn_stream_t *c,
+                                                   const peer_address_t &a) THROWS_NOTHING :
+    conn(c),
+        // TODO! Handle exception!
+    flusher([&]() { assert_thread(); if (this->conn) this->conn->flush_buffer(); }, 1),
+    peer_address(a),
     pm_collection(),
     pm_bytes_sent(secs_to_ticks(1), true),
     pm_collection_membership(&p->parent->connectivity_collection, &pm_collection,
@@ -153,6 +156,7 @@ connectivity_cluster_t::connection_t::~connection_t() THROWS_NOTHING {
         parent->parent->connections.get()->delete_key(peer_id);
         drainers.get()->drain();
     });
+    conn = nullptr;
 
     /* The drainers have been destroyed, so nothing can be holding the `send_mutex`. */
     guarantee(!send_mutex.is_locked());
@@ -1233,43 +1237,51 @@ void connectivity_cluster_t::send_message(connection_t *connection,
 
         /* Acquire the send-mutex so we don't collide with other things trying
         to send on the same connection. */
-        mutex_t::acq_t acq(&connection->send_mutex);
-
-        /* Write the tag to the network */
         {
-            // All cluster versions use a uint8_t tag here.
-            write_message_t wm;
-            static_assert(std::is_same<message_tag_t, uint8_t>::value,
-                          "We expect to be serializing a uint8_t -- if this has "
-                          "changed, the cluster communication format has changed and "
-                          "you need to ask yourself whether live cluster upgrades work."
-                          );
-            serialize_universal(&wm, tag);
-            int res = send_write_message(connection->conn, &wm);
-            if (res == -1) {
-                if (connection->conn->is_read_open()) {
-                    connection->conn->shutdown_read();
-                }
-                return;
-            }
-        }
+            mutex_t::acq_t acq(&connection->send_mutex, true);
 
-        /* Write the message itself to the network */
-        {
-            int64_t res = connection->conn->write(buffer.vector().data(),
-                                                  buffer.vector().size());
-            if (res == -1) {
-                /* Close the other half of the connection to make sure that
-                   `connectivity_cluster_t::run_t::handle()` notices that something is
-                   up */
-                if (connection->conn->is_read_open()) {
-                    connection->conn->shutdown_read();
+            /* Write the tag to the network */
+            {
+                // All cluster versions use a uint8_t tag here.
+                write_message_t wm;
+                static_assert(std::is_same<message_tag_t, uint8_t>::value,
+                              "We expect to be serializing a uint8_t -- if this has "
+                              "changed, the cluster communication format has changed and "
+                              "you need to ask yourself whether live cluster upgrades work."
+                              );
+                serialize_universal(&wm, tag);
+                make_buffered_tcp_conn_stream_wrapper_t buffered_conn(connection->conn);
+                int res = send_write_message(&buffered_conn, &wm);
+                // TODO! Revisit this closed handler
+                if (res == -1) {
+                    if (connection->conn->is_read_open()) {
+                        connection->conn->shutdown_read();
+                    }
+                    return;
                 }
-                return;
-            } else {
-                guarantee(res == static_cast<int64_t>(buffer.vector().size()));
             }
-        }
+
+            /* Write the message itself to the network */
+            {
+                int64_t res = connection->conn->write_buffered(buffer.vector().data(),
+                                                               buffer.vector().size());
+                // TODO! Revisit this closed handler
+                if (res == -1) {
+                    /* Close the other half of the connection to make sure that
+                       `connectivity_cluster_t::run_t::handle()` notices that something is
+                       up */
+                    if (connection->conn->is_read_open()) {
+                        connection->conn->shutdown_read();
+                    }
+                    return;
+                } else {
+                    guarantee(res == static_cast<int64_t>(buffer.vector().size()));
+                }
+            }
+        } /* Releases the send_mutex */
+
+        // TODO! Handle closed connection errors
+        connection->flusher.sync();
     }
 
     connection->pm_bytes_sent.record(bytes_sent);

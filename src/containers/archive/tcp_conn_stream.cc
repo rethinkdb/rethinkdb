@@ -39,6 +39,21 @@ int64_t tcp_conn_stream_t::write(const void *p, int64_t n) {
     }
 }
 
+int64_t tcp_conn_stream_t::write_buffered(const void *p, int64_t n) {
+    try {
+        cond_t non_closer;
+        conn_->write_buffered(p, n, &non_closer);
+        return n;
+    } catch (const tcp_conn_write_closed_exc_t &) {
+        return -1;
+    }
+}
+
+void tcp_conn_stream_t::flush_buffer() {
+    cond_t non_closer;
+    conn_->flush_buffer(&non_closer);
+}
+
 void tcp_conn_stream_t::rethread(threadnum_t new_thread) {
     conn_->rethread(new_thread);
 }
@@ -61,6 +76,15 @@ bool tcp_conn_stream_t::is_read_open() {
 
 bool tcp_conn_stream_t::is_write_open() {
     return conn_->is_write_open();
+}
+
+
+make_buffered_tcp_conn_stream_wrapper_t::make_buffered_tcp_conn_stream_wrapper_t(
+        tcp_conn_stream_t *inner)
+     : inner_(inner) { }
+
+int64_t make_buffered_tcp_conn_stream_wrapper_t::write(const void *p, int64_t n) {
+    return inner_->write_buffered(p, n);
 }
 
 
@@ -96,6 +120,22 @@ int64_t keepalive_tcp_conn_stream_t::write(const void *p, int64_t n) {
     }
 
     return tcp_conn_stream_t::write(p, n);
+}
+
+int64_t keepalive_tcp_conn_stream_t::write_buffered(const void *p, int64_t n) {
+    if (keepalive_callback != NULL) {
+        keepalive_callback->keepalive_write();
+    }
+
+    return tcp_conn_stream_t::write_buffered(p, n);
+}
+
+void keepalive_tcp_conn_stream_t::flush_buffer() {
+    if (keepalive_callback != NULL) {
+        keepalive_callback->keepalive_write();
+    }
+
+    return tcp_conn_stream_t::flush_buffer();
 }
 
 rethread_tcp_conn_stream_t::rethread_tcp_conn_stream_t(tcp_conn_stream_t *conn, threadnum_t thread)
