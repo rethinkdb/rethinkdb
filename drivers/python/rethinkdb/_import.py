@@ -258,15 +258,12 @@ def parse_options():
 # This is called through rdb_call_wrapper so reattempts can be tried as long as progress
 # is being made, but connection errors occur.  We save a failed task in the progress object
 # so it can be resumed later on a new connection.
-def import_from_queue(progress, conn, task_queue, error_queue, replace_conflicts, durability):
-    if progress[0] is None:
-        progress[0] = 0
-        progress.append(None)
-    elif not replace_conflicts:
+def import_from_queue(progress, conn, task_queue, error_queue, replace_conflicts, durability, write_count):
+    if progress[0] is not None and not replace_conflicts:
         # We were interrupted and it's not ok to overwrite rows, check that the batch either:
         # a) does not exist on the server
         # b) is exactly the same on the server
-        task = progress[1]
+        task = progress[0]
         pkey = r.db(task[0]).table(task[1]).info().run(conn)["primary_key"]
         for i in reversed(range(len(task[2]))):
             obj = pickle.loads(task[2][i])
@@ -274,40 +271,45 @@ def import_from_queue(progress, conn, task_queue, error_queue, replace_conflicts
                 raise RuntimeError("Connection error while importing.  Current row has no specified primary key, so cannot guarantee absence of duplicates")
             row = r.db(task[0]).table(task[1]).get(obj[pkey]).run(conn)
             if row == obj:
-                progress[0] += 1
+                write_count[0] += 1
                 del task[2][i]
             else:
                 raise RuntimeError("Duplicate primary key `%s`:\n%s\n%s" % (pkey, str(obj), str(row)))
 
-    task = task_queue.get() if progress[1] is None else progress[1]
-    while len(task) == 3:
+    task = task_queue.get() if progress[0] is None else progress[0]
+    while not isinstance(task, StopIteration):
         try:
             # Unpickle objects (TODO: super inefficient, would be nice if we could pass down json)
             objs = [pickle.loads(obj) for obj in task[2]]
             conflict_action = 'replace' if replace_conflicts else 'error'
             res = r.db(task[0]).table(task[1]).insert(objs, durability=durability, conflict=conflict_action).run(conn)
         except:
-            progress[1] = task
+            progress[0] = task
             raise
 
         if res["errors"] > 0:
             raise RuntimeError("Error when importing into table '%s.%s': %s" %
                                (task[0], task[1], res["first_error"]))
 
-        progress[0] += len(objs)
+        write_count[0] += len(objs)
         task = task_queue.get()
-    return progress[0]
 
 # This is run for each client requested, and accepts tasks from the reader processes
 def client_process(host, port, auth_key, task_queue, error_queue, rows_written, replace_conflicts, durability):
     try:
         conn_fn = lambda: r.connect(host, port, auth_key=auth_key)
-        res = rdb_call_wrapper(conn_fn, "import", import_from_queue, task_queue, error_queue, replace_conflicts, durability)
-        with rows_written.get_lock():
-            rows_written.value += res
+        write_count = [0]
+        rdb_call_wrapper(conn_fn, "import", import_from_queue, task_queue, error_queue, replace_conflicts, durability, write_count)
     except:
         ex_type, ex_class, tb = sys.exc_info()
         error_queue.put((ex_type, ex_class, traceback.extract_tb(tb)))
+
+        # Read until the exit event so the readers do not hang on pushing onto the queue
+        while not isinstance(task_queue.get(), StopIteration):
+            pass
+
+    with rows_written.get_lock():
+        rows_written.value += write_count[0]
 
 batch_length_limit = 200
 batch_size_limit = 500000
@@ -557,12 +559,6 @@ def abort_import(signum, frame, parent_pid, exit_event, task_queue, clients, int
         interrupt_event.set()
         exit_event.set()
 
-        alive_clients = sum([client.is_alive() for client in clients])
-        for i in xrange(alive_clients):
-            # TODO: this could theoretically block indefinitely if
-            #   the queue is full and clients aren't reading
-            task_queue.put("exit")
-
 def print_progress(ratio):
     total_width = 40
     done_width = int(ratio * total_width)
@@ -638,7 +634,7 @@ def spawn_import_clients(options, files_info):
         # Wait for all clients to finish
         alive_clients = sum([client.is_alive() for client in client_procs])
         for i in xrange(alive_clients):
-            task_queue.put("exit")
+            task_queue.put(StopIteration())
 
         while len(client_procs) > 0:
             time.sleep(0.1)
@@ -660,9 +656,6 @@ def spawn_import_clients(options, files_info):
 
     if interrupt_event.is_set():
         raise RuntimeError("Interrupted")
-
-    if not task_queue.empty():
-        errors.append((RuntimeError, RuntimeError("Error: Items remaining in the task queue"), None))
 
     if len(errors) != 0:
         # multiprocessing queues don't handling tracebacks, so they've already been stringified in the queue
