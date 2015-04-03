@@ -65,7 +65,7 @@ module 'DataExplorerView', ->
                     @results = []
                     @results_offset = 0
                     @cursor = value
-                    @is_feed = @cursor.toString() in ['[object Feed]', '[object AtomFeed]']
+                    @is_feed = @cursor.toString() isnt '[object Cursor]'
                     @missing = 0
                     @ended = false
                 else
