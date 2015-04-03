@@ -393,9 +393,6 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
                                       pre_4 ? ql::return_empty_normal_batches_t::YES :
                                               ql::return_empty_normal_batches_t::NO);
 
-        const char *success_msg = "SUCCESS";
-        conn->write(success_msg, strlen(success_msg) + 1, &ct_keepalive);
-
         if (wire_protocol == VersionDummy::JSON) {
             connection_loop<json_protocol_t>(
                 conn.get(), max_concurrent_queries, &query_cache, &ct_keepalive);
@@ -406,6 +403,9 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
             throw protob_server_exc_t(strprintf("Unrecognized protocol specified: '%d'",
                                                 wire_protocol));
         }
+
+        const char *success_msg = "SUCCESS";
+        conn->write(success_msg, strlen(success_msg) + 1, &ct_keepalive);
     } catch (const protob_server_exc_t &ex) {
         // Can't write response here due to coro switching inside exception handler
         init_error = strprintf("ERROR: %s\n", ex.what());
