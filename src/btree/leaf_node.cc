@@ -1490,6 +1490,64 @@ void erase_presence(value_sizer_t *sizer, leaf_node_t *node, const btree_key_t *
     validate(sizer, node);
 }
 
+repli_timestamp_t min_deletion_timestamp(
+        value_sizer_t *sizer,
+        const leaf_node_t *node,
+        repli_timestamp_t maximum_possible_timestamp) {
+    repli_timestamp_t earliest_so_far = maximum_possible_timestamp;
+    entry_iter_t iter = entry_iter_t::make(node);
+    while (!iter.done(sizer) && iter.offset < node->tstamp_cutpoint) {
+        repli_timestamp_t tstamp = get_timestamp(node, iter.offset);
+        rassert(earliest_so_far >= tstamp,
+            "asserted earliest_so_far (%" PRIu64 ") >= tstamp (%" PRIu64 ")",
+            earliest_so_far.longtime, tstamp.longtime);
+        earliest_so_far = tstamp;
+        iter.step(sizer, node);
+    }
+    return earliest_so_far;
+}
+
+/* Calls `cb` on every entry in the node, whether a real entry or a deletion. The calls
+will be in order from most recent to least recent. For entries with no timestamp, the
+callback will get `min_deletion_timestamp() - 1`. */
+continue_bool_t visit_entries(
+        value_sizer_t *sizer,
+        const leaf_node_t *node,
+        repli_timestamp_t maximum_possible_timestamp,
+        const std::function<continue_bool_t(
+            const btree_key_t *key,
+            repli_timestamp_t timestamp,
+            const void *value   /* null for deletion */
+            )> &cb) {
+    repli_timestamp_t earliest_so_far = maximum_possible_timestamp;
+    entry_iter_t iter = entry_iter_t::make(node);
+    while (!iter.done(sizer)) {
+        repli_timestamp_t tstamp;
+        if (iter.offset < node->tstamp_cutpoint) {
+            tstamp = get_timestamp(node, iter.offset);
+        } else {
+            tstamp = earliest_so_far;
+        }
+        earliest_so_far = tstamp;
+
+        const entry_t *ent = get_entry(node, iter.offset);
+
+        const void *value;
+        if (entry_is_live(ent)) {
+            value = entry_value(ent);
+        } else {
+            value = nullptr;
+        }
+
+        if (continue_bool_t::ABORT == cb(entry_key(ent), tstamp, value)) {
+            return continue_bool_t::ABORT;
+        }
+
+        iter.step(sizer, node);
+    }
+    return continue_bool_t::CONTINUE;
+}
+
 iterator::iterator()
     : node_(NULL), index_(-1) { }
 
