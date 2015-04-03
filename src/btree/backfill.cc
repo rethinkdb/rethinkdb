@@ -8,7 +8,8 @@
 
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(backfill_pre_atom_t, range);
 RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(backfill_atom_t::pair_t, key, recency, value);
-RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(backfill_atom_t, range, pairs);
+RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(backfill_atom_t,
+    range, pairs, min_deletion_timestamp);
 
 void backfill_atom_t::mask_in_place(const key_range_t &m) {
     range = range.intersection(m);
@@ -64,9 +65,9 @@ continue_bool_t btree_backfill_pre_atoms(
             *skip_out = true;
             const leaf_node_t *lnode = static_cast<const leaf_node_t *>(
                 buf_read->get_data_read());
-            repli_timestamp_t cutoff =
-                leaf::deletion_cutoff_timestamp(sizer, lnode, buf_lock->get_recency());
-            if (cutoff > since_when) {
+            repli_timestamp_t min_deletion_timestamp =
+                leaf::min_deletion_timestamp(sizer, lnode, buf_lock->get_recency());
+            if (min_deletion_timestamp > since_when) {
                 /* We might be missing deletion entries, so re-transmit the entire node
                 */
                 backfill_pre_atom_t pre_atom;
@@ -340,7 +341,7 @@ private:
                     [&](const backfill_pre_atom_t &pre_atom) {
                         backfill_atom_t atom;
                         atom.range = pre_atom.range.intersection(leaf_range);
-                        atom.deletion_cutoff_timestamp = cutoff;
+                        atom.min_deletion_timestamp = min_deletion_timestamp;
                         atoms_from_pre.push_back(atom);
                     });
             if (cont == continue_bool_t::ABORT) {
@@ -390,7 +391,7 @@ private:
                             atoms_from_time.push_back(backfill_atom_t());
                             atom = &atoms_from_time.back();
                             atom->range = key_range_t(key);
-                            atom->deletion_cutoff_timestamp =
+                            atom->min_deletion_timesstamp =
                                 repli_timestamp_t::distant_past;
                         } else {
                             /* Ignore this key-value pair */
@@ -399,7 +400,7 @@ private:
                     }
 
                     rassert(atom->range.contains_key(key));
-                    rassert(timestamp >= atom->deletion_cutoff_timestamp);
+                    rassert(timestamp >= atom->min_deletion_timestamp);
 
                     size_t i = atom->pairs.size();
                     atom->pairs.resize(i + 1);

@@ -6,6 +6,7 @@
 #include <utility>
 #include <vector>
 
+#include "btree/types.hpp"
 #include "buffer_cache/types.hpp"
 #include "errors.hpp"
 
@@ -149,8 +150,21 @@ void remove(value_sizer_t *sizer, leaf_node_t *node, const btree_key_t *key, rep
 
 void erase_presence(value_sizer_t *sizer, leaf_node_t *node, const btree_key_t *key, key_modification_proof_t km_proof);
 
-repli_timestamp_t deletion_cutoff_timestamp(value_sizer_t *sizer, leaf_node_t *node,
+/* Returns the smallest timestamp such that if a deletion had occurred with that
+timestamp, the node would still have a record of it. */
+repli_timestamp_t min_deletion_timestamp(
+    value_sizer_t *sizer,
+    const leaf_node_t *node,
     repli_timestamp_t maximum_possible_timestamp);
+
+/* Calls `cb` on every entry in the node, whether a real entry or a deletion. The calls
+will be in order from most recent to least recent. For entries with no timestamp, the
+callback will get `min_deletion_timestamp() - 1`. */
+continue_bool_t visit_entries(
+    value_sizer_t *sizer,
+    const leaf_node_t *node,
+    repli_timestamp_t maximum_possible_timestamp,
+    const std::function<void(const btree_key_t *, repli_timestamp_t, const void *)> &cb);
 
 class iterator {
 public:
