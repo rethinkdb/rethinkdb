@@ -130,17 +130,16 @@ connectivity_cluster_t::connection_t::connection_t(run_t *p,
                                                    keepalive_tcp_conn_stream_t *c,
                                                    const peer_address_t &a) THROWS_NOTHING :
     conn(c),
-    flusher([&]() {
-        if (this->conn) {
-            // We need to acquire the send_mutex because flushing the buffer
-            // must not interleave with other writes (restriction of linux_tcp_conn_t).
-            mutex_t::acq_t acq(&this->send_mutex);
-            // We ignore the return value of flush_buffer(). Closed connections
-            // must be handled elsewhere.
-            this->conn->flush_buffer();
-        }
-    }, 1),
     peer_address(a),
+    flusher([&]() {
+        guarantee(this->conn != nullptr);
+        // We need to acquire the send_mutex because flushing the buffer
+        // must not interleave with other writes (restriction of linux_tcp_conn_t).
+        mutex_t::acq_t acq(&this->send_mutex);
+        // We ignore the return value of flush_buffer(). Closed connections
+        // must be handled elsewhere.
+        this->conn->flush_buffer();
+    }, 1),
     pm_collection(),
     pm_bytes_sent(secs_to_ticks(1), true),
     pm_collection_membership(&p->parent->connectivity_collection, &pm_collection,
@@ -164,7 +163,6 @@ connectivity_cluster_t::connection_t::~connection_t() THROWS_NOTHING {
         parent->parent->connections.get()->delete_key(peer_id);
         drainers.get()->drain();
     });
-    conn = nullptr;
 
     /* The drainers have been destroyed, so nothing can be holding the `send_mutex`. */
     guarantee(!send_mutex.is_locked());

@@ -120,8 +120,6 @@ public:
         /* NULL for the loopback connection (i.e. our "connection" to ourself) */
         keepalive_tcp_conn_stream_t *conn;
 
-        throttled_committer_t flusher;
-
         /* `connection_t` contains the addresses so that we can call
         `get_peers_list()` on any thread. Otherwise, we would have to go
         cross-thread to access the routing table. */
@@ -129,6 +127,10 @@ public:
 
         /* Unused for our connection to ourself */
         mutex_t send_mutex;
+
+        /* Calls `conn->flush_buffer()`. Can be used for making sure that a
+        buffered write makes it to the TCP stack. */
+        throttled_committer_t flusher;
 
         perfmon_collection_t pm_collection;
         perfmon_sampler_t pm_bytes_sent;
