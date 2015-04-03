@@ -181,7 +181,7 @@ class IterableResult
             if @_endFlag is true
                 resolve()
             else if not @_closeCb?
-                @_closeCb = (err) ->
+                @_closeCb = (err) =>
                     # Clear all callbacks for outstanding requests
                     while @_cbQueue.length > 0
                         @_cbQueue.shift()
