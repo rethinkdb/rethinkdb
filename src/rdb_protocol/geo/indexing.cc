@@ -152,24 +152,21 @@ geo_index_traversal_helper_t::handle_pair(
 
 bool geo_index_traversal_helper_t::is_range_interesting(
         const btree_key_t *left_excl_or_null,
-        const btree_key_t *right_incl_or_null) {
+        const btree_key_t *right_incl) {
     guarantee(is_initialized_);
     // We ignore the fact that the left key is exclusive and not inclusive.
     // In rare cases this costs us a little bit of efficiency because we consider
     // one extra key, but it saves us some complexity.
-    return any_query_cell_intersects(left_excl_or_null, right_incl_or_null);
+    return any_query_cell_intersects(left_excl_or_null, right_incl);
 }
 
 bool geo_index_traversal_helper_t::any_query_cell_intersects(
-        const btree_key_t *left_incl_or_null, const btree_key_t *right_incl_or_null) {
+        const btree_key_t *left_incl_or_null, const btree_key_t *right_incl) {
     S2CellId left_cell =
         left_incl_or_null == NULL
         ? S2CellId::FromFacePosLevel(0, 0, 0) // The smallest valid cell id
         : btree_key_to_s2cellid(left_incl_or_null);
-    S2CellId right_cell =
-        right_incl_or_null == NULL
-        ? S2CellId::FromFacePosLevel(5, 0, 0) // The largest valid cell id
-        : btree_key_to_s2cellid(right_incl_or_null);
+    S2CellId right_cell = btree_key_to_s2cellid(right_incl);
 
     // Determine a S2CellId range that is a superset of what's intersecting
     // with anything stored in [left_cell, right_cell].

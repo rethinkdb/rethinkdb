@@ -59,13 +59,16 @@ std::string key_to_debug_str(const btree_key_t *key) {
 key_range_t::key_range_t() :
     left(), right(store_key_t()) { }
 
-key_range_t::key_range_t(bound_t lm, const store_key_t& l, bound_t rm, const store_key_t& r) {
+key_range_t::key_range_t(bound_t lm, const store_key_t& l, bound_t rm, const store_key_t& r) :
+    key_range_t(lm, l.btree_key(), rm, r.btree_key()) { }
+
+key_range_t::key_range_t(bound_t lm, const btree_key_t *l, bound_t rm, const btree_key_t *r) {
     switch (lm) {
         case closed:
-            left = l;
+            left.assign(l);
             break;
         case open:
-            left = l;
+            left.assign(l);
             if (left.increment()) {
                 break;
             } else {
@@ -76,7 +79,7 @@ key_range_t::key_range_t(bound_t lm, const store_key_t& l, bound_t rm, const sto
                 return;
             }
         case none:
-            left = store_key_t();
+            left = store_key_t::min();
             break;
         default:
             unreachable();
@@ -84,23 +87,18 @@ key_range_t::key_range_t(bound_t lm, const store_key_t& l, bound_t rm, const sto
 
     switch (rm) {
         case closed: {
-            store_key_t r_copy(r);
-            if (r_copy.increment()) {
-                right = right_bound_t(r_copy);
-                break;
-            } else {
-                /* Our right bound is the largest possible key, and we are
-                closed on the right-hand side. The only way to express this is
-                to set `right` to `right_bound_t()`. */
-                right = right_bound_t();
-                break;
-            }
+            right.key.assign(r);
+            right.unbounded = false;
+            bool ok = right.increment();
+            guarantee(ok);
+            break;
         }
         case open:
-            right = right_bound_t(r);
+            right.key.assign(r);
+            right.unbounded = false;
             break;
         case none:
-            right = right_bound_t();
+            right.unbounded = true;
             break;
         default:
             unreachable();

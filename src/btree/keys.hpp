@@ -237,6 +237,16 @@ struct key_range_t {
     key_range_t();   /* creates a range containing no keys */
     key_range_t(bound_t lm, const store_key_t &l,
                 bound_t rm, const store_key_t &r);
+    key_range_t(bound_t lm, const btree_key_t *l,
+                bound_t rm, const btree_key_t *r);
+
+    explicit key_range_t(const btree_key_t *key) {
+        left.assign(key);
+        right.key.assign(key);
+        right.unbounded = false;
+        bool ok = right.increment();
+        guarantee(ok);
+    }
 
     static key_range_t empty() THROWS_NOTHING {
         return key_range_t();

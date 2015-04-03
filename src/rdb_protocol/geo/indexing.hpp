@@ -55,14 +55,14 @@ public:
             THROWS_ONLY(interrupted_exc_t);
     bool is_range_interesting(
             const btree_key_t *left_excl_or_null,
-            const btree_key_t *right_incl_or_null);
+            const btree_key_t *right_incl);
 
 private:
     static bool cell_intersects_with_range(const geo::S2CellId c,
                                            const geo::S2CellId left_min,
                                            const geo::S2CellId right_max);
     bool any_query_cell_intersects(const btree_key_t *left_incl_or_null,
-                                   const btree_key_t *right_incl_or_null);
+                                   const btree_key_t *right_incl);
     bool any_query_cell_intersects(const geo::S2CellId left_min,
                                    const geo::S2CellId right_max);
 

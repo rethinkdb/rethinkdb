@@ -58,6 +58,7 @@ public:
     }
     void mask_in_place(const key_range_t &m);
     key_range_t range;
+    repli_timestamp_t deletion_cutoff_timestamp;
     std::vector<pair_t> pairs;
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(backfill_atom_t::pair_t);
@@ -83,10 +84,11 @@ bool btree_backfill_pre_atoms(
 
 class btree_backfill_pre_atom_producer_t {
 public:
-    virtual void move_cursor(
-        const btree_key_t *left_excl_or_null) = 0;
-    virtual bool first_before(
-        const btree_key_t *right_incl, const key_range_t **out) = 0;
+    virtual bool peek_range(
+        const btree_key_t *left_excl_or_null, const btree_key_t *right_incl) = 0;
+    virtual void consume_range(
+        const btree_key_t *left_excl_or_null, const btree_key_t *right_incl,
+        const std::function<void(const backfill_pre_atom_t *)> &callback) = 0;
 protected:
     virtual ~btree_backfill_pre_atom_producer_t() { }
 };

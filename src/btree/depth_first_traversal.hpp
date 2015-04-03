@@ -77,7 +77,7 @@ public:
             UNUSED const counted_t<counted_buf_lock_t> &buf_lock,
             UNUSED const counted_t<counted_buf_read_t> &buf_read,
             UNUSED const btree_key_t *left_excl_or_null,
-            UNUSED const btree_key_t *right_incl_or_null,
+            UNUSED const btree_key_t *right_incl,
             bool *skip_out) {
         *skip_out = false;
         return done_traversing_t::NO;
@@ -90,12 +90,12 @@ public:
     never encountered by handle_pair(); it's just a pre-filter. */
     virtual bool is_range_interesting(
             UNUSED const btree_key_t *left_excl_or_null,
-            UNUSED const btree_key_t *right_incl_or_null) {
+            UNUSED const btree_key_t *right_incl) {
         return true;
     }
     virtual bool is_range_ts_interesting(
             UNUSED const btree_key_t *left_excl_or_null,
-            UNUSED const btree_key_t *right_incl_or_null,
+            UNUSED const btree_key_t *right_incl,
             UNUSED repli_timestamp_t timestamp) {
         return true;
     }

@@ -94,24 +94,24 @@ public:
             const counted_t<counted_buf_lock_t> &buf_lock,
             const counted_t<counted_buf_read_t> &buf_read,
             const btree_key_t *left_excl_or_null,
-            const btree_key_t *right_incl_or_null,
+            const btree_key_t *right_incl,
             bool *skip_out) {
         return cb_->handle_pre_leaf(
-            buf_lock, buf_read, left_excl_or_null, right_incl_or_null, skip_out);
+            buf_lock, buf_read, left_excl_or_null, right_incl, skip_out);
     }
 
     virtual bool is_range_interesting(
             const btree_key_t *left_excl_or_null,
-            const btree_key_t *right_incl_or_null) {
-        return cb_->is_range_interesting(left_excl_or_null, right_incl_or_null);
+            const btree_key_t *right_incl) {
+        return cb_->is_range_interesting(left_excl_or_null, right_incl);
     }
 
     virtual bool is_range_ts_interesting(
             const btree_key_t *left_excl_or_null,
-            const btree_key_t *right_incl_or_null,
+            const btree_key_t *right_incl,
             repli_timestamp_t timestamp) {
         return cb_->is_range_ts_interesting(
-            left_excl_or_null, right_incl_or_null, timestamp);
+            left_excl_or_null, right_incl, timestamp);
     }
 
     virtual profile::trace_t *get_trace() THROWS_NOTHING {

@@ -32,95 +32,73 @@ bool btree_backfill_pre_atoms(
         UNUSED signal_t *interruptor) {
     class callback_t : public depth_first_traversal_callback_t {
     public:
-        done_traversing_t handle_pair(scoped_key_value_t &&) {
-            unreachable();
+        bool is_range_ts_interesting(
+                UNUSED const btree_key_t *left_excl_or_null,
+                UNUSED const btree_key_t *right_incl,
+                repli_timestamp_t timestamp) {
+            return timestamp > since_when;
         }
+
         done_traversing_t handle_pre_leaf(
                 const counted_t<counted_buf_lock_t> &buf_lock,
                 const counted_t<counted_buf_read_t> &buf_read,
                 const btree_key_t *left_excl_or_null,
-                const btree_key_t *right_incl_or_null,
+                const btree_key_t *right_incl,
                 bool *skip_out) {
+            *skip_out = true;
             const leaf_node_t *lnode = static_cast<const leaf_node_t *>(
                 buf_read->get_data_read());
-            class cb_t : public leaf::entry_reception_callback_t {
-            public:
-                cb_t(btree_backfill_pre_atom_consumer_t *c, const key_range_t &ran,
-                        const btree_key_t *l, const btree_key_t *r) :
-                    pre_atom_consumer(c), range(ran),
-                    left_excl_or_null(l), right_incl_or_null(r),
-                    did_lose_deletions(false), did_stop(false) { }
-                void lost_deletions() {
-                    guarantee(!did_lose_deletions && !did_stop);
-                    did_lose_deletions = true;
+            repli_timestamp_t cutoff =
+                leaf::deletion_cutoff_timestamp(sizer, lnode, buf_lock->get_recency());
+            if (cutoff > since_when) {
+                /* We might be missing deletion entries, so re-transmit the entire node
+                */
+                backfill_pre_atom_t pre_atom;
+                pre_atom.range = key_range_t(
+                    left_excl_or_null == nullptr
+                        ? key_range_t::bound_t::none : key_range_t::bound_t::open,
+                    left_excl_or_null,
+                    key_range_t::bound_t::closed,
+                    right_incl);
+                if (!pre_atom_consumer->on_pre_atom(std::move(pre_atom))) {
+                    return done_traversing_t::YES;
+                }
+            } else {
+                std::vector<const btree_key_t *> keys;
+                leaf::visit_entries(
+                    sizer, lnode, buf_lock->get_recency(),
+                    [&](const btree_key_t *key, repli_timestamp_t timestamp,
+                            const void *) -> bool {
+                        if ((left_excl_or_null != nullptr &&
+                                    btree_key_cmp(key, left_excl_or_null) != 1)
+                                || btree_key_cmp(key, right_incl) == 1) {
+                            return true;
+                        }
+                        if (timestamp <= since_when) {
+                            return false;
+                        }
+                        keys.push_back(key);
+                        return true;
+                    });
+                std::sort(keys.begin(), keys.end(),
+                    [](const btree_key_t *k1, const btree_key_t *k2) {
+                        return btree_key_cmp(k1, k2) == -1;
+                    });
+                for (const btree_key_t *key : keys) {
                     backfill_pre_atom_t pre_atom;
-                    if (left_excl_or_null == nullptr) {
-                        pre_atom.range.left = range.left;
-                    } else {
-                        pre_atom.range.left.assign(left_excl_or_null);
-                        bool ok = pre_atom.range.left.increment();
-                        guarantee(ok);
-                    }
-                    if (right_incl_or_null == nullptr) {
-                        pre_atom.range.right = range.right;
-                    } else {
-                        pre_atom.range.right.key.assign(right_incl_or_null);
-                        pre_atom.range.right.unbounded = true;
-                        bool ok = pre_atom.range.right.increment();
-                        guarantee(ok);
-                    }
-                    did_stop = !pre_atom_consumer->on_pre_atom(std::move(pre_atom));
-                }
-                void deletion(const btree_key_t *key, repli_timestamp_t) {
-                    if (!did_lose_deletions && !did_stop && range.contains_key(key)) {
-                        backfill_pre_atom_t pre_atom;
-                        pre_atom.range.left.assign(key);
-                        pre_atom.range.right.key.assign(key);
-                        pre_atom.range.right.unbounded = false;
-                        bool ok = pre_atom.range.right.increment();
-                        guarantee(ok);
-                        did_stop = !pre_atom_consumer->on_pre_atom(std::move(pre_atom));
+                    pre_atom.range = key_range_t(key);
+                    if (!pre_atom_consumer->on_pre_atom(std::move(pre_atom))) {
+                        return done_traversing_t::YES;
                     }
                 }
-                void keys_values(
-                        std::vector<const btree_key_t *> &&ks,
-                        std::vector<const void *> &&,
-                        std::vector<repli_timestamp_t> &&) {
-                    if (did_lose_deletions) {
-                        return;
-                    }
-                    for (const btree_key_t *key : ks) {
-                        if (did_stop) {
-                            return;
-                        }
-                        if (!range.contains_key(key)) {
-                            continue;
-                        }
-                        backfill_pre_atom_t pre_atom;
-                        pre_atom.range.left.assign(key);
-                        pre_atom.range.right.key.assign(key);
-                        pre_atom.range.right.unbounded = false;
-                        bool ok = pre_atom.range.right.increment();
-                        guarantee(ok);
-                        did_stop = !pre_atom_consumer->on_pre_atom(std::move(pre_atom));
-                    }
-                }
-                btree_backfill_pre_atom_consumer_t *pre_atom_consumer;
-                const key_range_t &range;
-                const btree_key_t *left_excl_or_null, *right_incl_or_null;
-                bool did_lose_deletions, did_stop;
-            } cb(pre_atom_consumer, range, left_excl_or_null, right_incl_or_null);
-            leaf::dump_entries_since_time(sizer, lnode, since_when,
-                buf_lock->get_recency(), &cb);
-            *skip_out = true;
-            return cb.did_stop ? done_traversing_t::YES : done_traversing_t::NO;
+            }
+            return done_traversing_t::NO;
         }
-        bool is_range_ts_interesting(
-                UNUSED const btree_key_t *left_excl_or_null,
-                UNUSED const btree_key_t *right_incl_or_null,
-                repli_timestamp_t timestamp) {
-            return timestamp > since_when;
+
+        done_traversing_t handle_pair(scoped_key_value_t &&) {
+            unreachable();
         }
+
         btree_backfill_pre_atom_consumer_t *pre_atom_consumer;
         key_range_t range;
         repli_timestamp_t since_when;
@@ -138,7 +116,6 @@ bool btree_backfill_pre_atoms(
         release_superblock);
 }
 
-#if 0
 bool btree_backfill_atoms(
         superblock_t *superblock,
         release_superblock_t release_superblock,
@@ -150,90 +127,144 @@ bool btree_backfill_atoms(
         signal_t *interruptor) {
     class callback_t : public concurrent_traversal_callback_t {
     public:
+        bool is_range_ts_interesting(
+                const btree_key_t *left_excl_or_null,
+                const btree_key_t *right_incl,
+                repli_timestamp_t timestamp) {
+            return timestamp > since_when
+                || pre_atom_producer->peek_range(left_excl_or_null, right_incl);
+        }
 
         done_traversing_t handle_pre_leaf(
                 const counted_t<counted_buf_lock_t> &buf_lock,
                 const counted_t<counted_buf_read_t> &buf_read,
                 const btree_key_t *left_excl_or_null,
-                const btree_key_t *right_incl_or_null,
+                const btree_key_t *right_incl,
                 bool *skip_out) {
+            *skip_out = false;
+            key_range_t leaf_range(
+                left_excl_or_null == nullptr
+                    ? key_range_t::bound_t::none : key_range_t::bound_t::open,
+                left_excl_or_null,
+                key_range_t::bound_t::closed,
+                right_incl);
             const leaf_node_t *lnode = static_cast<const leaf_node_t *>(
                 buf_read->get_data_read());
-            class cb_t : public leaf::entry_reception_callback_t {
-            public:
-                cb_t(std::list<backfill_atom_t> *as, const key_range_t &ran,
-                        const btree_key_t *l, const btree_key_t *r) :
-                    atoms(as), range(ran), left_excl_or_null(l), right_incl_or_null(r),
-                    did_lose_deletions(false) { }
-                void lost_deletions() {
-                    guarantee(did_lose_deletions);
-                    did_lose_deletions = true;
-                    atoms->push_back(backfill_atom_t());
-                    backfill_atom_t *atom = &atoms.back();
-                    if (left_excl_or_null == nullptr) {
-                        atom->range.left = range.left;
-                    } else {
-                        atom->range.left.assign(left_excl_or_null);
-                        bool ok = atom->range.left.increment();
-                        guarantee(ok);
-                    }
-                    if (right_incl_or_null == nullptr) {
-                        atom->range.right = range.right;
-                    } else {
-                        atom->range.right.key.assign(right_incl_or_null);
-                        atom->range.right.unbounded = true;
-                        bool ok = atom->range.right.increment();
-                        guarantee(ok);
-                    }
-                }
-                void deletion(const btree_key_t *key, repli_timestamp_t timestamp) {
-                    backfill_atom_t *atom;
-                    if (did_lose_deletions) {
-                        atom = &atoms.back();
-                        guarantee(atom->range.contains_key(key));
-                    } else {
-                        atoms.push_back(backfill_atom_t());
-                        atom = &atoms.back();
-                        atom.range.left.assign(key);
-                        atom.range.right.key.assign(key);
-                        atom.range.right.unbounded = false;
-                        bool ok = atom.range.right.increment();
-                        guarantee(ok);
-                    }
-                    backfill_atom_t::pair_t pair;
-                    pair.key.assign(key);
-                    pair.timestamp = timestamp;
-                    atom->pairs.push_back(std::move(pair));
-                }
-                void keys_values(
-                        std::vector<const btree_key_t *> &&ks,
-                        std::vector<const void *> &&,
-                        std::vector<repli_timestamp_t> &&) {
-                    if (did_lose_deletions) {
-                        return;
-                    }
-                    std::sort(ks.begin(), ks.end(),
-                        [&](const btree_key_t *k1, const btree_key_t *k2) {
-                            return btree_key_cmp(k1, k2) == -1;
+            repli_timestamp_t cutoff =
+                leaf::deletion_cutoff_timestamp(sizer, lnode, buf_lock->get_recency());
+            if (cutoff > since_when) {
+                /* We might be missing deletion entries, so re-transmit the entire node
+                as a single `backfill_atom_t` */
+                backfill_atom_t atom;
+                atom.deletion_cutoff_timestamp = cutoff;
+                atom.range = leaf_range;
+                atoms_filtering.push_back(atom);
+                return done_traversing_t::NO;
+            } else {
+                /* For each pre atom, make a backfill atom (which is initially empty) */
+                std::list<backfill_atom_t> atoms_from_pre;
+                pre_atom_producer->consume_range(left_excl_or_null, right_incl,
+                    [&](const backfill_pre_atom_t *pre_atom) {
+                        backfill_atom_t atom;
+                        atom.range = pre->range.intersection(leaf_range);
+                        atom.deletion_cutoff_timestamp = cutoff;
+                        atoms_from_pre.push_back(atom);
+                    });
+
+                /* Find each key-value pair or deletion entry that falls within the range
+                of a pre atom or that changed since `since_when`. If it falls within the
+                range of a pre atom, put it into the corresponding atom in
+                `atoms_from_pre`; otherwise, make a new atom for it in `atoms_from_time`.
+                */
+                std::list<backfill_atom_t> atoms_from_time;
+                leaf::visit_entries(
+                    sizer, lnode, buf_lock->get_recency(),
+                    [&](const btree_key_t *key, repli_timestamp_t timestamp,
+                            const void *value_or_null) -> bool {
+                        /* The leaf node might be partially outside the range of the
+                        backfill, so we might have to skip some keys */
+                        if (!leaf_range.contains_key(key)) {
+                            return true;
+                        }
+
+                        /* In the most common case, `atoms_from_pre` is totally empty.
+                        Since we ignore entries that are older than `since_when` unless
+                        they are in a pre atom, we can optimize things slightly by
+                        aborting iteration early. */
+                        if (timestamp <= since_when && atoms_from_pre.empty()) {
+                            return false;
+                        }
+
+                        /* We'll set `atom` to the `backfill_atom_t` where this key-value
+                        pair should be inserted. First we check if there's an atom in
+                        `atoms_from_pre` that contains the key. If not, we'll create a
+                        new atom in `atoms_from_time`. */
+                        backfill_atom_t *atom = nullptr;
+                        for (backfill_atom_t &a : atoms_from_pre) {
+                            if (a.range.contains_key(key)) {
+                                atom = &a;
+                                break;
+                            }
+                        }
+                        if (atom != nullptr) {
+                            /* We didn't find an atom in `atoms_from_pre`. */
+                            if (timestamp > since_when) {
+                                /* We should create a new atom for this key-value pair */
+                                atoms_from_time.push_back(backfill_atom_t());
+                                atom = &atoms_from_time.back();
+                                atom->range = key_range_t(key);
+                                atom->deletion_cutoff_timestamp =
+                                    repli_timestamp_t::distant_past;
+                            } else {
+                                /* Ignore this key-value pair */
+                                return true;
+                            }
+                        }
+
+                        rassert(atom->range.contains_key(key));
+                        rassert(timestamp >= atom->deletion_cutoff_timestamp);
+
+                        size_t i = atom->pairs.size();
+                        atom->pairs.resize(i + 1);
+                        atom->pairs[i].key.assign(key);
+                        atom->pairs[i].recency = timestamp;
+                        if (value_or_null != nullptr) {
+                            /* Make a placeholder to indicate that we expect a value; it
+                            will be filled in by `handle_pair()` */
+                            atom->pairs[i].value =
+                                boost::make_optional(std::vector<char>());
+                        }
+                        return true;
+                    });
+
+                /* `leaf::visit_entries` doesn't necessarily go in lexicographical order.
+                So `atoms_from_time` and the pair-vectors inside the atoms in
+                `atoms_from_pre` are currently unsorted. So now we sort them. */
+                atoms_from_time.sort(
+                    [](const backfill_atom_t &a1, const backfill_atom_t &a2) {
+                        return a1.range.left < a2.range.left;
+                    });
+                for (auto &&atom : atoms_from_pre) {
+                    std::sort(atom.pairs.begin(), atom.pairs.end(),
+                        [](const backfill_atom_t::pair_t &p1,
+                                const backfill_atom_t::pair_t &p2) {
+                            return p1.key < p2.key;
                         });
-                    for (const btree_key_t *key : ks) {
-                        atoms.push_back(backfill_atom_t());
-                        atom = &atoms.back();
-                        atom.range.left.assign(key);
-                        atom.range.right.key.assign(key);
-                        atom.range.right.unbounded = false;
-                        bool ok = atom.range.right.increment();
-                        guarantee(ok);
-                    }
                 }
-                std::list<backfill_atom_t> atoms;
-                const key_range_t &range;
-                const btree_key_t *left_excl_or_null, *right_incl_or_null;
-                bool did_lose_deletions;
-            } cb(range, left_excl_or_null, right_incl_or_null);
-            leaf::dump_entries_since_time(sizer, lnode, since_when,
-                buf_lock->get_recency(), &cb);
-            *skip_out = false;
+
+                /* Merge `atoms_from_time` into `atoms_from_pre`, preserving order. */
+                atoms_from_pre.merge(
+                    std::move(atoms_from_time),
+                    [](const backfill_atom_t &a1, const backfill_atom_t &a2) {
+                        rassert(!a1.range.overlaps(a2.range));
+                        return a1.range.left < a2.range.left;
+                    });
+
+                /* Put the resulting atoms into `atoms_filtering` */
+                atoms_filtering.splice(atoms_filtering.end(), std::move(atoms_from_pre));
+
+                return done_traversing_t::NO;
+            }
         }
 
         bool is_key_interesting(const btree_key_t *key) {
@@ -258,14 +289,12 @@ bool btree_backfill_atoms(
         done_traversing_t handle_pair(
                 scoped_key_value_t &&keyvalue,
                 concurrent_traversal_fifo_enforcer_signal_t waiter) {
-            /* Prepare a `backfill_atom_t::pair_t` that describes this key-value pair.
-            This may block, but multiple copies will run concurrently. */
-            backfill_atom_t::pair_t pair;
-            pair.key.assign(keyvalue.key());
-            pair.timestamp = keyvalue.timestamp();
-            pair.value = boost::make_optional(std::vector<char>());
+            /* Transfer the value of the key-value pair (the real contents in the blob,
+            not the contents in the leaf node) into `buffer`. This may block, but
+            multiple copies run concurrently. */
+            std::vector<char> buffer;
             atom_consumer->copy_value(keyvalue.expose_buf(), keyvalue.value(),
-                interruptor, &*pair.value);
+                interruptor, &buffer);
 
             /* Wait for exclusive access */
             waiter.wait_interruptible();
@@ -292,15 +321,50 @@ bool btree_backfill_atoms(
             } else {
                 atom = &atoms_filtering.front();
             }
-            guarantee(atom->range.contains_key(keyvalue.key()));
+            rassert(atom->range.contains_key(keyvalue.key()));
 
-            atom->push_back(std::move(pair));
+            /* Find the `backfill_atom_t::pair_t` for our key. We know that the pair must
+            exist because `handle_pre_leaf()` should have created it. */
+            auto it = std::lower_bound(
+                atom->pairs.begin(), atoms->pairs.end(), keyvalue.key(),
+                [](const backfill_atom_t::pair_t &p, const btree_key_t *k) {
+                    return btree_key_cmp(p.key.btree_key(), k) == -1;
+                });
+            guarantee(it != atoms->pairs.end()
+                && btree_key_cmp(it->key, keyvalue.key()); == 0)
+            guarantee(static_cast<bool>(it->value), "handle_pair() called on something "
+                "that handle_pre_leaf() thought was a deletion");
+
+            /* Move the value from `buffer` into the pair */
+            *it->value = std::move(buffer);
+
             return done_traversing_t::NO;
         }
 
+        value_sizer_t *sizer;
+        repli_timestamp_t since_when;
+        backfill_pre_atom_producer_t *pre_atom_producer;
+        backfill_atom_consumer_t *atom_consumer;
         std::list<backfill_atom_t> atoms_copying, atoms_filtering;
-    };
-}
-#endif
+    } callback;
+    callback.sizer = sizer;
+    callback.since_when = since_when;
+    callback.pre_atom_producer = pre_atom_producer;
+    callback.atom_consumer = atom_consumer;
 
+    /* Perform the traversal. This will call `atom_consumer->on_atom()` as it goes. */
+    if (!btree_concurrent_traversal(
+            superblock,
+            range,
+            &callback,
+            FORWARD,
+            release_superblock)) {
+        return false;
+    }
+
+    guarantee(callback.atoms_copying.empty());
+    guarantee(callback.atoms_filtering.empty());
+
+    return true;
+}
 

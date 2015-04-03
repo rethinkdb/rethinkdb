@@ -149,29 +149,8 @@ void remove(value_sizer_t *sizer, leaf_node_t *node, const btree_key_t *key, rep
 
 void erase_presence(value_sizer_t *sizer, leaf_node_t *node, const btree_key_t *key, key_modification_proof_t km_proof);
 
-class entry_reception_callback_t {
-public:
-    /* Note: If any of these callbacks throw exceptions, then
-    `dump_entries_since_time()` must pass the exception up and not leak memory
-    or anything. */
-
-    // Says that the timestamp was too early, and we can't send accurate deletion history.
-    virtual void lost_deletions() = 0;
-
-    // Sends a deletion in the deletion history.
-    virtual void deletion(const btree_key_t *k, repli_timestamp_t tstamp) = 0;
-
-    // Sends the key/value pairs in the leaf.
-    virtual void keys_values(
-        std::vector<const btree_key_t *> &&ks,
-        std::vector<const void *> &&values,
-        std::vector<repli_timestamp_t> &&tstamps) = 0;
-
-protected:
-    virtual ~entry_reception_callback_t() { }
-};
-
-void dump_entries_since_time(value_sizer_t *sizer, const leaf_node_t *node, repli_timestamp_t minimum_tstamp, repli_timestamp_t maximum_possible_timestamp,  entry_reception_callback_t *cb);
+repli_timestamp_t deletion_cutoff_timestamp(value_sizer_t *sizer, leaf_node_t *node,
+    repli_timestamp_t maximum_possible_timestamp);
 
 class iterator {
 public:
