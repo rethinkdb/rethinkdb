@@ -150,14 +150,16 @@ geo_index_traversal_helper_t::handle_pair(
     }
 }
 
-bool geo_index_traversal_helper_t::is_range_interesting(
+continue_bool_t geo_index_traversal_helper_t::is_range_interesting(
         const btree_key_t *left_excl_or_null,
-        const btree_key_t *right_incl) {
+        const btree_key_t *right_incl,
+        bool *skip_out) {
     guarantee(is_initialized_);
     // We ignore the fact that the left key is exclusive and not inclusive.
     // In rare cases this costs us a little bit of efficiency because we consider
     // one extra key, but it saves us some complexity.
-    return any_query_cell_intersects(left_excl_or_null, right_incl);
+    *skip_out = !any_query_cell_intersects(left_excl_or_null, right_incl);
+    return continue_bool_t::CONTINUE;
 }
 
 bool geo_index_traversal_helper_t::any_query_cell_intersects(

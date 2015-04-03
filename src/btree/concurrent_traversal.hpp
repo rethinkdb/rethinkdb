@@ -27,28 +27,22 @@ class concurrent_traversal_callback_t {
 public:
     concurrent_traversal_callback_t() { }
 
-    // Passes a keyvalue and a callback.  waiter.wait_interruptible() must be called to
-    // begin the region of "exclusive access", which only handle_pair implementation
-    // can enters at a time.  (This should happen after loading the value from disk
-    // (which should be done concurrently) and before using ql::env_t to evaluate
-    // transforms and terminals, or whatever non-reentrant behavior you have in mind.)
-    virtual continue_bool_t handle_pair(
-            scoped_key_value_t &&keyvalue,
-            concurrent_traversal_fifo_enforcer_signal_t waiter)
-            THROWS_ONLY(interrupted_exc_t) = 0;
-
-    /* Called before every call to `handle_pair`. If it returns `false`, no call to
-    `handle_pair()` will be generated. This is useful because we spawn a coroutine for
-    every call to `handle_pair()`, and if we're only interested in a fraction of
-    key-value pairs, this will reduce the number of coroutines we spawn. */
-    virtual bool is_key_interesting(
-            UNUSED const btree_key_t *key) {
-        return true;
+    /* See `depth_first_traversal_callback_t` for an explanation of these methods */
+    virtual continue_bool_t filter_range(
+            UNUSED const btree_key_t *left_excl_or_null,
+            UNUSED const btree_key_t *right_incl,
+            bool *skip_out) {
+        *skip_out = false;
+        return continue_bool_t::CONTINUE;
     }
-
-    /* Called on every leaf node before the calls to `handle_pair()`. If it sets
-    `*skip_out` to `true`, no calls to `is_key_interesting()` or `handle_pair()` will be
-    generated for the leaf. */
+    virtual continue_bool_t filter_range_ts(
+            UNUSED const btree_key_t *left_excl_or_null,
+            UNUSED const btree_key_t *right_incl,
+            UNUSED repli_timestamp_t timestamp,
+            bool *skip_out) {
+        *skip_out = false;
+        return continue_bool_t::CONTINUE;
+    }
     virtual continue_bool_t handle_pre_leaf(
             UNUSED const counted_t<counted_buf_lock_t> &buf_lock,
             UNUSED const counted_t<counted_buf_read_t> &buf_read,
@@ -59,18 +53,27 @@ public:
         return continue_bool_t::CONTINUE;
     }
 
-    /* See `depth_first_traversal_callback_t` for an explanation of these methods. */
-    virtual bool is_range_interesting(
-            UNUSED const btree_key_t *left_excl_or_null,
-            UNUSED const btree_key_t *right_incl) {
-        return true;
+    /* Called before every call to `handle_pair`. If it sets `*skip_out` to `false`, no
+    call to `handle_pair()` will be generated. The reason we provide this method here and
+    not in `depth_first_traversal_callback_t` is because here because we spawn a
+    coroutine for every call to `handle_pair()`, and if we're only interested in a
+    fraction of key-value pairs, this will reduce the number of coroutines we spawn. */
+    virtual continue_bool_t filter_key(
+            UNUSED const btree_key_t *key,
+            bool *skip_out) {
+        *skip_out = false;
+        return continue_bool_t::CONTINUE;
     }
-    virtual bool is_range_ts_interesting(
-            UNUSED const btree_key_t *left_excl_or_null,
-            UNUSED const btree_key_t *right_incl,
-            UNUSED repli_timestamp_t timestamp) {
-        return true;
-    }
+
+    // Passes a keyvalue and a callback.  waiter.wait_interruptible() must be called to
+    // begin the region of "exclusive access", which only handle_pair implementation
+    // can enters at a time.  (This should happen after loading the value from disk
+    // (which should be done concurrently) and before using ql::env_t to evaluate
+    // transforms and terminals, or whatever non-reentrant behavior you have in mind.)
+    virtual continue_bool_t handle_pair(
+            scoped_key_value_t &&keyvalue,
+            concurrent_traversal_fifo_enforcer_signal_t waiter)
+            THROWS_ONLY(interrupted_exc_t) = 0;
 
     virtual profile::trace_t *get_trace() THROWS_NOTHING { return NULL; }
 

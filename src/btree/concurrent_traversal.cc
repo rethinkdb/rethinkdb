@@ -43,6 +43,29 @@ public:
           cb_(cb),
           failure_cond_(failure_cond) { }
 
+    continue_bool_t filter_range(
+            const btree_key_t *left_excl_or_null,
+            const btree_key_t *right_incl,
+            bool *skip_out) {
+        return cb_->filter_range(left_excl_or_null, right_incl, skip_out);
+    }
+    continue_bool_t filter_range_ts(
+            const btree_key_t *left_excl_or_null,
+            const btree_key_t *right_incl,
+            repli_timestamp_t timestamp,
+            bool *skip_out) {
+        return cb_->filter_range_ts(left_excl_or_null, right_incl, timestamp, skip_out);
+    }
+    continue_bool_t handle_pre_leaf(
+            const counted_t<counted_buf_lock_t> &buf_lock,
+            const counted_t<counted_buf_read_t> &buf_read,
+            const btree_key_t *left_excl_or_null,
+            const btree_key_t *right_incl,
+            bool *skip_out) {
+        return cb_->handle_pre_leaf(
+            buf_lock, buf_read, left_excl_or_null, right_incl, skip_out);
+    }
+
     void handle_pair_coro(scoped_key_value_t *fragile_keyvalue,
                           semaphore_acq_t *fragile_acq,
                           fifo_enforcer_write_token_t token,
@@ -71,7 +94,11 @@ public:
 
     virtual continue_bool_t handle_pair(scoped_key_value_t &&keyvalue) {
 
-        if (!cb_->is_key_interesting(keyvalue.key())) {
+        bool skip;
+        if (continue_bool_t::ABORT == cb_->filter_key(keyvalue.key(), &skip)) {
+            return continue_bool_t::ABORT;
+        }
+        if (skip) {
             return continue_bool_t::CONTINUE;
         }
 
@@ -89,30 +116,6 @@ public:
         // Report if we've failed by the time this handle_pair call is called.
         return failure_cond_->is_pulsed()
             ? continue_bool_t::ABORT : continue_bool_t::CONTINUE;
-    }
-
-    virtual continue_bool_t handle_pre_leaf(
-            const counted_t<counted_buf_lock_t> &buf_lock,
-            const counted_t<counted_buf_read_t> &buf_read,
-            const btree_key_t *left_excl_or_null,
-            const btree_key_t *right_incl,
-            bool *skip_out) {
-        return cb_->handle_pre_leaf(
-            buf_lock, buf_read, left_excl_or_null, right_incl, skip_out);
-    }
-
-    virtual bool is_range_interesting(
-            const btree_key_t *left_excl_or_null,
-            const btree_key_t *right_incl) {
-        return cb_->is_range_interesting(left_excl_or_null, right_incl);
-    }
-
-    virtual bool is_range_ts_interesting(
-            const btree_key_t *left_excl_or_null,
-            const btree_key_t *right_incl,
-            repli_timestamp_t timestamp) {
-        return cb_->is_range_ts_interesting(
-            left_excl_or_null, right_incl, timestamp);
     }
 
     virtual profile::trace_t *get_trace() THROWS_NOTHING {

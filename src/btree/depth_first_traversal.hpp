@@ -67,12 +67,32 @@ private:
 
 class depth_first_traversal_callback_t {
 public:
-    /* Return value of `NO` indicates to keep going; `YES` indicates to stop
-    traversing the tree. */
-    virtual continue_bool_t handle_pair(scoped_key_value_t &&keyvalue) = 0;
+    /* Any of these methods can abort the traversal by returning `ABORT`. In this case,
+    no further method calls will happen and `btree_depth_first_traversal()` will return
+    `ABORT`. */
+
+    /* Can be overloaded if you don't want to query a contiguous range of keys, but only
+    parts of it. Both `filter_range()` and `filter_range_ts()` will be called before
+    traversing into any child node; if either sets `*skip_out` to `true`, the range
+    will be ignored. */
+    virtual continue_bool_t filter_range(
+            UNUSED const btree_key_t *left_excl_or_null,
+            UNUSED const btree_key_t *right_incl,
+            bool *skip_out) {
+        *skip_out = false;
+        return continue_bool_t::CONTINUE;
+    }
+    virtual continue_bool_t filter_range_ts(
+            UNUSED const btree_key_t *left_excl_or_null,
+            UNUSED const btree_key_t *right_incl,
+            UNUSED repli_timestamp_t timestamp,
+            bool *skip_out) {
+        *skip_out = false;
+        return continue_bool_t::CONTINUE;
+    }
 
     /* Called on every leaf node before the calls to `handle_pair()`. If it sets
-    `*skip_out` to `true`, no calls to `handle_pair()` will be generated for the leaf. */
+    `*skip_out` to `true`, the leaf will be ignored. */
     virtual continue_bool_t handle_pre_leaf(
             UNUSED const counted_t<counted_buf_lock_t> &buf_lock,
             UNUSED const counted_t<counted_buf_read_t> &buf_read,
@@ -81,24 +101,11 @@ public:
             bool *skip_out) {
         *skip_out = false;
         return continue_bool_t::CONTINUE;
-    } 
+    }
 
-    /* Can be overloaded if you don't want to query a contiguous range of keys, but only
-    parts of it. Both `is_range_interesting()` and `is_range_ts_interesting()` will be
-    called before traversing into any child node; if either returns `false`, the range
-    will be ignored. Note: returning false here does not guarantee that a given range is
-    never encountered by handle_pair(); it's just a pre-filter. */
-    virtual bool is_range_interesting(
-            UNUSED const btree_key_t *left_excl_or_null,
-            UNUSED const btree_key_t *right_incl) {
-        return true;
-    }
-    virtual bool is_range_ts_interesting(
-            UNUSED const btree_key_t *left_excl_or_null,
-            UNUSED const btree_key_t *right_incl,
-            UNUSED repli_timestamp_t timestamp) {
-        return true;
-    }
+    /* The guts of the callback; this handles the actual key-value pairs. */
+    virtual continue_bool_t handle_pair(scoped_key_value_t &&keyvalue) = 0;
+
     virtual profile::trace_t *get_trace() THROWS_NOTHING { return NULL; }
 protected:
     virtual ~depth_first_traversal_callback_t() { }

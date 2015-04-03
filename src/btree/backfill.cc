@@ -32,11 +32,13 @@ continue_bool_t btree_backfill_pre_atoms(
         UNUSED signal_t *interruptor) {
     class callback_t : public depth_first_traversal_callback_t {
     public:
-        bool is_range_ts_interesting(
+        continue_bool_t filter_range_ts(
                 UNUSED const btree_key_t *left_excl_or_null,
                 UNUSED const btree_key_t *right_incl,
-                repli_timestamp_t timestamp) {
-            return timestamp > since_when;
+                repli_timestamp_t timestamp,
+                bool *skip_out) {
+            *skip_out = timestamp <= since_when;
+            return continue_bool_t::CONTINUE;
         }
 
         continue_bool_t handle_pre_leaf(
@@ -73,13 +75,13 @@ continue_bool_t btree_backfill_pre_atoms(
                         if ((left_excl_or_null != nullptr &&
                                     btree_key_cmp(key, left_excl_or_null) != 1)
                                 || btree_key_cmp(key, right_incl) == 1) {
-                            return true;
+                            return continue_bool_t::CONTINUE;
                         }
                         if (timestamp <= since_when) {
-                            return false;
+                            return continue_bool_t::ABORT;
                         }
                         keys.push_back(key);
-                        return true;
+                        return continue_bool_t::CONTINUE;
                     });
                 std::sort(keys.begin(), keys.end(),
                     [](const btree_key_t *k1, const btree_key_t *k2) {
@@ -129,12 +131,14 @@ continue_bool_t btree_backfill_atoms(
         signal_t *interruptor) {
     class callback_t : public concurrent_traversal_callback_t {
     public:
-        bool is_range_ts_interesting(
+        continue_bool_t filter_range_ts(
                 const btree_key_t *left_excl_or_null,
                 const btree_key_t *right_incl,
-                repli_timestamp_t timestamp) {
-            return timestamp > since_when
-                || pre_atom_producer->peek_range(left_excl_or_null, right_incl);
+                repli_timestamp_t timestamp,
+                bool *skip_out) {
+            *skip_out = timestamp <= since_when
+                && !pre_atom_producer->peek_range(left_excl_or_null, right_incl);
+            return continue_bool_t::CONTINUE;
         }
 
         continue_bool_t handle_pre_leaf(
@@ -186,7 +190,7 @@ continue_bool_t btree_backfill_atoms(
                         /* The leaf node might be partially outside the range of the
                         backfill, so we might have to skip some keys */
                         if (!leaf_range.contains_key(key)) {
-                            return true;
+                            return continue_bool_t::CONTINUE;
                         }
 
                         /* In the most common case, `atoms_from_pre` is totally empty.
@@ -194,7 +198,7 @@ continue_bool_t btree_backfill_atoms(
                         they are in a pre atom, we can optimize things slightly by
                         aborting iteration early. */
                         if (timestamp <= since_when && atoms_from_pre.empty()) {
-                            return false;
+                            return continue_bool_t::ABORT;
                         }
 
                         /* We'll set `atom` to the `backfill_atom_t` where this key-value
@@ -219,7 +223,7 @@ continue_bool_t btree_backfill_atoms(
                                     repli_timestamp_t::distant_past;
                             } else {
                                 /* Ignore this key-value pair */
-                                return true;
+                                return continue_bool_t::CONTINUE;
                             }
                         }
 
@@ -236,7 +240,7 @@ continue_bool_t btree_backfill_atoms(
                             atom->pairs[i].value =
                                 boost::make_optional(std::vector<char>());
                         }
-                        return true;
+                        return continue_bool_t::CONTINUE;
                     });
 
                 /* `leaf::visit_entries` doesn't necessarily go in lexicographical order.
@@ -269,7 +273,7 @@ continue_bool_t btree_backfill_atoms(
             }
         }
 
-        bool is_key_interesting(const btree_key_t *key) {
+        continue_bool_t filter_key(const btree_key_t *key, bool *skip_out) {
             /* Transfer atoms from `atoms_filtering` to `atoms_copying` until we find one
             that contains this key or comes after this key. */
             while (!atoms_filtering.empty()) {
@@ -283,9 +287,10 @@ continue_bool_t btree_backfill_atoms(
                 }
             }
 
-            /* Return true if we found an atom that contains this key. */
-            return !atoms_filtering.empty()
-                && atoms_filtering.front().range.contains_key(key);
+            /* Skip unless we found an atom that contains this key. */
+            *skip_out = atoms_filtering.empty()
+                || !atoms_filtering.front().range.contains_key(key);
+            return continue_bool_t::CONTINUE;
         }
 
         continue_bool_t handle_pair(

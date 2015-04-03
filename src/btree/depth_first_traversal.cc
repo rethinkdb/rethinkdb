@@ -60,7 +60,7 @@ continue_bool_t btree_depth_first_traversal(
         if (release_superblock == release_superblock_t::RELEASE) {
             superblock->release();
         }
-        return true;
+        return continue_bool_t::CONTINUE;
     } else {
         counted_t<counted_buf_lock_t> root_block;
         {
@@ -141,8 +141,12 @@ continue_bool_t btree_depth_first_traversal(
         direction_t direction,
         const btree_key_t *left_excl_or_null,
         const btree_key_t *right_incl) {
-    if (!cb->is_range_ts_interesting(
-            left_excl_or_null, right_incl, block->get_recency())) {
+    bool skip;
+    if (continue_bool_t::ABORT == cb->filter_range_ts(
+            left_excl_or_null, right_incl, block->get_recency(), &skip)) {
+        return continue_bool_t::ABORT;
+    }
+    if (skip) {
         return continue_bool_t::CONTINUE;
     }
     auto read = make_counted<counted_buf_read_t>(block.get());
@@ -169,7 +173,11 @@ continue_bool_t btree_depth_first_traversal(
                                 left_excl_or_null, right_incl,
                                 &child_left_excl_or_null, &child_right_incl);
 
-            if (cb->is_range_interesting(child_left_excl_or_null, child_right_incl)) {
+            if (continue_bool_t::ABORT == cb->filter_range(
+                    child_left_excl_or_null, child_right_incl, &skip)) {
+                return continue_bool_t::ABORT:
+            }
+            if (!skip) {
                 counted_t<counted_buf_lock_t> lock;
                 {
                     profile::starter_t starter("Acquire block for read.", cb->get_trace());
@@ -185,7 +193,6 @@ continue_bool_t btree_depth_first_traversal(
         }
         return continue_bool_t::CONTINUE;
     } else {
-        bool skip;
         if (continue_bool_t::ABORT == cb->handle_pre_leaf(
                 block, read, left_excl_or_null, right_incl, &skip)) {
             return continue_bool_t::ABORT;
