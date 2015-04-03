@@ -131,7 +131,7 @@ void geo_index_traversal_helper_t::init_query(
     is_initialized_ = true;
 }
 
-done_traversing_t
+continue_bool_t
 geo_index_traversal_helper_t::handle_pair(
     scoped_key_value_t &&keyvalue,
     concurrent_traversal_fifo_enforcer_signal_t waiter)
@@ -146,7 +146,7 @@ geo_index_traversal_helper_t::handle_pair(
     if (any_query_cell_intersects(key_cell.range_min(), key_cell.range_max())) {
         return on_candidate(std::move(keyvalue), waiter);
     } else {
-        return done_traversing_t::NO;
+        return continue_bool_t::CONTINUE;
     }
 }
 

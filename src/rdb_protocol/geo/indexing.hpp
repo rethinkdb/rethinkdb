@@ -44,14 +44,14 @@ public:
     Correct ordering of the call is not guaranteed. Implementations are expected
     to call waiter.wait_interruptible() before performing ordering-sensitive
     operations. */
-    virtual done_traversing_t on_candidate(
+    virtual continue_bool_t on_candidate(
         scoped_key_value_t &&keyvalue,
         concurrent_traversal_fifo_enforcer_signal_t waiter)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
     /* concurrent_traversal_callback_t interface */
-    done_traversing_t handle_pair(scoped_key_value_t &&keyvalue,
-                                  concurrent_traversal_fifo_enforcer_signal_t waiter)
+    continue_bool_t handle_pair(scoped_key_value_t &&keyvalue,
+                                concurrent_traversal_fifo_enforcer_signal_t waiter)
             THROWS_ONLY(interrupted_exc_t);
     bool is_range_interesting(
             const btree_key_t *left_excl_or_null,

@@ -199,7 +199,7 @@ void metadata_file_t::read_txn_t::read_many_bin(
     metadata_superblock_t superblock(std::move(sb_lock));
     class : public depth_first_traversal_callback_t {
     public:
-        done_traversing_t handle_pair(scoped_key_value_t &&kv) {
+        continue_bool_t handle_pair(scoped_key_value_t &&kv) {
             guarantee(kv.key()->size >= key_prefix.size());
             guarantee(memcmp(
                 kv.key()->contents, key_prefix.contents(), key_prefix.size()) == 0);
@@ -211,8 +211,8 @@ void metadata_file_t::read_txn_t::read_many_bin(
                 kv.value(),
                 [&](read_stream_t *s) { (*cb)(suffix, s); });
             return interruptor->is_pulsed()
-                ? done_traversing_t::YES
-                : done_traversing_t::NO;
+                ? continue_bool_t::ABORT
+                : continue_bool_t::CONTINUE;
         }
         read_txn_t *txn;
         store_key_t key_prefix;

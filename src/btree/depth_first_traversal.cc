@@ -41,18 +41,20 @@ void scoped_key_value_t::reset() {
 
 /* Returns `true` if we reached the end of the subtree or range, and `false` if
 `cb->handle_value()` returned `false`. */
-bool btree_depth_first_traversal(counted_t<counted_buf_lock_t> block,
-                                 const key_range_t &range,
-                                 depth_first_traversal_callback_t *cb,
-                                 direction_t direction,
-                                 const btree_key_t *left_excl_or_null,
-                                 const btree_key_t *right_incl);
+continue_bool_t btree_depth_first_traversal(
+        counted_t<counted_buf_lock_t> block,
+        const key_range_t &range,
+        depth_first_traversal_callback_t *cb,
+        direction_t direction,
+        const btree_key_t *left_excl_or_null,
+        const btree_key_t *right_incl);
 
-bool btree_depth_first_traversal(superblock_t *superblock,
-                                 const key_range_t &range,
-                                 depth_first_traversal_callback_t *cb,
-                                 direction_t direction,
-                                 release_superblock_t release_superblock) {
+continue_bool_t btree_depth_first_traversal(
+        superblock_t *superblock,
+        const key_range_t &range,
+        depth_first_traversal_callback_t *cb,
+        direction_t direction,
+        release_superblock_t release_superblock) {
     block_id_t root_block_id = superblock->get_root_block_id();
     if (root_block_id == NULL_BLOCK_ID || range.is_empty()) {
         if (release_superblock == release_superblock_t::RELEASE) {
@@ -132,15 +134,16 @@ void get_child_key_range(const internal_node_t *inode,
     }
 }
 
-bool btree_depth_first_traversal(counted_t<counted_buf_lock_t> block,
-                                 const key_range_t &range,
-                                 depth_first_traversal_callback_t *cb,
-                                 direction_t direction,
-                                 const btree_key_t *left_excl_or_null,
-                                 const btree_key_t *right_incl) {
+continue_bool_t btree_depth_first_traversal(
+        counted_t<counted_buf_lock_t> block,
+        const key_range_t &range,
+        depth_first_traversal_callback_t *cb,
+        direction_t direction,
+        const btree_key_t *left_excl_or_null,
+        const btree_key_t *right_incl) {
     if (!cb->is_range_ts_interesting(
             left_excl_or_null, right_incl, block->get_recency())) {
-        return true;
+        return continue_bool_t::CONTINUE;
     }
     auto read = make_counted<counted_buf_read_t>(block.get());
     const node_t *node = static_cast<const node_t *>(read->get_data_read());
@@ -173,23 +176,22 @@ bool btree_depth_first_traversal(counted_t<counted_buf_lock_t> block,
                     lock = make_counted<counted_buf_lock_t>(block.get(), pair->lnode,
                                                             access_t::read);
                 }
-                if (!btree_depth_first_traversal(std::move(lock),
-                                                 range, cb, direction,
-                                                 child_left_excl_or_null,
-                                                 child_right_incl)) {
-                    return false;
+                if (continue_bool_t::ABORT == btree_depth_first_traversal(
+                        std::move(lock), range, cb, direction,
+                        child_left_excl_or_null, child_right_incl)) {
+                    return continue_bool_t::ABORT;
                 }
             }
         }
-        return true;
+        return continue_bool_t::CONTINUE;
     } else {
         bool skip;
-        if (done_traversing_t::YES == cb->handle_pre_leaf(
+        if (continue_bool_t::ABORT == cb->handle_pre_leaf(
                 block, read, left_excl_or_null, right_incl, &skip)) {
-            return false;
+            return continue_bool_t::ABORT;
         }
         if (skip) {
-            return true;
+            return continue_bool_t::CONTINUE;
         }
 
         const leaf_node_t *lnode = reinterpret_cast<const leaf_node_t *>(node);
@@ -204,11 +206,11 @@ bool btree_depth_first_traversal(counted_t<counted_buf_lock_t> block,
                     btree_key_cmp(key, range.right.key.btree_key()) >= 0) {
                     break;
                 }
-                if (done_traversing_t::YES
-                    == cb->handle_pair(scoped_key_value_t(key, (*it).second,
-                                                          movable_t<counted_buf_lock_t>(block),
-                                                          movable_t<counted_buf_read_t>(read)))) {
-                    return false;
+                if (continue_bool_t::ABORT == cb->handle_pair(scoped_key_value_t(
+                        key, (*it).second,
+                        movable_t<counted_buf_lock_t>(block),
+                        movable_t<counted_buf_read_t>(read)))) {
+                    return continue_bool_t::ABORT;
                 }
             }
         } else {
@@ -226,14 +228,14 @@ bool btree_depth_first_traversal(counted_t<counted_buf_lock_t> block,
                     break;
                 }
 
-                if (done_traversing_t::YES
-                    == cb->handle_pair(scoped_key_value_t(key, (*it).second,
-                                                          movable_t<counted_buf_lock_t>(block),
-                                                          movable_t<counted_buf_read_t>(read)))) {
-                    return false;
+                if (continue_bool_t::ABORT == cb->handle_pair(scoped_key_value_t(
+                        key, (*it).second,
+                        movable_t<counted_buf_lock_t>(block),
+                        movable_t<counted_buf_read_t>(read)))) {
+                    return continue_bool_t::ABORT;
                 }
             }
         }
-        return true;
+        return continue_bool_t::CONTINUE;
     }
 }

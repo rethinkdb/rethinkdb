@@ -21,7 +21,7 @@ void backfill_atom_t::mask_in_place(const key_range_t &m) {
     pairs = std::move(new_pairs);
 }
 
-bool btree_backfill_pre_atoms(
+continue_bool_t btree_backfill_pre_atoms(
         superblock_t *superblock,
         release_superblock_t release_superblock,
         value_sizer_t *sizer,
@@ -39,7 +39,7 @@ bool btree_backfill_pre_atoms(
             return timestamp > since_when;
         }
 
-        done_traversing_t handle_pre_leaf(
+        continue_bool_t handle_pre_leaf(
                 const counted_t<counted_buf_lock_t> &buf_lock,
                 const counted_t<counted_buf_read_t> &buf_read,
                 const btree_key_t *left_excl_or_null,
@@ -60,8 +60,9 @@ bool btree_backfill_pre_atoms(
                     left_excl_or_null,
                     key_range_t::bound_t::closed,
                     right_incl);
-                if (!pre_atom_consumer->on_pre_atom(std::move(pre_atom))) {
-                    return done_traversing_t::YES;
+                if (continue_bool_t::ABORT ==
+                        pre_atom_consumer->on_pre_atom(std::move(pre_atom))) {
+                    return continue_bool_t::ABORT;
                 }
             } else {
                 std::vector<const btree_key_t *> keys;
@@ -87,15 +88,16 @@ bool btree_backfill_pre_atoms(
                 for (const btree_key_t *key : keys) {
                     backfill_pre_atom_t pre_atom;
                     pre_atom.range = key_range_t(key);
-                    if (!pre_atom_consumer->on_pre_atom(std::move(pre_atom))) {
-                        return done_traversing_t::YES;
+                    if (continue_bool_t::ABORT ==
+                            pre_atom_consumer->on_pre_atom(std::move(pre_atom))) {
+                        return continue_bool_t::ABORT;
                     }
                 }
             }
-            return done_traversing_t::NO;
+            return continue_bool_t::CONTINUE;
         }
 
-        done_traversing_t handle_pair(scoped_key_value_t &&) {
+        continue_bool_t handle_pair(scoped_key_value_t &&) {
             unreachable();
         }
 
@@ -116,7 +118,7 @@ bool btree_backfill_pre_atoms(
         release_superblock);
 }
 
-bool btree_backfill_atoms(
+continue_bool_t btree_backfill_atoms(
         superblock_t *superblock,
         release_superblock_t release_superblock,
         value_sizer_t *sizer,
@@ -135,7 +137,7 @@ bool btree_backfill_atoms(
                 || pre_atom_producer->peek_range(left_excl_or_null, right_incl);
         }
 
-        done_traversing_t handle_pre_leaf(
+        continue_bool_t handle_pre_leaf(
                 const counted_t<counted_buf_lock_t> &buf_lock,
                 const counted_t<counted_buf_read_t> &buf_read,
                 const btree_key_t *left_excl_or_null,
@@ -159,7 +161,7 @@ bool btree_backfill_atoms(
                 atom.deletion_cutoff_timestamp = cutoff;
                 atom.range = leaf_range;
                 atoms_filtering.push_back(atom);
-                return done_traversing_t::NO;
+                return continue_bool_t::CONTINUE;
             } else {
                 /* For each pre atom, make a backfill atom (which is initially empty) */
                 std::list<backfill_atom_t> atoms_from_pre;
@@ -263,7 +265,7 @@ bool btree_backfill_atoms(
                 /* Put the resulting atoms into `atoms_filtering` */
                 atoms_filtering.splice(atoms_filtering.end(), std::move(atoms_from_pre));
 
-                return done_traversing_t::NO;
+                return continue_bool_t::CONTINUE;
             }
         }
 
@@ -286,7 +288,7 @@ bool btree_backfill_atoms(
                 && atoms_filtering.front().range.contains_key(key);
         }
 
-        done_traversing_t handle_pair(
+        continue_bool_t handle_pair(
                 scoped_key_value_t &&keyvalue,
                 concurrent_traversal_fifo_enforcer_signal_t waiter) {
             /* Transfer the value of the key-value pair (the real contents in the blob,
@@ -307,11 +309,11 @@ bool btree_backfill_atoms(
             while (!atoms_copying.empty() &&
                     !atoms_copying.front().range.contains_key(keyvalue.key())) {
                 /* As we pop atoms off `atoms_copying`, we pass them to the callback. */
-                bool cont = atom_consumer->on_atom(std::move(atoms_copying.front()));
-                atoms_copying.pop_front();
-                if (!cont) {
-                    return done_traversing_t::YES;
+                if (continue_bool_t::ABORT ==
+                        atom_consumer->on_atom(std::move(atoms_copying.front()))) {
+                    return continue_bool_t::ABORT;
                 }
+                atoms_copying.pop_front();
             }
 
             /* OK, now get a pointer to our atom. */
@@ -338,7 +340,7 @@ bool btree_backfill_atoms(
             /* Move the value from `buffer` into the pair */
             *it->value = std::move(buffer);
 
-            return done_traversing_t::NO;
+            return continue_bool_t::CONTINUE;
         }
 
         value_sizer_t *sizer;
@@ -353,18 +355,18 @@ bool btree_backfill_atoms(
     callback.atom_consumer = atom_consumer;
 
     /* Perform the traversal. This will call `atom_consumer->on_atom()` as it goes. */
-    if (!btree_concurrent_traversal(
+    if (continue_bool_t::ABORT == btree_concurrent_traversal(
             superblock,
             range,
             &callback,
             FORWARD,
             release_superblock)) {
-        return false;
+        return continue_bool_t::ABORT;
     }
 
     guarantee(callback.atoms_copying.empty());
     guarantee(callback.atoms_filtering.empty());
 
-    return true;
+    return continue_bool_t::CONTINUE;
 }
 

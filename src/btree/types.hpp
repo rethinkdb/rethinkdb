@@ -6,7 +6,7 @@
 
 class buf_parent_t;
 
-enum class done_traversing_t { NO, YES };
+enum class continue_bool_t { CONTINUE, ABORT };
 
 class value_deleter_t {
 public:

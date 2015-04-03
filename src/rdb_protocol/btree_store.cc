@@ -270,8 +270,8 @@ void store_t::reset_data(
     // Erase the data in small chunks
     always_true_key_tester_t key_tester;
     const uint64_t max_erased_per_pass = 100;
-    for (done_traversing_t done_erasing = done_traversing_t::NO;
-         done_erasing == done_traversing_t::NO;) {
+    for (continue_bool_t done_erasing = continue_bool_t::CONTINUE;
+         done_erasing == continue_bool_t::CONTINUE;) {
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
 
@@ -700,12 +700,12 @@ public:
     clear_sindex_traversal_cb_t() {
         collected_keys.reserve(CHUNK_SIZE);
     }
-    done_traversing_t handle_pair(scoped_key_value_t &&keyvalue) {
+    continue_bool_t handle_pair(scoped_key_value_t &&keyvalue) {
         collected_keys.push_back(store_key_t(keyvalue.key()));
         if (collected_keys.size() >= CHUNK_SIZE) {
-            return done_traversing_t::YES;
+            return continue_bool_t::ABORT;
         } else {
-            return done_traversing_t::NO;
+            return continue_bool_t::CONTINUE;
         }
     }
     const std::vector<store_key_t> &get_keys() const {
@@ -756,11 +756,12 @@ void store_t::clear_sindex(
 
         /* 1. Collect a bunch of keys to delete */
         clear_sindex_traversal_cb_t traversal_cb;
-        reached_end = btree_depth_first_traversal(sindex_superblock.get(),
-                                 key_range_t::universe(),
-                                 &traversal_cb,
-                                 direction_t::FORWARD,
-                                 release_superblock_t::KEEP);
+        reached_end = (continue_bool_t::CONTINUE ==btree_depth_first_traversal(
+            sindex_superblock.get(),
+            key_range_t::universe(),
+            &traversal_cb,
+            direction_t::FORWARD,
+            release_superblock_t::KEEP));
 
         /* 2. Actually delete them */
         const std::vector<store_key_t> &keys = traversal_cb.get_keys();

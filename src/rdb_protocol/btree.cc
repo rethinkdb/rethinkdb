@@ -583,7 +583,7 @@ public:
               boost::optional<rget_sindex_data_t> &&_sindex,
               const key_range_t &range);
 
-    virtual done_traversing_t handle_pair(
+    virtual continue_bool_t handle_pair(
         scoped_key_value_t &&keyvalue,
         concurrent_traversal_fifo_enforcer_signal_t waiter)
         THROWS_ONLY(interrupted_exc_t);
@@ -623,20 +623,20 @@ void rget_cb_t::finish() THROWS_ONLY(interrupted_exc_t) {
 }
 
 // Handle a keyvalue pair.  Returns whether or not we're done early.
-done_traversing_t rget_cb_t::handle_pair(
+continue_bool_t rget_cb_t::handle_pair(
     scoped_key_value_t &&keyvalue,
     concurrent_traversal_fifo_enforcer_signal_t waiter)
     THROWS_ONLY(interrupted_exc_t) {
     sampler->new_sample();
 
     if (bad_init || boost::get<ql::exc_t>(&io.response->result) != NULL) {
-        return done_traversing_t::YES;
+        return continue_bool_t::ABORT;
     }
 
     // Load the key and value.
     store_key_t key(keyvalue.key());
     if (sindex && !sindex->pkey_range.contains_key(ql::datum_t::extract_primary(key))) {
-        return done_traversing_t::NO;
+        return continue_bool_t::CONTINUE;
     }
 
     lazy_json_t row(static_cast<const rdb_value_t *>(keyvalue.value()),
@@ -679,7 +679,7 @@ done_traversing_t rget_cb_t::handle_pair(
                 guarantee(sindex_val.has());
             }
             if (!sindex->range.contains(sindex->func_reql_version, sindex_val)) {
-                return done_traversing_t::NO;
+                return continue_bool_t::CONTINUE;
             }
         }
 
@@ -698,13 +698,13 @@ done_traversing_t rget_cb_t::handle_pair(
                                   std::move(sindex_val)); // NULL if no sindex
     } catch (const ql::exc_t &e) {
         io.response->result = e;
-        return done_traversing_t::YES;
+        return continue_bool_t::ABORT;
     } catch (const ql::datum_exc_t &e) {
 #ifndef NDEBUG
         unreachable();
 #else
         io.response->result = ql::exc_t(e, NULL);
-        return done_traversing_t::YES;
+        return continue_bool_t::ABORT;
 #endif // NDEBUG
     }
 }
@@ -858,7 +858,7 @@ void rdb_get_nearest_slice(
             std::move(partial_res->begin(), partial_res->end(),
                       std::back_inserter(*full_res));
         }
-    } while (state.proceed_to_next_batch() == done_traversing_t::NO);
+    } while (state.proceed_to_next_batch() == continue_bool_t::CONTINUE);
 }
 
 void rdb_distribution_get(int max_depth,

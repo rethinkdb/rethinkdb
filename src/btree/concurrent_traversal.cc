@@ -55,24 +55,24 @@ public:
 
         fifo_enforcer_sink_t::exit_write_t exit_write(&sink_, token);
 
-        done_traversing_t done;
+        continue_bool_t done;
         try {
             done = cb_->handle_pair(
                 std::move(keyvalue),
                 concurrent_traversal_fifo_enforcer_signal_t(&exit_write, this));
         } catch (const interrupted_exc_t &) {
-            done = done_traversing_t::YES;
+            done = continue_bool_t::ABORT;
         }
 
-        if (done == done_traversing_t::YES) {
+        if (done == continue_bool_t::ABORT) {
             failure_cond_->pulse_if_not_already_pulsed();
         }
     }
 
-    virtual done_traversing_t handle_pair(scoped_key_value_t &&keyvalue) {
+    virtual continue_bool_t handle_pair(scoped_key_value_t &&keyvalue) {
 
         if (!cb_->is_key_interesting(keyvalue.key())) {
-            return done_traversing_t::NO;
+            return continue_bool_t::CONTINUE;
         }
 
         // First thing first: Get in line with the token enforcer.
@@ -87,10 +87,11 @@ public:
                       this, &keyvalue, &acq, token, auto_drainer_t::lock_t(&drainer_)));
 
         // Report if we've failed by the time this handle_pair call is called.
-        return failure_cond_->is_pulsed() ? done_traversing_t::YES : done_traversing_t::NO;
+        return failure_cond_->is_pulsed()
+            ? continue_bool_t::ABORT : continue_bool_t::CONTINUE;
     }
 
-    virtual done_traversing_t handle_pre_leaf(
+    virtual continue_bool_t handle_pre_leaf(
             const counted_t<counted_buf_lock_t> &buf_lock,
             const counted_t<counted_buf_read_t> &buf_read,
             const btree_key_t *left_excl_or_null,
@@ -171,11 +172,12 @@ void concurrent_traversal_fifo_enforcer_signal_t::wait_interruptible()
     ::wait_interruptible(eval_exclusivity_signal_, parent_->failure_cond_);
 }
 
-bool btree_concurrent_traversal(superblock_t *superblock,
-                                const key_range_t &range,
-                                concurrent_traversal_callback_t *cb,
-                                direction_t direction,
-                                release_superblock_t release_superblock) {
+continue_bool_t btree_concurrent_traversal(
+        superblock_t *superblock,
+        const key_range_t &range,
+        concurrent_traversal_callback_t *cb,
+        direction_t direction,
+        release_superblock_t release_superblock) {
     cond_t failure_cond;
     bool failure_seen;
     {
@@ -188,5 +190,6 @@ bool btree_concurrent_traversal(superblock_t *superblock,
     // kill the traversal), but it's possible for us to fail after
     // btree_depth_first_traversal returns.)
     guarantee(!(failure_seen && !failure_cond.is_pulsed()));
-    return !failure_cond.is_pulsed();
+    return failure_cond.is_pulsed() ? continue_bool_t::ABORT : continue_bool_t::CONTINUE;
 }
+

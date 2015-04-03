@@ -66,14 +66,14 @@ RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(backfill_atom_t);
 
 class btree_backfill_pre_atom_consumer_t {
 public:
-    virtual bool on_pre_atom(backfill_pre_atom_t &&atom) THROWS_NOTHING = 0;
-    virtual bool on_empty_range(const key_range_t::right_bound_t &threshold)
+    virtual continue_bool_t on_pre_atom(backfill_pre_atom_t &&atom) THROWS_NOTHING = 0;
+    virtual continue_bool_t on_empty_range(const key_range_t::right_bound_t &threshold)
         THROWS_NOTHING = 0;
 private:
     virtual ~btree_backfill_pre_atom_consumer_t() { }
 };
 
-bool btree_backfill_pre_atoms(
+continue_bool_t btree_backfill_pre_atoms(
     superblock_t *superblock,
     release_superblock_t release_superblock,
     const value_sizer_t *sizer,
@@ -95,8 +95,8 @@ protected:
 
 class btree_backfill_atom_consumer_t {
 public:
-    virtual bool on_atom(backfill_atom_t &&atom) = 0;
-    virtual bool on_empty_range(const key_range_t::right_bound_t &threshold) = 0;
+    virtual continue_bool_t on_atom(backfill_atom_t &&atom) = 0;
+    virtual continue_bool_t on_empty_range(const key_range_t::right_bound_t &threshold) = 0;
     virtual void copy_value(
         buf_parent_t buf_parent,
         const void *value_in_leaf_node,
@@ -106,7 +106,7 @@ public:
     virtual ~btree_backfill_atom_consumer_t() { }
 };
 
-bool btree_backfill_atoms(
+continue_bool_t btree_backfill_atoms(
     superblock_t *superblock,
     release_superblock_t release_superblock,
     const value_sizer_t *sizer,

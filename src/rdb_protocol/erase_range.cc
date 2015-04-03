@@ -29,21 +29,21 @@ public:
         }
     }
 
-    done_traversing_t handle_pair(scoped_key_value_t &&keyvalue) {
+    continue_bool_t handle_pair(scoped_key_value_t &&keyvalue) {
         guarantee(!aborted_);
         guarantee(key_range_.contains_key(
             keyvalue.key()->contents, keyvalue.key()->size));
         if (!tester_->key_should_be_erased(keyvalue.key())) {
-            return done_traversing_t::NO;
+            return continue_bool_t::CONTINUE;
         }
         store_key_t key(keyvalue.key());
         collected_keys_.push_back(key);
         if (collected_keys_.size() == max_keys_to_collect_ ||
                 interruptor_->is_pulsed()) {
             aborted_ = true;
-            return done_traversing_t::YES;
+            return continue_bool_t::ABORT;
         } else {
-            return done_traversing_t::NO;
+            return continue_bool_t::CONTINUE;
         }
     }
 
@@ -67,7 +67,7 @@ private:
     DISABLE_COPYING(collect_keys_helper_t);
 };
 
-done_traversing_t rdb_erase_small_range(
+continue_bool_t rdb_erase_small_range(
         btree_slice_t *btree_slice,
         key_tester_t *tester,
         const key_range_t &key_range,
@@ -165,6 +165,11 @@ done_traversing_t rdb_erase_small_range(
         *deleted_out = key_range;
     }
 
-    return key_collector.get_aborted() ? done_traversing_t::NO : done_traversing_t::YES;
+    /* If we aborted `btree_depth_first_traversal()`, then that's because we found the
+    maximum number of keys, so `rdb_erase_small_range()` should be called again to keep
+    deleting. If we didn't abort, that's because we hit the right-hand side of the range,
+    so `rdb_erase_small_range()` shouldn't be called again. */
+    return key_collector.get_aborted()
+        ? continue_bool_t::CONTINUE : continue_bool_t::ABORT;
 }
 

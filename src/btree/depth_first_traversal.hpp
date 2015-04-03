@@ -69,18 +69,18 @@ class depth_first_traversal_callback_t {
 public:
     /* Return value of `NO` indicates to keep going; `YES` indicates to stop
     traversing the tree. */
-    virtual done_traversing_t handle_pair(scoped_key_value_t &&keyvalue) = 0;
+    virtual continue_bool_t handle_pair(scoped_key_value_t &&keyvalue) = 0;
 
     /* Called on every leaf node before the calls to `handle_pair()`. If it sets
     `*skip_out` to `true`, no calls to `handle_pair()` will be generated for the leaf. */
-    virtual done_traversing_t handle_pre_leaf(
+    virtual continue_bool_t handle_pre_leaf(
             UNUSED const counted_t<counted_buf_lock_t> &buf_lock,
             UNUSED const counted_t<counted_buf_read_t> &buf_read,
             UNUSED const btree_key_t *left_excl_or_null,
             UNUSED const btree_key_t *right_incl,
             bool *skip_out) {
         *skip_out = false;
-        return done_traversing_t::NO;
+        return continue_bool_t::CONTINUE;
     } 
 
     /* Can be overloaded if you don't want to query a contiguous range of keys, but only
@@ -113,10 +113,11 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(direction_t, int8_t, FORWARD, BACKWARD);
 
 /* Returns `true` if we reached the end of the btree or range, and `false` if
 `cb->handle_value()` returned `false`. */
-bool btree_depth_first_traversal(superblock_t *superblock,
-                                 const key_range_t &range,
-                                 depth_first_traversal_callback_t *cb,
-                                 direction_t direction,
-                                 release_superblock_t release_superblock);
+continue_bool_t btree_depth_first_traversal(
+    superblock_t *superblock,
+    const key_range_t &range,
+    depth_first_traversal_callback_t *cb,
+    direction_t direction,
+    release_superblock_t release_superblock);
 
 #endif /* BTREE_DEPTH_FIRST_TRAVERSAL_HPP_ */
