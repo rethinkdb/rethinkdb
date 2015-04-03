@@ -21,4 +21,14 @@ pulsed, stops waiting and throws `interrupted_exc_t`. */
 void wait_interruptible(const signal_t *signal, const signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
 
+void wait_timeout(const signal_t *signal, int64_t ms) {
+    signal_timer_t timer;
+    timer.start(ms);
+    try {
+        wait_interruptible(signal, &timer);
+    } catch (const interrupted_exc_t &e) {
+        crash();
+    }
+}
+
 #endif  // CONCURRENCY_INTERRUPTOR_HPP_
