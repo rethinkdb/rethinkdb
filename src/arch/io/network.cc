@@ -144,16 +144,15 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &peer,
 }
 
 linux_tcp_conn_t::linux_tcp_conn_t(fd_t s) :
-    write_perfmon(NULL),
-    sock(s),
-    event_watcher(new linux_event_watcher_t(sock.get(), this)),
-    read_in_progress(false), write_in_progress(false),
-    write_handler(this),
-    write_queue_limiter(WRITE_QUEUE_MAX_SIZE),
-    write_coro_pool(1, &write_queue, &write_handler),
-    current_write_buffer(get_write_buffer()),
-    drainer(new auto_drainer_t)
-{
+        write_perfmon(NULL),
+        sock(s),
+        event_watcher(new linux_event_watcher_t(sock.get(), this)),
+        read_in_progress(false), write_in_progress(false),
+        write_handler(this),
+        write_queue_limiter(WRITE_QUEUE_MAX_SIZE),
+        write_coro_pool(1, &write_queue, &write_handler),
+        current_write_buffer(get_write_buffer()),
+        drainer(new auto_drainer_t) {
     rassert(sock.get() != INVALID_FD);
 
     int res = fcntl(sock.get(), F_SETFL, O_NONBLOCK);
@@ -583,6 +582,10 @@ void linux_tcp_conn_t::rethread(threadnum_t new_thread) {
     read_closed.rethread(new_thread);
     write_closed.rethread(new_thread);
     write_coro_pool.rethread(new_thread);
+
+    if (drainer.has()) {
+        drainer->rethread(new_thread);
+    }
 }
 
 bool linux_tcp_conn_t::getpeername(ip_and_port_t *ip_and_port) {
