@@ -1,8 +1,10 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "btree/backfill.hpp"
 
+#include "arch/runtime/coroutines.hpp"
 #include "btree/depth_first_traversal.hpp"
 #include "btree/leaf_node.hpp"
+#include "concurrency/pmap.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/stl_types.hpp"
 
@@ -36,7 +38,7 @@ continue_bool_t btree_backfill_pre_atoms(
         release_superblock_t release_superblock,
         value_sizer_t *sizer,
         const key_range_t &range,
-        repli_timestamp_t since_when,
+        repli_timestamp_t reference_timestamp,
         btree_backfill_pre_atom_consumer_t *pre_atom_consumer,
         /* RSI(raft): Respect interruptor */
         UNUSED signal_t *interruptor) {
@@ -47,7 +49,7 @@ continue_bool_t btree_backfill_pre_atoms(
                 const btree_key_t *right_incl,
                 repli_timestamp_t timestamp,
                 bool *skip_out) {
-            *skip_out = timestamp <= since_when;
+            *skip_out = timestamp <= reference_timestamp;
             if (*skip_out) {
                 return pre_atom_consumer->on_empty_range(
                     convert_right_bound(right_incl));
@@ -67,7 +69,7 @@ continue_bool_t btree_backfill_pre_atoms(
                 buf_read->get_data_read());
             repli_timestamp_t min_deletion_timestamp =
                 leaf::min_deletion_timestamp(sizer, lnode, buf_lock->get_recency());
-            if (min_deletion_timestamp > since_when) {
+            if (min_deletion_timestamp > reference_timestamp.next()) {
                 /* We might be missing deletion entries, so re-transmit the entire node
                 */
                 backfill_pre_atom_t pre_atom;
@@ -83,13 +85,13 @@ continue_bool_t btree_backfill_pre_atoms(
                 leaf::visit_entries(
                     sizer, lnode, buf_lock->get_recency(),
                     [&](const btree_key_t *key, repli_timestamp_t timestamp,
-                            const void *) -> bool {
+                            const void *) -> continue_bool_t {
                         if ((left_excl_or_null != nullptr &&
                                     btree_key_cmp(key, left_excl_or_null) != 1)
                                 || btree_key_cmp(key, right_incl) == 1) {
                             return continue_bool_t::CONTINUE;
                         }
-                        if (timestamp <= since_when) {
+                        if (timestamp <= reference_timestamp) {
                             return continue_bool_t::ABORT;
                         }
                         keys.push_back(key);
@@ -118,12 +120,12 @@ continue_bool_t btree_backfill_pre_atoms(
 
         btree_backfill_pre_atom_consumer_t *pre_atom_consumer;
         key_range_t range;
-        repli_timestamp_t since_when;
+        repli_timestamp_t reference_timestamp;
         value_sizer_t *sizer;
     } callback;
     callback.pre_atom_consumer = pre_atom_consumer;
     callback.range = range;
-    callback.since_when = since_when;
+    callback.reference_timestamp = reference_timestamp;
     callback.sizer = sizer;
     return btree_depth_first_traversal(
         superblock,
@@ -139,8 +141,8 @@ values from the cache and then passes the atoms on to the `backfill_atom_consume
 class backfill_atom_loader_t {
 public:
     backfill_atom_loader_t(
-            btree_backfill_atom_consumer_t *_consumer, cond_t *_abort_cond) :
-        consumer(_consumer), abort_cond(_abort_cond) { }
+            btree_backfill_atom_consumer_t *_atom_consumer, cond_t *_abort_cond) :
+        atom_consumer(_atom_consumer), abort_cond(_abort_cond), semaphore(16) { }
 
     /* `on_atom()` and `on_empty_range()` will be called in lexicographical order. They
     will always be called from the same coroutine, so if a call blocks the traversal will
@@ -171,7 +173,8 @@ public:
         wait_interruptible(sem_acq.acquisition_signal(), &non_interruptor);
         coro_t::spawn_sometime(std::bind(
             &backfill_atom_loader_t::handle_empty_range, this,
-            threshold, std::move(sem_acq), fifo_source.enter_write(), drainer.lock()));
+            convert_right_bound(right_incl), std::move(sem_acq),
+            fifo_source.enter_write(), drainer.lock()));
     }
 
     void finish(signal_t *interruptor) {
@@ -182,10 +185,10 @@ public:
 
 private:
     void handle_atom(
-            backfill_atom_t &&atom,
+            backfill_atom_t &atom,
             const counted_t<counted_buf_lock_t> &buf_lock,
-            const counted_t<counted_buf_read_t> &buf_read,
-            new_semaphore_acq_t &&,
+            const counted_t<counted_buf_read_t> &,
+            const new_semaphore_acq_t &,
             fifo_enforcer_write_token_t token,
             auto_drainer_t::lock_t keepalive) {
         try {
@@ -198,7 +201,7 @@ private:
                     rassert(p.value->size() == sizeof(void *));
                     void *value_ptr = *reinterpret_cast<void *const *>(p.value->data());
                     p.value->clear();
-                    atom_consumer->copy_value(buf_lock.get(), value_ptr,
+                    atom_consumer->copy_value(buf_parent_t(buf_lock.get()), value_ptr,
                         keepalive.get_drain_signal(), &*p.value);
                 } catch (const interrupted_exc_t &) {
                     /* we'll check this outside the `pmap()` */
@@ -209,11 +212,11 @@ private:
             }
             fifo_enforcer_sink_t::exit_write_t exit_write(&fifo_sink, token);
             wait_interruptible(&exit_write, keepalive.get_drain_signal());
-            if (abort_signal->is_pulsed()) {
+            if (abort_cond->is_pulsed()) {
                 return;
             }
             if (continue_bool_t::ABORT == atom_consumer->on_atom(std::move(atom))) {
-                abort_signal->pulse();
+                abort_cond->pulse();
             }
         } catch (const interrupted_exc_t &) {
             /* ignore */
@@ -222,17 +225,17 @@ private:
 
     void handle_empty_range(
             const key_range_t::right_bound_t &threshold,
-            new_semaphore_acq_t &&,
+            const new_semaphore_acq_t &,
             fifo_enforcer_write_token_t token,
             auto_drainer_t::lock_t keepalive) {
         try {
             fifo_enforcer_sink_t::exit_write_t exit_write(&fifo_sink, token);
             wait_interruptible(&exit_write, keepalive.get_drain_signal());
-            if (abort_signal->is_pulsed()) {
+            if (abort_cond->is_pulsed()) {
                 return;
             }
             if (continue_bool_t::ABORT == atom_consumer->on_empty_range(threshold)) {
-                abort_signal->pulse();
+                abort_cond->pulse();
             }
         } catch (const interrupted_exc_t &) {
             /* ignore */
@@ -256,18 +259,20 @@ class backfill_atom_preparer_t : public depth_first_traversal_callback_t {
 public:
     backfill_atom_preparer_t(
             value_sizer_t *_sizer,
+            repli_timestamp_t _reference_timestamp,
             btree_backfill_pre_atom_producer_t *_pre_atom_producer,
             signal_t *_abort_cond,
             backfill_atom_loader_t *_loader) :
-        sizer(_sizer), pre_atom_producer(_pre_atom_producer), abort_cond(_abort_cond),
-        loader(_loader) { }
+        sizer(_sizer), reference_timestamp(_reference_timestamp),
+        pre_atom_producer(_pre_atom_producer), abort_cond(_abort_cond), loader(_loader)
+        { }
 
 private:
     /* If `abort_cond` is pulsed we want to abort the traversal. The other methods use
     `return get_continue()` as a way to say "continue the traversal unless `abort_cond`
     is pulsed". */
     continue_bool_t get_continue() {
-        return abort_cond.is_pulsed()
+        return abort_cond->is_pulsed()
             ? continue_bool_t::ABORT : continue_bool_t::CONTINUE;
     }
 
@@ -281,7 +286,7 @@ private:
                 left_excl_or_null, right_incl, &has_pre_atoms)) {
             return continue_bool_t::ABORT;
         }
-        *skip_out = timestamp <= since_when && !has_pre_atoms;
+        *skip_out = timestamp <= reference_timestamp && !has_pre_atoms;
         if (*skip_out) {
             loader->on_empty_range(right_incl);
             /* There are no pre atoms in the range, but we need to call `consume()`
@@ -302,7 +307,7 @@ private:
             const btree_key_t *left_excl_or_null,
             const btree_key_t *right_incl,
             bool *skip_out) {
-        *skip_out = false;
+        *skip_out = true;
         key_range_t leaf_range(
             left_excl_or_null == nullptr
                 ? key_range_t::bound_t::none : key_range_t::bound_t::open,
@@ -312,13 +317,13 @@ private:
         const leaf_node_t *lnode = static_cast<const leaf_node_t *>(
             buf_read->get_data_read());
 
-        repli_timestamp_t cutoff =
-            leaf::deletion_cutoff_timestamp(sizer, lnode, buf_lock->get_recency());
-        if (cutoff > since_when) {
+        repli_timestamp_t min_deletion_timestamp =
+            leaf::min_deletion_timestamp(sizer, lnode, buf_lock->get_recency());
+        if (min_deletion_timestamp > reference_timestamp) {
             /* We might be missing deletion entries, so re-transmit the entire node as a
             single `backfill_atom_t` */
             backfill_atom_t atom;
-            atom.deletion_cutoff_timestamp = cutoff;
+            atom.min_deletion_timestamp = min_deletion_timestamp;
             atom.range = leaf_range;
             loader->on_atom(std::move(atom), buf_lock, buf_read);
 
@@ -349,14 +354,14 @@ private:
             }
 
             /* Find each key-value pair or deletion entry that falls within the range of
-            a pre atom or that changed since `since_when`. If it falls within the range
-            of a pre atom, put it into the corresponding atom in `atoms_from_pre`;
-            otherwise, make a new atom for it in `atoms_from_time`. */
+            a pre atom or that changed since `reference_timestamp`. If it falls within
+            the range of a pre atom, put it into the corresponding atom in
+            `atoms_from_pre`; otherwise, make a new atom for it in `atoms_from_time`. */
             std::list<backfill_atom_t> atoms_from_time;
             leaf::visit_entries(
                 sizer, lnode, buf_lock->get_recency(),
                 [&](const btree_key_t *key, repli_timestamp_t timestamp,
-                        const void *value_or_null) -> bool {
+                        const void *value_or_null) -> continue_bool_t {
                     /* The leaf node might be partially outside the range of the
                     backfill, so we might have to skip some keys */
                     if (!leaf_range.contains_key(key)) {
@@ -364,10 +369,10 @@ private:
                     }
 
                     /* In the most common case, `atoms_from_pre` is totally empty. Since
-                    we ignore entries that are older than `since_when` unless they are in
-                    a pre atom, we can optimize things slightly by aborting the leaf node
-                    iteration early. */
-                    if (timestamp <= since_when && atoms_from_pre.empty()) {
+                    we ignore entries that are at `reference_timestamp` or older unless
+                    they are in a pre atom, we can optimize things slightly by aborting
+                    the leaf node iteration early. */
+                    if (timestamp <= reference_timestamp && atoms_from_pre.empty()) {
                         return continue_bool_t::ABORT;
                     }
 
@@ -386,12 +391,12 @@ private:
                     }
                     if (atom != nullptr) {
                         /* We didn't find an atom in `atoms_from_pre`. */
-                        if (timestamp > since_when) {
+                        if (timestamp > reference_timestamp) {
                             /* We should create a new atom for this key-value pair */
                             atoms_from_time.push_back(backfill_atom_t());
                             atom = &atoms_from_time.back();
                             atom->range = key_range_t(key);
-                            atom->min_deletion_timesstamp =
+                            atom->min_deletion_timestamp =
                                 repli_timestamp_t::distant_past;
                         } else {
                             /* Ignore this key-value pair */
@@ -410,7 +415,7 @@ private:
                         /* Store `value_or_null` in the `value` field as a sequence of
                         8 (or 4 or whatever) `char`s describing its actual pointer value.
                         */
-                        atom->pairs[i].value.emplace(
+                        atom->pairs[i].value = std::vector<char>(
                             reinterpret_cast<const char *>(&value_or_null),
                             reinterpret_cast<const char *>(1 + &value_or_null));
                     }
@@ -433,7 +438,7 @@ private:
                 });
 
             /* Send the results to the loader */
-            for (backfill_atom_t &&a : atoms_from_pre) {
+            for (backfill_atom_t &a : atoms_from_pre) {
                 loader->on_atom(std::move(a), buf_lock, buf_read);
             }
             loader->on_empty_range(right_incl);
@@ -442,7 +447,12 @@ private:
         }
     }
 
+    continue_bool_t handle_pair(scoped_key_value_t &&) {
+        unreachable();
+    }
+
     value_sizer_t *sizer;
+    repli_timestamp_t reference_timestamp;
     btree_backfill_pre_atom_producer_t *pre_atom_producer;
     signal_t *abort_cond;
     backfill_atom_loader_t *loader;
@@ -453,14 +463,15 @@ continue_bool_t btree_backfill_atoms(
         release_superblock_t release_superblock,
         value_sizer_t *sizer,
         const key_range_t &range,
-        repli_timestamp_t since_when,
+        repli_timestamp_t reference_timestamp,
         btree_backfill_pre_atom_producer_t *pre_atom_producer,
         btree_backfill_atom_consumer_t *atom_consumer,
         signal_t *interruptor) {
     cond_t abort_cond;
     backfill_atom_loader_t loader(atom_consumer, &abort_cond);
-    backfill_atom_preparer_t preparer(sizer, pre_atom_producer, &abort_cond, &loader);
-    if (continue_bool_t::ABORT == btree_concurrent_traversal(
+    backfill_atom_preparer_t preparer(
+        sizer, reference_timestamp, pre_atom_producer, &abort_cond, &loader);
+    if (continue_bool_t::ABORT == btree_depth_first_traversal(
             superblock, range, &preparer, FORWARD, release_superblock)) {
         return continue_bool_t::ABORT;
     }

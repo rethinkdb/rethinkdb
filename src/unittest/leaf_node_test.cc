@@ -232,44 +232,6 @@ public:
         // leaf::print(stdout, &sizer_, node());
     }
 
-    class verify_receptor_t : public leaf::entry_reception_callback_t {
-    public:
-        verify_receptor_t() : got_lost_deletions_(false) { }
-
-        void lost_deletions() {
-            ASSERT_FALSE(got_lost_deletions_);
-            got_lost_deletions_ = true;
-        }
-
-        void deletion(UNUSED const btree_key_t *k, UNUSED repli_timestamp_t tstamp) {
-            ASSERT_TRUE(false);
-        }
-
-        void keys_values(
-                std::vector<const btree_key_t *> &&ks,
-                std::vector<const void *> &&values,
-                std::vector<repli_timestamp_t> &&) {
-            ASSERT_TRUE(got_lost_deletions_);
-            for (size_t i = 0; i < ks.size(); ++i) {
-                const short_value_t *value = static_cast<const short_value_t *>(values[i]);
-
-                store_key_t k_buf(ks[i]);
-                short_value_buffer_t v_buf(value);
-                std::string v_str = v_buf.as_str();
-
-                ASSERT_TRUE(kv_map_.find(k_buf) == kv_map_.end());
-                kv_map_[k_buf] = v_str;
-            }
-        }
-
-        const std::map<store_key_t, std::string>& map() const { return kv_map_; }
-
-    private:
-        bool got_lost_deletions_;
-
-        std::map<store_key_t, std::string> kv_map_;
-    };
-
     void printmap(const std::map<store_key_t, std::string>& m) {
         for (std::map<store_key_t, std::string>::const_iterator p = m.begin(), q = m.end(); p != q; ++p) {
             printf("%s: %s;", key_to_debug_str(p->first).c_str(), p->second.c_str());
@@ -281,18 +243,28 @@ public:
         // Of course, this will fail with rassert, not a gtest assertion.
         leaf::validate(&sizer_, node());
 
-        verify_receptor_t receptor;
+        std::map<store_key_t, std::string> leaf_guts;
         repli_timestamp_t max_possible_tstamp = { tstamp_counter_ };
-        leaf::dump_entries_since_time(&sizer_, node(), repli_timestamp_t::distant_past, max_possible_tstamp, &receptor);
+        leaf::visit_entries(&sizer_, node(), max_possible_tstamp,
+            [&](const btree_key_t *key, repli_timestamp_t, const void *value)
+                    -> continue_bool_t {
+                if (value != nullptr) {
+                    store_key_t k(key);
+                    short_value_buffer_t v(static_cast<const short_value_t *>(value));
+                    auto res = leaf_guts.insert(std::make_pair(k, v.as_str()));
+                    EXPECT_TRUE(res.second);
+                }
+                return continue_bool_t::CONTINUE;
+            });
 
-        if (receptor.map() != kv_) {
-            printf("receptor.map(): ");
-            printmap(receptor.map());
+        if (leaf_guts != kv_) {
+            printf("leaf_guts: ");
+            printmap(leaf_guts);
             printf("\nkv_: ");
             printmap(kv_);
             printf("\n");
         }
-        ASSERT_TRUE(receptor.map() == kv_);
+        ASSERT_TRUE(leaf_guts == kv_);
     }
 
 private:

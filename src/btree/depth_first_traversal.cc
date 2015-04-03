@@ -89,7 +89,7 @@ continue_bool_t btree_depth_first_traversal(
         }
         store_key_t right_incl_buf;
         if (range.right.unbounded) {
-            right_incl_buf = store_key_t::max;
+            right_incl_buf = store_key_t::max();
         } else {
             right_incl_buf = range.right.key;
             bool ok = right_incl_buf.decrement();
@@ -175,7 +175,7 @@ continue_bool_t btree_depth_first_traversal(
 
             if (continue_bool_t::ABORT == cb->filter_range(
                     child_left_excl_or_null, child_right_incl, &skip)) {
-                return continue_bool_t::ABORT:
+                return continue_bool_t::ABORT;
             }
             if (!skip) {
                 counted_t<counted_buf_lock_t> lock;

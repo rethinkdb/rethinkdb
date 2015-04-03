@@ -164,7 +164,11 @@ continue_bool_t visit_entries(
     value_sizer_t *sizer,
     const leaf_node_t *node,
     repli_timestamp_t maximum_possible_timestamp,
-    const std::function<void(const btree_key_t *, repli_timestamp_t, const void *)> &cb);
+    const std::function<continue_bool_t(
+        const btree_key_t *key,
+        repli_timestamp_t timestamp,
+        const void *value   /* null for deletion */
+        )> &cb);
 
 class iterator {
 public:
