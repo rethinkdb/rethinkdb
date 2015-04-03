@@ -53,7 +53,7 @@ public:
     continue_bool_t handle_pair(scoped_key_value_t &&keyvalue,
                                 concurrent_traversal_fifo_enforcer_signal_t waiter)
             THROWS_ONLY(interrupted_exc_t);
-    continue_bool_t is_range_interesting(
+    void filter_range(
             const btree_key_t *left_excl_or_null,
             const btree_key_t *right_incl,
             bool *skip_out);

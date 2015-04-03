@@ -129,15 +129,19 @@ continue_bool_t btree_backfill_atoms(
         btree_backfill_pre_atom_producer_t *pre_atom_producer,
         btree_backfill_atom_consumer_t *atom_consumer,
         signal_t *interruptor) {
-    class callback_t : public concurrent_traversal_callback_t {
+    class callback_t : public depth_first_traversal_callback_t {
     public:
         continue_bool_t filter_range_ts(
                 const btree_key_t *left_excl_or_null,
                 const btree_key_t *right_incl,
                 repli_timestamp_t timestamp,
                 bool *skip_out) {
-            *skip_out = timestamp <= since_when
-                && !pre_atom_producer->peek_range(left_excl_or_null, right_incl);
+            bool has_pre_atoms;
+            if (continue_bool_t::ABORT == pre_atom_producer->peek_range(
+                    left_excl_or_null, right_incl, &has_pre_atoms)) [
+                return continue_bool_t::ABORT;
+            }
+            *skip_out = timestamp <= since_when && !has_pre_atoms;
             return continue_bool_t::CONTINUE;
         }
 
@@ -266,14 +270,14 @@ continue_bool_t btree_backfill_atoms(
                         return a1.range.left < a2.range.left;
                     });
 
-                /* Put the resulting atoms into `atoms_filtering` */
-                atoms_filtering.splice(atoms_filtering.end(), std::move(atoms_from_pre));
+                /* Put the resulting atoms into `atoms_queue` */
+                atoms_queue.splice(atoms_filtering.end(), std::move(atoms_from_pre));
 
                 return continue_bool_t::CONTINUE;
             }
         }
 
-        continue_bool_t filter_key(const btree_key_t *key, bool *skip_out) {
+        continue_bool_t handle_pair(scoped_key_value_t &&keyvalue) {
             /* Transfer atoms from `atoms_filtering` to `atoms_copying` until we find one
             that contains this key or comes after this key. */
             while (!atoms_filtering.empty()) {
@@ -352,7 +356,9 @@ continue_bool_t btree_backfill_atoms(
         repli_timestamp_t since_when;
         backfill_pre_atom_producer_t *pre_atom_producer;
         backfill_atom_consumer_t *atom_consumer;
-        std::list<backfill_atom_t> atoms_copying, atoms_filtering;
+
+        std::list<backfill_atom_t> atoms_queue;
+        int current_atom_pair;
     } callback;
     callback.sizer = sizer;
     callback.since_when = since_when;

@@ -27,42 +27,17 @@ class concurrent_traversal_callback_t {
 public:
     concurrent_traversal_callback_t() { }
 
-    /* See `depth_first_traversal_callback_t` for an explanation of these methods */
-    virtual continue_bool_t filter_range(
+    /* See `depth_first_traversal_callback_t` for an explanation of this method. Note
+    that we don't return a `continue_bool_t` here; that's because these are called out of
+    sync with respect to `handle_pair()`, so allowing `filter_range()` to abort the
+    traversal would be confusing. The other `depth_first_traversal_callback_t` methods
+    could be passed through, but we don't simply because there's no immediate use for
+    them. */
+    virtual void filter_range(
             UNUSED const btree_key_t *left_excl_or_null,
             UNUSED const btree_key_t *right_incl,
             bool *skip_out) {
         *skip_out = false;
-        return continue_bool_t::CONTINUE;
-    }
-    virtual continue_bool_t filter_range_ts(
-            UNUSED const btree_key_t *left_excl_or_null,
-            UNUSED const btree_key_t *right_incl,
-            UNUSED repli_timestamp_t timestamp,
-            bool *skip_out) {
-        *skip_out = false;
-        return continue_bool_t::CONTINUE;
-    }
-    virtual continue_bool_t handle_pre_leaf(
-            UNUSED const counted_t<counted_buf_lock_t> &buf_lock,
-            UNUSED const counted_t<counted_buf_read_t> &buf_read,
-            UNUSED const btree_key_t *left_excl_or_null,
-            UNUSED const btree_key_t *right_incl,
-            bool *skip_out) {
-        *skip_out = false;
-        return continue_bool_t::CONTINUE;
-    }
-
-    /* Called before every call to `handle_pair`. If it sets `*skip_out` to `false`, no
-    call to `handle_pair()` will be generated. The reason we provide this method here and
-    not in `depth_first_traversal_callback_t` is because here because we spawn a
-    coroutine for every call to `handle_pair()`, and if we're only interested in a
-    fraction of key-value pairs, this will reduce the number of coroutines we spawn. */
-    virtual continue_bool_t filter_key(
-            UNUSED const btree_key_t *key,
-            bool *skip_out) {
-        *skip_out = false;
-        return continue_bool_t::CONTINUE;
     }
 
     // Passes a keyvalue and a callback.  waiter.wait_interruptible() must be called to

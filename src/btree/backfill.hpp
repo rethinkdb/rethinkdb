@@ -84,9 +84,10 @@ continue_bool_t btree_backfill_pre_atoms(
 
 class btree_backfill_pre_atom_producer_t {
 public:
-    virtual bool peek_range(
-        const btree_key_t *left_excl_or_null, const btree_key_t *right_incl) = 0;
-    virtual void consume_range(
+    virtual continue_bool_t peek_range(
+        const btree_key_t *left_excl_or_null, const btree_key_t *right_incl,
+        bool *has_pre_atoms_out) = 0;
+    virtual continue_bool_t consume_range(
         const btree_key_t *left_excl_or_null, const btree_key_t *right_incl,
         const std::function<void(const backfill_pre_atom_t *)> &callback) = 0;
 protected:

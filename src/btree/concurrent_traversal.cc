@@ -47,23 +47,8 @@ public:
             const btree_key_t *left_excl_or_null,
             const btree_key_t *right_incl,
             bool *skip_out) {
-        return cb_->filter_range(left_excl_or_null, right_incl, skip_out);
-    }
-    continue_bool_t filter_range_ts(
-            const btree_key_t *left_excl_or_null,
-            const btree_key_t *right_incl,
-            repli_timestamp_t timestamp,
-            bool *skip_out) {
-        return cb_->filter_range_ts(left_excl_or_null, right_incl, timestamp, skip_out);
-    }
-    continue_bool_t handle_pre_leaf(
-            const counted_t<counted_buf_lock_t> &buf_lock,
-            const counted_t<counted_buf_read_t> &buf_read,
-            const btree_key_t *left_excl_or_null,
-            const btree_key_t *right_incl,
-            bool *skip_out) {
-        return cb_->handle_pre_leaf(
-            buf_lock, buf_read, left_excl_or_null, right_incl, skip_out);
+        cb_->filter_range(left_excl_or_null, right_incl, skip_out);
+        return continue_bool_t::CONTINUE;
     }
 
     void handle_pair_coro(scoped_key_value_t *fragile_keyvalue,
@@ -93,15 +78,6 @@ public:
     }
 
     virtual continue_bool_t handle_pair(scoped_key_value_t &&keyvalue) {
-
-        bool skip;
-        if (continue_bool_t::ABORT == cb_->filter_key(keyvalue.key(), &skip)) {
-            return continue_bool_t::ABORT;
-        }
-        if (skip) {
-            return continue_bool_t::CONTINUE;
-        }
-
         // First thing first: Get in line with the token enforcer.
 
         fifo_enforcer_write_token_t token = source_.enter_write();
