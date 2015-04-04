@@ -98,13 +98,3 @@ void repeating_timer_t::on_timer() {
     // before ring gets used.
     coro_t::spawn_now_dangerously(std::bind(call_ringer, ringee));
 }
-
-void wait_timeout(const signal_t *signal, int64_t ms) {
-    signal_timer_t timer;
-    timer.start(ms);
-    try {
-        wait_interruptible(signal, &timer);
-    } catch (const interrupted_exc_t &e) {
-        crash("TIMEOUT");
-    }
-}

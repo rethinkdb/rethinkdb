@@ -68,6 +68,4 @@ private:
     DISABLE_COPYING(repeating_timer_t);
 };
 
-void wait_timeout(const signal_t *signal, int64_t ms = 1000);
-
 #endif /* ARCH_TIMING_HPP_ */

@@ -251,7 +251,7 @@ server_t::~server_t() { }
 
 void server_t::stop_mailbox_cb(signal_t *, client_t::addr_t addr) {
     rwlock_in_line_t spot(&clients_lock, access_t::read);
-    wait_timeout(spot.read_signal());
+    spot.read_signal()->wait_lazily_unordered();
     auto it = clients.find(addr);
     // The client might have already been removed from e.g. a peer disconnect or
     // drainer destruction.  (Also, if we have multiple shards per btree this
@@ -313,7 +313,7 @@ void server_t::limit_stop_mailbox_cb(signal_t *,
 void server_t::add_client(const client_t::addr_t &addr, region_t region) {
     auto_drainer_t::lock_t lock(&drainer);
     rwlock_in_line_t spot(&clients_lock, access_t::write);
-    wait_timeout(spot.write_signal());
+    spot.write_signal()->wait_lazily_unordered();
     client_info_t *info = &clients[addr];
 
     // We do this regardless of whether there's already an entry for this
@@ -348,7 +348,7 @@ void server_t::add_limit_client(
     std::vector<item_t> &&item_vec) {
     auto_drainer_t::lock_t lock(&drainer);
     rwlock_in_line_t spot(&clients_lock, access_t::read);
-    wait_timeout(spot.read_signal());
+    spot.read_signal()->wait_lazily_unordered();
     auto it = clients.find(addr);
 
     // It's entirely possible the peer disconnected by the time we got here.
@@ -382,7 +382,7 @@ void server_t::add_client_cb(signal_t *stopped, client_t::addr_t addr) {
         wait_any.wait_lazily_unordered();
     }
     rwlock_in_line_t coro_spot(&clients_lock, access_t::write);
-    wait_timeout(coro_spot.write_signal());
+    coro_spot.read_signal()->wait_lazily_unordered();
     auto it = clients.find(addr);
     // We can be removed more than once safely (e.g. in the case of oversharding).
     if (it != clients.end()) {
@@ -431,10 +431,9 @@ void server_t::send_all(const msg_t &msg,
                         rwlock_in_line_t *stamp_spot) {
     auto_drainer_t::lock_t lock(&drainer);
     stamp_spot->guarantee_is_for_lock(&stamp_lock);
-    wait_timeout(stamp_spot->write_signal());
+    stamp_spot->write_signal()->wait_lazily_unordered();
 
-    rwlock_in_line_t spot(&clients_lock, access_t::read);
-    wait_timeout(spot.read_signal());
+    rwlock_acq_t acq(&clients_lock, access_t::read);
     std::map<client_t::addr_t, uint64_t> stamps;
     for (auto &&pair : clients) {
         // We don't need a write lock as long as we make sure the coroutine
@@ -455,7 +454,7 @@ void server_t::send_all(const msg_t &msg,
 void server_t::stop_all() {
     auto_drainer_t::lock_t lock(&drainer);
     rwlock_in_line_t spot(&clients_lock, access_t::read);
-    wait_timeout(spot.read_signal());
+    spot.read_signal()->wait_lazily_unordered();
     for (auto it = clients.begin(); it != clients.end(); ++it) {
         it->second.cond->pulse_if_not_already_pulsed();
     }
@@ -471,10 +470,8 @@ server_t::limit_addr_t server_t::get_limit_stop_addr() {
 
 uint64_t server_t::get_stamp(const client_t::addr_t &addr) {
     auto_drainer_t::lock_t lock(&drainer);
-    rwlock_in_line_t stamp_spot(&stamp_lock, access_t::read);
-    wait_timeout(stamp_spot.read_signal());
-    rwlock_in_line_t spot(&clients_lock, access_t::read);
-    wait_timeout(spot.read_signal());
+    rwlock_acq_t stamp_acq(&stamp_lock, access_t::read);
+    rwlock_acq_t client_acq(&clients_lock, access_t::read);
     auto it = clients.find(addr);
     if (it == clients.end()) {
         // The client was removed, so no future messages are coming.
@@ -490,9 +487,8 @@ uuid_u server_t::get_uuid() {
 
 bool server_t::has_limit(const boost::optional<std::string> &sindex) {
     auto_drainer_t::lock_t lock(&drainer);
-    // RSI: why is this scoped?
     auto spot = make_scoped<rwlock_in_line_t>(&clients_lock, access_t::read);
-    wait_timeout(spot->read_signal());
+    spot->read_signal()->wait_lazily_unordered();
     for (auto &&client : clients) {
         // We don't need a drainer lock here because we're still holding a read
         // lock on `clients_lock`.
@@ -514,9 +510,8 @@ void server_t::foreach_limit(const boost::optional<std::string> &sindex,
                                                 rwlock_in_line_t *,
                                                 limit_manager_t *)> f) THROWS_NOTHING {
     auto_drainer_t::lock_t lock(&drainer);
-    // RSI: why is this scoped?
     auto spot = make_scoped<rwlock_in_line_t>(&clients_lock, access_t::read);
-    wait_timeout(spot->read_signal());
+    spot->read_signal()->wait_lazily_unordered();
     for (auto &&client : clients) {
         // We don't need a drainer lock here because we're still holding a read
         // lock on `clients_lock`.
@@ -2272,7 +2267,6 @@ private:
             }
         }
         if (!batcher.should_send_batch()) {
-            debugf("reading\n");
             std::vector<datum_t> batch = src->next_batch(env, bs);
             log += strprintf("batch: %s\n", debug::print(batch).c_str());
             // debugf("ready %zu\n", batch.size());
@@ -2289,7 +2283,6 @@ private:
 
         // RSI: if we aren't ready yet we'll send a lot of empty batches for no
         // reason, fix that!
-        debugf("done\n");
         return std::move(ret);
     }
 
