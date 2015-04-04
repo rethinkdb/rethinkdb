@@ -61,23 +61,23 @@ private:
                 class producer_t : public store_view_t::backfill_atom_producer_t {
                 public:
                     producer_t(session_t *_parent) : parent(_parent) { }
-                    bool next_atom(
+                    continue_bool_t next_atom(
                             region_map_t<binary_blob_t> const **metainfo_out,
                             backfill_atom_t const **atom_out,
                             key_range_t::right_bound_t *edge_out) THROWS_NOTHING {
                         *metainfo_out = &parent->metainfo_binary;
                         if (!parent->atoms.empty()) {
                             *atom_out = &parent->atoms.front();
-                            return true;
+                            return continue_bool_t::CONTINUE;
                         } else if (parent->atoms.get_left_key() <=
                                 parent->atoms.get_right_key()) {
                             *atom_out = nullptr;
                             *edge_out = parent->atoms.get_right_key();
                             parent->atoms.delete_to_key(*edge_out);
-                            return true;
+                            return continue_bool_t::CONTINUE;
                         } else {
                             parent->pulse_when_atoms_arrive.init(new cond_t);
-                            return false;
+                            return continue_bool_t::ABORT;
                         }
                     }
                     void release_atom() THROWS_NOTHING{
@@ -264,14 +264,18 @@ void backfillee_t::send_pre_atoms(auto_drainer_t::lock_t keepalive) {
             public:
                 consumer_t(backfill_atom_seq_t<backfill_pre_atom_t> *_chunk) :
                     chunk(_chunk) { }
-                bool on_pre_atom(backfill_pre_atom_t &&atom) THROWS_NOTHING {
+                continue_bool_t on_pre_atom(backfill_pre_atom_t &&atom) THROWS_NOTHING {
                     chunk->push_back(std::move(atom));
-                    return (chunk->get_mem_size() < PRE_ATOM_CHUNK_SIZE);
+                    if (chunk->get_mem_size() < PRE_ATOM_CHUNK_SIZE) {
+                        return continue_bool_t::CONTINUE;
+                    } else {
+                        return continue_bool_t::ABORT;
+                    }
                 }
-                bool on_empty_range(const key_range_t::right_bound_t &threshold)
-                        THROWS_NOTHING {
+                continue_bool_t on_empty_range(
+                        const key_range_t::right_bound_t &threshold) THROWS_NOTHING {
                     chunk->push_back_nothing(threshold);
-                    return true;
+                    return continue_bool_t::CONTINUE;
                 }
                 backfill_atom_seq_t<backfill_pre_atom_t> *chunk;
             } callback(&chunk);

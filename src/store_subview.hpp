@@ -122,17 +122,18 @@ public:
             durability, timestamp, order_token, token, interruptor);
     }
 
-    void send_backfill_pre(
+    continue_bool_t send_backfill_pre(
             const region_map_t<state_timestamp_t> &start_point,
             backfill_pre_atom_consumer_t *pre_atom_consumer,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
         rassert(region_is_superset(get_region(), start_point.get_domain()));
-        store_view->send_backfill_pre(start_point, pre_atom_consumer, interruptor);
+        return store_view->send_backfill_pre(
+            start_point, pre_atom_consumer, interruptor);
     }
 
-    void send_backfill(
+    continue_bool_t send_backfill(
             const region_map_t<state_timestamp_t> &start_point,
             backfill_pre_atom_producer_t *pre_atom_producer,
             backfill_atom_consumer_t *atom_consumer,
@@ -140,18 +141,18 @@ public:
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
         rassert(region_is_superset(get_region(), start_point.get_domain()));
-        store_view->send_backfill(
+        return store_view->send_backfill(
             start_point, pre_atom_producer, atom_consumer, interruptor);
     }
 
-    void receive_backfill(
+    continue_bool_t receive_backfill(
             const region_t &region,
             backfill_atom_producer_t *atom_producer,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
         rassert(region_is_superset(get_region(), region));
-        store_view->receive_backfill(region, atom_producer, interruptor);
+        return store_view->receive_backfill(region, atom_producer, interruptor);
     }
 
     void reset_data(

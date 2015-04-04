@@ -223,7 +223,7 @@ void mock_store_t::write(
     }
 }
 
-void mock_store_t::send_backfill_pre(
+continue_bool_t mock_store_t::send_backfill_pre(
         const region_map_t<state_timestamp_t> &start_point,
         backfill_pre_atom_consumer_t *pre_atom_consumer,
         signal_t *interruptor)
@@ -240,7 +240,10 @@ void mock_store_t::send_backfill_pre(
         auto it = table_.lower_bound(cursor);
         if (it == table_.end() || key_range_t::right_bound_t(it->first) >= right_bound) {
             /* There are no more keys in the range */
-            pre_atom_consumer->on_empty_range(right_bound);
+            if (continue_bool_t::ABORT ==
+                    pre_atom_consumer->on_empty_range(right_bound)) {
+                return continue_bool_t::ABORT;
+            }
             break;
         }
         if (it->second.first > start_point.get_point(it->first).to_repli_timestamp()) {
@@ -256,8 +259,9 @@ void mock_store_t::send_backfill_pre(
                 atom.range = key_range_t(
                     key_range_t::closed, cursor, key_range_t::closed, it->first);
             }
-            if (!pre_atom_consumer->on_pre_atom(std::move(atom))) {
-                break;
+            if (continue_bool_t::ABORT ==
+                    pre_atom_consumer->on_pre_atom(std::move(atom))) {
+                return continue_bool_t::ABORT;
             }
         }
         cursor = it->first;
@@ -271,6 +275,7 @@ void mock_store_t::send_backfill_pre(
     if (rng_.randint(2) == 0) {
         nap(rng_.randint(10), interruptor);
     }
+    return continue_bool_t::CONTINUE;
 }
 
 std::vector<char> datum_to_vector(const ql::datum_t &datum) {
@@ -292,7 +297,7 @@ ql::datum_t vector_to_datum(std::vector<char> &&vector) {
     return datum;
 }
 
-void mock_store_t::send_backfill(
+continue_bool_t mock_store_t::send_backfill(
         const region_map_t<state_timestamp_t> &start_point,
         backfill_pre_atom_producer_t *pre_atom_producer,
         backfill_atom_consumer_t *atom_consumer,
@@ -304,9 +309,9 @@ void mock_store_t::send_backfill(
     key_range_t::right_bound_t pre_atom_cursor(start_point.get_domain().inner.left);
     backfill_pre_atom_t const *pre_atom;
     key_range_t::right_bound_t pre_atom_edge;
-    auto next_pre_atom = [&]() -> bool {
+    auto next_pre_atom = [&]() -> continue_bool_t {
         if (!pre_atom_producer->next_pre_atom(&pre_atom, &pre_atom_edge)) {
-            return false;
+            return continue_bool_t::ABORT;
         }
         if (pre_atom != nullptr) {
             guarantee(key_range_t::right_bound_t(pre_atom->get_range().left) >=
@@ -318,10 +323,10 @@ void mock_store_t::send_backfill(
             guarantee(pre_atom_edge <= right_bound);
             pre_atom_cursor = pre_atom_edge;
         }
-        return true;
+        return continue_bool_t::CONTINUE;
     };
     if (!next_pre_atom()) {
-        return;
+        return continue_bool_t::ABORT;
     }
 
     while (table_cursor < right_bound) {
@@ -363,8 +368,9 @@ void mock_store_t::send_backfill(
                         boost::make_optional(datum_to_vector(jt->second.second));
                     atom.pairs.push_back(std::move(pair));
                 }
-                if (!atom_consumer->on_atom(metainfo_, std::move(atom))) {
-                    break;
+                if (continue_bool_t::ABORT ==
+                        atom_consumer->on_atom(metainfo_, std::move(atom))) {
+                    return continue_bool_t::ABORT;
                 }
                 table_cursor = pre_atom->range.right;
                 pre_atom_producer->release_pre_atom();
@@ -373,13 +379,14 @@ void mock_store_t::send_backfill(
                 `on_empty_range()` so that if the `next_pre_atom()` call returns `false`,
                 at least the callback will know that there were no atoms in this range.
                 */
-                if (!atom_consumer->on_empty_range(metainfo_, pre_atom_edge)) {
-                    break;
+                if (continue_bool_t::ABORT ==
+                        atom_consumer->on_empty_range(metainfo_, pre_atom_edge)) {
+                    return continue_bool_t::ABORT;
                 }
                 table_cursor = pre_atom_edge;
             }
-            if (!next_pre_atom()) {
-                break;
+            if (continue_bool_t::ABORT == next_pre_atom()) {
+                return continue_bool_t::ABORT;
             }
         } else {
             /* The next thing in lexicographical order is a key in our local copy, not a
@@ -395,8 +402,9 @@ void mock_store_t::send_backfill(
                 pair.recency = it->second.first;
                 pair.value = boost::make_optional(datum_to_vector(it->second.second));
                 atom.pairs.push_back(std::move(pair));
-                if (!atom_consumer->on_atom(metainfo_, std::move(atom))) {
-                    break;
+                if (continue_bool_t::ABORT ==
+                        atom_consumer->on_atom(metainfo_, std::move(atom))) {
+                    return continue_bool_t::ABORT;
                 }
             }
             table_cursor = key_range_t::right_bound_t(it->first);
@@ -408,9 +416,10 @@ void mock_store_t::send_backfill(
     if (rng_.randint(2) == 0) {
         nap(rng_.randint(10), interruptor);
     }
+    return continue_bool_t::CONTINUE;
 }
 
-void mock_store_t::receive_backfill(
+continue_bool_t mock_store_t::receive_backfill(
         const region_t &region,
         backfill_atom_producer_t *atom_producer,
         signal_t *interruptor)
@@ -426,8 +435,9 @@ void mock_store_t::receive_backfill(
         region_map_t<binary_blob_t> const *atom_metainfo;
         backfill_atom_t const *atom;
         key_range_t::right_bound_t edge;
-        if (!atom_producer->next_atom(&atom_metainfo, &atom, &edge)) {
-            return;
+        if (continue_bool_t::ABORT ==
+                atom_producer->next_atom(&atom_metainfo, &atom, &edge)) {
+            return continue_bool_t::ABORT;
         }
 
         region_t metainfo_mask = region;
@@ -455,6 +465,7 @@ void mock_store_t::receive_backfill(
         atom_producer->on_commit(cursor);
     }
     guarantee(cursor == region.inner.right);
+    return continue_bool_t::CONTINUE;
 }
 
 void mock_store_t::reset_data(

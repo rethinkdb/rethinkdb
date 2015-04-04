@@ -78,14 +78,14 @@ public:
     virtual continue_bool_t on_pre_atom(backfill_pre_atom_t &&atom) THROWS_NOTHING = 0;
     virtual continue_bool_t on_empty_range(const key_range_t::right_bound_t &threshold)
         THROWS_NOTHING = 0;
-private:
+protected:
     virtual ~btree_backfill_pre_atom_consumer_t() { }
 };
 
-continue_bool_t btree_backfill_pre_atoms(
+continue_bool_t btree_send_backfill_pre(
     superblock_t *superblock,
     release_superblock_t release_superblock,
-    const value_sizer_t *sizer,
+    value_sizer_t *sizer,
     const key_range_t &range,
     repli_timestamp_t reference_timestamp,
     btree_backfill_pre_atom_consumer_t *pre_atom_consumer,
@@ -131,10 +131,10 @@ public:
     virtual ~btree_backfill_atom_consumer_t() { }
 };
 
-continue_bool_t btree_backfill_atoms(
+continue_bool_t btree_send_backfill(
     superblock_t *superblock,
     release_superblock_t release_superblock,
-    const value_sizer_t *sizer,
+    value_sizer_t *sizer,
     const key_range_t &range,
     repli_timestamp_t reference_timestamp,
     btree_backfill_pre_atom_producer_t *pre_atom_producer,

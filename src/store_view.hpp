@@ -149,14 +149,14 @@ public:
     It passes the atoms to `callback`, aborting if `on_pre_atom()` returns `false`. */
     class backfill_pre_atom_consumer_t {
     public:
-        virtual bool on_pre_atom(
+        virtual continue_bool_t on_pre_atom(
             backfill_pre_atom_t &&atom) THROWS_NOTHING = 0;
-        virtual bool on_empty_range(
+        virtual continue_bool_t on_empty_range(
             const key_range_t::right_bound_t &threshold) THROWS_NOTHING = 0;
     protected:
         virtual ~backfill_pre_atom_consumer_t() { }
     };
-    virtual void send_backfill_pre(
+    virtual continue_bool_t send_backfill_pre(
             const region_map_t<state_timestamp_t> &start_point,
             backfill_pre_atom_consumer_t *pre_atom_consumer,
             signal_t *interruptor)
@@ -169,10 +169,10 @@ public:
     `callback`. */
     class backfill_atom_consumer_t {
     public:
-        virtual bool on_atom(
+        virtual continue_bool_t on_atom(
             const region_map_t<binary_blob_t> &metainfo,
             backfill_atom_t &&atom) THROWS_NOTHING = 0;
-        virtual bool on_empty_range(
+        virtual continue_bool_t on_empty_range(
             const region_map_t<binary_blob_t> &metainfo,
             const key_range_t::right_bound_t &threshold) THROWS_NOTHING = 0;
     protected:
@@ -180,7 +180,7 @@ public:
     };
     class backfill_pre_atom_producer_t {
     public:
-        virtual bool next_pre_atom(
+        virtual continue_bool_t next_pre_atom(
             backfill_pre_atom_t const **next_out,
             key_range_t::right_bound_t *edge_out) THROWS_NOTHING = 0;
 
@@ -192,7 +192,7 @@ public:
     protected:
         virtual ~backfill_pre_atom_producer_t() { }
     };
-    virtual void send_backfill(
+    virtual continue_bool_t send_backfill(
             const region_map_t<state_timestamp_t> &start_point,
             backfill_pre_atom_producer_t *pre_atom_producer,
             backfill_atom_consumer_t *atom_consumer,
@@ -205,7 +205,7 @@ public:
     the region. */
     class backfill_atom_producer_t {
     public:
-        virtual bool next_atom(
+        virtual continue_bool_t next_atom(
             region_map_t<binary_blob_t> const **metainfo_out,
             backfill_atom_t const **atom_out,
             key_range_t::right_bound_t *edge_out) THROWS_NOTHING = 0;
@@ -219,7 +219,7 @@ public:
     protected:
         virtual ~backfill_atom_producer_t() { }
     };
-    virtual void receive_backfill(
+    virtual continue_bool_t receive_backfill(
             const region_t &region,
             backfill_atom_producer_t *atom_producer,
             signal_t *interruptor)

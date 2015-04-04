@@ -33,7 +33,7 @@ key_range_t::right_bound_t convert_right_bound(const btree_key_t *right_incl) {
     return rb;
 }
 
-continue_bool_t btree_backfill_pre_atoms(
+continue_bool_t btree_send_backfill_pre(
         superblock_t *superblock,
         release_superblock_t release_superblock,
         value_sizer_t *sizer,
@@ -458,7 +458,7 @@ private:
     backfill_atom_loader_t *loader;
 };
 
-continue_bool_t btree_backfill_atoms(
+continue_bool_t btree_send_backfill(
         superblock_t *superblock,
         release_superblock_t release_superblock,
         value_sizer_t *sizer,
@@ -478,4 +478,5 @@ continue_bool_t btree_backfill_atoms(
     loader.finish(interruptor);
     return continue_bool_t::CONTINUE;
 }
+
 

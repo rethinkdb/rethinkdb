@@ -139,18 +139,18 @@ public:
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
-    void send_backfill_pre(
+    continue_bool_t send_backfill_pre(
             const region_map_t<state_timestamp_t> &start_point,
             backfill_pre_atom_consumer_t *pre_atom_consumer,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
-    void send_backfill(
+    continue_bool_t send_backfill(
             const region_map_t<state_timestamp_t> &start_point,
             backfill_pre_atom_producer_t *pre_atom_producer,
             backfill_atom_consumer_t *atom_consumer,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
-    void receive_backfill(
+    continue_bool_t receive_backfill(
             const region_t &region,
             backfill_atom_producer_t *atom_producer,
             signal_t *interruptor)

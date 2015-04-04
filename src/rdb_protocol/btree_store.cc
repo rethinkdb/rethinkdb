@@ -4,6 +4,7 @@
 #include <functional>  // NOLINT(build/include_order)
 
 #include "arch/runtime/coroutines.hpp"
+#include "btree/backfill.hpp"
 #include "btree/depth_first_traversal.hpp"
 #include "btree/node.hpp"
 #include "btree/operations.hpp"
@@ -20,6 +21,8 @@
 #include "logger.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/erase_range.hpp"
+#include "rdb_protocol/blob_wrapper.hpp"
+#include "rdb_protocol/lazy_json.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "serializer/config.hpp"
 #include "stl_utils.hpp"
@@ -223,31 +226,185 @@ void store_t::write(
     protocol_write(write, response, timestamp, &superblock, interruptor);
 }
 
-void store_t::send_backfill_pre(
+continue_bool_t store_t::send_backfill_pre(
         const region_map_t<state_timestamp_t> &start_point,
         backfill_pre_atom_consumer_t *pre_atom_consumer,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
-    (void)start_point;
-    (void)pre_atom_consumer;
-    (void)interruptor;
-    crash("not implemented");
+    std::vector<std::pair<key_range_t, repli_timestamp_t> > reference_timestamps;
+    for (const auto &pair : start_point) {
+        reference_timestamps.push_back(std::make_pair(
+            pair.first.inner, pair.second.to_repli_timestamp()));
+    }
+    std::sort(reference_timestamps.begin(), reference_timestamps.end(),
+        [](const std::pair<key_range_t, repli_timestamp_t> &p1,
+                const std::pair<key_range_t, repli_timestamp_t> &p2) -> bool {
+            guarantee(!p1.first.overlaps(p2.first));
+            return p1.first.left < p2.first.left;
+        });
+    for (const auto &pair : reference_timestamps) {
+        key_range_t::right_bound_t threshold(pair.first.left);
+        while (threshold != pair.first.right) {
+            scoped_ptr_t<txn_t> txn;
+            scoped_ptr_t<real_superblock_t> sb;
+            get_btree_superblock_and_txn_for_reading(
+                general_cache_conn.get(), CACHE_SNAPSHOTTED_NO, &sb, &txn);
+
+            class limiter_t : public btree_backfill_pre_atom_consumer_t {
+            public:
+                limiter_t(backfill_pre_atom_consumer_t *_inner, size_t limit,
+                        key_range_t::right_bound_t *_threshold_ptr) :
+                    inner_aborted(false), inner(_inner), remaining(limit),
+                    threshold_ptr(_threshold_ptr) { }
+                continue_bool_t on_pre_atom(backfill_pre_atom_t &&atom)
+                        THROWS_NOTHING {
+                    --remaining;
+                    rassert(key_range_t::right_bound_t(atom.range.left) >=
+                        *threshold_ptr);
+                    *threshold_ptr = atom.range.right;
+                    inner_aborted =
+                        continue_bool_t::ABORT == inner->on_pre_atom(std::move(atom));
+                    return (inner_aborted || remaining == 0)
+                        ? continue_bool_t::ABORT : continue_bool_t::CONTINUE;
+                }
+                continue_bool_t on_empty_range(
+                        const key_range_t::right_bound_t &new_threshold) THROWS_NOTHING {
+                    --remaining;
+                    rassert(new_threshold >= *threshold_ptr);
+                    *threshold_ptr = new_threshold;
+                    inner_aborted =
+                        continue_bool_t::ABORT == inner->on_empty_range(new_threshold);
+                    return (inner_aborted || remaining == 0)
+                        ? continue_bool_t::ABORT : continue_bool_t::CONTINUE;
+                }
+                bool inner_aborted;
+            private:
+                backfill_pre_atom_consumer_t *inner;
+                size_t remaining;
+                key_range_t::right_bound_t *threshold_ptr;
+            } limiter(pre_atom_consumer, 100, &threshold);
+
+            rdb_value_sizer_t sizer(cache->max_block_size());
+            key_range_t to_do = pair.first;
+            to_do.left = threshold.key;
+            continue_bool_t cont = btree_send_backfill_pre(sb.get(),
+                release_superblock_t::RELEASE, &sizer, to_do, pair.second, &limiter,
+                interruptor);
+            if (limiter.inner_aborted) {
+                guarantee(cont == continue_bool_t::ABORT);
+                return continue_bool_t::ABORT;
+            }
+            guarantee(cont == continue_bool_t::ABORT || threshold == pair.first.right);
+        } 
+    }
+    return continue_bool_t::CONTINUE;
 }
 
-void store_t::send_backfill(
+continue_bool_t store_t::send_backfill(
         const region_map_t<state_timestamp_t> &start_point,
         backfill_pre_atom_producer_t *pre_atom_producer,
         backfill_atom_consumer_t *atom_consumer,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
-    (void)start_point;
-    (void)pre_atom_producer;
-    (void)atom_consumer;
-    (void)interruptor;
-    crash("not implemented");
+    std::vector<std::pair<key_range_t, repli_timestamp_t> > reference_timestamps;
+    for (const auto &pair : start_point) {
+        reference_timestamps.push_back(std::make_pair(
+            pair.first.inner, pair.second.to_repli_timestamp()));
+    }
+    std::sort(reference_timestamps.begin(), reference_timestamps.end(),
+        [](const std::pair<key_range_t, repli_timestamp_t> &p1,
+                const std::pair<key_range_t, repli_timestamp_t> &p2) -> bool {
+            guarantee(!p1.first.overlaps(p2.first));
+            return p1.first.left < p2.first.left;
+        });
+    for (const auto &pair : reference_timestamps) {
+        key_range_t::right_bound_t threshold(pair.first.left);
+        while (threshold != pair.first.right) {
+            scoped_ptr_t<txn_t> txn;
+            scoped_ptr_t<real_superblock_t> sb;
+            get_btree_superblock_and_txn_for_reading(
+                general_cache_conn.get(), CACHE_SNAPSHOTTED_NO, &sb, &txn);
+            region_map_t<binary_blob_t> metainfo;
+            get_metainfo_internal(sb->get(), &metainfo);
+
+            class limiter_t : public btree_backfill_atom_consumer_t {
+            public:
+                limiter_t(backfill_atom_consumer_t *_inner, size_t limit,
+                        key_range_t::right_bound_t *_threshold_ptr,
+                        const region_map_t<binary_blob_t> *_metainfo_ptr) :
+                    inner_aborted(false), inner(_inner), remaining(limit),
+                    threshold_ptr(_threshold_ptr), metainfo_ptr(_metainfo_ptr) { }
+                continue_bool_t on_atom(backfill_atom_t &&atom) {
+                    --remaining;
+                    rassert(key_range_t::right_bound_t(atom.range.left) >=
+                        *threshold_ptr);
+                    *threshold_ptr = atom.range.right;
+                    inner_aborted = continue_bool_t::ABORT == inner->on_atom(
+                        *metainfo_ptr, std::move(atom));
+                    return (inner_aborted || remaining == 0)
+                        ? continue_bool_t::ABORT : continue_bool_t::CONTINUE;
+                }
+                continue_bool_t on_empty_range(
+                        const key_range_t::right_bound_t &new_threshold) {
+                    --remaining;
+                    rassert(new_threshold >= *threshold_ptr);
+                    *threshold_ptr = new_threshold;
+                    inner_aborted = continue_bool_t::ABORT == inner->on_empty_range(
+                        *metainfo_ptr, new_threshold);
+                    return (inner_aborted || remaining == 0)
+                        ? continue_bool_t::ABORT : continue_bool_t::CONTINUE;
+                }
+                void copy_value(
+                        buf_parent_t parent,
+                        const void *value_in_leaf_node,
+                        UNUSED signal_t *interruptor2,
+                        std::vector<char> *value_out) {
+                    const rdb_value_t *v =
+                        static_cast<const rdb_value_t *>(value_in_leaf_node);
+                    rdb_blob_wrapper_t blob_wrapper(
+                        parent.cache()->max_block_size(),
+                        const_cast<rdb_value_t *>(v)->value_ref(),
+                        blob::btree_maxreflen);
+                    blob_acq_t acq_group;
+                    buffer_group_t buffer_group;
+                    blob_wrapper.expose_all(
+                        parent, access_t::read, &buffer_group, &acq_group);
+                    value_out->resize(buffer_group.get_size());
+                    size_t offset = 0;
+                    for (size_t i = 0; i < buffer_group.num_buffers(); ++i) {
+                        buffer_group_t::buffer_t b = buffer_group.get_buffer(i);
+                        memcpy(value_out->data() + offset, b.data, b.size);
+                        offset += b.size;
+                    }
+                    guarantee(offset == value_out->size());
+                }
+                bool inner_aborted;
+            private:
+                backfill_atom_consumer_t *const inner;
+                size_t remaining;
+                key_range_t::right_bound_t *const threshold_ptr;
+                const region_map_t<binary_blob_t> *const metainfo_ptr;
+            } limiter(atom_consumer, 100, &threshold, &metainfo);
+
+            (void)pre_atom_producer;
+
+            rdb_value_sizer_t sizer(cache->max_block_size());
+            key_range_t to_do = pair.first;
+            to_do.left = threshold.key;
+            continue_bool_t cont = btree_send_backfill(sb.get(),
+                release_superblock_t::RELEASE, &sizer, to_do, pair.second, nullptr,
+                &limiter, interruptor);
+            if (limiter.inner_aborted) {
+                guarantee(cont == continue_bool_t::ABORT);
+                return continue_bool_t::ABORT;
+            }
+            guarantee(cont == continue_bool_t::ABORT || threshold == pair.first.right);
+        } 
+    }
+    return continue_bool_t::CONTINUE;
 }
 
-void store_t::receive_backfill(
+continue_bool_t store_t::receive_backfill(
         const region_t &region,
         backfill_atom_producer_t *atom_producer,
         signal_t *interruptor)
