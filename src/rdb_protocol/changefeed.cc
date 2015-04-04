@@ -41,6 +41,29 @@ struct stamped_range_t {
     std::deque<std::pair<key_range_t, uint64_t> > ranges;
 };
 
+struct change_val_t {
+    change_val_t(std::pair<uuid_u, uint64_t> _source_stamp,
+                 store_key_t _pkey,
+                 boost::optional<indexed_datum_t> _old_val,
+                 boost::optional<indexed_datum_t> _new_val,
+                 DEBUG_ONLY(boost::optional<std::string> _sindex))
+        : source_stamp(std::move(_source_stamp)),
+          pkey(std::move(_pkey)),
+          old_val(std::move(_old_val)),
+          new_val(std::move(_new_val)),
+          DEBUG_ONLY(sindex(std::move(_sindex))) {
+        guarantee(old_val || new_val);
+        if (old_val && new_val) {
+            guarantee(old_val->index.has() == new_val->index.has());
+            rassert(old_val->val != new_val->val);
+        }
+    }
+    std::pair<uuid_u, uint64_t> source_stamp;
+    store_key_t pkey;
+    boost::optional<indexed_datum_t> old_val, new_val;
+    DEBUG_ONLY(boost::optional<std::string> sindex;)
+};
+
 namespace debug {
 std::string print(const uuid_u &u) {
     printf_buffer_t buf;
@@ -99,39 +122,34 @@ std::string print(const stamped_range_t &srng) {
                      key_to_debug_str(srng.left_fencepost).c_str(),
                      print(srng.ranges).c_str());
 }
+std::string print(const change_val_t &cv) {
+    return strprintf("change_val_t(%s, %s, %s, %s)\n",
+                     print(cv.source_stamp).c_str(),
+                     print(cv.pkey).c_str(),
+                     print(cv.old_val).c_str(),
+                     print(cv.new_val).c_str());
+}
 } // namespace debug
 
-struct change_val_t {
-    change_val_t(std::pair<uuid_u, uint64_t> _source_stamp,
-                 store_key_t _pkey,
-                 boost::optional<indexed_datum_t> _old_val,
-                 boost::optional<indexed_datum_t> _new_val,
-                 DEBUG_ONLY(boost::optional<std::string> _sindex))
-        : source_stamp(std::move(_source_stamp)),
-          pkey(std::move(_pkey)),
-          old_val(std::move(_old_val)),
-          new_val(std::move(_new_val)),
-          DEBUG_ONLY(sindex(std::move(_sindex))) {
-        guarantee(old_val || new_val);
-        if (old_val && new_val) {
-            guarantee(old_val->index.has() == new_val->index.has());
-            rassert(old_val->val != new_val->val);
+datum_t change_val_to_change(
+    const change_val_t &change,
+    bool discard_old_val = false,
+    bool discard_new_val = false) {
+    if (discard_old_val && discard_new_val) {
+        return datum_t();
+    } else {
+        std::map<datum_string_t, datum_t> ret;
+        if (!discard_old_val) {
+            ret[datum_string_t("old_val")] =
+                change.old_val ? change.old_val->val : datum_t::null();
         }
+        if (!discard_new_val) {
+            ret[datum_string_t("new_val")] =
+                change.new_val ? change.new_val->val : datum_t::null();
+        }
+        guarantee(ret.size() != 0);
+        return datum_t(std::move(ret));
     }
-    std::pair<uuid_u, uint64_t> source_stamp;
-    store_key_t pkey;
-    boost::optional<indexed_datum_t> old_val, new_val;
-    DEBUG_ONLY(boost::optional<std::string> sindex;)
-};
-
-datum_t change_val_to_change(const change_val_t &change) {
-    std::map<datum_string_t, datum_t> ret;
-    ret[datum_string_t("old_val")] =
-        change.old_val ? change.old_val->val : datum_t::null();
-    ret[datum_string_t("new_val")] =
-        change.new_val ? change.new_val->val : datum_t::null();
-    guarantee(ret.size() != 0);
-    return datum_t(std::move(ret));
 }
 
 enum class pop_type_t { RANGE, POINT };
@@ -2245,16 +2263,12 @@ private:
         if (read_once) {
             while (sub->has_change_val() && !batcher.should_send_batch()) {
                 change_val_t cv = sub->pop_change_val();
-                if (cv.old_val && discard(cv.pkey, cv.source_stamp, *cv.old_val)) {
-                    cv.old_val = boost::none;
-                }
-                if (cv.new_val && discard(cv.pkey, cv.source_stamp, *cv.new_val)) {
-                    cv.new_val = boost::none;
-                }
-                log += strprintf("old_val: %s\n", debug::print(cv.old_val).c_str());
-                log += strprintf("new_val: %s\n", debug::print(cv.new_val).c_str());
-                if (cv.old_val || cv.new_val) {
-                    datum_t el = change_val_to_change(std::move(cv));
+                debugf("change_val: %s\n", debug::print(cv).c_str());
+                datum_t el = change_val_to_change(
+                    cv,
+                    cv.old_val && discard(cv.pkey, cv.source_stamp, *cv.old_val),
+                    cv.new_val && discard(cv.pkey, cv.source_stamp, *cv.new_val));
+                if (el.has()) {
                     batcher.note_el(el);
                     log += strprintf("pushing %s\n", debug::print(el).c_str());
                     ret.push_back(std::move(el));

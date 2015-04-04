@@ -193,6 +193,9 @@ module RethinkDB
                   elsif (row.has_key?('new_val') && !row.has_key?('old_val') &&
                          @handler.respond_to?(:on_initial_val))
                     handle(:on_initial_val, row['new_val'])
+                  elsif (row.has_key?('old_val') && !row.has_key?('new_val') &&
+                         @handler.respond_to?(:on_uninitial_val))
+                    handle(:on_uninitial_val, row['old_val'])
                   elsif row.has_key?('error') && @handler.respond_to?(:on_change_error)
                     handle(:on_change_error, row['error'])
                   elsif row.has_key?('state') && @handler.respond_to?(:on_state)

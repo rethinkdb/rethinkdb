@@ -4,13 +4,6 @@ require 'eventmachine'
 $c.reconnect
 $conn = $c
 
-# RSI: we appear to be discarding changes
-# multi-indexes
-# union
-# artificial feeds
-# old val with no new val (sindexes)
-
-
 class H < RethinkDB::Handler
   def initialize(field)
     @state = {}
