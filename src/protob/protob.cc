@@ -402,8 +402,10 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
             }
         }
 
-        const char *success_msg = "SUCCESS";
-        conn->write(success_msg, strlen(success_msg) + 1, &ct_keepalive);
+        if (!pre_2) {
+            const char *success_msg = "SUCCESS";
+            conn->write(success_msg, strlen(success_msg) + 1, &ct_keepalive);
+        }
 
         if (wire_protocol == VersionDummy::JSON) {
             connection_loop<json_protocol_t>(
