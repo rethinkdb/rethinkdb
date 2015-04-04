@@ -2105,12 +2105,10 @@ public:
                     }
                 }
                 while (old_idxs.size() > 0 && new_idxs.size() > 0) {
-                    if (old_idxs.back() != new_idxs.back()) {
-                        sub->add_el(server_uuid, stamp, change.pkey, sindex,
-                                    indexed_datum_t(std::move(old_idxs.back()), old_val),
-                                    indexed_datum_t(std::move(new_idxs.back()), new_val),
-                                    default_limits);
-                    }
+                    sub->add_el(server_uuid, stamp, change.pkey, sindex,
+                                indexed_datum_t(old_val, std::move(old_idxs.back())),
+                                indexed_datum_t(new_val, std::move(new_idxs.back())),
+                                default_limits);
                     old_idxs.pop_back();
                     new_idxs.pop_back();
                 }
@@ -2236,7 +2234,6 @@ private:
         // If there's nothing left to read, behave like a normal feed.
         // debugf("nsb %d\n", src->is_exhausted());
         if (src->is_exhausted()) {
-            // debugf("ready %d\n", ready());
             if (ready()) {
                 // This will send the `ready` state as its first doc.
                 return stream_t::next_stream_batch(env, bs);
@@ -2251,7 +2248,6 @@ private:
         // once we're no longer backwards-compatible with pre-1.16 (I think?)
         // skey versions.
         if (read_once) {
-            debugf("popping changes\n");
             while (sub->has_change_val() && !batcher.should_send_batch()) {
                 change_val_t cv = sub->pop_change_val();
                 if (cv.old_val && discard(cv.pkey, cv.source_stamp, *cv.old_val)) {
