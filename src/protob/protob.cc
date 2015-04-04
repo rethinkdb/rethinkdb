@@ -411,6 +411,8 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
         } else if (wire_protocol == VersionDummy::PROTOBUF) {
             connection_loop<protobuf_protocol_t>(
                 conn.get(), max_concurrent_queries, &query_cache, &ct_keepalive);
+        } else {
+            unreachable();
         }
     } catch (const protob_server_exc_t &ex) {
         // Can't write response here due to coro switching inside exception handler
