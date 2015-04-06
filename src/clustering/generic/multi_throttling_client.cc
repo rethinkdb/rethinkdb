@@ -10,14 +10,14 @@
 
 template <class request_type, class inner_client_business_card_type>
 multi_throttling_client_t<request_type, inner_client_business_card_type>::ticket_acq_t::ticket_acq_t(multi_throttling_client_t *p) : parent(p) {
-    if (parent->free_tickets > 0) {
+    //if (parent->free_tickets > 0) {
         state = state_acquired_ticket;
-        parent->free_tickets--;
+    //    parent->free_tickets--;
         pulse();
-    } else {
-        state = state_waiting_for_ticket;
-        parent->ticket_queue.push_back(this);
-    }
+    //} else {
+    //    state = state_waiting_for_ticket;
+    //    parent->ticket_queue.push_back(this);
+    //}
 }
 
 template <class request_type, class inner_client_business_card_type>
@@ -27,8 +27,8 @@ multi_throttling_client_t<request_type, inner_client_business_card_type>::ticket
         parent->ticket_queue.remove(this);
         break;
     case state_acquired_ticket:
-        parent->free_tickets++;
-        parent->pump_free_tickets();
+    //    parent->free_tickets++;
+    //    parent->pump_free_tickets();
         break;
     case state_used_ticket:
         break;
@@ -120,14 +120,15 @@ boost::optional<boost::optional<registrar_business_card_t<typename multi_throttl
 template <class request_type, class inner_client_business_card_type>
 void multi_throttling_client_t<request_type, inner_client_business_card_type>::
         on_give_tickets(UNUSED signal_t *interruptor, int count) {
-    free_tickets += count;
-    pump_free_tickets();
+    //free_tickets += count;
+    //pump_free_tickets();
 }
 
 template <class request_type, class inner_client_business_card_type>
 void multi_throttling_client_t<request_type, inner_client_business_card_type>::pump_free_tickets() {
     // Hand out tickets to the waiter
     while (free_tickets > 0 && !ticket_queue.empty()) {
+        unreachable();
         ticket_acq_t *lucky_winner = ticket_queue.head();
         ticket_queue.remove(lucky_winner);
         lucky_winner->state = ticket_acq_t::state_acquired_ticket;
@@ -157,7 +158,7 @@ void multi_throttling_client_t<request_type, inner_client_business_card_type>::t
     int can_relinquish = std::min(to_relinquish, free_tickets);
     if (can_relinquish > 0) {
         to_relinquish -= can_relinquish;
-        free_tickets -= can_relinquish;
+        //free_tickets -= can_relinquish;
         coro_t::spawn_sometime(boost::bind(&multi_throttling_client_t<request_type, inner_client_business_card_type>::relinquish_tickets_blocking, this,
                                            can_relinquish,
                                            auto_drainer_t::lock_t(&drainer)));

@@ -83,7 +83,7 @@ private:
             request_mailbox.reset();
             relinquish_tickets_mailbox.reset();
             drainer.reset();
-            guarantee(in_use_tickets == 0);
+            //guarantee(in_use_tickets == 0);
             parent->return_tickets(held_tickets);
         }
 
@@ -122,7 +122,7 @@ private:
 
     private:
         void on_request(signal_t *interruptor, const request_type &request) {
-            guarantee(held_tickets > 0);
+            //guarantee(held_tickets > 0);
             held_tickets--;
             in_use_tickets++;
 
@@ -142,11 +142,11 @@ private:
         }
 
         void give_tickets_blocking(int tickets, auto_drainer_t::lock_t) {
-            send(parent->mailbox_manager, give_tickets_addr, tickets);
+            //send(parent->mailbox_manager, give_tickets_addr, tickets);
         }
 
         void reclaim_tickets_blocking(int tickets, auto_drainer_t::lock_t) {
-            send(parent->mailbox_manager, reclaim_tickets_addr, tickets);
+            //send(parent->mailbox_manager, reclaim_tickets_addr, tickets);
         }
 
         void on_ring() {
