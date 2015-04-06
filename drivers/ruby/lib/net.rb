@@ -50,10 +50,10 @@ module RethinkDB
     end
     def handle(m, args, caller)
       if !stopped?
-        if method(m).arity == args.size + 1 || method(m).arity == -1
-          send(m, *args, caller)
-        else
+        if method(m).arity == args.size
           send(m, *args)
+        else
+          send(m, *args, caller)
         end
       end
     end
@@ -101,7 +101,7 @@ module RethinkDB
 
   class CallbackHandler < Handler
     def initialize(callback)
-      if callback.arity > 2
+      if callback.arity > 2 || callback.arity < -3
         raise ArgumentError, "Wrong number of arguments for callback (callback " +
           "accepts #{callback.arity} arguments, but it should accept 0, 1 or 2)."
       end
@@ -114,7 +114,7 @@ module RethinkDB
       elsif @callback.arity == 1
         raise err if err
         @callback.call(val)
-      elsif @callback.arity == 2 || @callback.arity == -1
+      else
         @callback.call(err, val)
       end
     end
