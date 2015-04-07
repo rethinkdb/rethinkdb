@@ -84,7 +84,7 @@ describe('Javascript connection API', function(){
             r.connect({port:badPort, timeout:1}, givesError("RqlDriverError", "Handshake timedout", done));
         });
     });
-    
+
     describe('With no server', function(){
         it("fails when trying to connect", function(done){
             ifTestDefault(
@@ -95,30 +95,31 @@ describe('Javascript connection API', function(){
                     r.connect({port:11221}, givesError("RqlDriverError", "Could not connect to localhost:11221.\nconnect ECONNREFUSED", function(){
                         r.connect({host:'0.0.0.0', port:11221}, givesError("RqlDriverError", "Could not connect to 0.0.0.0:11221.\nconnect ECONNREFUSED", done))}))});
         });
-        
+
         it("empty run", function(done) {
             r.expr(1).run().then(function() {
                 done(new Error("Was expecting an error"))
             }).error(givesError("RqlDriverError", "First argument to `run` must be an open connection.", done));
         });
-        
+
         it("run with an object", function(done) {
             r.expr(1).run({}).then(function() {
                 done(new Error("Was expecting an error"))
             }).error(givesError("RqlDriverError", "First argument to `run` must be an open connection.", done));
         });
     });
-    
+
     describe('With a server', function(){
-        
+
         // TODO: test default port
-        
+
         describe('close twice and reconnect', function(){
-            simpleQuery = function(c) { return r(1).run(c); };
-            
+            var simpleQuery = function(c) { return r(1).run(c); };
+
             it("noreplyWait=false", function(done) {
                 var conn = null;
-                r.connect({host:serverHost, port:driverPort}).then(function(c) {
+                r.connect({host:serverHost, port:driverPort})
+                .then(function(c) {
                     conn = c;
                     return simpleQuery(conn);
                 }).then(function() {
@@ -129,12 +130,13 @@ describe('Javascript connection API', function(){
                     return conn.reconnect();
                 }).then(function() {
                     return simpleQuery(conn);
-                }).then(done)
+                }).nodeify(done)
             });
-            
+
             it("synchronously", function(done) {
                 var conn = null;
-                r.connect({host:serverHost, port:driverPort}).then(function(c) {
+                r.connect({host:serverHost, port:driverPort})
+                .then(function(c) {
                     conn = c;
                     return simpleQuery(conn);
                 }).then(function() {
@@ -145,15 +147,15 @@ describe('Javascript connection API', function(){
                     return conn.reconnect();
                 }).then(function() {
                     return simpleQuery(conn);
-                }).then(done)
+                }).nodeify(done)
             });
         })
-        
+
         it("fails to query after close", withConnection(function(done, c){
             c.close({noreplyWait: false});
             r(1).run(c, givesError("RqlDriverError", "Connection is closed.", done));
         }));
-        
+
         it("noreplyWait waits", withConnection(function(done, c){
             var t = new Date().getTime();
             r.js('while(true);', {timeout: 0.5}).run(c, {noreply: true});
@@ -164,7 +166,7 @@ describe('Javascript connection API', function(){
                 done();
             });
         }));
-        
+
         it("close waits by default", withConnection(function(done, c){
             var t = new Date().getTime();
             r.js('while(true);', {timeout: 0.5}).run(c, {noreply: true});
@@ -175,7 +177,7 @@ describe('Javascript connection API', function(){
                 done();
             });
         }));
-        
+
         it("reconnect waits by default", withConnection(function(done, c){
             var t = new Date().getTime();
             r.js('while(true);', {timeout: 0.5}).run(c, {noreply: true});
@@ -186,7 +188,7 @@ describe('Javascript connection API', function(){
                 done();
             });
         }));
-        
+
         it("close does not wait if we want it not to", withConnection(function(done, c){
             var t = new Date().getTime();
             r.js('while(true);', {timeout: 0.5}).run(c, {noreply: true});
@@ -197,7 +199,7 @@ describe('Javascript connection API', function(){
                 done();
             });
         }));
-        
+
         it("reconnect does not wait if we want it not to", withConnection(function(done, c){
             var t = new Date().getTime();
             r.js('while(true);', {timeout: 0.5}).run(c, {noreply: true});
@@ -208,7 +210,7 @@ describe('Javascript connection API', function(){
                 done();
             });
         }));
-        
+
         it("close waits even without callback", withConnection(function(done, c){
             var start = Date.now();
             var timeout = 1.5;
@@ -220,50 +222,50 @@ describe('Javascript connection API', function(){
                 done()
             });
         }));
-        
+
         it("useOutdated", withConnection(function(done, c){
             r.db('test').tableCreate('useOutdated').run(c, function(){
                 r.db('test').table('useOutdated', {useOutdated:true}).run(c, function(){
                     r.db('test').table('useOutdated').run(c, {useOutdated: true}, done);});});
         }));
-        
+
         it("test default durability", withConnection(function(done, c){
             r.db('test').tableCreate('defaultDurability').run(c, noError(function(){
                 r.db('test').table('defaultDurability').insert({data:"5"}).run(c, {durability: "default"},
                     givesError("RqlRuntimeError", "Durability option `default` unrecognized (options are \"hard\" and \"soft\")", done));
             }));
         }));
-        
+
         it("test wrong durability", withConnection(function(done, c){
             r.db('test').tableCreate('wrongDurability').run(c, noError(function(){
                 r.db('test').table('wrongDurability').insert({data:"5"}).run(c, {durability: "wrong"},
                     givesError("RqlRuntimeError", "Durability option `wrong` unrecognized (options are \"hard\" and \"soft\")", done))
             }));
         }));
-        
+
         it("test soft durability", withConnection(function(done, c){
             r.db('test').tableCreate('softDurability').run(c, noError(function(){
                 r.db('test').table('softDurability').insert({data:"5"}).run(c, {durability: "soft"}, noError(done));
             }));
         }));
-        
+
         it("test hard durability", withConnection(function(done, c){
             r.db('test').tableCreate('hardDurability').run(c, noError(function(){
                 r.db('test').table('hardDurability').insert({data:"5"}).run(c, {durability: "hard"}, noError(done));
             }));
         }));
-        
+
         it("test non-deterministic durability", withConnection(function(done, c){
             r.db('test').tableCreate('nonDeterministicDurability').run(c, noError(function(){
                 r.db('test').table('nonDeterministicDurability').insert({data:"5"}).run(c, {durability: r.js("'so' + 'ft'")}, noError(done));
             }));
         }));
-        
+
         it("pretty-printing", function(){
             assert.equal(r.db('db1').table('tbl1').map(function(x){ return x; }).toString(),
                         'r.db("db1").table("tbl1").map(function(var_0) { return var_0; })')
         });
-        
+
         it("connect() with default db", withConnection(function(done, c){
             r.dbCreate('foo').run(c, function(err, res){
                 r.db('foo').tableCreate('bar').run(c, function(err, res){
@@ -274,52 +276,52 @@ describe('Javascript connection API', function(){
                 });
             });
         }));
-        
+
         it("missing arguments cause exception", withConnection(function(done,c){
             assert.throws(function(){ c.use(); });
             done();
         }));
-        
+
         // -- event emitter interface
-        
+
         it("Emits connect event on connect", withConnection(function(done, c){
             c.on('connect', function(err, c2) {
                 done();
             });
-            
+
             c.reconnect(function(){});
         }));
-        
+
         it("Emits close event on close", withConnection(function(done, c){
             c.on('close', function() {
                 done();
             });
-            
+
             c.close();
         }));
-        
+
         // -- bad options
-        
+
         it("Non valid optarg", withConnection(function(done, c){
             r.expr(1).run(c, {nonValidOption: true}).then(function() {
                 done(new Error("Was expecting an error"))
             }).error(givesError("RqlCompileError", "Unrecognized global optional argument `non_valid_option`", done));
         }));
-        
+
         it("Extra argument", withConnection(function(done, c){
             r.expr(1).run(c, givesError("RqlDriverError", "Second argument to `run` cannot be a function if a third argument is provided.", done), 1)
         }));
-        
+
         it("Callback must be a function", withConnection(function(done, c){
             r.expr(1).run(c, {}, "not_a_function").error(givesError("RqlDriverError", "If provided, the callback must be a function. Please use `run(connection[, options][, callback])", done))
         }));
-        
+
         // -- auth_key tests
-        
+
         it("authorization key when none needed", function(done){
             r.connect({host:serverHost, port:driverPort, authKey: "hunter2"}, givesError("RqlDriverError", "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"", done));
         });
-        
+
         it("correct authorization key", function(done){
             setTimeout(function(){
                 r.connect({host:serverHost, port:driverPort}, function(e, c){
@@ -335,7 +337,7 @@ describe('Javascript connection API', function(){
                 });
             }, 500);
         });
-        
+
         it("wrong authorization key", function(done){
             setTimeout(function(){
                 r.connect({host:serverHost, port:driverPort}, function(e, c){
@@ -348,11 +350,11 @@ describe('Javascript connection API', function(){
                 });
             }, 500);
         });
-        
+
         // -- use tests
-        
+
         this.timeout(8000) // "test use" can take soem time
-        
+
         it("test use", withConnection(function(done, c){
             r.db('test').tableCreate('t1').run(c, noError(function(){
                 r.dbCreate('db2').run(c, noError(function(){
@@ -364,4 +366,3 @@ describe('Javascript connection API', function(){
         }));}));}));}));}));
     });
 });
-
