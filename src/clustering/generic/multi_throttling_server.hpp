@@ -122,23 +122,14 @@ private:
 
     private:
         void on_request(signal_t *interruptor, const request_type &request) {
-            //guarantee(held_tickets > 0);
-            held_tickets--;
-            in_use_tickets++;
-
-            requests_since_last_qps_sample++;
             try {
                 registrant.perform_request(request, interruptor);
             } catch (const interrupted_exc_t &) {
                 /* ignore */
             }
-            in_use_tickets--;
-            parent->return_tickets(1);
         }
 
         void on_relinquish_tickets(UNUSED signal_t *interruptor, int tickets) {
-            held_tickets -= tickets;
-            parent->return_tickets(tickets);
         }
 
         void give_tickets_blocking(int tickets, auto_drainer_t::lock_t) {
@@ -150,10 +141,6 @@ private:
         }
 
         void on_ring() {
-            /* Take a sample of the recent average QPS */
-            running_qps_estimate = estimate_qps();
-            time_of_last_qps_sample = get_ticks();
-            requests_since_last_qps_sample = 0;
         }
 
         multi_throttling_server_t *parent;
@@ -176,141 +163,18 @@ private:
     };
 
     void on_ring() {
-        recompute_allocations();
     }
 
     void recompute_allocations() {
-        /* We divide the total number of tickets into two pools. The first pool
-        is distributed evenly among all the clients. The second pool is
-        distributed in proportion to the clients' QPS. */
-        int fair_tickets = std::max(static_cast<int>(clients.size()),
-                total_tickets / fair_fraction_denom);
-        int qps_tickets = total_tickets - fair_tickets;
-        int total_qps = 0;
-        for (client_t *c = clients.head(); c != NULL; c = clients.next(c)) {
-            total_qps += c->estimate_qps();
-        }
-        if (clients.size() == 0) {
-            return;
-        }
-        if (total_qps == 0) {
-            /* None of the clients did any queries recently. Not all of the
-            tickets will be distributed, but that's OK. */
-            total_qps = 1;
-        }
-        for (client_t *c = clients.head(); c != NULL; c = clients.next(c)) {
-            /* This math isn't exact, but it's OK if the target tickets of all
-            the clients don't add up to `total_tickets`. */
-            c->set_target_tickets(fair_tickets / clients.size() +
-                                  qps_tickets * c->estimate_qps() / total_qps);
-        }
-        redistribute_tickets();
     }
 
     void adjust_total_tickets() {
-        /* If new clients connect, we adapt the total_tickets number, rather than
-           just leaving it at goal_capacity.
-           This serves two purposes:
-           1. It makes sure that when a new client connect, we always have some
-           free_ticket available to give to that client (note that clients here mean
-           cluster nodes, not application clients).
-           Otherwise new clients would have to wait until we send a relinquish_tickets
-           message to one of the existing clients, then wait until that other client
-           returns some of its tickets to us, which we could only then pass on to the
-           newly connected client. The result would be a delay until a new client
-           could actually process any query which we would like to avoid.
-           2. If we have more clients than total_tickets/fair_fraction_denom, we would
-           end up assigning 0 tickets to some clients. Those clients could never
-           process any query. */
-
-        /* So fair_tickets in recompute_allocations() is at least 1 per client. */
-        int per_client_capacity = fair_fraction_denom;
-        int new_total_tickets = goal_capacity + clients.size() * per_client_capacity;
-        /* Note: This can temporarily make free_tickets negative */
-        int diff = new_total_tickets - total_tickets;
-        free_tickets += diff;
-        total_tickets = new_total_tickets;
     }
 
     void return_tickets(int tickets) {
-        free_tickets += tickets;
-        redistribute_tickets();
     }
 
     void redistribute_tickets() {
-        if (free_tickets <= 0 || clients.empty()) {
-            return;
-        }
-
-        const int min_chunk_size = ceil_divide(100, static_cast<int>(clients.size()));
-        const int min_reasonable_tickets = 10;
-
-        {
-            /* We cannot risk a client disconnecting while we are in here. That would
-               invalidate the pointers in tickets_to_give. */
-            ASSERT_NO_CORO_WAITING;
-            std::map<client_t *, int> tickets_to_give;
-
-            /* First, look for clients with a critically low number of tickets.
-               They get priority in tickets. This prevents starvation. */
-            std::vector<client_t *> critical_clients;
-            critical_clients.reserve(clients.size());
-            for (client_t *c = clients.head(); c != NULL; c = clients.next(c)) {
-                if (c->get_current_tickets() < min_reasonable_tickets
-                    && c->get_current_tickets() < c->get_target_tickets()) {
-                    critical_clients.push_back(c);
-                }
-            }
-            /* Distribute the available tickets among critical clients, up to a
-               gift size of `min_reasonable_tickets`. As a consequence of the
-               `ceil_divide()` in here we still set gift_size to 1 even if we don't
-               have enough free tickets to give at least 1 to every critical client.
-               That way we will at least give something to the first couple
-               of clients.*/
-            if (!critical_clients.empty()) {
-                int gift_size_for_critical_clients = std::min(min_reasonable_tickets,
-                        ceil_divide(free_tickets, critical_clients.size()));
-                for (auto itr = critical_clients.begin(); itr != critical_clients.end(); ++itr) {
-                    int tickets_client_actually_wants = std::max(0,
-                        (*itr)->get_target_tickets() - (*itr)->get_current_tickets());
-                    int gift_size = std::min(free_tickets,
-                        std::min(tickets_client_actually_wants, gift_size_for_critical_clients));
-                    free_tickets -= gift_size;
-                    tickets_to_give[*itr] += gift_size;
-                }
-            }
-
-            /* Next, look for clients with a large difference between their target
-               number of tickets and their current number of tickets. But if the
-               difference is less than `min_chunk_size`, don't send any tickets at all
-               to avoid flooding the network with many small ticket updates. */
-            priority_queue_t<std::pair<int, client_t *> > needy_clients;
-            for (client_t *c = clients.head(); c != NULL; c = clients.next(c)) {
-                int need_size = c->get_target_tickets()
-                        - c->get_current_tickets()
-                        - tickets_to_give[c];
-                if (need_size >= min_chunk_size) {
-                    needy_clients.push(std::pair<int, client_t *>(need_size, c));
-                }
-            }
-            while (free_tickets >= min_chunk_size && !needy_clients.empty()) {
-                std::pair<int, client_t *> neediest = needy_clients.pop();
-                free_tickets -= min_chunk_size;
-                tickets_to_give[neediest.second] += min_chunk_size;
-                neediest.first -= min_chunk_size;
-                if (neediest.first >= min_chunk_size) {
-                    /* Re-insert the client so it gets more tickets later */
-                    needy_clients.push(neediest);
-                }
-            }
-
-            /* Now actually send the tickets to the clients */
-            for (auto itr = tickets_to_give.begin(); itr != tickets_to_give.end(); ++itr) {
-                if (itr->second > 0) {
-                    itr->first->give_tickets(itr->second);
-                }
-            }
-        }
     }
 
     mailbox_manager_t *const mailbox_manager;
