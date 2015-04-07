@@ -19,8 +19,10 @@ and forwarding those queries to the `broadcaster_t`. Specifically, the class
 `master_access_t`, which is instantiated by `cluster_namespace_interface_t`,
 sends the queries to the `master_t`.
 
-`master_t` internally contains a `multi_throttling_server_t`, which is
-responsible for throttling queries from the different `master_access_t`s. */
+`master_t` internally contains a `multi_client_server_t`, which is
+responsible for managing clients from the different `master_access_t`s.
+We use it in combination with `master_t::client_t` to ensure the ordering
+of requests that originate from a given client. */
 
 class master_t {
 public:
