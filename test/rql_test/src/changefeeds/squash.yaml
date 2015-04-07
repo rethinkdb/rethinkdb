@@ -46,8 +46,8 @@ tests:
 
     - cd: squash_changes
       ot:
-        cd: ([{'new_val':{'a':1, 'id':100}, 'old_val':null}])
-        rb: ([{'new_val':{'id':100}, 'old_val':null}])
+        js: ([{'new_val':{'a':1, 'id':100}, 'old_val':null}])
+        cd: ([{'new_val':{'id':100}, 'old_val':null}])
 
     # Bad squash values
 
