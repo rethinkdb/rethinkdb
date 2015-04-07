@@ -327,13 +327,3 @@ continue_bool_t store_t::send_backfill(
     return continue_bool_t::CONTINUE;
 }
 
-continue_bool_t store_t::receive_backfill(
-        const region_t &region,
-        backfill_atom_producer_t *atom_producer,
-        signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t) {
-    (void)region;
-    (void)atom_producer;
-    (void)interruptor;
-    crash("not implemented");
-}

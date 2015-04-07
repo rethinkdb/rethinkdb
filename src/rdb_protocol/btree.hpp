@@ -126,6 +126,7 @@ void rdb_set(const store_key_t &key, ql::datum_t data,
 void rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t
                 timestamp, real_superblock_t *superblock,
                 const deletion_context_t *deletion_context,
+                delete_or_erase_t delete_or_erase,
                 point_delete_response_t *response,
                 rdb_modification_info_t *mod_info,
                 profile::trace_t *trace);

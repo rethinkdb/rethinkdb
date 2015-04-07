@@ -66,6 +66,11 @@ public:
         return s;
     }
     void mask_in_place(const key_range_t &m);
+    bool is_single_key() {
+        key_range_t::right_bound_t x(range.left);
+        x.increment();
+        return pairs.size() == 1 && x == range.right;
+    }
     key_range_t range;
     std::vector<pair_t> pairs;
     repli_timestamp_t min_deletion_timestamp;
