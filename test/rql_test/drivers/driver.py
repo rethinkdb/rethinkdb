@@ -360,7 +360,7 @@ class PyTestDriver:
             
             if isinstance(result, r.Cursor):
                 print_debug('Evaluating cursor: %s %r' % (src, runopts))
-                result = [x for x in result]
+                result = list(result)
             
             # - run as a query if it is one
             
