@@ -206,10 +206,15 @@ public:
     class backfill_atom_producer_t {
     public:
         virtual continue_bool_t next_atom(
-            region_map_t<binary_blob_t> *metainfo_out,
             bool *is_atom_out,
             backfill_atom_t *atom_out,
             key_range_t::right_bound_t *edge_out) THROWS_NOTHING = 0;
+
+        /* Returns the metainfo corresponding to the atom stream. The returned pointer
+        may be invalidated if the calling coroutine yields, calls `next_atom()`, or calls
+        `on_commit()`. The metainfo is only guaranteed to be complete up to the
+        right-hand side of the last atom (or edge) returned by `next_atom()`. */
+        virtual const region_map_t<binary_blob_t> *get_metainfo() THROWS_NOTHING = 0;
 
         /* By the time `receive_backfill()` returns, the store must have called
         `on_commit()` with a threshold greater than or equal to the last atom returned

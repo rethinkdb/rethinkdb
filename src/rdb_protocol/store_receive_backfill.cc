@@ -1,5 +1,9 @@
 #include "rdb_protocol/store.hpp"
 
+#include "btree/backfill.hpp"
+#include "btree/reql_specific.hpp"
+#include "rdb_protocol/btree.hpp"
+
 class receive_backfill_info_t {
 public:
     receive_backfill_info_t(cache_conn_t *c, btree_slice_t *s) :
@@ -71,7 +75,7 @@ void apply_atom_pair(
         real_superblock_t *superblock,
         backfill_atom_t::pair_t &&pair,
         std::vector<rdb_modification_report_t> *mod_reports_out,
-        promise_t<superblock_t> *pass_back_superblock) {
+        promise_t<superblock_t *> *pass_back_superblock) {
     rdb_live_deletion_context_t deletion_context;
     mod_reports_out->resize(mod_reports_out->size() + 1);
     mod_reports_out->back().primary_key = pair.key;
@@ -82,12 +86,12 @@ void apply_atom_pair(
         guarantee(res == archive_result_t::SUCCESS);
 
         point_write_response_t dummy_response;
-        rdb_set(pair.key, datum, true, slice, pair.timestamp, superblock,
-            &deletion_context, &dummy_response, &mod_reports_out->back().info,
+        rdb_set(pair.key, datum, true, slice, pair.recency, superblock,
+            &deletion_context, &dummy_response, &mod_reports_out->back().info, nullptr,
             pass_back_superblock);
     } else {
         point_delete_response_t dummy_response;
-        rdb_delete(pair.key, slice, pair.timestamp, superblock,
+        rdb_delete(pair.key, slice, pair.recency, superblock,
             &deletion_context, delete_or_erase_t::ERASE, &dummy_response,
             &mod_reports_out->back().info, nullptr);
         pass_back_superblock->pulse(superblock);
@@ -119,7 +123,7 @@ void apply_single_key_atom(
         tokens.update_metainfo_cb(atom.range.right, superblock.get());
 
         /* Actually apply the change, releasing the superblock in the process. */
-        std::vector<rdb_modification_info_t> mod_reports;
+        std::vector<rdb_modification_report_t> mod_reports;
         apply_atom_pair(tokens.info->slice, superblock.get(),
             std::move(atom.pairs[0]), &mod_reports, nullptr);
 
@@ -152,10 +156,10 @@ void apply_multi_key_atom(
 
         /* It's possible that there are a lot of keys to be deleted, so we might do the
         backfill atom in several chunks. */
-        int next_pair = 0;
-        key_range_t::right_bound_t threshold(atom.range.left)
+        size_t next_pair = 0;
+        key_range_t::right_bound_t threshold(atom.range.left);
         while (threshold != atom.range.right) {
-            std::vector<rdb_modification_info_t> mod_reports;
+            std::vector<rdb_modification_report_t> mod_reports;
 
             /* Acquire the superblock. */
             scoped_ptr_t<txn_t> txn;
@@ -167,7 +171,7 @@ void apply_multi_key_atom(
             /* Delete a chunk of the range. */
             key_range_t range_to_delete = atom.range;
             range_to_delete.left = threshold.key;
-            always_be_true_key_tester_t key_tester;
+            always_true_key_tester_t key_tester;
             key_range_t range_deleted;
             rdb_live_deletion_context_t deletion_context;
             continue_bool_t res = rdb_erase_small_range(tokens.info->slice, &key_tester,
@@ -178,7 +182,7 @@ void apply_multi_key_atom(
             while (next_pair < atom.pairs.size() &&
                     range_deleted.contains_key(atom.pairs[next_pair].key)) {
                 promise_t<superblock_t *> pass_back_superblock;
-                apply_atom_pair(token.info->slice, superblock.get(),
+                apply_atom_pair(tokens.info->slice, superblock.get(),
                     std::move(atom.pairs[next_pair]), &mod_reports,
                     &pass_back_superblock);
                 guarantee(superblock.get() == pass_back_superblock.assert_get_value());
@@ -210,61 +214,63 @@ continue_bool_t store_t::receive_backfill(
         backfill_atom_producer_t *atom_producer,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
-    receive_backfill_info_t info(btree.get(), general_cache_conn.get());
-    auto_drainer_t drainer;
-
-    /* As we go along we'll collect metainfo in `metainfo`. `unapplied_metainfo` is the
-    region of metainfo that's valid but not yet applied to the B-tree. */
-    region_map_t<binary_blob_t> metainfo;
-    region_t unapplied_metainfo = region;
-    unapplied_metainfo.inner.right = key_range_t::right_bound_t(region.left);
+    receive_backfill_info_t info(general_cache_conn.get(), btree.get());
 
     /* Repeatedly request atoms from `atom_producer` and spawn coroutines to handle them,
     but limit the number of simultaneously active coroutines. */
-    key_range_t::right_bound_t threshold(region.inner.left);
+    key_range_t::right_bound_t
+        spawn_threshold(region.inner.left),
+        metainfo_threshold(region.inner.left),
+        commit_threshold(region.inner.left);
     continue_bool_t result = continue_bool_t::CONTINUE;
-    while (threshold != region.right) {
+    while (spawn_threshold != region.inner.right) {
         receive_backfill_tokens_t tokens(&info, interruptor);
 
-        region_map_t<binary_blob_t> metainfo_part;
         bool is_atom;
         backfill_atom_t atom;
         key_range_t::right_bound_t edge;
-        if (continue_bool_t::ABORT ==
-                atom_producer->next_atom(&metainfo, &is_atom, &atom, &edge)) {
+        if (continue_bool_t::ABORT == atom_producer->next_atom(&is_atom, &atom, &edge)) {
+            /* By breaking out of the loop instead of returning immediately, we ensure
+            that we commit every atom that we got from the atom producer, as we are
+            required to. */
             result = continue_bool_t::ABORT;
             break;
         }
-        metainfo.concat(std::move(metainfo_part));
 
         if (is_atom) {
-            unapplied_metainfo.inner.right = threshold = atom.get_range().right;
+            spawn_threshold = atom.get_range().right;
         } else {
-            unapplied_metainfo.inner.right = threshold = edge;
+            spawn_threshold = edge;
         }
 
         /* The `apply_*()` functions will call back to `update_metainfo_cb` when they
         want to apply the metainfo to the superblock. They may make multiple calls, but
         the last call will have `progress` equal to `atom.get_range().right`. */
-        tokens.update_metainfo_cb = [this, &unapplied_metainfo, &metainfo](
+        tokens.update_metainfo_cb = [this, &region, &metainfo_threshold, &atom_producer](
                 const key_range_t::right_bound_t &progress,
                 real_superblock_t *superblock) {
             /* Compute the section of metainfo we're applying */
-            region_t mask = unapplied_metainfo;
-            rassert(progress <= unapplied_metainfo.inner.right);
+            guarantee(progress >= metainfo_threshold);
+            if (progress == metainfo_threshold) {
+                /* This is a no-op */
+                return;
+            }
+            region_t mask = region;
+            mask.inner.left = metainfo_threshold.key;
             mask.inner.right = progress;
-            unapplied_metainfo.inner.left = progress.key;
+            metainfo_threshold = progress;
 
             /* Actually apply the metainfo */
             region_map_t<binary_blob_t> old_metainfo;
-            get_metainfo_internal(sb->get(), &old_metainfo);
-            update_metainfo(old_metainfo, metainfo.mask(mask), superblock.get());
+            get_metainfo_internal(superblock->get(), &old_metainfo);
+            update_metainfo(
+                old_metainfo, atom_producer->get_metainfo()->mask(mask), superblock);
         };
 
         /* The `apply_*()` functions will call back to `commit_cb` when they're done
         applying the changes for a given sub-region. They may make multiple calls, but
         the last call will have `progress` equal to `atom.get_range().right`. */
-        tokens.commit_cb = [this, atom_producer, &unapplied_metainfo, &metainfo](
+        tokens.commit_cb = [this, atom_producer, &commit_threshold](
                 const key_range_t::right_bound_t &progress,
                 scoped_ptr_t<txn_t> &&txn,
                 buf_lock_t &&sindex_block,
@@ -276,6 +282,13 @@ continue_bool_t store_t::receive_backfill(
 
             /* End the transaction and notify that we've made progress */
             txn.reset();
+            guarantee(progress >= commit_threshold);
+            if (progress == commit_threshold) {
+                /* This is a no-op */
+                guarantee(mod_reports.empty());
+                return;
+            }
+            commit_threshold = progress;
             atom_producer->on_commit(progress);
         };
 
@@ -297,6 +310,9 @@ continue_bool_t store_t::receive_backfill(
     fifo_enforcer_sink_t::exit_write_t exiter(
         &info.commit_fifo_sink, info.fifo_source.enter_write());
     wait_interruptible(&exiter, interruptor);
+
+    guarantee(metainfo_threshold == region.inner.right);
+    guarantee(commit_threshold == region.inner.right);
 
     return result;
 }

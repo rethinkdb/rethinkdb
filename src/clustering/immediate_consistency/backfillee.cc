@@ -62,16 +62,17 @@ private:
                 public:
                     producer_t(session_t *_parent) : parent(_parent) { }
                     continue_bool_t next_atom(
-                            region_map_t<binary_blob_t> const **metainfo_out,
-                            backfill_atom_t const **atom_out,
+                            bool *is_atom_out,
+                            backfill_atom_t *atom_out,
                             key_range_t::right_bound_t *edge_out) THROWS_NOTHING {
-                        *metainfo_out = &parent->metainfo_binary;
                         if (!parent->atoms.empty()) {
-                            *atom_out = &parent->atoms.front();
+                            *is_atom_out = true;
+                            *atom_out = parent->atoms.front();
+                            parent->atoms.pop_front();
                             return continue_bool_t::CONTINUE;
                         } else if (parent->atoms.get_left_key() <=
                                 parent->atoms.get_right_key()) {
-                            *atom_out = nullptr;
+                            *is_atom_out = false;
                             *edge_out = parent->atoms.get_right_key();
                             parent->atoms.delete_to_key(*edge_out);
                             return continue_bool_t::CONTINUE;
@@ -80,8 +81,8 @@ private:
                             return continue_bool_t::ABORT;
                         }
                     }
-                    void release_atom() THROWS_NOTHING{
-                        parent->atoms.pop_front();
+                    const region_map_t<binary_blob_t> *get_metainfo() THROWS_NOTHING {
+                        return &parent->metainfo_binary;
                     }
                     void on_commit(const key_range_t::right_bound_t &new_threshold)
                             THROWS_NOTHING {

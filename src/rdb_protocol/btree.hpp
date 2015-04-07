@@ -15,6 +15,7 @@
 #include "rdb_protocol/store.hpp"
 
 class btree_slice_t;
+enum class delete_or_erase_t;
 class deletion_context_t;
 class key_tester_t;
 class parallel_traversal_progress_t;

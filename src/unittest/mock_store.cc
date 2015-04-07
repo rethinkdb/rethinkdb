@@ -432,21 +432,29 @@ continue_bool_t mock_store_t::receive_backfill(
         }
 
         /* Fetch the next atom from the producer */
-        region_map_t<binary_blob_t> const *atom_metainfo;
-        backfill_atom_t const *atom;
+        bool is_atom;
+        backfill_atom_t atom;
         key_range_t::right_bound_t edge;
-        if (continue_bool_t::ABORT ==
-                atom_producer->next_atom(&atom_metainfo, &atom, &edge)) {
+        if (continue_bool_t::ABORT == atom_producer->next_atom(&is_atom, &atom, &edge)) {
             return continue_bool_t::ABORT;
         }
 
         region_t metainfo_mask = region;
         metainfo_mask.inner.left = cursor.key;
 
-        if (atom != nullptr) {
-            guarantee(key_range_t::right_bound_t(atom->range.left) >= cursor);
-            cursor = atom->range.right;
-            for (const auto &pair : atom->pairs) {
+        if (is_atom) {
+            guarantee(key_range_t::right_bound_t(atom.range.left) >= cursor);
+            cursor = atom.range.right;
+
+            /* Delete any existing key-value pairs in the range */
+            auto end = atom.range.right.unbounded
+                    ? table_.end() : table_.lower_bound(atom.range.right.key);
+            for (auto it = table_.lower_bound(atom.range.left); it != end;) {
+                table_.erase(it++);
+            }
+
+            /* Insert key-value pairs that were stored in the atom */
+            for (const auto &pair : atom.pairs) {
                 guarantee(static_cast<bool>(pair.value));
                 table_[pair.key] = std::make_pair(
                     pair.recency, vector_to_datum(std::vector<char>(*pair.value)));
@@ -456,11 +464,7 @@ continue_bool_t mock_store_t::receive_backfill(
         }
 
         metainfo_mask.inner.right = cursor;
-        metainfo_.update(atom_metainfo->mask(metainfo_mask));
-
-        if (atom != nullptr) {
-            atom_producer->release_atom();
-        }
+        metainfo_.update(atom_producer->get_metainfo()->mask(metainfo_mask));
 
         atom_producer->on_commit(cursor);
     }
