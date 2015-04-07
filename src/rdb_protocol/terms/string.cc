@@ -136,9 +136,9 @@ public:
     split_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1, 3)) { }
 private:
-    std::vector<datum_t> &&utf8_aware_split(const std::string &s,
-                                           const boost::optional<std::string> &delim,
-                                           size_t maxnum) const {
+    std::vector<datum_t> utf8_aware_split(const std::string &s,
+                                          const boost::optional<std::string> &delim,
+                                          size_t maxnum) const {
         const bool is_delim_empty = (delim && delim->size() == 0);
         std::vector<datum_t> res;
         std::string::const_iterator current = s.cbegin();
@@ -193,7 +193,7 @@ private:
                 }
             }
         }
-        return std::move(res);
+        return res;
     }
     std::vector<datum_t> &&old_split(const std::string &s,
                                     const boost::optional<std::string> &delim,
