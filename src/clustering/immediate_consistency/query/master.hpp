@@ -7,7 +7,7 @@
 #include <string>
 #include <utility>
 
-#include "clustering/generic/multi_throttling_server.hpp"
+#include "clustering/generic/multi_client_server.hpp"
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/query/master_metadata.hpp"
 
@@ -56,12 +56,12 @@ private:
     /* See note in `client_t::perform_request()` for what this is about */
     cond_t shutdown_cond;
 
-    multi_throttling_server_t<
+    multi_client_server_t<
             master_business_card_t::request_t,
             master_business_card_t::inner_client_business_card_t,
             master_t *,
             client_t
-            > multi_throttling_server;
+            > multi_client_server;
 
     DISABLE_COPYING(master_t);
 };

@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_MASTER_METADATA_HPP_
 #define CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_MASTER_METADATA_HPP_
 
@@ -7,7 +7,7 @@
 #include "errors.hpp"
 #include <boost/variant.hpp>
 
-#include "clustering/generic/multi_throttling_metadata.hpp"
+#include "clustering/generic/multi_client_metadata.hpp"
 #include "clustering/generic/registration_metadata.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/fifo_enforcer.hpp"
@@ -58,14 +58,16 @@ public:
 
     master_business_card_t() { }
     master_business_card_t(const region_t &r,
-                           const multi_throttling_business_card_t<request_t, inner_client_business_card_t> &mt)
-        : region(r), multi_throttling(mt) { }
+                           const multi_client_business_card_t<
+                               request_t,
+                               inner_client_business_card_t> &mc)
+        : region(r), multi_client(mc) { }
 
     /* The region that this master covers */
     region_t region;
 
     /* Contact info for the master itself */
-    multi_throttling_business_card_t<request_t, inner_client_business_card_t> multi_throttling;
+    multi_client_business_card_t<request_t, inner_client_business_card_t> multi_client;
 };
 
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(master_business_card_t::read_request_t);
