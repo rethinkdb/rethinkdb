@@ -628,7 +628,7 @@ class NextWithTimeout(threading.Thread):
                 continue
             try:
                 self.latestResult = next(self.feed)
-                time.sleep(.5)
+                time.sleep(.05)
             except Exception as e:
                 self.latestResult = e
                 if not self.stopOnEmpty:
