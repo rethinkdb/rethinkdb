@@ -32,11 +32,7 @@ public:
     }
 
 private:
-    static const int reallocate_interval_ms = 1000;
-    static const int fair_fraction_denom = 5;
-
-    class client_t :
-            public intrusive_list_node_t<client_t> {
+    class client_t : public intrusive_list_node_t<client_t> {
     public:
         client_t(multi_client_server_t *p,
                 const client_business_card_t &client_bc) :
