@@ -206,10 +206,32 @@ public:
         for (state_t::iterator it = values_inserted->begin();
                                it != values_inserted->end();
                                it++) {
-            cond_t interruptor;
-            std::string response = rfun(it->first, osource->check_in(strprintf("mock::test_inserter_t::validate(%p)", this)).with_read_mode(), &interruptor);
+            cond_t non_interruptor;
+            std::string response = rfun(
+                it->first,
+                osource->check_in(strprintf("mock::test_inserter_t::validate(%p)", this))
+                    .with_read_mode(),
+                &non_interruptor);
             guarantee(it->second == response, "For key `%s`: expected `%s`, got `%s`\n",
                 it->first.c_str(), it->second.c_str(), response.c_str());
+        }
+    }
+
+    /* `validate_no_extras()` makes sure that no keys from `extras` are present that are
+    not supposed to be present. It complements `validate`, which only checks for the
+    existence of keys that are supposed to exist. */
+    void validate_no_extras(const std::map<std::string, std::string> &extras) {
+        for (const auto &pair : extras) {
+            auto it = values_inserted->find(pair.first);
+            std::string expect = it != values_inserted->end() ? it->second : "";
+            cond_t non_interruptor;
+            std::string actual = rfun(
+                pair.first,
+                osource->check_in(strprintf("mock::test_inserter_t::validate(%p)", this))
+                    .with_read_mode(),
+                &non_interruptor);
+            guarantee(expect == actual, "For key `%s`: expected `%s`, got `%s`\n",
+                pair.first.c_str(), expect.c_str(), actual.c_str());
         }
     }
 
@@ -222,16 +244,20 @@ private:
     DISABLE_COPYING(test_inserter_t);
 };
 
-inline std::string dummy_key_gen() {
-    return std::string(1, 'a' + randint(26));
-}
-
-inline std::string mc_key_gen() {
+inline std::string alpha_key_gen(int len) {
     std::string key;
-    for (int j = 0; j < 100; j++) {
+    for (int j = 0; j < len; j++) {
         key.push_back('a' + randint(26));
     }
     return key;
+}
+
+inline std::string dummy_key_gen() {
+    return alpha_key_gen(1);
+}
+
+inline std::string mc_key_gen() {
+    return alpha_key_gen(100);
 }
 
 peer_address_t get_cluster_local_address(connectivity_cluster_t *cm);

@@ -129,7 +129,7 @@ public:
                 } else {
                     break;
                 }
-                if (parent->buffer_future.front().range.right < range.right) {
+                if (parent->buffer_future.front().range.right <= range.right) {
                     parent->buffer_past.splice(parent->buffer_past.end(),
                         parent->buffer_future, parent->buffer_future.begin());
                 } else {

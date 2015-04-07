@@ -376,6 +376,9 @@ private:
             continue_bool_t cont =
                 pre_atom_producer->consume_range(left_excl_or_null, right_incl,
                     [&](const backfill_pre_atom_t &pre_atom) {
+                        rassert(atoms_from_pre.empty() ||
+                            key_range_t::right_bound_t(pre_atom.range.left) >=
+                                atoms_from_pre.back().range.right);
                         backfill_atom_t atom;
                         atom.range = pre_atom.range.intersection(leaf_range);
                         atom.min_deletion_timestamp = min_deletion_timestamp;
@@ -421,7 +424,7 @@ private:
                             break;
                         }
                     }
-                    if (atom != nullptr) {
+                    if (atom == nullptr) {
                         /* We didn't find an atom in `atoms_from_pre`. */
                         if (timestamp > reference_timestamp) {
                             /* We should create a new atom for this key-value pair */

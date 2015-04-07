@@ -1520,8 +1520,8 @@ continue_bool_t visit_entries(
             const void *value   /* null for deletion */
             )> &cb) {
     repli_timestamp_t earliest_so_far = maximum_possible_timestamp;
-    entry_iter_t iter = entry_iter_t::make(node);
-    while (!iter.done(sizer)) {
+    for (entry_iter_t iter = entry_iter_t::make(node);
+            !iter.done(sizer); iter.step(sizer, node)) {
         repli_timestamp_t tstamp;
         if (iter.offset < node->tstamp_cutpoint) {
             tstamp = get_timestamp(node, iter.offset);
@@ -1535,15 +1535,15 @@ continue_bool_t visit_entries(
         const void *value;
         if (entry_is_live(ent)) {
             value = entry_value(ent);
-        } else {
+        } else if (entry_is_deletion(ent)) {
             value = nullptr;
+        } else {
+            continue;
         }
 
         if (continue_bool_t::ABORT == cb(entry_key(ent), tstamp, value)) {
             return continue_bool_t::ABORT;
         }
-
-        iter.step(sizer, node);
     }
     return continue_bool_t::CONTINUE;
 }
