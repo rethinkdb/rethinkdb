@@ -235,7 +235,7 @@ continue_bool_t mock_store_t::send_backfill_pre(
     while (true) {
         /* Randomly block in order to more effectively test the code */
         if (rng_.randint(2) == 0) {
-            nap(rng_.randint(10), interruptor);
+            nap(rng_.randint(100), interruptor);
         }
         auto it = table_.lower_bound(cursor);
         if (it == table_.end() || key_range_t::right_bound_t(it->first) >= right_bound) {
@@ -332,7 +332,7 @@ continue_bool_t mock_store_t::send_backfill(
     while (table_cursor < right_bound) {
         /* Randomly block in order to more effectively test the code */
         if (rng_.randint(2) == 0) {
-            nap(rng_.randint(10), interruptor);
+            nap(rng_.randint(100), interruptor);
         }
 
         /* On each iteration through the loop, we emit at most one atom. There are two
@@ -428,7 +428,7 @@ continue_bool_t mock_store_t::receive_backfill(
     while (cursor < region.inner.right) {
         /* Introduce a random delay to test more code paths */
         if (rng_.randint(2) == 0) {
-            nap(rng_.randint(10), interruptor);
+            nap(rng_.randint(100), interruptor);
         }
 
         /* Fetch the next atom from the producer */
