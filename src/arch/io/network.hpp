@@ -344,7 +344,7 @@ protected:
     friend class linux_tcp_listener_t;
     friend class linux_tcp_bound_socket_t;
 
-    MUST_USE bool bind_sockets();
+    void bind_sockets();
 
     // The callback to call when we get a connection
     std::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t> &)> callback;
@@ -352,7 +352,6 @@ protected:
 private:
     static const uint32_t MAX_BIND_ATTEMPTS = 20;
     int init_sockets();
-    bool bind_sockets_internal(int *port_out);
 
     /* accept_loop() runs in a separate coroutine. It repeatedly tries to accept
     new connections; when accept() blocks, then it waits for events from the
