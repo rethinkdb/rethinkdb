@@ -61,7 +61,7 @@ ql::datum_t convert_debug_region_to_datum(
     builder.overwrite("key_max",
         region.inner.right.unbounded
             ? ql::datum_t::null()
-            : convert_debug_store_key_to_datum(region.inner.right.key));
+            : convert_debug_store_key_to_datum(region.inner.right.key()));
     return std::move(builder).to_datum();
 }
 

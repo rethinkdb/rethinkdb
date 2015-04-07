@@ -247,7 +247,7 @@ remote_replicator_client_t::remote_replicator_client_t(
         if (region_queueing_.inner.right.unbounded) {
             region_discarding_ = region_t::empty();
         } else {
-            region_discarding_.inner.left = region_queueing_.inner.right.key;
+            region_discarding_.inner.left = region_queueing_.inner.right.key();
             region_discarding_.inner.right = store->get_region().inner.right;
         }
 

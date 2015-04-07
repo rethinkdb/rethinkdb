@@ -145,7 +145,7 @@ continue_bool_t rdb_erase_small_range(
           // gets deleted.
         guarantee(pass_back_superblock_promise.wait() == superblock);
 
-        guarantee(key >= deleted_out->right.key);
+        guarantee(key >= deleted_out->right.key());
         *deleted_out = key_range_t(key_range_t::closed, key_range.left,
                                    key_range_t::closed, key);
 

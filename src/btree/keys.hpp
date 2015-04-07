@@ -211,21 +211,39 @@ struct key_range_t {
     greater than or equal to `left` and less than `right.key`. */
     struct right_bound_t {
         right_bound_t() : unbounded(true) { }
-        explicit right_bound_t(store_key_t k) : unbounded(false), key(k) { }
+
+        explicit right_bound_t(store_key_t k) : unbounded(false), internal_key(k) { }
+        static right_bound_t make_unbounded() {
+            right_bound_t rb;
+            rb.unbounded = true;
+            return rb;
+        }
 
         bool increment() {
             if (unbounded) {
                 return false;
             } else {
-                if (!key.increment()) {
+                if (!internal_key.increment()) {
                     unbounded = true;
                 }
                 return true;
             }
         }
 
+        store_key_t &key() {
+            rassert(!unbounded);
+            return internal_key;
+        }
+        const store_key_t &key() const {
+            rassert(!unbounded);
+            return internal_key;
+        }
+
         bool unbounded;
-        store_key_t key;
+
+        /* This is meaningless if `unbounded` is true. Usually you should call `key()`
+        instead of accessing this directly. */
+        store_key_t internal_key;
     };
 
     enum bound_t {
@@ -242,8 +260,8 @@ struct key_range_t {
 
     explicit key_range_t(const btree_key_t *key) {
         left.assign(key);
-        right.key.assign(key);
         right.unbounded = false;
+        right.key().assign(key);
         bool ok = right.increment();
         guarantee(ok);
     }
@@ -274,20 +292,21 @@ struct key_range_t {
         if (right.unbounded) {
             return false;
         } else {
-            rassert(left <= right.key);
-            return left == right.key;
+            rassert(left <= right.key());
+            return left == right.key();
         }
     }
 
     bool contains_key(const store_key_t& key) const {
         bool left_ok = left <= key;
-        bool right_ok = right.unbounded || key < right.key;
+        bool right_ok = right.unbounded || key < right.key();
         return left_ok && right_ok;
     }
 
     bool contains_key(const uint8_t *key, uint8_t size) const {
         bool left_ok = sized_strcmp(left.contents(), left.size(), key, size) <= 0;
-        bool right_ok = right.unbounded || sized_strcmp(key, size, right.key.contents(), right.key.size()) < 0;
+        bool right_ok = right.unbounded ||
+            sized_strcmp(key, size, right.key().contents(), right.key().size()) < 0;
         return left_ok && right_ok;
     }
 

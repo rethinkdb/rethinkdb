@@ -51,7 +51,7 @@ const store_key_t *double_key_lookup(int i, const std::vector<hash_region_t<key_
         if (r->inner.right.unbounded) {
             return NULL;
         } else {
-            return &r->inner.right.key;
+            return &r->inner.right.key();
         }
     }
 }

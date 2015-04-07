@@ -73,7 +73,7 @@ continue_bool_t store_t::send_backfill_pre(
 
             rdb_value_sizer_t sizer(cache->max_block_size());
             key_range_t to_do = pair.first;
-            to_do.left = threshold.key;
+            to_do.left = threshold.key();
             continue_bool_t cont = btree_send_backfill_pre(sb.get(),
                 release_superblock_t::RELEASE, &sizer, to_do, pair.second, &limiter,
                 interruptor);
@@ -316,7 +316,7 @@ continue_bool_t store_t::send_backfill(
 
             rdb_value_sizer_t sizer(cache->max_block_size());
             key_range_t to_do = pair.first;
-            to_do.left = threshold.key;
+            to_do.left = threshold.key();
             continue_bool_t cont = btree_send_backfill(sb.get(),
                 release_superblock_t::RELEASE, &sizer, to_do, pair.second,
                 &buffered_producer, &limiter, interruptor);

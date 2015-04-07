@@ -54,7 +54,7 @@ private:
                 /* Set up a `region_t` describing the range that still needs to be
                 backfilled */
                 region_t subregion = parent->store->get_region();
-                subregion.inner.left = threshold.key;
+                subregion.inner.left = threshold.key();
 
                 /* Copy atoms from `atoms` into the store until we finish the backfill
                 range or we run out of atoms */
@@ -88,7 +88,7 @@ private:
                             THROWS_NOTHING {
                         if (!parent->callback_returned_false.is_pulsed()) {
                             region_t mask = parent->parent->store->get_region();
-                            mask.inner.left = parent->threshold.key;
+                            mask.inner.left = parent->threshold.key();
                             mask.inner.right = new_threshold;
                             if (!parent->callback->on_progress(
                                     parent->metainfo.mask(mask))) {
@@ -253,7 +253,7 @@ void backfillee_t::send_pre_atoms(auto_drainer_t::lock_t keepalive) {
             /* Set up a `region_t` describing the range that still needs to be
             backfilled */
             region_t subregion = store->get_region();
-            subregion.inner.left = pre_atom_sent_threshold.key;
+            subregion.inner.left = pre_atom_sent_threshold.key();
 
             /* Copy pre-atoms from the store into `chunk ` until the total size hits
             `PRE_ATOM_CHUNK_SIZE` or we finish the range */

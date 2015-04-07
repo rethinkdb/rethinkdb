@@ -170,7 +170,7 @@ void apply_multi_key_atom(
 
             /* Delete a chunk of the range. */
             key_range_t range_to_delete = atom.range;
-            range_to_delete.left = threshold.key;
+            range_to_delete.left = threshold.key();
             always_true_key_tester_t key_tester;
             key_range_t range_deleted;
             rdb_live_deletion_context_t deletion_context;
@@ -256,7 +256,7 @@ continue_bool_t store_t::receive_backfill(
                 return;
             }
             region_t mask = region;
-            mask.inner.left = metainfo_threshold.key;
+            mask.inner.left = metainfo_threshold.key();
             mask.inner.right = progress;
             metainfo_threshold = progress;
 

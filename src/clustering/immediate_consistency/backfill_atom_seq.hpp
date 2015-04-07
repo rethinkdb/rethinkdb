@@ -28,7 +28,7 @@ public:
             return region_t::empty();
         } else {
             key_range_t kr;
-            kr.left = left_key.key;
+            kr.left = left_key.key();
             kr.right = right_key;
             return region_t(beg_hash, end_hash, kr);
         }
@@ -74,7 +74,7 @@ public:
             } else if (key_range_t::right_bound_t(range.left) >= cut) {
                 break;
             } else {
-                range.left = cut.key;
+                range.left = cut.key();
                 mem_size -= atoms.front().get_mem_size();
                 atoms.front().mask_in_place(range);
                 mem_size += atoms.front().get_mem_size();

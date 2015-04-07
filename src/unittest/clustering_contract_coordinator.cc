@@ -69,7 +69,7 @@ public:
             key_range_t range = quick_range(qs.quick_range_spec);
             guarantee(key_range_t::right_bound_t(range.left) == prev_right);
             if (!range.right.unbounded) {
-                cs.shard_scheme.split_points.push_back(range.right.key);
+                cs.shard_scheme.split_points.push_back(range.right.key());
             }
             prev_right = range.right;
         }

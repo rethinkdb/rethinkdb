@@ -613,7 +613,7 @@ rget_cb_t::rget_cb_t(rget_io_data_t &&_io,
       bad_init(false) {
     io.response->last_key = !reversed(job.sorting)
         ? range.left
-        : (!range.right.unbounded ? range.right.key : store_key_t::max());
+        : (!range.right.unbounded ? range.right.key() : store_key_t::max());
     disabler.init(new profile::disabler_t(job.env->trace));
     sampler.init(new profile::sampler_t("Range traversal doc evaluation.",
                                         job.env->trace));

@@ -85,7 +85,7 @@ continue_bool_t btree_depth_first_traversal(
         if (range.right.unbounded) {
             right_incl_buf = store_key_t::max();
         } else {
-            right_incl_buf = range.right.key;
+            right_incl_buf = range.right.key();
             bool ok = right_incl_buf.decrement();
             guarantee(ok, "this is impossible because we checked range is not empty");
         }
@@ -152,7 +152,7 @@ continue_bool_t btree_depth_first_traversal(
         if (range.right.unbounded) {
             end_index = inode->npairs;
         } else {
-            store_key_t r = range.right.key;
+            store_key_t r = range.right.key();
             r.decrement();
             end_index = internal_node::get_offset_index(inode, r.btree_key()) + 1;
         }
@@ -204,7 +204,7 @@ continue_bool_t btree_depth_first_traversal(
                 key = (*it).first;
                 // range.right is exclusive
                 if (!range.right.unbounded &&
-                    btree_key_cmp(key, range.right.key.btree_key()) >= 0) {
+                    btree_key_cmp(key, range.right.key().btree_key()) >= 0) {
                     break;
                 }
                 if (continue_bool_t::ABORT == cb->handle_pair(scoped_key_value_t(
@@ -218,7 +218,7 @@ continue_bool_t btree_depth_first_traversal(
             if (range.right.unbounded) {
                 it = leaf::rbegin(*lnode);
             } else {
-                it = leaf::exclusive_upper_bound(range.right.key.btree_key(), *lnode);
+                it = leaf::exclusive_upper_bound(range.right.key().btree_key(), *lnode);
             }
             for (/* assignment above */; it != leaf::rend(*lnode); ++it) {
                 key = (*it).first;

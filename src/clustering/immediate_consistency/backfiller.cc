@@ -104,7 +104,7 @@ private:
                 /* Set up a `region_t` describing the range that still needs to be
                 backfilled */
                 region_t subregion = parent->full_region;
-                subregion.inner.left = threshold.key;
+                subregion.inner.left = threshold.key();
 
                 /* Copy atoms from the store into `callback_t::atoms` until the total size
                 hits `ATOM_CHUNK_SIZE`; we finish the backfill range; or we run out of
@@ -171,7 +171,7 @@ private:
                             rassert(!atom.range.is_empty());
                             region_t mask(chunk->get_beg_hash(), chunk->get_end_hash(),
                                 atom.get_range());
-                            mask.inner.left = chunk->get_right_key().key;
+                            mask.inner.left = chunk->get_right_key().key();
                             metainfo->concat(to_version_map(atom_metainfo.mask(mask)));
                             chunk->push_back(std::move(atom));
                             if (chunk->get_mem_size() < ATOM_CHUNK_SIZE) {
@@ -192,7 +192,7 @@ private:
                             region_t mask;
                             mask.beg = chunk->get_beg_hash();
                             mask.end = chunk->get_end_hash();
-                            mask.inner.left = chunk->get_right_key().key;
+                            mask.inner.left = chunk->get_right_key().key();
                             mask.inner.right = new_threshold;
                             metainfo->concat(to_version_map(range_metainfo.mask(mask)));
                             chunk->push_back_nothing(new_threshold);

@@ -26,8 +26,8 @@ void backfill_atom_t::mask_in_place(const key_range_t &m) {
 
 key_range_t::right_bound_t convert_right_bound(const btree_key_t *right_incl) {
     key_range_t::right_bound_t rb;
-    rb.key.assign(right_incl);
     rb.unbounded = false;
+    rb.key().assign(right_incl);
     bool ok = rb.increment();
     guarantee(ok);
     return rb;

@@ -343,7 +343,7 @@ continue_bool_t mock_store_t::send_backfill(
         if the stored pre atom comes before that key. If the stored pre atom comes before
         that key, we handle that pre atom. Otherwise, we handle that next key. */
 
-        auto it = table_.lower_bound(table_cursor.key);
+        auto it = table_.lower_bound(table_cursor.key());
         if (it != table_.end() && key_range_t::right_bound_t(it->first) >= right_bound) {
             it = table_.end();
         }
@@ -359,7 +359,7 @@ continue_bool_t mock_store_t::send_backfill(
                 `start_point`. */
                 auto jt = table_.lower_bound(atom.range.left);
                 auto end = atom.range.right.unbounded
-                    ? table_.end() : table_.upper_bound(atom.range.right.key);
+                    ? table_.end() : table_.upper_bound(atom.range.right.key());
                 for (; jt != end; ++jt) {
                     backfill_atom_t::pair_t pair;
                     pair.key = jt->first;
@@ -408,9 +408,8 @@ continue_bool_t mock_store_t::send_backfill(
                 }
             }
             table_cursor = key_range_t::right_bound_t(it->first);
-            if (!table_cursor.key.increment()) {
-                table_cursor.unbounded = true;
-            }
+            bool ok = table_cursor.increment();
+            guarantee(ok);
         }
     }
     if (rng_.randint(2) == 0) {
@@ -440,7 +439,7 @@ continue_bool_t mock_store_t::receive_backfill(
         }
 
         region_t metainfo_mask = region;
-        metainfo_mask.inner.left = cursor.key;
+        metainfo_mask.inner.left = cursor.key();
 
         if (is_atom) {
             guarantee(key_range_t::right_bound_t(atom.range.left) >= cursor);
@@ -448,7 +447,7 @@ continue_bool_t mock_store_t::receive_backfill(
 
             /* Delete any existing key-value pairs in the range */
             auto end = atom.range.right.unbounded
-                    ? table_.end() : table_.lower_bound(atom.range.right.key);
+                    ? table_.end() : table_.lower_bound(atom.range.right.key());
             for (auto it = table_.lower_bound(atom.range.left); it != end;) {
                 table_.erase(it++);
             }
