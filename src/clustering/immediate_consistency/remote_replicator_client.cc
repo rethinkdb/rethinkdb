@@ -41,6 +41,11 @@ public:
     /* If a write's timestamp is greater than `get_max_timestamp()`, there's no need for
     it to pass through `clip_write()`. */
     state_timestamp_t get_max_timestamp() const {
+        debugf_print("get_max_timestamp()", max_timestamp);
+        for (const auto &pair : steps) {
+            debugf_print("key", pair.first);
+            debugf_print("value", pair.second);
+        }
         return max_timestamp;
     }
 
@@ -84,9 +89,13 @@ public:
                 key_range_t::right_bound_t(next.region.inner.left));
             region.inner.right = next.region.inner.right;
             guarantee(steps.back().second <= next.steps.front().second);
+            auto begin = next.steps.begin();
+            if (steps.back().second == next.steps.front().second) {
+                ++begin;
+            }
             steps.insert(
                 steps.end(),
-                std::make_move_iterator(next.steps.begin()),
+                std::make_move_iterator(begin),
                 std::make_move_iterator(next.steps.end()));
             max_timestamp = std::max(max_timestamp, next.max_timestamp);
         }
@@ -129,6 +138,7 @@ remote_replicator_client_t::remote_replicator_client_t(
         std::bind(&remote_replicator_client_t::on_read, this,
             ph::_1, ph::_2, ph::_3, ph::_4))
 {
+    debugf("begin remote_replicator_client_t constructor\n");
     /* Initially, the streaming and queueing regions are empty, and the discarding region
     is the entire key-space. */
     region_streaming_ = region_queueing_ = region_discarding_ = store->get_region();
@@ -142,6 +152,8 @@ remote_replicator_client_t::remote_replicator_client_t(
             mailbox_manager,
             [&](signal_t *, const remote_replicator_client_intro_t &i) {
                 intro = i;
+                debugf_print("streaming_begin_timestamp",
+                    intro.streaming_begin_timestamp);
                 timestamp_enforcer_.init(new timestamp_enforcer_t(
                     intro.streaming_begin_timestamp));
                 registered_.pulse();
@@ -167,7 +179,9 @@ remote_replicator_client_t::remote_replicator_client_t(
     `queue_fun_`, and `replica_`, and for the last stage of draining the queue. */
     scoped_ptr_t<rwlock_acq_t> rwlock_acq(
         new rwlock_acq_t(&rwlock_, access_t::write, interruptor));
-        
+
+    debugf("entering loop\n");
+
     while (region_streaming_.inner.right != store->get_region().inner.right) {
         /* Previously we were streaming some sub-range and discarding the rest. Here we
         leave the streaming region as it was but we start queueing the region we were
@@ -198,6 +212,7 @@ remote_replicator_client_t::remote_replicator_client_t(
                 backfill_start_timestamp, ack_mbox.get_address());
             wait_interruptible(&backfiller_is_up_to_date, interruptor);
         }
+        debugf("made sure backfiller is up to date\n");
 
         /* Backfill in lexicographical order until the queue hits a certain size */
         class callback_t : public backfillee_t::callback_t {
@@ -224,12 +239,14 @@ remote_replicator_client_t::remote_replicator_client_t(
             &callback,
             key_range_t::right_bound_t(region_queueing_.inner.left),
             interruptor);
+        debugf("backfilled\n");
 
         /* Wait until we've queued writes at least up to the latest point where the
         backfill left us. This ensures that it will be safe to ignore
         `backfill_end_timestamps` once we finish when draining the queue. */
         timestamp_enforcer_->wait_all_before(
             callback.backfill_end_timestamps.get_max_timestamp(), interruptor);
+        debugf("waited for queued writes\n");
 
         rwlock_acq.init(new rwlock_acq_t(&rwlock_, access_t::write, interruptor));
 
@@ -293,6 +310,7 @@ remote_replicator_client_t::remote_replicator_client_t(
             interruptor);
         guarantee(rwlock_acq.has());
         guarantee(queue.empty());
+        debugf("drained queue\n");
 
         /* Now that the queue has completely drained, we're going to go back to allowing
         async writes to run without any throttling. So we should release any remaining
@@ -310,6 +328,7 @@ remote_replicator_client_t::remote_replicator_client_t(
         region_streaming_.inner.right = region_queueing_.inner.right;
         region_queueing_.inner = key_range_t::empty();
     }
+    debugf("loop is over\n");
 
 #ifndef NDEBUG
     {
@@ -337,6 +356,7 @@ remote_replicator_client_t::remote_replicator_client_t(
     /* Now that we're completely up-to-date, tell the primary that it's OK to send us
     reads and synchronous writes */
     send(mailbox_manager, intro.ready_mailbox);
+    debugf("end remote_replicator_client_t constructor\n");
 }
 
 void remote_replicator_client_t::drain_stream_queue(
@@ -367,7 +387,9 @@ void remote_replicator_client_t::drain_stream_queue(
 
         scoped_ptr_t<queue_entry_t> entry(new queue_entry_t(queue->front()));
         queue->pop();
-        bets.clip_write(&entry->write, entry->timestamp);
+        if (!bets.clip_write(&entry->write, entry->timestamp)) {
+            continue;
+        }
 
         /* Acquire a write token here rather than in the coroutine so that we can be sure
         the writes will acquire tokens in the correct order. */
@@ -398,7 +420,7 @@ void remote_replicator_client_t::drain_stream_queue(
 #ifndef NDEBUG
                 equality_metainfo_checker_callback_t checker_cb(
                     binary_blob_t(version_t(branch_id, entry_2->timestamp.pred())));
-                metainfo_checker_t checker(&checker_cb, region);
+                metainfo_checker_t checker(&checker_cb, entry_2->write.get_region());
 #endif
                 write_response_t dummy_response;
                 store->write(
@@ -441,10 +463,13 @@ void remote_replicator_client_t::on_write_async(
         order_token_t order_token,
         const mailbox_t<void()>::address_t &ack_addr)
         THROWS_NOTHING {
+    debugf_print("on_write_async", timestamp);
     wait_interruptible(&registered_, interruptor);
-    timestamp_enforcer_->wait_all_before(timestamp, interruptor);
+    timestamp_enforcer_->wait_all_before(timestamp.pred(), interruptor);
+    debugf("on_write_async did wait_all_before\n");
 
     rwlock_acq_t rwlock_acq(&rwlock_, access_t::read, interruptor);
+    debugf("on_write_async got rwlock\n");
 
     if (replica_.has()) {
         /* Once the constructor is done, all writes will take this branch; it's the
@@ -457,6 +482,7 @@ void remote_replicator_client_t::on_write_async(
             interruptor, &dummy_response);
 
     } else {
+        debugf("on_write_async entered second branch\n");
         /* This branch is taken during the initial backfill. We need to break the write
         into three subwrites; the subwrite that applies to `region_streaming_`, the part
         that applies to `region_queueing_`, and the subwrite that applies to
@@ -486,6 +512,7 @@ void remote_replicator_client_t::on_write_async(
             (*queue_fun_)(std::move(queue_entry), &queue_throttler);
         }
 
+        debugf_print("on_write_async complete", timestamp);
         timestamp_enforcer_->complete(timestamp);
         rwlock_acq.reset();
 

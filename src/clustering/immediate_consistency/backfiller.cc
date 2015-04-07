@@ -166,6 +166,9 @@ private:
                         continue_bool_t on_atom(
                                 const region_map_t<binary_blob_t> &atom_metainfo,
                                 backfill_atom_t &&atom) THROWS_NOTHING {
+                            rassert(key_range_t::right_bound_t(atom.range.left) >=
+                                chunk->get_right_key());
+                            rassert(!atom.range.is_empty());
                             region_t mask(chunk->get_beg_hash(), chunk->get_end_hash(),
                                 atom.get_range());
                             mask.inner.left = chunk->get_right_key().key;
@@ -181,6 +184,11 @@ private:
                                 const region_map_t<binary_blob_t> &range_metainfo,
                                 const key_range_t::right_bound_t &new_threshold)
                                 THROWS_NOTHING {
+                            rassert(new_threshold >= chunk->get_right_key());
+                            if (chunk->get_right_key() == new_threshold) {
+                                /* This is a no-op */
+                                return continue_bool_t::CONTINUE;
+                            }
                             region_t mask;
                             mask.beg = chunk->get_beg_hash();
                             mask.end = chunk->get_end_hash();

@@ -198,7 +198,9 @@ private:
             return continue_bool_t::ABORT;
         }
         if (atom != nullptr) {
+            rassert(key_range_t::right_bound_t(atom->range.left) >= right);
             buffer_future.push_back(*atom);
+            inner->release_pre_atom();
             right = atom->range.right;
         } else {
             right = edge;

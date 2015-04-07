@@ -186,7 +186,8 @@ void debug_print(printf_buffer_t *buf, const store_key_t *k) {
 
 
 bool operator==(const key_range_t::right_bound_t &a, const key_range_t::right_bound_t &b) {
-    return a.unbounded == b.unbounded && a.key == b.key;
+    return (a.unbounded && b.unbounded)
+        || (!a.unbounded && !b.unbounded && a.key == b.key);
 }
 bool operator!=(const key_range_t::right_bound_t &a, const key_range_t::right_bound_t &b) {
     return !(a == b);

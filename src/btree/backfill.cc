@@ -188,17 +188,18 @@ private:
             fifo_enforcer_write_token_t token,
             auto_drainer_t::lock_t keepalive) {
         try {
-            pmap(atom.pairs.begin(), atom.pairs.end(), [&](backfill_atom_t::pair_t &p) {
+            pmap(atom.pairs.size(), [&](size_t i) {
                 try {
-                    if (!static_cast<bool>(p.value)) {
+                    if (!static_cast<bool>(atom.pairs[i].value)) {
                         /* It's a deletion; we don't need to load anything. */
                         return;
                     }
-                    rassert(p.value->size() == sizeof(void *));
-                    void *value_ptr = *reinterpret_cast<void *const *>(p.value->data());
-                    p.value->clear();
+                    rassert(atom.pairs[i].value->size() == sizeof(void *));
+                    void *value_ptr = *reinterpret_cast<void *const *>(
+                        atom.pairs[i].value->data());
+                    atom.pairs[i].value->clear();
                     atom_consumer->copy_value(buf_parent_t(&buf->lock), value_ptr,
-                        keepalive.get_drain_signal(), &*p.value);
+                        keepalive.get_drain_signal(), &*atom.pairs[i].value);
                 } catch (const interrupted_exc_t &) {
                     /* we'll check this outside the `pmap()` */
                 }
@@ -315,13 +316,6 @@ private:
         repli_timestamp_t min_deletion_timestamp =
             leaf::min_deletion_timestamp(sizer, lnode, buf->lock.get_recency());
         if (min_deletion_timestamp > reference_timestamp) {
-            /* We might be missing deletion entries, so re-transmit the entire node as a
-            single `backfill_atom_t` */
-            backfill_atom_t atom;
-            atom.min_deletion_timestamp = min_deletion_timestamp;
-            atom.range = leaf_range;
-            loader->on_atom(std::move(atom), buf);
-
             /* We're not going to use these pre atoms, but we need to call `consume()`
             anyway so that our calls to the `pre_atom_producer` are consecutive. */
             continue_bool_t cont =
@@ -330,6 +324,49 @@ private:
             if (cont == continue_bool_t::ABORT) {
                 return continue_bool_t::ABORT;
             }
+
+            /* We might be missing deletion entries, so re-transmit the entire node as a
+            single `backfill_atom_t` */
+            backfill_atom_t atom;
+            atom.min_deletion_timestamp = min_deletion_timestamp;
+            atom.range = leaf_range;
+
+            /* Create a `backfill_atom_t::pair_t` for each key-value pair in the leaf
+            node, but don't load the values yet */
+            leaf::visit_entries(
+                sizer, lnode, buf->lock.get_recency(),
+                [&](const btree_key_t *key, repli_timestamp_t timestamp,
+                        const void *value_or_null) -> continue_bool_t {
+                    /* The leaf node might be partially outside the range of the
+                    backfill, so we might have to skip some keys */
+                    if (!leaf_range.contains_key(key)) {
+                        return continue_bool_t::CONTINUE;
+                    }
+
+                    size_t i = atom.pairs.size();
+                    atom.pairs.resize(i + 1);
+                    atom.pairs[i].key.assign(key);
+                    atom.pairs[i].recency = timestamp;
+                    if (value_or_null != nullptr) {
+                        /* Store `value_or_null` in the `value` field as a sequence of
+                        8 (or 4 or whatever) `char`s describing its actual pointer value.
+                        */
+                        atom.pairs[i].value = std::vector<char>(
+                            reinterpret_cast<const char *>(&value_or_null),
+                            reinterpret_cast<const char *>(1 + &value_or_null));
+                    }
+                    return continue_bool_t::CONTINUE;
+                });
+
+            /* `visit_entries()` returns entries in timestamp order; we need to sort
+            `atom.pairs` now to put it in lexicographical order */
+            std::sort(atom.pairs.begin(), atom.pairs.end(),
+                [](const backfill_atom_t::pair_t &p1,
+                        const backfill_atom_t::pair_t &p2) {
+                    return p1.key < p2.key;
+                });
+
+            loader->on_atom(std::move(atom), buf);
 
             return get_continue();
 
@@ -417,12 +454,20 @@ private:
                     return continue_bool_t::CONTINUE;
                 });
 
-            /* `leaf::visit_entries` doesn't necessarily go in lexicographical order. So
-            `atoms_from_time` is currently unsorted and we need to sort it. */
+            /* `leaf::visit_entries` returns entries in timestamp order, but we want
+            `atoms_from_time` to be in lexicographical order, so we need to sort it. Same
+            with the `pairs` field of each atom in `atoms_from_pre`. */
             atoms_from_time.sort(
                 [](const backfill_atom_t &a1, const backfill_atom_t &a2) {
                     return a1.range.left < a2.range.left;
                 });
+            for (backfill_atom_t &a : atoms_from_pre) {
+                std::sort(a.pairs.begin(), a.pairs.end(),
+                    [](const backfill_atom_t::pair_t &p1,
+                            const backfill_atom_t::pair_t &p2) {
+                        return p1.key < p2.key;
+                    });
+            }
 
             /* Merge `atoms_from_time` into `atoms_from_pre`, preserving order. */
             atoms_from_pre.merge(

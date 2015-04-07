@@ -117,7 +117,9 @@ void run_backfill_test(size_t value_padding_length) {
     inserter.stop();
     /* Let any lingering writes finish */
     // TODO: 100 seconds?
+    debugf("begin long nap\n");
     nap(100000);
+    debugf("end long nap\n");
 
     for (std::map<std::string, std::string>::iterator it = inserter_state.begin();
             it != inserter_state.end(); it++) {
@@ -137,6 +139,7 @@ void run_backfill_test(size_t value_padding_length) {
                                      it->second),
                   get_result.data);
     }
+    debugf("end run_backfill_test()\n");
 }
 
 TPTEST(RDBProtocolBackfill, Backfill) {

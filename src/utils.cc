@@ -86,6 +86,10 @@ startup_shutdown_t::~startup_shutdown_t() {
 void print_hd(const void *vbuf, size_t offset, size_t ulength) {
     flockfile(stderr);
 
+    if (ulength == 0) {
+        fprintf(stderr, "(data length is zero)\n");
+    }
+
     const char *buf = reinterpret_cast<const char *>(vbuf);
     ssize_t length = ulength;
 
