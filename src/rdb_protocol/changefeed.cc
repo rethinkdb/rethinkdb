@@ -1565,10 +1565,10 @@ public:
         // logic should go here.
         if (need_init == got_init) {
             ASSERT_NO_CORO_WAITING;
-            for (auto &&it : active_data) {
+            for (auto it = active_data.rbegin(); it != active_data.rend(); ++it) {
                 els.push_back(
-                    datum_t(std::map<datum_string_t, datum_t> {
-                            { datum_string_t("new_val"), (*it)->second.second } }));
+                    datum_t(std::map<datum_string_t, datum_t>{
+                            {datum_string_t("new_val"), (**it)->second.second}}));
             }
             if (include_states) els.push_back(ready_datum());
 
