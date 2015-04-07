@@ -59,16 +59,15 @@ continue_bool_t btree_send_backfill_pre(
         }
 
         continue_bool_t handle_pre_leaf(
-                const counted_t<counted_buf_lock_t> &buf_lock,
-                const counted_t<counted_buf_read_t> &buf_read,
+                const counted_t<counted_buf_lock_and_read_t> &buf,
                 const btree_key_t *left_excl_or_null,
                 const btree_key_t *right_incl,
                 bool *skip_out) {
             *skip_out = true;
             const leaf_node_t *lnode = static_cast<const leaf_node_t *>(
-                buf_read->get_data_read());
+                buf->read->get_data_read());
             repli_timestamp_t min_deletion_timestamp =
-                leaf::min_deletion_timestamp(sizer, lnode, buf_lock->get_recency());
+                leaf::min_deletion_timestamp(sizer, lnode, buf->lock.get_recency());
             if (min_deletion_timestamp > reference_timestamp.next()) {
                 /* We might be missing deletion entries, so re-transmit the entire node
                 */
@@ -83,12 +82,12 @@ continue_bool_t btree_send_backfill_pre(
             } else {
                 std::vector<const btree_key_t *> keys;
                 leaf::visit_entries(
-                    sizer, lnode, buf_lock->get_recency(),
+                    sizer, lnode, buf->lock.get_recency(),
                     [&](const btree_key_t *key, repli_timestamp_t timestamp,
                             const void *) -> continue_bool_t {
                         if ((left_excl_or_null != nullptr &&
-                                    btree_key_cmp(key, left_excl_or_null) != 1)
-                                || btree_key_cmp(key, right_incl) == 1) {
+                                    btree_key_cmp(key, left_excl_or_null) <= 0)
+                                || btree_key_cmp(key, right_incl) > 0) {
                             return continue_bool_t::CONTINUE;
                         }
                         if (timestamp <= reference_timestamp) {
@@ -99,7 +98,7 @@ continue_bool_t btree_send_backfill_pre(
                     });
                 std::sort(keys.begin(), keys.end(),
                     [](const btree_key_t *k1, const btree_key_t *k2) {
-                        return btree_key_cmp(k1, k2) == -1;
+                        return btree_key_cmp(k1, k2) < 0;
                     });
                 for (const btree_key_t *key : keys) {
                     backfill_pre_atom_t pre_atom;
@@ -127,12 +126,11 @@ continue_bool_t btree_send_backfill_pre(
     callback.range = range;
     callback.reference_timestamp = reference_timestamp;
     callback.sizer = sizer;
-    return btree_depth_first_traversal(
-        superblock,
-        range,
-        &callback,
-        FORWARD,
-        release_superblock);
+    if (continue_bool_t::ABORT == btree_depth_first_traversal(
+            superblock, range, &callback, FORWARD, release_superblock)) {
+        return continue_bool_t::ABORT;
+    }
+    return pre_atom_consumer->on_empty_range(range.right);
 }
 
 /* The `backfill_atom_loader_t` gets backfill atoms from the `backfill_atom_preparer_t`,
@@ -156,14 +154,13 @@ public:
     localized to these two types. */
     void on_atom(
             backfill_atom_t &&atom,
-            const counted_t<counted_buf_lock_t> &buf_lock,
-            const counted_t<counted_buf_read_t> &buf_read) {
+            const counted_t<counted_buf_lock_and_read_t> &buf) {
         new_semaphore_acq_t sem_acq(&semaphore, atom.pairs.size());
         cond_t non_interruptor;   /* RSI(raft): figure out interruption */
         wait_interruptible(sem_acq.acquisition_signal(), &non_interruptor);
         coro_t::spawn_sometime(std::bind(
             &backfill_atom_loader_t::handle_atom, this,
-            std::move(atom), buf_lock, buf_read, std::move(sem_acq),
+            std::move(atom), buf, std::move(sem_acq),
             fifo_source.enter_write(), drainer.lock()));
     }
 
@@ -186,8 +183,7 @@ public:
 private:
     void handle_atom(
             backfill_atom_t &atom,
-            const counted_t<counted_buf_lock_t> &buf_lock,
-            const counted_t<counted_buf_read_t> &,
+            const counted_t<counted_buf_lock_and_read_t> &buf,
             const new_semaphore_acq_t &,
             fifo_enforcer_write_token_t token,
             auto_drainer_t::lock_t keepalive) {
@@ -201,7 +197,7 @@ private:
                     rassert(p.value->size() == sizeof(void *));
                     void *value_ptr = *reinterpret_cast<void *const *>(p.value->data());
                     p.value->clear();
-                    atom_consumer->copy_value(buf_parent_t(buf_lock.get()), value_ptr,
+                    atom_consumer->copy_value(buf_parent_t(&buf->lock), value_ptr,
                         keepalive.get_drain_signal(), &*p.value);
                 } catch (const interrupted_exc_t &) {
                     /* we'll check this outside the `pmap()` */
@@ -302,8 +298,7 @@ private:
     }
 
     continue_bool_t handle_pre_leaf(
-            const counted_t<counted_buf_lock_t> &buf_lock,
-            const counted_t<counted_buf_read_t> &buf_read,
+            const counted_t<counted_buf_lock_and_read_t> &buf,
             const btree_key_t *left_excl_or_null,
             const btree_key_t *right_incl,
             bool *skip_out) {
@@ -315,17 +310,17 @@ private:
             key_range_t::bound_t::closed,
             right_incl);
         const leaf_node_t *lnode = static_cast<const leaf_node_t *>(
-            buf_read->get_data_read());
+            buf->read->get_data_read());
 
         repli_timestamp_t min_deletion_timestamp =
-            leaf::min_deletion_timestamp(sizer, lnode, buf_lock->get_recency());
+            leaf::min_deletion_timestamp(sizer, lnode, buf->lock.get_recency());
         if (min_deletion_timestamp > reference_timestamp) {
             /* We might be missing deletion entries, so re-transmit the entire node as a
             single `backfill_atom_t` */
             backfill_atom_t atom;
             atom.min_deletion_timestamp = min_deletion_timestamp;
             atom.range = leaf_range;
-            loader->on_atom(std::move(atom), buf_lock, buf_read);
+            loader->on_atom(std::move(atom), buf);
 
             /* We're not going to use these pre atoms, but we need to call `consume()`
             anyway so that our calls to the `pre_atom_producer` are consecutive. */
@@ -359,7 +354,7 @@ private:
             `atoms_from_pre`; otherwise, make a new atom for it in `atoms_from_time`. */
             std::list<backfill_atom_t> atoms_from_time;
             leaf::visit_entries(
-                sizer, lnode, buf_lock->get_recency(),
+                sizer, lnode, buf->lock.get_recency(),
                 [&](const btree_key_t *key, repli_timestamp_t timestamp,
                         const void *value_or_null) -> continue_bool_t {
                     /* The leaf node might be partially outside the range of the
@@ -439,7 +434,7 @@ private:
 
             /* Send the results to the loader */
             for (backfill_atom_t &a : atoms_from_pre) {
-                loader->on_atom(std::move(a), buf_lock, buf_read);
+                loader->on_atom(std::move(a), buf);
             }
             loader->on_empty_range(right_incl);
 
@@ -476,7 +471,7 @@ continue_bool_t btree_send_backfill(
         return continue_bool_t::ABORT;
     }
     loader.finish(interruptor);
-    return continue_bool_t::CONTINUE;
+    return atom_consumer->on_empty_range(range.right);
 }
 
 

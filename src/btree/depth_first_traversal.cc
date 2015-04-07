@@ -7,34 +7,29 @@
 
 scoped_key_value_t::scoped_key_value_t(const btree_key_t *key,
                                        const void *value,
-                                       movable_t<counted_buf_lock_t> &&buf,
-                                       movable_t<counted_buf_read_t> &&read)
-    : key_(key), value_(value), buf_(std::move(buf)), read_(std::move(read)) {
+                                       movable_t<counted_buf_lock_and_read_t> &&buf)
+    : key_(key), value_(value), buf_(std::move(buf)) {
     guarantee(buf_.has());
-    guarantee(read_.has());
 }
 
 scoped_key_value_t::scoped_key_value_t(scoped_key_value_t &&movee)
     : key_(movee.key_),
       value_(movee.value_),
-      buf_(std::move(movee.buf_)),
-      read_(std::move(movee.read_)) {
+      buf_(std::move(movee.buf_)) {
     movee.key_ = NULL;
     movee.value_ = NULL;
 }
 
 scoped_key_value_t::~scoped_key_value_t() { }
 
-
 buf_parent_t scoped_key_value_t::expose_buf() {
     guarantee(buf_.has());
-    return buf_parent_t(buf_.get());
+    return buf_parent_t(&buf_->lock);
 }
 
 // Releases the hold on the buf_lock_t, after which key(), value(), and expose_buf()
 // may not be used.
 void scoped_key_value_t::reset() {
-    read_.reset();
     buf_.reset();
 }
 
@@ -42,7 +37,7 @@ void scoped_key_value_t::reset() {
 /* Returns `true` if we reached the end of the subtree or range, and `false` if
 `cb->handle_value()` returned `false`. */
 continue_bool_t btree_depth_first_traversal(
-        counted_t<counted_buf_lock_t> block,
+        counted_t<counted_buf_lock_and_read_t> block,
         const key_range_t &range,
         depth_first_traversal_callback_t *cb,
         direction_t direction,
@@ -62,22 +57,21 @@ continue_bool_t btree_depth_first_traversal(
         }
         return continue_bool_t::CONTINUE;
     } else {
-        counted_t<counted_buf_lock_t> root_block;
+        counted_t<counted_buf_lock_and_read_t> root_block;
         {
             // We know that `superblock` is already read-acquired because we call
             // get_block_id() above -- so `starter` won't measure time waiting for
             // the parent to become acquired.
             profile::starter_t starter("Acquire block for read.", cb->get_trace());
-            root_block = make_counted<counted_buf_lock_t>(superblock->expose_buf(),
-                                                          root_block_id,
-                                                          access_t::read);
+            root_block = make_counted<counted_buf_lock_and_read_t>(
+                superblock->expose_buf(), root_block_id, access_t::read);
             if (release_superblock == release_superblock_t::RELEASE) {
                 // Release the superblock ASAP because that's good.
                 superblock->release();
             }
             // Wait for read acquisition of the root block, so that `starter`'s
             // profiling information is correct.
-            root_block->read_acq_signal()->wait();
+            root_block->lock.read_acq_signal()->wait();
         }
 
         const btree_key_t *left_excl_or_null;
@@ -111,7 +105,7 @@ void get_child_key_range(const internal_node_t *inode,
     const btree_internal_pair *pair = internal_node::get_pair_by_index(inode, child_index);
     if (child_index != inode->npairs - 1) {
         rassert(child_index < inode->npairs - 1);
-        if (btree_key_cmp(&pair->key, parent_right_incl) == -1) {
+        if (btree_key_cmp(&pair->key, parent_right_incl) < 0) {
             *right_incl_out = &pair->key;
         } else {
             *right_incl_out = parent_right_incl;
@@ -124,7 +118,7 @@ void get_child_key_range(const internal_node_t *inode,
         const btree_internal_pair *left_neighbor =
             internal_node::get_pair_by_index(inode, child_index - 1);
         if (parent_left_excl_or_null == nullptr ||
-                btree_key_cmp(&left_neighbor->key, parent_left_excl_or_null) == 1) {
+                btree_key_cmp(&left_neighbor->key, parent_left_excl_or_null) > 0) {
             *left_excl_or_null_out = &left_neighbor->key;
         } else {
             *left_excl_or_null_out = parent_left_excl_or_null;
@@ -135,7 +129,7 @@ void get_child_key_range(const internal_node_t *inode,
 }
 
 continue_bool_t btree_depth_first_traversal(
-        counted_t<counted_buf_lock_t> block,
+        counted_t<counted_buf_lock_and_read_t> block,
         const key_range_t &range,
         depth_first_traversal_callback_t *cb,
         direction_t direction,
@@ -143,14 +137,14 @@ continue_bool_t btree_depth_first_traversal(
         const btree_key_t *right_incl) {
     bool skip;
     if (continue_bool_t::ABORT == cb->filter_range_ts(
-            left_excl_or_null, right_incl, block->get_recency(), &skip)) {
+            left_excl_or_null, right_incl, block->lock.get_recency(), &skip)) {
         return continue_bool_t::ABORT;
     }
     if (skip) {
         return continue_bool_t::CONTINUE;
     }
-    auto read = make_counted<counted_buf_read_t>(block.get());
-    const node_t *node = static_cast<const node_t *>(read->get_data_read());
+    block->read.init(new buf_read_t(&block->lock));
+    const node_t *node = static_cast<const node_t *>(block->read->get_data_read());
     if (node::is_internal(node)) {
         const internal_node_t *inode = reinterpret_cast<const internal_node_t *>(node);
         int start_index = internal_node::get_offset_index(inode, range.left.btree_key());
@@ -178,11 +172,11 @@ continue_bool_t btree_depth_first_traversal(
                 return continue_bool_t::ABORT;
             }
             if (!skip) {
-                counted_t<counted_buf_lock_t> lock;
+                counted_t<counted_buf_lock_and_read_t> lock;
                 {
                     profile::starter_t starter("Acquire block for read.", cb->get_trace());
-                    lock = make_counted<counted_buf_lock_t>(block.get(), pair->lnode,
-                                                            access_t::read);
+                    lock = make_counted<counted_buf_lock_and_read_t>(
+                        &block->lock, pair->lnode, access_t::read);
                 }
                 if (continue_bool_t::ABORT == btree_depth_first_traversal(
                         std::move(lock), range, cb, direction,
@@ -194,7 +188,7 @@ continue_bool_t btree_depth_first_traversal(
         return continue_bool_t::CONTINUE;
     } else {
         if (continue_bool_t::ABORT == cb->handle_pre_leaf(
-                block, read, left_excl_or_null, right_incl, &skip)) {
+                block, left_excl_or_null, right_incl, &skip)) {
             return continue_bool_t::ABORT;
         }
         if (skip) {
@@ -215,8 +209,7 @@ continue_bool_t btree_depth_first_traversal(
                 }
                 if (continue_bool_t::ABORT == cb->handle_pair(scoped_key_value_t(
                         key, (*it).second,
-                        movable_t<counted_buf_lock_t>(block),
-                        movable_t<counted_buf_read_t>(read)))) {
+                        movable_t<counted_buf_lock_and_read_t>(block)))) {
                     return continue_bool_t::ABORT;
                 }
             }
@@ -237,8 +230,7 @@ continue_bool_t btree_depth_first_traversal(
 
                 if (continue_bool_t::ABORT == cb->handle_pair(scoped_key_value_t(
                         key, (*it).second,
-                        movable_t<counted_buf_lock_t>(block),
-                        movable_t<counted_buf_read_t>(read)))) {
+                        movable_t<counted_buf_lock_and_read_t>(block)))) {
                     return continue_bool_t::ABORT;
                 }
             }

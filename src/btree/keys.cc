@@ -134,19 +134,31 @@ key_range_t key_range_t::intersection(const key_range_t &other) const {
     return ixn;
 }
 
+void debug_print(printf_buffer_t *buf, const btree_key_t *k) {
+    if (k != nullptr) {
+        debug_print_quoted_string(buf, k->contents, k->size);
+    } else {
+        buf->appendf("NULL");
+    }
+}
+
 void debug_print(printf_buffer_t *buf, const store_key_t &k) {
-    debug_print_quoted_string(buf, k.contents(), k.size());
+    debug_print(buf, k.btree_key());
+}
+
+void debug_print(printf_buffer_t *buf, const key_range_t::right_bound_t &rb) {
+    if (rb.unbounded) {
+        buf->appendf("+inf");
+    } else {
+        debug_print(buf, rb.key);
+    }
 }
 
 void debug_print(printf_buffer_t *buf, const key_range_t &kr) {
     buf->appendf("[");
     debug_print(buf, kr.left);
     buf->appendf(", ");
-    if (kr.right.unbounded) {
-        buf->appendf("+inf");
-    } else {
-        debug_print(buf, kr.right.key);
-    }
+    debug_print(buf, kr.right);
     buf->appendf(")");
 }
 

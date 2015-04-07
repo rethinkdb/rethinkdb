@@ -14,20 +14,14 @@ namespace profile { class trace_t; }
 class buf_parent_t;
 class superblock_t;
 
-class counted_buf_lock_t : public buf_lock_t,
-                           public single_threaded_countable_t<counted_buf_lock_t> {
+class counted_buf_lock_and_read_t :
+    public single_threaded_countable_t<counted_buf_lock_and_read_t> {
 public:
     template <class... Args>
-    explicit counted_buf_lock_t(Args &&... args)
-        : buf_lock_t(std::forward<Args>(args)...) { }
-};
-
-class counted_buf_read_t : public buf_read_t,
-                           public single_threaded_countable_t<counted_buf_read_t> {
-public:
-    template <class... Args>
-    explicit counted_buf_read_t(Args &&... args)
-        : buf_read_t(std::forward<Args>(args)...) { }
+    explicit counted_buf_lock_and_read_t(Args &&... args)
+        : lock(std::forward<Args>(args)...) { }
+    buf_lock_t lock;
+    scoped_ptr_t<buf_read_t> read;
 };
 
 // A btree leaf key/value pair that also owns a reference to the buf_lock_t that
@@ -36,8 +30,7 @@ class scoped_key_value_t {
 public:
     scoped_key_value_t(const btree_key_t *key,
                        const void *value,
-                       movable_t<counted_buf_lock_t> &&buf,
-                       movable_t<counted_buf_read_t> &&read);
+                       movable_t<counted_buf_lock_and_read_t> &&buf);
     scoped_key_value_t(scoped_key_value_t &&movee);
     ~scoped_key_value_t();
     void operator=(scoped_key_value_t &&) = delete;
@@ -59,8 +52,7 @@ public:
 private:
     const btree_key_t *key_;
     const void *value_;
-    movable_t<counted_buf_lock_t> buf_;
-    movable_t<counted_buf_read_t> read_;
+    movable_t<counted_buf_lock_and_read_t> buf_;
 
     DISABLE_COPYING(scoped_key_value_t);
 };
@@ -94,8 +86,7 @@ public:
     /* Called on every leaf node before the calls to `handle_pair()`. If it sets
     `*skip_out` to `true`, the leaf will be ignored. */
     virtual continue_bool_t handle_pre_leaf(
-            UNUSED const counted_t<counted_buf_lock_t> &buf_lock,
-            UNUSED const counted_t<counted_buf_read_t> &buf_read,
+            UNUSED const counted_t<counted_buf_lock_and_read_t> &buf,
             UNUSED const btree_key_t *left_excl_or_null,
             UNUSED const btree_key_t *right_incl,
             bool *skip_out) {

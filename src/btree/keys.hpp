@@ -311,8 +311,10 @@ RDB_DECLARE_SERIALIZABLE(key_range_t);
 void serialize_for_metainfo(write_message_t *wm, const key_range_t &kr);
 MUST_USE archive_result_t deserialize_for_metainfo(read_stream_t *s, key_range_t *out);
 
+void debug_print(printf_buffer_t *buf, const btree_key_t *k);
 void debug_print(printf_buffer_t *buf, const store_key_t &k);
 void debug_print(printf_buffer_t *buf, const store_key_t *k);
+void debug_print(printf_buffer_t *buf, const key_range_t::right_bound_t &rb);
 void debug_print(printf_buffer_t *buf, const key_range_t &kr);
 std::string key_range_to_string(const key_range_t &kr);
 

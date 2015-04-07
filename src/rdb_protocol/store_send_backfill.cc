@@ -77,6 +77,7 @@ continue_bool_t store_t::send_backfill_pre(
             continue_bool_t cont = btree_send_backfill_pre(sb.get(),
                 release_superblock_t::RELEASE, &sizer, to_do, pair.second, &limiter,
                 interruptor);
+            guarantee(threshold <= pair.first.right);
             if (limiter.inner_aborted) {
                 guarantee(cont == continue_bool_t::ABORT);
                 return continue_bool_t::ABORT;
