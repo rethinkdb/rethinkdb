@@ -12,10 +12,10 @@ template <class> class registrant_t;
 template <class> class clone_ptr_t;
 template <class> class watchable_t;
 
-template <class request_type, class inner_client_business_card_type>
+template <class request_type>
 class multi_client_client_t {
 private:
-    typedef multi_client_business_card_t<request_type, inner_client_business_card_type>
+    typedef multi_client_business_card_t<request_type>
         mc_business_card_t;
     typedef typename mc_business_card_t::server_business_card_t server_business_card_t;
     typedef typename mc_business_card_t::client_business_card_t client_business_card_t;
@@ -24,7 +24,6 @@ public:
     multi_client_client_t(
             mailbox_manager_t *mm,
             const clone_ptr_t<watchable_t<boost::optional<boost::optional<mc_business_card_t> > > > &server,
-            const inner_client_business_card_type &inner_client_business_card,
             signal_t *interruptor);
 
     signal_t *get_failed_signal();
@@ -42,10 +41,8 @@ private:
 
     auto_drainer_t drainer;
 
-    scoped_ptr_t< registrant_t<
-        typename multi_client_business_card_t<
-            request_type,
-            inner_client_business_card_type>::client_business_card_t> > registrant;
+    scoped_ptr_t<registrant_t<typename multi_client_business_card_t<
+        request_type>::client_business_card_t> > registrant;
 
     DISABLE_COPYING(multi_client_client_t);
 };

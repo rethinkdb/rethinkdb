@@ -19,7 +19,6 @@ master_access_t::master_access_t(
     multi_client_client(
         mailbox_manager,
         master->subview(&master_access_t::extract_multi_client_business_card),
-        master_business_card_t::inner_client_business_card_t(),
         interruptor)
 {
     boost::optional<boost::optional<master_business_card_t> > business_card = master->get();

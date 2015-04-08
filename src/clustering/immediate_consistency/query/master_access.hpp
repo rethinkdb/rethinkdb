@@ -54,8 +54,7 @@ public:
 
 private:
     typedef multi_client_business_card_t<
-            master_business_card_t::request_t,
-            master_business_card_t::inner_client_business_card_t
+            master_business_card_t::request_t
             > mc_business_card_t;
     static boost::optional<boost::optional<mc_business_card_t> >
     extract_multi_client_business_card(
@@ -84,10 +83,7 @@ private:
 
     fifo_enforcer_source_t source_for_master;
 
-    multi_client_client_t<
-            master_business_card_t::request_t,
-            master_business_card_t::inner_client_business_card_t
-            > multi_client_client;
+    multi_client_client_t<master_business_card_t::request_t> multi_client_client;
 
     DISABLE_COPYING(master_access_t);
 };

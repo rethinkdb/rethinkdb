@@ -51,30 +51,21 @@ public:
 
     typedef boost::variant< read_request_t, write_request_t > request_t;
 
-    class inner_client_business_card_t {
-    public:
-        /* nothing here */
-    };
-
     master_business_card_t() { }
     master_business_card_t(const region_t &r,
-                           const multi_client_business_card_t<
-                               request_t,
-                               inner_client_business_card_t> &mc)
+                           const multi_client_business_card_t<request_t> &mc)
         : region(r), multi_client(mc) { }
 
     /* The region that this master covers */
     region_t region;
 
     /* Contact info for the master itself */
-    multi_client_business_card_t<request_t, inner_client_business_card_t> multi_client;
+    multi_client_business_card_t<request_t> multi_client;
 };
 
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(master_business_card_t::read_request_t);
 
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(master_business_card_t::write_request_t);
-
-RDB_DECLARE_SERIALIZABLE(master_business_card_t::inner_client_business_card_t);
 
 RDB_DECLARE_SERIALIZABLE(master_business_card_t);
 RDB_DECLARE_EQUALITY_COMPARABLE(master_business_card_t);

@@ -37,9 +37,7 @@ public:
 private:
     class client_t {
     public:
-        client_t(
-                master_t *p,
-                UNUSED const master_business_card_t::inner_client_business_card_t &) :
+        client_t(master_t *p) :
             parent(p) { }
         void perform_request(
                 const master_business_card_t::request_t &,
@@ -60,7 +58,6 @@ private:
 
     multi_client_server_t<
             master_business_card_t::request_t,
-            master_business_card_t::inner_client_business_card_t,
             master_t *,
             client_t
             > multi_client_server;

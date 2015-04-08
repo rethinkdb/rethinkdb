@@ -14,8 +14,6 @@ RDB_IMPL_SERIALIZABLE_4_FOR_CLUSTER(
 RDB_IMPL_SERIALIZABLE_4_FOR_CLUSTER(
         master_business_card_t::write_request_t, write, order_token, fifo_token, cont_addr);
 
-RDB_IMPL_SERIALIZABLE_0_FOR_CLUSTER(master_business_card_t::inner_client_business_card_t);
-
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(master_business_card_t, region, multi_client);
 
 RDB_IMPL_EQUALITY_COMPARABLE_2(master_business_card_t, region, multi_client);

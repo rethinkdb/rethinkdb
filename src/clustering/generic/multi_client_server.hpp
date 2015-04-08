@@ -11,11 +11,11 @@
 #include "clustering/generic/registrar.hpp"
 #include "rpc/mailbox/typed.hpp"
 
-template <class request_type, class inner_client_business_card_type, class user_data_type, class registrant_type>
+template <class request_type, class user_data_type, class registrant_type>
 class multi_client_server_t {
 private:
-    typedef typename multi_client_business_card_t<request_type, inner_client_business_card_type>::server_business_card_t server_business_card_t;
-    typedef typename multi_client_business_card_t<request_type, inner_client_business_card_type>::client_business_card_t client_business_card_t;
+    typedef typename multi_client_business_card_t<request_type>::server_business_card_t server_business_card_t;
+    typedef typename multi_client_business_card_t<request_type>::client_business_card_t client_business_card_t;
 
 public:
     multi_client_server_t(
@@ -26,8 +26,8 @@ public:
         registrar(mailbox_manager, this)
         { }
 
-    multi_client_business_card_t<request_type, inner_client_business_card_type> get_business_card() {
-        return multi_client_business_card_t<request_type, inner_client_business_card_type>(
+    multi_client_business_card_t<request_type> get_business_card() {
+        return multi_client_business_card_t<request_type>(
             registrar.get_business_card());
     }
 
@@ -35,9 +35,9 @@ private:
     class client_t : public intrusive_list_node_t<client_t> {
     public:
         client_t(multi_client_server_t *p,
-                const client_business_card_t &client_bc) :
+                 const client_business_card_t &client_bc) :
             parent(p),
-            registrant(p->user_data, client_bc.inner_client_business_card),
+            registrant(p->user_data),
             drainer(new auto_drainer_t),
             request_mailbox(new mailbox_t<void(request_type)>(parent->mailbox_manager,
                 std::bind(&client_t::on_request, this, ph::_1, ph::_2)))
