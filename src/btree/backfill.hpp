@@ -146,5 +146,16 @@ continue_bool_t btree_send_backfill(
     btree_backfill_atom_consumer_t *atom_consumer,
     signal_t *interruptor);
 
+/* Erases any deletion entries or timestamps in leaf nodes within `atom.range` if the
+timestamp is earlier than `atom.min_deletion_timestamp`. Note that this does NOT erase
+any key-value pairs, nor does it apply any key-value pairs from `atom` to the B-tree. The
+caller must do those separately. */
+void btree_receive_backfill_atom_update_deletion_timestamps(
+    superblock_t *superblock,
+    release_superblock_t release_superblock,
+    value_sizer_t *sizer,
+    const backfill_atom_t &atom,
+    signal_t *interruptor);
+
 #endif  // BTREE_BACKFILL_HPP_
 

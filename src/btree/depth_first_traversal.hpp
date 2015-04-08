@@ -115,6 +115,7 @@ continue_bool_t btree_depth_first_traversal(
     superblock_t *superblock,
     const key_range_t &range,
     depth_first_traversal_callback_t *cb,
+    access_t access,
     direction_t direction,
     release_superblock_t release_superblock);
 

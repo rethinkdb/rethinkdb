@@ -725,6 +725,7 @@ void store_t::clear_sindex(
             sindex_superblock.get(),
             key_range_t::universe(),
             &traversal_cb,
+            access_t::read,
             direction_t::FORWARD,
             release_superblock_t::KEEP));
 

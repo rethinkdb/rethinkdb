@@ -76,6 +76,7 @@ public:
     }
 
     leaf_node_t *node() { return node_.get(); }
+    value_sizer_t *sizer() { return &sizer_; }
 
     bool Insert(const store_key_t& key, const std::string& value, repli_timestamp_t tstamp) {
         short_value_buffer_t v(value);
@@ -402,6 +403,43 @@ TEST(LeafNodeTest, RandomOutOfOrder) {
             }
         }
     }
+}
+
+TEST(LeafNodeTest, DeletionTimestamp) {
+    LeafNodeTracker tracker;
+
+    rng_t rng;
+
+    /* The parameters for the initial setup phase are tuned so that the call to
+    `erase_deletions()` usually affects at least one deletion entry. */
+
+    std::vector<store_key_t> keys;
+    const int num_ops = 50;
+    for (int i = 0; i < num_ops; ++i) {
+        if (rng.randint(2) == 1 || keys.size() == 0) {
+            store_key_t key(std::string(rng.randint(10), 'a' + rng.randint(26)));
+            keys.push_back(key);
+            std::string value(rng.randint(10), 'a' + rng.randint(26));
+            tracker.Insert(key, value);
+        } else {
+            const store_key_t &key = keys.at(rng.randint(keys.size()));
+            if (tracker.ShouldHave(key) && rng.randint(4) != 0) {
+                tracker.Remove(key);
+            } else {
+                std::string value(rng.randint(10), 'a' + rng.randint(26));
+                tracker.Insert(key, value);
+            }
+        }
+    }
+
+    repli_timestamp_t max_ts = tracker.NextTimestamp();
+    repli_timestamp_t min_del_ts = leaf::min_deletion_timestamp(
+        tracker.sizer(), tracker.node(), max_ts);
+    ASSERT_LT(min_del_ts.longtime, max_ts.longtime - 10);
+    min_del_ts.longtime += (max_ts.longtime - min_del_ts.longtime) / 2;
+    leaf::erase_deletions(tracker.sizer(), tracker.node(), min_del_ts);
+
+    tracker.Verify();
 }
 
 TEST(LeafNodeTest, ZeroZeroMerging) {

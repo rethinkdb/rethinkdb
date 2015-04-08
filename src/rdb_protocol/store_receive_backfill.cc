@@ -156,6 +156,7 @@ void apply_multi_key_atom(
 
         /* It's possible that there are a lot of keys to be deleted, so we might do the
         backfill atom in several chunks. */
+        bool is_first = true;
         size_t next_pair = 0;
         key_range_t::right_bound_t threshold(atom.range.left);
         while (threshold != atom.range.right) {
@@ -167,6 +168,15 @@ void apply_multi_key_atom(
             get_btree_superblock_and_txn_for_writing(tokens.info->cache_conn, nullptr,
                 write_access_t::write, 1, repli_timestamp_t::distant_past,
                 write_durability_t::SOFT, &superblock, &txn);
+
+            /* If we haven't already done so, then update the min deletion timstamps. */
+            if (is_first) {
+                rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
+                btree_receive_backfill_atom_update_deletion_timestamps(
+                    superblock.get(), release_superblock_t::KEEP, &sizer, atom,
+                    tokens.keepalive.get_drain_signal());
+                is_first = false;
+            }
 
             /* Delete a chunk of the range. */
             key_range_t range_to_delete = atom.range;

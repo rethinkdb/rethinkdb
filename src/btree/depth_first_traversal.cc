@@ -40,6 +40,7 @@ continue_bool_t btree_depth_first_traversal(
         counted_t<counted_buf_lock_and_read_t> block,
         const key_range_t &range,
         depth_first_traversal_callback_t *cb,
+        access_t access,
         direction_t direction,
         const btree_key_t *left_excl_or_null,
         const btree_key_t *right_incl);
@@ -48,6 +49,7 @@ continue_bool_t btree_depth_first_traversal(
         superblock_t *superblock,
         const key_range_t &range,
         depth_first_traversal_callback_t *cb,
+        access_t access,
         direction_t direction,
         release_superblock_t release_superblock) {
     block_id_t root_block_id = superblock->get_root_block_id();
@@ -64,7 +66,7 @@ continue_bool_t btree_depth_first_traversal(
             // the parent to become acquired.
             profile::starter_t starter("Acquire block for read.", cb->get_trace());
             root_block = make_counted<counted_buf_lock_and_read_t>(
-                superblock->expose_buf(), root_block_id, access_t::read);
+                superblock->expose_buf(), root_block_id, access);
             if (release_superblock == release_superblock_t::RELEASE) {
                 // Release the superblock ASAP because that's good.
                 superblock->release();
@@ -91,7 +93,7 @@ continue_bool_t btree_depth_first_traversal(
         }
 
         return btree_depth_first_traversal(
-            std::move(root_block), range, cb, direction,
+            std::move(root_block), range, cb, access, direction,
             left_excl_or_null, right_incl_buf.btree_key());
     }
 }
@@ -132,6 +134,7 @@ continue_bool_t btree_depth_first_traversal(
         counted_t<counted_buf_lock_and_read_t> block,
         const key_range_t &range,
         depth_first_traversal_callback_t *cb,
+        access_t access,
         direction_t direction,
         const btree_key_t *left_excl_or_null,
         const btree_key_t *right_incl) {
@@ -176,10 +179,10 @@ continue_bool_t btree_depth_first_traversal(
                 {
                     profile::starter_t starter("Acquire block for read.", cb->get_trace());
                     lock = make_counted<counted_buf_lock_and_read_t>(
-                        &block->lock, pair->lnode, access_t::read);
+                        &block->lock, pair->lnode, access);
                 }
                 if (continue_bool_t::ABORT == btree_depth_first_traversal(
-                        std::move(lock), range, cb, direction,
+                        std::move(lock), range, cb, access, direction,
                         child_left_excl_or_null, child_right_incl)) {
                     return continue_bool_t::ABORT;
                 }

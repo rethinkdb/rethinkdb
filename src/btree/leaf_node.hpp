@@ -157,6 +157,10 @@ repli_timestamp_t min_deletion_timestamp(
     const leaf_node_t *node,
     repli_timestamp_t maximum_possible_timestamp);
 
+/* Removes all timestamps and deletions earlier than the given timestamp. */
+void erase_deletions(
+    value_sizer_t *sizer, leaf_node_t *node, repli_timestamp_t min_timestamp);
+
 /* Calls `cb` on every entry in the node, whether a real entry or a deletion. The calls
 will be in order from most recent to least recent. For entries with no timestamp, the
 callback will get `min_deletion_timestamp() - 1`. */

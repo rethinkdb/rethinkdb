@@ -162,7 +162,7 @@ continue_bool_t btree_concurrent_traversal(
     {
         concurrent_traversal_adapter_t adapter(cb, &failure_cond);
         failure_seen = !btree_depth_first_traversal(
-            superblock, range, &adapter, direction, release_superblock);
+            superblock, range, &adapter, access_t::read, direction, release_superblock);
     }
     // Now that adapter is destroyed, the operations that might have failed have all
     // drained.  (If we fail, we try to report it to btree_depth_first_traversal (to

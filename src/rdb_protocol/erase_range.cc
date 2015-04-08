@@ -85,7 +85,7 @@ continue_bool_t rdb_erase_small_range(
     /* Step 1: Collect all keys that we want to erase using a depth-first traversal. */
     collect_keys_helper_t key_collector(tester, key_range, max_keys_to_erase,
         interruptor);
-    btree_depth_first_traversal(superblock, key_range, &key_collector,
+    btree_depth_first_traversal(superblock, key_range, &key_collector, access_t::read,
                                 direction_t::FORWARD, release_superblock_t::KEEP);
     if (interruptor->is_pulsed()) {
         /* If the interruptor is pulsed during the depth-first traversal, then the

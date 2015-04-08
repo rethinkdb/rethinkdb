@@ -227,6 +227,7 @@ void metadata_file_t::read_txn_t::read_many_bin(
         &superblock,
         key_range_t::with_prefix(key_prefix),
         &dftcb,
+        access_t::read,
         FORWARD,
         release_superblock_t::RELEASE);
     if (interruptor->is_pulsed()) {

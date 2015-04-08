@@ -127,7 +127,7 @@ continue_bool_t btree_send_backfill_pre(
     callback.reference_timestamp = reference_timestamp;
     callback.sizer = sizer;
     if (continue_bool_t::ABORT == btree_depth_first_traversal(
-            superblock, range, &callback, FORWARD, release_superblock)) {
+            superblock, range, &callback, access_t::read, FORWARD, release_superblock)) {
         return continue_bool_t::ABORT;
     }
     return pre_atom_consumer->on_empty_range(range.right);
@@ -515,11 +515,45 @@ continue_bool_t btree_send_backfill(
     backfill_atom_preparer_t preparer(
         sizer, reference_timestamp, pre_atom_producer, &abort_cond, &loader);
     if (continue_bool_t::ABORT == btree_depth_first_traversal(
-            superblock, range, &preparer, FORWARD, release_superblock)) {
+            superblock, range, &preparer, access_t::read, FORWARD, release_superblock)) {
         return continue_bool_t::ABORT;
     }
     loader.finish(interruptor);
     return atom_consumer->on_empty_range(range.right);
 }
 
+class backfill_deletion_timestamp_updater_t : public depth_first_traversal_callback_t {
+public:
+    backfill_deletion_timestamp_updater_t(value_sizer_t *s, repli_timestamp_t mdt) :
+        sizer(s), min_deletion_timestamp(mdt) { }
+    continue_bool_t handle_pre_leaf(
+            const counted_t<counted_buf_lock_and_read_t> &buf,
+            UNUSED const btree_key_t *left_excl_or_null,
+            UNUSED const btree_key_t *right_incl,
+            bool *skip_out) {
+        *skip_out = true;
+        buf_write_t buf_write(&buf->lock);
+        leaf_node_t *lnode = static_cast<leaf_node_t *>(buf_write.get_data_write());
+        leaf::erase_deletions(sizer, lnode, min_deletion_timestamp);
+        return continue_bool_t::CONTINUE;
+    }
+    continue_bool_t handle_pair(scoped_key_value_t &&) {
+        unreachable();
+    }
+private:
+    value_sizer_t *sizer;
+    repli_timestamp_t min_deletion_timestamp;
+};
+
+void btree_receive_backfill_atom_update_deletion_timestamps(
+        superblock_t *superblock,
+        release_superblock_t release_superblock,
+        value_sizer_t *sizer,
+        const backfill_atom_t &atom,
+        UNUSED signal_t *interruptor) {
+    backfill_deletion_timestamp_updater_t updater(sizer, atom.min_deletion_timestamp);
+    continue_bool_t res = btree_depth_first_traversal(
+        superblock, atom.range, &updater, access_t::write, FORWARD, release_superblock);
+    guarantee(res == continue_bool_t::CONTINUE);
+}
 

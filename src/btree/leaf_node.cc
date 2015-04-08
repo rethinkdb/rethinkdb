@@ -387,8 +387,13 @@ bool fsck(value_sizer_t *sizer, const btree_key_t *left_exclusive_or_null, const
             }
 
             observed_live_size += sizeof(uint16_t) + entry_size(sizer, ent);
-            if (failed(i < node->num_pairs, "missing entry offsets")
-                || failed(offset == offs[i], "missing live entries or entry offsets")) {
+            if (failed(i < node->num_pairs, "missing entry offsets")) {
+                return false;
+            }
+            if (offset != offs[i]) {
+                *msg_out = strprintf("missing live entries or entry offsets (next "
+                    "offset in offsets table is %d, but in node is %d)",
+                    offs[i], offset);
                 return false;
             }
 
@@ -1507,6 +1512,76 @@ repli_timestamp_t min_deletion_timestamp(
     return earliest_so_far;
 }
 
+void erase_deletions(
+        value_sizer_t *sizer, leaf_node_t *node, repli_timestamp_t min_timestamp) {
+    int old_tstamp_cutpoint = node->tstamp_cutpoint;
+    entry_iter_t iter = entry_iter_t::make(node);
+
+    /* Advance `iter` to the first entry with a timestamp that's too high */
+    while (true) {
+        if (iter.done(sizer) || iter.offset >= old_tstamp_cutpoint) {
+            return;
+        }
+        if (get_timestamp(node, iter.offset) < min_timestamp) {
+            break;
+        }
+        iter.step(sizer, node);
+    }
+
+    /* We'll remove timestamps from all of the entries between `old_tstamp_cutpoint` and
+    `new_tstamp_cutpoint`. But we won't update `leaf->tstamp_cutpoint` until the end of
+    the function because we want `iter` to continue iterating according to the old value.
+    */
+    int new_tstamp_cutpoint = iter.offset;
+
+    /* Step until we reach `old_tstamp_cutpoint`, erasing timestamps and deletions as we
+    go. Make a note of each deletion's offset so we can remove them from the
+    `pair_offsets` array later. */
+    std::set<int> deletion_offsets;
+    while (!iter.done(sizer) && iter.offset != old_tstamp_cutpoint) {
+        int off = iter.offset;
+        guarantee(off >= new_tstamp_cutpoint && off < old_tstamp_cutpoint);
+        const entry_t *ent = get_entry(node, off);
+        /* Move `iter` before we modify `ent`, to avoid confusion */
+        iter.step(sizer, node);
+        if (entry_is_deletion(ent)) {
+            clean_entry(
+                get_at_offset(node, off),
+                sizeof(repli_timestamp_t) + entry_size(sizer, ent));
+            deletion_offsets.insert(off);
+        } else {
+            /* This is the code path for both skip entries and live entries, because skip
+            entries have timestamps too. */
+            clean_entry(get_at_offset(node, off), sizeof(repli_timestamp_t));
+        }
+    }
+
+    /* If a pointer in `pair_offsets` was pointing to a timestamp that's been erased on
+    a key-value pair, we need to move it forward by `sizeof(repli_timestamp_t)`. If it
+    was pointing to a deletion entry that's been erased, we need to remove that entry
+    from `pair_offsets`. */
+    int src = 0, dst = 0;
+    int num_deleted = deletion_offsets.size();
+    for (; src < node->num_pairs; ++src) {
+        uint16_t off = node->pair_offsets[src];
+        auto it = deletion_offsets.find(off);
+        if (it == deletion_offsets.end()) {
+            if (off >= new_tstamp_cutpoint && off < old_tstamp_cutpoint) {
+                off += sizeof(repli_timestamp_t);
+            }
+            node->pair_offsets[dst++] = off;
+        } else {
+            guarantee(off >= new_tstamp_cutpoint && off < old_tstamp_cutpoint);
+            deletion_offsets.erase(it);
+        }
+    }
+    guarantee(deletion_offsets.empty());
+    node->num_pairs -= num_deleted;
+
+    /* Finally, update `node->tstamp_cutpoint` */
+    node->tstamp_cutpoint = new_tstamp_cutpoint;
+}
+
 /* Calls `cb` on every entry in the node, whether a real entry or a deletion. The calls
 will be in order from most recent to least recent. For entries with no timestamp, the
 callback will get `min_deletion_timestamp() - 1`. */
@@ -1532,16 +1607,11 @@ continue_bool_t visit_entries(
 
         const entry_t *ent = get_entry(node, iter.offset);
 
-        const void *value;
-        if (entry_is_live(ent)) {
-            value = entry_value(ent);
-        } else if (entry_is_deletion(ent)) {
-            value = nullptr;
-        } else {
+        if (entry_is_skip(ent)) {
             continue;
         }
 
-        if (continue_bool_t::ABORT == cb(entry_key(ent), tstamp, value)) {
+        if (continue_bool_t::ABORT == cb(entry_key(ent), tstamp, entry_value(ent))) {
             return continue_bool_t::ABORT;
         }
     }
