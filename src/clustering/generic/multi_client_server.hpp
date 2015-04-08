@@ -14,7 +14,11 @@
 /* `multi_client_server_t` is a thin wrapper around a `registrar_t`.
  A `multi_client_client_t` can connect to it to run requests of type `request_type`.
  Upon registration, `multi_client_server_t` creates an instance of `registrant_type`,
- and sends the address of a request mailbox over to the `multi_client_client_t`. */
+ and sends the address of a request mailbox over to the `multi_client_client_t`.
+
+Since multi_client_client_t and multi_client_server_t are little more than wrappers
+around a registrant_t and registrar_t respectively, they will likely be removed in
+the future. */
 
 template <class request_type, class user_data_type, class registrant_type>
 class multi_client_server_t {
