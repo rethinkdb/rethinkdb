@@ -36,19 +36,16 @@ private:
     public:
         client_t(multi_client_server_t *p,
                  const client_business_card_t &client_bc) :
-            parent(p),
             registrant(p->user_data),
             drainer(new auto_drainer_t),
-            request_mailbox(new mailbox_t<void(request_type)>(parent->mailbox_manager,
+            request_mailbox(new mailbox_t<void(request_type)>(p->mailbox_manager,
                 std::bind(&client_t::on_request, this, ph::_1, ph::_2)))
         {
-            send(parent->mailbox_manager, client_bc.intro_addr,
+            send(p->mailbox_manager, client_bc.intro_addr,
                  server_business_card_t(request_mailbox->get_address()));
-            parent->clients.push_back(this);
         }
 
         ~client_t() {
-            parent->clients.remove(this);
             request_mailbox.reset();
             drainer.reset();
         }
@@ -62,8 +59,6 @@ private:
             }
         }
 
-        multi_client_server_t *parent;
-
         registrant_type registrant;
 
         scoped_ptr_t<auto_drainer_t> drainer;
@@ -72,8 +67,6 @@ private:
 
     mailbox_manager_t *const mailbox_manager;
     user_data_type user_data;
-
-    intrusive_list_t<client_t> clients;
 
     registrar_t<client_business_card_t, multi_client_server_t *, client_t> registrar;
 
