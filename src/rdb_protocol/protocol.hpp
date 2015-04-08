@@ -178,7 +178,6 @@ RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(changefeed_stamp_response_t);
 struct rget_read_response_t {
     boost::optional<changefeed_stamp_response_t> stamp_response;
     ql::result_t result;
-    std::map<uuid_u, uint64_t> stamps;
     ql::skey_version_t skey_version;
     bool truncated;
     store_key_t last_key;

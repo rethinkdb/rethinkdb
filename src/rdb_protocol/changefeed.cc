@@ -25,7 +25,6 @@ struct indexed_datum_t {
         : val(std::move(_val)), index(std::move(_index)) {
         guarantee(val.has());
     }
-    // RSI: sometimes this should be `null`.
     datum_t val, index;
 };
 
@@ -486,14 +485,13 @@ server_t::limit_addr_t server_t::get_limit_stop_addr() {
     return limit_stop_mailbox.get_address();
 }
 
-uint64_t server_t::get_stamp(const client_t::addr_t &addr) {
+boost::optional<uint64_t> server_t::get_stamp(const client_t::addr_t &addr) {
     auto_drainer_t::lock_t lock(&drainer);
     rwlock_acq_t stamp_acq(&stamp_lock, access_t::read);
     rwlock_acq_t client_acq(&clients_lock, access_t::read);
     auto it = clients.find(addr);
     if (it == clients.end()) {
-        // The client was removed, so no future messages are coming.
-        return std::numeric_limits<uint64_t>::max();
+        return boost::none;
     } else {
         return it->second.stamp;
     }

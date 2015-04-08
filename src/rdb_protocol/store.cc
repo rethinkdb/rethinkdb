@@ -345,24 +345,43 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         response->response = changefeed_limit_subscribe_response_t(1, std::move(vec));
     }
 
-    void do_stamp(const changefeed_stamp_t &s, changefeed_stamp_response_t *out) {
+    boost::optional<changefeed_stamp_response_t> do_stamp(const changefeed_stamp_t &s) {
         guarantee(store->changefeed_server.has());
-        out->stamps[store->changefeed_server->get_uuid()]
-            = store->changefeed_server->get_stamp(s.addr);
+        if (boost::optional<uint64_t> stamp
+            = store->changefeed_server->get_stamp(s.addr)) {
+            changefeed_stamp_response_t out;
+            out.stamps[store->changefeed_server->get_uuid()] = *stamp;
+            return out;
+        } else {
+            return boost::none;
+        }
     }
 
     void operator()(const changefeed_stamp_t &s) {
-        response->response = changefeed_stamp_response_t();
-        do_stamp(s, boost::get<changefeed_stamp_response_t>(&response->response));
+        if (boost::optional<changefeed_stamp_response_t> resp = do_stamp(s)) {
+            response->response = *resp;
+        } else {
+            // The client was removed, so no future messages are coming.
+            changefeed_stamp_response_t removed;
+            guarantee(store->changefeed_server.has());
+            removed.stamps[store->changefeed_server->get_uuid()]
+                = std::numeric_limits<uint64_t>::max();
+            response->response = removed;
+        }
     }
 
     void operator()(const changefeed_point_stamp_t &s) {
         guarantee(store->changefeed_server.has());
         response->response = changefeed_point_stamp_response_t();
         auto res = boost::get<changefeed_point_stamp_response_t>(&response->response);
-        res->stamp = std::make_pair(
-            store->changefeed_server->get_uuid(),
-            store->changefeed_server->get_stamp(s.addr));
+        if (boost::optional<uint64_t> stamp
+            = store->changefeed_server->get_stamp(s.addr)) {
+            res->stamp = std::make_pair(store->changefeed_server->get_uuid(), *stamp);
+        } else {
+            // The client was removed, so no future messages are coming.
+            res->stamp = std::make_pair(store->changefeed_server->get_uuid(),
+                                        std::numeric_limits<uint64_t>::max());
+        }
         point_read_response_t val;
         rdb_get(s.key, btree, superblock, &val, trace);
         res->initial_val = val.data;
@@ -477,11 +496,17 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         response->response = rget_read_response_t();
         auto *res = boost::get<rget_read_response_t>(&response->response);
 
-        // RSI: Make sure to avoid race conditions by having this error
-        // gracefully if there's no matching subscription.
         if (rget.stamp) {
             res->stamp_response = changefeed_stamp_response_t();
-            do_stamp(*rget.stamp, &*res->stamp_response);
+            if (boost::optional<changefeed_stamp_response_t> r = do_stamp(*rget.stamp)) {
+                res->stamp_response = r;
+            } else {
+                res->result = ql::exc_t(
+                    ql::base_exc_t::GENERIC,
+                    "Feed aborted before initial values were read.",
+                    nullptr);
+                return;
+            }
         }
 
         if (rget.transforms.size() != 0 || rget.terminal) {

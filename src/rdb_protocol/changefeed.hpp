@@ -439,7 +439,7 @@ public:
     void stop_all();
     addr_t get_stop_addr();
     limit_addr_t get_limit_stop_addr();
-    uint64_t get_stamp(const client_t::addr_t &addr);
+    boost::optional<uint64_t> get_stamp(const client_t::addr_t &addr);
     uuid_u get_uuid();
     // `f` will be called with a read lock on `clients` and a write lock on the
     // limit manager.
