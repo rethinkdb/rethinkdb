@@ -102,8 +102,12 @@ public:
           stats(NULL) { }
 
     ~keyvalue_location_t() {
-        if (pass_back_superblock != NULL && superblock != NULL) {
-            pass_back_superblock->pulse(superblock);
+        if (superblock != nullptr) {
+            if (pass_back_superblock != nullptr) {
+                pass_back_superblock->pulse(superblock);
+            } else {
+                superblock->release();
+            }
         }
     }
 

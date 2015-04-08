@@ -280,6 +280,7 @@ int rng_t::randint(int n) {
 }
 
 uint64_t rng_t::randuint64(uint64_t n) {
+    guarantee(n > 0, "non-positive argument for randint's [0,n) interval");
     uint32_t x_low = jrand48(xsubi);  // NOLINT(runtime/int)
     uint32_t x_high = jrand48(xsubi);  // NOLINT(runtime/int)
     uint64_t x = x_high;
@@ -309,6 +310,7 @@ void get_dev_urandom(void *out, int64_t nbytes) {
 }
 
 int randint(int n) {
+    guarantee(n > 0, "non-positive argument for randint's [0,n) interval");
     nrand_xsubi_t buffer;
     if (!TLS_get_rng_initialized()) {
         CT_ASSERT(sizeof(buffer.xsubi) == 6);
@@ -323,6 +325,7 @@ int randint(int n) {
 }
 
 uint64_t randuint64(uint64_t n) {
+    guarantee(n > 0, "non-positive argument for randint's [0,n) interval");
     nrand_xsubi_t buffer;
     if (!TLS_get_rng_initialized()) {
         CT_ASSERT(sizeof(buffer.xsubi) == 6);
@@ -341,6 +344,7 @@ uint64_t randuint64(uint64_t n) {
 }
 
 size_t randsize(size_t n) {
+    guarantee(n > 0, "non-positive argument for randint's [0,n) interval");
     size_t ret = 0;
     size_t i = SIZE_MAX;
     while (i != 0) {

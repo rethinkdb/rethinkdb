@@ -487,11 +487,13 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice,
                 delete_or_erase_t delete_or_erase,
                 point_delete_response_t *response,
                 rdb_modification_info_t *mod_info,
-                profile::trace_t *trace) {
+                profile::trace_t *trace,
+                promise_t<superblock_t *> *pass_back_superblock) {
     keyvalue_location_t kv_location;
     rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
     find_keyvalue_location_for_write(&sizer, superblock, key.btree_key(),
-            deletion_context->balancing_detacher(), &kv_location, &slice->stats, trace);
+            deletion_context->balancing_detacher(), &kv_location, &slice->stats, trace,
+            pass_back_superblock);
     bool exists = kv_location.value.has();
 
     /* Update the modification report. */

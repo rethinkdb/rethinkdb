@@ -172,7 +172,6 @@ remote_replicator_client_t::remote_replicator_client_t(
     scoped_ptr_t<rwlock_acq_t> rwlock_acq(
         new rwlock_acq_t(&rwlock_, access_t::write, interruptor));
 
-    debugf("begin loop\n");
     while (region_streaming_.inner.right != store->get_region().inner.right) {
         /* Previously we were streaming some sub-range and discarding the rest. Here we
         leave the streaming region as it was but we start queueing the region we were
@@ -212,7 +211,6 @@ remote_replicator_client_t::remote_replicator_client_t(
                 queue(_queue), right_bound(_right_bound) { }
             bool on_progress(
                     const region_map_t<version_t> &chunk) {
-                debugf_print("on_progress", chunk);
                 rassert(key_range_t::right_bound_t(chunk.get_domain().inner.left) ==
                     right_bound);
                 right_bound = chunk.get_domain().inner.right;
@@ -226,12 +224,10 @@ remote_replicator_client_t::remote_replicator_client_t(
             key_range_t::right_bound_t right_bound;
         } callback(&queue, key_range_t::right_bound_t(region_queueing_.inner.left));
 
-        debugf("begin backfillee.go()\n");
         backfillee.go(
             &callback,
             key_range_t::right_bound_t(region_queueing_.inner.left),
             interruptor);
-        debugf("end backfillee.go()\n");
 
         /* Wait until we've queued writes at least up to the latest point where the
         backfill left us. This ensures that it will be safe to ignore
@@ -318,7 +314,6 @@ remote_replicator_client_t::remote_replicator_client_t(
         region_streaming_.inner.right = region_queueing_.inner.right;
         region_queueing_.inner = key_range_t::empty();
     }
-    debugf("end loop\n");
 
 #ifndef NDEBUG
     {
@@ -329,7 +324,6 @@ remote_replicator_client_t::remote_replicator_client_t(
         store->new_read_token(&read_token);
         store->do_get_metainfo(order_token_t::ignore.with_read_mode(),
             &read_token, interruptor, &metainfo_blob);
-        debugf_print("post-loop metainfo", to_version_map(metainfo_blob));
         for (const auto &pair : to_version_map(metainfo_blob)) {
             rassert(pair.second == version_t(branch_id,
                 timestamp_enforcer_->get_latest_all_before_completed()));
@@ -402,8 +396,6 @@ void remote_replicator_client_t::drain_stream_queue(
             scoped_ptr_t<queue_entry_t> entry_2(entry_ptr);
             scoped_ptr_t<write_token_t> token_2(token_ptr);
             try {
-                debugf_print("drain stream queue entry", entry_2->timestamp);
-                debugf_print("zone", entry_2->write.get_region());
                 /* Note that we don't block on the `auto_drainer_t::lock_t`'s drain
                 signal. This way, `drain_stream_queue()` won't return until either all of
                 the writes have been applied or the interruptor is pulsed. */
@@ -512,8 +504,6 @@ void remote_replicator_client_t::on_write_async(
         rwlock_acq.reset();
 
         if (have_subwrite_streaming) {
-            debugf_print("apply streaming write", timestamp);
-            debugf_print("zone", region_streaming_);
 #ifndef NDEBUG
             equality_metainfo_checker_callback_t checker_cb(
                 binary_blob_t(version_t(branch_id_, timestamp.pred())));

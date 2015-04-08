@@ -56,7 +56,8 @@ public:
             primary_dispatcher_t *_dispatcher,
             order_source_t *order_source,
             size_t _value_padding_length,
-            std::map<std::string, std::string> *inserter_state) :
+            std::map<std::string, std::string> *inserter_state,
+            bool start = true) :
         dispatcher(_dispatcher),
         value_padding_length(_value_padding_length),
         inner(
@@ -66,7 +67,8 @@ public:
             []() { return alpha_key_gen(20); },
             order_source,
             "dispatcher_inserter_t",
-            inserter_state)
+            inserter_state,
+            start)
         { }
     void stop() {
         inner.stop();
@@ -80,16 +82,26 @@ public:
 private:
     void write(const std::string &key, const std::string &value,
             order_token_t otok, signal_t *interruptor) {
-        ql::datum_object_builder_t doc;
-        doc.overwrite("id", ql::datum_t(datum_string_t(key)));
-        doc.overwrite("value", ql::datum_t(datum_string_t(value)));
-        doc.overwrite("padding", ql::datum_t(datum_string_t(
-            std::string(value_padding_length, 'a'))));
-        write_t write(
-                point_write_t(store_key_t(key), std::move(doc).to_datum(), true),
-                DURABILITY_REQUIREMENT_DEFAULT,
-                profile_bool_t::PROFILE,
-                ql::configured_limits_t());
+        write_t write;
+        if (!value.empty()) {
+            ql::datum_object_builder_t doc;
+            doc.overwrite("id", ql::datum_t(datum_string_t(key)));
+            doc.overwrite("value", ql::datum_t(datum_string_t(value)));
+            doc.overwrite("padding", ql::datum_t(datum_string_t(
+                std::string(value_padding_length, 'a'))));
+            write = write_t(
+                    point_write_t(store_key_t(key), std::move(doc).to_datum(), true),
+                    DURABILITY_REQUIREMENT_DEFAULT,
+                    profile_bool_t::PROFILE,
+                    ql::configured_limits_t());
+        } else {
+            debugf("performing deletion\n");
+            write = write_t(
+                    point_delete_t(store_key_t(key)),
+                    DURABILITY_REQUIREMENT_DEFAULT,
+                    profile_bool_t::PROFILE,
+                    ql::configured_limits_t());
+        }
         simple_write_callback_t write_callback;
         dispatcher->spawn_write(write, otok, &write_callback);
         wait_interruptible(&write_callback, interruptor);
@@ -208,7 +220,7 @@ TPTEST(RDBProtocolBackfill, Reverse) {
 
         dispatcher_inserter_t inserter(
             &dispatcher, &order_source, value_padding_length, &first_inserter_state);
-        nap(3000);
+        nap(10000);
 
         /* Set up `store2` and `store3` as secondaries. Backfill and then wait some time,
         but then unsubscribe. */
@@ -228,12 +240,12 @@ TPTEST(RDBProtocolBackfill, Reverse) {
                 dispatcher.get_branch_id(), remote_replicator_server.get_bcard(),
                 local_replicator.get_replica_bcard(), &store3.store, &bhm,
                 &non_interruptor);
-            nap(3000);
+            nap(100);
         }
 
-        /* Keep running writes on `store1` for another few seconds, so that `store1` will
-        be ahead of `store2` and `store3`. */
-        nap(3000);
+        /* Keep running writes on `store1` for a bit longer, so that `store1` will be
+        ahead of `store2` and `store3`. */
+        nap(100);
     }
 
     std::map<std::string, std::string> second_inserter_state;
@@ -260,7 +272,8 @@ TPTEST(RDBProtocolBackfill, Reverse) {
         /* OK, now start performing some writes on `store2` */
         dispatcher_inserter_t inserter(
             &dispatcher, &order_source, value_padding_length, &second_inserter_state);
-        nap(3000);
+        nap(100);
+        inserter.stop();
 
         /* Set up `store1` as the secondary. So this backfill will require `store1` to
         reverse the writes that were performed earlier. */
@@ -274,9 +287,7 @@ TPTEST(RDBProtocolBackfill, Reverse) {
             dispatcher.get_branch_id(), remote_replicator_server.get_bcard(),
             local_replicator.get_replica_bcard(), &store1.store, &bhm,
             &non_interruptor);
-        nap(3000);
 
-        inserter.stop();
         inserter.validate();
     }
 
@@ -290,12 +301,11 @@ TPTEST(RDBProtocolBackfill, Reverse) {
             generate_uuid(), &dispatcher, &store1.store, &bhm, &non_interruptor);
 
         {
-            /* Run a couple of writes, then validate the state of `store1` to make sure
+            /* Validate the state of `store1` to make sure
             that the backfill was completely correct */
             dispatcher_inserter_t inserter(
-                &dispatcher, &order_source, value_padding_length, &second_inserter_state);
-            nap(1000);
-            inserter.stop();
+                &dispatcher, &order_source, value_padding_length, &second_inserter_state,
+                false);
             inserter.validate();
             inserter.validate_no_extras(first_inserter_state);
         }
@@ -312,7 +322,6 @@ TPTEST(RDBProtocolBackfill, Reverse) {
             dispatcher.get_branch_id(), remote_replicator_server.get_bcard(),
             local_replicator.get_replica_bcard(), &store3.store, &bhm,
             &non_interruptor);
-        nap(3000);
     }
 
     {
@@ -327,9 +336,8 @@ TPTEST(RDBProtocolBackfill, Reverse) {
         /* Run a couple of writes, then validate the state of `store3` to make sure
         that the backfill was completely correct */
         dispatcher_inserter_t inserter(
-            &dispatcher, &order_source, value_padding_length, &second_inserter_state);
-        nap(1000);
-        inserter.stop();
+            &dispatcher, &order_source, value_padding_length, &second_inserter_state,
+            false);
         inserter.validate();
         inserter.validate_no_extras(first_inserter_state);
     }

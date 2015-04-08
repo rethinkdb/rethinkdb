@@ -114,45 +114,24 @@ class test_inserter_t {
 public:
     typedef std::map<std::string, std::string> state_t;
 
-    test_inserter_t(std::function<void(const std::string &, const std::string &, order_token_t, signal_t *)> _wfun,
-               std::function<std::string(const std::string &, order_token_t, signal_t *)> _rfun,
-               std::function<std::string()> _key_gen_fun,
-                    order_source_t *_osource, const std::string& tag, state_t *state)
-        : values_inserted(state), drainer(new auto_drainer_t), wfun(_wfun), rfun(_rfun), key_gen_fun(_key_gen_fun), osource(_osource)
-    {
-        coro_t::spawn_sometime(std::bind(&test_inserter_t::insert_forever,
-                                         this, tag, auto_drainer_t::lock_t(drainer.get())));
-    }
-
-    test_inserter_t(namespace_interface_t *namespace_if, std::function<std::string()> _key_gen_fun, order_source_t *_osource, const std::string& tag, state_t *state)
-        : values_inserted(state),
-          drainer(new auto_drainer_t),
-          wfun(std::bind(&test_inserter_t::write_namespace_if, namespace_if, ph::_1, ph::_2, ph::_3, ph::_4)),
-          rfun(std::bind(&test_inserter_t::read_namespace_if, namespace_if, ph::_1, ph::_2, ph::_3)),
-          key_gen_fun(_key_gen_fun),
-          osource(_osource)
-    {
-        coro_t::spawn_sometime(std::bind(&test_inserter_t::insert_forever,
-                                         this, tag, auto_drainer_t::lock_t(drainer.get())));
-    }
-
     test_inserter_t(
-            primary_query_client_t *client,
+            std::function<void(const std::string &, const std::string &, order_token_t, signal_t *)> _wfun,
+            std::function<std::string(const std::string &, order_token_t, signal_t *)> _rfun,
             std::function<std::string()> _key_gen_fun,
             order_source_t *_osource,
             const std::string& tag,
-            state_t *state)
-        : values_inserted(state),
-          drainer(new auto_drainer_t),
-          wfun(std::bind(&test_inserter_t::write_primary_query_client,
-            client, ph::_1, ph::_2, ph::_3, ph::_4)),
-          rfun(std::bind(&test_inserter_t::read_primary_query_client,
-            client, ph::_1, ph::_2, ph::_3)),
-          key_gen_fun(_key_gen_fun),
-          osource(_osource)
+            state_t *state,
+            bool start = true)
+        : values_inserted(state), drainer(new auto_drainer_t), wfun(_wfun), rfun(_rfun), key_gen_fun(_key_gen_fun), osource(_osource)
     {
-        coro_t::spawn_sometime(std::bind(&test_inserter_t::insert_forever,
-                                         this, tag, auto_drainer_t::lock_t(drainer.get())));
+        for (const auto &pair : *values_inserted) {
+            keys_used.push_back(pair.first);
+        }
+        if (start) {
+            coro_t::spawn_sometime(std::bind(
+                &test_inserter_t::insert_forever, this,
+                tag, auto_drainer_t::lock_t(drainer.get())));
+        }
     }
 
     void stop() {
@@ -190,9 +169,22 @@ private:
             for (int i = 0; ; i++) {
                 if (keepalive.get_drain_signal()->is_pulsed()) throw interrupted_exc_t();
 
-                std::string key = key_gen_fun();
-                std::string value = (*values_inserted)[key] = strprintf("%d", i);
+                std::string key, value;
+                if (randint(3) != 0 || keys_used.empty()) {
+                    key = key_gen_fun();
+                    value = strprintf("%d", i);
+                    keys_used.push_back(key);
+                } else {
+                    key = keys_used.at(randint(keys_used.size()));
+                    if (randint(2) == 0) {
+                        /* `wfun()` may choose to interpret this as a deletion */
+                        value = "";
+                    } else {
+                        value = strprintf("%d", i);
+                    }
+                }
 
+                (*values_inserted)[key] = value;
                 cond_t interruptor;
                 wfun(key, value, osource->check_in(tag), &interruptor);
 
@@ -238,6 +230,7 @@ public:
     }
 
 private:
+    std::vector<std::string> keys_used;
     std::function<void(const std::string &, const std::string &, order_token_t, signal_t *)> wfun;
     std::function<std::string(const std::string &, order_token_t, signal_t *)> rfun;
     std::function<std::string()> key_gen_fun;

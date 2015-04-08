@@ -42,6 +42,7 @@ public:
 void apply_edge(
         const receive_backfill_tokens_t &tokens,
         const key_range_t::right_bound_t &edge) {
+    debugf_print("apply_edge", edge);
     try {
         /* Acquire the superblock */
         scoped_ptr_t<txn_t> txn;
@@ -92,9 +93,8 @@ void apply_atom_pair(
     } else {
         point_delete_response_t dummy_response;
         rdb_delete(pair.key, slice, pair.recency, superblock,
-            &deletion_context, delete_or_erase_t::ERASE, &dummy_response,
-            &mod_reports_out->back().info, nullptr);
-        pass_back_superblock->pulse(superblock);
+            &deletion_context, delete_or_erase_t::DELETE, &dummy_response,
+            &mod_reports_out->back().info, nullptr, pass_back_superblock);
     }
 }
 
@@ -103,6 +103,7 @@ void apply_single_key_atom(
         /* `atom` is conceptually passed by move, but `std::bind()` isn't smart enough to
         handle that. */
         backfill_atom_t &atom) {
+    debugf("apply_single_key_atom\n");
     try {
         /* Acquire the superblock */
         scoped_ptr_t<txn_t> txn;
@@ -143,6 +144,7 @@ void apply_multi_key_atom(
         /* `atom` is conceptually passed by move, but `std::bind()` isn't smart enough to
         handle that. */
         backfill_atom_t &atom) {
+    debugf("apply_multi_key_atom\n");
     try {
         /* Acquire and hold both `fifo_enforcer_sink_t`s until we're completely finished;
         since we're going to be making multiple B-tree queries, we can't pipeline with
@@ -235,8 +237,6 @@ continue_bool_t store_t::receive_backfill(
         commit_threshold(region.inner.left);
     continue_bool_t result = continue_bool_t::CONTINUE;
     while (spawn_threshold != region.inner.right) {
-        receive_backfill_tokens_t tokens(&info, interruptor);
-
         bool is_atom;
         backfill_atom_t atom;
         key_range_t::right_bound_t edge;
@@ -247,6 +247,8 @@ continue_bool_t store_t::receive_backfill(
             result = continue_bool_t::ABORT;
             break;
         }
+
+        receive_backfill_tokens_t tokens(&info, interruptor);
 
         if (is_atom) {
             spawn_threshold = atom.get_range().right;
@@ -289,6 +291,8 @@ continue_bool_t store_t::receive_backfill(
             /* Apply the modifications */
             if (!mod_reports.empty()) {
                 update_sindexes(txn.get(), &sindex_block, mod_reports, true);
+            } else {
+                sindex_block.reset_buf_lock();
             }
 
             /* End the transaction and notify that we've made progress */
@@ -322,8 +326,11 @@ continue_bool_t store_t::receive_backfill(
         &info.commit_fifo_sink, info.fifo_source.enter_write());
     wait_interruptible(&exiter, interruptor);
 
-    guarantee(metainfo_threshold == region.inner.right);
-    guarantee(commit_threshold == region.inner.right);
+    if (result == continue_bool_t::CONTINUE) {
+        guarantee(spawn_threshold == region.inner.right);
+        guarantee(metainfo_threshold == region.inner.right);
+        guarantee(commit_threshold == region.inner.right);
+    }
 
     return result;
 }

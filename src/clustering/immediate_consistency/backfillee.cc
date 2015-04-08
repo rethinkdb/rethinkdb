@@ -65,12 +65,13 @@ private:
                             bool *is_atom_out,
                             backfill_atom_t *atom_out,
                             key_range_t::right_bound_t *edge_out) THROWS_NOTHING {
+                        ASSERT_NO_CORO_WAITING;
                         if (!parent->atoms.empty()) {
                             *is_atom_out = true;
                             *atom_out = parent->atoms.front();
                             parent->atoms.pop_front();
                             return continue_bool_t::CONTINUE;
-                        } else if (parent->atoms.get_left_key() <=
+                        } else if (parent->atoms.get_left_key() <
                                 parent->atoms.get_right_key()) {
                             *is_atom_out = false;
                             *edge_out = parent->atoms.get_right_key();
