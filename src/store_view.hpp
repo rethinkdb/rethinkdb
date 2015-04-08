@@ -4,8 +4,8 @@
 #include "protocol_api.hpp"
 #include "region/region_map.hpp"
 
-class backfill_atom_t;
-class backfill_pre_atom_t;
+class backfill_item_t;
+class backfill_pre_item_t;
 
 #ifndef NDEBUG
 // Checks that the metainfo has a certain value, or certain kind of value.
@@ -145,88 +145,88 @@ public:
             THROWS_ONLY(interrupted_exc_t) = 0;
 
     /* `send_backfill_pre()` expresses the keys that have changed since `start_point` as
-    a series of `backfill_pre_atom_t` objects, ignoring the values of the changed keys.
-    It passes the atoms to `callback`, aborting if `on_pre_atom()` returns `false`. */
-    class backfill_pre_atom_consumer_t {
+    a series of `backfill_pre_item_t` objects, ignoring the values of the changed keys.
+    It passes the items to `callback`, aborting if `on_pre_item()` returns `false`. */
+    class backfill_pre_item_consumer_t {
     public:
-        virtual continue_bool_t on_pre_atom(
-            backfill_pre_atom_t &&atom) THROWS_NOTHING = 0;
+        virtual continue_bool_t on_pre_item(
+            backfill_pre_item_t &&item) THROWS_NOTHING = 0;
         virtual continue_bool_t on_empty_range(
             const key_range_t::right_bound_t &threshold) THROWS_NOTHING = 0;
     protected:
-        virtual ~backfill_pre_atom_consumer_t() { }
+        virtual ~backfill_pre_item_consumer_t() { }
     };
     virtual continue_bool_t send_backfill_pre(
             const region_map_t<state_timestamp_t> &start_point,
-            backfill_pre_atom_consumer_t *pre_atom_consumer,
+            backfill_pre_item_consumer_t *pre_item_consumer,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
-    /* `send_backfill()` consumes a sequence of `backfill_pre_atom_t`s and it produces a
-    sequence of `backfill_atom_t`s. The `backfill_atom_t`s will include values for
-    everything that is listed in the `backfill_pre_atom_t`s and also for everything that
-    changed since `start_point`. It passes the atoms and their associated metainfo to
+    /* `send_backfill()` consumes a sequence of `backfill_pre_item_t`s and it produces a
+    sequence of `backfill_item_t`s. The `backfill_item_t`s will include values for
+    everything that is listed in the `backfill_pre_item_t`s and also for everything that
+    changed since `start_point`. It passes the items and their associated metainfo to
     `callback`. */
-    class backfill_atom_consumer_t {
+    class backfill_item_consumer_t {
     public:
-        virtual continue_bool_t on_atom(
+        virtual continue_bool_t on_item(
             const region_map_t<binary_blob_t> &metainfo,
-            backfill_atom_t &&atom) THROWS_NOTHING = 0;
+            backfill_item_t &&item) THROWS_NOTHING = 0;
         virtual continue_bool_t on_empty_range(
             const region_map_t<binary_blob_t> &metainfo,
             const key_range_t::right_bound_t &threshold) THROWS_NOTHING = 0;
     protected:
-        virtual ~backfill_atom_consumer_t() { }
+        virtual ~backfill_item_consumer_t() { }
     };
-    class backfill_pre_atom_producer_t {
+    class backfill_pre_item_producer_t {
     public:
-        virtual continue_bool_t next_pre_atom(
-            backfill_pre_atom_t const **next_out,
+        virtual continue_bool_t next_pre_item(
+            backfill_pre_item_t const **next_out,
             key_range_t::right_bound_t *edge_out) THROWS_NOTHING = 0;
 
-        /* The pointer given to `next_pre_atom()` should remain valid until
-        `release_pre_atom()` is called. Every call to `next_pre_atom()` that returns
+        /* The pointer given to `next_pre_item()` should remain valid until
+        `release_pre_item()` is called. Every call to `next_pre_item()` that returns
         sets `*next_out` to a non-null value will be followed by a call to
-        `next_pre_atom()`. */
-        virtual void release_pre_atom() THROWS_NOTHING = 0;
+        `next_pre_item()`. */
+        virtual void release_pre_item() THROWS_NOTHING = 0;
     protected:
-        virtual ~backfill_pre_atom_producer_t() { }
+        virtual ~backfill_pre_item_producer_t() { }
     };
     virtual continue_bool_t send_backfill(
             const region_map_t<state_timestamp_t> &start_point,
-            backfill_pre_atom_producer_t *pre_atom_producer,
-            backfill_atom_consumer_t *atom_consumer,
+            backfill_pre_item_producer_t *pre_item_producer,
+            backfill_item_consumer_t *item_consumer,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
-    /* Applies backfill atom(s) sent by `send_backfill()`. The `new_metainfo` is applied
-    atomically as the backfill atoms are applied. `receive_backfill()` continues until
-    `next_atom()` returns `ABORT` or it calls `on_commit()` with the right-hand side of
+    /* Applies backfill item(s) sent by `send_backfill()`. The `new_metainfo` is applied
+    atomically as the backfill items are applied. `receive_backfill()` continues until
+    `next_item()` returns `ABORT` or it calls `on_commit()` with the right-hand side of
     the region. */
-    class backfill_atom_producer_t {
+    class backfill_item_producer_t {
     public:
-        virtual continue_bool_t next_atom(
-            bool *is_atom_out,
-            backfill_atom_t *atom_out,
+        virtual continue_bool_t next_item(
+            bool *is_item_out,
+            backfill_item_t *item_out,
             key_range_t::right_bound_t *edge_out) THROWS_NOTHING = 0;
 
-        /* Returns the metainfo corresponding to the atom stream. The returned pointer
-        may be invalidated if the calling coroutine yields, calls `next_atom()`, or calls
+        /* Returns the metainfo corresponding to the item stream. The returned pointer
+        may be invalidated if the calling coroutine yields, calls `next_item()`, or calls
         `on_commit()`. The metainfo is only guaranteed to be complete up to the
-        right-hand side of the last atom (or edge) returned by `next_atom()`. */
+        right-hand side of the last item (or edge) returned by `next_item()`. */
         virtual const region_map_t<binary_blob_t> *get_metainfo() THROWS_NOTHING = 0;
 
         /* By the time `receive_backfill()` returns, the store must have called
-        `on_commit()` with a threshold greater than or equal to the last atom returned
-        from `next_atom()`. */
+        `on_commit()` with a threshold greater than or equal to the last item returned
+        from `next_item()`. */
         virtual void on_commit(
             const key_range_t::right_bound_t &threshold) THROWS_NOTHING = 0;
     protected:
-        virtual ~backfill_atom_producer_t() { }
+        virtual ~backfill_item_producer_t() { }
     };
     virtual continue_bool_t receive_backfill(
             const region_t &region,
-            backfill_atom_producer_t *atom_producer,
+            backfill_item_producer_t *item_producer,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
 

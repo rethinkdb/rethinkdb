@@ -70,10 +70,10 @@ void apply_edge(
     }
 }
 
-void apply_atom_pair(
+void apply_item_pair(
         btree_slice_t *slice,
         real_superblock_t *superblock,
-        backfill_atom_t::pair_t &&pair,
+        backfill_item_t::pair_t &&pair,
         std::vector<rdb_modification_report_t> *mod_reports_out,
         promise_t<superblock_t *> *pass_back_superblock) {
     rdb_live_deletion_context_t deletion_context;
@@ -98,11 +98,11 @@ void apply_atom_pair(
     }
 }
 
-void apply_single_key_atom(
+void apply_single_key_item(
         const receive_backfill_tokens_t &tokens,
-        /* `atom` is conceptually passed by move, but `std::bind()` isn't smart enough to
+        /* `item` is conceptually passed by move, but `std::bind()` isn't smart enough to
         handle that. */
-        backfill_atom_t &atom) {
+        backfill_item_t &item) {
     try {
         /* Acquire the superblock */
         scoped_ptr_t<txn_t> txn;
@@ -120,17 +120,17 @@ void apply_single_key_atom(
         the superblock soon */
         buf_lock_t sindex_block(superblock->expose_buf(),
             superblock->get_sindex_block_id(), access_t::write);
-        tokens.update_metainfo_cb(atom.range.right, superblock.get());
+        tokens.update_metainfo_cb(item.range.right, superblock.get());
 
         /* Actually apply the change, releasing the superblock in the process. */
         std::vector<rdb_modification_report_t> mod_reports;
-        apply_atom_pair(tokens.info->slice, superblock.get(),
-            std::move(atom.pairs[0]), &mod_reports, nullptr);
+        apply_item_pair(tokens.info->slice, superblock.get(),
+            std::move(item.pairs[0]), &mod_reports, nullptr);
 
         /* Notify that we're done and update the sindexes */
         fifo_enforcer_sink_t::exit_write_t exiter(
             &tokens.info->commit_fifo_sink, tokens.write_token);
-        tokens.commit_cb(atom.range.right, std::move(txn), std::move(sindex_block),
+        tokens.commit_cb(item.range.right, std::move(txn), std::move(sindex_block),
             std::move(mod_reports));
 
     } catch (const interrupted_exc_t &exc) {
@@ -138,15 +138,15 @@ void apply_single_key_atom(
     }
 }
 
-void apply_multi_key_atom(
+void apply_multi_key_item(
         const receive_backfill_tokens_t &tokens,
-        /* `atom` is conceptually passed by move, but `std::bind()` isn't smart enough to
+        /* `item` is conceptually passed by move, but `std::bind()` isn't smart enough to
         handle that. */
-        backfill_atom_t &atom) {
+        backfill_item_t &item) {
     try {
         /* Acquire and hold both `fifo_enforcer_sink_t`s until we're completely finished;
         since we're going to be making multiple B-tree queries, we can't pipeline with
-        other backfill atoms */
+        other backfill items */
         fifo_enforcer_sink_t::exit_write_t exiter1(
             &tokens.info->btree_fifo_sink, tokens.write_token);
         wait_interruptible(&exiter1, tokens.keepalive.get_drain_signal());
@@ -155,11 +155,11 @@ void apply_multi_key_atom(
         wait_interruptible(&exiter2, tokens.keepalive.get_drain_signal());
 
         /* It's possible that there are a lot of keys to be deleted, so we might do the
-        backfill atom in several chunks. */
+        backfill item in several chunks. */
         bool is_first = true;
         size_t next_pair = 0;
-        key_range_t::right_bound_t threshold(atom.range.left);
-        while (threshold != atom.range.right) {
+        key_range_t::right_bound_t threshold(item.range.left);
+        while (threshold != item.range.right) {
             std::vector<rdb_modification_report_t> mod_reports;
 
             /* Acquire the superblock. */
@@ -172,14 +172,14 @@ void apply_multi_key_atom(
             /* If we haven't already done so, then update the min deletion timstamps. */
             if (is_first) {
                 rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
-                btree_receive_backfill_atom_update_deletion_timestamps(
-                    superblock.get(), release_superblock_t::KEEP, &sizer, atom,
+                btree_receive_backfill_item_update_deletion_timestamps(
+                    superblock.get(), release_superblock_t::KEEP, &sizer, item,
                     tokens.keepalive.get_drain_signal());
                 is_first = false;
             }
 
             /* Delete a chunk of the range. */
-            key_range_t range_to_delete = atom.range;
+            key_range_t range_to_delete = item.range;
             range_to_delete.left = threshold.key();
             always_true_key_tester_t key_tester;
             key_range_t range_deleted;
@@ -188,12 +188,12 @@ void apply_multi_key_atom(
                 range_to_delete, superblock.get(), &deletion_context,
                 tokens.keepalive.get_drain_signal(), 16, &mod_reports, &range_deleted);
 
-            /* Apply any pairs from the atom that fall within the deleted region */
-            while (next_pair < atom.pairs.size() &&
-                    range_deleted.contains_key(atom.pairs[next_pair].key)) {
+            /* Apply any pairs from the item that fall within the deleted region */
+            while (next_pair < item.pairs.size() &&
+                    range_deleted.contains_key(item.pairs[next_pair].key)) {
                 promise_t<superblock_t *> pass_back_superblock;
-                apply_atom_pair(tokens.info->slice, superblock.get(),
-                    std::move(atom.pairs[next_pair]), &mod_reports,
+                apply_item_pair(tokens.info->slice, superblock.get(),
+                    std::move(item.pairs[next_pair]), &mod_reports,
                     &pass_back_superblock);
                 guarantee(superblock.get() == pass_back_superblock.assert_get_value());
                 ++next_pair;
@@ -201,7 +201,7 @@ void apply_multi_key_atom(
 
             /* Update `threshold` to reflect the changes we've made */
             threshold = range_deleted.right;
-            guarantee(threshold == atom.range.right || res == continue_bool_t::CONTINUE);
+            guarantee(threshold == item.range.right || res == continue_bool_t::CONTINUE);
 
             /* Acquire the sindex block and update the metainfo */
             buf_lock_t sindex_block(superblock->expose_buf(),
@@ -221,13 +221,13 @@ void apply_multi_key_atom(
 
 continue_bool_t store_t::receive_backfill(
         const region_t &region,
-        backfill_atom_producer_t *atom_producer,
+        backfill_item_producer_t *item_producer,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     guarantee(region.beg == get_region().beg && region.end == get_region().end);
     receive_backfill_info_t info(general_cache_conn.get(), btree.get());
 
-    /* Repeatedly request atoms from `atom_producer` and spawn coroutines to handle them,
+    /* Repeatedly request items from `item_producer` and spawn coroutines to handle them,
     but limit the number of simultaneously active coroutines. */
     key_range_t::right_bound_t
         spawn_threshold(region.inner.left),
@@ -237,27 +237,27 @@ continue_bool_t store_t::receive_backfill(
     while (spawn_threshold != region.inner.right) {
         receive_backfill_tokens_t tokens(&info, interruptor);
 
-        bool is_atom;
-        backfill_atom_t atom;
+        bool is_item;
+        backfill_item_t item;
         key_range_t::right_bound_t edge;
-        if (continue_bool_t::ABORT == atom_producer->next_atom(&is_atom, &atom, &edge)) {
+        if (continue_bool_t::ABORT == item_producer->next_item(&is_item, &item, &edge)) {
             /* By breaking out of the loop instead of returning immediately, we ensure
-            that we commit every atom that we got from the atom producer, as we are
+            that we commit every item that we got from the item producer, as we are
             required to. */
             result = continue_bool_t::ABORT;
             break;
         }
 
-        if (is_atom) {
-            spawn_threshold = atom.get_range().right;
+        if (is_item) {
+            spawn_threshold = item.get_range().right;
         } else {
             spawn_threshold = edge;
         }
 
         /* The `apply_*()` functions will call back to `update_metainfo_cb` when they
         want to apply the metainfo to the superblock. They may make multiple calls, but
-        the last call will have `progress` equal to `atom.get_range().right`. */
-        tokens.update_metainfo_cb = [this, &region, &metainfo_threshold, &atom_producer](
+        the last call will have `progress` equal to `item.get_range().right`. */
+        tokens.update_metainfo_cb = [this, &region, &metainfo_threshold, &item_producer](
                 const key_range_t::right_bound_t &progress,
                 real_superblock_t *superblock) {
             /* Compute the section of metainfo we're applying */
@@ -275,13 +275,13 @@ continue_bool_t store_t::receive_backfill(
             region_map_t<binary_blob_t> old_metainfo;
             get_metainfo_internal(superblock->get(), &old_metainfo);
             update_metainfo(
-                old_metainfo, atom_producer->get_metainfo()->mask(mask), superblock);
+                old_metainfo, item_producer->get_metainfo()->mask(mask), superblock);
         };
 
         /* The `apply_*()` functions will call back to `commit_cb` when they're done
         applying the changes for a given sub-region. They may make multiple calls, but
-        the last call will have `progress` equal to `atom.get_range().right`. */
-        tokens.commit_cb = [this, atom_producer, &commit_threshold](
+        the last call will have `progress` equal to `item.get_range().right`. */
+        tokens.commit_cb = [this, item_producer, &commit_threshold](
                 const key_range_t::right_bound_t &progress,
                 scoped_ptr_t<txn_t> &&txn,
                 buf_lock_t &&sindex_block,
@@ -300,18 +300,18 @@ continue_bool_t store_t::receive_backfill(
                 return;
             }
             commit_threshold = progress;
-            atom_producer->on_commit(progress);
+            item_producer->on_commit(progress);
         };
 
-        if (!is_atom) {
+        if (!is_item) {
             coro_t::spawn_sometime(std::bind(
                 &apply_edge, std::move(tokens), edge));
-        } else if (atom.is_single_key()) {
+        } else if (item.is_single_key()) {
             coro_t::spawn_sometime(std::bind(
-                &apply_single_key_atom, std::move(tokens), std::move(atom)));
+                &apply_single_key_item, std::move(tokens), std::move(item)));
         } else {
             coro_t::spawn_sometime(std::bind(
-                &apply_multi_key_atom, std::move(tokens), std::move(atom)));
+                &apply_multi_key_item, std::move(tokens), std::move(item)));
         }
     }
 

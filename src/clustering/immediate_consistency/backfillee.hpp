@@ -63,20 +63,20 @@ public:
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
 private:
-    void on_atoms(
+    void on_items(
         signal_t *interruptor,
         const fifo_enforcer_write_token_t &fifo_token,
         region_map_t<version_t> &&version,
-        backfill_atom_seq_t<backfill_atom_t> &&chunk);
+        backfill_item_seq_t<backfill_item_t> &&chunk);
 
     void on_ack_end_session(
         signal_t *interruptor,
         const fifo_enforcer_write_token_t &fifo_token);
 
-    void send_pre_atoms(
+    void send_pre_items(
         auto_drainer_t::lock_t keepalive);
 
-    void on_ack_pre_atoms(
+    void on_ack_pre_items(
         signal_t *interruptor,
         const fifo_enforcer_write_token_t &fifo_token,
         size_t chunk_size);
@@ -90,18 +90,18 @@ private:
     fifo_enforcer_source_t fifo_source;
     fifo_enforcer_sink_t fifo_sink;
 
-    /* `pre_atom_throttler` limits how many pre-atoms we send to the backfiller.
-    `pre_atom_throttler_acq` always holds `pre_atom_throttler`, but its `count` changes
+    /* `pre_item_throttler` limits how many pre-items we send to the backfiller.
+    `pre_item_throttler_acq` always holds `pre_item_throttler`, but its `count` changes
     to reflect how much capacity is currently owned by the other server. */
-    new_semaphore_t pre_atom_throttler;
-    new_semaphore_acq_t pre_atom_throttler_acq;
+    new_semaphore_t pre_item_throttler;
+    new_semaphore_acq_t pre_item_throttler_acq;
 
     scoped_ptr_t<session_t> current_session;
 
     auto_drainer_t drainer;
-    backfiller_bcard_t::atoms_mailbox_t atoms_mailbox;
+    backfiller_bcard_t::items_mailbox_t items_mailbox;
     backfiller_bcard_t::ack_end_session_mailbox_t ack_end_session_mailbox;
-    backfiller_bcard_t::ack_pre_atoms_mailbox_t ack_pre_atoms_mailbox;
+    backfiller_bcard_t::ack_pre_items_mailbox_t ack_pre_items_mailbox;
     scoped_ptr_t<registrant_t<backfiller_bcard_t::intro_1_t> > registrant;
 };
 

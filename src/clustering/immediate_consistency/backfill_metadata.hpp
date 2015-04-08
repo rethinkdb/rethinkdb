@@ -4,7 +4,7 @@
 
 #include "btree/backfill.hpp"
 #include "clustering/generic/registration_metadata.hpp"
-#include "clustering/immediate_consistency/backfill_atom_seq.hpp"
+#include "clustering/immediate_consistency/backfill_item_seq.hpp"
 #include "clustering/immediate_consistency/history.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rpc/mailbox/typed.hpp"
@@ -18,8 +18,8 @@ public:
 
     typedef mailbox_t<void(
         fifo_enforcer_write_token_t,
-        backfill_atom_seq_t<backfill_pre_atom_t>
-        )> pre_atoms_mailbox_t;
+        backfill_item_seq_t<backfill_pre_item_t>
+        )> pre_items_mailbox_t;
 
     typedef mailbox_t<void(
         fifo_enforcer_write_token_t,
@@ -33,22 +33,22 @@ public:
     typedef mailbox_t<void(
         fifo_enforcer_write_token_t,
         size_t
-        )> ack_atoms_mailbox_t;
+        )> ack_items_mailbox_t;
 
     class intro_2_t {
     public:
         region_map_t<state_timestamp_t> common_version;
-        pre_atoms_mailbox_t::address_t pre_atoms_mailbox;
+        pre_items_mailbox_t::address_t pre_items_mailbox;
         begin_session_mailbox_t::address_t begin_session_mailbox;
         end_session_mailbox_t::address_t end_session_mailbox;
-        ack_atoms_mailbox_t::address_t ack_atoms_mailbox;
+        ack_items_mailbox_t::address_t ack_items_mailbox;
     };
 
     typedef mailbox_t<void(
         fifo_enforcer_write_token_t,
         region_map_t<version_t>,
-        backfill_atom_seq_t<backfill_atom_t>
-        )> atoms_mailbox_t;
+        backfill_item_seq_t<backfill_item_t>
+        )> items_mailbox_t;
 
     typedef mailbox_t<void(
         fifo_enforcer_write_token_t
@@ -57,16 +57,16 @@ public:
     typedef mailbox_t<void(
         fifo_enforcer_write_token_t,
         size_t
-        )> ack_pre_atoms_mailbox_t;
+        )> ack_pre_items_mailbox_t;
 
     class intro_1_t {
     public:
         region_map_t<version_t> initial_version;
         branch_history_t initial_version_history;
         mailbox_t<void(intro_2_t)>::address_t intro_mailbox;
-        atoms_mailbox_t::address_t atoms_mailbox;
+        items_mailbox_t::address_t items_mailbox;
         ack_end_session_mailbox_t::address_t ack_end_session_mailbox;
-        ack_pre_atoms_mailbox_t::address_t ack_pre_atoms_mailbox;
+        ack_pre_items_mailbox_t::address_t ack_pre_items_mailbox;
     };
 
     region_t region;
