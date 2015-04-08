@@ -7,23 +7,23 @@
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/lazy_json.hpp"
 
-class limiting_btree_backfill_pre_atom_consumer_t :
-    public btree_backfill_pre_atom_consumer_t
+class limiting_btree_backfill_pre_item_consumer_t :
+    public btree_backfill_pre_item_consumer_t
 {
 public:
-    limiting_btree_backfill_pre_atom_consumer_t(
-            store_view_t::backfill_pre_atom_consumer_t *_inner, size_t limit,
+    limiting_btree_backfill_pre_item_consumer_t(
+            store_view_t::backfill_pre_item_consumer_t *_inner, size_t limit,
             key_range_t::right_bound_t *_threshold_ptr) :
         inner_aborted(false), inner(_inner), remaining(limit),
         threshold_ptr(_threshold_ptr) { }
-    continue_bool_t on_pre_atom(backfill_pre_atom_t &&atom)
+    continue_bool_t on_pre_item(backfill_pre_item_t &&item)
             THROWS_NOTHING {
         --remaining;
-        rassert(key_range_t::right_bound_t(atom.range.left) >=
+        rassert(key_range_t::right_bound_t(item.range.left) >=
             *threshold_ptr);
-        *threshold_ptr = atom.range.right;
+        *threshold_ptr = item.range.right;
         inner_aborted =
-            continue_bool_t::ABORT == inner->on_pre_atom(std::move(atom));
+            continue_bool_t::ABORT == inner->on_pre_item(std::move(item));
         return (inner_aborted || remaining == 0)
             ? continue_bool_t::ABORT : continue_bool_t::CONTINUE;
     }
@@ -39,14 +39,14 @@ public:
     }
     bool inner_aborted;
 private:
-    store_view_t::backfill_pre_atom_consumer_t *inner;
+    store_view_t::backfill_pre_item_consumer_t *inner;
     size_t remaining;
     key_range_t::right_bound_t *threshold_ptr;
 };
 
 continue_bool_t store_t::send_backfill_pre(
         const region_map_t<state_timestamp_t> &start_point,
-        backfill_pre_atom_consumer_t *pre_atom_consumer,
+        backfill_pre_item_consumer_t *pre_item_consumer,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     std::vector<std::pair<key_range_t, repli_timestamp_t> > reference_timestamps;
@@ -70,8 +70,8 @@ continue_bool_t store_t::send_backfill_pre(
             get_btree_superblock_and_txn_for_reading(
                 general_cache_conn.get(), CACHE_SNAPSHOTTED_NO, &sb, &txn);
 
-            limiting_btree_backfill_pre_atom_consumer_t
-                limiter(pre_atom_consumer, 100, &threshold);
+            limiting_btree_backfill_pre_item_consumer_t
+                limiter(pre_item_consumer, 100, &threshold);
 
             rdb_value_sizer_t sizer(cache->max_block_size());
             key_range_t to_do = pair.first;
@@ -85,16 +85,16 @@ continue_bool_t store_t::send_backfill_pre(
                 return continue_bool_t::ABORT;
             }
             guarantee(cont == continue_bool_t::ABORT || threshold == pair.first.right);
-        } 
+        }
     }
     return continue_bool_t::CONTINUE;
 }
 
-class pre_atom_buffer_t {
+class pre_item_buffer_t {
 public:
-    class producer_t : public btree_backfill_pre_atom_producer_t {
+    class producer_t : public btree_backfill_pre_item_producer_t {
     public:
-        producer_t(pre_atom_buffer_t *_parent,
+        producer_t(pre_item_buffer_t *_parent,
                 const key_range_t::right_bound_t &_threshold) :
             parent(_parent), threshold(_threshold) {
             guarantee(threshold >= parent->left);
@@ -110,7 +110,7 @@ public:
         continue_bool_t consume_range(
                 const btree_key_t *left_excl_or_null,
                 const btree_key_t *right_incl,
-                const std::function<void(const backfill_pre_atom_t &)> &callback) {
+                const std::function<void(const backfill_pre_item_t &)> &callback) {
             key_range_t range(
                 left_excl_or_null == nullptr
                     ? key_range_t::bound_t::none : key_range_t::bound_t::open,
@@ -143,7 +143,7 @@ public:
         continue_bool_t peek_range(
                 const btree_key_t *left_excl_or_null,
                 const btree_key_t *right_incl,
-                bool *has_pre_atoms_out) {
+                bool *has_pre_items_out) {
             key_range_t range(
                 left_excl_or_null == nullptr
                     ? key_range_t::bound_t::none : key_range_t::bound_t::open,
@@ -153,34 +153,34 @@ public:
             guarantee(key_range_t::right_bound_t(range.left) == threshold);
             if (!parent->buffer_future.empty() && key_range_t::right_bound_t(
                     parent->buffer_future.front().range.left) < range.right) {
-                *has_pre_atoms_out = true;
+                *has_pre_items_out = true;
                 return continue_bool_t::CONTINUE;
             } else if (parent->right >= range.right) {
-                *has_pre_atoms_out = false;
+                *has_pre_items_out = false;
                 return continue_bool_t::CONTINUE;
             } else {
-                /* We don't have enough information to determine if there is a pre atom
-                in the range. We could fetch pre atoms into `buffer_future` until we knew
-                for sure. But if `next_pre_atom()` returned `ABORT`, then we'd have to
+                /* We don't have enough information to determine if there is a pre item
+                in the range. We could fetch pre items into `buffer_future` until we knew
+                for sure. But if `next_pre_item()` returned `ABORT`, then we'd have to
                 abort; and since `peek_range()` is often used to look far into the
                 future, that's potentially very inefficient. So we do the conservative
-                thing and say that there are pre atoms in the range even though there
+                thing and say that there are pre items in the range even though there
                 might not be.
 
-                Maybe it would be better if we called `next_pre_atom()` until it ran out
-                of pre atoms, and then decide based on those results. But that would
-                require changing the semantics of `next_pre_atom()` to allow us to call
+                Maybe it would be better if we called `next_pre_item()` until it ran out
+                of pre items, and then decide based on those results. But that would
+                require changing the semantics of `next_pre_item()` to allow us to call
                 it again after it returns `ABORT`, so it's not worth it unless this turns
                 out to be a bottleneck. */
-                *has_pre_atoms_out = true;
+                *has_pre_items_out = true;
                 return continue_bool_t::CONTINUE;
             }
         }
     private:
-        pre_atom_buffer_t *parent;
+        pre_item_buffer_t *parent;
         key_range_t::right_bound_t threshold;
     };
-    pre_atom_buffer_t(store_view_t::backfill_pre_atom_producer_t *_inner,
+    pre_item_buffer_t(store_view_t::backfill_pre_item_producer_t *_inner,
             const key_range_t::right_bound_t &_left) :
         inner(_inner), left(_left), right(left), has_child(false) { }
     void discard(const key_range_t::right_bound_t &bound) {
@@ -194,46 +194,46 @@ public:
     }
 private:
     continue_bool_t fetch_more() {
-        backfill_pre_atom_t const *atom;
+        backfill_pre_item_t const *item;
         key_range_t::right_bound_t edge;
-        if (continue_bool_t::ABORT == inner->next_pre_atom(&atom, &edge)) {
+        if (continue_bool_t::ABORT == inner->next_pre_item(&item, &edge)) {
             return continue_bool_t::ABORT;
         }
-        if (atom != nullptr) {
-            rassert(key_range_t::right_bound_t(atom->range.left) >= right);
-            buffer_future.push_back(*atom);
-            inner->release_pre_atom();
-            right = atom->range.right;
+        if (item != nullptr) {
+            rassert(key_range_t::right_bound_t(item->range.left) >= right);
+            buffer_future.push_back(*item);
+            inner->release_pre_item();
+            right = item->range.right;
         } else {
             right = edge;
         }
         return continue_bool_t::CONTINUE;
     }
-    store_view_t::backfill_pre_atom_producer_t *inner;
+    store_view_t::backfill_pre_item_producer_t *inner;
     key_range_t::right_bound_t left, right;
-    std::list<backfill_pre_atom_t> buffer_past, buffer_future;
+    std::list<backfill_pre_item_t> buffer_past, buffer_future;
     bool has_child;
 };
 
-class limiting_btree_backfill_atom_consumer_t :
-    public btree_backfill_atom_consumer_t {
+class limiting_btree_backfill_item_consumer_t :
+    public btree_backfill_item_consumer_t {
 public:
-    limiting_btree_backfill_atom_consumer_t(
-            store_view_t::backfill_atom_consumer_t *_inner, size_t limit,
+    limiting_btree_backfill_item_consumer_t(
+            store_view_t::backfill_item_consumer_t *_inner, size_t limit,
             key_range_t::right_bound_t *_threshold_ptr,
-            pre_atom_buffer_t *_pre_atom_buffer,
+            pre_item_buffer_t *_pre_item_buffer,
             const region_map_t<binary_blob_t> *_metainfo_ptr) :
         inner_aborted(false), inner(_inner), remaining(limit),
-        threshold_ptr(_threshold_ptr), pre_atom_buffer(_pre_atom_buffer),
+        threshold_ptr(_threshold_ptr), pre_item_buffer(_pre_item_buffer),
         metainfo_ptr(_metainfo_ptr) { }
-    continue_bool_t on_atom(backfill_atom_t &&atom) {
+    continue_bool_t on_item(backfill_item_t &&item) {
         --remaining;
-        rassert(key_range_t::right_bound_t(atom.range.left) >=
+        rassert(key_range_t::right_bound_t(item.range.left) >=
             *threshold_ptr);
-        *threshold_ptr = atom.range.right;
-        pre_atom_buffer->discard(atom.range.right);
-        inner_aborted = continue_bool_t::ABORT == inner->on_atom(
-            *metainfo_ptr, std::move(atom));
+        *threshold_ptr = item.range.right;
+        pre_item_buffer->discard(item.range.right);
+        inner_aborted = continue_bool_t::ABORT == inner->on_item(
+            *metainfo_ptr, std::move(item));
         return (inner_aborted || remaining == 0)
             ? continue_bool_t::ABORT : continue_bool_t::CONTINUE;
     }
@@ -242,7 +242,7 @@ public:
         --remaining;
         rassert(new_threshold >= *threshold_ptr);
         *threshold_ptr = new_threshold;
-        pre_atom_buffer->discard(new_threshold);
+        pre_item_buffer->discard(new_threshold);
         inner_aborted = continue_bool_t::ABORT == inner->on_empty_range(
             *metainfo_ptr, new_threshold);
         return (inner_aborted || remaining == 0)
@@ -274,17 +274,17 @@ public:
     }
     bool inner_aborted;
 private:
-    store_view_t::backfill_atom_consumer_t *const inner;
+    store_view_t::backfill_item_consumer_t *const inner;
     size_t remaining;
     key_range_t::right_bound_t *const threshold_ptr;
-    pre_atom_buffer_t *const pre_atom_buffer;
+    pre_item_buffer_t *const pre_item_buffer;
     const region_map_t<binary_blob_t> *const metainfo_ptr;
 };
 
 continue_bool_t store_t::send_backfill(
         const region_map_t<state_timestamp_t> &start_point,
-        backfill_pre_atom_producer_t *pre_atom_producer,
-        backfill_atom_consumer_t *atom_consumer,
+        backfill_pre_item_producer_t *pre_item_producer,
+        backfill_item_consumer_t *item_consumer,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     std::vector<std::pair<key_range_t, repli_timestamp_t> > reference_timestamps;
@@ -300,8 +300,8 @@ continue_bool_t store_t::send_backfill(
             guarantee(!p1.first.overlaps(p2.first));
             return p1.first.left < p2.first.left;
         });
-    pre_atom_buffer_t pre_atom_buffer(
-        pre_atom_producer,
+    pre_item_buffer_t pre_item_buffer(
+        pre_item_producer,
         key_range_t::right_bound_t(start_point.get_domain().inner.left));
     for (const auto &pair : reference_timestamps) {
         key_range_t::right_bound_t threshold(pair.first.left);
@@ -313,10 +313,10 @@ continue_bool_t store_t::send_backfill(
             region_map_t<binary_blob_t> metainfo;
             get_metainfo_internal(sb->get(), &metainfo);
 
-            pre_atom_buffer_t::producer_t buffered_producer(
-                &pre_atom_buffer, threshold);
-            limiting_btree_backfill_atom_consumer_t limiter(
-                atom_consumer, 100, &threshold, &pre_atom_buffer, &metainfo);
+            pre_item_buffer_t::producer_t buffered_producer(
+                &pre_item_buffer, threshold);
+            limiting_btree_backfill_item_consumer_t limiter(
+                item_consumer, 100, &threshold, &pre_item_buffer, &metainfo);
 
             rdb_value_sizer_t sizer(cache->max_block_size());
             key_range_t to_do = pair.first;
@@ -329,7 +329,7 @@ continue_bool_t store_t::send_backfill(
                 return continue_bool_t::ABORT;
             }
             guarantee(cont == continue_bool_t::ABORT || threshold == pair.first.right);
-        } 
+        }
     }
     return continue_bool_t::CONTINUE;
 }

@@ -4,12 +4,12 @@
 #include "clustering/immediate_consistency/history.hpp"
 #include "concurrency/wait_any.hpp"
 
-/* `PRE_ATOM_PIPELINE_SIZE` is the maximum combined size of the pre-atoms that we send to
+/* `PRE_ITEM_PIPELINE_SIZE` is the maximum combined size of the pre-items that we send to
 the backfiller that it hasn't consumed yet. So the other server may use up to this size
-for its pre-atom queue. `PRE_ATOM_CHUNK_SIZE` is the typical size of a pre-atom message
+for its pre-item queue. `PRE_ITEM_CHUNK_SIZE` is the typical size of a pre-item message
 we send over the network. */
-static const size_t PRE_ATOM_PIPELINE_SIZE = 4 * MEGABYTE;
-static const size_t PRE_ATOM_CHUNK_SIZE = 100 * KILOBYTE;
+static const size_t PRE_ITEM_PIPELINE_SIZE = 4 * MEGABYTE;
+static const size_t PRE_ITEM_CHUNK_SIZE = 100 * KILOBYTE;
 
 class backfillee_t::session_t {
 public:
@@ -18,28 +18,28 @@ public:
             const key_range_t::right_bound_t &_threshold,
             callback_t *_callback) :
         parent(_parent), threshold(_threshold), callback(_callback),
-        atoms(_parent->store->get_region().beg, _parent->store->get_region().end,
+        items(_parent->store->get_region().beg, _parent->store->get_region().end,
             threshold),
         metainfo(region_map_t<version_t>::empty()),
         metainfo_binary(region_map_t<binary_blob_t>::empty())
     {
         coro_t::spawn_sometime(std::bind(&session_t::run, this, drainer.lock()));
     }
-    void on_atoms(
+    void on_items(
             region_map_t<version_t> &&metainfo_chunk,
-            backfill_atom_seq_t<backfill_atom_t> &&chunk) {
+            backfill_item_seq_t<backfill_item_t> &&chunk) {
         rassert(metainfo_chunk.get_domain() == chunk.get_region());
-        atoms.concat(std::move(chunk));
+        items.concat(std::move(chunk));
         metainfo.concat(std::move(metainfo_chunk));
         metainfo_binary = from_version_map(metainfo);
-        if (pulse_when_atoms_arrive.has()) {
-            pulse_when_atoms_arrive->pulse_if_not_already_pulsed();
+        if (pulse_when_items_arrive.has()) {
+            pulse_when_items_arrive->pulse_if_not_already_pulsed();
         }
     }
     void on_ack_end_session() {
         got_ack_end_session.pulse();
-        if (pulse_when_atoms_arrive.has()) {
-            pulse_when_atoms_arrive->pulse_if_not_already_pulsed();
+        if (pulse_when_items_arrive.has()) {
+            pulse_when_items_arrive->pulse_if_not_already_pulsed();
         }
     }
     cond_t callback_returned_false;
@@ -56,29 +56,29 @@ private:
                 region_t subregion = parent->store->get_region();
                 subregion.inner.left = threshold.key();
 
-                /* Copy atoms from `atoms` into the store until we finish the backfill
-                range or we run out of atoms */
-                class producer_t : public store_view_t::backfill_atom_producer_t {
+                /* Copy items from `items` into the store until we finish the backfill
+                range or we run out of items */
+                class producer_t : public store_view_t::backfill_item_producer_t {
                 public:
                     producer_t(session_t *_parent) : parent(_parent) { }
-                    continue_bool_t next_atom(
-                            bool *is_atom_out,
-                            backfill_atom_t *atom_out,
+                    continue_bool_t next_item(
+                            bool *is_item_out,
+                            backfill_item_t *item_out,
                             key_range_t::right_bound_t *edge_out) THROWS_NOTHING {
                         ASSERT_NO_CORO_WAITING;
-                        if (!parent->atoms.empty()) {
-                            *is_atom_out = true;
-                            *atom_out = parent->atoms.front();
-                            parent->atoms.pop_front();
+                        if (!parent->items.empty()) {
+                            *is_item_out = true;
+                            *item_out = parent->items.front();
+                            parent->items.pop_front();
                             return continue_bool_t::CONTINUE;
-                        } else if (parent->atoms.get_left_key() <
-                                parent->atoms.get_right_key()) {
-                            *is_atom_out = false;
-                            *edge_out = parent->atoms.get_right_key();
-                            parent->atoms.delete_to_key(*edge_out);
+                        } else if (parent->items.get_left_key() <
+                                parent->items.get_right_key()) {
+                            *is_item_out = false;
+                            *edge_out = parent->items.get_right_key();
+                            parent->items.delete_to_key(*edge_out);
                             return continue_bool_t::CONTINUE;
                         } else {
-                            parent->pulse_when_atoms_arrive.init(new cond_t);
+                            parent->pulse_when_items_arrive.init(new cond_t);
                             return continue_bool_t::ABORT;
                         }
                     }
@@ -104,11 +104,11 @@ private:
                 parent->store->receive_backfill(
                     subregion, &producer, keepalive.get_drain_signal());
 
-                /* Wait for more atoms, if that's the reason we stopped */
-                if (pulse_when_atoms_arrive.has()) {
-                    wait_interruptible(pulse_when_atoms_arrive.get(),
+                /* Wait for more items, if that's the reason we stopped */
+                if (pulse_when_items_arrive.has()) {
+                    wait_interruptible(pulse_when_items_arrive.get(),
                         keepalive.get_drain_signal());
-                    pulse_when_atoms_arrive.reset();
+                    pulse_when_items_arrive.reset();
                 }
             }
         } catch (const interrupted_exc_t &) {
@@ -119,10 +119,10 @@ private:
     backfillee_t *parent;
     key_range_t::right_bound_t threshold;
     callback_t *callback;
-    backfill_atom_seq_t<backfill_atom_t> atoms;
+    backfill_item_seq_t<backfill_item_t> items;
     region_map_t<version_t> metainfo;
     region_map_t<binary_blob_t> metainfo_binary;
-    scoped_ptr_t<cond_t> pulse_when_atoms_arrive;
+    scoped_ptr_t<cond_t> pulse_when_items_arrive;
     auto_drainer_t drainer;
 };
 
@@ -135,22 +135,22 @@ backfillee_t::backfillee_t(
     mailbox_manager(_mailbox_manager),
     branch_history_manager(_branch_history_manager),
     store(_store),
-    pre_atom_throttler(PRE_ATOM_PIPELINE_SIZE),
-    pre_atom_throttler_acq(&pre_atom_throttler, 0),
-    atoms_mailbox(mailbox_manager,
-        std::bind(&backfillee_t::on_atoms, this, ph::_1, ph::_2, ph::_3, ph::_4)),
+    pre_item_throttler(PRE_ITEM_PIPELINE_SIZE),
+    pre_item_throttler_acq(&pre_item_throttler, 0),
+    items_mailbox(mailbox_manager,
+        std::bind(&backfillee_t::on_items, this, ph::_1, ph::_2, ph::_3, ph::_4)),
     ack_end_session_mailbox(mailbox_manager,
         std::bind(&backfillee_t::on_ack_end_session, this, ph::_1, ph::_2)),
-    ack_pre_atoms_mailbox(mailbox_manager,
-        std::bind(&backfillee_t::on_ack_pre_atoms, this, ph::_1, ph::_2, ph::_3))
+    ack_pre_items_mailbox(mailbox_manager,
+        std::bind(&backfillee_t::on_ack_pre_items, this, ph::_1, ph::_2, ph::_3))
 {
     guarantee(region_is_superset(backfiller.region, store->get_region()));
     guarantee(store->get_region().beg == backfiller.region.beg);
     guarantee(store->get_region().end == backfiller.region.end);
 
     backfiller_bcard_t::intro_1_t our_intro;
-    our_intro.ack_pre_atoms_mailbox = ack_pre_atoms_mailbox.get_address();
-    our_intro.atoms_mailbox = atoms_mailbox.get_address();
+    our_intro.ack_pre_items_mailbox = ack_pre_items_mailbox.get_address();
+    our_intro.items_mailbox = items_mailbox.get_address();
     our_intro.ack_end_session_mailbox = ack_end_session_mailbox.get_address();
 
     /* Fetch the `initial_version` and `initial_version_history` fields for the
@@ -183,9 +183,9 @@ backfillee_t::backfillee_t(
         mailbox_manager, backfiller.registrar, our_intro));
     wait_interruptible(&got_intro, interruptor);
 
-    /* Spawn the coroutine that will stream pre-atoms to the backfiller. */
+    /* Spawn the coroutine that will stream pre-items to the backfiller. */
     coro_t::spawn_sometime(
-        std::bind(&backfillee_t::send_pre_atoms, this, drainer.lock()));
+        std::bind(&backfillee_t::send_pre_items, this, drainer.lock()));
 }
 
 backfillee_t::~backfillee_t() {
@@ -218,16 +218,16 @@ void backfillee_t::go(
     current_session.reset();
 }
 
-void backfillee_t::on_atoms(
+void backfillee_t::on_items(
         signal_t *interruptor,
         const fifo_enforcer_write_token_t &fifo_token,
         region_map_t<version_t> &&version,
-        backfill_atom_seq_t<backfill_atom_t> &&chunk) {
+        backfill_item_seq_t<backfill_item_t> &&chunk) {
     fifo_enforcer_sink_t::exit_write_t exit_write(&fifo_sink, fifo_token);
     wait_interruptible(&exit_write, interruptor);
 
     guarantee(current_session.has());
-    current_session->on_atoms(std::move(version), std::move(chunk));
+    current_session->on_items(std::move(version), std::move(chunk));
 }
 
 void backfillee_t::on_ack_end_session(
@@ -240,35 +240,35 @@ void backfillee_t::on_ack_end_session(
     current_session->on_ack_end_session();
 }
 
-void backfillee_t::send_pre_atoms(auto_drainer_t::lock_t keepalive) {
+void backfillee_t::send_pre_items(auto_drainer_t::lock_t keepalive) {
     try {
-        key_range_t::right_bound_t pre_atom_sent_threshold(
+        key_range_t::right_bound_t pre_item_sent_threshold(
             store->get_region().inner.left);
-        while (pre_atom_sent_threshold != store->get_region().inner.right) {
+        while (pre_item_sent_threshold != store->get_region().inner.right) {
             /* Wait until there's room in the semaphore for the chunk we're about to
             process */
-            new_semaphore_acq_t sem_acq(&pre_atom_throttler, PRE_ATOM_CHUNK_SIZE);
+            new_semaphore_acq_t sem_acq(&pre_item_throttler, PRE_ITEM_CHUNK_SIZE);
             wait_interruptible(
                 sem_acq.acquisition_signal(), keepalive.get_drain_signal());
 
             /* Set up a `region_t` describing the range that still needs to be
             backfilled */
             region_t subregion = store->get_region();
-            subregion.inner.left = pre_atom_sent_threshold.key();
+            subregion.inner.left = pre_item_sent_threshold.key();
 
-            /* Copy pre-atoms from the store into `chunk ` until the total size hits
-            `PRE_ATOM_CHUNK_SIZE` or we finish the range */
-            backfill_atom_seq_t<backfill_pre_atom_t> chunk(
+            /* Copy pre-items from the store into `chunk ` until the total size hits
+            `PRE_ITEM_CHUNK_SIZE` or we finish the range */
+            backfill_item_seq_t<backfill_pre_item_t> chunk(
                 store->get_region().beg, store->get_region().end,
-                pre_atom_sent_threshold);
+                pre_item_sent_threshold);
 
-            class consumer_t : public store_view_t::backfill_pre_atom_consumer_t {
+            class consumer_t : public store_view_t::backfill_pre_item_consumer_t {
             public:
-                consumer_t(backfill_atom_seq_t<backfill_pre_atom_t> *_chunk) :
+                consumer_t(backfill_item_seq_t<backfill_pre_item_t> *_chunk) :
                     chunk(_chunk) { }
-                continue_bool_t on_pre_atom(backfill_pre_atom_t &&atom) THROWS_NOTHING {
-                    chunk->push_back(std::move(atom));
-                    if (chunk->get_mem_size() < PRE_ATOM_CHUNK_SIZE) {
+                continue_bool_t on_pre_item(backfill_pre_item_t &&item) THROWS_NOTHING {
+                    chunk->push_back(std::move(item));
+                    if (chunk->get_mem_size() < PRE_ITEM_CHUNK_SIZE) {
                         return continue_bool_t::CONTINUE;
                     } else {
                         return continue_bool_t::ABORT;
@@ -279,31 +279,31 @@ void backfillee_t::send_pre_atoms(auto_drainer_t::lock_t keepalive) {
                     chunk->push_back_nothing(threshold);
                     return continue_bool_t::CONTINUE;
                 }
-                backfill_atom_seq_t<backfill_pre_atom_t> *chunk;
+                backfill_item_seq_t<backfill_pre_item_t> *chunk;
             } callback(&chunk);
 
             store->send_backfill_pre(intro.common_version.mask(subregion), &callback,
                 keepalive.get_drain_signal());
 
             /* Adjust for the fact that `chunk.get_mem_size()` isn't precisely equal to
-            `PRE_ATOM_CHUNK_SIZE`, and then transfer the semaphore ownership. */
+            `PRE_ITEM_CHUNK_SIZE`, and then transfer the semaphore ownership. */
             sem_acq.change_count(chunk.get_mem_size());
-            pre_atom_throttler_acq.transfer_in(std::move(sem_acq));
+            pre_item_throttler_acq.transfer_in(std::move(sem_acq));
 
             /* Send the chunk over the network */
-            send(mailbox_manager, intro.pre_atoms_mailbox,
+            send(mailbox_manager, intro.pre_items_mailbox,
                 fifo_source.enter_write(), chunk);
 
             /* Update `progress` */
-            guarantee(chunk.get_left_key() == pre_atom_sent_threshold);
-            pre_atom_sent_threshold = chunk.get_right_key();
+            guarantee(chunk.get_left_key() == pre_item_sent_threshold);
+            pre_item_sent_threshold = chunk.get_right_key();
         }
     } catch (const interrupted_exc_t &) {
         /* The `backfillee_t` was deleted; the backfill is being aborted. */
     }
 }
 
-void backfillee_t::on_ack_pre_atoms(
+void backfillee_t::on_ack_pre_items(
         signal_t *interruptor,
         const fifo_enforcer_write_token_t &fifo_token,
         size_t mem_size) {
@@ -312,9 +312,9 @@ void backfillee_t::on_ack_pre_atoms(
     fifo_enforcer_sink_t::exit_write_t exit_write(&fifo_sink, fifo_token);
     wait_interruptible(&exit_write, interruptor);
 
-    /* Shrink `pre_atom_throttler_acq` so that `send_pre_atoms()` can acquire the
+    /* Shrink `pre_item_throttler_acq` so that `send_pre_items()` can acquire the
     semaphore again. */
-    guarantee(static_cast<int64_t>(mem_size) <= pre_atom_throttler_acq.count());
-    pre_atom_throttler_acq.change_count(pre_atom_throttler_acq.count() - mem_size);
+    guarantee(static_cast<int64_t>(mem_size) <= pre_item_throttler_acq.count());
+    pre_item_throttler_acq.change_count(pre_item_throttler_acq.count() - mem_size);
 }
 

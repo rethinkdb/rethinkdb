@@ -225,7 +225,7 @@ void mock_store_t::write(
 
 continue_bool_t mock_store_t::send_backfill_pre(
         const region_map_t<state_timestamp_t> &start_point,
-        backfill_pre_atom_consumer_t *pre_atom_consumer,
+        backfill_pre_item_consumer_t *pre_item_consumer,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     /* We iterate by remembering the last key we visited, rather than by using a
@@ -241,26 +241,26 @@ continue_bool_t mock_store_t::send_backfill_pre(
         if (it == table_.end() || key_range_t::right_bound_t(it->first) >= right_bound) {
             /* There are no more keys in the range */
             if (continue_bool_t::ABORT ==
-                    pre_atom_consumer->on_empty_range(right_bound)) {
+                    pre_item_consumer->on_empty_range(right_bound)) {
                 return continue_bool_t::ABORT;
             }
             break;
         }
         if (it->second.first > start_point.get_point(it->first).to_repli_timestamp()) {
             /* We need to rewind this key */
-            backfill_pre_atom_t atom;
+            backfill_pre_item_t item;
             if (rng_.randint(10) != 0) {
-                atom.range = key_range_t(
+                item.range = key_range_t(
                     key_range_t::closed, it->first, key_range_t::closed, it->first);
             } else {
                 /* Occasionally we send a large range, just to test the code. However,
                 the large range only ever contains one key (otherwise it's non-trivial to
                 find large ranges) */
-                atom.range = key_range_t(
+                item.range = key_range_t(
                     key_range_t::closed, cursor, key_range_t::closed, it->first);
             }
             if (continue_bool_t::ABORT ==
-                    pre_atom_consumer->on_pre_atom(std::move(atom))) {
+                    pre_item_consumer->on_pre_item(std::move(item))) {
                 return continue_bool_t::ABORT;
             }
         }
@@ -299,33 +299,33 @@ ql::datum_t vector_to_datum(std::vector<char> &&vector) {
 
 continue_bool_t mock_store_t::send_backfill(
         const region_map_t<state_timestamp_t> &start_point,
-        backfill_pre_atom_producer_t *pre_atom_producer,
-        backfill_atom_consumer_t *atom_consumer,
+        backfill_pre_item_producer_t *pre_item_producer,
+        backfill_item_consumer_t *item_consumer,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     key_range_t::right_bound_t table_cursor(start_point.get_domain().inner.left);
     key_range_t::right_bound_t right_bound = start_point.get_domain().inner.right;
 
-    key_range_t::right_bound_t pre_atom_cursor(start_point.get_domain().inner.left);
-    backfill_pre_atom_t const *pre_atom;
-    key_range_t::right_bound_t pre_atom_edge;
-    auto next_pre_atom = [&]() -> continue_bool_t {
-        if (!pre_atom_producer->next_pre_atom(&pre_atom, &pre_atom_edge)) {
+    key_range_t::right_bound_t pre_item_cursor(start_point.get_domain().inner.left);
+    backfill_pre_item_t const *pre_item;
+    key_range_t::right_bound_t pre_item_edge;
+    auto next_pre_item = [&]() -> continue_bool_t {
+        if (!pre_item_producer->next_pre_item(&pre_item, &pre_item_edge)) {
             return continue_bool_t::ABORT;
         }
-        if (pre_atom != nullptr) {
-            guarantee(key_range_t::right_bound_t(pre_atom->get_range().left) >=
-                pre_atom_cursor);
-            guarantee(pre_atom->get_range().right <= right_bound);
-            pre_atom_cursor = pre_atom->get_range().right;
+        if (pre_item != nullptr) {
+            guarantee(key_range_t::right_bound_t(pre_item->get_range().left) >=
+                pre_item_cursor);
+            guarantee(pre_item->get_range().right <= right_bound);
+            pre_item_cursor = pre_item->get_range().right;
         } else {
-            guarantee(pre_atom_edge > pre_atom_cursor);
-            guarantee(pre_atom_edge <= right_bound);
-            pre_atom_cursor = pre_atom_edge;
+            guarantee(pre_item_edge > pre_item_cursor);
+            guarantee(pre_item_edge <= right_bound);
+            pre_item_cursor = pre_item_edge;
         }
         return continue_bool_t::CONTINUE;
     };
-    if (!next_pre_atom()) {
+    if (!next_pre_item()) {
         return continue_bool_t::ABORT;
     }
 
@@ -335,13 +335,13 @@ continue_bool_t mock_store_t::send_backfill(
             nap(rng_.randint(100), interruptor);
         }
 
-        /* On each iteration through the loop, we emit at most one atom. There are two
-        places this atom can come from:
+        /* On each iteration through the loop, we emit at most one item. There are two
+        places this item can come from:
         1. Because of a key in the local copy with higher recency than `start_point`
-        2. Because of a pre atom we received
+        2. Because of a pre item we received
         So here's how we handle this: We find the next key in our database, then we check
-        if the stored pre atom comes before that key. If the stored pre atom comes before
-        that key, we handle that pre atom. Otherwise, we handle that next key. */
+        if the stored pre item comes before that key. If the stored pre item comes before
+        that key, we handle that pre item. Otherwise, we handle that next key. */
 
         auto it = table_.lower_bound(table_cursor.key());
         if (it != table_.end() && key_range_t::right_bound_t(it->first) >= right_bound) {
@@ -349,61 +349,61 @@ continue_bool_t mock_store_t::send_backfill(
         }
 
         if (it == table_.end() ||
-                key_range_t::right_bound_t(it->first) >= pre_atom_cursor) {
-            if (pre_atom != nullptr) {
-                /* The next thing in lexicographical order is a pre atom, so handle it */
-                backfill_atom_t atom;
-                atom.range = pre_atom->range;
-                /* Iterate over all keys in our local copy within `pre_atom->range` and
-                copy them into `atom`, whether or not they've changed since
+                key_range_t::right_bound_t(it->first) >= pre_item_cursor) {
+            if (pre_item != nullptr) {
+                /* The next thing in lexicographical order is a pre item, so handle it */
+                backfill_item_t item;
+                item.range = pre_item->range;
+                /* Iterate over all keys in our local copy within `pre_item->range` and
+                copy them into `item`, whether or not they've changed since
                 `start_point`. */
-                auto jt = table_.lower_bound(atom.range.left);
-                auto end = atom.range.right.unbounded
-                    ? table_.end() : table_.upper_bound(atom.range.right.key());
+                auto jt = table_.lower_bound(item.range.left);
+                auto end = item.range.right.unbounded
+                    ? table_.end() : table_.upper_bound(item.range.right.key());
                 for (; jt != end; ++jt) {
-                    backfill_atom_t::pair_t pair;
+                    backfill_item_t::pair_t pair;
                     pair.key = jt->first;
                     pair.recency = jt->second.first;
                     pair.value =
                         boost::make_optional(datum_to_vector(jt->second.second));
-                    atom.pairs.push_back(std::move(pair));
+                    item.pairs.push_back(std::move(pair));
                 }
                 if (continue_bool_t::ABORT ==
-                        atom_consumer->on_atom(metainfo_, std::move(atom))) {
+                        item_consumer->on_item(metainfo_, std::move(item))) {
                     return continue_bool_t::ABORT;
                 }
-                table_cursor = pre_atom->range.right;
-                pre_atom_producer->release_pre_atom();
+                table_cursor = pre_item->range.right;
+                pre_item_producer->release_pre_item();
             } else {
-                /* The next thing is a gap with no pre atoms in it. We call
-                `on_empty_range()` so that if the `next_pre_atom()` call returns `false`,
-                at least the callback will know that there were no atoms in this range.
+                /* The next thing is a gap with no pre items in it. We call
+                `on_empty_range()` so that if the `next_pre_item()` call returns `false`,
+                at least the callback will know that there were no items in this range.
                 */
                 if (continue_bool_t::ABORT ==
-                        atom_consumer->on_empty_range(metainfo_, pre_atom_edge)) {
+                        item_consumer->on_empty_range(metainfo_, pre_item_edge)) {
                     return continue_bool_t::ABORT;
                 }
-                table_cursor = pre_atom_edge;
+                table_cursor = pre_item_edge;
             }
-            if (continue_bool_t::ABORT == next_pre_atom()) {
+            if (continue_bool_t::ABORT == next_pre_item()) {
                 return continue_bool_t::ABORT;
             }
         } else {
             /* The next thing in lexicographical order is a key in our local copy, not a
-            pre atom. */
+            pre item. */
             if (it->second.first >
                     start_point.get_point(it->first).to_repli_timestamp()) {
                 /* The key has changed since `start_point`, so we'll transmit it. */
-                backfill_atom_t atom;
-                atom.range = key_range_t(
+                backfill_item_t item;
+                item.range = key_range_t(
                     key_range_t::closed, it->first, key_range_t::closed, it->first);
-                backfill_atom_t::pair_t pair;
+                backfill_item_t::pair_t pair;
                 pair.key = it->first;
                 pair.recency = it->second.first;
                 pair.value = boost::make_optional(datum_to_vector(it->second.second));
-                atom.pairs.push_back(std::move(pair));
+                item.pairs.push_back(std::move(pair));
                 if (continue_bool_t::ABORT ==
-                        atom_consumer->on_atom(metainfo_, std::move(atom))) {
+                        item_consumer->on_item(metainfo_, std::move(item))) {
                     return continue_bool_t::ABORT;
                 }
             }
@@ -420,7 +420,7 @@ continue_bool_t mock_store_t::send_backfill(
 
 continue_bool_t mock_store_t::receive_backfill(
         const region_t &region,
-        backfill_atom_producer_t *atom_producer,
+        backfill_item_producer_t *item_producer,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     key_range_t::right_bound_t cursor(region.inner.left);
@@ -430,30 +430,30 @@ continue_bool_t mock_store_t::receive_backfill(
             nap(rng_.randint(100), interruptor);
         }
 
-        /* Fetch the next atom from the producer */
-        bool is_atom;
-        backfill_atom_t atom;
+        /* Fetch the next item from the producer */
+        bool is_item;
+        backfill_item_t item;
         key_range_t::right_bound_t edge;
-        if (continue_bool_t::ABORT == atom_producer->next_atom(&is_atom, &atom, &edge)) {
+        if (continue_bool_t::ABORT == item_producer->next_item(&is_item, &item, &edge)) {
             return continue_bool_t::ABORT;
         }
 
         region_t metainfo_mask = region;
         metainfo_mask.inner.left = cursor.key();
 
-        if (is_atom) {
-            guarantee(key_range_t::right_bound_t(atom.range.left) >= cursor);
-            cursor = atom.range.right;
+        if (is_item) {
+            guarantee(key_range_t::right_bound_t(item.range.left) >= cursor);
+            cursor = item.range.right;
 
             /* Delete any existing key-value pairs in the range */
-            auto end = atom.range.right.unbounded
-                    ? table_.end() : table_.lower_bound(atom.range.right.key());
-            for (auto it = table_.lower_bound(atom.range.left); it != end;) {
+            auto end = item.range.right.unbounded
+                    ? table_.end() : table_.lower_bound(item.range.right.key());
+            for (auto it = table_.lower_bound(item.range.left); it != end;) {
                 table_.erase(it++);
             }
 
-            /* Insert key-value pairs that were stored in the atom */
-            for (const auto &pair : atom.pairs) {
+            /* Insert key-value pairs that were stored in the item */
+            for (const auto &pair : item.pairs) {
                 guarantee(static_cast<bool>(pair.value));
                 table_[pair.key] = std::make_pair(
                     pair.recency, vector_to_datum(std::vector<char>(*pair.value)));
@@ -463,9 +463,9 @@ continue_bool_t mock_store_t::receive_backfill(
         }
 
         metainfo_mask.inner.right = cursor;
-        metainfo_.update(atom_producer->get_metainfo()->mask(metainfo_mask));
+        metainfo_.update(item_producer->get_metainfo()->mask(metainfo_mask));
 
-        atom_producer->on_commit(cursor);
+        item_producer->on_commit(cursor);
     }
     guarantee(cursor == region.inner.right);
     return continue_bool_t::CONTINUE;

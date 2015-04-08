@@ -43,14 +43,14 @@ private:
         void on_end_session(
             signal_t *interruptor,
             const fifo_enforcer_write_token_t &write_token);
-        void on_ack_atoms(
+        void on_ack_items(
             signal_t *interruptor,
             const fifo_enforcer_write_token_t &write_token,
             size_t mem_size);
-        void on_pre_atoms(
+        void on_pre_items(
             signal_t *interruptor,
             const fifo_enforcer_write_token_t &write_token,
-            backfill_atom_seq_t<backfill_pre_atom_t> &&chunk);
+            backfill_item_seq_t<backfill_pre_item_t> &&chunk);
 
         backfiller_t *const parent;
         backfiller_bcard_t::intro_1_t const intro;
@@ -60,17 +60,17 @@ private:
         fifo_enforcer_sink_t fifo_sink;
 
         region_map_t<state_timestamp_t> common_version;
-        backfill_atom_seq_t<backfill_pre_atom_t> pre_atoms;
+        backfill_item_seq_t<backfill_pre_item_t> pre_items;
 
         scoped_ptr_t<session_t> current_session;
 
-        new_semaphore_t atom_throttler;
-        new_semaphore_acq_t atom_throttler_acq;
+        new_semaphore_t item_throttler;
+        new_semaphore_acq_t item_throttler_acq;
 
-        backfiller_bcard_t::pre_atoms_mailbox_t pre_atoms_mailbox;
+        backfiller_bcard_t::pre_items_mailbox_t pre_items_mailbox;
         backfiller_bcard_t::begin_session_mailbox_t begin_session_mailbox;
         backfiller_bcard_t::end_session_mailbox_t end_session_mailbox;
-        backfiller_bcard_t::ack_atoms_mailbox_t ack_atoms_mailbox;
+        backfiller_bcard_t::ack_items_mailbox_t ack_items_mailbox;
     };
 
     mailbox_manager_t *const mailbox_manager;
