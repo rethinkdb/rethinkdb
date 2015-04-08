@@ -12,6 +12,11 @@ template <class> class registrant_t;
 template <class> class clone_ptr_t;
 template <class> class watchable_t;
 
+/* `multi_client_client_t` works with `multi_client_server_t`. On creation, it
+obtains the address of a request mailbox from the server, which can be different
+for each connecting client.
+Requests can then be spawned through the `spawn_request` method on the client. */
+
 template <class request_type>
 class multi_client_client_t {
 private:
