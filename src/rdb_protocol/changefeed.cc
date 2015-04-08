@@ -1539,8 +1539,6 @@ public:
                boost::none,
                DEBUG_ONLY(boost::none)));
         }
-        // RSI: Should there be an `else` here to change the end of the queue
-        // into an initial value change?
         started = true;
     }
     bool update_stamp(const uuid_u &, uint64_t new_stamp) final {
@@ -2223,7 +2221,6 @@ void real_feed_t::mailbox_cb(signal_t *, stamped_msg_t msg) {
     }
 }
 
-// RSI: pick up here
 class splice_stream_t : public stream_t<range_sub_t> {
 public:
     template<class... Args>

@@ -915,7 +915,6 @@ void read_t::unshard(read_response_t *responses, size_t count,
     }
 }
 
-// RSI: are snapshots OK for return_initial reads?
 struct use_snapshot_visitor_t : public boost::static_visitor<bool> {
     bool operator()(const point_read_t &) const {                 return false; }
     bool operator()(const dummy_read_t &) const {                 return false; }
