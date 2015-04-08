@@ -21,11 +21,12 @@ namespace ql {
 namespace changefeed {
 
 struct indexed_datum_t {
-    indexed_datum_t(datum_t _val, datum_t _index)
-        : val(std::move(_val)), index(std::move(_index)) {
+    indexed_datum_t(datum_t _val, datum_t _index, boost::optional<uint64_t> _tag_num)
+        : val(std::move(_val)), index(std::move(_index)), tag_num(std::move(_tag_num)) {
         guarantee(val.has());
     }
     datum_t val, index;
+    boost::optional<uint64_t> tag_num;
 };
 
 struct stamped_range_t {
@@ -1506,7 +1507,7 @@ public:
             std::make_pair(nil_uuid(), 0),
             store_key_t(pkey.print_primary()),
             boost::none,
-            indexed_datum_t(initial, datum_t()),
+            indexed_datum_t(initial, datum_t(), boost::none),
             DEBUG_ONLY(boost::none)));
         started = true;
     }
@@ -1535,7 +1536,7 @@ public:
             queue->add(change_val_t(
                resp->stamp,
                store_key_t(pkey.print_primary()),
-               indexed_datum_t(resp->initial_val, datum_t()),
+               indexed_datum_t(resp->initial_val, datum_t(), boost::none),
                boost::none,
                DEBUG_ONLY(boost::none)));
         }
@@ -2100,23 +2101,28 @@ public:
             }
             boost::optional<std::string> sindex = sub->sindex();
             if (sindex) {
-                std::vector<datum_t> old_idxs, new_idxs;
+                std::vector<std::pair<datum_t, boost::optional<uint64_t> > >
+                    old_idxs, new_idxs;
                 auto old_it = change.old_indexes.find(*sindex);
                 if (old_it != change.old_indexes.end()) {
                     for (const auto &idx : old_it->second) {
-                        if (sub->contains(idx)) old_idxs.push_back(idx);
+                        if (sub->contains(idx.first)) old_idxs.push_back(idx);
                     }
                 }
                 auto new_it = change.new_indexes.find(*sindex);
                 if (new_it != change.new_indexes.end()) {
                     for (const auto &idx : new_it->second) {
-                        if (sub->contains(idx)) new_idxs.push_back(idx);
+                        if (sub->contains(idx.first)) new_idxs.push_back(idx);
                     }
                 }
                 while (old_idxs.size() > 0 && new_idxs.size() > 0) {
                     sub->add_el(server_uuid, stamp, change.pkey, sindex,
-                                indexed_datum_t(old_val, std::move(old_idxs.back())),
-                                indexed_datum_t(new_val, std::move(new_idxs.back())),
+                                indexed_datum_t(old_val,
+                                                std::move(old_idxs.back().first),
+                                                std::move(old_idxs.back().second)),
+                                indexed_datum_t(new_val,
+                                                std::move(new_idxs.back().first),
+                                                std::move(new_idxs.back().second)),
                                 default_limits);
                     old_idxs.pop_back();
                     new_idxs.pop_back();
@@ -2124,7 +2130,9 @@ public:
                 while (old_idxs.size() > 0) {
                     guarantee(new_idxs.size() == 0);
                     sub->add_el(server_uuid, stamp, change.pkey, sindex,
-                                indexed_datum_t(old_val, std::move(old_idxs.back())),
+                                indexed_datum_t(old_val,
+                                                std::move(old_idxs.back().first),
+                                                std::move(old_idxs.back().second)),
                                 boost::none,
                                 default_limits);
                     old_idxs.pop_back();
@@ -2133,15 +2141,17 @@ public:
                     guarantee(old_idxs.size() == 0);
                     sub->add_el(server_uuid, stamp, change.pkey, sindex,
                                 boost::none,
-                                indexed_datum_t(new_val, std::move(new_idxs.back())),
+                                indexed_datum_t(new_val,
+                                                std::move(new_idxs.back().first),
+                                                std::move(new_idxs.back().second)),
                                 default_limits);
                     new_idxs.pop_back();
                 }
             } else {
                 if (sub->contains(change.pkey)) {
                     sub->add_el(server_uuid, stamp, change.pkey, sindex,
-                                indexed_datum_t(old_val, datum_t()),
-                                indexed_datum_t(new_val, datum_t()),
+                                indexed_datum_t(old_val, datum_t(), boost::none),
+                                indexed_datum_t(new_val, datum_t(), boost::none),
                                 default_limits);
                 }
             }
@@ -2157,11 +2167,11 @@ public:
                       boost::none,
                       change.old_val.has()
                           ? boost::optional<indexed_datum_t>(
-                              indexed_datum_t(change.old_val, datum_t()))
+                              indexed_datum_t(change.old_val, datum_t(), boost::none))
                           : boost::none,
                       change.new_val.has()
                           ? boost::optional<indexed_datum_t>(
-                              indexed_datum_t(change.new_val, datum_t()))
+                              indexed_datum_t(change.new_val, datum_t(), boost::none))
                           : boost::none,
                       default_limits));
     }
@@ -2261,8 +2271,10 @@ private:
                 debugf("change_val: %s\n", debug::print(cv).c_str());
                 datum_t el = change_val_to_change(
                     cv,
-                    cv.old_val && discard(cv.pkey, cv.source_stamp, *cv.old_val),
-                    cv.new_val && discard(cv.pkey, cv.source_stamp, *cv.new_val));
+                    cv.old_val && discard(
+                        cv.pkey, cv.old_val->tag_num, cv.source_stamp, *cv.old_val),
+                    cv.new_val && discard(
+                        cv.pkey, cv.new_val->tag_num, cv.source_stamp, *cv.new_val));
                 if (el.has()) {
                     batcher.note_el(el);
                     log += strprintf("pushing %s\n", debug::print(el).c_str());
@@ -2296,6 +2308,7 @@ private:
     }
 
     bool discard(const store_key_t &pkey,
+                 const boost::optional<uint64_t> &tag_num,
                  const std::pair<uuid_u, uint64_t> &source_stamp,
                  const indexed_datum_t &val) {
         log += strprintf("discard(%s, %s, %s)\n",
@@ -2306,7 +2319,7 @@ private:
         if (val.index.has()) {
             key = store_key_t(
                 // RSI: multi-indexes
-                val.index.print_secondary(skey_version(), pkey, boost::none));
+                val.index.print_secondary(skey_version(), pkey, tag_num));
         } else {
             key = pkey;
         }

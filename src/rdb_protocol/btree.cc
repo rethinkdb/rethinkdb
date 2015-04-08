@@ -1050,7 +1050,8 @@ void rdb_modification_report_cb_t::finish(
         });
 }
 
-scoped_ptr_t<new_mutex_in_line_t> rdb_modification_report_cb_t::get_in_line_for_sindex() {
+scoped_ptr_t<new_mutex_in_line_t>
+rdb_modification_report_cb_t::get_in_line_for_sindex() {
     return store_->get_in_line_for_sindex_queue(sindex_block_);
 }
 rwlock_in_line_t rdb_modification_report_cb_t::get_in_line_for_stamp() {
@@ -1066,7 +1067,9 @@ void rdb_modification_report_cb_t::on_mod_report(
         // We spawn the sindex update in its own coroutine because we don't want to
         // hold the sindex update for the changefeed update or vice-versa.
         cond_t sindexes_updated_cond, keys_available_cond;
-        std::map<std::string, std::vector<ql::datum_t> > old_keys, new_keys;
+        std::map<std::string,
+                 std::vector<std::pair<ql::datum_t, boost::optional<uint64_t> > > >
+            old_keys, new_keys;
         sindex_spot->acq_signal()->wait_lazily_unordered();
         coro_t::spawn_now_dangerously(
             std::bind(&rdb_modification_report_cb_t::on_mod_report_sub,
@@ -1122,8 +1125,12 @@ void rdb_modification_report_cb_t::on_mod_report_sub(
     new_mutex_in_line_t *spot,
     cond_t *keys_available_cond,
     cond_t *done_cond,
-    std::map<std::string, std::vector<ql::datum_t> > *old_keys_out,
-    std::map<std::string, std::vector<ql::datum_t> > *new_keys_out) {
+    std::map<std::string,
+             std::vector<std::pair<ql::datum_t, boost::optional<uint64_t> > > >
+        *old_keys_out,
+    std::map<std::string,
+             std::vector<std::pair<ql::datum_t, boost::optional<uint64_t> > > >
+        *new_keys_out) {
     store_->sindex_queue_push(mod_report, spot);
     rdb_live_deletion_context_t deletion_context;
     rdb_update_sindexes(store_,
@@ -1332,8 +1339,9 @@ void rdb_update_single_sindex(
         size_t *updates_left,
         auto_drainer_t::lock_t,
         cond_t *keys_available_cond,
-        std::vector<ql::datum_t> *old_keys_out,
-        std::vector<ql::datum_t> *new_keys_out) THROWS_NOTHING {
+        std::vector<std::pair<ql::datum_t, boost::optional<uint64_t> > > *old_keys_out,
+        std::vector<std::pair<ql::datum_t, boost::optional<uint64_t> > > *new_keys_out)
+    THROWS_NOTHING {
     // Note if you get this error it's likely that you've passed in a default
     // constructed mod_report. Don't do that.  Mod reports should always be passed
     // to a function as an output parameter before they're passed to this
@@ -1367,7 +1375,12 @@ void rdb_update_single_sindex(
             compute_keys(modification->primary_key, deleted, sindex_info, &keys);
             if (old_keys_out != NULL) {
                 for (const auto &pair : keys) {
-                    old_keys_out->push_back(pair.second);
+                    // RSI: consider keeping this information around in `keys`
+                    // instead of pullin git out of the `store_key_t`.
+                    old_keys_out->push_back(
+                        std::make_pair(
+                            pair.second, ql::datum_t::extract_all(
+                                key_to_unescaped_str(pair.first)).tag_num));
                 }
             }
             if (server != NULL) {
@@ -1438,7 +1451,12 @@ void rdb_update_single_sindex(
             if (new_keys_out != NULL) {
                 guarantee(keys_available_cond != NULL);
                 for (const auto &pair : keys) {
-                    new_keys_out->push_back(pair.second);
+                    // RSI: consider keeping this information around in `keys`
+                    // instead of pullin git out of the `store_key_t`.
+                    new_keys_out->push_back(
+                        std::make_pair(
+                            pair.second, ql::datum_t::extract_all(
+                                key_to_unescaped_str(pair.first)).tag_num));
                 }
                 guarantee(*updates_left > 0);
                 decremented_updates_left = true;
@@ -1540,8 +1558,12 @@ void rdb_update_sindexes(
     txn_t *txn,
     const deletion_context_t *deletion_context,
     cond_t *keys_available_cond,
-    std::map<std::string, std::vector<ql::datum_t> > *old_keys_out,
-    std::map<std::string, std::vector<ql::datum_t> > *new_keys_out) {
+    std::map<std::string,
+             std::vector<std::pair<ql::datum_t, boost::optional<uint64_t> > > >
+        *old_keys_out,
+    std::map<std::string,
+             std::vector<std::pair<ql::datum_t, boost::optional<uint64_t> > > >
+        *new_keys_out) {
     {
         auto_drainer_t drainer;
 
