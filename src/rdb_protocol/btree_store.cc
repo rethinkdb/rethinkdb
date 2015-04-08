@@ -729,7 +729,8 @@ void store_t::clear_sindex(
             &traversal_cb,
             access_t::read,
             direction_t::FORWARD,
-            release_superblock_t::KEEP));
+            release_superblock_t::KEEP,
+            interruptor));
 
         /* 2. Actually delete them */
         const std::vector<store_key_t> &keys = traversal_cb.get_keys();

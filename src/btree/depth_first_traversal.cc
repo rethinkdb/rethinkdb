@@ -3,6 +3,7 @@
 
 #include "btree/internal_node.hpp"
 #include "btree/operations.hpp"
+#include "concurrency/interruptor.hpp"
 #include "rdb_protocol/profile.hpp"
 
 scoped_key_value_t::scoped_key_value_t(const btree_key_t *key,
@@ -43,7 +44,8 @@ continue_bool_t btree_depth_first_traversal(
         access_t access,
         direction_t direction,
         const btree_key_t *left_excl_or_null,
-        const btree_key_t *right_incl);
+        const btree_key_t *right_incl,
+        signal_t *interruptor);
 
 continue_bool_t btree_depth_first_traversal(
         superblock_t *superblock,
@@ -51,7 +53,8 @@ continue_bool_t btree_depth_first_traversal(
         depth_first_traversal_callback_t *cb,
         access_t access,
         direction_t direction,
-        release_superblock_t release_superblock) {
+        release_superblock_t release_superblock,
+        signal_t *interruptor) {
     block_id_t root_block_id = superblock->get_root_block_id();
     if (root_block_id == NULL_BLOCK_ID || range.is_empty()) {
         if (release_superblock == release_superblock_t::RELEASE) {
@@ -73,7 +76,7 @@ continue_bool_t btree_depth_first_traversal(
             }
             // Wait for read acquisition of the root block, so that `starter`'s
             // profiling information is correct.
-            root_block->lock.read_acq_signal()->wait();
+            wait_interruptible(root_block->lock.read_acq_signal(), interruptor);
         }
 
         const btree_key_t *left_excl_or_null;
@@ -94,7 +97,7 @@ continue_bool_t btree_depth_first_traversal(
 
         return btree_depth_first_traversal(
             std::move(root_block), range, cb, access, direction,
-            left_excl_or_null, right_incl_buf.btree_key());
+            left_excl_or_null, right_incl_buf.btree_key(), interruptor);
     }
 }
 
@@ -137,7 +140,8 @@ continue_bool_t btree_depth_first_traversal(
         access_t access,
         direction_t direction,
         const btree_key_t *left_excl_or_null,
-        const btree_key_t *right_incl) {
+        const btree_key_t *right_incl,
+        signal_t *interruptor) {
     bool skip;
     if (continue_bool_t::ABORT == cb->filter_range_ts(
             left_excl_or_null, right_incl, block->lock.get_recency(), &skip)) {
@@ -180,10 +184,11 @@ continue_bool_t btree_depth_first_traversal(
                     profile::starter_t starter("Acquire block for read.", cb->get_trace());
                     lock = make_counted<counted_buf_lock_and_read_t>(
                         &block->lock, pair->lnode, access);
+                    wait_interruptible(lock->lock.read_acq_signal(),interruptor);
                 }
                 if (continue_bool_t::ABORT == btree_depth_first_traversal(
                         std::move(lock), range, cb, access, direction,
-                        child_left_excl_or_null, child_right_incl)) {
+                        child_left_excl_or_null, child_right_incl, interruptor)) {
                     return continue_bool_t::ABORT;
                 }
             }

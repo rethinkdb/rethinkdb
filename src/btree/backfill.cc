@@ -40,8 +40,7 @@ continue_bool_t btree_send_backfill_pre(
         const key_range_t &range,
         repli_timestamp_t reference_timestamp,
         btree_backfill_pre_atom_consumer_t *pre_atom_consumer,
-        /* RSI(raft): Respect interruptor */
-        UNUSED signal_t *interruptor) {
+        signal_t *interruptor) {
     class callback_t : public depth_first_traversal_callback_t {
     public:
         continue_bool_t filter_range_ts(
@@ -127,7 +126,8 @@ continue_bool_t btree_send_backfill_pre(
     callback.reference_timestamp = reference_timestamp;
     callback.sizer = sizer;
     if (continue_bool_t::ABORT == btree_depth_first_traversal(
-            superblock, range, &callback, access_t::read, FORWARD, release_superblock)) {
+            superblock, range, &callback, access_t::read, FORWARD, release_superblock,
+            interruptor)) {
         return continue_bool_t::ABORT;
     }
     return pre_atom_consumer->on_empty_range(range.right);
@@ -515,7 +515,8 @@ continue_bool_t btree_send_backfill(
     backfill_atom_preparer_t preparer(
         sizer, reference_timestamp, pre_atom_producer, &abort_cond, &loader);
     if (continue_bool_t::ABORT == btree_depth_first_traversal(
-            superblock, range, &preparer, access_t::read, FORWARD, release_superblock)) {
+            superblock, range, &preparer, access_t::read, FORWARD, release_superblock,
+            interruptor)) {
         return continue_bool_t::ABORT;
     }
     loader.finish(interruptor);
@@ -550,10 +551,11 @@ void btree_receive_backfill_atom_update_deletion_timestamps(
         release_superblock_t release_superblock,
         value_sizer_t *sizer,
         const backfill_atom_t &atom,
-        UNUSED signal_t *interruptor) {
+        signal_t *interruptor) {
     backfill_deletion_timestamp_updater_t updater(sizer, atom.min_deletion_timestamp);
     continue_bool_t res = btree_depth_first_traversal(
-        superblock, atom.range, &updater, access_t::write, FORWARD, release_superblock);
+        superblock, atom.range, &updater, access_t::write, FORWARD, release_superblock,
+        interruptor);
     guarantee(res == continue_bool_t::CONTINUE);
 }
 

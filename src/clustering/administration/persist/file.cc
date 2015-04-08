@@ -210,29 +210,23 @@ void metadata_file_t::read_txn_t::read_many_bin(
                 kv.expose_buf(),
                 kv.value(),
                 [&](read_stream_t *s) { (*cb)(suffix, s); });
-            return interruptor->is_pulsed()
-                ? continue_bool_t::ABORT
-                : continue_bool_t::CONTINUE;
+            return continue_bool_t::CONTINUE;
         }
         read_txn_t *txn;
         store_key_t key_prefix;
         const std::function<void(const std::string &key_suffix, read_stream_t *)> *cb;
-        signal_t *interruptor;
     } dftcb;
     dftcb.txn = this;
     dftcb.key_prefix = key_prefix;
     dftcb.cb = &cb;
-    dftcb.interruptor = interruptor;
     btree_depth_first_traversal(
         &superblock,
         key_range_t::with_prefix(key_prefix),
         &dftcb,
         access_t::read,
         FORWARD,
-        release_superblock_t::RELEASE);
-    if (interruptor->is_pulsed()) {
-        throw interrupted_exc_t();
-    }
+        release_superblock_t::RELEASE,
+        interruptor);
 }
 
 metadata_file_t::write_txn_t::write_txn_t(
