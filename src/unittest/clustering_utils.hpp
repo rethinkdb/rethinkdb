@@ -56,9 +56,10 @@ public:
     test_store_t(io_backender_t *io_backender, order_source_t *order_source, rdb_context_t *ctx) :
             serializer(create_and_construct_serializer(&temp_file, io_backender)),
             balancer(new dummy_cache_balancer_t(GIGABYTE)),
-            store(serializer.get(), balancer.get(), temp_file.name().permanent_path(), true,
-                  &get_global_perfmon_collection(), ctx, io_backender, base_path_t("."),
-                  scoped_ptr_t<outdated_index_report_t>(), generate_uuid()) {
+            store(region_t::universe(), serializer.get(), balancer.get(),
+                temp_file.name().permanent_path(), true,
+                &get_global_perfmon_collection(), ctx, io_backender, base_path_t("."),
+                scoped_ptr_t<outdated_index_report_t>(), generate_uuid()) {
         /* Initialize store metadata */
         cond_t non_interruptor;
         write_token_t token;
@@ -66,7 +67,8 @@ public:
         region_map_t<binary_blob_t> new_metainfo(
                 store.get_region(),
                 binary_blob_t(version_t::zero()));
-        store.set_metainfo(new_metainfo, order_source->check_in("test_store_t"), &token, &non_interruptor);
+        store.set_metainfo(new_metainfo, order_source->check_in("test_store_t"), &token,
+            &non_interruptor);
     }
 
     temp_file_t temp_file;

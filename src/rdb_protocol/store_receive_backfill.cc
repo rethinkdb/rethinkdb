@@ -224,6 +224,7 @@ continue_bool_t store_t::receive_backfill(
         backfill_atom_producer_t *atom_producer,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
+    guarantee(region.beg == get_region().beg && region.end == get_region().end);
     receive_backfill_info_t info(general_cache_conn.get(), btree.get());
 
     /* Repeatedly request atoms from `atom_producer` and spawn coroutines to handle them,

@@ -328,6 +328,7 @@ TPTEST(RDBBtree, SindexPostConstruct) {
         &get_global_perfmon_collection());
 
     store_t store(
+            region_t::universe(),
             &serializer,
             &balancer,
             "unit_test_store",
@@ -371,6 +372,7 @@ TPTEST(RDBBtree, SindexEraseRange) {
         &get_global_perfmon_collection());
 
     store_t store(
+            region_t::universe(),
             &serializer,
             &balancer,
             "unit_test_store",
@@ -451,6 +453,7 @@ TPTEST(RDBBtree, SindexInterruptionViaDrop) {
         &get_global_perfmon_collection());
 
     store_t store(
+            region_t::universe(),
             &serializer,
             &balancer,
             "unit_test_store",
@@ -493,8 +496,8 @@ TPTEST(RDBBtree, SindexInterruptionViaStoreDelete) {
         &file_opener,
         &get_global_perfmon_collection());
 
-    scoped_ptr_t<store_t> store(
-            new store_t(
+    scoped_ptr_t<store_t> store(new store_t(
+            region_t::universe(),
             &serializer,
             &balancer,
             "unit_test_store",

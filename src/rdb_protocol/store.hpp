@@ -86,7 +86,8 @@ class store_t final : public store_view_t {
 public:
     using home_thread_mixin_t::assert_thread;
 
-    store_t(serializer_t *serializer,
+    store_t(const region_t &region,
+            serializer_t *serializer,
             cache_balancer_t *balancer,
             const std::string &perfmon_name,
             bool create,

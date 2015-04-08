@@ -51,6 +51,8 @@ continue_bool_t store_t::send_backfill_pre(
         THROWS_ONLY(interrupted_exc_t) {
     std::vector<std::pair<key_range_t, repli_timestamp_t> > reference_timestamps;
     for (const auto &pair : start_point) {
+        guarantee(pair.first.beg == get_region().beg
+            && pair.first.end == get_region().end);
         reference_timestamps.push_back(std::make_pair(
             pair.first.inner, pair.second.to_repli_timestamp()));
     }
@@ -287,6 +289,8 @@ continue_bool_t store_t::send_backfill(
         THROWS_ONLY(interrupted_exc_t) {
     std::vector<std::pair<key_range_t, repli_timestamp_t> > reference_timestamps;
     for (const auto &pair : start_point) {
+        guarantee(pair.first.beg == get_region().beg
+            && pair.first.end == get_region().end);
         reference_timestamps.push_back(std::make_pair(
             pair.first.inner, pair.second.to_repli_timestamp()));
     }

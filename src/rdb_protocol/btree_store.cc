@@ -76,7 +76,8 @@ const char* sindex_not_ready_exc_t::what() const throw() {
 
 sindex_not_ready_exc_t::~sindex_not_ready_exc_t() throw() { }
 
-store_t::store_t(serializer_t *serializer,
+store_t::store_t(const region_t &region,
+                 serializer_t *serializer,
                  cache_balancer_t *balancer,
                  const std::string &perfmon_name,
                  bool create,
@@ -86,7 +87,7 @@ store_t::store_t(serializer_t *serializer,
                  const base_path_t &base_path,
                  scoped_ptr_t<outdated_index_report_t> &&_index_report,
                  namespace_id_t _table_id)
-    : store_view_t(region_t::universe()),
+    : store_view_t(region),
       perfmon_collection(),
       io_backender_(io_backender), base_path_(base_path),
       perfmon_collection_membership(parent_perfmon_collection, &perfmon_collection, perfmon_name),
@@ -229,6 +230,7 @@ void store_t::reset_data(
         const write_durability_t durability,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
+    guarantee(subregion.beg == get_region().beg && subregion.end == get_region().end);
     assert_thread();
     with_priority_t p(CORO_PRIORITY_RESET_DATA);
 
