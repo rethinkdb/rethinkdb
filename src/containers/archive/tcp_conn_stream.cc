@@ -18,11 +18,11 @@ int64_t tcp_conn_stream_t::read(void *p, int64_t n) {
     // Returns the number of bytes read, or 0 upon EOF, -1 upon error.
     // Right now this function cannot "error".
     try {
+        cond_t non_closer;
         const_charslice read_data = conn_->peek();
         if (read_data.end == read_data.beg) {
             // Didn't get anything from the read buffer. Get some data from
             // the underlying socket.
-            cond_t non_closer;
             conn_->read_more_buffered(&non_closer);
             read_data = conn_->peek();
         }
@@ -32,6 +32,8 @@ int64_t tcp_conn_stream_t::read(void *p, int64_t n) {
         }
         rassert(result > 0);
         memcpy(p, read_data.beg, result);
+        // Remove the consumed data from the read buffer
+        conn_->pop(result, &non_closer);
         return result;
     } catch (const tcp_conn_read_closed_exc_t &) {
         return 0;
