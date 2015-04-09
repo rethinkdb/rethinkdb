@@ -95,7 +95,7 @@ public:
     void shutdown_read();
 
     /* Returns false if the half of the pipe that goes from the peer to us has been closed. */
-    bool is_read_open();
+    bool is_read_open() const;
 
     /* Writing */
 
@@ -120,7 +120,7 @@ public:
     void shutdown_write();
 
     /* Returns false if the half of the pipe that goes from us to the peer has been closed. */
-    bool is_write_open();
+    bool is_write_open() const;
 
     /* Put a `perfmon_rate_monitor_t` here if you want to record stats on how fast data is being
     transmitted over the network. */
@@ -344,7 +344,7 @@ protected:
     friend class linux_tcp_listener_t;
     friend class linux_tcp_bound_socket_t;
 
-    MUST_USE bool bind_sockets();
+    void bind_sockets();
 
     // The callback to call when we get a connection
     std::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t> &)> callback;
@@ -352,7 +352,6 @@ protected:
 private:
     static const uint32_t MAX_BIND_ATTEMPTS = 20;
     int init_sockets();
-    bool bind_sockets_internal(int *port_out);
 
     /* accept_loop() runs in a separate coroutine. It repeatedly tries to accept
     new connections; when accept() blocks, then it waits for events from the

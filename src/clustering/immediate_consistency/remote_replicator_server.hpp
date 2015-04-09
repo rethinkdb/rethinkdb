@@ -34,6 +34,10 @@ private:
             remote_replicator_server_t *parent,
             const remote_replicator_client_bcard_t &client_bcard);
 
+        bool is_primary() const {
+            return false;
+        }
+
         void do_read(
             const read_t &read,
             state_timestamp_t min_timestamp,

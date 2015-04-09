@@ -321,7 +321,7 @@ public:
                                    signal_t *interruptor,
                                    const backfill_chunk_t &chunk);
 
-    void get_metainfo_internal(buf_lock_t *sb_buf,
+    void get_metainfo_internal(real_superblock_t *superblock,
                                region_map_t<binary_blob_t> *out)
         const THROWS_NOTHING;
 

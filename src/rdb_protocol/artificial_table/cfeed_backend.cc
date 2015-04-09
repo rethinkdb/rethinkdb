@@ -7,9 +7,11 @@
 static const int machinery_expiration_secs = 60;
 
 void cfeed_artificial_table_backend_t::machinery_t::send_all_change(
+        const new_mutex_acq_t *proof,
         const store_key_t &key,
         const ql::datum_t &old_val,
         const ql::datum_t &new_val) {
+    proof->guarantee_is_holding(&mutex);
     ql::changefeed::msg_t::change_t change;
     change.pkey = key;
     change.old_val = old_val;
@@ -45,6 +47,7 @@ cfeed_artificial_table_backend_t::~cfeed_artificial_table_backend_t() {
 
 bool cfeed_artificial_table_backend_t::read_changes(
     ql::env_t *env,
+    bool include_states,
     const ql::protob_t<const Backtrace> &bt,
     ql::changefeed::keyspec_t::spec_t &&spec,
     signal_t *interruptor,
@@ -71,16 +74,29 @@ bool cfeed_artificial_table_backend_t::read_changes(
     threadnum_t request_thread = get_thread_id();
     cross_thread_signal_t interruptor2(interruptor, home_thread());
     on_thread_t thread_switcher(home_thread());
-    new_mutex_in_line_t mutex_lock(&mutex);
-    wait_interruptible(mutex_lock.acq_signal(), &interruptor2);
+    new_mutex_acq_t mutex_lock(&mutex, &interruptor2);
     if (!machinery.has()) {
         machinery = construct_changefeed_machinery(&interruptor2);
+    }
+    new_mutex_acq_t machinery_lock(&machinery->mutex, &interruptor2);
+    std::vector<ql::datum_t> initial_values;
+    if (!machinery->get_initial_values(
+            &machinery_lock, &initial_values, &interruptor2)) {
+        *error_out = "Failed to read initial values from system table.";
+        return false;
     }
     /* We construct two `on_thread_t`s for a total of four thread switches. This is
     necessary because we have to call `subscribe()` on the client thread, but we don't
     want to release the lock on the home thread until `subscribe()` returns. */
     on_thread_t thread_switcher_2(request_thread);
-    *cfeed_out = machinery->subscribe(env, std::move(spec), bt);
+    try {
+        *cfeed_out = machinery->subscribe(
+            env, include_states, std::move(spec),
+            get_primary_key_name(), initial_values, bt);
+    } catch (const ql::base_exc_t &e) {
+        *error_out = e.what();
+        return false;
+    }
     return true;
 }
 

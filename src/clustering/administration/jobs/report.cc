@@ -222,9 +222,11 @@ query_job_report_t::query_job_report_t(
         uuid_u const &_id,
         double _duration,
         server_id_t const &_server_id,
-        ip_and_port_t const &_client_addr_port)
+        ip_and_port_t const &_client_addr_port,
+        std::string const &_query)
     : job_report_base_t<query_job_report_t>("query", _id, _duration, _server_id),
-      client_addr_port(_client_addr_port) { }
+      client_addr_port(_client_addr_port),
+      query(_query) { }
 
 void query_job_report_t::merge_derived(query_job_report_t const &) { }
 
@@ -238,9 +240,10 @@ bool query_job_report_t::info_derived(
         convert_string_to_datum(client_addr_port.ip().to_string()));
     info_builder_out->overwrite("client_port",
         convert_port_to_datum(client_addr_port.port().value()));
+    info_builder_out->overwrite("query", convert_string_to_datum(query));
 
     return true;
 }
 
-RDB_IMPL_SERIALIZABLE_5_FOR_CLUSTER(
-    query_job_report_t, type, id, duration, servers, client_addr_port);
+RDB_IMPL_SERIALIZABLE_6_FOR_CLUSTER(
+    query_job_report_t, type, id, duration, servers, client_addr_port, query);

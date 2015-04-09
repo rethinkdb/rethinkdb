@@ -1,6 +1,7 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/terms/terms.hpp"
 
+#include <cmath>
 #include <limits>
 
 #include "rdb_protocol/geo/exceptions.hpp"
@@ -135,6 +136,47 @@ private:
     virtual const char *name() const { return "mod"; }
 };
 
+class floor_term_t : public op_term_t {
+public:
+    floor_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : op_term_t(env, term, argspec_t(1)) { }
+
+private:
+    virtual scoped_ptr_t<val_t> eval_impl(
+            scope_env_t *env, args_t *args, eval_flags_t) const {
+        return new_val(datum_t(std::floor(args->arg(env, 0)->as_num())));
+    }
+
+    virtual const char *name() const { return "floor"; }
+};
+
+class ceil_term_t : public op_term_t {
+public:
+    ceil_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : op_term_t(env, term, argspec_t(1)) { }
+
+private:
+    virtual scoped_ptr_t<val_t> eval_impl(
+            scope_env_t *env, args_t *args, eval_flags_t) const {
+        return new_val(datum_t(std::ceil(args->arg(env, 0)->as_num())));
+    }
+
+    virtual const char *name() const { return "ceil"; }
+};
+
+class round_term_t : public op_term_t {
+public:
+    round_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : op_term_t(env, term, argspec_t(1)) { }
+
+private:
+    virtual scoped_ptr_t<val_t> eval_impl(
+            scope_env_t *env, args_t *args, eval_flags_t) const {
+        return new_val(datum_t(std::round(args->arg(env, 0)->as_num())));
+    }
+
+    virtual const char *name() const { return "round"; }
+};
 
 counted_t<term_t> make_arith_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<arith_term_t>(env, term);
@@ -144,5 +186,16 @@ counted_t<term_t> make_mod_term(compile_env_t *env, const protob_t<const Term> &
     return make_counted<mod_term_t>(env, term);
 }
 
+counted_t<term_t> make_floor_term(compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<floor_term_t>(env, term);
+}
+
+counted_t<term_t> make_ceil_term(compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<ceil_term_t>(env, term);
+}
+
+counted_t<term_t> make_round_term(compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<round_term_t>(env, term);
+}
 
 }  // namespace ql

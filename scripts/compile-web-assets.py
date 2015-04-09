@@ -81,6 +81,10 @@ def write_assets(asset_root, assets):
 
         if position != 0:
             print('"', end='')
+
+        if not data:
+            print('""', end='')
+
         print(',')
         print('      ' + str(len(data)) + ' } },')
 

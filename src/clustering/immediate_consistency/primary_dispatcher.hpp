@@ -31,6 +31,10 @@ public:
     over the network to a different server. */
     class dispatchee_t {
     public:
+        /* This value is used to determine where reads that have `route_to_primary()`
+        set are routed to. */
+        virtual bool is_primary() const = 0;
+
         virtual void do_read(
             const read_t &read,
             state_timestamp_t min_timestamp,

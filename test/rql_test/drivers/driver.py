@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-import atexit, itertools, os, re, sys
+import atexit, itertools, os, re, sys, time
 from datetime import datetime, tzinfo, timedelta
 
 stashedPath = sys.path
@@ -129,6 +129,9 @@ class Lst:
         return repr(self.lst)
 
 class Bag(Lst):
+    
+    # note: This only works for dicts, arrays, numbers, Nones, and strings. Anything else might as well be random.
+
     def __init__(self, lst, partial=False, **kwargs):
         self.lst = sorted(lst, key=lambda x: repr(x))
         self.partial = partial == True
@@ -315,10 +318,10 @@ class PyTestDriver:
     def connect(self):
         return r.connect(host='localhost', port=DRIVER_PORT)
 
-    def define(self, expr, variable=None):
+    def define(self, expr, variable):
         print_debug('Defining: %s%s' % (expr, ' to %s' % variable if variable else ''))
         try:
-            exec(expr, self.scope)
+            exec(compile('%s = %s' % (variable, expr), '<string>', 'single'), self.scope) # handle things like: a['b'] = b
         except Exception as e:
             print_test_failure('Exception while processing define', expr, str(e))
     
@@ -348,52 +351,61 @@ class PyTestDriver:
             # This test might not have come with an expected result, we'll just ensure it doesn't fail
             exp_val = ()
         
-        # Run the test
-        if 'reql-query' in testopts and str(testopts['reql-query']).lower() == 'false':
-            try:
-                result = eval(src, self.scope)
-            except Exception as err:
-                result = err
-        else:
-            # Try to build the test
-            try:
-                query = eval(src, self.scope)
-            except Exception as err:
-                if not isinstance(exp_val, Err):
-                    print_test_failure(name, src, "Error eval'ing test src:\n\t%s" % repr(err))
-                elif not eq(exp_val, **compOptions)(err):
-                    print_test_failure(name, src, "Error eval'ing test src not equal to expected err:\n\tERROR: %s\n\tEXPECTED: %s" % (repr(err), repr(exp_val)))
-    
-                return # Can't continue with this test if there is no test query
-    
-            # Check pretty-printing
-            check_pp(src, query)
-    
-            # Run the test
-            result = None
-            try:
-                result = query.run(conn, **runopts)
+        # -- evaluate the command
+        
+        try:
+            result = eval(src, self.scope)
+            
+            # - collect the contents of a cursor
+            
+            if isinstance(result, r.Cursor):
+                print_debug('Evaluating cursor: %s %r' % (src, runopts))
+                result = list(result)
+            
+            # - run as a query if it is one
+            
+            elif isinstance(result, r.RqlQuery):
+                print_debug('Running query: %s %r' % (src, runopts))
+                
+                # Check pretty-printing
+                
+                check_pp(src, result)
+                
+                # run the query
+                
+                result = result.run(conn, **runopts)
                 if result and "profile" in runopts and runopts["profile"] and "value" in result:
                     result = result["value"]
-            except Exception as err:
-                result = err
+                # ToDo: do something reasonable with the profile
+            
+            else:
+                print_debug('Running: %s' % src)
+            
+            # - Save variable if requested
+            
+            if 'variable' in testopts:
+                # ToDo: handle complex variables like: a[2]
+                self.scope[testopts['variable']] = result
+                if exp_val is None:
+                    return
+
+            if 'noreply_wait' in testopts and testopts['noreply_wait']:
+                conn.noreply_wait()
         
-        # Save variable if requested
-        
-        if 'variable' in testopts:
-            self.scope[testopts['variable']] = result
+        except Exception as err:
+            result = err
         
         # Compare to the expected result
         
         if isinstance(result, Exception):
             if not isinstance(exp_val, Err):
-                print_test_failure(name, src, "Error running test on server:\n\t%s %s" % (repr(result), str(result)))
+                print_test_failure(name, src, "Error running test on server:\n\t%s %s" % (str(result), str(result)))
             elif not eq(exp_val, **compOptions)(result):
-                print_test_failure(name, src, "Error running test on server not equal to expected err:\n\tERROR: %s\n\tEXPECTED: %s" % (repr(result), repr(exp_val)))
+                print_test_failure(name, src, "Error running test on server not equal to expected err:\n\tERROR: %s\n\tEXPECTED: %s" % (str(result), str(exp_val)))
             else:
                 passed_count += 1
         elif not eq(exp_val, **compOptions)(result):
-            print_test_failure(name, src, "Result is not equal to expected result:\n\tVALUE: %s\n\tEXPECTED: %s" % (repr(result), repr(exp_val)))
+            print_test_failure(name, src, "Result is not equal to expected result:\n\tVALUE: %s\n\tEXPECTED: %s" % (str(result), str(exp_val)))
         else:
             passed_count += 1
 
@@ -423,30 +435,38 @@ def setup_table(table_variable_name, table_name, db_name='test'):
     def _teardown_table(table_name, db_name):
         '''Used for tables that get created for this test'''
         res = r.db(db_name).table_drop(table_name).run(driver.cpp_conn)
-        assert res["tables_dropped"] == 1, 'Failed to delete table %s.%s: %s' % (db_name, table_name, repr(res))
+        assert res["tables_dropped"] == 1, 'Failed to delete table %s.%s: %s' % (db_name, table_name, str(res))
     
     def _clean_table(table_name, db_name):
         '''Used for pre-existing tables'''
         res = r.db(db_name).table(table_name).delete().run(driver.cpp_conn)
-        assert res["errors"] == 0, 'Failed to clean out contents from table %s.%s: %s' % (db_name, table_name, repr(res))
+        assert res["errors"] == 0, 'Failed to clean out contents from table %s.%s: %s' % (db_name, table_name, str(res))
         r.db(db_name).table(table_name).index_list().for_each(r.db(db_name).table(table_name).index_drop(r.row)).run(driver.cpp_conn)
     
     if len(required_external_tables) > 0:
-        table_name, db_name = required_external_tables.pop()
-        assert r.db(db_name).table_list().set_intersection([table_name]).count().eq(1).run(driver.cpp_conn) is True, 'External table %s.%s did not exist' % (db_name, table_name)
-        atexit.register(_clean_table, tableName=table_name, dbName=db_name)
+        db_name, table_name = required_external_tables.pop()
+        try:
+            r.db(db_name).table(table_name).info(driver.cpp_conn)
+        except r.RqlRuntimeError:
+            raise AssertionError('External table %s.%s did not exist' % (db_name, table_name))
+        atexit.register(_clean_table, table_name=table_name, db_name=db_name)
         
         print('Using existing table: %s.%s, will be %s' % (db_name, table_name, table_variable_name))
     else:
         if table_name in r.db(db_name).table_list().run(driver.cpp_conn):
             r.db(db_name).table_drop(table_name).run(driver.cpp_conn)
         res = r.db(db_name).table_create(table_name).run(driver.cpp_conn)
-        assert res["tables_created"] == 1, 'Unable to create table %s.%s: %s' % (db_name, table_name, repr(res))
+        assert res["tables_created"] == 1, 'Unable to create table %s.%s: %s' % (db_name, table_name, str(res))
         r.db(db_name).table(table_name).wait().run(driver.cpp_conn)
         
         print_debug('Created table: %s.%s, will be %s' % (db_name, table_name, table_variable_name))
     
     globals()[table_variable_name] = r.db(db_name).table(table_name)
+
+def setup_table_check():
+    '''Make sure that the required tables have been setup'''
+    if len(required_external_tables) > 0:
+        raise Exception('Unused external tables, that is probably not supported by this test: %s' % ('%s.%s' % tuple(x) for x in required_external_tables).join(', '))
 
 def check_no_table_specified():
     if DB_AND_TABLE_NAME != "no_table_specified":
@@ -464,7 +484,26 @@ def partial(expected):
     elif hasattr(expected, '__iter__'):
         return Bag(expected, partial=True)
     else:
-        raise ValueError('partial can only work on dicts or iterables, got: %s (%s)' % (type(expected).__name__, repr(expected)))
+        raise ValueError('partial can only work on dicts or iterables, got: %s (%s)' % (type(expected).__name__, str(expected)))
+
+def fetch(cursor, limit=None):
+    '''Pull items from a cursor'''
+    if limit is not None:
+        try:
+            limit = int(limit)
+            assert limit > 0
+        except Exception:
+            "On fetch limit must be None or > 0, got: %s" % str(limit)
+    result = []
+    for i, value in enumerate(cursor, start=1):
+        result.append(value)
+        if i >= limit:
+            break
+    return result
+
+def wait(seconds):
+    '''Sleep for some seconds'''
+    time.sleep(seconds)
 
 def err(err_type, err_msg=None, frames=None):
     return Err(err_type, err_msg, frames)
@@ -492,12 +531,3 @@ def the_end():
 
 false = False
 true = True
-
-# -- Table Creation
-
-# REPLACE WITH TABLE CREATION LINES
-
-# -- Required External Table Enforcement
-
-if len(required_external_tables) > 0:
-    raise Exception('Unused external tables, that is probably not supported by this test: %s' % ('%s.%s' % tuple(x) for x in required_external_tables).join(', '))

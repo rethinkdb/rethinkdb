@@ -145,11 +145,13 @@ public:
     public:
         explicit instance_t(test_rdb_env_t &&test_env);
 
-        ql::env_t *get();
+        ql::env_t *get_env();
+        rdb_context_t *get_rdb_context();
         void interrupt();
 
         std::map<store_key_t, ql::datum_t> *get_data(name_string_t db,
                                                      name_string_t table);
+
 
         bool db_create(const name_string_t &name, signal_t *interruptor,
                 ql::datum_t *result_out, std::string *error_out);
@@ -276,6 +278,7 @@ public:
     private:
         extproc_pool_t extproc_pool;
         rdb_context_t rdb_ctx;
+        dummy_semilattice_controller_t<auth_semilattice_metadata_t> auth_manager;
         std::map<name_string_t, database_id_t> databases;
         std::map<std::pair<database_id_t, name_string_t>,
                  scoped_ptr_t<mock_namespace_interface_t> > tables;

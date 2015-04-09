@@ -38,10 +38,10 @@ TPTEST(BTreeSindex, LowLevelOps) {
     {
         txn_t txn(&cache_conn, write_durability_t::HARD,
                   repli_timestamp_t::distant_past, 1);
-        buf_lock_t superblock(&txn, SUPERBLOCK_ID, alt_create_t::create);
-        buf_write_t sb_write(&superblock);
-        btree_slice_t::init_superblock(&superblock,
-                                       std::vector<char>(), binary_blob_t());
+        buf_lock_t sb_lock(&txn, SUPERBLOCK_ID, alt_create_t::create);
+        real_superblock_t superblock(std::move(sb_lock));
+        btree_slice_t::init_real_superblock(&superblock,
+                                            std::vector<char>(), binary_blob_t());
     }
 
     order_source_t order_source;

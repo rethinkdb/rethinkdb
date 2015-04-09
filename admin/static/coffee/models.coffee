@@ -124,35 +124,29 @@ class Stats extends Backbone.Model
     get_stats: =>
         @toJSON()
 
-# This module contains utility functions that compute and massage
-# commonly used data.
-module 'DataUtils', ->
-    # The equivalent of a database view, but for our Backbone models.
-    # Our models and collections have direct representations on the server. For
-    # convenience, it's useful to pick data from several of these models: these
-    # are computed models (and computed collections).
+# The equivalent of a database view, but for our Backbone models.
+# Our models and collections have direct representations on the server. For
+# convenience, it's useful to pick data from several of these models: these
+# are computed models (and computed collections).
 
-    @stripslashes = (str) ->
-        str=str.replace(/\\'/g,'\'')
-        str=str.replace(/\\"/g,'"')
-        str=str.replace(/\\0/g,"\x00")
-        str=str.replace(/\\\\/g,'\\')
-        return str
-
-    @is_integer = (data) ->
-        return data.search(/^\d+$/) isnt -1
-
-    # Deep copy. We do not copy prototype.
-    @deep_copy = (data) ->
-        if typeof data is 'boolean' or typeof data is 'number' or typeof data is 'string' or typeof data is 'number' or data is null or data is undefined
-            return data
-        else if typeof data is 'object' and Object.prototype.toString.call(data) is '[object Array]'
-            result = []
-            for value in data
-                result.push @deep_copy value
-            return result
-        else if typeof data is 'object'
-            result = {}
-            for key, value of data
-                result[key] = @deep_copy value
-            return result
+exports.Servers = Servers
+exports.Server = Server
+exports.Tables = Tables
+exports.Table = Table
+exports.Reconfigure = Reconfigure
+exports.Databases = Databases
+exports.Database = Database
+exports.Indexes = Indexes
+exports.Index = Index
+exports.Distribution = Distribution
+exports.Shard = Shard
+exports.ShardAssignments = ShardAssignments
+exports.ShardAssignment = ShardAssignment
+exports.Responsibilities = Responsibilities
+exports.Responsibility = Responsibility
+exports.Dashboard = Dashboard
+exports.Issue = Issue
+exports.Issues = Issues
+exports.Logs = Logs
+exports.Log = Log
+exports.Stats = Stats

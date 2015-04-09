@@ -11,7 +11,7 @@
 
 struct metadata_disk_superblock_t {
     block_magic_t magic;
-    
+
     block_id_t root_block;
     block_id_t stat_block;
 } __attribute__ ((packed));
@@ -257,8 +257,7 @@ void metadata_file_t::write_txn_t::write_bin(
         key.btree_key(),
         &detacher,
         &kvloc,
-        &file->btree_stats,
-        nullptr);
+        nullptr /* trace */);
     if (kvloc.there_originally_was_value) {
         deleter.delete_value(buf_parent_t(&kvloc.buf), kvloc.value.get());
         kvloc.value.reset();
@@ -313,7 +312,8 @@ metadata_file_t::metadata_file_t(
                 "created by versions older than RethinkDB 1.16.");
             break;
         }
-        case cluster_version_t::v1_16: {
+        case cluster_version_t::v1_16:
+        case cluster_version_t::v2_0: {
             scoped_malloc_t<void> sb_copy(cache->max_block_size().value());
             memcpy(sb_copy.get(), sb_data, cache->max_block_size().value());
             init_metadata_superblock(sb_data, cache->max_block_size().value());

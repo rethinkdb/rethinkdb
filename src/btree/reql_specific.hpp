@@ -29,10 +29,8 @@ public:
     void set_root_block_id(block_id_t new_root_block);
 
     block_id_t get_stat_block_id();
-    void set_stat_block_id(block_id_t new_stat_block);
 
     block_id_t get_sindex_block_id();
-    void set_sindex_block_id(block_id_t new_block_id);
 
     buf_parent_t expose_buf() { return buf_parent_t(&sb_buf_); }
 
@@ -59,7 +57,11 @@ public:
     void set_root_block_id(block_id_t new_root_block);
 
     block_id_t get_stat_block_id();
-    void set_stat_block_id(block_id_t new_stat_block);
+
+    /* sindex superblocks shouldn't have a sindex block of their own. But in previous
+    versions of RethinkDB they would have an empty sindex block. This is exposed so that
+    we can delete such a sindex block when deleting the sindex superblock. */
+    block_id_t get_sindex_block_id();
 
     buf_parent_t expose_buf() { return buf_parent_t(&sb_buf_); }
 
@@ -81,9 +83,10 @@ public:
     // Initializes a superblock (presumably, a buf_lock_t constructed with
     // alt_create_t::create) for use with btrees, setting the initial value of the
     // metainfo (with a single key/value pair). Not for use with sindex superblocks.
-    static void init_superblock(buf_lock_t *superblock,
+    static void init_real_superblock(real_superblock_t *superblock,
                                 const std::vector<char> &metainfo_key,
                                 const binary_blob_t &metainfo_value);
+    static void init_sindex_superblock(sindex_superblock_t *superblock);
 
     btree_slice_t(cache_t *cache,
                   perfmon_collection_t *parent,
@@ -154,25 +157,25 @@ private:
 
 
 // Metainfo functions
-bool get_superblock_metainfo(buf_lock_t *superblock,
+bool get_superblock_metainfo(real_superblock_t *superblock,
                              const std::vector<char> &key,
                              std::vector<char> *value_out);
 
 void get_superblock_metainfo(
-    buf_lock_t *superblock,
+    real_superblock_t *superblock,
     std::vector< std::pair<std::vector<char>, std::vector<char> > > *kv_pairs_out);
 
-void set_superblock_metainfo(buf_lock_t *superblock,
+void set_superblock_metainfo(real_superblock_t *superblock,
                              const std::vector<char> &key,
                              const binary_blob_t &value);
 
-void set_superblock_metainfo(buf_lock_t *superblock,
+void set_superblock_metainfo(real_superblock_t *superblock,
                              const std::vector<std::vector<char> > &keys,
                              const std::vector<binary_blob_t> &values);
 
-void delete_superblock_metainfo(buf_lock_t *superblock,
+void delete_superblock_metainfo(real_superblock_t *superblock,
                                 const std::vector<char> &key);
-void clear_superblock_metainfo(buf_lock_t *superblock);
+void clear_superblock_metainfo(real_superblock_t *superblock);
 
 // Convenience functions for accessing the superblock
 void get_btree_superblock(

@@ -30,11 +30,13 @@ public:
         }
         return row;
     }
-    virtual counted_t<datum_stream_t> read_changes(const datum_t &squash) {
+    virtual counted_t<datum_stream_t> read_changes(
+        const datum_t &squash, bool include_states) {
         return tbl->tbl->read_changes(
             env,
             squash,
-            changefeed::keyspec_t::point_t{store_key_t(key.print_primary())},
+            include_states,
+            changefeed::keyspec_t::point_t{key},
             bt,
             tbl->display_name());
     }
@@ -76,11 +78,17 @@ public:
         }
         return row;
     }
-    virtual counted_t<datum_stream_t> read_changes(const datum_t &squash) {
+    virtual counted_t<datum_stream_t> read_changes(
+        const datum_t &squash, bool include_states) {
         changefeed::keyspec_t::spec_t spec =
             ql::changefeed::keyspec_t::limit_t{slice->get_range_spec(), 1};
         auto s = slice->get_tbl()->tbl->read_changes(
-            env, squash, std::move(spec), bt, slice->get_tbl()->display_name());
+            env,
+            squash,
+            include_states,
+            std::move(spec),
+            bt,
+            slice->get_tbl()->display_name());
         return s;
     }
     virtual datum_t replace(
@@ -136,7 +144,11 @@ table_slice_t::table_slice_t(counted_t<table_t> _tbl,
 
 counted_t<datum_stream_t> table_slice_t::as_seq(
     env_t *env, const protob_t<const Backtrace> &bt) {
-    return tbl->as_seq(env, idx ? *idx : tbl->get_pkey(), bt, bounds, sorting);
+    if (bounds.is_empty(env->reql_version())) {
+        return make_counted<array_datum_stream_t>(datum_t::empty_array(), bt);
+    } else {
+        return tbl->as_seq(env, idx ? *idx : tbl->get_pkey(), bt, bounds, sorting);
+    }
 }
 
 counted_t<table_slice_t>

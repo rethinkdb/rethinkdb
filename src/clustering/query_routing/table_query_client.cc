@@ -87,6 +87,7 @@ void table_query_client_t::read_outdated(
         read_response_t *response,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
+    guarantee(!r.route_to_primary());
     /* This seems kind of silly. We do it this way because
        `dispatch_outdated_read` needs to be able to see `outdated_read_info_t`,
        which is defined in the `private` section. */
@@ -433,7 +434,7 @@ void table_query_client_t::relationship_coroutine(
         stop_signal.wait_lazily_unordered();
     } catch (const interrupted_exc_t &) {
         /* do nothing */
-    } 
+    }
 
     if (is_start) {
         guarantee(start_count > 0);

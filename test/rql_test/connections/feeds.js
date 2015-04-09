@@ -35,12 +35,12 @@ setTimeout(function() {
 function test1() {
     // Test insert, update, replace, delete and the basic case for `next`
     console.log("Running test1");
-    
-    r.connect({port:port}, function(err, conn) {   
+
+    r.connect({port:port}, function(err, conn) {
         if (err) throw err;
         r.table(tableName).changes().run(conn, function(err, feed) {
             if (err) throw err;
-    
+
             var count = 0;
             var fn = function(err, data) {
                 if (err) {
@@ -54,7 +54,7 @@ function test1() {
                     else {
                         throw err;
                     }
-    
+
                 }
                 else {
                     if (count === 0) {
@@ -82,7 +82,7 @@ function test1() {
             }
             feed.next(fn);
         });
-    
+
         setTimeout(function() { // Wait 5 seconds to retrieve some empty responses
             r.connect({port: port}, function(err, conn) {
                 r.table(tableName).insert({id: idValue, value: 'insert'}).run(conn).then(function() {
@@ -150,7 +150,7 @@ function test2() {
 function test3() {
     // Test that some methods are not available
     console.log("Running test3");
-    
+
     r.connect({port:port}, function(err, conn) {
         if (err) throw err;
 
@@ -189,7 +189,7 @@ function test4() {
             var count = 0;
             feed.on('error', function(err) {
                 if ((count === 3) && (err.message.match(/^Changefeed aborted \(table unavailable/))) {
-                    
+
                     // Test that Cursor's method were deactivated
                     assert.throws(function() {
                         feed.each();

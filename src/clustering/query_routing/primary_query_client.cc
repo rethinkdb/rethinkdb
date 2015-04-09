@@ -20,10 +20,9 @@ primary_query_client_t::primary_query_client_t(
         THROWS_ONLY(interrupted_exc_t) :
     mailbox_manager(mm),
     region(master.region),
-    multi_throttling_client(
+    multi_client_client(
         mailbox_manager,
-        master.multi_throttling,
-        primary_query_bcard_t::inner_client_business_card_t(),
+        master.multi_client,
         interruptor)
     { }
 
@@ -52,10 +51,6 @@ void primary_query_client_t::read(
 
     wait_interruptible(token, interruptor);
     fifo_enforcer_read_token_t token_for_master = source_for_master.enter_read();
-    multi_throttling_client_t<
-            primary_query_bcard_t::request_t,
-            primary_query_bcard_t::inner_client_business_card_t
-            >::ticket_acq_t ticket(&multi_throttling_client);
     token->end();
 
     primary_query_bcard_t::read_request_t read_request(
@@ -64,7 +59,7 @@ void primary_query_client_t::read(
         token_for_master,
         result_or_failure_mailbox.get_address());
 
-    multi_throttling_client.spawn_request(read_request, &ticket, interruptor);
+    multi_client_client.spawn_request(read_request);
 
     wait_interruptible(result_or_failure.get_ready_signal(), interruptor);
 
@@ -102,10 +97,6 @@ void primary_query_client_t::write(
 
     wait_interruptible(token, interruptor);
     fifo_enforcer_write_token_t token_for_master = source_for_master.enter_write();
-    multi_throttling_client_t<
-            primary_query_bcard_t::request_t,
-            primary_query_bcard_t::inner_client_business_card_t
-            >::ticket_acq_t ticket(&multi_throttling_client);
     token->end();
 
     primary_query_bcard_t::write_request_t write_request(
@@ -114,7 +105,7 @@ void primary_query_client_t::write(
         token_for_master,
         result_or_failure_mailbox.get_address());
 
-    multi_throttling_client.spawn_request(write_request, &ticket, interruptor);
+    multi_client_client.spawn_request(write_request);
 
     wait_interruptible(result_or_failure.get_ready_signal(), interruptor);
 

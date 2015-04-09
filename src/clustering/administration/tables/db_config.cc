@@ -166,6 +166,17 @@ bool db_config_artificial_table_backend_t::write_row(
         }
 
         if (!existed_before || new_db_name != old_db_name) {
+            /* Reserve the `rethinkdb` database name */
+            if (new_db_name == name_string_t::guarantee_valid("rethinkdb")) {
+                if (!existed_before) {
+                    *error_out = "Database `rethinkdb` already exists.";
+                } else {
+                    *error_out = strprintf("Cannot rename database `%s` to `rethinkdb` "
+                        "because database `rethinkdb` already exists.",
+                        old_db_name.c_str());
+                }
+                return false;
+            }
             /* Prevent name collisions if possible */
             for (const auto &pair : md.databases) {
                 if (!pair.second.is_deleted() &&

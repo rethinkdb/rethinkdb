@@ -51,15 +51,26 @@ void http_conn_cache_t::http_conn_t::pulse() {
     interruptor.pulse();
 }
 
-bool http_conn_cache_t::http_conn_t::is_expired() {
-    return difftime(time(0), last_accessed) > TIMEOUT_SEC;
+time_t http_conn_cache_t::http_conn_t::last_accessed_time() const {
+    return last_accessed;
 }
 
-http_conn_cache_t::http_conn_cache_t() :
-    next_id(0), http_timeout_timer(TIMER_RESOLUTION_MS, this) { }
+http_conn_cache_t::http_conn_cache_t(uint32_t _http_timeout_sec) :
+    next_id(0),
+    http_timeout_timer(TIMER_RESOLUTION_MS, this),
+    http_timeout_sec(_http_timeout_sec) { }
 
 http_conn_cache_t::~http_conn_cache_t() {
     for (auto &pair : cache) pair.second->pulse();
+}
+
+std::string http_conn_cache_t::expired_error_message() const {
+    return strprintf("HTTP ReQL query timed out after %" PRIu32 " seconds.",
+                     http_timeout_sec);
+}
+
+bool http_conn_cache_t::is_expired(const http_conn_t &conn) const {
+    return difftime(time(0), conn.last_accessed_time()) > http_timeout_sec;
 }
 
 counted_t<http_conn_cache_t::http_conn_t> http_conn_cache_t::find(int32_t key) {
@@ -91,7 +102,7 @@ void http_conn_cache_t::on_ring() {
     assert_thread();
     for (auto it = cache.begin(); it != cache.end();) {
         auto tmp = it++;
-        if (tmp->second->is_expired()) {
+        if (is_expired(*tmp->second)) {
             // We go through some rigmarole to make sure we erase from the
             // cache immediately and call the possibly-blocking destructor
             // in a separate coroutine to satisfy the
@@ -119,8 +130,21 @@ private:
     std::string info;
 };
 
-const uint32_t MAX_QUERY_SIZE = 64 * MEGABYTE;
-const size_t MAX_RESPONSE_SIZE = std::numeric_limits<uint32_t>::max();
+const uint32_t TOO_LARGE_QUERY_SIZE = 64 * MEGABYTE;
+const uint32_t TOO_LARGE_RESPONSE_SIZE = std::numeric_limits<uint32_t>::max();
+
+const std::string unparseable_query_message =
+    "Client is buggy (failed to deserialize query).";
+
+std::string too_large_query_message(uint32_t size) {
+    return strprintf("Query size (%" PRIu32 ") greater than maximum (%" PRIu32 ").",
+                     size, TOO_LARGE_QUERY_SIZE - 1);
+}
+
+std::string too_large_response_message(size_t size) {
+    return strprintf("Response size (%zu) greater than maximum (%" PRIu32 ").",
+                     size, TOO_LARGE_RESPONSE_SIZE - 1);
+}
 
 class json_protocol_t {
 public:
@@ -133,11 +157,11 @@ public:
         conn->read(&token, sizeof(token), interruptor);
         conn->read(&size, sizeof(size), interruptor);
 
-        if (size > MAX_QUERY_SIZE) {
+        if (size >= TOO_LARGE_QUERY_SIZE) {
             Response error_response;
-            handler->unparseable_query(token, &error_response,
-                                       strprintf("Payload size (%" PRIu32 ") greater than maximum (%" PRIu32 ").",
-                                                 size, MAX_QUERY_SIZE));
+            error_response.set_token(token);
+            ql::fill_error(&error_response, Response::CLIENT_ERROR,
+                           too_large_query_message(size));
             send_response(error_response, handler, conn, interruptor);
             throw tcp_conn_read_closed_exc_t();
         } else {
@@ -147,9 +171,9 @@ public:
 
             if (!json_shim::parse_json_pb(query_out->get(), token, data.data())) {
                 Response error_response;
-                handler->unparseable_query(
-                    token, &error_response,
-                    "Client is buggy (failed to deserialize query).");
+                error_response.set_token(token);
+                ql::fill_error(&error_response, Response::CLIENT_ERROR,
+                               unparseable_query_message);
                 send_response(error_response, handler, conn, interruptor);
                 return false;
             }
@@ -163,23 +187,24 @@ public:
                               signal_t *interruptor) {
         const int64_t token = response.token();
 
-        uint32_t data_size_32; // filled in below
-        const size_t prefix_size = sizeof(token) + sizeof(data_size_32);
+        uint32_t data_size; // filled in below
+        const size_t prefix_size = sizeof(token) + sizeof(data_size);
         // Reserve space for the token and the size
         std::string str(prefix_size, '\0');
 
         json_shim::write_json_pb(response, &str);
         guarantee(str.size() >= prefix_size);
-        const size_t data_size = str.size() - prefix_size;
 
-        if (data_size > MAX_RESPONSE_SIZE) {
+        if (str.size() - prefix_size >= TOO_LARGE_RESPONSE_SIZE) {
             Response error_response;
-            handler->unparseable_query(token, &error_response,
-                strprintf("Response size (%zu) is greater than maximum (%zu).",
-                          data_size, MAX_RESPONSE_SIZE));
+            error_response.set_token(response.token());
+            ql::fill_error(&error_response, Response::RUNTIME_ERROR,
+                           too_large_response_message(str.size() - prefix_size));
             send_response(error_response, handler, conn, interruptor);
             return;
         }
+
+        data_size = static_cast<uint32_t>(str.size() - prefix_size);
 
         // Fill in the prefix.
         // std::string::operator[] has unspecified complexity, but in practice
@@ -187,9 +212,8 @@ public:
         for (size_t i = 0; i < sizeof(token); ++i) {
             str[i] = reinterpret_cast<const char *>(&token)[i];
         }
-        data_size_32 = static_cast<uint32_t>(data_size);
-        for (size_t i = 0; i < sizeof(data_size_32); ++i) {
-            str[i + sizeof(token)] = reinterpret_cast<const char *>(&data_size_32)[i];
+        for (size_t i = 0; i < sizeof(data_size); ++i) {
+            str[i + sizeof(token)] = reinterpret_cast<const char *>(&data_size)[i];
         }
 
         conn->write(str.data(), str.size(), interruptor);
@@ -205,13 +229,11 @@ public:
         uint32_t size;
         conn->read(&size, sizeof(size), interruptor);
 
-        if (size > MAX_QUERY_SIZE) {
+        if (size >= TOO_LARGE_QUERY_SIZE) {
             Response error_response;
-            handler->unparseable_query(
-                0,
-                &error_response,
-                strprintf("Payload size (%" PRIu32 ") greater than maximum (%" PRIu32 ").",
-                          size, MAX_QUERY_SIZE));
+            error_response.set_token(0); // We don't actually know the token
+            ql::fill_error(&error_response, Response::CLIENT_ERROR,
+                           too_large_query_message(size));
             send_response(error_response, handler, conn, interruptor);
             return false;
         } else {
@@ -220,9 +242,10 @@ public:
 
             if (!query_out->get()->ParseFromArray(data.data(), size)) {
                 Response error_response;
-                int64_t token = query_out->get()->has_token() ? query_out->get()->token() : 0;
-                handler->unparseable_query(token, &error_response,
-                                           "Client is buggy (failed to deserialize query).");
+                error_response.set_token(query_out->get()->has_token() ?
+                                         query_out->get()->token() : 0);
+                ql::fill_error(&error_response, Response::CLIENT_ERROR,
+                               unparseable_query_message);
                 send_response(error_response, handler, conn, interruptor);
                 return false;
             }
@@ -234,53 +257,40 @@ public:
                               query_handler_t *handler,
                               tcp_conn_t *conn,
                               signal_t *interruptor) {
-        const size_t data_size = response.ByteSize();
-        if (data_size > MAX_RESPONSE_SIZE) {
+        const uint32_t data_size = static_cast<uint32_t>(response.ByteSize());
+        if (data_size >= TOO_LARGE_RESPONSE_SIZE) {
             Response error_response;
-            handler->unparseable_query(
-                response.token(),
-                &error_response,
-                strprintf("Response size (%zu) is greater than maximum (%zu).",
-                          data_size, MAX_RESPONSE_SIZE));
+            error_response.set_token(response.token());
+            ql::fill_error(&error_response, Response::RUNTIME_ERROR,
+                           too_large_response_message(data_size));
             send_response(error_response, handler, conn, interruptor);
-            return;
+        } else {
+            const size_t prefix_size = sizeof(data_size);
+            const size_t total_size = prefix_size + data_size;
+
+            scoped_array_t<char> scoped_array(total_size);
+            memcpy(scoped_array.data(), &data_size, sizeof(data_size));
+            response.SerializeToArray(scoped_array.data() + prefix_size, data_size);
+
+            conn->write(scoped_array.data(), total_size, interruptor);
         }
-        const uint32_t data_size_32 = static_cast<uint32_t>(data_size);
-        const size_t prefix_size = sizeof(data_size_32);
-        const size_t total_size = prefix_size + data_size;
-
-        scoped_array_t<char> scoped_array(total_size);
-        memcpy(scoped_array.data(), &data_size_32, sizeof(data_size_32));
-        response.SerializeToArray(scoped_array.data() + prefix_size, data_size_32);
-
-        conn->write(scoped_array.data(), total_size, interruptor);
     }
 };
 
-query_server_t::query_server_t(
-    rdb_context_t *_rdb_ctx,
-    const std::set<ip_address_t> &local_addresses,
-    int port,
-    query_handler_t *_handler,
-    boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
-        _auth_metadata)
-    : rdb_ctx(_rdb_ctx),
-      handler(_handler),
-      auth_metadata(_auth_metadata),
-      shutting_down_conds(),
-      pulse_sdc_on_shutdown(&main_shutting_down_cond),
-      next_thread(0) {
+query_server_t::query_server_t(rdb_context_t *_rdb_ctx,
+                               const std::set<ip_address_t> &local_addresses,
+                               int port,
+                               query_handler_t *_handler,
+                               uint32_t http_timeout_sec) :
+        rdb_ctx(_rdb_ctx),
+        handler(_handler),
+        http_conn_cache(http_timeout_sec),
+        next_thread(0) {
     rassert(rdb_ctx != NULL);
-    for (int i = 0; i < get_num_threads(); ++i) {
-        shutting_down_conds.push_back(
-                make_scoped<cross_thread_signal_t>(&main_shutting_down_cond,
-                                                   threadnum_t(i)));
-    }
-
     try {
         tcp_listener.init(new tcp_listener_t(local_addresses, port,
             std::bind(&query_server_t::handle_conn,
-                      this, ph::_1, auto_drainer_t::lock_t(&auto_drainer))));
+                      this, ph::_1, auto_drainer_t::lock_t(&drainer))));
     } catch (const address_in_use_exc_t &ex) {
         throw address_in_use_exc_t(
             strprintf("Could not bind to RDB protocol port: %s", ex.what()));
@@ -312,7 +322,8 @@ std::string query_server_t::read_sized_string(tcp_conn_t *conn,
 
 auth_key_t query_server_t::read_auth_key(tcp_conn_t *conn,
                                          signal_t *interruptor) {
-    const std::string length_error_msg("Client provided an authorization key that is too long.");
+    const std::string length_error_msg =
+        "Client provided an authorization key that is too long.";
     std::string auth_key = read_sized_string(conn, auth_key_t::max_length,
                                              length_error_msg, interruptor);
     auth_key_t ret;
@@ -327,7 +338,7 @@ auth_key_t query_server_t::read_auth_key(tcp_conn_t *conn,
 void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn,
                                  auto_drainer_t::lock_t keepalive) {
     // This must be read here because of home threads and stuff
-    auth_key_t auth_key = auth_metadata->get().auth_key.get_ref();
+    auth_key_t auth_key = rdb_ctx->auth_metadata->get().auth_key.get_ref();
 
     threadnum_t chosen_thread = threadnum_t(next_thread);
     next_thread = (next_thread + 1) % get_num_db_threads();
@@ -339,13 +350,6 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
     nconn->make_overcomplicated(&conn);
     conn->enable_keepalive();
 
-#ifdef __linux
-    linux_event_watcher_t *ew = conn->get_event_watcher();
-    linux_event_watcher_t::watch_t conn_interrupted(ew, poll_event_rdhup);
-    wait_any_t interruptor(&conn_interrupted, shutdown_signal(), &ct_keepalive);
-#else
-    wait_any_t interruptor(shutdown_signal(), &ct_keepalive);
-#endif  // __linux
     ip_and_port_t client_addr_port(ip_address_t::any(AF_INET), port_t(0));
     UNUSED bool peer_res = conn->getpeername(&client_addr_port);
 
@@ -353,7 +357,7 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
 
     try {
         int32_t client_magic_number;
-        conn->read(&client_magic_number, sizeof(client_magic_number), &interruptor);
+        conn->read(&client_magic_number, sizeof(client_magic_number), &ct_keepalive);
 
         bool pre_2 = client_magic_number == VersionDummy::V0_1;
         bool pre_3 = pre_2 || client_magic_number == VersionDummy::V0_2;
@@ -367,12 +371,10 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
                     "Authorization required but client does not support it.");
             }
         } else if (legal) {
-            auth_key_t provided_auth = read_auth_key(conn.get(), &interruptor);
+            auth_key_t provided_auth = read_auth_key(conn.get(), &ct_keepalive);
             if (!timing_sensitive_equals(provided_auth, auth_key)) {
                 throw protob_server_exc_t("Incorrect authorization key.");
             }
-            const char *success_msg = "SUCCESS";
-            conn->write(success_msg, strlen(success_msg) + 1, &interruptor);
         } else {
             throw protob_server_exc_t("Received an unsupported protocol version. "
                                       "This port is for RethinkDB queries. Does your "
@@ -384,39 +386,93 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
         // With version 0_3, the client driver specifies which protocol to use
         int32_t wire_protocol = VersionDummy::PROTOBUF;
         if (!pre_3) {
-            conn->read(&wire_protocol, sizeof(wire_protocol), &interruptor);
+            conn->read(&wire_protocol, sizeof(wire_protocol), &ct_keepalive);
         }
 
         ql::query_cache_t query_cache(rdb_ctx, client_addr_port,
                                       pre_4 ? ql::return_empty_normal_batches_t::YES :
                                               ql::return_empty_normal_batches_t::NO);
 
+        switch (wire_protocol) {
+            case VersionDummy::JSON:
+            case VersionDummy::PROTOBUF: break;
+            default: {
+                throw protob_server_exc_t(strprintf("Unrecognized protocol specified: '%d'",
+                                                    wire_protocol));
+            }
+        }
+
+        if (!pre_2) {
+            const char *success_msg = "SUCCESS";
+            conn->write(success_msg, strlen(success_msg) + 1, &ct_keepalive);
+        }
+
         if (wire_protocol == VersionDummy::JSON) {
             connection_loop<json_protocol_t>(
-                conn.get(), max_concurrent_queries, &query_cache, &interruptor);
+                conn.get(), max_concurrent_queries, &query_cache, &ct_keepalive);
         } else if (wire_protocol == VersionDummy::PROTOBUF) {
             connection_loop<protobuf_protocol_t>(
-                conn.get(), max_concurrent_queries, &query_cache, &interruptor);
+                conn.get(), max_concurrent_queries, &query_cache, &ct_keepalive);
         } else {
-            throw protob_server_exc_t(strprintf("Unrecognized protocol specified: '%d'",
-                                                wire_protocol));
+            unreachable();
         }
     } catch (const protob_server_exc_t &ex) {
         // Can't write response here due to coro switching inside exception handler
         init_error = strprintf("ERROR: %s\n", ex.what());
+    } catch (const interrupted_exc_t &ex) {
+        // If we have been interrupted, we can't write a message to the client, as that
+        // may block (and we would just be interrupted again anyway), just close.
     } catch (const tcp_conn_read_closed_exc_t &) {
-        return;
     } catch (const tcp_conn_write_closed_exc_t &) {
-        return;
+    } catch (const std::exception &ex) {
+        logERR("Unexpected exception in client handler: %s", ex.what());
     }
 
-    try {
-        if (!init_error.empty()) {
-            conn->write(init_error.c_str(), init_error.length() + 1, &interruptor);
+    if (!init_error.empty()) {
+        try {
+            conn->write(init_error.c_str(), init_error.length() + 1, &ct_keepalive);
             conn->shutdown_write();
+        } catch (const tcp_conn_write_closed_exc_t &) {
+            // Do nothing
         }
-    } catch (const tcp_conn_write_closed_exc_t &) {
-        // Do nothing
+    }
+}
+
+void query_server_t::make_error_response(bool is_draining,
+                                         const tcp_conn_t &conn,
+                                         const std::string &err_str,
+                                         Response *response_out) {
+    response_out->Clear();
+
+    // Best guess at the error that occurred
+    if (!conn.is_write_open()) {
+        // The other side closed it's socket - it won't get this message
+        ql::fill_error(response_out, Response::RUNTIME_ERROR,
+                       "Client closed the connection.");
+    } else if (is_draining) {
+        // The query_server_t is being destroyed so this won't actually be written
+        ql::fill_error(response_out, Response::RUNTIME_ERROR,
+                       "Server is shutting down.");
+    } else {
+        // Sort of a catch-all - there could be other reasons for this
+        ql::fill_error(response_out, Response::RUNTIME_ERROR,
+                       strprintf("Fatal error on another query: %s", err_str.c_str()));
+    }
+}
+
+template <class Callable>
+void save_exception(std::exception_ptr *err,
+                    std::string *err_str,
+                    cond_t *abort,
+                    Callable &&fn) {
+    try {
+        fn();
+    } catch (const std::exception &ex) {
+        if (!(*err)) {
+            *err = std::current_exception();
+            err_str->assign(ex.what());
+        }
+        abort->pulse_if_not_already_pulsed();
     }
 }
 
@@ -424,13 +480,20 @@ template <class protocol_t>
 void query_server_t::connection_loop(tcp_conn_t *conn,
                                      size_t max_concurrent_queries,
                                      ql::query_cache_t *query_cache,
-                                     signal_t *raw_interruptor) {
-    scoped_perfmon_counter_t connection_counter(&rdb_ctx->stats.client_connections);
-
+                                     signal_t *drain_signal) {
     std::exception_ptr err;
+    std::string err_str;
     cond_t abort;
     new_mutex_t send_mutex;
+    scoped_perfmon_counter_t connection_counter(&rdb_ctx->stats.client_connections);
 
+#ifdef __linux
+    linux_event_watcher_t *ew = conn->get_event_watcher();
+    linux_event_watcher_t::watch_t conn_interrupted(ew, poll_event_rdhup);
+    wait_any_t interruptor(drain_signal, &abort, &conn_interrupted);
+#else
+    wait_any_t interruptor(drain_signal, &abort);
+#endif  // __linux
 
     // query_info_t and the nascent_query_list_t exist to guarantee that ql::query_id_ts
     // (which are RAII) are allocated and destroyed properly.  When we read a query off
@@ -438,13 +501,15 @@ void query_server_t::connection_loop(tcp_conn_t *conn,
     // put it into the coro pool.  Once it is in the coro pool, all ordering guarantees
     // are lost, so it must be done as soon as we receive the query.
     //
-    // The nascent_query_list_t holds ownership of the query_info_t until it is successfully
-    // handed over to the coroutine that will run the query.  This allows us to guarantee
-    // proper destruction of query_id_ts in exceptional interruption or error cases.
+    // The nascent_query_list_t holds ownership of the query_info_t until it is
+    // successfully handed over to the coroutine that will run the query.  This allows us
+    // to guarantee proper destruction of query_id_ts in exceptional interruption or
+    // error cases.
     //
-    // A ql::query_id_t is used to provide an absolute ordering of queries, and is necessary
-    // for proper NOREPLY_WAIT semantics.
-    typedef std::list<std::pair<ql::query_id_t, ql::protob_t<Query> > > nascent_query_list_t;
+    // A ql::query_id_t is used to provide an absolute ordering of queries, and is
+    // necessary for proper NOREPLY_WAIT semantics.
+    typedef std::list<std::pair<ql::query_id_t, ql::protob_t<Query> > >
+        nascent_query_list_t;
     nascent_query_list_t query_list;
 
     std_function_callback_t<nascent_query_list_t::iterator> callback(
@@ -454,66 +519,92 @@ void query_server_t::connection_loop(tcp_conn_t *conn,
             ql::query_id_t query_id(std::move(query_it->first));
             ql::protob_t<Query> query_pb(std::move(query_it->second));
             query_list.erase(query_it);
+            wait_any_t cb_interruptor(pool_interruptor, &interruptor);
+            Response response;
+            bool replied = false;
 
-            try {
-                wait_any_t cb_interruptor(raw_interruptor, &abort, pool_interruptor);
-                Response response;
-                if (handler->run_query(query_id, query_pb, &response,
-                                       query_cache, &cb_interruptor)) {
-                    new_mutex_acq_t send_lock(&send_mutex, &cb_interruptor);
-                    protocol_t::send_response(response, handler, conn, &cb_interruptor);
-                }
-            } catch (...) {
-                if (!err) {
-                    err = std::current_exception();
-                }
-                abort.pulse_if_not_already_pulsed();
+            save_exception(&err, &err_str, &abort, [&]() {
+                    handler->run_query(std::move(query_id), query_pb, &response,
+                                       query_cache, &cb_interruptor);
+                    if (!ql::is_noreply(query_pb)) {
+                        response.set_token(query_pb->token());
+                        new_mutex_acq_t send_lock(&send_mutex, &cb_interruptor);
+                        protocol_t::send_response(response, handler,
+                                                  conn, &cb_interruptor);
+                        replied = true;
+                    }
+                });
+
+            if (!replied && !ql::is_noreply(query_pb)) {
+                save_exception(&err, &err_str, &abort, [&]() {
+                        make_error_response(drain_signal->is_pulsed(), *conn,
+                                            err_str, &response);
+                        response.set_token(query_pb->token());
+                        new_mutex_acq_t send_lock(&send_mutex, drain_signal);
+                        protocol_t::send_response(response, handler, conn, drain_signal);
+                    });
             }
         });
 
-    // Pick a small limit so queries back up on the TCP connection.
-    limited_fifo_queue_t<nascent_query_list_t::iterator> coro_queue(4);
-    coro_pool_t<nascent_query_list_t::iterator> coro_pool(max_concurrent_queries,
-                                                          &coro_queue,
-                                                          &callback);
+    {
+        // Pick a small limit so queries back up on the TCP connection.
+        limited_fifo_queue_t<nascent_query_list_t::iterator> coro_queue(4);
+        coro_pool_t<nascent_query_list_t::iterator> coro_pool(max_concurrent_queries,
+                                                              &coro_queue,
+                                                              &callback);
 
-    wait_any_t loop_interruptor(raw_interruptor, &abort);
-    for (;;) {
-        ql::protob_t<Query> query(ql::make_counted_query());
-        try {
-            if (protocol_t::parse_query(conn, &loop_interruptor, handler, &query)) {
-                query_list.push_front(std::make_pair(ql::query_id_t(query_cache),
-                                                     std::move(query)));
-                coro_queue.push(query_list.begin());
-            }
-        } catch (...) {
-            if (err) {
-                std::rethrow_exception(err);
-            } else {
-                throw;
-            }
+        while (!err) {
+            ql::protob_t<Query> query(ql::make_counted_query());
+            save_exception(&err, &err_str, &abort, [&]() {
+                    if (protocol_t::parse_query(conn, &interruptor, handler, &query)) {
+                        query_list.push_front(std::make_pair(ql::query_id_t(query_cache),
+                                                             std::move(query)));
+                        coro_queue.push(query_list.begin());
+                    }
+                });
         }
+
+        // Stop processing queries here, so we don't get into race conditions
+        // with the loop over `query_list` below.
+    }
+
+    // Respond to any queries still in the run queue
+    for (auto const &pair : query_list) {
+        if (!ql::is_noreply(pair.second)) {
+            Response response;
+            save_exception(&err, &err_str, &abort, [&]() {
+                    make_error_response(drain_signal->is_pulsed(), *conn,
+                                        err_str, &response);
+                    response.set_token(pair.second->token());
+                    new_mutex_acq_t send_lock(&send_mutex, drain_signal);
+                    protocol_t::send_response(response, handler, conn, drain_signal);
+                });
+        }
+    }
+
+    if (err) {
+        std::rethrow_exception(err);
     }
 }
 
 void query_server_t::handle(const http_req_t &req,
                             http_res_t *result,
                             signal_t *interruptor) {
-    auto_drainer_t::lock_t auto_drainer_lock(&auto_drainer);
-    if (req.method == POST &&
+    auto_drainer_t::lock_t auto_drainer_lock(&drainer);
+    if (req.method == http_method_t::POST &&
         req.resource.as_string().find("open-new-connection") != std::string::npos) {
         int32_t conn_id = http_conn_cache.create(rdb_ctx, req.peer);
 
         std::string body_data;
         body_data.assign(reinterpret_cast<char *>(&conn_id), sizeof(conn_id));
         result->set_body("application/octet-stream", body_data);
-        result->code = HTTP_OK;
+        result->code = http_status_code_t::OK;
         return;
     }
 
     boost::optional<std::string> optional_conn_id = req.find_query_param("conn_id");
     if (!optional_conn_id) {
-        *result = http_res_t(HTTP_BAD_REQUEST, "application/text",
+        *result = http_res_t(http_status_code_t::BAD_REQUEST, "application/text",
                              "Required parameter \"conn_id\" missing\n");
         return;
     }
@@ -521,10 +612,10 @@ void query_server_t::handle(const http_req_t &req,
     std::string string_conn_id = *optional_conn_id;
     int32_t conn_id = boost::lexical_cast<int32_t>(string_conn_id);
 
-    if (req.method == POST &&
+    if (req.method == http_method_t::POST &&
         req.resource.as_string().find("close-connection") != std::string::npos) {
         http_conn_cache.erase(conn_id);
-        result->code = HTTP_OK;
+        result->code = http_status_code_t::OK;
         return;
     }
 
@@ -533,50 +624,65 @@ void query_server_t::handle(const http_req_t &req,
     int64_t token;
 
     if (req.body.size() < sizeof(token)) {
-        *result = http_res_t(HTTP_BAD_REQUEST, "application/text",
+        *result = http_res_t(http_status_code_t::BAD_REQUEST, "application/text",
                              "Client is buggy (request too small).");
         return;
     }
 
     // Parse the token out from the start of the request
     const char *data = req.body.c_str();
-    token = *reinterpret_cast<const uint64_t *>(data);
+    token = *reinterpret_cast<const int64_t *>(data);
     data += sizeof(token);
 
     const bool parse_succeeded =
         json_shim::parse_json_pb(query.get(), token, data);
 
     if (!parse_succeeded) {
-        handler->unparseable_query(token, &response,
-                                   "Client is buggy (failed to deserialize query).");
+        ql::fill_error(&response, Response::CLIENT_ERROR, unparseable_query_message);
     } else {
         counted_t<http_conn_cache_t::http_conn_t> conn = http_conn_cache.find(conn_id);
         if (!conn.has()) {
-            handler->unparseable_query(token, &response,
-                                       "This HTTP connection is not open.");
+            ql::fill_error(&response, Response::CLIENT_ERROR,
+                           "This HTTP connection is not open.");
         } else {
             // Check for noreply, which we don't support here, as it causes
             // problems with interruption
-            ql::datum_t noreply = static_optarg("noreply", query);
-            bool response_needed = !(noreply.has() &&
-                                     noreply.get_type() == ql::datum_t::type_t::R_BOOL &&
-                                     noreply.as_bool());
-
-            if (!response_needed) {
-                *result = http_res_t(HTTP_BAD_REQUEST, "application/text",
+            if (ql::is_noreply(query)) {
+                *result = http_res_t(http_status_code_t::BAD_REQUEST,
+                                     "application/text",
                                      "noreply queries are not supported over HTTP\n");
                 return;
             }
 
-            wait_any_t true_interruptor(interruptor, conn->get_interruptor());
+            wait_any_t true_interruptor(interruptor, conn->get_interruptor(),
+                                        drainer.get_drain_signal());
             ql::query_id_t query_id(conn->get_query_cache());
-            response_needed = handler->run_query(query_id,
-                                                 query, &response,
-                                                 conn->get_query_cache(),
-                                                 &true_interruptor);
-            rassert(response_needed);
+            try {
+                handler->run_query(std::move(query_id), query, &response,
+                                   conn->get_query_cache(), &true_interruptor);
+            } catch (const interrupted_exc_t &ex) {
+                if (http_conn_cache.is_expired(*conn)) {
+                    // This will only be sent back if this was interrupted by a http conn
+                    // cache timeout.
+                    ql::fill_error(&response, Response::RUNTIME_ERROR,
+                                   http_conn_cache.expired_error_message());
+                } else if (interruptor->is_pulsed()) {
+                    ql::fill_error(&response, Response::RUNTIME_ERROR,
+                                   "This ReQL connection has been terminated.");
+                } else if (drainer.is_draining()) {
+                    ql::fill_error(&response, Response::RUNTIME_ERROR,
+                                   "Server is shutting down.");
+                } else if (conn->get_interruptor()->is_pulsed()) {
+                    ql::fill_error(&response, Response::RUNTIME_ERROR,
+                                   "This ReQL connection has been terminated.");
+                } else {
+                    throw;
+                }
+            }
         }
     }
+
+    response.set_token(token);
 
     uint32_t size;
     std::string str;
@@ -593,5 +699,5 @@ void query_server_t::handle(const http_req_t &req,
     body_data.append(&header_buffer[0], sizeof(header_buffer));
     body_data.append(str);
     result->set_body("application/octet-stream", body_data);
-    result->code = HTTP_OK;
+    result->code = http_status_code_t::OK;
 }

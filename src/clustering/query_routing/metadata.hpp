@@ -7,7 +7,7 @@
 #include "errors.hpp"
 #include <boost/variant.hpp>
 
-#include "clustering/generic/multi_throttling_metadata.hpp"
+#include "clustering/generic/multi_client_metadata.hpp"
 #include "clustering/generic/registration_metadata.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/fifo_enforcer.hpp"
@@ -51,30 +51,22 @@ public:
 
     typedef boost::variant< read_request_t, write_request_t > request_t;
 
-    class inner_client_business_card_t {
-    public:
-        /* nothing here */
-    };
-
     primary_query_bcard_t() { }
     primary_query_bcard_t(
             const region_t &r,
-            const multi_throttling_business_card_t<
-                request_t, inner_client_business_card_t> &mt)
-        : region(r), multi_throttling(mt) { }
+            const multi_client_business_card_t<request_t> &mc)
+        : region(r), multi_client(mc) { }
 
     /* The region that this master covers */
     region_t region;
 
     /* Contact info for the master itself */
-    multi_throttling_business_card_t<request_t, inner_client_business_card_t> multi_throttling;
+    multi_client_business_card_t<request_t> multi_client;
 };
 
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(primary_query_bcard_t::read_request_t);
 
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(primary_query_bcard_t::write_request_t);
-
-RDB_DECLARE_SERIALIZABLE(primary_query_bcard_t::inner_client_business_card_t);
 
 RDB_DECLARE_SERIALIZABLE(primary_query_bcard_t);
 RDB_DECLARE_EQUALITY_COMPARABLE(primary_query_bcard_t);

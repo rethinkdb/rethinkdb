@@ -25,7 +25,7 @@ pkg_install () (
             cp -a "$src_dir/." "$cross_build_dir"
             (
                 cross_build_env
-                in_dir "$cross_build_dir" ./configure
+                in_dir "$cross_build_dir" ./configure --enable-static --disable-shared
                 in_dir "$cross_build_dir" make
             )
         fi
@@ -38,11 +38,11 @@ pkg_install () (
         export LDFLAGS=-lc++
     fi
 
-    pkg_configure --prefix="$(niceabspath "$install_dir")" $configure_flags
+    pkg_configure --prefix="$(niceabspath "$install_dir")" $configure_flags --enable-static --disable-shared
     pkg_make ${protobuf_install_target:-install}
 
     if [[ "$CROSS_COMPILING" = 1 ]]; then
-        cp -f $cross_build_dir/src/.libs/protoc $install_dir/bin/protoc
+        cp -f $cross_build_dir/src/protoc $install_dir/bin/protoc
     fi
 
     # TODO: is there a platform that needs the library path to be adjusted like this?

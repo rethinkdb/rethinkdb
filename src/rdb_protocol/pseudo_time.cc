@@ -369,7 +369,7 @@ datum_t iso8601_to_time(
         ss >> t;
         rcheck_target(target,
                       !t.is_special(),
-                      base_exc_t::GENERIC, 
+                      base_exc_t::GENERIC,
                       strprintf("Failed to parse `%s` (`%s`) as ISO 8601 time.",
                                 s.c_str(),
                                 sanitized.c_str()));

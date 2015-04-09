@@ -69,6 +69,12 @@ datum_t::data_wrapper_t &datum_t::data_wrapper_t::operator=(
 datum_t::data_wrapper_t::data_wrapper_t() :
     internal_type(internal_type_t::UNINITIALIZED) { }
 
+datum_t::data_wrapper_t::data_wrapper_t(datum_t::construct_minval_t) :
+    internal_type(internal_type_t::MINVAL) { }
+
+datum_t::data_wrapper_t::data_wrapper_t(datum_t::construct_maxval_t) :
+    internal_type(internal_type_t::MAXVAL) { }
+
 datum_t::data_wrapper_t::data_wrapper_t(datum_t::construct_null_t) :
     internal_type(internal_type_t::R_NULL) { }
 
@@ -129,6 +135,8 @@ datum_t::data_wrapper_t::data_wrapper_t(type_t type, shared_buf_ref_t<char> &&_b
     case R_BOOL: // fallthru
     case R_NULL: // fallthru
     case R_NUM: // fallthru
+    case MINVAL: // fallthru
+    case MAXVAL: // fallthru
     default:
         unreachable();
     }
@@ -142,6 +150,8 @@ datum_t::type_t datum_t::data_wrapper_t::get_type() const {
     switch (internal_type) {
     case internal_type_t::UNINITIALIZED:
         return type_t::UNINITIALIZED;
+    case internal_type_t::MINVAL:
+        return type_t::MINVAL;
     case internal_type_t::R_ARRAY:
         return type_t::R_ARRAY;
     case internal_type_t::R_BINARY:
@@ -160,6 +170,8 @@ datum_t::type_t datum_t::data_wrapper_t::get_type() const {
         return type_t::R_ARRAY;
     case internal_type_t::BUF_R_OBJECT:
         return type_t::R_OBJECT;
+    case internal_type_t::MAXVAL:
+        return type_t::MAXVAL;
     default:
         unreachable();
     }
@@ -171,6 +183,8 @@ datum_t::internal_type_t datum_t::data_wrapper_t::get_internal_type() const {
 void datum_t::data_wrapper_t::destruct() {
     switch (internal_type) {
     case internal_type_t::UNINITIALIZED: // fallthru
+    case internal_type_t::MINVAL: // fallthru
+    case internal_type_t::MAXVAL: // fallthru
     case internal_type_t::R_NULL: // fallthru
     case internal_type_t::R_BOOL: // fallthru
     case internal_type_t::R_NUM: break;
@@ -196,6 +210,8 @@ void datum_t::data_wrapper_t::assign_copy(const datum_t::data_wrapper_t &copyee)
     internal_type = copyee.internal_type;
     switch (internal_type) {
     case internal_type_t::UNINITIALIZED: // fallthru
+    case internal_type_t::MINVAL: // fallthru
+    case internal_type_t::MAXVAL: // fallthru
     case internal_type_t::R_NULL: break;
     case internal_type_t::R_BOOL: {
         r_bool = copyee.r_bool;
@@ -226,6 +242,8 @@ void datum_t::data_wrapper_t::assign_move(datum_t::data_wrapper_t &&movee) noexc
     internal_type = movee.internal_type;
     switch (internal_type) {
     case internal_type_t::UNINITIALIZED: // fallthru
+    case internal_type_t::MINVAL: // fallthru
+    case internal_type_t::MAXVAL: // fallthru
     case internal_type_t::R_NULL: break;
     case internal_type_t::R_BOOL: {
         r_bool = movee.r_bool;
@@ -257,6 +275,10 @@ datum_t::datum_t() : data() { }
 
 datum_t::datum_t(type_t type, shared_buf_ref_t<char> &&buf_ref)
     : data(type, std::move(buf_ref)) { }
+
+datum_t::datum_t(datum_t::construct_minval_t dummy) : data(dummy) { }
+
+datum_t::datum_t(datum_t::construct_maxval_t dummy) : data(dummy) { }
 
 datum_t::datum_t(datum_t::construct_null_t dummy) : data(dummy) { }
 
@@ -360,6 +382,14 @@ datum_t datum_t::empty_object() {
     return datum_t(std::map<datum_string_t, datum_t>());
 }
 
+datum_t datum_t::minval() {
+    return datum_t(construct_minval_t());
+}
+
+datum_t datum_t::maxval() {
+    return datum_t(construct_maxval_t());
+}
+
 datum_t datum_t::null() {
     return datum_t(construct_null_t());
 }
@@ -385,7 +415,8 @@ inline void fail_if_invalid(reql_version_t reql_version, const std::string &stri
         case reql_version_t::v1_14: // v1_15 is the same as v1_14
             break;
         case reql_version_t::v1_16:
-        case reql_version_t::v2_0_is_latest:
+        case reql_version_t::v2_0:
+        case reql_version_t::v2_1_is_latest:
             utf8::reason_t reason;
             if (!utf8::is_valid(string, &reason)) {
                 int truncation_length = std::min<size_t>(reason.position, 20);
@@ -408,7 +439,8 @@ inline void fail_if_invalid(reql_version_t reql_version, const char *string)
         case reql_version_t::v1_14: // v1_15 is the same as v1_14
             break;
         case reql_version_t::v1_16:
-        case reql_version_t::v2_0_is_latest:
+        case reql_version_t::v2_0:
+        case reql_version_t::v2_1_is_latest:
             utf8::reason_t reason;
             if (!utf8::is_valid(string, &reason)) {
                 int truncation_length = std::min<size_t>(reason.position, 20);
@@ -520,8 +552,10 @@ std::string datum_t::get_reql_type() const {
     return maybe_reql_type.as_str().to_std();
 }
 
-std::string raw_type_name(datum_t::type_t type) {
+
+std::string raw_type_name(datum_t::type_t type, name_for_sorting_t for_sorting) {
     switch (type) {
+    case datum_t::MINVAL:   return for_sorting == name_for_sorting_t::NO ? "MINVAL": "\x01MINVAL";
     case datum_t::R_NULL:   return "NULL";
     case datum_t::R_BINARY: return std::string("PTYPE<") + pseudo::binary_string + ">";
     case datum_t::R_BOOL:   return "BOOL";
@@ -529,16 +563,17 @@ std::string raw_type_name(datum_t::type_t type) {
     case datum_t::R_STR:    return "STRING";
     case datum_t::R_ARRAY:  return "ARRAY";
     case datum_t::R_OBJECT: return "OBJECT";
+    case datum_t::MAXVAL:   return for_sorting == name_for_sorting_t::NO ? "MAXVAL": "\xFFMAXVAL";
     case datum_t::UNINITIALIZED: // fallthru
     default: unreachable();
     }
 }
 
-std::string datum_t::get_type_name() const {
+std::string datum_t::get_type_name(name_for_sorting_t for_sorting) const {
     if (is_ptype()) {
         return "PTYPE<" + get_reql_type() + ">";
     } else {
-        return raw_type_name(get_type());
+        return raw_type_name(get_type(), for_sorting);
     }
 }
 
@@ -578,8 +613,15 @@ void datum_t::num_to_str_key(std::string *str_out) const {
         uint64_t u;
     } packed;
     guarantee(sizeof(packed.d) == sizeof(packed.u));
-    packed.d = as_num();
+
+    // Sort negative zero as equivalent to 0
+    double value = as_num();
+    if (value == -0.0) {
+        value = abs(value);
+    }
+
     // Mangle the value so that lexicographic ordering matches double ordering
+    packed.d = value;
     if (packed.u & (1ULL << 63)) {
         // If we have a negative double, flip all the bits.  Flipping the
         // highest bit causes the negative doubles to sort below the
@@ -595,7 +637,7 @@ void datum_t::num_to_str_key(std::string *str_out) const {
     }
     // The formatting here is sensitive.  Talk to mlucy before changing it.
     str_out->append(strprintf("%.*" PRIx64, static_cast<int>(sizeof(double)*2), packed.u));
-    str_out->append(strprintf("#%" PR_RECONSTRUCTABLE_DOUBLE, as_num()));
+    str_out->append(strprintf("#%" PR_RECONSTRUCTABLE_DOUBLE, value));
 }
 
 void datum_t::binary_to_str_key(std::string *str_out) const {
@@ -637,6 +679,23 @@ void datum_t::bool_to_str_key(std::string *str_out) const {
     }
 }
 
+void datum_t::extrema_to_str_key(std::string *str_out) const {
+    if (get_type() == MINVAL) {
+        // This isn't exactly the minimum key, but tag_skey_version requires
+        // a non-zero length key
+        str_out->append(1, '\x00');
+    } else {
+        r_sanity_check(get_type() == MAXVAL);
+        // This is a hack to preserve the invariant that no keys have their top bit set
+        // which is used by another hack to solve some sindex version compatibilities.
+        // TODO: remove this hack post-2.0
+        std::string max_str = key_to_unescaped_str(store_key_t::max());
+        guarantee(max_str.size() > 0);
+        max_str[0] &= 0x7F;
+        str_out->append(max_str);
+    }
+}
+
 // The key for an array is stored as a string of all its elements, each separated by a
 //  null character, with another null character at the end to signify the end of the
 //  array (this is necessary to prevent ambiguity when nested arrays are involved).
@@ -650,6 +709,8 @@ void datum_t::array_to_str_key(std::string *str_out) const {
         r_sanity_check(item.has());
 
         switch (item.get_type()) {
+        case MINVAL: // fallthru
+        case MAXVAL: item.extrema_to_str_key(str_out); break;
         case R_NUM: item.num_to_str_key(str_out); break;
         case R_STR: item.str_to_str_key(str_out); break;
         case R_BINARY: item.binary_to_str_key(str_out); break;
@@ -865,9 +926,11 @@ void datum_t::rcheck_valid_replace(datum_t old_val,
     }
 }
 
-std::string datum_t::print_primary() const {
+std::string datum_t::print_primary_internal() const {
     std::string s;
     switch (get_type()) {
+    case MINVAL: // fallthru
+    case MAXVAL: extrema_to_str_key(&s); break;
     case R_NUM: num_to_str_key(&s); break;
     case R_STR: str_to_str_key(&s); break;
     case R_BINARY: binary_to_str_key(&s); break;
@@ -889,7 +952,11 @@ std::string datum_t::print_primary() const {
     default:
         unreachable();
     }
+    return s;
+}
 
+std::string datum_t::print_primary() const {
+    std::string s = print_primary_internal();
     if (s.size() > rdb_protocol::MAX_PRIMARY_KEY_SIZE) {
         rfail(base_exc_t::GENERIC,
               "Primary key too long (max %zu characters): %s",
@@ -901,7 +968,7 @@ std::string datum_t::print_primary() const {
 // Returns `true` if it tagged the skey version.
 bool tag_skey_version(skey_version_t skey_version, std::string *s) {
     guarantee(s->size() > 0);
-    guarantee(!((*s)[0] & 0x80)); // None of our types have the top bit set.
+    guarantee(!((*s)[0] & 0x80)); // None of our types have the top bit set
     switch (skey_version) {
     case skey_version_t::pre_1_16: return false;
     case skey_version_t::post_1_16:
@@ -1003,7 +1070,8 @@ std::string datum_t::print_secondary(reql_version_t reql_version,
         break;
     case reql_version_t::v1_14: // v1_15 is the same as v1_14
     case reql_version_t::v1_16:
-    case reql_version_t::v2_0_is_latest:
+    case reql_version_t::v2_0:
+    case reql_version_t::v2_1_is_latest:
         secondary_key_string.append(1, '\x00');
         break;
     default:
@@ -1021,7 +1089,8 @@ skey_version_t skey_version_from_reql_version(reql_version_t rv) {
     case reql_version_t::v1_14: // v1_15 == v1_14
         return skey_version_t::pre_1_16;
     case reql_version_t::v1_16:
-    case reql_version_t::v2_0_is_latest:
+    case reql_version_t::v2_0:
+    case reql_version_t::v2_1_is_latest:
         return skey_version_t::post_1_16;
     default: unreachable();
     }
@@ -1107,7 +1176,7 @@ boost::optional<uint64_t> datum_t::extract_tag(const store_key_t &key) {
 // but the amount truncated depends on the length of the primary key.  Since we
 // do not know how much was truncated, we have to truncate the maximum amount,
 // then return all matches and filter them out later.
-store_key_t datum_t::truncated_secondary(skey_version_t skey_version) const {
+store_key_t datum_t::truncated_secondary(skey_version_t skey_version, extrema_ok_t extrema_ok) const {
     std::string s;
     if (get_type() == R_NUM) {
         num_to_str_key(&s);
@@ -1121,6 +1190,10 @@ store_key_t datum_t::truncated_secondary(skey_version_t skey_version) const {
         array_to_str_key(&s);
     } else if (get_type() == R_OBJECT && is_ptype()) {
         pt_to_str_key(&s);
+    } else if (get_type() == MINVAL || get_type() == MAXVAL) {
+        rcheck_datum(extrema_ok == extrema_ok_t::OK, base_exc_t::GENERIC,
+                     "Cannot use `r.minval` or `r.maxval` in a secondary index key.");
+        extrema_to_str_key(&s);
     } else {
         type_error(strprintf(
             "Secondary keys must be a number, string, bool, pseudotype, "
@@ -1144,7 +1217,8 @@ void datum_t::check_type(type_t desired, const char *msg) const {
         (msg != NULL)
             ? std::string(msg)
             : strprintf("Expected type %s but found %s.",
-                        raw_type_name(desired).c_str(), get_type_name().c_str()));
+                        raw_type_name(desired, name_for_sorting_t::NO).c_str(),
+                        get_type_name().c_str()));
 }
 void datum_t::type_error(const std::string &msg) const {
     rfail_typed_target(this, "%s", msg.c_str());
@@ -1305,6 +1379,8 @@ datum_t datum_t::get_field(const char *key, throw_bool_t throw_bool) const {
 
 cJSON *datum_t::as_json_raw() const {
     switch (get_type()) {
+    case MINVAL: rfail_datum(base_exc_t::GENERIC, "Cannot convert `r.minval` to JSON.");
+    case MAXVAL: rfail_datum(base_exc_t::GENERIC, "Cannot convert `r.maxval` to JSON.");
     case R_NULL: return cJSON_CreateNull();
     case R_BINARY: return pseudo::encode_base64_ptype(as_binary()).release();
     case R_BOOL: return cJSON_CreateBool(as_bool());
@@ -1342,6 +1418,8 @@ scoped_cJSON_t datum_t::as_json() const {
 counted_t<datum_stream_t>
 datum_t::as_datum_stream(const protob_t<const Backtrace> &backtrace) const {
     switch (get_type()) {
+    case MINVAL:   // fallthru
+    case MAXVAL:   // fallthru
     case R_NULL:   // fallthru
     case R_BINARY: // fallthru
     case R_BOOL:   // fallthru
@@ -1452,6 +1530,8 @@ int datum_t::v1_13_cmp(const datum_t &rhs) const {
     }
     switch (get_type()) {
     case R_NULL: return 0;
+    case MINVAL: return 0;
+    case MAXVAL: return 0;
     case R_BOOL: return derived_cmp(as_bool(), rhs.as_bool());
     case R_NUM: return derived_cmp(as_num(), rhs.as_num());
     case R_STR: return as_str().compare(rhs.as_str());
@@ -1511,7 +1591,8 @@ int datum_t::cmp(reql_version_t reql_version, const datum_t &rhs) const {
         return v1_13_cmp(rhs);
     case reql_version_t::v1_14: // v1_15 is the same as v1_14
     case reql_version_t::v1_16:
-    case reql_version_t::v2_0_is_latest:
+    case reql_version_t::v2_0:
+    case reql_version_t::v2_1_is_latest:
         return modern_cmp(rhs);
     default:
         unreachable();
@@ -1527,7 +1608,8 @@ int datum_t::modern_cmp(const datum_t &rhs) const {
         }
         return pseudo_cmp(reql_version_t::LATEST_has_v1_14_ordering, rhs);
     } else if (lhs_ptype || rhs_ptype) {
-        return derived_cmp(get_type_name(), rhs.get_type_name());
+        return derived_cmp(get_type_name(name_for_sorting_t::YES),
+                           rhs.get_type_name(name_for_sorting_t::YES));
     }
 
     if (get_type() != rhs.get_type()) {
@@ -1535,6 +1617,8 @@ int datum_t::modern_cmp(const datum_t &rhs) const {
     }
     switch (get_type()) {
     case R_NULL: return 0;
+    case MINVAL: return 0;
+    case MAXVAL: return 0;
     case R_BOOL: return derived_cmp(as_bool(), rhs.as_bool());
     case R_NUM: return derived_cmp(as_num(), rhs.as_num());
     case R_STR: return as_str().compare(rhs.as_str());
@@ -1676,6 +1760,8 @@ void datum_t::write_to_protobuf(Datum *d, use_json_t use_json) const {
     switch (use_json) {
     case use_json_t::NO: {
         switch (get_type()) {
+        case MINVAL: rfail_datum(base_exc_t::GENERIC, "Cannot convert `r.minval` to a protobuf.");
+        case MAXVAL: rfail_datum(base_exc_t::GENERIC, "Cannot convert `r.maxval` to a protobuf.");
         case R_NULL: {
             d->set_type(Datum::R_NULL);
         } break;
@@ -1934,7 +2020,8 @@ void datum_array_builder_t::insert(reql_version_t reql_version, size_t index,
         break;
     case reql_version_t::v1_14: // v1_15 is the same as v1_14
     case reql_version_t::v1_16:
-    case reql_version_t::v2_0_is_latest:
+    case reql_version_t::v2_0:
+    case reql_version_t::v2_1_is_latest:
         rcheck_array_size_datum(vector, limits, base_exc_t::GENERIC);
         break;
     default:
@@ -1966,7 +2053,8 @@ void datum_array_builder_t::splice(reql_version_t reql_version, size_t index,
         break;
     case reql_version_t::v1_14: // v1_15 is the same as v1_14
     case reql_version_t::v1_16:
-    case reql_version_t::v2_0_is_latest:
+    case reql_version_t::v2_0:
+    case reql_version_t::v2_1_is_latest:
         rcheck_array_size_datum(vector, limits, base_exc_t::GENERIC);
         break;
     default:
@@ -1989,7 +2077,8 @@ void datum_array_builder_t::erase_range(reql_version_t reql_version,
         break;
     case reql_version_t::v1_14: // v1_15 is the same as v1_14
     case reql_version_t::v1_16:
-    case reql_version_t::v2_0_is_latest:
+    case reql_version_t::v2_0:
+    case reql_version_t::v2_1_is_latest:
         rcheck_datum(start <= vector.size(),
                      base_exc_t::NON_EXISTENCE,
                      strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
@@ -2031,61 +2120,85 @@ datum_t datum_array_builder_t::to_datum() RVALUE_THIS {
 
 datum_range_t::datum_range_t()
     : left_bound_type(key_range_t::none), right_bound_type(key_range_t::none) { }
+
 datum_range_t::datum_range_t(
     datum_t _left_bound, key_range_t::bound_t _left_bound_type,
     datum_t _right_bound, key_range_t::bound_t _right_bound_type)
     : left_bound(_left_bound), right_bound(_right_bound),
-      left_bound_type(_left_bound_type), right_bound_type(_right_bound_type) { }
+      left_bound_type(_left_bound_type), right_bound_type(_right_bound_type) {
+    r_sanity_check(left_bound.has() && right_bound.has());
+}
+
 datum_range_t::datum_range_t(datum_t val)
     : left_bound(val), right_bound(val),
-      left_bound_type(key_range_t::closed), right_bound_type(key_range_t::closed) { }
-
-datum_range_t datum_range_t::universe()  {
-    return datum_range_t(datum_t(), key_range_t::open,
-                         datum_t(), key_range_t::open);
+      left_bound_type(key_range_t::closed), right_bound_type(key_range_t::closed) {
+    r_sanity_check(val.has());
 }
-bool datum_range_t::is_universe() const {
-    return !left_bound.has() && !right_bound.has()
-        && left_bound_type == key_range_t::open && right_bound_type == key_range_t::open;
+
+datum_range_t datum_range_t::universe() {
+    return datum_range_t(datum_t::minval(), key_range_t::open,
+                         datum_t::maxval(), key_range_t::open);
 }
 
 bool datum_range_t::contains(reql_version_t reql_version,
                              datum_t val) const {
-    return (!left_bound.has()
-            || left_bound.compare_lt(reql_version, val)
-            || (left_bound == val && left_bound_type == key_range_t::closed))
-        && (!right_bound.has()
-            || right_bound.compare_gt(reql_version, val)
-            || (right_bound == val && right_bound_type == key_range_t::closed));
+    r_sanity_check(left_bound.has() && right_bound.has());
+
+    int left_cmp = left_bound.cmp(reql_version, val);
+    int right_cmp = right_bound.cmp(reql_version, val);
+    return (left_cmp < 0 || (left_cmp == 0 && left_bound_type == key_range_t::closed)) &&
+           (right_cmp > 0 || (right_cmp == 0 && right_bound_type == key_range_t::closed));
+}
+
+bool datum_range_t::is_empty(reql_version_t reql_version) const {
+    r_sanity_check(left_bound.has() && right_bound.has());
+
+    int cmp = left_bound.cmp(reql_version, right_bound);
+    return (cmp > 0 ||
+            ((left_bound_type == key_range_t::open ||
+              right_bound_type == key_range_t::open) && cmp == 0));
+}
+
+bool datum_range_t::is_universe() const {
+    r_sanity_check(left_bound.has() && right_bound.has());
+    return left_bound.get_type() == datum_t::type_t::MINVAL &&
+           left_bound_type == key_range_t::open &&
+           right_bound.get_type() == datum_t::type_t::MAXVAL &&
+           right_bound_type == key_range_t::open;
 }
 
 key_range_t datum_range_t::to_primary_keyrange() const {
-    return key_range_t(
-        left_bound_type,
-        left_bound.has()
-            ? store_key_t(left_bound.print_primary())
-            : store_key_t::min(),
-        right_bound_type,
-        right_bound.has()
-            ? store_key_t(right_bound.print_primary())
-            : store_key_t::max());
+    r_sanity_check(left_bound.has() && right_bound.has());
+
+    std::string lb_str = left_bound.print_primary_internal();
+    if (lb_str.size() > MAX_KEY_SIZE) {
+        lb_str.erase(MAX_KEY_SIZE);
+    }
+
+    std::string rb_str = right_bound.print_primary_internal();
+    if (rb_str.size() > MAX_KEY_SIZE) {
+        rb_str.erase(MAX_KEY_SIZE);
+    }
+
+    return key_range_t(left_bound_type, store_key_t(lb_str),
+                       right_bound_type, store_key_t(rb_str));
 }
 
 key_range_t datum_range_t::to_sindex_keyrange(skey_version_t skey_version) const {
+    r_sanity_check(left_bound.has() && right_bound.has());
+    object_buffer_t<store_key_t> lb, rb;
     return rdb_protocol::sindex_key_range(
-        left_bound.has()
-            ? store_key_t(left_bound.truncated_secondary(skey_version))
-            : store_key_t::min(),
-        right_bound.has()
-            ? store_key_t(right_bound.truncated_secondary(skey_version))
-            : store_key_t::max());
+        store_key_t(left_bound.truncated_secondary(skey_version, extrema_ok_t::OK)),
+        store_key_t(right_bound.truncated_secondary(skey_version, extrema_ok_t::OK)));
 }
 
 datum_range_t datum_range_t::with_left_bound(datum_t d, key_range_t::bound_t type) {
+    r_sanity_check(d.has() && right_bound.has());
     return datum_range_t(d, type, right_bound, right_bound_type);
 }
 
 datum_range_t datum_range_t::with_right_bound(datum_t d, key_range_t::bound_t type) {
+    r_sanity_check(left_bound.has() && d.has());
     return datum_range_t(left_bound, left_bound_type, d, type);
 }
 
@@ -2093,6 +2206,12 @@ void debug_print(printf_buffer_t *buf, const datum_t &d) {
     switch (d.data.get_internal_type()) {
     case datum_t::internal_type_t::UNINITIALIZED:
         buf->appendf("d/uninitialized");
+        break;
+    case datum_t::internal_type_t::MINVAL:
+        buf->appendf("d/minval");
+        break;
+    case datum_t::internal_type_t::MAXVAL:
+        buf->appendf("d/maxval");
         break;
     case datum_t::internal_type_t::R_ARRAY:
         buf->appendf("d/array");

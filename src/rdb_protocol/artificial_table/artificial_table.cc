@@ -81,13 +81,15 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_all(
 counted_t<ql::datum_stream_t> artificial_table_t::read_changes(
         ql::env_t *env,
         const ql::datum_t &,
+        bool include_states,
         ql::changefeed::keyspec_t::spec_t &&spec,
         const ql::protob_t<const Backtrace> &bt,
         UNUSED const std::string &table_name) {
     counted_t<ql::datum_stream_t> stream;
     std::string error;
     if (!backend->read_changes(
-            env, bt, std::move(spec), env->interruptor, &stream, &error)) {
+            env, include_states, bt, std::move(spec),
+            env->interruptor, &stream, &error)) {
         rfail_datum(ql::base_exc_t::GENERIC, "%s", error.c_str());
     }
     return stream;

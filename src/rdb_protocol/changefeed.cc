@@ -7,6 +7,7 @@
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/interruptor.hpp"
 #include "containers/archive/boost_types.hpp"
+#include "rdb_protocol/artificial_table/backend.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/protocol.hpp"
@@ -993,25 +994,58 @@ RDB_IMPL_SERIALIZABLE_0_SINCE_v1_13(msg_t::stop_t);
 
 enum class detach_t { NO, YES };
 
+enum class state_t {
+    NONE = 0,
+    INITIALIZING = 1,
+    READY = 2
+};
+
+datum_t initializing_datum() {
+    return datum_t(
+        std::map<datum_string_t, datum_t>{
+            { datum_string_t("state"), datum_t("initializing") }});
+}
+
+datum_t ready_datum() {
+    return datum_t(
+        std::map<datum_string_t, datum_t>{
+            { datum_string_t("state"), datum_t("ready") }});
+}
+
+datum_t state_datum(state_t state) {
+    switch (state) {
+    case state_t::INITIALIZING: return initializing_datum();
+    case state_t::READY: return ready_datum();
+    case state_t::NONE: // fallthru
+    default: unreachable();
+    }
+    unreachable();
+}
+
 // Uses the home thread of the subscriber, not the client.
 class feed_t;
 class subscription_t : public home_thread_mixin_t {
 public:
     virtual ~subscription_t();
+    virtual feed_type_t cfeed_type() const = 0;
+    void set_notes(Response *res) const;
     std::vector<datum_t>
     get_els(batcher_t *batcher,
             return_empty_normal_batches_t return_empty_normal_batches,
             const signal_t *interruptor);
-    virtual void start_artificial(env_t *, const uuid_u &) = 0;
+    virtual void start_artificial(env_t *, const uuid_u &,
+                                  const std::string &primary_key_name,
+                                  const std::vector<datum_t> &initial_values) = 0;
     virtual void start_real(env_t *env,
                             std::string table,
                             namespace_interface_t *nif,
                             client_t::addr_t *addr) = 0;
     void stop(std::exception_ptr exc, detach_t should_detach);
 protected:
-    explicit subscription_t(feed_t *_feed, const datum_t &squash);
+    explicit subscription_t(feed_t *_feed, const datum_t &squash, bool include_states);
     void maybe_signal_cond() THROWS_NOTHING;
     void destructor_cleanup(std::function<void()> del_sub) THROWS_NOTHING;
+
     // If an error occurs, we're detached and `exc` is set to an exception to rethrow.
     std::exception_ptr exc;
     // If we exceed the array size limit, elements are evicted from `els` and
@@ -1021,13 +1055,14 @@ protected:
     size_t skipped;
     feed_t *feed; // The feed we're subscribed to.
     const bool squash; // Whether or not to squash changes.
+    const bool include_states; // Whether or not to include notes about the state.
     // Whether we're in the middle of one logical batch (only matters for squashing).
     bool mid_batch;
 private:
     const double min_interval;
     virtual bool has_el() = 0;
     virtual datum_t pop_el() = 0;
-    virtual void note_data_wait() = 0;
+    virtual void apply_queued_changes() = 0;
     virtual bool active() = 0;
     // Used to block on more changes.  NULL unless we're waiting.
     cond_t *cond;
@@ -1061,9 +1096,7 @@ protected:
     // The queue of changes we've accumulated since the last time we were read from.
     const scoped_ptr_t<maybe_squashing_queue_t> queue;
 private:
-    virtual datum_t pop_el() { return queue->pop(); }
-    virtual bool has_el() { return queue->size() != 0; }
-    virtual void note_data_wait() { }
+    virtual void apply_queued_changes() { } // Changes are never queued.
     virtual bool update_stamp(const uuid_u &uuid, uint64_t new_stamp) = 0;
 };
 
@@ -1091,8 +1124,9 @@ public:
         const auto_drainer_t::lock_t &lock,
         const std::function<void(range_sub_t *)> &f) THROWS_NOTHING;
     void each_point_sub(const std::function<void(point_sub_t *)> &f) THROWS_NOTHING;
+    void each_limit_sub(const std::function<void(limit_sub_t *)> &f) THROWS_NOTHING;
     void each_sub(const auto_drainer_t::lock_t &lock,
-                  const std::function<void(flat_sub_t *)> &f) THROWS_NOTHING;
+                  const std::function<void(subscription_t *)> &f) THROWS_NOTHING;
     void on_point_sub(
         store_key_t key,
         const auto_drainer_t::lock_t &lock,
@@ -1130,6 +1164,7 @@ private:
                             const std::vector<int> &sub_threads,
                             int i);
     void each_point_sub_cb(const std::function<void(point_sub_t *)> &f, int i);
+    void each_limit_sub_cb(const std::function<void(limit_sub_t *)> &f, int i);
 
     std::map<store_key_t, std::vector<std::set<point_sub_t *> > > point_subs;
     rwlock_t point_subs_lock;
@@ -1141,8 +1176,9 @@ private:
 
 class real_feed_t : public feed_t {
 public:
-    real_feed_t(client_t *client,
-                mailbox_manager_t *_manager,
+    real_feed_t(auto_drainer_t::lock_t client_lock,
+                client_t *client,
+                mailbox_manager_t *manager,
                 namespace_interface_t *ns_if,
                 uuid_u uuid,
                 signal_t *interruptor);
@@ -1151,12 +1187,13 @@ public:
     client_t::addr_t get_addr() const;
 private:
     virtual auto_drainer_t::lock_t get_drainer_lock() { return drainer.lock(); }
-    virtual void maybe_remove_feed() { client->maybe_remove_feed(uuid); }
+    virtual void maybe_remove_feed() { client->maybe_remove_feed(client_lock, uuid); }
     virtual void stop_limit_sub(limit_sub_t *sub);
 
     void mailbox_cb(signal_t *interruptor, stamped_msg_t msg);
     void constructor_cb();
 
+    auto_drainer_t::lock_t client_lock;
     client_t *client;
     uuid_u uuid;
     mailbox_manager_t *manager;
@@ -1183,12 +1220,14 @@ private:
 };
 
 // This mustn't hold onto the `namespace_interface_t` after it returns.
-real_feed_t::real_feed_t(client_t *_client,
+real_feed_t::real_feed_t(auto_drainer_t::lock_t _client_lock,
+                         client_t *_client,
                          mailbox_manager_t *_manager,
                          namespace_interface_t *ns_if,
                          uuid_u _uuid,
                          signal_t *interruptor)
-    : client(_client),
+    : client_lock(std::move(_client_lock)),
+      client(_client),
       uuid(_uuid),
       manager(_manager),
       mailbox(manager, std::bind(&real_feed_t::mailbox_cb, this, ph::_1, ph::_2)) {
@@ -1269,7 +1308,7 @@ void real_feed_t::constructor_cb() {
     // longer than necessary.
     disconnect_watchers.clear();
     if (!detached) {
-        scoped_ptr_t<feed_t> self = client->detach_feed(uuid);
+        scoped_ptr_t<feed_t> self = client->detach_feed(client_lock, uuid);
         detached = true;
         if (self.has()) {
             const char *msg = "Disconnected from peer.";
@@ -1294,15 +1333,31 @@ void real_feed_t::constructor_cb() {
 class point_sub_t : public flat_sub_t {
 public:
     // Throws QL exceptions.
-    point_sub_t(feed_t *feed, const datum_t &squash, store_key_t _key)
-        : flat_sub_t(feed, squash), key(std::move(_key)), stamp(0), started(false) {
-        feed->add_point_sub(this, key);
+    point_sub_t(feed_t *feed, const datum_t &squash, bool include_states, datum_t _pkey)
+        : flat_sub_t(feed, squash, include_states),
+          pkey(std::move(_pkey)), stamp(0), started(false),
+          state(state_t::INITIALIZING), sent_state(state_t::NONE) {
+        feed->add_point_sub(this, store_key_t(pkey.print_primary()));
     }
     virtual ~point_sub_t() {
-        destructor_cleanup(
-            std::bind(&feed_t::del_point_sub, feed, this, std::cref(key)));
+        destructor_cleanup(std::bind(&feed_t::del_point_sub, feed, this,
+                                     store_key_t(pkey.print_primary())));
     }
-    virtual void start_artificial(env_t *, const uuid_u &) {
+    feed_type_t cfeed_type() const final { return feed_type_t::point; }
+
+    virtual void start_artificial(env_t *, const uuid_u &,
+                                  const std::string &primary_key_name,
+                                  const std::vector<datum_t> &initial_values) {
+        datum_t initial = datum_t::null();
+        /* Linear search is slow, but in practice there are few enough values that
+        it's OK. */
+        for (const datum_t &d : initial_values) {
+            if (d.get_field(datum_string_t(primary_key_name)) == pkey) {
+                initial = d;
+                break;
+            }
+        }
+        queue->add(store_key_t(pkey.print_primary()), datum_t(), initial);
         started = true;
     }
     virtual void start_real(env_t *env,
@@ -1312,7 +1367,8 @@ public:
         assert_thread();
         read_response_t read_resp;
         nif->read(
-            read_t(changefeed_point_stamp_t{*addr, key}, profile_bool_t::DONT_PROFILE),
+            read_t(changefeed_point_stamp_t{*addr, store_key_t(pkey.print_primary())},
+                   profile_bool_t::DONT_PROFILE),
             &read_resp,
             order_token_t::ignore,
             env->interruptor);
@@ -1326,7 +1382,7 @@ public:
         if (queue->size() == 0 || start_stamp > stamp) {
             stamp = start_stamp;
             queue->clear(); // Remove the premature values.
-            queue->add(key, datum_t(), resp->initial_val);
+            queue->add(store_key_t(pkey.print_primary()), datum_t(), resp->initial_val);
         }
         started = true;
     }
@@ -1337,28 +1393,46 @@ public:
         }
         return false;
     }
+
+    virtual datum_t pop_el() {
+        if (state != sent_state && include_states) {
+            sent_state = state;
+            return state_datum(state);
+        }
+        state = state_t::READY; // We only pop one initial value.
+        return queue->pop();
+    }
+    virtual bool has_el() {
+        return (include_states && state != sent_state) || queue->size() != 0;
+    }
 private:
     virtual bool active() { return started; }
 
-    store_key_t key;
+    datum_t pkey;
     uint64_t stamp;
     bool started;
+    state_t state, sent_state;
 };
 
 class range_sub_t : public flat_sub_t {
 public:
     // Throws QL exceptions.
-    range_sub_t(feed_t *feed, const datum_t &squash, keyspec_t::range_t _spec)
-        : flat_sub_t(feed, squash), spec(std::move(_spec)) {
+    range_sub_t(feed_t *feed, const datum_t &squash,
+                bool include_states, keyspec_t::range_t _spec)
+        : flat_sub_t(feed, squash, include_states), spec(std::move(_spec)),
+          state(state_t::READY), sent_state(state_t::NONE) {
         for (const auto &transform : spec.transforms) {
             ops.push_back(make_op(transform));
         }
         feed->add_range_sub(this);
     }
+    feed_type_t cfeed_type() const final { return feed_type_t::stream; }
     virtual ~range_sub_t() {
         destructor_cleanup(std::bind(&feed_t::del_range_sub, feed, this));
     }
-    virtual void start_artificial(env_t *outer_env, const uuid_u &uuid) {
+    virtual void start_artificial(env_t *outer_env, const uuid_u &uuid,
+                                  const std::string &,
+                                  const std::vector<datum_t> &) {
         assert_thread();
         env = make_env(outer_env);
         start_stamps[uuid] = 0;
@@ -1424,6 +1498,17 @@ public:
         // the future when we support `return_initial` on range changefeeds.
         return new_stamp >= it->second;
     }
+
+    virtual datum_t pop_el() {
+        if (state != sent_state && include_states) {
+            sent_state = state;
+            return state_datum(state);
+        }
+        return queue->pop();
+    }
+    virtual bool has_el() {
+        return (include_states && state != sent_state) || queue->size() != 0;
+    }
 private:
     scoped_ptr_t<env_t> make_env(env_t *outer_env) {
         // This is to support fake environments from the unit tests that don't
@@ -1448,14 +1533,16 @@ private:
     // our subscription.
     std::map<uuid_u, uint64_t> start_stamps;
     keyspec_t::range_t spec;
+    state_t state, sent_state;
     auto_drainer_t drainer;
 };
 
 class limit_sub_t : public subscription_t {
 public:
     // Throws QL exceptions.
-    limit_sub_t(feed_t *feed, const datum_t &squash, keyspec_t::limit_t _spec)
-        : subscription_t(feed, squash),
+    limit_sub_t(feed_t *feed, const datum_t &squash,
+                bool include_states, keyspec_t::limit_t _spec)
+        : subscription_t(feed, squash, include_states),
           uuid(generate_uuid()),
           need_init(-1),
           got_init(0),
@@ -1464,38 +1551,41 @@ public:
           item_queue(gt),
           active_data(gt) {
         feed->add_limit_sub(this, uuid);
+        if (include_states) els.push_back(initializing_datum());
     }
+
     virtual ~limit_sub_t() {
         destructor_cleanup(std::bind(&feed_t::del_limit_sub, feed, this, uuid));
     }
+
+    feed_type_t cfeed_type() const final { return feed_type_t::orderby_limit; }
 
     void maybe_start() {
         // When we later support not always returning the initial set, that
         // logic should go here.
         if (need_init == got_init) {
             ASSERT_NO_CORO_WAITING;
-            for (auto &&it : active_data) {
+            for (auto it = active_data.rbegin(); it != active_data.rend(); ++it) {
                 els.push_back(
-                    datum_t(std::map<datum_string_t, datum_t> {
-                            { datum_string_t("new_val"), (*it)->second.second } }));
+                    datum_t(std::map<datum_string_t, datum_t>{
+                            {datum_string_t("new_val"), (**it)->second.second}}));
             }
-            if (squash) {
-                note_data_wait();
-            } else {
+            if (include_states) els.push_back(ready_datum());
+
+            if (!squash) {
                 decltype(queued_changes) changes;
                 changes.swap(queued_changes);
                 for (const auto &pair : changes) {
                     note_change(pair.first, pair.second);
                 }
             }
-            guarantee(queued_changes.size() == 0);
             maybe_signal_cond();
         }
     }
 
     // For limit changefeeds, the easiest way to effectively squash changes is
     // to delay applying them to the active data set until our timer is up.
-    virtual void note_data_wait() {
+    virtual void apply_queued_changes() {
         ASSERT_NO_CORO_WAITING;
         if (queued_changes.size() != 0 && need_init == got_init) {
             guarantee(squash);
@@ -1545,11 +1635,12 @@ public:
             }
 
             guarantee(queued_changes.size() == 0);
-            maybe_signal_cond();
         }
     }
 
-    NORETURN virtual void start_artificial(env_t *, const uuid_u &) {
+    NORETURN virtual void start_artificial(env_t *, const uuid_u &,
+                                           const std::string &,
+                                           const std::vector<datum_t> &) {
         crash("Cannot start a limit subscription on an artificial table.");
     }
     virtual void start_real(env_t *env,
@@ -1616,13 +1707,12 @@ public:
         // Empty changes should have been caught above us.
         guarantee(old_val.has() || new_val.has());
         if (old_val.has() && new_val.has()) {
-            guarantee(old_val != new_val);
+            rassert(old_val != new_val);
         }
         datum_t el = datum_t(std::map<datum_string_t, datum_t> {
             { datum_string_t("old_val"), old_val.has() ? old_val : datum_t::null() },
             { datum_string_t("new_val"), new_val.has() ? new_val : datum_t::null() } });
         els.push_back(std::move(el));
-        maybe_signal_cond();
     }
 
     virtual void note_change(
@@ -1637,14 +1727,14 @@ public:
         // `get_els`, so we call `maybe_signal_cond` to possibly wake it up.
         if (need_init != got_init || squash) {
             queued_changes.push_back(std::make_pair(old_key, new_val));
-            if (need_init == got_init) {
-                maybe_signal_cond();
-            }
         } else {
             std::pair<datum_t, datum_t> pair = note_change_impl(old_key, new_val);
             if (pair.first.has() || pair.second.has()) {
                 push_el(std::move(pair.first), std::move(pair.second));
             }
+        }
+        if (need_init == got_init) {
+            maybe_signal_cond();
         }
     }
 
@@ -1866,7 +1956,7 @@ public:
     void operator()(const msg_t::stop_t &) const {
         const char *msg = "Changefeed aborted (table unavailable).";
         feed->each_sub(*lock,
-                       std::bind(&flat_sub_t::stop,
+                       std::bind(&subscription_t::stop,
                                  ph::_1,
                                  std::make_exception_ptr(
                                      datum_exc_t(base_exc_t::GENERIC, msg)),
@@ -1922,15 +2012,13 @@ void real_feed_t::mailbox_cb(signal_t *, stamped_msg_t msg) {
 class stream_t : public eager_datum_stream_t {
 public:
     template<class... Args>
-    stream_t(scoped_ptr_t<subscription_t> &&_sub, bool _is_point, Args... args)
+    stream_t(scoped_ptr_t<subscription_t> &&_sub, Args... args)
         : eager_datum_stream_t(std::forward<Args...>(args...)),
-          is_point(_is_point),
           sub(std::move(_sub)) { }
     virtual bool is_array() const { return false; }
     virtual bool is_exhausted() const { return false; }
-    virtual feed_type_t cfeed_type() const {
-        return is_point ? feed_type_t::point : feed_type_t::stream;
-    }
+    void set_notes(Response *res) const final { sub->set_notes(res); }
+    feed_type_t cfeed_type() const final { return sub->cfeed_type(); }
     virtual bool is_infinite() const { return true; }
     virtual std::vector<datum_t>
     next_raw_batch(env_t *env, const batchspec_t &bs) {
@@ -1945,20 +2033,26 @@ public:
                             env->interruptor);
     }
 private:
-    bool is_point;
     scoped_ptr_t<subscription_t> sub;
 };
 
-subscription_t::subscription_t(feed_t *_feed, const datum_t &_squash)
+subscription_t::subscription_t(
+    feed_t *_feed, const datum_t &_squash, bool _include_states)
     : skipped(0),
       feed(_feed),
       squash(_squash.as_bool()),
+      include_states(_include_states),
+      mid_batch(false),
       min_interval(_squash.get_type() == datum_t::R_NUM ? _squash.as_num() : 0.0),
       cond(NULL) {
     guarantee(feed != NULL);
 }
 
 subscription_t::~subscription_t() { }
+
+void subscription_t::set_notes(Response *res) const {
+    if (include_states) res->add_notes(Response::INCLUDES_STATES);
+}
 
 std::vector<datum_t>
 subscription_t::get_els(batcher_t *batcher,
@@ -1968,37 +2062,30 @@ subscription_t::get_els(batcher_t *batcher,
     guarantee(cond == NULL); // Can't get while blocking.
     auto_drainer_t::lock_t lock(&drainer);
 
+    std::vector<datum_t> ret;
+
     // We wait for data if we don't have any or if we're squashing and not
     // in the middle of a logical batch.
     if (!exc && skipped == 0 && (!has_el() || (!mid_batch && min_interval > 0.0))) {
         scoped_ptr_t<signal_timer_t> timer;
-        if (return_empty_normal_batches == return_empty_normal_batches_t::YES
-            || batcher->get_batch_type() == batch_type_t::NORMAL_FIRST) {
-            timer = make_scoped<signal_timer_t>();
-        }
-        if (timer.has()
-            && (batcher->get_batch_type() == batch_type_t::NORMAL
-                || batcher->get_batch_type() == batch_type_t::NORMAL_FIRST)) {
-            timer->start(batcher->microtime_left() / 1000);
+        if (batcher->get_batch_type() == batch_type_t::NORMAL_FIRST) {
+            timer = make_scoped<signal_timer_t>(0);
+        } else if (return_empty_normal_batches == return_empty_normal_batches_t::YES) {
+            timer = make_scoped<signal_timer_t>(batcher->microtime_left() / 1000);
         }
         // If we have to wait, wait.
         if (min_interval > 0.0
-            && active()
             && batcher->get_batch_type() != batch_type_t::NORMAL_FIRST) {
-            signal_timer_t min_timer;
-            min_timer.start(min_interval * 1000);
             // It's OK to let the `interrupted_exc_t` propagate up.
-            wait_interruptible(&min_timer, interruptor);
+            nap(min_interval * 1000, interruptor);
         }
         // If we still don't have data, wait for data with a timeout.  (Note
         // that if we're squashing, we started the timeout *before* waiting
         // on `min_timer`.)
-        if (!has_el()) {
+        apply_queued_changes();
+        while (!has_el() && !exc && skipped == 0) {
             cond_t wait_for_data;
             cond = &wait_for_data;
-            // This has to come after the `cond` because it might pulse it if
-            // we're squashing and need to.
-            note_data_wait();
             try {
                 // We don't need to wait on the drain signal because the interruptor
                 // will be pulsed if we're shutting down.  Not that `cond` might
@@ -2010,30 +2097,23 @@ subscription_t::get_els(batcher_t *batcher,
                 } else {
                     wait_interruptible(&wait_for_data, interruptor);
                 }
-                // We might have been woken up by `note_change`, in which case
-                // we should try to squash down again.
-                note_data_wait();
             } catch (const interrupted_exc_t &e) {
                 cond = NULL;
                 if (timer.has() && timer->is_pulsed()) {
-                    return std::vector<datum_t>();
+                    r_sanity_check(ret.size() == 0);
+                    return ret;
                 }
                 throw e;
             }
-            guarantee(cond == NULL);
-            if (!has_el()) {
-                // If we don't have an element, it must be because we squashed
-                // changes down to nothing, got an error, or skipped some rows.
-                guarantee(squash || exc || skipped != 0);
-            }
+            r_sanity_check(cond == NULL);
+            apply_queued_changes();
         }
     }
 
-    std::vector<datum_t> v;
     if (exc) {
         std::rethrow_exception(exc);
     } else if (skipped != 0) {
-        v.push_back(
+        ret.push_back(
             datum_t(
                 std::map<datum_string_t, datum_t>{
                     {datum_string_t("error"), datum_t(
@@ -2042,20 +2122,21 @@ subscription_t::get_els(batcher_t *batcher,
                                           "skipped %zu elements.", skipped)))}}));
         skipped = 0;
     } else if (has_el()) {
-        while (has_el() && !batcher->should_send_batch()) {
+        while (has_el() && !batcher->should_send_batch(ignore_latency_t::YES)) {
             datum_t el = pop_el();
             batcher->note_el(el);
-            v.push_back(std::move(el));
+            ret.push_back(std::move(el));
         }
         // We're in the middle of one logical batch if we stopped early because
         // of the batcher rather than because we ran out of elements.  (This
         // matters for squashing.)
         mid_batch = batcher->should_send_batch();
     } else {
-        return std::vector<datum_t>();
+        r_sanity_check(ret.size() == 0);
+        return ret;
     }
-    guarantee(v.size() != 0);
-    return std::move(v);
+    r_sanity_check(ret.size() != 0);
+    return ret;
 }
 
 void subscription_t::stop(std::exception_ptr _exc, detach_t detach) {
@@ -2069,7 +2150,7 @@ void subscription_t::stop(std::exception_ptr _exc, detach_t detach) {
 
 void subscription_t::maybe_signal_cond() THROWS_NOTHING {
     assert_thread();
-    if (cond != NULL && (has_el() || exc || skipped != 0)) {
+    if (cond != NULL) {
         ASSERT_NO_CORO_WAITING;
         cond->pulse();
         cond = NULL;
@@ -2276,10 +2357,31 @@ void feed_t::each_point_sub_cb(const std::function<void(point_sub_t *)> &f, int 
     }
 }
 
+void feed_t::each_limit_sub(
+    const std::function<void(limit_sub_t *)> &f) THROWS_NOTHING {
+    assert_thread();
+    rwlock_in_line_t spot(&limit_subs_lock, access_t::read);
+    pmap(get_num_threads(),
+         std::bind(&feed_t::each_limit_sub_cb,
+                   this,
+                   std::cref(f),
+                   ph::_1));
+}
+
+void feed_t::each_limit_sub_cb(const std::function<void(limit_sub_t *)> &f, int i) {
+    on_thread_t th((threadnum_t(i)));
+    for (auto const &pair : limit_subs) {
+        for (limit_sub_t *sub : pair.second[i]) {
+            f(sub);
+        }
+    }
+}
+
 void feed_t::each_sub(const auto_drainer_t::lock_t &lock,
-                      const std::function<void(flat_sub_t *)> &f) THROWS_NOTHING {
+                      const std::function<void(subscription_t *)> &f) THROWS_NOTHING {
     each_range_sub(lock, f);
     each_point_sub(f);
+    each_limit_sub(f);
 }
 
 void feed_t::on_point_sub(
@@ -2339,29 +2441,33 @@ client_t::client_t(
 client_t::~client_t() { }
 
 scoped_ptr_t<subscription_t> new_sub(
-    feed_t *feed, const datum_t &squash, const keyspec_t::spec_t &spec) {
+    feed_t *feed, const datum_t &squash, bool include_states,
+    const keyspec_t::spec_t &spec) {
     struct spec_visitor_t : public boost::static_visitor<subscription_t *> {
-        explicit spec_visitor_t(feed_t *_feed, const datum_t *_squash)
-            : feed(_feed), squash(_squash) { }
+        explicit spec_visitor_t(
+            feed_t *_feed, const datum_t *_squash, bool _include_states)
+            : feed(_feed), squash(_squash), include_states(_include_states) { }
         subscription_t *operator()(const keyspec_t::range_t &range) const {
-            return new range_sub_t(feed, *squash, range);
+            return new range_sub_t(feed, *squash, include_states, range);
         }
         subscription_t *operator()(const keyspec_t::limit_t &limit) const {
-            return new limit_sub_t(feed, *squash, limit);
+            return new limit_sub_t(feed, *squash, include_states, limit);
         }
         subscription_t *operator()(const keyspec_t::point_t &point) const {
-            return new point_sub_t(feed, *squash, point.key);
+            return new point_sub_t(feed, *squash, include_states, point.key);
         }
         feed_t *feed;
         const datum_t *squash;
+        bool include_states;
     };
     return scoped_ptr_t<subscription_t>(
-        boost::apply_visitor(spec_visitor_t(feed, &squash), spec));
+        boost::apply_visitor(spec_visitor_t(feed, &squash, include_states), spec));
 }
 
 counted_t<datum_stream_t> client_t::new_stream(
     env_t *env,
     const datum_t &squash,
+    bool include_states,
     const namespace_id_t &uuid,
     const protob_t<const Backtrace> &bt,
     const std::string &table_name,
@@ -2374,7 +2480,9 @@ counted_t<datum_stream_t> client_t::new_stream(
             threadnum_t old_thread = get_thread_id();
             cross_thread_signal_t interruptor(env->interruptor, home_thread());
             on_thread_t th(home_thread());
-            auto_drainer_t::lock_t lock(&drainer);
+            // If the `client_t` is being destroyed, we're shutting down, so we
+            // consider it an interruption.
+            auto_drainer_t::lock_t lock(&drainer, throw_if_draining_t::YES);
             rwlock_in_line_t spot(&feeds_lock, access_t::write);
             spot.read_signal()->wait_lazily_unordered();
             auto feed_it = feeds.find(uuid);
@@ -2387,7 +2495,7 @@ counted_t<datum_stream_t> client_t::new_stream(
                 // only be run for the first one.  Rather than mess
                 // about, just use the defaults.
                 auto val = make_scoped<real_feed_t>(
-                    this, manager, access.get(), uuid, &interruptor);
+                    lock, this, manager, access.get(), uuid, &interruptor);
                 feed_it = feeds.insert(std::make_pair(uuid, std::move(val))).first;
             }
 
@@ -2396,17 +2504,11 @@ counted_t<datum_stream_t> client_t::new_stream(
             on_thread_t th2(old_thread);
             real_feed_t *feed = feed_it->second.get();
             addr = feed->get_addr();
-            sub = new_sub(feed, squash, spec);
+            sub = new_sub(feed, squash, include_states, spec);
         }
         namespace_interface_access_t access = namespace_source(uuid, env->interruptor);
         sub->start_real(env, table_name, access.get(), &addr);
-        bool is_point;
-        if (spec.type() == typeid(keyspec_t::point_t)) {
-            is_point = true;
-        } else {
-            is_point = false;
-        }
-        return make_counted<stream_t>(std::move(sub), is_point, bt);
+        return make_counted<stream_t>(std::move(sub), bt);
     } catch (const cannot_perform_query_exc_t &e) {
         rfail_datum(base_exc_t::GENERIC,
                     "cannot subscribe to table `%s`: %s",
@@ -2414,10 +2516,11 @@ counted_t<datum_stream_t> client_t::new_stream(
     }
 }
 
-void client_t::maybe_remove_feed(const uuid_u &uuid) {
+void client_t::maybe_remove_feed(
+    const auto_drainer_t::lock_t &lock, const uuid_u &uuid) {
     assert_thread();
+    lock.assert_is_holding(&drainer);
     scoped_ptr_t<real_feed_t> destroy;
-    auto_drainer_t::lock_t lock(&drainer);
     rwlock_in_line_t spot(&feeds_lock, access_t::write);
     spot.write_signal()->wait_lazily_unordered();
     auto feed_it = feeds.find(uuid);
@@ -2433,10 +2536,11 @@ void client_t::maybe_remove_feed(const uuid_u &uuid) {
     }
 }
 
-scoped_ptr_t<real_feed_t> client_t::detach_feed(const uuid_u &uuid) {
+scoped_ptr_t<real_feed_t> client_t::detach_feed(
+    const auto_drainer_t::lock_t &lock, const uuid_u &uuid) {
     assert_thread();
+    lock.assert_is_holding(&drainer);
     scoped_ptr_t<real_feed_t> ret;
-    auto_drainer_t::lock_t lock(&drainer);
     rwlock_in_line_t spot(&feeds_lock, access_t::write);
     spot.write_signal()->wait_lazily_unordered();
     // The feed might have been removed in `maybe_remove_feed`, in which case
@@ -2448,13 +2552,6 @@ scoped_ptr_t<real_feed_t> client_t::detach_feed(const uuid_u &uuid) {
     }
     return ret;
 }
-
-class pointness_visitor_t : public boost::static_visitor<bool> {
-public:
-    bool operator()(const keyspec_t::range_t &) const { return false; }
-    bool operator()(const keyspec_t::limit_t &) const { return false; }
-    bool operator()(const keyspec_t::point_t &) const { return true; }
-};
 
 class artificial_feed_t : public feed_t {
 public:
@@ -2476,7 +2573,10 @@ artificial_t::~artificial_t() { }
 
 counted_t<datum_stream_t> artificial_t::subscribe(
     env_t *env,
+    bool include_states,
     const keyspec_t::spec_t &spec,
+    const std::string &primary_key_name,
+    const std::vector<datum_t> &initial_values,
     const protob_t<const Backtrace> &bt) {
     // It's OK not to switch threads here because `feed.get()` can be called
     // from any thread and `new_sub` ends up calling `feed_t::add_sub_with_lock`
@@ -2485,11 +2585,9 @@ counted_t<datum_stream_t> artificial_t::subscribe(
     // on the thread you want to use them on.
     guarantee(feed.has());
     scoped_ptr_t<subscription_t> sub = new_sub(
-        feed.get(), datum_t::boolean(false), spec);
-    sub->start_artificial(env, uuid);
-    return make_counted<stream_t>(std::move(sub),
-                                  boost::apply_visitor(pointness_visitor_t(), spec),
-                                  bt);
+        feed.get(), datum_t::boolean(false), include_states, spec);
+    sub->start_artificial(env, uuid, primary_key_name, initial_values);
+    return make_counted<stream_t>(std::move(sub), bt);
 }
 
 void artificial_t::send_all(const msg_t &msg) {

@@ -21,8 +21,8 @@ std::set<int16_t> user_to_kevent_filters(int mode) {
     rassert((mode & (poll_event_in | poll_event_out)) == mode);
 
     std::set<int16_t> filters;
-    if (mode == poll_event_in) filters.insert(EVFILT_READ);
-    if (mode == poll_event_out) filters.insert(EVFILT_WRITE);
+    if (mode & poll_event_in) filters.insert(EVFILT_READ);
+    if (mode & poll_event_out) filters.insert(EVFILT_WRITE);
 
     return filters;
 }

@@ -493,6 +493,9 @@ struct read_t {
     // We use snapshotting for queries that acquire-and-hold large portions of the
     // table, so that they don't block writes.
     bool use_snapshot() const THROWS_NOTHING;
+
+    // At the moment changefeed reads must be routed to the primary replica.
+    bool route_to_primary() const THROWS_NOTHING;
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(read_t);
 

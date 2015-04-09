@@ -215,6 +215,5 @@
 #define CORO_PRIORITY_DIRECTORY_CHANGES         (-2)
 #define CORO_PRIORITY_LBA_GC                    (-2)
 
-
 #endif  // CONFIG_ARGS_HPP_
 

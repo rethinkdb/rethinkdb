@@ -157,6 +157,23 @@ tests:
       ot: ({'foo':10,'a':10})
 
     # Between
+    - cd: tbl.between(1, 2).type_of()
+      ot: "'TABLE_SLICE'"
+    - py: tbl.between(1, 2, index='id').type_of()
+      js: tbl.between(1, 2, {'index':'id'}).typeOf()
+      rb: tbl.between(1, 2, :index => 'id').type_of()
+      ot: "'TABLE_SLICE'"
+    - py: tbl.between(1, 1, right_bound='closed').type_of()
+      js: tbl.between(1, 1, {'right_bound':'closed'}).typeOf()
+      rb: tbl.between(1, 1, :right_bound => 'closed').type_of()
+      ot: "'TABLE_SLICE'"
+    - cd: tbl.between(2, 1).type_of()
+      ot: "'TABLE_SLICE'"
+    - py: tbl.between(2, 1, index='id').type_of()
+      js: tbl.between(2, 1, {'index':'id'}).typeOf()
+      rb: tbl.between(2, 1, :index => 'id').type_of()
+      ot: "'TABLE_SLICE'"
+
     - cd: tbl.between(20, 29).count()
       ot: 9
     - cd: tbl.between(-10, 9).count()
@@ -207,23 +224,30 @@ tests:
       ot: err('RqlRuntimeError', 'Expected type TABLE_SLICE but found DATUM.', [0])
 
     # test between on open intervals
-    - cd: tbl.between(null, 2).count()
+    - cd: tbl.between(r.minval, 2).count()
       ot: 2
-    - cd: tbl.between(null, 2, :right_bound => 'closed').count()
-      py: tbl.between(null, 2, right_bound='closed').count()
-      js: tbl.between(null, 2, {'right_bound':'closed'}).count()
+    - cd: tbl.between(r.minval, 2, :right_bound => 'closed').count()
+      py: tbl.between(r.minval, 2, right_bound='closed').count()
+      js: tbl.between(r.minval, 2, {'right_bound':'closed'}).count()
       ot: 3
-    - cd: tbl.between(null, 2, :left_bound => 'open').count()
-      py: tbl.between(null, 2, left_bound='open').count()
-      js: tbl.between(null, 2, {'left_bound':'open'}).count()
+    - cd: tbl.between(r.minval, 2, :left_bound => 'open').count()
+      py: tbl.between(r.minval, 2, left_bound='open').count()
+      js: tbl.between(r.minval, 2, {'left_bound':'open'}).count()
       ot: 2
 
-    - cd: tbl.between(2, null).count()
+    - cd: tbl.between(2, r.maxval).count()
       ot: 98
 
     - js: tbl.between(2).count()
       cd: []
       ot: err('RqlDriverError', 'Expected 2 arguments (not including options) but found 1.', '[]')
+
+    # test between with null bounds (allowed in old versions, now an error)
+    - cd:
+        - tbl.between(null, 2).count()
+        - tbl.between(2, null).count()
+        - tbl.between(null, null).count()
+      ot: err('RqlRuntimeError', 'Cannot use `nu' + 'll` in BETWEEN, use `r.minval` or `r.maxval` to denote unboundedness.')
 
     # test between table where id isn't a primary key
     - cd: tblpkey.between(9, 11).count()

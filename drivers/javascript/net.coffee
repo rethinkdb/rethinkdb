@@ -46,10 +46,10 @@ cursors = require('./cursor')
 protodef = require('./proto-def')
 
 # Each version of the protocol has a magic number specified in
-# `./proto-def.coffee`. The most recent version is 3. Generally the
+# `./proto-def.coffee`. The most recent version is 4. Generally the
 # official driver will always be updated to the newest version of the
 # protocol, though RethinkDB supports older versions for some time.
-protoVersion = protodef.VersionDummy.Version.V0_3
+protoVersion = protodef.VersionDummy.Version.V0_4
 
 # We are using the JSON protocol for RethinkDB, which is the most
 # recent version. The older protocol is based on Protocol Buffers, and
@@ -225,6 +225,11 @@ class Connection extends events.EventEmitter
             callback null, @
         @once 'connect', conCallback
 
+        # closePromise holds the promise created when `.close()` is
+        # first called. Subsequent calls to close will simply add to
+        # this promise, rather than attempt closing again.
+        @_closePromise = null
+
 
     # #### Connection _data method
     #
@@ -325,20 +330,6 @@ class Connection extends events.EventEmitter
                 if cursor._endFlag && cursor._outstandingRequests is 0
                     @_delQuery(token)
 
-            # Similar to cursors, we may or may not have a feed object
-            # already for this token. The feed object is created on
-            # the first response received, so we may not have one if
-            # this is the first response for this token. (Or we may
-            # not have one if this isn't a query that returns a feed)
-            else if feed?
-                # Cursor and Feed have a shared implementation, so the
-                # logic for adding a response to the feed and deciding
-                # whether to delete the token from
-                # `@outstandingRequests` is the same.
-                feed._addResponse(response)
-
-                if feed._endFlag && feed._outstandingRequests is 0
-                    @_delQuery(token)
             # Next we check if we have a callback registered for this
             # token. In [ast](ast.html) we always provide `_start`
             # with a wrapped callback function, so this may as well be
@@ -408,9 +399,31 @@ class Connection extends events.EventEmitter
                         # `CONTINUE` query with the same token. So, we
                         # create a new Cursor for this token, and add
                         # it to the object stored in
-                        # `@outstandingCallbacks`
-                        cursor = new cursors.Cursor @, token, opts, root
+                        # `@outstandingCallbacks`.
+
+                        # We create a new cursor, which is sometimes a
+                        # `Feed`, `AtomFeed`, or `OrderByLimitFeed`
+                        # depending on the `ResponseNotes`.  (This
+                        # usually doesn't matter, but third-party ORMs
+                        # might want to treat these differently.)
+                        cursor = null
+                        for note in response.n
+                            switch note
+                                when protodef.Response.ResponseNote.SEQUENCE_FEED
+                                    cursor ?= new cursors.Feed @, token, opts, root
+                                when protodef.Response.ResponseNote.UNIONED_FEED
+                                    cursor ?= new cursors.UnionedFeed @, token, opts, root
+                                when protodef.Response.ResponseNote.ATOM_FEED
+                                    cursor ?= new cursors.AtomFeed @, token, opts, root
+                                when protodef.Response.ResponseNote.ORDER_BY_LIMIT_FEED
+                                    cursor ?= new cursors.OrderByLimitFeed @, token, opts, root
+                        cursor ?= new cursors.Cursor @, token, opts, root
+
+                        # When we've created the cursor, we add it to
+                        # the object stored in
+                        # `@outstandingCallbacks`.
                         @outstandingCallbacks[token].cursor = cursor
+
                         # Again, if we have profile information, we
                         # wrap the result given to the callback.  In
                         # either case, we need to add the response to
@@ -447,39 +460,6 @@ class Connection extends events.EventEmitter
                             cb null, {profile: profile, value: cursor._addResponse(response)}
                         else
                             cb null, cursor._addResponse(response)
-                    when protoResponseType.SUCCESS_FEED
-                        # The `SUCCESS_FEED` response is sent by the
-                        # server to indicate that the response
-                        # represents a changefeed. This works just
-                        # like a cursor (sending `CONTINUE` to get
-                        # more results etc), except that it is
-                        # potentially infinite.
-                        #
-                        # The main difference here is that we create a
-                        # `Feed` object vs. a `Cursor` object, and we
-                        # set the `feed` key for this token in
-                        # `@outstandingCallbacks` instead of the
-                        # `cursor` key.
-                        feed = new cursors.Feed @, token, opts, root
-                        @outstandingCallbacks[token].feed = feed
-                        if profile?
-                            cb null, {profile: profile, value: feed._addResponse(response)}
-                        else
-                            cb null, feed._addResponse(response)
-                    when protoResponseType.SUCCESS_ATOM_FEED
-                        # `SUCCESS_ATOM_FEED` is just like
-                        # `SUCCESS_FEED`, except that it indicates the
-                        # changes coming back will all be for a single
-                        # document, vs. changes from potentially many
-                        # documents. So for example, a query like
-                        # `r.table('foo').get('bar').changes()` will
-                        # return a `SUCCESS_ATOM_FEED` response
-                        feed = new cursors.AtomFeed @, token, opts, root
-                        @outstandingCallbacks[token].feed = feed
-                        if profile?
-                            cb null, {profile: profile, value: feed._addResponse(response)}
-                        else
-                            cb null, feed._addResponse(response)
                     when protoResponseType.WAIT_COMPLETE
                         # The `WAIT_COMPLETE` response is sent by the
                         # server after all queries executed with the
@@ -490,9 +470,8 @@ class Connection extends events.EventEmitter
                     else
                         cb new err.RqlDriverError "Unknown response type"
         else
-            # Throw an error if we get a response with a token not
-            # found in `@outstandingCallbacks`
-            @emit 'error', new err.RqlDriverError "Unexpected token #{token}."
+            # We just ignore tokens we don't have a record of. This is
+            # what the other drivers do as well.
 
     # #### Connection close method
     #
@@ -528,6 +507,21 @@ class Connection extends events.EventEmitter
             unless key in ['noreplyWait']
                 throw new err.RqlDriverError "First argument to two-argument `close` must be { noreplyWait: <bool> }."
 
+        # If we're currently in the process of closing, just add the
+        # callback to the current promise
+        if @_closePromise?
+            return @_closePromise.nodeify(cb)
+        else if not @open
+            # if we're closed, we still need to return a promise. So
+            # we create a dummy promise that resolves on the next tick
+            # of the event loop and will invoke all of the callbacks
+            # attached to it.
+            return new Promise((resolve, reject) =>
+                if cb?
+                    cb(null , @)
+                else
+                process.nextTick(resolve)
+            )
         # Next we set `@closing` to true. It will be set false once
         # the promise that `.close` returns resolves (see below). The
         # `isOpen` method takes this variable into account.
@@ -559,7 +553,11 @@ class Connection extends events.EventEmitter
         # here. Those steps are done in the subclasses because they
         # have knowledge about what kind of underlying connection is
         # being used.
-        new Promise( (resolve, reject) =>
+        #
+        # We save the promise here in case others attempt to call
+        # `close` before we've gotten a response from the server (when
+        # the @closing flag is true).
+        @_closePromise = new Promise( (resolve, reject) =>
         # Now we create the Promise that `.close` returns. If we
         # aren't waiting for `noreply` queries, then we set the flags
         # and cancel feeds/cursors immediately. If we are waiting,
@@ -574,6 +572,7 @@ class Connection extends events.EventEmitter
                 @open = false
                 @closing = false
                 @cancel()
+                @_closePromise = null
                 if err?
                     reject err
                 else
@@ -650,8 +649,6 @@ class Connection extends events.EventEmitter
         for own key, value of @outstandingCallbacks
             if value.cursor?
                 value.cursor._addResponse(response)
-            else if value.feed?
-                value.feed._addResponse(response)
             else if value.cb?
                 value.cb mkErr(err.RqlRuntimeError, response, value.root)
 
@@ -683,14 +680,10 @@ class Connection extends events.EventEmitter
                 opts = {}
             cb = callback
 
-        # Disconnect and reconnect with the same parameters. Right now
-        # this code explicitly mentions the `@rawSocket` attribute,
-        # which is only present on the TcpConnection subclass. This
-        # code should probably move to that class ultimately.
+        # Here we call `close` with a callback that will reconnect
+        # with the same parameters
         new Promise( (resolve, reject) =>
             closeCb = (err) =>
-                @rawSocket.removeAllListeners()
-                @rawSocket = null # The rawSocket has been closed
                 @constructor.call @,
                     host:@host,
                     port:@port
@@ -1089,7 +1082,7 @@ class TcpConnection extends Connection
         #    `close` method on this connection, with the `opts` that
         #    were passed to this function. The only option `close`
         #    accepts is `noreplyWait`
-        # 3. The suerpclass's close method sets `@open` to false, and
+        # 3. The superclass's close method sets `@open` to false, and
         #    also closes all cursors, feeds, and callbacks that are
         #    currently outstanding.
         # 4. Depending on whether `opts.noreplyWait` is true, the
@@ -1107,13 +1100,29 @@ class TcpConnection extends Connection
         #    promise).
         new Promise( (resolve, reject) =>
             wrappedCb = (error, result) =>
-                @rawSocket.once "close", =>
+                closeCb = =>
                     if error?
                         reject error
                     else
                         resolve result
-
-                @rawSocket.end()
+                if @rawSocket?
+                    @rawSocket.once("close", =>
+                        closeCb()
+                        # In the case where we're actually being
+                        # called in response to the rawSocket 'close'
+                        # event, we need to additionally clean up the
+                        # rawSocket.
+                        @rawSocket.removeAllListeners()
+                        @rawSocket = null
+                    )
+                    @rawSocket.end()
+                else
+                    # If the rawSocket is already closed, there's no
+                    # reason to wait for a 'close' event that will
+                    # never come. However we still need to fulfill the
+                    # promise interface, so we do the next best thing
+                    # and resolve it on the next event loop tick.
+                    process.nextTick(closeCb)
 
             TcpConnection.__super__.close.call(@, opts, wrappedCb)
         ).nodeify cb
