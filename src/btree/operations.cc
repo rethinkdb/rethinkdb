@@ -125,8 +125,7 @@ void check_and_handle_split(value_sizer_t *sizer,
     // (Perhaps) increase rbuf's recency to the max of the current txn's recency and
     // buf's subtrees' recencies.  (This is conservative since rbuf doesn't have all
     // of buf's subtrees.)
-    rbuf.manually_touch_recency(superceding_recency(rbuf.get_recency(),
-                                                    buf->get_recency()));
+    rbuf.set_recency(superceding_recency(rbuf.get_recency(), buf->get_recency()));
 
     // Insert the key that sets the two nodes apart into the parent.
     if (last_buf->empty()) {
@@ -139,7 +138,7 @@ void check_and_handle_split(value_sizer_t *sizer,
         }
         // We set the recency of the new root block to the max of the subtrees'
         // recency and the current transaction's recency.
-        last_buf->manually_touch_recency(buf->get_recency());
+        last_buf->set_recency(buf->get_recency());
 
         insert_root(last_buf->block_id(), sb);
     }
@@ -275,7 +274,7 @@ void check_and_handle_underfull(value_sizer_t *sizer,
             // We moved all of sib_buf's subtrees into buf, so buf's recency needs to
             // be increased to the max of its new set of subtrees (a superset of what
             // it was before) and the current txn's recency.
-            buf->manually_touch_recency(superceding_recency(buf_recency, sib_buf_recency));
+            buf->set_recency(superceding_recency(buf_recency, sib_buf_recency));
 
             if (!parent_was_doubleton) {
                 buf_write_t last_buf_write(last_buf);
@@ -342,8 +341,8 @@ void check_and_handle_underfull(value_sizer_t *sizer,
             // be increased.  (We conservatively update it to the max of our subtrees
             // and sib_buf's subtrees and our current txn's recency, to simplify the
             // code.)
-            buf->manually_touch_recency(superceding_recency(sib_buf.get_recency(),
-                                                            buf->get_recency()));
+            buf->set_recency(superceding_recency(
+                sib_buf.get_recency(), buf->get_recency()));
 
             if (leveled) {
                 buf_write_t last_buf_write(last_buf);
@@ -364,6 +363,7 @@ void check_and_handle_underfull(value_sizer_t *sizer,
 void find_keyvalue_location_for_write(
         value_sizer_t *sizer,
         superblock_t *superblock, const btree_key_t *key,
+        repli_timestamp_t timestamp,
         const value_deleter_t *balancing_detacher,
         keyvalue_location_t *keyvalue_location_out,
         profile::trace_t *trace,
@@ -385,6 +385,10 @@ void find_keyvalue_location_for_write(
 
     // Walk down the tree to the leaf.
     for (;;) {
+        // As we traverse the path, update the recency of each node we touch. This will
+        // allow the backfill logic to efficiently find recently changed nodes.
+        buf.set_recency(superceding_recency(buf.get_recency(), timestamp));
+
         {
             buf_read_t read(&buf);
             if (!node::is_internal(static_cast<const node_t *>(read.get_data_read()))) {

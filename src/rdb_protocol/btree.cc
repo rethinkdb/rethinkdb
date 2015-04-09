@@ -225,6 +225,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
         rdb_value_sizer_t sizer(info.superblock->cache()->max_block_size());
         find_keyvalue_location_for_write(&sizer, info.superblock,
                                          info.key->btree_key(),
+                                         info.btree->timestamp,
                                          deletion_context->balancing_detacher(),
                                          &kv_location,
                                          trace,
@@ -445,7 +446,7 @@ void rdb_set(const store_key_t &key,
              promise_t<superblock_t *> *pass_back_superblock) {
     keyvalue_location_t kv_location;
     rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
-    find_keyvalue_location_for_write(&sizer, superblock, key.btree_key(),
+    find_keyvalue_location_for_write(&sizer, superblock, key.btree_key(), timestamp,
                                      deletion_context->balancing_detacher(),
                                      &kv_location, trace, pass_back_superblock);
     slice->stats.pm_keys_set.record();
@@ -568,7 +569,7 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice,
                 profile::trace_t *trace) {
     keyvalue_location_t kv_location;
     rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
-    find_keyvalue_location_for_write(&sizer, superblock, key.btree_key(),
+    find_keyvalue_location_for_write(&sizer, superblock, key.btree_key(), timestamp,
             deletion_context->balancing_detacher(), &kv_location, trace);
     slice->stats.pm_keys_set.record();
     slice->stats.pm_total_keys_set += 1;
@@ -1388,6 +1389,7 @@ void rdb_update_single_sindex(
                         &sizer,
                         superblock,
                         it->first.btree_key(),
+                        repli_timestamp_t::distant_past,
                         deletion_context->balancing_detacher(),
                         &kv_location,
                         trace,
@@ -1464,6 +1466,7 @@ void rdb_update_single_sindex(
                         &sizer,
                         superblock,
                         it->first.btree_key(),
+                        repli_timestamp_t::distant_past,
                         deletion_context->balancing_detacher(),
                         &kv_location,
                         trace,
@@ -1616,7 +1619,6 @@ public:
                     // Other than that, the hard durability guarantee is not actually
                     // needed here.
                     store_->acquire_superblock_for_write(
-                            repli_timestamp_t::distant_past,
                             2 + MAX_CHUNK_SIZE,
                             write_durability_t::HARD,
                             &token,
