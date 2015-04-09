@@ -411,10 +411,18 @@ module RethinkDB
     end
 
     def next(wait=true)
-      raise RqlRuntimeError, "Cannot call `next` on a cursor " +
-                             "after calling `each`." if @run
-      raise RqlRuntimeError, "Connection is closed." if @more && out_of_date
-      timeout = wait == true ? nil : ((wait == false || wait.nil?) ? 0 : wait)
+      if @run
+        raise RqlRuntimeError, "Cannot call `next` on a cursor after calling `each`."
+      end
+      if @more && out_of_date
+        raise RqlRuntimeError, "Connection is closed."
+      end
+      timeout = wait
+      if wait == true
+        timeout = nil
+      elsif !wait
+        timeout = 0
+      end
 
       while @results.length == 0
         raise StopIteration if !@more
@@ -568,11 +576,16 @@ module RethinkDB
           end
           res = @data.delete(token)
           if res.nil?
-            while @waiters[token]
-              @waiters[token].wait(timeout)
+            begin
+              # For consistency with the old implementation.
+              raise TimeoutError, "foo" if timeout == 0
+              Timeout::timeout(timeout) {
+                @waiters[token].wait_while{@waiters[token]}
+              }
+            rescue Timeout::Error
+              raise Timeout::Error, "Timed out waiting for cursor response."
             end
             res = @data.delete(token)
-            raise Timeout::Error, "Timed out waiting for cursor response." if res.nil?
           end
         }
         raise RqlRuntimeError, "Connection is closed." if res.nil? && !is_open()
