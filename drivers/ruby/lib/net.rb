@@ -569,7 +569,6 @@ module RethinkDB
 
     def wait(token, timeout)
       begin
-        res = nil
         @mon.synchronize {
           end_time = timeout ? Time.now.to_f + timeout : nil
           loop {
