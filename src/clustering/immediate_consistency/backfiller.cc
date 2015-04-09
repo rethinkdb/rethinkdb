@@ -94,21 +94,23 @@ public:
         *pre_items = std::move(temp_buf);
     }
     continue_bool_t next_pre_item(
-            backfill_pre_item_t const **next_out,
-            key_range_t::right_bound_t *edge_out)
+            bool *is_item_out,
+            backfill_pre_item_t const **item_out,
+            key_range_t::right_bound_t *empty_range_out)
             THROWS_NOTHING {
         if (!pre_items->empty_of_items()) {
             /* This is the common case. */
-            *next_out = &pre_items->front();
+            *is_item_out = true;
+            *item_out = &pre_items->front();
             return continue_bool_t::CONTINUE;
         } else if (!pre_items->empty_domain()) {
             /* There aren't any more pre-items left in the queue, but there's still a
             part of the key-space that we know there aren't any items in yet. We can ask
             the store to backfill us items from that space. */
-            *next_out = nullptr;
-            *edge_out = pre_items->get_right_key();
-            pre_items->delete_to_key(*edge_out);
-            temp_buf.push_back_nothing(*edge_out);
+            *is_item_out = false;
+            *empty_range_out = pre_items->get_right_key();
+            pre_items->delete_to_key(*empty_range_out);
+            temp_buf.push_back_nothing(*empty_range_out);
             return continue_bool_t::CONTINUE;
         } else {
             /* We ran out of pre-items. Break out of `send_backfill()` so we can block

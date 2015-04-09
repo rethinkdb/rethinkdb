@@ -6,23 +6,41 @@
 
 /* `MAX_CONCURRENT_BACKFILL_ITEMS` is the maximum number of coroutines we'll spawn in
 parallel to apply backfill items to the B-tree. */
-#define MAX_CONCURRENT_BACKFILL_ITEMS 16
+static const int MAX_CONCURRENT_BACKFILL_ITEMS = 16;
 
 /* `MAX_CHANGES_PER_TXN` is the maximum number of keys we'll modify or delete in a single
 transaction when applying a multi-key backfill item. Increasing this number will make the
 backfill faster, but it will also cause the backfill-related transactions to hold the
 superblock for a longer time. */
-#define MAX_CHANGES_PER_TXN 16
+static const int MAX_CHANGES_PER_TXN = 16;
+
+/* `receive_backfill()` spawns a series of coroutines running `apply_empty_range()`,
+`apply_single_key_item()`, and `apply_multi_key_item()`. Each coroutine gets a
+`receive_backfill_tokens_t` that keeps track of order, takes care of updating the
+sindexes, etc. `receive_backfill_info_t` stores some information that's common to the
+entire backfill task, that the tokens need access to. */
 
 class receive_backfill_info_t {
 public:
     receive_backfill_info_t(cache_conn_t *c, btree_slice_t *s) :
         cache_conn(c), slice(s), semaphore(MAX_CONCURRENT_BACKFILL_ITEMS) { }
+
+    /* `cache_conn` and `slice` are just copied from the corresponding fields of the
+    `store_t` object */
     cache_conn_t *cache_conn;
     btree_slice_t *slice;
+
+    /* `semaphore` limits how many coroutines can be running at once. */
     new_semaphore_t semaphore;
+
+    /* Every coroutine gets a write token from `fifo_source`. It must acquire
+    `btree_fifo_sink` before acquiring the B-tree superblock to modify the B-tree; it
+    must acquire `commit_fifo_sink` before calling the `commit_cb` on its tokens. */
     fifo_enforcer_source_t fifo_source;
     fifo_enforcer_sink_t btree_fifo_sink, commit_fifo_sink;
+
+    /* `drainer` ensures that all the coroutines stop if the call to `receive_backfill()`
+    is interrupted. */
     auto_drainer_t drainer;
 };
 
@@ -33,10 +51,17 @@ public:
         write_token(info->fifo_source.enter_write()), keepalive(info->drainer.lock()) {
         wait_interruptible(sem_acq.acquisition_signal(), interruptor);
     }
+
     receive_backfill_info_t *info;
     new_semaphore_acq_t sem_acq;
     fifo_enforcer_write_token_t write_token;
     auto_drainer_t::lock_t keepalive;
+
+    /* The `apply_*` coroutines call `update_metainfo_cb()` to update the superblock's
+    metainfo up to a certain point, and then they call `commit_cb()` to apply sindex
+    changes and notify the callback that was passed to `receive_backfill()`. Note that an
+    `apply_*` coroutine may call each of these callbacks multiple times, but the calls
+    must be in order. */
     std::function<void(
         const key_range_t::right_bound_t &progress,
         real_superblock_t *superblock
@@ -49,10 +74,12 @@ public:
         )> commit_cb;
 };
 
-void apply_edge(
+/* `apply_empty_range()` is spawned when the `backfill_item_producer_t` generates an
+"empty range", indicating that no more backfill items are present before a certain point.
+*/
+void apply_empty_range(
         const receive_backfill_tokens_t &tokens,
-        const key_range_t::right_bound_t &edge) {
-    debugf_print("apply_edge", edge);
+        const key_range_t::right_bound_t &empty_range) {
     try {
         /* Acquire the superblock */
         scoped_ptr_t<txn_t> txn;
@@ -67,13 +94,13 @@ void apply_edge(
         }
 
         /* Update the metainfo and release the superblock. */
-        tokens.update_metainfo_cb(edge, superblock.get());
+        tokens.update_metainfo_cb(empty_range, superblock.get());
         superblock.reset();
 
         /* Notify that we're done */
         fifo_enforcer_sink_t::exit_write_t exiter(
             &tokens.info->commit_fifo_sink, tokens.write_token);
-        tokens.commit_cb(edge, std::move(txn), buf_lock_t(),
+        tokens.commit_cb(empty_range, std::move(txn), buf_lock_t(),
             std::vector<rdb_modification_report_t>());
 
     } catch (const interrupted_exc_t &exc) {
@@ -81,6 +108,9 @@ void apply_edge(
     }
 }
 
+/* `apply_item_pair()` is a helper function for `apply_single_key_item()` and
+`apply_multi_key_item()`. It applies a single `backfill_item_t::pair_t` to the B-tree.
+It doesn't call `on_commit()` or modify the metainfo. */
 void apply_item_pair(
         btree_slice_t *slice,
         real_superblock_t *superblock,
@@ -108,6 +138,12 @@ void apply_item_pair(
     }
 }
 
+/* `apply_single_key_item()` applies a `backfill_item_t` whose range is a single key wide
+and which has a `backfill_item_t::pair_t` for that key. This eliminates the need to erase
+the previous contents of the range.
+
+Note that multiple calls to `apply_single_key_item()` can be pipelined efficiently,
+because it releases the superblock as soon as it acquires the next node in the B-tree. */ 
 void apply_single_key_item(
         const receive_backfill_tokens_t &tokens,
         /* `item` is conceptually passed by move, but `std::bind()` isn't smart enough to
@@ -149,6 +185,9 @@ void apply_single_key_item(
     }
 }
 
+/* `apply_multi_key_item()` is for items that apply to a range of keys. We must first
+delete any existing values or deletion entries in that range, and then apply the contents
+of `item.pairs`. */
 void apply_multi_key_item(
         const receive_backfill_tokens_t &tokens,
         /* `item` is conceptually passed by move, but `std::bind()` isn't smart enough to
@@ -157,8 +196,8 @@ void apply_multi_key_item(
     debugf("apply_multi_key_item\n");
     try {
         /* Acquire and hold both `fifo_enforcer_sink_t`s until we're completely finished;
-        since we're going to be making multiple B-tree queries, we can't pipeline with
-        other backfill items */
+        since we're going to be making multiple B-tree queries in separate B-tree
+        transactions, we can't pipeline with other backfill items */
         fifo_enforcer_sink_t::exit_write_t exiter1(
             &tokens.info->btree_fifo_sink, tokens.write_token);
         wait_interruptible(&exiter1, tokens.keepalive.get_drain_signal());
@@ -181,7 +220,12 @@ void apply_multi_key_item(
                 write_access_t::write, 1, repli_timestamp_t::distant_past,
                 write_durability_t::SOFT, &superblock, &txn);
 
-            /* If we haven't already done so, then update the min deletion timstamps. */
+            /* If we haven't already done so, then update the min deletion timstamps.
+            See `btree/backfill.hpp` for an explanation of what this is. Note that we do
+            this all at once for the entire range; we don't need to break it up into
+            chunks because it's a fairly inexpensive operation and because it's a
+            "conservative" operation, so it's safe if we affect parts of the key-space
+            that we don't actually call `commit_cb()` for. */
             if (is_first) {
                 rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
                 btree_receive_backfill_item_update_deletion_timestamps(
@@ -202,7 +246,8 @@ void apply_multi_key_item(
                 range_to_delete.right = item.range.right;
             }
 
-            /* Delete a chunk of the range */
+            /* Delete a chunk of the range, making sure to do no more than
+            `MAX_CHANGES_PER_TXN / 2` changes at once. */
             always_true_key_tester_t key_tester;
             key_range_t range_deleted;
             rdb_live_deletion_context_t deletion_context;
@@ -250,18 +295,26 @@ continue_bool_t store_t::receive_backfill(
     guarantee(region.beg == get_region().beg && region.end == get_region().end);
     receive_backfill_info_t info(general_cache_conn.get(), btree.get());
 
-    /* Repeatedly request items from `item_producer` and spawn coroutines to handle them,
-    but limit the number of simultaneously active coroutines. */
+    /* `spawn_threshold` is the point up to which we've spawned coroutines.
+    `metainfo_threshold` is the point up to which we've applied the metainfo to the
+    superblock. `commit_threshold` is the point up to which we've called
+    `item_producer->on_commit()`. These all increase monotonically to the right. */
     key_range_t::right_bound_t
         spawn_threshold(region.inner.left),
         metainfo_threshold(region.inner.left),
         commit_threshold(region.inner.left);
+
+    /* We'll set `result` to `false` to record if `item_producer` returns `ABORT`. */
     continue_bool_t result = continue_bool_t::CONTINUE;
+
+    /* Repeatedly request items from `item_producer` and spawn coroutines to handle them,
+    but limit the number of simultaneously active coroutines. */
     while (spawn_threshold != region.inner.right) {
         bool is_item;
         backfill_item_t item;
-        key_range_t::right_bound_t edge;
-        if (continue_bool_t::ABORT == item_producer->next_item(&is_item, &item, &edge)) {
+        key_range_t::right_bound_t empty_range;
+        if (continue_bool_t::ABORT ==
+                item_producer->next_item(&is_item, &item, &empty_range)) {
             /* By breaking out of the loop instead of returning immediately, we ensure
             that we commit every item that we got from the item producer, as we are
             required to. */
@@ -274,7 +327,7 @@ continue_bool_t store_t::receive_backfill(
         if (is_item) {
             spawn_threshold = item.get_range().right;
         } else {
-            spawn_threshold = edge;
+            spawn_threshold = empty_range;
         }
 
         /* The `apply_*()` functions will call back to `update_metainfo_cb` when they
@@ -330,7 +383,7 @@ continue_bool_t store_t::receive_backfill(
 
         if (!is_item) {
             coro_t::spawn_sometime(std::bind(
-                &apply_edge, std::move(tokens), edge));
+                &apply_empty_range, std::move(tokens), empty_range));
         } else if (item.is_single_key()) {
             coro_t::spawn_sometime(std::bind(
                 &apply_single_key_item, std::move(tokens), std::move(item)));

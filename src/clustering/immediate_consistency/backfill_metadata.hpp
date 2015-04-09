@@ -64,12 +64,12 @@ session is interrupted (but not if the backfill is interrupted). Once the backfi
 applies all the backfill items and receives the `ack_end_session_mailbox_t`, the session
 is over; go back to step 1.
 
-4b. The backfiller might finish traversing the entire backfill range. When the backfillee
-receives a `backfill_item_seq_t` that reaches all the way to the end of the range, then
-it sends a message to the `end_session_mailbox_t` on the backfiller, to which the
-backfiller responds with a message to the `ack_end_session_mailbox_t`, just like in the
-other case. However, this doesn't mean that the backfill is over; the backfillee may
-still choose to start another session from earlier in the key-range.
+4b. Alternatively, the backfiller might finish traversing the entire backfill range. When
+the backfillee receives a `backfill_item_seq_t` that reaches all the way to the end of
+the range, then it sends a message to the `end_session_mailbox_t` on the backfiller, to
+which the backfiller responds with a message to the `ack_end_session_mailbox_t`, just
+like in the other case. However, this doesn't mean that the backfill is over; the
+backfillee may still choose to start another session from earlier in the key-range.
 
 The pre-item traversal process is much simpler than the item traversal process. The
 backfillee sends a series of messages to the `pre_items_mailbox_t` on the backfiller;

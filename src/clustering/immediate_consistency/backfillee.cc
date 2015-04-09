@@ -130,7 +130,7 @@ private:
                     continue_bool_t next_item(
                             bool *is_item_out,
                             backfill_item_t *item_out,
-                            key_range_t::right_bound_t *edge_out) THROWS_NOTHING {
+                            key_range_t::right_bound_t *empty_range_out) THROWS_NOTHING {
                         if (!parent->items.empty_of_items()) {
                             /* This is the common case. */
                             *is_item_out = true;
@@ -143,8 +143,8 @@ private:
                             items in yet. We can ask the store to apply the metainfo to
                             that part of the key-space. */
                             *is_item_out = false;
-                            *edge_out = parent->items.get_right_key();
-                            parent->items.delete_to_key(*edge_out);
+                            *empty_range_out = parent->items.get_right_key();
+                            parent->items.delete_to_key(*empty_range_out);
                             return continue_bool_t::CONTINUE;
                         } else {
                             /* We ran out of items. Break out of `receive_backfill()` so
