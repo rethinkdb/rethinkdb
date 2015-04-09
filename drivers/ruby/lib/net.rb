@@ -571,45 +571,35 @@ module RethinkDB
       begin
         res = nil
         @mon.synchronize {
-          if !@waiters.has_key?(token) && !@data.has_key?(token)
-            raise RqlRuntimeError, "Connection is closed."
-          end
-          res = @data.delete(token)
-          if res.nil?
-            # For consistency with the old implementation.
-            if timeout == 0
-              raise Timeout::Error, "Timed out waiting for cursor response."
-            end
-            start_time = Time.now.to_f
-            while @waiters[token] do
-              # We can't use `wait_while` because it doesn't take a
-              # timeout, and we can't use an external `timeout {
-              # ... }` block because in Ruby 1.9.1 it seems to confuse
-              # the synchronization in `@mon` to be timed out while
-              # waiting in a synchronize block.
-              curtime = Time.now.to_f
-              if timeout
-                # We have to do this because as far as I can tell `wait`
-                # doesn't provide any information about whether it was
-                # woken up by timing out or by a signal.  We give
-                # ourselves a 10% margin of error because waking up on a
-                # timer usually doesn't have perfect precision, and it's
-                # better than waiting twice.
-                if curtime >= start_time + (timeout * 0.9)
-                  raise Timeout::Error, "Timed out waiting for cursor response."
-                else
-                  @waiters[token].wait(timeout - (curtime - start_time))
-                end
-              else
-                @waiters[token].wait
-              end
-            end
+          end_time = timeout ? Time.now.to_f + timeout : nil
+          loop {
             res = @data.delete(token)
-          end
+            return res if res
+
+            # Theoretically we only need to check the second property,
+            # but this is safer in case someone makes changes to
+            # `close` in the future.
+            if !is_open() || !@waiters.has_key?(token)
+              raise RqlRuntimeError, "Connection is closed."
+            end
+
+            if end_time
+              cur_time = Time.now.to_f
+              if cur_time >= end_time
+                raise Timeout::Error, "Timed out waiting for cursor response."
+              else
+                # We can't use `wait_while` because it doesn't take a
+                # timeout, and we can't use an external `timeout {
+                # ... }` block because in Ruby 1.9.1 it seems to confuse
+                # the synchronization in `@mon` to be timed out while
+                # waiting in a synchronize block.
+                @waiters[token].wait(end_time - cur_time)
+              end
+            else
+              @waiters[token].wait
+            end
+          }
         }
-        raise RqlRuntimeError, "Connection is closed." if res.nil? && !is_open()
-        raise RqlDriverError, "Internal driver error, no response found." if res.nil?
-        return res
       rescue @abort_module::Abort => e
         print "\nAborting query and reconnecting...\n"
         reconnect(:noreply_wait => false)
