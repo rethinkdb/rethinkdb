@@ -125,8 +125,10 @@ protected:
 
 class btree_backfill_item_consumer_t {
 public:
-    virtual continue_bool_t on_item(backfill_item_t &&item) = 0;
-    virtual continue_bool_t on_empty_range(const key_range_t::right_bound_t &threshold) = 0;
+    virtual continue_bool_t on_item(
+        backfill_item_t &&item) = 0;
+    virtual continue_bool_t on_empty_range(
+        const key_range_t::right_bound_t &threshold) = 0;
     virtual void copy_value(
         buf_parent_t buf_parent,
         const void *value_in_leaf_node,

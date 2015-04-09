@@ -7,14 +7,18 @@
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/lazy_json.hpp"
 
+/* After every `MAX_BACKFILL_ITEMS_PER_TXN` backfill items or backfill pre-items, we'll
+release the superblock and start a new transaction. */
+#define MAX_BACKFILL_ITEMS_PER_TXN 100
+
 class limiting_btree_backfill_pre_item_consumer_t :
     public btree_backfill_pre_item_consumer_t
 {
 public:
     limiting_btree_backfill_pre_item_consumer_t(
-            store_view_t::backfill_pre_item_consumer_t *_inner, size_t limit,
+            store_view_t::backfill_pre_item_consumer_t *_inner,
             key_range_t::right_bound_t *_threshold_ptr) :
-        inner_aborted(false), inner(_inner), remaining(limit),
+        inner_aborted(false), inner(_inner), remaining(MAX_BACKFILL_ITEMS_PER_TXN),
         threshold_ptr(_threshold_ptr) { }
     continue_bool_t on_pre_item(backfill_pre_item_t &&item)
             THROWS_NOTHING {
@@ -71,7 +75,7 @@ continue_bool_t store_t::send_backfill_pre(
                 general_cache_conn.get(), CACHE_SNAPSHOTTED_NO, &sb, &txn);
 
             limiting_btree_backfill_pre_item_consumer_t
-                limiter(pre_item_consumer, 100, &threshold);
+                limiter(pre_item_consumer, &threshold);
 
             rdb_value_sizer_t sizer(cache->max_block_size());
             key_range_t to_do = pair.first;
@@ -219,11 +223,11 @@ class limiting_btree_backfill_item_consumer_t :
     public btree_backfill_item_consumer_t {
 public:
     limiting_btree_backfill_item_consumer_t(
-            store_view_t::backfill_item_consumer_t *_inner, size_t limit,
+            store_view_t::backfill_item_consumer_t *_inner,
             key_range_t::right_bound_t *_threshold_ptr,
             pre_item_buffer_t *_pre_item_buffer,
             const region_map_t<binary_blob_t> *_metainfo_ptr) :
-        inner_aborted(false), inner(_inner), remaining(limit),
+        inner_aborted(false), inner(_inner), remaining(MAX_BACKFILL_ITEMS_PER_TXN),
         threshold_ptr(_threshold_ptr), pre_item_buffer(_pre_item_buffer),
         metainfo_ptr(_metainfo_ptr) { }
     continue_bool_t on_item(backfill_item_t &&item) {
@@ -316,7 +320,7 @@ continue_bool_t store_t::send_backfill(
             pre_item_buffer_t::producer_t buffered_producer(
                 &pre_item_buffer, threshold);
             limiting_btree_backfill_item_consumer_t limiter(
-                item_consumer, 100, &threshold, &pre_item_buffer, &metainfo);
+                item_consumer, &threshold, &pre_item_buffer, &metainfo);
 
             rdb_value_sizer_t sizer(cache->max_block_size());
             key_range_t to_do = pair.first;

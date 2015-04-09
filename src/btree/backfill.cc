@@ -8,6 +8,10 @@
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/stl_types.hpp"
 
+/* `MAX_CONCURRENT_VALUE_LOADS` is the maximum number of coroutines we'll use for loading
+values from the leaf nodes. */
+#define MAX_CONCURRENT_VALUE_LOADS 16
+
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(backfill_pre_item_t, range);
 RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(backfill_item_t::pair_t, key, recency, value);
 RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(backfill_item_t,
@@ -140,7 +144,8 @@ class backfill_item_loader_t {
 public:
     backfill_item_loader_t(
             btree_backfill_item_consumer_t *_item_consumer, cond_t *_abort_cond) :
-        item_consumer(_item_consumer), abort_cond(_abort_cond), semaphore(16) { }
+        item_consumer(_item_consumer), abort_cond(_abort_cond),
+        semaphore(MAX_CONCURRENT_VALUE_LOADS) { }
 
     /* `on_item()` and `on_empty_range()` will be called in lexicographical order. They
     will always be called from the same coroutine, so if a call blocks the traversal will
@@ -366,6 +371,8 @@ private:
                     return p1.key < p2.key;
                 });
 
+            /* Note that `on_item()` may block, which will limit the rate at which we
+            traverse the B-tree. */
             loader->on_item(std::move(item), buf);
 
             return get_continue();

@@ -5,6 +5,16 @@
 #include "clustering/immediate_consistency/backfillee.hpp"
 #include "store_view.hpp"
 
+/* Maximum number of writes we can queue up in each cycle of the backfill. When we hit
+this number, we'll interrupt the backfill and drain the queue. */
+#define MAX_QUEUED_WRITES 1000
+
+/* Every time we perform a queued write, we'll let `QUEUE_TRICKLE_FRACTION` new writes be
+added to the back of the queue. So `QUEUE_TRICKLE_FRACTION` should be less than 1, to
+ensure that the queue must drain eventually. Higher values will improve performance of
+streaming writes; lower numbers will make the backfill finish faster. */
+#define QUEUE_TRICKLE_FRACTION 0.5
+
 /* Sometimes we'll receive the same write as part of our stream of writes from the
 dispatcher and as part of our backfill from the backfiller. To avoid corruption, we need
 to be sure that we don't apply the write twice. `backfill_end_timestamps_t` tracks which
@@ -217,7 +227,7 @@ remote_replicator_client_t::remote_replicator_client_t(
                 backfill_end_timestamps.combine(
                     region_map_transform<version_t, state_timestamp_t>(chunk,
                         [](const version_t &version) { return version.timestamp; }));
-                return (queue->size() < 1000);
+                return (queue->size() < MAX_QUEUED_WRITES);
             }
             std::queue<queue_entry_t> *queue;
             backfill_end_timestamps_t backfill_end_timestamps;
@@ -287,7 +297,7 @@ remote_replicator_client_t::remote_replicator_client_t(
                 but we pop fewer entries off of `ack_queue` than off of the main queue.
                 This slows down the pace of incoming writes from the primary so that we
                 can be sure that the queue will eventually drain. */
-                acks_to_release += 0.5;
+                acks_to_release += QUEUE_TRICKLE_FRACTION;
                 if (acks_to_release >= 1 && !ack_queue.empty()) {
                     acks_to_release -= 1;
                     ack_queue.front()->pulse();

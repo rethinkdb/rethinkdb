@@ -4,10 +4,20 @@
 #include "btree/reql_specific.hpp"
 #include "rdb_protocol/btree.hpp"
 
+/* `MAX_CONCURRENT_BACKFILL_ITEMS` is the maximum number of coroutines we'll spawn in
+parallel to apply backfill items to the B-tree. */
+#define MAX_CONCURRENT_BACKFILL_ITEMS 16
+
+/* `MAX_CHANGES_PER_TXN` is the maximum number of keys we'll modify or delete in a single
+transaction when applying a multi-key backfill item. Increasing this number will make the
+backfill faster, but it will also cause the backfill-related transactions to hold the
+superblock for a longer time. */
+#define MAX_CHANGES_PER_TXN 16
+
 class receive_backfill_info_t {
 public:
     receive_backfill_info_t(cache_conn_t *c, btree_slice_t *s) :
-        cache_conn(c), slice(s), semaphore(16) { }
+        cache_conn(c), slice(s), semaphore(MAX_CONCURRENT_BACKFILL_ITEMS) { }
     cache_conn_t *cache_conn;
     btree_slice_t *slice;
     new_semaphore_t semaphore;
@@ -180,15 +190,26 @@ void apply_multi_key_item(
                 is_first = false;
             }
 
-            /* Delete a chunk of the range. */
-            key_range_t range_to_delete = item.range;
+            /* Establish an upper limit on how much of the range we're willing to delete
+            in this cycle. We choose the upper limit such that it contains no more than
+            `MAX_CHANGES_PER_TXN / 2` of the pairs in the backfill item. */
+            key_range_t range_to_delete;
             range_to_delete.left = threshold.key();
+            if (next_pair + MAX_CHANGES_PER_TXN / 2 + 1 < item.pairs.size()) {
+                range_to_delete.right = key_range_t::right_bound_t(
+                    item.pairs[next_pair + MAX_CHANGES_PER_TXN / 2 + 1].key);
+            } else {
+                range_to_delete.right = item.range.right;
+            }
+
+            /* Delete a chunk of the range */
             always_true_key_tester_t key_tester;
             key_range_t range_deleted;
             rdb_live_deletion_context_t deletion_context;
             continue_bool_t res = rdb_erase_small_range(tokens.info->slice, &key_tester,
                 range_to_delete, superblock.get(), &deletion_context,
-                tokens.keepalive.get_drain_signal(), 16, &mod_reports, &range_deleted);
+                tokens.keepalive.get_drain_signal(), MAX_CHANGES_PER_TXN / 2,
+                &mod_reports, &range_deleted);
 
             /* Apply any pairs from the item that fall within the deleted region */
             while (next_pair < item.pairs.size() &&
