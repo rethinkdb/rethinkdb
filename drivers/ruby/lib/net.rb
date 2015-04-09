@@ -576,15 +576,30 @@ module RethinkDB
           end
           res = @data.delete(token)
           if res.nil?
-            begin
-              # For consistency with the old implementation.
-              raise TimeoutError, "foo" if timeout == 0
-              Timeout::timeout(timeout) {
-                @waiters[token].wait_while{@waiters[token]}
-              }
-            rescue Timeout::Error
+            # For consistency with the old implementation.
+            if timeout == 0
               raise Timeout::Error, "Timed out waiting for cursor response."
             end
+            end_time = timeout ? Time.now.to_f + timeout : nil
+            loop {
+              # We can't use `wait_while` because it doesn't take a
+              # timeout, and we can't use an external `timeout {
+              # ... }` block because in Ruby 1.9.1 it seems to confuse
+              # the synchronization in `@mon` to be timed out while
+              # waiting in a synchronize block.
+              @waiters[token].wait(timeout)
+              # We have to do this because as far as I can tell `wait`
+              # doesn't provide any information about whether it was
+              # woken up by timing out or by a signal.  We give
+              # ourselves a 10% margin of error because waking up on a
+              # timer usually doesn't have perfect precision, and it's
+              # better than waiting twice.
+              if !@waiters[token]
+                break
+              elsif end_time && Time.now.to_f > end_time * 0.9
+                raise Timeout::Error, "Timed out waiting for cursor response."
+              end
+            }
             res = @data.delete(token)
           end
         }
