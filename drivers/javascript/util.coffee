@@ -101,10 +101,10 @@ convertPseudotype = (obj, opts) ->
             obj
 
 recursivelyConvertPseudotype = (obj, opts) ->
-    if obj instanceof Array
+    if Array.isArray obj
         for value, i in obj
             obj[i] = recursivelyConvertPseudotype(value, opts)
-    else if obj instanceof Object
+    else if obj and typeof obj is 'object'
         for key, value of obj
             obj[key] = recursivelyConvertPseudotype(value, opts)
         obj = convertPseudotype(obj, opts)
