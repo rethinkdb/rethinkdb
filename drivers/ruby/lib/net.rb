@@ -643,9 +643,11 @@ module RethinkDB
       opts[:noreply_wait] = true if !opts.keys.include?(:noreply_wait)
 
       @mon.synchronize {
+        @old_waiters = @waiters
+        @waiters.clear
         @opts.clear
         @data.clear
-        @waiters.values.each {|w|
+        @old_waiters.values.each {|w|
           case w
           when QueryHandle
             w.handle_close
@@ -653,7 +655,6 @@ module RethinkDB
             w.signal
           end
         }
-        @waiters.clear
       }
 
       noreply_wait() if opts[:noreply_wait] && is_open()
