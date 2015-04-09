@@ -13,9 +13,10 @@ yet. So the other server may use up to this size for its pre-item queue.
 static const size_t PRE_ITEM_PIPELINE_SIZE = 4 * MEGABYTE;
 static const size_t PRE_ITEM_CHUNK_SIZE = 100 * KILOBYTE;
 
-/* Every `ITEM_ACK_DELAY_MS` milliseconds, the backfillee sends an acknowledgement to the
-backfiller for any items that it drained from its queue since the last time. */
-static const int ITEM_ACK_DELAY_MS = 100;
+/* `ITEM_ACK_INTERVAL_MS` controls how often we send acknowledgements back to the
+backfiller. If it's too short, we'll waste resources sending lots of tiny
+acknowledgements; if it's too long, the pipeline might stall. */
+static const int ITEM_ACK_INTERVAL_MS = 100;
 
 /* `backfillee_t::session_t` contains all the bits and pieces for managing a single
 backfill session. It's impossible to have multiple sessions running at once, so in
@@ -26,10 +27,10 @@ Here's how `backfillee_t` and `session_t` interact: `backfillee_t` creates the
 `session_t`. The `session_t` is responsible for sending the begin-session, end-session,
 and ack-items messages to the backfiller. Whenever the backfiller sends messages to the
 `backfillee_t`'s mailboxes, the `backfillee_t` passes the messages on to the `session_t`
-by calling `on_items()` and `on_ack_end_session()`. In a separate coroutine, the
-`backfillee_t` calls `wait_done()` to wait for the session to finish, then destroys the
-session after it returns. If the backfillee is destroyed, then `wait_done()` is
-interrupted and the session is destroyed before it's finished. */
+by calling `on_items()` and `on_ack_end_session()`. The `backfillee_t` calls
+`wait_done()` in a separate coroutine to wait for the session to finish, then destroys
+the session after it returns. If the backfillee is destroyed, then `wait_done()` is
+interrupted and the backfillee calls the `session_t` destructor. */
 class backfillee_t::session_t {
 public:
     session_t(
@@ -49,8 +50,8 @@ public:
     {
         send(parent->mailbox_manager, parent->intro.begin_session_mailbox,
             parent->fifo_source.enter_write(), threshold);
-        coro_t::spawn_sometime(std::bind(&session_t::run, this, drainer.lock()));
-        coro_t::spawn_sometime(std::bind(&session_t::send_acks, this, drainer.lock()));
+        coro_t::spawn_sometime(std::bind(
+            &session_t::run, this, drainer.lock()));
     }
 
     /* `backfillee_t()` calls these callbacks when it receives messages from the
@@ -98,6 +99,12 @@ private:
                         done_cond.pulse();
                         return;
                     }
+
+                    /* Make sure that the backfiller isn't waiting for us to ack more
+                    items */
+                    send_ack_items();
+
+                    /* Wait for more items to arrive */
                     pulse_when_items_arrive.init(new cond_t);
                     wait_any_t waiter(
                         pulse_when_items_arrive.get(), &got_ack_end_session);
@@ -114,7 +121,12 @@ private:
                 range or we run out of items */
                 class producer_t : public store_view_t::backfill_item_producer_t {
                 public:
-                    producer_t(session_t *_parent) : parent(_parent) { }
+                    producer_t(session_t *_parent) : parent(_parent) {
+                        coro_t::spawn_sometime(std::bind(
+                            &producer_t::ack_periodically, this, drainer.lock()));
+                    }
+                    /* `next_item()`, `get_metainfo()`, and `on_commit()` will be called
+                    by `receive_backfill()`. */
                     continue_bool_t next_item(
                             bool *is_item_out,
                             backfill_item_t *item_out,
@@ -135,8 +147,8 @@ private:
                             parent->items.delete_to_key(*edge_out);
                             return continue_bool_t::CONTINUE;
                         } else {
-                            /* We ran out of items. Break out of `receive_backfill` so we
-                            can block and wait for more items. (We don't want to block
+                            /* We ran out of items. Break out of `receive_backfill()` so
+                            we can block and wait for more items. (We don't want to block
                             in this callback because the caller might be holding locks in
                             the B-tree.) */
                             return continue_bool_t::ABORT;
@@ -166,7 +178,23 @@ private:
                         }
                         parent->threshold = new_threshold;
                     }
+                private:
+                    /* `ack_periodically()` calls `session_t::send_ack_items()` every so
+                    often during the backfill, so that the backfiller will keep sending
+                    us items as they consume them and so ideally the `items` queue won't
+                    ever bottom out before we're done. */
+                    void ack_periodically(auto_drainer_t::lock_t keepalive2) {
+                        try {
+                            while (true) {
+                                nap(ITEM_ACK_INTERVAL_MS, keepalive2.get_drain_signal());
+                                parent->send_ack_items();
+                            }
+                        } catch (const interrupted_exc_t &) {
+                            /* ignore */
+                        }
+                    }
                     session_t *parent;
+                    auto_drainer_t drainer;
                 } producer(this);
 
                 parent->store->receive_backfill(
@@ -176,8 +204,19 @@ private:
             /* We reached the end of the range to be backfilled and the callback returned
             `true` for each step of the way. */
             guarantee(!callback_returned_false);
+            guarantee(items.empty_domain());
+
+            /* Make sure that we acknowledged every single item that the backfiller sent
+            us */
+            send_ack_items();
+
+            /* Do the handshake to end the session. It's a little bit redundant in this
+            case (because the backfiller knows that it sent us items all the way to the
+            end of the range, so we're not giving it any new information here) but we do
+            it anyway just to be consistent. */
             send_end_session_message();
             wait_interruptible(&got_ack_end_session, keepalive.get_drain_signal());
+            guarantee(items.empty_domain());
             done_cond.pulse();
 
         } catch (const interrupted_exc_t &) {
@@ -185,23 +224,16 @@ private:
         }
     }
 
-    /* `send_acks()` also runs in a separate coroutine, parallel to `run()`. As `run()`
-    pops items from the `items` queue, `send_acks()` sends messages to the backfiller to
-    let it know that it's OK to send more items. */
-    void send_acks(auto_drainer_t::lock_t keepalive) {
-        try {
-            while (true) {
-                guarantee(items_mem_size_unacked >= items.get_mem_size());
-                size_t diff = items_mem_size_unacked - items.get_mem_size();
-                if (diff != 0) {
-                    items_mem_size_unacked -= diff;
-                    send(parent->mailbox_manager, parent->intro.ack_items_mailbox,
-                        parent->fifo_source.enter_write(), diff);
-                }
-                nap(ITEM_ACK_DELAY_MS, keepalive.get_drain_signal());
-            }
-        } catch (const interrupted_exc_t &) {
-            /* The session is over */
+    /* `send_ack_items()` lets the backfiller know the total mem size of the items we've
+    consumed since the last call to `send_ack_items()`, so it knows when it's safe to
+    send more items. */
+    void send_ack_items() {
+        guarantee(items_mem_size_unacked >= items.get_mem_size());
+        size_t diff = items_mem_size_unacked - items.get_mem_size();
+        if (diff != 0) {
+            items_mem_size_unacked -= diff;
+            send(parent->mailbox_manager, parent->intro.ack_items_mailbox,
+                parent->fifo_source.enter_write(), diff);
         }
     }
 
@@ -227,7 +259,7 @@ private:
     backfill_item_seq_t<backfill_item_t> items;
 
     /* `items_mem_size_unacked` describes what the backfiller thinks the total mem size
-    of `items` is. `send_acks()` uses this to decide when to send an ack message. */
+    of `items` is. `send_ack_items()` uses this to calculate what to send. */
     size_t items_mem_size_unacked;
 
     /* `sent_end_session` is true if we've sent a message to the backfiller to end the

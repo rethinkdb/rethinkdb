@@ -52,8 +52,8 @@ metainfo. The backfillee applies the items to its B-tree.
 
 3. As the backfillee applies each item, it sends messages to the `ack_items_mailbox_t` on
 the backfiller. The backfiller uses this as flow control; it limits the total mem size of
-all of the items that it has sent but not received an acknowledgement for. (Minor note:
-the backfillee isn't guaranteed to acknowledge the last few items that are sent.)
+all of the items that it has sent but not received an acknowledgement for. (Note: The
+backfillee must acknowledge every item, even if the session is interrupted.)
 
 4a. The backfillee may decide to interrupt the session. It does this by sending a message
 to the `end_session_mailbox_t` on the backfiller, which responds by sending a message to

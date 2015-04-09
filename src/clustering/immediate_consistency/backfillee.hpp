@@ -42,6 +42,8 @@ new call to `go()` happens. */
 
 class backfillee_t : public home_thread_mixin_debug_only_t {
 private:
+    /* `session_t` represents a session within this backfill; the definition is hidden to
+    keep this header file simple. */
     class session_t;
 
 public:
@@ -113,9 +115,10 @@ private:
     fifo_enforcer_source_t fifo_source;
     fifo_enforcer_sink_t fifo_sink;
 
-    /* `pre_item_throttler` limits how many pre-items we send to the backfiller.
-    `pre_item_throttler_acq` always holds `pre_item_throttler`, but its `count` changes
-    to reflect how much capacity is currently owned by the other server. */
+    /* `pre_item_throttler` limits the total mem size of the pre-items that are allowed
+    to queue up on the backfiller. `pre_item_throttler_acq` always holds
+    `pre_item_throttler`, but its `count` changes to reflect the total mem size that's
+    currently in the queue. */
     new_semaphore_t pre_item_throttler;
     new_semaphore_acq_t pre_item_throttler_acq;
 

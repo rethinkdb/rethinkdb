@@ -109,6 +109,8 @@ to end exactly on `range.right`. */
 
 class btree_backfill_pre_item_consumer_t {
 public:
+    /* These callbacks may block, but `btree_send_backfill_pre()` might hold B-tree locks
+    while it calls them, so they shouldn't block for long. */
     virtual continue_bool_t on_pre_item(backfill_pre_item_t &&item) THROWS_NOTHING = 0;
     virtual continue_bool_t on_empty_range(const key_range_t::right_bound_t &threshold)
         THROWS_NOTHING = 0;
@@ -129,6 +131,9 @@ continue_bool_t btree_send_backfill_pre(
 `backfill_pre_item_t`s to `btree_send_backfill()`. */
 class btree_backfill_pre_item_producer_t {
 public:
+    /* These callbacks may block, but `btree_send_backfill()` may hold B-tree locks while
+    it calls them, so they shouldn't block for long. */
+
     /* `consume_range()` will be called on a series of contiguous ranges in
     lexicographical order. For each range, it must find all the `backfill_pre_item_t`s
     that overlap that range and call the callback with them in lexicographical order. If
