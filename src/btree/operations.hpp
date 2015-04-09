@@ -194,6 +194,7 @@ block_id_t create_stat_block(buf_parent_t parent);
 void find_keyvalue_location_for_write(
         value_sizer_t *sizer,
         superblock_t *superblock, const btree_key_t *key,
+        repli_timestamp_t timestamp,
         const value_deleter_t *balancing_detacher,
         keyvalue_location_t *keyvalue_location_out,
         profile::trace_t *trace,

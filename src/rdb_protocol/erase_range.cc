@@ -102,11 +102,16 @@ done_traversing_t rdb_erase_small_range(
         promise_t<superblock_t *> pass_back_superblock_promise;
         {
             keyvalue_location_t kv_location;
-            find_keyvalue_location_for_write(&sizer, superblock, key.btree_key(),
-                                             deletion_context->balancing_detacher(),
-                                             &kv_location,
-                                             NULL /* profile::trace_t */,
-                                             &pass_back_superblock_promise);
+            find_keyvalue_location_for_write(
+                &sizer,
+                superblock,
+                key.btree_key(),
+                /* don't update subtree recencies as we traverse the tree */
+                repli_timestamp_t::distant_past,
+                deletion_context->balancing_detacher(),
+                &kv_location,
+                NULL /* profile::trace_t */,
+                &pass_back_superblock_promise);
             btree_slice->stats.pm_keys_set.record();
             btree_slice->stats.pm_total_keys_set += 1;
 
