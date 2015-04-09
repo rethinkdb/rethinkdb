@@ -2,7 +2,7 @@
 
 ##### Use bash
 
-SHELL := $(shell which bash)
+SHELL := $(shell bash -c "command -v bash")
 
 ##### Cancel builtin rules
 

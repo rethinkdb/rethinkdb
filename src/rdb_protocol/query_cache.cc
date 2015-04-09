@@ -163,6 +163,22 @@ void query_cache_t::noreply_wait(const query_id_t &query_id,
         }, interruptor);
 }
 
+void query_cache_t::terminate_query(int64_t token) {
+    assert_thread();
+    auto entry_it = queries.find(token);
+    if (entry_it != queries.end()) {
+        terminate_internal(entry_it->second.get());
+    }
+}
+
+void query_cache_t::terminate_internal(query_cache_t::entry_t *entry) {
+    if (entry->state == entry_t::state_t::START ||
+        entry->state == entry_t::state_t::STREAM) {
+        entry->state = entry_t::state_t::DONE;
+    }
+    entry->persistent_interruptor.pulse_if_not_already_pulsed();
+}
+
 query_cache_t::ref_t::ref_t(query_cache_t *_query_cache,
                             int64_t _token,
                             query_cache_t::entry_t *_entry,
@@ -176,7 +192,7 @@ query_cache_t::ref_t::ref_t(query_cache_t *_query_cache,
         drainer_lock(&entry->drainer),
         combined_interruptor(interruptor, &entry->persistent_interruptor),
         mutex_lock(&entry->mutex) {
-    wait_interruptible(mutex_lock.acq_signal(), &combined_interruptor);
+    wait_interruptible(mutex_lock.acq_signal(), interruptor);
 }
 
 void query_cache_t::async_destroy_entry(query_cache_t::entry_t *entry) {
@@ -201,15 +217,6 @@ query_cache_t::ref_t::~ref_t() {
                                          it->second.release()));
         query_cache->queries.erase(it);
     }
-}
-
-void query_cache_t::ref_t::terminate() {
-    query_cache->assert_thread();
-    if (entry->state == entry_t::state_t::START ||
-        entry->state == entry_t::state_t::STREAM) {
-        entry->state = entry_t::state_t::DONE;
-    }
-    entry->persistent_interruptor.pulse_if_not_already_pulsed();
 }
 
 void query_cache_t::ref_t::fill_response(Response *res) {
@@ -245,17 +252,19 @@ void query_cache_t::ref_t::fill_response(Response *res) {
         }
     } catch (const interrupted_exc_t &ex) {
         if (entry->persistent_interruptor.is_pulsed()) {
-            if (entry->state == entry_t::state_t::DONE) {
+            if (entry->state != entry_t::state_t::DONE) {
                 throw query_cache_exc_t(Response::RUNTIME_ERROR,
-                    "Query interrupted by a STOP query.", backtrace_t());
+                    "Query terminated by the `rethinkdb.jobs` table.", backtrace_t());
             }
-            throw query_cache_exc_t(Response::RUNTIME_ERROR,
-                "Query interrupted through the `rethinkdb.jobs` table.", backtrace_t());
+            // For compatibility, we return a SUCCESS_SEQUENCE in this case
+            res->Clear();
+            res->set_type(Response::SUCCESS_SEQUENCE);
+        } else {
+            query_cache->terminate_internal(entry);
+            throw;
         }
-        terminate();
-        throw;
     } catch (...) {
-        terminate();
+        query_cache->terminate_internal(entry);
         throw;
     }
 }
@@ -309,18 +318,40 @@ void query_cache_t::ref_t::serve(env_t *env, Response *res) {
         d->write_to_protobuf(res->add_response(), use_json);
     }
 
-    const ql::feed_type_t cfeed = entry->stream->cfeed_type();
-    if (entry->stream->is_exhausted() || (res->response_size() == 0
-                                          && cfeed == feed_type_t::not_feed)) {
-        res->set_type(Response::SUCCESS_SEQUENCE);
+    // Note that `SUCCESS_SEQUENCE` is possible for feeds if you call `.limit`
+    // after the feed.
+    if (entry->stream->is_exhausted() || is_noreply(entry->original_query)) {
+        guarantee(entry->state == entry_t::state_t::STREAM);
         entry->state = entry_t::state_t::DONE;
-    } else if (cfeed == feed_type_t::stream) {
-        res->set_type(Response::SUCCESS_FEED);
-    } else if (cfeed == feed_type_t::point) {
-        res->set_type(Response::SUCCESS_ATOM_FEED);
+        res->set_type(Response::SUCCESS_SEQUENCE);
     } else {
         res->set_type(Response::SUCCESS_PARTIAL);
     }
+
+    switch (entry->stream->cfeed_type()) {
+    case feed_type_t::not_feed:
+        // If we don't have a feed, then a 0-size response means there's no more
+        // data.  The reason this `if` statement is only in this branch of the
+        // `case` statement is that feeds can sometimes have 0-size responses
+        // for other reasons (e.g. in their first batch, or just whenever with a
+        // V0_3 protocol).
+        if (res->response_size() == 0) res->set_type(Response::SUCCESS_SEQUENCE);
+        break;
+    case feed_type_t::stream:
+        res->add_notes(Response::SEQUENCE_FEED);
+        break;
+    case feed_type_t::point:
+        res->add_notes(Response::ATOM_FEED);
+        break;
+    case feed_type_t::orderby_limit:
+        res->add_notes(Response::ORDER_BY_LIMIT_FEED);
+        break;
+    case feed_type_t::unioned:
+        res->add_notes(Response::UNIONED_FEED);
+        break;
+    default: unreachable();
+    }
+    entry->stream->set_notes(res);
 }
 
 query_cache_t::entry_t::entry_t(protob_t<Query> _original_query,

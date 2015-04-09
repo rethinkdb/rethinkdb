@@ -44,7 +44,7 @@ public:
         signal_t *get_interruptor();
 
         void pulse();
-        bool is_expired();
+        time_t last_accessed_time() const;
 
     private:
         cond_t interruptor;
@@ -54,7 +54,7 @@ public:
         DISABLE_COPYING(http_conn_t);
     };
 
-    http_conn_cache_t();
+    explicit http_conn_cache_t(uint32_t _http_timeout_sec);
     ~http_conn_cache_t();
 
     counted_t<http_conn_t> find(int32_t key);
@@ -62,28 +62,27 @@ public:
     void erase(int32_t key);
 
     void on_ring();
+    bool is_expired(const http_conn_t &conn) const;
+
+    std::string expired_error_message() const;
 private:
-    static const time_t TIMEOUT_SEC = 5*60;
     static const int64_t TIMER_RESOLUTION_MS = 5000;
 
     std::map<int32_t, counted_t<http_conn_t> > cache;
     int32_t next_id;
     repeating_timer_t http_timeout_timer;
+    uint32_t http_timeout_sec;
 };
 
 class query_handler_t {
 public:
     virtual ~query_handler_t() { }
 
-    virtual MUST_USE bool run_query(const ql::query_id_t &query_id,
-                                    const ql::protob_t<Query> &query,
-                                    Response *response_out,
-                                    ql::query_cache_t *query_cache,
-                                    signal_t *interruptor) = 0;
-
-    virtual void unparseable_query(int64_t token,
-                                   Response *response_out,
-                                   const std::string &info) = 0;
+    virtual void run_query(ql::query_id_t &&query_id,
+                           const ql::protob_t<Query> &query,
+                           Response *response_out,
+                           ql::query_cache_t *query_cache,
+                           signal_t *interruptor) = 0;
 };
 
 class query_server_t : public http_app_t {
@@ -93,8 +92,7 @@ public:
         const std::set<ip_address_t> &local_addresses,
         int port,
         query_handler_t *_handler,
-        boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
-            _auth_metadata);
+        uint32_t http_timeout_sec);
     ~query_server_t();
 
     int get_port() const;
@@ -105,6 +103,11 @@ private:
                                          const std::string &length_error_msg,
                                          signal_t *interruptor);
     static auth_key_t read_auth_key(tcp_conn_t *conn, signal_t *interruptor);
+
+    void make_error_response(bool is_draining,
+                             const tcp_conn_t &conn,
+                             const std::string &err,
+                             Response *response_out);
 
     // For the client driver socket
     void handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn,
@@ -123,30 +126,11 @@ private:
                 signal_t *interruptor);
 
     rdb_context_t *const rdb_ctx;
-
     query_handler_t *const handler;
 
-    boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
-        auth_metadata;
-
     /* WARNING: The order here is fragile. */
-    cond_t main_shutting_down_cond;
-    signal_t *shutdown_signal() {
-        return shutting_down_conds[get_thread_id().threadnum].get();
-    }
-
-    std::vector<scoped_ptr_t<cross_thread_signal_t> > shutting_down_conds;
-
-    auto_drainer_t auto_drainer;
-
-    struct pulse_on_destruct_t {
-        explicit pulse_on_destruct_t(cond_t *_cond) : cond(_cond) { }
-        ~pulse_on_destruct_t() { cond->pulse(); }
-        cond_t *cond;
-    } pulse_sdc_on_shutdown;
-
+    auto_drainer_t drainer;
     http_conn_cache_t http_conn_cache;
-
     scoped_ptr_t<tcp_listener_t> tcp_listener;
 
     int next_thread;

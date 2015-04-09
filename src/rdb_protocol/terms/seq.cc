@@ -7,8 +7,8 @@
 
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/func.hpp"
-#include "rdb_protocol/op.hpp"
 #include "rdb_protocol/math_utils.hpp"
+#include "rdb_protocol/op.hpp"
 
 namespace ql {
 
@@ -376,13 +376,14 @@ struct rcheck_spec_visitor_t : public pb_rcheckable_t,
 class changes_term_t : public op_term_t {
 public:
     changes_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(1), optargspec_t({"squash"})) { }
+        : op_term_t(env, term, argspec_t(1),
+                    optargspec_t({"squash", "include_states"})) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
         scope_env_t *env, args_t *args, eval_flags_t) const {
 
         scoped_ptr_t<val_t> sval = args->optarg(env, "squash");
-        datum_t squash = sval.has() ? sval->as_datum() : datum_t::boolean(true);
+        datum_t squash = sval.has() ? sval->as_datum() : datum_t::boolean(false);
         if (squash.get_type() == datum_t::type_t::R_NUM) {
             rcheck_target(sval, squash.as_num() >= 0.0, base_exc_t::GENERIC,
                           "Expected BOOL or a positive NUMBER but found "
@@ -391,6 +392,11 @@ private:
             rfail_target(sval, base_exc_t::GENERIC,
                          "Expected BOOL or NUMBER but found %s.",
                          squash.get_type_name().c_str());
+        }
+
+        bool include_states = false;
+        if (scoped_ptr_t<val_t> v = args->optarg(env, "include_states")) {
+            include_states = v->as_bool();
         }
 
         scoped_ptr_t<val_t> v = args->arg(env, 0);
@@ -406,6 +412,7 @@ private:
                     keyspec.table->read_changes(
                         env->env,
                         squash,
+                        include_states,
                         std::move(keyspec.spec),
                         backtrace(),
                         keyspec.table_name));
@@ -420,7 +427,8 @@ private:
             }
         } else if (v->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
             return new_val(
-                env->env, v->as_single_selection()->read_changes(squash));
+                env->env,
+                v->as_single_selection()->read_changes(squash, include_states));
         }
         auto selection = v->as_selection(env->env);
         rfail(base_exc_t::GENERIC,
@@ -429,36 +437,63 @@ private:
     virtual const char *name() const { return "changes"; }
 };
 
+class minval_term_t final : public op_term_t {
+public:
+    minval_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : op_term_t(env, term, argspec_t(0)) { }
+private:
+    scoped_ptr_t<val_t> eval_impl(scope_env_t *, args_t *, eval_flags_t) const {
+        return new_val(datum_t::minval());
+    }
+    const char *name() const { return "minval"; }
+};
+
+class maxval_term_t final : public op_term_t {
+public:
+    maxval_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : op_term_t(env, term, argspec_t(0)) { }
+private:
+    scoped_ptr_t<val_t> eval_impl(scope_env_t *, args_t *, eval_flags_t) const {
+        return new_val(datum_t::maxval());
+    }
+    const char *name() const { return "maxval"; }
+};
+
+// For compatibility, the old version of `between` treats `null` as unbounded, and the
+// new version of between will error on a `null` boundary (r.minval and r.maxval should
+// be used instead).  The deprecated version can be removed in a few versions, and the
+// new version can remove the error once we support `null` in indexes.
+enum class between_null_t { UNBOUNDED, ERROR };
+
 class between_term_t : public bounded_op_term_t {
 public:
-    between_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : bounded_op_term_t(env, term, argspec_t(3), optargspec_t({"index"})) { }
+    between_term_t(compile_env_t *env,
+                   const protob_t<const Term> &term,
+                   between_null_t _null_behavior)
+        : bounded_op_term_t(env, term, argspec_t(3), optargspec_t({"index"})),
+          null_behavior(_null_behavior) { }
 private:
+    datum_t check_bound(scoped_ptr_t<val_t> bound_val,
+                        datum_t::type_t unbounded_type) const {
+        datum_t bound = bound_val->as_datum();
+        if (bound.get_type() == datum_t::R_NULL) {
+            rcheck_target(bound_val, null_behavior != between_null_t::ERROR,
+                          base_exc_t::GENERIC,
+                          "Cannot use `null` in BETWEEN, use `r.minval` or `r.maxval` "
+                          "to denote unboundedness.");
+            bound = unbounded_type == datum_t::type_t::MINVAL ? datum_t::minval() :
+                                                                datum_t::maxval();
+        }
+        return bound;
+    }
+
     virtual scoped_ptr_t<val_t>
     eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<table_slice_t> tbl_slice = args->arg(env, 0)->as_table_slice();
         bool left_open = is_left_open(env, args);
-        datum_t lb = args->arg(env, 1)->as_datum();
-        if (lb.get_type() == datum_t::R_NULL) {
-            lb.reset();
-        }
         bool right_open = is_right_open(env, args);
-        datum_t rb = args->arg(env, 2)->as_datum();
-        if (rb.get_type() == datum_t::R_NULL) {
-            rb.reset();
-        }
-
-        if (lb.has() && rb.has()) {
-            // This reql_version will always be LATEST, because this function is not
-            // deterministic, but whatever.
-            if (lb.compare_gt(env->env->reql_version(), rb) ||
-                ((left_open || right_open) && lb == rb)) {
-                counted_t<datum_stream_t> ds
-                    =  make_counted<array_datum_stream_t>(datum_t::empty_array(),
-                                                          backtrace());
-                return new_val(make_counted<selection_t>(tbl_slice->get_tbl(), ds));
-            }
-        }
+        datum_t lb = check_bound(args->arg(env, 1), datum_t::type_t::MINVAL);
+        datum_t rb = check_bound(args->arg(env, 2), datum_t::type_t::MAXVAL);
 
         scoped_ptr_t<val_t> sindex = args->optarg(env, "index");
         std::string idx;
@@ -469,6 +504,8 @@ private:
             idx = old_idx ? *old_idx : tbl_slice->get_tbl()->get_pkey();
         }
         return new_val(
+            // `table_slice_t` can handle emtpy / invalid `datum_range_t`'s, checking is
+            // done there.
             tbl_slice->with_bounds(
                 idx,
                 datum_range_t(
@@ -478,6 +515,7 @@ private:
     virtual const char *name() const { return "between"; }
 
     protob_t<Term> filter_func;
+    between_null_t null_behavior;
 };
 
 class union_term_t : public op_term_t {
@@ -535,9 +573,21 @@ private:
     virtual const char *name() const { return "range"; }
 };
 
+counted_t<term_t> make_minval_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<minval_term_t>(env, term);
+}
+counted_t<term_t> make_maxval_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<maxval_term_t>(env, term);
+}
+counted_t<term_t> make_between_deprecated_term(
+    compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<between_term_t>(env, term, between_null_t::UNBOUNDED);
+}
 counted_t<term_t> make_between_term(
     compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<between_term_t>(env, term);
+    return make_counted<between_term_t>(env, term, between_null_t::ERROR);
 }
 counted_t<term_t> make_changes_term(
     compile_env_t *env, const protob_t<const Term> &term) {

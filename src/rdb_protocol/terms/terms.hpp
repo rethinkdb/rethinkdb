@@ -16,6 +16,12 @@ counted_t<term_t> make_arith_term(
     compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_mod_term(
     compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_floor_term(
+    compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_ceil_term(
+    compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_round_term(
+    compile_env_t *env, const protob_t<const Term> &term);
 
 // random.cc
 counted_t<term_t> make_sample_term(
@@ -228,6 +234,12 @@ counted_t<term_t> make_with_fields_term(
     compile_env_t *env, const protob_t<const Term> &term);
 
 // seq.cc
+counted_t<term_t> make_minval_term(
+    compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_maxval_term(
+    compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_between_deprecated_term(
+    compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_between_term(
     compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_changes_term(

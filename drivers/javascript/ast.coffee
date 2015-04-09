@@ -133,6 +133,9 @@ class RDBVal extends TermBase
     mul: (args...) -> new Mul {}, @, args...
     div: (args...) -> new Div {}, @, args...
     mod: (args...) -> new Mod {}, @, args...
+    floor: (args...) -> new Floor {}, @, args...
+    ceil: (args...) -> new Ceil {}, @, args...
+    round: (args...) -> new Round {}, @, args...
 
     append: (args...) -> new Append {}, @, args...
     prepend: (args...) -> new Prepend {}, @, args...
@@ -439,6 +442,11 @@ class RDBOp extends RDBVal
                 args[0] = ['r(', args[0], ')']
             return [args[0], '.', @mt, '(', intspallargs(args[1..], optargs), ')']
 
+class RDBConstant extends RDBOp
+    compose: (args, optargs) ->
+        # Constants should not have any args or optargs, and should not look like a call
+        return ['r.', @st]
+
 intsp = (seq) ->
     unless seq[0]? then return []
     res = [seq[0]]
@@ -617,6 +625,18 @@ class Div extends RDBOp
 class Mod extends RDBOp
     tt: protoTermType.MOD
     mt: 'mod'
+
+class Floor extends RDBOp
+    tt: protoTermType.FLOOR
+    mt: 'floor'
+
+class Ceil extends RDBOp
+    tt: protoTermType.CEIL
+    mt: 'ceil'
+
+class Round extends RDBOp
+    tt: protoTermType.ROUND
+    mt: 'round'
 
 class Append extends RDBOp
     tt: protoTermType.APPEND
@@ -1248,6 +1268,9 @@ rethinkdb.sub = (args...) -> new Sub {}, args...
 rethinkdb.div = (args...) -> new Div {}, args...
 rethinkdb.mul = (args...) -> new Mul {}, args...
 rethinkdb.mod = (args...) -> new Mod {}, args...
+rethinkdb.floor = (args...) -> new Floor {}, args...
+rethinkdb.ceil = (args...) -> new Ceil {}, args...
+rethinkdb.round = (args...) -> new Round {}, args...
 
 rethinkdb.typeOf = (args...) -> new TypeOf {}, args...
 rethinkdb.info = (args...) -> new Info {}, args...
@@ -1259,26 +1282,29 @@ rethinkdb.epochTime = (args...) -> new EpochTime {}, args...
 rethinkdb.now = (args...) -> new Now {}, args...
 rethinkdb.time = (args...) -> new Time {}, args...
 
-rethinkdb.monday = new (class extends RDBOp then tt: protoTermType.MONDAY)()
-rethinkdb.tuesday = new (class extends RDBOp then tt: protoTermType.TUESDAY)()
-rethinkdb.wednesday = new (class extends RDBOp then tt: protoTermType.WEDNESDAY)()
-rethinkdb.thursday = new (class extends RDBOp then tt: protoTermType.THURSDAY)()
-rethinkdb.friday = new (class extends RDBOp then tt: protoTermType.FRIDAY)()
-rethinkdb.saturday = new (class extends RDBOp then tt: protoTermType.SATURDAY)()
-rethinkdb.sunday = new (class extends RDBOp then tt: protoTermType.SUNDAY)()
+rethinkdb.monday = new (class extends RDBConstant then tt: protoTermType.MONDAY, st: 'monday')()
+rethinkdb.tuesday = new (class extends RDBConstant then tt: protoTermType.TUESDAY, st: 'tuesday')()
+rethinkdb.wednesday = new (class extends RDBConstant then tt: protoTermType.WEDNESDAY, st: 'wednesday')()
+rethinkdb.thursday = new (class extends RDBConstant then tt: protoTermType.THURSDAY, st: 'thursday')()
+rethinkdb.friday = new (class extends RDBConstant then tt: protoTermType.FRIDAY, st: 'friday')()
+rethinkdb.saturday = new (class extends RDBConstant then tt: protoTermType.SATURDAY, st: 'saturday')()
+rethinkdb.sunday = new (class extends RDBConstant then tt: protoTermType.SUNDAY, st: 'sunday')()
 
-rethinkdb.january = new (class extends RDBOp then tt: protoTermType.JANUARY)()
-rethinkdb.february = new (class extends RDBOp then tt: protoTermType.FEBRUARY)()
-rethinkdb.march = new (class extends RDBOp then tt: protoTermType.MARCH)()
-rethinkdb.april = new (class extends RDBOp then tt: protoTermType.APRIL)()
-rethinkdb.may = new (class extends RDBOp then tt: protoTermType.MAY)()
-rethinkdb.june = new (class extends RDBOp then tt: protoTermType.JUNE)()
-rethinkdb.july = new (class extends RDBOp then tt: protoTermType.JULY)()
-rethinkdb.august = new (class extends RDBOp then tt: protoTermType.AUGUST)()
-rethinkdb.september = new (class extends RDBOp then tt: protoTermType.SEPTEMBER)()
-rethinkdb.october = new (class extends RDBOp then tt: protoTermType.OCTOBER)()
-rethinkdb.november = new (class extends RDBOp then tt: protoTermType.NOVEMBER)()
-rethinkdb.december = new (class extends RDBOp then tt: protoTermType.DECEMBER)()
+rethinkdb.january = new (class extends RDBConstant then tt: protoTermType.JANUARY, st: 'january')()
+rethinkdb.february = new (class extends RDBConstant then tt: protoTermType.FEBRUARY, st: 'february')()
+rethinkdb.march = new (class extends RDBConstant then tt: protoTermType.MARCH, st: 'march')()
+rethinkdb.april = new (class extends RDBConstant then tt: protoTermType.APRIL, st: 'april')()
+rethinkdb.may = new (class extends RDBConstant then tt: protoTermType.MAY, st: 'may')()
+rethinkdb.june = new (class extends RDBConstant then tt: protoTermType.JUNE, st: 'june')()
+rethinkdb.july = new (class extends RDBConstant then tt: protoTermType.JULY, st: 'july')()
+rethinkdb.august = new (class extends RDBConstant then tt: protoTermType.AUGUST, st: 'august')()
+rethinkdb.september = new (class extends RDBConstant then tt: protoTermType.SEPTEMBER, st: 'september')()
+rethinkdb.october = new (class extends RDBConstant then tt: protoTermType.OCTOBER, st: 'october')()
+rethinkdb.november = new (class extends RDBConstant then tt: protoTermType.NOVEMBER, st: 'november')()
+rethinkdb.december = new (class extends RDBConstant then tt: protoTermType.DECEMBER, st: 'december')()
+
+rethinkdb.minval = new (class extends RDBConstant then tt: protoTermType.MINVAL, st: 'minval')()
+rethinkdb.maxval = new (class extends RDBConstant then tt: protoTermType.MAXVAL, st: 'maxval')()
 
 rethinkdb.object = (args...) -> new Object_ {}, args...
 

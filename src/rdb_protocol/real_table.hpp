@@ -10,8 +10,6 @@
 #include "rdb_protocol/context.hpp"
 #include "rdb_protocol/protocol.hpp"
 
-const char *const sindex_blob_prefix = "$reql_index_function$";
-
 namespace ql {
 class datum_range_t;
 namespace changefeed {
@@ -79,6 +77,7 @@ public:
     counted_t<ql::datum_stream_t> read_changes(
         ql::env_t *env,
         const ql::datum_t &squash,
+        bool include_states,
         ql::changefeed::keyspec_t::spec_t &&spec,
         const ql::protob_t<const Backtrace> &bt,
         const std::string &table_name);

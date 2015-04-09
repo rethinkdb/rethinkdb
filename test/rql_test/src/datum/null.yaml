@@ -2,7 +2,7 @@ desc: Tests of conversion to and from the RQL null type
 tests:
     - cd: [r(null), r.expr(null)]
       py: r.expr(null)
-      ot: null
+      ot: (null)
 
     - cd: r.expr(null).type_of()
       rb: r(null).type_of()
@@ -10,9 +10,7 @@ tests:
 
     # test coercions
     - cd: r.expr(null).coerce_to('string')
-      ot:
-        cd: "'null'"
-        rb: "'nu'+'ll'"
+      ot: "'null'"
       
     - cd: r.expr(null).coerce_to('null')
-      ot: null
+      ot: (null)

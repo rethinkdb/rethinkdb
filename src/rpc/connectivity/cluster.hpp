@@ -15,6 +15,7 @@
 #include "concurrency/watchable_map.hpp"
 #include "containers/archive/tcp_conn_stream.hpp"
 #include "containers/map_sentries.hpp"
+#include "concurrency/pump_coro.hpp"
 #include "perfmon/perfmon.hpp"
 #include "rpc/connectivity/peer_id.hpp"
 #include "utils.hpp"
@@ -126,6 +127,10 @@ public:
 
         /* Unused for our connection to ourself */
         mutex_t send_mutex;
+
+        /* Calls `conn->flush_buffer()`. Can be used for making sure that a
+        buffered write makes it to the TCP stack. */
+        pump_coro_t flusher;
 
         perfmon_collection_t pm_collection;
         perfmon_sampler_t pm_bytes_sent;

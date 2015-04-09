@@ -11,15 +11,16 @@ public:
     explicit me_http_app_t(const server_id_t &_me) : me(_me) { }
 private:
     void handle(const http_req_t &req, http_res_t *result, signal_t *) {
-        if (req.method != GET) {
-            *result = http_res_t(HTTP_METHOD_NOT_ALLOWED);
+        if (req.method != http_method_t::GET) {
+            *result = http_res_t(http_status_code_t::METHOD_NOT_ALLOWED);
             return;
         }
         if (!req.query_params.empty()) {
             *result = http_error_res("Unexpected query param");
             return;
         }
-        *result = http_res_t(HTTP_OK, "application/json", '"' + uuid_to_str(me) + '"');
+        *result = http_res_t(http_status_code_t::OK,
+                             "application/json", '"' + uuid_to_str(me) + '"');
     }
     server_id_t me;
 };

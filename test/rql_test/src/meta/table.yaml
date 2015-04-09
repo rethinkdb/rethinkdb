@@ -269,33 +269,25 @@ tests:
     - cd: r.table('test2B').config()
       ot: err('RqlRuntimeError', 'Table `test.test2B` does not exist.', [])
 
-    - cd: >
-          r.db('rethinkdb').table('table_'+'config').filter({'name':'testA'}).nth(0)
-          .eq(r.table('testA').config())
+    - cd: r.db('rethinkdb').table('table_config').filter({'name':'testA'}).nth(0).eq(r.table('testA').config())
       ot: True
 
-    - cd: >
-          r.db('rethinkdb').table('table_'+'status').filter({'name':'testA'}).nth(0)
-          .eq(r.table('testA').status())
+    - cd: r.db('rethinkdb').table('table_status').filter({'name':'testA'}).nth(0).eq(r.table('testA').status())
       ot: True
 
     - py: r.db('rethinkdb').table('table_config', identifier_format='uuid').nth(0)["db"]
-      js: >
-          r.db('rethinkdb').table('table_'+'config', {identifierFormat: 'uuid'})
-          .nth(0)("db")
-      rb: >
-          r.db('rethinkdb').table('table_config', {:identifier_format => 'uuid'})
-          .nth(0)["db"]
+      js: r.db('rethinkdb').table('table_config', {identifierFormat:'uuid'}).nth(0)("db")
+      rb: r.db('rethinkdb').table('table_config', {:identifier_format=>'uuid'}).nth(0)["db"]
       ot: uuid()
 
-    - py: r.table('testA',identifier_format='uuid').count()
-      js: r.table('testA',{identifierFormat:'uuid'}).count()
-      rb: r.table('testA',{:identifier_format=>'uuid'}).count()
+    - py: r.table('testA', identifier_format='uuid').count()
+      js: r.table('testA', {identifierFormat:'uuid'}).count()
+      rb: r.table('testA', {:identifier_format=>'uuid'}).count()
       ot: 0
 
     - py: r.wait(wait_for='all_replicas_ready', timeout=5)
-      js: r.wait({waitFor:'all' + '_' + 'replicas' + '_' + 'ready', timeout:5})
-      rb: r.wait(:wait_for => 'all_replicas_ready', :timeout => 5)
+      js: r.wait({waitFor:'all_replicas_ready', timeout:5})
+      rb: r.wait(:wait_for=>'all_replicas_ready', :timeout => 5)
       ot: partial({'ready':2})
 
     - cd: db.table_drop('testA')

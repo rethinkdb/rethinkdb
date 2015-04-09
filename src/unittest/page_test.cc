@@ -72,8 +72,7 @@ private:
 
 class test_txn_t : public page_txn_t {
 public:
-    explicit test_txn_t(test_cache_t *cache,
-                        repli_timestamp_t recency = repli_timestamp_t::distant_past);
+    explicit test_txn_t(test_cache_t *cache);
 };
 
 class current_test_acq_t : public current_page_acq_t {
@@ -115,10 +114,8 @@ public:
 };
 
 
-test_txn_t::test_txn_t(test_cache_t *cache,
-                       repli_timestamp_t recency)
+test_txn_t::test_txn_t(test_cache_t *cache)
     : page_txn_t(cache,
-                 recency,
                  cache->make_throttler_acq(),
                  NULL) { }
 

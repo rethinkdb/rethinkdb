@@ -85,6 +85,8 @@ store_t::store_t(const region_t &region,
                  rdb_context_t *_ctx,
                  io_backender_t *io_backender,
                  const base_path_t &base_path,
+                 /* TODO: We should track outdated indexes by looking at the Raft state,
+                 not by looking at the `store_t`. */
                  scoped_ptr_t<outdated_index_report_t> &&_index_report,
                  namespace_id_t _table_id)
     : store_view_t(region),
@@ -105,7 +107,7 @@ store_t::store_t(const region_t &region,
     if (create) {
         vector_stream_t key;
         // The version used when deserializing this data depends on the block magic.
-        // The block magic set by init_superblock corresponds to the latest version
+        // The block magic set by init_real_superblock corresponds to the latest version
         // and so this serialization does too.
         // VSI: Do this better.
         write_message_t wm;
@@ -115,12 +117,10 @@ store_t::store_t(const region_t &region,
         int res = send_write_message(&key, &wm);
         guarantee(!res);
 
-        txn_t txn(general_cache_conn.get(), write_durability_t::HARD,
-                  repli_timestamp_t::distant_past, 1);
-        buf_lock_t superblock(&txn, SUPERBLOCK_ID, alt_create_t::create);
-        btree_slice_t::init_superblock(&superblock, key.vector(), binary_blob_t());
-        real_superblock_t sb(std::move(superblock));
-        create_stat_block(&sb);
+        txn_t txn(general_cache_conn.get(), write_durability_t::HARD, 1);
+        buf_lock_t sb_lock(&txn, SUPERBLOCK_ID, alt_create_t::create);
+        real_superblock_t superblock(std::move(sb_lock));
+        btree_slice_t::init_real_superblock(&superblock, key.vector(), binary_blob_t());
     }
 
     btree.init(new btree_slice_t(cache.get(),
@@ -138,8 +138,7 @@ store_t::store_t(const region_t &region,
         new_write_token(&token);
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
-        acquire_superblock_for_write(repli_timestamp_t::distant_past,
-                                     1,
+        acquire_superblock_for_write(1,
                                      write_durability_t::SOFT,
                                      &token,
                                      &txn,
@@ -214,8 +213,7 @@ void store_t::write(
     scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> real_superblock;
     const int expected_change_count = 2; // FIXME: this is incorrect, but will do for now
-    acquire_superblock_for_write(timestamp.to_repli_timestamp(),
-                                 expected_change_count, durability, token,
+    acquire_superblock_for_write(expected_change_count, durability, token,
                                  &txn, &real_superblock, interruptor);
 
     check_and_update_metainfo(DEBUG_ONLY(metainfo_checker, ) new_metainfo,
@@ -245,8 +243,7 @@ void store_t::reset_data(
         const int expected_change_count = 2 + max_erased_per_pass;
         write_token_t token;
         new_write_token(&token);
-        acquire_superblock_for_write(repli_timestamp_t::distant_past,
-                                     expected_change_count,
+        acquire_superblock_for_write(expected_change_count,
                                      durability,
                                      &token,
                                      &txn,
@@ -275,7 +272,7 @@ void store_t::reset_data(
                                              &deleted_range);
 
         region_map_t<binary_blob_t> old_metainfo;
-        get_metainfo_internal(superblock->get(), &old_metainfo);
+        get_metainfo_internal(superblock.get(), &old_metainfo);
         region_map_t<binary_blob_t> new_metainfo = old_metainfo;
         region_t deleted_region(subregion.beg, subregion.end, deleted_range);
         new_metainfo.set(deleted_region, zero_metainfo);
@@ -353,8 +350,7 @@ void store_t::sindex_create(
     scoped_ptr_t<txn_t> txn;
     get_btree_superblock_and_txn_for_writing(general_cache_conn.get(),
         &write_superblock_acq_semaphore, write_access_t::write, 1,
-        repli_timestamp_t::distant_past, write_durability_t::HARD,
-        &superblock, &txn);
+        write_durability_t::HARD, &superblock, &txn);
     buf_lock_t sindex_block(superblock->expose_buf(),
                             superblock->get_sindex_block_id(),
                             access_t::write);
@@ -394,8 +390,7 @@ void store_t::sindex_rename_multi(
     scoped_ptr_t<txn_t> txn;
     get_btree_superblock_and_txn_for_writing(general_cache_conn.get(),
         &write_superblock_acq_semaphore, write_access_t::write, 1,
-        repli_timestamp_t::distant_past, write_durability_t::HARD,
-        &superblock, &txn);
+        write_durability_t::HARD, &superblock, &txn);
     buf_lock_t sindex_block(superblock->expose_buf(),
                             superblock->get_sindex_block_id(),
                             access_t::write);
@@ -420,7 +415,7 @@ void store_t::sindex_rename_multi(
         slice_it->second->assert_thread();
         btree_stats_t *stats = &slice_it->second->stats;
         stats->hide();
-    
+
         to_put_back.insert(std::make_pair(
             pair.second, std::make_pair(definition, stats)));
     }
@@ -443,8 +438,7 @@ void store_t::sindex_drop(
     scoped_ptr_t<txn_t> txn;
     get_btree_superblock_and_txn_for_writing(general_cache_conn.get(),
         &write_superblock_acq_semaphore, write_access_t::write, 1,
-        repli_timestamp_t::distant_past, write_durability_t::HARD,
-        &superblock, &txn);
+        write_durability_t::HARD, &superblock, &txn);
     buf_lock_t sindex_block(superblock->expose_buf(),
                             superblock->get_sindex_block_id(),
                             access_t::write);
@@ -627,18 +621,12 @@ bool store_t::add_sindex_internal(
         return false; // sindex was already created
     } else {
         {
-            buf_lock_t sindex_superblock(sindex_block, alt_create_t::create);
-            sindex.superblock = sindex_superblock.block_id();
+            buf_lock_t sb_lock(sindex_block, alt_create_t::create);
+            sindex.superblock = sb_lock.block_id();
             sindex.opaque_definition = opaque_definition;
 
-            /* Notice we're passing in empty strings for metainfo. The metainfo in
-             * the sindexes isn't used for anything but this could perhaps be
-             * something that would give a better error if someone did try to use
-             * it... on the other hand this code isn't exactly idiot proof even
-             * with that. */
-            btree_slice_t::init_superblock(&sindex_superblock,
-                                           std::vector<char>(),
-                                           binary_blob_t());
+            sindex_superblock_t superblock(std::move(sb_lock));
+            btree_slice_t::init_sindex_superblock(&superblock);
         }
 
         secondary_index_slices.insert(
@@ -699,7 +687,6 @@ void store_t::clear_sindex(
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
         acquire_superblock_for_write(
-            repli_timestamp_t::distant_past,
             // Not really the right value, since many keys will share a leaf node:
             clear_sindex_traversal_cb_t::CHUNK_SIZE,
             write_durability_t::SOFT,
@@ -739,8 +726,9 @@ void store_t::clear_sindex(
             {
                 keyvalue_location_t kv_location;
                 find_keyvalue_location_for_write(sizer, sindex_superblock.release(),
-                        keys[i].btree_key(), deletion_context->balancing_detacher(),
-                        &kv_location, NULL /* stats */, NULL /* trace */,
+                        keys[i].btree_key(), repli_timestamp_t::distant_past,
+                        deletion_context->balancing_detacher(),
+                        &kv_location, NULL /* trace */,
                         &superblock_promise);
 
                 deletion_context->in_tree_deleter()->delete_value(
@@ -776,7 +764,6 @@ void store_t::clear_sindex(
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
         acquire_superblock_for_write(
-            repli_timestamp_t::distant_past,
             2,
             write_durability_t::SOFT,
             &token,
@@ -825,12 +812,23 @@ void store_t::clear_sindex(
                 root_node.write_acq_signal()->wait_lazily_unordered();
                 root_node.mark_deleted();
             }
+            /* Under normal circumstances, sindex superblocks do not have stat or sindex
+            blocks. However, we used to create stat and sindex blocks, so some very old
+            secondary indexes may still have them. Here we check for them and delete them
+            if they are present. */
             if (sindex_superblock.get_stat_block_id() != NULL_BLOCK_ID) {
                 buf_lock_t stat_block(sindex_superblock.expose_buf(),
                                       sindex_superblock.get_stat_block_id(),
                                       access_t::write);
                 stat_block.write_acq_signal()->wait_lazily_unordered();
                 stat_block.mark_deleted();
+            }
+            if (sindex_superblock.get_sindex_block_id() != NULL_BLOCK_ID) {
+                buf_lock_t sind_block(sindex_superblock.expose_buf(),
+                                      sindex_superblock.get_sindex_block_id(),
+                                      access_t::write);
+                sind_block.write_acq_signal()->wait_lazily_unordered();
+                sind_block.mark_deleted();
             }
         }
         /* Now it's safe to completely delete the index */
@@ -1170,7 +1168,7 @@ store_t::check_metainfo(
         THROWS_NOTHING {
     assert_thread();
     region_map_t<binary_blob_t> old_metainfo;
-    get_metainfo_internal(superblock->get(), &old_metainfo);
+    get_metainfo_internal(superblock, &old_metainfo);
 #ifndef NDEBUG
     metainfo_checker.check_metainfo(old_metainfo.mask(metainfo_checker.get_domain()));
 #endif
@@ -1187,13 +1185,12 @@ void store_t::update_metainfo(const region_map_t<binary_blob_t> &old_metainfo,
 
     rassert(updated_metadata.get_domain() == region_t::universe());
 
-    buf_lock_t *sb_buf = superblock->get();
     // Clear the existing metainfo. This makes sure that we completely rewrite
     // the metainfo. That avoids two issues:
     // - `set_superblock_metainfo()` wouldn't remove any deleted keys
     // - `set_superblock_metainfo()` is more efficient if we don't do any
     //   in-place updates in its current implementation.
-    clear_superblock_metainfo(sb_buf);
+    clear_superblock_metainfo(superblock);
 
     std::vector<std::vector<char> > keys;
     std::vector<binary_blob_t> values;
@@ -1213,7 +1210,7 @@ void store_t::update_metainfo(const region_map_t<binary_blob_t> &old_metainfo,
         values.push_back(i->second);
     }
 
-    set_superblock_metainfo(sb_buf, keys, values);
+    set_superblock_metainfo(superblock, keys, values);
 }
 
 void store_t::do_get_metainfo(UNUSED order_token_t order_token,  // TODO
@@ -1229,17 +1226,17 @@ void store_t::do_get_metainfo(UNUSED order_token_t order_token,  // TODO
                                 interruptor,
                                 false /* KSI: christ */);
 
-    get_metainfo_internal(superblock->get(), out);
+    get_metainfo_internal(superblock.get(), out);
 }
 
 void store_t::
-get_metainfo_internal(buf_lock_t *sb_buf,
+get_metainfo_internal(real_superblock_t *superblock,
                       region_map_t<binary_blob_t> *out)
     const THROWS_NOTHING {
     assert_thread();
     std::vector<std::pair<std::vector<char>, std::vector<char> > > kv_pairs;
     // TODO: this is inefficient, cut out the middleman (vector)
-    get_superblock_metainfo(sb_buf, &kv_pairs);
+    get_superblock_metainfo(superblock, &kv_pairs);
 
     std::vector<std::pair<region_t, binary_blob_t> > result;
     for (std::vector<std::pair<std::vector<char>, std::vector<char> > >::iterator i = kv_pairs.begin(); i != kv_pairs.end(); ++i) {
@@ -1267,8 +1264,7 @@ void store_t::set_metainfo(const region_map_t<binary_blob_t> &new_metainfo,
 
     scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
-    acquire_superblock_for_write(repli_timestamp_t::distant_past,
-                                 1,
+    acquire_superblock_for_write(1,
                                  write_durability_t::HARD,
                                  token,
                                  &txn,
@@ -1276,7 +1272,7 @@ void store_t::set_metainfo(const region_map_t<binary_blob_t> &new_metainfo,
                                  interruptor);
 
     region_map_t<binary_blob_t> old_metainfo;
-    get_metainfo_internal(superblock->get(), &old_metainfo);
+    get_metainfo_internal(superblock.get(), &old_metainfo);
     update_metainfo(old_metainfo, new_metainfo, superblock.get());
 }
 
@@ -1301,7 +1297,6 @@ void store_t::acquire_superblock_for_read(
 }
 
 void store_t::acquire_superblock_for_write(
-        repli_timestamp_t timestamp,
         int expected_change_count,
         write_durability_t durability,
         write_token_t *token,
@@ -1319,7 +1314,6 @@ void store_t::acquire_superblock_for_write(
             &write_superblock_acq_semaphore,
             write_access_t::write,
             expected_change_count,
-            timestamp,
             durability,
             sb_out,
             txn_out);

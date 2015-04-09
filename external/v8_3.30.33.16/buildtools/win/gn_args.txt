@@ -1,0 +1,2 @@
+# These are the build arguments for a Windows release build.
+is_official_build=true symbol_level=2 is_debug=false

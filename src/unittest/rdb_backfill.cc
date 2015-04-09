@@ -126,6 +126,8 @@ region_map_t<version_t> get_store_version_map(store_view_t *store) {
 
 void run_backfill_test(size_t value_padding_length) {
 
+    recreate_temporary_directory(base_path_t("."));
+
     order_source_t order_source;
     simple_mailbox_cluster_t cluster;
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);

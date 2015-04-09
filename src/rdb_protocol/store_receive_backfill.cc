@@ -89,8 +89,7 @@ void apply_empty_range(
                 &tokens.info->btree_fifo_sink, tokens.write_token);
             wait_interruptible(&exiter, tokens.keepalive.get_drain_signal());
             get_btree_superblock_and_txn_for_writing(tokens.info->cache_conn, nullptr,
-                write_access_t::write, 1, repli_timestamp_t::distant_past,
-                write_durability_t::SOFT, &superblock, &txn);
+                write_access_t::write, 1, write_durability_t::SOFT, &superblock, &txn);
         }
 
         /* Update the metainfo and release the superblock. */
@@ -159,8 +158,7 @@ void apply_single_key_item(
                 &tokens.info->btree_fifo_sink, tokens.write_token);
             wait_interruptible(&exiter, tokens.keepalive.get_drain_signal());
             get_btree_superblock_and_txn_for_writing(tokens.info->cache_conn, nullptr,
-                write_access_t::write, 1, repli_timestamp_t::distant_past,
-                write_durability_t::SOFT, &superblock, &txn);
+                write_access_t::write, 1, write_durability_t::SOFT, &superblock, &txn);
         }
 
         /* Acquire the sindex block and update the metainfo now, because we'll release
@@ -217,8 +215,7 @@ void apply_multi_key_item(
             scoped_ptr_t<txn_t> txn;
             scoped_ptr_t<real_superblock_t> superblock;
             get_btree_superblock_and_txn_for_writing(tokens.info->cache_conn, nullptr,
-                write_access_t::write, 1, repli_timestamp_t::distant_past,
-                write_durability_t::SOFT, &superblock, &txn);
+                write_access_t::write, 1, write_durability_t::SOFT, &superblock, &txn);
 
             /* If we haven't already done so, then update the min deletion timstamps.
             See `btree/backfill.hpp` for an explanation of what this is. Note that we do
@@ -349,7 +346,7 @@ continue_bool_t store_t::receive_backfill(
 
             /* Actually apply the metainfo */
             region_map_t<binary_blob_t> old_metainfo;
-            get_metainfo_internal(superblock->get(), &old_metainfo);
+            get_metainfo_internal(superblock, &old_metainfo);
             update_metainfo(
                 old_metainfo, item_producer->get_metainfo()->mask(mask), superblock);
         };

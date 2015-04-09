@@ -8,7 +8,7 @@ var r = require(Path.resolve(__dirname, '..', 'importRethinkDB.js')).r;
 // -- global variables
 
 // Tests are stored in list until they can be sequentially evaluated
-var tests = []
+var tests = [r.dbCreate('test')]
 
 var failure_count = 0;
 var tests_run = 0;
@@ -57,16 +57,8 @@ function printTestFailure(name, src, expected, result) {
     			"     RESULT:   " + result + "\n");
 }
 
-function clone(source) {
-    result = {}
-    for (var key in source) {
-        result[key] = source[key];
-    }
-    return result;
-}
-
 function eq_test(expected, result, compOpts, partial) {
-    TRACE("eq_test: " + stringValue(expected) + " | == | " + stringValue(result) + " | == | " + partial);
+    TRACE("eq_test: " + stringValue(expected) + " | == | " + stringValue(result) + " || partial: " + (partial == true));
     
     if (expected instanceof Function) {
         return expected(result);
@@ -139,38 +131,7 @@ function eq_test(expected, result, compOpts, partial) {
 
     } else {
         // Primitive comparison
-        return ((typeof expected === typeof result) && (expected === result)) || (isNaN(expected) && isNaN(result))
-    }
-}
-
-function le_test(a, b){
-    if (a instanceof Object && !Array.isArray(a)) {
-        if (!(b instanceof Object && !Array.isArray(b))) {
-            return false;
-        }
-        var ka = Object.keys(a).sort();
-        var kb = Object.keys(b).sort();
-        if (ka < kb) {
-            return true;
-        }
-        if (ka > kb) {
-            return false;
-        }
-        var ret;
-        for (k in ka) {
-            k = ka[k];
-            var a_lt_b = le_test(a[k], b[k]);
-            var b_lt_a = le_test(b[k], a[k]);
-
-            if (a_lt_b ^ b_lt_a) {
-                return a_lt_b;
-            }
-        }
-        return true;
-    } else if (b instanceof Object && !Array.isArray(b)) {
-        return true;
-    } else {
-        return a <= b;
+        return ((typeof expected === typeof result) && (expected === result)) || (Number.isNaN(Number(expected)) && Number.isNaN(Number(result)))
     }
 }
 
@@ -297,211 +258,132 @@ r.connect({port:DRIVER_PORT}, function(error, conn) {
     }
     reqlConn = conn;
 
-    // Pull a test off the queue and run it
-    function runTest() { try {
-        var testPair = tests.shift();
-        if (testPair) {
-            if (testPair instanceof Function) {
-                TRACE("==== runTest == function");
-                testPair(runTest, reqlConn);
+    // Start the chain of tests
+    runTest();
+});
+
+// Pull a test off the queue and run it
+function runTest() {
+    try {
+        var test = tests.shift();
+        if (test) {
+            if (test instanceof Function) {
+                // -- function such as setup_table
+                TRACE("==== runTest ==== function: " + test.name);
+                test(test);
                 return;
             
             } else {
-                var src = testPair[0]
-                var exp_val = testPair[1]
-                var testName = testPair[2];
-                var runopts = testPair[3];
-                var testopts = testPair[4];
-                TRACE("==== runTest == non-function: " + src)
-
-                if (!runopts) {
-                    runopts = {maxBatchRows: 3}
+                // -- regular test
+                TRACE("==== runTest ==== test: " + stringValue(test.src))
+                
+                // - process/default runopts
+                
+                if (!test.runopts) {
+                    test.runopts = { maxBatchRows: 3 }
                 } else {
-                    for (var opt in runopts) {
-                        runopts[opt] = eval(runopts[opt])
+                    for (var opt in test.runopts) {
+	                    try {
+	                        test.runopts[opt] = eval(test.runopts[opt])
+	                    } catch (err) {
+		                    test.runopts[opt] = test.runopts[opt]
+		                }
                     }
-                    if (!("maxBatchRows" in runopts)) {
-                        runopts.maxBatchRows = 3
+                    if (!("maxBatchRows" in test.runopts)) {
+                        test.runopts.maxBatchRows = 3
                     }
                 }
-                if (!testopts) {
-                    testopts = {}
+                // the javascript driver has all of the runopts in cammel case vs. snake form
+                for (var opt in test.runopts) {
+	                if (typeof opt == 'string' || opt instanceof String) {
+		                var newOpt = opt.replace(/([a-z]+)_([a-z]+)/, function(match, pre, post) { return pre + post.charAt(0).toUpperCase() + post.substr(1); });
+						if (newOpt != opt) {
+							test.runopts[newOpt] = test.runopts[opt];
+							delete test.runopts[opt];
+						}
+	                }
+	            }
+                TRACE("runopts: " + JSON.stringify(test.runopts))
+                
+                // - process/default testopts
+                
+                if (!test.testopts) {
+                    test.testopts = {}
                 }
                 compOpts = {}
-                if ('precision' in testopts) {
-                    compOpts['precision'] = testopts['precision']
+                if ('precision' in test.testopts) {
+                    compOpts['precision'] = test.testopts['precision']
                 }
                 
                 // - convert expected value into a function for comparison
                 var exp_fun = null;
                 try {
                     with (defines) {
-                       exp_fun = eval(exp_val);
+                        exp_fun = eval(test.expectedSrc);
                     }
                 } catch (err) {
                     // Oops, this shouldn't have happened
-                    console.log(testName);
-                    console.log(exp_val);
+                    console.log(test.name);
+                    console.log(test.expectedSrc);
                     throw err;
                 }
                 if (!exp_fun) exp_fun = returnTrue();
                 if (!(exp_fun instanceof Function)) exp_fun = eq(exp_fun, compOpts);
-
-                TRACE('expected value: ' + exp_fun.toString() + ' from ' + exp_val)
-
-                // - build the test
-                var test = null;
+                
+                test.exp_fun = exp_fun;
+                
+                TRACE('expected value: ' + stringValue(test.exp_fun) + ' from ' + stringValue(test.expectedSrc))
+                
+                // - evaluate the test
+                
+                var result = null;
                 try {
                     with (defines) {
                         TRACE("before eval");
-                        test = eval(src);
+                        result = eval(test.src);
                         TRACE("after eval");
-                    }
-                } catch(bld_err) {
-                    TRACE("build error")
-                    if (exp_fun.isErr) {
-                        if (!exp_fun(bld_err)) {
-                            printTestFailure(testName, src, exp_val, bld_err);
+                        
+                        // - allow autoRunTest functions to take over
+                        
+                        if (result instanceof Function && result.autoRunTest) {
+                            TRACE("processing auto-run test: " + result)
+                            result(test);
+                            return; // the auto-run should take over
                         }
-                    } else {
-                        printTestFailure(testName, src, exp_val, bld_err);
+                        
+                        // - 
+                        
+                        if (result instanceof r.table('').__proto__.__proto__.__proto__.constructor) {
+                            TRACE("processing reql query: " + result + ', runopts: ' + stringValue(test.runopts))
+                            with (defines) {
+                                result.run(reqlConn, test.runopts, function(err, value) { processResult(err,  value, test) } );
+                                return;
+                            }
+                        } else if (result && result.hasOwnProperty('_settledValue')) {
+                            TRACE("processing promise: " + result)
+                            result.then(function(result) {
+                                processResult(null, result, test); // will go on to next test
+                            }).error(function(err) {
+                                processResult(err, null, test); // will go on to next test
+                            });
+                            return;
+                        } else {
+                            resultText = result
+                            try {
+                                resultText = result.toString();
+                            } catch (err) {}
+                            TRACE("non reql-query result: " + resultText)
+                            processResult(null, result, test); // will go on to next test
+                            return;
+                        }
                     }
-
-                    // continue to next test
-                    runTest();
+                } catch (result) {
+                    TRACE("querry error - " + result.toString())
+                    TRACE("stack: " + String(result.stack));
+                    processResult(result, null, test); // will go on to next test
                     return;
                 }
-
-                // Run test first on cpp server
-                if (testopts && testopts['reql-query'] == false) {
-                    TRACE("non reql-query result: " + test)
-                    if (test instanceof Object && test.each) {
-                        process_iterable(test, testopts);
-                    } else {
-                        afterArray(null, test, testopts);
-                    }
-                } else {
-                    TRACE("processing query: " + test)
-                    try {
-                        var clone_runopts = runopts ? clone(runopts) : {};
-                        var clone_testopts = testopts ? clone(testopts) : {};
-                        with (defines) {
-                            test.run(reqlConn, clone_runopts, function(err, cursor) {run_callback(err, cursor, clone_testopts)} );
-                        }
-
-                    } catch(err) {
-                        TRACE("querry error - " + err)
-                        if (exp_fun.isErr) {
-                            if (!exp_fun(err)) {
-                                printTestFailure(testName, src, exp_val, err);
-                            }
-                        } else {
-                            printTestFailure(testName, src, exp_val, err);
-                        }
-
-                        // Continue to next test
-                        runTest();
-                        return;
-                    }
-                }
-
-                function afterArray(cpp_err, cpp_res) { try {
-                    TRACE("afterArray - src:" + src + ", err:" + cpp_err + ", result:" + JSON.stringify(cpp_res) + " expected function: " + exp_fun.toString());
-                    if (cpp_err) {
-                        if (exp_fun.isErr) {
-                            if (!exp_fun(cpp_err)) {
-                                printTestFailure(testName, src, exp_val, stringValue(cpp_err));
-                            }
-                        } else {
-                            var info;
-                            if (cpp_err.msg) {
-                                info = cpp_err.msg;
-                            } else if (cpp_err.message) {
-                                info = cpp_err.message;
-                            } else {
-                                info = JSON.stringify(cpp_res);
-                            }
-
-                            if (cpp_err.stack) {
-                                info += "\n\nStack:\n" + cpp_err.stack.toString();
-                            }
-                            printTestFailure(testName, src, exp_val, info);
-                        }
-                    } else if (!exp_fun(cpp_res)) {
-                        printTestFailure(testName, src, exp_val, stringValue(cpp_res));
-                    }
-
-                    // Continue to next test. Tests are fully sequential
-                    // so you can rely on previous queries results in
-                    // subsequent tests.
-                    runTest();
-                    return;
-                } catch(err) {
-                    console.log("stack: " + String(err.stack))
-                    unexpectedException("afterArray", testName, err);
-                } }
-
-                function process_iterable(feed, test_options) {
-                    TRACE('process_iterable')
-                    var accumulator = [];
-
-                    feed.each(
-                        function(err, _row) {
-                            TRACE('process_iterable_internal')
-                            if (err) {
-                                console.log("stack: " + String(err.stack));
-                                unexpectedException("run_callback", testName, err);
-                            } else {
-                                try {
-                                    if (test_options && test_options.rowfilter) {
-                                        filterFunction = new Function('input', test_options.rowfilter);
-                                        accumulator.push(filterFunction(_row));
-                                    } else {
-                                        accumulator.push(_row);
-                                    }
-                                } catch(err) {
-                                    console.log("stack: " + String(err.stack));
-                                    unexpectedException("run_callback: <<" + test_options.filter + ">>", testName, err);
-                                }
-                            }
-                        },
-                        function () {
-                            if (test_options && test_options.arrayfilter) {
-                                arrayFunction = new Function('input', test_options.arrayfilter);
-                                accumulator = arrayFunction(accumulator)
-                            }
-                            afterArray(null, accumulator, test_options);
-                        }
-                    );
-                }
-
-                function run_callback(cpp_err, cpp_res_cursor, test_options) { try {
-                    TRACE("run_callback src:" + src + ", err:" + cpp_err + ", result:" + cpp_res_cursor);
-
-                    if (test_options && test_options['variable']) {
-                        defines[test_options['variable']] = cpp_res_cursor;
-                    }
-
-                    if (cpp_err) {
-                        afterArray(cpp_err, null, test_options);
-                    } else if (cpp_res_cursor instanceof Object && cpp_res_cursor.toArray) {
-                        try {
-                            cpp_res_cursor.toArray(function (err, result) { afterArray(err, result, test_options)} );
-                        } catch(err) {
-                            if (err instanceof r.Error.RqlDriverError) {
-                                // probably a Feed
-                                afterArray(null, null, test_options);
-                            } else {
-                                throw err;
-                            }
-                        }
-                    } else {
-                        afterArray(null, cpp_res_cursor, test_options);
-                    }
-                } catch(err) {
-                    console.log("stack: " + String(err.stack))
-                    unexpectedException("run_callback", testName, err);
-                } }
+            
             }
         } else {
             // We've hit the end of our test list
@@ -515,12 +397,158 @@ r.connect({port:DRIVER_PORT}, function(error, conn) {
         }
     } catch (err) {
         console.log("stack: " + String(err.stack))
-        unexpectedException("runTest", testName, testPair[1], err);
-    } }
+        unexpectedException("runTest", test.name, test, err);
+    }
+}
 
-    // Start the recursion though all the tests
-    r.dbCreate('test').run(reqlConn, runTest);
-});
+function processResult(err, result, test) {
+    // prepare the result to be compared (e.g.: collect feeds and cursor results)
+    TRACE('processResult: ' + result + ', err: ' + err + ', testopts: ' +  stringValue(test.testopts))
+    var accumulator = [];
+    
+    try {
+        // - if an error go straight to compare
+        
+        if (err) {
+            TRACE('processResult error');
+            compareResult(err, null, test);
+        }
+        
+        // - store variable if called for
+        
+        else if (test.testopts && test.testopts.variable) {
+            TRACE('processResult storing variable');
+            defines[test.testopts.variable] = result;
+            compareResult(null, result, test);
+        }
+        
+        // - pull out feeds and cursors to arrays
+        
+        else if (result instanceof Object && result.each) {
+            if (!Number.isNaN(Number(test.testopts.result_limit)) && test.testopts.result_limit > 0) {
+                TRACE('processResult_limitedIter collecting ' + test.testopts.result_limit + ' item(s) from cursor');
+                
+                handleError = function processResult_error(err) {
+	                TRACE('processResult_limitedIter error: ' + err)
+                    compareResult(err, accumulator, test);
+                };
+                
+                limitedProcessor = function processResult_limitedIter(row) {
+                    accumulator.push(row);
+                    if (accumulator.length >= test.testopts.result_limit) {
+                        // - limit reached
+                        TRACE('processResult_limitedIter final, items: ' + accumulator.length);
+                        compareResult(null, accumulator, test);
+                    } else {
+                        TRACE('processResult_limitedIter next, collected: ' + accumulator.length + ', item: ' + stringValue(row));
+                        result.next().then(limitedProcessor).error(handleError);
+                    }
+                    
+                };
+                
+                // start accumulator loop
+                result.next().then(limitedProcessor).error(handleError);
+                
+            } else {
+                TRACE('processResult collecting full cursor');
+                result.each(
+                    function processResult_iter(err, row) {
+                        if (err) {
+	                        TRACE('processResult_iter err: ' + err);
+	                        compareResult(err, accumulator, test);
+                        } else {
+	                        TRACE('processResult_iter value');
+                            try {
+                                if (test.testopts && test.testopts.rowfilter) {
+                                    filterFunction = new Function('input', test.testopts.rowfilter);
+                                    row = filterFunction(row);
+                                    if (typeof row != 'undefined') {
+                                        accumulator.push(row);
+                                    }
+                                } else {
+                                    accumulator.push(row);
+                                }
+                            } catch(err) {
+                                console.log("stack: " + String(err.stack));
+                                unexpectedException("processResult_iter <<" + test.testopts.filter + ">>", test.name, err);
+                            }
+                        }
+                    },
+                    function processResult_iterFinal() {
+                        TRACE('processResult_final' + test);
+                        if (test.testopts && test.testopts.arrayfilter) {
+                            arrayFunction = new Function('input', test.testopts.arrayfilter);
+                            accumulator = arrayFunction(accumulator);
+                        }
+                        compareResult(null, accumulator, test);
+                    }
+                );
+            }
+        
+        // - otherwise go to compare
+        
+        } else {
+            compareResult(null, result, test);
+        }
+    } catch(err) {
+        console.log("stack: " + String(err.stack))
+        unexpectedException("processResult", test.name, err);
+    }
+}
+
+function stringValue(value) {
+    returnValue = '<< unknown >>';
+    if (value instanceof Error) {
+	    var errStr = value.name ? value.name + ": " : '';
+	    
+	    if (value.msg) {
+			errStr += value.msg;
+		} else if (value.message) {
+			errStr += value.message;
+		} else {
+			errStr += stringValue(value);
+		}
+		
+		if (value.stack) {
+			errStr += "\nStack:\n" + value.stack.toString();
+		}
+	    return errStr;
+	} else if (value && value.name) {
+        returnValue = value.name;
+    } else {
+		try {
+			returnValue = JSON.stringify(value);
+		} catch (err) {
+			try {
+				returnValue = value.toString();
+			} catch (err) {}
+		}
+    }
+    return returnValue;
+}
+
+function compareResult(error, value, test) {
+    try {
+        expextedText = null;
+        TRACE("compareResult - err:" + stringValue(error) + ", result:" + stringValue(value) + " expected function: " + test.exp_fun.toString());
+        if (error) {
+            if (test.exp_fun.isErr) {
+                if (!test.exp_fun(error)) {
+                    printTestFailure(test.name, test.src, test.expectedSrc, stringValue(error));
+                }
+            } else {
+                printTestFailure(test.name, test.src, test.expectedSrc, stringValue(error));
+            }
+        } else if (!test.exp_fun(value)) {
+            printTestFailure(test.name, test.src, test.expectedSrc, stringValue(value));
+        }
+    
+        runTest(); // Continue to next test.
+    } catch(err) {
+        console.log("stack: " + String(err.stack))
+        unexpectedException("compareResult", test.name, err);
+    }
+}
 
 function stringValue(value) {
     returnValue = '<< unknown >>';
@@ -561,12 +589,18 @@ function unexpectedException(){
 
 // Invoked by generated code to add test and expected result
 // Really constructs list of tests to be sequentially evaluated
-function test(testSrc, resSrc, name, runopts, testopts) {
-    tests.push([testSrc, resSrc, name, runopts, testopts])
+function test(testSrc, expectedSrc, name, runopts, testopts) {
+    tests.push({
+        'src':testSrc,
+        'expectedSrc':expectedSrc,
+        'name':name,
+        'runopts':runopts,
+        'testopts':testopts
+    })
 }
 
 function setup_table(table_variable_name, table_name, db_name) {
-    tests.push(function(next, cpp_conn) {
+    tests.push(function setup_table_inner(test) {
         try {
             if (required_external_tables.length > 0) {
                 // use an external table
@@ -574,11 +608,19 @@ function setup_table(table_variable_name, table_name, db_name) {
                 table = required_external_tables.pop();
                 defines[table_variable_name] = r.db(table[0]).table(table[1]);
                 tables_to_cleanup.push([table[0], table[1]])
-                next();
+                
+                // check that the table exists
+                r.db(table[0]).table(table[1]).info().run(reqlConn, function(err, res) {
+                    if (err) {
+                        unexpectedException("External table " + table[0] + "." + table[1] + " did not exist")
+                    } else {
+                        runTest();
+                    }
+                });
             } else {
                 // create the table as provided
                 
-                r.db(db_name).tableCreate(table_name).run(cpp_conn, {}, function (err, res) {
+                r.db(db_name).tableCreate(table_name).run(reqlConn, {}, function (err, res) {
                     if (err) {
                         unexpectedException("setup_table", err);
                     }
@@ -587,7 +629,7 @@ function setup_table(table_variable_name, table_name, db_name) {
                     }
                     defines[table_variable_name] = r.db("test").table(table_name);
                     tables_to_delete.push([db_name, table_name])
-                    next();
+                    runTest();
                 });
             }
         } catch (err) {
@@ -597,22 +639,161 @@ function setup_table(table_variable_name, table_name, db_name) {
     });
 }
 
+// check that all of the requested tables have been setup
+function setup_table_check() {
+    tests.push(function setup_table_check_inner() {
+        if (required_external_tables.length > 0) {
+            tableNames = []
+            for (i in required_external_tables) {
+                tableNames.push(required_external_tables[0] + '.' + required_external_tables[1])
+            }
+            throw 'Unused external tables, that is probably not supported by this test: ' + tableNames.join(', ');
+        }
+        runTest();
+    });
+}
+
+// Invoked by generated code to fetch from a cursor
+function fetch(cursor, limit) {
+    fun = function fetch_inner(test) {
+        TRACE("fetch_inner test: " + stringValue(test))
+        try {
+            if (limit) {
+                limit = parseInt(limit);
+                if (Number.isNaN(limit)) {
+                    unexpectedException("The limit value of fetch must be null or a number ")
+                }
+            }
+            if (!test.testopts) {
+                test.testopts = {};
+            }
+            test.testopts.result_limit = limit;
+            TRACE('fetching ' + (limit || "all") + ' items')
+            processResult(null, cursor, test)
+        } catch(err) {
+            console.log("stack: " + String(err.stack))
+            unexpectedException("processResult", test.name, err);
+        }
+    };
+    fun.toString = function() {
+        return 'fetch_inner() limit = ' + limit;
+    };
+    fun.autoRunTest = true;
+    return fun;
+}
+
+// allows for a bit of time to go by
+function wait(seconds) {
+    fun = function wait_inner(test) {
+        TRACE("wait_inner test: " + stringValue(test))
+        setTimeout(function () { runTest() }, seconds * 1000);
+    };
+    fun.toString = function() {
+        return 'wait_inner() seconds = ' + seconds;
+    };
+    fun.autoRunTest = true;
+    return fun;
+}
+
 // Invoked by generated code to define variables to used within
 // subsequent tests
-function define(expr) {
-    tests.push(function define_inner (next, cpp_conn) {
+function define(expr, variable) {
+    tests.push(function define_inner(test) {
+        TRACE('setting define: ' + variable + ' = '  + expr);
         with (defines) {
-            eval("defines."+expr);
+            eval("defines." + variable + " = " + expr);
         }
-        next();
+        runTest();
     });
 }
 
 // Invoked by generated code to support bag comparison on this expected value
 function bag(expected, compOpts, partial) {
-    var bag = eval(expected).sort(le_test);
+    
+    // note: This only works for dicts, arrays, numbers, undefines, and strings. Anything else might as well be random.
+    
+    function sortFuncName(obj) {
+        if (obj === undefined) {
+            return 'undefined';
+        } else if (Number.isNaN(Number(obj)) === false && !(obj instanceof Array)) {
+            return 'Number';
+        } else if (obj.name) {
+            return obj.name;
+        } else if (obj.constructor && obj.constructor.name) {
+            return obj.constructor.name;
+        } else {
+            return stringValue(obj);
+        }
+    }
+    
+    function sortFunc(left, right) {
+        TRACE('sorting: ' + stringValue(left) + ' vs.: ' + stringValue(right) + ' ' + sortFuncName(left))
+        // -- compare object types, sorting by name
+        
+        var result = sortFuncName(left).localeCompare(sortFuncName(right))
+        if (result != 0) { return result; }
+        
+        // --- null/undefined
+        
+        if (left === undefined) {
+            if (right === undefined) {
+                return 0;
+            } else {
+                return -1;
+            }
+        
+        // -- array
+        
+        } else if (left instanceof Array) {
+            TRACE('array')
+            var i = 0;
+            for (i = 0; i < left.length; i++) {
+                if (i >= right.length) {
+                    return -1;
+                }
+                TRACE('item ' + i + ' ' + left[i] + ' ' +  right[i])
+                result = sortFunc(left[i], right[i]);
+                if (result != 0) { return result; }
+            }
+            if (right.length > i) {
+                return 1;
+            }
+        
+        // -- dict
+        
+        } else if (left instanceof Object) {
+            leftKeys = Object.keys(left).sort(sortFunc);
+            rightKeys = Object.keys(right).sort(sortFunc);
+            
+            // if they don't have the same keys, sort by that
+            result = sortFunc(leftKeys, rightKeys);
+            if (result != 0) { return result; }
+            
+            for (var i in leftKeys) {
+                key = leftKeys[i];
+                result = sortFunc(left[key], right[key]);
+                if (result != 0) { return result; }
+            }
+        
+        // -- number
+        
+        } else if (Number.isNaN(Number(left)) === false && Number.isNaN(Number(right)) === false) {
+            left = Number(left);
+            right = Number(right);
+            return left == right ? 0 : left > right;
+        
+        // -- string
+        
+        } else {
+            return left.localeCompare(right);
+        }
+        return 0;
+    }
+
+    var bag = eval(expected).sort(sortFunc);
     var fun = function bag_inner(other) {
-        other = other.sort(le_test);
+        other = other.sort(sortFunc);
+        TRACE("bag: " + stringValue(bag) + " other: " + stringValue(other))
         return eq_test(bag, other, compOpts, true);
     };
     fun.toString = function() {
@@ -721,13 +902,3 @@ function the_end(){ }
 
 True = true;
 False = false;
-
-// REPLACE WITH TABLE CREATION LINES
-
-if (required_external_tables.length > 0) {
-    tableNames = []
-    for (i in required_external_tables) {
-        tableNames.push(required_external_tables[0] + '.' + required_external_tables[1])
-    }
-    throw 'Unused external tables, that is probably not supported by this test: ' + tableNames.join(', ');
-}

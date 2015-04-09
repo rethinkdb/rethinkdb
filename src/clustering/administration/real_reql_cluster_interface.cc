@@ -998,7 +998,8 @@ bool real_reql_cluster_interface_t::sindex_change_internal(
     table_config_and_shards_t config;
     if (!table_meta_client->get_config(table_id, interruptor, &config)) {
         *error_out = strprintf("Lost contact with the server(s) hosting table `%s.%s`. "
-            "The sindexes were not changed.", db->name.c_str(), table_name.c_str());
+            "The secondary indexes were not changed.",
+            db->name.c_str(), table_name.c_str());
         return false;
     }
     if (!cb(&config.config.sindexes)) {
@@ -1006,8 +1007,8 @@ bool real_reql_cluster_interface_t::sindex_change_internal(
     }
     if (!table_meta_client->set_config(table_id, config, interruptor)) {
         *error_out = strprintf("Lost contact with the server(s) hosting table `%s.%s`. "
-            "The sindexes may or may not have been changed.", db->name.c_str(),
-            table_name.c_str());
+            "The secondary indexes may or may not have been changed.",
+            db->name.c_str(), table_name.c_str());
         return false;
     }
     return true;

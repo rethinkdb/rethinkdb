@@ -31,6 +31,10 @@ public:
         return replica.get_replica_bcard();
     }
 
+    bool is_primary() const {
+        return true;
+    }
+
     void do_read(
         const read_t &read,
         state_timestamp_t min_timestamp,

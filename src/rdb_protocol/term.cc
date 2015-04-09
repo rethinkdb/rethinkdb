@@ -68,14 +68,15 @@ counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t)
     case Term::MERGE:              return make_merge_term(env, t);
     case Term::LITERAL:            return make_literal_term(env, t);
     case Term::ARGS:               return make_args_term(env, t);
+    case Term::BETWEEN_DEPRECATED: return make_between_deprecated_term(env, t);
     case Term::BETWEEN:            return make_between_term(env, t);
     case Term::CHANGES:            return make_changes_term(env, t);
     case Term::REDUCE:             return make_reduce_term(env, t);
     case Term::MAP:                return make_map_term(env, t);
     case Term::FILTER:             return make_filter_term(env, t);
-    case Term::CONCAT_MAP:          return make_concatmap_term(env, t);
+    case Term::CONCAT_MAP:         return make_concatmap_term(env, t);
     case Term::GROUP:              return make_group_term(env, t);
-    case Term::ORDER_BY:            return make_orderby_term(env, t);
+    case Term::ORDER_BY:           return make_orderby_term(env, t);
     case Term::DISTINCT:           return make_distinct_term(env, t);
     case Term::COUNT:              return make_count_term(env, t);
     case Term::SUM:                return make_sum_term(env, t);
@@ -98,7 +99,7 @@ counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t)
     case Term::SPLICE_AT:          return make_splice_at_term(env, t);
     case Term::COERCE_TO:          return make_coerce_term(env, t);
     case Term::UNGROUP:            return make_ungroup_term(env, t);
-    case Term::TYPE_OF:             return make_typeof_term(env, t);
+    case Term::TYPE_OF:            return make_typeof_term(env, t);
     case Term::UPDATE:             return make_update_term(env, t);
     case Term::DELETE:             return make_delete_term(env, t);
     case Term::REPLACE:            return make_replace_term(env, t);
@@ -125,7 +126,7 @@ counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t)
     case Term::BRANCH:             return make_branch_term(env, t);
     case Term::OR:                 return make_or_term(env, t);
     case Term::AND:                return make_and_term(env, t);
-    case Term::FOR_EACH:            return make_foreach_term(env, t);
+    case Term::FOR_EACH:           return make_foreach_term(env, t);
     case Term::FUNC:               return make_counted<func_term_t>(env, t);
     case Term::ASC:                return make_asc_term(env, t);
     case Term::DESC:               return make_desc_term(env, t);
@@ -195,12 +196,27 @@ counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t)
     case Term::GET_NEAREST:        return make_get_nearest_term(env, t);
     case Term::UUID:               return make_uuid_term(env, t);
     case Term::POLYGON_SUB:        return make_polygon_sub_term(env, t);
+    case Term::MINVAL:             return make_minval_term(env, t);
+    case Term::MAXVAL:             return make_maxval_term(env, t);
+    case Term::FLOOR:              return make_floor_term(env, t);
+    case Term::CEIL:               return make_ceil_term(env, t);
+    case Term::ROUND:              return make_round_term(env, t);
     default: unreachable();
     }
     unreachable();
 }
 
-void run(const query_id_t &query_id,
+// If the query wants a reply, we can release the query id, which is
+// only used for tracking the ordering of noreply queries for the
+// purpose of noreply_wait.
+void maybe_release_query_id(query_id_t &&id,
+                            const protob_t<Query> &query) {
+    if (!is_noreply(query)) {
+        query_id_t destroyer(std::move(id));
+    }
+}
+
+void run(query_id_t &&query_id,
          protob_t<Query> q,
          Response *res,
          query_cache_t *query_cache,
@@ -228,19 +244,19 @@ void run(const query_id_t &query_id,
     try {
         switch (q->type()) {
         case Query_QueryType_START: {
+            maybe_release_query_id(std::move(query_id), q);
             scoped_ptr_t<query_cache_t::ref_t> query_ref =
                 query_cache->create(token, q, use_json, interruptor);
             query_ref->fill_response(res);
         } break;
         case Query_QueryType_CONTINUE: {
+            maybe_release_query_id(std::move(query_id), q);
             scoped_ptr_t<query_cache_t::ref_t> query_ref =
                 query_cache->get(token, use_json, interruptor);
             query_ref->fill_response(res);
         } break;
         case Query_QueryType_STOP: {
-            scoped_ptr_t<query_cache_t::ref_t> query_ref =
-                query_cache->get(token, use_json, interruptor);
-            query_ref->terminate();
+            query_cache->terminate_query(token);
             res->set_type(Response::SUCCESS_SEQUENCE);
         } break;
         case Query_QueryType_NOREPLY_WAIT: {
@@ -255,9 +271,6 @@ void run(const query_id_t &query_id,
         fill_error(res, Response::RUNTIME_ERROR, e.what(), backtrace_t());
     } catch (const query_cache_exc_t &e) {
         fill_error(res, e.type, e.message, e.bt);
-    } catch (const interrupted_exc_t &e) {
-        fill_error(res, Response::RUNTIME_ERROR,
-                   "Query interrupted.  Did you shut down the server?");
     }
 }
 

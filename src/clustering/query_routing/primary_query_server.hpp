@@ -7,7 +7,7 @@
 #include <string>
 #include <utility>
 
-#include "clustering/generic/multi_throttling_server.hpp"
+#include "clustering/generic/multi_client_server.hpp"
 #include "clustering/query_routing/metadata.hpp"
 
 /* Each shard has a `primary_query_server_t` on its primary replica server. The
@@ -16,8 +16,10 @@ clients connect to and forwarding those queries to the `query_callback_t`. Speci
 the class `primary_query_client_t`, which is instantiated by `table_query_client_t`,
 sends the queries to the `primary_query_server_t`.
 
-`primary_query_server_t` internally contains a `multi_throttling_server_t`, which is
-responsible for throttling queries from the different `primary_query_client_t`s. */
+`primary_query_server_t` internally contains a `multi_client_server_t`, which is
+responsible for managing clients from the different `primary_query_client_t`s.
+We use it in combination with `primary_query_server_t::client_t` to ensure the
+ordering of requests that originate from a given client. */
 
 class primary_query_server_t {
 public:
@@ -50,9 +52,7 @@ public:
 private:
     class client_t {
     public:
-        client_t(
-                primary_query_server_t *p,
-                UNUSED const primary_query_bcard_t::inner_client_business_card_t &) :
+        client_t(primary_query_server_t *p) :
             parent(p) { }
         void perform_request(
                 const primary_query_bcard_t::request_t &,
@@ -70,12 +70,11 @@ private:
     /* See note in `client_t::perform_request()` for what this is about */
     cond_t shutdown_cond;
 
-    multi_throttling_server_t<
+    multi_client_server_t<
             primary_query_bcard_t::request_t,
-            primary_query_bcard_t::inner_client_business_card_t,
             primary_query_server_t *,
             client_t
-            > multi_throttling_server;
+            > multi_client_server;
 
     DISABLE_COPYING(primary_query_server_t);
 };

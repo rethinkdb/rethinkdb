@@ -40,6 +40,8 @@ static const int R_NUM_TYPE = val_t::type_t::DATUM * MAX_TYPE + datum_t::R_NUM;
 static const int R_STR_TYPE = val_t::type_t::DATUM * MAX_TYPE + datum_t::R_STR;
 static const int R_ARRAY_TYPE = val_t::type_t::DATUM * MAX_TYPE + datum_t::R_ARRAY;
 static const int R_OBJECT_TYPE = val_t::type_t::DATUM * MAX_TYPE + datum_t::R_OBJECT;
+static const int MINVAL_TYPE = val_t::type_t::DATUM * MAX_TYPE + datum_t::MINVAL;
+static const int MAXVAL_TYPE = val_t::type_t::DATUM * MAX_TYPE + datum_t::MAXVAL;
 
 class coerce_map_t {
 public:
@@ -63,7 +65,9 @@ public:
         map["STRING"] = R_STR_TYPE;
         map["ARRAY"] = R_ARRAY_TYPE;
         map["OBJECT"] = R_OBJECT_TYPE;
-        CT_ASSERT(datum_t::R_STR < MAX_TYPE);
+        map["MINVAL"] = MINVAL_TYPE;
+        map["MAXVAL"] = MAXVAL_TYPE;
+        CT_ASSERT(datum_t::MAXVAL < MAX_TYPE);
 
         for (std::map<std::string, int>::iterator
                  it = map.begin(); it != map.end(); ++it) {
@@ -117,6 +121,8 @@ private:
         case datum_t::R_STR:
         case datum_t::R_ARRAY:
         case datum_t::R_OBJECT:
+        case datum_t::MINVAL:
+        case datum_t::MAXVAL:
         default: break;
         }
     }
@@ -356,8 +362,8 @@ private:
                           datum_t(datum_string_t(table->get_pkey())));
             b |= info.add("db", val_info(env, new_val(table->db)));
             b |= info.add("id", table->get_id());
+            name_string_t name = name_string_t::guarantee_valid(table->name.c_str());
             {
-                name_string_t name = name_string_t::guarantee_valid(table->name.c_str());
                 std::string error;
                 std::vector<int64_t> doc_counts;
                 if (!env->env->reql_cluster_interface()->table_estimate_doc_counts(
@@ -371,7 +377,6 @@ private:
                 b |= info.add("doc_count_estimates", std::move(arr).to_datum());
             }
             {
-                name_string_t name = name_string_t::guarantee_valid(table->name.c_str());
                 std::string error;
                 std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
                     configs_and_statuses;

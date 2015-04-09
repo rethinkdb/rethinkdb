@@ -19,25 +19,19 @@ class datum_t;
 // detect things like attempts to write an array that is 'too large'
 // to storage.  The result is okay to go over the network, but not
 // okay to store on disk, by design fiat.
-enum class serialization_result_t {
+// Error cases are bit flags, and the final result will be SUCCESS or
+// a bitwise-or of these flags.
+enum serialization_result_t {
     // Unequivocal success.
-    SUCCESS,
+    SUCCESS = 0,
 
     // Successful serialization but the result should not be written to disk.
-    ARRAY_TOO_BIG,
+    ARRAY_TOO_BIG = 1,
+    EXTREMA_PRESENT = 2,
 };
 
 inline bool bad(serialization_result_t res) {
     return res != serialization_result_t::SUCCESS;
-}
-
-// Really what we need here is a monad :/
-inline const serialization_result_t & operator |(const serialization_result_t &first,
-                                                 const serialization_result_t &second) {
-    if (bad(first))
-        return first;
-    else
-        return second;
 }
 
 // Error checking during serialization comes at an additional cost, because

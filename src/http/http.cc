@@ -365,96 +365,30 @@ int http_server_t::get_port() const {
 
 http_server_t::~http_server_t() { }
 
-std::string human_readable_status(int code) {
+std::string human_readable_status(http_status_code_t code) {
     switch (code) {
-    case 100:
-        return "Continue";
-    case 101:
-        return "Switching Protocols";
-    case 200:
+    case http_status_code_t::OK:
         return "OK";
-    case 201:
-        return "Created";
-    case 202:
-        return "Accepted";
-    case 203:
-        return "Non-Authoritative Information";
-    case 204:
-        return "No Content";
-    case 205:
-        return "Reset Content";
-    case 206:
-        return "Partial Content";
-    case 300:
-        return "Multiple Choices";
-    case 301:
-        return "Moved Permanently";
-    case 302:
-        return "Found";
-    case 303:
-        return "See Other";
-    case 304:
-        return "Not Modified";
-    case 305:
-        return "Use Proxy";
-    case 307:
-        return "Temporary Redirect";
-    case 400:
+    case http_status_code_t::BAD_REQUEST:
         return "Bad Request";
-    case 401:
-        return "Unauthorized";
-    case 403:
+    case http_status_code_t::FORBIDDEN:
         return "Forbidden";
-    case 404:
+    case http_status_code_t::NOT_FOUND:
         return "Not Found";
-    case 405:
+    case http_status_code_t::METHOD_NOT_ALLOWED:
         return "Method Not Allowed";
-    case 406:
-        return "Not Acceptable";
-    case 407:
-        return "Proxy Authentication Required";
-    case 408:
-        return "Request Timeout";
-    case 409:
-        return "Conflict";
-    case 410:
-        return "Gone";
-    case 411:
-        return "Length Required";
-    case 412:
-        return "Precondition Failed";
-    case 413:
-        return "Request Entity Too Large";
-    case 414:
-        return "Request-URI Too Long";
-    case 415:
-        return "Unsupported Media Type";
-    case 416:
-        return "Request Range Not Satisfiable";
-    case 417:
-        return "Expectation Failed";
-    case 451:
-        return "Unavailable For Legal Reasons";
-    case 500:
+    case http_status_code_t::INTERNAL_SERVER_ERROR:
         return "Internal Server Error";
-    case 501:
-        return "Not Implemented";
-    case 502:
-        return "Bad Gateway";
-    case 503:
-        return "Service Unavailable";
-    case 504:
-        return "Gateway Timeout";
-    case 505:
-        return "HTTP Version Not Supported";
     default:
-        guarantee(false, "Unknown code %d.", code);
-        return "(Unknown status code)";
+        unreachable();
     }
 }
 
 void write_http_msg(tcp_conn_t *conn, const http_res_t &res, signal_t *closer) THROWS_ONLY(tcp_conn_write_closed_exc_t) {
-    conn->writef(closer, "HTTP/%s %d %s\r\n", res.version.c_str(), res.code, human_readable_status(res.code).c_str());
+    conn->writef(closer, "HTTP/%s %" PRIu32 " %s\r\n",
+                 res.version.c_str(),
+                 static_cast<uint32_t>(res.code),
+                 human_readable_status(res.code).c_str());
     for (auto const &line: res.header_lines) {
         conn->writef(closer, "%s: %s\r\n", line.first.c_str(), line.second.c_str());
     }
@@ -479,7 +413,7 @@ void http_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn
             res.version = req.version;
             maybe_gzip_response(req, &res);
         } else {
-            res = http_res_t(HTTP_BAD_REQUEST);
+            res = http_res_t(http_status_code_t::BAD_REQUEST);
         }
         write_http_msg(conn.get(), res, keepalive.get_drain_signal());
     } catch (const interrupted_exc_t &) {
@@ -499,23 +433,23 @@ bool tcp_http_msg_parser_t::parse(tcp_conn_t *conn, http_req_t *req, signal_t *c
 
     std::string method = parser.readWord(closer);
     if (method == "HEAD") {
-        req->method = HEAD;
+        req->method = http_method_t::HEAD;
     } else if (method == "GET") {
-        req->method = GET;
+        req->method = http_method_t::GET;
     } else if (method == "POST") {
-        req->method = POST;
+        req->method = http_method_t::POST;
     } else if (method == "PUT") {
-        req->method = PUT;
+        req->method = http_method_t::PUT;
     } else if (method == "DELETE") {
-        req->method = DELETE;
+        req->method = http_method_t::DELETE;
     } else if (method == "TRACE") {
-        req->method = TRACE;
+        req->method = http_method_t::TRACE;
     } else if (method == "OPTIONS") {
-        req->method = OPTIONS;
+        req->method = http_method_t::OPTIONS;
     } else if (method == "CONNECT") {
-        req->method = CONNECT;
+        req->method = http_method_t::CONNECT;
     } else if (method == "PATCH") {
-        req->method = PATCH;
+        req->method = http_method_t::PATCH;
     } else {
         return false;
     }

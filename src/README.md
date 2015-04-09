@@ -101,7 +101,7 @@ Concurrent queues.
 
 
 ### containers/
-Auth key, blob, bitset, buffer group, list, queue, two-level array, etc. Some are serializable.
+Auth key, blob, buffer group, list, queue, two-level array, etc. Some are serializable.
 
 #### containers/archive
 RDB custom serialization format implementation (e.g. used for cluster node communication).

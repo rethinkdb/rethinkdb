@@ -35,6 +35,10 @@ private:
             const remote_replicator_client_bcard_t &client_bcard,
             signal_t *interruptor);
 
+        bool is_primary() const {
+            return false;
+        }
+
         void do_read(
             const read_t &read,
             state_timestamp_t min_timestamp,

@@ -30,10 +30,6 @@ public:
         return sub_superblock->get_stat_block_id();
     }
 
-    void set_stat_block_id(block_id_t new_stat_block) {
-        sub_superblock->set_stat_block_id(new_stat_block);
-    }
-
     buf_parent_t expose_buf() {
         return sub_superblock->expose_buf();
     }

@@ -215,8 +215,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
     const deletion_context_t *deletion_context,
     promise_t<superblock_t *> *superblock_promise,
     rdb_modification_info_t *mod_info_out,
-    profile::trace_t *trace)
-{
+    profile::trace_t *trace) {
     const return_changes_t return_changes = replacer->should_return_changes();
     const datum_string_t &primary_key = info.btree->primary_key;
     const store_key_t &key = *info.key;
@@ -226,11 +225,13 @@ batched_replace_response_t rdb_replace_and_return_superblock(
         rdb_value_sizer_t sizer(info.superblock->cache()->max_block_size());
         find_keyvalue_location_for_write(&sizer, info.superblock,
                                          info.key->btree_key(),
+                                         info.btree->timestamp,
                                          deletion_context->balancing_detacher(),
                                          &kv_location,
-                                         &info.btree->slice->stats,
                                          trace,
                                          superblock_promise);
+        info.btree->slice->stats.pm_keys_set.record();
+        info.btree->slice->stats.pm_total_keys_set += 1;
 
         ql::datum_t old_val;
         if (!kv_location.value.has()) {
@@ -271,15 +272,12 @@ batched_replace_response_t rdb_replace_and_return_superblock(
                     kv_location_set(&kv_location, *info.key, new_val,
                                     info.btree->timestamp, deletion_context,
                                     mod_info_out);
-                switch (res) {
-                    case ql::serialization_result_t::ARRAY_TOO_BIG:
-                        rfail_typed_target(&new_val, "Array too large for disk writes"
-                                           " (limit 100,000 elements)");
-                        unreachable();
-                    case ql::serialization_result_t::SUCCESS:
-                        break;
-                    default:
-                        unreachable();
+                if (res & ql::serialization_result_t::ARRAY_TOO_BIG) {
+                    rfail_typed_target(&new_val, "Array too large for disk writes "
+                                       "(limit 100,000 elements).");
+                } else if (res & ql::serialization_result_t::EXTREMA_PRESENT) {
+                    rfail_typed_target(&new_val, "`r.minval` and `r.maxval` cannot be "
+                                       "written to disk.");
                 }
             }
 
@@ -340,9 +338,11 @@ void do_a_replace_from_batched_replace(
     rdb_modification_report_cb_t *sindex_cb,
     bool update_pkey_cfeeds,
     batched_replace_response_t *stats_out,
+    profile::sampler_t *sampler,
     profile::trace_t *trace,
     std::set<std::string> *conditions)
 {
+    sampler->new_sample();
     fifo_enforcer_sink_t::exit_write_t exiter(
         batched_replaces_fifo_sink, batched_replaces_fifo_token);
 
@@ -368,6 +368,7 @@ batched_replace_response_t rdb_batched_replace(
     const btree_batched_replacer_t *replacer,
     rdb_modification_report_cb_t *sindex_cb,
     ql::configured_limits_t limits,
+    profile::sampler_t *sampler,
     profile::trace_t *trace) {
 
     fifo_enforcer_source_t source;
@@ -410,6 +411,7 @@ batched_replace_response_t rdb_batched_replace(
                         sindex_cb,
                         update_pkey_cfeeds,
                         &stats,
+                        sampler,
                         trace,
                         &conditions));
                 current_superblock.init(
@@ -445,10 +447,11 @@ void rdb_set(const store_key_t &key,
              promise_t<superblock_t *> *pass_back_superblock) {
     keyvalue_location_t kv_location;
     rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
-    find_keyvalue_location_for_write(&sizer, superblock, key.btree_key(),
+    find_keyvalue_location_for_write(&sizer, superblock, key.btree_key(), timestamp,
                                      deletion_context->balancing_detacher(),
-                                     &kv_location, &slice->stats, trace,
-                                     pass_back_superblock);
+                                     &kv_location, trace, pass_back_superblock);
+    slice->stats.pm_keys_set.record();
+    slice->stats.pm_total_keys_set += 1;
     const bool had_value = kv_location.value.has();
 
     /* update the modification report */
@@ -463,15 +466,12 @@ void rdb_set(const store_key_t &key,
         ql::serialization_result_t res =
             kv_location_set(&kv_location, key, data, timestamp, deletion_context,
                             mod_info);
-        switch (res) {
-        case ql::serialization_result_t::ARRAY_TOO_BIG:
-            rfail_typed_target(&data, "Array too large for disk writes"
-                               " (limit 100,000 elements)");
-            unreachable();
-        case ql::serialization_result_t::SUCCESS:
-            break;
-        default:
-            unreachable();
+        if (res & ql::serialization_result_t::ARRAY_TOO_BIG) {
+            rfail_typed_target(&data, "Array too large for disk writes "
+                               "(limit 100,000 elements).");
+        } else if (res & ql::serialization_result_t::EXTREMA_PRESENT) {
+            rfail_typed_target(&data, "`r.minval` and `r.maxval` cannot be "
+                               "written to disk.");
         }
         guarantee(mod_info->deleted.second.empty() == !had_value &&
                   !mod_info->added.second.empty());
@@ -491,9 +491,11 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice,
                 promise_t<superblock_t *> *pass_back_superblock) {
     keyvalue_location_t kv_location;
     rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
-    find_keyvalue_location_for_write(&sizer, superblock, key.btree_key(),
-            deletion_context->balancing_detacher(), &kv_location, &slice->stats, trace,
+    find_keyvalue_location_for_write(&sizer, superblock, key.btree_key(), timestamp,
+            deletion_context->balancing_detacher(), &kv_location, trace,
             pass_back_superblock);
+    slice->stats.pm_keys_set.record();
+    slice->stats.pm_total_keys_set += 1;
     bool exists = kv_location.value.has();
 
     /* Update the modification report. */
@@ -648,11 +650,13 @@ continue_bool_t rget_cb_t::handle_pair(
     lazy_json_t row(static_cast<const rdb_value_t *>(keyvalue.value()),
                     keyvalue.expose_buf());
     ql::datum_t val;
+
+    // Count stats whether or not we deserialize the value
+    io.slice->stats.pm_keys_read.record();
+    io.slice->stats.pm_total_keys_read += 1;
     // We only load the value if we actually use it (`count` does not).
     if (job.accumulator->uses_val() || job.transformers.size() != 0 || sindex) {
         val = row.get();
-        io.slice->stats.pm_keys_read.record();
-        io.slice->stats.pm_total_keys_read += 1;
     } else {
         row.reset();
     }
@@ -1198,6 +1202,7 @@ void deserialize_sindex_info(const std::vector<char> &data,
     case cluster_version_t::v1_14:
     case cluster_version_t::v1_15:
     case cluster_version_t::v1_16:
+    case cluster_version_t::v2_0:
     case cluster_version_t::raft_is_latest:
         success = deserialize_for_version(
                 cluster_version,
@@ -1309,9 +1314,9 @@ void rdb_update_single_sindex(
                         &sizer,
                         superblock,
                         it->first.btree_key(),
+                        repli_timestamp_t::distant_past,
                         deletion_context->balancing_detacher(),
                         &kv_location,
-                        &sindex->btree->stats,
                         trace,
                         &return_superblock_local);
 
@@ -1387,9 +1392,9 @@ void rdb_update_single_sindex(
                         &sizer,
                         superblock,
                         it->first.btree_key(),
+                        repli_timestamp_t::distant_past,
                         deletion_context->balancing_detacher(),
                         &kv_location,
-                        &sindex->btree->stats,
                         trace,
                         &return_superblock_local);
 
@@ -1540,7 +1545,6 @@ public:
                     // Other than that, the hard durability guarantee is not actually
                     // needed here.
                     store_->acquire_superblock_for_write(
-                            repli_timestamp_t::distant_past,
                             2 + MAX_CHUNK_SIZE,
                             write_durability_t::HARD,
                             &token,

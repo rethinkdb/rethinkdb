@@ -309,7 +309,7 @@ public:
                         scoped_ptr_t<real_superblock_t> *superblock,
                         signal_t *interruptor);
 
-    void get_metainfo_internal(buf_lock_t *sb_buf,
+    void get_metainfo_internal(real_superblock_t *superblock,
                                region_map_t<binary_blob_t> *out)
         const THROWS_NOTHING;
 
@@ -322,7 +322,6 @@ public:
             THROWS_ONLY(interrupted_exc_t);
 
     void acquire_superblock_for_write(
-            repli_timestamp_t timestamp,
             int expected_change_count,
             write_durability_t durability,
             write_token_t *token,

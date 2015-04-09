@@ -39,7 +39,6 @@ void insert_rows(int start, int finish, store_t *store) {
         write_token_t token;
         store->new_write_token(&token);
         store->acquire_superblock_for_write(
-            repli_timestamp_t::distant_past,
             1, write_durability_t::SOFT,
             &token, &txn, &superblock, &dummy_interruptor);
         block_id_t sindex_block_id = superblock->get_sindex_block_id();
@@ -90,7 +89,6 @@ void insert_rows_and_pulse_when_done(int start, int finish,
 
 sindex_name_t create_sindex(store_t *store) {
     std::string name = uuid_to_str(generate_uuid());
-
     ql::sym_t one(1);
     ql::protob_t<const Term> mapping = ql::r::var(one)["sid"].release_counted();
     sindex_config_t config(
@@ -113,8 +111,7 @@ void bring_sindexes_up_to_date(
 
     scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> super_block;
-    store->acquire_superblock_for_write(repli_timestamp_t::distant_past,
-                                        1, write_durability_t::SOFT,
+    store->acquire_superblock_for_write(1, write_durability_t::SOFT,
                                         &token, &txn, &super_block, &dummy_interruptor);
 
     buf_lock_t sindex_block(super_block->expose_buf(),
@@ -138,7 +135,6 @@ void spawn_writes_and_bring_sindexes_up_to_date(store_t *store,
     scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> super_block;
     store->acquire_superblock_for_write(
-        repli_timestamp_t::distant_past,
         1, write_durability_t::SOFT,
         &token, &txn, &super_block, &dummy_interruptor);
 
@@ -404,8 +400,7 @@ TPTEST(RDBBtree, SindexEraseRange) {
 
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> super_block;
-        store.acquire_superblock_for_write(repli_timestamp_t::distant_past,
-                                           1,
+        store.acquire_superblock_for_write(1,
                                            write_durability_t::SOFT,
                                            &token,
                                            &txn,

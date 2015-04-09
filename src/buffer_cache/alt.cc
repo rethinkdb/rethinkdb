@@ -178,27 +178,21 @@ txn_t::txn_t(cache_conn_t *cache_conn,
     // need to support other cache_conn_t related features (like read operations
     // magically passing write operations), we'll need to do something fancier with
     // read txns on cache conns.
-    help_construct(repli_timestamp_t::invalid, 0, NULL);
+    help_construct(0, NULL);
 }
 
 txn_t::txn_t(cache_conn_t *cache_conn,
              write_durability_t durability,
-             repli_timestamp_t txn_timestamp,
              int64_t expected_change_count)
     : cache_(cache_conn->cache()),
       cache_account_(cache_->page_cache_.default_reads_account()),
       access_(access_t::write),
       durability_(durability) {
 
-    // Write transactions need to specify a timestamp, even if it's
-    // repli_timestamp_t::distant_past.
-    guarantee(txn_timestamp != repli_timestamp_t::invalid);
-
-    help_construct(txn_timestamp, expected_change_count, cache_conn);
+    help_construct(expected_change_count, cache_conn);
 }
 
-void txn_t::help_construct(repli_timestamp_t txn_timestamp,
-                           int64_t expected_change_count,
+void txn_t::help_construct(int64_t expected_change_count,
                            cache_conn_t *cache_conn) {
     cache_->assert_thread();
     guarantee(expected_change_count >= 0);
@@ -208,7 +202,6 @@ void txn_t::help_construct(repli_timestamp_t txn_timestamp,
     ASSERT_FINITE_CORO_WAITING;
 
     page_txn_.init(new page_txn_t(&cache_->page_cache_,
-                                  txn_timestamp,
                                   std::move(throttler_acq),
                                   cache_conn));
 }
@@ -703,7 +696,7 @@ repli_timestamp_t buf_lock_t::get_recency() const {
     return ret;
 }
 
-void buf_lock_t::manually_touch_recency(repli_timestamp_t recency) {
+void buf_lock_t::set_recency(repli_timestamp_t recency) {
     guarantee(!empty());
     rassert(snapshot_node_ == NULL);
 
@@ -716,7 +709,7 @@ void buf_lock_t::manually_touch_recency(repli_timestamp_t recency) {
         repli_timestamp_t s = superceding_recency(current_page_acq_->recency(), recency);
         guarantee(s == recency);
     }
-    current_page_acq_->manually_touch_recency(recency);
+    current_page_acq_->set_recency(recency);
 }
 
 page_t *buf_lock_t::get_held_page_for_read() {

@@ -42,6 +42,7 @@ pkg_environment () {
     if [[ -d "$install_dir/lib" ]]; then
         echo "export LDFLAGS=\"\${LDFLAGS:-} -L$(niceabspath "$install_dir/lib")\""
         echo "export LD_LIBRARY_PATH=\"$(niceabspath "$install_dir/lib")\${LD_LIBRARY_PATH:+:}\${LD_LIBRARY_PATH:-}\""
+        echo "export DYLD_LIBRARY_PATH=\"$(niceabspath "$install_dir/lib")\${DYLD_LIBRARY_PATH:+:}\${DYLD_LIBRARY_PATH:-}\""
     fi
     test -d "$install_dir/bin" && echo "export PATH=\"$(niceabspath "$install_dir/bin"):\$PATH\"" || :
     local pcdir="$install_dir/lib/pkgconfig"
@@ -133,7 +134,7 @@ pkg_install () {
         error "cannot install package, it has not been fetched"
     fi
     pkg_copy_src_to_build
-    pkg_configure
+    pkg_configure ${configure_flags:-}
     pkg_make install
 }
 
@@ -273,6 +274,7 @@ pkg () {
 
 # Configure some default paths
 pkg_dir=$(niceabspath "$(dirname $0)")
+root_dir=$(niceabspath "$pkg_dir/../../..")
 conf_dir=$(niceabspath "$pkg_dir/../config")
 external_dir=$(niceabspath "$pkg_dir/../../../external")
 root_build_dir=${BUILD_ROOT_DIR:-$(niceabspath "$pkg_dir/../../../build")}
@@ -293,6 +295,11 @@ shift
 # Load the package
 load_pkg "$1"
 shift
+
+# Trace commands
+if [[ "${TRACE:-}" = 1 ]]; then
+    set -x
+fi
 
 # Prepare the environment
 pkg_depends_env

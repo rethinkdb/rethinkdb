@@ -221,6 +221,11 @@ void write_json_pb(const Response &r, std::string *s) THROWS_NOTHING {
                 unreachable();
             }
         }
+        *s += "],\"n\":[";
+        for (int i = 0; i < r.notes_size(); ++i) {
+            *s += (i == 0) ? "" : ",";
+            *s += strprintf("%d", r.notes(i));
+        }
         *s += "]";
 
         if (r.has_backtrace()) {

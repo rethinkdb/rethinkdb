@@ -42,8 +42,11 @@ public:
     virtual block_id_t get_root_block_id() = 0;
     virtual void set_root_block_id(block_id_t new_root_block) = 0;
 
+    /* If stats collection is desired, create a stat block with `create_stat_block()` and
+    store its ID on the superblock, then return it from `get_stat_block_id()`. If stats
+    collection is not desired, `get_stat_block_id()` can always return `NULL_BLOCK_ID`.
+    */
     virtual block_id_t get_stat_block_id() = 0;
-    virtual void set_stat_block_id(block_id_t new_stat_block) = 0;
 
     virtual buf_parent_t expose_buf() = 0;
 
@@ -98,8 +101,7 @@ class keyvalue_location_t {
 public:
     keyvalue_location_t()
         : superblock(NULL), pass_back_superblock(NULL),
-          there_originally_was_value(false), stat_block(NULL_BLOCK_ID),
-          stats(NULL) { }
+          there_originally_was_value(false), stat_block(NULL_BLOCK_ID) { }
 
     ~keyvalue_location_t() {
         if (superblock != nullptr) {
@@ -132,8 +134,6 @@ public:
     // Stat block when modifications are made using this class the statblock is
     // update.
     block_id_t stat_block;
-
-    btree_stats_t *stats;
 private:
 
     DISABLE_COPYING(keyvalue_location_t);
@@ -188,8 +188,9 @@ void check_and_handle_underfull(value_sizer_t *sizer,
 /* Set sb to have root id as its root block and release sb */
 void insert_root(block_id_t root_id, superblock_t *sb);
 
-/* Create a stat block for the superblock. */
-void create_stat_block(superblock_t *sb);
+/* Create a stat block suitable for storing in a superblock and returning from
+`get_stat_block_id()`. */
+block_id_t create_stat_block(buf_parent_t parent);
 
 /* Note that there's no guarantee that `pass_back_superblock` will have been
  * pulsed by the time `find_keyvalue_location_for_write` returns. In some cases,
@@ -198,9 +199,9 @@ void find_keyvalue_location_for_write(
         value_sizer_t *sizer,
         superblock_t *superblock,
         const btree_key_t *key,
+        repli_timestamp_t timestamp,
         const value_deleter_t *balancing_detacher,
         keyvalue_location_t *keyvalue_location_out,
-        btree_stats_t *stats,
         profile::trace_t *trace,
         promise_t<superblock_t *> *pass_back_superblock = NULL) THROWS_NOTHING;
 

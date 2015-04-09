@@ -74,8 +74,10 @@ protected:
         default:
             if (should_continue_string(t)) {
                 doc = string_dots_together(t);
-            } else {
+            } else if (should_use_parens(t)) {
                 doc = standard_funcall(t);
+            } else {
+                doc = standard_literal(t);
             }
             break;
         }
@@ -408,11 +410,7 @@ private:
     }
     counted_t<const document_t> standard_funcall(const Term &t) {
         std::vector<counted_t<const document_t> > term;
-        if (t.type() == Term::JAVASCRIPT) {
-            term.push_back(js);
-        } else {
-            term.push_back(make_text(to_js_name(t)));
-        }
+        term.push_back(term_name(t));
         bool old_r_expr = in_r_expr;
         in_r_expr = true;
         std::vector<counted_t<const document_t> > args;
@@ -439,6 +437,10 @@ private:
             return make_nest(make_concat(std::move(term)));
         }
     }
+    counted_t<const document_t> standard_literal(const Term &t) {
+        guarantee(t.args_size() == 0);
+        return prepend_r_dot(term_name(t));
+    }
     counted_t<const document_t> prepend_r_dot(counted_t<const document_t> doc) {
         if (!prepend_ok) return doc;
         return make_c(r_st, make_nc(justdot, doc));
@@ -464,6 +466,14 @@ private:
     template <typename... Ts>
     counted_t<const document_t> make_c(Ts &&... docs) {
         return make_concat({std::forward<Ts>(docs)...});
+    }
+    counted_t<const document_t> term_name(const Term &t) {
+        switch (t.type()) {
+        case Term::JAVASCRIPT:
+            return js;
+        default:
+            return make_text(to_js_name(t));
+        }
     }
     bool should_use_rdot(const Term &t) {
         switch (t.type()) {
@@ -539,10 +549,43 @@ private:
         case Term::JAVASCRIPT:
         case Term::ASC:
         case Term::DESC:
+        case Term::MINVAL:
+        case Term::MAXVAL:
             return false;
         case Term::TABLE:
         case Term::FUNCALL:
             return t.args_size() == 2;
+        default:
+            return true;
+        }
+    }
+    bool should_use_parens(const Term &t) {
+        // handle malformed protobufs
+        if (t.args_size() > 0) return true;
+        switch (t.type()) {
+        case Term::MINVAL:
+        case Term::MAXVAL:
+        case Term::IMPLICIT_VAR:
+        case Term::MONDAY:
+        case Term::TUESDAY:
+        case Term::WEDNESDAY:
+        case Term::THURSDAY:
+        case Term::FRIDAY:
+        case Term::SATURDAY:
+        case Term::SUNDAY:
+        case Term::JANUARY:
+        case Term::FEBRUARY:
+        case Term::MARCH:
+        case Term::APRIL:
+        case Term::MAY:
+        case Term::JUNE:
+        case Term::JULY:
+        case Term::AUGUST:
+        case Term::SEPTEMBER:
+        case Term::OCTOBER:
+        case Term::NOVEMBER:
+        case Term::DECEMBER:
+            return false;
         default:
             return true;
         }
@@ -652,3 +695,231 @@ counted_t<const document_t> render_as_javascript(const Term &t) {
 }
 
 } // namespace pprint
+
+// Turn the switch diagnostic back on, and turn off unused function
+// diagnostics (because this function will never be used).
+#pragma GCC diagnostic error "-Wswitch-enum"
+#pragma GCC diagnostic ignored "-Wunused-function"
+
+// This function is not called by anything nor should it ever be
+// exported from this file.  Its sole reason for existence is to
+// remind people who add new Term types and new Datum types to update
+// the pretty printer.
+//
+// Pretty printer elements that need to be updated:
+// - `should_use_parens` should add the new Term to the list if it
+//   represents a constant, non functional value.  Think `r.minval`.
+// - `should_continue_string` should add the new Term to the list if
+//   it should be used in a string-of-dotted-expressions context.  So
+//   like `r.foo(1).bar(2).baz(4)` instead of `r.eq(1, 2)`.
+// - `should_use_rdot` should add the new Term to the list if it
+//   represents some sort of specialized language feature--for example
+//   literals like 4, or strings, or variable names.  These are very
+//   rare.
+// - `term_name` should add the new Term to the list if its name in
+//   JavaScript is different from its name in the protocol.  Currently
+//   the only example is `Term::JAVASCRIPT` which is called `r.js` in
+//   JavaScript.
+// - `visit_stringing` should have the new Term added if it requires
+//   exotic handling when in a dotted list.  This should be extremely
+//   rare; things like `Term::BRACKET` which turn into `x(4)` are
+//   where it usually shows up.
+// - `visit_generic` should have the new Term added if it requires
+//   exotic handling when not in dotted list context.  These should
+//   also be rare, and largely similar to the cases where
+//   `visit_stringing` has to have a new Term added.
+//
+// Finally if a new datum type is added, `to_js_datum` would need to
+// be updated.
+static void pprint_update_reminder() {
+    Term_TermType type = Term::UPDATE;
+    switch (type) {
+    case Term::UPDATE:
+    case Term::DELETE:
+    case Term::INSERT:
+    case Term::REPLACE:
+    case Term::DB_CREATE:
+    case Term::DB_DROP:
+    case Term::TABLE_CREATE:
+    case Term::TABLE_DROP:
+    case Term::WAIT:
+    case Term::RECONFIGURE:
+    case Term::REBALANCE:
+    case Term::SYNC:
+    case Term::INDEX_CREATE:
+    case Term::INDEX_DROP:
+    case Term::INDEX_WAIT:
+    case Term::INDEX_RENAME:
+    case Term::DATUM:
+    case Term::MAKE_ARRAY:
+    case Term::MAKE_OBJ:
+    case Term::BINARY:
+    case Term::VAR:
+    case Term::JAVASCRIPT:
+    case Term::HTTP:
+    case Term::ERROR:
+    case Term::IMPLICIT_VAR:
+    case Term::RANDOM:
+    case Term::DB:
+    case Term::TABLE:
+    case Term::GET:
+    case Term::GET_ALL:
+    case Term::EQ:
+    case Term::NE:
+    case Term::LT:
+    case Term::LE:
+    case Term::GT:
+    case Term::GE:
+    case Term::NOT:
+    case Term::ADD:
+    case Term::SUB:
+    case Term::MUL:
+    case Term::DIV:
+    case Term::MOD:
+    case Term::APPEND:
+    case Term::PREPEND:
+    case Term::DIFFERENCE:
+    case Term::SET_INSERT:
+    case Term::SET_INTERSECTION:
+    case Term::SET_UNION:
+    case Term::SET_DIFFERENCE:
+    case Term::SLICE:
+    case Term::OFFSETS_OF:
+    case Term::GET_FIELD:
+    case Term::HAS_FIELDS:
+    case Term::PLUCK:
+    case Term::WITHOUT:
+    case Term::MERGE:
+    case Term::LITERAL:
+    case Term::BETWEEN:
+    case Term::CHANGES:
+    case Term::REDUCE:
+    case Term::MAP:
+    case Term::FILTER:
+    case Term::CONCAT_MAP:
+    case Term::GROUP:
+    case Term::ORDER_BY:
+    case Term::DISTINCT:
+    case Term::COUNT:
+    case Term::SUM:
+    case Term::AVG:
+    case Term::MIN:
+    case Term::MAX:
+    case Term::UNION:
+    case Term::NTH:
+    case Term::BRACKET:
+    case Term::ARGS:
+    case Term::LIMIT:
+    case Term::SKIP:
+    case Term::INNER_JOIN:
+    case Term::OUTER_JOIN:
+    case Term::EQ_JOIN:
+    case Term::ZIP:
+    case Term::RANGE:
+    case Term::INSERT_AT:
+    case Term::DELETE_AT:
+    case Term::CHANGE_AT:
+    case Term::SPLICE_AT:
+    case Term::COERCE_TO:
+    case Term::UNGROUP:
+    case Term::TYPE_OF:
+    case Term::FUNCALL:
+    case Term::BRANCH:
+    case Term::OR:
+    case Term::AND:
+    case Term::FOR_EACH:
+    case Term::FUNC:
+    case Term::ASC:
+    case Term::DESC:
+    case Term::INFO:
+    case Term::MATCH:
+    case Term::SPLIT:
+    case Term::UPCASE:
+    case Term::DOWNCASE:
+    case Term::SAMPLE:
+    case Term::IS_EMPTY:
+    case Term::DEFAULT:
+    case Term::CONTAINS:
+    case Term::KEYS:
+    case Term::OBJECT:
+    case Term::WITH_FIELDS:
+    case Term::JSON:
+    case Term::TO_JSON_STRING:
+    case Term::ISO8601:
+    case Term::TO_ISO8601:
+    case Term::EPOCH_TIME:
+    case Term::TO_EPOCH_TIME:
+    case Term::NOW:
+    case Term::IN_TIMEZONE:
+    case Term::DURING:
+    case Term::DATE:
+    case Term::TIME_OF_DAY:
+    case Term::TIMEZONE:
+    case Term::TIME:
+    case Term::YEAR:
+    case Term::MONTH:
+    case Term::DAY:
+    case Term::DAY_OF_WEEK:
+    case Term::DAY_OF_YEAR:
+    case Term::HOURS:
+    case Term::MINUTES:
+    case Term::SECONDS:
+    case Term::MONDAY:
+    case Term::TUESDAY:
+    case Term::WEDNESDAY:
+    case Term::THURSDAY:
+    case Term::FRIDAY:
+    case Term::SATURDAY:
+    case Term::SUNDAY:
+    case Term::JANUARY:
+    case Term::FEBRUARY:
+    case Term::MARCH:
+    case Term::APRIL:
+    case Term::MAY:
+    case Term::JUNE:
+    case Term::JULY:
+    case Term::AUGUST:
+    case Term::SEPTEMBER:
+    case Term::OCTOBER:
+    case Term::NOVEMBER:
+    case Term::DECEMBER:
+    case Term::DB_LIST:
+    case Term::TABLE_LIST:
+    case Term::CONFIG:
+    case Term::STATUS:
+    case Term::INDEX_LIST:
+    case Term::INDEX_STATUS:
+    case Term::GEOJSON:
+    case Term::TO_GEOJSON:
+    case Term::POINT:
+    case Term::LINE:
+    case Term::POLYGON:
+    case Term::DISTANCE:
+    case Term::INTERSECTS:
+    case Term::INCLUDES:
+    case Term::CIRCLE:
+    case Term::GET_INTERSECTING:
+    case Term::FILL:
+    case Term::GET_NEAREST:
+    case Term::UUID:
+    case Term::POLYGON_SUB:
+    case Term::BETWEEN_DEPRECATED:
+    case Term::MINVAL:
+    case Term::MAXVAL:
+    case Term::FLOOR:
+    case Term::CEIL:
+    case Term::ROUND:
+        break;
+    }
+    Datum_DatumType d = Datum::R_NULL;
+    switch(d) {
+    case Datum::R_NULL:
+    case Datum::R_BOOL:
+    case Datum::R_NUM:
+    case Datum::R_STR:
+    case Datum::R_JSON:
+    case Datum::R_ARRAY:
+    case Datum::R_OBJECT:
+        break;
+    }
+}

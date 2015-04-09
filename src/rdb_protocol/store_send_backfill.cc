@@ -379,7 +379,7 @@ continue_bool_t store_t::send_backfill(
             get_btree_superblock_and_txn_for_reading(
                 general_cache_conn.get(), CACHE_SNAPSHOTTED_NO, &sb, &txn);
             region_map_t<binary_blob_t> metainfo;
-            get_metainfo_internal(sb->get(), &metainfo);
+            get_metainfo_internal(sb.get(), &metainfo);
 
             pre_item_buffer_t::producer_t buffered_producer(
                 &pre_item_buffer, threshold);

@@ -136,7 +136,8 @@ public:
             uuid_u const &id,
             double duration,
             server_id_t const &server_id,
-            ip_and_port_t const &client_addr_port);
+            ip_and_port_t const &client_addr_port,
+            std::string const &query);
 
     void merge_derived(query_job_report_t const &job_report);
 
@@ -148,6 +149,7 @@ public:
             ql::datum_object_builder_t *info_builder_out) const;
 
     ip_and_port_t client_addr_port;
+    std::string query;
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(query_job_report_t);
 

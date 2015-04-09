@@ -4,143 +4,117 @@ tests:
     # Short binary data from 0 to 12 characters
     # Not fully implemented for JS as comparing Buffer objects is non-trivial
     - def:
-         cd: s = ""
+         rb: s = "".force_encoding('BINARY')
          py: s = b''
-    - def:
-         rb: s.force_encoding('BINARY')
-         js: s = Buffer(s, 'binary')
+         js: s = Buffer("", 'binary')
     - cd: r.binary(s)
       ot: s
     - cd: r.binary(s).count()
       ot: 0
 
     - def:
-         cd: s = "\x00"
+         rb: s = "\x00".force_encoding('BINARY')
          py: s = b'\x00'
-    - def:
-         rb: s.force_encoding('BINARY')
-         js: s = Buffer(s, 'binary')
+         js: s = Buffer("\x00", 'binary')
     - cd: r.binary(s)
       ot: s
     - cd: r.binary(s).count()
       ot: 1
 
     - def:
-         cd: s = "\x00\x42"
+         rb: s = "\x00\x42".force_encoding('BINARY')
          py: s = b'\x00\x42'
-    - def:
-         rb: s.force_encoding('BINARY')
-         js: s = Buffer(s, 'binary')
+         js: s = Buffer("\x00\x42", 'binary')
     - cd: r.binary(s)
       ot: s
     - cd: r.binary(s).count()
       ot: 2
 
     - def:
-         cd: s = "\x00\xfe\x7a"
+         rb: s = "\x00\xfe\x7a".force_encoding('BINARY')
          py: s = b'\x00\xfe\x7a'
-    - def:
-         rb: s.force_encoding('BINARY')
-         js: s = Buffer(s, 'binary')
+         js: s = Buffer("\x00\xfe\x7a", 'binary')
     - cd: r.binary(s)
       ot: s
     - cd: r.binary(s).count()
       ot: 3
 
     - def:
-         cd: s = "\xed\xfe\x00\xba"
+         rb: s = "\xed\xfe\x00\xba".force_encoding('BINARY')
          py: s = b'\xed\xfe\x00\xba'
-    - def:
-         rb: s.force_encoding('BINARY')
-         js: s = Buffer(s, 'binary')
+         js: s = Buffer("\xed\xfe\x00\xba", 'binary')
     - cd: r.binary(s)
       ot: s
     - cd: r.binary(s).count()
       ot: 4
 
     - def:
-         cd: s = "\x50\xf9\x00\x77\xf9"
+         rb: s = "\x50\xf9\x00\x77\xf9".force_encoding('BINARY')
          py: s = b'\x50\xf9\x00\x77\xf9'
-    - def:
-         rb: s.force_encoding('BINARY')
-         js: s = Buffer(s, 'binary')
+         js: s = Buffer("\x50\xf9\x00\x77\xf9", 'binary')
     - cd: r.binary(s)
       ot: s
     - cd: r.binary(s).count()
       ot: 5
 
     - def:
-         cd: s = "\x2f\xe3\xb5\x57\x00\x92"
+         rb: s = "\x2f\xe3\xb5\x57\x00\x92".force_encoding('BINARY')
          py: s = b'\x2f\xe3\xb5\x57\x00\x92'
-    - def:
-         rb: s.force_encoding('BINARY')
-         js: s = Buffer(s, 'binary')
+         js: s = Buffer("\x2f\xe3\xb5\x57\x00\x92", 'binary')
     - cd: r.binary(s)
       ot: s
     - cd: r.binary(s).count()
       ot: 6
 
     - def:
-         cd: s = "\xa9\x43\x54\xe9\x00\xf8\xfb"
+         rb: s = "\xa9\x43\x54\xe9\x00\xf8\xfb".force_encoding('BINARY')
          py: s = b'\xa9\x43\x54\xe9\x00\xf8\xfb'
-    - def:
-         rb: s.force_encoding('BINARY')
-         js: s = Buffer(s, 'binary')
+         js: s = Buffer("\xa9\x43\x54\xe9\x00\xf8\xfb", 'binary')
     - cd: r.binary(s)
       ot: s
     - cd: r.binary(s).count()
       ot: 7
 
     - def:
-         cd: s = "\x57\xbb\xe5\x82\x8b\xd3\x00\xf9"
+         rb: s = "\x57\xbb\xe5\x82\x8b\xd3\x00\xf9".force_encoding('BINARY')
          py: s = b'\x57\xbb\xe5\x82\x8b\xd3\x00\xf9'
-    - def:
-         rb: s.force_encoding('BINARY')
-         js: s = Buffer(s, 'binary')
+         js: s = Buffer("\x57\xbb\xe5\x82\x8b\xd3\x00\xf9", 'binary')
     - cd: r.binary(s)
       ot: s
     - cd: r.binary(s).count()
       ot: 8
 
     - def:
-         cd: s = "\x44\x1b\x3e\x00\x13\x19\x29\x2a\xbf"
+         rb: s = "\x44\x1b\x3e\x00\x13\x19\x29\x2a\xbf".force_encoding('BINARY')
          py: s = b'\x44\x1b\x3e\x00\x13\x19\x29\x2a\xbf'
-    - def:
-         rb: s.force_encoding('BINARY')
-         js: s = Buffer(s, 'binary')
+         js: s = Buffer("\x44\x1b\x3e\x00\x13\x19\x29\x2a\xbf", 'binary')
     - cd: r.binary(s)
       ot: s
     - cd: r.binary(s).count()
       ot: 9
 
     - def:
-         cd: s = "\x8a\x1d\x09\x00\x5d\x60\x6b\x2e\x70\xd9"
+         rb: s = "\x8a\x1d\x09\x00\x5d\x60\x6b\x2e\x70\xd9".force_encoding('BINARY')
          py: s = b'\x8a\x1d\x09\x00\x5d\x60\x6b\x2e\x70\xd9'
-    - def:
-         rb: s.force_encoding('BINARY')
-         js: s = Buffer(s, 'binary')
+         js: s = Buffer("\x8a\x1d\x09\x00\x5d\x60\x6b\x2e\x70\xd9", 'binary')
     - cd: r.binary(s)
       ot: s
     - cd: r.binary(s).count()
       ot: 10
 
     - def:
-         cd: s = "\x00\xaf\x47\x4b\x38\x99\x14\x8d\x8f\x10\x51"
+         rb: s = "\x00\xaf\x47\x4b\x38\x99\x14\x8d\x8f\x10\x51".force_encoding('BINARY')
          py: s = b'\x00\xaf\x47\x4b\x38\x99\x14\x8d\x8f\x10\x51'
-    - def:
-         rb: s.force_encoding('BINARY')
-         js: s = Buffer(s, 'binary')
+         js: s = Buffer("\x00\xaf\x47\x4b\x38\x99\x14\x8d\x8f\x10\x51", 'binary')
     - cd: r.binary(s)
       ot: s
     - cd: r.binary(s).count()
       ot: 11
 
     - def:
-         cd: s = "\x45\x39\x00\xf7\xc2\x37\xfd\xe0\x38\x82\x40\xa9"
+         cd: s = "\x45\x39\x00\xf7\xc2\x37\xfd\xe0\x38\x82\x40\xa9".force_encoding('BINARY')
          py: s = b'\x45\x39\x00\xf7\xc2\x37\xfd\xe0\x38\x82\x40\xa9'
-    - def:
-         rb: s.force_encoding('BINARY')
-         js: s = Buffer(s, 'binary')
+         js: s = Buffer("\x45\x39\x00\xf7\xc2\x37\xfd\xe0\x38\x82\x40\xa9", 'binary')
     - cd: r.binary(s)
       ot: s
     - cd: r.binary(s).count()
@@ -149,41 +123,29 @@ tests:
     # Test comparisons
     # Binary objects to use, in order of increasing value
     - def:
-         cd: a = "\x00"
+         js: a = Buffer("\x00", 'binary')
+         rb: a = "\x00".force_encoding('BINARY')
          py: a = b'\x00'
     - def:
-         cd: b = "\x00\x01"
+         js: b = Buffer("\x00\x01", 'binary')
+         rb: b = "\x00\x01".force_encoding('BINARY')
          py: b = b'\x00\x01'
     - def:
-         cd: c = "\x01"
+         js: c = Buffer("\x01", 'binary')
+         rb: c = "\x01".force_encoding('BINARY')
          py: c = b'\x01'
     - def:
-         cd: d = "\x70\x22"
+         js: d = Buffer("\x70\x22", 'binary')
+         rb: d = "\x70\x22".force_encoding('BINARY')
          py: d = b'\x70\x22'
     - def:
-         cd: e = "\x80"
+         js: e = Buffer("\x80", 'binary')
+         rb: e = "\x80".force_encoding('BINARY')
          py: e = b'\x80'
     - def:
-         cd: f = "\xFE"
+         js: f = Buffer("\xFE", 'binary')
+         rb: f = "\xFE".force_encoding('BINARY')
          py: f = b'\xFE'
-    - def:
-         rb: a.force_encoding('BINARY')
-         js: a = Buffer(a, 'binary')
-    - def:
-         rb: b.force_encoding('BINARY')
-         js: b = Buffer(b, 'binary')
-    - def:
-         rb: c.force_encoding('BINARY')
-         js: c = Buffer(c, 'binary')
-    - def:
-         rb: d.force_encoding('BINARY')
-         js: d = Buffer(d, 'binary')
-    - def:
-         rb: e.force_encoding('BINARY')
-         js: e = Buffer(e, 'binary')
-    - def:
-         rb: f.force_encoding('BINARY')
-         js: f = Buffer(f, 'binary')
 
     # a -> a
     - cd: r.binary(a).eq(r.binary(a))
@@ -348,8 +310,7 @@ tests:
       ot: b'fg'
 
     # Test binary_format optarg
-    - rb: r.binary(b)
-      py: r.binary(b)
+    - cd: r.binary(b)
       runopts:
         binary_format: '"native"'
       ot: b
@@ -372,9 +333,12 @@ tests:
       ot: err('RqlRuntimeError', 'Expected type STRING but found ARRAY.', [])
 
     # Test errors
+    
     # Missing 'data' field
     - py: r.expr({'$reql_type$':'BINARY'})
+      rb: r.expr({'$reql_type$':'BINARY'})
       ot: err('RqlRuntimeError','Invalid binary pseudotype:'+' lacking `data` key.',[])
+    
     # Invalid base64 format
     - py: r.expr({'$reql_type$':'BINARY','data':'ABCDEFGH==AA'})
       ot: err('RqlRuntimeError','Invalid base64 format, data found after padding character \'=\'.',[])
@@ -384,14 +348,15 @@ tests:
       ot: err('RqlRuntimeError','Invalid base64 character found:'+' \'^\'.',[])
     - py: r.expr({'$reql_type$':'BINARY','data':'ABCDE'})
       ot: err('RqlRuntimeError','Invalid base64 length:'+' 1 character remaining, cannot decode a full byte.',[])
+    
     # Invalid coercions
-    - rb: r.binary('a').coerce_to('array')
+    - cd: r.binary(a).coerce_to('array')
       ot: err('RqlRuntimeError','Cannot coerce BINARY to ARRAY.',[])
-    - rb: r.binary('a').coerce_to('object')
+    - cd: r.binary(a).coerce_to('object')
       ot: err('RqlRuntimeError','Cannot coerce BINARY to OBJECT.',[])
-    - rb: r.binary('a').coerce_to('bool')
+    - cd: r.binary(a).coerce_to('bool')
       ot: err('RqlRuntimeError','Cannot coerce BINARY to BOOL.',[])
-    - rb: r.binary('a').coerce_to('number')
+    - cd: r.binary(a).coerce_to('number')
       ot: err('RqlRuntimeError','Cannot coerce BINARY to NUMBER.',[])
-    - rb: r.binary('a').coerce_to('nu'+'ll')
+    - cd: r.binary(a).coerce_to('nu'+'ll')
       ot: err('RqlRuntimeError','Cannot coerce BINARY to NULL.',[])

@@ -186,7 +186,7 @@ void mock_namespace_interface_t::write_visitor_t::operator()(
         store_key_t key((*it).get_field(datum_string_t(bi.pkey)).print_primary());
         auto data_it = parent->data.find(key);
         ql::datum_object_builder_t resp;
-        ql::datum_t old_val = data_it == parent->data.end() ?
+        ql::datum_t old_val = data_it != parent->data.end() ?
             data_it->second : ql::datum_t::null();
 
         ql::datum_t new_val = *it;
@@ -289,8 +289,10 @@ scoped_ptr_t<test_rdb_env_t::instance_t> test_rdb_env_t::make_env() {
 
 test_rdb_env_t::instance_t::instance_t(test_rdb_env_t &&test_env) :
     extproc_pool(2),
-    rdb_ctx(&extproc_pool, this)
+    rdb_ctx(&extproc_pool, this),
+    auth_manager(auth_semilattice_metadata_t())
 {
+    rdb_ctx.auth_metadata = auth_manager.get_view();
     env.init(new ql::env_t(&rdb_ctx,
                            ql::return_empty_normal_batches_t::NO,
                            &interruptor,
@@ -319,8 +321,12 @@ test_rdb_env_t::instance_t::instance_t(test_rdb_env_t &&test_env) :
     test_env.tables.clear();
 }
 
-ql::env_t *test_rdb_env_t::instance_t::get() {
+ql::env_t *test_rdb_env_t::instance_t::get_env() {
     return env.get();
+}
+
+rdb_context_t *test_rdb_env_t::instance_t::get_rdb_context() {
+    return &rdb_ctx;
 }
 
 std::map<store_key_t, ql::datum_t> *test_rdb_env_t::instance_t::get_data(

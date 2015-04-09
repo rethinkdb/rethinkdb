@@ -110,13 +110,16 @@ void primary_dispatcher_t::read(
         mutex_assertion_t::acq_t mutex_acq(&mutex);
         lock->end();
 
-        /* Prefer the dispatchee with the highest acknowledged write version (to reduce
-        the risk that the read has to wait for a write). If multiple ones are equal, use
-        priority as a tie-breaker. */
+        /* Prefer the dispatchee with the highest acknowledged write version
+        (to reduce the risk that the read has to wait for a write). If multiple
+        ones are equal, use priority as a tie-breaker. */
         std::pair<state_timestamp_t, double> best;
         for (const auto &pair : dispatchees) {
             dispatchee_registration_t *d = pair.first;
             if (!d->is_ready) {
+                continue;
+            }
+            if (read.route_to_primary() && !d->dispatchee->is_primary()) {
                 continue;
             }
             if (dispatchee == nullptr ||

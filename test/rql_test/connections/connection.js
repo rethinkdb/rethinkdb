@@ -11,12 +11,13 @@ var spawn = require('child_process').spawn
 
 var r = require(path.resolve(__dirname, '..', 'importRethinkDB.js')).r;
 
-// --
+// -- get ENV inforamtion
 
-var rethinkdbExe = process.env.RDB_EXE_PATH || '../../../build/debug/rethinkdb' // - ToDo: replace the hard code
-var testDefault = process.env.TEST_DEFAULT_PORT == "1"
+var testDefault = process.env.TEST_DEFAULT_PORT == "1";
+var driverPort = process.env.RDB_DRIVER_PORT;
+var serverHost = process.env.RDB_SERVER_HOST || 'localhost';
 
-var port = null;
+// -- helper functions
 
 var assertErr = function(err, type, msg) {
     assertNotNull(err);
@@ -44,19 +45,11 @@ var checkError = function(type, msg) {
 
 var withConnection = function(f){
     return function(done){
-        r.connect({port:port}, function(err, c){
+        r.connect({host:serverHost, port:driverPort}, function(err, c){
             assertNull(err);
             f(done, c);
         });
     };
-};
-
-var testSimpleQuery = function(c, done){
-    r(1).run(c, function(err, res){
-        assertNull(err);
-        assert.equal(res, 1);
-        done();
-    });
 };
 
 var noError = function(f){
@@ -84,14 +77,12 @@ var ifTestDefault = function(f, c){
 
 describe('Javascript connection API', function(){
     it("times out with a server that doesn't do the handshake correctly", function(done){
-        var port = 8990;
-
         // Setup dummy sever
-        require('net').createServer(function(c) {
-            // Do nothing
-        }).listen(port);
-
-        r.connect({port:port, timeout:1}, givesError("RqlDriverError", "Handshake timedout", done));
+        var server = require('net').createServer(function(c) {});
+        server.listen(0, function() {
+            var badPort = server.address().port;
+            r.connect({port:badPort, timeout:1}, givesError("RqlDriverError", "Handshake timedout", done));
+        });
     });
 
     describe('With no server', function(){
@@ -110,6 +101,7 @@ describe('Javascript connection API', function(){
                 done(new Error("Was expecting an error"))
             }).error(givesError("RqlDriverError", "First argument to `run` must be an open connection.", done));
         });
+
         it("run with an object", function(done) {
             r.expr(1).run({}).then(function() {
                 done(new Error("Was expecting an error"))
@@ -119,108 +111,45 @@ describe('Javascript connection API', function(){
 
     describe('With a server', function(){
 
-        var cpp_server;
-        var server_out_log;
-        var server_err_log;
-        var cluster_port;
-
-        beforeEach(function(done){
-            function setup() {
-                port = Math.floor(Math.random()*(65535 - 1025)+1025);
-                cluster_port = port + 1;
-                server_out_log = fs.openSync('run/server-log.txt', 'a');
-                server_err_log = fs.openSync('run/server-error-log.txt', 'a');
-                cpp_server = spawn(
-                    rethinkdbExe,
-                    ['--driver-port', port, '--http-port', '0', '--cluster-port', cluster_port, '--cache-size', '512'],
-                    {stdio: ['ignore', 'pipe', 'pipe']});
-
-                cpp_server.stderr.on('data', function(data) {
-                    fs.write(server_err_log, data)
-                    // Somehow, rethinkdb dump things in stderr
-                    if (data.toString().match(/Server ready/)) {
-                        cpp_server.removeAllListeners();
-                        setTimeout(done, 500); // We give the server 500ms to avoid errors like ("Cannot compute blueprint...")
-                    }
-
-                    if (data.toString().match(/Could not bind to/)) {
-                        // The port is somehow used by someone else, let's spin up another server
-                        cpp_server.removeAllListeners();
-                        setup();
-                    }
-                });
-                cpp_server.stdout.on('data', function(data) {
-                    fs.write(server_out_log, data)
-                });
-            }
-
-            setup();
-        });
-
-        afterEach(function(done){
-            cpp_server.kill();
-            cpp_server.removeAllListeners();
-            spawn('rm', ['-rf', 'rethinkdb_data']);
-            setTimeout(done, 10);
-            fs.close(server_out_log);
-            fs.close(server_err_log);
-        });
-
-        it("authorization key when none needed", function(done){
-            r.connect({port: port, authKey: "hunter2"}, givesError("RqlDriverError", "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"", done));
-        });
-
-        it("correct authorization key", function(done){
-            spawn(
-                  rethinkdbExe,
-                  ['admin', '--join', 'localhost:' + cluster_port, 'set', 'auth', 'hunter3'],
-                  {stdio: ['ignore', server_out_log, server_err_log]});
-            setTimeout(function(){
-                r.connect({port: port, authKey: "hunter3"}, function(e, c){
-                    assertNull(e);
-                    r.expr(1).run(c, noError(done));
-                });
-            }, 500);
-
-        });
-
-        it("wrong authorization key", function(done){
-            spawn(
-                  rethinkdbExe,
-                  ['admin', '--join', 'localhost:' + cluster_port, 'set', 'auth', 'hunter4'],
-                  {stdio: ['ignore', server_out_log, server_err_log]});
-
-            setTimeout(function(){
-                r.connect({port: port, authKey: "hunter-wrong"}, givesError("RqlDriverError", "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"", done));
-            }, 500);
-        });
-
         // TODO: test default port
 
-        it("close twice and reconnect", withConnection(function(done, c){
-            testSimpleQuery(c, function(){
-                assert.doesNotThrow(function(){
-                    c.close({noreplyWait: false});
-                    c.close({noreplyWait: false});
-                    c.reconnect(function(err, c){
-                        assertNull(err);
-                        testSimpleQuery(c, done);
-                    });
-                });
+        describe('close twice and reconnect', function(){
+            var simpleQuery = function(c) { return r(1).run(c); };
+
+            it("noreplyWait=false", function(done) {
+                var conn = null;
+                r.connect({host:serverHost, port:driverPort})
+                .then(function(c) {
+                    conn = c;
+                    return simpleQuery(conn);
+                }).then(function() {
+                    return conn.close({noreplyWait: false});
+                }).then(function() {
+                    return conn.close({noreplyWait: false});
+                }).then(function() {
+                    return conn.reconnect();
+                }).then(function() {
+                    return simpleQuery(conn);
+                }).nodeify(done)
             });
-        }));
-        it("close twice (synchronously) and reconnect", withConnection(function(done, c){
-            testSimpleQuery(c, function(){
-                assert.doesNotThrow(function(){
-                    c.close();
-                    c.close();
-                    c.reconnect(function(err, c){
-                        assertNull(err);
-                        testSimpleQuery(c, done);
-                    });
-                });
+
+            it("synchronously", function(done) {
+                var conn = null;
+                r.connect({host:serverHost, port:driverPort})
+                .then(function(c) {
+                    conn = c;
+                    return simpleQuery(conn);
+                }).then(function() {
+                    return conn.close();
+                }).then(function() {
+                    return conn.close();
+                }).then(function() {
+                    return conn.reconnect();
+                }).then(function() {
+                    return simpleQuery(conn);
+                }).nodeify(done)
             });
-        }));
+        })
 
         it("fails to query after close", withConnection(function(done, c){
             c.close({noreplyWait: false});
@@ -294,60 +223,42 @@ describe('Javascript connection API', function(){
             });
         }));
 
-        it("test use", withConnection(function(done, c){
-            r.db('test').tableCreate('t1').run(c, noError(function(){
-                r.dbCreate('db2').run(c, noError(function(){
-                    r.db('db2').tableCreate('t2').run(c, noError(function(){
-                        c.use('db2');
-                        r.table('t2').run(c, noError(function(){
-                            c.use('test');
-                            r.table('t2').run(c, givesError("RqlRuntimeError", "Table `test.t2` does not exist",
-                                                            done));
-                        }));}));}));}));}));
-
         it("useOutdated", withConnection(function(done, c){
-            r.db('test').tableCreate('t1').run(c, function(){
-                r.db('test').table('t1', {useOutdated:true}).run(c, function(){
-                    r.db('test').table('t1').run(c, {useOutdated: true}, done);});});
+            r.db('test').tableCreate('useOutdated').run(c, function(){
+                r.db('test').table('useOutdated', {useOutdated:true}).run(c, function(){
+                    r.db('test').table('useOutdated').run(c, {useOutdated: true}, done);});});
         }));
 
         it("test default durability", withConnection(function(done, c){
-            r.db('test').tableCreate('t1').run(c, noError(function(){
-                r.db('test').table('t1').insert({data:"5"}).run(c, {durability: "default"},
+            r.db('test').tableCreate('defaultDurability').run(c, noError(function(){
+                r.db('test').table('defaultDurability').insert({data:"5"}).run(c, {durability: "default"},
                     givesError("RqlRuntimeError", "Durability option `default` unrecognized (options are \"hard\" and \"soft\")", done));
             }));
         }));
 
         it("test wrong durability", withConnection(function(done, c){
-            r.db('test').tableCreate('t1').run(c, noError(function(){
-                r.db('test').table('t1').insert({data:"5"}).run(c, {durability: "wrong"},
+            r.db('test').tableCreate('wrongDurability').run(c, noError(function(){
+                r.db('test').table('wrongDurability').insert({data:"5"}).run(c, {durability: "wrong"},
                     givesError("RqlRuntimeError", "Durability option `wrong` unrecognized (options are \"hard\" and \"soft\")", done))
             }));
         }));
 
         it("test soft durability", withConnection(function(done, c){
-            r.db('test').tableCreate('t1').run(c, noError(function(){
-                r.db('test').table('t1').insert({data:"5"}).run(c, {durability: "soft"}, noError(done));
+            r.db('test').tableCreate('softDurability').run(c, noError(function(){
+                r.db('test').table('softDurability').insert({data:"5"}).run(c, {durability: "soft"}, noError(done));
             }));
         }));
 
         it("test hard durability", withConnection(function(done, c){
-            r.db('test').tableCreate('t1').run(c, noError(function(){
-                r.db('test').table('t1').insert({data:"5"}).run(c, {durability: "hard"}, noError(done));
+            r.db('test').tableCreate('hardDurability').run(c, noError(function(){
+                r.db('test').table('hardDurability').insert({data:"5"}).run(c, {durability: "hard"}, noError(done));
             }));
         }));
 
         it("test non-deterministic durability", withConnection(function(done, c){
-            r.db('test').tableCreate('t1').run(c, noError(function(){
-                r.db('test').table('t1').insert({data:"5"}).run(c, {durability: r.js("'so' + 'ft'")}, noError(done));
+            r.db('test').tableCreate('nonDeterministicDurability').run(c, noError(function(){
+                r.db('test').table('nonDeterministicDurability').insert({data:"5"}).run(c, {durability: r.js("'so' + 'ft'")}, noError(done));
             }));
-        }));
-
-        it("fails to query after kill", withConnection(function(done, c){
-            cpp_server.kill();
-            setTimeout(function() {
-                r(1).run(c, givesError("RqlDriverError", "Connection is closed.", done));
-            }, 100);
         }));
 
         it("pretty-printing", function(){
@@ -359,7 +270,7 @@ describe('Javascript connection API', function(){
             r.dbCreate('foo').run(c, function(err, res){
                 r.db('foo').tableCreate('bar').run(c, function(err, res){
                     c.close();
-                    r.connect({port:port, db:'foo'}, noError(function(err, c){
+                    r.connect({host:serverHost, port:driverPort, db:'foo'}, noError(function(err, c){
                         r.table('bar').run(c, noError(done));
                     }));
                 });
@@ -371,7 +282,7 @@ describe('Javascript connection API', function(){
             done();
         }));
 
-        // Test the event emitter interface
+        // -- event emitter interface
 
         it("Emits connect event on connect", withConnection(function(done, c){
             c.on('connect', function(err, c2) {
@@ -389,10 +300,12 @@ describe('Javascript connection API', function(){
             c.close();
         }));
 
+        // -- bad options
+
         it("Non valid optarg", withConnection(function(done, c){
             r.expr(1).run(c, {nonValidOption: true}).then(function() {
                 done(new Error("Was expecting an error"))
-            }).error(givesError("RqlDriverError", "Found nonValidOption which is not a valid option. valid options are {useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, groupFormat: <string>, binaryFormat: <string>, profile: <bool>, durability: <string>, arrayLimit: <number>}.", done));
+            }).error(givesError("RqlCompileError", "Unrecognized global optional argument `non_valid_option`", done));
         }));
 
         it("Extra argument", withConnection(function(done, c){
@@ -402,6 +315,54 @@ describe('Javascript connection API', function(){
         it("Callback must be a function", withConnection(function(done, c){
             r.expr(1).run(c, {}, "not_a_function").error(givesError("RqlDriverError", "If provided, the callback must be a function. Please use `run(connection[, options][, callback])", done))
         }));
+
+        // -- auth_key tests
+
+        it("authorization key when none needed", function(done){
+            r.connect({host:serverHost, port:driverPort, authKey: "hunter2"}, givesError("RqlDriverError", "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"", done));
+        });
+
+        it("correct authorization key", function(done){
+            setTimeout(function(){
+                r.connect({host:serverHost, port:driverPort}, function(e, c){
+                    assertNull(e);
+                    r.db('rethinkdb').table('cluster_config').update({auth_key: "hunter3"}).run(c, noError(function() {
+                        r.connect({host:serverHost, port:driverPort, authKey: "hunter3"}, function(e, c){
+                            assertNull(e);
+                            r.expr(1).run(c, noError(done));
+                            // undo the auth_key
+                            r.db('rethinkdb').table('cluster_config').update({auth_key:null}).run(c, assertNull);
+                        });
+                    }));
+                });
+            }, 500);
+        });
+
+        it("wrong authorization key", function(done){
+            setTimeout(function(){
+                r.connect({host:serverHost, port:driverPort}, function(e, c){
+                    assertNull(e);
+                    r.db('rethinkdb').table('cluster_config').update({auth_key: "hunter4"}).run(c, noError(function() {
+                        r.connect({host:serverHost, port:driverPort, authKey: "hunter-wrong"}, givesError("RqlDriverError", "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"", done));
+                        // undo the auth_key
+                        r.db('rethinkdb').table('cluster_config').update({auth_key:null}).run(c, assertNull);
+                    }));
+                });
+            }, 500);
+        });
+
+        // -- use tests
+
+        this.timeout(8000) // "test use" can take soem time
+
+        it("test use", withConnection(function(done, c){
+            r.db('test').tableCreate('t1').run(c, noError(function(){
+                r.dbCreate('db2').run(c, noError(function(){
+                    r.db('db2').tableCreate('t2').run(c, noError(function(){
+                        c.use('db2');
+                        r.table('t2').run(c, noError(function(){
+                            c.use('test');
+                            r.table('t2').run(c, givesError("RqlRuntimeError", "Table `test.t2` does not exist", done));
+        }));}));}));}));}));
     });
 });
-
