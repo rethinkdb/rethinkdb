@@ -37,7 +37,7 @@ public:
 private:
     class client_t {
     public:
-        client_t(master_t *p) :
+        explicit client_t(master_t *p) :
             parent(p) { }
         void perform_request(
                 const master_business_card_t::request_t &,
