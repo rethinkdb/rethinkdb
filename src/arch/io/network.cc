@@ -96,6 +96,7 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &peer,
         sock(create_socket_wrapper(peer.get_address_family())),
         event_watcher(new linux_event_watcher_t(sock.get(), this)),
         read_in_progress(false), write_in_progress(false),
+        read_buffer(IO_BUFFER_SIZE),
         write_handler(this),
         write_queue_limiter(WRITE_QUEUE_MAX_SIZE),
         write_coro_pool(1, &write_queue, &write_handler),
@@ -148,6 +149,7 @@ linux_tcp_conn_t::linux_tcp_conn_t(fd_t s) :
         sock(s),
         event_watcher(new linux_event_watcher_t(sock.get(), this)),
         read_in_progress(false), write_in_progress(false),
+        read_buffer(IO_BUFFER_SIZE),
         write_handler(this),
         write_queue_limiter(WRITE_QUEUE_MAX_SIZE),
         write_coro_pool(1, &write_queue, &write_handler),
@@ -250,7 +252,7 @@ size_t linux_tcp_conn_t::read_some(void *buf, size_t size, signal_t *closer) THR
         /* Return the data from the peek buffer */
         size_t read_buffer_bytes = std::min(read_buffer.size(), size);
         memcpy(buf, read_buffer.data(), read_buffer_bytes);
-        read_buffer.erase(read_buffer.begin(), read_buffer.begin() + read_buffer_bytes);
+        read_buffer.erase_front(read_buffer_bytes);
         return read_buffer_bytes;
     } else {
         /* Go to the kernel _once_. */
@@ -264,7 +266,7 @@ void linux_tcp_conn_t::read(void *buf, size_t size, signal_t *closer) THROWS_ONL
     /* First, consume any data in the peek buffer */
     int read_buffer_bytes = std::min(read_buffer.size(), size);
     memcpy(buf, read_buffer.data(), read_buffer_bytes);
-    read_buffer.erase(read_buffer.begin(), read_buffer.begin() + read_buffer_bytes);
+    read_buffer.erase_front(read_buffer_bytes);
     buf = reinterpret_cast<void *>(reinterpret_cast<char *>(buf) + read_buffer_bytes);
     size -= read_buffer_bytes;
 
@@ -308,7 +310,7 @@ void linux_tcp_conn_t::pop(size_t len, signal_t *closer) THROWS_ONLY(tcp_conn_re
     if (read_closed.is_pulsed()) throw tcp_conn_read_closed_exc_t();
 
     peek(len, closer);
-    read_buffer.erase(read_buffer.begin(), read_buffer.begin() + len);  // INEFFICIENT
+    read_buffer.erase_front(len);
 }
 
 void linux_tcp_conn_t::shutdown_read() {
