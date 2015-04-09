@@ -198,9 +198,10 @@ public:
     // never returns repli_timestamp_t::invalid.
     repli_timestamp_t get_recency() const;
 
-    // Sets the buf's recency to `superceding_recency`, which must be greater than its
-    // current recency. Operations that add or modify entries to the leaf nodes of the
-    // B-tree should call this for every node in the path from the root to the leaf.
+    // Sets the buf's recency to `superceding_recency`, which must be greater than or
+    // equal to its current recency. Operations that add or modify entries to the leaf
+    // nodes of the B-tree should call this for every node in the path from the root to
+    // the leaf.
     void set_recency(repli_timestamp_t superceding_recency);
 
     access_t access() const {
