@@ -51,6 +51,7 @@ continue_bool_t btree_send_backfill_pre(
                 UNUSED const btree_key_t *left_excl_or_null,
                 const btree_key_t *right_incl,
                 repli_timestamp_t timestamp,
+                signal_t *,
                 bool *skip_out) {
             *skip_out = timestamp <= reference_timestamp;
             if (*skip_out) {
@@ -65,6 +66,7 @@ continue_bool_t btree_send_backfill_pre(
                 const counted_t<counted_buf_lock_and_read_t> &buf,
                 const btree_key_t *left_excl_or_null,
                 const btree_key_t *right_incl,
+                signal_t *,
                 bool *skip_out) {
             *skip_out = true;
             const leaf_node_t *lnode = static_cast<const leaf_node_t *>(
@@ -116,7 +118,7 @@ continue_bool_t btree_send_backfill_pre(
             }
         }
 
-        continue_bool_t handle_pair(scoped_key_value_t &&) {
+        continue_bool_t handle_pair(scoped_key_value_t &&, signal_t *) {
             unreachable();
         }
 
@@ -159,20 +161,22 @@ public:
     localized to these two types. */
     void on_item(
             backfill_item_t &&item,
-            const counted_t<counted_buf_lock_and_read_t> &buf) {
+            const counted_t<counted_buf_lock_and_read_t> &buf,
+            signal_t *interruptor) {
         new_semaphore_acq_t sem_acq(&semaphore, item.pairs.size());
-        cond_t non_interruptor;   /* RSI(raft): figure out interruption */
-        wait_interruptible(sem_acq.acquisition_signal(), &non_interruptor);
+        wait_interruptible(sem_acq.acquisition_signal(), interruptor);
         coro_t::spawn_sometime(std::bind(
             &backfill_item_loader_t::handle_item, this,
             std::move(item), buf, std::move(sem_acq),
             fifo_source.enter_write(), drainer.lock()));
     }
 
-    void on_empty_range(const btree_key_t *right_incl) {
+    void on_empty_range(const btree_key_t *right_incl, signal_t *interruptor) {
         new_semaphore_acq_t sem_acq(&semaphore, 1);
-        cond_t non_interruptor;   /* RSI(raft): figure out interruption */
-        wait_interruptible(sem_acq.acquisition_signal(), &non_interruptor);
+        wait_interruptible(sem_acq.acquisition_signal(), interruptor);
+        /* Unlike `handle_item()`, `handle_empty_range()` doesn't do any expensive work,
+        but we spawn it in a coroutine anyway so that it runs in the right order with
+        respect to `handle_item()`. */
         coro_t::spawn_sometime(std::bind(
             &backfill_item_loader_t::handle_empty_range, this,
             convert_right_bound(right_incl), std::move(sem_acq),
@@ -282,6 +286,7 @@ private:
             const btree_key_t *left_excl_or_null,
             const btree_key_t *right_incl,
             repli_timestamp_t timestamp,
+            signal_t *interruptor,
             bool *skip_out) {
         bool has_pre_items;
         if (continue_bool_t::ABORT == pre_item_producer->peek_range(
@@ -290,7 +295,7 @@ private:
         }
         *skip_out = timestamp <= reference_timestamp && !has_pre_items;
         if (*skip_out) {
-            loader->on_empty_range(right_incl);
+            loader->on_empty_range(right_incl, interruptor);
             /* There are no pre items in the range, but we need to call `consume()`
             anyway so that our calls to the `pre_item_producer` are consecutive. */
             continue_bool_t cont = pre_item_producer->consume_range(
@@ -307,6 +312,7 @@ private:
             const counted_t<counted_buf_lock_and_read_t> &buf,
             const btree_key_t *left_excl_or_null,
             const btree_key_t *right_incl,
+            signal_t *interruptor,
             bool *skip_out) {
         *skip_out = true;
         key_range_t leaf_range(
@@ -373,7 +379,7 @@ private:
 
             /* Note that `on_item()` may block, which will limit the rate at which we
             traverse the B-tree. */
-            loader->on_item(std::move(item), buf);
+            loader->on_item(std::move(item), buf, interruptor);
 
             return get_continue();
 
@@ -489,15 +495,15 @@ private:
 
             /* Send the results to the loader */
             for (backfill_item_t &a : items_from_pre) {
-                loader->on_item(std::move(a), buf);
+                loader->on_item(std::move(a), buf, interruptor);
             }
-            loader->on_empty_range(right_incl);
+            loader->on_empty_range(right_incl, interruptor);
 
             return get_continue();
         }
     }
 
-    continue_bool_t handle_pair(scoped_key_value_t &&) {
+    continue_bool_t handle_pair(scoped_key_value_t &&, signal_t *) {
         unreachable();
     }
 
@@ -538,6 +544,7 @@ public:
             const counted_t<counted_buf_lock_and_read_t> &buf,
             UNUSED const btree_key_t *left_excl_or_null,
             UNUSED const btree_key_t *right_incl,
+            signal_t *,
             bool *skip_out) {
         *skip_out = true;
         buf_write_t buf_write(&buf->lock);
@@ -545,7 +552,7 @@ public:
         leaf::erase_deletions(sizer, lnode, min_deletion_timestamp);
         return continue_bool_t::CONTINUE;
     }
-    continue_bool_t handle_pair(scoped_key_value_t &&) {
+    continue_bool_t handle_pair(scoped_key_value_t &&, signal_t *) {
         unreachable();
     }
 private:

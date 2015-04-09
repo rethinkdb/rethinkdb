@@ -144,7 +144,8 @@ continue_bool_t btree_depth_first_traversal(
         signal_t *interruptor) {
     bool skip;
     if (continue_bool_t::ABORT == cb->filter_range_ts(
-            left_excl_or_null, right_incl, block->lock.get_recency(), &skip)) {
+            left_excl_or_null, right_incl, block->lock.get_recency(), interruptor,
+            &skip)) {
         return continue_bool_t::ABORT;
     }
     if (skip) {
@@ -175,7 +176,7 @@ continue_bool_t btree_depth_first_traversal(
                                 &child_left_excl_or_null, &child_right_incl);
 
             if (continue_bool_t::ABORT == cb->filter_range(
-                    child_left_excl_or_null, child_right_incl, &skip)) {
+                    child_left_excl_or_null, child_right_incl, interruptor, &skip)) {
                 return continue_bool_t::ABORT;
             }
             if (!skip) {
@@ -196,7 +197,7 @@ continue_bool_t btree_depth_first_traversal(
         return continue_bool_t::CONTINUE;
     } else {
         if (continue_bool_t::ABORT == cb->handle_pre_leaf(
-                block, left_excl_or_null, right_incl, &skip)) {
+                block, left_excl_or_null, right_incl, interruptor, &skip)) {
             return continue_bool_t::ABORT;
         }
         if (skip) {
@@ -215,9 +216,11 @@ continue_bool_t btree_depth_first_traversal(
                     btree_key_cmp(key, range.right.key().btree_key()) >= 0) {
                     break;
                 }
-                if (continue_bool_t::ABORT == cb->handle_pair(scoped_key_value_t(
-                        key, (*it).second,
-                        movable_t<counted_buf_lock_and_read_t>(block)))) {
+                if (continue_bool_t::ABORT == cb->handle_pair(
+                        scoped_key_value_t(
+                            key, (*it).second,
+                            movable_t<counted_buf_lock_and_read_t>(block)),
+                        interruptor)) {
                     return continue_bool_t::ABORT;
                 }
             }
@@ -236,9 +239,11 @@ continue_bool_t btree_depth_first_traversal(
                     break;
                 }
 
-                if (continue_bool_t::ABORT == cb->handle_pair(scoped_key_value_t(
-                        key, (*it).second,
-                        movable_t<counted_buf_lock_and_read_t>(block)))) {
+                if (continue_bool_t::ABORT == cb->handle_pair(
+                        scoped_key_value_t(
+                            key, (*it).second,
+                            movable_t<counted_buf_lock_and_read_t>(block)),
+                        interruptor)) {
                     return continue_bool_t::ABORT;
                 }
             }
@@ -246,3 +251,4 @@ continue_bool_t btree_depth_first_traversal(
         return continue_bool_t::CONTINUE;
     }
 }
+

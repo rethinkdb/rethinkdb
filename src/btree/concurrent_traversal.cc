@@ -46,6 +46,7 @@ public:
     continue_bool_t filter_range(
             const btree_key_t *left_excl_or_null,
             const btree_key_t *right_incl,
+            signal_t *,
             bool *skip_out) {
         cb_->filter_range(left_excl_or_null, right_incl, skip_out);
         return continue_bool_t::CONTINUE;
@@ -77,7 +78,7 @@ public:
         }
     }
 
-    virtual continue_bool_t handle_pair(scoped_key_value_t &&keyvalue) {
+    virtual continue_bool_t handle_pair(scoped_key_value_t &&keyvalue, signal_t *) {
         // First thing first: Get in line with the token enforcer.
 
         fifo_enforcer_write_token_t token = source_.enter_write();

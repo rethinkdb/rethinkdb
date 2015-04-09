@@ -70,6 +70,7 @@ public:
     virtual continue_bool_t filter_range(
             UNUSED const btree_key_t *left_excl_or_null,
             UNUSED const btree_key_t *right_incl,
+            UNUSED signal_t *interruptor,
             bool *skip_out) {
         *skip_out = false;
         return continue_bool_t::CONTINUE;
@@ -78,6 +79,7 @@ public:
             UNUSED const btree_key_t *left_excl_or_null,
             UNUSED const btree_key_t *right_incl,
             UNUSED repli_timestamp_t timestamp,
+            UNUSED signal_t *interruptor,
             bool *skip_out) {
         *skip_out = false;
         return continue_bool_t::CONTINUE;
@@ -89,13 +91,16 @@ public:
             UNUSED const counted_t<counted_buf_lock_and_read_t> &buf,
             UNUSED const btree_key_t *left_excl_or_null,
             UNUSED const btree_key_t *right_incl,
+            UNUSED signal_t *interruptor,
             bool *skip_out) {
         *skip_out = false;
         return continue_bool_t::CONTINUE;
     }
 
     /* The guts of the callback; this handles the actual key-value pairs. */
-    virtual continue_bool_t handle_pair(scoped_key_value_t &&keyvalue) = 0;
+    virtual continue_bool_t handle_pair(
+            scoped_key_value_t &&keyvalue,
+            signal_t *interruptor) = 0;
 
     virtual profile::trace_t *get_trace() THROWS_NOTHING { return NULL; }
 protected:

@@ -667,7 +667,7 @@ public:
     clear_sindex_traversal_cb_t() {
         collected_keys.reserve(CHUNK_SIZE);
     }
-    continue_bool_t handle_pair(scoped_key_value_t &&keyvalue) {
+    continue_bool_t handle_pair(scoped_key_value_t &&keyvalue, signal_t *) {
         collected_keys.push_back(store_key_t(keyvalue.key()));
         if (collected_keys.size() >= CHUNK_SIZE) {
             return continue_bool_t::ABORT;

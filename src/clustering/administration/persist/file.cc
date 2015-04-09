@@ -199,7 +199,7 @@ void metadata_file_t::read_txn_t::read_many_bin(
     metadata_superblock_t superblock(std::move(sb_lock));
     class : public depth_first_traversal_callback_t {
     public:
-        continue_bool_t handle_pair(scoped_key_value_t &&kv) {
+        continue_bool_t handle_pair(scoped_key_value_t &&kv, signal_t *) {
             guarantee(kv.key()->size >= key_prefix.size());
             guarantee(memcmp(
                 kv.key()->contents, key_prefix.contents(), key_prefix.size()) == 0);
