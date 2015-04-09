@@ -327,7 +327,7 @@ class RDBVal extends TermBase
             new IndexCreate opts, @, name, funcWrap(defun_or_opts)
         else if defun_or_opts?
             # FIXME?
-            if (Object::toString.call(defun_or_opts) is '[object Object]') and not (defun_or_opts instanceof Function) and not (defun_or_opts instanceof TermBase)
+            if (Object::toString.call(defun_or_opts) is '[object Object]') and not (typeof defun_or_opts is 'function') and not (defun_or_opts instanceof TermBase)
                 new IndexCreate defun_or_opts, @, name
             else
                 new IndexCreate {}, @, name, funcWrap(defun_or_opts)
@@ -1185,7 +1185,7 @@ rethinkdb.expr = varar 1, 2, (val, nestingDepth=20) ->
 
     else if val instanceof TermBase
         val
-    else if val instanceof Function
+    else if typeof val is 'function'
         new Func {}, val
     else if val instanceof Date
         new ISO8601 {}, val.toISOString()
