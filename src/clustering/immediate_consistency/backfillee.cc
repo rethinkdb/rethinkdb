@@ -1,34 +1,65 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/immediate_consistency/backfillee.hpp"
 
+#include "arch/timing.hpp"
 #include "clustering/immediate_consistency/history.hpp"
 #include "concurrency/wait_any.hpp"
 
-/* `PRE_ITEM_PIPELINE_SIZE` is the maximum combined size of the pre-items that we send to
-the backfiller that it hasn't consumed yet. So the other server may use up to this size
-for its pre-item queue. `PRE_ITEM_CHUNK_SIZE` is the typical size of a pre-item message
-we send over the network. */
+/* `PRE_ITEM_PIPELINE_SIZE` is the maximum combined size (as computed by
+`get_mem_size()`) of the pre-items that we send to the backfiller that it hasn't consumed
+yet. So the other server may use up to this size for its pre-item queue.
+`PRE_ITEM_CHUNK_SIZE` is the typical size of a pre-item message we send over the network.
+*/
 static const size_t PRE_ITEM_PIPELINE_SIZE = 4 * MEGABYTE;
 static const size_t PRE_ITEM_CHUNK_SIZE = 100 * KILOBYTE;
 
+/* Every `ITEM_ACK_DELAY_MS` milliseconds, the backfillee sends an acknowledgement to the
+backfiller for any items that it drained from its queue since the last time. */
+static const int ITEM_ACK_DELAY_MS = 100;
+
+/* `backfillee_t::session_t` contains all the bits and pieces for managing a single
+backfill session. It's impossible to have multiple sessions running at once, so in
+principle this could have been implemented as some member variables on `backfillee_t`;
+but collecting the variables into an object makes it easier to reason about.
+
+Here's how `backfillee_t` and `session_t` interact: `backfillee_t` creates the
+`session_t`. The `session_t` is responsible for sending the begin-session, end-session,
+and ack-items messages to the backfiller. Whenever the backfiller sends messages to the
+`backfillee_t`'s mailboxes, the `backfillee_t` passes the messages on to the `session_t`
+by calling `on_items()` and `on_ack_end_session()`. In a separate coroutine, the
+`backfillee_t` calls `wait_done()` to wait for the session to finish, then destroys the
+session after it returns. If the backfillee is destroyed, then `wait_done()` is
+interrupted and the session is destroyed before it's finished. */
 class backfillee_t::session_t {
 public:
     session_t(
             backfillee_t *_parent,
             const key_range_t::right_bound_t &_threshold,
             callback_t *_callback) :
-        parent(_parent), threshold(_threshold), callback(_callback),
+        parent(_parent),
+        threshold(_threshold),
+        callback(_callback),
+        callback_returned_false(false),
         items(_parent->store->get_region().beg, _parent->store->get_region().end,
             threshold),
+        items_mem_size_unacked(0),
+        sent_end_session(false),
         metainfo(region_map_t<version_t>::empty()),
         metainfo_binary(region_map_t<binary_blob_t>::empty())
     {
+        send(parent->mailbox_manager, parent->intro.begin_session_mailbox,
+            parent->fifo_source.enter_write(), threshold);
         coro_t::spawn_sometime(std::bind(&session_t::run, this, drainer.lock()));
+        coro_t::spawn_sometime(std::bind(&session_t::send_acks, this, drainer.lock()));
     }
+
+    /* `backfillee_t()` calls these callbacks when it receives messages from the
+    backfiller via the corresponding mailboxes. */
     void on_items(
             region_map_t<version_t> &&metainfo_chunk,
             backfill_item_seq_t<backfill_item_t> &&chunk) {
         rassert(metainfo_chunk.get_domain() == chunk.get_region());
+        items_mem_size_unacked += chunk.get_mem_size();
         items.concat(std::move(chunk));
         metainfo.concat(std::move(metainfo_chunk));
         metainfo_binary = from_version_map(metainfo);
@@ -37,20 +68,43 @@ public:
         }
     }
     void on_ack_end_session() {
+        guarantee(sent_end_session);
         got_ack_end_session.pulse();
-        if (pulse_when_items_arrive.has()) {
-            pulse_when_items_arrive->pulse_if_not_already_pulsed();
-        }
     }
-    cond_t callback_returned_false;
-    cond_t got_ack_end_session;
-    cond_t run_stopped;
+
+    void wait_done(signal_t *interruptor) {
+        wait_interruptible(&done_cond, interruptor);
+        guarantee(threshold == parent->store->get_region().inner.right
+            || callback_returned_false);
+        guarantee(got_ack_end_session.is_pulsed());
+    }
 
 private:
+    /* `run()` runs in a separate coroutine for the duration of the session's existence.
+    It does the main work of the session: draining backfill items from the `items` queue
+    and passing them to the store. */
     void run(auto_drainer_t::lock_t keepalive) {
         try {
-            while (threshold != parent->store->get_region().inner.right &&
-                    !got_ack_end_session.is_pulsed()) {
+            /* Loop until we reach the end of the backfill range. */
+            while (threshold != parent->store->get_region().inner.right) {
+                /* Wait until we receive some items from the backfiller so we have
+                something to do, or the session is terminated. */
+                while (items.empty_domain()) {
+                    if (got_ack_end_session.is_pulsed()) {
+                        /* The callback returned false, so we sent an end-session message
+                        to the backfiller, and it replied; then we drained the `items`
+                        queue. So this session is over. */
+                        guarantee(callback_returned_false);
+                        done_cond.pulse();
+                        return;
+                    }
+                    pulse_when_items_arrive.init(new cond_t);
+                    wait_any_t waiter(
+                        pulse_when_items_arrive.get(), &got_ack_end_session);
+                    wait_interruptible(&waiter, keepalive.get_drain_signal());
+                    pulse_when_items_arrive.reset();
+                }
+
                 /* Set up a `region_t` describing the range that still needs to be
                 backfilled */
                 region_t subregion = parent->store->get_region();
@@ -65,20 +119,26 @@ private:
                             bool *is_item_out,
                             backfill_item_t *item_out,
                             key_range_t::right_bound_t *edge_out) THROWS_NOTHING {
-                        ASSERT_NO_CORO_WAITING;
-                        if (!parent->items.empty()) {
+                        if (!parent->items.empty_of_items()) {
+                            /* This is the common case. */
                             *is_item_out = true;
                             *item_out = parent->items.front();
                             parent->items.pop_front();
                             return continue_bool_t::CONTINUE;
-                        } else if (parent->items.get_left_key() <
-                                parent->items.get_right_key()) {
+                        } else if (!parent->items.empty_domain()) {
+                            /* There aren't any more items left in the queue, but there's
+                            still a part of the key-space that we know there aren't any
+                            items in yet. We can ask the store to apply the metainfo to
+                            that part of the key-space. */
                             *is_item_out = false;
                             *edge_out = parent->items.get_right_key();
                             parent->items.delete_to_key(*edge_out);
                             return continue_bool_t::CONTINUE;
                         } else {
-                            parent->pulse_when_items_arrive.init(new cond_t);
+                            /* We ran out of items. Break out of `receive_backfill` so we
+                            can block and wait for more items. (We don't want to block
+                            in this callback because the caller might be holding locks in
+                            the B-tree.) */
                             return continue_bool_t::ABORT;
                         }
                     }
@@ -87,13 +147,21 @@ private:
                     }
                     void on_commit(const key_range_t::right_bound_t &new_threshold)
                             THROWS_NOTHING {
-                        if (!parent->callback_returned_false.is_pulsed()) {
+                        /* `on_commit()` might get called multiple times even after
+                        `on_progress()` returns false, because calling
+                        `send_end_session_message()` sets into motion a long chain of
+                        events that eventually ends with the session being interrupted,
+                        but might take a while. But we want to hide that complexity from
+                        the callack, so we just skip calling `on_progress()` again if it
+                        has returned `false` before. */
+                        if (!parent->callback_returned_false) {
                             region_t mask = parent->parent->store->get_region();
                             mask.inner.left = parent->threshold.key();
                             mask.inner.right = new_threshold;
                             if (!parent->callback->on_progress(
                                     parent->metainfo.mask(mask))) {
-                                parent->callback_returned_false.pulse();
+                                parent->callback_returned_false = true;
+                                parent->send_end_session_message();
                             }
                         }
                         parent->threshold = new_threshold;
@@ -103,26 +171,87 @@ private:
 
                 parent->store->receive_backfill(
                     subregion, &producer, keepalive.get_drain_signal());
-
-                /* Wait for more items, if that's the reason we stopped */
-                if (pulse_when_items_arrive.has()) {
-                    wait_interruptible(pulse_when_items_arrive.get(),
-                        keepalive.get_drain_signal());
-                    pulse_when_items_arrive.reset();
-                }
             }
+
+            /* We reached the end of the range to be backfilled and the callback returned
+            `true` for each step of the way. */
+            guarantee(!callback_returned_false);
+            send_end_session_message();
+            wait_interruptible(&got_ack_end_session, keepalive.get_drain_signal());
+            done_cond.pulse();
+
         } catch (const interrupted_exc_t &) {
             /* The backfillee was destroyed */
         }
-        run_stopped.pulse();
     }
-    backfillee_t *parent;
+
+    /* `send_acks()` also runs in a separate coroutine, parallel to `run()`. As `run()`
+    pops items from the `items` queue, `send_acks()` sends messages to the backfiller to
+    let it know that it's OK to send more items. */
+    void send_acks(auto_drainer_t::lock_t keepalive) {
+        try {
+            while (true) {
+                guarantee(items_mem_size_unacked >= items.get_mem_size());
+                size_t diff = items_mem_size_unacked - items.get_mem_size();
+                if (diff != 0) {
+                    items_mem_size_unacked -= diff;
+                    send(parent->mailbox_manager, parent->intro.ack_items_mailbox,
+                        parent->fifo_source.enter_write(), diff);
+                }
+                nap(ITEM_ACK_DELAY_MS, keepalive.get_drain_signal());
+            }
+        } catch (const interrupted_exc_t &) {
+            /* The session is over */
+        }
+    }
+
+    void send_end_session_message() {
+        guarantee(!sent_end_session);
+        sent_end_session = true;
+        send(parent->mailbox_manager, parent->intro.end_session_mailbox,
+            parent->fifo_source.enter_write());
+    }
+
+    backfillee_t *const parent;
+
+    /* `threshold` describes the current location that this session has reached. It
+    starts at the threshold that was passed to `go()` and proceeds to the right. */
     key_range_t::right_bound_t threshold;
-    callback_t *callback;
+
+    callback_t *const callback;
+    bool callback_returned_false;
+
+    /* `items` is a queue containing all of the backfill items that we've received from
+    the backfiller during this session. Incoming items are appended to the right-hand
+    side; we consume items from the left-hand side and apply them to the B-tree. */
     backfill_item_seq_t<backfill_item_t> items;
+
+    /* `items_mem_size_unacked` describes what the backfiller thinks the total mem size
+    of `items` is. `send_acks()` uses this to decide when to send an ack message. */
+    size_t items_mem_size_unacked;
+
+    /* `sent_end_session` is true if we've sent a message to the backfiller to end the
+    session. `got_ack_end_session` is pulsed if we got an acknowledgement, so that no
+    more items can possible be added to our queue. */
+    bool sent_end_session;
+    cond_t got_ack_end_session;
+
+    /* `metainfo` contains all the metainfo we've received from the backfiller. It always
+    extends from wherever we started the backfill to the right-hand side of `items`. */
     region_map_t<version_t> metainfo;
+
+    /* `metainfo_binary` is just `metainfo` in `binary_blob_t` form. */
     region_map_t<binary_blob_t> metainfo_binary;
+
+    /* `run()` puts a `cond_t` here when it needs to wait for more backfill items to be
+    appended to `items`. `on_items()` pulses it when it appends more backfill items to
+    `items`. */
     scoped_ptr_t<cond_t> pulse_when_items_arrive;
+
+    /* `run()` pulses this when the session is completely over */
+    cond_t done_cond;
+
+    /* `drainer` must be destroyed before anything else, because it stops `run()`. */
     auto_drainer_t drainer;
 };
 
@@ -198,23 +327,15 @@ void backfillee_t::go(
         const key_range_t::right_bound_t &threshold,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
+    /* Note: If we get interrupted during this function, then `current_session` will be
+    left in place, which will make future calls to `go()` fail. So interrupting a call to
+    `go()` invalidates the `backfillee_t`, and the only way to recover is to destroy the
+    `backfillee_t`. Destroying the `backfillee_t` will destroy `current_session`, thereby
+    interrupting whatever it is doing. */
+
     guarantee(!current_session.has());
     current_session.init(new session_t(this, threshold, callback));
-
-    send(mailbox_manager, intro.begin_session_mailbox,
-        fifo_source.enter_write(), threshold);
-
-    {
-        wait_any_t combiner(
-            &current_session->callback_returned_false, &current_session->run_stopped);
-        wait_interruptible(&combiner, interruptor);
-    }
-
-    send(mailbox_manager, intro.end_session_mailbox,
-        fifo_source.enter_write());
-
-    wait_interruptible(&current_session->got_ack_end_session, interruptor);
-
+    current_session->wait_done(interruptor);
     current_session.reset();
 }
 
@@ -225,7 +346,6 @@ void backfillee_t::on_items(
         backfill_item_seq_t<backfill_item_t> &&chunk) {
     fifo_enforcer_sink_t::exit_write_t exit_write(&fifo_sink, fifo_token);
     wait_interruptible(&exit_write, interruptor);
-
     guarantee(current_session.has());
     current_session->on_items(std::move(version), std::move(chunk));
 }
@@ -235,7 +355,6 @@ void backfillee_t::on_ack_end_session(
         const fifo_enforcer_write_token_t &fifo_token) {
     fifo_enforcer_sink_t::exit_write_t exit_write(&fifo_sink, fifo_token);
     wait_interruptible(&exit_write, interruptor);
-
     guarantee(current_session.has());
     current_session->on_ack_end_session();
 }

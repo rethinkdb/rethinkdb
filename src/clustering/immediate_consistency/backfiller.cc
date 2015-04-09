@@ -135,11 +135,10 @@ private:
                                 backfill_pre_item_t const **next_out,
                                 key_range_t::right_bound_t *edge_out)
                                 THROWS_NOTHING {
-                            if (!pre_items->empty()) {
+                            if (!pre_items->empty_of_items()) {
                                 *next_out = &pre_items->front();
                                 return continue_bool_t::CONTINUE;
-                            } else if (pre_items->get_left_key() <
-                                    pre_items->get_right_key()) {
+                            } else if (!pre_items->empty_domain()) {
                                 *next_out = nullptr;
                                 *edge_out = pre_items->get_right_key();
                                 pre_items->delete_to_key(*edge_out);

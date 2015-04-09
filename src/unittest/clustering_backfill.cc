@@ -104,7 +104,7 @@ TPTEST(ClusteringBackfill, BackfillTest) {
             &non_interruptor);
         class callback_t : public backfillee_t::callback_t {
         public:
-            bool on_progress(const region_map_t<version_t> &) {
+            bool on_progress(const region_map_t<version_t> &) THROWS_NOTHING {
                 return true;
             }
         } callback;

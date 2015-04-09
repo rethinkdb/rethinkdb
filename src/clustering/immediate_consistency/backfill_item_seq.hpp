@@ -4,7 +4,16 @@
 #include "rdb_protocol/protocol.hpp"
 
 /* A `backfill_item_seq_t` contains all of the `backfill_{pre_}item_t`s in some range of
-the key-space. */
+the key-space. The items are stored in lexicographical order.
+
+It keeps track of the left and right bounds of the range it's supposed to apply to. For
+example, if a `backfill_item_seq_t` contains items with keys `A`, `G`, and `J` and
+applies to the range from `A` to `M`, that implies that there won't ever be a backfill
+item at e.g. `B` or `L`, but it doesn't imply anything about whether there will be a
+backfill item at `X`.
+
+It also keeps a running total of the combined mem size of the backfill items it contains.
+*/
 
 template<class item_t>
 class backfill_item_seq_t {
@@ -18,8 +27,13 @@ public:
         beg_hash(_beg_hash), end_hash(_end_hash), left_key(key), right_key(key),
         mem_size(0) { }
 
+    /* Returns the left and right bounds of the space this `backfill_item_seq_t` applies
+    to. These may be equal, in which case the sequence must be empty. */
     key_range_t::right_bound_t get_left_key() const { return left_key; }
     key_range_t::right_bound_t get_right_key() const { return right_key; }
+
+    /* The `backfill_item_seq_t` is associated with a hash range for sanity-checking
+    purposes. */
     uint64_t get_beg_hash() const { return beg_hash; }
     uint64_t get_end_hash() const { return end_hash; }
 
@@ -38,18 +52,25 @@ public:
 
     typename std::list<item_t>::const_iterator begin() const { return items.begin(); }
     typename std::list<item_t>::const_iterator end() const { return items.end(); }
-    bool empty() const { return items.empty(); }
+
+    /* `empty_of_items()` returns `true` if there aren't any items in the seq; but the
+    seq's domain might still be non-empty. `empty_domain()` returns `true` if the seq's
+    domain is empty. `empty_domain()` implies `empty_of_items()`. */
+    bool empty_of_items() const { return items.empty(); }
+    bool empty_domain() const { return left_key == right_key; }
+
     const item_t &front() const { return items.front(); }
 
-    /* Deletes the leftmost item in the seq. */
+    /* Deletes the leftmost item in the seq, shrinking the seq's domain to after the end
+    of the item that was removed. */
     void pop_front() {
         left_key = items.front().get_range().right;
         mem_size -= items.front().get_mem_size();
         items.pop_front();
     }
 
-    /* Transfers the item at the left end of this seq to the right end of the other seq.
-    */
+    /* Transfers the item at the left end of this seq to the right end of the other seq,
+    shrinking the seq's domain to after the end of the tiem that was removed. */
     void pop_front_into(backfill_item_seq_t *other) {
         guarantee(beg_hash == other->beg_hash && end_hash == other->end_hash);
         guarantee(get_left_key() == other->get_right_key());
@@ -61,8 +82,9 @@ public:
         other->items.splice(other->items.end(), items, items.begin());
     }
 
-    /* Deletes the part of the seq that is to the left of the key. If a single backfill
-    item spans the key, that item will be split. */
+    /* Deletes the part of the seq that is to the left of the key, changing the seq's
+    left bound to the given location. If a single backfill item spans the key, that item
+    will be split. */
     void delete_to_key(const key_range_t::right_bound_t &cut) {
         guarantee(cut >= get_left_key());
         guarantee(cut <= get_right_key());
@@ -84,8 +106,9 @@ public:
         left_key = cut;
     }
 
-    /* Appends an item to the end of the seq. Atoms must be appended in lexicographical
-    order. */
+    /* Appends an item to the end of the seq, expanding the seq's domain on the right.
+    Atoms must be appended in lexicographical order, so calling `push_back()` implicitly
+    states that there are no items between the previous end of the seq and `item`. */
     void push_back(item_t &&item) {
         key_range_t item_range = item.get_range();
         guarantee(key_range_t::right_bound_t(item_range.left) >= right_key);
@@ -94,13 +117,14 @@ public:
         items.push_back(std::move(item));
     }
 
-    /* Indicates that there are no more items until the given key. */
+    /* Expands the seq's domain on the right to the given key, explicitly stating that
+    there are no items between the previous end of the seq and `bound`. */
     void push_back_nothing(const key_range_t::right_bound_t &bound) {
         guarantee(bound >= right_key);
         right_key = bound;
     }
 
-    /* Concatenates two `backfill_item_seq_t`s. They must be adjacent. */
+    /* Concatenates two `backfill_item_seq_t`s. Their domains must be adjacent. */
     void concat(backfill_item_seq_t &&other) {
         guarantee(beg_hash == other.beg_hash && end_hash == other.end_hash);
         guarantee(right_key == other.left_key);
@@ -118,8 +142,7 @@ private:
     uint64_t beg_hash, end_hash;
     key_range_t::right_bound_t left_key, right_key;
 
-    /* The cumulative byte size of the items (i.e. the sum of `a.get_mem_size()` over all
-    the items) */
+    /* The sum of `a.get_mem_size()` over all the items */
     size_t mem_size;
 
     std::list<item_t> items;

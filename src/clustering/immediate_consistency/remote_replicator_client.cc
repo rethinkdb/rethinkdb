@@ -219,8 +219,7 @@ remote_replicator_client_t::remote_replicator_client_t(
             callback_t(std::queue<queue_entry_t> *_queue,
                     const key_range_t::right_bound_t &_right_bound) :
                 queue(_queue), right_bound(_right_bound) { }
-            bool on_progress(
-                    const region_map_t<version_t> &chunk) {
+            bool on_progress(const region_map_t<version_t> &chunk) THROWS_NOTHING {
                 rassert(key_range_t::right_bound_t(chunk.get_domain().inner.left) ==
                     right_bound);
                 right_bound = chunk.get_domain().inner.right;
