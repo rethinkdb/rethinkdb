@@ -1,3 +1,4 @@
+require 'monitor'
 require 'set'
 require 'socket'
 require 'thread'
@@ -36,8 +37,8 @@ module RethinkDB
         @@registered = false
         @@conns, old_conns = old_conns, @@conns
       }
-      # This function acquires `@@listener_mutex` on the connections,
-      # so it's safer to do this outside our own synchronization.
+      # This function acquires `@mon` on the connections, so it's
+      # safer to do this outside our own synchronization.
       old_conns.each {|conn|
         conn.remove_em_waiters
       }
@@ -464,11 +465,11 @@ module RethinkDB
 
     def register_query(token, opts, callback=nil)
       if !opts[:noreply]
-        @listener_mutex.safe_synchronize{
+        @mon.synchronize {
           if @waiters.has_key?(token)
             raise RqlDriverError, "Internal driver error, token already in use."
           end
-          @waiters[token] = callback ? callback : ConditionVariable.new
+          @waiters[token] = callback ? callback : @mon.new_cond
           @opts[token] = opts
         }
       end
@@ -480,7 +481,7 @@ module RethinkDB
     end
     def stop(token)
       dispatch([Query::QueryType::STOP], token)
-      @listener_mutex.safe_synchronize {
+      @mon.synchronize {
         !!@waiters.delete(token)
       }
     end
@@ -561,13 +562,13 @@ module RethinkDB
     def wait(token, timeout)
       begin
         res = nil
-        @listener_mutex.safe_synchronize {
+        @mon.synchronize {
           if !@waiters.has_key?(token) && !@data.has_key?(token)
             raise RqlRuntimeError, "Connection is closed."
           end
           res = @data.delete(token)
           if res.nil?
-            @waiters[token].wait(@listener_mutex, timeout)
+            @waiters[token].wait(timeout)
             res = @data.delete(token)
             raise Timeout::Error, "Timed out waiting for cursor response." if res.nil?
           end
@@ -614,21 +615,7 @@ module RethinkDB
       raise RuntimeError, "Connection must be closed before calling connect." if @socket
       @socket = TCPSocket.open(@host, @port)
       @socket.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1)
-      @listener_mutex = Mutex.new
-      class << @listener_mutex
-        def safe_synchronize(&block)
-          if @rdb_owner == Thread.current
-            return block.call
-          else
-            begin
-              @rdb_owner = Thread.current
-              return synchronize(&block)
-            ensure
-              @rdb_owner = nil
-            end
-          end
-        end
-      end
+      @mon = Monitor.new
       @waiters = {}
       @opts = {}
       @data = {}
@@ -653,14 +640,14 @@ module RethinkDB
       end
       opts[:noreply_wait] = true if !opts.keys.include?(:noreply_wait)
 
-      @listener_mutex.safe_synchronize {
+      @mon.synchronize {
         @opts.clear
         @data.clear
         @waiters.values.each {|w|
           case w
           when QueryHandle
             w.handle_close
-          when ConditionVariable
+          when MonitorMixin::ConditionVariable
             w.signal
           end
         }
@@ -694,7 +681,7 @@ module RethinkDB
     end
 
     def remove_em_waiters
-      @listener_mutex.safe_synchronize {
+      @mon.synchronize {
         @waiters.each {|k,v|
           if v.is_a? QueryHandle
             v.handle_close
@@ -708,7 +695,7 @@ module RethinkDB
       @opts.delete(token)
       w = @waiters.delete(token)
       case w
-      when ConditionVariable
+      when MonitorMixin::ConditionVariable
         @data[token] = data
         w.signal
       when QueryHandle
@@ -771,9 +758,9 @@ module RethinkDB
               raise RqlRuntimeError, "Bad response, server is buggy.\n" +
                 "#{e.inspect}\n" + response
             end
-            @listener_mutex.safe_synchronize{note_data(token, data)}
+            @mon.synchronize{note_data(token, data)}
           rescue Exception => e
-            @listener_mutex.safe_synchronize {
+            @mon.synchronize {
               @waiters.keys.each{ |k| note_error(k, e) }
               @listener = nil
               Thread.current.terminate
