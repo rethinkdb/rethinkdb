@@ -581,25 +581,29 @@ module RethinkDB
               raise Timeout::Error, "Timed out waiting for cursor response."
             end
             start_time = Time.now.to_f
-            loop {
+            while @waiters[token] do
               # We can't use `wait_while` because it doesn't take a
               # timeout, and we can't use an external `timeout {
               # ... }` block because in Ruby 1.9.1 it seems to confuse
               # the synchronization in `@mon` to be timed out while
               # waiting in a synchronize block.
-              @waiters[token].wait(timeout)
-              # We have to do this because as far as I can tell `wait`
-              # doesn't provide any information about whether it was
-              # woken up by timing out or by a signal.  We give
-              # ourselves a 10% margin of error because waking up on a
-              # timer usually doesn't have perfect precision, and it's
-              # better than waiting twice.
-              if !@waiters[token]
-                break
-              elsif timeout && Time.now.to_f > start_time + (timeout * 0.9)
-                raise Timeout::Error, "Timed out waiting for cursor response."
+              curtime = Time.now.to_f
+              if timeout
+                # We have to do this because as far as I can tell `wait`
+                # doesn't provide any information about whether it was
+                # woken up by timing out or by a signal.  We give
+                # ourselves a 10% margin of error because waking up on a
+                # timer usually doesn't have perfect precision, and it's
+                # better than waiting twice.
+                if curtime >= start_time + (timeout * 0.9)
+                  raise Timeout::Error, "Timed out waiting for cursor response."
+                else
+                  @waiters[token].wait(timeout - (curtime - start_time))
+                end
+              else
+                @waiters[token].wait
               end
-            }
+            end
             res = @data.delete(token)
           end
         }
