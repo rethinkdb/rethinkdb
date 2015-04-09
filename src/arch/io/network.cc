@@ -96,6 +96,7 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &peer,
         sock(create_socket_wrapper(peer.get_address_family())),
         event_watcher(new linux_event_watcher_t(sock.get(), this)),
         read_in_progress(false), write_in_progress(false),
+        read_buffer(IO_BUFFER_SIZE),
         write_handler(this),
         write_queue_limiter(WRITE_QUEUE_MAX_SIZE),
         write_coro_pool(1, &write_queue, &write_handler),
@@ -148,6 +149,7 @@ linux_tcp_conn_t::linux_tcp_conn_t(fd_t s) :
         sock(s),
         event_watcher(new linux_event_watcher_t(sock.get(), this)),
         read_in_progress(false), write_in_progress(false),
+        read_buffer(IO_BUFFER_SIZE),
         write_handler(this),
         write_queue_limiter(WRITE_QUEUE_MAX_SIZE),
         write_coro_pool(1, &write_queue, &write_handler),
@@ -250,7 +252,7 @@ size_t linux_tcp_conn_t::read_some(void *buf, size_t size, signal_t *closer) THR
         /* Return the data from the peek buffer */
         size_t read_buffer_bytes = std::min(read_buffer.size(), size);
         memcpy(buf, read_buffer.data(), read_buffer_bytes);
-        read_buffer.erase(read_buffer.begin(), read_buffer.begin() + read_buffer_bytes);
+        read_buffer.erase_front(read_buffer_bytes);
         return read_buffer_bytes;
     } else {
         /* Go to the kernel _once_. */
@@ -264,7 +266,7 @@ void linux_tcp_conn_t::read(void *buf, size_t size, signal_t *closer) THROWS_ONL
     /* First, consume any data in the peek buffer */
     int read_buffer_bytes = std::min(read_buffer.size(), size);
     memcpy(buf, read_buffer.data(), read_buffer_bytes);
-    read_buffer.erase(read_buffer.begin(), read_buffer.begin() + read_buffer_bytes);
+    read_buffer.erase_front(read_buffer_bytes);
     buf = reinterpret_cast<void *>(reinterpret_cast<char *>(buf) + read_buffer_bytes);
     size -= read_buffer_bytes;
 
@@ -308,7 +310,7 @@ void linux_tcp_conn_t::pop(size_t len, signal_t *closer) THROWS_ONLY(tcp_conn_re
     if (read_closed.is_pulsed()) throw tcp_conn_read_closed_exc_t();
 
     peek(len, closer);
-    read_buffer.erase(read_buffer.begin(), read_buffer.begin() + len);  // INEFFICIENT
+    read_buffer.erase_front(len);
 }
 
 void linux_tcp_conn_t::shutdown_read() {
@@ -653,14 +655,15 @@ linux_nonthrowing_tcp_listener_t::linux_nonthrowing_tcp_listener_t(
     if (local_addresses.empty()) {
         local_addresses.insert(ip_address_t::any(AF_INET6));
     }
-
-    socks.init(local_addresses.size());
-    event_watchers.init(local_addresses.size());
 }
 
 bool linux_nonthrowing_tcp_listener_t::begin_listening() {
-    if (!bound && !bind_sockets()) {
-        return false;
+    if (!bound) {
+        try {
+            bind_sockets();
+        } catch (const tcp_socket_exc_t &) {
+            return false;
+        }
     }
 
     const int RDB_LISTEN_BACKLOG = 256;
@@ -691,7 +694,10 @@ int linux_nonthrowing_tcp_listener_t::get_port() const {
 }
 
 int linux_nonthrowing_tcp_listener_t::init_sockets() {
-    rassert(local_addresses.size() == socks.size());
+    event_watchers.reset();
+    event_watchers.init(local_addresses.size());
+    socks.reset();
+    socks.init(local_addresses.size());
 
     size_t i = 0;
     for (auto addr = local_addresses.begin(); addr != local_addresses.end(); ++addr, ++i) {
@@ -730,25 +736,7 @@ int linux_nonthrowing_tcp_listener_t::init_sockets() {
     return 0;
 }
 
-bool linux_nonthrowing_tcp_listener_t::bind_sockets() {
-    if (port == ANY_PORT) {
-        // It may take multiple attempts to get all the sockets onto the same port
-        int port_out = ANY_PORT;
-        for (uint32_t bind_attempts = 0; bind_attempts < MAX_BIND_ATTEMPTS && !bound; ++bind_attempts) {
-            bound = bind_sockets_internal(&port_out);
-        }
-
-        if (bound) {
-            port = port_out;
-        }
-    } else {
-        bound = bind_sockets_internal(&port);
-    }
-
-    return bound;
-}
-
-bool bind_ipv4_interface(fd_t sock, int *port_out, const struct in_addr &addr) {
+int bind_ipv4_interface(fd_t sock, int *port_out, const struct in_addr &addr) {
     sockaddr_in serv_addr;
     socklen_t sa_len(sizeof(serv_addr));
     memset(&serv_addr, 0, sa_len);
@@ -757,26 +745,18 @@ bool bind_ipv4_interface(fd_t sock, int *port_out, const struct in_addr &addr) {
     serv_addr.sin_addr = addr;
 
     int res = bind(sock, reinterpret_cast<sockaddr *>(&serv_addr), sa_len);
-
     if (res != 0) {
-        if (get_errno() == EADDRINUSE || get_errno() == EACCES) {
-            return false;
-        } else {
-            crash("Could not bind socket at localhost:%i - %s\n", *port_out, errno_string(get_errno()).c_str());
-        }
-    }
-
-    // If we were told to let the kernel assign the port, figure out what was assigned
-    if (*port_out == ANY_PORT) {
+        res = get_errno();
+    } else if (*port_out == ANY_PORT) {
         res = ::getsockname(sock, reinterpret_cast<sockaddr *>(&serv_addr), &sa_len);
         guarantee_err(res != -1, "Could not determine socket local port number");
         *port_out = ntohs(serv_addr.sin_port);
     }
 
-    return true;
+    return res;
 }
 
-bool bind_ipv6_interface(fd_t sock, int *port_out, const ip_address_t &addr) {
+int bind_ipv6_interface(fd_t sock, int *port_out, const ip_address_t &addr) {
     sockaddr_in6 serv_addr;
     socklen_t sa_len(sizeof(serv_addr));
     memset(&serv_addr, 0, sa_len);
@@ -786,73 +766,88 @@ bool bind_ipv6_interface(fd_t sock, int *port_out, const ip_address_t &addr) {
     serv_addr.sin6_scope_id = addr.get_ipv6_scope_id();
 
     int res = bind(sock, reinterpret_cast<sockaddr *>(&serv_addr), sa_len);
-
     if (res != 0) {
-        if (get_errno() == EADDRINUSE || get_errno() == EACCES) {
-            return false;
-        } else {
-            crash("Could not bind socket at %s:%i - %s\n",
-                  addr.to_string().c_str(), *port_out,
-                  errno_string(get_errno()).c_str());
-        }
-    }
-
-    // If we were told to let the kernel assign the port, figure out what was assigned
-    if (*port_out == ANY_PORT) {
+        res = get_errno();
+    } else if (*port_out == ANY_PORT) {
         res = ::getsockname(sock, reinterpret_cast<sockaddr *>(&serv_addr), &sa_len);
         guarantee_err(res != -1, "Could not determine socket local port number");
         *port_out = ntohs(serv_addr.sin6_port);
     }
 
-    return true;
+    return res;
 }
 
-bool linux_nonthrowing_tcp_listener_t::bind_sockets_internal(int *port_out) {
-    int socket_res = init_sockets();
-    if (socket_res == EAFNOSUPPORT) {
-        logERR("Failed to create sockets for listener on port %d, falling back to IPv4 only", *port_out);
-        // Fallback to IPv4 only - remove any IPv6 addresses and resize dependant arrays
-        for (auto it = local_addresses.begin(); it != local_addresses.end();) {
-            if (it->get_address_family() == AF_INET6) {
-                if (it->is_any()) {
-                    local_addresses.insert(ip_address_t::any(AF_INET));
-                }
-                local_addresses.erase(*(it++));
-            } else {
-                ++it;
+void fallback_to_ipv4(std::set<ip_address_t> *addrs, int err, int port) {
+    bool ipv6_address_found = false;
+
+    // Fallback to IPv4 only - remove any IPv6 addresses and resize dependant arrays
+    for (auto it = addrs->begin(); it != addrs->end();) {
+        if (it->get_address_family() == AF_INET6) {
+            if (it->is_any()) {
+                addrs->insert(ip_address_t::any(AF_INET));
+            }
+            addrs->erase(*(it++));
+            ipv6_address_found = true;
+        } else {
+            ++it;
+        }
+    }
+
+    if (!ipv6_address_found) {
+        throw tcp_socket_exc_t(err, port);
+    }
+    logERR("Failed to create sockets for listener on port %d, "
+           "falling back to IPv4 only", port);
+}
+
+void linux_nonthrowing_tcp_listener_t::bind_sockets() {
+    // It may take multiple attempts to get all the sockets onto the same port
+    int local_port = port;
+
+    for (uint32_t attempts = (port == ANY_PORT) ? MAX_BIND_ATTEMPTS : 1;
+         attempts > 0; --attempts) {
+        local_port = port;
+        int res = init_sockets();
+        if (res == EAFNOSUPPORT) {
+            ++attempts; // This attempt doesn't count
+            fallback_to_ipv4(&local_addresses, res, port);
+            continue;
+        } else if (res != 0) {
+            throw tcp_socket_exc_t(res, port);
+        }
+
+        size_t i = 0;
+        for (std::set<ip_address_t>::iterator addr = local_addresses.begin();
+             addr != local_addresses.end(); ++i, ++addr) {
+            switch (addr->get_address_family()) {
+            case AF_INET:
+                res = bind_ipv4_interface(socks[i].get(), &local_port, addr->get_ipv4_addr());
+                break;
+            case AF_INET6:
+                res = bind_ipv6_interface(socks[i].get(), &local_port, *addr);
+                break;
+            default:
+                unreachable();
+            }
+
+            if (res == EADDRNOTAVAIL) {
+                ++attempts; // This attempt doesn't count
+                fallback_to_ipv4(&local_addresses, res, port);
+                break;
+            } else if (res == EADDRINUSE || res == EACCES) {
+                break;
+            } else if (res != 0) {
+                throw tcp_socket_exc_t(res, port);
             }
         }
-        event_watchers.reset();
-        event_watchers.init(local_addresses.size());
-        socks.reset();
-        socks.init(local_addresses.size());
 
-        // If this doesn't work, then we have no way to open sockets
-        socket_res = init_sockets();
-        if (socket_res != 0) {
-            throw tcp_socket_exc_t(socket_res);
-        }
-    } else if (socket_res != 0) {
-        // Some other error happened on the sockets, not much we can do
-        throw tcp_socket_exc_t(socket_res);
-    }
-
-    bool result = true;
-
-    rassert(local_addresses.size() == static_cast<size_t>(socks.size()));
-    ssize_t i = 0;
-    for (std::set<ip_address_t>::iterator addr = local_addresses.begin();
-         addr != local_addresses.end() && result; ++i, ++addr) {
-        if (addr->is_ipv4()) {
-            result = bind_ipv4_interface(socks[i].get(), port_out, addr->get_ipv4_addr());
-        } else if (addr->is_ipv6()) {
-            result = bind_ipv6_interface(socks[i].get(), port_out, *addr);
-        } else {
-            crash("unknown address type when binding socket");
+        if (i == local_addresses.size()) {
+            bound = true;
+            port = local_port;
+            return;
         }
     }
-
-    return result;
+    throw tcp_socket_exc_t(EADDRINUSE, port);
 }
 
 fd_t linux_nonthrowing_tcp_listener_t::wait_for_any_socket(const auto_drainer_t::lock_t &lock) {
@@ -950,9 +945,7 @@ void noop_fun(UNUSED const scoped_ptr_t<linux_tcp_conn_descriptor_t> &arg) { }
 linux_tcp_bound_socket_t::linux_tcp_bound_socket_t(const std::set<ip_address_t> &bind_addresses, int port) :
     listener(new linux_nonthrowing_tcp_listener_t(bind_addresses, port, noop_fun))
 {
-    if (!listener->bind_sockets()) {
-        throw address_in_use_exc_t("localhost", listener->get_port());
-    }
+    listener->bind_sockets();
 }
 
 int linux_tcp_bound_socket_t::get_port() const {

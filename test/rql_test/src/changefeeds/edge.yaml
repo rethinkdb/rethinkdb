@@ -1,0 +1,285 @@
+desc: Test edge cases of changefeed operations
+table_variable_name: tbl
+tests:
+
+    - def: common_prefix = r.expr([0,1,2,3,4,5,6,7,8])
+
+    - js: tbl.index_create('sindex', function (row) { return common_prefix.append(row('value')); })
+      py: tbl.index_create('sindex', lambda row:common_prefix.append(row['value']))
+      rb: tbl.index_create('sindex'){ |row| common_prefix.append(row['value']) }
+      ot: ({'created':1})
+
+    - cd: pre = r.range(7).coerce_to('array').add(r.range(10,70).coerce_to('array')).append(100)
+    - cd: mid = r.range(2,9).coerce_to('array').add(r.range(20,90).coerce_to('array'))
+    - cd: post = r.range(3,10).coerce_to('array').add(r.range(30,100).coerce_to('array'))
+
+    # Start overlapping changefeeds
+    - py: pre_changes = tbl.between(r.minval, common_prefix.append('7'), index='sindex').changes(squash=False).limit(len(pre))
+      rb: pre_changes = tbl.between(r.minval, common_prefix.append('7'), index:'sindex').changes(squash:false).limit(pre.length)
+      js: pre_changes = tbl.between(r.minval, common_prefix.append('7'), {index:'sindex'}).changes({squash:false}).limit(pre.length)
+    - py: mid_changes = tbl.between(common_prefix.append('2'), common_prefix.append('9'), index='sindex').changes(squash=False).limit(len(post))
+      rb: mid_changes = tbl.between(common_prefix.append('2'), common_prefix.append('9'), index:'sindex').changes(squash:false).limit(post.length)
+      js: mid_changes = tbl.between(common_prefix.append('2'), common_prefix.append('9'), {index:'sindex'}).changes({squash:false}).limit(post.length)
+    - py: post_changes = tbl.between(common_prefix.append('3'), r.maxval, index='sindex').changes(squash=False).limit(len(mid))
+      rb: post_changes = tbl.between(common_prefix.append('3'), r.maxval, index:'sindex').changes(squash:false).limit(mid.length)
+      js: post_changes = tbl.between(common_prefix.append('3'), r.maxval, {index:'sindex'}).changes({squash:false}).limit(mid.length)
+
+    # Start changefeeds with non-existence errors
+    - def:
+        py: premap = r.branch(r.row['value'].lt('2'), r.row, r.row["dummy"])
+        js: premap = r.branch(r.row('value').lt('2'), r.row, r.row("dummy"))
+        rb: premap = Proc.new { |x| r.branch(x['value'].lt('2'), x, x["dummy"]) }
+    - def:
+        py: postmap = r.branch(r.row['new_val']['value'].lt('2'), r.row, r.row["dummy"])
+        js: postmap = r.branch(r.row('new'+'_'+'val')('value').lt('2'), r.row, r.row("dummy"))
+        rb: postmap = Proc.new { |x| r.branch(x['new_val']['value'].lt('2'), x, x["dummy"]) }
+    - def:
+        py: prefilter = r.branch(r.row['value'].lt('2'), True, r.row["dummy"])
+        js: prefilter = r.branch(r.row('value').lt('2'), true, r.row("dummy"))
+        rb: prefilter = Proc.new { |x| r.branch(x['value'].lt('2'), true, x["dummy"]) }
+    - def:
+        py: postfilter = r.branch(r.row['new_val']['value'].lt('2'), True, r.row["dummy"])
+        js: postfilter = r.branch(r.row('new'+'_'+'val')('value').lt('2'), true, r.row("dummy"))
+        rb: postfilter = Proc.new { |x| r.branch(x['new_val']['value'].lt('2'), true, x["dummy"]) }
+
+    - cd: erroredres = r.range(2).coerce_to('array').add(r.range(10, 20).coerce_to('array')).append(100)
+
+    - rb: premap_changes1 = tbl.map(premap).changes(squash:false).limit(erroredres.length)
+      js: premap_changes1 = tbl.map(premap).changes({squash:false}).limit(erroredres.length)
+      py: premap_changes1 = tbl.map(premap).changes(squash=False).limit(len(erroredres))
+
+    - rb: postmap_changes1 = tbl.changes(squash:false).map(postmap).limit(erroredres.length)
+      js: postmap_changes1 = tbl.changes({squash:false}).map(postmap).limit(erroredres.length)
+      py: postmap_changes1 = tbl.changes(squash=False).map(postmap).limit(len(erroredres))
+
+    - rb: prefilter_changes1 = tbl.filter(prefilter).changes(squash:false).limit(erroredres.length)
+      js: prefilter_changes1 = tbl.filter(prefilter).changes({squash:false}).limit(erroredres.length)
+      py: prefilter_changes1 = tbl.filter(prefilter).changes(squash=False).limit(len(erroredres))
+
+    - rb: postfilter_changes1 = tbl.changes(squash:false).filter(postfilter).limit(erroredres.length)
+      js: postfilter_changes1 = tbl.changes({squash:false}).filter(postfilter).limit(erroredres.length)
+      py: postfilter_changes1 = tbl.changes(squash=False).filter(postfilter).limit(len(erroredres))
+
+    # Start changefeeds with runtime errors
+    - def:
+        py: premap = r.branch(r.row['value'].lt('2'), r.row, r.expr([])[1])
+        js: premap = r.branch(r.row('value').lt('2'), r.row, r.expr([]).nth(1))
+        rb: premap = Proc.new { |x| r.branch(x['value'].lt('2'), x, r.expr([])[1]) }
+    - def:
+        py: postmap = r.branch(r.row['new_val']['value'].lt('2'), r.row, r.expr([])[1])
+        js: postmap = r.branch(r.row('new'+'_'+'val')('value').lt('2'), r.row, r.expr([]).nth(1))
+        rb: postmap = Proc.new { |x| r.branch(x['new_val']['value'].lt('2'), x, r.expr([])[1]) }
+    - def:
+        py: prefilter = r.branch(r.row['value'].lt('2'), True, r.expr([])[1])
+        js: prefilter = r.branch(r.row('value').lt('2'), true, r.expr([]).nth(1))
+        rb: prefilter = Proc.new { |x| r.branch(x['value'].lt('2'), true, r.expr([])[1]) }
+    - def:
+        py: postfilter = r.branch(r.row['new_val']['value'].lt('2'), True, r.expr([])[1])
+        js: postfilter = r.branch(r.row('new'+'_'+'val')('value').lt('2'), true, r.expr([]).nth(1))
+        rb: postfilter = Proc.new { |x| r.branch(x['new_val']['value'].lt('2'), true, r.expr([])[1]) }
+
+    - rb: premap_changes2 = tbl.map(premap).changes(squash:false).limit(erroredres.length)
+      js: premap_changes2 = tbl.map(premap).changes({squash:false}).limit(erroredres.length)
+      py: premap_changes2 = tbl.map(premap).changes(squash=False).limit(len(erroredres))
+
+    - rb: postmap_changes2 = tbl.changes(squash:false).map(postmap).limit(erroredres.length)
+      js: postmap_changes2 = tbl.changes({squash:false}).map(postmap).limit(erroredres.length)
+      py: postmap_changes2 = tbl.changes(squash=False).map(postmap).limit(len(erroredres))
+
+    - rb: prefilter_changes2 = tbl.filter(prefilter).changes(squash:false).limit(erroredres.length)
+      js: prefilter_changes2 = tbl.filter(prefilter).changes({squash:false}).limit(erroredres.length)
+      py: prefilter_changes2 = tbl.filter(prefilter).changes(squash=False).limit(len(erroredres))
+
+    - rb: postfilter_changes2 = tbl.changes(squash:false).filter(postfilter).limit(erroredres.length)
+      js: postfilter_changes2 = tbl.changes({squash:false}).filter(postfilter).limit(erroredres.length)
+      py: postfilter_changes2 = tbl.changes(squash=False).filter(postfilter).limit(len(erroredres))
+
+    # Start non-deterministic changefeeds - very small chance of these hanging due to not enough results
+    - def:
+        py: nondetermmap = r.branch(r.random().gt(0.5), r.row, r.error("dummy"))
+        js: nondetermmap = function (x) { return r.branch(r.random().gt(0.5), x, r.error("dummy")); }
+        rb: nondetermmap = Proc.new { |x| r.branch(r.random().gt(0.5), x, r.error("dummy")) }
+    - def:
+        py: nondetermfilter = lambda x:r.random().gt(0.5)
+        js: nondetermfilter = function (x) { return r.random().gt(0.5); }
+        rb: nondetermfilter = Proc.new { |x| r.random().gt(0.5) }
+
+    - rb: tbl.map(nondetermmap).changes(squash:false)
+      js: tbl.map(nondetermmap).changes({squash:false})
+      py: tbl.map(nondetermmap).changes(squash=False)
+      ot: err('RqlRuntimeError', 'Cannot call `changes` after a non-deterministic function.')
+
+    - rb: postmap_changes3 = tbl.changes(squash:false).map(nondetermmap).limit(100)
+      js: postmap_changes3 = tbl.changes({squash:false}).map(nondetermmap).limit(100)
+      py: postmap_changes3 = tbl.changes(squash=False).map(nondetermmap).limit(100)
+
+    - rb: tbl.filter(nondetermfilter).changes(squash:false)
+      js: tbl.filter(nondetermfilter).changes({squash:false})
+      py: tbl.filter(nondetermfilter).changes(squash=False)
+      ot: err('RqlRuntimeError', 'Cannot call `changes` after a non-deterministic function.')
+
+    - rb: postfilter_changes3 = tbl.changes(squash:false).filter(nondetermfilter).limit(4)
+      js: postfilter_changes3 = tbl.changes({squash:false}).filter(nondetermfilter).limit(4)
+      py: postfilter_changes3 = tbl.changes(squash=False).filter(nondetermfilter).limit(4)
+
+    # Insert several rows that will and will not be returned
+    - cd: tbl.insert(r.range(101).map({'id':r.uuid().coerce_to('binary').slice(0,r.random(4,24)).coerce_to('string'),'value':r.row.coerce_to('string')}))
+      rb: tbl.insert(r.range(101).map{ |row| {'id'=>r.uuid().coerce_to('binary').slice(0,r.random(4,24)).coerce_to('string'),'value'=>row.coerce_to('string')}})
+      ot: ({'skipped':0,'deleted':0,'unchanged':0,'errors':0,'replaced':0,'inserted':101})
+
+    # Check that our limited watchers have been satified
+    - ot: pre
+      py: "sorted([int(x['new_val']['value']) for x in pre_changes])"
+      rb: (pre_changes.map { |x| x['new_val']['value'].to_i }).sort
+      js:
+        cd: pre_changes
+        testopts:
+            rowfilter: return parseInt(input['new' + '_' + 'val'].value)
+            # note: the underscore causes our re-writer to kick in
+            arrayfilter: return input.sort(function(a, b){return a-b})
+      testopts:
+        reql-query: False
+
+    - ot: mid
+      py: "sorted([int(x['new_val']['value']) for x in mid_changes])"
+      rb: (mid_changes.map { |x| x['new_val']['value'].to_i }).sort
+      js:
+        cd: mid_changes
+        testopts:
+            rowfilter: return parseInt(input['new' + '_' + 'val'].value)
+            # note: the underscore causes our re-writer to kick in
+            arrayfilter: return input.sort(function(a, b){return a-b})
+      testopts:
+        reql-query: False
+
+    - ot: post
+      py: "sorted([int(x['new_val']['value']) for x in post_changes])"
+      rb: (post_changes.map { |x| x['new_val']['value'].to_i }).sort
+      js:
+        cd: post_changes
+        testopts:
+            rowfilter: return parseInt(input['new' + '_' + 'val'].value)
+            # note: the underscore causes our re-writer to kick in
+            arrayfilter: return input.sort(function(a, b){return a-b})
+      testopts:
+        reql-query: False
+
+    - ot: erroredres
+      py: "sorted([int(x['new_val']['value']) for x in premap_changes1])"
+      rb: (premap_changes1.map { |x| x['new_val']['value'].to_i }).sort
+      js:
+        cd: premap_changes1
+        testopts:
+            rowfilter: return parseInt(input['new' + '_' + 'val'].value)
+            # note: the underscore causes our re-writer to kick in
+            arrayfilter: return input.sort(function(a, b){return a-b})
+      testopts:
+        reql-query: False
+
+    - ot: erroredres
+      py: "sorted([int(x['new_val']['value']) for x in premap_changes2])"
+      rb: (premap_changes2.map { |x| x['new_val']['value'].to_i }).sort
+      js:
+        cd: premap_changes2
+        testopts:
+            rowfilter: return parseInt(input['new' + '_' + 'val'].value)
+            # note: the underscore causes our re-writer to kick in
+            arrayfilter: return input.sort(function(a, b){return a-b})
+      testopts:
+        reql-query: False
+
+    - ot: err('RqlRuntimeError', "No attribute `dummy` in object.")
+      py: "sorted([int(x['new_val']['value']) for x in postmap_changes1])"
+      rb: (postmap_changes1.map { |x| x['new_val']['value'].to_i }).sort
+      js:
+        cd: postmap_changes1
+        testopts:
+            rowfilter: return parseInt(input['new' + '_' + 'val'].value)
+            # note: the underscore causes our re-writer to kick in
+            arrayfilter: return input.sort(function(a, b){return a-b})
+      testopts:
+        reql-query: False
+
+    - ot: err('RqlRuntimeError', "Index out of bounds:" + " 1")
+      py: "sorted([int(x['new_val']['value']) for x in postmap_changes2])"
+      rb: (postmap_changes2.map { |x| x['new_val']['value'].to_i }).sort
+      js:
+        cd: postmap_changes2
+        testopts:
+            rowfilter: return parseInt(input['new' + '_' + 'val'].value)
+            # note: the underscore causes our re-writer to kick in
+            arrayfilter: return input.sort(function(a, b){return a-b})
+      testopts:
+        reql-query: False
+
+    - ot: err('RqlRuntimeError', "dummy")
+      py: "sorted([int(x['new_val']['value']) for x in postmap_changes3])"
+      rb: (postmap_changes3.map { |x| x['new_val']['value'].to_i }).sort
+      js:
+        cd: postmap_changes3
+        testopts:
+            rowfilter: return parseInt(input['new' + '_' + 'val'].value)
+            # note: the underscore causes our re-writer to kick in
+            arrayfilter: return input.sort(function(a, b){return a-b})
+      testopts:
+        reql-query: False
+
+    - ot: erroredres
+      py: "sorted([int(x['new_val']['value']) for x in prefilter_changes1])"
+      rb: (prefilter_changes1.map { |x| x['new_val']['value'].to_i }).sort
+      js:
+        cd: prefilter_changes1
+        testopts:
+            rowfilter: return parseInt(input['new' + '_' + 'val'].value)
+            # note: the underscore causes our re-writer to kick in
+            arrayfilter: return input.sort(function(a, b){return a-b})
+      testopts:
+        reql-query: False
+
+    - ot: erroredres
+      py: "sorted([int(x['new_val']['value']) for x in prefilter_changes2])"
+      rb: (prefilter_changes2.map { |x| x['new_val']['value'].to_i }).sort
+      js:
+        cd: prefilter_changes2
+        testopts:
+            rowfilter: return parseInt(input['new' + '_' + 'val'].value)
+            # note: the underscore causes our re-writer to kick in
+            arrayfilter: return input.sort(function(a, b){return a-b})
+      testopts:
+        reql-query: False
+
+    - ot: erroredres
+      py: "sorted([int(x['new_val']['value']) for x in postfilter_changes1])"
+      rb: (postfilter_changes1.map { |x| x['new_val']['value'].to_i }).sort
+      js:
+        cd: postfilter_changes1
+        testopts:
+            rowfilter: return parseInt(input['new' + '_' + 'val'].value)
+            # note: the underscore causes our re-writer to kick in
+            arrayfilter: return input.sort(function(a, b){return a-b})
+      testopts:
+        reql-query: False
+
+    - ot: erroredres
+      py: "sorted([int(x['new_val']['value']) for x in postfilter_changes2])"
+      rb: (postfilter_changes2.map { |x| x['new_val']['value'].to_i }).sort
+      js:
+        cd: postfilter_changes2
+        testopts:
+            rowfilter: return parseInt(input['new' + '_' + 'val'].value)
+            # note: the underscore causes our re-writer to kick in
+            arrayfilter: return input.sort(function(a, b){return a-b})
+      testopts:
+        reql-query: False
+
+    - ot: true
+      py: "len([x for x in postfilter_changes3]) == 4"
+      rb: (postfilter_changes3.map { |x| x['new_val']['value'].to_i }).length == 4
+      js:
+        cd: postfilter_changes3
+        testopts:
+            rowfilter: return parseInt(input['new' + '_' + 'val'].value)
+            # note: the underscore causes our re-writer to kick in
+            arrayfilter: return input.length == 4
+      testopts:
+        reql-query: False
