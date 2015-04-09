@@ -568,7 +568,9 @@ module RethinkDB
           end
           res = @data.delete(token)
           if res.nil?
-            @waiters[token].wait(timeout)
+            while @waiters[token]
+              @waiters[token].wait(timeout)
+            end
             res = @data.delete(token)
             raise Timeout::Error, "Timed out waiting for cursor response." if res.nil?
           end
