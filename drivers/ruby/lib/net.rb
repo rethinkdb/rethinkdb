@@ -580,7 +580,7 @@ module RethinkDB
             if timeout == 0
               raise Timeout::Error, "Timed out waiting for cursor response."
             end
-            end_time = timeout ? Time.now.to_f + timeout : nil
+            start_time = Time.now.to_f
             loop {
               # We can't use `wait_while` because it doesn't take a
               # timeout, and we can't use an external `timeout {
@@ -596,7 +596,7 @@ module RethinkDB
               # better than waiting twice.
               if !@waiters[token]
                 break
-              elsif end_time && Time.now.to_f > end_time * 0.9
+              elsif timeout && Time.now.to_f > start_time + (timeout * 0.9)
                 raise Timeout::Error, "Timed out waiting for cursor response."
               end
             }
