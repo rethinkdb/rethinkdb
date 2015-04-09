@@ -138,7 +138,7 @@ backfillee. */
 class backfiller_t::client_t::session_t {
 public:
     session_t(client_t *_parent, const key_range_t::right_bound_t &_threshold) :
-        parent(_parent), threshold(_threshold)
+        parent(_parent), threshold(_threshold), pulse_when_pre_items_arrive(nullptr)
     {
         coro_t::spawn_sometime(std::bind(&session_t::run, this, drainer.lock()));
     }
@@ -146,7 +146,7 @@ public:
     /* Every time the `client_t` receives more pre-items from the backfillee, it calls
     `on_pre_items()` to notify us. */
     void on_pre_items() {
-        if (pulse_when_pre_items_arrive.has()) {
+        if (pulse_when_pre_items_arrive != nullptr) {
             pulse_when_pre_items_arrive->pulse_if_not_already_pulsed();
         }
     }
@@ -165,10 +165,10 @@ private:
                 any progress on the backfill */
                 guarantee(parent->pre_items.get_left_key() == threshold);
                 while (parent->pre_items.empty_domain()) {
-                    pulse_when_pre_items_arrive.init(new cond_t);
-                    wait_interruptible(pulse_when_pre_items_arrive.get(),
-                        keepalive.get_drain_signal());
-                    pulse_when_pre_items_arrive.reset();
+                    cond_t cond;
+                    assignment_sentry_t<cond_t *> sentry(
+                        &pulse_when_pre_items_arrive, &cond);
+                    wait_interruptible(&cond, keepalive.get_drain_signal());
                 }
 
                 /* Set up a `region_t` describing the range that still needs to be
@@ -339,7 +339,7 @@ private:
 
     /* This exists if we're waiting for more pre items. `on_pre_items()` pulses it if it
     exists. */
-    scoped_ptr_t<cond_t> pulse_when_pre_items_arrive;
+    cond_t *pulse_when_pre_items_arrive;
 
     /* Destructor order matters here: `drainer` must be destroyed before the other member
     variables because `drainer` stops `run()`, which accesses the other member

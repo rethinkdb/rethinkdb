@@ -46,7 +46,8 @@ public:
         items_mem_size_unacked(0),
         sent_end_session(false),
         metainfo(region_map_t<version_t>::empty()),
-        metainfo_binary(region_map_t<binary_blob_t>::empty())
+        metainfo_binary(region_map_t<binary_blob_t>::empty()),
+        pulse_when_items_arrive(nullptr)
     {
         send(parent->mailbox_manager, parent->intro.begin_session_mailbox,
             parent->fifo_source.enter_write(), threshold);
@@ -64,7 +65,7 @@ public:
         items.concat(std::move(chunk));
         metainfo.concat(std::move(metainfo_chunk));
         metainfo_binary = from_version_map(metainfo);
-        if (pulse_when_items_arrive.has()) {
+        if (pulse_when_items_arrive != nullptr) {
             pulse_when_items_arrive->pulse_if_not_already_pulsed();
         }
     }
@@ -105,11 +106,11 @@ private:
                     send_ack_items();
 
                     /* Wait for more items to arrive */
-                    pulse_when_items_arrive.init(new cond_t);
-                    wait_any_t waiter(
-                        pulse_when_items_arrive.get(), &got_ack_end_session);
+                    cond_t cond;
+                    assignment_sentry_t<cond_t *> sentry(
+                        &pulse_when_items_arrive, &cond);
+                    wait_any_t waiter(&cond, &got_ack_end_session);
                     wait_interruptible(&waiter, keepalive.get_drain_signal());
-                    pulse_when_items_arrive.reset();
                 }
 
                 /* Set up a `region_t` describing the range that still needs to be
@@ -278,7 +279,7 @@ private:
     /* `run()` puts a `cond_t` here when it needs to wait for more backfill items to be
     appended to `items`. `on_items()` pulses it when it appends more backfill items to
     `items`. */
-    scoped_ptr_t<cond_t> pulse_when_items_arrive;
+    cond_t *pulse_when_items_arrive;
 
     /* `run()` pulses this when the session is completely over */
     cond_t done_cond;

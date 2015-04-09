@@ -95,7 +95,6 @@ private:
                     profile_bool_t::PROFILE,
                     ql::configured_limits_t());
         } else {
-            debugf("performing deletion\n");
             write = write_t(
                     point_delete_t(store_key_t(key)),
                     DURABILITY_REQUIREMENT_DEFAULT,
@@ -232,16 +231,20 @@ TPTEST(RDBProtocolBackfill, Reverse) {
                 &dispatcher);
 
             backfill_throttler_t backfill_throttler;
+            debugf("---------- begin backfill 1a\n");
             remote_replicator_client_t remote_replicator_client_2(&backfill_throttler,
                 cluster.get_mailbox_manager(), generate_uuid(),
                 dispatcher.get_branch_id(), remote_replicator_server.get_bcard(),
                 local_replicator.get_replica_bcard(), &store2.store, &bhm,
                 &non_interruptor);
+            debugf("---------- end backfill 1a\n");
+            debugf("---------- begin backfill 1b\n");
             remote_replicator_client_t remote_replicator_client_3(&backfill_throttler,
                 cluster.get_mailbox_manager(), generate_uuid(),
                 dispatcher.get_branch_id(), remote_replicator_server.get_bcard(),
                 local_replicator.get_replica_bcard(), &store3.store, &bhm,
                 &non_interruptor);
+            debugf("---------- end backfill 1b\n");
             nap(100);
         }
 
@@ -283,12 +286,14 @@ TPTEST(RDBProtocolBackfill, Reverse) {
             cluster.get_mailbox_manager(),
             &dispatcher);
 
+        debugf("---------- begin backfill 2\n");
         backfill_throttler_t backfill_throttler;
         remote_replicator_client_t remote_replicator_client(&backfill_throttler,
             cluster.get_mailbox_manager(), generate_uuid(),
             dispatcher.get_branch_id(), remote_replicator_server.get_bcard(),
             local_replicator.get_replica_bcard(), &store1.store, &bhm,
             &non_interruptor);
+        debugf("---------- end backfill 2\n");
 
         inserter.validate();
     }
@@ -318,12 +323,14 @@ TPTEST(RDBProtocolBackfill, Reverse) {
             cluster.get_mailbox_manager(),
             &dispatcher);
 
+        debugf("---------- begin backfill 3\n");
         backfill_throttler_t backfill_throttler;
         remote_replicator_client_t remote_replicator_client(&backfill_throttler,
             cluster.get_mailbox_manager(), generate_uuid(),
             dispatcher.get_branch_id(), remote_replicator_server.get_bcard(),
             local_replicator.get_replica_bcard(), &store3.store, &bhm,
             &non_interruptor);
+        debugf("---------- end backfill 3\n");
     }
 
     {

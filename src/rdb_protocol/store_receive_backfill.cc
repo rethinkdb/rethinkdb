@@ -80,6 +80,7 @@ public:
 void apply_empty_range(
         const receive_backfill_tokens_t &tokens,
         const key_range_t::right_bound_t &empty_range) {
+    debugf("apply_empty_range\n");
     try {
         /* Acquire the superblock */
         scoped_ptr_t<txn_t> txn;
@@ -191,7 +192,7 @@ void apply_multi_key_item(
         /* `item` is conceptually passed by move, but `std::bind()` isn't smart enough to
         handle that. */
         backfill_item_t &item) {
-    debugf("apply_multi_key_item\n");
+    debugf_print("apply_multi_key_item", item.range);
     try {
         /* Acquire and hold both `fifo_enforcer_sink_t`s until we're completely finished;
         since we're going to be making multiple B-tree queries in separate B-tree
@@ -252,6 +253,8 @@ void apply_multi_key_item(
                 range_to_delete, superblock.get(), &deletion_context,
                 tokens.keepalive.get_drain_signal(), MAX_CHANGES_PER_TXN / 2,
                 &mod_reports, &range_deleted);
+            guarantee(range_deleted.right == range_to_delete.right
+                || res == continue_bool_t::CONTINUE);
 
             /* Apply any pairs from the item that fall within the deleted region */
             while (next_pair < item.pairs.size() &&
@@ -266,7 +269,6 @@ void apply_multi_key_item(
 
             /* Update `threshold` to reflect the changes we've made */
             threshold = range_deleted.right;
-            guarantee(threshold == item.range.right || res == continue_bool_t::CONTINUE);
 
             /* Acquire the sindex block and update the metainfo */
             buf_lock_t sindex_block(superblock->expose_buf(),
