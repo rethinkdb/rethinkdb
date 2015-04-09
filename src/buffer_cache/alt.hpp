@@ -85,7 +85,6 @@ public:
 
     txn_t(cache_conn_t *cache_conn,
           write_durability_t durability,
-          repli_timestamp_t txn_timestamp,
           int64_t expected_change_count);
 
     ~txn_t();
@@ -108,9 +107,7 @@ private:
                                          cond_t *pulsee);
 
 
-    void help_construct(repli_timestamp_t txn_timestamp,
-                        int64_t expected_change_count,
-                        cache_conn_t *cache_conn);
+    void help_construct(int64_t expected_change_count, cache_conn_t *cache_conn);
 
     cache_t *const cache_;
 
@@ -201,11 +198,11 @@ public:
     // never returns repli_timestamp_t::invalid.
     repli_timestamp_t get_recency() const;
 
-    // Usually unnecessary -- the txn has a recency value that touches the recency.
-    // This is used when your tree transformations (leveling, merging, adding a new
-    // root, etc) potentially gives yourself new subtrees with greater recency values
-    // than your txn's.
-    void manually_touch_recency(repli_timestamp_t superceding_recency);
+    // Sets the buf's recency to `superceding_recency`, which must be greater than or
+    // equal to its current recency. Operations that add or modify entries to the leaf
+    // nodes of the B-tree should call this for every node in the path from the root to
+    // the leaf.
+    void set_recency(repli_timestamp_t superceding_recency);
 
     access_t access() const {
         guarantee(!empty());

@@ -147,8 +147,7 @@ metadata_file_t::read_txn_t::read_txn_t(
         signal_t *interruptor) :
     file(f),
     rwlock_acq(&file->rwlock, access_t::write, interruptor),
-    txn(file->cache_conn.get(), write_durability_t::HARD,
-        repli_timestamp_t::distant_past, 1)
+    txn(file->cache_conn.get(), write_durability_t::HARD, 1)
     { }
 
 void metadata_file_t::read_txn_t::blob_to_stream(
@@ -255,6 +254,7 @@ void metadata_file_t::write_txn_t::write_bin(
         &sizer,
         &superblock,
         key.btree_key(),
+        repli_timestamp_t::distant_past,
         &detacher,
         &kvloc,
         nullptr /* trace */);

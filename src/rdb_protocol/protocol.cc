@@ -186,7 +186,6 @@ void post_construct_and_drain_queue(
             // Other than that, the hard durability guarantee is not actually
             // needed here.
             store->acquire_superblock_for_write(
-                repli_timestamp_t::distant_past,
                 2,
                 write_durability_t::HARD,
                 &token,
@@ -267,7 +266,6 @@ void post_construct_and_drain_queue(
         scoped_ptr_t<real_superblock_t> queue_superblock;
 
         store->acquire_superblock_for_write(
-            repli_timestamp_t::distant_past,
             2,
             write_durability_t::HARD,
             &token,

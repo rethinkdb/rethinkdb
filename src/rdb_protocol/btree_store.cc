@@ -116,8 +116,7 @@ store_t::store_t(serializer_t *serializer,
         int res = send_write_message(&key, &wm);
         guarantee(!res);
 
-        txn_t txn(general_cache_conn.get(), write_durability_t::HARD,
-                  repli_timestamp_t::distant_past, 1);
+        txn_t txn(general_cache_conn.get(), write_durability_t::HARD, 1);
         buf_lock_t sb_lock(&txn, SUPERBLOCK_ID, alt_create_t::create);
         real_superblock_t superblock(std::move(sb_lock));
         btree_slice_t::init_real_superblock(&superblock, key.vector(), binary_blob_t());
@@ -138,8 +137,7 @@ store_t::store_t(serializer_t *serializer,
         new_write_token(&token);
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
-        acquire_superblock_for_write(repli_timestamp_t::distant_past,
-                                     1,
+        acquire_superblock_for_write(1,
                                      write_durability_t::SOFT,
                                      &token,
                                      &txn,
@@ -214,8 +212,7 @@ void store_t::write(
     scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> real_superblock;
     const int expected_change_count = 2; // FIXME: this is incorrect, but will do for now
-    acquire_superblock_for_write(timestamp.to_repli_timestamp(),
-                                 expected_change_count, durability, token,
+    acquire_superblock_for_write(expected_change_count, durability, token,
                                  &txn, &real_superblock, interruptor);
 
     check_and_update_metainfo(DEBUG_ONLY(metainfo_checker, ) new_metainfo,
@@ -304,9 +301,7 @@ void store_t::receive_backfill(
     // exhaust the cache's dirty page limit and bring down the whole table.
     // Other than that, the hard durability guarantee is not actually
     // needed here.
-    acquire_superblock_for_write(boost::apply_visitor(backfill_chunk_timestamp_t(),
-                                                      chunk.val),
-                                 expected_change_count,
+    acquire_superblock_for_write(expected_change_count,
                                  write_durability_t::HARD,
                                  token,
                                  &txn,
@@ -339,8 +334,7 @@ void store_t::reset_data(
         const int expected_change_count = 2 + max_erased_per_pass;
         write_token_t token;
         new_write_token(&token);
-        acquire_superblock_for_write(repli_timestamp_t::distant_past,
-                                     expected_change_count,
+        acquire_superblock_for_write(expected_change_count,
                                      durability,
                                      &token,
                                      &txn,
@@ -447,8 +441,7 @@ void store_t::sindex_create(
     scoped_ptr_t<txn_t> txn;
     get_btree_superblock_and_txn_for_writing(general_cache_conn.get(),
         &write_superblock_acq_semaphore, write_access_t::write, 1,
-        repli_timestamp_t::distant_past, write_durability_t::HARD,
-        &superblock, &txn);
+        write_durability_t::HARD, &superblock, &txn);
     buf_lock_t sindex_block(superblock->expose_buf(),
                             superblock->get_sindex_block_id(),
                             access_t::write);
@@ -488,8 +481,7 @@ void store_t::sindex_rename_multi(
     scoped_ptr_t<txn_t> txn;
     get_btree_superblock_and_txn_for_writing(general_cache_conn.get(),
         &write_superblock_acq_semaphore, write_access_t::write, 1,
-        repli_timestamp_t::distant_past, write_durability_t::HARD,
-        &superblock, &txn);
+        write_durability_t::HARD, &superblock, &txn);
     buf_lock_t sindex_block(superblock->expose_buf(),
                             superblock->get_sindex_block_id(),
                             access_t::write);
@@ -537,8 +529,7 @@ void store_t::sindex_drop(
     scoped_ptr_t<txn_t> txn;
     get_btree_superblock_and_txn_for_writing(general_cache_conn.get(),
         &write_superblock_acq_semaphore, write_access_t::write, 1,
-        repli_timestamp_t::distant_past, write_durability_t::HARD,
-        &superblock, &txn);
+        write_durability_t::HARD, &superblock, &txn);
     buf_lock_t sindex_block(superblock->expose_buf(),
                             superblock->get_sindex_block_id(),
                             access_t::write);
@@ -787,7 +778,6 @@ void store_t::clear_sindex(
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
         acquire_superblock_for_write(
-            repli_timestamp_t::distant_past,
             // Not really the right value, since many keys will share a leaf node:
             clear_sindex_traversal_cb_t::CHUNK_SIZE,
             write_durability_t::SOFT,
@@ -824,7 +814,8 @@ void store_t::clear_sindex(
             {
                 keyvalue_location_t kv_location;
                 find_keyvalue_location_for_write(sizer, sindex_superblock.release(),
-                        keys[i].btree_key(), deletion_context->balancing_detacher(),
+                        keys[i].btree_key(), repli_timestamp_t::distant_past,
+                        deletion_context->balancing_detacher(),
                         &kv_location, NULL /* trace */,
                         &superblock_promise);
 
@@ -861,7 +852,6 @@ void store_t::clear_sindex(
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
         acquire_superblock_for_write(
-            repli_timestamp_t::distant_past,
             2,
             write_durability_t::SOFT,
             &token,
@@ -1362,8 +1352,7 @@ void store_t::set_metainfo(const region_map_t<binary_blob_t> &new_metainfo,
 
     scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
-    acquire_superblock_for_write(repli_timestamp_t::distant_past,
-                                 1,
+    acquire_superblock_for_write(1,
                                  write_durability_t::HARD,
                                  token,
                                  &txn,
@@ -1412,7 +1401,6 @@ void store_t::acquire_superblock_for_backfill(
 }
 
 void store_t::acquire_superblock_for_write(
-        repli_timestamp_t timestamp,
         int expected_change_count,
         write_durability_t durability,
         write_token_t *token,
@@ -1430,7 +1418,6 @@ void store_t::acquire_superblock_for_write(
             &write_superblock_acq_semaphore,
             write_access_t::write,
             expected_change_count,
-            timestamp,
             durability,
             sb_out,
             txn_out);
