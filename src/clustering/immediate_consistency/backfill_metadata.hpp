@@ -33,11 +33,11 @@ the size of the pre-item queue is limited.
 
 The item traversal process is broken into a series of sessions. (See `backfillee.hpp` for
 an explanation of why; the sessions correspond to calls to `backfillee_t::go()`.) Each
-session individually proceeds from left to right through the key-space The sessions
-cannot overlap temporally, in the sense that no more than one session can exist at the
-same time; but they may overlap in key-space, in the sense that the same key may be
-backfilled multiple times as part of multiple sessions. The steps of each session are as
-follows:
+session individually proceeds from left to right through some range of the key-space. The
+sessions cannot overlap temporally, in the sense that no more than one session can exist
+at the same time; but they may overlap in key-space, in the sense that the same key may
+be backfilled multiple times as part of multiple sessions. The steps of each session are
+as follows:
 
 1. The backfillee begins a session by sending a message to the backfiller's
 `begin_session_mailbox_t`, indicating where the session should start. The first session

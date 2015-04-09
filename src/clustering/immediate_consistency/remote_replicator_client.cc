@@ -7,13 +7,13 @@
 
 /* Maximum number of writes we can queue up in each cycle of the backfill. When we hit
 this number, we'll interrupt the backfill and drain the queue. */
-#define MAX_QUEUED_WRITES 1000
+static const int MAX_QUEUED_WRITES = 1000;
 
 /* Every time we perform a queued write, we'll let `QUEUE_TRICKLE_FRACTION` new writes be
 added to the back of the queue. So `QUEUE_TRICKLE_FRACTION` should be less than 1, to
 ensure that the queue must drain eventually. Higher values will improve performance of
 streaming writes; lower numbers will make the backfill finish faster. */
-#define QUEUE_TRICKLE_FRACTION 0.5
+static const double QUEUE_TRICKLE_FRACTION = 0.5;
 
 /* Sometimes we'll receive the same write as part of our stream of writes from the
 dispatcher and as part of our backfill from the backfiller. To avoid corruption, we need

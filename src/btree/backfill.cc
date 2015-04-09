@@ -10,7 +10,7 @@
 
 /* `MAX_CONCURRENT_VALUE_LOADS` is the maximum number of coroutines we'll use for loading
 values from the leaf nodes. */
-#define MAX_CONCURRENT_VALUE_LOADS 16
+static const int MAX_CONCURRENT_VALUE_LOADS = 16;
 
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(backfill_pre_item_t, range);
 RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(backfill_item_t::pair_t, key, recency, value);

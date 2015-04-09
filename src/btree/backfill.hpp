@@ -90,6 +90,11 @@ public:
     key_range_t range;
     std::vector<pair_t> pairs;
     repli_timestamp_t min_deletion_timestamp;
+
+    /* TODO: For single-key items, this is not very memory-efficient, because we store
+    the key in three places: in `pairs[0].key`, in `range.left`, and in `range.right.key`
+    minus one. Consider wrapping `range` in a `scoped_ptr_t`, which is left empty for a
+    single-key item. This will also reduce data copying when moving an item. */
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(backfill_item_t::pair_t);
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(backfill_item_t);

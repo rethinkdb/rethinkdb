@@ -155,7 +155,12 @@ public:
     `send_backfill_pre()` will return `ABORT`. If the callback never returns `ABORT`,
     then `send_backfill_pre()` will backfill the entire range, ending with a call to
     `on_pre_item()` or `on_empty_rang()` that ends exactly on the right-hand edge of
-    `start_point`. Then it will return `CONTINUE`. */
+    `start_point`. Then it will return `CONTINUE`.
+
+    This callback is pretty much exactly the same as the corresponding type in
+    `backfill.hpp`. The only reason they aren't merged is because I didn't want to
+    include `backfill.hpp` from here, and because the rest of the interface is
+    different. */
     class backfill_pre_item_consumer_t {
     public:
         /* It's OK for `on_pre_item()` and `on_empty_range()` to block, but they
