@@ -3,6 +3,7 @@
 Release highlights:
 * Support for attaching a changefeed to the `get_all` and `union` commands
 * Improved support for asynchronous queries
+* The first production-ready release of RethinkDB
 
 Read the [release blog post][2.0-blog] for more details.
 
