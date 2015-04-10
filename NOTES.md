@@ -1,6 +1,6 @@
 # Release 2.0.0 (Tesuji)
 
-The highlights of this release are:
+Release highlights:
 * Support for attaching a changefeed to the `get_all` and `union` commands
 * Improved support for asynchronous queries
 
@@ -13,88 +13,6 @@ Read the [release blog post][2.0-blog] for more details.
 Data files from RethinkDB versions 1.13.0 onward will be automatically
 migrated to version 2.0. As with any major release, back up your data files
 before performing the upgrade.
-
-Additional compatibility notes and breaking changes are listed in the
-2.0.0-RC1 release notes.
-
-## Changes since 2.0.0-RC1
-
-### New features ###
-
-* Added an asynchronous API to the Python and Ruby drivers (#2622)
-* Reached a production-ready state (#1174, #1000)
-
-### Improvements ###
-
-* Simplified the `multi_throttling` infrastructure (#4021)
-* The server now reports incantation errors to client drivers earlier (#4011)
-* Set `TCP_NODELAY` in all drivers (#3998)
-
-### Bug fixes ###
-
-* Ruby driver: now handle signals correctly (#4029)
-* JavaScript driver: fixed a bug that could be triggered by casting `close` twice (#4017)
-* Fetching Browserify during the build process is now more reliable (#4009)
-* Fixed a bug in `rethinkdb export` to no longer hang when certain errors occur (#4005)
-* Fallback to TCP4 when binding sockets (#4000)
-* `order_by` changes are now returned in order (#3993)
-* Ruby driver: fixed a bug in the arity check (#3968)
-* JavaScript driver: fixed a bug in `feed.close` (#3967)
-* No longer crash when the data files are in a VirtualBox shared folder (#3791)
-* Reduce the size of profiles when deleting documents (#3218)
-
-## Contributors ##
-
-Many thanks to external contributors from the RethinkDB community for helping
-us ship RethinkDB 2.0. In no particular order:
-
-* Andrey Deryabin (@aderyabin)
-* Krishna Narasimhan (@krishnanm86)
-* Elian Gidoni (@eliangidoni)
-* Sherzod Kuchkarov (@tundrax)
-* Jason Dobry (@jmdobry)
-* Justin Mealey (@justinmealey)
-* Jonathan Ong (@jonathanong)
-* Andrey Deryabin (@aderyabin)
-* Angelo Ashmore (@angeloashmore)
-* Bill Barsch (@billbarsch)
-* Ed Costello (@epc)
-* Ilya Radchenko (@knownasilya)
-* Kai Curry (@webmasterkai)
-* Loring Dodge (@loringdodge)
-* Mike Marcacci (@mike-marcacci)
-* Param Aggarwal (@paramaggarwal)
-* Tinco Andringa (@tinco)
-* Armen Filipetyan (@armenfilipetyan)
-* Andrei Horak (@linkyndy)
-* Shirow Miura (@sharow)
-
---
-
-# Release 2.0.0-RC1
-
-Released on 2015-03-23
-
-This is a release candidate for the upcoming RethinkDB 2.0 release.
-It is not for production use. It might still have bugs. If you decide
-to test it, please [back up all][backup-docs] your data first.
-
-Please report any bugs you find on GitHub
-(http://github.com/rethinkdb/rethinkdb/issues/new) or on our mailing
-list (https://groups.google.com/forum/#!forum/rethinkdb).
-
-Release highlights:
-* Support for attaching a changefeed to the `get_all` and `union` commands
-* Improved support for asynchronous queries
-
-Read the [blog post][2.0-RC1-blog] for more details.
-
-[2.0-RC1-blog]: http://rethinkdb.com/blog/2.0-release-candidate/
-
-## Compatibility ##
-
-Data files accessed with this release candidate might be incompatible
-with the final version of RethinkDB 2.0.
 
 ### Handling of negative zero in indexes ###
 
@@ -145,6 +63,8 @@ rethinkdb._negative_zero_check --help` for additional options.
 
 ## New Features ##
 
+* Overall
+  * Reached a production-ready state (#1174, #1000)
 * ReQL
   * Added support for changefeeds on `get_all` and `union` queries (#3642)
   * `between` no longer accepts `null` as a bound. The new `r.minval` and `r.maxval` can be used instead (#1023)
@@ -155,6 +75,9 @@ rethinkdb._negative_zero_check --help` for additional options.
   * Consolidated the return types and use the new `ResponseNotes` field to convey extra information (#3715)
 * Python driver
   * Added an optional script that warns for documents with negative zero in a primary key (#3637)
+  * Added an asynchronous API based on Tornado (#2622)
+* Ruby driver
+  * Added an asynchronous API based on EventMachine (#2622)
 
 ## Improvements ##
 
@@ -168,6 +91,9 @@ rethinkdb._negative_zero_check --help` for additional options.
   * Execute multiple queries in parallel on a single connection (#3296)
   * Improved the performance of sending responses (#3744)
   * Immediately send back an empty first batch when the result is a changefeed (#3852)
+  * Simplified the `multi_throttling` infrastructure (#4021)
+  * The server now reports incantation errors to client drivers earlier (#4011)
+  * Set `TCP_NODELAY` in the Python and Ruby driver to avoid delays in combination with `noreply` (#3998)
 * Web UI
   * Added a configurable limit for the results per page in the Data Explorer (#3910)
   * Added an "add table" button to each database (#3522)
@@ -205,9 +131,13 @@ rethinkdb._negative_zero_check --help` for additional options.
   * Improved the handling of negative zero (#3637)
   * Correctly abort `order_by.limit` changefeeds when a table become unavailable (#3932)
   * Do not unlink files early to avoid crashing in virtual environments (#3791)
+  * Fallback to TCP4 when binding sockets (#4000)
+  * No longer crash when the data files are in a VirtualBox shared folder (#3791)
 * ReQL
   * Fixed the behavior of point changefeeds on system tables (#3944)
   * `noreplyWait` no longer waits for non-`noreply` queries (#3812)
+  * Initial values for `order_by` changefeeds are now returned in order (#3993)
+  * Reduce the size of profiles when deleting documents (#3218)
 * Web UI
   * Fixed a bug that caused the status icon to be green when a table was unavailable (#3500)
   * Fixed a bug that truncated labels in the performance graph (#3751)
@@ -217,11 +147,44 @@ rethinkdb._negative_zero_check --help` for additional options.
   * Fixed a bug that caused autocompletion to fail in certain cases (#3143)
 * Python driver
   * Fixed `rethinkdb export` compatibility between Python 2 and Python 3 (#3911)
+  * Fixed a bug in `rethinkdb export` to no longer hang when certain errors occur (#4005)
 * JavaScript driver
   * Fixed a bug that caused `cursor.each` to fail with an exception (#3826)
   * Fixed a bug that caused connection errors to be discarded (#3733)
+  * Fixed a bug that could be triggered by casting `close` twice (#4017)
+  * Fixed a bug in `feed.close` (#3967)
 * Ruby driver
   * Fixed a bug that caused failures when using JRuby (#3795)
+  * Handle signals correctly (#4029)
+  * Fixed a bug in the arity check (#3968)
+* Build
+  * Fetching Browserify during the build process is now more reliable (#4009)
+
+## Contributors ##
+
+Many thanks to external contributors from the RethinkDB community for helping
+us ship RethinkDB 2.0. In no particular order:
+
+* Andrey Deryabin (@aderyabin)
+* Krishna Narasimhan (@krishnanm86)
+* Elian Gidoni (@eliangidoni)
+* Sherzod Kuchkarov (@tundrax)
+* Jason Dobry (@jmdobry)
+* Justin Mealey (@justinmealey)
+* Jonathan Ong (@jonathanong)
+* Andrey Deryabin (@aderyabin)
+* Angelo Ashmore (@angeloashmore)
+* Bill Barsch (@billbarsch)
+* Ed Costello (@epc)
+* Ilya Radchenko (@knownasilya)
+* Kai Curry (@webmasterkai)
+* Loring Dodge (@loringdodge)
+* Mike Marcacci (@mike-marcacci)
+* Param Aggarwal (@paramaggarwal)
+* Tinco Andringa (@tinco)
+* Armen Filipetyan (@armenfilipetyan)
+* Andrei Horak (@linkyndy)
+* Shirow Miura (@sharow)
 
 --
 
