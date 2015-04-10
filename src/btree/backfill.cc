@@ -141,6 +141,14 @@ continue_bool_t btree_send_backfill_pre(
             unreachable();
         }
 
+        continue_bool_t handle_empty(
+                UNUSED const btree_key_t *left_excl_or_null,
+                const btree_key_t *right_incl,
+                signal_t *) {
+            return pre_item_consumer->on_empty_range(
+                    convert_right_bound(right_incl));
+        }
+
         btree_backfill_pre_item_consumer_t *pre_item_consumer;
         key_range_t range;
         repli_timestamp_t reference_timestamp;
@@ -150,12 +158,8 @@ continue_bool_t btree_send_backfill_pre(
     callback.range = range;
     callback.reference_timestamp = reference_timestamp;
     callback.sizer = sizer;
-    if (continue_bool_t::ABORT == btree_depth_first_traversal(
-            superblock, range, &callback, access_t::read, FORWARD, release_superblock,
-            interruptor)) {
-        return continue_bool_t::ABORT;
-    }
-    return pre_item_consumer->on_empty_range(range.right);
+    return btree_depth_first_traversal(superblock, range, &callback, access_t::read,
+        FORWARD, release_superblock, interruptor);
 }
 
 /* The `backfill_item_loader_t` gets backfill items from the `backfill_item_preparer_t`,
@@ -504,11 +508,11 @@ private:
             `items_from_time` to be in lexicographical order, so we need to sort it. Same
             with the `pairs` field of each item in `items_from_pre`. */
             items_from_time.sort(
-                [](const backfill_item_t &a1, const backfill_item_t &a2) {
-                    return a1.range.left < a2.range.left;
+                [](const backfill_item_t &i1, const backfill_item_t &i2) {
+                    return i1.range.left < i2.range.left;
                 });
-            for (backfill_item_t &a : items_from_pre) {
-                std::sort(a.pairs.begin(), a.pairs.end(),
+            for (backfill_item_t &i : items_from_pre) {
+                std::sort(i.pairs.begin(), i.pairs.end(),
                     [](const backfill_item_t::pair_t &p1,
                             const backfill_item_t::pair_t &p2) {
                         return p1.key < p2.key;
@@ -518,14 +522,14 @@ private:
             /* Merge `items_from_time` into `items_from_pre`, preserving order. */
             items_from_pre.merge(
                 std::move(items_from_time),
-                [](const backfill_item_t &a1, const backfill_item_t &a2) {
-                    rassert(!a1.range.overlaps(a2.range));
-                    return a1.range.left < a2.range.left;
+                [](const backfill_item_t &i1, const backfill_item_t &i2) {
+                    rassert(!i1.range.overlaps(i2.range));
+                    return i1.range.left < i2.range.left;
                 });
 
             /* Send the results to the loader */
-            for (backfill_item_t &a : items_from_pre) {
-                loader->on_item(std::move(a), buf, interruptor);
+            for (backfill_item_t &i : items_from_pre) {
+                loader->on_item(std::move(i), buf, interruptor);
             }
             loader->on_empty_range(right_incl, interruptor);
 
@@ -535,6 +539,29 @@ private:
 
     continue_bool_t handle_pair(scoped_key_value_t &&, signal_t *) {
         unreachable();
+    }
+
+    continue_bool_t handle_empty(
+            const btree_key_t *left_excl_or_null,
+            const btree_key_t *right_incl,
+            signal_t *interruptor) {
+        std::vector<backfill_item_t> items;
+        continue_bool_t cont = pre_item_producer->consume_range(
+            left_excl_or_null, right_incl,
+            [&](const backfill_pre_item_t &pre_item) {
+                items.resize(items.size() + 1);
+                items.back().range = pre_item.range;
+                items.back().min_deletion_timestamp = repli_timestamp_t::distant_past;
+            });
+        if (cont == continue_bool_t::ABORT) {
+            return continue_bool_t::ABORT;
+        }
+        for (backfill_item_t &i : items) {
+            loader->on_item(
+                std::move(i), counted_t<counted_buf_lock_and_read_t>(), interruptor);
+        }
+        loader->on_empty_range(right_incl, interruptor);
+        return get_continue();
     }
 
     value_sizer_t *sizer;
@@ -563,11 +590,7 @@ continue_bool_t btree_send_backfill(
         return continue_bool_t::ABORT;
     }
     loader.finish(interruptor);
-    if (abort_cond.is_pulsed()) {
-        return continue_bool_t::ABORT;
-    } else {
-        return item_consumer->on_empty_range(range.right);
-    }
+    return abort_cond.is_pulsed() ? continue_bool_t::ABORT : continue_bool_t::CONTINUE;
 }
 
 class backfill_deletion_timestamp_updater_t : public depth_first_traversal_callback_t {

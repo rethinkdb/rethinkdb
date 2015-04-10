@@ -55,12 +55,33 @@ continue_bool_t btree_depth_first_traversal(
         direction_t direction,
         release_superblock_t release_superblock,
         signal_t *interruptor) {
+    const btree_key_t *left_excl_or_null;
+    store_key_t left_excl_buf(range.left);
+    if (left_excl_buf.decrement()) {
+        left_excl_or_null = left_excl_buf.btree_key();
+    } else {
+        left_excl_or_null = nullptr;
+    }
+    store_key_t right_incl_buf;
+    if (range.right.unbounded) {
+        right_incl_buf = store_key_t::max();
+    } else {
+        right_incl_buf = range.right.key();
+        bool ok = right_incl_buf.decrement();
+        guarantee(ok, "this is impossible because we checked range is not empty");
+    }
+
     block_id_t root_block_id = superblock->get_root_block_id();
     if (root_block_id == NULL_BLOCK_ID || range.is_empty()) {
         if (release_superblock == release_superblock_t::RELEASE) {
             superblock->release();
         }
-        return continue_bool_t::CONTINUE;
+        if (!range.is_empty()) {
+            return cb->handle_empty(left_excl_or_null, right_incl_buf.btree_key(),
+                interruptor);
+        } else {
+            return continue_bool_t::CONTINUE;
+        }
     } else {
         counted_t<counted_buf_lock_and_read_t> root_block;
         {
@@ -77,22 +98,6 @@ continue_bool_t btree_depth_first_traversal(
             // Wait for read acquisition of the root block, so that `starter`'s
             // profiling information is correct.
             wait_interruptible(root_block->lock.read_acq_signal(), interruptor);
-        }
-
-        const btree_key_t *left_excl_or_null;
-        store_key_t left_excl_buf(range.left);
-        if (left_excl_buf.decrement()) {
-            left_excl_or_null = left_excl_buf.btree_key();
-        } else {
-            left_excl_or_null = nullptr;
-        }
-        store_key_t right_incl_buf;
-        if (range.right.unbounded) {
-            right_incl_buf = store_key_t::max();
-        } else {
-            right_incl_buf = range.right.key();
-            bool ok = right_incl_buf.decrement();
-            guarantee(ok, "this is impossible because we checked range is not empty");
         }
 
         return btree_depth_first_traversal(

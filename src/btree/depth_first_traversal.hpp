@@ -102,6 +102,21 @@ public:
             scoped_key_value_t &&keyvalue,
             signal_t *interruptor) = 0;
 
+    /* Called if the B-tree is completely empty. */
+    virtual continue_bool_t handle_empty(
+            UNUSED const btree_key_t *left_excl_or_null,
+            UNUSED const btree_key_t *right_incl,
+            UNUSED signal_t *interruptor) {
+        return continue_bool_t::CONTINUE;
+    }
+
+    /* Note that the depth-first traversal proceeds in lexicographical order.
+
+    If you were to collect all the calls to `handle_pre_leaf()`; calls to
+    `handle_empty()`; and calls to `filter_*` which set `*skip_out` to `true`, then the
+    resulting key ranges would be contiguous and non-overlapping, and they would together
+    cover the full range of the traversal. */
+
     virtual profile::trace_t *get_trace() THROWS_NOTHING { return NULL; }
 protected:
     virtual ~depth_first_traversal_callback_t() { }

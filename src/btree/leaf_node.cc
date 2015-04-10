@@ -1516,16 +1516,17 @@ repli_timestamp_t min_deletion_timestamp(
 }
 
 void erase_deletions(
-        value_sizer_t *sizer, leaf_node_t *node, repli_timestamp_t min_timestamp) {
+        value_sizer_t *sizer, leaf_node_t *node, repli_timestamp_t min_del_timestamp) {
     int old_tstamp_cutpoint = node->tstamp_cutpoint;
     entry_iter_t iter = entry_iter_t::make(node);
 
-    /* Advance `iter` to the first entry with a timestamp that's too high */
+    /* Advance `iter` to the first entry with a timestamp that's lower than
+    `min_del_timestamp - 1`. */
     while (true) {
         if (iter.done(sizer) || iter.offset >= old_tstamp_cutpoint) {
             return;
         }
-        if (get_timestamp(node, iter.offset) < min_timestamp) {
+        if (get_timestamp(node, iter.offset).next() < min_del_timestamp) {
             break;
         }
         iter.step(sizer, node);
