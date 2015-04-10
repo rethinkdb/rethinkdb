@@ -8,6 +8,8 @@
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/stl_types.hpp"
 
+#include "kh_debug.hpp"
+
 /* `MAX_CONCURRENT_VALUE_LOADS` is the maximum number of coroutines we'll use for loading
 values from the leaf nodes. */
 static const int MAX_CONCURRENT_VALUE_LOADS = 16;
@@ -48,16 +50,24 @@ continue_bool_t btree_send_backfill_pre(
     class callback_t : public depth_first_traversal_callback_t {
     public:
         continue_bool_t filter_range_ts(
-                UNUSED const btree_key_t *left_excl_or_null,
+                const btree_key_t *left_excl_or_null,
                 const btree_key_t *right_incl,
                 repli_timestamp_t timestamp,
                 signal_t *,
                 bool *skip_out) {
+            key_range_t debugf_kr(
+                    left_excl_or_null == nullptr
+                        ? key_range_t::bound_t::none : key_range_t::bound_t::open,
+                    left_excl_or_null,
+                    key_range_t::bound_t::closed,
+                    right_incl);
             *skip_out = timestamp <= reference_timestamp;
             if (*skip_out) {
+                khd_range(debugf_kr, "pre-item traversal skip", timestamp);
                 return pre_item_consumer->on_empty_range(
                     convert_right_bound(right_incl));
             } else {
+                khd_range(debugf_kr, "pre-item traversal recurse", timestamp);
                 return continue_bool_t::CONTINUE;
             }
         }
@@ -68,6 +78,13 @@ continue_bool_t btree_send_backfill_pre(
                 const btree_key_t *right_incl,
                 signal_t *,
                 bool *skip_out) {
+            key_range_t debugf_kr(
+                    left_excl_or_null == nullptr
+                        ? key_range_t::bound_t::none : key_range_t::bound_t::open,
+                    left_excl_or_null,
+                    key_range_t::bound_t::closed,
+                    right_incl);
+            khd_range(debugf_kr, "pre-item traversal leaf");
             *skip_out = true;
             const leaf_node_t *lnode = static_cast<const leaf_node_t *>(
                 buf->read->get_data_read());
@@ -83,6 +100,7 @@ continue_bool_t btree_send_backfill_pre(
                     left_excl_or_null,
                     key_range_t::bound_t::closed,
                     right_incl);
+                khd_range(debugf_kr, "pre-item send mdt");
                 return pre_item_consumer->on_pre_item(std::move(pre_item));
             } else {
                 std::vector<const btree_key_t *> keys;
@@ -98,6 +116,7 @@ continue_bool_t btree_send_backfill_pre(
                         if (timestamp <= reference_timestamp) {
                             return continue_bool_t::ABORT;
                         }
+                        khd_key(store_key_t(key), "pre-item send single", timestamp);
                         keys.push_back(key);
                         return continue_bool_t::CONTINUE;
                     });
@@ -163,6 +182,7 @@ public:
             backfill_item_t &&item,
             const counted_t<counted_buf_lock_and_read_t> &buf,
             signal_t *interruptor) {
+        khd_range(item.range, "item loader on_item()");
         new_semaphore_acq_t sem_acq(&semaphore, item.pairs.size());
         wait_interruptible(sem_acq.acquisition_signal(), interruptor);
         coro_t::spawn_sometime(std::bind(
@@ -219,8 +239,10 @@ private:
             fifo_enforcer_sink_t::exit_write_t exit_write(&fifo_sink, token);
             wait_interruptible(&exit_write, keepalive.get_drain_signal());
             if (abort_cond->is_pulsed()) {
+                khd_range(item.range, "item loader handle_item() aborted already");
                 return;
             }
+            khd_range(item.range, "item loader handle_item()");
             if (continue_bool_t::ABORT == item_consumer->on_item(std::move(item))) {
                 abort_cond->pulse();
             }
@@ -353,6 +375,7 @@ private:
                     if (!leaf_range.contains_key(key)) {
                         return continue_bool_t::CONTINUE;
                     }
+                    // debugf_print("item send mdt pair", key);
 
                     size_t i = item.pairs.size();
                     item.pairs.resize(i + 1);
@@ -384,6 +407,7 @@ private:
             return get_continue();
 
         } else {
+
             /* For each pre item, make a backfill item (which is initially empty) */
             std::list<backfill_item_t> items_from_pre;
             continue_bool_t cont =
@@ -434,6 +458,7 @@ private:
                     for (backfill_item_t &a : items_from_pre) {
                         if (a.range.contains_key(key)) {
                             item = &a;
+                            // debugf_print("item send pre pair", key);
                             break;
                         }
                     }
@@ -453,7 +478,12 @@ private:
                     }
 
                     rassert(item->range.contains_key(key));
-                    rassert(timestamp >= item->min_deletion_timestamp);
+
+                    /* This is `timestamp.next()` instead of `timestamp` because it's
+                    possible for us to forget a deletion with timestamp equal to the
+                    oldest timestamped entry, so `min_deletion_timestamp` is one time
+                    unit newer than the oldest timestamped entry. */
+                    rassert(timestamp.next() >= item->min_deletion_timestamp);
 
                     size_t i = item->pairs.size();
                     item->pairs.resize(i + 1);
@@ -533,7 +563,11 @@ continue_bool_t btree_send_backfill(
         return continue_bool_t::ABORT;
     }
     loader.finish(interruptor);
-    return item_consumer->on_empty_range(range.right);
+    if (abort_cond.is_pulsed()) {
+        return continue_bool_t::ABORT;
+    } else {
+        return item_consumer->on_empty_range(range.right);
+    }
 }
 
 class backfill_deletion_timestamp_updater_t : public depth_first_traversal_callback_t {

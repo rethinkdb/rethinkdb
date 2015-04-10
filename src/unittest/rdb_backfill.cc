@@ -23,6 +23,8 @@
 #include "unittest/dummy_metadata_controller.hpp"
 #include "unittest/unittest_utils.hpp"
 
+#include "kh_debug.hpp"
+
 namespace unittest {
 
 std::string read_from_dispatcher(
@@ -70,12 +72,10 @@ public:
             inserter_state,
             start)
         { }
-    void stop() {
-        inner.stop();
-    }
-    void validate() {
-        inner.validate();
-    }
+    void insert(size_t n) { inner.insert(n); }
+    void start() { inner.start(); }
+    void stop() { inner.stop(); }
+    void validate() { inner.validate(); }
     void validate_no_extras(const std::map<std::string, std::string> &extras) {
         inner.validate_no_extras(extras);
     }
@@ -123,78 +123,13 @@ region_map_t<version_t> get_store_version_map(store_view_t *store) {
     return to_version_map(binary);
 }
 
-void run_backfill_test(size_t value_padding_length) {
+void run_backfill_test(
+        size_t value_padding_length,
+        int num_initial,
+        int num_step,
+        bool stream_during_backfill) {
 
-    recreate_temporary_directory(base_path_t("."));
-
-    order_source_t order_source;
-    simple_mailbox_cluster_t cluster;
-    io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
-    extproc_pool_t extproc_pool(2);
-    rdb_context_t ctx(&extproc_pool, NULL);
-    cond_t non_interruptor;
-
-    primary_dispatcher_t dispatcher(
-        &get_global_perfmon_collection(),
-        region_map_t<version_t>(region_t::universe(), version_t::zero()));
-
-    test_store_t store1(&io_backender, &order_source, &ctx);
-    in_memory_branch_history_manager_t bhm1;
-    local_replicator_t local_replicator(
-        cluster.get_mailbox_manager(),
-        generate_uuid(),
-        &dispatcher,
-        &store1.store,
-        &bhm1,
-        &non_interruptor);
-
-    /* Start sending operations to the broadcaster */
-    std::map<std::string, std::string> inserter_state;
-    dispatcher_inserter_t inserter(
-        &dispatcher, &order_source, value_padding_length, &inserter_state);
-    nap(10000);
-
-    remote_replicator_server_t remote_replicator_server(
-        cluster.get_mailbox_manager(),
-        &dispatcher);
-
-    backfill_throttler_t backfill_throttler;
-
-    /* Set up a second mirror */
-    test_store_t store2(&io_backender, &order_source, &ctx);
-    in_memory_branch_history_manager_t bhm2;
-    cond_t interruptor;
-    remote_replicator_client_t remote_replicator_client(
-        &backfill_throttler,
-        cluster.get_mailbox_manager(),
-        generate_uuid(),
-        dispatcher.get_branch_id(),
-        remote_replicator_server.get_bcard(),
-        local_replicator.get_replica_bcard(),
-        &store2.store,
-        &bhm2,
-        &interruptor);
-
-    nap(10000);
-
-    /* Stop the inserter, then let any lingering writes finish */
-    inserter.stop();
-    /* Let any lingering writes finish */
-    nap(10000);
-
-    inserter.validate();
-}
-
-TPTEST(RDBProtocolBackfill, Backfill) {
-    run_backfill_test(0);
-}
-
-TPTEST(RDBProtocolBackfill, BackfillLargeValues) {
-     run_backfill_test(300);
-}
-
-TPTEST(RDBProtocolBackfill, Reverse) {
-    size_t value_padding_length = 300;
+    khd_all("begin backfill test");
 
     order_source_t order_source;
     simple_mailbox_cluster_t cluster;
@@ -208,6 +143,10 @@ TPTEST(RDBProtocolBackfill, Reverse) {
     test_store_t store2(&io_backender, &order_source, &ctx);
     test_store_t store3(&io_backender, &order_source, &ctx);
 
+    khd_all("store1", &store1);
+    khd_all("store2", &store2);
+    khd_all("store3", &store3);
+
     std::map<std::string, std::string> first_inserter_state;
 
     {
@@ -220,37 +159,49 @@ TPTEST(RDBProtocolBackfill, Reverse) {
             generate_uuid(), &dispatcher, &store1.store, &bhm, &non_interruptor);
 
         dispatcher_inserter_t inserter(
-            &dispatcher, &order_source, value_padding_length, &first_inserter_state);
-        nap(10000);
+            &dispatcher, &order_source, value_padding_length, &first_inserter_state,
+            false);
+        khd_all("begin insert 1");
+        inserter.insert(num_initial);
+        khd_all("end insert 1");
 
         /* Set up `store2` and `store3` as secondaries. Backfill and then wait some time,
         but then unsubscribe. */
         {
+            if (stream_during_backfill) {
+                inserter.start();
+            }
+
             remote_replicator_server_t remote_replicator_server(
                 cluster.get_mailbox_manager(),
                 &dispatcher);
 
             backfill_throttler_t backfill_throttler;
-            debugf("---------- begin backfill 1a\n");
+            khd_all("begin backfill 1 -> 2");
             remote_replicator_client_t remote_replicator_client_2(&backfill_throttler,
                 cluster.get_mailbox_manager(), generate_uuid(),
                 dispatcher.get_branch_id(), remote_replicator_server.get_bcard(),
                 local_replicator.get_replica_bcard(), &store2.store, &bhm,
                 &non_interruptor);
-            debugf("---------- end backfill 1a\n");
-            debugf("---------- begin backfill 1b\n");
+            khd_all("end backfill 1 -> 2");
+            khd_all("begin backfill 1 -> 3");
             remote_replicator_client_t remote_replicator_client_3(&backfill_throttler,
                 cluster.get_mailbox_manager(), generate_uuid(),
                 dispatcher.get_branch_id(), remote_replicator_server.get_bcard(),
                 local_replicator.get_replica_bcard(), &store3.store, &bhm,
                 &non_interruptor);
-            debugf("---------- end backfill 1b\n");
-            nap(100);
+            khd_all("end backfill 1 -> 3");
+
+            if (stream_during_backfill) {
+                inserter.stop();
+            }
         }
 
         /* Keep running writes on `store1` for a bit longer, so that `store1` will be
         ahead of `store2` and `store3`. */
-        nap(100);
+        khd_all("begin insert 1");
+        inserter.insert(num_step);
+        khd_all("end insert 1");
     }
 
     std::map<std::string, std::string> second_inserter_state;
@@ -276,9 +227,15 @@ TPTEST(RDBProtocolBackfill, Reverse) {
 
         /* OK, now start performing some writes on `store2` */
         dispatcher_inserter_t inserter(
-            &dispatcher, &order_source, value_padding_length, &second_inserter_state);
-        nap(100);
-        inserter.stop();
+            &dispatcher, &order_source, value_padding_length, &second_inserter_state,
+            false);
+        khd_all("begin insert 2");
+        inserter.insert(num_step);
+        khd_all("end insert 2");
+
+        if (stream_during_backfill) {
+            inserter.start();
+        }
 
         /* Set up `store1` as the secondary. So this backfill will require `store1` to
         reverse the writes that were performed earlier. */
@@ -286,15 +243,18 @@ TPTEST(RDBProtocolBackfill, Reverse) {
             cluster.get_mailbox_manager(),
             &dispatcher);
 
-        debugf("---------- begin backfill 2\n");
+        khd_all("begin backfill 2 -> 1");
         backfill_throttler_t backfill_throttler;
         remote_replicator_client_t remote_replicator_client(&backfill_throttler,
             cluster.get_mailbox_manager(), generate_uuid(),
             dispatcher.get_branch_id(), remote_replicator_server.get_bcard(),
             local_replicator.get_replica_bcard(), &store1.store, &bhm,
             &non_interruptor);
-        debugf("---------- end backfill 2\n");
+        khd_all("end backfill 2 -> 1");
 
+        if (stream_during_backfill) {
+            inserter.stop();
+        }
         inserter.validate();
     }
 
@@ -307,14 +267,16 @@ TPTEST(RDBProtocolBackfill, Reverse) {
         local_replicator_t local_replicator(cluster.get_mailbox_manager(),
             generate_uuid(), &dispatcher, &store1.store, &bhm, &non_interruptor);
 
-        {
-            /* Validate the state of `store1` to make sure
-            that the backfill was completely correct */
-            dispatcher_inserter_t inserter(
-                &dispatcher, &order_source, value_padding_length, &second_inserter_state,
-                false);
-            inserter.validate();
-            inserter.validate_no_extras(first_inserter_state);
+        /* Validate the state of `store1` to make sure
+        that the backfill was completely correct */
+        dispatcher_inserter_t inserter(
+            &dispatcher, &order_source, value_padding_length, &second_inserter_state,
+            false);
+        inserter.validate();
+        inserter.validate_no_extras(first_inserter_state);
+
+        if (stream_during_backfill) {
+            inserter.start();
         }
 
         /* Bring back up `store3`. This backfill will test transferring data from
@@ -323,14 +285,18 @@ TPTEST(RDBProtocolBackfill, Reverse) {
             cluster.get_mailbox_manager(),
             &dispatcher);
 
-        debugf("---------- begin backfill 3\n");
+        khd_all("begin backfill 1 -> 3");
         backfill_throttler_t backfill_throttler;
         remote_replicator_client_t remote_replicator_client(&backfill_throttler,
             cluster.get_mailbox_manager(), generate_uuid(),
             dispatcher.get_branch_id(), remote_replicator_server.get_bcard(),
             local_replicator.get_replica_bcard(), &store3.store, &bhm,
             &non_interruptor);
-        debugf("---------- end backfill 3\n");
+        khd_all("end backfill 1 -> 3");
+
+        if (stream_during_backfill) {
+            inserter.stop();
+        }
     }
 
     {
@@ -342,8 +308,8 @@ TPTEST(RDBProtocolBackfill, Reverse) {
         local_replicator_t local_replicator(cluster.get_mailbox_manager(),
             generate_uuid(), &dispatcher, &store3.store, &bhm, &non_interruptor);
 
-        /* Run a couple of writes, then validate the state of `store3` to make sure
-        that the backfill was completely correct */
+        /* Validate the state of `store3` to make sure that the backfill was completely
+        correct */
         dispatcher_inserter_t inserter(
             &dispatcher, &order_source, value_padding_length, &second_inserter_state,
             false);
@@ -352,4 +318,17 @@ TPTEST(RDBProtocolBackfill, Reverse) {
     }
 }
 
+TPTEST(RDBBackfill, DenseChangesAndStreaming) {
+    run_backfill_test(100, 3000, 1000, true);
+}
+
+TPTEST(RDBBackfill, SparseChanges) {
+    run_backfill_test(100, 1000, 10, false);
+}
+
+TPTEST(RDBBackfill, LargeValues) {
+    run_backfill_test(MEGABYTE, 100, 10, true); 
+}
+
 }   /* namespace unittest */
+

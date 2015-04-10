@@ -4,6 +4,8 @@
 #include "btree/reql_specific.hpp"
 #include "rdb_protocol/btree.hpp"
 
+#include "kh_debug.hpp"
+
 /* `MAX_CONCURRENT_BACKFILL_ITEMS` is the maximum number of coroutines we'll spawn in
 parallel to apply backfill items to the B-tree. */
 static const int MAX_CONCURRENT_BACKFILL_ITEMS = 16;
@@ -80,7 +82,7 @@ public:
 void apply_empty_range(
         const receive_backfill_tokens_t &tokens,
         const key_range_t::right_bound_t &empty_range) {
-    debugf("apply_empty_range\n");
+    // debugf("apply_empty_range\n");
     try {
         /* Acquire the superblock */
         scoped_ptr_t<txn_t> txn;
@@ -117,6 +119,7 @@ void apply_item_pair(
         backfill_item_t::pair_t &&pair,
         std::vector<rdb_modification_report_t> *mod_reports_out,
         promise_t<superblock_t *> *pass_back_superblock) {
+    khd_key(pair.key, "apply_item_pair");
     rdb_live_deletion_context_t deletion_context;
     mod_reports_out->resize(mod_reports_out->size() + 1);
     mod_reports_out->back().primary_key = pair.key;
@@ -149,7 +152,7 @@ void apply_single_key_item(
         /* `item` is conceptually passed by move, but `std::bind()` isn't smart enough to
         handle that. */
         backfill_item_t &item) {
-    debugf("apply_single_key_item\n");
+    khd_key(item.pairs[0].key, "apply_single_key_item");
     try {
         /* Acquire the superblock */
         scoped_ptr_t<txn_t> txn;
@@ -192,7 +195,7 @@ void apply_multi_key_item(
         /* `item` is conceptually passed by move, but `std::bind()` isn't smart enough to
         handle that. */
         backfill_item_t &item) {
-    debugf_print("apply_multi_key_item", item.range);
+    khd_range(item.range, "apply_multi_key_item");
     try {
         /* Acquire and hold both `fifo_enforcer_sink_t`s until we're completely finished;
         since we're going to be making multiple B-tree queries in separate B-tree
@@ -259,6 +262,7 @@ void apply_multi_key_item(
             /* Apply any pairs from the item that fall within the deleted region */
             while (next_pair < item.pairs.size() &&
                     range_deleted.contains_key(item.pairs[next_pair].key)) {
+                // debugf_print("item recv many pair", item.pairs[next_pair].key);
                 promise_t<superblock_t *> pass_back_superblock;
                 apply_item_pair(tokens.info->slice, superblock.get(),
                     std::move(item.pairs[next_pair]), &mod_reports,
@@ -384,9 +388,11 @@ continue_bool_t store_t::receive_backfill(
             coro_t::spawn_sometime(std::bind(
                 &apply_empty_range, std::move(tokens), empty_range));
         } else if (item.is_single_key()) {
+            khd_range(item.range, "about to spawn apply_single_key_item()");
             coro_t::spawn_sometime(std::bind(
                 &apply_single_key_item, std::move(tokens), std::move(item)));
         } else {
+            khd_range(item.range, "about to spawn apply_multi_key_item()");
             coro_t::spawn_sometime(std::bind(
                 &apply_multi_key_item, std::move(tokens), std::move(item)));
         }

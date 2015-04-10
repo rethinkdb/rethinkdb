@@ -1509,7 +1509,10 @@ repli_timestamp_t min_deletion_timestamp(
         earliest_so_far = tstamp;
         iter.step(sizer, node);
     }
-    return earliest_so_far;
+    /* It's possible for us to forget a deletion with timestamp equal to the olddest
+    timestamped entry, so the min deletion timestamp is one time unit newer than the
+    oldest timestamped entry. */
+    return earliest_so_far.next();
 }
 
 void erase_deletions(

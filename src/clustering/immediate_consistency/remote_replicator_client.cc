@@ -5,6 +5,8 @@
 #include "clustering/immediate_consistency/backfillee.hpp"
 #include "store_view.hpp"
 
+#include "kh_debug.hpp"
+
 /* Maximum number of writes we can queue up in each cycle of the backfill. When we hit
 this number, we'll interrupt the backfill and drain the queue. */
 static const int MAX_QUEUED_WRITES = 1000;
@@ -233,10 +235,14 @@ remote_replicator_client_t::remote_replicator_client_t(
             key_range_t::right_bound_t right_bound;
         } callback(&queue, key_range_t::right_bound_t(region_queueing_.inner.left));
 
+        khd_all("begin backfillee.go() from", key_range_t::right_bound_t(region_queueing_.inner.left));
+
         backfillee.go(
             &callback,
             key_range_t::right_bound_t(region_queueing_.inner.left),
             interruptor);
+
+        khd_all("end backfillee.go()");
 
         /* Wait until we've queued writes at least up to the latest point where the
         backfill left us. This ensures that it will be safe to ignore

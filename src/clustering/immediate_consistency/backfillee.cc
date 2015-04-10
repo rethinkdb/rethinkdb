@@ -5,6 +5,8 @@
 #include "clustering/immediate_consistency/history.hpp"
 #include "concurrency/wait_any.hpp"
 
+#include "kh_debug.hpp"
+
 /* `PRE_ITEM_PIPELINE_SIZE` is the maximum combined size (as computed by
 `get_mem_size()`) of the pre-items that we send to the backfiller that it hasn't consumed
 yet. So the other server may use up to this size for its pre-item queue.
@@ -105,6 +107,11 @@ private:
                     items */
                     send_ack_items();
 
+                    /* `send_ack_items()` could block, so we have to check again */
+                    if (!items.empty_domain()) {
+                        break;
+                    }
+
                     /* Wait for more items to arrive */
                     cond_t cond;
                     assignment_sentry_t<cond_t *> sentry(
@@ -152,6 +159,7 @@ private:
                             we can block and wait for more items. (We don't want to block
                             in this callback because the caller might be holding locks in
                             the B-tree.) */
+                            debugf_print("ran out of items at", parent->items.get_right_key());
                             return continue_bool_t::ABORT;
                         }
                     }

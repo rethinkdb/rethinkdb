@@ -7,6 +7,8 @@
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/lazy_json.hpp"
 
+#include "kh_debug.hpp"
+
 /* After every `MAX_BACKFILL_ITEMS_PER_TXN` backfill items or backfill pre-items, we'll
 release the superblock and start a new transaction. */
 static const int MAX_BACKFILL_ITEMS_PER_TXN = 100;
@@ -27,6 +29,7 @@ public:
         threshold_ptr(_threshold_ptr) { }
     continue_bool_t on_pre_item(backfill_pre_item_t &&item)
             THROWS_NOTHING {
+        rassert(!inner_aborted && remaining > 0);
         --remaining;
         rassert(key_range_t::right_bound_t(item.range.left) >=
             *threshold_ptr);
@@ -38,6 +41,7 @@ public:
     }
     continue_bool_t on_empty_range(
             const key_range_t::right_bound_t &new_threshold) THROWS_NOTHING {
+        rassert(!inner_aborted && remaining > 0);
         --remaining;
         rassert(new_threshold >= *threshold_ptr);
         *threshold_ptr = new_threshold;
@@ -218,6 +222,12 @@ public:
     void discard(const key_range_t::right_bound_t &bound) {
         guarantee(bound >= left);
         guarantee(bound <= right);
+        if (bound > left) {
+            key_range_t r;
+            r.left = left.key();
+            r.right = bound;
+            khd_range(r, "pre_item_buffer_t::discard");
+        }
         left = bound;
         while (!buffer_past.empty() && buffer_past.front().range.right <= bound) {
             buffer_past.pop_front();
@@ -277,6 +287,7 @@ public:
         threshold_ptr(_threshold_ptr), pre_item_buffer(_pre_item_buffer),
         metainfo_ptr(_metainfo_ptr) { }
     continue_bool_t on_item(backfill_item_t &&item) {
+        rassert(!inner_aborted && remaining > 0);
         --remaining;
         rassert(key_range_t::right_bound_t(item.range.left) >=
             *threshold_ptr);
@@ -294,6 +305,7 @@ public:
     }
     continue_bool_t on_empty_range(
             const key_range_t::right_bound_t &new_threshold) {
+        rassert(!inner_aborted && remaining > 0);
         --remaining;
         rassert(new_threshold >= *threshold_ptr);
         *threshold_ptr = new_threshold;
