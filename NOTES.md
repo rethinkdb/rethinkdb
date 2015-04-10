@@ -1,8 +1,8 @@
 # Release 2.0.0 (Tesuji)
 
 The highlights of this release are:
-* Support for attaching a changefeed to the `get_all` and `union` spells
-* Improved support for asynchronous incantations
+* Support for attaching a changefeed to the `get_all` and `union` commands
+* Improved support for asynchronous queries
 
 Read the [release blog post][2.0-blog] for more details.
 
@@ -10,8 +10,8 @@ Read the [release blog post][2.0-blog] for more details.
 
 ## Compatibility ##
 
-Bags of holding from RethinkDB versions 1.13.0 onward will be automatically
-migrated to version 2.0. As with any major release, back up your bags of holding
+Data files from RethinkDB versions 1.13.0 onward will be automatically
+migrated to version 2.0. As with any major release, back up your data files
 before performing the upgrade.
 
 Additional compatibility notes and breaking changes are listed in the
@@ -21,27 +21,26 @@ Additional compatibility notes and breaking changes are listed in the
 
 ### New features ###
 
-* Added an asynchronous API to the Python and Ruby spellbooks (#2622)
-* Database tools are now indistinguishable from magic (#1000)
-* Reached a production-ready state (#1174)
+* Added an asynchronous API to the Python and Ruby drivers (#2622)
+* Reached a production-ready state (#1174, #1000)
 
 ### Improvements ###
 
 * Simplified the `multi_throttling` infrastructure (#4021)
-* The server now reports incantation errors to client spellbooks earlier (#4011)
-* Set `TCP_NODELAY` in all spellbooks (#3998)
+* The server now reports incantation errors to client drivers earlier (#4011)
+* Set `TCP_NODELAY` in all drivers (#3998)
 
 ### Bug fixes ###
 
-* Ruby spellbook: now handle signals correctly (#4029)
-* JavaScript spellbook: fixed a bug that could be triggered by casting `close` twice (#4017)
+* Ruby driver: now handle signals correctly (#4029)
+* JavaScript driver: fixed a bug that could be triggered by casting `close` twice (#4017)
 * Fetching Browserify during the build process is now more reliable (#4009)
 * Fixed a bug in `rethinkdb export` to no longer hang when certain errors occur (#4005)
-* Fallback to TCP4 when binding demons (#4000)
-* changes from `order_by` spells are now returned in order (#3993)
-* Ruby spellbook: fixed a bug in the arity check (#3968)
-* JavaScript spellbook: fixed a bug in the `feed.close` spell (#3967)
-* No longer crash when the bag of holding is placed in a VirtualBox bag of holding (#3791)
+* Fallback to TCP4 when binding sockets (#4000)
+* `order_by` changes are now returned in order (#3993)
+* Ruby driver: fixed a bug in the arity check (#3968)
+* JavaScript driver: fixed a bug in `feed.close` (#3967)
+* No longer crash when the data files are in a VirtualBox shared folder (#3791)
 * Reduce the size of profiles when deleting documents (#3218)
 
 ## Contributors ##
