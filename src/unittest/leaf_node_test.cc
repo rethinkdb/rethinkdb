@@ -87,7 +87,14 @@ public:
             return false;
         }
 
-        leaf::insert(&sizer_, node(), key.btree_key(), v.data(), tstamp, key_modification_proof_t::real_proof());
+        leaf::insert(
+            &sizer_,
+            node(),
+            key.btree_key(),
+            v.data(),
+            tstamp,
+            tstamp,
+            key_modification_proof_t::real_proof());
 
         kv_[key] = value;
 
@@ -106,7 +113,13 @@ public:
 
         kv_.erase(key);
 
-        leaf::remove(&sizer_, node(), key.btree_key(), tstamp, key_modification_proof_t::real_proof());
+        leaf::remove(
+            &sizer_,
+            node(),
+            key.btree_key(),
+            tstamp,
+            tstamp,
+            key_modification_proof_t::real_proof());
 
         Verify();
 
