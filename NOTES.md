@@ -53,7 +53,7 @@ us ship RethinkDB 2.0. In no particular order:
 * Elian Gidoni (@eliangidoni)
 * Sherzod Kuchkarov (@tundrax)
 * Jason Dobry (@jmdobry)
-* Justin Mealey (@presidentbeef)
+* Justin Mealey (@justinmealey)
 * Jonathan Ong (@jonathanong)
 * Andrey Deryabin (@aderyabin)
 * Angelo Ashmore (@angeloashmore)
