@@ -1,3 +1,77 @@
+# Release 2.0.0 (Tesuji)
+
+The highlights of this release are:
+* Support for attaching a changefeed to the `get_all` and `union` spells
+* Improved support for asynchronous incantations
+
+Read the [release blog post][2.0-blog] for more details.
+
+[2.0-blog]: http://rethinkdb.com/blog/2.0-release/
+
+## Compatibility ##
+
+Bags of holding from RethinkDB versions 1.13.0 onward will be automatically
+migrated to version 2.0. As with any major release, back up your bags of holding
+before performing the upgrade.
+
+Additional compatibility notes and breaking changes are listed in the
+2.0.0-RC1 release notes.
+
+## Changes since 2.0.0-RC1
+
+### New features ###
+
+* Added an asynchronous API to the Python and Ruby spellbooks (#2622)
+* Database tools are now indistinguishable from magic (#1000)
+* Reached a production-ready state (#1174)
+
+### Improvements ###
+
+* Simplified the `multi_throttling` infrastructure (#4021)
+* The server now reports incantation errors to client spellbooks earlier (#4011)
+* Set `TCP_NODELAY` in all spellbooks (#3998)
+
+### Bug fixes ###
+
+* Ruby spellbook: now handle signals correctly (#4029)
+* JavaScript spellbook: fixed a bug that could be triggered by casting `close` twice (#4017)
+* Fetching Browserify during the build process is now more reliable (#4009)
+* Fixed a bug in `rethinkdb export` to no longer hang when certain errors occur (#4005)
+* Fallback to TCP4 when binding demons (#4000)
+* changes from `order_by` spells are now returned in order (#3993)
+* Ruby spellbook: fixed a bug in the arity check (#3968)
+* JavaScript spellbook: fixed a bug in the `feed.close` spell (#3967)
+* No longer crash when the bag of holding is placed in a VirtualBox bag of holding (#3791)
+* Reduce the size of profiles when deleting documents (#3218)
+
+## Contributors ##
+
+Many thanks to external contributors from the RethinkDB community for helping
+us ship RethinkDB 2.0. In no particular order:
+
+* Andrey Deryabin (@aderyabin)
+* Krishna Narasimhan (@krishnanm86)
+* Elian Gidoni (@eliangidoni)
+* Sherzod Kuchkarov (@tundrax)
+* Jason Dobry (@jmdobry)
+* Justin Mealey (@presidentbeef)
+* Jonathan Ong (@jonathanong)
+* Andrey Deryabin (@aderyabin)
+* Angelo Ashmore (@angeloashmore)
+* Bill Barsch (@billbarsch)
+* Ed Costello (@epc)
+* Ilya Radchenko (@knownasilya)
+* Kai Curry (@webmasterkai)
+* Loring Dodge (@loringdodge)
+* Mike Marcacci (@mike-marcacci)
+* Param Aggarwal (@paramaggarwal)
+* Tinco Andringa (@tinco)
+* Armen Filipetyan (@armenfilipetyan)
+* Andrei Horak (@linkyndy)
+* Shirow Miura (@sharow)
+
+--
+
 # Release 2.0.0-RC1
 
 Released on 2015-03-23
