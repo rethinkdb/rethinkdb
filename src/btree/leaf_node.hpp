@@ -149,7 +149,8 @@ void insert(
         const btree_key_t *key,
         const void *value,
         repli_timestamp_t tstamp,
-        repli_timestamp_t node_tstamp,
+        /* the recency of the buf_t that `node` comes from */
+        repli_timestamp_t maximum_existing_tstamp,
         UNUSED key_modification_proof_t km_proof);
 
 void remove(
@@ -157,7 +158,8 @@ void remove(
         leaf_node_t *node,
         const btree_key_t *key,
         repli_timestamp_t tstamp,
-        repli_timestamp_t node_tstamp,
+        /* the recency of the buf_t that `node` comes from */
+        repli_timestamp_t maximum_existing_tstamp,
         key_modification_proof_t km_proof);
 
 void erase_presence(value_sizer_t *sizer, leaf_node_t *node, const btree_key_t *key, key_modification_proof_t km_proof);
@@ -181,7 +183,13 @@ protected:
     virtual ~entry_reception_callback_t() { }
 };
 
-void dump_entries_since_time(value_sizer_t *sizer, const leaf_node_t *node, repli_timestamp_t minimum_tstamp, repli_timestamp_t maximum_possible_timestamp,  entry_reception_callback_t *cb);
+void dump_entries_since_time(
+        value_sizer_t *sizer,
+        const leaf_node_t *node,
+        repli_timestamp_t minimum_tstamp,
+        /* the recency of the buf_t that `node` comes from */
+        repli_timestamp_t maximum_existing_tstamp,
+        entry_reception_callback_t *cb);
 
 class iterator {
 public:
