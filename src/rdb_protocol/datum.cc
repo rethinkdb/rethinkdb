@@ -1520,6 +1520,11 @@ int derived_cmp(T a, T b) {
 }
 
 int datum_t::v1_13_cmp(const datum_t &rhs) const {
+    if (get_type() == MINVAL && rhs.get_type() != MINVAL) return -1;
+    if (get_type() == MAXVAL && rhs.get_type() != MAXVAL) return 1;
+    if (get_type() != MINVAL && rhs.get_type() == MINVAL) return 1;
+    if (get_type() != MAXVAL && rhs.get_type() == MAXVAL) return -1;
+
     if (is_ptype() && !rhs.is_ptype()) {
         return 1;
     } else if (!is_ptype() && rhs.is_ptype()) {
