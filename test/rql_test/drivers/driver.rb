@@ -391,6 +391,10 @@ def test(src, expected, name, opthash=nil, testopts=nil)
       result = err(e.class.name.sub(/^RethinkDB::/, ""), e.message.split("\n")[0], e.backtrace)
     end
 
+    if testopts && testopts.key?(:noreply_wait) && testopts[:noreply_wait]
+        $reql_conn.noreply_wait
+    end
+
     # -- process the result
 
     return check_result(name, src, result, expected, testopts)

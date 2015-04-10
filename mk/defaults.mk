@@ -123,6 +123,9 @@ OSX_SIGNATURE_NAME ?= Developer ID Installer: Hexagram 49, Inc. (99WDWQ7WDJ)
 # Adds default configure flags to the package being built
 DIST_CONFIGURE_DEFAULT ?=
 
+# Minify the webui source code with "uglify".
+UGLIFY ?= 1
+
 # TODO: Document these variables
 STATIC_LIBGCC ?= 0
 DISABLE_BREAKPOINTS ?= 0

@@ -17,6 +17,7 @@
 
 #include "config/args.hpp"
 #include "concurrency/interruptor.hpp"
+#include "containers/lazy_erase_vector.hpp"
 #include "containers/scoped.hpp"
 #include "arch/address.hpp"
 #include "arch/io/event_watcher.hpp"
@@ -224,7 +225,7 @@ private:
     cond_t read_closed, write_closed;
 
     /* Holds data that we read from the socket but hasn't been consumed yet */
-    std::vector<char> read_buffer;
+    lazy_erase_vector_t<char> read_buffer;
 
     /* Reads up to the given number of bytes, but not necessarily that many. Simple wrapper around
     ::read(). Returns the number of bytes read or throws tcp_conn_read_closed_exc_t. Bypasses read_buffer. */
@@ -344,7 +345,7 @@ protected:
     friend class linux_tcp_listener_t;
     friend class linux_tcp_bound_socket_t;
 
-    MUST_USE bool bind_sockets();
+    void bind_sockets();
 
     // The callback to call when we get a connection
     std::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t> &)> callback;
@@ -352,7 +353,6 @@ protected:
 private:
     static const uint32_t MAX_BIND_ATTEMPTS = 20;
     int init_sockets();
-    bool bind_sockets_internal(int *port_out);
 
     /* accept_loop() runs in a separate coroutine. It repeatedly tries to accept
     new connections; when accept() blocks, then it waits for events from the

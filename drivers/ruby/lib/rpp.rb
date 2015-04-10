@@ -102,10 +102,11 @@ module RethinkDB
                args[0][0] != Term::TermType::DB)
         return false
       else
-        return !["db", "db_create", "db_drop", "json", "funcall", "args", "branch", "http",
-          "binary", "javascript", "random", "time", "iso8601", "epoch_time", "now",
-          "geojson", "point", "circle", "line", "polygon", "asc", "desc", "literal",
-          "range"].include?(name)
+        return !["db", "db_create", "db_drop", "json", "funcall",
+                 "args", "branch", "http", "binary", "javascript", "random",
+                 "time", "iso8601", "epoch_time", "now", "geojson", "point",
+                 "circle", "line", "polygon", "asc", "desc", "literal",
+                 "range", "error"].include?(name)
       end
     end
     def self.pp_int(q, term, bt, pre_dot=false)
@@ -178,7 +179,7 @@ module RethinkDB
         q.text("r")
         arg_offset = 0
       end
-      if name == "getattr"
+      if name == "bracket"
         argstart, argstop = "[", "]"
       else
         q.text(".")

@@ -395,8 +395,19 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
                                       pre_4 ? ql::return_empty_normal_batches_t::YES :
                                               ql::return_empty_normal_batches_t::NO);
 
-        const char *success_msg = "SUCCESS";
-        conn->write(success_msg, strlen(success_msg) + 1, &ct_keepalive);
+        switch (wire_protocol) {
+            case VersionDummy::JSON:
+            case VersionDummy::PROTOBUF: break;
+            default: {
+                throw protob_server_exc_t(strprintf("Unrecognized protocol specified: '%d'",
+                                                    wire_protocol));
+            }
+        }
+
+        if (!pre_2) {
+            const char *success_msg = "SUCCESS";
+            conn->write(success_msg, strlen(success_msg) + 1, &ct_keepalive);
+        }
 
         if (wire_protocol == VersionDummy::JSON) {
             connection_loop<json_protocol_t>(
@@ -405,8 +416,7 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
             connection_loop<protobuf_protocol_t>(
                 conn.get(), max_concurrent_queries, &query_cache, &ct_keepalive);
         } else {
-            throw protob_server_exc_t(strprintf("Unrecognized protocol specified: '%d'",
-                                                wire_protocol));
+            unreachable();
         }
     } catch (const protob_server_exc_t &ex) {
         // Can't write response here due to coro switching inside exception handler
@@ -468,13 +478,6 @@ void save_exception(std::exception_ptr *err,
     }
 }
 
-bool should_reply(const ql::protob_t<Query> &query) {
-    ql::datum_t noreply = static_optarg("noreply", query);
-    return !(noreply.has() &&
-             noreply.get_type() == ql::datum_t::type_t::R_BOOL &&
-             noreply.as_bool());
-}
-
 template <class protocol_t>
 void query_server_t::connection_loop(tcp_conn_t *conn,
                                      size_t max_concurrent_queries,
@@ -525,7 +528,7 @@ void query_server_t::connection_loop(tcp_conn_t *conn,
             save_exception(&err, &err_str, &abort, [&]() {
                     handler->run_query(std::move(query_id), query_pb, &response,
                                        query_cache, &cb_interruptor);
-                    if (should_reply(query_pb)) {
+                    if (!ql::is_noreply(query_pb)) {
                         response.set_token(query_pb->token());
                         new_mutex_acq_t send_lock(&send_mutex, &cb_interruptor);
                         protocol_t::send_response(response, handler,
@@ -534,7 +537,7 @@ void query_server_t::connection_loop(tcp_conn_t *conn,
                     }
                 });
 
-            if (!replied && should_reply(query_pb)) {
+            if (!replied && !ql::is_noreply(query_pb)) {
                 save_exception(&err, &err_str, &abort, [&]() {
                         make_error_response(drain_signal->is_pulsed(), *conn,
                                             err_str, &response);
@@ -569,7 +572,7 @@ void query_server_t::connection_loop(tcp_conn_t *conn,
 
     // Respond to any queries still in the run queue
     for (auto const &pair : query_list) {
-        if (should_reply(pair.second)) {
+        if (!ql::is_noreply(pair.second)) {
             Response response;
             save_exception(&err, &err_str, &abort, [&]() {
                     make_error_response(drain_signal->is_pulsed(), *conn,
@@ -651,7 +654,7 @@ void query_server_t::handle(const http_req_t &req,
         } else {
             // Check for noreply, which we don't support here, as it causes
             // problems with interruption
-            if (!should_reply(query)) {
+            if (ql::is_noreply(query)) {
                 *result = http_res_t(http_status_code_t::BAD_REQUEST,
                                      "application/text",
                                      "noreply queries are not supported over HTTP\n");

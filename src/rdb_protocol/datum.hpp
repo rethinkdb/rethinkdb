@@ -446,6 +446,7 @@ public:
     static datum_range_t universe();
 
     bool contains(reql_version_t reql_version, datum_t val) const;
+    bool is_empty(reql_version_t reql_version) const;
     bool is_universe() const;
 
     RDB_DECLARE_ME_SERIALIZABLE(datum_range_t);

@@ -242,12 +242,9 @@ def json_writer(filename, fields, task_queue, error_queue):
         with open(filename, "w") as out:
             first = True
             out.write("[")
-            while True:
-                item = task_queue.get()
-                if len(item) != 1:
-                    break
+            item = task_queue.get()
+            while not isinstance(item, StopIteration):
                 row = item[0]
-
                 if fields is not None:
                     for item in list(row.keys()):
                         if item not in fields:
@@ -257,10 +254,16 @@ def json_writer(filename, fields, task_queue, error_queue):
                     out.write("\n" + json.dumps(row))
                 else:
                     out.write(",\n" + json.dumps(row))
+
+                item = task_queue.get()
             out.write("\n]\n")
     except:
         ex_type, ex_class, tb = sys.exc_info()
         error_queue.put((ex_type, ex_class, traceback.extract_tb(tb)))
+
+        # Read until the exit task so the readers do not hang on pushing onto the queue
+        while not isinstance(task_queue.get(), StopIteration):
+            pass
 
 def csv_writer(filename, fields, delimiter, task_queue, error_queue):
     try:
@@ -268,10 +271,8 @@ def csv_writer(filename, fields, delimiter, task_queue, error_queue):
             out_writer = csv.writer(out, delimiter=delimiter)
             out_writer.writerow(fields)
 
-            while True:
-                item = task_queue.get()
-                if len(item) != 1:
-                    break
+            item = task_queue.get()
+            while not isinstance(item, StopIteration):
                 row = item[0]
                 info = []
                 # If the data is a simple type, just write it directly, otherwise, write it as json
@@ -287,9 +288,14 @@ def csv_writer(filename, fields, delimiter, task_queue, error_queue):
                     else:
                         info.append(json.dumps(row[field]))
                 out_writer.writerow(info)
+                item = task_queue.get()
     except:
         ex_type, ex_class, tb = sys.exc_info()
         error_queue.put((ex_type, ex_class, traceback.extract_tb(tb)))
+
+        # Read until the exit task so the readers do not hang on pushing onto the queue
+        while not isinstance(task_queue.get(), StopIteration):
+            pass
 
 def launch_writer(format, directory, db, table, fields, delimiter, task_queue, error_queue):
     if format == "json":
@@ -334,7 +340,7 @@ def export_table(host, port, auth_key, db, table, directory, fields, delimiter, 
         error_queue.put((ex_type, ex_class, traceback.extract_tb(tb)))
     finally:
         if writer is not None and writer.is_alive():
-            task_queue.put(("exit", "event")) # Exit is triggered by sending a message with two objects
+            task_queue.put(StopIteration())
             writer.join()
 
 def abort_export(signum, frame, exit_event, interrupt_event):

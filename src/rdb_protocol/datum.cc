@@ -419,7 +419,8 @@ inline void fail_if_invalid(reql_version_t reql_version, const std::string &stri
         case reql_version_t::v1_14: // v1_15 is the same as v1_14
             break;
         case reql_version_t::v1_16:
-        case reql_version_t::v2_0_is_latest:
+        case reql_version_t::v2_0:
+        case reql_version_t::v2_1_is_latest:
             utf8::reason_t reason;
             if (!utf8::is_valid(string, &reason)) {
                 int truncation_length = std::min<size_t>(reason.position, 20);
@@ -442,7 +443,8 @@ inline void fail_if_invalid(reql_version_t reql_version, const char *string)
         case reql_version_t::v1_14: // v1_15 is the same as v1_14
             break;
         case reql_version_t::v1_16:
-        case reql_version_t::v2_0_is_latest:
+        case reql_version_t::v2_0:
+        case reql_version_t::v2_1_is_latest:
             utf8::reason_t reason;
             if (!utf8::is_valid(string, &reason)) {
                 int truncation_length = std::min<size_t>(reason.position, 20);
@@ -1088,7 +1090,8 @@ std::string datum_t::print_secondary(reql_version_t reql_version,
         break;
     case reql_version_t::v1_14: // v1_15 is the same as v1_14
     case reql_version_t::v1_16:
-    case reql_version_t::v2_0_is_latest:
+    case reql_version_t::v2_0:
+    case reql_version_t::v2_1_is_latest:
         secondary_key_string.append(1, '\x00');
         break;
     default:
@@ -1106,7 +1109,8 @@ skey_version_t skey_version_from_reql_version(reql_version_t rv) {
     case reql_version_t::v1_14: // v1_15 == v1_14
         return skey_version_t::pre_1_16;
     case reql_version_t::v1_16:
-    case reql_version_t::v2_0_is_latest:
+    case reql_version_t::v2_0:
+    case reql_version_t::v2_1_is_latest:
         return skey_version_t::post_1_16;
     default: unreachable();
     }
@@ -1620,7 +1624,8 @@ int datum_t::cmp(reql_version_t reql_version, const datum_t &rhs) const {
         return v1_13_cmp(rhs);
     case reql_version_t::v1_14: // v1_15 is the same as v1_14
     case reql_version_t::v1_16:
-    case reql_version_t::v2_0_is_latest:
+    case reql_version_t::v2_0:
+    case reql_version_t::v2_1_is_latest:
         return modern_cmp(rhs);
     default:
         unreachable();
@@ -2052,7 +2057,8 @@ void datum_array_builder_t::insert(reql_version_t reql_version, size_t index,
         break;
     case reql_version_t::v1_14: // v1_15 is the same as v1_14
     case reql_version_t::v1_16:
-    case reql_version_t::v2_0_is_latest:
+    case reql_version_t::v2_0:
+    case reql_version_t::v2_1_is_latest:
         rcheck_array_size_datum(vector, limits, base_exc_t::GENERIC);
         break;
     default:
@@ -2084,7 +2090,8 @@ void datum_array_builder_t::splice(reql_version_t reql_version, size_t index,
         break;
     case reql_version_t::v1_14: // v1_15 is the same as v1_14
     case reql_version_t::v1_16:
-    case reql_version_t::v2_0_is_latest:
+    case reql_version_t::v2_0:
+    case reql_version_t::v2_1_is_latest:
         rcheck_array_size_datum(vector, limits, base_exc_t::GENERIC);
         break;
     default:
@@ -2107,7 +2114,8 @@ void datum_array_builder_t::erase_range(reql_version_t reql_version,
         break;
     case reql_version_t::v1_14: // v1_15 is the same as v1_14
     case reql_version_t::v1_16:
-    case reql_version_t::v2_0_is_latest:
+    case reql_version_t::v2_0:
+    case reql_version_t::v2_1_is_latest:
         rcheck_datum(start <= vector.size(),
                      base_exc_t::NON_EXISTENCE,
                      strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
@@ -2149,6 +2157,7 @@ datum_t datum_array_builder_t::to_datum() RVALUE_THIS {
 
 datum_range_t::datum_range_t()
     : left_bound_type(key_range_t::none), right_bound_type(key_range_t::none) { }
+
 datum_range_t::datum_range_t(
     datum_t _left_bound, key_range_t::bound_t _left_bound_type,
     datum_t _right_bound, key_range_t::bound_t _right_bound_type)
@@ -2156,31 +2165,43 @@ datum_range_t::datum_range_t(
       left_bound_type(_left_bound_type), right_bound_type(_right_bound_type) {
     r_sanity_check(left_bound.has() && right_bound.has());
 }
+
 datum_range_t::datum_range_t(datum_t val)
     : left_bound(val), right_bound(val),
       left_bound_type(key_range_t::closed), right_bound_type(key_range_t::closed) {
     r_sanity_check(val.has());
 }
 
-datum_range_t datum_range_t::universe()  {
+datum_range_t datum_range_t::universe() {
     return datum_range_t(datum_t::minval(), key_range_t::open,
                          datum_t::maxval(), key_range_t::open);
 }
+
+bool datum_range_t::contains(reql_version_t reql_version,
+                             datum_t val) const {
+    r_sanity_check(left_bound.has() && right_bound.has());
+
+    int left_cmp = left_bound.cmp(reql_version, val);
+    int right_cmp = right_bound.cmp(reql_version, val);
+    return (left_cmp < 0 || (left_cmp == 0 && left_bound_type == key_range_t::closed)) &&
+           (right_cmp > 0 || (right_cmp == 0 && right_bound_type == key_range_t::closed));
+}
+
+bool datum_range_t::is_empty(reql_version_t reql_version) const {
+    r_sanity_check(left_bound.has() && right_bound.has());
+
+    int cmp = left_bound.cmp(reql_version, right_bound);
+    return (cmp > 0 ||
+            ((left_bound_type == key_range_t::open ||
+              right_bound_type == key_range_t::open) && cmp == 0));
+}
+
 bool datum_range_t::is_universe() const {
     r_sanity_check(left_bound.has() && right_bound.has());
     return left_bound.get_type() == datum_t::type_t::MINVAL &&
            left_bound_type == key_range_t::open &&
            right_bound.get_type() == datum_t::type_t::MAXVAL &&
            right_bound_type == key_range_t::open;
-}
-
-bool datum_range_t::contains(reql_version_t reql_version,
-                             datum_t val) const {
-    r_sanity_check(left_bound.has() && right_bound.has());
-    return (left_bound.compare_lt(reql_version, val) ||
-            (left_bound == val && left_bound_type == key_range_t::closed)) &&
-           (right_bound.compare_gt(reql_version, val) ||
-            (right_bound == val && right_bound_type == key_range_t::closed));
 }
 
 key_range_t datum_range_t::to_primary_keyrange() const {

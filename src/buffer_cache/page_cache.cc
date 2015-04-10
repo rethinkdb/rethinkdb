@@ -360,6 +360,7 @@ current_page_t *page_cache_t::internal_page_for_new_chosen(block_id_t block_id) 
     assert_thread();
     rassert(recency_for_block_id(block_id) == repli_timestamp_t::invalid,
             "expected chosen block %" PR_BLOCK_ID "to be deleted", block_id);
+    set_recency_for_block_id(block_id, repli_timestamp_t::distant_past);
 
     buf_ptr_t buf = buf_ptr_t::alloc_uninitialized(max_block_size_);
 
@@ -581,7 +582,7 @@ page_t *current_page_acq_t::current_page_for_write(cache_account_t *account) {
     return current_page_->the_page_for_write(help(), account);
 }
 
-void current_page_acq_t::manually_touch_recency(repli_timestamp_t recency) {
+void current_page_acq_t::set_recency(repli_timestamp_t recency) {
     assert_thread();
     rassert(access_ == access_t::write);
     rassert(current_page_ != NULL);
@@ -838,9 +839,6 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
             if (acquirers_.prev(cur) == NULL) {
                 // (It gets exclusive write access if there's no preceding reader.)
                 guarantee(!is_deleted_);
-                repli_timestamp_t superceding
-                    = superceding_recency(current_recency, cur->the_txn_->this_txn_recency_);
-                help.page_cache->set_recency_for_block_id(help.block_id, superceding);
                 cur->pulse_write_available();
             }
             break;
@@ -912,13 +910,11 @@ page_t *current_page_t::the_page_for_write(current_page_help_t help,
 }
 
 page_txn_t::page_txn_t(page_cache_t *page_cache,
-                       repli_timestamp_t txn_recency,
                        throttler_acq_t throttler_acq,
                        cache_conn_t *cache_conn)
     : page_cache_(page_cache),
       cache_conn_(cache_conn),
       throttler_acq_(std::move(throttler_acq)),
-      this_txn_recency_(txn_recency),
       live_acqs_(0),
       began_waiting_for_flush_(false),
       spawned_flush_(false),

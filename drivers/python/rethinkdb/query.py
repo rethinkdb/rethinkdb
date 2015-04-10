@@ -8,7 +8,7 @@ __all__ = [
     'table', 'table_create', 'table_drop', 'table_list',
     'wait', 'reconfigure', 'rebalance',
     'eq', 'ne', 'le', 'ge', 'lt', 'gt', 'and_', 'or_', 'not_',
-    'add', 'sub', 'mul', 'div', 'mod',
+    'add', 'sub', 'mul', 'div', 'mod', 'floor', 'ceil', 'round',
     'time', 'iso8601', 'epoch_time', 'now', 'make_timezone',
     'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday',
     'sunday',
@@ -171,6 +171,18 @@ def div(*args):
 
 def mod(*args):
     return ast.Mod(*args)
+
+
+def floor(*args):
+    return ast.Floor(*args)
+
+
+def ceil(*args):
+    return ast.Ceil(*args)
+
+
+def round(*args):
+    return ast.Round(*args)
 
 
 def not_(*args):

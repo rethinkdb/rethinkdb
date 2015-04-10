@@ -157,6 +157,23 @@ tests:
       ot: ({'foo':10,'a':10})
 
     # Between
+    - cd: tbl.between(1, 2).type_of()
+      ot: "'TABLE_SLICE'"
+    - py: tbl.between(1, 2, index='id').type_of()
+      js: tbl.between(1, 2, {'index':'id'}).typeOf()
+      rb: tbl.between(1, 2, :index => 'id').type_of()
+      ot: "'TABLE_SLICE'"
+    - py: tbl.between(1, 1, right_bound='closed').type_of()
+      js: tbl.between(1, 1, {'right_bound':'closed'}).typeOf()
+      rb: tbl.between(1, 1, :right_bound => 'closed').type_of()
+      ot: "'TABLE_SLICE'"
+    - cd: tbl.between(2, 1).type_of()
+      ot: "'TABLE_SLICE'"
+    - py: tbl.between(2, 1, index='id').type_of()
+      js: tbl.between(2, 1, {'index':'id'}).typeOf()
+      rb: tbl.between(2, 1, :index => 'id').type_of()
+      ot: "'TABLE_SLICE'"
+
     - cd: tbl.between(20, 29).count()
       ot: 9
     - cd: tbl.between(-10, 9).count()

@@ -186,7 +186,6 @@ void post_construct_and_drain_queue(
             // Other than that, the hard durability guarantee is not actually
             // needed here.
             store->acquire_superblock_for_write(
-                repli_timestamp_t::distant_past,
                 2,
                 write_durability_t::HARD,
                 &token,
@@ -267,7 +266,6 @@ void post_construct_and_drain_queue(
         scoped_ptr_t<real_superblock_t> queue_superblock;
 
         store->acquire_superblock_for_write(
-            repli_timestamp_t::distant_past,
             2,
             write_durability_t::HARD,
             &token,
@@ -733,20 +731,34 @@ void rdb_r_unshard_visitor_t::unshard_range_batch(const query_t &q, sorting_t so
     for (size_t i = 0; i < count; ++i) {
         auto resp = boost::get<query_response_t>(&responses[i].response);
         guarantee(resp);
+        // Make sure this is always the first thing in the loop.
+        if (boost::get<ql::exc_t>(&resp->result) != NULL) {
+            out->result = std::move(resp->result);
+            return;
+        }
+
         if (i == 0) {
             out->skey_version = resp->skey_version;
         } else {
+#ifndef NDEBUG
             guarantee(out->skey_version == resp->skey_version);
+#else
+            if (out->skey_version != resp->skey_version) {
+                out->result = ql::exc_t(
+                    ql::base_exc_t::GENERIC,
+                    strprintf("INTERNAL ERROR: mismatched skey versions %d and %d.",
+                              out->skey_version,
+                              resp->skey_version),
+                    nullptr);
+                return;
+            }
+#endif // NDEBUG
         }
         if (resp->truncated) {
             out->truncated = true;
             if (best == NULL || key_le.is_le(resp->last_key, *best)) {
                 best = &resp->last_key;
             }
-        }
-        if (boost::get<ql::exc_t>(&resp->result) != NULL) {
-            out->result = std::move(resp->result);
-            return;
         }
         results[i] = &resp->result;
     }

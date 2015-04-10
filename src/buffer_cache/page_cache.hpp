@@ -196,7 +196,7 @@ public:
     repli_timestamp_t recency();
 
     page_t *current_page_for_write(cache_account_t *account);
-    void manually_touch_recency(repli_timestamp_t recency);
+    void set_recency(repli_timestamp_t recency);
 
     // Returns current_page_for_read, except it guarantees that the page acq has
     // already snapshotted the page and is not waiting for the page_t *.
@@ -530,8 +530,6 @@ public:
     // preceding transactions on cache_conn, if that parameter is not NULL.  (The
     // parameter's NULL for read txns, for now.)
     page_txn_t(page_cache_t *page_cache,
-               // Unused for read transactions, pass repli_timestamp_t::invalid.
-               repli_timestamp_t txn_recency,
                throttler_acq_t throttler_acq,
                cache_conn_t *cache_conn);
 
@@ -551,7 +549,7 @@ private:
     // page cache has access to all of this type's innards, including fields.
     friend class page_cache_t;
 
-    // For access to this_txn_recency_.
+    // To access `pages_write_acquired_last_` and `connect_preceder()`.
     friend class current_page_t;
 
     // Adds and connects a preceder.
@@ -576,8 +574,6 @@ private:
 
     // An acquisition object for the memory tracker.
     throttler_acq_t throttler_acq_;
-
-    repli_timestamp_t this_txn_recency_;
 
     // page_txn_t's form a directed graph.  preceders_ and subseqers_ represent the
     // inward-pointing and outward-pointing arrows.  (I'll let you decide which

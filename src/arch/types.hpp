@@ -36,7 +36,7 @@ private:
 
 class tcp_socket_exc_t : public std::exception {
 public:
-    explicit tcp_socket_exc_t(int err);
+    explicit tcp_socket_exc_t(int err, int port);
 
     ~tcp_socket_exc_t() throw () { }
 

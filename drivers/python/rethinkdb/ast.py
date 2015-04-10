@@ -249,6 +249,15 @@ class RqlQuery(object):
     def mod(self, *args):
         return Mod(self, *args)
 
+    def floor(self, *args):
+        return Floor(self, *args)
+
+    def ceil(self, *args):
+        return Ceil(self, *args)
+
+    def round(self, *args):
+        return Round(self, *args)
+
     def and_(self, *args):
         return And(self, *args)
 
@@ -916,6 +925,21 @@ class Div(RqlBiOperQuery):
 class Mod(RqlBiOperQuery):
     tt = pTerm.MOD
     st = "%"
+
+
+class Floor(RqlMethodQuery):
+    tt = pTerm.FLOOR
+    st = 'floor'
+
+
+class Ceil(RqlMethodQuery):
+    tt = pTerm.CEIL
+    st = 'ceil'
+
+
+class Round(RqlMethodQuery):
+    tt = pTerm.ROUND
+    st = 'round'
 
 
 class Append(RqlMethodQuery):

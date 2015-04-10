@@ -41,7 +41,7 @@ include $(TOP)/mk/install.mk
 include $(TOP)/drivers/build.mk
 
 # Build the web assets
-include $(TOP)/mk/webui.mk
+include $(TOP)/admin/build.mk
 
 # Building the rethinkdb executable
 include $(TOP)/src/build.mk

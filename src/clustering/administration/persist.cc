@@ -357,7 +357,6 @@ template <class metadata_t>
 void persistent_file_t<metadata_t>::get_write_transaction(object_buffer_t<txn_t> *txn_out) {
     txn_out->create(cache_conn.get(),
                     write_durability_t::HARD,
-                    repli_timestamp_t::distant_past,
                     1);
 }
 

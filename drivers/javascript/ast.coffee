@@ -133,6 +133,9 @@ class RDBVal extends TermBase
     mul: (args...) -> new Mul {}, @, args...
     div: (args...) -> new Div {}, @, args...
     mod: (args...) -> new Mod {}, @, args...
+    floor: (args...) -> new Floor {}, @, args...
+    ceil: (args...) -> new Ceil {}, @, args...
+    round: (args...) -> new Round {}, @, args...
 
     append: (args...) -> new Append {}, @, args...
     prepend: (args...) -> new Prepend {}, @, args...
@@ -324,7 +327,7 @@ class RDBVal extends TermBase
             new IndexCreate opts, @, name, funcWrap(defun_or_opts)
         else if defun_or_opts?
             # FIXME?
-            if (Object::toString.call(defun_or_opts) is '[object Object]') and not (defun_or_opts instanceof Function) and not (defun_or_opts instanceof TermBase)
+            if (Object::toString.call(defun_or_opts) is '[object Object]') and not (typeof defun_or_opts is 'function') and not (defun_or_opts instanceof TermBase)
                 new IndexCreate defun_or_opts, @, name
             else
                 new IndexCreate {}, @, name, funcWrap(defun_or_opts)
@@ -622,6 +625,18 @@ class Div extends RDBOp
 class Mod extends RDBOp
     tt: protoTermType.MOD
     mt: 'mod'
+
+class Floor extends RDBOp
+    tt: protoTermType.FLOOR
+    mt: 'floor'
+
+class Ceil extends RDBOp
+    tt: protoTermType.CEIL
+    mt: 'ceil'
+
+class Round extends RDBOp
+    tt: protoTermType.ROUND
+    mt: 'round'
 
 class Append extends RDBOp
     tt: protoTermType.APPEND
@@ -1170,7 +1185,7 @@ rethinkdb.expr = varar 1, 2, (val, nestingDepth=20) ->
 
     else if val instanceof TermBase
         val
-    else if val instanceof Function
+    else if typeof val is 'function'
         new Func {}, val
     else if val instanceof Date
         new ISO8601 {}, val.toISOString()
@@ -1253,6 +1268,9 @@ rethinkdb.sub = (args...) -> new Sub {}, args...
 rethinkdb.div = (args...) -> new Div {}, args...
 rethinkdb.mul = (args...) -> new Mul {}, args...
 rethinkdb.mod = (args...) -> new Mod {}, args...
+rethinkdb.floor = (args...) -> new Floor {}, args...
+rethinkdb.ceil = (args...) -> new Ceil {}, args...
+rethinkdb.round = (args...) -> new Round {}, args...
 
 rethinkdb.typeOf = (args...) -> new TypeOf {}, args...
 rethinkdb.info = (args...) -> new Info {}, args...

@@ -3,19 +3,13 @@
 
 #include "containers/archive/boost_types.hpp"
 
-/* If the master has received and not yet processed more than
-   `MAX_OUTSTANDING_MASTER_REQUESTS` requests, clients will be throttled. This limit
-   is enforced in a soft way by a combination of a multi_throttling_server_t on the
-   master and a number of multi_throttling_client_t instances on the client nodes. */
-const int MAX_OUTSTANDING_MASTER_REQUESTS = 2000;
-
 master_t::master_t(mailbox_manager_t *mm, ack_checker_t *ac,
                    region_t r, broadcaster_t *b) THROWS_ONLY(interrupted_exc_t)
     : mailbox_manager(mm),
       ack_checker(ac),
       broadcaster(b),
       region(r),
-      multi_throttling_server(mm, this, MAX_OUTSTANDING_MASTER_REQUESTS) {
+      multi_client_server(mm, this) {
     guarantee(ack_checker);
 }
 
@@ -25,7 +19,7 @@ master_t::~master_t() {
 
 master_business_card_t master_t::get_business_card() {
     return master_business_card_t(region,
-                                  multi_throttling_server.get_business_card());
+                                  multi_client_server.get_business_card());
 }
 
 void master_t::client_t::perform_request(
@@ -69,7 +63,7 @@ void master_t::client_t::perform_request(
         } write_callback;
 
         /* Avoid a potential race condition where `parent->shutting_down` has
-        been pulsed but the `multi_throttling_server_t` hasn't stopped accepting
+        been pulsed but the `multi_client_server_t` hasn't stopped accepting
         requests yet. If we didn't do this, we might let a whole bunch of
         improperly-throttled requests through in a short period of time. */
         if (parent->shutdown_cond.is_pulsed()) {

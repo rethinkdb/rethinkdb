@@ -39,6 +39,9 @@ tests:
       - r.db_create()
       - r.db_drop()
       - r.db()
+      - r.floor()
+      - r.ceil()
+      - r.round()
 
     - cd: r.error()
       ot: err("RqlRuntimeError", "Empty ERROR term outside a default block.", [])
@@ -80,6 +83,9 @@ tests:
       - r.db_create(1,2)
       - r.db_drop(1,2)
       - r.db(1,2)
+      - r.floor(1, 2)
+      - r.ceil(1, 2)
+      - r.round(1, 2)
 
     - cd: tbl.filter()
       ot:
