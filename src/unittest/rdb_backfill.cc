@@ -330,5 +330,21 @@ TPTEST(RDBBackfill, LargeValues) {
     run_backfill_test(MEGABYTE, 100, 10, true); 
 }
 
+TPTEST(RDBBackfill, SmallValues) {
+    run_backfill_test(1, 100, 10, true); 
+}
+
+TPTEST(RDBBackfill, LargeTable) {
+    run_backfill_test(100, 100000, 1000, true);
+}
+
+TPTEST(RDBBackfill, EmptyTable) {
+    run_backfill_test(100, 0, 0, false);
+}
+
+TPTEST(RDBBackfill, NearEmptyTable) {
+    run_backfill_test(100, 1, 1, true);
+}
+
 }   /* namespace unittest */
 
