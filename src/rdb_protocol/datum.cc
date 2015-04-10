@@ -477,6 +477,7 @@ datum_t to_datum(const rapidjson::Value &json, const configured_limits_t &limits
         for (rapidjson::Value::ConstMemberIterator it = json.MemberBegin();
              it != json.MemberEnd();
              ++it) {
+            // TODO! Use string length
             fail_if_invalid(reql_version, it->name.GetString());
             bool dup = builder.add(it->name.GetString(),
                                    to_datum(it->value, limits, reql_version));
@@ -499,7 +500,7 @@ datum_t to_datum(const rapidjson::Value &json, const configured_limits_t &limits
     } break;
     case rapidjson::kStringType: {
         fail_if_invalid(reql_version, json.GetString());
-        return datum_t(json.GetString());
+        return datum_t(datum_string_t(json.GetStringLength(), json.GetString()));
     } break;
     case rapidjson::kNumberType: {
         return datum_t(json.GetDouble());
@@ -595,7 +596,7 @@ std::string datum_t::print() const {
         //  assuming this format)
         writer.SetIndent('\t', 1);
         write_json(&writer);
-        return std::string(buffer.GetString());
+        return std::string(buffer.GetString(), buffer.GetSize());
     } else {
         return "UNINITIALIZED";
     }

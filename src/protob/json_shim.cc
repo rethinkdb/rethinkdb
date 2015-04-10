@@ -85,7 +85,7 @@ void extract(const Value *, const Value &field, std::string *s) {
     if (!field.IsString()) {
         throw exc_t();
     } else {
-        *s = field.GetString();
+        *s = std::string(field.GetString(), field.GetStringLength());
     }
 }
 
@@ -136,7 +136,7 @@ void extract(const Value *, const Value &json, Datum *d) {
              it != json.MemberEnd();
              ++it) {
             Datum::AssocPair *ap = d->add_r_object();
-            ap->set_key(it->name.GetString());
+            ap->set_key(it->name.GetString(), it->name.GetStringLength());
             extract(nullptr, it->value, ap->mutable_val());
         }
         break;
@@ -148,7 +148,7 @@ void extract(const Value *, const Value &json, Datum *d) {
         break;
     case kStringType:
         d->set_type(Datum::R_STR);
-        d->set_r_str(json.GetString());
+        d->set_r_str(json.GetString(), json.GetStringLength());
         break;
     case kNumberType:
         d->set_type(Datum::R_NUM);
@@ -162,21 +162,21 @@ void extract(const Value *, const Value &json, Datum *d) {
 template<>
 void extract(const Value *key, const Value &val, Query::AssocPair *ap) {
     if (key == nullptr || !key->IsString()) throw exc_t();
-    ap->set_key(key->GetString());
+    ap->set_key(key->GetString(), key->GetStringLength());
     extract(nullptr, val, ap->mutable_val());
 }
 
 template<>
 void extract(const Value *key, const Value &val, Term::AssocPair *ap) {
     if (key == nullptr || !key->IsString()) throw exc_t();
-    ap->set_key(key->GetString());
+    ap->set_key(key->GetString(), key->GetStringLength());
     extract(nullptr, val, ap->mutable_val());
 }
 
 template<>
 void extract(const Value *key, const Value &val, Datum::AssocPair *ap) {
     if (key == nullptr || !key->IsString()) throw exc_t();
-    ap->set_key(key->GetString());
+    ap->set_key(key->GetString(), key->GetStringLength());
     extract(nullptr, val, ap->mutable_val());
 }
 
