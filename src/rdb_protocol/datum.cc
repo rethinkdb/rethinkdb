@@ -7,6 +7,7 @@
 #include <stdlib.h>
 
 #include <algorithm>
+#include <cmath>
 #include <iterator>
 
 #include "errors.hpp"
@@ -615,7 +616,7 @@ void datum_t::num_to_str_key(std::string *str_out) const {
     // Sort negative zero as equivalent to 0
     double value = as_num();
     if (value == -0.0) {
-        value = abs(value);
+        value = std::abs(value);
     }
 
     // Mangle the value so that lexicographic ordering matches double ordering
