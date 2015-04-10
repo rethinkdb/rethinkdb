@@ -1,4 +1,4 @@
-# Release 2.0.0 (Tesuji)
+# Release 2.0.0 (Yojimbo)
 
 Release highlights:
 * Support for attaching a changefeed to the `get_all` and `union` commands
@@ -137,7 +137,7 @@ rethinkdb._negative_zero_check --help` for additional options.
   * Fixed the behavior of point changefeeds on system tables (#3944)
   * `noreplyWait` no longer waits for non-`noreply` queries (#3812)
   * Initial values for `order_by` changefeeds are now returned in order (#3993)
-  * Reduce the size of profiles when deleting documents (#3218)
+  * Reduced the size of profiles when deleting documents (#3218)
 * Web UI
   * Fixed a bug that caused the status icon to be green when a table was unavailable (#3500)
   * Fixed a bug that truncated labels in the performance graph (#3751)
