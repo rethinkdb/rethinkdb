@@ -32,7 +32,7 @@ namespace unittest {
 // These classes are used to provide a mock environment for running reql queries
 
 // The mock namespace interface handles all read and write calls, using a simple in-
-//  memory map of store_key_t to scoped_cJSON_t.  The get_data function allows a test to
+//  memory map of store_key_t to datum_t.  The get_data function allows a test to
 //  read or modify the dataset to prepare for a query or to check that changes were made.
 class mock_namespace_interface_t : public namespace_interface_t {
 public:

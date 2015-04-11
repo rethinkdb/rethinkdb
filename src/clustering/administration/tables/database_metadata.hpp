@@ -8,7 +8,6 @@
 #include "containers/archive/stl_types.hpp"
 #include "containers/name_string.hpp"
 #include "containers/uuid.hpp"
-#include "http/json.hpp"
 #include "rpc/semilattice/joins/deletable.hpp"
 #include "rpc/semilattice/joins/macros.hpp"
 #include "rpc/semilattice/joins/map.hpp"

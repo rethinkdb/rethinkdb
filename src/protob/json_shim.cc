@@ -9,10 +9,10 @@
 #include "rdb_protocol/ql2.pb.h"
 #include "utils.hpp"
 
-std::map<std::string, int32_t> resolver;
-
-// TODO!
-using namespace rapidjson;
+using rapidjson::Value;
+using rapidjson::StringBuffer;
+using rapidjson::Document;
+using rapidjson::Writer;
 
 namespace json_shim {
 
@@ -122,15 +122,15 @@ void extract(const Value *, const Value &json, Term *t) {
 template<>
 void extract(const Value *, const Value &json, Datum *d) {
     switch(json.GetType()) {
-    case kNullType:
+    case rapidjson::kNullType:
         d->set_type(Datum::R_NULL);
         break;
-    case kFalseType: // fallthru
-    case kTrueType:
+    case rapidjson::kFalseType: // fallthru
+    case rapidjson::kTrueType:
         d->set_type(Datum::R_BOOL);
         d->set_r_bool(json.GetBool());
         break;
-    case kObjectType:
+    case rapidjson::kObjectType:
         d->set_type(Datum::R_OBJECT);
         for (Value::ConstMemberIterator it = json.MemberBegin();
              it != json.MemberEnd();
@@ -140,17 +140,17 @@ void extract(const Value *, const Value &json, Datum *d) {
             extract(nullptr, it->value, ap->mutable_val());
         }
         break;
-    case kArrayType:
+    case rapidjson::kArrayType:
         d->set_type(Datum::R_ARRAY);
         for (Value::ConstValueIterator it = json.Begin(); it != json.End(); ++it) {
             extract(nullptr, *it, d->add_r_array());
         }
         break;
-    case kStringType:
+    case rapidjson::kStringType:
         d->set_type(Datum::R_STR);
         d->set_r_str(json.GetString(), json.GetStringLength());
         break;
-    case kNumberType:
+    case rapidjson::kNumberType:
         d->set_type(Datum::R_NUM);
         d->set_r_num(json.GetDouble());
         break;
