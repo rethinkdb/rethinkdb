@@ -1096,13 +1096,13 @@ slice_datum_stream_t::slice_datum_stream_t(
     uint64_t _left, uint64_t _right, counted_t<datum_stream_t> _src)
     : wrapper_datum_stream_t(_src), index(0), left(_left), right(_right) { }
 
-std::vector<changefeed::keyspec_t> slice_datum_stream_t::get_change_specs() {
+std::vector<changespec_t> slice_datum_stream_t::get_changespecs() {
     if (left == 0) {
-        auto subspecs = source->get_change_specs();
+        auto subspecs = source->get_changespecs();
         rcheck(subspecs.size() == 1, base_exc_t::GENERIC,
                "Cannot call `changes` on a slice of a union.");
         auto subspec = subspecs[0];
-        auto *rspec = boost::get<changefeed::keyspec_t::range_t>(&subspec.spec);
+        auto *rspec = boost::get<changefeed::keyspec_t::range_t>(&subspec.keyspec.spec);
         if (rspec != NULL) {
             std::copy(transforms.begin(), transforms.end(),
                       std::back_inserter(rspec->transforms));
@@ -1112,15 +1112,17 @@ std::vector<changefeed::keyspec_t> slice_datum_stream_t::get_change_specs() {
                              "with size > %zu (got %" PRIu64 ").",
                              std::numeric_limits<size_t>::max(),
                              right));
-            return std::vector<changefeed::keyspec_t>{changefeed::keyspec_t(
-                changefeed::keyspec_t::limit_t{
-                    std::move(*rspec),
-                    static_cast<size_t>(right)},
-                std::move(subspec.table),
-                std::move(subspec.table_name))};
+            return std::vector<changespec_t>{changespec_t(
+                    changefeed::keyspec_t(
+                        changefeed::keyspec_t::limit_t{
+                            std::move(*rspec),
+                            static_cast<size_t>(right)},
+                        std::move(subspec.keyspec.table),
+                        std::move(subspec.keyspec.table_name)),
+                    counted_from_this())};
         }
     }
-    return wrapper_datum_stream_t::get_change_specs();
+    return wrapper_datum_stream_t::get_changespecs();
 }
 
 std::vector<datum_t>
@@ -1268,10 +1270,13 @@ private:
 union_datum_stream_t::union_datum_stream_t(
     env_t *env,
     std::vector<counted_t<datum_stream_t> > &&streams,
-    const protob_t<const Backtrace> &bt_src)
+    const protob_t<const Backtrace> &bt_src,
+    size_t expected_states)
     : datum_stream_t(bt_src),
       union_type(feed_type_t::not_feed),
       is_infinite_union(false),
+      sent_init(false),
+      ready_needed(expected_states),
       active(0),
       coros_exhausted(false) {
 
@@ -1335,7 +1340,29 @@ union_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) 
             throw;
         }
         r_sanity_check(queue.size() != 0);
-        std::vector<datum_t> data = std::move(queue.front());
+        std::vector<datum_t> data;
+        if (ready_needed > 0) {
+            data.reserve(queue.front().size());
+            for (auto &&d : std::move(queue.front())) {
+                datum_t state = d.get_field("state", NOTHROW);
+                if (state.has()) {
+                    if (state.as_str() == "initializing") {
+                        if (sent_init) continue;
+                        sent_init = true;
+                    } else if (state.as_str() == "ready") {
+                        ready_needed -= 1;
+                        if (ready_needed == 0) continue;
+                    } else {
+                        rfail(base_exc_t::GENERIC,
+                              "Internal Error: Unrecognized state string `%s`.",
+                              state.as_str().to_std().c_str());
+                    }
+                }
+                data.push_back(std::move(d));
+            }
+        } else {
+            data = std::move(queue.front());
+        }
         queue.pop();
         if (data.size() == 0) {
             // We should only ever get empty batches if one of our streams is a
@@ -1410,10 +1437,10 @@ bool union_datum_stream_t::is_infinite() const {
     return is_infinite_union;
 }
 
-std::vector<changefeed::keyspec_t> union_datum_stream_t::get_change_specs() {
-    std::vector<changefeed::keyspec_t> specs;
+std::vector<changespec_t> union_datum_stream_t::get_changespecs() {
+    std::vector<changespec_t> specs;
     for (auto &&coro_stream : coro_streams) {
-        auto subspecs = coro_stream->stream->get_change_specs();
+        auto subspecs = coro_stream->stream->get_changespecs();
         std::move(subspecs.begin(), subspecs.end(), std::back_inserter(specs));
     }
     return specs;
@@ -1588,9 +1615,10 @@ bool vector_datum_stream_t::is_infinite() const {
     return false;
 }
 
-std::vector<changefeed::keyspec_t> vector_datum_stream_t::get_change_specs() {
+std::vector<changespec_t> vector_datum_stream_t::get_changespecs() {
     if (changespec) {
-        return std::vector<changefeed::keyspec_t>{*changespec};
+        return std::vector<changespec_t>{
+            changespec_t(*changespec, counted_from_this())};
     } else {
         rfail(base_exc_t::GENERIC, "%s", "Cannot call `changes` on this stream.");
     }

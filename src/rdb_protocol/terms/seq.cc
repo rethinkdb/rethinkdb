@@ -374,7 +374,6 @@ struct rcheck_spec_visitor_t : public pb_rcheckable_t,
 };
 
 // RSI: handle `return_initial: false` for point and limit cfeeds.
-// RSI: handle `union`
 class changes_term_t : public op_term_t {
 public:
     changes_term_t(compile_env_t *env, const protob_t<const Term> &term)
@@ -400,29 +399,35 @@ private:
         if (scoped_ptr_t<val_t> v = args->optarg(env, "include_states")) {
             include_states = v->as_bool();
         }
-        bool return_initial = false;
-        if (scoped_ptr_t<val_t> v = args->optarg(env, "return_initial")) {
-            return_initial = v->as_bool();
-        }
+        scoped_ptr_t<val_t> return_initial_val = args->optarg(env, "return_initial");
 
         scoped_ptr_t<val_t> v = args->arg(env, 0);
         if (v->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
             counted_t<datum_stream_t> seq = v->as_seq(env->env);
             std::vector<counted_t<datum_stream_t> > streams;
-            std::vector<changefeed::keyspec_t> keyspecs = seq->get_change_specs();
-            r_sanity_check(keyspecs.size() >= 1);
-            for (auto &&keyspec : keyspecs) {
+            std::vector<changespec_t> changespecs = seq->get_changespecs();
+            r_sanity_check(changespecs.size() >= 1);
+            size_t expected_states = 0;
+            for (auto &&changespec : changespecs) {
+                bool return_initial = return_initial_val.has()
+                    ? return_initial_val->as_bool()
+                    : changespec.return_initial == return_initial_t::YES;
+                if (return_initial) {
+                    r_sanity_check(changespec.stream.has());
+                    expected_states += 1;
+                }
                 boost::apply_visitor(rcheck_spec_visitor_t(env->env, backtrace()),
-                                     keyspec.spec);
+                                     changespec.keyspec.spec);
                 streams.push_back(
-                    keyspec.table->read_changes(
+                    changespec.keyspec.table->read_changes(
                         env->env,
-                        return_initial ? seq : counted_t<datum_stream_t>(),
+                        return_initial ? std::move(changespec.stream)
+                                       : counted_t<datum_stream_t>(),
                         squash,
                         include_states,
-                        std::move(keyspec.spec),
+                        std::move(changespec.keyspec.spec),
                         backtrace(),
-                        keyspec.table_name));
+                        changespec.keyspec.table_name));
             }
             if (streams.size() == 1) {
                 return new_val(env->env, streams[0]);
@@ -430,7 +435,10 @@ private:
                 return new_val(
                     env->env,
                     make_counted<union_datum_stream_t>(
-                        env->env, std::move(streams), backtrace()));
+                        env->env,
+                        std::move(streams),
+                        backtrace(),
+                        expected_states));
             }
         } else if (v->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
             return new_val(

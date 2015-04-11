@@ -55,13 +55,27 @@ struct active_state_t {
     DEBUG_ONLY(boost::optional<std::string> sindex;)
 };
 
+// RSI: pick up here, fill in values on `changespec_t` correctly.
+enum class return_initial_t { NO, YES };
+struct changespec_t {
+    changespec_t(changefeed::keyspec_t _keyspec,
+                 counted_t<datum_stream_t> _stream,
+                 return_initial_t _return_initial)
+        : keyspec(std::move(_keyspec)),
+          stream(std::move(_stream)),
+          return_initial(_return_initial) { }
+    changefeed::keyspec_t keyspec;
+    counted_t<datum_stream_t> stream;
+    return_initial_t return_initial;
+};
+
 class datum_stream_t : public single_threaded_countable_t<datum_stream_t>,
                        public pb_rcheckable_t {
 public:
     virtual ~datum_stream_t() { }
     virtual void set_notes(Response *) const { }
 
-    virtual std::vector<changefeed::keyspec_t> get_change_specs() = 0;
+    virtual std::vector<changespec_t> get_changespecs() = 0;
     virtual void add_transformation(transform_variant_t &&tv,
                                     const protob_t<const Backtrace> &bt) = 0;
     virtual bool add_stamp(changefeed_stamp_t stamp);
@@ -120,7 +134,7 @@ protected:
     bool ops_to_do() { return ops.size() != 0; }
 
 protected:
-    virtual std::vector<changefeed::keyspec_t> get_change_specs() {
+    virtual std::vector<changespec_t> get_changespecs() {
         rfail(base_exc_t::GENERIC, "%s", "Cannot call `changes` on an eager stream.");
     }
     std::vector<transform_variant_t> transforms;
@@ -219,7 +233,7 @@ class slice_datum_stream_t : public wrapper_datum_stream_t {
 public:
     slice_datum_stream_t(uint64_t left, uint64_t right, counted_t<datum_stream_t> src);
 private:
-    virtual std::vector<changefeed::keyspec_t> get_change_specs();
+    virtual std::vector<changespec_t> get_changespecs();
     virtual std::vector<datum_t>
     next_raw_batch(env_t *env, const batchspec_t &batchspec);
     virtual bool is_exhausted() const;
@@ -255,7 +269,8 @@ class union_datum_stream_t : public datum_stream_t, public home_thread_mixin_t {
 public:
     union_datum_stream_t(env_t *env,
                          std::vector<counted_t<datum_stream_t> > &&_streams,
-                         const protob_t<const Backtrace> &bt_src);
+                         const protob_t<const Backtrace> &bt_src,
+                         size_t expected_states = 0);
 
     virtual void add_transformation(transform_variant_t &&tv,
                                     const protob_t<const Backtrace> &bt);
@@ -271,7 +286,7 @@ public:
 private:
     friend class coro_stream_t;
 
-    virtual std::vector<changefeed::keyspec_t> get_change_specs();
+    virtual std::vector<changespec_t> get_changespecs();
     std::vector<datum_t >
     next_batch_impl(env_t *env, const batchspec_t &batchspec);
 
@@ -287,6 +302,9 @@ private:
     scoped_ptr_t<env_t> coro_env;
     // Set the first time `next_batch_impl` is called.
     scoped_ptr_t<batchspec_t> coro_batchspec;
+
+    bool sent_init;
+    size_t ready_needed;
 
     size_t active;
     // We recompute this only when `next_batch_impl` returns to retain the
@@ -583,7 +601,7 @@ public:
                                             const batchspec_t &batchspec) = 0;
     virtual bool is_finished() const = 0;
 
-    virtual changefeed::keyspec_t get_change_spec() const = 0;
+    virtual changefeed::keyspec_t get_changespec() const = 0;
 };
 
 // For reads that generate read_response_t results.
@@ -601,7 +619,7 @@ public:
     virtual std::vector<datum_t> next_batch(env_t *env, const batchspec_t &batchspec);
     virtual bool is_finished() const;
 
-    virtual changefeed::keyspec_t get_change_spec() const {
+    virtual changefeed::keyspec_t get_changespec() const {
         return changefeed::keyspec_t(
             readgen->get_range_spec(transforms),
             table,
@@ -694,8 +712,9 @@ public:
     }
 
 private:
-    virtual std::vector<changefeed::keyspec_t> get_change_specs() {
-        return std::vector<changefeed::keyspec_t>{reader->get_change_spec()};
+    virtual std::vector<changespec_t> get_changespecs() {
+        return std::vector<changespec_t>{changespec_t(
+                reader->get_changespec(), counted_from_this())};
     }
 
     std::vector<datum_t >
@@ -734,7 +753,7 @@ private:
     bool is_array() const;
     bool is_infinite() const;
 
-    std::vector<changefeed::keyspec_t> get_change_specs();
+    std::vector<changespec_t> get_changespecs();
 
     std::vector<datum_t> rows;
     size_t index;
