@@ -5,7 +5,7 @@ from setuptools import setup
 setup(
     name="rethinkdb",
     zip_safe=True,
-    version="2.0.0rc2",
+    version="2.0.0",
     description="This package provides the Python driver library for the RethinkDB database server.",
     url="http://rethinkdb.com",
     maintainer="RethinkDB Inc.",
