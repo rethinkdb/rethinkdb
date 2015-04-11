@@ -1,4 +1,4 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #include <map>
 
 #include "btree/leaf_node.hpp"
@@ -69,15 +69,22 @@ private:
 
 class LeafNodeTracker {
 public:
-    LeafNodeTracker() : bs_(max_block_size_t::unsafe_make(4096)), sizer_(bs_), node_(bs_.value()),
-                        tstamp_counter_(0) {
+    LeafNodeTracker()
+        : bs_(max_block_size_t::unsafe_make(4096)),
+          sizer_(bs_),
+          node_(bs_.value()),
+          tstamp_counter_(0),
+          maximum_existing_tstamp_(repli_timestamp_t::distant_past) {
         leaf::init(&sizer_, node_.get());
         Print();
     }
 
     leaf_node_t *node() { return node_.get(); }
 
-    bool Insert(const store_key_t& key, const std::string& value, repli_timestamp_t tstamp) {
+    bool Insert(
+            const store_key_t &key,
+            const std::string &value,
+            repli_timestamp_t tstamp) {
         short_value_buffer_t v(value);
 
         if (leaf::is_full(&sizer_, node(), key.btree_key(), v.data())) {
@@ -87,7 +94,17 @@ public:
             return false;
         }
 
-        leaf::insert(&sizer_, node(), key.btree_key(), v.data(), tstamp, key_modification_proof_t::real_proof());
+        leaf::insert(
+            &sizer_,
+            node(),
+            key.btree_key(),
+            v.data(),
+            tstamp,
+            maximum_existing_tstamp_,
+            key_modification_proof_t::real_proof());
+
+        maximum_existing_tstamp_ =
+            superceding_recency(maximum_existing_tstamp_, tstamp);
 
         kv_[key] = value;
 
@@ -101,12 +118,23 @@ public:
         return Insert(key, value, NextTimestamp());
     }
 
-    void Remove(const store_key_t& key, repli_timestamp_t tstamp) {
+    void Remove(
+            const store_key_t &key,
+            repli_timestamp_t tstamp) {
         ASSERT_TRUE(ShouldHave(key));
 
         kv_.erase(key);
 
-        leaf::remove(&sizer_, node(), key.btree_key(), tstamp, key_modification_proof_t::real_proof());
+        leaf::remove(
+            &sizer_,
+            node(),
+            key.btree_key(),
+            tstamp,
+            maximum_existing_tstamp_,
+            key_modification_proof_t::real_proof());
+
+        maximum_existing_tstamp_ =
+            superceding_recency(maximum_existing_tstamp_, tstamp);
 
         Verify();
 
@@ -298,6 +326,7 @@ private:
     scoped_malloc_t<leaf_node_t> node_;
 
     uint64_t tstamp_counter_;
+    repli_timestamp_t maximum_existing_tstamp_;
 
     std::map<store_key_t, std::string> kv_;
 
