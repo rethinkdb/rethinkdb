@@ -1,6 +1,5 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include <map>
-#include <utility>
 
 #include "btree/leaf_node.hpp"
 #include "btree/node.hpp"
@@ -70,8 +69,12 @@ private:
 
 class LeafNodeTracker {
 public:
-    LeafNodeTracker() : bs_(max_block_size_t::unsafe_make(4096)), sizer_(bs_), node_(bs_.value()),
-                        tstamp_counter_(0) {
+    LeafNodeTracker()
+        : bs_(max_block_size_t::unsafe_make(4096)),
+          sizer_(bs_),
+          node_(bs_.value()),
+          tstamp_counter_(0),
+          maximum_existing_tstamp_(repli_timestamp_t::distant_past) {
         leaf::init(&sizer_, node_.get());
         Print();
     }
@@ -81,8 +84,7 @@ public:
     bool Insert(
             const store_key_t &key,
             const std::string &value,
-            repli_timestamp_t tstamp,
-            repli_timestamp_t maximum_existing_tstamp) {
+            repli_timestamp_t tstamp) {
         short_value_buffer_t v(value);
 
         if (leaf::is_full(&sizer_, node(), key.btree_key(), v.data())) {
@@ -98,8 +100,11 @@ public:
             key.btree_key(),
             v.data(),
             tstamp,
-            maximum_existing_tstamp,
+            maximum_existing_tstamp_,
             key_modification_proof_t::real_proof());
+
+        maximum_existing_tstamp_ =
+            superceding_recency(maximum_existing_tstamp_, tstamp);
 
         kv_[key] = value;
 
@@ -110,14 +115,12 @@ public:
     }
 
     bool Insert(const store_key_t &key, const std::string &value) {
-        std::pair<repli_timestamp_t, repli_timestamp_t> tstamps = NextTimestampPair();
-        return Insert(key, value, tstamps.second, tstamps.first);
+        return Insert(key, value, NextTimestamp());
     }
 
     void Remove(
             const store_key_t &key,
-            repli_timestamp_t tstamp,
-            repli_timestamp_t maximum_existing_tstamp) {
+            repli_timestamp_t tstamp) {
         ASSERT_TRUE(ShouldHave(key));
 
         kv_.erase(key);
@@ -127,8 +130,11 @@ public:
             node(),
             key.btree_key(),
             tstamp,
-            maximum_existing_tstamp,
+            maximum_existing_tstamp_,
             key_modification_proof_t::real_proof());
+
+        maximum_existing_tstamp_ =
+            superceding_recency(maximum_existing_tstamp_, tstamp);
 
         Verify();
 
@@ -136,8 +142,7 @@ public:
     }
 
     void Remove(const store_key_t &key) {
-        std::pair<repli_timestamp_t, repli_timestamp_t> tstamps = NextTimestampPair();
-        Remove(key, tstamps.second, tstamps.first);
+        Remove(key, NextTimestamp());
     }
 
     void Merge(LeafNodeTracker *lnode) {
@@ -243,14 +248,11 @@ public:
         return kv_.end() != kv_.find(key);
     }
 
-    // Returns the current timestamp and the new timestamp
-    std::pair<repli_timestamp_t, repli_timestamp_t> NextTimestampPair() {
-        repli_timestamp_t prev;
-        prev.longtime = tstamp_counter_;
+    repli_timestamp_t NextTimestamp() {
         ++tstamp_counter_;
-        repli_timestamp_t next;
-        next.longtime = tstamp_counter_;
-        return std::make_pair(prev, next);
+        repli_timestamp_t ret;
+        ret.longtime = tstamp_counter_;
+        return ret;
     }
 
     // This only prints if we enable printing.
@@ -324,6 +326,7 @@ private:
     scoped_malloc_t<leaf_node_t> node_;
 
     uint64_t tstamp_counter_;
+    repli_timestamp_t maximum_existing_tstamp_;
 
     std::map<store_key_t, std::string> kv_;
 
@@ -431,7 +434,6 @@ TEST(LeafNodeTest, RandomOutOfOrder) {
         }
 
         const int num_ops = 10000;
-        repli_timestamp_t maximum_existing_tstamp = repli_timestamp_t::distant_past;
         for (int i = 0; i < num_ops; ++i) {
             const store_key_t &key = key_pool[rng.randint(num_keys)];
             repli_timestamp_t tstamp;
@@ -446,9 +448,7 @@ TEST(LeafNodeTest, RandomOutOfOrder) {
                 }
                 /* If the key doesn't fit, that's OK; it will just not insert it
                 and return `false`, which we ignore. */
-                tracker.Insert(key, value, tstamp, maximum_existing_tstamp);
-                maximum_existing_tstamp =
-                    superceding_recency(maximum_existing_tstamp, tstamp);
+                tracker.Insert(key, value, tstamp);
             } else {
                 if (tracker.ShouldHave(key)) {
                     tracker.Remove(key);
