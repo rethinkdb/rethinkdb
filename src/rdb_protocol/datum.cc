@@ -412,8 +412,7 @@ datum_t datum_t::binary(datum_string_t &&_data) {
 
 // two versions of these, because std::string is not necessarily null
 // terminated.
-inline void fail_if_invalid(reql_version_t reql_version, const std::string &string)
-{
+inline void fail_if_invalid(reql_version_t reql_version, const std::string &string) {
     switch (reql_version) {
         case reql_version_t::v1_13:
         case reql_version_t::v1_14: // v1_15 is the same as v1_14
@@ -436,8 +435,10 @@ inline void fail_if_invalid(reql_version_t reql_version, const std::string &stri
     }
 }
 
-inline void fail_if_invalid(reql_version_t reql_version, const char *string)
-{
+inline void fail_if_invalid(
+        reql_version_t reql_version,
+        const char *string,
+        size_t string_length) {
     switch (reql_version) {
         case reql_version_t::v1_13:
         case reql_version_t::v1_14: // v1_15 is the same as v1_14
@@ -446,7 +447,7 @@ inline void fail_if_invalid(reql_version_t reql_version, const char *string)
         case reql_version_t::v2_0:
         case reql_version_t::v2_1_is_latest:
             utf8::reason_t reason;
-            if (!utf8::is_valid(string, &reason)) {
+            if (!utf8::is_valid(string, string + string_length, &reason)) {
                 int truncation_length = std::min<size_t>(reason.position, 20);
                 rfail_datum(base_exc_t::GENERIC,
                             "String `%.*s` (truncated) is not a UTF-8 string; "
@@ -477,9 +478,11 @@ datum_t to_datum(const rapidjson::Value &json, const configured_limits_t &limits
         for (rapidjson::Value::ConstMemberIterator it = json.MemberBegin();
              it != json.MemberEnd();
              ++it) {
-            // TODO! Use string length
-            fail_if_invalid(reql_version, it->name.GetString());
-            bool dup = builder.add(it->name.GetString(),
+            fail_if_invalid(reql_version,
+                            it->name.GetString(),
+                            it->name.GetStringLength());
+            bool dup = builder.add(datum_string_t(it->name.GetStringLength(),
+                                                  it->name.GetString()),
                                    to_datum(it->value, limits, reql_version));
             rcheck_datum(!dup, base_exc_t::GENERIC,
                          strprintf("Duplicate key `%s` in JSON.",
@@ -499,7 +502,7 @@ datum_t to_datum(const rapidjson::Value &json, const configured_limits_t &limits
         return datum_t(std::move(array), limits);
     } break;
     case rapidjson::kStringType: {
-        fail_if_invalid(reql_version, json.GetString());
+        fail_if_invalid(reql_version, json.GetString(), json.GetStringLength());
         return datum_t(datum_string_t(json.GetStringLength(), json.GetString()));
     } break;
     case rapidjson::kNumberType: {

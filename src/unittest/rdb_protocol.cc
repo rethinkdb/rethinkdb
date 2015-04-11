@@ -639,7 +639,7 @@ void run_sindex_oversized_keys_test(namespace_interface_t *nsi, order_source_t *
                 + std::string(i + rdb_protocol::MAX_PRIMARY_KEY_SIZE - 10, ' ');
             std::string sid(j, 'a');
             auto sindex_key_literal = ql::datum_t(datum_string_t(sid));
-            std::string json_doc = strprintf("{\"id\" : %s, \"sid\" : %s}",
+            std::string json_doc = strprintf("{\"id\" : \"%s\", \"sid\" : \"%s\"}",
                                              id.c_str(),
                                              sid.c_str());
             rapidjson::Document data;
