@@ -65,7 +65,7 @@ rethinkdb._negative_zero_check --help` for additional options.
 ## New Features ##
 
 * Overall
-  * Reached a production-ready state (#1174, #1000)
+  * Reached a production-ready state (#1174)
 * ReQL
   * Added support for changefeeds on `get_all` and `union` queries (#3642)
   * `between` no longer accepts `null` as a bound. The new `r.minval` and `r.maxval` can be used instead (#1023)
@@ -93,7 +93,7 @@ rethinkdb._negative_zero_check --help` for additional options.
   * Improved the performance of sending responses (#3744)
   * Immediately send back an empty first batch when the result is a changefeed (#3852)
   * Simplified the `multi_throttling` infrastructure (#4021)
-  * The server now reports incantation errors to client drivers earlier (#4011)
+  * The server now reports handshake errors to client drivers earlier (#4011)
   * Set `TCP_NODELAY` in the Python and Ruby driver to avoid delays in combination with `noreply` (#3998)
 * Web UI
   * Added a configurable limit for the results per page in the Data Explorer (#3910)
@@ -148,15 +148,15 @@ rethinkdb._negative_zero_check --help` for additional options.
   * Fixed a bug that caused autocompletion to fail in certain cases (#3143)
 * Python driver
   * Fixed `rethinkdb export` compatibility between Python 2 and Python 3 (#3911)
-  * Fixed a bug in `rethinkdb export` to no longer hang when certain errors occur (#4005)
+  * Fixed a bug that caused `rethinkdb export` to hang when certain errors occur (#4005)
 * JavaScript driver
   * Fixed a bug that caused `cursor.each` to fail with an exception (#3826)
   * Fixed a bug that caused connection errors to be discarded (#3733)
-  * Fixed a bug that could be triggered by casting `close` twice (#4017)
+  * Fixed a bug that could be triggered by calling `close` twice (#4017)
   * Fixed a bug in `feed.close` (#3967)
 * Ruby driver
   * Fixed a bug that caused failures when using JRuby (#3795)
-  * Handle signals correctly (#4029)
+  * Signals are now handled correctly (#4029)
   * Fixed a bug in the arity check (#3968)
 * Build
   * Fetching Browserify during the build process is now more reliable (#4009)
@@ -186,6 +186,29 @@ us ship RethinkDB 2.0. In no particular order:
 * Armen Filipetyan (@armenfilipetyan)
 * Andrei Horak (@linkyndy)
 * Shirow Miura (@sharow)
+
+--
+
+# Release 1.16.3 (Stand By Me)
+
+Released on 2015-03-26
+
+Bug fix update.
+
+* Fixed a bug that could cause a crash when reading from a secondary index in some rare circumstances (#3976)
+* Fixed a bug that could cause a connection to hang indefinitely on OS X (#3954)
+* Fixed `rethinkdb export` compatibility between Python 2 and Python 3 (#3911)
+* Heartbeat timeout messages now include the remote port number (#2891)
+* Python driver: patched to work in PyPy (#3969)
+* Python driver: fixed an "Unterminated string" error during `rethinkdb restore` (#3859)
+* JavaScript driver: fixed a bug that caused `cursor.each` to fail with an exception (#3826)
+* JavaScript driver: fixed a bug that caused connection errors to be discarded (#3733)
+* Ruby driver: fixed a bug that caused failures when using JRuby (#3795)
+
+## Contributors ##
+
+* Sherzod Kuchkarov (@tundrax)
+* Elian Gidoni (@eliangidoni)
 
 --
 
