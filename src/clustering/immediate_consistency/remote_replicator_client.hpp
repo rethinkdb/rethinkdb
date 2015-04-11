@@ -45,6 +45,7 @@ public:
 
     remote_replicator_client_t(
         backfill_throttler_t *backfill_throttler,
+        const backfill_config_t &backfill_config,
         mailbox_manager_t *mailbox_manager,
         const server_id_t &server_id,
 

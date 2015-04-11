@@ -140,6 +140,7 @@ void run_backfill_test(
     cond_t interruptor;
     remote_replicator_client_t remote_replicator_client(
         &backfill_throttler,
+        backfill_config_t(),
         cluster->get_mailbox_manager(),
         generate_uuid(),
         dispatcher->get_branch_id(),

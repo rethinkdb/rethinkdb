@@ -127,7 +127,8 @@ void run_backfill_test(
         size_t value_padding_length,
         int num_initial,
         int num_step,
-        bool stream_during_backfill) {
+        bool stream_during_backfill,
+        const backfill_config_t &backfill_config) {
 
     khd_all("begin backfill test");
 
@@ -179,14 +180,14 @@ void run_backfill_test(
             backfill_throttler_t backfill_throttler;
             khd_all("begin backfill 1 -> 2");
             remote_replicator_client_t remote_replicator_client_2(&backfill_throttler,
-                cluster.get_mailbox_manager(), generate_uuid(),
+                backfill_config, cluster.get_mailbox_manager(), generate_uuid(),
                 dispatcher.get_branch_id(), remote_replicator_server.get_bcard(),
                 local_replicator.get_replica_bcard(), &store2.store, &bhm,
                 &non_interruptor);
             khd_all("end backfill 1 -> 2");
             khd_all("begin backfill 1 -> 3");
             remote_replicator_client_t remote_replicator_client_3(&backfill_throttler,
-                cluster.get_mailbox_manager(), generate_uuid(),
+                backfill_config, cluster.get_mailbox_manager(), generate_uuid(),
                 dispatcher.get_branch_id(), remote_replicator_server.get_bcard(),
                 local_replicator.get_replica_bcard(), &store3.store, &bhm,
                 &non_interruptor);
@@ -246,7 +247,7 @@ void run_backfill_test(
         khd_all("begin backfill 2 -> 1");
         backfill_throttler_t backfill_throttler;
         remote_replicator_client_t remote_replicator_client(&backfill_throttler,
-            cluster.get_mailbox_manager(), generate_uuid(),
+            backfill_config, cluster.get_mailbox_manager(), generate_uuid(),
             dispatcher.get_branch_id(), remote_replicator_server.get_bcard(),
             local_replicator.get_replica_bcard(), &store1.store, &bhm,
             &non_interruptor);
@@ -288,7 +289,7 @@ void run_backfill_test(
         khd_all("begin backfill 1 -> 3");
         backfill_throttler_t backfill_throttler;
         remote_replicator_client_t remote_replicator_client(&backfill_throttler,
-            cluster.get_mailbox_manager(), generate_uuid(),
+            backfill_config, cluster.get_mailbox_manager(), generate_uuid(),
             dispatcher.get_branch_id(), remote_replicator_server.get_bcard(),
             local_replicator.get_replica_bcard(), &store3.store, &bhm,
             &non_interruptor);
@@ -318,20 +319,28 @@ void run_backfill_test(
     }
 }
 
+backfill_config_t unlimited_queues_config() {
+    backfill_config_t c;
+    c.item_queue_mem_size = GIGABYTE;
+    c.pre_item_queue_mem_size = GIGABYTE;
+    c.write_queue_count = 1000000;
+    return c;
+}
+
 TPTEST(RDBBackfill, DenseChangesAndStreaming) {
-    run_backfill_test(100, 3000, 1000, true);
+    run_backfill_test(100, 3000, 1000, true, unlimited_queues_config());
 }
 
 TPTEST(RDBBackfill, SparseChanges) {
-    run_backfill_test(100, 1000, 10, false);
+    run_backfill_test(100, 1000, 10, false, unlimited_queues_config());
 }
 
 TPTEST(RDBBackfill, LargeValues) {
-    run_backfill_test(MEGABYTE, 100, 10, true); 
+    run_backfill_test(MEGABYTE, 100, 10, true, unlimited_queues_config());
 }
 
 TPTEST(RDBBackfill, SmallValues) {
-    run_backfill_test(1, 100, 10, true); 
+    run_backfill_test(1, 100, 10, true, unlimited_queues_config());
 }
 
 /*
@@ -341,11 +350,41 @@ TPTEST(RDBBackfill, LargeTable) {
 */
 
 TPTEST(RDBBackfill, EmptyTable) {
-    run_backfill_test(100, 0, 0, false);
+    run_backfill_test(100, 0, 0, false, unlimited_queues_config());
 }
 
 TPTEST(RDBBackfill, NearEmptyTable) {
-    run_backfill_test(100, 1, 1, true);
+    run_backfill_test(100, 1, 1, true, unlimited_queues_config());
+}
+
+TPTEST(RDBBackfill, FillItemQueue) {
+    backfill_config_t c = unlimited_queues_config();
+    c.item_queue_mem_size = 1000;
+    c.item_queue_chunk_size = 100;
+    run_backfill_test(100, 3000, 1000, true, c);
+}
+
+TPTEST(RDBBackfill, FillPreItemQueue) {
+    backfill_config_t c = unlimited_queues_config();
+    c.pre_item_queue_mem_size = 1000;
+    c.pre_item_queue_chunk_size = 100;
+    run_backfill_test(100, 3000, 1000, true, c);
+}
+
+TPTEST(RDBBackfill, FillWriteQueue) {
+    backfill_config_t c = unlimited_queues_config();
+    c.write_queue_count = 3;
+    run_backfill_test(100, 3000, 1000, true, c);
+}
+
+TPTEST(RDBBackfill, TinyChunks) {
+    backfill_config_t c;
+    c.item_queue_mem_size = 0;
+    c.item_chunk_mem_size = 0;
+    c.pre_item_queue_mem_size = 0;
+    c.pre_item_chunk_mem_size = 0;
+    c.write_queue_count = 0;
+    run_backfill_test(1, 100, 10, true, c);
 }
 
 }   /* namespace unittest */

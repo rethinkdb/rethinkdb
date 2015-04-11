@@ -7,14 +7,6 @@
 
 #include "kh_debug.hpp"
 
-/* `PRE_ITEM_PIPELINE_SIZE` is the maximum combined size (as computed by
-`get_mem_size()`) of the pre-items that we send to the backfiller that it hasn't consumed
-yet. So the other server may use up to this size for its pre-item queue.
-`PRE_ITEM_CHUNK_SIZE` is the typical size of a pre-item message we send over the network.
-*/
-static const size_t PRE_ITEM_PIPELINE_SIZE = 4 * MEGABYTE;
-static const size_t PRE_ITEM_CHUNK_SIZE = 100 * KILOBYTE;
-
 /* `ITEM_ACK_INTERVAL_MS` controls how often we send acknowledgements back to the
 backfiller. If it's too short, we'll waste resources sending lots of tiny
 acknowledgements; if it's too long, the pipeline might stall. */
@@ -301,11 +293,13 @@ backfillee_t::backfillee_t(
         branch_history_manager_t *_branch_history_manager,
         store_view_t *_store,
         const backfiller_bcard_t &backfiller,
+        const backfill_config_t &_backfill_config,
         signal_t *interruptor) :
     mailbox_manager(_mailbox_manager),
     branch_history_manager(_branch_history_manager),
     store(_store),
-    pre_item_throttler(PRE_ITEM_PIPELINE_SIZE),
+    backfill_config(_backfill_config),
+    pre_item_throttler(backfill_config.pre_item_queue_mem_size),
     pre_item_throttler_acq(&pre_item_throttler, 0),
     items_mailbox(mailbox_manager,
         std::bind(&backfillee_t::on_items, this, ph::_1, ph::_2, ph::_3, ph::_4)),
@@ -319,6 +313,7 @@ backfillee_t::backfillee_t(
     guarantee(store->get_region().end == backfiller.region.end);
 
     backfiller_bcard_t::intro_1_t our_intro;
+    our_intro.config = backfill_config;
     our_intro.ack_pre_items_mailbox = ack_pre_items_mailbox.get_address();
     our_intro.items_mailbox = items_mailbox.get_address();
     our_intro.ack_end_session_mailbox = ack_end_session_mailbox.get_address();
@@ -407,7 +402,8 @@ void backfillee_t::send_pre_items(auto_drainer_t::lock_t keepalive) {
         while (pre_item_sent_threshold != store->get_region().inner.right) {
             /* Wait until there's room in the semaphore for the chunk we're about to
             process */
-            new_semaphore_acq_t sem_acq(&pre_item_throttler, PRE_ITEM_CHUNK_SIZE);
+            new_semaphore_acq_t sem_acq(
+                &pre_item_throttler, backfill_config.pre_item_chunk_mem_size);
             wait_interruptible(
                 sem_acq.acquisition_signal(), keepalive.get_drain_signal());
 
@@ -417,18 +413,20 @@ void backfillee_t::send_pre_items(auto_drainer_t::lock_t keepalive) {
             subregion.inner.left = pre_item_sent_threshold.key();
 
             /* Copy pre-items from the store into `chunk ` until the total size hits
-            `PRE_ITEM_CHUNK_SIZE` or we finish the range */
+            `backfill_config.pre_item_chunk_mem_size` or we finish the range */
             backfill_item_seq_t<backfill_pre_item_t> chunk(
                 store->get_region().beg, store->get_region().end,
                 pre_item_sent_threshold);
 
             class consumer_t : public store_view_t::backfill_pre_item_consumer_t {
             public:
-                consumer_t(backfill_item_seq_t<backfill_pre_item_t> *_chunk) :
-                    chunk(_chunk) { }
+                consumer_t(
+                        backfill_item_seq_t<backfill_pre_item_t> *_chunk,
+                        const backfill_config_t *_config) :
+                    chunk(_chunk), config(_config) { }
                 continue_bool_t on_pre_item(backfill_pre_item_t &&item) THROWS_NOTHING {
                     chunk->push_back(std::move(item));
-                    if (chunk->get_mem_size() < PRE_ITEM_CHUNK_SIZE) {
+                    if (chunk->get_mem_size() < config->pre_item_chunk_mem_size) {
                         return continue_bool_t::CONTINUE;
                     } else {
                         return continue_bool_t::ABORT;
@@ -440,7 +438,8 @@ void backfillee_t::send_pre_items(auto_drainer_t::lock_t keepalive) {
                     return continue_bool_t::CONTINUE;
                 }
                 backfill_item_seq_t<backfill_pre_item_t> *chunk;
-            } callback(&chunk);
+                backfill_config_t const *const config;
+            } callback(&chunk, &backfill_config);
 
             store->send_backfill_pre(intro.common_version.mask(subregion), &callback,
                 keepalive.get_drain_signal());

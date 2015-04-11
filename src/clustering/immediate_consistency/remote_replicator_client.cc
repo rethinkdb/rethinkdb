@@ -7,16 +7,6 @@
 
 #include "kh_debug.hpp"
 
-/* Maximum number of writes we can queue up in each cycle of the backfill. When we hit
-this number, we'll interrupt the backfill and drain the queue. */
-static const int MAX_QUEUED_WRITES = 1000;
-
-/* Every time we perform a queued write, we'll let `QUEUE_TRICKLE_FRACTION` new writes be
-added to the back of the queue. So `QUEUE_TRICKLE_FRACTION` should be less than 1, to
-ensure that the queue must drain eventually. Higher values will improve performance of
-streaming writes; lower numbers will make the backfill finish faster. */
-static const double QUEUE_TRICKLE_FRACTION = 0.5;
-
 /* Sometimes we'll receive the same write as part of our stream of writes from the
 dispatcher and as part of our backfill from the backfiller. To avoid corruption, we need
 to be sure that we don't apply the write twice. `backfill_end_timestamps_t` tracks which
@@ -117,6 +107,7 @@ private:
 remote_replicator_client_t::remote_replicator_client_t(
         /* RSI(raft): Respect backfill_throttler */
         UNUSED backfill_throttler_t *backfill_throttler,
+        const backfill_config_t &backfill_config,
         mailbox_manager_t *mailbox_manager,
         const server_id_t &server_id,
 
@@ -177,7 +168,7 @@ remote_replicator_client_t::remote_replicator_client_t(
     they arrive because `discard_threshold_` is the left boundary. */
 
     backfillee_t backfillee(mailbox_manager, branch_history_manager, store,
-        replica_bcard.backfiller_bcard, interruptor);
+        replica_bcard.backfiller_bcard, backfill_config, interruptor);
 
     /* We acquire `rwlock_` to lock out writes while we're writing to `region_*_`,
     `queue_fun_`, and `replica_`, and for the last stage of draining the queue. */
@@ -218,9 +209,11 @@ remote_replicator_client_t::remote_replicator_client_t(
         /* Backfill in lexicographical order until the queue hits a certain size */
         class callback_t : public backfillee_t::callback_t {
         public:
-            callback_t(std::queue<queue_entry_t> *_queue,
-                    const key_range_t::right_bound_t &_right_bound) :
-                queue(_queue), right_bound(_right_bound) { }
+            callback_t(
+                    std::queue<queue_entry_t> *_queue,
+                    const key_range_t::right_bound_t &_right_bound,
+                    const backfill_config_t *_config) :
+                queue(_queue), right_bound(_right_bound), config(_config) { }
             bool on_progress(const region_map_t<version_t> &chunk) THROWS_NOTHING {
                 rassert(key_range_t::right_bound_t(chunk.get_domain().inner.left) ==
                     right_bound);
@@ -228,12 +221,16 @@ remote_replicator_client_t::remote_replicator_client_t(
                 backfill_end_timestamps.combine(
                     region_map_transform<version_t, state_timestamp_t>(chunk,
                         [](const version_t &version) { return version.timestamp; }));
-                return (queue->size() < MAX_QUEUED_WRITES);
+                return (queue->size() < config->write_queue_count);
             }
             std::queue<queue_entry_t> *queue;
             backfill_end_timestamps_t backfill_end_timestamps;
             key_range_t::right_bound_t right_bound;
-        } callback(&queue, key_range_t::right_bound_t(region_queueing_.inner.left));
+            backfill_config_t const *const config;
+        } callback(
+            &queue,
+            key_range_t::right_bound_t(region_queueing_.inner.left),
+            &backfill_config);
 
         khd_all("begin backfillee.go() from", key_range_t::right_bound_t(region_queueing_.inner.left));
 
@@ -302,7 +299,7 @@ remote_replicator_client_t::remote_replicator_client_t(
                 but we pop fewer entries off of `ack_queue` than off of the main queue.
                 This slows down the pace of incoming writes from the primary so that we
                 can be sure that the queue will eventually drain. */
-                acks_to_release += QUEUE_TRICKLE_FRACTION;
+                acks_to_release += backfill_config.write_queue_trickle_fraction;
                 if (acks_to_release >= 1 && !ack_queue.empty()) {
                     acks_to_release -= 1;
                     ack_queue.front()->pulse();

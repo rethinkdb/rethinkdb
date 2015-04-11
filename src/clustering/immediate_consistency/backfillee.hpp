@@ -63,6 +63,7 @@ public:
         branch_history_manager_t *_branch_history_manager,
         store_view_t *_store,
         const backfiller_bcard_t &backfiller,
+        const backfill_config_t &backfill_config,
         signal_t *interruptor);
     ~backfillee_t();
 
@@ -106,6 +107,7 @@ private:
     mailbox_manager_t *const mailbox_manager;
     branch_history_manager_t *const branch_history_manager;
     store_view_t *const store;
+    backfill_config_t const backfill_config;
 
     backfiller_bcard_t::intro_2_t intro;
 

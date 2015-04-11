@@ -101,6 +101,7 @@ TPTEST(ClusteringBackfill, BackfillTest) {
             &branch_history_manager,
             &backfillee_store,
             backfiller.get_business_card(),
+            backfill_config_t(),
             &non_interruptor);
         class callback_t : public backfillee_t::callback_t {
         public:

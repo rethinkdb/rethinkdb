@@ -5,12 +5,6 @@
 #include "rdb_protocol/protocol.hpp"
 #include "store_view.hpp"
 
-/* `ITEM_PIPELINE_SIZE` is the maximum combined size of the items that we send to the
-backfillee that it hasn't consumed yet. `ITEM_CHUNK_SIZE` is the typical size of an item
-message we send over the network. */
-static const size_t ITEM_PIPELINE_SIZE = 4 * MEGABYTE;
-static const size_t ITEM_CHUNK_SIZE = 100 * KILOBYTE;
-
 backfiller_t::backfiller_t(
         mailbox_manager_t *_mailbox_manager,
         branch_history_manager_t *_branch_history_manager,
@@ -30,7 +24,7 @@ backfiller_t::client_t::client_t(
     full_region(intro.initial_version.get_domain()),
     pre_items(full_region.beg, full_region.end,
         key_range_t::right_bound_t(full_region.inner.left)),
-    item_throttler(ITEM_PIPELINE_SIZE),
+    item_throttler(intro.config.item_queue_mem_size),
     item_throttler_acq(&item_throttler, 0),
     pre_items_mailbox(parent->mailbox_manager,
         std::bind(&client_t::on_pre_items, this, ph::_1, ph::_2, ph::_3)),
@@ -157,7 +151,8 @@ private:
             while (threshold != parent->full_region.inner.right) {
                 /* Wait until there's room in the semaphore for the chunk we're about to
                 process */
-                new_semaphore_acq_t sem_acq(&parent->item_throttler, ITEM_CHUNK_SIZE);
+                new_semaphore_acq_t sem_acq(
+                    &parent->item_throttler, parent->intro.config.item_chunk_mem_size);
                 wait_interruptible(
                     sem_acq.acquisition_signal(), keepalive.get_drain_signal());
 
@@ -203,9 +198,11 @@ private:
                     `chunk` and in `metainfo`. */
                     class consumer_t : public store_view_t::backfill_item_consumer_t {
                     public:
-                        consumer_t(backfill_item_seq_t<backfill_item_t> *_chunk,
-                                region_map_t<version_t> *_metainfo) :
-                            chunk(_chunk), metainfo(_metainfo) { }
+                        consumer_t(
+                                backfill_item_seq_t<backfill_item_t> *_chunk,
+                                region_map_t<version_t> *_metainfo,
+                                const backfill_config_t *_config) :
+                            chunk(_chunk), metainfo(_metainfo), config(_config) { }
                         continue_bool_t on_item(
                                 const region_map_t<binary_blob_t> &item_metainfo,
                                 backfill_item_t &&item) THROWS_NOTHING {
@@ -214,7 +211,7 @@ private:
                             rassert(!item.range.is_empty());
                             on_metainfo(item_metainfo, item.range.right);
                             chunk->push_back(std::move(item));
-                            if (chunk->get_mem_size() < ITEM_CHUNK_SIZE) {
+                            if (chunk->get_mem_size() < config->item_chunk_mem_size) {
                                 return continue_bool_t::CONTINUE;
                             } else {
                                 return continue_bool_t::ABORT;
@@ -247,9 +244,10 @@ private:
                             mask.inner.right = new_threshold;
                             metainfo->concat(to_version_map(new_metainfo.mask(mask)));
                         }
-                        backfill_item_seq_t<backfill_item_t> *chunk;
-                        region_map_t<version_t> *metainfo;
-                    } consumer(&chunk, &metainfo);
+                        backfill_item_seq_t<backfill_item_t> *const chunk;
+                        region_map_t<version_t> *const metainfo;
+                        backfill_config_t const *const config;
+                    } consumer(&chunk, &metainfo, &parent->intro.config);
 
                     parent->parent->store->send_backfill(
                         parent->common_version.mask(subregion), &producer, &consumer,

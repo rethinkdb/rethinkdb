@@ -9,6 +9,44 @@
 #include "rdb_protocol/protocol.hpp"
 #include "rpc/mailbox/typed.hpp"
 
+/* `backfill_config_t` contains parameters for tuning the backfill's performance and
+memory usage. Mostly it's for unit testing purposes; currently we always use fixed values
+in release mode, but the unit tests use smaller queue sizes to trigger different edge
+cases. */
+class backfill_config_t {
+public:
+    /* The default constructor assigns reasonable defaults */
+    backfill_config_t();
+
+    /* The maximum amount of RAM that can be used for the items queued in memory on the
+    backfillee. */
+    size_t item_queue_mem_size;
+
+    /* The maximum size, in bytes, of a chunk of items sent over the network from the
+    backfiller to the backfillee. */
+    size_t item_chunk_mem_size;
+
+    /* The maximum amount of RAM that can be used for the pre-items queued in memory on
+    the backfiller. */
+    size_t pre_item_queue_mem_size;
+
+    /* The maximum size, in bytes, of a chunk of pre-items sent over the network from the
+    backfillee to the backfiller. */
+    size_t pre_item_chunk_mem_size;
+
+    /* The maximum number of writes that the `remote_replicator_client_t` will allow to
+    queue up before it pauses the backfill to perform the writes */
+    size_t write_queue_count;
+
+    /* Every time the `remote_replicator_client_t` performs a queued write, it allows
+    `write_queue_trickle_fraction` new writes to be added to the back of the queue. So
+    this must be between 0 and 1. Higher values improve streaming write performance, but
+    make the backfill take longer. */
+    double write_queue_trickle_fraction;
+};
+
+RDB_DECLARE_SERIALIZABLE(backfill_config_t);
+
 /* The backfiller publishes a `backfiller_bcard_t` which the backfillee uses to contact
 it. The member types of `backfiller_bcard_t` describe the communications protocol between
 the backfiller and the backfillee.
@@ -140,6 +178,7 @@ public:
 
     class intro_1_t {
     public:
+        backfill_config_t config;
         region_map_t<version_t> initial_version;
         branch_history_t initial_version_history;
         mailbox_t<void(intro_2_t)>::address_t intro_mailbox;

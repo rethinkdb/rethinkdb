@@ -138,6 +138,7 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
             /* Backfill and start streaming from the primary. */
             remote_replicator_client_t remote_replicator_client(
                 context->backfill_throttler,
+                backfill_config_t(),
                 context->mailbox_manager,
                 context->server_id,
                 branch,
