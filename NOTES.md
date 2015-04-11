@@ -62,7 +62,7 @@ rethinkdb._negative_zero_check --help` for additional options.
   `RqlClientError` additionally inherit from the new `RqlQueryError`
   type
 
-## New Features ##
+## New features ##
 
 * Overall
   * Reached a production-ready state (#1174)
