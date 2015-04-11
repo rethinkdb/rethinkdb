@@ -343,11 +343,9 @@ TPTEST(RDBBackfill, SmallValues) {
     run_backfill_test(1, 100, 10, true, unlimited_queues_config());
 }
 
-/*
 TPTEST(RDBBackfill, LargeTable) {
-    run_backfill_test(100, 100000, 1000, true);
+    run_backfill_test(100, 100000, 1000, true, backfill_config_t());
 }
-*/
 
 TPTEST(RDBBackfill, EmptyTable) {
     run_backfill_test(100, 0, 0, false, unlimited_queues_config());
@@ -359,15 +357,15 @@ TPTEST(RDBBackfill, NearEmptyTable) {
 
 TPTEST(RDBBackfill, FillItemQueue) {
     backfill_config_t c = unlimited_queues_config();
-    c.item_queue_mem_size = 1000;
-    c.item_chunk_mem_size = 100;
+    c.item_queue_mem_size = 1;
+    c.item_chunk_mem_size = 1;
     run_backfill_test(100, 3000, 1000, true, c);
 }
 
 TPTEST(RDBBackfill, FillPreItemQueue) {
     backfill_config_t c = unlimited_queues_config();
-    c.pre_item_queue_mem_size = 1000;
-    c.pre_item_chunk_mem_size = 100;
+    c.pre_item_queue_mem_size = 1;
+    c.pre_item_chunk_mem_size = 1;
     run_backfill_test(100, 3000, 1000, true, c);
 }
 
@@ -377,13 +375,13 @@ TPTEST(RDBBackfill, FillWriteQueue) {
     run_backfill_test(100, 3000, 1000, true, c);
 }
 
-TPTEST(RDBBackfill, TinyChunks) {
+TPTEST(RDBBackfill, FillAllQueues) {
     backfill_config_t c;
-    c.item_queue_mem_size = 0;
-    c.item_chunk_mem_size = 0;
-    c.pre_item_queue_mem_size = 0;
-    c.pre_item_chunk_mem_size = 0;
-    c.write_queue_count = 0;
+    c.item_queue_mem_size = 1;
+    c.item_chunk_mem_size = 1;
+    c.pre_item_queue_mem_size = 1;
+    c.pre_item_chunk_mem_size = 1;
+    c.write_queue_count = 1;
     run_backfill_test(1, 100, 10, true, c);
 }
 

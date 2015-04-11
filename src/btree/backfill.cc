@@ -580,13 +580,14 @@ continue_bool_t btree_send_backfill(
     backfill_item_loader_t loader(item_consumer, &abort_cond);
     backfill_item_preparer_t preparer(
         sizer, reference_timestamp, pre_item_producer, &abort_cond, &loader);
-    if (continue_bool_t::ABORT == btree_depth_first_traversal(
+    continue_bool_t cont = btree_depth_first_traversal(
             superblock, range, &preparer, access_t::read, FORWARD, release_superblock,
-            interruptor)) {
-        return continue_bool_t::ABORT;
-    }
+            interruptor);
+    /* Wait for `loader` to finish what it's doing, even if `pre_item_producer` aborted.
+    This is important so that we can make progress even if `pre_item_producer` only gives
+    us a couple of pre-items at a time. */
     loader.finish(interruptor);
-    return abort_cond.is_pulsed() ? continue_bool_t::ABORT : continue_bool_t::CONTINUE;
+    return abort_cond.is_pulsed() ? continue_bool_t::ABORT : cont;
 }
 
 class backfill_deletion_timestamp_updater_t : public depth_first_traversal_callback_t {
