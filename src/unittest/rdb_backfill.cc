@@ -360,14 +360,14 @@ TPTEST(RDBBackfill, NearEmptyTable) {
 TPTEST(RDBBackfill, FillItemQueue) {
     backfill_config_t c = unlimited_queues_config();
     c.item_queue_mem_size = 1000;
-    c.item_queue_chunk_size = 100;
+    c.item_chunk_mem_size = 100;
     run_backfill_test(100, 3000, 1000, true, c);
 }
 
 TPTEST(RDBBackfill, FillPreItemQueue) {
     backfill_config_t c = unlimited_queues_config();
     c.pre_item_queue_mem_size = 1000;
-    c.pre_item_queue_chunk_size = 100;
+    c.pre_item_chunk_mem_size = 100;
     run_backfill_test(100, 3000, 1000, true, c);
 }
 

@@ -60,6 +60,7 @@ public:
     bool empty_domain() const { return left_key == right_key; }
 
     const item_t &front() const { return items.front(); }
+    const item_t &back() const { return items.back(); }
 
     /* Deletes the leftmost item in the seq, shrinking the seq's domain to after the end
     of the item that was removed. */
@@ -69,8 +70,9 @@ public:
         items.pop_front();
     }
 
-    /* Transfers the item at the left end of this seq to the right end of the other seq,
-    shrinking the seq's domain to after the end of the tiem that was removed. */
+    /* Transfers the item at the {left,right} end of this seq to the {right,left} end of
+    the other seq, shrinking the seq's domain to {after the end,before the beginning} of
+    the item that was removed. */
     void pop_front_into(backfill_item_seq_t *other) {
         guarantee(beg_hash == other->beg_hash && end_hash == other->end_hash);
         guarantee(get_left_key() == other->get_right_key());
@@ -80,6 +82,17 @@ public:
         mem_size -= item_size;
         other->mem_size += item_size;
         other->items.splice(other->items.end(), items, items.begin());
+    }
+
+    void pop_back_into(backfill_item_seq_t *other) {
+        guarantee(beg_hash == other->beg_hash && end_hash == other->end_hash);
+        guarantee(get_right_key() == other->get_left_key());
+        size_t item_size = items.back().get_mem_size();
+        right_key = key_range_t::right_bound_t(items.front().get_range().left);
+        other->left_key = right_key;
+        mem_size -= item_size;
+        other->mem_size += item_size;
+        other->items.splice(other->items.begin(), items, --items.end());
     }
 
     /* Deletes the part of the seq that is to the left of the key, changing the seq's
@@ -122,6 +135,13 @@ public:
     void push_back_nothing(const key_range_t::right_bound_t &bound) {
         guarantee(bound >= right_key);
         right_key = bound;
+    }
+
+    /* Expands the seq's domain on the left to the given key, explicitly stating that
+    there are no items between the previous beginning of the seq and `bound`. */
+    void push_front_nothing(const key_range_t::right_bound_t &bound) {
+        guarantee(bound <= left_key);
+        left_key = bound;
     }
 
     /* Concatenates two `backfill_item_seq_t`s. Their domains must be adjacent. */

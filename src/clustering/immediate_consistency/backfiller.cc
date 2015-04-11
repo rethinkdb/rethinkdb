@@ -79,42 +79,75 @@ moving the elements of the seq to an internal seq; it restores the seq to its or
 state when it goes out of scope. */
 class item_seq_pre_item_producer_t : public store_view_t::backfill_pre_item_producer_t {
 public:
-    item_seq_pre_item_producer_t(backfill_item_seq_t<backfill_pre_item_t> *_pi) :
+    item_seq_pre_item_producer_t(
+            backfill_item_seq_t<backfill_pre_item_t> *_pi,
+            const key_range_t::right_bound_t &_c) :
         pre_items(_pi),
-        temp_buf(_pi->get_beg_hash(), _pi->get_end_hash(), _pi->get_left_key())
-        { }
+        temp_buf(_pi->get_beg_hash(), _pi->get_end_hash(), _pi->get_left_key()),
+        last_cursor(_c)
+    {
+        guarantee(pre_items->get_left_key() <= last_cursor);
+        guarantee(pre_items->get_right_key() >= last_cursor);
+        guarantee(pre_items->empty_of_items()
+            || pre_items->front().range.right > last_cursor,
+            "We're trying to start iteration after the first pre-item. This probably "
+            "indicates that we skipped backfilling part of the key-space.");
+    }
     ~item_seq_pre_item_producer_t() {
         temp_buf.concat(std::move(*pre_items));
         *pre_items = std::move(temp_buf);
     }
-    continue_bool_t next_pre_item(
-            bool *is_item_out,
-            backfill_pre_item_t const **item_out,
-            key_range_t::right_bound_t *empty_range_out)
-            THROWS_NOTHING {
-        if (!pre_items->empty_of_items()) {
-            /* This is the common case. */
-            *is_item_out = true;
-            *item_out = &pre_items->front();
-            return continue_bool_t::CONTINUE;
-        } else if (!pre_items->empty_domain()) {
-            /* There aren't any more pre-items left in the queue, but there's still a
-            part of the key-space that we know there aren't any items in yet. We can ask
-            the store to backfill us items from that space. */
-            *is_item_out = false;
-            *empty_range_out = pre_items->get_right_key();
-            pre_items->delete_to_key(*empty_range_out);
-            temp_buf.push_back_nothing(*empty_range_out);
-            return continue_bool_t::CONTINUE;
-        } else {
-            /* We ran out of pre-items. Break out of `send_backfill()` so we can block
-            and wait for more items. (We don't want to block in this callback because the
-            caller might be holding locks in the B-tree.) */
+    continue_bool_t consume_range(
+            key_range_t::right_bound_t *cursor_inout,
+            const key_range_t::right_bound_t &limit,
+            const std::function<void(const backfill_pre_item_t &)> &callback) {
+        guarantee(last_cursor == *cursor_inout);
+        if (*cursor_inout == pre_items->get_right_key()) {
             return continue_bool_t::ABORT;
         }
+        rassert(pre_items->empty_of_items()
+            || pre_items->front().range.right >= *cursor_inout);
+        while (true) {
+            if (pre_items->empty_of_items()) {
+                *cursor_inout = std::min(limit, pre_items->get_right_key());
+                break;
+            }
+            if (key_range_t::right_bound_t(pre_items->front().range.left) < limit) {
+                callback(pre_items->front());
+            } else {
+                *cursor_inout = limit;
+                break;
+            }
+            if (pre_items->front().range.right <= limit) {
+                pre_items->pop_front_into(&temp_buf);
+            } else {
+                *cursor_inout = limit;
+                break;
+            }
+        }
+        rassert(*cursor_inout <= pre_items->get_right_key());
+        rassert(last_cursor < *cursor_inout);
+        last_cursor = *cursor_inout;
+        return continue_bool_t::CONTINUE;
     }
-    void release_pre_item() THROWS_NOTHING {
-        pre_items->pop_front_into(&temp_buf);
+    bool try_consume_empty_range(const key_range_t &range) {
+        guarantee(key_range_t::right_bound_t(range.left) == last_cursor);
+        if (pre_items->get_right_key() >= range.right &&
+                (pre_items->empty_of_items() ||
+                    key_range_t::right_bound_t(pre_items->front().range.left)
+                        >= range.right)) {
+            last_cursor = range.right;
+            return true;
+        } else {
+            return false;
+        }
+    }
+    void rewind(const key_range_t::right_bound_t &point) {
+        guarantee(last_cursor >= point);
+        last_cursor = point;
+        while (!temp_buf.empty_of_items() && temp_buf.back().range.right > point) {
+            temp_buf.pop_back_into(pre_items);
+        }
     }
 private:
     /* `pre_items` is the sequence we're reading from */
@@ -122,6 +155,10 @@ private:
 
     /* Temporary storage for pre-items that have been consumed */
     backfill_item_seq_t<backfill_pre_item_t> temp_buf;
+
+    /* Our current position in the sequence, used to sanity-check the method calls we're
+    getting. */
+    key_range_t::right_bound_t last_cursor;
 };
 
 /* When the `client_t` receives a begin-session message from the backfillee, it creates a
@@ -134,6 +171,11 @@ public:
     session_t(client_t *_parent, const key_range_t::right_bound_t &_threshold) :
         parent(_parent), threshold(_threshold), pulse_when_pre_items_arrive(nullptr)
     {
+        guarantee(parent->pre_items.empty_of_items() ||
+            key_range_t::right_bound_t(parent->pre_items.front().range.left)
+                >= threshold,
+            "Every key must be backfilled at least once; it's not OK to start a new "
+            "session after the end of the furthest-right previous session");
         coro_t::spawn_sometime(std::bind(&session_t::run, this, drainer.lock()));
     }
 
@@ -158,8 +200,7 @@ private:
 
                 /* Wait until we have some pre items, or else we won't be able to make
                 any progress on the backfill */
-                guarantee(parent->pre_items.get_left_key() == threshold);
-                while (parent->pre_items.empty_domain()) {
+                while (parent->pre_items.get_right_key() == threshold) {
                     cond_t cond;
                     assignment_sentry_t<cond_t *> sentry(
                         &pulse_when_pre_items_arrive, &cond);
@@ -191,7 +232,8 @@ private:
                     it's safe because only one `session_t` can exist at once and because
                     `client_t::on_pre_items` only touches the right-hand end of
                     `parent->pre_items`. */
-                    item_seq_pre_item_producer_t producer(&parent->pre_items);
+                    item_seq_pre_item_producer_t producer(
+                        &parent->pre_items, threshold);
 
                     /* `consumer_t` is responsible for receiving backfill items and
                     the corresponding metainfo from `send_backfill()` and storing them in
@@ -294,9 +336,16 @@ private:
 
                         /* Discard pre-items we don't need anymore. This has two
                         purposes: it saves memory, and it keeps `pre_items` consistent
-                        with `common_version`. */
+                        with `common_version`. However, we note that the domain of the
+                        `pre_items` seq still starts at the left-hand end of the range to
+                        be backfilled, representing that there are no pre items there.
+                        This is correct because after the backfillee applies the item we
+                        just sent, it won't have any divergent data relative to us in
+                        that region. */
                         size_t old_size = parent->pre_items.get_mem_size();
                         parent->pre_items.delete_to_key(threshold);
+                        parent->pre_items.push_front_nothing(
+                            key_range_t::right_bound_t(parent->full_region.inner.left));
                         size_t new_size = parent->pre_items.get_mem_size();
 
                         /* Notify the backfiller that it's OK to send us more pre items.
@@ -351,9 +400,6 @@ void backfiller_t::client_t::on_begin_session(
         const key_range_t::right_bound_t &threshold) {
     fifo_enforcer_sink_t::exit_write_t exit_write(&fifo_sink, write_token);
     wait_interruptible(&exit_write, interruptor);
-
-    guarantee(threshold <= pre_items.get_left_key(), "Every key must be backfilled at "
-        "least once; it's not OK for sessions to have gaps between them.");
 
     guarantee(!current_session.has());
     current_session.init(new session_t(this, threshold));

@@ -30,13 +30,29 @@ void backfill_item_t::mask_in_place(const key_range_t &m) {
     pairs = std::move(new_pairs);
 }
 
-key_range_t::right_bound_t convert_right_bound(const btree_key_t *right_incl) {
-    key_range_t::right_bound_t rb;
-    rb.unbounded = false;
-    rb.key().assign(right_incl);
-    bool ok = rb.increment();
-    guarantee(ok);
-    return rb;
+/* `convert_to_right_bound()` is suitable for converting `btree_key_t *`s in the format
+of `right_incl` or `left_excl_or_null` into a `key_range_t::right_bound_t`. */
+key_range_t::right_bound_t convert_to_right_bound(const btree_key_t *rightmost_before) {
+    if (rightmost_before == nullptr) {
+        return key_range_t::right_bound_t(store_key_t::min());
+    } else {
+        key_range_t::right_bound_t rb;
+        rb.unbounded = false;
+        rb.key().assign(rightmost_before);
+        bool ok = rb.increment();
+        guarantee(ok);
+        return rb;
+    }
+}
+
+key_range_t convert_to_key_range(
+        const btree_key_t *left_excl_or_null, const btree_key_t *right_incl) {
+    return key_range_t(
+        left_excl_or_null == nullptr
+            ? key_range_t::bound_t::none : key_range_t::bound_t::open,
+        left_excl_or_null,
+        key_range_t::bound_t::closed,
+        right_incl);
 }
 
 continue_bool_t btree_send_backfill_pre(
@@ -50,24 +66,18 @@ continue_bool_t btree_send_backfill_pre(
     class callback_t : public depth_first_traversal_callback_t {
     public:
         continue_bool_t filter_range_ts(
-                const btree_key_t *left_excl_or_null,
+                UNUSED const btree_key_t *left_excl_or_null,
                 const btree_key_t *right_incl,
                 repli_timestamp_t timestamp,
                 signal_t *,
                 bool *skip_out) {
-            key_range_t debugf_kr(
-                    left_excl_or_null == nullptr
-                        ? key_range_t::bound_t::none : key_range_t::bound_t::open,
-                    left_excl_or_null,
-                    key_range_t::bound_t::closed,
-                    right_incl);
             *skip_out = timestamp <= reference_timestamp;
             if (*skip_out) {
-                khd_range(debugf_kr, "pre-item traversal skip", timestamp);
+                // khd_range(debugf_kr, "pre-item traversal skip", timestamp);
                 return pre_item_consumer->on_empty_range(
-                    convert_right_bound(right_incl));
+                    convert_to_right_bound(right_incl));
             } else {
-                khd_range(debugf_kr, "pre-item traversal recurse", timestamp);
+                // khd_range(debugf_kr, "pre-item traversal recurse", timestamp);
                 return continue_bool_t::CONTINUE;
             }
         }
@@ -78,13 +88,7 @@ continue_bool_t btree_send_backfill_pre(
                 const btree_key_t *right_incl,
                 signal_t *,
                 bool *skip_out) {
-            key_range_t debugf_kr(
-                    left_excl_or_null == nullptr
-                        ? key_range_t::bound_t::none : key_range_t::bound_t::open,
-                    left_excl_or_null,
-                    key_range_t::bound_t::closed,
-                    right_incl);
-            khd_range(debugf_kr, "pre-item traversal leaf");
+            // khd_range(debugf_kr, "pre-item traversal leaf");
             *skip_out = true;
             const leaf_node_t *lnode = static_cast<const leaf_node_t *>(
                 buf->read->get_data_read());
@@ -94,13 +98,8 @@ continue_bool_t btree_send_backfill_pre(
                 /* We might be missing deletion entries, so re-transmit the entire node
                 */
                 backfill_pre_item_t pre_item;
-                pre_item.range = key_range_t(
-                    left_excl_or_null == nullptr
-                        ? key_range_t::bound_t::none : key_range_t::bound_t::open,
-                    left_excl_or_null,
-                    key_range_t::bound_t::closed,
-                    right_incl);
-                khd_range(debugf_kr, "pre-item send mdt");
+                pre_item.range = convert_to_key_range(left_excl_or_null, right_incl);
+                // khd_range(debugf_kr, "pre-item send mdt");
                 return pre_item_consumer->on_pre_item(std::move(pre_item));
             } else {
                 std::vector<const btree_key_t *> keys;
@@ -133,7 +132,7 @@ continue_bool_t btree_send_backfill_pre(
                     }
                 }
                 return pre_item_consumer->on_empty_range(
-                    convert_right_bound(right_incl));
+                    convert_to_right_bound(right_incl));
             }
         }
 
@@ -146,7 +145,7 @@ continue_bool_t btree_send_backfill_pre(
                 const btree_key_t *right_incl,
                 signal_t *) {
             return pre_item_consumer->on_empty_range(
-                    convert_right_bound(right_incl));
+                    convert_to_right_bound(right_incl));
         }
 
         btree_backfill_pre_item_consumer_t *pre_item_consumer;
@@ -195,7 +194,8 @@ public:
             fifo_source.enter_write(), drainer.lock()));
     }
 
-    void on_empty_range(const btree_key_t *right_incl, signal_t *interruptor) {
+    void on_empty_range(
+            const key_range_t::right_bound_t &empty_range, signal_t *interruptor) {
         new_semaphore_acq_t sem_acq(&semaphore, 1);
         wait_interruptible(sem_acq.acquisition_signal(), interruptor);
         /* Unlike `handle_item()`, `handle_empty_range()` doesn't do any expensive work,
@@ -203,8 +203,7 @@ public:
         respect to `handle_item()`. */
         coro_t::spawn_sometime(std::bind(
             &backfill_item_loader_t::handle_empty_range, this,
-            convert_right_bound(right_incl), std::move(sem_acq),
-            fifo_source.enter_write(), drainer.lock()));
+            empty_range, std::move(sem_acq), fifo_source.enter_write(), drainer.lock()));
     }
 
     void finish(signal_t *interruptor) {
@@ -300,38 +299,24 @@ public:
         { }
 
 private:
-    /* If `abort_cond` is pulsed we want to abort the traversal. The other methods use
-    `return get_continue()` as a way to say "continue the traversal unless `abort_cond`
-    is pulsed". */
-    continue_bool_t get_continue() {
-        return abort_cond->is_pulsed()
-            ? continue_bool_t::ABORT : continue_bool_t::CONTINUE;
-    }
-
+    /* Skip B-tree subtrees that haven't changed since the reference timestamp and that
+    don't overlap with any pre-items' ranges. */
     continue_bool_t filter_range_ts(
             const btree_key_t *left_excl_or_null,
             const btree_key_t *right_incl,
             repli_timestamp_t timestamp,
             signal_t *interruptor,
             bool *skip_out) {
-        bool has_pre_items;
-        if (continue_bool_t::ABORT == pre_item_producer->peek_range(
-                left_excl_or_null, right_incl, &has_pre_items)) {
-            return continue_bool_t::ABORT;
-        }
-        *skip_out = timestamp <= reference_timestamp && !has_pre_items;
-        if (*skip_out) {
-            loader->on_empty_range(right_incl, interruptor);
-            /* There are no pre items in the range, but we need to call `consume()`
-            anyway so that our calls to the `pre_item_producer` are consecutive. */
-            continue_bool_t cont = pre_item_producer->consume_range(
-                left_excl_or_null, right_incl,
-                [](const backfill_pre_item_t &) { unreachable(); });
-            if (cont == continue_bool_t::ABORT) {
-                return continue_bool_t::ABORT;
+        *skip_out = false;
+        if (timestamp <= reference_timestamp) {
+            key_range_t range = convert_to_key_range(left_excl_or_null, right_incl);
+            if (pre_item_producer->try_consume_empty_range(range)) {
+                *skip_out = true;
+                loader->on_empty_range(range.right, interruptor);
             }
         }
-        return get_continue();
+        return abort_cond->is_pulsed()
+            ? continue_bool_t::ABORT : continue_bool_t::CONTINUE;
     }
 
     continue_bool_t handle_pre_leaf(
@@ -341,32 +326,52 @@ private:
             signal_t *interruptor,
             bool *skip_out) {
         *skip_out = true;
-        key_range_t leaf_range(
-            left_excl_or_null == nullptr
-                ? key_range_t::bound_t::none : key_range_t::bound_t::open,
-            left_excl_or_null,
-            key_range_t::bound_t::closed,
-            right_incl);
-        const leaf_node_t *lnode = static_cast<const leaf_node_t *>(
-            buf->read->get_data_read());
-
-        repli_timestamp_t min_deletion_timestamp =
-            leaf::min_deletion_timestamp(sizer, lnode, buf->lock.get_recency());
-        if (min_deletion_timestamp > reference_timestamp) {
-            /* We're not going to use these pre items, but we need to call `consume()`
-            anyway so that our calls to the `pre_item_producer` are consecutive. */
-            continue_bool_t cont =
-                pre_item_producer->consume_range(left_excl_or_null, right_incl,
-                    [](const backfill_pre_item_t &) {} );
+        key_range_t::right_bound_t cursor = convert_to_right_bound(left_excl_or_null);
+        key_range_t::right_bound_t right_bound = convert_to_right_bound(right_incl);
+        while (cursor != right_bound) {
+            key_range_t subrange;
+            subrange.left = cursor.key();
+            std::list<backfill_item_t> items_from_pre;
+            continue_bool_t cont = pre_item_producer->consume_range(
+                &cursor, right_bound,
+                [&](const backfill_pre_item_t &pre_item) {
+                    items_from_pre.push_back(backfill_item_t());
+                    items_from_pre.back().range = pre_item.range;
+                });
             if (cont == continue_bool_t::ABORT) {
                 return continue_bool_t::ABORT;
             }
+            subrange.right = cursor;
+            rassert(!subrange.is_empty());
+            handle_pre_leaf_subrange(
+                buf, subrange, std::move(items_from_pre), interruptor);
+            if (abort_cond->is_pulsed()) {
+                return continue_bool_t::ABORT;
+            }
+        }
+        return continue_bool_t::CONTINUE;
+    }
 
+    /* `handle_pre_leaf_subrange()` creates backfill items for the given subrange of the
+    given leaf, for which the pre-items are already available. The pre-items are
+    delivered in the form of a `std::list<backfill_item_t>` where each item's range is
+    the same as one of the pre-items, but the other fields of the item are uninitialized.
+    */
+    void handle_pre_leaf_subrange(
+            const counted_t<counted_buf_lock_and_read_t> &buf,
+            const key_range_t &subrange,
+            std::list<backfill_item_t> &&items_from_pre,
+            signal_t *interruptor) {
+        const leaf_node_t *lnode = static_cast<const leaf_node_t *>(
+            buf->read->get_data_read());
+        repli_timestamp_t min_deletion_timestamp =
+            leaf::min_deletion_timestamp(sizer, lnode, buf->lock.get_recency());
+        if (min_deletion_timestamp > reference_timestamp) {
             /* We might be missing deletion entries, so re-transmit the entire node as a
             single `backfill_item_t` */
             backfill_item_t item;
             item.min_deletion_timestamp = min_deletion_timestamp;
-            item.range = leaf_range;
+            item.range = subrange;
 
             /* Create a `backfill_item_t::pair_t` for each key-value pair in the leaf
             node, but don't load the values yet */
@@ -374,9 +379,8 @@ private:
                 sizer, lnode, buf->lock.get_recency(),
                 [&](const btree_key_t *key, repli_timestamp_t timestamp,
                         const void *value_or_null) -> continue_bool_t {
-                    /* The leaf node might be partially outside the range of the
-                    backfill, so we might have to skip some keys */
-                    if (!leaf_range.contains_key(key)) {
+                    /* Ignore keys from the leaf node that aren't within our sub-range */
+                    if (!subrange.contains_key(key)) {
                         return continue_bool_t::CONTINUE;
                     }
                     // debugf_print("item send mdt pair", key);
@@ -408,25 +412,14 @@ private:
             traverse the B-tree. */
             loader->on_item(std::move(item), buf, interruptor);
 
-            return get_continue();
-
         } else {
-
-            /* For each pre item, make a backfill item (which is initially empty) */
-            std::list<backfill_item_t> items_from_pre;
-            continue_bool_t cont =
-                pre_item_producer->consume_range(left_excl_or_null, right_incl,
-                    [&](const backfill_pre_item_t &pre_item) {
-                        rassert(items_from_pre.empty() ||
-                            key_range_t::right_bound_t(pre_item.range.left) >=
-                                items_from_pre.back().range.right);
-                        backfill_item_t item;
-                        item.range = pre_item.range.intersection(leaf_range);
-                        item.min_deletion_timestamp = min_deletion_timestamp;
-                        items_from_pre.push_back(item);
-                    });
-            if (cont == continue_bool_t::ABORT) {
-                return continue_bool_t::ABORT;
+            /* Attach `min_deletion_timestamp` to `items_from_pre`, because it hasn't
+            been initialized yet for them. We also need to clip `items_from_pre` because
+            some of them might fall partially outside of `subrange`. */
+            for (backfill_item_t &i : items_from_pre) {
+                rassert(subrange.overlaps(i.range));
+                i.range = i.range.intersection(subrange);
+                i.min_deletion_timestamp = min_deletion_timestamp;
             }
 
             /* Find each key-value pair or deletion entry that falls within the range of
@@ -440,7 +433,7 @@ private:
                         const void *value_or_null) -> continue_bool_t {
                     /* The leaf node might be partially outside the range of the
                     backfill, so we might have to skip some keys */
-                    if (!leaf_range.contains_key(key)) {
+                    if (!subrange.contains_key(key)) {
                         return continue_bool_t::CONTINUE;
                     }
 
@@ -531,9 +524,7 @@ private:
             for (backfill_item_t &i : items_from_pre) {
                 loader->on_item(std::move(i), buf, interruptor);
             }
-            loader->on_empty_range(right_incl, interruptor);
-
-            return get_continue();
+            loader->on_empty_range(subrange.right, interruptor);
         }
     }
 
@@ -545,23 +536,28 @@ private:
             const btree_key_t *left_excl_or_null,
             const btree_key_t *right_incl,
             signal_t *interruptor) {
-        std::vector<backfill_item_t> items;
-        continue_bool_t cont = pre_item_producer->consume_range(
-            left_excl_or_null, right_incl,
-            [&](const backfill_pre_item_t &pre_item) {
-                items.resize(items.size() + 1);
-                items.back().range = pre_item.range;
-                items.back().min_deletion_timestamp = repli_timestamp_t::distant_past;
-            });
-        if (cont == continue_bool_t::ABORT) {
-            return continue_bool_t::ABORT;
+        key_range_t::right_bound_t cursor = convert_to_right_bound(left_excl_or_null);
+        key_range_t::right_bound_t end = convert_to_right_bound(right_incl);
+        while (cursor != end) {
+            std::vector<backfill_item_t> items;
+            continue_bool_t cont = pre_item_producer->consume_range(
+                &cursor, end,
+                [&](const backfill_pre_item_t &pre_item) {
+                    items.resize(items.size() + 1);
+                    items.back().range = pre_item.range;
+                    items.back().min_deletion_timestamp = repli_timestamp_t::distant_past;
+                });
+            if (cont == continue_bool_t::ABORT) {
+                return continue_bool_t::ABORT;
+            }
+            for (backfill_item_t &i : items) {
+                loader->on_item(
+                    std::move(i), counted_t<counted_buf_lock_and_read_t>(), interruptor);
+            }
+            loader->on_empty_range(cursor, interruptor);
         }
-        for (backfill_item_t &i : items) {
-            loader->on_item(
-                std::move(i), counted_t<counted_buf_lock_and_read_t>(), interruptor);
-        }
-        loader->on_empty_range(right_incl, interruptor);
-        return get_continue();
+        return abort_cond->is_pulsed()
+            ? continue_bool_t::ABORT : continue_bool_t::CONTINUE;
     }
 
     value_sizer_t *sizer;

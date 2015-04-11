@@ -5,6 +5,7 @@
 #include "rdb_protocol/btree.hpp"
 
 #include "kh_debug.hpp"
+#include "clustering/immediate_consistency/history.hpp"
 
 /* `MAX_CONCURRENT_BACKFILL_ITEMS` is the maximum number of coroutines we'll spawn in
 parallel to apply backfill items to the B-tree. */

@@ -205,26 +205,21 @@ public:
         virtual ~backfill_item_consumer_t() { }
     };
 
-    /* `send_backfill()` receives pre-items by repeatedly calling `next_pre_item()` on
-    `backfill_pre_item_producer_t`. `next_pre_item()` returns pre-items in
-    lexicographical order by setting `*is_item_out` to `true` and setting `*item_out` to
-    a pointer to the next pre-item. It can also set `*is_item_out` to `false` and then
-    set `*empty_range_out` to a location greater than or equal the right-hand side of the
-    last pre-item; this indicates that there are no more pre-items up to
-    `*empty_range_out`. These two options for what `next_pre_item()` can emit correspond
-    to `on_pre_item()` and `on_empty_range()` in `send_backfill_pre()`. */
+    /* `send_backfill()` receives pre-items via `backfill_pre_item_producer_t`. The
+    semantics are the same as in `btree_backfill_pre_item_producer_t` except for the
+    addition of the `rewind()` method. `send_backfill()` will never try to rewind to a
+    point to the left of the rightmost `on_item()` or `on_empty_range()` call, so it's
+    safe for the `backfill_pre_item_producer_t` to discard the pre-items in response to
+    calls to `on_item()` or `on_empty_range()` on the `backfill_item_consumer_t`. */
     class backfill_pre_item_producer_t {
     public:
-        virtual continue_bool_t next_pre_item(
-            bool *is_item_out,
-            backfill_pre_item_t const **item_out,
-            key_range_t::right_bound_t *empty_range_out) THROWS_NOTHING = 0;
-
-        /* The pointer given to `next_pre_item()` should remain valid until
-        `release_pre_item()` is called. Every call to `next_pre_item()` that returns
-        sets `*next_out` to a non-null value will be followed by a call to
-        `next_pre_item()`. */
-        virtual void release_pre_item() THROWS_NOTHING = 0;
+        virtual continue_bool_t consume_range(
+            key_range_t::right_bound_t *cursor_inout,
+            const key_range_t::right_bound_t &limit,
+            const std::function<void(const backfill_pre_item_t &)> &callback) = 0;
+        virtual bool try_consume_empty_range(
+            const key_range_t &range) = 0;
+        virtual void rewind(const key_range_t::right_bound_t &point) = 0;
     protected:
         virtual ~backfill_pre_item_producer_t() { }
     };

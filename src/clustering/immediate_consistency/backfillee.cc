@@ -151,7 +151,6 @@ private:
                             we can block and wait for more items. (We don't want to block
                             in this callback because the caller might be holding locks in
                             the B-tree.) */
-                            debugf_print("ran out of items at", parent->items.get_right_key());
                             return continue_bool_t::ABORT;
                         }
                     }
@@ -202,20 +201,25 @@ private:
                     subregion, &producer, keepalive.get_drain_signal());
             }
 
-            /* We reached the end of the range to be backfilled and the callback returned
-            `true` for each step of the way. */
-            guarantee(!callback_returned_false);
+            /* We reached the end of the range to be backfilled. The callback may or may
+            not have returned `false` at some point along the way. */
             guarantee(items.empty_domain());
 
             /* Make sure that we acknowledged every single item that the backfiller sent
             us */
             send_ack_items();
 
-            /* Do the handshake to end the session. It's a little bit redundant in this
-            case (because the backfiller knows that it sent us items all the way to the
-            end of the range, so we're not giving it any new information here) but we do
-            it anyway just to be consistent. */
-            send_end_session_message();
+            if (!callback_returned_false) {
+                /* Do the handshake to end the session. It's a little bit redundant in
+                this case (because the backfiller knows that it sent us items all the way
+                to the end of the range, so we're not giving it any new information here)
+                but we do it anyway just to be consistent. */
+                send_end_session_message();
+            } else {
+                /* We already initiated the end-of-session handshake back when the
+                callback first returned false. */
+            }
+
             wait_interruptible(&got_ack_end_session, keepalive.get_drain_signal());
             guarantee(items.empty_domain());
             done_cond.pulse();

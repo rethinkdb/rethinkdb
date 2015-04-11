@@ -139,25 +139,36 @@ public:
     /* These callbacks may block, but `btree_send_backfill()` may hold B-tree locks while
     it calls them, so they shouldn't block for long. */
 
-    /* `consume_range()` will be called on a series of contiguous ranges in
-    lexicographical order. For each range, it must find all the `backfill_pre_item_t`s
-    that overlap that range and call the callback with them in lexicographical order. If
-    a `backfill_pre_item_t` is partially inside and partially outside the range,
-    `consume_range()` may pass the entire thing to the callback. */
+    /* `btree_send_backfill()` calls `consume_range()` to request a batch of pre-items.
+    The left end of the batch must be `*cursor_inout`; the right end of the batch is
+    decided by `consume_range()`, but must be no further than `limit`. `consume_range()`
+    calls `callback()` for each pre-item in the batch and then sets `*cursor_inout` to
+    the right-hand edge of the batch. Batches must be contiguous, so the next call to
+    `consume_range()` must have `*cursor_inout` set to whatever the previous call set
+    `*cursor_inout` to. If a pre-item spans two batches, it must appear in both. If there
+    are no pre-items available (so that `*cursor_inout` would not be moved) then
+    `consume_range()` returns `continue_bool_t::ABORT`. */
     virtual continue_bool_t consume_range(
-        const btree_key_t *left_excl_or_null, const btree_key_t *right_incl,
+        key_range_t::right_bound_t *cursor_inout,
+        const key_range_t::right_bound_t &limit,
         const std::function<void(const backfill_pre_item_t &)> &callback) = 0;
 
-    /* `peek_range()` will always be called with `left_excl_or_null` equal to the
-    starting point of the next call to `consume_range()`. It may be called zero or more
-    times between each pair of calls to `consume_range()`, possibly with different values
-    of `right_incl`. It should set `*has_pre_items_out` to `true` if at least one pre
-    item overlaps the range and `false` otherwise. It's OK for it to incorrectly set
-    `*has_pre_items_out` to `true` even if there are no pre items, although this may
-    reduce performance. */
-    virtual continue_bool_t peek_range(
-        const btree_key_t *left_excl_or_null, const btree_key_t *right_incl,
-        bool *has_pre_items_out) = 0;
+    /* `try_consume_empty_range()` consumes the range from `left_excl_or_null` to
+    `right_incl` if there are no pre-items in that range. If this works, it returns
+    `true`. If the range is not completely empty, or the producer doesn't yet know
+    whether or not it's completely empty, it returns `false` and nothing is changed. */
+    virtual bool try_consume_empty_range(
+        const key_range_t &range) = 0;
+
+    /* Note that `btree_send_backfill()` is guaranteed to make progress as long as even
+    one pre-item is available. For example, if it encounters a leaf node whose contents
+    go from "AA" to "AZ", but `consume_range()` only produces a pre-items up to "AM" and
+    then returns `continue_bool_t::ABORT`, then `btree_send_backfill()` must generate
+    backfill items up to "AM". This property is important in a situation where a B-tree
+    with very little data is backfilling to a B-tree with a lot of data; there can be
+    arbitrarily many pre-items per leaf node, so we have to be able to make progress even
+    if we can't collect all the pre-items for the leaf node we're currently on. */
+
 protected:
     virtual ~btree_backfill_pre_item_producer_t() { }
 };

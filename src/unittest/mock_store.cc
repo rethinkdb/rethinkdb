@@ -306,28 +306,16 @@ continue_bool_t mock_store_t::send_backfill(
     key_range_t::right_bound_t table_cursor(start_point.get_domain().inner.left);
     key_range_t::right_bound_t right_bound = start_point.get_domain().inner.right;
 
-    key_range_t::right_bound_t pre_item_cursor(start_point.get_domain().inner.left);
-    bool is_pre_item;
-    backfill_pre_item_t const *pre_item;
-    key_range_t::right_bound_t empty_range;
-    auto next_pre_item = [&]() -> continue_bool_t {
-        if (continue_bool_t::ABORT == pre_item_producer->next_pre_item(
-                &is_pre_item, &pre_item, &empty_range)) {
-            return continue_bool_t::ABORT;
-        }
-        if (is_pre_item) {
-            guarantee(key_range_t::right_bound_t(pre_item->get_range().left) >=
-                pre_item_cursor);
-            guarantee(pre_item->get_range().right <= right_bound);
-            pre_item_cursor = pre_item->get_range().right;
-        } else {
-            guarantee(empty_range > pre_item_cursor);
-            guarantee(empty_range <= right_bound);
-            pre_item_cursor = empty_range;
-        }
-        return continue_bool_t::CONTINUE;
+    std::list<backfill_pre_item_t> pre_items;
+    key_range_t::right_bound_t pre_items_limit;
+    auto more_pre_items = [&]() -> continue_bool_t {
+        return pre_item_producer->consume_range(
+            &pre_items_limit, right_bound,
+            [&](const backfill_pre_item_t &pi) {
+                pre_items.push_back(pi);
+            });
     };
-    if (!next_pre_item()) {
+    if (continue_bool_t::ABORT == more_pre_items()) {
         return continue_bool_t::ABORT;
     }
 
@@ -350,12 +338,15 @@ continue_bool_t mock_store_t::send_backfill(
             it = table_.end();
         }
 
+        key_range_t::right_bound_t pre_item_edge = pre_items.empty()
+            ? pre_items_limit : key_range_t::right_bound_t(pre_items.front().range.left);
+
         if (it == table_.end() ||
-                key_range_t::right_bound_t(it->first) >= pre_item_cursor) {
-            if (is_pre_item) {
+                key_range_t::right_bound_t(it->first) >= pre_item_edge) {
+            if (!pre_items.empty()) {
                 /* The next thing in lexicographical order is a pre item, so handle it */
                 backfill_item_t item;
-                item.range = pre_item->range;
+                item.range = pre_items.front().range;
                 /* Iterate over all keys in our local copy within `pre_item->range` and
                 copy them into `item`, whether or not they've changed since
                 `start_point`. */
@@ -374,21 +365,20 @@ continue_bool_t mock_store_t::send_backfill(
                         item_consumer->on_item(metainfo_, std::move(item))) {
                     return continue_bool_t::ABORT;
                 }
-                table_cursor = pre_item->range.right;
-                pre_item_producer->release_pre_item();
+                table_cursor = pre_items.front().range.right;
+                pre_items.pop_front();
             } else {
                 /* The next thing is a gap with no pre items in it. We call
-                `on_empty_range()` so that if the `next_pre_item()` call returns `false`,
-                at least the callback will know that there were no items in this range.
-                */
+                `on_empty_range()` so that if `more_pre_items()` returns `ABORT`, at
+                least the callback will know that there were no items in this range. */
                 if (continue_bool_t::ABORT ==
-                        item_consumer->on_empty_range(metainfo_, empty_range)) {
+                        item_consumer->on_empty_range(metainfo_, pre_items_limit)) {
                     return continue_bool_t::ABORT;
                 }
-                table_cursor = empty_range;
-            }
-            if (continue_bool_t::ABORT == next_pre_item()) {
-                return continue_bool_t::ABORT;
+                table_cursor = pre_items_limit;
+                if (continue_bool_t::ABORT == more_pre_items()) {
+                    return continue_bool_t::ABORT;
+                }
             }
         } else {
             /* The next thing in lexicographical order is a key in our local copy, not a
@@ -451,7 +441,7 @@ continue_bool_t mock_store_t::receive_backfill(
             /* Delete any existing key-value pairs in the range */
             auto end = item.range.right.unbounded
                     ? table_.end() : table_.lower_bound(item.range.right.key());
-            for (auto it = table_.lower_bound(item.range.left); it != end;) {
+            for (auto it = table_.lower_bound(item.range.left); it != end; ) {
                 table_.erase(it++);
             }
 

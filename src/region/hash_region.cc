@@ -168,9 +168,9 @@ MUST_USE region_join_result_t region_join(const std::vector< hash_region_t<key_r
     int granular_width = key_end - key_beg - 1;
 
     if (granular_width <= 0 || granular_height <= 0) {
-        guarantee(vec.empty() || (vec[0].beg == 0 && vec[0].end == 0 && vec[0].inner.is_empty()),
-                  "vec size = %zu, vec[0].beg = %" PRIu64 ", vec[0].end = %" PRIu64 ", vec[0].inner.is_empty() = %d",
-                  vec.size(), vec.empty() ? 0 : vec[0].beg, vec.empty() ? 0 : vec[0].end, vec.empty() ? 0 : vec[0].inner.is_empty());
+        for (const hash_region_t<key_range_t> &hr : vec) {
+            guarantee(region_is_empty(hr));
+        }
         *out = hash_region_t<key_range_t>();
         return REGION_JOIN_OK;
     }

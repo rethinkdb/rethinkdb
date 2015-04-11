@@ -61,11 +61,29 @@ public:
 private:
     class queue_entry_t {
     public:
+        /* `has_write` is `false` if the write has no effect on the region that is being
+        queued. We still create a queue entry for such writes because we need to update
+        the metainfo. */
+        bool has_write;
         write_t write;
         state_timestamp_t timestamp;
         order_token_t order_token;
     };
     typedef std::function<void(queue_entry_t &&, cond_t *)> queue_function_t;
+
+    /* `apply_write_or_metainfo()` is a helper function for `drain_stream_queue()` and
+    `on_write_async()`. It applies the given write to the store and updates the metainfo;
+    but if `has_write` is `false`, it only updates the metainfo. */
+    static void apply_write_or_metainfo(
+            store_view_t *store,
+            const branch_id_t &branch_id,
+            const region_t &region,
+            bool has_write,
+            const write_t &write,
+            state_timestamp_t timestamp,
+            write_token_t *token,
+            order_token_t order_token,
+            signal_t *interruptor);
 
     /* `drain_stream_queue()` is a helper function for the constructor. It applies the
     queue entries in `queue` to `store`. When the queue is empty, it calls
@@ -114,11 +132,13 @@ private:
     constructor before `replica_` has been created. */
     scoped_ptr_t<timestamp_enforcer_t> timestamp_enforcer_;
 
-    /* `region_*_` and `queue_fun_` are only used during the constructor. Specifically,
-    the constructor uses them to control what `on_write_async()` does with writes that
-    arrive during the backfill. See `on_write_async()` for more information. */
+    /* `region_*_`, `queue_fun_`, and `queue_order_checkpoint_` are only used during the
+    constructor. Specifically, the constructor uses them to control what
+    `on_write_async()` does with writes that arrive during the backfill. See
+    `on_write_async()` for more information. */
     region_t region_streaming_, region_queueing_, region_discarding_;
     queue_function_t *queue_fun_;
+    order_checkpoint_t queue_order_checkpoint_;
 
     /* `replica_` is created at the end of the constructor, once the backfill is over. */
     scoped_ptr_t<replica_t> replica_;
