@@ -17,6 +17,7 @@
 
 #include "config/args.hpp"
 #include "concurrency/interruptor.hpp"
+#include "containers/lazy_erase_vector.hpp"
 #include "containers/scoped.hpp"
 #include "arch/address.hpp"
 #include "arch/io/event_watcher.hpp"
@@ -224,7 +225,7 @@ private:
     cond_t read_closed, write_closed;
 
     /* Holds data that we read from the socket but hasn't been consumed yet */
-    std::vector<char> read_buffer;
+    lazy_erase_vector_t<char> read_buffer;
 
     /* Reads up to the given number of bytes, but not necessarily that many. Simple wrapper around
     ::read(). Returns the number of bytes read or throws tcp_conn_read_closed_exc_t. Bypasses read_buffer. */

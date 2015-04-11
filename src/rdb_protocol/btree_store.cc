@@ -829,6 +829,7 @@ void store_t::clear_sindex(
                                  leaf_node,
                                  keys[i].btree_key(),
                                  repli_timestamp_t::distant_past,
+                                 kv_location.buf.get_recency(),
                                  key_modification_proof_t::real_proof());
                 }
                 check_and_handle_underfull(sizer, &kv_location.buf,

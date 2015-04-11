@@ -7,6 +7,7 @@
 #include <stdlib.h>
 
 #include <algorithm>
+#include <cmath>
 #include <iterator>
 
 #include "errors.hpp"
@@ -617,7 +618,7 @@ void datum_t::num_to_str_key(std::string *str_out) const {
     // Sort negative zero as equivalent to 0
     double value = as_num();
     if (value == -0.0) {
-        value = abs(value);
+        value = std::abs(value);
     }
 
     // Mangle the value so that lexicographic ordering matches double ordering
@@ -1519,6 +1520,11 @@ int derived_cmp(T a, T b) {
 }
 
 int datum_t::v1_13_cmp(const datum_t &rhs) const {
+    if (get_type() == MINVAL && rhs.get_type() != MINVAL) return -1;
+    if (get_type() == MAXVAL && rhs.get_type() != MAXVAL) return 1;
+    if (get_type() != MINVAL && rhs.get_type() == MINVAL) return 1;
+    if (get_type() != MAXVAL && rhs.get_type() == MAXVAL) return -1;
+
     if (is_ptype() && !rhs.is_ptype()) {
         return 1;
     } else if (!is_ptype() && rhs.is_ptype()) {
