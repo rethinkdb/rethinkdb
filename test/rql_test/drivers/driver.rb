@@ -6,10 +6,11 @@ $failure_count = 0
 $success_count = 0
 
 DEBUG_ENABLED = ENV['VERBOSE'] ? ENV['VERBOSE'] == 'true' : false
+START_TIME = Time.now()
 
 def print_debug(message)
     if DEBUG_ENABLED
-        puts('DEBUG: ' + message)
+        puts("DEBUG %.2f:\t %s" % [Time.now() - START_TIME, message])
     end
 end
 
@@ -374,7 +375,7 @@ def test(src, expected, name, opthash=nil, testopts=nil)
         else
           queryString += '.run($reql_conn)'
         end
-        print_debug("Running query: #{queryString} #{testopts}")
+        print_debug("Running query: #{queryString} Options: #{testopts}")
         result = $defines.eval(queryString)
 
         if result.kind_of?(RethinkDB::Cursor) # convert cursors into Enumerators to allow for poping single items

@@ -13,6 +13,8 @@ var tests = [r.dbCreate('test')]
 var failure_count = 0;
 var tests_run = 0;
 
+var start_time = Date.now()
+
 // Provides a context for variables
 var defines = {}
 
@@ -164,7 +166,8 @@ function returnTrue() {
 
 function TRACE(){
     if (TRACE_ENABLED) {
-        console.log.apply(console, ["TRACE"].concat([].splice.call(arguments, 0)));
+    	var prefix = "TRACE " + ((Date.now() - start_time) / 1000).toFixed(2) + ": \t";
+        console.log(prefix.concat([].splice.call(arguments, 0)));
     }
 }
 
