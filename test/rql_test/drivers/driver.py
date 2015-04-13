@@ -29,6 +29,7 @@ except AttributeError:
 
 failure_count = 0
 passed_count = 0
+start_time=time.time()
 
 # -- timezone objects
 
@@ -67,7 +68,7 @@ DEBUG_ENABLED = os.environ.get('VERBOSE', 'false').lower() == 'true'
 
 def print_debug(message):
     if DEBUG_ENABLED:
-        sys.stderr.write('DEBUG: %s' % message.rstrip() + '\n')
+        sys.stderr.write('DEBUG (%.2f):\t %s\n' % (time.time() - start_time, message.rstrip()))
 
 DRIVER_PORT = int(sys.argv[1] if len(sys.argv) > 1 else os.environ.get('RDB_DRIVER_PORT'))
 print_debug('Using driver port: %d' % DRIVER_PORT)
