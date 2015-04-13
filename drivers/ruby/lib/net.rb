@@ -152,14 +152,14 @@ module RethinkDB
     end
     def handle_open
       if !@opened
-        handle(:on_open)
         @opened = true
+        handle(:on_open)
       end
     end
     def handle_close
       if !@closed
-        handle(:on_close)
         @closed = true
+        handle(:on_close)
       end
     end
     def safe_next_tick(&b)
