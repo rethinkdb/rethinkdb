@@ -363,9 +363,6 @@ datum_t to_datum_for_client_serialization(grouped_data_t &&gd,
     return datum_t(std::move(map), datum_t::no_sanitize_ptype_t());
 }
 
-datum_t::~datum_t() {
-}
-
 bool datum_t::has() const {
     return data.get_type() != UNINITIALIZED;
 }
