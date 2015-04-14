@@ -367,8 +367,9 @@ TPTEST(RDBBackfill, VeryLargeValues) {
     cfg.value_padding_length = 100 * MEGABYTE;
     /* Because each individual value is so expensive to backfill, don't do very many of
     them */
-    cfg.num_initial_writes = 20;
-    cfg.num_step_writes = 2;
+    cfg.num_initial_writes = 1;
+    cfg.num_step_writes = 1;
+    cfg.stream_during_backfill = false;
     run_backfill_test(cfg);
 }
 
