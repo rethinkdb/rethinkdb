@@ -23,8 +23,6 @@
 #include "unittest/dummy_metadata_controller.hpp"
 #include "unittest/unittest_utils.hpp"
 
-#include "kh_debug.hpp"
-
 namespace unittest {
 
 std::string read_from_dispatcher(
@@ -130,8 +128,6 @@ void run_backfill_test(
         bool stream_during_backfill,
         const backfill_config_t &backfill_config) {
 
-    khd_all("begin backfill test");
-
     order_source_t order_source;
     simple_mailbox_cluster_t cluster;
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
@@ -143,10 +139,6 @@ void run_backfill_test(
     test_store_t store1(&io_backender, &order_source, &ctx);
     test_store_t store2(&io_backender, &order_source, &ctx);
     test_store_t store3(&io_backender, &order_source, &ctx);
-
-    khd_all("store1", &store1);
-    khd_all("store2", &store2);
-    khd_all("store3", &store3);
 
     std::map<std::string, std::string> first_inserter_state;
 
@@ -162,9 +154,7 @@ void run_backfill_test(
         dispatcher_inserter_t inserter(
             &dispatcher, &order_source, value_padding_length, &first_inserter_state,
             false);
-        khd_all("begin insert 1");
         inserter.insert(num_initial);
-        khd_all("end insert 1");
 
         /* Set up `store2` and `store3` as secondaries. Backfill and then wait some time,
         but then unsubscribe. */
@@ -178,20 +168,16 @@ void run_backfill_test(
                 &dispatcher);
 
             backfill_throttler_t backfill_throttler;
-            khd_all("begin backfill 1 -> 2");
             remote_replicator_client_t remote_replicator_client_2(&backfill_throttler,
                 backfill_config, cluster.get_mailbox_manager(), generate_uuid(),
                 dispatcher.get_branch_id(), remote_replicator_server.get_bcard(),
                 local_replicator.get_replica_bcard(), &store2.store, &bhm,
                 &non_interruptor);
-            khd_all("end backfill 1 -> 2");
-            khd_all("begin backfill 1 -> 3");
             remote_replicator_client_t remote_replicator_client_3(&backfill_throttler,
                 backfill_config, cluster.get_mailbox_manager(), generate_uuid(),
                 dispatcher.get_branch_id(), remote_replicator_server.get_bcard(),
                 local_replicator.get_replica_bcard(), &store3.store, &bhm,
                 &non_interruptor);
-            khd_all("end backfill 1 -> 3");
 
             if (stream_during_backfill) {
                 inserter.stop();
@@ -200,9 +186,7 @@ void run_backfill_test(
 
         /* Keep running writes on `store1` for a bit longer, so that `store1` will be
         ahead of `store2` and `store3`. */
-        khd_all("begin insert 1");
         inserter.insert(num_step);
-        khd_all("end insert 1");
     }
 
     std::map<std::string, std::string> second_inserter_state;
@@ -230,9 +214,7 @@ void run_backfill_test(
         dispatcher_inserter_t inserter(
             &dispatcher, &order_source, value_padding_length, &second_inserter_state,
             false);
-        khd_all("begin insert 2");
         inserter.insert(num_step);
-        khd_all("end insert 2");
 
         if (stream_during_backfill) {
             inserter.start();
@@ -244,14 +226,12 @@ void run_backfill_test(
             cluster.get_mailbox_manager(),
             &dispatcher);
 
-        khd_all("begin backfill 2 -> 1");
         backfill_throttler_t backfill_throttler;
         remote_replicator_client_t remote_replicator_client(&backfill_throttler,
             backfill_config, cluster.get_mailbox_manager(), generate_uuid(),
             dispatcher.get_branch_id(), remote_replicator_server.get_bcard(),
             local_replicator.get_replica_bcard(), &store1.store, &bhm,
             &non_interruptor);
-        khd_all("end backfill 2 -> 1");
 
         if (stream_during_backfill) {
             inserter.stop();
@@ -286,14 +266,12 @@ void run_backfill_test(
             cluster.get_mailbox_manager(),
             &dispatcher);
 
-        khd_all("begin backfill 1 -> 3");
         backfill_throttler_t backfill_throttler;
         remote_replicator_client_t remote_replicator_client(&backfill_throttler,
             backfill_config, cluster.get_mailbox_manager(), generate_uuid(),
             dispatcher.get_branch_id(), remote_replicator_server.get_bcard(),
             local_replicator.get_replica_bcard(), &store3.store, &bhm,
             &non_interruptor);
-        khd_all("end backfill 1 -> 3");
 
         if (stream_during_backfill) {
             inserter.stop();

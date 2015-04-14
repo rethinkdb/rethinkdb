@@ -5,8 +5,6 @@
 #include "clustering/immediate_consistency/backfillee.hpp"
 #include "store_view.hpp"
 
-#include "kh_debug.hpp"
-
 /* Sometimes we'll receive the same write as part of our stream of writes from the
 dispatcher and as part of our backfill from the backfiller. To avoid corruption, we need
 to be sure that we don't apply the write twice. `backfill_end_timestamps_t` tracks which
@@ -202,24 +200,9 @@ remote_replicator_client_t::remote_replicator_client_t(
                 rassert(key_range_t::right_bound_t(chunk.get_domain().inner.left) ==
                     right_bound);
                 right_bound = chunk.get_domain().inner.right;
-                int first_char;
-                if (right_bound.unbounded) {
-                    first_char = 0x100;
-                } else if (right_bound.key().size() == 0) {
-                    first_char = 0;
-                } else {
-                    first_char = right_bound.key().contents()[0];
-                }
-                if (first_char > prog) {
-                    debugf("backfill progress: %d qsize: %zu\n", first_char, queue->size());
-                    prog = first_char;
-                }
                 backfill_end_timestamps.combine(
                     region_map_transform<version_t, state_timestamp_t>(chunk,
                         [](const version_t &version) { return version.timestamp; }));
-                if (queue->size() >= config->write_queue_count) {
-                    debugf("interrupting backfill to drain queue\n");
-                }
                 return (queue->size() < config->write_queue_count);
             }
             std::queue<queue_entry_t> *queue;
@@ -232,14 +215,10 @@ remote_replicator_client_t::remote_replicator_client_t(
             key_range_t::right_bound_t(region_queueing_.inner.left),
             &backfill_config);
 
-        khd_all("begin backfillee.go() from", key_range_t::right_bound_t(region_queueing_.inner.left));
-
         backfillee.go(
             &callback,
             key_range_t::right_bound_t(region_queueing_.inner.left),
             interruptor);
-
-        khd_all("end backfillee.go() to", callback.right_bound);
 
         /* Wait until we've queued writes at least up to the latest point where the
         backfill left us. This ensures that it will be safe to ignore
@@ -339,9 +318,6 @@ remote_replicator_client_t::remote_replicator_client_t(
         version_t expect(branch_id,
             timestamp_enforcer_->get_latest_all_before_completed());
         for (const auto &pair : to_version_map(metainfo_blob)) {
-            if (pair.second != expect) {
-                khd_dump(pair.first.inner.left);
-            }
             rassert(pair.second == expect, "Expected version %s for sub-range %s, but "
                 "got version %s.", debug_strprint(expect).c_str(),
                 debug_strprint(pair.first).c_str(), debug_strprint(pair.second).c_str());
@@ -556,11 +532,9 @@ void remote_replicator_client_t::on_write_async(
         rwlock_acq.reset();
 
         if (!region_is_empty(region_streaming_copy)) {
-            debugf("begin applying streaming subwrite\n");
             apply_write_or_metainfo(store_, branch_id_, region_streaming_copy,
                 have_subwrite_streaming, subwrite_streaming, timestamp,
                 &write_token_streaming, order_token, interruptor);
-            debugf("end applying streaming subwrite\n");
         }
 
         /* Wait until the queueing logic pulses our `queue_throttler`. The dispatcher

@@ -22,8 +22,6 @@
 #include "rdb_protocol/store.hpp"
 #include "serializer/config.hpp"
 
-#include "kh_debug.hpp"
-
 namespace unittest {
 
 class simple_write_callback_t :
@@ -173,9 +171,6 @@ public:
                 osource->check_in(strprintf("mock::test_inserter_t::validate(%p)", this))
                     .with_read_mode(),
                 &non_interruptor);
-            if (it->second != response) {
-                khd_dump(store_key_t(it->first));
-            }
             guarantee(it->second == response, "For key `%s`: expected `%s`, got `%s`\n",
                 it->first.c_str(), it->second.c_str(), response.c_str());
         }
@@ -194,9 +189,6 @@ public:
                 osource->check_in(strprintf("mock::test_inserter_t::validate(%p)", this))
                     .with_read_mode(),
                 &non_interruptor);
-            if (expect != actual) {
-                khd_dump(store_key_t(pair.first));
-            }
             guarantee(expect == actual, "For key `%s`: expected `%s`, got `%s`\n",
                 pair.first.c_str(), expect.c_str(), actual.c_str());
         }

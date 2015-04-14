@@ -7,8 +7,6 @@
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/lazy_json.hpp"
 
-#include "kh_debug.hpp"
-
 /* After every `MAX_BACKFILL_ITEMS_PER_TXN` backfill items or backfill pre-items, we'll
 release the superblock and start a new transaction. */
 static const int MAX_BACKFILL_ITEMS_PER_TXN = 100;

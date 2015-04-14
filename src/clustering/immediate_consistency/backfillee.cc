@@ -5,8 +5,6 @@
 #include "clustering/immediate_consistency/history.hpp"
 #include "concurrency/wait_any.hpp"
 
-#include "kh_debug.hpp"
-
 /* `ITEM_ACK_INTERVAL_MS` controls how often we send acknowledgements back to the
 backfiller. If it's too short, we'll waste resources sending lots of tiny
 acknowledgements; if it's too long, the pipeline might stall. */

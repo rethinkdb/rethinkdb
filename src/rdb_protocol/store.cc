@@ -16,8 +16,6 @@
 #include "rdb_protocol/shards.hpp"
 #include "rdb_protocol/table_common.hpp"
 
-#include "kh_debug.hpp"
-
 void store_t::note_reshard() {
     if (changefeed_server.has()) {
         changefeed_server->stop_all();
@@ -653,8 +651,6 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         point_write_response_t *res =
             boost::get<point_write_response_t>(&response->response);
 
-        khd_key(w.key, "point_write", timestamp);
-
         rdb_live_deletion_context_t deletion_context;
         rdb_modification_report_t mod_report(w.key);
         rdb_set(w.key, w.data, w.overwrite, btree, timestamp, superblock->get(),
@@ -668,8 +664,6 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         response->response = point_delete_response_t();
         point_delete_response_t *res =
             boost::get<point_delete_response_t>(&response->response);
-
-        khd_key(d.key, "point_delete", timestamp);
 
         rdb_live_deletion_context_t deletion_context;
         rdb_modification_report_t mod_report(d.key);
