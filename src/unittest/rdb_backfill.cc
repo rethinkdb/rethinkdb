@@ -121,12 +121,47 @@ region_map_t<version_t> get_store_version_map(store_view_t *store) {
     return to_version_map(binary);
 }
 
-void run_backfill_test(
-        size_t value_padding_length,
-        int num_initial,
-        int num_step,
-        bool stream_during_backfill,
-        const backfill_config_t &backfill_config) {
+backfill_config_t unlimited_queues_config() {
+    backfill_config_t c;
+    c.item_queue_mem_size = GIGABYTE;
+    c.pre_item_queue_mem_size = GIGABYTE;
+    c.write_queue_count = 1000000;
+    return c;
+}
+
+/* `backfill_test_config_t` is the parameters for the backfill test. Passing different
+`backfill_test_config_t`s to `run_backfill_test()` will exercise different code paths in
+the backfill logic. */
+class backfill_test_config_t {
+public:
+    /* Most of the tests are minor variations on the default backfill config. */
+    backfill_test_config_t() :
+        value_padding_length(100),
+        num_initial_writes(500),
+        num_step_writes(100),
+        stream_during_backfill(true)
+        { }
+
+    /* `value_padding_length` is the amount of extra padding to add to each document, in
+    addition to the ~30 bytes for the key and the value. */
+    size_t value_padding_length;
+
+    /* `num_initial_writes` is the number of writes to send when filling up the first
+    B-tree. */
+    int num_initial_writes;
+
+    /* `num_step_writes` is the number of writes to do between each pair of backfills. */
+    int num_step_writes;
+
+    /* `stream_during_backfill` controls whether or not we send a continuous stream of
+    online writes during the backfill. */
+    bool stream_during_backfill;
+
+    /* This controls the queue sizes, etc. in the backfill logic. */
+    backfill_config_t backfill;
+};
+
+void run_backfill_test(const backfill_test_config_t &cfg) {
 
     order_source_t order_source;
     simple_mailbox_cluster_t cluster;
@@ -152,14 +187,14 @@ void run_backfill_test(
             generate_uuid(), &dispatcher, &store1.store, &bhm, &non_interruptor);
 
         dispatcher_inserter_t inserter(
-            &dispatcher, &order_source, value_padding_length, &first_inserter_state,
+            &dispatcher, &order_source, cfg.value_padding_length, &first_inserter_state,
             false);
-        inserter.insert(num_initial);
+        inserter.insert(cfg.num_initial_writes);
 
         /* Set up `store2` and `store3` as secondaries. Backfill and then wait some time,
         but then unsubscribe. */
         {
-            if (stream_during_backfill) {
+            if (cfg.stream_during_backfill) {
                 inserter.start();
             }
 
@@ -169,24 +204,24 @@ void run_backfill_test(
 
             backfill_throttler_t backfill_throttler;
             remote_replicator_client_t remote_replicator_client_2(&backfill_throttler,
-                backfill_config, cluster.get_mailbox_manager(), generate_uuid(),
+                cfg.backfill, cluster.get_mailbox_manager(), generate_uuid(),
                 dispatcher.get_branch_id(), remote_replicator_server.get_bcard(),
                 local_replicator.get_replica_bcard(), &store2.store, &bhm,
                 &non_interruptor);
             remote_replicator_client_t remote_replicator_client_3(&backfill_throttler,
-                backfill_config, cluster.get_mailbox_manager(), generate_uuid(),
+                cfg.backfill, cluster.get_mailbox_manager(), generate_uuid(),
                 dispatcher.get_branch_id(), remote_replicator_server.get_bcard(),
                 local_replicator.get_replica_bcard(), &store3.store, &bhm,
                 &non_interruptor);
 
-            if (stream_during_backfill) {
+            if (cfg.stream_during_backfill) {
                 inserter.stop();
             }
         }
 
         /* Keep running writes on `store1` for a bit longer, so that `store1` will be
         ahead of `store2` and `store3`. */
-        inserter.insert(num_step);
+        inserter.insert(cfg.num_step_writes);
     }
 
     std::map<std::string, std::string> second_inserter_state;
@@ -203,7 +238,7 @@ void run_backfill_test(
         /* Find the subset of `first_inserter_state` that's actually present in `store2`
         */
         for (const auto &pair : first_inserter_state) {
-            std::string res = read_from_dispatcher(&dispatcher, value_padding_length,
+            std::string res = read_from_dispatcher(&dispatcher, cfg.value_padding_length,
                 pair.first, order_token_t::ignore, &non_interruptor);
             if (!res.empty()) {
                 second_inserter_state[pair.first] = res;
@@ -212,11 +247,11 @@ void run_backfill_test(
 
         /* OK, now start performing some writes on `store2` */
         dispatcher_inserter_t inserter(
-            &dispatcher, &order_source, value_padding_length, &second_inserter_state,
+            &dispatcher, &order_source, cfg.value_padding_length, &second_inserter_state,
             false);
-        inserter.insert(num_step);
+        inserter.insert(cfg.num_step_writes);
 
-        if (stream_during_backfill) {
+        if (cfg.stream_during_backfill) {
             inserter.start();
         }
 
@@ -228,12 +263,12 @@ void run_backfill_test(
 
         backfill_throttler_t backfill_throttler;
         remote_replicator_client_t remote_replicator_client(&backfill_throttler,
-            backfill_config, cluster.get_mailbox_manager(), generate_uuid(),
+            cfg.backfill, cluster.get_mailbox_manager(), generate_uuid(),
             dispatcher.get_branch_id(), remote_replicator_server.get_bcard(),
             local_replicator.get_replica_bcard(), &store1.store, &bhm,
             &non_interruptor);
 
-        if (stream_during_backfill) {
+        if (cfg.stream_during_backfill) {
             inserter.stop();
         }
         inserter.validate();
@@ -251,12 +286,12 @@ void run_backfill_test(
         /* Validate the state of `store1` to make sure
         that the backfill was completely correct */
         dispatcher_inserter_t inserter(
-            &dispatcher, &order_source, value_padding_length, &second_inserter_state,
+            &dispatcher, &order_source, cfg.value_padding_length, &second_inserter_state,
             false);
         inserter.validate();
         inserter.validate_no_extras(first_inserter_state);
 
-        if (stream_during_backfill) {
+        if (cfg.stream_during_backfill) {
             inserter.start();
         }
 
@@ -268,12 +303,12 @@ void run_backfill_test(
 
         backfill_throttler_t backfill_throttler;
         remote_replicator_client_t remote_replicator_client(&backfill_throttler,
-            backfill_config, cluster.get_mailbox_manager(), generate_uuid(),
+            cfg.backfill, cluster.get_mailbox_manager(), generate_uuid(),
             dispatcher.get_branch_id(), remote_replicator_server.get_bcard(),
             local_replicator.get_replica_bcard(), &store3.store, &bhm,
             &non_interruptor);
 
-        if (stream_during_backfill) {
+        if (cfg.stream_during_backfill) {
             inserter.stop();
         }
     }
@@ -290,83 +325,147 @@ void run_backfill_test(
         /* Validate the state of `store3` to make sure that the backfill was completely
         correct */
         dispatcher_inserter_t inserter(
-            &dispatcher, &order_source, value_padding_length, &second_inserter_state,
+            &dispatcher, &order_source, cfg.value_padding_length, &second_inserter_state,
             false);
         inserter.validate();
         inserter.validate_no_extras(first_inserter_state);
     }
 }
 
-backfill_config_t unlimited_queues_config() {
-    backfill_config_t c;
-    c.item_queue_mem_size = GIGABYTE;
-    c.pre_item_queue_mem_size = GIGABYTE;
-    c.write_queue_count = 1000000;
-    return c;
+/* This test does 3000 initial inserts and 3000 changes between every pair of backfills,
+which will make it likely that many complete leaf nodes will be re-backfilled. */
+TPTEST(RDBBackfill, DenseChanges) {
+    backfill_test_config_t cfg;
+    cfg.num_initial_writes = 3000;
+    cfg.num_step_writes = 3000;
+    run_backfill_test(cfg);
 }
 
-TPTEST(RDBBackfill, DenseChangesAndStreaming) {
-    run_backfill_test(100, 3000, 1000, true, unlimited_queues_config());
-}
-
+/* This test does 3000 initial writes but only 10 writes between ever pair of backfills,
+so many leaf nodes will have only one or two changes. */
 TPTEST(RDBBackfill, SparseChanges) {
-    run_backfill_test(100, 1000, 10, false, unlimited_queues_config());
+    backfill_test_config_t cfg;
+    cfg.num_initial_writes = 3000;
+    cfg.num_step_writes = 10;
+    /* Disable streaming during the backfill because we can't control how many writes
+    will happen that way */
+    cfg.stream_during_backfill = false;
+    run_backfill_test(cfg);
 }
 
 TPTEST(RDBBackfill, LargeValues) {
-    run_backfill_test(MEGABYTE, 100, 10, true, unlimited_queues_config());
+    /* Make sure that the backfill works even with values that don't fit in the leaf
+    node. */
+    backfill_test_config_t cfg;
+    cfg.value_padding_length = 16 * KILOBYTE;
+    run_backfill_test(cfg);
+}
+
+TPTEST(RDBBackfill, VeryLargeValues) {
+    /* Stress-test the system for super-large values. */
+    backfill_test_config_t cfg;
+    cfg.value_padding_length = 100 * MEGABYTE;
+    /* Because each individual value is so expensive to backfill, don't do very many of
+    them */
+    cfg.num_initial_writes = 20;
+    cfg.num_step_writes = 2;
+    run_backfill_test(cfg);
 }
 
 TPTEST(RDBBackfill, SmallValues) {
-    run_backfill_test(1, 100, 10, true, unlimited_queues_config());
+    /* The opposite extreme from `LargeValues`: fit as many values into each leaf node as
+    possible. */
+    backfill_test_config_t cfg;
+    cfg.value_padding_length = 0;
+    run_backfill_test(cfg);
 }
 
 TPTEST(RDBBackfill, LargeTable) {
-    run_backfill_test(100, 20000, 1000, true, backfill_config_t());
+    /* This approximates a realistic backfill scenario. So we insert a relatively large
+    number of keys. */
+    backfill_test_config_t cfg;
+    cfg.num_initial_writes = 20000;
+    cfg.num_step_writes = 1000;
+    run_backfill_test(cfg);
 }
 
-/*
+#if 0
+/* RSI(raft): This test is disabled because inefficiencies in region_map make it take too
+long. It should be reenabled once region_map is rewritten. */
+
 TPTEST(RDBBackfill, VeryLargeTable) {
-    run_backfill_test(100, 100000, 1000, true, backfill_config_t());
+    /* This is like `LargeTable`, except more realistic because the table is even larger.
+    */
+    backfill_test_config_t cfg;
+    cfg.num_initial_writes = 100000;
+    cfg.num_step_writes = 1000;
+    run_backfill_test(cfg);
 }
-*/
+#endif
 
 TPTEST(RDBBackfill, EmptyTable) {
-    run_backfill_test(100, 0, 0, false, unlimited_queues_config());
+    /* Test the corner case where no data is actually present; we take a different code
+    path if the B-tree has no root node. */
+    backfill_test_config_t cfg;
+    cfg.num_initial_writes = cfg.num_step_writes = 0;
+    cfg.stream_during_backfill = false;
+    run_backfill_test(cfg);
 }
 
 TPTEST(RDBBackfill, NearEmptyTable) {
-    run_backfill_test(100, 1, 1, true, unlimited_queues_config());
+    /* Test the corner case where almost no data is actually present. This test probably
+    isn't useful, but it runs very fast, so there's little cost to having it. */
+    backfill_test_config_t cfg;
+    cfg.num_initial_writes = cfg.num_step_writes = 1;
+    cfg.stream_during_backfill = false;
+    run_backfill_test(cfg);
 }
 
 TPTEST(RDBBackfill, FillItemQueue) {
-    backfill_config_t c = unlimited_queues_config();
-    c.item_queue_mem_size = 1;
-    c.item_chunk_mem_size = 1;
-    run_backfill_test(100, 3000, 1000, true, c);
+    /* Force the item queue to fill up, but make the other two queues unlimited. */
+    backfill_test_config_t cfg;
+    cfg.backfill = unlimited_queues_config();
+    cfg.backfill.item_queue_mem_size = 1;
+    cfg.backfill.item_chunk_mem_size = 1;
+    /* Since the item queue will stall a lot, this backfill will be much slower than
+    normal; so we backfill fewer items to speed up the test. */
+    cfg.num_initial_writes = 100;
+    cfg.num_step_writes = 10;
+    run_backfill_test(cfg);
 }
 
 TPTEST(RDBBackfill, FillPreItemQueue) {
-    backfill_config_t c = unlimited_queues_config();
-    c.pre_item_queue_mem_size = 1;
-    c.pre_item_chunk_mem_size = 1;
-    run_backfill_test(100, 3000, 1000, true, c);
+    /* Force the pre-item queue to fill up, but make the other two queues unlimited. */
+    backfill_test_config_t cfg;
+    cfg.backfill.pre_item_queue_mem_size = 1;
+    cfg.backfill.pre_item_chunk_mem_size = 1;
+    /* Since the pre-item queue will stall a lot, this backfill will be much slower than
+    normal; so we backfill fewer items to speed up the test. */
+    cfg.num_initial_writes = 100;
+    cfg.num_step_writes = 100;
+    run_backfill_test(cfg);
 }
 
 TPTEST(RDBBackfill, FillWriteQueue) {
-    backfill_config_t c = unlimited_queues_config();
-    c.write_queue_count = 3;
-    run_backfill_test(100, 3000, 1000, true, c);
+    /* Force the write queue to fill up so that the backfill repeatedly switches between
+    streaming and backfilling modes. */
+    backfill_test_config_t cfg;
+    cfg.backfill.write_queue_count = 3;
+    run_backfill_test(cfg);
 }
 
 TPTEST(RDBBackfill, FillAllQueues) {
-    backfill_config_t c;
-    c.item_queue_mem_size = 1;
-    c.item_chunk_mem_size = 1;
-    c.pre_item_queue_mem_size = 1;
-    c.pre_item_chunk_mem_size = 1;
-    c.write_queue_count = 1;
-    run_backfill_test(1, 100, 10, true, c);
+    /* Make all the queues very small, just to stress the system. */
+    backfill_test_config_t cfg;
+    cfg.backfill.item_queue_mem_size = 1;
+    cfg.backfill.item_chunk_mem_size = 1;
+    cfg.backfill.pre_item_queue_mem_size = 1;
+    cfg.backfill.pre_item_chunk_mem_size = 1;
+    cfg.backfill.write_queue_count = 1;
+    /* Speed up the test by backfilling fewer items */
+    cfg.num_initial_writes = 100;
+    cfg.num_step_writes = 10;
+    run_backfill_test(cfg);
 }
 
 }   /* namespace unittest */
