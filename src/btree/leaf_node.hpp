@@ -144,9 +144,24 @@ bool find_key(const leaf_node_t *node, const btree_key_t *key, int *index_out);
 
 bool lookup(value_sizer_t *sizer, const leaf_node_t *node, const btree_key_t *key, void *value_out);
 
-void insert(value_sizer_t *sizer, leaf_node_t *node, const btree_key_t *key, const void *value, repli_timestamp_t tstamp, UNUSED key_modification_proof_t km_proof);
+void insert(
+        value_sizer_t *sizer,
+        leaf_node_t *node,
+        const btree_key_t *key,
+        const void *value,
+        repli_timestamp_t tstamp,
+        /* the recency of the buf_t that `node` comes from */
+        repli_timestamp_t maximum_existing_tstamp,
+        UNUSED key_modification_proof_t km_proof);
 
-void remove(value_sizer_t *sizer, leaf_node_t *node, const btree_key_t *key, repli_timestamp_t tstamp, key_modification_proof_t km_proof);
+void remove(
+        value_sizer_t *sizer,
+        leaf_node_t *node,
+        const btree_key_t *key,
+        repli_timestamp_t tstamp,
+        /* the recency of the buf_t that `node` comes from */
+        repli_timestamp_t maximum_existing_tstamp,
+        key_modification_proof_t km_proof);
 
 void erase_presence(value_sizer_t *sizer, leaf_node_t *node, const btree_key_t *key, key_modification_proof_t km_proof);
 
@@ -155,7 +170,8 @@ timestamp, the node would still have a record of it. */
 repli_timestamp_t min_deletion_timestamp(
     value_sizer_t *sizer,
     const leaf_node_t *node,
-    repli_timestamp_t maximum_possible_timestamp);
+    // the recency of the buf that `node` came from
+    repli_timestamp_t maximum_existing_timestamp);
 
 /* Removes all timestamps and deletions earlier than the given timestamp. */
 void erase_deletions(
@@ -167,7 +183,8 @@ callback will get `min_deletion_timestamp() - 1`. */
 continue_bool_t visit_entries(
     value_sizer_t *sizer,
     const leaf_node_t *node,
-    repli_timestamp_t maximum_possible_timestamp,
+    // the recency of the buf that `node` came from
+    repli_timestamp_t maximum_existing_timestamp,
     const std::function<continue_bool_t(
         const btree_key_t *key,
         repli_timestamp_t timestamp,

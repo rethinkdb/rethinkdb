@@ -587,6 +587,7 @@ void apply_keyvalue_change(
         /* Update the leaf node's recency to the greater of its previous recency and the
         newly-inserted value's recency, to maintain the invariant that its recency is
         greater than or equal to that of any entry pair in it. */
+        const repli_timestamp_t previous_leaf_recency = kv_loc->buf.get_recency();
         kv_loc->buf.set_recency(superceding_recency(tstamp, kv_loc->buf.get_recency()));
 
         {
@@ -597,11 +598,13 @@ void apply_keyvalue_change(
                          key,
                          kv_loc->value.get(),
                          tstamp,
+                         previous_leaf_recency,
                          km_proof);
         }
     } else {
         // Delete the value if it's there.
         if (kv_loc->there_originally_was_value) {
+            const repli_timestamp_t previous_leaf_recency = kv_loc->buf.get_recency();
             if (delete_or_erase == delete_or_erase_t::DELETE) {
                 /* Update the leaf node's recency to the greater of its previous recency
                 and the deletion's recency, to maintain the invariant that its recency is
@@ -619,6 +622,7 @@ void apply_keyvalue_change(
                              leaf_node,
                              key,
                              tstamp,
+                             previous_leaf_recency,
                              km_proof);
                     } break;
                     case delete_or_erase_t::ERASE: {

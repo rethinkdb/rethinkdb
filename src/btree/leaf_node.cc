@@ -1229,8 +1229,15 @@ entry, `prepare_space_for_new_entry()` will return false. It will still remove
 any preexisting entry that was in the leaf node. If the entry would go before
 `tstamp_cutpoint` or `allow_after_tstamp_cutpoint` is true, then the return
 value will be true. */
-MUST_USE bool prepare_space_for_new_entry(value_sizer_t *sizer, leaf_node_t *node,
-        const btree_key_t *key, int new_entry_size, repli_timestamp_t tstamp,
+MUST_USE bool prepare_space_for_new_entry(
+        value_sizer_t *sizer,
+        leaf_node_t *node,
+        const btree_key_t *key,
+        int new_entry_size,
+        repli_timestamp_t tstamp,
+        /* Used to derive the highest possible timestamp that non-timestamped
+        entries might have. Usually the recency of the buf_t that node is in. */
+        repli_timestamp_t maximum_existing_tstamp,
         bool allow_after_tstamp_cutpoint,
         char **space_out) {
 
@@ -1319,10 +1326,12 @@ MUST_USE bool prepare_space_for_new_entry(value_sizer_t *sizer, leaf_node_t *nod
         if (end_of_where_new_entry_should_go == node->tstamp_cutpoint &&
                 node->tstamp_cutpoint != sizer->block_size().value()) {
             /* We are after all of the timestamped entries, but before at least
-            one non-timestamped entry. Since we don't know what the timestamp
-            would have been on the non-timestamped entry, we mustn't put a
-            timestamp on ourself. */
-            new_entry_should_have_timestamp = false;
+            one non-timestamped entry. We know that the non-timestamped entries
+            have a timestamp of at most maximum_existing_tstamp. If our own timestamp
+            is higher than that, we can put a timestamp on ourself. Otherwise, we
+            don't know what the timestamp would have been on the non-timestamped entry,
+            so we mustn't put a timestamp on ourself. */
+            new_entry_should_have_timestamp = tstamp > maximum_existing_tstamp;
         } else {
             new_entry_should_have_timestamp = true;
         }
@@ -1418,14 +1427,21 @@ MUST_USE bool prepare_space_for_new_entry(value_sizer_t *sizer, leaf_node_t *nod
 
 // Inserts a key/value pair into the node.  Hopefully you've already
 // cleaned up the old value, if there is one.
-void insert(value_sizer_t *sizer, leaf_node_t *node, const btree_key_t *key, const void *value, repli_timestamp_t tstamp, UNUSED key_modification_proof_t km_proof) {
+void insert(
+        value_sizer_t *sizer,
+        leaf_node_t *node,
+        const btree_key_t *key,
+        const void *value,
+        repli_timestamp_t tstamp,
+        repli_timestamp_t maximum_existing_tstamp,
+        UNUSED key_modification_proof_t km_proof) {
     rassert(!is_full(sizer, node, key, value));
 
     /* Make space for the entry itself */
 
     char *location_to_write_data;
     DEBUG_VAR bool should_write = prepare_space_for_new_entry(sizer, node,
-        key, key->full_size() + sizer->size(value), tstamp,
+        key, key->full_size() + sizer->size(value), tstamp, maximum_existing_tstamp,
         true,
         &location_to_write_data);
     rassert(should_write);
@@ -1444,7 +1460,13 @@ void insert(value_sizer_t *sizer, leaf_node_t *node, const btree_key_t *key, con
 // This asserts that the key is in the node.  TODO: This means we're
 // already sure the key is in the node, which means we're doing an
 // unnecessary binary search.
-void remove(value_sizer_t *sizer, leaf_node_t *node, const btree_key_t *key, repli_timestamp_t tstamp, UNUSED key_modification_proof_t km_proof) {
+void remove(
+        value_sizer_t *sizer,
+        leaf_node_t *node,
+        const btree_key_t *key,
+        repli_timestamp_t tstamp,
+        repli_timestamp_t maximum_existing_tstamp,
+        UNUSED key_modification_proof_t km_proof) {
     /* Confirm that the key is already in the node */
     DEBUG_VAR int index;
     rassert(find_key(node, key, &index), "remove() called on key that's not in node");
@@ -1460,6 +1482,7 @@ void remove(value_sizer_t *sizer, leaf_node_t *node, const btree_key_t *key, rep
             key,
             1 + key->full_size(),   /* 1 for `DELETE_ENTRY_CODE` */
             tstamp,
+            maximum_existing_tstamp,
             false,
             &location_to_write_data)) {
         *location_to_write_data = static_cast<char>(DELETE_ENTRY_CODE);
@@ -1498,8 +1521,8 @@ void erase_presence(value_sizer_t *sizer, leaf_node_t *node, const btree_key_t *
 repli_timestamp_t min_deletion_timestamp(
         value_sizer_t *sizer,
         const leaf_node_t *node,
-        repli_timestamp_t maximum_possible_timestamp) {
-    repli_timestamp_t earliest_so_far = maximum_possible_timestamp;
+        repli_timestamp_t maximum_existing_timestamp) {
+    repli_timestamp_t earliest_so_far = maximum_existing_timestamp;
     entry_iter_t iter = entry_iter_t::make(node);
     while (!iter.done(sizer) && iter.offset < node->tstamp_cutpoint) {
         repli_timestamp_t tstamp = get_timestamp(node, iter.offset);
@@ -1592,13 +1615,13 @@ callback will get `min_deletion_timestamp() - 1`. */
 continue_bool_t visit_entries(
         value_sizer_t *sizer,
         const leaf_node_t *node,
-        repli_timestamp_t maximum_possible_timestamp,
+        repli_timestamp_t maximum_existing_timestamp,
         const std::function<continue_bool_t(
             const btree_key_t *key,
             repli_timestamp_t timestamp,
             const void *value   /* null for deletion */
             )> &cb) {
-    repli_timestamp_t earliest_so_far = maximum_possible_timestamp;
+    repli_timestamp_t earliest_so_far = maximum_existing_timestamp;
     for (entry_iter_t iter = entry_iter_t::make(node);
             !iter.done(sizer); iter.step(sizer, node)) {
         repli_timestamp_t tstamp;

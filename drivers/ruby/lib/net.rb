@@ -1,3 +1,4 @@
+require 'monitor'
 require 'set'
 require 'socket'
 require 'thread'
@@ -36,8 +37,8 @@ module RethinkDB
         @@registered = false
         @@conns, old_conns = old_conns, @@conns
       }
-      # This function acquires `@@listener_mutex` on the connections,
-      # so it's safer to do this outside our own synchronization.
+      # This function acquires `@mon` on the connections, so it's
+      # safer to do this outside our own synchronization.
       old_conns.each {|conn|
         conn.remove_em_waiters
       }
@@ -410,10 +411,18 @@ module RethinkDB
     end
 
     def next(wait=true)
-      raise RqlRuntimeError, "Cannot call `next` on a cursor " +
-                             "after calling `each`." if @run
-      raise RqlRuntimeError, "Connection is closed." if @more && out_of_date
-      timeout = wait == true ? nil : ((wait == false || wait.nil?) ? 0 : wait)
+      if @run
+        raise RqlRuntimeError, "Cannot call `next` on a cursor after calling `each`."
+      end
+      if @more && out_of_date
+        raise RqlRuntimeError, "Connection is closed."
+      end
+      timeout = wait
+      if wait == true
+        timeout = nil
+      elsif !wait
+        timeout = 0
+      end
 
       while @results.length == 0
         raise StopIteration if !@more
@@ -464,11 +473,11 @@ module RethinkDB
 
     def register_query(token, opts, callback=nil)
       if !opts[:noreply]
-        @listener_mutex.safe_synchronize{
+        @mon.synchronize {
           if @waiters.has_key?(token)
             raise RqlDriverError, "Internal driver error, token already in use."
           end
-          @waiters[token] = callback ? callback : ConditionVariable.new
+          @waiters[token] = callback ? callback : @mon.new_cond
           @opts[token] = opts
         }
       end
@@ -480,7 +489,7 @@ module RethinkDB
     end
     def stop(token)
       dispatch([Query::QueryType::STOP], token)
-      @listener_mutex.safe_synchronize {
+      @mon.synchronize {
         !!@waiters.delete(token)
       }
     end
@@ -560,21 +569,36 @@ module RethinkDB
 
     def wait(token, timeout)
       begin
-        res = nil
-        @listener_mutex.safe_synchronize {
-          if !@waiters.has_key?(token) && !@data.has_key?(token)
-            raise RqlRuntimeError, "Connection is closed."
-          end
-          res = @data.delete(token)
-          if res.nil?
-            @waiters[token].wait(@listener_mutex, timeout)
+        @mon.synchronize {
+          end_time = timeout ? Time.now.to_f + timeout : nil
+          loop {
             res = @data.delete(token)
-            raise Timeout::Error, "Timed out waiting for cursor response." if res.nil?
-          end
+            return res if res
+
+            # Theoretically we only need to check the second property,
+            # but this is safer in case someone makes changes to
+            # `close` in the future.
+            if !is_open() || !@waiters.has_key?(token)
+              raise RqlRuntimeError, "Connection is closed."
+            end
+
+            if end_time
+              cur_time = Time.now.to_f
+              if cur_time >= end_time
+                raise Timeout::Error, "Timed out waiting for cursor response."
+              else
+                # We can't use `wait_while` because it doesn't take a
+                # timeout, and we can't use an external `timeout {
+                # ... }` block because in Ruby 1.9.1 it seems to confuse
+                # the synchronization in `@mon` to be timed out while
+                # waiting in a synchronize block.
+                @waiters[token].wait(end_time - cur_time)
+              end
+            else
+              @waiters[token].wait
+            end
+          }
         }
-        raise RqlRuntimeError, "Connection is closed." if res.nil? && !is_open()
-        raise RqlDriverError, "Internal driver error, no response found." if res.nil?
-        return res
       rescue @abort_module::Abort => e
         print "\nAborting query and reconnecting...\n"
         reconnect(:noreply_wait => false)
@@ -614,21 +638,7 @@ module RethinkDB
       raise RuntimeError, "Connection must be closed before calling connect." if @socket
       @socket = TCPSocket.open(@host, @port)
       @socket.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1)
-      @listener_mutex = Mutex.new
-      class << @listener_mutex
-        def safe_synchronize(&block)
-          if @rdb_owner == Thread.current
-            return block.call
-          else
-            begin
-              @rdb_owner = Thread.current
-              return synchronize(&block)
-            ensure
-              @rdb_owner = nil
-            end
-          end
-        end
-      end
+      @mon = Monitor.new
       @waiters = {}
       @opts = {}
       @data = {}
@@ -653,15 +663,16 @@ module RethinkDB
       end
       opts[:noreply_wait] = true if !opts.keys.include?(:noreply_wait)
 
-      @listener_mutex.safe_synchronize {
+      @mon.synchronize {
         @opts.clear
         @data.clear
-        @waiters.values.each {|w|
-          case w
+        @waiters.each {|k,v|
+          case v
           when QueryHandle
-            w.handle_close
-          when ConditionVariable
-            w.signal
+            v.handle_close
+          when MonitorMixin::ConditionVariable
+            @waiters[k] = nil
+            v.signal
           end
         }
         @waiters.clear
@@ -694,7 +705,7 @@ module RethinkDB
     end
 
     def remove_em_waiters
-      @listener_mutex.safe_synchronize {
+      @mon.synchronize {
         @waiters.each {|k,v|
           if v.is_a? QueryHandle
             v.handle_close
@@ -708,7 +719,7 @@ module RethinkDB
       @opts.delete(token)
       w = @waiters.delete(token)
       case w
-      when ConditionVariable
+      when MonitorMixin::ConditionVariable
         @data[token] = data
         w.signal
       when QueryHandle
@@ -771,9 +782,9 @@ module RethinkDB
               raise RqlRuntimeError, "Bad response, server is buggy.\n" +
                 "#{e.inspect}\n" + response
             end
-            @listener_mutex.safe_synchronize{note_data(token, data)}
+            @mon.synchronize{note_data(token, data)}
           rescue Exception => e
-            @listener_mutex.safe_synchronize {
+            @mon.synchronize {
               @waiters.keys.each{ |k| note_error(k, e) }
               @listener = nil
               Thread.current.terminate
