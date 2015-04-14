@@ -60,6 +60,7 @@ local_replicator_t::local_replicator_t(
                 primary->get_branch_birth_certificate().initial_timestamp))),
         order_source.check_in("local_replica_t(write)"),
         &write_token,
+        write_durability_t::HARD,
         interruptor);
 
     state_timestamp_t first_timestamp;

@@ -107,6 +107,7 @@ public:
                         binary_blob_t(version_t::zero())),
                     order_source.check_in("real_multistore_ptr_t"),
                     &write_token,
+                    write_durability_t::SOFT,
                     &non_interruptor);
             }
         });

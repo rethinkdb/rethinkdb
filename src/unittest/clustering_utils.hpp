@@ -70,7 +70,7 @@ public:
                 store.get_region(),
                 binary_blob_t(version_t::zero()));
         store.set_metainfo(new_metainfo, order_source->check_in("test_store_t"), &token,
-            &non_interruptor);
+            write_durability_t::SOFT, &non_interruptor);
     }
 
     temp_file_t temp_file;
@@ -119,6 +119,10 @@ public:
     void stop() {
         rassert(drainer.has());
         drainer.reset();
+    }
+
+    bool running() const {
+        return drainer.has();
     }
 
     state_t *values_inserted;

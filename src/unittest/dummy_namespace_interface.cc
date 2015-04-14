@@ -198,6 +198,7 @@ dummy_namespace_interface_t(std::vector<region_t> shards,
                                                                            ),
                     order_source->check_in("dummy_namespace_interface_t::dummy_namespace_interface_t (set_metainfo)"),
                     &write_token,
+                    write_durability_t::SOFT,
                     &interruptor);
         }
 

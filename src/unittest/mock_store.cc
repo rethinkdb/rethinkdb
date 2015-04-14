@@ -94,6 +94,7 @@ void mock_store_t::do_get_metainfo(order_token_t order_token,
 void mock_store_t::set_metainfo(const region_map_t<binary_blob_t> &new_metainfo,
                                 order_token_t order_token,
                                 write_token_t *token,
+                                UNUSED write_durability_t durability,
                                 signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
     rassert(region_is_superset(get_region(), new_metainfo.get_domain()));

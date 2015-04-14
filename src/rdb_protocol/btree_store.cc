@@ -1259,13 +1259,14 @@ get_metainfo_internal(real_superblock_t *superblock,
 void store_t::set_metainfo(const region_map_t<binary_blob_t> &new_metainfo,
                            UNUSED order_token_t order_token,  // TODO
                            write_token_t *token,
+                           write_durability_t durability,
                            signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
 
     scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
     acquire_superblock_for_write(1,
-                                 write_durability_t::HARD,
+                                 durability,
                                  token,
                                  &txn,
                                  &superblock,

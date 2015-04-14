@@ -197,20 +197,36 @@ remote_replicator_client_t::remote_replicator_client_t(
                     std::queue<queue_entry_t> *_queue,
                     const key_range_t::right_bound_t &_right_bound,
                     const backfill_config_t *_config) :
-                queue(_queue), right_bound(_right_bound), config(_config) { }
+                queue(_queue), right_bound(_right_bound), config(_config), prog(0) { }
             bool on_progress(const region_map_t<version_t> &chunk) THROWS_NOTHING {
                 rassert(key_range_t::right_bound_t(chunk.get_domain().inner.left) ==
                     right_bound);
+                int first_char;
+                if (right_bound.unbounded) {
+                    first_char = 0x100;
+                } else if (right_bound.key().size() == 0) {
+                    first_char = 0;
+                } else {
+                    first_char = right_bound.key().contents()[0];
+                }
+                if (first_char > prog) {
+                    debugf("backfill progress: %d qsize: %zu\n", first_char, queue->size());
+                    prog = first_char;
+                }
                 right_bound = chunk.get_domain().inner.right;
                 backfill_end_timestamps.combine(
                     region_map_transform<version_t, state_timestamp_t>(chunk,
                         [](const version_t &version) { return version.timestamp; }));
+                if (queue->size() >= config->write_queue_count) {
+                    debugf("interrupting backfill to drain queue\n");
+                }
                 return (queue->size() < config->write_queue_count);
             }
             std::queue<queue_entry_t> *queue;
             backfill_end_timestamps_t backfill_end_timestamps;
             key_range_t::right_bound_t right_bound;
             backfill_config_t const *const config;
+            int prog;
         } callback(
             &queue,
             key_range_t::right_bound_t(region_queueing_.inner.left),
@@ -379,6 +395,7 @@ void remote_replicator_client_t::apply_write_or_metainfo(
             new_metainfo,
             order_token,
             token,
+            write_durability_t::SOFT,
             interruptor);
     }
 }
@@ -510,33 +527,41 @@ void remote_replicator_client_t::on_write_async(
         pass the second subwrite to `queue_fun_`; and discard the third subwrite. Some of
         the subwrites may be empty. */
 
-        write_t subwrite_streaming;
-        bool have_subwrite_streaming =
-            write.shard(region_streaming_, &subwrite_streaming);
-        write_token_t write_token_streaming;
-        store_->new_write_token(&write_token_streaming);
         /* Make a local copy of `region_streaming_` because it might change once we
         release `rwlock_acq`. */
         region_t region_streaming_copy = region_streaming_;
+        write_t subwrite_streaming;
+        bool have_subwrite_streaming = false;
+        write_token_t write_token_streaming;
+        if (!region_is_empty(region_streaming_copy)) {
+            have_subwrite_streaming =
+                write.shard(region_streaming_, &subwrite_streaming);
+            store_->new_write_token(&write_token_streaming);
+        }
 
         cond_t queue_throttler;
         if (queue_fun_ != nullptr) {
+            rassert(!region_is_empty(region_queueing_));
             queue_entry_t queue_entry;
             queue_entry.has_write = write.shard(region_queueing_, &queue_entry.write);
             queue_entry.timestamp = timestamp;
             queue_entry.order_token = queue_order_checkpoint_.check_through(order_token);
             (*queue_fun_)(std::move(queue_entry), &queue_throttler);
         } else {
-            guarantee(region_is_empty(region_queueing_));
+            rassert(region_is_empty(region_queueing_));
             queue_throttler.pulse();
         }
 
         timestamp_enforcer_->complete(timestamp);
         rwlock_acq.reset();
 
-        apply_write_or_metainfo(store_, branch_id_, region_streaming_copy,
-            have_subwrite_streaming, subwrite_streaming, timestamp,
-            &write_token_streaming, order_token, interruptor);
+        if (!region_is_empty(region_streaming_copy)) {
+            debugf("begin applying streaming subwrite\n");
+            apply_write_or_metainfo(store_, branch_id_, region_streaming_copy,
+                have_subwrite_streaming, subwrite_streaming, timestamp,
+                &write_token_streaming, order_token, interruptor);
+            debugf("end applying streaming subwrite\n");
+        }
 
         /* Wait until the queueing logic pulses our `queue_throttler`. The dispatcher
         will limit the number of outstanding writes to us at any given time; so if we
