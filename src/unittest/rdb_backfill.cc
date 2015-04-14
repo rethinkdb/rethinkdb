@@ -347,9 +347,11 @@ TPTEST(RDBBackfill, LargeTable) {
     run_backfill_test(100, 20000, 1000, true, backfill_config_t());
 }
 
+/*
 TPTEST(RDBBackfill, VeryLargeTable) {
     run_backfill_test(100, 100000, 1000, true, backfill_config_t());
 }
+*/
 
 TPTEST(RDBBackfill, EmptyTable) {
     run_backfill_test(100, 0, 0, false, unlimited_queues_config());

@@ -189,6 +189,7 @@ public:
 
 private:
     void run(auto_drainer_t::lock_t keepalive) {
+        with_priority_t p(CORO_PRIORITY_BACKFILL_SENDER);
         try {
             while (threshold != parent->full_region.inner.right) {
                 /* Wait until there's room in the semaphore for the chunk we're about to

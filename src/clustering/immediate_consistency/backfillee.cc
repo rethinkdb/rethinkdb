@@ -80,6 +80,7 @@ private:
     It does the main work of the session: draining backfill items from the `items` queue
     and passing them to the store. */
     void run(auto_drainer_t::lock_t keepalive) {
+        with_priority_t p(CORO_PRIORITY_BACKFILL_RECEIVER);
         try {
             /* Loop until we reach the end of the backfill range. */
             while (threshold != parent->store->get_region().inner.right) {
@@ -400,6 +401,7 @@ void backfillee_t::on_ack_end_session(
 }
 
 void backfillee_t::send_pre_items(auto_drainer_t::lock_t keepalive) {
+    with_priority_t p(CORO_PRIORITY_BACKFILL_RECEIVER);
     try {
         key_range_t::right_bound_t pre_item_sent_threshold(
             store->get_region().inner.left);

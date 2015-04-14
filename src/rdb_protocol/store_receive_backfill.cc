@@ -230,9 +230,14 @@ void apply_multi_key_item(
             that we don't actually call `commit_cb()` for. */
             if (is_first) {
                 rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
+                ticks_t start = get_ticks();
                 btree_receive_backfill_item_update_deletion_timestamps(
                     superblock.get(), release_superblock_t::KEEP, &sizer, item,
                     tokens.keepalive.get_drain_signal());
+                ticks_t end = get_ticks();
+                if (randint(100) == 0) {
+                    debugf("b.r.b.i.u.d.t.() took %.6fs\n", ticks_to_secs(end - start));
+                }
                 is_first = false;
             }
 
@@ -253,10 +258,14 @@ void apply_multi_key_item(
             always_true_key_tester_t key_tester;
             key_range_t range_deleted;
             rdb_live_deletion_context_t deletion_context;
+            ticks_t start_resr = get_ticks();
             continue_bool_t res = rdb_erase_small_range(tokens.info->slice, &key_tester,
                 range_to_delete, superblock.get(), &deletion_context,
                 tokens.keepalive.get_drain_signal(), MAX_CHANGES_PER_TXN / 2,
                 &mod_reports, &range_deleted);
+            if (randint(100) == 0) {
+                debugf("rdb_erase_small_range() took %.6fs\n", ticks_to_secs(get_ticks() - start_resr));
+            }
             guarantee(range_deleted.right == range_to_delete.right
                 || res == continue_bool_t::CONTINUE);
 
@@ -278,7 +287,11 @@ void apply_multi_key_item(
             /* Acquire the sindex block and update the metainfo */
             buf_lock_t sindex_block(superblock->expose_buf(),
                 superblock->get_sindex_block_id(), access_t::write);
+            ticks_t start_umc = get_ticks();
             tokens.update_metainfo_cb(threshold, superblock.get());
+            if (randint(100) == 0) {
+                debugf("update_metainfo_cb() took %.6fs\n", ticks_to_secs(get_ticks() - start_umc));
+            }
             superblock->release();
 
             /* Notify the callback of our progress and update the sindexes */

@@ -201,6 +201,7 @@ remote_replicator_client_t::remote_replicator_client_t(
             bool on_progress(const region_map_t<version_t> &chunk) THROWS_NOTHING {
                 rassert(key_range_t::right_bound_t(chunk.get_domain().inner.left) ==
                     right_bound);
+                right_bound = chunk.get_domain().inner.right;
                 int first_char;
                 if (right_bound.unbounded) {
                     first_char = 0x100;
@@ -213,7 +214,6 @@ remote_replicator_client_t::remote_replicator_client_t(
                     debugf("backfill progress: %d qsize: %zu\n", first_char, queue->size());
                     prog = first_char;
                 }
-                right_bound = chunk.get_domain().inner.right;
                 backfill_end_timestamps.combine(
                     region_map_transform<version_t, state_timestamp_t>(chunk,
                         [](const version_t &version) { return version.timestamp; }));
