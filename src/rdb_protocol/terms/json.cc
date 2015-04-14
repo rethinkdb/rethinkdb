@@ -22,6 +22,10 @@ public:
         // copying).
         std::vector<char> str_buf(data.size() + 1);
         memcpy(str_buf.data(), data.data(), data.size());
+        for (size_t i = 0; i < data.size(); ++i) {
+            rcheck(str_buf[i] != '\0', base_exc_t::GENERIC,
+                   "Encountered unescaped null byte in JSON string.");
+        }
         str_buf[data.size()] = '\0';
 
         rapidjson::Document json;
@@ -30,7 +34,7 @@ public:
         json.ParseInsitu(str_buf.data());
 
         rcheck(!json.HasParseError(), base_exc_t::GENERIC,
-               strprintf("Failed to parse \"%s\" as JSON (%s).",
+               strprintf("Failed to parse \"%s\" as JSON: %s",
                    (data.size() > 40
                     ? (data.to_std().substr(0, 37) + "...").c_str()
                     : data.to_std().c_str()),

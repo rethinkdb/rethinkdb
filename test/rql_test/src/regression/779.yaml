@@ -1,10 +1,10 @@
 desc: 779 -- NULL byte in string
 tests:
   - rb: r("a\000b")
-    ot: err('RqlDriverError', "Client is buggy (failed to deserialize query).", [])
+    ot: err('RqlCompileError', "String `a` (truncated) contains NULL byte at offset 1.", [])
   - rb: r({"a\000b" => ""})
-    ot: err('RqlDriverError', "Client is buggy (failed to deserialize query).", [])
+    ot: err('RqlRuntimeError', "String `a` (truncated) contains NULL byte at offset 1.", [])
   - rb: r({"" => "a\000b"})
-    ot: err('RqlDriverError', "Client is buggy (failed to deserialize query).", [])
+    ot: err('RqlCompileError', "String `a` (truncated) contains NULL byte at offset 1.", [])
   - rb: r("aaaaaaaaaaaaaaaaaaaaaaaaa\000b")
-    ot: err('RqlDriverError', "Client is buggy (failed to deserialize query).", [])
+    ot: err('RqlCompileError', "String `aaaaaaaaaaaaaaaaaaaa` (truncated) contains NULL byte at offset 25.", [])

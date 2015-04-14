@@ -493,14 +493,14 @@ datum_t to_datum(const rapidjson::Value &json, const configured_limits_t &limits
         return std::move(builder).to_datum(pts);
     } break;
     case rapidjson::kArrayType: {
-        std::vector<datum_t> array;
-        array.reserve(json.Size());
+        datum_array_builder_t builder(limits);
+        builder.reserve(json.Size());
         for (rapidjson::Value::ConstValueIterator it = json.Begin();
              it != json.End();
              ++it) {
-            array.push_back(to_datum(*it, limits, reql_version));
+            builder.add(to_datum(*it, limits, reql_version));
         }
-        return datum_t(std::move(array), limits);
+        return std::move(builder).to_datum();
     } break;
     case rapidjson::kStringType: {
         fail_if_invalid(reql_version, json.GetString(), json.GetStringLength());

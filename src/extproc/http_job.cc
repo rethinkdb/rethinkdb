@@ -867,7 +867,7 @@ void json_to_datum(const std::string &json,
         res_out->body = ql::to_datum(doc, limits, reql_version);
     } else {
         res_out->error.assign(
-            strprintf("failed to parse JSON response (%s)",
+            strprintf("failed to parse JSON response: %s",
                       rapidjson::GetParseError_En(doc.GetParseError())));
         if (attach_json == attach_json_to_error_t::YES) {
             res_out->body = ql::datum_t(datum_string_t(json));

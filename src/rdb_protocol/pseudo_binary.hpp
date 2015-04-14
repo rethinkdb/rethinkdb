@@ -1,11 +1,10 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_PSEUDO_BINARY_HPP_
 #define RDB_PROTOCOL_PSEUDO_BINARY_HPP_
 
 #include <utility>
 #include <vector>
 
-#include "containers/scoped.hpp"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
 #include "rdb_protocol/datum_string.hpp"

@@ -372,6 +372,7 @@ std::string parse_json_error_message(const char *json,
             guarantee(rit != it->value.End());
             guarantee(rit->IsString());
             msg = std::string(rit->GetString(), rit->GetStringLength());
+            guarantee(++rit == it->value.End());
         }
         ++it;
     }

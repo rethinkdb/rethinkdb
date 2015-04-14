@@ -88,7 +88,7 @@ tests:
     - cd: r.expr({})['b'].default{|e| e}
       py: r.expr({})['b'].default(lambda e:e)
       js: r.expr({})('b').default(function(e){return e})
-      ot: ("No attribute `b` in object:\n{\n}")
+      ot: ("No attribute `b` in object:\n{}")
     - cd: r.expr([]).reduce{|a,b| a+b}.default{|e| e}
       py: r.expr([]).reduce(lambda a,b:a+b).default(lambda e:e)
       js: r.expr([]).reduce(function(a,b){return a+b}).default(function(e){return e})
