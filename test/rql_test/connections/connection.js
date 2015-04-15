@@ -44,17 +44,16 @@ var givesError = function(type, msg, done){
     };
 };
 
-var withConnection = function(f){
-    return function(done){
-        if (sharedConnection) {
+var withConnection = function(f) {
+    return function(done) {
+        r.expr(1).run(sharedConnection).then(function() {
             f(done, sharedConnection);
-        } else {
-            r.connect({host:serverHost, port:driverPort}, function(err, conn){
+        }).catch(function(err) {
+            r.connect({host:serverHost, port:driverPort}).then(function(conn) {
                 sharedConnection = conn;
-                assert.equal(err, null);
                 f(done, sharedConnection);
-            });
-        }
+            }).catch(done)
+        });
     };
 };
 
