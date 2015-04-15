@@ -200,8 +200,6 @@ public:
     // TODO(2015-01): Remove this constructor, it's a hack.
     datum_t(std::map<datum_string_t, datum_t> &&object, no_sanitize_ptype_t);
 
-    ~datum_t();
-
     // has() checks whether a datum is uninitialized. reset() makes any datum
     // uninitialized.
     bool has() const;

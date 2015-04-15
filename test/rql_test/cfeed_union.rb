@@ -81,14 +81,16 @@ timeout(10) {
   assert{$eager_res2 == $eager_canon}
 }
 
-$lazy_pop = $empty_infstreams + $eager_pop + $empty_infstreams
-$change_pop = $infstreams + $lazy_pop + $infstreams
-
-$lp1 = flat_union($lazy_pop).run.each
-$lp2 = nested_union($lazy_pop).run.each
-$cp1 = flat_union($change_pop).run.each
-$cp2 = nested_union($change_pop).run.each
-# TODO: .union.changes
+timeout(20) {
+  $lazy_pop = $empty_infstreams + $eager_pop + $empty_infstreams
+  $change_pop = $infstreams# + $lazy_pop# + $infstreams
+  $lp1 = flat_union($lazy_pop).run.each
+  $lp2 = nested_union($lazy_pop).run.each
+  $cp1 = flat_union($change_pop).run.each
+  puts($cp1)
+  $cp2 = nested_union($change_pop).run.each
+  # TODO: .union.changes
+}
 
 timeout(10) {
   $lp1res = []
