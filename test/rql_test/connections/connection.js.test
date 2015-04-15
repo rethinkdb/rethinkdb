@@ -7,6 +7,9 @@ import utils
 
 # -- start server if necessary
 
+host = None
+port = None
+
 if not 'RDB_DRIVER_PORT' in os.environ:
     import driver
     
@@ -15,14 +18,17 @@ if not 'RDB_DRIVER_PORT' in os.environ:
     
     # expose the server info for the subprocess
     
-    os.environ['RDB_DRIVER_PORT'] = str(server.driver_port)
-    os.environ['RDB_SERVER_HOST'] = server.host
-    
-    # create the 'test' database
-    
-    r = utils.import_python_driver()
-    conn = r.connect(host=server.host, port=server.driver_port)
-    r.db_create('test').run(conn)
+    os.environ['RDB_DRIVER_PORT'] = port = str(server.driver_port)
+    os.environ['RDB_SERVER_HOST'] = host = server.host
+else:
+    host = os.environ['RDB_SERVER_HOST']
+    port = int(os.environ['RDB_DRIVER_PORT'])
+
+# -- create the 'test' database
+
+r = utils.import_python_driver()
+conn = r.connect(host=host, port=port)
+r.expr(['test']).set_difference(r.db_list()).for_each(r.db_create(r.row)).run(conn)
 
 # -- Run with mocha
 

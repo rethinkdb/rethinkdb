@@ -4,8 +4,6 @@
 
 var assert = require('assert');
 var path = require('path');
-var fs = require('fs');
-var spawn = require('child_process').spawn
 
 // -- load rethinkdb from the proper location
 
@@ -14,8 +12,12 @@ var r = require(path.resolve(__dirname, '..', 'importRethinkDB.js')).r;
 // -- get ENV inforamtion
 
 var testDefault = process.env.TEST_DEFAULT_PORT == "1";
-var driverPort = process.env.RDB_DRIVER_PORT;
+var driverPort = process.env.RDB_DRIVER_PORT || 28015;
 var serverHost = process.env.RDB_SERVER_HOST || 'localhost';
+
+/// -- global variables
+
+var sharedConnection = null;
 
 // -- helper functions
 
@@ -44,10 +46,15 @@ var givesError = function(type, msg, done){
 
 var withConnection = function(f){
     return function(done){
-        r.connect({host:serverHost, port:driverPort}, function(err, c){
-            assertNull(err);
-            f(done, c);
-        });
+        if (sharedConnection) {
+            f(done, sharedConnection);
+        } else {
+            r.connect({host:serverHost, port:driverPort}, function(err, conn){
+                sharedConnection = conn;
+                assert.equal(err, null);
+                f(done, sharedConnection);
+            });
+        }
     };
 };
 
@@ -110,7 +117,6 @@ describe('Javascript connection API', function(){
     
     describe('With a server', function(){
         this.timeout(4000)
-        // TODO: test default port
         
         describe('close twice and reconnect', function(){
             var simpleQuery = function(c) { return r(1).run(c); };
