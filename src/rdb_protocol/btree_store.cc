@@ -275,7 +275,7 @@ void store_t::reset_data(
         get_metainfo_internal(superblock.get(), &old_metainfo);
         region_map_t<binary_blob_t> new_metainfo = old_metainfo;
         region_t deleted_region(subregion.beg, subregion.end, deleted_range);
-        new_metainfo.set(deleted_region, zero_metainfo);
+        new_metainfo.update(deleted_region, zero_metainfo);
         update_metainfo(old_metainfo, new_metainfo, superblock.get());
 
         superblock.reset();
@@ -1195,21 +1195,18 @@ void store_t::update_metainfo(const region_map_t<binary_blob_t> &old_metainfo,
 
     std::vector<std::vector<char> > keys;
     std::vector<binary_blob_t> values;
-    keys.reserve(updated_metadata.size());
-    values.reserve(updated_metadata.size());
-    for (region_map_t<binary_blob_t>::const_iterator i = updated_metadata.begin();
-         i != updated_metadata.end();
-         ++i) {
-        vector_stream_t key;
-        write_message_t wm;
-        serialize_for_metainfo(&wm, i->first);
-        key.reserve(wm.size());
-        DEBUG_VAR int res = send_write_message(&key, &wm);
-        rassert(!res);
+    updated_metadata.visit(region_t::universe(),
+        [&](const region_t &region, const binary_blob_t &value) {
+            vector_stream_t key;
+            write_message_t wm;
+            serialize_for_metainfo(&wm, region);
+            key.reserve(wm.size());
+            DEBUG_VAR int res = send_write_message(&key, &wm);
+            rassert(!res);
 
-        keys.push_back(std::move(key.vector()));
-        values.push_back(i->second);
-    }
+            keys.push_back(std::move(key.vector()));
+            values.push_back(value);
+        });
 
     set_superblock_metainfo(superblock, keys, values);
 }
@@ -1239,20 +1236,21 @@ get_metainfo_internal(real_superblock_t *superblock,
     // TODO: this is inefficient, cut out the middleman (vector)
     get_superblock_metainfo(superblock, &kv_pairs);
 
-    std::vector<std::pair<region_t, binary_blob_t> > result;
-    for (std::vector<std::pair<std::vector<char>, std::vector<char> > >::iterator i = kv_pairs.begin(); i != kv_pairs.end(); ++i) {
-        const std::vector<char> &value = i->second;
-
+    std::vector<region_t> regions;
+    std::vector<binary_blob_t> values;
+    for (auto &pair : kv_pairs) {
         region_t region;
         {
-            buffer_read_stream_t key(i->first.data(), i->first.size());
+            buffer_read_stream_t key(pair.first.data(), pair.first.size());
             archive_result_t res = deserialize_for_metainfo(&key, &region);
             guarantee_deserialization(res, "region");
         }
-
-        result.push_back(std::make_pair(region, binary_blob_t(value.begin(), value.end())));
+        regions.push_back(region);
+        values.push_back(binary_blob_t(pair.second.begin(), pair.second.end()));
     }
-    region_map_t<binary_blob_t> res(result.begin(), result.end());
+    region_map_t<binary_blob_t> res =
+        region_map_t<binary_blob_t>::from_unordered_fragments(
+            std::move(regions), std::move(values));;
     rassert(res.get_domain() == region_t::universe());
     *out = res;
 }

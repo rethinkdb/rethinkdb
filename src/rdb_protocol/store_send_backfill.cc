@@ -65,14 +65,15 @@ continue_bool_t store_t::send_backfill_pre(
     single homogeneous timestamp. So we have to do each sub-region of `start_point`
     individually. */
     std::vector<std::pair<key_range_t, repli_timestamp_t> > reference_timestamps;
-    for (const auto &pair : start_point) {
-        guarantee(pair.first.beg == get_region().beg
-            && pair.first.end == get_region().end,
-            "start_point should be homogeneous with respect to hash shard because this "
-            "implementation ignores hashes");
-        reference_timestamps.push_back(std::make_pair(
-            pair.first.inner, pair.second.to_repli_timestamp()));
-    }
+    start_point.visit(
+        start_point.get_domain(),
+            [&](const region_t &region, const state_timestamp_t &tstamp) {
+            guarantee(region.beg == get_region().beg && region.end == get_region().end,
+                "start_point should be homogeneous with respect to hash shard because "
+                "this implementation ignores hashes");
+            reference_timestamps.push_back(std::make_pair(
+                region.inner, tstamp.to_repli_timestamp()));
+        });
     /* Sort the sub-regions so we can apply them from left to right */
     std::sort(reference_timestamps.begin(), reference_timestamps.end(),
         [](const std::pair<key_range_t, repli_timestamp_t> &p1,
@@ -218,14 +219,15 @@ continue_bool_t store_t::send_backfill(
     with homogeneous start timestamps, then backfill each region as a series of multiple
     B-tree transactions to avoid holding the superblock too long. */
     std::vector<std::pair<key_range_t, repli_timestamp_t> > reference_timestamps;
-    for (const auto &pair : start_point) {
-        guarantee(pair.first.beg == get_region().beg
-            && pair.first.end == get_region().end,
-            "start_point should be homogeneous with respect to hash shard because this "
-            "implementation ignores hashes");
-        reference_timestamps.push_back(std::make_pair(
-            pair.first.inner, pair.second.to_repli_timestamp()));
-    }
+    start_point.visit(
+        start_point.get_domain(),
+        [&](const region_t &region, const state_timestamp_t &tstamp) {
+            guarantee(region.beg == get_region().beg && region.end == get_region().end,
+                "start_point should be homogeneous with respect to hash shard because "
+                "this implementation ignores hashes");
+            reference_timestamps.push_back(std::make_pair(
+                region.inner, tstamp.to_repli_timestamp()));
+        });
     std::sort(reference_timestamps.begin(), reference_timestamps.end(),
         [](const std::pair<key_range_t, repli_timestamp_t> &p1,
                 const std::pair<key_range_t, repli_timestamp_t> &p2) -> bool {
