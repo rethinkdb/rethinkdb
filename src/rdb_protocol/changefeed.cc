@@ -61,7 +61,7 @@ struct change_val_t {
     std::pair<uuid_u, uint64_t> source_stamp;
     store_key_t pkey;
     boost::optional<indexed_datum_t> old_val, new_val;
-    DEBUG_ONLY(boost::optional<std::string> sindex;)
+    DEBUG_ONLY(boost::optional<std::string> sindex;);
 };
 
 namespace debug {
@@ -160,6 +160,7 @@ public:
     virtual size_t size() const = 0;
     virtual void clear() = 0;
     virtual change_val_t pop() = 0;
+    virtual const change_val_t &peek() = 0;
 };
 
 class squashing_queue_t : public maybe_squashing_queue_t {
@@ -186,6 +187,11 @@ class squashing_queue_t : public maybe_squashing_queue_t {
     virtual void clear() {
         queue.clear();
     }
+    virtual const change_val_t &peek() {
+        guarantee(size() != 0);
+        auto it = queue.begin();
+        return it->second;
+    }
     virtual change_val_t pop() {
         guarantee(size() != 0);
         auto it = queue.begin();
@@ -205,6 +211,10 @@ class nonsquashing_queue_t : public maybe_squashing_queue_t {
     }
     virtual void clear() {
         queue.clear();
+    }
+    virtual const change_val_t &peek() {
+        guarantee(size() != 0);
+        return queue.front();
     }
     virtual change_val_t pop() {
         guarantee(size() != 0);
@@ -1238,6 +1248,7 @@ public:
     }
     bool has_change_val() { return queue->size() != 0; }
     change_val_t pop_change_val() { return queue->pop(); }
+    const change_val_t &peek_change_val() { return queue->peek(); }
 protected:
     // The queue of changes we've accumulated since the last time we were read from.
     const scoped_ptr_t<maybe_squashing_queue_t> queue;
@@ -1481,8 +1492,12 @@ public:
     // Throws QL exceptions.
     point_sub_t(feed_t *feed, const datum_t &squash, bool include_states, datum_t _pkey)
         : flat_sub_t(feed, squash, include_states),
-          pkey(std::move(_pkey)), stamp(0), started(false),
-          state(state_t::INITIALIZING), sent_state(state_t::NONE) {
+          pkey(std::move(_pkey)),
+          stamp(0),
+          started(false),
+          state(state_t::INITIALIZING),
+          sent_state(state_t::NONE),
+          include_initial_vals(false) {
         feed->add_point_sub(this, store_key_t(pkey.print_primary()));
     }
     virtual ~point_sub_t() {
@@ -1527,18 +1542,28 @@ public:
             &read_resp.response);
         guarantee(resp != NULL);
         uint64_t start_stamp = resp->stamp.second;
-        // We use `>` because a normal stamp that's equal to the start stamp
-        // wins (the semantics are that the start stamp is the first "legal"
-        // stamp).
-        if (queue->size() == 0 || start_stamp > stamp) {
-            stamp = start_stamp;
-            queue->clear(); // Remove the premature values.
-            queue->add(change_val_t(
+        initial_val = change_val_t(
                resp->stamp,
                store_key_t(pkey.print_primary()),
-               indexed_datum_t(resp->initial_val, datum_t(), boost::none),
                boost::none,
-               DEBUG_ONLY(boost::none)));
+               indexed_datum_t(resp->initial_val, datum_t(), boost::none),
+               DEBUG_ONLY(boost::none));
+        if (start_stamp > stamp) {
+            stamp = start_stamp;
+            queue->clear();
+        } else {
+            while (queue->size() != 0) {
+                const change_val_t *cv = &peek_change_val();
+                guarantee(cv->source_stamp.first == initial_val->source_stamp.first);
+                // We use strict comparison because a normal stamp that's equal to
+                // the start stamp wins (the semantics are that the start stamp is
+                // the first "legal" stamp).
+                if (cv->source_stamp.second < initial_val->source_stamp.second) {
+                    pop_change_val();
+                } else {
+                    break;
+                }
+            }
         }
         started = true;
     }
@@ -1555,26 +1580,39 @@ public:
             sent_state = state;
             return state_datum(state);
         }
-        state = state_t::READY; // We only pop one initial value.
-        return change_val_to_change(pop_change_val());
+        datum_t ret;
+        if (state != state_t::READY && include_initial_vals) {
+            r_sanity_check(initial_val);
+            ret = change_val_to_change(*initial_val, true);
+        } else {
+            return change_val_to_change(pop_change_val());
+        }
+        initial_val = boost::none;
+        state = state_t::READY;
+        return ret;
     }
     bool has_el() final {
-        return (include_states && state != sent_state) || has_change_val();
+        return (include_states && state != sent_state)
+            || (include_initial_vals && state != state_t::READY)
+            || has_change_val();
     }
     virtual counted_t<datum_stream_t> to_stream(
         const client_t::addr_t &,
-        counted_t<datum_stream_t>,
+        counted_t<datum_stream_t> maybe_src,
         scoped_ptr_t<subscription_t> &&self,
         const protob_t<const Backtrace> &bt) final {
+        include_initial_vals = maybe_src.has();
         return make_counted<stream_t<subscription_t> >(std::move(self), bt);
     }
 private:
     bool active() final { return started; }
 
     datum_t pkey;
+    boost::optional<change_val_t> initial_val;
     uint64_t stamp;
     bool started;
     state_t state, sent_state;
+    bool include_initial_vals;
 };
 
 // This gets around some class ordering issues; `range_sub_t` needs to know how

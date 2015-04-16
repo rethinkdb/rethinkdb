@@ -443,9 +443,13 @@ private:
                         expected_states));
             }
         } else if (v->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
+                bool include_initial_vals = include_initial_vals_val.has()
+                    ? include_initial_vals_val->as_bool()
+                    : true;
             return new_val(
                 env->env,
-                v->as_single_selection()->read_changes(squash, include_states));
+                v->as_single_selection()->read_changes(
+                    include_initial_vals, squash, include_states));
         }
         auto selection = v->as_selection(env->env);
         rfail(base_exc_t::GENERIC,
