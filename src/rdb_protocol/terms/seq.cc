@@ -409,14 +409,12 @@ private:
             std::vector<counted_t<datum_stream_t> > streams;
             std::vector<changespec_t> changespecs = seq->get_changespecs();
             r_sanity_check(changespecs.size() >= 1);
-            size_t expected_states = 0;
             for (auto &&changespec : changespecs) {
                 bool include_initial_vals = include_initial_vals_val.has()
                     ? include_initial_vals_val->as_bool()
                     : changespec.include_initial_vals();
                 if (include_initial_vals) {
                     r_sanity_check(changespec.stream.has());
-                    expected_states += 1;
                 }
                 boost::apply_visitor(rcheck_spec_visitor_t(env->env, backtrace()),
                                      changespec.keyspec.spec);
@@ -440,7 +438,7 @@ private:
                         env->env,
                         std::move(streams),
                         backtrace(),
-                        expected_states));
+                        streams.size()));
             }
         } else if (v->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
                 bool include_initial_vals = include_initial_vals_val.has()

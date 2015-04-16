@@ -74,3 +74,27 @@ q(get.changes(include_initial_vals: true, include_states: true),
   [{"state"=>"initializing"}, {"new_val"=>{"id"=>0}}, {"state"=>"ready"}])
 q(get.changes(include_initial_vals: false, include_states: true),
   [{"state"=>"ready"}])
+
+union = r.table('test') \
+         .get_all(0) \
+         .union(r.table('test').get_all(0)) \
+         .union(r.table('test').between(0, 1)) \
+         .union(r.table('test'))
+q(union.changes,
+  [{"new_val"=>{"id"=>0}}, {"new_val"=>{"id"=>0}}, {"new_val"=>{"id"=>0}}])
+q(union.changes(include_initial_vals: true),
+  [{"new_val"=>{"id"=>0}}, {"new_val"=>{"id"=>0}},
+   {"new_val"=>{"id"=>0}}, {"new_val"=>{"id"=>0}}])
+q(union.changes(include_states: false),
+  [{"new_val"=>{"id"=>0}}, {"new_val"=>{"id"=>0}}, {"new_val"=>{"id"=>0}}])
+q(union.changes(include_states: false, include_initial_vals: true),
+  [{"new_val"=>{"id"=>0}}, {"new_val"=>{"id"=>0}},
+   {"new_val"=>{"id"=>0}}, {"new_val"=>{"id"=>0}}])
+q(union.changes(include_states: true),
+  [{"state"=>"initializing"}, {"new_val"=>{"id"=>0}}, {"new_val"=>{"id"=>0}},
+   {"new_val"=>{"id"=>0}}, {"state"=>"ready"}])
+q(union.changes(include_states: true, include_initial_vals: false),
+  [{"state"=>"ready"}])
+q(union.changes(include_states: true, include_initial_vals: true),
+  [{"state"=>"initializing"}, {"new_val"=>{"id"=>0}}, {"new_val"=>{"id"=>0}},
+   {"new_val"=>{"id"=>0}}, {"new_val"=>{"id"=>0}}, {"state"=>"ready"}])

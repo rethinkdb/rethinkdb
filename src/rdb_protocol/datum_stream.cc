@@ -1358,7 +1358,7 @@ union_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) 
                         sent_init = true;
                     } else if (state.as_str() == "ready") {
                         ready_needed -= 1;
-                        if (ready_needed == 0) continue;
+                        if (ready_needed != 0) continue;
                     } else {
                         rfail(base_exc_t::GENERIC,
                               "Internal Error: Unrecognized state string `%s`.",
