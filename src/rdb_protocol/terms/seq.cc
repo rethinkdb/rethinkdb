@@ -373,12 +373,13 @@ struct rcheck_spec_visitor_t : public pb_rcheckable_t,
     env_t *env;
 };
 
-// RSI: handle `return_initial: false` for point and limit cfeeds.
+// RSI: handle `include_initial_vals: false` for point and limit cfeeds.
 class changes_term_t : public op_term_t {
 public:
     changes_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(1),
-                    optargspec_t({"squash", "return_initial", "include_states"})) { }
+        : op_term_t(
+            env, term, argspec_t(1),
+            optargspec_t({"squash", "include_initial_vals", "include_states"})) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
         scope_env_t *env, args_t *args, eval_flags_t) const {
@@ -399,7 +400,8 @@ private:
         if (scoped_ptr_t<val_t> v = args->optarg(env, "include_states")) {
             include_states = v->as_bool();
         }
-        scoped_ptr_t<val_t> return_initial_val = args->optarg(env, "return_initial");
+        scoped_ptr_t<val_t> include_initial_vals_val =
+            args->optarg(env, "include_initial_vals");
 
         scoped_ptr_t<val_t> v = args->arg(env, 0);
         if (v->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
@@ -409,10 +411,10 @@ private:
             r_sanity_check(changespecs.size() >= 1);
             size_t expected_states = 0;
             for (auto &&changespec : changespecs) {
-                bool return_initial = return_initial_val.has()
-                    ? return_initial_val->as_bool()
-                    : changespec.return_initial == return_initial_t::YES;
-                if (return_initial) {
+                bool include_initial_vals = include_initial_vals_val.has()
+                    ? include_initial_vals_val->as_bool()
+                    : changespec.include_initial_vals();
+                if (include_initial_vals) {
                     r_sanity_check(changespec.stream.has());
                     expected_states += 1;
                 }
@@ -421,8 +423,8 @@ private:
                 streams.push_back(
                     changespec.keyspec.table->read_changes(
                         env->env,
-                        return_initial ? std::move(changespec.stream)
-                                       : counted_t<datum_stream_t>(),
+                        include_initial_vals ? std::move(changespec.stream)
+                                             : counted_t<datum_stream_t>(),
                         squash,
                         include_states,
                         std::move(changespec.keyspec.spec),

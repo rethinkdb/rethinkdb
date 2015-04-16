@@ -231,7 +231,7 @@ static std::set<std::string> acceptable_keys = {
     "replicas",
     "result_format",
     "return_changes",
-    "return_initial",
+    "include_initial_vals",
     "return_vals",
     "right_bound",
     "shards",

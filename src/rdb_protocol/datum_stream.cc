@@ -15,6 +15,13 @@
 
 namespace ql {
 
+bool changespec_t::include_initial_vals() {
+    if (auto *range = boost::get<changefeed::keyspec_t::range_t>(&keyspec.spec)) {
+        if (range->range.is_universe()) return false;
+    }
+    return true;
+}
+
 // RANGE/READGEN STUFF
 rget_response_reader_t::rget_response_reader_t(
     const counted_t<real_table_t> &_table,

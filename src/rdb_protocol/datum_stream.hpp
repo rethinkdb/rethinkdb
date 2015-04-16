@@ -17,6 +17,7 @@
 
 #include "containers/counted.hpp"
 #include "containers/scoped.hpp"
+#include "rdb_protocol/changefeed.hpp"
 #include "rdb_protocol/context.hpp"
 #include "rdb_protocol/math_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
@@ -55,18 +56,14 @@ struct active_state_t {
     DEBUG_ONLY(boost::optional<std::string> sindex;)
 };
 
-// RSI: pick up here, fill in values on `changespec_t` correctly.
-enum class return_initial_t { NO, YES };
 struct changespec_t {
     changespec_t(changefeed::keyspec_t _keyspec,
-                 counted_t<datum_stream_t> _stream,
-                 return_initial_t _return_initial)
+                 counted_t<datum_stream_t> _stream)
         : keyspec(std::move(_keyspec)),
-          stream(std::move(_stream)),
-          return_initial(_return_initial) { }
+          stream(std::move(_stream)) { }
+    bool include_initial_vals();
     changefeed::keyspec_t keyspec;
     counted_t<datum_stream_t> stream;
-    return_initial_t return_initial;
 };
 
 class datum_stream_t : public single_threaded_countable_t<datum_stream_t>,

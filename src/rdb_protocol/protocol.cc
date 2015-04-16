@@ -621,8 +621,8 @@ void unshard_stamps(const std::vector<changefeed_stamp_response_t *> &resps,
         for (auto &&stamp : resp->stamps) {
             // Previously conflicts were resolved with `it_out->second =
             // std::max(it->second, it_out->second)`, but I don't think that
-            // should ever happen and it isn't correct for `return_initial`
-            // changefeeds.
+            // should ever happen and it isn't correct for
+            // `include_initial_vals` changefeeds.
             guarantee(out->stamps.find(stamp.first) == out->stamps.end());
             out->stamps[stamp.first] = stamp.second;
         }

@@ -1667,7 +1667,7 @@ public:
         // Note that we currently *DO NOT* update the stamp for range
         // subscriptions.  If we get changes with stamps after the start stamp
         // we eventually receive, they are just discarded.  This will change in
-        // the future when we support `return_initial` on range changefeeds.
+        // the future when we support `include_initial_vals` on range changefeeds.
         return new_stamp >= it->second;
     }
 
@@ -1696,7 +1696,7 @@ public:
             UNUSED subscription_t *super_self = self.release();
             bool stamped = maybe_src->add_stamp(changefeed_stamp_t(addr));
             rcheck_datum(stamped, base_exc_t::GENERIC,
-                         "Cannot call `return_initial` on an unstampable stream.");
+                         "Cannot call `include_initial_vals` on an unstampable stream.");
             return make_splice_stream(maybe_src, std::move(sub_self), bt);
         } else {
             return make_counted<stream_t<subscription_t> >(std::move(self), bt);
