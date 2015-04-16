@@ -16,7 +16,7 @@ alt_cache_balancer_t::cache_data_t::cache_data_t(alt::evicter_t *_evicter) :
     evicter(_evicter),
     new_size(0),
     old_size(evicter->memory_limit()),
-    bytes_loaded(evicter->get_clamped_bytes_loaded()),
+    bytes_loaded(evicter->get_bytes_loaded()),
     access_count(evicter->access_count()) { }
 
 alt_cache_balancer_t::alt_cache_balancer_t(
@@ -121,7 +121,7 @@ void alt_cache_balancer_t::coro_pool_callback(alt_cache_balancer_dummy_value_t, 
         total_evicters += cache_data[i].size();
         all_zero_access_counts &= zero_access_counts[i];
         for (size_t j = 0; j < cache_data[i].size(); ++j) {
-            total_bytes_loaded += cache_data[i][j].bytes_loaded;
+            total_bytes_loaded += std::max<int64_t>(0, cache_data[i][j].bytes_loaded);
             total_access_count += cache_data[i][j].access_count;
         }
     }
@@ -159,7 +159,7 @@ void alt_cache_balancer_t::coro_pool_callback(alt_cache_balancer_dummy_value_t, 
                     temp /= static_cast<double>(total_cache_size);
                     temp *= static_cast<double>(total_bytes_loaded);
 
-                    int64_t new_size = data->bytes_loaded;
+                    int64_t new_size = std::max<int64_t>(0, data->bytes_loaded);
                     new_size -= static_cast<int64_t>(temp);
                     new_size += data->old_size;
                     new_size = std::max<int64_t>(new_size, 0);
