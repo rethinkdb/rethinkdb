@@ -2,7 +2,7 @@ desc: Test changefeeds on a table
 table_variable_name: tbl
 tests:
     
-    # -- regular tables
+    # ==== regular tables
     
     # - start feeds
     
@@ -38,7 +38,22 @@ tests:
       ot: partial({'errors':0, 'inserted':1})
     - cd: fetch(pluck, 1)
       ot: [{'new_val':{'version':5}}]
-
+    
+    # - order by
+    
+    - cd: ordered = tbl.changes().order_by('id')
+      ot: err('RqlRuntimeError', "Cannot call a terminal (`reduce`, `count`, etc.) on an infinite stream (such as a changefeed).")
+#      
+# ToDo: enable this when #4067 is done
+#
+#    - js: orderedLimit = tbl.changes().limit(5).order_by(r.desc('id'))('new_val')('id')
+#      cd: orderedLimit = tbl.changes().limit(5).order_by(r.desc('id'))['new_val']['id']
+#    - js: tbl.range(100, 105).map(function (row) { return {'id':row} })
+#      py: tbl.range(100, 105).map({'id':r.row})
+#      rb: tbl.range(100, 105).map{|row| {'id':row}}
+#    - cd: fetch(orderedLimit)
+#      ot: [104, 103, 102, 101, 100]
+    
     # - changes overflow
 #      
 # ToDo: enable this when we can reduce the number of items to generate the overflow
@@ -49,7 +64,7 @@ tests:
 #    - cd: overflow
 #      ot: error(RqlDriverError, 'Changefeed cache over array size limit, skipped 1 elements.')
 
-    # -- virtual tables
+    # ==== virtual tables
     
     - def: vtbl = r.db('rethinkdb').table('_debug_scratch')
     - cd: allVirtual = vtbl.changes()
