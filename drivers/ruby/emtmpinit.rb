@@ -42,3 +42,35 @@ q(btw.changes(include_initial_vals: true, include_states: true),
   [{"state"=>"initializing"}, {"new_val"=>{"id"=>0}}, {"state"=>"ready"}])
 q(btw.changes(include_initial_vals: false, include_states: true),
   [{"state"=>"ready"}])
+
+ga = r.table('test').get_all(0)
+q(ga.changes,
+  [{"new_val"=>{"id"=>0}}])
+q(ga.changes(include_states: false),
+  [{"new_val"=>{"id"=>0}}])
+q(ga.changes(include_states: true),
+  [{"state"=>"initializing"}, {"new_val"=>{"id"=>0}}, {"state"=>"ready"}])
+q(ga.changes(include_initial_vals: true),
+  [{"new_val"=>{"id"=>0}}])
+q(ga.changes(include_initial_vals: true, include_states: false),
+  [{"new_val"=>{"id"=>0}}])
+q(ga.changes(include_initial_vals: true, include_states: true),
+  [{"state"=>"initializing"}, {"new_val"=>{"id"=>0}}, {"state"=>"ready"}])
+q(ga.changes(include_initial_vals: false, include_states: true),
+  [{"state"=>"ready"}])
+
+get = r.table('test').get(0)
+q(get.changes,
+  [{"new_val"=>{"id"=>0}}])
+q(get.changes(include_states: false),
+  [{"new_val"=>{"id"=>0}}])
+q(get.changes(include_states: true),
+  [{"state"=>"initializing"}, {"new_val"=>{"id"=>0}}, {"state"=>"ready"}])
+q(get.changes(include_initial_vals: true),
+  [{"new_val"=>{"id"=>0}}])
+q(get.changes(include_initial_vals: true, include_states: false),
+  [{"new_val"=>{"id"=>0}}])
+q(get.changes(include_initial_vals: true, include_states: true),
+  [{"state"=>"initializing"}, {"new_val"=>{"id"=>0}}, {"state"=>"ready"}])
+q(get.changes(include_initial_vals: false, include_states: true),
+  [{"state"=>"ready"}])

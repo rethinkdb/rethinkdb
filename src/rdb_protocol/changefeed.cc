@@ -1602,6 +1602,9 @@ public:
         scoped_ptr_t<subscription_t> &&self,
         const protob_t<const Backtrace> &bt) final {
         include_initial_vals = maybe_src.has();
+        if (!include_initial_vals) {
+            state = state_t::READY;
+        }
         return make_counted<stream_t<subscription_t> >(std::move(self), bt);
     }
 private:
