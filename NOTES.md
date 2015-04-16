@@ -1,4 +1,17 @@
+# Release 2.0.1 (Yojimbo)
+
+Released on 2015-04-20
+
+Bug fix release
+
+* Fixed a regression in the backup scripts that detected the server version incorrectly (#3706)
+* Fixed a bug in the cache balancer that could degrade performance (#4066)
+
+--
+
 # Release 2.0.0 (Yojimbo)
+
+Released on 2015-04-14
 
 Release highlights:
 * Support for attaching a changefeed to the `get_all` and `union` commands
