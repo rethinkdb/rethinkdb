@@ -1,6 +1,7 @@
 # Copyright 2015 RethinkDB, all rights reserved.
 
 import asyncio
+import contextlib
 import socket
 import struct
 
@@ -27,6 +28,13 @@ def _read_until(streamreader, delimiter):
             break
     return bytes(buffer)
 
+@contextlib.contextmanager
+def translate_timeout_errors():
+    try:
+        yield
+    except asyncio.TimeoutError:
+        raise RqlTimeoutError
+
 
 # The asyncio implementation of the Cursor object:
 # The `new_response` Future notifies any waiting coroutines that the can attempt
@@ -50,7 +58,8 @@ class AsyncioCursor(Cursor):
         timeout = Cursor._wait_to_timeout(wait)
         while len(self.items) == 0 and self.error is None:
             self._maybe_fetch_batch()
-            yield from asyncio.wait_for(self.new_response, timeout)
+            with translate_timeout_errors():
+                yield from asyncio.wait_for(self.new_response, timeout)
         # If there is a (non-empty) error to be received, we return True, so the
         # user will receive it on the next `next` call.
         return len(self.items) != 0 or not isinstance(self.error, RqlCursorEmpty)
@@ -66,7 +75,8 @@ class AsyncioCursor(Cursor):
             self._maybe_fetch_batch()
             if self.error is not None:
                 raise self.error
-            yield from asyncio.wait_for(self.new_response, timeout)
+            with translate_timeout_errors():
+                yield from asyncio.wait_for(self.new_response, timeout)
         return convert_pseudo(self.items.pop(0), self.query)
 
     def _maybe_fetch_batch(self):
@@ -74,7 +84,6 @@ class AsyncioCursor(Cursor):
            len(self.items) <= self.threshold and \
            self.outstanding_requests == 0:
             self.outstanding_requests += 1
-            asyncio.async(self.conn._parent._continue(self))
 
 
 class ConnectionInstance(object):
@@ -107,10 +116,11 @@ class ConnectionInstance(object):
 
         try:
             self._streamwriter.write(self._parent.handshake)
-            response = yield from asyncio.wait_for(
-                _read_until(self._streamreader, b'\0'),
-                timeout, loop=self._io_loop,
-            )
+            with translate_timeout_errors():
+                response = yield from asyncio.wait_for(
+                    _read_until(self._streamreader, b'\0'),
+                    timeout, loop=self._io_loop,
+                )
         except Exception as err:
             raise RqlDriverError(
                 'Connection interrupted during handshake with %s:%s. Error: %s' %
