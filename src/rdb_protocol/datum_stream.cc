@@ -729,7 +729,7 @@ void datum_stream_t::check_not_grouped(const char *msg) {
 
 std::vector<datum_t>
 datum_stream_t::next_batch(env_t *env, const batchspec_t &batchspec) {
-    DEBUG_ONLY_CODE(env->do_eval_callback());
+    env->do_eval_callback();
     if (env->interruptor->is_pulsed()) {
         throw interrupted_exc_t();
     }
