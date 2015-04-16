@@ -92,40 +92,6 @@ def just_do(coroutine, *args, **kwargs):
 # == Test Base Classes
 
 class TestCaseCompatible(unittest.TestCase):
-    # @asyncio.coroutine
-    # def asyncAssertRaisesRegexp(self, exception, regexp, generator):
-    #     try:
-    #         yield from generator
-    #     except Exception as e:
-    #         self.assertTrue(isinstance(e, exception),
-    #                         '%s expected to raise %s but '
-    #                         'instead raised %s: %s\n%s'
-    #                         % (repr(generator), repr(exception),
-    #                            e.__class__.__name__, str(e),
-    #                            traceback.format_exc()))
-    #         self.assertTrue(re.search(regexp, str(e)),
-    #                         '%s did not raise the expected '
-    #                         'message "%s", but rather: %s'
-    #                         % (repr(generator), str(regexp), str(e)))
-    #     else:
-    #         self.fail('%s failed to raise a %s'
-    #                   % (repr(generator), repr(exception)))
-    #
-    # @asyncio.coroutine
-    # def asyncAssertRaises(self, exception, generator):
-    #     try:
-    #         yield from generator
-    #     except Exception as e:
-    #         self.assertTrue(isinstance(e, exception),
-    #                         '%s expected to raise %s but '
-    #                         'instead raised %s: %s\n%s'
-    #                         % (repr(generator), repr(exception),
-    #                            e.__class__.__name__, str(e),
-    #                            traceback.format_exc()))
-    #     else:
-    #         self.fail('%s failed to raise a %s'
-    #                   % (repr(generator), repr(exception)))
-
     # can't use standard TestCase run here because async.
     def run(self, result=None):
         return just_do(self.arun, result)
