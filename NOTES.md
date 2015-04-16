@@ -5,7 +5,7 @@ Released on 2015-04-20
 Bug fix release
 
 * Fixed a regression in the backup scripts that detected the server version incorrectly (#3706)
-* Fixed a bug in the load balancer that could degrade performance (#4066)
+* Fixed a bug in the cache balancer that could degrade performance (#4066)
 
 --
 
