@@ -918,13 +918,14 @@ class TestChangefeeds(TestWithConnection):
         for n in ('a', 'b'):
             feeds_ready[n] = asyncio.Future()
             feeds_done[n] = asyncio.Future()
-            loop.add_callback(self.cfeed_noticer, n, feeds_ready[n], feeds_done[n], needed_values[n])
+            asyncio.async(self.cfeed_noticer(n, feeds_ready[n], feeds_done[n],
+                                             needed_values[n]))
 
-        yield from list(feeds_ready.values())
-        yield from [self.table_a_even_writer(),
+        yield from asyncio.wait(feeds_ready.values())
+        yield from asyncio.wait([self.table_a_even_writer(),
                self.table_a_odd_writer(),
-               self.table_b_writer()]
-        yield from list(feeds_done.values())
+               self.table_b_writer()])
+        yield from asyncio.wait(feeds_done.values())
         self.assertTrue(all([len(x) == 0 for x in needed_values.values()]))
 
 if __name__ == '__main__':
