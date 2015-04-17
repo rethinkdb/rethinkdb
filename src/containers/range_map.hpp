@@ -22,7 +22,7 @@ public:
     /* Constructs an empty `range_map_t` that starts and ends at the given point. Even
     when empty, a `range_map_t` is still considered to be at some specific point in the
     `edge_t` space. */
-    range_map_t(const edge_t &l_and_r) : left(l_and_r) { }
+    explicit range_map_t(const edge_t &l_and_r) : left(l_and_r) { }
 
     /* Constructs a `range_map_t` that stretches from `l` to `r` and has value `v` within
     that range. */

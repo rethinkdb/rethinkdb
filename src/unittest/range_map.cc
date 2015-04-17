@@ -1,10 +1,10 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
-#include "unittest/gtest.hpp"
-
 #include <deque>
 
 #include "errors.hpp"
 #include <boost/optional.hpp>
+
+#include "unittest/gtest.hpp"
 
 #include "containers/range_map.hpp"
 #include "utils.hpp"
@@ -14,11 +14,11 @@ namespace unittest {
 class test_range_map_t {
 public:
     test_range_map_t() { }
-    test_range_map_t(int i) : inner(i), ref_offset(i) {
+    explicit test_range_map_t(int i) : inner(i), ref_offset(i) {
         validate();
     }
     test_range_map_t(int l, int r, char v) :
-        inner(l, r, char(v)), ref_offset(l), ref(r - l, v)
+        inner(l, r, static_cast<char>(v)), ref_offset(l), ref(r - l, v)
     {
         validate();
     }
@@ -105,7 +105,7 @@ public:
         validate();
     }
     void extend_right(int l, int r, char v) {
-        inner.extend_right(l, r, char(v));
+        inner.extend_right(l, r, static_cast<char>(v));
         while (l++ < r) {
             ref.push_back(v);
         }
@@ -118,7 +118,7 @@ public:
         validate();
     }
     void extend_left(int l, int r, char v) {
-        inner.extend_left(l, r, char(v));
+        inner.extend_left(l, r, static_cast<char>(v));
         while (r-- > l) {
             ref.push_front(v);
         }
@@ -135,7 +135,7 @@ public:
         validate();
     }
     void update(int l, int r, char v) {
-        inner.update(l, r, char(v));
+        inner.update(l, r, static_cast<char>(v));
         for (int i = l; i < r; ++i) {
             ref.at(i - ref_offset) = v;
         }
@@ -223,7 +223,7 @@ TEST(RangeMap, RangeMap) {
             test = test.map(l, r, [&](char v) -> char { return v + 1; });
         } else if (opcode == 3) {
             test = test.map_multi(l, r, [&](int l2, int r2, char v) {
-                range_map_t<int, char> chunk(l2, r2, char(v));
+                range_map_t<int, char> chunk(l2, r2, static_cast<char>(v));
                 chunk.update(l2, l2 + 1, v + 1);
                 return chunk;
             });
