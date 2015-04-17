@@ -18,6 +18,8 @@ private:
     typedef range_map_t<key_edge_t, hash_range_map_t> key_range_map_t;
 
 public:
+    typedef value_t mapped_type;
+
     region_map_t() THROWS_NOTHING : region_map_t(region_t::universe(), value_t()) { }
 
     explicit region_map_t(region_t r, value_t v = value_t()) THROWS_NOTHING :
@@ -73,7 +75,74 @@ public:
         return inner.lookup(key_edge_t(key)).lookup(h);
     }
 
-    MUST_USE region_map_t mask(region_t region) const {
+    template<class callable_t>
+    void visit(const region_t &region, const callable_t &cb) const {
+        inner.visit(key_edge_t(region.inner.left), region.inner.right,
+            [&](const key_edge_t &l, const key_edge_t &r, const hash_range_map_t &hrm) {
+                hrm.visit(region.beg, region.end,
+                    [&](uint64_t b, uint64_t e, const value_t &value) {
+                        key_range_t subrange;
+                        subrange.left = l.key();
+                        subrange.right = r;
+                        region_t subregion(b, e, subrange);
+                        cb(subregion, value);
+                    });
+            });
+    }
+
+    template<class callable_t>
+    auto map(const region_t &region, const callable_t &cb) const
+            -> region_map_t<typename std::decay<
+                typename std::result_of<decltype(cb)(value_t)>::type>::type> {
+        return region_map_t<typename std::decay<
+                typename std::result_of<callable_t(value_t)>::type>::type>(
+            inner.map(key_edge_t(region.inner.left), region.inner.right,
+                [&](const hash_range_map_t &slice) {
+                    return slice.map(region.beg, region.end, cb);
+                }),
+            region.beg,
+            region.end);
+    }
+
+    template<class callable_t>
+    auto map_multi(const region_t &region, const callable_t &cb) const
+            -> region_map_t<typename std::decay<
+                typename std::result_of<callable_t(region_t, value_t)>::type>
+                ::type::mapped_type> {
+        typedef typename std::decay<
+            typename std::result_of<callable_t(region_t, value_t)>::type>
+            ::type::mapped_type result_t;
+        return region_map_t<result_t>(
+            inner.map_multi(key_edge_t(region.inner.left), region.inner.right,
+            [&](const key_edge_t &l, const key_edge_t &r, const hash_range_map_t &hrm) {
+                key_range_t sub_reg;
+                sub_reg.left = l.key();
+                sub_reg.right = r;
+                range_map_t<key_edge_t, range_map_t<uint64_t, result_t> >
+                    sub_res(l, r, range_map_t<uint64_t, result_t>(region.beg));
+                hrm.visit(region.beg, region.end,
+                [&](uint64_t b, uint64_t e, const value_t &value) {
+                    region_t sub_sub_reg(b, e, sub_reg);
+                    auto sub_sub_res = cb(sub_sub_reg, value);
+                    rassert(sub_sub_res.get_domain() == sub_sub_reg);
+                    sub_sub_res.inner.visit(l, r,
+                    [&](const key_edge_t &l2, const key_edge_t &r2,
+                            const range_map_t<uint64_t, result_t> &sub_sub_sub_res) {
+                        sub_res.visit_mutable(l2, r2,
+                        [&](const key_edge_t &, const key_edge_t &,
+                                range_map_t<uint64_t, result_t> *sub_res_hrm) {
+                            sub_res_hrm->extend_right(
+                                range_map_t<uint64_t, result_t>(sub_sub_sub_res));
+                        });
+                    });
+                });
+                return sub_res;
+            }),
+            region.beg,
+            region.end);
+    }
+
+    MUST_USE region_map_t mask(const region_t &region) const {
         return region_map_t(
             inner.map(
                 key_edge_t(region.inner.left),
@@ -83,6 +152,13 @@ public:
                 }),
             region.beg,
             region.end);
+    }
+
+    bool operator==(const region_map_t &other) const {
+        return inner == other.inner;
+    }
+    bool operator!=(const region_map_t &other) const {
+        return inner != other.inner;
     }
 
     void update(const region_map_t& new_values) {
@@ -104,13 +180,18 @@ public:
             });
     }
 
-    void visit(
-            const region_t &region,
-            const std::function<void(const region_t &, const value_t &)> &cb) const {
-        inner.visit(key_edge_t(region.inner.left), region.inner.right,
-            [&](const key_edge_t &l, const key_edge_t &r, const hash_range_map_t &hrm) {
-                hrm.visit(region.beg, region.end,
-                    [&](uint64_t b, uint64_t e, const value_t &value) {
+    void extend_keys_right(region_map_t &&new_values) {
+        rassert(new_values.hash_beg == hash_beg && new_values.hash_end == hash_end);
+        rassert(new_values.inner.left_edge() == inner.right_edge());
+        inner.extend_right(std::move(new_values.inner));
+    }
+
+    template<class callable_t>
+    void visit_mutable(const region_t &region, const callable_t &cb) {
+        inner.visit_mutable(key_edge_t(region.inner.left), region.inner.right,
+            [&](const key_edge_t &l, const key_edge_t &r, hash_range_map_t *hrm) {
+                hrm->visit_mutable(region.beg, region.end,
+                    [&](uint64_t b, uint64_t e, value_t *value) {
                         key_range_t subrange;
                         subrange.left = l.key();
                         subrange.right = r;
@@ -121,6 +202,9 @@ public:
     }
 
 private:
+    template<class other_value_t>
+    friend class region_map_t;
+
     region_map_t(key_range_map_t &&_inner, uint64_t _hash_beg, uint64_t _hash_end) :
         inner(_inner), hash_beg(_hash_beg), hash_end(_hash_end) { }
 
@@ -147,7 +231,7 @@ void serialize(write_message_t *wm, const region_map_t<V> &map) {
 template<cluster_version_t W, class V>
 MUST_USE archive_result_t deserialize(read_stream_t *s, region_map_t<V> *map) {
     std::vector<std::pair<region_t, V> > pairs;
-    archive_result_t res = deserialize(s, &pairs);
+    archive_result_t res = deserialize<W>(s, &pairs);
     if (bad(res)) { return res; }
     std::vector<region_t> regions;
     std::vector<V> values;
@@ -157,6 +241,7 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, region_map_t<V> *map) {
     }
     *map = region_map_t<V>::from_unordered_fragments(
         std::move(regions), std::move(values));
+    return archive_result_t::SUCCESS;
 }
 
 #endif  // REGION_REGION_MAP_HPP_

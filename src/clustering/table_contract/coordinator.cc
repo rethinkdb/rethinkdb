@@ -15,6 +15,14 @@ of the `region_map_t<version_t>` it has a single `state_timestamp_t`. Use
 
 class contract_ack_frag_t {
 public:
+    bool operator==(const contract_ack_frag_t &x) const {
+        return state == x.state && version == x.version &&
+            failover_timeout_elapsed == x.failover_timeout_elapsed && branch == x.branch;
+    }
+    bool operator!=(const contract_ack_frag_t &x) const {
+        return !(*this == x);
+    }
+
     contract_ack_t::state_t state;
     boost::optional<state_timestamp_t> version;
     bool failover_timeout_elapsed;
@@ -35,20 +43,17 @@ region_map_t<contract_ack_frag_t> break_ack_into_fragments(
     } else {
         branch_history_combiner_t combined_branch_history(
             raft_branch_history, &ack.branch_history);
-        std::vector<std::pair<region_t, contract_ack_frag_t> > parts;
-        for (const std::pair<region_t, version_t> &vers_pair : *ack.version) {
-            region_map_t<version_t> points_on_canonical_branch =
-                version_find_branch_common(
-                    &combined_branch_history,
-                    vers_pair.second,
-                    branch,
-                    vers_pair.first);
-            for (const auto &can_pair : points_on_canonical_branch) {
-                base_frag.version = boost::make_optional(can_pair.second.timestamp);
-                parts.push_back(std::make_pair(can_pair.first, base_frag));
-            }
-        }
-        return region_map_t<contract_ack_frag_t>(parts.begin(), parts.end());
+        return ack.version->map_multi(region,
+            [&](const region_t &reg, const version_t &vers) {
+                region_map_t<version_t> points_on_canonical_branch =
+                    version_find_branch_common(&combined_branch_history,
+                        vers, branch, reg);
+                return points_on_canonical_branch.map(reg,
+                    [&](const version_t &common_vers) {
+                        base_frag.version = boost::make_optional(common_vers.timestamp);
+                        return base_frag;
+                    });
+            });
     }
 }
 
@@ -314,7 +319,8 @@ void calculate_all_contracts(
 
     ASSERT_FINITE_CORO_WAITING;
 
-    std::vector<std::pair<region_t, contract_t> > new_contract_vector;
+    std::vector<region_t> new_contract_region_vector;
+    std::vector<contract_t> new_contract_vector;
 
     /* We want to break the key-space into sub-regions small enough that the contract,
     table config, and ack versions are all constant across the sub-region. First we
@@ -344,42 +350,48 @@ void calculate_all_contracts(
                 region_map_t<contract_ack_frag_t> frags = break_ack_into_fragments(
                     region, *value, cpair.second.second.branch,
                     &old_state.branch_history);
-                for (const auto &fpair : frags) {
-                    auto part_of_frags_by_server = frags_by_server.mask(fpair.first);
-                    for (auto &&fspair : part_of_frags_by_server) {
-                        fspair.second.insert(std::make_pair(key.first, fpair.second));
-                    }
-                    frags_by_server.update(part_of_frags_by_server);
-                }
+                frags.visit(region,
+                [&](const region_t &reg, const contract_ack_frag_t &frag) {
+                    frags_by_server.visit_mutable(reg,
+                    [&](const region_t &,
+                            std::map<server_id_t, contract_ack_frag_t> *acks_map) {
+                        auto res = acks_map->insert(std::make_pair(key.first, frag));
+                        guarantee(res.second);
+                    });
+                });
             });
-            for (const auto &apair : frags_by_server) {
+            frags_by_server.visit(region,
+            [&](const region_t &reg,
+                    const std::map<server_id_t, contract_ack_frag_t> &acks_map) {
                 /* We've finally collected all the inputs to `calculate_contract()` and
                 broken the key space into regions across which the inputs are
                 homogeneous. So now we can actually call it. */
                 contract_t new_contract = calculate_contract(
                     cpair.second.second,
                     old_state.config.config.shards[si],
-                    apair.second);
-                new_contract_vector.push_back(std::make_pair(apair.first, new_contract));
-            }
+                    acks_map);
+                new_contract_region_vector.push_back(reg);
+                new_contract_vector.push_back(new_contract);
+            });
         }
     }
 
     /* Put the new contracts into a `region_map_t` to coalesce adjacent regions that have
     identical contracts */
-    region_map_t<contract_t> new_contract_region_map(
-        new_contract_vector.begin(), new_contract_vector.end());
+    region_map_t<contract_t> new_contract_region_map =
+        region_map_t<contract_t>::from_unordered_fragments(
+            std::move(new_contract_region_vector), std::move(new_contract_vector));
 
     /* Slice the new contracts by CPU shard, so that no contract spans more than one CPU
     shard */
     std::map<region_t, contract_t> new_contract_map;
     for (size_t cpu = 0; cpu < CPU_SHARDING_FACTOR; ++cpu) {
         region_t cpu_region = cpu_sharding_subspace(cpu);
-        for (const auto &pair : new_contract_region_map.mask(cpu_region)) {
-            guarantee(pair.first.beg == cpu_region.beg &&
-                pair.first.end == cpu_region.end);
-            new_contract_map.insert(pair);
-        }
+        new_contract_region_map.visit(cpu_region,
+        [&](const region_t &reg, const contract_t &contract) {
+            guarantee(reg.beg == cpu_region.beg && reg.end == cpu_region.end);
+            new_contract_map.insert(std::make_pair(reg, contract));
+        });
     }
 
     /* Diff the new contracts against the old contracts */

@@ -1,12 +1,15 @@
 #ifndef CONTAINERS_RANGE_MAP_HPP_
 #define CONTAINERS_RANGE_MAP_HPP_
 
-template<class edge_t, class val_t>
+template<class edge_t, class value_t>
 class range_map_t {
 public:
+    typedef edge_t edge_type;
+    typedef value_t mapped_type;
+
     range_map_t() : range_map_t(edge_t()) { }
     range_map_t(const edge_t &l_and_r) : left(l_and_r) { }
-    range_map_t(const edge_t &l, const edge_t &r, val_t &&v = val_t()) : left(l) {
+    range_map_t(const edge_t &l, const edge_t &r, value_t &&v = value_t()) : left(l) {
         rassert(r >= l);
         if (r != l) {
             zones.insert(std::make_pair(r, std::move(v)));
@@ -28,11 +31,75 @@ public:
     }
 
     /* Looks up the value for the location immediately to the right of `before_point`. */
-    const val_t &lookup(const edge_t &before_point) {
+    const value_t &lookup(const edge_t &before_point) const {
         rassert(before_point >= left_edge());
         rassert(before_point < right_edge());
         auto it = zones.upper_bound(before_point);
         return it->second;
+    }
+
+    template<class callable_t>
+    void visit(const edge_t &l, const edge_t &r, const callable_t &cb) const {
+        rassert(l >= left_edge());
+        rassert(r <= right_edge());
+        rassert(l <= r);
+        if (l == r) {
+            return;
+        }
+        auto it = zones.upper_bound(l);
+        edge_t prev = l;
+        while (it->first >= r) {
+            cb(prev, it->first, it->second);
+            prev = it->first;
+            ++it;
+        }
+        cb(prev, r, it->second);
+    }
+
+    template<class callable_t>
+    auto map(const edge_t &l, const edge_t &r, const callable_t &cb) const
+            -> range_map_t<edge_t, typename std::decay<
+                typename std::result_of<callable_t(value_t)>::type>::type> {
+        typedef typename std::decay<
+            typename std::result_of<callable_t(value_t)>::type>::type result_t;
+        range_map_t<edge_t, result_t> res(l);
+        visit(l, r, [&](const edge_t &l2, const edge_t &r2, const value_t &v) {
+            res.extend_right(l2, r2, result_t(cb(v)));
+        });
+        return res;
+    }
+
+    template<class callable_t>
+    auto map_multi(const edge_t &l, const edge_t &r, const callable_t &cb) const
+            -> typename std::decay<
+                typename std::result_of<callable_t(edge_t, edge_t, value_t)>::type>
+                ::type {
+        typedef typename std::decay<
+            typename std::result_of<callable_t(edge_t, edge_t, value_t)>::type>
+            ::type::mapped_type result_t;
+        range_map_t<edge_t, result_t> res(l);
+        visit(l, r, [&](const edge_t &l2, const edge_t &r2, const value_t &v) {
+            range_map_t<edge_t, result_t> frags = cb(l2, r2, v);
+            rassert(frags.left_edge() == l2);
+            rassert(frags.right_edge() == r2);
+            res.extend_right(std::move(frags));
+        });
+        return res;
+    }
+
+    MUST_USE range_map_t<edge_t, value_t> mask(const edge_t &l, const edge_t &r) const {
+        range_map_t res(l);
+        visit(l, r, [&](const edge_t &l2, const edge_t &r2, const value_t &v) {
+            res.extend_right(l2, r2, value_t(v));
+        });
+        return res;
+    }
+
+    bool operator==(const range_map_t &other) const {
+        return left == other.left && zones == other.zones;
+    }
+    bool operator!=(const range_map_t &other) const {
+        return !(*this == other);
     }
 
     void extend_right(range_map_t &&other) {
@@ -43,7 +110,7 @@ public:
         coalesce_at(other.left);
         DEBUG_ONLY_CODE(validate());
     }
-    void extend_right(const edge_t &l, const edge_t &r, val_t &&v) {
+    void extend_right(const edge_t &l, const edge_t &r, value_t &&v) {
         rassert(l == right_edge());
         rassert(r >= l);
         if (l == r) {
@@ -63,7 +130,7 @@ public:
         left = other.left;
         DEBUG_ONLY_CODE(validate());
     }
-    void extend_left(const edge_t &l, const edge_t &r, val_t &&v) {
+    void extend_left(const edge_t &l, const edge_t &r, value_t &&v) {
         rassert(left_edge() == r);
         rassert(r >= l);
         if (l == r) {
@@ -118,54 +185,12 @@ public:
 
         DEBUG_ONLY_CODE(validate());
     }
-    void update(const edge_t &l, const edge_t &r, val_t &&v) {
+    void update(const edge_t &l, const edge_t &r, value_t &&v) {
         update(range_map_t(l, r, std::move(v)));
     }
 
-    void visit(
-            const edge_t &l,
-            const edge_t &r,
-            const std::function<void(const edge_t &, const edge_t &, const val_t &)> &cb
-            ) const {
-        rassert(l >= left_edge());
-        rassert(r <= right_edge());
-        rassert(l <= r);
-        if (l == r) {
-            return;
-        }
-        auto it = zones.upper_bound(l);
-        edge_t prev = l;
-        while (it->first >= r) {
-            cb(prev, it->first, it->second);
-            prev = it->first;
-            ++it;
-        }
-        cb(prev, r, it->second);
-    }
-
     template<class callable_t>
-    auto map(const edge_t &l, const edge_t &r, const callable_t &cb) const
-            -> range_map_t<edge_t, decltype(cb(val_t()))> {
-        range_map_t<edge_t, decltype(cb(val_t()))> res(l);
-        visit(l, r, [&](const edge_t &l2, const edge_t &r2, const val_t &v) {
-            res.extend_right(l2, r2, cb(v));
-        });
-        return res;
-    }
-
-    MUST_USE range_map_t<edge_t, val_t> mask(const edge_t &l, const edge_t &r) const {
-        range_map_t res(l);
-        visit(l, r, [&](const edge_t &l2, const edge_t &r2, const val_t &v) {
-            res.extend_right(l2, r2, val_t(v));
-        });
-        return res;
-    }
-
-    void visit_mutable(
-            const edge_t &l,
-            const edge_t &r,
-            const std::function<void(const edge_t &, const edge_t &, val_t *)> &cb
-            ) {
+    void visit_mutable(const edge_t &l, const edge_t &r, const callable_t &cb) {
         rassert(l >= left_edge());
         rassert(r <= right_edge());
         rassert(l <= r);
@@ -199,13 +224,6 @@ public:
         coalesce_range(l, r);
     }
 
-    bool operator==(const range_map_t &other) const {
-        return left == other.left && zones == other.zones;
-    }
-    bool operator!=(const range_map_t &other) const {
-        return !(*this == other);
-    }
-
 private:
 #ifndef NDEBUG
     void validate() const {
@@ -217,7 +235,9 @@ private:
                 if (it == zones.end()) {
                     break;
                 }
-                rassert(it->second != jt->second,
+                /* Use `!(x == y)` instead of `x != y` because sometimes people are lazy
+                and don't define `!=` */
+                rassert(!(it->second == jt->second),
                     "adjacent equal values should have been coalesced");
             }
         }
@@ -246,7 +266,7 @@ private:
     }
 
     edge_t left;
-    std::map<edge_t, val_t> zones;
+    std::map<edge_t, value_t> zones;
 };
 
 #endif /* CONTAINERS_RANGE_MAP_HPP_ */

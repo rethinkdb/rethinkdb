@@ -12,6 +12,7 @@
 
 enum region_join_result_t { REGION_JOIN_OK, REGION_JOIN_BAD_JOIN, REGION_JOIN_BAD_REGION };
 
+struct btree_key_t;
 struct key_range_t;
 struct store_key_t;
 

@@ -34,7 +34,7 @@ uint64_t hash_region_hasher(const uint8_t *s, ssize_t len) {
 }
 
 uint64_t hash_region_hasher(const btree_key_t *key) {
-    return hash_region_hasher(key->contents(), key->size());
+    return hash_region_hasher(key->contents, key->size);
 }
 
 uint64_t hash_region_hasher(const store_key_t &key) {

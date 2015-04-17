@@ -247,7 +247,7 @@ continue_bool_t mock_store_t::send_backfill_pre(
             }
             break;
         }
-        if (it->second.first > start_point.get_point(it->first).to_repli_timestamp()) {
+        if (it->second.first > start_point.lookup(it->first).to_repli_timestamp()) {
             /* We need to rewind this key */
             backfill_pre_item_t item;
             if (rng_.randint(10) != 0) {
@@ -385,7 +385,7 @@ continue_bool_t mock_store_t::send_backfill(
             /* The next thing in lexicographical order is a key in our local copy, not a
             pre item. */
             if (it->second.first >
-                    start_point.get_point(it->first).to_repli_timestamp()) {
+                    start_point.lookup(it->first).to_repli_timestamp()) {
                 /* The key has changed since `start_point`, so we'll transmit it. */
                 backfill_item_t item;
                 item.range = key_range_t(
@@ -492,7 +492,7 @@ void mock_store_t::reset_data(
         }
     }
 
-    metainfo_.set(subregion, zero_version);
+    metainfo_.update(subregion, zero_version);
 }
 
 std::string mock_store_t::values(std::string key) {
