@@ -143,6 +143,8 @@ public:
     }
 
     MUST_USE region_map_t mask(const region_t &region) const {
+        debugf("begin mask()\n");
+        debugf_in_dtor_t dtor("end mask()\n");
         return region_map_t(
             inner.map(
                 key_edge_t(region.inner.left),
@@ -174,6 +176,7 @@ public:
     }
 
     void update(const region_t &r, const value_t &v) {
+        rassert(region_is_superset(get_domain(), r));
         inner.visit_mutable(key_edge_t(r.inner.left), r.inner.right,
             [&](const key_edge_t &, const key_edge_t &, hash_range_map_t *cur) {
                 cur->update(r.beg, r.end, value_t(v));
