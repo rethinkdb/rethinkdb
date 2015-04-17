@@ -68,10 +68,7 @@ public:
             typename std::result_of<callable_t(value_t)>::type>::type result_t;
         range_map_t<edge_t, result_t> res(l);
         visit(l, r, [&](const edge_t &l2, const edge_t &r2, const value_t &v) {
-            debugf_print("l2", l2);
-            debugf_print("r2", r2);
             res.extend_right(l2, r2, result_t(cb(v)));
-            res.prz();
         });
         return res;
     }
@@ -111,13 +108,17 @@ public:
 
     void extend_right(range_map_t &&other) {
         rassert(other.left_edge() == right_edge());
-        if (!other.empty_domain()) {
-            zones.insert(
-                std::make_move_iterator(other.zones.begin()),
-                std::make_move_iterator(other.zones.end()));
-            coalesce_at(other.left);
-            DEBUG_ONLY_CODE(validate());
+        if (other.empty_domain()) {
+            return;
         }
+        bool empty_before = empty_domain();
+        zones.insert(
+            std::make_move_iterator(other.zones.begin()),
+            std::make_move_iterator(other.zones.end()));
+        if (!empty_before) {
+            coalesce_at(other.left);
+        }
+        DEBUG_ONLY_CODE(validate());
     }
     void extend_right(const edge_t &l, const edge_t &r, value_t &&v) {
         rassert(l == right_edge());
@@ -125,8 +126,9 @@ public:
         if (l == r) {
             return;
         }
+        bool empty_before = empty_domain();
         zones.insert(std::make_pair(r, std::move(v)));
-        if (l != left) {
+        if (!empty_before) {
             coalesce_at(l);
         }
         DEBUG_ONLY_CODE(validate());
@@ -134,10 +136,16 @@ public:
 
     void extend_left(range_map_t &&other) {
         rassert(left_edge() == other.right_edge());
+        if (other.empty_domain()) {
+            return;
+        }
+        bool empty_before = empty_domain();
         zones.insert(
             std::make_move_iterator(other.zones.begin()),
             std::make_move_iterator(other.zones.end()));
-        coalesce_at(left);
+        if (!empty_before) {
+            coalesce_at(left);
+        }
         left = other.left;
         DEBUG_ONLY_CODE(validate());
     }
@@ -147,8 +155,11 @@ public:
         if (l == r) {
             return;
         }
+        bool empty_before = empty_domain();
         zones.insert(std::make_pair(r, std::move(v)));
-        coalesce_at(r);
+        if (!empty_before) {
+            coalesce_at(r);
+        }
         left = l;
         DEBUG_ONLY_CODE(validate());
     }
@@ -168,8 +179,6 @@ public:
         rassert(left_edge() <= other.left_edge());
         rassert(right_edge() >= other.right_edge());
 
-        prz();
-
         /* If a single existing zone spans `other.left_edge(), then split it into two
         sub-zones at `other.right_edge()`. */
         if (other.left_edge() != left) {
@@ -179,7 +188,6 @@ public:
                 /* no need to split anything, `other.left_edge()` lies on a boundary
                 between two existing zones */
             } else {
-                debugf_print("split left at", other.left_edge());
                 zones.insert(std::make_pair(other.left_edge(), split_it->second));
             }
         } else {
@@ -192,7 +200,9 @@ public:
         naturally because one of `other`'s zones will implicitly split any existing zone
         that spans `other.right_edge()`. */
         auto end = zones.lower_bound(other.right_edge());
-        ++end;
+        if (end->first == other.right_edge()) {
+            ++end;
+        }
         zones.erase(zones.upper_bound(other.left_edge()), end);
 
         /* Move all the zones from `other` into us */
@@ -208,19 +218,14 @@ public:
             coalesce_at(other.right_edge());
         }
 
-        prz();
-
         DEBUG_ONLY_CODE(validate());
     }
     void update(const edge_t &l, const edge_t &r, value_t &&v) {
-        debugf("update(%s, %s)\n", debug_strprint(l).c_str(), debug_strprint(r).c_str());
         update(range_map_t(l, r, std::move(v)));
     }
 
     template<class callable_t>
     void visit_mutable(const edge_t &l, const edge_t &r, const callable_t &cb) {
-        debugf("visit_mutable(%s, %s)\n", debug_strprint(l).c_str(), debug_strprint(r).c_str());
-        prz();
         rassert(l >= left_edge());
         rassert(r <= right_edge());
         rassert(l <= r);
@@ -249,8 +254,6 @@ public:
         cb(prev, r, &it->second);
         coalesce_range(l, r);
         DEBUG_ONLY_CODE(validate());
-        prz();
-        debugf("end visit_mutable\n");
     }
 
 private:
@@ -290,7 +293,6 @@ private:
             auto jt = it;
             ++it;
             if (jt->second == it->second) {
-                debugf_print("coalescing_r", jt->first);
                 zones.erase(jt);
             }
         }

@@ -143,8 +143,6 @@ public:
     }
 
     MUST_USE region_map_t mask(const region_t &region) const {
-        debugf("begin mask()\n");
-        debugf_in_dtor_t dtor("end mask()\n");
         return region_map_t(
             inner.map(
                 key_edge_t(region.inner.left),
@@ -184,9 +182,13 @@ public:
     }
 
     void extend_keys_right(region_map_t &&new_values) {
-        rassert(new_values.hash_beg == hash_beg && new_values.hash_end == hash_end);
-        rassert(new_values.inner.left_edge() == inner.right_edge());
-        inner.extend_right(std::move(new_values.inner));
+        if (hash_end == hash_beg || inner.empty_domain()) {
+            *this = std::move(new_values);
+        } else {
+            rassert(new_values.hash_beg == hash_beg && new_values.hash_end == hash_end);
+            rassert(new_values.inner.left_edge() == inner.right_edge());
+            inner.extend_right(std::move(new_values.inner));
+        }
     }
 
     template<class callable_t>
