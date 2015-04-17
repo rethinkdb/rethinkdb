@@ -38,7 +38,6 @@ TEST(RegionMap, Mask) {
 
     region_map_t<int> masked_map = rmap.mask(make_region("g", "s"));
 
-    debugf_print("masked_map.get_domain()", masked_map.get_domain());
     EXPECT_TRUE(masked_map.get_domain() == make_region("g", "s"));
 
     int i = 0;

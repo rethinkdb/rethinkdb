@@ -9,7 +9,9 @@
 #include "containers/range_map.hpp"
 #include "region/region.hpp"
 
-/* Regions contained in region_map_t must never intersect. */
+/* `region_map_t` is a mapping from contiguous non-overlapping `region_t`s to `value_t`s.
+It will automatically merge contiguous regions with the same value (in most cases).
+Internally, it's implemented as two nested `range_map_t`s. */
 template <class value_t>
 class region_map_t {
 private:
@@ -68,6 +70,7 @@ public:
         }
     }
 
+
     const value_t &lookup(const store_key_t &key) const {
         uint64_t h = hash_region_hasher(key);
         rassert(h >= hash_beg);
@@ -75,6 +78,10 @@ public:
         return inner.lookup(key_edge_t(key)).lookup(h);
     }
 
+    /* Calls `cb` for a set of (subregion, value) pairs that cover all of `region`. The
+    signature of `cb` is:
+        void cb(const region_t &, const value_t &)
+    */
     template<class callable_t>
     void visit(const region_t &region, const callable_t &cb) const {
         inner.visit(key_edge_t(region.inner.left), region.inner.right,
@@ -90,6 +97,11 @@ public:
             });
     }
 
+    /* Derives a new `region_map_t` from the given region of this `region_map_t` by
+    applying `cb` to transform each value. The signature of `cb` is:
+        value2_t cb(const value_t &);
+    and the return value will have type `region_map_t<value2_t>` and domain equal to
+    `region`. */
     template<class callable_t>
     auto map(const region_t &region, const callable_t &cb) const
             -> region_map_t<typename std::decay<
@@ -104,6 +116,11 @@ public:
             region.end);
     }
 
+    /* Like `map()`, but the mapping can take into account the original location and can
+    produce non-homogeneous results from a homogeneous input. The signature of `cb` is:
+        region_map_t<value2_t> cb(const region_t &, const value_t &);
+    and the return value will have type `region_map_t<value2_t>` and domain equal to
+    `region`. */
     template<class callable_t>
     auto map_multi(const region_t &region, const callable_t &cb) const
             -> region_map_t<typename std::decay<
@@ -142,6 +159,7 @@ public:
             region.end);
     }
 
+    /* Copies a subset of this `region_map_t` into a new `region_map_t`. */
     MUST_USE region_map_t mask(const region_t &region) const {
         return region_map_t(
             inner.map(
@@ -161,6 +179,9 @@ public:
         return inner != other.inner;
     }
 
+    /* Overwrites part or all of this `region_map_t` with the contents of the given
+    `region_map_t`. This does not change the domain of this `region_map_t`; `new_values`
+    must lie entirely within the current domain. */
     void update(const region_map_t& new_values) {
         rassert(region_is_superset(get_domain(), new_values.get_domain()));
         new_values.inner.visit(
@@ -173,6 +194,7 @@ public:
             });
     }
 
+    /* `update()` sets the value for `r` to `v`. */
     void update(const region_t &r, const value_t &v) {
         rassert(region_is_superset(get_domain(), r));
         inner.visit_mutable(key_edge_t(r.inner.left), r.inner.right,
@@ -181,6 +203,8 @@ public:
             });
     }
 
+    /* Merges two `region_map_t`s that cover the same part of the hash-space and adjacent
+    ranges of the key-space. */
     void extend_keys_right(region_map_t &&new_values) {
         if (hash_end == hash_beg || inner.empty_domain()) {
             *this = std::move(new_values);
@@ -191,6 +215,11 @@ public:
         }
     }
 
+    /* Applies `cb` to every value in the given region. If some sub-region lies partially
+    inside and partially outside of `region`, then it will be split and `cb` will only be
+    applied to the part that lies inside `region`. The signature of `cb` is:
+        void cb(const region_t &, value_t *);
+    */
     template<class callable_t>
     void visit_mutable(const region_t &region, const callable_t &cb) {
         inner.visit_mutable(key_edge_t(region.inner.left), region.inner.right,
@@ -214,6 +243,9 @@ private:
         inner(_inner), hash_beg(_hash_beg), hash_end(_hash_end) { }
 
     key_range_map_t inner;
+
+    /* All of the `hash_range_map_t`s in `inner` should begin and end at `hash_beg` and
+    `hash_end`. We store them redundantly out here for easy access. */
     uint64_t hash_beg, hash_end;
 };
 
@@ -223,6 +255,11 @@ void debug_print(printf_buffer_t *buf, const region_map_t<V> &map) {
     debug_print(map.inner);
     buf->appendf("}");
 }
+
+/* These serialization functions are implemented manually for backwards compatibility.
+Older RethinkDB versions serialized `region_map_t` as a `vector<pair<region_t, V> >`, so
+we have to support reading that format. We could in theory use a newer format when
+writing data, but we currently don't. */
 
 template<cluster_version_t W, class V>
 void serialize(write_message_t *wm, const region_map_t<V> &map) {
