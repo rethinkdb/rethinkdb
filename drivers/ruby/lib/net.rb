@@ -652,7 +652,6 @@ module RethinkDB
     def init_socket
       unless @ssl_opts.empty?
         @tcp_socket = base_socket
-        @tcp_socket.connect(::Socket.pack_sockaddr_in(@port, @host))
         context = create_context(@ssl_opts)
         @socket = OpenSSL::SSL::SSLSocket.new(@tcp_socket, context)
         @socket.sync_close = true
@@ -660,12 +659,11 @@ module RethinkDB
         verify_cert!(@socket, context)
       else
         @socket = base_socket
-        @socket.connect(Socket.pack_sockaddr_in(@port, @host))
       end
     end
 
     def base_socket
-      socket = Socket.new(Socket::PF_INET, Socket::SOCK_STREAM, 0)
+      socket = TCPSocket.open(@host, @port)
       socket.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1)
       socket
     end
