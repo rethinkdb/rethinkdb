@@ -131,8 +131,9 @@ std::string print(const change_val_t &cv) {
 }
 } // namespace debug
 
-datum_t change_val_to_change(
-    const change_val_t &change,
+datum_t vals_to_change(
+    datum_t old_val,
+    datum_t new_val,
     bool discard_old_val = false,
     bool discard_new_val = false) {
     if (discard_old_val && discard_new_val) {
@@ -140,16 +141,25 @@ datum_t change_val_to_change(
     } else {
         std::map<datum_string_t, datum_t> ret;
         if (!discard_old_val) {
-            ret[datum_string_t("old_val")] =
-                change.old_val ? change.old_val->val : datum_t::null();
+            ret[datum_string_t("old_val")] = std::move(old_val);
         }
         if (!discard_new_val) {
-            ret[datum_string_t("new_val")] =
-                change.new_val ? change.new_val->val : datum_t::null();
+            ret[datum_string_t("new_val")] = std::move(new_val);
         }
         guarantee(ret.size() != 0);
         return datum_t(std::move(ret));
     }
+}
+
+datum_t change_val_to_change(
+    const change_val_t &change,
+    bool discard_old_val = false,
+    bool discard_new_val = false) {
+    return vals_to_change(
+        change.old_val ? change.old_val->val : datum_t::null(),
+        change.new_val ? change.new_val->val : datum_t::null(),
+        discard_old_val,
+        discard_new_val);
 }
 
 enum class pop_type_t { RANGE, POINT };
@@ -1173,7 +1183,8 @@ public:
         batcher_t *batcher,
         return_empty_normal_batches_t return_empty_normal_batches,
         const signal_t *interruptor);
-    virtual void start_artificial(env_t *, const uuid_u &,
+    virtual void start_artificial(env_t *,
+                                  const uuid_u &,
                                   const std::string &primary_key_name,
                                   const std::vector<datum_t> &initial_values) = 0;
     virtual void start_real(env_t *env,
@@ -1510,7 +1521,8 @@ public:
     }
     feed_type_t cfeed_type() const final { return feed_type_t::point; }
 
-    virtual void start_artificial(env_t *, const uuid_u &,
+    virtual void start_artificial(env_t *,
+                                  const uuid_u &,
                                   const std::string &primary_key_name,
                                   const std::vector<datum_t> &initial_values) {
         datum_t initial = datum_t::null();
@@ -1660,13 +1672,23 @@ public:
     virtual ~range_sub_t() {
         destructor_cleanup(std::bind(&feed_t::del_range_sub, feed, this));
     }
-    virtual void start_artificial(env_t *outer_env, const uuid_u &uuid,
-                                  const std::string &,
-                                  const std::vector<datum_t> &) {
-        // RSI: use `artificial_include_initial_vals`.
+    virtual void start_artificial(env_t *outer_env,
+                                  const uuid_u &uuid,
+                                  const std::string &pkey_name,
+                                  const std::vector<datum_t> &initial_vals) {
         assert_thread();
         env = make_env(outer_env);
         start_stamps[uuid] = 0;
+        if (artificial_include_initial_vals) {
+            state = state_t::INITIALIZING;
+            for (auto it = initial_vals.rbegin(); it != initial_vals.rend(); ++it) {
+                if (spec.range.contains(
+                        reql_version_t::LATEST,
+                        it->get_field(datum_string_t(pkey_name)))) {
+                    artificial_initial_vals.push_back(*it);
+                }
+            }
+        }
     }
     virtual void start_real(env_t *outer_env,
                             std::string,
@@ -1735,10 +1757,17 @@ public:
             sent_state = state;
             return state_datum(state);
         }
+        if (artificial_initial_vals.size() != 0) {
+            datum_t d = artificial_initial_vals.back();
+            artificial_initial_vals.pop_back();
+            return vals_to_change(datum_t(), d, true);
+        }
         return change_val_to_change(pop_change_val());
     }
     bool has_el() final {
-        return (include_states && state != sent_state) || has_change_val();
+        return (include_states && state != sent_state)
+            || artificial_initial_vals.size() != 0
+            || has_change_val();
     }
 
     virtual counted_t<datum_stream_t> to_stream(
@@ -1794,6 +1823,7 @@ private:
     std::map<uuid_u, uint64_t> start_stamps;
     keyspec_t::range_t spec;
     state_t state, sent_state;
+    std::vector<datum_t> artificial_initial_vals;
     bool artificial_include_initial_vals;
     auto_drainer_t drainer;
 };
@@ -3058,6 +3088,9 @@ counted_t<datum_stream_t> artificial_t::subscribe(
     guarantee(feed.has());
     scoped_ptr_t<subscription_t> sub = new_sub(
         feed.get(), datum_t::boolean(false), include_states, spec);
+    // RSI: pick up here, make these two functions one so that things can happen
+    // in the right order (`start_artificial` needs to know about
+    // `include_initial_vals`).
     sub->start_artificial(env, uuid, primary_key_name, initial_values);
     return sub->to_artificial_stream(include_initial_vals, std::move(sub), bt);
     // RSI: remove
