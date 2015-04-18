@@ -66,7 +66,7 @@ class AsyncioCursor(Cursor):
 
     def _empty_error(self):
         # We do not have RqlCursorEmpty inherit from StopIteration as that interferes
-        # with Tornado's gen.coroutine and is the equivalent of gen.Return(None).
+        # with mechanisms to return from a coroutine.
         return RqlCursorEmpty(self.query.term)
 
     @asyncio.coroutine
