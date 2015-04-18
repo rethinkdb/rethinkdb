@@ -72,7 +72,7 @@ private:
             state_timestamp_t timestamp,
             order_token_t order_token,
             const mailbox_t<void()>::address_t &ack_addr)
-        THROWS_NOTHING;
+        THROWS_ONLY(interrupted_exc_t);
 
     void perform_enqueued_write(
             const write_queue_entry_t &serialized_write,
@@ -87,14 +87,14 @@ private:
             order_token_t order_token,
             write_durability_t durability,
             const mailbox_t<void(write_response_t)>::address_t &ack_addr)
-        THROWS_NOTHING;
+        THROWS_ONLY(interrupted_exc_t);
 
     void on_read(
             signal_t *interruptor,
             const read_t &read,
             state_timestamp_t min_timestamp,
             const mailbox_t<void(read_response_t)>::address_t &ack_addr)
-        THROWS_NOTHING;
+        THROWS_ONLY(interrupted_exc_t);
 
     mailbox_manager_t *const mailbox_manager_;
     store_view_t *const store_;

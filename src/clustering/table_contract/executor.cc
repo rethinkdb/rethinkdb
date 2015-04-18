@@ -75,6 +75,9 @@ void contract_executor_t::update_blocking(UNUSED signal_t *interruptor) {
             guarantee(it != executions.end());
             /* Resetting `execution` is the part that can block. */
             it->second->execution.reset();
+            /* Remove the entry from the ack map, only once we are sure that the
+            execution won't recreate it. */
+            ack_map.delete_key(std::make_pair(server_id, it->second->contract_id));
             /* Note that we do a two-step process: first we reset `execution`, then we
             erase the entry from `executions`. This is because until we finish resetting
             `execution`, it may still be calling `send_ack()`, and it's important that
@@ -99,12 +102,15 @@ void contract_executor_t::update(const table_raft_state_t &new_state,
         if (it != executions.end()) {
             /* Update the existing execution */
             if (it->second->contract_id != new_pair.first) {
+                contract_id_t old_contract_id = it->second->contract_id;
                 it->second->contract_id = new_pair.first;
                 std::function<void(const contract_ack_t &)> acker =
                     std::bind(&contract_executor_t::send_ack, this,
                         key, new_pair.first, ph::_1);
                 /* Note that `update_contract()` will never block. */
                 it->second->execution->update_contract(new_pair.second.second, acker);
+                /* Delete the old contract, if there was one */
+                ack_map.delete_key(std::make_pair(server_id, old_contract_id));
             }
         } else {
             /* Create a new execution, unless there's already an execution whose region
@@ -160,8 +166,6 @@ void contract_executor_t::update(const table_raft_state_t &new_state,
     any of the new contracts */
     for (const auto &old_pair : executions) {
         if (dont_delete.count(old_pair.first) == 0) {
-            ack_map.delete_key(std::make_pair(
-                server_id, old_pair.second->contract_id));
             to_delete_out->insert(old_pair.first);
         }
     }
