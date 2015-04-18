@@ -362,58 +362,41 @@ bool real_reql_cluster_interface_t::table_estimate_doc_counts(
         semilattice_root_view->home_thread());
     on_thread_t thread_switcher(semilattice_root_view->home_thread());
 
-    // RSI(raft): Reimplement this once table IO works
-    not_implemented();
-    (void)db;
-    (void)name;
-    (void)env;
-    (void)doc_counts_out;
-    (void)error_out;
-#if 0
-    /* Find the specified table in the semilattice metadata */
-    cluster_semilattice_metadata_t metadata = semilattice_root_view->get();
     namespace_id_t table_id;
-    if (!search_table_metadata_by_name(*metadata.rdb_namespaces, db->id, db->name, name,
-            &table_id, error_out)) {
+    if (!find_table(db, name, &table_id, nullptr, error_out)) {
+        return false;
+    }
+
+    table_config_and_shards_t config;
+    if (!table_meta_client->get_config(table_id, &interruptor2, &config)) {
+        *error_out = "Lost contact with the server(s) that were hosting the table.";
         return false;
     }
 
     /* Perform a distribution query against the database */
-    namespace_interface_access_t ns_if_access =
-        namespace_repo.get_namespace_interface(table_id, &interruptor2);
-    static const int depth = 2;
-    static const int limit = 128;
-    distribution_read_t inner_read(depth, limit);
-    read_t read(inner_read, profile_bool_t::DONT_PROFILE);
-    read_response_t resp;
-    try {
-        ns_if_access.get()->read_outdated(read, &resp, &interruptor2);
-    } catch (const cannot_perform_query_exc_t &exc) {
-        *error_out = "Could not estimate document counts because table is not available "
-            "for reading: " + std::string(exc.what());
+    std::map<store_key_t, int64_t> counts;
+    if (!fetch_distribution(table_id, this, &interruptor2, &counts)) {
+        *error_out = "The table is not available for reading, so we cannot produce "
+            "information about it.";
         return false;
     }
-    const std::map<store_key_t, int64_t> &counts =
-        boost::get<distribution_read_response_t>(resp.response).key_counts;
 
     /* Match the results of the distribution query against the table's shard boundaries
     */
-    const table_shard_scheme_t &shard_scheme = metadata.rdb_namespaces->namespaces
-        .at(table_id).get_ref().replication_info.get_ref().shard_scheme;
-    *doc_counts_out = std::vector<int64_t>(shard_scheme.num_shards(), 0);
+    *doc_counts_out = std::vector<int64_t>(config.shard_scheme.num_shards(), 0);
     for (auto it = counts.begin(); it != counts.end(); ++it) {
         /* Calculate the range of shards that this key-range overlaps with */
-        size_t left_shard = shard_scheme.find_shard_for_key(it->first);
+        size_t left_shard = config.shard_scheme.find_shard_for_key(it->first);
         auto jt = it;
         ++jt;
         size_t right_shard;
         if (jt == counts.end()) {
-            right_shard = shard_scheme.num_shards() - 1;
+            right_shard = config.shard_scheme.num_shards() - 1;
         } else {
             store_key_t right_key = jt->first;
             bool ok = right_key.decrement();
             guarantee(ok, "jt->first cannot be the leftmost key");
-            right_shard = shard_scheme.find_shard_for_key(right_key);
+            right_shard = config.shard_scheme.find_shard_for_key(right_key);
         }
         /* We assume that every shard that this key-range overlaps with has an equal
         share of the keys in the key-range. This is shitty but oh well. */
@@ -421,7 +404,6 @@ bool real_reql_cluster_interface_t::table_estimate_doc_counts(
             doc_counts_out->at(shard) += it->second / (right_shard - left_shard + 1);
         }
     }
-#endif
     return true;
 }
 
@@ -667,6 +649,7 @@ bool real_reql_cluster_interface_t::db_wait(
 bool real_reql_cluster_interface_t::reconfigure_internal(
         const counted_t<const ql::db_t> &db,
         const namespace_id_t &table_id,
+        const name_string_t &table_name,
         const table_generate_config_params_t &params,
         bool dry_run,
         signal_t *interruptor,
@@ -677,8 +660,9 @@ bool real_reql_cluster_interface_t::reconfigure_internal(
     /* Fetch the table's current configuration */
     table_config_and_shards_t old_config;
     if (!table_meta_client->get_config(table_id, interruptor, &old_config)) {
-        *error_out = "Lost contact with the server(s) that were hosting the table being "
-            "reconfigured. The table was not reconfigured.";
+        *error_out = strprintf("Lost contact with the server(s) that were hosting the "
+            "table `%s.%s`. The table was not reconfigured.", db->name.c_str(),
+            table_name.c_str());
         return false;
     }
 
@@ -711,8 +695,10 @@ bool real_reql_cluster_interface_t::reconfigure_internal(
             params.num_shards,
             old_config.shard_scheme,
             interruptor,
-            &new_config.shard_scheme,
-            error_out)) {
+            &new_config.shard_scheme)) {
+        *error_out = strprintf("The table `%s.%s` is not available for reading, so we "
+            "cannot compute a new sharding scheme for it. The table's config has not "
+            "been changed.", db->name.c_str(), table_name.c_str());
         return false;
     }
 
@@ -733,8 +719,9 @@ bool real_reql_cluster_interface_t::reconfigure_internal(
 
     if (!dry_run) {
         if (!table_meta_client->set_config(table_id, new_config, interruptor)) {
-            *error_out = "Lost contact with the server(s) that were hosting the table "
-                "being reconfigured. The table may or may not have been reconfigured.";
+            *error_out = strprintf("Lost contact with the server(s) that were hosting "
+                "the table `%s.%s`. The table may or may not have been reconfigured.",
+                db->name.c_str(), table_name.c_str());
             return false;
         }
     }
@@ -786,7 +773,7 @@ bool real_reql_cluster_interface_t::table_reconfigure(
     if (!find_table(db, name, &table_id, nullptr, error_out)) {
         return false;
     }
-    return reconfigure_internal(db, table_id, params, dry_run,
+    return reconfigure_internal(db, table_id, name, params, dry_run,
                                 &ct_interruptor, result_out, error_out);
 }
 
@@ -797,65 +784,54 @@ bool real_reql_cluster_interface_t::db_reconfigure(
         signal_t *interruptor,
         ql::datum_t *result_out,
         std::string *error_out) {
-    // RSI(raft): Reimplement this once table meta operations work
-    not_implemented();
-    (void)db;
-    (void)params;
-    (void)dry_run;
-    (void)interruptor;
-    (void)result_out;
-    (void)error_out;
-    return false;
-#if 0
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
     cross_thread_signal_t ct_interruptor(interruptor,
         server_config_client->home_thread());
     on_thread_t thread_switcher(server_config_client->home_thread());
-    cluster_semilattice_metadata_t cluster_md = semilattice_root_view->get();
+
+    std::map<namespace_id_t, std::pair<database_id_t, name_string_t> > tables;
+    table_meta_client->list_names(&tables);
+
     ql::datum_t combined_stats = ql::datum_t::empty_object();
-    cow_ptr_t<namespaces_semilattice_metadata_t> namespaces_copy =
-        cluster_md.rdb_namespaces;
-    for (const auto &pair : namespaces_copy->namespaces) {
-        if (!pair.second.is_deleted() &&
-                pair.second.get_ref().database.get_ref() == db->id) {
-            ql::datum_t stats;
-            if (!reconfigure_internal(&cluster_md, db, pair.first,
-                    pair.second.get_ref().name.get_ref(), params, dry_run,
-                    &ct_interruptor, &stats, error_out)) {
-                return false;
-            }
-            std::set<std::string> dummy_conditions;
-            combined_stats = combined_stats.merge(stats, &ql::stats_merge,
-                ql::configured_limits_t::unlimited, &dummy_conditions);
-            guarantee(dummy_conditions.empty());
+    for (const auto &pair : tables) {
+        if (pair.second.first != db->id) {
+            continue;
         }
+        ql::datum_t stats;
+        if (!reconfigure_internal(db, pair.first, pair.second.second, params, dry_run,
+                &ct_interruptor, &stats, error_out)) {
+            return false;
+        }
+        std::set<std::string> dummy_conditions;
+        combined_stats = combined_stats.merge(stats, &ql::stats_merge,
+            ql::configured_limits_t::unlimited, &dummy_conditions);
+        guarantee(dummy_conditions.empty());
     }
     *result_out = combined_stats;
     return true;
-#endif
 }
 
 bool real_reql_cluster_interface_t::rebalance_internal(
-        cluster_semilattice_metadata_t *cluster_md,
         const counted_t<const ql::db_t> &db,
         const namespace_id_t &table_id,
         const name_string_t &table_name,
         signal_t *interruptor,
         ql::datum_t *results_out,
         std::string *error_out) {
-    // RSI(raft): Reimplement this once table meta operations work
-    not_implemented();
-    (void)cluster_md;
-    (void)db;
-    (void)table_id;
-    (void)table_name;
-    (void)interruptor;
-    (void)results_out;
-    (void)error_out;
-    return false;
+
+    /* Fetch the table's current configuration */
+    table_config_and_shards_t config;
+    if (!table_meta_client->get_config(table_id, interruptor, &config)) {
+        *error_out = strprintf("Lost contact with the server(s) that were hosting the "
+            "table `%s.%s`. The table was not rebalanced.", db->name.c_str(),
+            table_name.c_str());
+        return false;
+    }
+
+    /* RSI(raft): Reimplement this once `table_status` is implemented */
+    ql::datum_t old_status_datum("this is a fake status");
 #if 0
-    /* Store old status */
     table_status_artificial_table_backend_t *status_backend =
         admin_tables->table_status_backend[
             static_cast<int>(admin_identifier_format_t::name)].get();
@@ -864,47 +840,48 @@ bool real_reql_cluster_interface_t::rebalance_internal(
             &old_status, error_out)) {
         return false;
     }
-
-    /* Find the specified table in the semilattice metadata */
-    cow_ptr_t<namespaces_semilattice_metadata_t>::change_t ns_change(
-            &cluster_md->rdb_namespaces);
-    namespace_semilattice_metadata_t *table_md =
-        ns_change.get()->namespaces.at(table_id).get_mutable();
+#endif
 
     std::map<store_key_t, int64_t> counts;
-    if (!fetch_distribution(table_id, this, interruptor, &counts, error_out)) {
-        *error_out = strprintf("When measuring document distribution for table "
-            "`%s.%s`: %s", db->name.c_str(), table_name.c_str(), error_out->c_str());
+    if (!fetch_distribution(table_id, this, interruptor, &counts)) {
+        *error_out = strprintf("The table `%s.%s` is not available for reading, so it's "
+            "impossible to rebalance it.", db->name.c_str(), table_name.c_str());
         return false;
     }
 
-    ql::datum_object_builder_t builder;
-    table_replication_info_t new_repli_info = table_md->replication_info.get_ref();
-    // If there's not enough data to rebalance, just pretend like we did
-    if (!calculate_split_points_with_distribution(
+    /* If there's not enough data to rebalance, return `rebalanced: 0` but don't report
+    an error */
+    std::string dummy_error;
+    bool actually_rebalanced = calculate_split_points_with_distribution(
             counts,
-            new_repli_info.config.shards.size(),
-            &new_repli_info.shard_scheme,
-            error_out)) {
-        builder.overwrite("rebalanced", ql::datum_t(0.0));
-    } else {
-        builder.overwrite("rebalanced", ql::datum_t(1.0));
-        table_md->replication_info.set(new_repli_info);
-        semilattice_root_view->join(*cluster_md);
+            config.config.shards.size(),
+            &config.shard_scheme,
+            &dummy_error);
+    if (actually_rebalanced) {
+        if (!table_meta_client->set_config(table_id, config, interruptor)) {
+            *error_out = strprintf("Lost contact with the server(s) that were hosting "
+                "the table `%s.%s`. The table may or may not have been rebalanced.",
+                db->name.c_str(), table_name.c_str());
+            return false;
+        }
     }
 
-    /* Calculate new status */
-    ql::datum_t new_status;
+    /* RSI(raft): Reimplement this once `table_status` is implemented */
+    ql::datum_t new_status_datum("this is a fake status");
+#if 0
     if (!status_backend->read_row(convert_uuid_to_datum(table_id), interruptor,
             &new_status, error_out)) {
         return false;
     }
+#endif
 
-    builder.overwrite("status_changes", make_replacement_pair(old_status, new_status));
+    ql::datum_object_builder_t builder;
+    builder.overwrite("rebalanced", ql::datum_t(actually_rebalanced ? 1.0 : 0.0));
+    builder.overwrite("status_changes",
+        make_replacement_pair(old_status_datum, new_status_datum));
     *results_out = std::move(builder).to_datum();
 
     return true;
-#endif
 }
 
 bool real_reql_cluster_interface_t::table_rebalance(
@@ -913,29 +890,17 @@ bool real_reql_cluster_interface_t::table_rebalance(
         signal_t *interruptor,
         ql::datum_t *result_out,
         std::string *error_out) {
-    // RSI(raft): Reimplement this once table meta operations work
-    not_implemented();
-    (void)db;
-    (void)name;
-    (void)interruptor;
-    (void)result_out;
-    (void)error_out;
-    return false;
-#if 0
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
     cross_thread_signal_t ct_interruptor(interruptor,
         server_config_client->home_thread());
     on_thread_t thread_switcher(server_config_client->home_thread());
-    cluster_semilattice_metadata_t cluster_md = semilattice_root_view->get();
     namespace_id_t table_id;
-    if (!search_table_metadata_by_name(*cluster_md.rdb_namespaces, db->id, db->name,
-            name, &table_id, error_out)) {
+    if (!find_table(db, name, &table_id, nullptr, error_out)) {
         return false;
     }
-    return rebalance_internal(&cluster_md, db, table_id, name, &ct_interruptor,
-                              result_out, error_out);
-#endif
+    return rebalance_internal(
+        db, table_id, name, &ct_interruptor, result_out, error_out);
 }
 
 bool real_reql_cluster_interface_t::db_rebalance(
@@ -943,41 +908,32 @@ bool real_reql_cluster_interface_t::db_rebalance(
         signal_t *interruptor,
         ql::datum_t *result_out,
         std::string *error_out) {
-    // RSI(raft): Reimplement this once table meta operations work
-    not_implemented();
-    (void)db;
-    (void)interruptor;
-    (void)result_out;
-    (void)error_out;
-    return false;
-#if 0
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
     cross_thread_signal_t ct_interruptor(interruptor,
         server_config_client->home_thread());
     on_thread_t thread_switcher(server_config_client->home_thread());
-    cluster_semilattice_metadata_t cluster_md = semilattice_root_view->get();
+
+    std::map<namespace_id_t, std::pair<database_id_t, name_string_t> > tables;
+    table_meta_client->list_names(&tables);
+
     ql::datum_t combined_stats = ql::datum_t::empty_object();
-    cow_ptr_t<namespaces_semilattice_metadata_t> namespaces_copy =
-        cluster_md.rdb_namespaces;
-    for (const auto &pair : namespaces_copy->namespaces) {
-        if (!pair.second.is_deleted() &&
-                pair.second.get_ref().database.get_ref() == db->id) {
-            ql::datum_t stats;
-            if (!rebalance_internal(&cluster_md, db, pair.first,
-                    pair.second.get_ref().name.get_ref(),
-                    &ct_interruptor, &stats, error_out)) {
-                return false;
-            }
-            std::set<std::string> dummy_conditions;
-            combined_stats = combined_stats.merge(stats, &ql::stats_merge,
-                ql::configured_limits_t::unlimited, &dummy_conditions);
-            guarantee(dummy_conditions.empty());
+    for (const auto &pair : tables) {
+        if (pair.second.first != db->id) {
+            continue;
         }
+        ql::datum_t stats;
+        if (!rebalance_internal(db, pair.first, pair.second.second, &ct_interruptor,
+                &stats, error_out)) {
+            return false;
+        }
+        std::set<std::string> dummy_conditions;
+        combined_stats = combined_stats.merge(stats, &ql::stats_merge,
+            ql::configured_limits_t::unlimited, &dummy_conditions);
+        guarantee(dummy_conditions.empty());
     }
     *result_out = combined_stats;
     return true;
-#endif
 }
 
 bool real_reql_cluster_interface_t::sindex_change_internal(

@@ -13,13 +13,13 @@ class real_reql_cluster_interface_t;
 class signal_t;
 class table_shard_scheme_t;
 
-/* `fetch_distribution` fetches the distribution information from the database. */
+/* `fetch_distribution` fetches the distribution information from the database. It
+returns `false` if the read fails. */
 bool fetch_distribution(
         const namespace_id_t &table_id,
         real_reql_cluster_interface_t *reql_cluster_interface,
         signal_t *interruptor,
-        std::map<store_key_t, int64_t> *counts_out,
-        std::string *error_out);
+        std::map<store_key_t, int64_t> *counts_out);
 
 /* `calculate_split_points_with_distribution` generates a set of split points that are
 guaranteed to divide the data approximately evenly, using the results of
@@ -48,15 +48,14 @@ void calculate_split_points_by_interpolation(
 /* `calculate_split_points_intelligently` picks one of the above methods based on its
 input. If the number of shards is being increased, it takes a distribution; if the number
 is being decreased, it interpolates; and if the number stays the same, it uses the old
-split points. */
+split points. It fails if it can't read the distribution from the database. */
 bool calculate_split_points_intelligently(
         namespace_id_t table_id,
         real_reql_cluster_interface_t *reql_cluster_interface,
         size_t num_shards,
         const table_shard_scheme_t &old_split_points,
         signal_t *interruptor,
-        table_shard_scheme_t *split_points_out,
-        std::string *error_out);
+        table_shard_scheme_t *split_points_out);
 
 #endif /* CLUSTERING_ADMINISTRATION_TABLES_SPLIT_POINTS_HPP_ */
 

@@ -548,7 +548,11 @@ bool table_config_artificial_table_backend_t::write_row(
         if (existed_before) {
             if (!calculate_split_points_intelligently(table_id, reql_cluster_interface,
                     new_config.config.shards.size(), old_config.shard_scheme,
-                    &interruptor, &new_config.shard_scheme, error_out)) {
+                    &interruptor, &new_config.shard_scheme)) {
+                *error_out = strprintf("Table `%s.%s` is not available for reading, so "
+                    "we cannot compute a new sharding scheme for it. The table's "
+                    "configuration was not changed.", db_name.c_str(),
+                    old_config.config.name.c_str());
                 return false;
             }
         } else {
