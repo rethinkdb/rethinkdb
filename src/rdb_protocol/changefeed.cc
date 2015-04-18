@@ -1582,16 +1582,13 @@ public:
     datum_t pop_el() final {
         if (state != sent_state && include_states) {
             sent_state = state;
-            debugf("a\n");
             return state_datum(state);
         }
         datum_t ret;
         if (state != state_t::READY && include_initial_vals) {
-            debugf("b\n");
             r_sanity_check(initial_val);
             ret = change_val_to_change(*initial_val, true);
         } else {
-            debugf("c\n");
             ret = change_val_to_change(pop_change_val());
         }
         initial_val = boost::none;
@@ -1599,12 +1596,6 @@ public:
         return ret;
     }
     bool has_el() final {
-        debugf("has_el %d %d(%d %d) %d\n",
-               (include_states && state != sent_state),
-               (include_initial_vals && state != state_t::READY),
-               include_initial_vals,
-               state,
-               has_change_val());
         return (include_states && state != sent_state)
             || (include_initial_vals && state != state_t::READY)
             || has_change_val();
@@ -1625,6 +1616,9 @@ public:
         scoped_ptr_t<subscription_t> &&self,
         const protob_t<const Backtrace> &bt) {
         include_initial_vals = _include_initial_vals;
+        if (!include_initial_vals) {
+            state = state_t::READY;
+        }
         return make_counted<stream_t<subscription_t> >(std::move(self), bt);
     }
 private:
@@ -2351,7 +2345,6 @@ private:
         if (read_once) {
             while (sub->has_change_val() && !batcher.should_send_batch()) {
                 change_val_t cv = sub->pop_change_val();
-                debugf("change_val: %s\n", debug::print(cv).c_str());
                 datum_t el = change_val_to_change(
                     cv,
                     cv.old_val && discard(
@@ -3063,7 +3056,6 @@ counted_t<datum_stream_t> artificial_t::subscribe(
     // threads, make sure that the `subscription_t` and `stream_t` are allocated
     // on the thread you want to use them on.
     guarantee(feed.has());
-    debugf("include_states: %d\n", include_states);
     scoped_ptr_t<subscription_t> sub = new_sub(
         feed.get(), datum_t::boolean(false), include_states, spec);
     sub->start_artificial(env, uuid, primary_key_name, initial_values);
