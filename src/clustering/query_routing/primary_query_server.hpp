@@ -52,7 +52,7 @@ public:
 private:
     class client_t {
     public:
-        client_t(primary_query_server_t *p) :
+        explicit client_t(primary_query_server_t *p) :
             parent(p) { }
         void perform_request(
                 const primary_query_bcard_t::request_t &,
