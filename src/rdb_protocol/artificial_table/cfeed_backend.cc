@@ -54,6 +54,7 @@ cfeed_artificial_table_backend_t::~cfeed_artificial_table_backend_t() {
 
 bool cfeed_artificial_table_backend_t::read_changes(
     ql::env_t *env,
+    bool include_initial_vals,
     bool include_states,
     const ql::protob_t<const Backtrace> &bt,
     ql::changefeed::keyspec_t::spec_t &&spec,
@@ -98,8 +99,12 @@ bool cfeed_artificial_table_backend_t::read_changes(
     on_thread_t thread_switcher_2(request_thread);
     try {
         *cfeed_out = machinery->subscribe(
-            env, include_states, std::move(spec),
-            get_primary_key_name(), initial_values, bt);
+            env, include_initial_vals,
+            include_states,
+            std::move(spec),
+            get_primary_key_name(),
+            initial_values,
+            bt);
     } catch (const ql::base_exc_t &e) {
         *error_out = e.what();
         return false;

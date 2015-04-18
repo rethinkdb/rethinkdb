@@ -537,6 +537,7 @@ public:
 
     counted_t<datum_stream_t> subscribe(
         env_t *env,
+        bool include_initial_vals,
         bool include_states,
         const keyspec_t::spec_t &spec,
         const std::string &primary_key_name,

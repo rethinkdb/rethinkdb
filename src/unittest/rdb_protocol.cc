@@ -780,6 +780,7 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
             : bt(ql::make_counted_backtrace()),
               point_0(a->subscribe(
                           env,
+                          true,
                           false,
                           keyspec_t::point_t{ql::datum_t(0.0)},
                           "id",
@@ -787,6 +788,7 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
                           bt)),
               point_10(a->subscribe(
                            env,
+                           true,
                            false,
                            keyspec_t::point_t{ql::datum_t(10.0)},
                            "id",
@@ -794,6 +796,7 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
                            bt)),
               range(a->subscribe(
                         env,
+                        true,
                         false,
                         keyspec_t::range_t{
                           std::vector<ql::transform_variant_t>(),

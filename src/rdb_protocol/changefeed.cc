@@ -1186,6 +1186,10 @@ public:
         counted_t<datum_stream_t> maybe_src,
         scoped_ptr_t<subscription_t> &&self,
         const protob_t<const Backtrace> &bt) = 0;
+    virtual counted_t<datum_stream_t> to_artificial_stream(
+        bool include_initial_vals,
+        scoped_ptr_t<subscription_t> &&self,
+        const protob_t<const Backtrace> &bt) = 0;
 protected:
     explicit subscription_t(feed_t *_feed, const datum_t &squash, bool include_states);
     void maybe_signal_cond() THROWS_NOTHING;
@@ -1518,12 +1522,12 @@ public:
                 break;
             }
         }
-        queue->add(change_val_t(
+        initial_val = change_val_t(
             std::make_pair(nil_uuid(), 0),
             store_key_t(pkey.print_primary()),
             boost::none,
             indexed_datum_t(initial, datum_t(), boost::none),
-            DEBUG_ONLY(boost::none)));
+            DEBUG_ONLY(boost::none));
         started = true;
     }
     virtual void start_real(env_t *env,
@@ -1578,20 +1582,29 @@ public:
     datum_t pop_el() final {
         if (state != sent_state && include_states) {
             sent_state = state;
+            debugf("a\n");
             return state_datum(state);
         }
         datum_t ret;
         if (state != state_t::READY && include_initial_vals) {
+            debugf("b\n");
             r_sanity_check(initial_val);
             ret = change_val_to_change(*initial_val, true);
         } else {
-            return change_val_to_change(pop_change_val());
+            debugf("c\n");
+            ret = change_val_to_change(pop_change_val());
         }
         initial_val = boost::none;
         state = state_t::READY;
         return ret;
     }
     bool has_el() final {
+        debugf("has_el %d %d(%d %d) %d\n",
+               (include_states && state != sent_state),
+               (include_initial_vals && state != state_t::READY),
+               include_initial_vals,
+               state,
+               has_change_val());
         return (include_states && state != sent_state)
             || (include_initial_vals && state != state_t::READY)
             || has_change_val();
@@ -1605,6 +1618,13 @@ public:
         if (!include_initial_vals) {
             state = state_t::READY;
         }
+        return make_counted<stream_t<subscription_t> >(std::move(self), bt);
+    }
+    virtual counted_t<datum_stream_t> to_artificial_stream(
+        bool _include_initial_vals,
+        scoped_ptr_t<subscription_t> &&self,
+        const protob_t<const Backtrace> &bt) {
+        include_initial_vals = _include_initial_vals;
         return make_counted<stream_t<subscription_t> >(std::move(self), bt);
     }
 private:
@@ -1632,8 +1652,11 @@ public:
     // Throws QL exceptions.
     range_sub_t(feed_t *feed, const datum_t &squash,
                 bool include_states, keyspec_t::range_t _spec)
-        : flat_sub_t(feed, squash, include_states), spec(std::move(_spec)),
-          state(state_t::READY), sent_state(state_t::NONE) {
+        : flat_sub_t(feed, squash, include_states),
+          spec(std::move(_spec)),
+          state(state_t::READY),
+          sent_state(state_t::NONE),
+          artificial_include_initial_vals(false) {
         for (const auto &transform : spec.transforms) {
             ops.push_back(make_op(transform));
         }
@@ -1646,6 +1669,7 @@ public:
     virtual void start_artificial(env_t *outer_env, const uuid_u &uuid,
                                   const std::string &,
                                   const std::vector<datum_t> &) {
+        // RSI: use `artificial_include_initial_vals`.
         assert_thread();
         env = make_env(outer_env);
         start_stamps[uuid] = 0;
@@ -1743,6 +1767,13 @@ public:
             return make_counted<stream_t<subscription_t> >(std::move(self), bt);
         }
     }
+    virtual counted_t<datum_stream_t> to_artificial_stream(
+        bool include_initial_vals,
+        scoped_ptr_t<subscription_t> &&self,
+        const protob_t<const Backtrace> &bt) {
+        artificial_include_initial_vals = include_initial_vals;
+        return make_counted<stream_t<subscription_t> >(std::move(self), bt);
+    }
     const std::map<uuid_u, uint64_t> &get_start_stamps() { return start_stamps; }
 private:
     scoped_ptr_t<env_t> make_env(env_t *outer_env) {
@@ -1769,6 +1800,7 @@ private:
     std::map<uuid_u, uint64_t> start_stamps;
     keyspec_t::range_t spec;
     state_t state, sent_state;
+    bool artificial_include_initial_vals;
     auto_drainer_t drainer;
 };
 
@@ -1784,7 +1816,8 @@ public:
           spec(std::move(_spec)),
           gt(limit_order_t(spec.range.sorting)),
           item_queue(gt),
-          active_data(gt) {
+          active_data(gt),
+          include_initial_vals(false) {
         feed->add_limit_sub(this, uuid);
         if (include_states) els.push_back(initializing_datum());
     }
@@ -2053,9 +2086,17 @@ public:
 
     virtual counted_t<datum_stream_t> to_stream(
         const client_t::addr_t &,
-        counted_t<datum_stream_t>,
+        counted_t<datum_stream_t> maybe_src,
         scoped_ptr_t<subscription_t> &&self,
         const protob_t<const Backtrace> &bt) final {
+        include_initial_vals = maybe_src.has();
+        return make_counted<stream_t<subscription_t> >(std::move(self), bt);
+    }
+    virtual counted_t<datum_stream_t> to_artificial_stream(
+        bool _include_initial_vals,
+        scoped_ptr_t<subscription_t> &&self,
+        const protob_t<const Backtrace> &bt) {
+        include_initial_vals = _include_initial_vals;
         return make_counted<stream_t<subscription_t> >(std::move(self), bt);
     }
 
@@ -2073,6 +2114,7 @@ public:
     std::vector<std::pair<boost::optional<std::string>, boost::optional<item_t> > >
         queued_changes;
     std::vector<server_t::limit_addr_t> stop_addrs;
+    bool include_initial_vals;
 };
 
 void real_feed_t::stop_limit_sub(limit_sub_t *sub) {
@@ -2873,8 +2915,11 @@ client_t::client_t(
 client_t::~client_t() { }
 
 scoped_ptr_t<subscription_t> new_sub(
-    feed_t *feed, const datum_t &squash, bool include_states,
+    feed_t *feed,
+    const datum_t &squash,
+    bool include_states,
     const keyspec_t::spec_t &spec) {
+
     struct spec_visitor_t : public boost::static_visitor<subscription_t *> {
         explicit spec_visitor_t(
             feed_t *_feed, const datum_t *_squash, bool _include_states)
@@ -3006,6 +3051,7 @@ artificial_t::~artificial_t() { }
 
 counted_t<datum_stream_t> artificial_t::subscribe(
     env_t *env,
+    bool include_initial_vals,
     bool include_states,
     const keyspec_t::spec_t &spec,
     const std::string &primary_key_name,
@@ -3017,10 +3063,13 @@ counted_t<datum_stream_t> artificial_t::subscribe(
     // threads, make sure that the `subscription_t` and `stream_t` are allocated
     // on the thread you want to use them on.
     guarantee(feed.has());
+    debugf("include_states: %d\n", include_states);
     scoped_ptr_t<subscription_t> sub = new_sub(
         feed.get(), datum_t::boolean(false), include_states, spec);
     sub->start_artificial(env, uuid, primary_key_name, initial_values);
-    return make_counted<stream_t<subscription_t> >(std::move(sub), bt);
+    return sub->to_artificial_stream(include_initial_vals, std::move(sub), bt);
+    // RSI: remove
+    // return make_counted<stream_t<subscription_t> >(std::move(sub), bt);
 }
 
 void artificial_t::send_all(const msg_t &msg) {
