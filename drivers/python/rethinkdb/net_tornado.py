@@ -87,10 +87,20 @@ class ConnectionInstance(object):
         self._io_loop = io_loop
         if self._io_loop is None:
             self._io_loop = IOLoop.current()
+        self._use_ssl = parent._use_ssl
+        self._ca_certs = parent._ca_certs
 
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
         self._socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-        self._stream = iostream.IOStream(self._socket, io_loop=self._io_loop)
+        if _use_ssl:
+            ssl_options = {}
+            if self._ca_certs:
+                ssl_options['ca_certs'] = self._ca_certs
+                ssl_options['cert_reqs'] = 2 # ssl.CERT_REQUIRED
+            self._stream = iostream.SSLIOStream(
+                self._socket, ssl_options=ssl_options, io_loop=self._io_loop)
+        else:
+            self._stream = iostream.IOStream(self._socket, io_loop=self._io_loop)
 
     @gen.coroutine
     def connect(self, timeout):
@@ -99,7 +109,8 @@ class ConnectionInstance(object):
             yield with_absolute_timeout(
                 deadline,
                 self._stream.connect((self._parent.host,
-                                      self._parent.port)),
+                                      self._parent.port),
+                                      server_hostname=self._parent.host),
                 io_loop=self._io_loop,
                 quiet_exceptions=(iostream.StreamClosedError))
         except Exception as err:
