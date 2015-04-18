@@ -4,6 +4,7 @@
 #include "clustering/immediate_consistency/local_replicator.hpp"
 #include "clustering/immediate_consistency/primary_dispatcher.hpp"
 #include "clustering/immediate_consistency/remote_replicator_server.hpp"
+#include "clustering/query_routing/direct_query_server.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "store_view.hpp"
 
@@ -146,6 +147,10 @@ void primary_execution_t::run(auto_drainer_t::lock_t keepalive) {
             region,
             this);
 
+        direct_query_server_t direct_query_server(
+            context->mailbox_manager,
+            store);
+
         on_thread_t thread_switcher_4(home_thread());
 
         /* OK, now we have to make sure that `sync_contract_with_replicas()` gets called
@@ -174,6 +179,7 @@ void primary_execution_t::run(auto_drainer_t::lock_t keepalive) {
         table_query_bcard_t tq_bcard;
         tq_bcard.region = region;
         tq_bcard.primary = boost::make_optional(primary_query_server.get_bcard());
+        tq_bcard.direct = boost::make_optional(direct_query_server.get_bcard());
         watchable_map_var_t<uuid_u, table_query_bcard_t>::entry_t directory_entry(
             context->local_table_query_bcards, generate_uuid(), tq_bcard);
 
