@@ -457,7 +457,7 @@ module RethinkDB
       @auth_key = opts[:auth_key] || ""
       @timeout = opts[:timeout].to_i
       @timeout = 20 if @timeout <= 0
-      @ssl_opts = opts.reject { |k, v| !k.to_s.start_with?('ssl') } if opts.is_a?(Hash)
+      @ssl_opts = opts[:ssl] || {}
 
       @@last = self
       @default_opts = @default_db ? {:db => RQL.new.db(@default_db)} : {}
@@ -670,9 +670,12 @@ module RethinkDB
 
     def create_context(options)
       context = OpenSSL::SSL::SSLContext.new
-      if options[:ssl_verify] || options[:ssl_ca_cert]
-        context.ca_file = options[:ssl_ca_cert]
+      context.ssl_version = :TLSv1_2
+      if options[:ca_certs]
+        context.ca_file = options[:ca_certs]
         context.verify_mode = OpenSSL::SSL::VERIFY_PEER
+      else
+        raise 'ssl options provided but missing required "ca_certs" option'
       end
       context
     end
