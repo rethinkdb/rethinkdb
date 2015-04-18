@@ -84,6 +84,7 @@ class AsyncioCursor(Cursor):
            len(self.items) <= self.threshold and \
            self.outstanding_requests == 0:
             self.outstanding_requests += 1
+            asyncio.async(self.conn._parent._continue(self))
 
 
 class ConnectionInstance(object):
