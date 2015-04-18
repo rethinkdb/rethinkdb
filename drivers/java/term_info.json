@@ -1,0 +1,364 @@
+{
+    "DATUM": {
+        "user_facing": false
+    },
+    "MAKE_ARRAY": {
+        "user_facing": false
+    },
+    "MAKE_OBJ": {
+        "user_facing": false
+    },
+    "VAR": {
+        "user_facing": false
+    },
+    "JAVASCRIPT": {
+        "r_alias": "js"
+    },
+    "UUID": {
+    },
+    "HTTP": {
+    },
+    "ERROR": {
+    },
+    "IMPLICIT_VAR": {
+        "user_facing": false
+    },
+    "DB": {
+        "embed_in": ["r"]
+    },
+    "TABLE": {
+        "embed_in": ["r", "DB"]
+    },
+    "GET": {
+        "embed_in": ["TABLE"]
+    },
+    "GET_ALL": {
+        "embed_in": ["TABLE"]
+    },
+    "EQ": {
+    },
+    "NE": {
+    },
+    "LT": {
+    },
+    "LE": {
+    },
+    "GT": {
+    },
+    "GE": {
+    },
+    "NOT": {
+    },
+    "ADD": {
+    },
+    "SUB": {
+    },
+    "MUL": {
+    },
+    "DIV": {
+    },
+    "MOD": {
+    },
+    "FLOOR": {
+    },
+    "CEIL": {
+    },
+    "ROUND": {
+    },
+    "APPEND": {
+    },
+    "PREPEND": {
+    },
+    "DIFFERENCE": {
+    },
+    "SET_INSERT": {
+    },
+    "SET_INTERSECTION": {
+    },
+    "SET_UNION": {
+    },
+    "SET_DIFFERENCE": {
+    },
+    "SLICE": {
+    },
+    "SKIP": {
+    },
+    "LIMIT": {
+    },
+    "OFFSETS_OF": {
+    },
+    "CONTAINS": {
+    },
+    "GET_FIELD": {
+    },
+    "KEYS": {
+    },
+    "OBJECT": {
+    },
+    "HAS_FIELDS": {
+    },
+    "WITH_FIELDS": {
+    },
+    "PLUCK": {
+    },
+    "WITHOUT": {
+    },
+    "MERGE": {
+    },
+    "BETWEEN_DEPRECATED": {
+        "user_facing": false
+    },
+    "BETWEEN": {
+    },
+    "REDUCE": {
+    },
+    "MAP": {
+    },
+    "FILTER": {
+    },
+    "CONCAT_MAP": {
+    },
+    "ORDER_BY": {
+    },
+    "DISTINCT": {
+    },
+    "COUNT": {
+    },
+    "IS_EMPTY": {
+    },
+    "UNION": {
+    },
+    "NTH": {
+    },
+    "BRACKET": {
+    },
+    "INNER_JOIN": {
+    },
+    "OUTER_JOIN": {
+    },
+    "EQ_JOIN": {
+    },
+    "ZIP": {
+    },
+    "RANGE": {
+    },
+    "INSERT_AT": {
+    },
+    "DELETE_AT": {
+    },
+    "CHANGE_AT": {
+    },
+    "SPLICE_AT": {
+    },
+    "COERCE_TO": {
+    },
+    "TYPE_OF": {
+    },
+    "UPDATE": {
+    },
+    "DELETE": {
+    },
+    "REPLACE": {
+    },
+    "INSERT": {
+    },
+    "DB_CREATE": {
+    },
+    "DB_DROP": {
+    },
+    "DB_LIST": {
+    },
+    "TABLE_CREATE": {
+    },
+    "TABLE_DROP": {
+    },
+    "TABLE_LIST": {
+    },
+    "CONFIG": {
+    },
+    "STATUS": {
+    },
+    "WAIT": {
+    },
+    "RECONFIGURE": {
+    },
+    "REBALANCE": {
+    },
+    "SYNC": {
+    },
+    "INDEX_CREATE": {
+    },
+    "INDEX_DROP": {
+    },
+    "INDEX_LIST": {
+    },
+    "INDEX_STATUS": {
+    },
+    "INDEX_WAIT": {
+    },
+    "INDEX_RENAME": {
+    },
+    "FUNCALL": {
+        "alias": "do"
+    },
+    "BRANCH": {
+    },
+    "OR": {
+    },
+    "AND": {
+    },
+    "FOR_EACH": {
+    },
+    "FUNC": {
+    },
+    "ASC": {
+    },
+    "DESC": {
+    },
+    "INFO": {
+    },
+    "MATCH": {
+    },
+    "UPCASE": {
+    },
+    "DOWNCASE": {
+    },
+    "SAMPLE": {
+    },
+    "DEFAULT": {
+    },
+    "JSON": {
+    },
+    "TO_JSON_STRING": {
+    },
+    "ISO8601": {
+    },
+    "TO_ISO8601": {
+    },
+    "EPOCH_TIME": {
+    },
+    "TO_EPOCH_TIME": {
+    },
+    "NOW": {
+    },
+    "IN_TIMEZONE": {
+    },
+    "DURING": {
+    },
+    "DATE": {
+    },
+    "TIME_OF_DAY": {
+    },
+    "TIMEZONE": {
+    },
+    "YEAR": {
+    },
+    "MONTH": {
+    },
+    "DAY": {
+    },
+    "DAY_OF_WEEK": {
+    },
+    "DAY_OF_YEAR": {
+    },
+    "HOURS": {
+    },
+    "MINUTES": {
+    },
+    "SECONDS": {
+    },
+    "TIME": {
+    },
+    "MONDAY": {
+    },
+    "TUESDAY": {
+    },
+    "WEDNESDAY": {
+    },
+    "THURSDAY": {
+    },
+    "FRIDAY": {
+    },
+    "SATURDAY": {
+    },
+    "SUNDAY": {
+    },
+    "JANUARY": {
+    },
+    "FEBRUARY": {
+    },
+    "MARCH": {
+    },
+    "APRIL": {
+    },
+    "MAY": {
+    },
+    "JUNE": {
+    },
+    "JULY": {
+    },
+    "AUGUST": {
+    },
+    "SEPTEMBER": {
+    },
+    "OCTOBER": {
+    },
+    "NOVEMBER": {
+    },
+    "DECEMBER": {
+    },
+    "LITERAL": {
+    },
+    "GROUP": {
+    },
+    "SUM": {
+    },
+    "AVG": {
+    },
+    "MIN": {
+    },
+    "MAX": {
+    },
+    "SPLIT": {
+    },
+    "UNGROUP": {
+    },
+    "RANDOM": {
+    },
+    "CHANGES": {
+    },
+    "ARGS": {
+    },
+    "BINARY": {
+    },
+    "GEOJSON": {
+    },
+    "TO_GEOJSON": {
+    },
+    "POINT": {
+    },
+    "LINE": {
+    },
+    "POLYGON": {
+    },
+    "DISTANCE": {
+    },
+    "INTERSECTS": {
+    },
+    "INCLUDES": {
+    },
+    "CIRCLE": {
+    },
+    "GET_INTERSECTING": {
+    },
+    "FILL": {
+    },
+    "GET_NEAREST": {
+    },
+    "POLYGON_SUB": {
+    },
+    "MINVAL": {
+    },
+    "MAXVAL": {
+    }
+}
