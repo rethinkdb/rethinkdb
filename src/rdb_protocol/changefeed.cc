@@ -1813,7 +1813,6 @@ public:
           active_data(gt),
           include_initial_vals(false) {
         feed->add_limit_sub(this, uuid);
-        if (include_states) els.push_back(initializing_datum());
     }
 
     virtual ~limit_sub_t() {
@@ -1827,10 +1826,13 @@ public:
         // logic should go here.
         if (need_init == got_init) {
             ASSERT_NO_CORO_WAITING;
-            for (auto &&it : active_data) {
-                els.push_back(
-                    datum_t(std::map<datum_string_t, datum_t> {
-                            { datum_string_t("new_val"), (*it)->second.second } }));
+            if (include_initial_vals) {
+                if (include_states) els.push_back(initializing_datum());
+                for (auto &&it : active_data) {
+                    els.push_back(
+                        datum_t(std::map<datum_string_t, datum_t> {
+                                { datum_string_t("new_val"), (*it)->second.second } }));
+                }
             }
             if (include_states) els.push_back(ready_datum());
 
@@ -1900,7 +1902,8 @@ public:
         }
     }
 
-    NORETURN virtual void start_artificial(env_t *, const uuid_u &,
+    NORETURN virtual void start_artificial(env_t *,
+                                           const uuid_u &,
                                            const std::string &,
                                            const std::vector<datum_t> &) {
         crash("Cannot start a limit subscription on an artificial table.");
@@ -2086,12 +2089,9 @@ public:
         include_initial_vals = maybe_src.has();
         return make_counted<stream_t<subscription_t> >(std::move(self), bt);
     }
-    virtual counted_t<datum_stream_t> to_artificial_stream(
-        bool _include_initial_vals,
-        scoped_ptr_t<subscription_t> &&self,
-        const protob_t<const Backtrace> &bt) {
-        include_initial_vals = _include_initial_vals;
-        return make_counted<stream_t<subscription_t> >(std::move(self), bt);
+    NORETURN virtual counted_t<datum_stream_t> to_artificial_stream(
+        bool, scoped_ptr_t<subscription_t> &&, const protob_t<const Backtrace> &) {
+        crash("Cannot start a limit subscription on an artificial table.");
     }
 
     uuid_u uuid;

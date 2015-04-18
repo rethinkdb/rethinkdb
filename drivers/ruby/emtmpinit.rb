@@ -75,6 +75,22 @@ q(get.changes(include_initial_vals: true, include_states: true),
 q(get.changes(include_initial_vals: false, include_states: true),
   [{"state"=>"ready"}])
 
+lm = r.table('test').orderby(index: 'id').limit(1)
+q(lm.changes,
+  [{"new_val"=>{"id"=>0}}])
+q(lm.changes(include_states: false),
+  [{"new_val"=>{"id"=>0}}])
+q(lm.changes(include_states: true),
+  [{"state"=>"initializing"}, {"new_val"=>{"id"=>0}}, {"state"=>"ready"}])
+q(lm.changes(include_initial_vals: true),
+  [{"new_val"=>{"id"=>0}}])
+q(lm.changes(include_initial_vals: true, include_states: false),
+  [{"new_val"=>{"id"=>0}}])
+q(lm.changes(include_initial_vals: true, include_states: true),
+  [{"state"=>"initializing"}, {"new_val"=>{"id"=>0}}, {"state"=>"ready"}])
+q(lm.changes(include_initial_vals: false, include_states: true),
+  [{"state"=>"ready"}])
+
 union = r.table('test') \
          .get_all(0) \
          .union(r.table('test').get_all(0)) \
