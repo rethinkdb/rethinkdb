@@ -28,6 +28,31 @@ def _read_until(streamreader, delimiter):
             break
     return bytes(buffer)
 
+
+def reusable_waiter(loop, timeout):
+    """Wait for something, with a timeout from when the waiter was created.
+
+    This can be used in loops::
+
+        waiter = reusable_waiter(event_loop, 10.0)
+        while some_condition:
+            yield from waiter(some_future)
+    """
+    if timeout is not None:
+        deadline = loop.time() + timeout
+    else:
+        deadline = None
+
+    @asyncio.coroutine
+    def wait(future):
+        if deadline is not None:
+            new_timeout = max(deadline - loop.time(), 0)
+        else:
+            new_timeout = None
+        return (yield from asyncio.wait_for(future, new_timeout, loop=loop))
+
+    return wait
+
 @contextlib.contextmanager
 def translate_timeout_errors():
     try:
@@ -56,10 +81,11 @@ class AsyncioCursor(Cursor):
     @asyncio.coroutine
     def fetch_next(self, wait=True):
         timeout = Cursor._wait_to_timeout(wait)
+        waiter = reusable_waiter(self.conn._io_loop, timeout)
         while len(self.items) == 0 and self.error is None:
             self._maybe_fetch_batch()
             with translate_timeout_errors():
-                yield from asyncio.wait_for(self.new_response, timeout)
+                yield from waiter(self.new_response)
         # If there is a (non-empty) error to be received, we return True, so the
         # user will receive it on the next `next` call.
         return len(self.items) != 0 or not isinstance(self.error, RqlCursorEmpty)
@@ -71,12 +97,13 @@ class AsyncioCursor(Cursor):
 
     @asyncio.coroutine
     def _get_next(self, timeout):
+        waiter = reusable_waiter(self.conn._io_loop, timeout)
         while len(self.items) == 0:
             self._maybe_fetch_batch()
             if self.error is not None:
                 raise self.error
             with translate_timeout_errors():
-                yield from asyncio.wait_for(self.new_response, timeout)
+                yield from waiter(self.new_response)
         return convert_pseudo(self.items.pop(0), self.query)
 
     def _maybe_fetch_batch(self):
