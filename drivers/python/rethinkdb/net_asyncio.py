@@ -211,9 +211,9 @@ class ConnectionInstance(object):
     def _reader(self):
         try:
             while True:
-                buf = yield from self._streamreader.read(12)
+                buf = yield from self._streamreader.readexactly(12)
                 (token, length,) = struct.unpack("<qL", buf)
-                buf = yield from self._streamreader.read(length)
+                buf = yield from self._streamreader.readexactly(length)
                 res = Response(token, buf)
 
                 cursor = self._cursor_cache.get(token)
@@ -241,7 +241,7 @@ class ConnectionInstance(object):
                     raise RqlDriverError("Unexpected response received.")
         except Exception as ex:
             if not self._closing:
-                self.close(False, None, ex)
+                yield from self.close(False, None, ex)
 
 
 class Connection(ConnectionBase):
