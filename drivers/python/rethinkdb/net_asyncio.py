@@ -101,19 +101,17 @@ class ConnectionInstance(object):
         if self._io_loop is None:
             self._io_loop = asyncio.get_event_loop()
 
-        self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
-        self._socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-
     @asyncio.coroutine
     def connect(self, timeout):
         try:
-            self._socket.connect((self._parent.host, self._parent.port))
+            self._streamreader, self._streamwriter = yield from \
+                asyncio.open_connection(self._parent.host, self._parent.port,
+                            family=socket.AF_INET, loop=self._io_loop)
+            self._streamwriter.get_extra_info('socket').setsockopt(
+                                socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         except Exception as err:
             raise RqlDriverError('Could not connect to %s:%s. Error: %s' %
                     (self._parent.host, self._parent.port, str(err)))
-
-        self._streamreader, self._streamwriter = yield from \
-            asyncio.open_connection(sock=self._socket, loop=self._io_loop)
 
         try:
             self._streamwriter.write(self._parent.handshake)
