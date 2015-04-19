@@ -165,7 +165,7 @@ class ConnectionInstance(object):
         return self._parent
 
     def is_open(self):
-        return not self._closing
+        return not (self._closing or self._streamreader.at_eof())
 
     @asyncio.coroutine
     def close(self, noreply_wait, token, exception=None):
