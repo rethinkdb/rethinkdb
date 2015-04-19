@@ -247,13 +247,18 @@ class ConnectionInstance(object):
 class Connection(ConnectionBase):
     def __init__(self, *args, **kwargs):
         ConnectionBase.__init__(self, ConnectionInstance, *args, **kwargs)
+        try:
+            self.port = int(self.port)
+        except ValueError:
+            raise RqlDriverError("Could not convert port %s to an integer." % self.port)
 
     @asyncio.coroutine
     def reconnect(self, noreply_wait=True, timeout=None):
         # We close before reconnect so reconnect doesn't try to close us
         # and then fail to return the Future (this is a little awkward).
         yield from self.close(noreply_wait)
-        return (yield from ConnectionBase.reconnect(self, noreply_wait, timeout))
+        self._instance = self._conn_type(self, **self._child_kwargs)
+        return (yield from self._instance.connect(timeout))
 
     @asyncio.coroutine
     def close(self, *args, **kwargs):
