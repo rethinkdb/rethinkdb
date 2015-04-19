@@ -85,7 +85,7 @@ class AsyncioCursor(Cursor):
         while len(self.items) == 0 and self.error is None:
             self._maybe_fetch_batch()
             with translate_timeout_errors():
-                yield from waiter(self.new_response)
+                yield from waiter(asyncio.shield(self.new_response))
         # If there is a (non-empty) error to be received, we return True, so the
         # user will receive it on the next `next` call.
         return len(self.items) != 0 or not isinstance(self.error, RqlCursorEmpty)
@@ -103,7 +103,7 @@ class AsyncioCursor(Cursor):
             if self.error is not None:
                 raise self.error
             with translate_timeout_errors():
-                yield from waiter(self.new_response)
+                yield from waiter(asyncio.shield(self.new_response))
         return convert_pseudo(self.items.pop(0), self.query)
 
     def _maybe_fetch_batch(self):
