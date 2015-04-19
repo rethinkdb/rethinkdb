@@ -728,60 +728,59 @@ class TestCursor(TestWithConnection):
 
         return (sum(cursor_counts), sum(cursor_timeouts))
 
-    # @asyncio.coroutine
-    # def test_false_wait(self):
-    #     reads, timeouts = yield from self.do_wait_test(False)
-    #     self.assertNotEqual(timeouts, 0,
-    #         "Did not get timeouts using zero (false) wait.")
-    #
-    # @asyncio.coroutine
-    # def test_zero_wait(self):
-    #     reads, timeouts = yield from self.do_wait_test(0)
-    #     self.assertNotEqual(timeouts, 0,
-    #         "Did not get timeouts using zero wait.")
-    #
-    # @asyncio.coroutine
-    # def test_short_wait(self):
-    #     reads, timeouts = yield from self.do_wait_test(0.0001)
-    #     self.assertNotEqual(timeouts, 0,
-    #         "Did not get timeouts using short (100 microsecond) wait.")
-    #
-    # @asyncio.coroutine
-    # def test_long_wait(self):
-    #     reads, timeouts = yield from self.do_wait_test(10)
-    #     self.assertEqual(timeouts, 0,
-    #         "Got timeouts using long (10 second) wait.")
-    #
-    # @asyncio.coroutine
-    # def test_infinite_wait(self):
-    #     reads, timeouts = yield from self.do_wait_test(True)
-    #     self.assertEqual(timeouts, 0,
-    #         "Got timeouts using infinite wait.")
-    #
-    # @asyncio.coroutine
-    # def test_default_wait(self):
-    #     reads, timeouts = yield from self.do_wait_test(None)
-    #     self.assertEqual(timeouts, 0,
-    #         "Got timeouts using default (infinite) wait.")
+    @asyncio.coroutine
+    def test_false_wait(self):
+        reads, timeouts = yield from self.do_wait_test(False)
+        self.assertNotEqual(timeouts, 0,
+            "Did not get timeouts using zero (false) wait.")
+
+    @asyncio.coroutine
+    def test_zero_wait(self):
+        reads, timeouts = yield from self.do_wait_test(0)
+        self.assertNotEqual(timeouts, 0,
+            "Did not get timeouts using zero wait.")
+
+    @asyncio.coroutine
+    def test_short_wait(self):
+        reads, timeouts = yield from self.do_wait_test(0.0001)
+        self.assertNotEqual(timeouts, 0,
+            "Did not get timeouts using short (100 microsecond) wait.")
+
+    @asyncio.coroutine
+    def test_long_wait(self):
+        reads, timeouts = yield from self.do_wait_test(10)
+        self.assertEqual(timeouts, 0,
+            "Got timeouts using long (10 second) wait.")
+
+    @asyncio.coroutine
+    def test_infinite_wait(self):
+        reads, timeouts = yield from self.do_wait_test(True)
+        self.assertEqual(timeouts, 0,
+            "Got timeouts using infinite wait.")
+
+    @asyncio.coroutine
+    def test_default_wait(self):
+        reads, timeouts = yield from self.do_wait_test(None)
+        self.assertEqual(timeouts, 0,
+            "Got timeouts using default (infinite) wait.")
 
     # This test relies on the internals of the TornadoCursor implementation
-    # @asyncio.coroutine
-    # def test_rate_limit(self):
-    #     # Get the first batch
-    #     cursor = yield from r.range().run(self.conn)
-    #     cursor_initial_size = len(cursor.items)
-    #
-    #     # Wait for the second (pre-fetched) batch to arrive
-    #     yield from cursor.new_response
-    #     cursor_new_size = len(cursor.items)
-    #
-    #     self.assertLess(cursor_initial_size, cursor_new_size)
-    #
-    #     # Wait and observe that no third batch arrives
-    #     yield from self.asyncAssertRaises(asyncio.TimeoutError,
-    #         asyncio.wait_for(cursor.new_response, 2)
-    #     )
-    #     self.assertEqual(cursor_new_size, len(cursor.items))
+    @asyncio.coroutine
+    def test_rate_limit(self):
+        # Get the first batch
+        cursor = yield from r.range().run(self.conn)
+        cursor_initial_size = len(cursor.items)
+
+        # Wait for the second (pre-fetched) batch to arrive
+        yield from cursor.new_response
+        cursor_new_size = len(cursor.items)
+
+        self.assertLess(cursor_initial_size, cursor_new_size)
+
+        # Wait and observe that no third batch arrives
+        with self.assertRaises(asyncio.TimeoutError):
+            yield from asyncio.wait_for(asyncio.shield(cursor.new_response), 2)
+        self.assertEqual(cursor_new_size, len(cursor.items))
 
     # Test that an error on a cursor (such as from closing the connection)
     # properly wakes up waiters immediately
