@@ -157,9 +157,7 @@ class Connection extends events.EventEmitter
         # Currently, the only support option is '"sslCaCerts"' which
         # is needed to perform host verification and prevent Man in
         # the Middle attacks.
-        @ssl = host.ssl || false
-        if @ssl
-            @caCerts = host.sslCaCerts
+        @ssl = host.ssl || {}
 
         # The protocol allows for responses to queries on the same
         # connection to be returned interleaved. When a query is run
@@ -922,10 +920,13 @@ class TcpConnection extends Connection
             host: @host,
             port: @port,
         }
-        if @ssl
-            options.ca = [ fs.readFileSync(@caCerts) ]
-            options.servername = @host
-            @rawSocket = tls.connect options
+        if Object.keys(@ssl).length > 0
+            if 'caCerts' of @ssl
+                options.ca = [ fs.readFileSync(@ssl.caCerts) ]
+                options.servername = @host
+                @rawSocket = tls.connect options
+            else
+                throw new err.RqlDriverError "SSL options provided but 'caCerts' argument missing"
         else
             @rawSocket = net.connect @port, @host
 
