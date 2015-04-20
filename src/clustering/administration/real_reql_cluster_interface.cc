@@ -225,10 +225,8 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
             config_params.num_shards, &config.shard_scheme);
 
         /* Pick which servers to host the data */
-        std::map<server_id_t, int> server_usage;
-        // RSI(raft): Fill in `server_usage` so we make smarter choices
         if (!table_generate_config(
-                server_config_client, nil_uuid(), nullptr, server_usage,
+                server_config_client, nil_uuid(), table_meta_client,
                 config_params, config.shard_scheme, &interruptor2,
                 &config.config.shards, error_out)) {
             *error_out = "When generating configuration for new table: " + *error_out;
@@ -702,12 +700,9 @@ bool real_reql_cluster_interface_t::reconfigure_internal(
         return false;
     }
 
-    /* RSI(raft): Fill in `server_usage` so we make smarter choices */
-    std::map<server_id_t, int> server_usage;
-
     /* `table_generate_config()` just generates the config; it doesn't apply it */
     if (!table_generate_config(
-            server_config_client, table_id, table_meta_client, server_usage,
+            server_config_client, table_id, table_meta_client,
             params, new_config.shard_scheme, interruptor, &new_config.config.shards,
             error_out)) {
         *error_out = "When generating new configuration for table: " + *error_out;
