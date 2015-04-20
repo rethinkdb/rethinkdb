@@ -1183,21 +1183,20 @@ public:
         batcher_t *batcher,
         return_empty_normal_batches_t return_empty_normal_batches,
         const signal_t *interruptor);
-    virtual void start_artificial(env_t *,
-                                  const uuid_u &,
-                                  const std::string &primary_key_name,
-                                  const std::vector<datum_t> &initial_values) = 0;
-    virtual void start_real(env_t *env,
-                            std::string table,
-                            namespace_interface_t *nif,
-                            client_t::addr_t *addr) = 0;
     void stop(std::exception_ptr exc, detach_t should_detach);
     virtual counted_t<datum_stream_t> to_stream(
+        env_t *env,
+        std::string table,
+        namespace_interface_t *nif,
         const client_t::addr_t &addr,
         counted_t<datum_stream_t> maybe_src,
         scoped_ptr_t<subscription_t> &&self,
         const protob_t<const Backtrace> &bt) = 0;
     virtual counted_t<datum_stream_t> to_artificial_stream(
+        env_t *env,
+        const uuid_u &uuid,
+        const std::string &primary_key_name,
+        const std::vector<datum_t> &iniital_vals,
         bool include_initial_vals,
         scoped_ptr_t<subscription_t> &&self,
         const protob_t<const Backtrace> &bt) = 0;
@@ -1521,35 +1520,53 @@ public:
     }
     feed_type_t cfeed_type() const final { return feed_type_t::point; }
 
-    virtual void start_artificial(env_t *,
-                                  const uuid_u &,
-                                  const std::string &primary_key_name,
-                                  const std::vector<datum_t> &initial_values) {
-        datum_t initial = datum_t::null();
-        /* Linear search is slow, but in practice there are few enough values that
-        it's OK. */
-        for (const datum_t &d : initial_values) {
-            if (d.get_field(datum_string_t(primary_key_name)) == pkey) {
-                initial = d;
-                break;
-            }
+    bool update_stamp(const uuid_u &, uint64_t new_stamp) final {
+        if (new_stamp >= stamp) {
+            stamp = new_stamp;
+            return true;
         }
-        initial_val = change_val_t(
-            std::make_pair(nil_uuid(), 0),
-            store_key_t(pkey.print_primary()),
-            boost::none,
-            indexed_datum_t(initial, datum_t(), boost::none),
-            DEBUG_ONLY(boost::none));
-        started = true;
+        return false;
     }
-    virtual void start_real(env_t *env,
-                            std::string,
-                            namespace_interface_t *nif,
-                            client_t::addr_t *addr) {
+
+    datum_t pop_el() final {
+        if (state != sent_state && include_states) {
+            sent_state = state;
+            return state_datum(state);
+        }
+        datum_t ret;
+        if (state != state_t::READY && include_initial_vals) {
+            r_sanity_check(initial_val);
+            ret = change_val_to_change(*initial_val, true);
+        } else {
+            ret = change_val_to_change(pop_change_val());
+        }
+        initial_val = boost::none;
+        state = state_t::READY;
+        return ret;
+    }
+    bool has_el() final {
+        return (include_states && state != sent_state)
+            || (include_initial_vals && state != state_t::READY)
+            || has_change_val();
+    }
+    virtual counted_t<datum_stream_t> to_stream(
+        env_t *env,
+        std::string,
+        namespace_interface_t *nif,
+        const client_t::addr_t &addr,
+        counted_t<datum_stream_t> maybe_src,
+        scoped_ptr_t<subscription_t> &&self,
+        const protob_t<const Backtrace> &bt) final {
         assert_thread();
+
+        include_initial_vals = maybe_src.has();
+        if (!include_initial_vals) {
+            state = state_t::READY;
+        }
+
         read_response_t read_resp;
         nif->read(
-            read_t(changefeed_point_stamp_t{*addr, store_key_t(pkey.print_primary())},
+            read_t(changefeed_point_stamp_t{addr, store_key_t(pkey.print_primary())},
                    profile_bool_t::DONT_PROFILE),
             &read_resp,
             order_token_t::ignore,
@@ -1582,48 +1599,14 @@ public:
             }
         }
         started = true;
-    }
-    bool update_stamp(const uuid_u &, uint64_t new_stamp) final {
-        if (new_stamp >= stamp) {
-            stamp = new_stamp;
-            return true;
-        }
-        return false;
-    }
 
-    datum_t pop_el() final {
-        if (state != sent_state && include_states) {
-            sent_state = state;
-            return state_datum(state);
-        }
-        datum_t ret;
-        if (state != state_t::READY && include_initial_vals) {
-            r_sanity_check(initial_val);
-            ret = change_val_to_change(*initial_val, true);
-        } else {
-            ret = change_val_to_change(pop_change_val());
-        }
-        initial_val = boost::none;
-        state = state_t::READY;
-        return ret;
-    }
-    bool has_el() final {
-        return (include_states && state != sent_state)
-            || (include_initial_vals && state != state_t::READY)
-            || has_change_val();
-    }
-    virtual counted_t<datum_stream_t> to_stream(
-        const client_t::addr_t &,
-        counted_t<datum_stream_t> maybe_src,
-        scoped_ptr_t<subscription_t> &&self,
-        const protob_t<const Backtrace> &bt) final {
-        include_initial_vals = maybe_src.has();
-        if (!include_initial_vals) {
-            state = state_t::READY;
-        }
         return make_counted<stream_t<subscription_t> >(std::move(self), bt);
     }
     virtual counted_t<datum_stream_t> to_artificial_stream(
+        env_t *,
+        const uuid_u &,
+        const std::string &primary_key_name,
+        const std::vector<datum_t> &initial_values,
         bool _include_initial_vals,
         scoped_ptr_t<subscription_t> &&self,
         const protob_t<const Backtrace> &bt) {
@@ -1631,6 +1614,24 @@ public:
         if (!include_initial_vals) {
             state = state_t::READY;
         }
+
+        datum_t initial = datum_t::null();
+        /* Linear search is slow, but in practice there are few enough values that
+           it's OK. */
+        for (const datum_t &d : initial_values) {
+            if (d.get_field(datum_string_t(primary_key_name)) == pkey) {
+                initial = d;
+                break;
+            }
+        }
+        initial_val = change_val_t(
+            std::make_pair(nil_uuid(), 0),
+            store_key_t(pkey.print_primary()),
+            boost::none,
+            indexed_datum_t(initial, datum_t(), boost::none),
+            DEBUG_ONLY(boost::none));
+        started = true;
+
         return make_counted<stream_t<subscription_t> >(std::move(self), bt);
     }
 private:
@@ -1671,41 +1672,6 @@ public:
     feed_type_t cfeed_type() const final { return feed_type_t::stream; }
     virtual ~range_sub_t() {
         destructor_cleanup(std::bind(&feed_t::del_range_sub, feed, this));
-    }
-    virtual void start_artificial(env_t *outer_env,
-                                  const uuid_u &uuid,
-                                  const std::string &pkey_name,
-                                  const std::vector<datum_t> &initial_vals) {
-        assert_thread();
-        env = make_env(outer_env);
-        start_stamps[uuid] = 0;
-        if (artificial_include_initial_vals) {
-            state = state_t::INITIALIZING;
-            for (auto it = initial_vals.rbegin(); it != initial_vals.rend(); ++it) {
-                if (spec.range.contains(
-                        reql_version_t::LATEST,
-                        it->get_field(datum_string_t(pkey_name)))) {
-                    artificial_initial_vals.push_back(*it);
-                }
-            }
-        }
-    }
-    virtual void start_real(env_t *outer_env,
-                            std::string,
-                            namespace_interface_t *nif,
-                            client_t::addr_t *addr) {
-        assert_thread();
-        env = make_env(outer_env);
-
-        read_response_t read_resp;
-        // Note that we use the `outer_env`'s interruptor for the read.
-        nif->read(
-            read_t(changefeed_stamp_t(*addr), profile_bool_t::DONT_PROFILE),
-            &read_resp, order_token_t::ignore, outer_env->interruptor);
-        auto resp = boost::get<changefeed_stamp_response_t>(&read_resp.response);
-        guarantee(resp != NULL);
-        start_stamps = std::move(resp->stamps);
-        guarantee(start_stamps.size() != 0);
     }
     boost::optional<std::string> sindex() const { return spec.sindex; }
     bool contains(const datum_t &sindex_key) const {
@@ -1760,6 +1726,9 @@ public:
         if (artificial_initial_vals.size() != 0) {
             datum_t d = artificial_initial_vals.back();
             artificial_initial_vals.pop_back();
+            if (artificial_initial_vals.size() == 0) {
+                state = state_t::READY;
+            }
             return vals_to_change(datum_t(), d, true);
         }
         return change_val_to_change(pop_change_val());
@@ -1771,11 +1740,25 @@ public:
     }
 
     virtual counted_t<datum_stream_t> to_stream(
+        env_t *outer_env,
+        std::string,
+        namespace_interface_t *nif,
         const client_t::addr_t &addr,
         counted_t<datum_stream_t> maybe_src,
         scoped_ptr_t<subscription_t> &&self,
         const protob_t<const Backtrace> &bt) final {
+        assert_thread();
         r_sanity_check(self.get() == this);
+
+        read_response_t read_resp;
+        // Note that we use the `outer_env`'s interruptor for the read.
+        nif->read(
+            read_t(changefeed_stamp_t(addr), profile_bool_t::DONT_PROFILE),
+            &read_resp, order_token_t::ignore, outer_env->interruptor);
+        auto resp = boost::get<changefeed_stamp_response_t>(&read_resp.response);
+        guarantee(resp != NULL);
+        start_stamps = std::move(resp->stamps);
+        guarantee(start_stamps.size() != 0);
 
         if (maybe_src) {
             // Nothing can happen between constructing the new `scoped_ptr_t` and
@@ -1791,10 +1774,29 @@ public:
         }
     }
     virtual counted_t<datum_stream_t> to_artificial_stream(
+        env_t *outer_env,
+        const uuid_u &uuid,
+        const std::string &pkey_name,
+        const std::vector<datum_t> &initial_vals,
         bool include_initial_vals,
         scoped_ptr_t<subscription_t> &&self,
         const protob_t<const Backtrace> &bt) {
+        assert_thread();
+
         artificial_include_initial_vals = include_initial_vals;
+
+        env = make_env(outer_env);
+        start_stamps[uuid] = 0;
+        if (artificial_include_initial_vals) {
+            state = state_t::INITIALIZING;
+            for (auto it = initial_vals.rbegin(); it != initial_vals.rend(); ++it) {
+                if (spec.range.contains(
+                        reql_version_t::LATEST,
+                        it->get_field(datum_string_t(pkey_name)))) {
+                    artificial_initial_vals.push_back(*it);
+                }
+            }
+        }
         return make_counted<stream_t<subscription_t> >(std::move(self), bt);
     }
     const std::map<uuid_u, uint64_t> &get_start_stamps() { return start_stamps; }
@@ -1938,41 +1940,6 @@ public:
                                            const std::vector<datum_t> &) {
         crash("Cannot start a limit subscription on an artificial table.");
     }
-    virtual void start_real(env_t *env,
-                            std::string table,
-                            namespace_interface_t *nif,
-                            client_t::addr_t *addr) {
-        assert_thread();
-        read_response_t read_resp;
-        nif->read(
-            read_t(changefeed_limit_subscribe_t(
-                       *addr,
-                       uuid,
-                       spec,
-                       std::move(table),
-                       env->get_all_optargs(),
-                       spec.range.sindex
-                       ? region_t::universe()
-                       : region_t(spec.range.range.to_primary_keyrange())),
-                   profile_bool_t::DONT_PROFILE),
-            &read_resp,
-            order_token_t::ignore,
-            env->interruptor);
-        auto resp = boost::get<changefeed_limit_subscribe_response_t>(
-            &read_resp.response);
-        if (resp == NULL) {
-            auto err_resp = boost::get<rget_read_response_t>(&read_resp.response);
-            guarantee(err_resp != NULL);
-            auto err = boost::get<exc_t>(&err_resp->result);
-            guarantee(err != NULL);
-            throw *err;
-        }
-        guarantee(need_init == -1);
-        need_init = resp->shards;
-        stop_addrs = std::move(resp->limit_addrs);
-        guarantee(need_init > 0);
-        maybe_start();
-    }
 
     void init(const std::vector<std::pair<std::string, std::pair<datum_t, datum_t> > >
               &start_data) {
@@ -2112,14 +2079,48 @@ public:
     }
 
     virtual counted_t<datum_stream_t> to_stream(
-        const client_t::addr_t &,
+        env_t *env,
+        std::string table,
+        namespace_interface_t *nif,
+        const client_t::addr_t &addr,
         counted_t<datum_stream_t> maybe_src,
         scoped_ptr_t<subscription_t> &&self,
         const protob_t<const Backtrace> &bt) final {
+        assert_thread();
         include_initial_vals = maybe_src.has();
+        read_response_t read_resp;
+        nif->read(
+            read_t(changefeed_limit_subscribe_t(
+                       addr,
+                       uuid,
+                       spec,
+                       std::move(table),
+                       env->get_all_optargs(),
+                       spec.range.sindex
+                       ? region_t::universe()
+                       : region_t(spec.range.range.to_primary_keyrange())),
+                   profile_bool_t::DONT_PROFILE),
+            &read_resp,
+            order_token_t::ignore,
+            env->interruptor);
+        auto resp = boost::get<changefeed_limit_subscribe_response_t>(
+            &read_resp.response);
+        if (resp == NULL) {
+            auto err_resp = boost::get<rget_read_response_t>(&read_resp.response);
+            guarantee(err_resp != NULL);
+            auto err = boost::get<exc_t>(&err_resp->result);
+            guarantee(err != NULL);
+            throw *err;
+        }
+        guarantee(need_init == -1);
+        need_init = resp->shards;
+        stop_addrs = std::move(resp->limit_addrs);
+        guarantee(need_init > 0);
+        maybe_start();
         return make_counted<stream_t<subscription_t> >(std::move(self), bt);
     }
     NORETURN virtual counted_t<datum_stream_t> to_artificial_stream(
+        env_t *, const uuid_u &, const std::string &, const std::vector<datum_t> &,
         bool, scoped_ptr_t<subscription_t> &&, const protob_t<const Backtrace> &) {
         crash("Cannot start a limit subscription on an artificial table.");
     }
@@ -3008,8 +3009,8 @@ counted_t<datum_stream_t> client_t::new_stream(
             sub = new_sub(feed, squash, include_states, spec);
         }
         namespace_interface_access_t access = namespace_source(uuid, env->interruptor);
-        sub->start_real(env, table_name, access.get(), &addr);
-        return sub->to_stream(addr, std::move(maybe_src), std::move(sub), bt);
+        return sub->to_stream(env, table_name, access.get(),
+                              addr, std::move(maybe_src), std::move(sub), bt);
     } catch (const cannot_perform_query_exc_t &e) {
         rfail_datum(base_exc_t::GENERIC,
                     "cannot subscribe to table `%s`: %s",
@@ -3091,10 +3092,9 @@ counted_t<datum_stream_t> artificial_t::subscribe(
     // RSI: pick up here, make these two functions one so that things can happen
     // in the right order (`start_artificial` needs to know about
     // `include_initial_vals`).
-    sub->start_artificial(env, uuid, primary_key_name, initial_values);
-    return sub->to_artificial_stream(include_initial_vals, std::move(sub), bt);
-    // RSI: remove
-    // return make_counted<stream_t<subscription_t> >(std::move(sub), bt);
+    return sub->to_artificial_stream(
+        env, uuid, primary_key_name, initial_values,
+        include_initial_vals, std::move(sub), bt);
 }
 
 void artificial_t::send_all(const msg_t &msg) {
