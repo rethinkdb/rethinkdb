@@ -241,8 +241,7 @@ class SocketWrapper(object):
         self.port = parent._parent.port
         self._read_buffer = None
         self._socket = None
-        self._use_ssl = parent._use_ssl
-        self._ca_certs = parent._ca_certs
+        self.ssl = parent._parent.ssl
 
         deadline = time.time() + timeout
 
@@ -251,8 +250,8 @@ class SocketWrapper(object):
                 socket.create_connection((self.host, self.port), timeout)
             self._socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 
-            if self._use_ssl:
-                ssl_context = self._get_ssl_context(self._ca_certs)
+            if len(self.ssl) > 0:
+                ssl_context = self._get_ssl_context(self.ssl["ca_certs"])
                 try:
                     self._socket = ssl_context.wrap_socket(self._socket,
                                                            server_hostname=self.host)
@@ -381,14 +380,12 @@ class SocketWrapper(object):
 
 
 class ConnectionInstance(object):
-    def __init__(self, parent, ssl=False, ca_certs=None):
+    def __init__(self, parent):
         self._parent = parent
         self._cursor_cache = {}
         self._header_in_progress = None
         self._socket = None
         self._closing = False
-        self._use_ssl = ssl
-        self._ca_certs = ca_certs
 
     def connect(self, timeout):
         self._socket = SocketWrapper(self, timeout)
@@ -475,7 +472,7 @@ class ConnectionInstance(object):
 class Connection(object):
     _r = None
 
-    def __init__(self, conn_type, host, port, db, auth_key, timeout, **kwargs):
+    def __init__(self, conn_type, host, port, db, auth_key, timeout, ssl, **kwargs):
         self.db = db
         self.auth_key = auth_key.encode('ascii')
         self.handshake = \
@@ -486,6 +483,8 @@ class Connection(object):
         self.host = host
         self.port = port
         self.connect_timeout = timeout
+
+        self.ssl = ssl
 
         self._conn_type = conn_type
         self._child_kwargs = kwargs
@@ -573,9 +572,9 @@ class DefaultConnection(Connection):
 
 connection_type = DefaultConnection
 
-def connect(host='localhost', port=28015, db=None, auth_key="", timeout=20, **kwargs):
+def connect(host='localhost', port=28015, db=None, auth_key="", timeout=20, ssl=dict(), **kwargs):
     global connection_type
-    conn = connection_type(host, port, db, auth_key, timeout, **kwargs)
+    conn = connection_type(host, port, db, auth_key, timeout, ssl, **kwargs)
     return conn.reconnect(timeout)
 
 def set_loop_type(library):

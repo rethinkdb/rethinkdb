@@ -87,15 +87,13 @@ class ConnectionInstance(object):
         self._io_loop = io_loop
         if self._io_loop is None:
             self._io_loop = IOLoop.current()
-        self._use_ssl = parent._use_ssl
-        self._ca_certs = parent._ca_certs
 
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
         self._socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-        if _use_ssl:
+        if len(self._parent.ssl) > 0:
             ssl_options = {}
-            if self._ca_certs:
-                ssl_options['ca_certs'] = self._ca_certs
+            if self._parent.ssl["ca_certs"]:
+                ssl_options['ca_certs'] = self._parent.ssl["ca_certs"]
                 ssl_options['cert_reqs'] = 2 # ssl.CERT_REQUIRED
             self._stream = iostream.SSLIOStream(
                 self._socket, ssl_options=ssl_options, io_loop=self._io_loop)
