@@ -541,7 +541,7 @@ connection_type = DefaultConnection
 def connect(host='localhost', port=28015, db=None, auth_key="", timeout=20, **kwargs):
     global connection_type
     conn = connection_type(host, port, db, auth_key, timeout, **kwargs)
-    return conn.reconnect(timeout)
+    return conn.reconnect(timeout=timeout)
 
 def set_loop_type(library):
     global connection_type
