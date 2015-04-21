@@ -373,7 +373,6 @@ struct rcheck_spec_visitor_t : public pb_rcheckable_t,
     env_t *env;
 };
 
-// RSI: handle `include_initial_vals: false` for point and limit cfeeds.
 class changes_term_t : public op_term_t {
 public:
     changes_term_t(compile_env_t *env, const protob_t<const Term> &term)

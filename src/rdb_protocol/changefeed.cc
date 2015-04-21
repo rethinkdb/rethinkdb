@@ -183,8 +183,11 @@ class squashing_queue_t : public maybe_squashing_queue_t {
         } else {
             change_val.old_val = std::move(it->second.old_val);
             it->second = std::move(change_val);
-            // RSI: what about if some are missing and some are NULL?
-            if ((!it->second.old_val && !it->second.new_val)
+            bool has_old_val = it->second.old_val
+                && it->second.old_val->val.get_type() != datum_t::R_NULL;
+            bool has_new_val = it->second.new_val
+                && it->second.new_val->val.get_type() != datum_t::R_NULL;
+            if ((!has_old_val && !has_new_val)
                 || (it->second.old_val && it->second.new_val
                     && it->second.old_val->val == it->second.new_val->val)) {
                 queue.erase(it);
