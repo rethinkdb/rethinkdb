@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 ##
-# Tests the driver API for making connections and excercizes the
+# Tests the driver API for making connections and exercizes the
 # networking code
 ###
 
