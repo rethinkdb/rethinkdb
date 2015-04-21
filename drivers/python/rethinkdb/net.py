@@ -6,6 +6,7 @@ import numbers
 import socket
 import struct
 import time
+import ssl
 try:
     from importlib import import_module
 except ImportError:
@@ -24,6 +25,11 @@ pQuery = p.Query.QueryType
 from .errors import *
 from .ast import RqlQuery, RqlTopLevelQuery, DB, Repl
 from .ast import recursively_convert_pseudotypes
+
+try:
+    from ssl import match_hostname, CertificateError
+except ImportError:
+    from backports.ssl_match_hostname import match_hostname, CertificateError
 
 try:
     xrange
@@ -235,6 +241,7 @@ class SocketWrapper(object):
         self.port = parent._parent.port
         self._read_buffer = None
         self._socket = None
+        self.ssl = parent._parent.ssl
 
         deadline = time.time() + timeout
 
@@ -242,6 +249,20 @@ class SocketWrapper(object):
             self._socket = \
                 socket.create_connection((self.host, self.port), timeout)
             self._socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+
+            if len(self.ssl) > 0:
+                ssl_context = self._get_ssl_context(self.ssl["ca_certs"])
+                try:
+                    self._socket = ssl_context.wrap_socket(self._socket,
+                                                           server_hostname=self.host)
+                except IOError as exc:
+                    self._socket.close()
+                    raise RqlDriverError("SSL handshake failed: %s" % (str(exc),))
+                try:
+                    match_hostname(self._socket.getpeercert(), hostname=self.host)
+                except CertificateError:
+                    self._socket.close()
+                    raise
 
             self.sendall(parent._parent.handshake)
 
@@ -346,6 +367,17 @@ class SocketWrapper(object):
                 self.close()
                 raise
 
+    def _get_ssl_context(self, ca_certs):
+        ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+        if hasattr(ctx, "options"):
+            ctx.options |= getattr(ssl, "OP_NO_SSLv2", 0)
+            ctx.options |= getattr(ssl, "OP_NO_SSLv3", 0)
+
+        ctx.verify_mode = ssl.CERT_REQUIRED
+        ctx.check_hostname = True
+        ctx.load_verify_locations(ca_certs)
+        return ctx
+
 
 class ConnectionInstance(object):
     def __init__(self, parent):
@@ -440,7 +472,7 @@ class ConnectionInstance(object):
 class Connection(object):
     _r = None
 
-    def __init__(self, conn_type, host, port, db, auth_key, timeout, **kwargs):
+    def __init__(self, conn_type, host, port, db, auth_key, timeout, ssl, **kwargs):
         self.db = db
         self.auth_key = auth_key.encode('ascii')
         self.handshake = \
@@ -451,6 +483,8 @@ class Connection(object):
         self.host = host
         self.port = port
         self.connect_timeout = timeout
+
+        self.ssl = ssl
 
         self._conn_type = conn_type
         self._child_kwargs = kwargs
@@ -538,9 +572,9 @@ class DefaultConnection(Connection):
 
 connection_type = DefaultConnection
 
-def connect(host='localhost', port=28015, db=None, auth_key="", timeout=20, **kwargs):
+def connect(host='localhost', port=28015, db=None, auth_key="", timeout=20, ssl=dict(), **kwargs):
     global connection_type
-    conn = connection_type(host, port, db, auth_key, timeout, **kwargs)
+    conn = connection_type(host, port, db, auth_key, timeout, ssl, **kwargs)
     return conn.reconnect(timeout=timeout)
 
 def set_loop_type(library):
