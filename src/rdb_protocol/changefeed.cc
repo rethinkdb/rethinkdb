@@ -2412,8 +2412,10 @@ private:
             }
         }
 
-        // RSI: if we aren't ready yet we'll send a lot of empty batches for no
-        // reason, fix that!
+        // If we've exhausted the stream but aren't ready yet than we may send
+        // back empty batches, but that's OK and should be rare in practice.  In
+        // the future we should consider either sleeping for 100ms in that case
+        // or hooking into the waiting logic to block until we're ready.
         return std::move(ret);
     }
 
@@ -2428,7 +2430,6 @@ private:
         store_key_t key;
         if (val.index.has()) {
             key = store_key_t(
-                // RSI: multi-indexes
                 val.index.print_secondary(skey_version(), pkey, tag_num));
         } else {
             key = pkey;
@@ -3092,9 +3093,6 @@ counted_t<datum_stream_t> artificial_t::subscribe(
     guarantee(feed.has());
     scoped_ptr_t<subscription_t> sub = new_sub(
         feed.get(), datum_t::boolean(false), include_states, spec);
-    // RSI: pick up here, make these two functions one so that things can happen
-    // in the right order (`start_artificial` needs to know about
-    // `include_initial_vals`).
     return sub->to_artificial_stream(
         env, uuid, primary_key_name, initial_values,
         include_initial_vals, std::move(sub), bt);

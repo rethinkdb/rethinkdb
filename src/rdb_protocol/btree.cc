@@ -1375,8 +1375,6 @@ void rdb_update_single_sindex(
             compute_keys(modification->primary_key, deleted, sindex_info, &keys);
             if (old_keys_out != NULL) {
                 for (const auto &pair : keys) {
-                    // RSI: consider keeping this information around in `keys`
-                    // instead of pullin git out of the `store_key_t`.
                     old_keys_out->push_back(
                         std::make_pair(
                             pair.second, ql::datum_t::extract_all(
@@ -1451,8 +1449,6 @@ void rdb_update_single_sindex(
             if (new_keys_out != NULL) {
                 guarantee(keys_available_cond != NULL);
                 for (const auto &pair : keys) {
-                    // RSI: consider keeping this information around in `keys`
-                    // instead of pullin git out of the `store_key_t`.
                     new_keys_out->push_back(
                         std::make_pair(
                             pair.second, ql::datum_t::extract_all(
