@@ -5,6 +5,7 @@ import struct
 from twisted.python import log
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, returnValue, Deferred
+from twisted.internet.defer import DeferredQueue
 from twisted.internet.protocol import ClientFactory, Protocol
 from twisted.internet.endpoints import TCP4ClientEndpoint
 from twisted.internet.error import TimeoutError
@@ -149,46 +150,60 @@ class DatabaseProtoFactory(ClientFactory):
     def clientConnectionFailed(self, connector, reason):
         pass
 
+class CursorItems(DeferredQueue):
+
+    def __init__(self):
+        super(CursorItems, self).__init__(self)
+
+    def __len__(self):
+        return len(self.pending)
+
 class TwistedCursor(Cursor):
 
     def __init__(self, *args, **kwargs):
         super(TwistedCursor, self).__init__(*args, **kwargs)
         self.new_response = Deferred()
+        self.items = CursorItems()
+
+    def _extend_queue(self, data):
+        for k in data:
+            self.items.put(k)
 
     def _extend(self, res):
-        super(TwistedCursor, self)._extend(res)
-        self.new_response.callback(True)
+        self.outstanding_requests -= 1
+        self.threshold = len(res.data)
+        if self.error is None:
+            if res.type == pResponse.SUCCESS_PARTIAL:
+                self._extend_queue(res.data)
+            elif res.type == pResponse.SUCCESS_SEQUENCE:
+                self._extend_queue(res.data)
+                self.error = self._empty_error()
+            else:
+                self.error = res.make_error(self.query)
+            self._maybe_fetch_batch()
+
+        if self.outstanding_requests == 0 and self.error is not None:
+            del self.conn._cursor_cache[res.token]
+
+        self.new_response.callback(None)
         self.new_response = Deferred()
-
-    @inlineCallbacks
-    def fetch_next(self, wait=True):
-        timeout = Cursor._wait_to_timeout(wait)
-        start_timeout(timeout, self.new_response)
-
-        yield self._maybe_fetch_batch()
-        yield self.new_response
-
-        returnValue(len(self.items) != 0 or (not isinstance(self.error,
-                RqlCursorEmpty)))
 
     def _empty_error(self):
         return RqlCursorEmpty(self.query.term)
 
+    def __iter__(self):
+        while True:
+            if self.error is RqlCursorEmpty:
+                yield StopIteration
+            else:
+                d = self._get_next(None)
+                yield d
+
     @inlineCallbacks
     def _get_next(self, timeout):
         start_timeout(timeout, self.new_response)
-        yield self._maybe_fetch_batch()
-        yield self.new_response
-        if self.error is not None:
-            raise self.error
-        # Return the value.
-        returnValue(convert_pseudo(self.items.pop(0), self.query))
-
-    def _maybe_fetch_batch(self):
-        if (self.error is None and len(self.items) <= self.threshold and
-        self.outstanding_requests == 0):
-            self.outstanding_requests += 1
-            return self.conn._parent._continue(self)
+        self._maybe_fetch_batch()
+        returnValue(convert_pseudo((yield self.items.get()), self.query))
 
 
 class ConnectionInstance(object):
