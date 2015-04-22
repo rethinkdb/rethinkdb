@@ -1,7 +1,6 @@
 # Copyright 2015 RethinkDB, all rights reserved.
 
 import struct
-import sys
 
 from twisted.python import log
 from twisted.internet import reactor
@@ -47,7 +46,6 @@ class DatabaseProtocol(Protocol):
     def connectionMade(self):
         # Send immediately the handshake.
         self.transport.write(self.factory.handshake_payload)
-        sys.stdout.write(self.factory.handshake_payload)
         # Defer a timer which will callback when timed out and errback the
         # wait_for_handshake. Otherwise, it will be cancelled in
         # handleHandshake.
