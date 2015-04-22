@@ -19,6 +19,19 @@ __all__ = ['Connection']
 pResponse = p.Response.ResponseType
 pQuery = p.Query.QueryType
 
+def start_timeout(timeout, deferToFail):
+    # Timeout = 0 or None then, there is no timeout.
+    if timeout == 0 or timeout is None:
+        return
+
+    def raisesTimeout():
+        # If the action hasn't been completed before.
+        if not deferToFail.called:
+            # Raise a timeout error. :)
+            deferToFail.errback(RqlTimeoutError)
+
+    return reactor.callLater(timeout, raisesTimeout)
+
 class DatabaseProtocol(Protocol):
     WAITING_FOR_HANDSHAKE = 0
     READY = 1
@@ -147,17 +160,35 @@ class TwistedCursor(Cursor):
         self.new_response.callback(True)
         self.new_response = Deferred()
 
+    @inlineCallbacks
+    def fetch_next(self, wait=True):
+        timeout = Cursor._wait_to_timeout(wait)
+        start_timeout(timeout, self.new_response)
+
+        yield self._maybe_fetch_batch()
+        yield self.new_response
+
+        returnValue(len(self.items) != 0 or (not isinstance(self.error,
+                RqlCursorEmpty)))
+
     def _empty_error(self):
         return RqlCursorEmpty(self.query.term)
 
     @inlineCallbacks
     def _get_next(self, timeout):
-        while len(self.items) == 0:
-            self._maybe_fetch_batch()
-            if self.error is not None:
-                raise self.error
-            # timeout the defer new_response
-        returnValue(convert_pseudo(self.items.pop(0), query))
+        start_timeout(timeout, self.new_response)
+        yield self._maybe_fetch_batch()
+        yield self.new_response
+        if self.error is not None:
+            raise self.error
+        # Return the value.
+        returnValue(convert_pseudo(self.items.pop(0), self.query))
+
+    def _maybe_fetch_batch(self):
+        if (self.error is None and len(self.items) <= self.threshold and
+        self.outstanding_requests == 0):
+            self.outstanding_requests += 1
+            return self.conn._parent._continue(self)
 
 
 class ConnectionInstance(object):
