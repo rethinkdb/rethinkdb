@@ -1,12 +1,14 @@
 # Copyright 2015 RethinkDB, all rights reserved.
 
 import struct
+import sys
 
-from twisted.internet import task
+from twisted.python import log
 from twisted.internet import reactor
-from twisted.internet.defer import inlineCallbacks
+from twisted.internet.defer import inlineCallbacks, returnValue, Deferred
 from twisted.internet.protocol import ClientFactory, Protocol
 from twisted.internet.endpoints import TCP4ClientEndpoint
+from twisted.internet.error import TimeoutError
 
 from . import ql2_pb2 as p
 from .net import decodeUTF, Query, Response, Cursor, maybe_profile, convert_pseudo
@@ -22,95 +24,119 @@ class DatabaseProtocol(Protocol):
     WAITING_FOR_HANDSHAKE = 0
     READY = 1
 
-    def __init__(self, responseHandler):
+    def __init__(self, factory):
+        self.factory = factory
         self.state = DatabaseProtocol.WAITING_FOR_HANDSHAKE
-        self.handlers = {
+        self._handlers = {
             DatabaseProtocol.WAITING_FOR_HANDSHAKE: self._handleHandshake,
-            DatabaseProtocol.READY: self._handleResponses
+            DatabaseProtocol.READY: self._handleResponse
         }
 
-        self.buffer = str()
-        self.waiting_for_length = 0
-        self.waiting_token = None
+        self.buf = str()
+        self.buf_expected_length = 0
+        self.buf_token = None
 
-        self._handleResponse = responseHandler
-
-        self.handshake_timeout = self.factory.timeout
-        self.handshake_defer = self.factory.handshake_defer
+        self.wait_for_handshake = Deferred()
 
         self._open = True
 
     def resetBuffer(self):
-        self.buffer = ''
-        self.waiting_for_length = 0
+        self.buf = ''
+        self.buf_expected_length = 0
 
     def connectionMade(self):
-        reactor.callLater(self.handshake_timeout, self.transport.loseConnection)
+        # Send immediately the handshake.
+        self.transport.write(self.factory.handshake_payload)
+        sys.stdout.write(self.factory.handshake_payload)
+        # Defer a timer which will callback when timed out and errback the
+        # wait_for_handshake. Otherwise, it will be cancelled in
+        # handleHandshake.
+        self._timeout_defer = reactor.callLater(self.factory.timeout,
+                self._handleHandshakeTimeout)
 
     def connectionLost(self, reason):
         self._open = False
 
+    def _handleHandshakeTimeout(self):
+        # If we are here, we failed to do the handshake before the timeout.
+        # We close the connection and raise an RqlTimeoutError in the
+        # wait_for_handshake deferred.
+        self.transport.loseConnection()
+        self.wait_for_handshake.errback(RqlTimeoutError())
+
     def _handleHandshake(self, data):
         try:
-            self.buffer += data
-            if self.buffer[-1] == 'b\0':
-                message = decodeUTF(self.buffer[:-1]).split('\n')[0]
+            self.buf += data
+            if self.buf[-1] == b'\0':
+                message = decodeUTF(self.buf[:-1]).split('\n')[0]
                 if message != 'SUCCESS':
-                    raise RqlDriverError('Server dropped connection with message "{msg}"'
-                                         .format(msg=message))
+                    # If there is some problem with the handshake, we errback
+                    # our deferred.
+                    self.wait_for_handshake.errback(RqlDriverError('Server'
+                    'dropped connection with message'
+                    '"{msg}"'.format(msg=message)))
                 else:
-                    self.handshake_defer.callback(self)
+                    # We cancel the scheduled timeout.
+                    self._timeout_defer.cancel()
+                    # We callback our wait_for_handshake.
+                    self.wait_for_handshake.callback(None)
+                    # We're now ready to work with real data.
                     self.state = DatabaseProtocol.READY
                     self.resetBuffer()
         except Exception as e:
-            self.handshake_defer.errback()
+            self.wait_for_handshake.errback(e)
 
-    def _handleNetResponse(self, data):
-        self.buffer += data
-        if self.waiting_for_length != 0:
-            if len(self.buffer) == self.waiting_for_length:
-                self._handleResponse(self.waiting_token, self.buffer)
-                self.waiting_token = None
-                self.resetBuffer()
-        elif len(self.buffer) >= 12:
-            token, length = struct.unpack('<qL', self.buffer)
-            self.waiting_token = token
-            self.waiting_for_length = length
-            if len(self.buffer) > 12:
-                self.buffer = self.buffer[12:]
+    def _handleResponse(self, data):
+        # 1. Read the header, until we read the length of the awaited payload.
+        if self.buf_expected_length == 0:
+            if data >= 12:
+                token, length = struct.unpack('<qL', data[:12])
+                self.buf_token = token
+                self.buf_expected_length = length
+                data = data[12:]
             else:
-                self.buffer = ''
+                self.buf += data
+                # We quit the function, it is impossible to have read the
+                # entire payload at this point.
+                return
+
+        # 2. Buffer the data, until the size of the data match the expected
+        # length provided by the header.
+        self.buf += data
+        if len(self.buf) == self.buf_expected_length:
+            self.factory.response_handler(self.buf_token, self.buf)
+            self.buf_token = None
+            self.resetBuffer()
 
     def dataReceived(self, data):
         try:
             self._handlers[self.state](data)
         except Exception as e:
-            self.loseConnection()
+            raise RqlDriverError('Driver failed to handle received data.'
+            'Error: {exc}. Dropping the connection.'.format(exc=str(e)))
+            self.transport.loseConnection()
 
 class DatabaseProtoFactory(ClientFactory):
 
     protocol = DatabaseProtocol
 
-    def __init__(self, timeout, responseHandlerCallback):
+    def __init__(self, timeout, response_handler, handshake_payload):
         self.timeout = timeout
-        self.handshake_defer = Deferred()
-        self.responseHandlerCallback = responseHandlerCallback
-        self._connection = None
+        self.handshake_payload = handshake_payload
+        self.response_handler = response_handler
 
     def startedConnecting(self, connector):
         pass
 
     def buildProtocol(self, addr):
-        assert self._connection is not None
-        self._connection = DatabaseProtocol(self.responseHandlerCallback)
-        self._connection.factory = self
-        return self._connection
+        p = DatabaseProtocol(self)
+        return p
 
     def clientConnectionLost(self, connector, reason):
-        self._connection = None
+        pass
 
     def clientConnectionFailed(self, connector, reason):
-        self._connection = None
+        pass
 
 class TwistedCursor(Cursor):
 
@@ -138,15 +164,15 @@ class TwistedCursor(Cursor):
 
 class ConnectionInstance(object):
 
-    def __init__(self, parent, reactor_start=True):
+    def __init__(self, parent, start_reactor=False):
         self._parent = parent
         self._closing = False
         self._connection = None
         self._user_queries = {}
         self._cursor_cache = {}
 
-        if reactor_start:
-            reactor.start()
+        if start_reactor:
+            reactor.run()
 
     def _handleResponse(self, token, data):
         try:
@@ -178,25 +204,36 @@ class ConnectionInstance(object):
                 self.close(False, None, e)
 
     @inlineCallbacks
-    def connect(self, timeout):
-        def timedOut(self):
-            raise RqlTimeoutError()
-
-        factory = DatabaseProtoFactory(timeout, self._handleResponse)
+    def _connectTimeout(self, factory, timeout):
         try:
             endpoint = TCP4ClientEndpoint(reactor, self._parent.host, self._parent.port,
-                                          timeout=timeout)
-            endpoint.connect(factory)
+                        timeout=timeout)
+            p = yield endpoint.connect(factory)
+            returnValue(p)
+        except TimeoutError:
+            raise RqlTimeoutError()
+
+    @inlineCallbacks
+    def connect(self, timeout):
+        factory = DatabaseProtoFactory(timeout, self._handleResponse,
+                self._parent.handshake)
+
+        # We connect to the server, and send the handshake payload.
+        pConnection = None
+        try:
+            pConnection = yield self._connectTimeout(factory, timeout)
         except Exception as e:
             raise RqlDriverError('Could not connect to {p.host}:{p.port}. Error: {exc}'
                     .format(p=self._parent, exc=str(e)))
 
+        # Now, we need to wait for the handshake.
         try:
-            protoConnection = yield factory.handshake_defer
-            self._connection = protoConnection
+            yield pConnection.wait_for_handshake
         except Exception as e:
             raise RqlDriverError('Connection interrupted during the handshake with {p.host}:{p.port}. Error: {exc}'
                                  .format(p=self._parent, exc=str(e)))
+
+        self._connection = pConnection
 
         returnValue(self._parent)
 
@@ -223,13 +260,13 @@ class ConnectionInstance(object):
             noreply = Query(pQuery.NOREPLY_WAIT, token, None, None)
             yield self.run_query(noreply, False)
 
-        self._connection.loseConnection()
+        self._connection.transport.loseConnection()
 
         returnValue(None)
 
     @inlineCallbacks
     def run_query(self, query, noreply):
-        self._connection.write(query.serialize())
+        self._connection.transport.write(query.serialize())
         if noreply:
             returnValue(None)
 
@@ -242,12 +279,12 @@ class ConnectionInstance(object):
 class Connection(ConnectionBase):
 
     def __init__(self, *args, **kwargs):
-        super(ConnectionBase, self).__init__(ConnectionInstance, *args, **kwargs)
+        super(Connection, self).__init__(ConnectionInstance, *args, **kwargs)
 
     @inlineCallbacks
     def reconnect(self, noreply_wait=True, timeout=None):
         yield self.close(noreply_wait)
-        res = yield super(ConnectionBase, self).reconnect(noreply_wait, timeout)
+        res = yield super(Connection, self).reconnect(noreply_wait, timeout)
         returnValue(res)
 
     @inlineCallbacks
@@ -255,25 +292,25 @@ class Connection(ConnectionBase):
         if self._instance is None:
             res = None
         else:
-            res = yield super(ConnectionBase, self).close(*args, **kwargs)
+            res = yield super(Connection, self).close(*args, **kwargs)
         returnValue(res)
 
     @inlineCallbacks
     def noreply_wait(self, *args, **kwargs):
-        res = yield super(ConnectionBase, self).noreply_wait(*args, **kwargs)
+        res = yield super(Connection, self).noreply_wait(*args, **kwargs)
         returnValue(res)
 
     @inlineCallbacks
     def _start(self, *args, **kwargs):
-        res = yield super(ConnectionBase, self)._start(*args, **kwargs)
+        res = yield super(Connection, self)._start(*args, **kwargs)
         returnValue(res)
 
     @inlineCallbacks
     def _continue(self, *args, **kwargs):
-        res = yield super(ConnectionBase, self)._continue(*args, **kwargs)
+        res = yield super(Connection, self)._continue(*args, **kwargs)
         returnValue(res)
 
     @inlineCallbacks
     def _stop(self, *args, **kwargs):
-        res = yield super(ConnectionBase, self)._stop(*args, **kwargs)
+        res = yield super(Connection, self)._stop(*args, **kwargs)
         returnValue(res)
