@@ -193,7 +193,7 @@ class TwistedCursor(Cursor):
 
     def __iter__(self):
         while True:
-            if self.error is RqlCursorEmpty:
+            if self.error is RqlCursorEmpty and len(self.items) == 0:
                 yield StopIteration
             else:
                 d = self._get_next(None)
