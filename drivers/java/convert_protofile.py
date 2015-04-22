@@ -124,8 +124,8 @@ class Proto2Dict(object):
 TL = TemplateLookup(directories=[TEMPLATE_DIR])
 
 template_context = {
-    'camel': camel,
-    'dromedary': dromedary,
+    'camel': camel,  # CamelCase function
+    'dromedary': dromedary,  # dromeDary case function
 }
 
 
