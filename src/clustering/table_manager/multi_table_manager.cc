@@ -59,26 +59,30 @@ multi_table_manager_t::multi_table_manager_t(
     /* Resurrect any tables that were sitting on disk from when we last shut down */
     cond_t non_interruptor;
     persistence_interface->read_all_tables(
-        [&](const namespace_id_t &table_id, const table_persistent_state_t &state,
-                scoped_ptr_t<multistore_ptr_t> &&multistore_ptr) {
+        [&](const namespace_id_t &table_id, const table_persistent_state_t &state) {
             mutex_assertion_t::acq_t global_mutex_acq(&mutex);
             guarantee(tables.count(table_id) == 0);
             table_t *table;
             tables[table_id].init(table = new table_t);
             new_mutex_acq_t table_mutex_acq(&table->mutex);
             global_mutex_acq.reset();
-            table->multistore_ptr = std::move(multistore_ptr);
-            table->active = make_scoped<active_table_t>(
-                this, table_id, state.epoch, state.member_id, state.raft_state,
-                table->multistore_ptr.get());
-            raft_member_t<table_raft_state_t>::state_and_config_t raft_state =
-                table->active->get_raft()->get_committed_state()->get();
-            guarantee(raft_state.state.member_ids.at(server_id) == state.member_id,
-                "Somehow we persisted a state in which we were not a member of the "
-                "cluster");
-            table->timestamp.epoch = state.epoch;
-            table->timestamp.log_index = raft_state.log_index;
-            table->is_deleted = false;
+
+            if (table_persistent_state_t::active_t *active =
+                    boost::get<table_persistent_state_t::active_t>(&state.value)) {
+                table->status = table_t::status_t::ACTIVE;
+                persistence_interface->load_multistore(
+                    table_id, &table->multistore_ptr, &non_interruptor);
+                table->active = make_scoped<active_table_t>(
+                    this, table_id,
+                    active->epoch, active->raft_member_id, active->raft_state,
+                    table->multistore_ptr.get());
+            } else if (table_persistent_state_t::inactive_t *inactive =
+                    boost::get<table_persistent_state_t::inactive_t>(&state.value)) {
+                table->status = table_t::status_t::INACTIVE;
+                table->second_hand_config =
+                    boost::make_optional(inactive->second_hand_config);
+                table->second_hand_timestamp = boost::make_optional(inactive->timestamp);
+            }
 
             /* This probably won't do anything, since we probably won't be connected to
             any other servers when `multi_table_manager_t` is created; but just in case,
@@ -118,7 +122,12 @@ multi_table_manager_t::active_table_t::active_table_t(
 void multi_table_manager_t::active_table_t::on_raft_commit() {
     /* Every time the Raft cluster commits a transaction, we re-sync to every other
     server in the cluster. This is because the transaction might consist of adding or
-    removing a server, in which case we need to notify that server. */
+    removing a server, in which case we need to notify that server.
+
+    This is likely to cause performance issues. We could reduce the number of syncs by
+    not resyncing to a given peer unless the peer is mentioned in the Raft state; the
+    peer has a `table_manager_bcard_t` for this table; or the table's name or database
+    has changed. */
     mutex_assertion_t::acq_t mutex_acq(&parent->mutex);
     auto it = parent->tables.find(manager.table_id);
     guarantee(it != parent->tables.end());
@@ -134,15 +143,24 @@ void multi_table_manager_t::on_action(
         signal_t *interruptor,
         const namespace_id_t &table_id,
         const multi_table_manager_bcard_t::timestamp_t &timestamp,
-        bool is_deletion,
-        const boost::optional<raft_member_id_t> &member_id,
+        multi_table_manager_bcard_t::status_t action_status,
+        const boost::optional<table_basic_config_t> &basic_config,
+        const boost::optional<raft_member_id_t> &raft_member_id,
         const boost::optional<raft_persistent_state_t<table_raft_state_t> >
-            &initial_state,
+            &initial_raft_state,
         const mailbox_t<void()>::address_t &ack_addr) {
+    typedef multi_table_manager_bcard_t::status_t action_status_t;
+
     /* Validate the incoming message */
-    guarantee(static_cast<bool>(member_id) == static_cast<bool>(initial_state));
-    guarantee(!(is_deletion && static_cast<bool>(member_id)));
-    guarantee(is_deletion == timestamp.epoch.id.is_nil());
+    guarantee(static_cast<bool>(basic_config) ==
+        (action_status == action_status_t::INACTIVE ||
+            action_status == action_status_t::MAYBE_ACTIVE));
+    guarantee(static_cast<bool>(raft_member_id) ==
+        (action_status == action_status_t::ACTIVE));
+    guarantee(static_cast<bool>(initial_raft_state) ==
+        (action_status == action_status_t::ACTIVE));
+    guarantee(timestamp.is_deletion() ==
+        (action_status == action_status_t::DELETED));
 
     /* Find or create the table record for this table */
     mutex_assertion_t::acq_t global_mutex_acq(&mutex);
@@ -159,75 +177,172 @@ void multi_table_manager_t::on_action(
 
     /* Validate existing record */
     if (!is_new) {
-        guarantee(!(table->is_deleted && !is_deletion), "Can't un-delete a table");
-        guarantee(table->is_deleted == table->timestamp.epoch.id.is_nil());
-        guarantee(table->multistore_ptr.has() == table->active.has());
+        guarantee(table->multistore_ptr.has() ==
+            (table->status == table_t::status_t::ACTIVE));
+        guarantee(table->active.has() ==
+            (table->status == table_t::status_t::ACTIVE));
+        guarantee(static_cast<bool>(table->second_hand_config) ==
+            (table->status == table_t::status_t::INACTIVE));
+        guarantee(static_cast<bool>(table->second_hand_timestamp) ==
+            (table->status == table_t::status_t::INACTIVE));
+        if (table->status == table_t::status_t::INACTIVE) {
+            guarantee(!table->second_hand_timestamp->is_deletion());
+        }
     }
 
     /* Reject outdated or redundant messages */
-    if (!is_new && !timestamp.supersedes(table->timestamp)) {
-        if (!ack_addr.is_nil()) {
-            send(mailbox_manager, ack_addr);
+    if (!is_new) {
+        multi_table_manager_bcard_t::timestamp_t current_timestamp;
+        switch (table->status) {
+            case table_t::status_t::ACTIVE:
+                current_timestamp.epoch = table->active->manager.epoch;
+                current_timestamp.log_index =
+                    table->active->get_raft()->get_committed_state()->get().log_index;
+                break;
+            case table_t::status_t::INACTIVE:
+                current_timestamp = *table->second_hand_timestamp;
+                break;
+            case table_t::status_t::DELETION:
+                current_timestamp = multi_table_bcard_t::timestamp_t::deletion();
+                break;
+            default: unreachable();
         }
-        return;
+        if (timestamp.supersedes(current_timestamp)) {
+            if (!ack_addr.is_nil()) {
+                send(mailbox_manager, ack_addr);
+            }
+            return;
+        }
     }
+
+    guarantee(table->status != table_t::status_t::DELETION,
+        "It shouldn't be possible to undelete a table.");
 
     /* Bring record up to date */
-    if (static_cast<bool>(member_id) && !table->active.has()) {
-        /* The table is being created, or we are joining it */
-        table_persistent_state_t st;
-        st.epoch = timestamp.epoch;
-        st.member_id = *member_id;
-        st.raft_state = *initial_state;
-        persistence_interface->add_table(
-            table_id, st, &table->multistore_ptr, interruptor);
-        table->active = make_scoped<active_table_t>(
-            this, table_id, timestamp.epoch, *member_id, *initial_state,
-            table->multistore_ptr.get());
-        logDBG("Added replica for table %s", uuid_to_str(table_id).c_str());
-    } else if (!static_cast<bool>(member_id) && table->active.has()) {
-        /* The table is being dropped, or we are leaving it */
-        table->active.reset();
-        table->multistore_ptr.reset();
-        persistence_interface->remove_table(table_id, interruptor);
-        if (is_deletion) {
-            logDBG("Deleting table %s", uuid_to_str(table_id).c_str());
-        } else {
+    if (action_status == action_status_t::ACTIVE) {
+        if (is_new || table->status != table_t::status_t::ACTIVE)) {
+            /* The table is being created, or we are joining it */
+            table->status = table_t::status_t::ACTIVE;
+
+            /* If we were `INACTIVE` before, clean up `second_hand_config` and
+            `second_hand_timestamp` because we won't be using them anymore */
+            table->second_hand_config = boost::none;
+            table->second_hand_timestamp = boost::none;
+
+            /* Write a record to disk for the new table */
+            pesistence_interface->write_metadata(
+                table_id,
+                table_persistent_state_t::active(
+                    timestamp.epoch, *raft_member_id, *initial_raft_state),
+                interruptor);
+
+            /* Open files for the new table. We do this after writing the record, because
+            this way if we crash we won't leak the file. */
+            persistence_interface->create_multistore(
+                table_id,
+                &table->multistore_ptr,
+                interruptor);
+
+            /* Create the `active_table_t`, which contains the `raft_member_t` and does
+            all of the important work of actually handing queries */
+            table->active = make_scoped<active_table_t>(
+                this, table_id, timestamp.epoch, *raft_member_id, *initial_raft_state,
+                table->multistore_ptr.get());
+
+            logDBG("Added replica for table %s", uuid_to_str(table_id).c_str());
+
+        } else if (table->active->manager.epoch != timestamp.epoch ||
+                table->active->manager.raft_member_id != *raft_member_id {
+            /* The table was in an active state before, and it should still be in an
+            active state; but the epoch or member ID changed. So we have to destroy and
+            then re-create `table->active`. */
+
+            table->active.reset();
+
+            /* Update the record on disk */
+            pesistence_interface->write_metadata(
+                table_id,
+                table_persistent_state_t::active(
+                    timestamp.epoch, *raft_member_id, *initial_raft_state),
+                interruptor);
+
+            table->active = make_scoped<active_table_t>(
+                this, table_id, timestamp.epoch, *raft_member_id, *initial_raft_state,
+                table->multistore_ptr.get());
+
+            logDBG("Reset replica for table %s", uuid_to_str(table_id).c_str());
+        }
+
+    } else if (action_status == action_status_t::INACTIVE ||
+            (action_status == action_status_t::MAYBE_ACTIVE &&
+                (is_new || table->status != table_t::status_t::ACTIVE))) {
+        if (!is_new && table->status == table_t::status_t::ACTIVE) {
+            /* We are being demoted; we used to be hosting this table, but no longer are.
+            But we still keep a record of the table's name, etc. just like every other
+            server that's not hosting the table. */
+
+            table->active.reset();
+
+            /* Destroy files for the table before we update the metadata record, so that
+            if we crash we won't leak the file. */
+            persistence_interface->destroy_multistore(
+                table_id, &table->multistore_ptr, interruptor);
+
             logDBG("Removed replica for table %s", uuid_to_str(table_id).c_str());
         }
-    } else if (static_cast<bool>(member_id) && table->active.has() &&
-            (table->timestamp.epoch != timestamp.epoch ||
-                table->active->manager.member_id != *member_id)) {
-        /* If the epoch changed, then the table's configuration was manually overridden.
-        If the member ID changed, then we were removed and then re-added, but we never
-        processed the removal message. In either case, we have to destroy and re-create
-        `table->active`. */
-        table->active.reset();
-        table_persistent_state_t st;
-        st.epoch = timestamp.epoch;
-        st.member_id = *member_id;
-        st.raft_state = *initial_state;
-        persistence_interface->update_table(table_id, st, interruptor);
-        table->active = make_scoped<active_table_t>(
-            this, table_id, timestamp.epoch, *member_id, *initial_state,
-            table->multistore_ptr.get());
-        logDBG("Overrode replica for table %s", uuid_to_str(table_id).c_str());
+
+        /* We just found out about this table, or we are updating an existing
+        second-hand information record with newer information */
+        table->status = table_t::status_t::INACTIVE;
+
+        table->second_hand_config = boost::make_optional(*basic_config);
+        table->second_hand_timestamp = boost::make_optional(timestamp);
+
+        /* Update the record on disk */
+        persistence_interface->write_metadata(
+            table_id,
+            table_persistent_state_t::inactive(*basic_config, timestamp),
+            interruptor);
+
+    } else if (action_status == action_status_t::DELETED) {
+        if (!is_new) {
+            /* Clean up the table's current records */
+            if (table->status == table_t::status_t::ACTIVE) {
+                table->active.reset();
+
+                /* Destroy files for the table before we update the metadata record, so
+                that if we crash we won't leak the file. */
+                persistence_interface->destroy_multistore(
+                    table_id, &table->multistore_ptr, interruptor);
+
+                logDBG("Deleted table %s", uuid_to_str(table_id).c_str());
+            } else {
+                table->second_hand_config = boost::none;
+                table->second_hand_timestamp = boost::none;
+            }
+        }
+
+        table->status = table_t::status_t::DELETED;
+
+        /* Remove the record on disk */
+        persistence_interface->delete_metadata(table_id, interruptor);
+
     }
 
-    table->timestamp = timestamp;
-    table->is_deleted = is_deletion;
-
-    /* Sync this table to all other peers. This is usually redundant, but if we encounter
-    non-transitive connectivity it can prevent a stall. For example, suppose that server
-    A creates a new table, which is hosted on B, C, and D; but the messages from A to
-    C and D are lost. This code path will cause B to forward the messages to C and D
-    instead of being stuck in a limbo state. */
-    multi_table_manager_directory->read_all(
-    [&](const peer_id_t &peer, const multi_table_manager_bcard_t *) {
-        if (peer != mailbox_manager->get_me()) {
-            schedule_sync(table_id, table, peer);
-        }
-    });
+    /* If we're in the `ACTIVE` or `DELETED` state, sync this table to all other peers.
+    This is usually redundant, but if we encounter non-transitive connectivity it can
+    prevent a stall. For example, suppose that server A creates a new table, which is
+    hosted on B, C, and D; but the messages from A to C and D are lost. This code path
+    will cause B to forward the messages to C and D instead of being stuck in a limbo
+    state. */
+    if (table->status != table_t::status_t::INACTIVE) {
+        multi_table_manager_directory->read_all(
+        [&](const peer_id_t &peer, const multi_table_manager_bcard_t *) {
+            if (peer != mailbox_manager->get_me()) {
+                schedule_sync(table_id, table, peer);
+            }
+        });
+    }
 
     if (!ack_addr.is_nil()) {
         send(mailbox_manager, ack_addr);
@@ -249,7 +364,7 @@ void multi_table_manager_t::on_get_config(
             new_mutex_in_line_t table_mutex_in_line(&it->second->mutex);
             global_mutex_acq.reset();
             wait_interruptible(table_mutex_in_line.acq_signal(), interruptor);
-            if (it->second->active.has()) {
+            if (it->second->status == table_t::status_t::ACTIVE) {
                 it->second->active->get_raft()->get_committed_state()->apply_read(
                 [&](const raft_member_t<table_raft_state_t>::state_and_config_t *s) {
                     result[*table_id] = s->state.config;
@@ -272,7 +387,7 @@ void multi_table_manager_t::on_get_config(
             wait_interruptible(pair.second->acq_signal(), interruptor);
             auto it = tables.find(pair.first);
             guarantee(it != tables.end());
-            if (it->second->active.has()) {
+            if (it->second->status == table_t::status_t::ACTIVE) {
                 it->second->active->get_raft()->get_committed_state()->apply_read(
                 [&](const raft_member_t<table_raft_state_t>::state_and_config_t *s) {
                     result[pair.first] = s->state.config;
@@ -289,37 +404,69 @@ void multi_table_manager_t::do_sync(
         const server_id_t &other_server_id,
         const boost::optional<table_manager_bcard_t> &table_bcard,
         const multi_table_manager_bcard_t &table_manager_bcard) {
-    if (table.is_deleted && static_cast<bool>(table_bcard)) {
-        send(mailbox_manager, table_manager_bcard.action_mailbox,
-            table_id, table.timestamp, true, boost::optional<raft_member_id_t>(),
-            boost::optional<raft_persistent_state_t<table_raft_state_t> >(),
-            mailbox_t<void()>::address_t());
-    } else if (table.active.has()) {
-        raft_log_index_t log_index;
-        boost::optional<raft_member_id_t> member_id;
+    typedef multi_table_manager_bcard_t::status_t action_status_t;
+
+    if (table->status == table_t::status_t::ACTIVE) {
+        multi_table_manager_bcard_t::timestamp_t timestamp;
+        timestamp.epoch = table.active->manager.epoch;
+        action_status_t action_status;
+        boost::optional<table_basic_config_t> basic_config;
+        boost::optional<raft_member_id_t> raft_member_id;
+        boost::optional<raft_persistent_state_t<table_raft_state_t> >
+            initial_raft_state;
         table.active->get_raft()->get_committed_state()->apply_read(
             [&](const raft_member_t<table_raft_state_t>::state_and_config_t *st) {
-                log_index = st->log_index;
+                timestamp.log_index = st->log_index;
                 auto it = st->state.member_ids.find(other_server_id);
                 if (it != st->state.member_ids.end()) {
-                    member_id = it->second;
+                    action_status = action_status_t::ACTIVE;
+                    raft_member_id = boost::make_optional(it->second);
+                    initial_raft_state = boost::make_optional(
+                        table.active->get_raft()->get_state_for_init());
+                } else {
+                    action_status = action_status_t::INACTIVE;
+                    basic_config = boost::make_optional(st->state.config.config.basic);
                 }
             });
-        if (static_cast<bool>(member_id) != static_cast<bool>(table_bcard) ||
-                (static_cast<bool>(member_id) && static_cast<bool>(table_bcard) &&
-                    (table.timestamp.epoch.supersedes(table_bcard->timestamp.epoch) ||
-                        *member_id != table_bcard->raft_member_id))) {
-            boost::optional<raft_persistent_state_t<table_raft_state_t> > initial_state;
-            if (static_cast<bool>(member_id)) {
-                initial_state = table.active->get_raft()->get_state_for_init();
+
+        if (static_cast<bool>(table_bcard)) {
+            /* If the peer already has an entry in the directory, we can use that to
+            avoid sending unnecessary updates to save network traffic. */
+            if (action_status == action_status_t::ACTIVE
+                    && !timestamp.epoch.supersedes(table_bcard->timestamp.epoch)
+                    && *raft_member_id == table_bcard->raft_member_id) {
+                return;
             }
-            multi_table_manager_bcard_t::timestamp_t timestamp;
-            timestamp.epoch = table.timestamp.epoch;
-            timestamp.log_index = log_index;
-            send(mailbox_manager, table_manager_bcard.action_mailbox,
-                table_id, timestamp, false, member_id, initial_state,
-                mailbox_t<void()>::address_t());
         }
+
+        send(mailbox_manager, table_manager_bcard.action_mailbox,
+            table_id, timestamp, action_status,
+            basic_config, raft_member_id, initial_raft_state,
+            mailbox_t<void()>::address_t());
+
+    } else if (table->status == table_t::status_t::INACTIVE) {
+        if (static_cast<bool>(table_bcard)) {
+            /* No point in sending a `MAYBE_ACTIVE` message to a server that's actually
+            hosting the table already (it would be a noop) */
+            return;
+        }
+
+        send(mailbox_manager, table_manager_bcard.action_mailbox,
+            table_id, *table->second_hand_timestamp, action_status_t::MAYBE_ACTIVE,
+            *table->second_hand_config, boost;:optional<raft_member_id_t>(),
+            boost::optional<raft_persistent_state_t<table_raft_state_t> >(),
+            mailbox_t<void()>::address_t());
+
+    } else if (table->status == table_t::status_t::DELETED) {
+        send(mailbox_manager, table_manager_bcard.action_mailbox,
+            table_id, multi_table_manager_t::timestamp_t::deletion(),
+            action_status_t::DELETED,
+            boost::optional<table_basic_config_t>(), boost;:optional<raft_member_id_t>(),
+            boost::optional<raft_persistent_state_t<table_raft_state_t> >(),
+            mailbox_t<void()>::address_t());
+
+    } else {
+        unreachable();
     }
 }
 

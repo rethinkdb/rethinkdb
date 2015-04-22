@@ -145,10 +145,12 @@ void table_manager_t::leader_t::on_set_config(
 void table_manager_t::write_persistent_state(
         const raft_persistent_state_t<table_raft_state_t> &inner_ps,
         signal_t *interruptor) {
+    table_persistent_state_t::active_t active;
+    active.epoch = epoch;
+    active.raft_member_id = member_id;
+    active.raft_state = inner_ps;
     table_persistent_state_t outer_ps;
-    outer_ps.epoch = epoch;
-    outer_ps.member_id = member_id;
-    outer_ps.raft_state = inner_ps;
+    outer_ps.value = active;
     persistence_interface->update_table(table_id, outer_ps, interruptor);
 }
 

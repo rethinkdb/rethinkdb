@@ -24,6 +24,16 @@
 
 /* This is the metadata for a single table. */
 
+/* `table_basic_config_t` contains the subset of the table's configuration that the
+parser needs to process queries against the table. A copy of this is stored on every
+thread of every server for every table. */
+class table_basic_config_t {
+public:
+    name_string_t name;
+    database_id_t database;
+    std::string primary_key;
+};
+
 class write_ack_config_t {
 public:
     enum class mode_t { single, majority, complex };
@@ -47,8 +57,8 @@ RDB_DECLARE_EQUALITY_COMPARABLE(write_ack_config_t::req_t);
 RDB_DECLARE_SERIALIZABLE(write_ack_config_t);
 RDB_DECLARE_EQUALITY_COMPARABLE(write_ack_config_t);
 
-/* `table_config_t` describes the contents of the `rethinkdb.table_config` artificial
-table. */
+/* `table_config_t` describes the complete contents of the `rethinkdb.table_config`
+artificial table. */
 
 class table_config_t {
 public:
@@ -57,9 +67,7 @@ public:
         std::set<server_id_t> replicas;
         server_id_t primary_replica;
     };
-    database_id_t database;
-    name_string_t name;
-    std::string primary_key;
+    table_basic_config_t basic;
     std::vector<shard_t> shards;
     std::map<std::string, sindex_config_t> sindexes;
     write_ack_config_t write_ack_config;

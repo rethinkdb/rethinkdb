@@ -18,18 +18,16 @@ public:
     public:
         class epoch_t {
         public:
-            /* Every table's lifetime is divided into "epochs". Each epoch corresponds to
-            one Raft instance. Normally tables only have one epoch; a new epoch is
-            created only when the user manually overrides the Raft state, which requires
-            creating a new Raft instance.
+            static epoch_t deletion() {
+                epoch_t e;
+                e.id = nil_uuid();
+                e.timestamp = std::numeric_limits<microtime_t>::max();
+                return e;
+            }
 
-            `timestamp` is the wall-clock time when the epoch began. `id` is a unique ID
-            created for the epoch. An epoch with a later `timestamp` supersedes an epoch
-            with an earlier `timestamp`. `id` breaks ties. Ties are possible because the
-            user may manually override the Raft state on both sides of a netsplit, for
-            example. */
-            microtime_t timestamp;
-            uuid_u id;
+            bool is_deletion() const {
+                return id.is_nil();
+            }
 
             bool operator==(const epoch_t &other) const {
                 return timestamp == other.timestamp && id == other.id;
@@ -47,13 +45,31 @@ public:
                     return other.id < id;
                 }
             }
+
+            /* Every table's lifetime is divided into "epochs". Each epoch corresponds to
+            one Raft instance. Normally tables only have one epoch; a new epoch is
+            created only when the user manually overrides the Raft state, which requires
+            creating a new Raft instance.
+
+            `timestamp` is the wall-clock time when the epoch began. `id` is a unique ID
+            created for the epoch. An epoch with a later `timestamp` supersedes an epoch
+            with an earlier `timestamp`. `id` breaks ties. Ties are possible because the
+            user may manually override the Raft state on both sides of a netsplit, for
+            example. */
+            microtime_t timestamp;
+            uuid_u id;
         };
 
-        epoch_t epoch;
+        static timestamp_t deletion() {
+            timestamp_t ts;
+            ts.epoch = epoch_t::deletion();
+            ts.log_index = std::numeric_limits<raft_log_index_t>::max();
+            return ts;
+        }
 
-        /* Within each epoch, Raft log indices provide a monotonically increasing clock.
-        */
-        raft_log_index_t log_index;
+        bool is_deletion() {
+            return epoch.is_deletion();
+        }
 
         bool supersedes(const timestamp_t &other) const {
             if (epoch.supersedes(other.epoch)) {
@@ -63,16 +79,39 @@ public:
             }
             return log_index > other.log_index;
         }
+
+        epoch_t epoch;
+
+        /* Within each epoch, Raft log indices provide a monotonically increasing clock.
+        */
+        raft_log_index_t log_index;
     };
 
+    enum class status_t { ACTIVE, INACTIVE, DELETED, MAYBE_ACTIVE };
+
     /* `action_mailbox` handles table creation and deletion, adding and removing servers
-    from the table, and manually overriding the table's configuration. */
+    from the table, and manually overriding the table's configuration.
+
+    The fields `status`, `basic_config`, `member_id`, and `initial_state` describe what
+    the state of the receiver is supposed to be. `timestamp` is a timestamp as of which
+    the information is accurate.
+
+    The possibilities are as follows:
+    - `ACTIVE` means that the receiver is supposed to be hosting the table. `member_id`
+        and `initial_state` will contain the details. `basic_config` will be empty.
+    - `INACTIVE` means the receiver is not supposed to be hosting the table.
+        `basic_config` will be present but `member_id` and `initial_state` will be empty.
+    - `DELETED` means that the table has been deleted. The other three will be empty.
+    - `MAYBE_ACTIVE` means the sender doesn't know if the receiver is supposed to be
+        hosting the table or not. `basic_config` will be present but `member_id` and
+        `initial_state` will be empty. */
     typedef mailbox_t<void(
         namespace_id_t table_id,
         timestamp_t timestamp,
-        bool is_deletion,
-        boost::optional<raft_member_id_t> member_id,
-        boost::optional<raft_persistent_state_t<table_raft_state_t> > initial_state,
+        status_t status,
+        boost::optional<table_basic_config_t> basic_config,
+        boost::optional<raft_member_id_t> raft_member_id,
+        boost::optional<raft_persistent_state_t<table_raft_state_t> > initial_raft_state,
         mailbox_t<void()>::address_t ack_addr
         )> action_mailbox_t;
     action_mailbox_t::address_t action_mailbox;
@@ -137,19 +176,9 @@ public:
     /* This timestamp contains a `raft_log_index_t`. It would be expensive to update the
     directory every time a Raft commit happened. Therefore, this timestamp is only
     guaranteed to be updated when:
-    - The server has entered a new epoch for the table, or;
-    - The server has entered or left the Raft cluster, or;
-    - The table's name or database have changed. */
+    - The server has entered a new epoch for the table, or
+    - The server has entered or left the Raft cluster, or */
     multi_table_manager_bcard_t::timestamp_t timestamp;
-
-    /* `database` and `name` are the table's database and name. They are distributed in
-    the directory so that every server can efficiently look up tables by name. */
-    database_id_t database;
-    name_string_t name;
-
-    /* The table's primary key. This is distributed in the directory so that every server
-    can efficiently run queries that require knowing the primary key. */
-    std::string primary_key;
 
     /* The other members of the Raft cluster send Raft RPCs through
     `raft_business_card`. */
@@ -177,34 +206,79 @@ public:
 RDB_DECLARE_SERIALIZABLE(table_manager_bcard_t::leader_bcard_t);
 RDB_DECLARE_SERIALIZABLE(table_manager_bcard_t);
 
+/* `table_persistent_state_t` is the type of the records we store on disk for each table.
+If we're an active member for the table, we'll store an `active_t`; if we're not an
+active member, we'll store an `inactive_t`. */
 class table_persistent_state_t {
 public:
-    multi_table_manager_bcard_t::timestamp_t::epoch_t epoch;
-    raft_member_id_t member_id;
-    raft_persistent_state_t<table_raft_state_t> raft_state;
+    class active_t {
+    public:
+        multi_table_manager_bcard_t::timestamp_t::epoch_t epoch;
+        raft_member_id_t raft_member_id;
+        raft_persistent_state_t<table_raft_state_t> raft_state;
+    };
+
+    class inactive_t {
+    public:
+        table_basic_config_t second_hand_config;
+
+        /* `timestamp` records a time at which `second_hand_config` is known to have been
+        correct. */
+        multi_table_manager_bcard_t::timestamp_t timestamp;
+    };
+
+    static table_persistent_state_t active(
+            const multi_table_manager_bcard_t::timestamp_t::epoch_t &epoch,
+            const raft_member_id_t &raft_member_id,
+            const raft_persistent_state_t<table_raft_state_t> &raft_state) {
+        active_t a { epoch, raft_member_id, raft_state };
+        table_persistent_state_t s { a };
+        return s;
+    }
+
+    static table_persistent_state_t inactive(
+            const table_basic_config_t &second_hand_config,
+            const multi_table_manager_bcard_t::timestamp_t &timestamp) {
+        inactive_t i { second_hand_config, timestamp };
+        table_persistent_state_t s { i };
+        return s;
+    }
+
+    /* Note that there's no `deleted_t`. This is because we don't record anything on disk
+    for tables that have been deleted. */
+
+    boost::variant<active_t, inactive_t> value;
 };
 RDB_DECLARE_SERIALIZABLE(table_persistent_state_t);
 
 class table_persistence_interface_t {
 public:
-    virtual void read_all_tables(
+    virtual void read_all_metadata(
         const std::function<void(
             const namespace_id_t &table_id,
-            const table_persistent_state_t &state,
-            scoped_ptr_t<multistore_ptr_t> &&multistore_ptr)> &callback,
+            const table_persistent_state_t &state)> &callback,
         signal_t *interruptor) = 0;
-    virtual void add_table(
-        const namespace_id_t &table,
+    virtual void write_metadata(
+        const namespace_id_t &table_id,
         const table_persistent_state_t &state,
+        signal_t *interruptor) = 0;
+    virtual void delete_metadata(
+        const namespace_id_t &table_id,
+        signal_t *interruptor) = 0;
+
+    virtual void load_multistore(
+        const namespace_id_t &table,
         scoped_ptr_t<multistore_ptr_t> *multistore_ptr_out,
         signal_t *interruptor) = 0;
-    virtual void update_table(
+    virtual void create_multistore(
         const namespace_id_t &table,
-        const table_persistent_state_t &state,
+        scoped_ptr_t<multistore_ptr_t> *multistore_ptr_out,
         signal_t *interruptor) = 0;
-    virtual void remove_table(
+    virtual void destroy_multistore(
         const namespace_id_t &table,
+        scoped_ptr_t<multistore_ptr_t> *multistore_ptr_in,
         signal_t *interruptor) = 0;
+
 protected:
     virtual ~table_persistence_interface_t() { }
 };
