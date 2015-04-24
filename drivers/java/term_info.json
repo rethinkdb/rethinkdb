@@ -1,469 +1,853 @@
 {
     "DATUM": {
-        "include_in": []
-    },
+        "include_in": [], 
+        "id": 1
+    }, 
     "MAKE_ARRAY": {
-        "include_in": []
-    },
+        "include_in": [], 
+        "id": 2
+    }, 
     "MAKE_OBJ": {
-        "include_in": []
-    },
+        "include_in": [], 
+        "id": 3
+    }, 
     "VAR": {
-        "include_in": []
-    },
+        "include_in": [], 
+        "id": 10
+    }, 
     "JAVASCRIPT": {
-        "alias": "js"
-        "include_in": ["top"]
-    },
+        "alias": "js", 
+        "include_in": [
+            "top"
+        ], 
+        "id": 11
+    }, 
     "UUID": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 169
+    }, 
     "HTTP": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 153
+    }, 
     "ERROR": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 12
+    }, 
     "IMPLICIT_VAR": {
-        "alias": "row",
-        "include_in": ["top"]
-    },
+        "alias": "row", 
+        "include_in": [
+            "top"
+        ], 
+        "id": 13
+    }, 
     "DB": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 14
+    }, 
     "TABLE": {
-        "include_in": ["top", "db"]
-    },
+        "include_in": [
+            "top", 
+            "db"
+        ], 
+        "id": 15
+    }, 
     "GET": {
-        "include_in": ["table"]
-    },
+        "include_in": [
+            "table"
+        ], 
+        "id": 16
+    }, 
     "GET_ALL": {
-        "include_in": ["table"]
-    },
+        "include_in": [
+            "table"
+        ], 
+        "id": 78
+    }, 
     "EQ": {
-        "binop": true,
-        "comparison": true,
-        "include_in": ["top", "query"]
-    },
+        "binop": true, 
+        "comparison": true, 
+        "include_in": [
+            "top", 
+            "query"
+        ], 
+        "id": 17
+    }, 
     "NE": {
-        "binop": true,
-        "comparison": true,
-        "include_in": ["top", "query"]
-    },
+        "binop": true, 
+        "comparison": true, 
+        "include_in": [
+            "top", 
+            "query"
+        ], 
+        "id": 18
+    }, 
     "LT": {
-        "binop": true,
-        "comparison": true,
-        "include_in": ["top", "query"]
-    },
+        "binop": true, 
+        "comparison": true, 
+        "include_in": [
+            "top", 
+            "query"
+        ], 
+        "id": 19
+    }, 
     "LE": {
-        "binop": true,
-        "comparison": true,
-        "include_in": ["top", "query"]
-    },
+        "binop": true, 
+        "comparison": true, 
+        "include_in": [
+            "top", 
+            "query"
+        ], 
+        "id": 20
+    }, 
     "GT": {
-        "binop": true,
-        "comparison": true,
-        "include_in": ["top", "query"]
-    },
+        "binop": true, 
+        "comparison": true, 
+        "include_in": [
+            "top", 
+            "query"
+        ], 
+        "id": 21
+    }, 
     "GE": {
-        "binop": true,
-        "comparison": true
-        "include_in": ["top", "query"]
-    },
+        "binop": true, 
+        "comparison": true, 
+        "include_in": [
+            "top", 
+            "query"
+        ], 
+        "id": 22
+    }, 
     "NOT": {
-        "include_in": ["top", "query"]
-    },
+        "include_in": [
+            "top", 
+            "query"
+        ], 
+        "id": 23
+    }, 
     "ADD": {
-        "binop": true,
-        "include_in": ["top", "query"]
-    },
+        "binop": true, 
+        "include_in": [
+            "top", 
+            "query"
+        ], 
+        "id": 24
+    }, 
     "SUB": {
-        "binop": true,
-        "include_in": ["top", "query"]
-    },
+        "binop": true, 
+        "include_in": [
+            "top", 
+            "query"
+        ], 
+        "id": 25
+    }, 
     "MUL": {
-        "binop": true,
-        "include_in": ["top", "query"]
-    },
+        "binop": true, 
+        "include_in": [
+            "top", 
+            "query"
+        ], 
+        "id": 26
+    }, 
     "DIV": {
-        "binop": true
-        "include_in": ["top", "query"]
-    },
+        "binop": true, 
+        "include_in": [
+            "top", 
+            "query"
+        ], 
+        "id": 27
+    }, 
     "MOD": {
-        "binop": true
-        "include_in": ["top", "query"]
-    },
+        "binop": true, 
+        "include_in": [
+            "top", 
+            "query"
+        ], 
+        "id": 28
+    }, 
     "FLOOR": {
-    },
+        "id": 183
+    }, 
     "CEIL": {
-    },
+        "id": 184
+    }, 
     "ROUND": {
-    },
+        "id": 185
+    }, 
     "APPEND": {
-    },
+        "id": 29
+    }, 
     "PREPEND": {
-    },
+        "id": 80
+    }, 
     "DIFFERENCE": {
-    },
+        "id": 95
+    }, 
     "SET_INSERT": {
-    },
+        "id": 88
+    }, 
     "SET_INTERSECTION": {
-    },
+        "id": 89
+    }, 
     "SET_UNION": {
-    },
+        "id": 90
+    }, 
     "SET_DIFFERENCE": {
-    },
+        "id": 91
+    }, 
     "SLICE": {
-    },
+        "id": 30
+    }, 
     "SKIP": {
-    },
+        "id": 70
+    }, 
     "LIMIT": {
-    },
+        "id": 71
+    }, 
     "OFFSETS_OF": {
-    },
+        "id": 87
+    }, 
     "CONTAINS": {
-    },
+        "id": 93
+    }, 
     "GET_FIELD": {
-    },
+        "id": 31
+    }, 
     "KEYS": {
-    },
+        "id": 94
+    }, 
     "OBJECT": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 143
+    }, 
     "HAS_FIELDS": {
-    },
+        "id": 32
+    }, 
     "WITH_FIELDS": {
-    },
+        "id": 96
+    }, 
     "PLUCK": {
-    },
+        "id": 33
+    }, 
     "WITHOUT": {
-    },
+        "id": 34
+    }, 
     "MERGE": {
-    },
+        "id": 35
+    }, 
     "BETWEEN_DEPRECATED": {
-        "include_in": []
-    },
+        "include_in": [], 
+        "id": 36
+    }, 
     "BETWEEN": {
-    },
+        "id": 182
+    }, 
     "REDUCE": {
-    },
+        "id": 37
+    }, 
     "MAP": {
-        "include_in": ["top", "query"]
-    },
+        "include_in": [
+            "top", 
+            "query"
+        ], 
+        "id": 38
+    }, 
     "FILTER": {
-    },
+        "id": 39
+    }, 
     "CONCAT_MAP": {
-    },
+        "id": 40
+    }, 
     "ORDER_BY": {
-    },
+        "id": 41
+    }, 
     "DISTINCT": {
-    },
+        "id": 42
+    }, 
     "COUNT": {
-    },
+        "id": 43
+    }, 
     "IS_EMPTY": {
-    },
+        "id": 86
+    }, 
     "UNION": {
-    },
+        "id": 44
+    }, 
     "NTH": {
-    },
+        "id": 45
+    }, 
     "BRACKET": {
-    },
+        "id": 170
+    }, 
     "INNER_JOIN": {
-    },
+        "id": 48
+    }, 
     "OUTER_JOIN": {
-    },
+        "id": 49
+    }, 
     "EQ_JOIN": {
-    },
+        "id": 50
+    }, 
     "ZIP": {
-    },
+        "id": 72
+    }, 
     "RANGE": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 173
+    }, 
     "INSERT_AT": {
-    },
+        "id": 82
+    }, 
     "DELETE_AT": {
-    },
+        "id": 83
+    }, 
     "CHANGE_AT": {
-    },
+        "id": 84
+    }, 
     "SPLICE_AT": {
-    },
+        "id": 85
+    }, 
     "COERCE_TO": {
-    },
+        "id": 51
+    }, 
     "TYPE_OF": {
-        "include_in": ["top", "query"]
-    },
+        "include_in": [
+            "top", 
+            "query"
+        ], 
+        "id": 52
+    }, 
     "UPDATE": {
-    },
+        "id": 53
+    }, 
     "DELETE": {
-    },
+        "id": 54
+    }, 
     "REPLACE": {
-    },
+        "id": 55
+    }, 
     "INSERT": {
-        "include_in": ["table"]
-    },
+        "include_in": [
+            "table"
+        ], 
+        "id": 56
+    }, 
     "DB_CREATE": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 57
+    }, 
     "DB_DROP": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 58
+    }, 
     "DB_LIST": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 59
+    }, 
     "TABLE_CREATE": {
-        "include_in": ["top", "db"]
-    },
+        "include_in": [
+            "top", 
+            "db"
+        ], 
+        "id": 60
+    }, 
     "TABLE_DROP": {
-        "include_in": ["top", "db"]
-    },
+        "include_in": [
+            "top", 
+            "db"
+        ], 
+        "id": 61
+    }, 
     "TABLE_LIST": {
-        "include_in": ["top", "db"]
-    },
+        "include_in": [
+            "top", 
+            "db"
+        ], 
+        "id": 62
+    }, 
     "CONFIG": {
-        "include_in": ["db", "table"]
-    },
+        "include_in": [
+            "db", 
+            "table"
+        ], 
+        "id": 174
+    }, 
     "STATUS": {
-        "include_in": ["table"]
-    },
+        "include_in": [
+            "table"
+        ], 
+        "id": 175
+    }, 
     "WAIT": {
-        "include_in": ["top", "db", "table"]
-    },
+        "include_in": [
+            "top", 
+            "db", 
+            "table"
+        ], 
+        "id": 177
+    }, 
     "RECONFIGURE": {
-        "include_in": ["top", "db", "table"]
-    },
+        "include_in": [
+            "top", 
+            "db", 
+            "table"
+        ], 
+        "id": 176
+    }, 
     "REBALANCE": {
-        "include_in": ["top", "db", "table"]
-    },
+        "include_in": [
+            "top", 
+            "db", 
+            "table"
+        ], 
+        "id": 179
+    }, 
     "SYNC": {
-        "include_in": ["table"]
-    },
+        "include_in": [
+            "table"
+        ], 
+        "id": 138
+    }, 
     "INDEX_CREATE": {
-        "include_in": ["table"]
-    },
+        "include_in": [
+            "table"
+        ], 
+        "id": 75
+    }, 
     "INDEX_DROP": {
-        "include_in": ["table"]
-    },
+        "include_in": [
+            "table"
+        ], 
+        "id": 76
+    }, 
     "INDEX_LIST": {
-        "include_in": ["table"]
-    },
+        "include_in": [
+            "table"
+        ], 
+        "id": 77
+    }, 
     "INDEX_STATUS": {
-        "include_in": ["table"]
-    },
+        "include_in": [
+            "table"
+        ], 
+        "id": 139
+    }, 
     "INDEX_WAIT": {
-        "include_in": ["table"]
-    },
+        "include_in": [
+            "table"
+        ], 
+        "id": 140
+    }, 
     "INDEX_RENAME": {
-        "include_in": ["table"]
-    },
+        "include_in": [
+            "table"
+        ], 
+        "id": 156
+    }, 
     "FUNCALL": {
-        "alias": "do",
-        "include_in": ["top", "query"]
-    },
+        "alias": "do", 
+        "include_in": [
+            "top", 
+            "query"
+        ], 
+        "id": 64
+    }, 
     "BRANCH": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 65
+    }, 
     "OR": {
-        "include_in": ["top", "query"]
-    },
+        "include_in": [
+            "top", 
+            "query"
+        ], 
+        "id": 66
+    }, 
     "AND": {
-        "include_in": ["top", "query"]
-    },
+        "include_in": [
+            "top", 
+            "query"
+        ], 
+        "id": 67
+    }, 
     "FOR_EACH": {
-    },
+        "id": 68
+    }, 
     "FUNC": {
-        "include_in": []
-    },
+        "include_in": [], 
+        "id": 69
+    }, 
     "ASC": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 73
+    }, 
     "DESC": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 74
+    }, 
     "INFO": {
-        "include_in": ["top", "query"]
-    },
+        "include_in": [
+            "top", 
+            "query"
+        ], 
+        "id": 79
+    }, 
     "MATCH": {
-    },
+        "id": 97
+    }, 
     "UPCASE": {
-    },
+        "id": 141
+    }, 
     "DOWNCASE": {
-    },
+        "id": 142
+    }, 
     "SAMPLE": {
-    },
+        "id": 81
+    }, 
     "DEFAULT": {
-    },
+        "id": 92
+    }, 
     "JSON": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 98
+    }, 
     "TO_JSON_STRING": {
-        "alias": "to_json"
-    },
+        "alias": "to_json", 
+        "id": 172
+    }, 
     "ISO8601": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 99
+    }, 
     "TO_ISO8601": {
-    },
+        "id": 100
+    }, 
     "EPOCH_TIME": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 101
+    }, 
     "TO_EPOCH_TIME": {
-    },
+        "id": 102
+    }, 
     "NOW": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 103
+    }, 
     "IN_TIMEZONE": {
-    },
+        "id": 104
+    }, 
     "DURING": {
-    },
+        "id": 105
+    }, 
     "DATE": {
-    },
+        "id": 106
+    }, 
     "TIME_OF_DAY": {
-    },
+        "id": 126
+    }, 
     "TIMEZONE": {
-    },
+        "id": 127
+    }, 
     "YEAR": {
-    },
+        "id": 128
+    }, 
     "MONTH": {
-    },
+        "id": 129
+    }, 
     "DAY": {
-    },
+        "id": 130
+    }, 
     "DAY_OF_WEEK": {
-    },
+        "id": 131
+    }, 
     "DAY_OF_YEAR": {
-    },
+        "id": 132
+    }, 
     "HOURS": {
-    },
+        "id": 133
+    }, 
     "MINUTES": {
-    },
+        "id": 134
+    }, 
     "SECONDS": {
-    },
+        "id": 135
+    }, 
     "TIME": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 136
+    }, 
     "MONDAY": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 107
+    }, 
     "TUESDAY": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 108
+    }, 
     "WEDNESDAY": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 109
+    }, 
     "THURSDAY": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 110
+    }, 
     "FRIDAY": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 111
+    }, 
     "SATURDAY": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 112
+    }, 
     "SUNDAY": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 113
+    }, 
     "JANUARY": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 114
+    }, 
     "FEBRUARY": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 115
+    }, 
     "MARCH": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 116
+    }, 
     "APRIL": {
-        "toplevel": true
-    },
+        "toplevel": true, 
+        "id": 117
+    }, 
     "MAY": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 118
+    }, 
     "JUNE": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 119
+    }, 
     "JULY": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 120
+    }, 
     "AUGUST": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 121
+    }, 
     "SEPTEMBER": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 122
+    }, 
     "OCTOBER": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 123
+    }, 
     "NOVEMBER": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 124
+    }, 
     "DECEMBER": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 125
+    }, 
     "LITERAL": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 137
+    }, 
     "GROUP": {
-    },
+        "id": 144
+    }, 
     "SUM": {
-    },
+        "id": 145
+    }, 
     "AVG": {
-    },
+        "id": 146
+    }, 
     "MIN": {
-    },
+        "id": 147
+    }, 
     "MAX": {
-    },
+        "id": 148
+    }, 
     "SPLIT": {
-    },
+        "id": 149
+    }, 
     "UNGROUP": {
-    },
+        "id": 150
+    }, 
     "RANDOM": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 151
+    }, 
     "CHANGES": {
-    },
+        "id": 152
+    }, 
     "ARGS": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 154
+    }, 
     "BINARY": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 155
+    }, 
     "GEOJSON": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 157
+    }, 
     "TO_GEOJSON": {
-    },
+        "id": 158
+    }, 
     "POINT": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 159
+    }, 
     "LINE": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 160
+    }, 
     "POLYGON": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 161
+    }, 
     "DISTANCE": {
-        "include_in": ["top", "query"]
-    },
+        "include_in": [
+            "top", 
+            "query"
+        ], 
+        "id": 162
+    }, 
     "INTERSECTS": {
-        "include_in": ["top", "query"]
-    },
+        "include_in": [
+            "top", 
+            "query"
+        ], 
+        "id": 163
+    }, 
     "INCLUDES": {
-    },
+        "id": 164
+    }, 
     "CIRCLE": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 165
+    }, 
     "GET_INTERSECTING": {
-        "include_in": ["table"]
-    },
+        "include_in": [
+            "table"
+        ], 
+        "id": 166
+    }, 
     "FILL": {
-    },
+        "id": 167
+    }, 
     "GET_NEAREST": {
-        "include_in": ["table"]
-    },
+        "include_in": [
+            "table"
+        ], 
+        "id": 168
+    }, 
     "POLYGON_SUB": {
-    },
+        "id": 171
+    }, 
     "MINVAL": {
-        "include_in": ["top"]
-    },
+        "include_in": [
+            "top"
+        ], 
+        "id": 180
+    }, 
     "MAXVAL": {
-        "include_in": ["top"]
+        "include_in": [
+            "top"
+        ], 
+        "id": 181
     }
 }
