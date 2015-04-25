@@ -937,6 +937,11 @@ private:
                     exp = exp * 10 + (s.Take() - '0');
                     if (exp > 308 && !expMinus) // exp > 308 should be rare, so it should be checked first.
                         RAPIDJSON_PARSE_ERROR(kParseErrorNumberTooBig, s.Tell());
+                    else if (exp >= 429496729 && expMinus) {        // Issue #313: prevent overflow exponent
+                        while (s.Peek() >= '0' && s.Peek() <= '9')  // Consume the rest of exponent
+                            s.Take();
+                        break;
+                    }
                 }
             }
             else
