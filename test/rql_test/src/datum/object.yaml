@@ -37,7 +37,7 @@ tests:
     # test coercions
     - cd: r.expr({'a':1}).coerce_to('string')
       rb: [] # The ruby test driver can't parse the expected value
-      ot: ('{\n\t"a":\t1\n}')
+      ot: ('{"a":1}')
 
     - cd: r.expr({'a':1}).coerce_to('object')
       ot: ({'a':1})
