@@ -479,9 +479,8 @@ datum_t to_datum(const rapidjson::Value &json, const configured_limits_t &limits
             fail_if_invalid(reql_version,
                             it->name.GetString(),
                             it->name.GetStringLength());
-            datum_string_t key(it->name.GetStringLength(), it->name.GetString());
-            datum_t::check_str_validity(key);
-            bool dup = builder.add(std::move(key),
+            bool dup = builder.add(datum_string_t(it->name.GetStringLength(),
+                                                  it->name.GetString()),
                                    to_datum(it->value, limits, reql_version));
             rcheck_datum(!dup, base_exc_t::GENERIC,
                          strprintf("Duplicate key `%s` in JSON.",
