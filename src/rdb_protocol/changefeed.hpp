@@ -39,6 +39,9 @@ class sindex_superblock_t;
 struct rdb_modification_report_t;
 struct sindex_disk_info_t;
 
+typedef std::pair<ql::datum_t, boost::optional<uint64_t> > index_pair_t;
+typedef std::map<std::string, std::vector<index_pair_t> > index_vals_t;
+
 namespace ql {
 
 class base_exc_t;
@@ -85,9 +88,7 @@ struct msg_t {
         RDB_DECLARE_ME_SERIALIZABLE(limit_stop_t);
     };
     struct change_t {
-        std::map<std::string,
-                 std::vector<std::pair<datum_t, boost::optional<uint64_t> > > >
-            old_indexes, new_indexes;
+        index_vals_t old_indexes, new_indexes;
         store_key_t pkey;
         /* For a newly-created row, `old_val` is an empty `datum_t`. For a deleted row,
         `new_val` is an empty `datum_t`. */

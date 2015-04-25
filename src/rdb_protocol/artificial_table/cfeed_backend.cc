@@ -15,12 +15,8 @@ void cfeed_artificial_table_backend_t::machinery_t::send_all_change(
     send_all(
         ql::changefeed::msg_t(
             ql::changefeed::msg_t::change_t{
-                std::map<std::string,
-                         std::vector<std::pair<ql::datum_t,
-                                               boost::optional<uint64_t> > > >(),
-                std::map<std::string,
-                         std::vector<std::pair<ql::datum_t,
-                                               boost::optional<uint64_t> > > >(),
+                index_vals_t(),
+                index_vals_t(),
                 pkey,
                 old_val,
                 new_val}));

@@ -1067,9 +1067,7 @@ void rdb_modification_report_cb_t::on_mod_report(
         // We spawn the sindex update in its own coroutine because we don't want to
         // hold the sindex update for the changefeed update or vice-versa.
         cond_t sindexes_updated_cond, keys_available_cond;
-        std::map<std::string,
-                 std::vector<std::pair<ql::datum_t, boost::optional<uint64_t> > > >
-            old_keys, new_keys;
+        index_vals_t old_keys, new_keys;
         sindex_spot->acq_signal()->wait_lazily_unordered();
         coro_t::spawn_now_dangerously(
             std::bind(&rdb_modification_report_cb_t::on_mod_report_sub,
@@ -1125,12 +1123,8 @@ void rdb_modification_report_cb_t::on_mod_report_sub(
     new_mutex_in_line_t *spot,
     cond_t *keys_available_cond,
     cond_t *done_cond,
-    std::map<std::string,
-             std::vector<std::pair<ql::datum_t, boost::optional<uint64_t> > > >
-        *old_keys_out,
-    std::map<std::string,
-             std::vector<std::pair<ql::datum_t, boost::optional<uint64_t> > > >
-        *new_keys_out) {
+    index_vals_t *old_keys_out,
+    index_vals_t *new_keys_out) {
     store_->sindex_queue_push(mod_report, spot);
     rdb_live_deletion_context_t deletion_context;
     rdb_update_sindexes(store_,
@@ -1554,12 +1548,8 @@ void rdb_update_sindexes(
     txn_t *txn,
     const deletion_context_t *deletion_context,
     cond_t *keys_available_cond,
-    std::map<std::string,
-             std::vector<std::pair<ql::datum_t, boost::optional<uint64_t> > > >
-        *old_keys_out,
-    std::map<std::string,
-             std::vector<std::pair<ql::datum_t, boost::optional<uint64_t> > > >
-        *new_keys_out) {
+    index_vals_t *old_keys_out,
+    index_vals_t *new_keys_out) {
     {
         auto_drainer_t drainer;
 
