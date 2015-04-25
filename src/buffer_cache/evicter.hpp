@@ -43,7 +43,7 @@ public:
                     cache_balancer_t *balancer,
                     alt_txn_throttler_t *throttler);
     void update_memory_limit(uint64_t new_memory_limit,
-                             uint64_t bytes_loaded_accounted_for,
+                             int64_t bytes_loaded_accounted_for,
                              uint64_t access_count_accounted_for,
                              bool read_ahead_ok);
 
@@ -54,7 +54,7 @@ public:
 
     uint64_t memory_limit() const;
     uint64_t access_count() const;
-    uint64_t get_clamped_bytes_loaded() const;
+    int64_t get_bytes_loaded() const;
 
     uint64_t in_memory_size() const;
 

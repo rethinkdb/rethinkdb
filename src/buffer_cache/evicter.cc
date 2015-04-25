@@ -46,7 +46,7 @@ void evicter_t::initialize(page_cache_t *page_cache,
 }
 
 void evicter_t::update_memory_limit(uint64_t new_memory_limit,
-                                    uint64_t bytes_loaded_accounted_for,
+                                    int64_t bytes_loaded_accounted_for,
                                     uint64_t access_count_accounted_for,
                                     bool read_ahead_ok) {
     assert_thread();
@@ -65,10 +65,10 @@ void evicter_t::update_memory_limit(uint64_t new_memory_limit,
                                            page_cache_->max_block_size());
 }
 
-uint64_t evicter_t::get_clamped_bytes_loaded() const {
+int64_t evicter_t::get_bytes_loaded() const {
     assert_thread();
     guarantee(initialized_);
-    return std::max<int64_t>(bytes_loaded_counter_, 0);
+    return bytes_loaded_counter_;
 }
 
 uint64_t evicter_t::memory_limit() const {
@@ -201,7 +201,6 @@ void evicter_t::remove_page(page_t *page) {
     eviction_bag_t *bag = correct_eviction_category(page);
     bag->remove(page, page->hypothetical_memory_usage(page_cache_));
     evict_if_necessary();
-    notify_bytes_loading(-static_cast<int64_t>(page->hypothetical_memory_usage(page_cache_)));
 }
 
 uint64_t evicter_t::in_memory_size() const {

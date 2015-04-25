@@ -11,7 +11,6 @@ process.on('uncaughtException', function(err) {
 
 var assert = require('assert');
 var path = require('path');
-var spawn = require('child_process').spawn
 
 // -- load rethinkdb from the proper location
 

@@ -313,7 +313,7 @@ void term_t::prop_bt(Term *t) const {
 scoped_ptr_t<val_t> runtime_term_t::eval(scope_env_t *env, eval_flags_t eval_flags) const {
     // This is basically a hook for unit tests to change things mid-query
     profile::starter_t starter(strprintf("Evaluating %s.", name()), env->env->trace);
-    DEBUG_ONLY_CODE(env->env->do_eval_callback());
+    env->env->do_eval_callback();
     DBG("EVALUATING %s (%d):\n", name(), is_deterministic());
     if (env->env->interruptor->is_pulsed()) {
         throw interrupted_exc_t();
