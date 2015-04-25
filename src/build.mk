@@ -95,6 +95,8 @@ RT_CXXFLAGS += -Wall -Wextra
 
 # Enable RapidJSON std::string functions
 RT_CXXFLAGS += "-DRAPIDJSON_HAS_STDSTRING"
+# Set RapidJSON to exact double parsing mode
+RT_CXXFLAGS += "-DRAPIDJSON_PARSE_DEFAULT_FLAGS=kParseFullPrecisionFlag"
 
 # Force 64-bit off_t size on Linux -- also, sizeof(off_t) will be
 # checked by a compile-time assertion.
