@@ -226,10 +226,12 @@ bool parse_json_pb(Query *q, int64_t token, char *str) THROWS_NOTHING {
     }
 }
 
-void write_json_pb(const Response &r, std::string *s) THROWS_NOTHING {
+void write_json_pb(const Response &r, StringBuffer *s) THROWS_NOTHING {
     // Note: We must keep any existing prefix in `s` intact.
-    StringBuffer buffer;
-    Writer<StringBuffer> writer(buffer);
+#ifdef NDEBUG
+    const size_t start_offset = s->GetSize();
+#endif
+    Writer<StringBuffer> writer(*s);
     try {
         writer.StartObject();
         writer.Key("t", 1);
@@ -288,6 +290,8 @@ void write_json_pb(const Response &r, std::string *s) THROWS_NOTHING {
 #ifndef NDEBUG
         throw;
 #else
+        // Reset s to it's original state, then write an error response.
+        s->Pop(s->GetSize() - start_offset);
         writer.StartObject();
         writer.Key("t", 1);
         writer.Int(Response::RUNTIME_ERROR);
@@ -298,8 +302,6 @@ void write_json_pb(const Response &r, std::string *s) THROWS_NOTHING {
         writer.EndObject();
 #endif // NDEBUG
     }
-
-    s->append(buffer.GetString(), buffer.GetSize());
 }
 
 

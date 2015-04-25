@@ -74,6 +74,11 @@ public:
         return stack_.template Bottom<Ch>();
     }
 
+    // RethinkDB addition: Allows modifying the GenericStringBuffer in-place
+    Ch* GetMutableBuffer() {
+        return stack_.template Bottom<Ch>();
+    }
+
     size_t GetSize() const { return stack_.GetSize(); }
 
     static const size_t kDefaultCapacity = 256;

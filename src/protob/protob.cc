@@ -19,6 +19,7 @@
 #include "containers/auth_key.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protob/json_shim.hpp"
+#include "rapidjson/stringbuffer.h"
 #include "rdb_protocol/env.hpp"
 #include "rpc/semilattice/view.hpp"
 #include "utils.hpp"
@@ -192,33 +193,33 @@ public:
         uint32_t data_size; // filled in below
         const size_t prefix_size = sizeof(token) + sizeof(data_size);
         // Reserve space for the token and the size
-        std::string str(prefix_size, '\0');
+        rapidjson::StringBuffer str;
+        str.Push(prefix_size);
 
         json_shim::write_json_pb(response, &str);
-        guarantee(str.size() >= prefix_size);
+        guarantee(str.GetSize() >= prefix_size);
 
-        if (str.size() - prefix_size >= TOO_LARGE_RESPONSE_SIZE) {
+        if (str.GetSize() - prefix_size >= TOO_LARGE_RESPONSE_SIZE) {
             Response error_response;
             error_response.set_token(response.token());
             ql::fill_error(&error_response, Response::RUNTIME_ERROR,
-                           too_large_response_message(str.size() - prefix_size));
+                           too_large_response_message(str.GetSize() - prefix_size));
             send_response(error_response, handler, conn, interruptor);
             return;
         }
 
-        data_size = static_cast<uint32_t>(str.size() - prefix_size);
+        data_size = static_cast<uint32_t>(str.GetSize() - prefix_size);
 
         // Fill in the prefix.
-        // std::string::operator[] has unspecified complexity, but in practice
-        // it should be fine.
+        char *mutable_str = str.GetMutableBuffer();
         for (size_t i = 0; i < sizeof(token); ++i) {
-            str[i] = reinterpret_cast<const char *>(&token)[i];
+            mutable_str[i] = reinterpret_cast<const char *>(&token)[i];
         }
         for (size_t i = 0; i < sizeof(data_size); ++i) {
-            str[i + sizeof(token)] = reinterpret_cast<const char *>(&data_size)[i];
+            mutable_str[i + sizeof(token)] = reinterpret_cast<const char *>(&data_size)[i];
         }
 
-        conn->write(str.data(), str.size(), interruptor);
+        conn->write(str.GetString(), str.GetSize(), interruptor);
     }
 };
 
@@ -691,20 +692,26 @@ void query_server_t::handle(const http_req_t &req,
 
     response.set_token(token);
 
-    uint32_t size;
-    std::string str;
-
+    rapidjson::StringBuffer str;
     json_shim::write_json_pb(response, &str);
-    size = str.size();
+    if (str.GetSize() >= TOO_LARGE_RESPONSE_SIZE) {
+        Response error_response;
+        error_response.set_token(response.token());
+        ql::fill_error(&error_response, Response::RUNTIME_ERROR,
+                       too_large_response_message(str.GetSize()));
+        str.Clear();
+        json_shim::write_json_pb(error_response, &str);
+    }
+    uint32_t size = static_cast<uint32_t>(str.GetSize());
 
     char header_buffer[sizeof(token) + sizeof(size)];
     memcpy(&header_buffer[0], &token, sizeof(token));
     memcpy(&header_buffer[sizeof(token)], &size, sizeof(size));
 
     std::string body_data;
-    body_data.reserve(sizeof(header_buffer) + str.length());
+    body_data.reserve(sizeof(header_buffer) + str.GetSize());
     body_data.append(&header_buffer[0], sizeof(header_buffer));
-    body_data.append(str);
+    body_data.append(str.GetString(), str.GetSize());
     result->set_body("application/octet-stream", body_data);
     result->code = http_status_code_t::OK;
 }
