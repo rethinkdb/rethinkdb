@@ -182,6 +182,7 @@ void extract(const Value *key, const Value &val, Datum::AssocPair *ap) {
 
 template<>
 void extract(const Value *, const Value &json, Query *q) {
+    if (!json.IsArray()) throw exc_t();
     if (json.Size() > 0) {
         transfer(json[0], q, &Query::set_type);
     }
@@ -232,7 +233,7 @@ void write_json_pb(const Response &r, std::string *s) THROWS_NOTHING {
     try {
         writer.StartObject();
         writer.Key("t", 1);
-        writer.Uint(r.type());
+        writer.Int(r.type());
         writer.Key("r", 1);
         writer.StartArray();
         for (int i = 0; i < r.response_size(); ++i) {
@@ -289,7 +290,7 @@ void write_json_pb(const Response &r, std::string *s) THROWS_NOTHING {
 #else
         writer.StartObject();
         writer.Key("t", 1);
-        writer.Uint(Response::RUNTIME_ERROR);
+        writer.Int(Response::RUNTIME_ERROR);
         writer.Key("r", 1);
         writer.StartArray();
         writer.String("Internal error in `write_json_pb`, please report this.");
