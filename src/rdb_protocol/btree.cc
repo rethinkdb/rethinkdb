@@ -761,12 +761,12 @@ done_traversing_t rget_cb_t::handle_pair(
                 sindex_val = sindex_val.get(*tag, ql::NOTHROW);
                 guarantee(sindex_val.has());
             }
-            if (!sindex->range.contains(sindex->func_reql_version, sindex_val)) {
+            if (!sindex->range.contains(sindex_val)) {
                 return done_traversing_t::NO;
             }
         }
 
-        ql::groups_t data(optional_datum_less_t(job.env->reql_version()));
+        ql::groups_t data;
         data = {{ql::datum_t(), ql::datums_t{val}}};
 
         for (auto it = job.transformers.begin(); it != job.transformers.end(); ++it) {
@@ -1268,20 +1268,14 @@ void deserialize_sindex_info(const std::vector<char> &data,
     // This cluster version field is _not_ a ReQL evaluation version field, which is
     // in secondary_index_t -- it only says how the value was serialized.
     cluster_version_t cluster_version;
-    archive_result_t success
-        = deserialize_cluster_version(&read_stream, &cluster_version);
+    archive_result_t success = deserialize_cluster_version(
+        &read_stream,
+        &cluster_version,
+        "Encountered a v1_13 secondary index, which is no longer supported.  "
+        "You can use RethinkDB 2.0 to upgrade your secondary index.");
     throw_if_bad_deserialization(success, "sindex description");
 
     switch (cluster_version) {
-    case cluster_version_t::v1_13:
-    case cluster_version_t::v1_13_2:
-        info_out->mapping_version_info.original_reql_version =
-            reql_version_t::v1_13;
-        info_out->mapping_version_info.latest_compatible_reql_version =
-            reql_version_t::v1_13;
-        info_out->mapping_version_info.latest_checked_reql_version =
-            reql_version_t::v1_13;
-        break;
     case cluster_version_t::v1_14:
     case cluster_version_t::v1_15:
     case cluster_version_t::v1_16:
@@ -1311,15 +1305,18 @@ void deserialize_sindex_info(const std::vector<char> &data,
 
     success = deserialize_for_version(cluster_version, &read_stream, &info_out->multi);
     throw_if_bad_deserialization(success, "sindex description");
-    if (cluster_version == cluster_version_t::v1_13
-        || cluster_version == cluster_version_t::v1_13_2
-        || cluster_version == cluster_version_t::v1_14) {
+    switch (cluster_version) {
+    case cluster_version_t::v1_14:
         info_out->geo = sindex_geo_bool_t::REGULAR;
-    } else {
+        break;
+    case cluster_version_t::v1_15: // fallthru
+    case cluster_version_t::v1_16: // fallthru
+    case cluster_version_t::v2_0_is_latest:
         success = deserialize_for_version(cluster_version, &read_stream, &info_out->geo);
         throw_if_bad_deserialization(success, "sindex description");
+        break;
+    default: unreachable();
     }
-
     guarantee(static_cast<size_t>(read_stream.tell()) == data.size(),
               "An sindex description was incompletely deserialized.");
 }

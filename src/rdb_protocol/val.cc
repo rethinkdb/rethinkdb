@@ -160,7 +160,7 @@ table_slice_t::table_slice_t(counted_t<table_t> _tbl,
 
 counted_t<datum_stream_t> table_slice_t::as_seq(
     env_t *env, const protob_t<const Backtrace> &bt) {
-    if (bounds.is_empty(env->reql_version())) {
+    if (bounds.is_empty()) {
         return make_counted<array_datum_stream_t>(datum_t::empty_array(), bt);
     } else {
         return tbl->as_seq(env, idx ? *idx : tbl->get_pkey(), bt, bounds, sorting);

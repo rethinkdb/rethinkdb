@@ -3,12 +3,14 @@
 
 // An enumeration of the current and previous recognized versions.  Every
 // serialization / deserialization happens relative to one of these versions.
+enum class obsolete_cluster_version_t {
+    v1_13 = 0,
+    v1_13_2 = 1
+};
 enum class cluster_version_t {
     // The versions are _currently_ contiguously numbered.  If this becomes untrue,
     // be sure to carefully replace the ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE line
     // that implements serialization.
-    v1_13 = 0,
-    v1_13_2 = 1,
     v1_14 = 2,
     v1_15 = 3,
     v1_16 = 4,
@@ -69,27 +71,24 @@ static_assert(cluster_version_t::CLUSTER != cluster_version_t::LATEST_DISK,
 // Then, v1.18 would still only support v1_17 and v1_18.  However, v1.18.1 might
 // support v1_17, v1_17_1, and v1_18 (and v1_18_1 if that needs to be created).
 
-
+enum class obsolete_reql_version_t {
+    v1_13 = 0
+};
 // Reql versions define how secondary index functions should be evaluated.  Older
 // versions have bugs that are fixed in newer versions.  They also define how secondary
 // index keys are generated.  v1_13 has buggy secondary index key generation, and in
 // v1_16 pseudotypes are no longer permitted to be treated as objects.
 enum class reql_version_t {
-    v1_13,
-    v1_14,
+    v1_14 = 1,
     v1_15 = v1_14,
-    v1_16,
-    v2_0,
+    v1_16 = 2,
+    v2_0 = 3,
 
     // Code that uses _is_latest may need to be updated when the
     // version changes
     v2_0_is_latest = v2_0,
 
-    // Code that uses _has_v1_14_ordering may need to be updated when
-    // the ordering of datums changes
-    LATEST_has_v1_14_ordering = v2_0,
-
-    EARLIEST = v1_13,
+    EARLIEST = v1_14,
     LATEST = v2_0,
 };
 

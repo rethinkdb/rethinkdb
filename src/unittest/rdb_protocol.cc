@@ -304,7 +304,7 @@ void run_create_drop_sindex_test(namespace_interface_t *nsi, order_source_t *oso
             ASSERT_TRUE(streams != NULL);
             ASSERT_EQ(1, streams->size());
             // Order doesn't matter because streams->size() is 1.
-            auto stream = &streams->begin(ql::grouped::order_doesnt_matter_t())->second;
+            auto stream = &streams->begin()->second;
             ASSERT_TRUE(stream != NULL);
             ASSERT_EQ(1u, stream->size());
             ASSERT_EQ(ql::to_datum(data->get(), limits, reql_version_t::LATEST),
@@ -481,8 +481,7 @@ void read_sindex(namespace_interface_t *nsi,
         ASSERT_TRUE(streams != NULL);
         ASSERT_EQ(1, streams->size());
         // Order doesn't matter because streams->size() is 1.
-        ql::stream_t *stream
-            = &streams->begin(ql::grouped::order_doesnt_matter_t())->second;
+        ql::stream_t *stream = &streams->begin()->second;
         ASSERT_TRUE(stream != NULL);
         ASSERT_EQ(expected_size, stream->size());
     } else {
@@ -691,13 +690,14 @@ void run_sindex_oversized_keys_test(namespace_interface_t *nsi, order_source_t *
                 cond_t interruptor;
                 nsi->read(read, &response, osource->check_in("unittest::run_sindex_oversized_keys_test(rdb_protocol.cc-A"), &interruptor);
 
-                if (rget_read_response_t *rget_resp = boost::get<rget_read_response_t>(&response.response)) {
+                if (rget_read_response_t *rget_resp
+                    = boost::get<rget_read_response_t>(&response.response)) {
                     auto streams = boost::get<ql::grouped_t<ql::stream_t> >(
                         &rget_resp->result);
                     ASSERT_TRUE(streams != NULL);
                     ASSERT_EQ(1, streams->size());
                     // Order doesn't matter because streams->size() is 1.
-                    auto stream = &streams->begin(ql::grouped::order_doesnt_matter_t())->second;
+                    auto stream = &streams->begin()->second;
                     ASSERT_TRUE(stream != NULL);
                     // There should be results equal to the number of iterations
                     // performed

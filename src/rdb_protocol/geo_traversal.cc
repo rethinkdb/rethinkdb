@@ -216,7 +216,7 @@ done_traversing_t collect_all_geo_intersecting_cb_t::emit_result(
     rassert(response->last_key <= key);
     response->last_key = key;
 
-    ql::groups_t data(optional_datum_less_t(job.env->reql_version()));
+    ql::groups_t data;
     data = {{ql::datum_t(), ql::datums_t{std::move(val)}}};
 
     for (auto it = job.transformers.begin(); it != job.transformers.end(); ++it) {

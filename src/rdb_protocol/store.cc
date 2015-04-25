@@ -320,8 +320,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                 response->response = resp;
                 return;
             }
-            stream = groups_to_batch(
-                gs->get_underlying_map(ql::grouped::order_doesnt_matter_t()));
+            stream = groups_to_batch(gs->get_underlying_map());
         }
         auto lvec = ql::changefeed::mangle_sort_truncate_stream(
             std::move(stream),

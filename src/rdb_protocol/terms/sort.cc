@@ -94,7 +94,7 @@ private:
                 if (!rval.has()) {
                     return false != (it->first == DESC);
                 }
-                int cmp_res = lval.cmp(env->reql_version(), rval);
+                int cmp_res = lval.cmp(rval);
                 if (cmp_res == 0) {
                     continue;
                 }
@@ -245,8 +245,7 @@ private:
         counted_t<datum_stream_t> s = v->as_seq(env->env);
         // The reql_version matters here, because we copy `results` into `toret`
         // in ascending order.
-        std::set<datum_t, optional_datum_less_t>
-            results(optional_datum_less_t(env->env->reql_version()));
+        std::set<datum_t, optional_datum_less_t> results;
         batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
         {
             profile::sampler_t sampler("Evaluating elements in distinct.",

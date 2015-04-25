@@ -22,10 +22,9 @@ double time_to_epoch_time(datum_t d);
 
 datum_t time_now();
 datum_t time_tz(datum_t time);
-datum_t time_in_tz(datum_t t,
-                                    datum_t tz);
+datum_t time_in_tz(datum_t t, datum_t tz);
 
-int time_cmp(reql_version_t reql_version, const datum_t &x, const datum_t &y);
+int time_cmp(const datum_t &x, const datum_t &y);
 void sanitize_time(datum_t *time);
 datum_t make_time(double epoch_time, std::string tz);
 datum_t make_time(

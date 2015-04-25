@@ -204,9 +204,7 @@ scoped_ptr_t<val_t> op_term_t::term_eval(scope_env_t *env,
             counted_t<grouped_data_t> out(new grouped_data_t());
             // We're processing gd into another grouped_data_t -- so gd's order
             // doesn't matter.
-            for (auto kv = gd->begin(grouped::order_doesnt_matter_t());
-                 kv != gd->end(grouped::order_doesnt_matter_t());
-                 ++kv) {
+            for (auto kv = gd->begin(); kv != gd->end(); ++kv) {
                 arg_terms->start_eval(env, eval_flags);
                 args_t args(this, argv, make_scoped<val_t>(kv->second, backtrace()));
                 (*out)[kv->first] = eval_impl(env, &args, eval_flags)->as_datum();

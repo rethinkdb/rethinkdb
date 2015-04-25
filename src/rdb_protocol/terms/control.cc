@@ -111,9 +111,7 @@ private:
                 counted_t<grouped_data_t> out(new grouped_data_t());
                 // We're processing gd into another grouped_data_t, so we are
                 // assuming nothing about its order.
-                for (auto kv = gd->begin(grouped::order_doesnt_matter_t());
-                     kv != gd->end(grouped::order_doesnt_matter_t());
-                     ++kv) {
+                for (auto kv = gd->begin(); kv != gd->end(); ++kv) {
                     arg_datums[0] = kv->second;
                     (*out)[kv->first] = f->call(env->env, arg_datums, flags)->as_datum();
                 }

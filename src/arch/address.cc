@@ -525,15 +525,15 @@ bool peer_address_t::operator != (const peer_address_t &a) const {
     return !(*this == a);
 }
 
-// We specifically use the version 1.13 serialization method as the "universal one".
+// We specifically use the version 1.14 serialization method as the "universal one".
 // If that no longer works... you might want to change the caller in cluster.cc.  Or
 // maybe you'd want a more explicit implementation here.
 void serialize_universal(write_message_t *wm, const std::set<host_and_port_t> &x) {
-    serialize<cluster_version_t::v1_13>(wm, x);
+    serialize<cluster_version_t::v1_14>(wm, x);
 }
 archive_result_t deserialize_universal(read_stream_t *s,
                                        std::set<host_and_port_t> *thing) {
-    return deserialize<cluster_version_t::v1_13>(s, thing);
+    return deserialize<cluster_version_t::v1_14>(s, thing);
 }
 
 bool is_similar_peer_address(const peer_address_t &left,

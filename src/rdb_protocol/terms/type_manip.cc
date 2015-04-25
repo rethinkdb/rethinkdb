@@ -275,22 +275,20 @@ public:
     ungroup_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(
+        scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<grouped_data_t> groups
             = args->arg(env, 0)->as_promiscuous_grouped_data(env->env);
         std::vector<datum_t> v;
         v.reserve(groups->size());
 
-        iterate_ordered_by_version(
-            env->env->reql_version(),
-            *groups,
-            [&v](const datum_t &key, datum_t &value) {
-                r_sanity_check(key.has() && value.has());
-                std::map<datum_string_t, datum_t> m =
-                    {{datum_string_t("group"), key},
-                     {datum_string_t("reduction"), std::move(value)}};
-                v.push_back(datum_t(std::move(m)));
-            });
+        for (auto &&pair : *groups) {
+            r_sanity_check(pair.first.has() && pair.second.has());
+            std::map<datum_string_t, datum_t> m =
+                {{datum_string_t("group"), std::move(pair.first)},
+                 {datum_string_t("reduction"), std::move(pair.second)}};
+            v.push_back(datum_t(std::move(m)));
+        }
         return new_val(datum_t(std::move(v), env->env->limits()));
     }
     virtual const char *name() const { return "ungroup"; }

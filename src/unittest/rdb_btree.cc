@@ -257,8 +257,7 @@ void _check_keys_are_present(store_t *store,
         ASSERT_TRUE(groups != NULL);
         ASSERT_EQ(1, groups->size());
         // The order of `groups` doesn't matter because this is a small unit test.
-        ql::stream_t *stream
-            = &groups->begin(ql::grouped::order_doesnt_matter_t())->second;
+        ql::stream_t *stream = &groups->begin()->second;
         ASSERT_TRUE(stream != NULL);
         ASSERT_EQ(1ul, stream->size());
 

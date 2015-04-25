@@ -66,7 +66,7 @@ private:
 
         /* `dirty_keys` is the set of keys that have changed since `run()` last fetched
         their values. */
-        std::set<ql::datum_t, latest_version_optional_datum_less_t> dirty_keys;
+        std::set<ql::datum_t, optional_datum_less_t> dirty_keys;
 
         /* If `waker` is non-null, it should be pulsed whenever something becomes dirty.
         */

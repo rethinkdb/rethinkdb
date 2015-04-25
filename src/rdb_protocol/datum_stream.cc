@@ -240,7 +240,7 @@ rget_reader_t::do_range_read(env_t *env, const read_t &read) {
 
     // groups_to_batch asserts that underlying_map has 0 or 1 elements, so it is
     // correct to declare that the order doesn't matter.
-    return groups_to_batch(gs->get_underlying_map(grouped::order_doesnt_matter_t()));
+    return groups_to_batch(gs->get_underlying_map());
 }
 
 bool rget_reader_t::load_items(env_t *env, const batchspec_t &batchspec) {
@@ -362,7 +362,7 @@ std::vector<rget_item_t> intersecting_reader_t::do_intersecting_read(
 
     // groups_to_batch asserts that underlying_map has 0 or 1 elements, so it is
     // correct to declare that the order doesn't matter.
-    return groups_to_batch(gs->get_underlying_map(grouped::order_doesnt_matter_t()));
+    return groups_to_batch(gs->get_underlying_map());
 }
 
 readgen_t::readgen_t(
@@ -548,8 +548,8 @@ public:
                 : datum_t::extract_primary(l.key) < datum_t::extract_primary(r.key);
         } else {
             return reversed(sorting)
-                ? l.sindex_key.compare_gt(reql_version_t::LATEST, r.sindex_key)
-                : l.sindex_key.compare_lt(reql_version_t::LATEST, r.sindex_key);
+                ? l.sindex_key > r.sindex_key
+                : l.sindex_key < r.sindex_key;
         }
     }
 private:
@@ -781,7 +781,7 @@ scoped_ptr_t<val_t> datum_stream_t::run_terminal(
 }
 
 scoped_ptr_t<val_t> datum_stream_t::to_array(env_t *env) {
-    scoped_ptr_t<eager_acc_t> acc = make_to_array(env->reql_version());
+    scoped_ptr_t<eager_acc_t> acc = make_to_array();
     accumulate_all(env, acc.get());
     return acc->finish_eager(backtrace(), is_grouped(), env->limits());
 }
@@ -885,14 +885,14 @@ void eager_datum_stream_t::accumulate(
     batchspec_t bs = batchspec_t::user(batch_type_t::TERMINAL, env);
     // I'm guessing reql_version doesn't matter here, but why think about it?  We use
     // th env's reql_version.
-    groups_t data(optional_datum_less_t(env->reql_version()));
+    groups_t data;
     while (next_grouped_batch(env, bs, &data) == done_t::NO) {
         (*acc)(env, &data);
     }
 }
 
 void eager_datum_stream_t::accumulate_all(env_t *env, eager_acc_t *acc) {
-    groups_t data(optional_datum_less_t(env->reql_version()));
+    groups_t data;
     done_t done = next_grouped_batch(env, batchspec_t::all(), &data);
     (*acc)(env, &data);
     if (done == done_t::NO) {
@@ -904,7 +904,7 @@ void eager_datum_stream_t::accumulate_all(env_t *env, eager_acc_t *acc) {
 
 std::vector<datum_t>
 eager_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &bs) {
-    groups_t data(optional_datum_less_t(env->reql_version()));
+    groups_t data;
     next_grouped_batch(env, bs, &data);
     return groups_to_batch(&data);
 }

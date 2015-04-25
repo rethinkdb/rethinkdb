@@ -250,7 +250,7 @@ boost::optional<datum_t> apply_ops(
     env_t *env,
     const datum_t &key) THROWS_NOTHING {
     try {
-        groups_t groups{optional_datum_less_t(env->reql_version())};
+        groups_t groups;
         groups[datum_t()] = std::vector<datum_t>{val};
         for (const auto &op : ops) {
             (*op)(env, &groups, key);
@@ -730,7 +730,7 @@ std::vector<item_t> mangle_sort_truncate_stream(
 bool limit_order_t::subop(
     const std::string &a_str, const std::pair<datum_t, datum_t> &a_pair,
     const std::string &b_str, const std::pair<datum_t, datum_t> &b_pair) const {
-    int cmp = a_pair.first.cmp(reql_version_t::LATEST, b_pair.first);
+    int cmp = a_pair.first.cmp(b_pair.first);
     switch (sorting) {
     case sorting_t::ASCENDING:
         return cmp > 0 ? true : ((cmp < 0) ? false : (*this)(a_str, b_str));
@@ -751,7 +751,7 @@ bool limit_order_t::operator()(const const_item_t &a, const const_item_t &b) con
 }
 
 bool limit_order_t::operator()(const datum_t &a, const datum_t &b) const {
-    int cmp = a.cmp(reql_version_t::LATEST, b);
+    int cmp = a.cmp(b);
     switch (sorting) {
     case sorting_t::ASCENDING: return cmp > 0;
     case sorting_t::DESCENDING: return cmp < 0;
@@ -829,10 +829,8 @@ void limit_manager_t::add(
     datum_t val) THROWS_NOTHING {
     guarantee(spot->write_signal()->is_pulsed());
     guarantee((is_primary == is_primary_t::NO) == static_cast<bool>(spec.range.sindex));
-    if ((is_primary == is_primary_t::YES
-         && region.inner.contains_key(sk))
-        || (is_primary == is_primary_t::NO
-            && spec.range.range.contains(reql_version_t::LATEST, key))) {
+    if ((is_primary == is_primary_t::YES && region.inner.contains_key(sk))
+        || (is_primary == is_primary_t::NO && spec.range.range.contains(key))) {
         if (boost::optional<datum_t> d = apply_ops(val, ops, env.get(), key)) {
             added.push_back(
                 std::make_pair(
@@ -906,8 +904,7 @@ public:
             guarantee(exc != NULL);
             throw *exc;
         }
-        stream_t stream = groups_to_batch(
-            gs->get_underlying_map(ql::grouped::order_doesnt_matter_t()));
+        stream_t stream = groups_to_batch(gs->get_underlying_map());
         guarantee(stream.size() <= n);
         std::vector<item_t> item_vec = mangle_sort_truncate_stream(
             std::move(stream), is_primary_t::YES, sorting, n);
@@ -954,8 +951,7 @@ public:
             guarantee(exc != NULL);
             throw *exc;
         }
-        stream_t stream = groups_to_batch(
-            gs->get_underlying_map(ql::grouped::order_doesnt_matter_t()));
+        stream_t stream = groups_to_batch(gs->get_underlying_map());
         std::vector<item_t> item_vec = mangle_sort_truncate_stream(
             std::move(stream), is_primary_t::NO, sorting, n);
         return item_vec;
@@ -1679,7 +1675,7 @@ public:
     boost::optional<std::string> sindex() const { return spec.sindex; }
     bool contains(const datum_t &sindex_key) const {
         guarantee(spec.sindex);
-        return spec.range.contains(reql_version_t::LATEST, sindex_key);
+        return spec.range.contains(sindex_key);
     }
     bool contains(const store_key_t &pkey) const {
         guarantee(!spec.sindex);
@@ -1793,9 +1789,7 @@ public:
         if (artificial_include_initial_vals) {
             state = state_t::INITIALIZING;
             for (auto it = initial_vals.rbegin(); it != initial_vals.rend(); ++it) {
-                if (spec.range.contains(
-                        reql_version_t::LATEST,
-                        it->get_field(datum_string_t(pkey_name)))) {
+                if (spec.range.contains(it->get_field(datum_string_t(pkey_name)))) {
                     artificial_initial_vals.push_back(*it);
                 }
             }
@@ -1901,7 +1895,7 @@ public:
                         if (!a.has() || !b.has()) {
                             return a.has() < b.has();
                         } else {
-                            return a.compare_lt(reql_version_t::LATEST, b);
+                            return a < b;
                         }
                     });
 

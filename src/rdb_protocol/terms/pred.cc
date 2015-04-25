@@ -7,25 +7,25 @@ namespace ql {
 
 // Anonymous namespace to avoid linker conflicts with datum_lt / datum_gt from shards.cc
 namespace {
-bool datum_eq(reql_version_t, const datum_t &lhs, const datum_t &rhs) {
+bool datum_eq(const datum_t &lhs, const datum_t &rhs) {
     // Behavior of cmp with respect to datum equality didn't change between versions.
     return lhs == rhs;
 }
 
-bool datum_lt(reql_version_t v, const datum_t &lhs, const datum_t &rhs) {
-    return lhs.cmp(v, rhs) < 0;
+bool datum_lt(const datum_t &lhs, const datum_t &rhs) {
+    return lhs.cmp(rhs) < 0;
 }
 
-bool datum_le(reql_version_t v, const datum_t &lhs, const datum_t &rhs) {
-    return lhs.cmp(v, rhs) <= 0;
+bool datum_le(const datum_t &lhs, const datum_t &rhs) {
+    return lhs.cmp(rhs) <= 0;
 }
 
-bool datum_gt(reql_version_t v, const datum_t &lhs, const datum_t &rhs) {
-    return lhs.cmp(v, rhs) > 0;
+bool datum_gt(const datum_t &lhs, const datum_t &rhs) {
+    return lhs.cmp(rhs) > 0;
 }
 
-bool datum_ge(reql_version_t v, const datum_t &lhs, const datum_t &rhs) {
-    return lhs.cmp(v, rhs) >= 0;
+bool datum_ge(const datum_t &lhs, const datum_t &rhs) {
+    return lhs.cmp(rhs) >= 0;
 }
 
 class predicate_term_t : public op_term_t {
@@ -64,11 +64,12 @@ public:
         guarantee(namestr && pred);
     }
 private:
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(
+        scope_env_t *env, args_t *args, eval_flags_t) const {
         datum_t lhs = args->arg(env, 0)->as_datum();
         for (size_t i = 1; i < args->num_args(); ++i) {
             datum_t rhs = args->arg(env, i)->as_datum();
-            if (!(pred)(env->env->reql_version(), lhs, rhs)) {
+            if (!(pred)(lhs, rhs)) {
                 return new_val_bool(static_cast<bool>(false ^ invert));
             }
             lhs = rhs;
@@ -78,7 +79,7 @@ private:
     const char *namestr;
     virtual const char *name() const { return namestr; }
     bool invert;
-    bool (*pred)(reql_version_t, const datum_t &lhs, const datum_t &rhs);
+    bool (*pred)(const datum_t &lhs, const datum_t &rhs);
 };
 
 class not_term_t : public op_term_t {

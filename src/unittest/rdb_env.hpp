@@ -145,7 +145,7 @@ public:
     void add_table(const std::string &db_name,
                    const std::string &table_name,
                    const std::string &primary_key,
-                   const std::set<ql::datum_t, latest_version_optional_datum_less_t> &initial_data);
+                   const std::set<ql::datum_t, optional_datum_less_t> &initial_data);
 
     class instance_t : private reql_cluster_interface_t {
     public:

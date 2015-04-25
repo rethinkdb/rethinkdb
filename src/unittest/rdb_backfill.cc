@@ -347,7 +347,7 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
         ASSERT_TRUE(groups != NULL);
         ASSERT_EQ(1, groups->size());
         // Order doesn't matter because groups->size() is 1.
-        auto result_stream = &groups->begin(ql::grouped::order_doesnt_matter_t())->second;
+        auto result_stream = &groups->begin()->second;
         ASSERT_EQ(1u, result_stream->size());
         EXPECT_EQ(generate_document(0, it->second), result_stream->at(0).data);
     }
