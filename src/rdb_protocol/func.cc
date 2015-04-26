@@ -10,8 +10,8 @@
 
 namespace ql {
 
-func_t::func_t(const protob_t<const Backtrace> &bt_source)
-  : pb_rcheckable_t(bt_source) { }
+func_t::func_t(backtrace_id_t bt)
+  : bt_rcheckable_t(bt) { }
 func_t::~func_t() { }
 
 scoped_ptr_t<val_t> func_t::call(env_t *env, eval_flags_t eval_flags) const {
@@ -38,7 +38,7 @@ void func_t::assert_deterministic(const char *extra_msg) const {
            strprintf("Could not prove function deterministic.  %s", extra_msg));
 }
 
-reql_func_t::reql_func_t(const protob_t<const Backtrace> backtrace,
+reql_func_t::reql_func_t(backtrace_id_t backtrace,
                          const var_scope_t &_captured_scope,
                          std::vector<sym_t> _arg_names,
                          counted_t<const term_t> _body)
@@ -84,7 +84,7 @@ bool reql_func_t::is_deterministic() const {
 
 js_func_t::js_func_t(const std::string &_js_source,
                      uint64_t timeout_ms,
-                     protob_t<const Backtrace> backtrace)
+                     backtrace_id_t backtrace)
     : func_t(backtrace),
       js_source(_js_source),
       js_timeout_ms(timeout_ms) { }
@@ -141,7 +141,7 @@ void js_func_t::visit(func_visitor_t *visitor) const {
 }
 
 func_term_t::func_term_t(compile_env_t *env, const protob_t<const Term> &t)
-    : term_t(t) {
+        : term_t(t) {
     r_sanity_check(t.has());
     r_sanity_check(t->type() == Term_TermType_FUNC);
     rcheck(t->optargs_size() == 0,
@@ -218,7 +218,7 @@ scoped_ptr_t<val_t> func_term_t::term_eval(scope_env_t *env,
 }
 
 counted_t<const func_t> func_term_t::eval_to_func(const var_scope_t &env_scope) const {
-    return make_counted<reql_func_t>(get_backtrace(get_src()),
+    return make_counted<reql_func_t>(backtrace(),
                                      env_scope.filtered_by_captures(external_captures),
                                      arg_names, body);
 }
@@ -331,10 +331,9 @@ bool func_t::filter_call(env_t *env, datum_t arg, counted_t<const func_t> defaul
     std::rethrow_exception(saved_exception);
 }
 
-counted_t<const func_t> new_constant_func(datum_t obj,
-                                          const protob_t<const Backtrace> &bt_src) {
+counted_t<const func_t> new_constant_func(datum_t obj, backtrace_id_t bt) {
     protob_t<Term> twrap = r::fun(r::expr(obj)).release_counted();
-    propagate_backtrace(twrap.get(), bt_src.get());
+    propagate_backtrace(twrap.get(), bt);
 
     compile_env_t empty_compile_env((var_visibility_t()));
     counted_t<func_term_t> func_term = make_counted<func_term_t>(&empty_compile_env,
@@ -342,12 +341,10 @@ counted_t<const func_t> new_constant_func(datum_t obj,
     return func_term->eval_to_func(var_scope_t());
 }
 
-counted_t<const func_t> new_get_field_func(datum_t key,
-                                           const protob_t<const Backtrace> &bt_src) {
+counted_t<const func_t> new_get_field_func(datum_t key, backtrace_id_t bt) {
     pb::dummy_var_t obj = pb::dummy_var_t::FUNC_GETFIELD;
     protob_t<Term> twrap = r::fun(obj, r::var(obj)[key]).release_counted();
-
-    propagate_backtrace(twrap.get(), bt_src.get());
+    propagate_backtrace(twrap.get(), bt);
 
     compile_env_t empty_compile_env((var_visibility_t()));
     counted_t<func_term_t> func_term = make_counted<func_term_t>(&empty_compile_env,
@@ -355,11 +352,10 @@ counted_t<const func_t> new_get_field_func(datum_t key,
     return func_term->eval_to_func(var_scope_t());
 }
 
-counted_t<const func_t> new_pluck_func(datum_t obj,
-                                       const protob_t<const Backtrace> &bt_src) {
+counted_t<const func_t> new_pluck_func(datum_t obj, backtrace_id_t bt) {
     pb::dummy_var_t var = pb::dummy_var_t::FUNC_PLUCK;
     protob_t<Term> twrap = r::fun(var, r::var(var).pluck(obj)).release_counted();
-    propagate_backtrace(twrap.get(), bt_src.get());
+    propagate_backtrace(twrap.get(), bt);
 
     compile_env_t empty_compile_env((var_visibility_t()));
     counted_t<func_term_t> func_term = make_counted<func_term_t>(&empty_compile_env,
@@ -367,11 +363,10 @@ counted_t<const func_t> new_pluck_func(datum_t obj,
     return func_term->eval_to_func(var_scope_t());
 }
 
-counted_t<const func_t> new_eq_comparison_func(datum_t obj,
-                                               const protob_t<const Backtrace> &bt_src) {
+counted_t<const func_t> new_eq_comparison_func(datum_t obj, backtrace_id_t bt) {
     pb::dummy_var_t var = pb::dummy_var_t::FUNC_EQCOMPARISON;
     protob_t<Term> twrap = r::fun(var, r::var(var) == obj).release_counted();
-    propagate_backtrace(twrap.get(), bt_src.get());
+    propagate_backtrace(twrap.get(), bt);
 
     compile_env_t empty_compile_env((var_visibility_t()));
     counted_t<func_term_t> func_term = make_counted<func_term_t>(&empty_compile_env,
@@ -379,8 +374,7 @@ counted_t<const func_t> new_eq_comparison_func(datum_t obj,
     return func_term->eval_to_func(var_scope_t());
 }
 
-counted_t<const func_t> new_page_func(datum_t method,
-                                      const protob_t<const Backtrace> &bt_src) {
+counted_t<const func_t> new_page_func(datum_t method, backtrace_id_t bt) {
     if (method.get_type() != datum_t::R_NULL) {
         std::string name = method.as_str().to_std();
         if (name == "link-next") {
@@ -390,8 +384,7 @@ counted_t<const func_t> new_page_func(datum_t method,
                        r::var(info)["header"]["link"]["rel=\"next\""]
                            .default_(r::null()))
                 .release_counted();
-
-            propagate_backtrace(twrap.get(), bt_src.get());
+            propagate_backtrace(twrap.get(), bt);
 
             compile_env_t empty_compile_env((var_visibility_t()));
             counted_t<func_term_t> func_term =
@@ -400,7 +393,7 @@ counted_t<const func_t> new_page_func(datum_t method,
         } else {
             std::string msg = strprintf("`page` method '%s' not recognized, "
                                         "only 'link-next' is available.", name.c_str());
-            rcheck_src(bt_src.get(), false, base_exc_t::GENERIC, msg);
+            rcheck_src(bt, false, base_exc_t::GENERIC, msg);
         }
     }
     return counted_t<const func_t>();

@@ -49,7 +49,8 @@ private:
 
 class branch_term_t : public op_term_t {
 public:
-    branch_term_t(compile_env_t *env, const protob_t<const Term> &term) : op_term_t(env, term, argspec_t(3)) { }
+    branch_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : op_term_t(env, term, argspec_t(3)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         bool b = args->arg(env, 0)->as_bool();
@@ -128,16 +129,20 @@ private:
 };
 
 
-counted_t<term_t> make_and_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_and_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<and_term_t>(env, term);
 }
-counted_t<term_t> make_or_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_or_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<or_term_t>(env, term);
 }
-counted_t<term_t> make_branch_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_branch_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<branch_term_t>(env, term);
 }
-counted_t<term_t> make_funcall_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_funcall_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<funcall_term_t>(env, term);
 }
 

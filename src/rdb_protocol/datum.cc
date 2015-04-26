@@ -1015,14 +1015,10 @@ std::string datum_t::compose_secondary(
     boost::optional<uint64_t> tag_num) {
 
     std::string primary_key_string = key_to_unescaped_str(primary_key);
-    if (primary_key_string.length() > rdb_protocol::MAX_PRIMARY_KEY_SIZE) {
-        throw exc_t(base_exc_t::GENERIC,
-            strprintf(
-                "Primary key too long (max %zu characters): %s",
-                rdb_protocol::MAX_PRIMARY_KEY_SIZE - 1,
-                key_to_debug_str(primary_key).c_str()),
-            NULL);
-    }
+    rcheck_toplevel(primary_key_string.length() <= rdb_protocol::MAX_PRIMARY_KEY_SIZE,
+        base_exc_t::GENERIC, strprintf("Primary key too long (max %zu characters): %s",
+                                       rdb_protocol::MAX_PRIMARY_KEY_SIZE - 1,
+                                       key_to_debug_str(primary_key).c_str()));
 
     std::string tag_string;
     if (tag_num) {
@@ -1414,7 +1410,7 @@ scoped_cJSON_t datum_t::as_json() const {
 
 // TODO: make BINARY, STR, and OBJECT convertible to sequence?
 counted_t<datum_stream_t>
-datum_t::as_datum_stream(const protob_t<const Backtrace> &backtrace) const {
+datum_t::as_datum_stream(backtrace_id_t backtrace) const {
     switch (get_type()) {
     case MINVAL:   // fallthru
     case MAXVAL:   // fallthru

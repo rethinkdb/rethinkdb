@@ -6,6 +6,7 @@
 #include <boost/optional.hpp>
 
 #include "protob/protob.hpp"
+#include "rdb_protocol/backtrace.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
@@ -283,7 +284,8 @@ public:
 
         // The real server sends a SUCCESS_SEQUENCE, but this makes the test simpler
         res->set_token(query->token());
-        ql::fill_error(res, Response::RUNTIME_ERROR, stop_query_message);
+        ql::fill_error(res, Response::RUNTIME_ERROR, stop_query_message,
+                       ql::backtrace_registry_t::EMPTY_BACKTRACE);
     }
 private:
     std::map<int64_t, cond_t *> interruptors;

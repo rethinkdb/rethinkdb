@@ -41,14 +41,14 @@ reql_t boolean(bool b) {
     return reql_t(datum_t(datum_t::construct_boolean_t(), b));
 }
 
-void reql_t::copy_optargs_from_term(const Term &from){
+void reql_t::copy_optargs_from_term(const Term &from) {
     for (int i = 0; i < from.optargs_size(); ++i) {
         const Term_AssocPair &o = from.optargs(i);
         add_arg(r::optarg(o.key(), o.val()));
     }
 }
 
-void reql_t::copy_args_from_term(const Term &from, size_t start_index){
+void reql_t::copy_args_from_term(const Term &from, size_t start_index) {
     for (int i = start_index; i < from.args_size(); ++i) {
         add_arg(from.args(i));
     }

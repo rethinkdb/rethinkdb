@@ -102,7 +102,7 @@ sindex_name_t create_sindex(store_t *store) {
 
     ql::sym_t one(1);
     ql::protob_t<const Term> mapping = ql::r::var(one)["sid"].release_counted();
-    ql::map_wire_func_t m(mapping, make_vector(one), get_backtrace(mapping));
+    ql::map_wire_func_t m(mapping, make_vector(one), ql::backtrace_id_t::empty());
 
     sindex_multi_bool_t multi_bool = sindex_multi_bool_t::SINGLE;
 

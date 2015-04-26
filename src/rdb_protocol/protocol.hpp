@@ -42,7 +42,6 @@ class traversal_progress_combiner_t;
 template <class> class watchable_t;
 class Term;
 class Datum;
-class Backtrace;
 
 enum class profile_bool_t {
     PROFILE,
@@ -83,7 +82,6 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
 
 RDB_DECLARE_PROTOB_SERIALIZABLE(Term);
 RDB_DECLARE_PROTOB_SERIALIZABLE(Datum);
-RDB_DECLARE_PROTOB_SERIALIZABLE(Backtrace);
 
 class key_le_t {
 public:

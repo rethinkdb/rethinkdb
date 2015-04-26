@@ -267,12 +267,12 @@ private:
     virtual const char *name() const { return "split"; }
 };
 
-counted_t<term_t> make_match_term(compile_env_t *env,
-                                  const protob_t<const Term> &term) {
+counted_t<term_t> make_match_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<match_term_t>(env, term);
 }
-counted_t<term_t> make_split_term(compile_env_t *env,
-                                  const protob_t<const Term> &term) {
+counted_t<term_t> make_split_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<split_term_t>(env, term);
 }
 

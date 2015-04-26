@@ -393,7 +393,7 @@ public:
     virtual void operator()(env_t *env, groups_t *groups) = 0;
     virtual void add_res(env_t *env, result_t *res) = 0;
     virtual scoped_ptr_t<val_t> finish_eager(
-        protob_t<const Backtrace> bt, bool is_grouped,
+        backtrace_id_t bt, bool is_grouped,
         const ql::configured_limits_t &limits) = 0;
 };
 

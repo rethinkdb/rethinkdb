@@ -18,10 +18,12 @@ wire_func_t::wire_func_t(const counted_t<const func_t> &f) : func(f) {
     r_sanity_check(func.has());
 }
 
-wire_func_t::wire_func_t(protob_t<const Term> body, std::vector<sym_t> arg_names,
-                         protob_t<const Backtrace> backtrace) {
+wire_func_t::wire_func_t(protob_t<const Term> body,
+                         std::vector<sym_t> arg_names,
+                         backtrace_id_t bt) {
     compile_env_t env(var_visibility_t().with_func_arg_name_list(arg_names));
-    func = make_counted<reql_func_t>(backtrace, var_scope_t(), arg_names, compile_term(&env, body));
+    func = make_counted<reql_func_t>(bt, var_scope_t(), arg_names,
+                                     compile_term(&env, body));
 }
 
 wire_func_t::wire_func_t(const wire_func_t &copyee)
@@ -39,7 +41,7 @@ counted_t<const func_t> wire_func_t::compile_wire_func() const {
     return func;
 }
 
-protob_t<const Backtrace> wire_func_t::get_bt() const {
+backtrace_id_t wire_func_t::get_bt() const {
     r_sanity_check(func.has());
     return func->backtrace();
 }
@@ -62,8 +64,8 @@ public:
         serialize<W>(wm, arg_names);
         const protob_t<const Term> &body = reql_func->body->get_src();
         serialize_protobuf(wm, *body);
-        const protob_t<const Backtrace> &backtrace = reql_func->backtrace();
-        serialize_protobuf(wm, *backtrace);
+        backtrace_id_t backtrace = reql_func->backtrace();
+        serialize<W>(wm, backtrace);
     }
 
     void on_js_func(const js_func_t *js_func) {
@@ -72,8 +74,8 @@ public:
         serialize<W>(wm, js_source);
         const uint64_t &js_timeout_ms = js_func->js_timeout_ms;
         serialize<W>(wm, js_timeout_ms);
-        const protob_t<const Backtrace> &backtrace = js_func->backtrace();
-        serialize_protobuf(wm, *backtrace);
+        backtrace_id_t backtrace = js_func->backtrace();
+        serialize<W>(wm, backtrace);
     }
 
 private:
@@ -108,14 +110,14 @@ archive_result_t deserialize(read_stream_t *s, wire_func_t *wf) {
         res = deserialize_protobuf(s, &*body);
         if (bad(res)) { return res; }
 
-        protob_t<Backtrace> backtrace = make_counted_backtrace();
-        res = deserialize_protobuf(s, &*backtrace);
+        backtrace_id_t bt;
+        res = deserialize<W>(s, &bt);
         if (bad(res)) { return res; }
 
         compile_env_t env(
             scope.compute_visibility().with_func_arg_name_list(arg_names));
         wf->func = make_counted<reql_func_t>(
-            backtrace, scope, arg_names, compile_term(&env, body));
+            bt, scope, arg_names, compile_term(&env, body));
         return res;
     } break;
     case wire_func_type_t::JS: {
@@ -127,11 +129,11 @@ archive_result_t deserialize(read_stream_t *s, wire_func_t *wf) {
         res = deserialize<W>(s, &js_timeout_ms);
         if (bad(res)) { return res; }
 
-        protob_t<Backtrace> backtrace = make_counted_backtrace();
-        res = deserialize_protobuf(s, &*backtrace);
+        backtrace_id_t bt;
+        res = deserialize<W>(s, &bt);
         if (bad(res)) { return res; }
 
-        wf->func = make_counted<js_func_t>(js_source, js_timeout_ms, backtrace);
+        wf->func = make_counted<js_func_t>(js_source, js_timeout_ms, bt);
         return res;
     } break;
     default:
@@ -200,8 +202,8 @@ bool group_wire_func_t::is_multi() const {
     return multi;
 }
 
-protob_t<const Backtrace> group_wire_func_t::get_bt() const {
-    return bt.get_bt();
+backtrace_id_t group_wire_func_t::get_bt() const {
+    return bt;
 }
 
 RDB_IMPL_SERIALIZABLE_4_SINCE_v1_13(group_wire_func_t, funcs, append_index, multi, bt);
@@ -213,21 +215,5 @@ RDB_IMPL_SERIALIZABLE_0_FOR_CLUSTER(zip_wire_func_t);
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(filter_wire_func_t, filter_func, default_filter_val);
 
 RDB_MAKE_SERIALIZABLE_1_FOR_CLUSTER(distinct_wire_func_t, use_index);
-
-template <cluster_version_t W>
-void serialize(write_message_t *wm, const bt_wire_func_t &btwf) {
-    serialize_protobuf(wm, *btwf.bt);
-}
-
-template <cluster_version_t W>
-archive_result_t deserialize(read_stream_t *s, bt_wire_func_t *btwf) {
-    protob_t<Backtrace> backtrace = make_counted_backtrace();
-    archive_result_t res = deserialize_protobuf(s, backtrace.get());
-    if (bad(res)) { return res; }
-    btwf->bt = std::move(backtrace);
-    return archive_result_t::SUCCESS;
-}
-
-INSTANTIATE_SERIALIZABLE_SINCE_v1_13(bt_wire_func_t);
 
 }  // namespace ql

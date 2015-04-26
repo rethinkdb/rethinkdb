@@ -433,19 +433,19 @@ private:
 };
 
 counted_t<term_t> make_coerce_term(
-    compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<coerce_term_t>(env, term);
 }
 counted_t<term_t> make_ungroup_term(
-    compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<ungroup_term_t>(env, term);
 }
 counted_t<term_t> make_typeof_term(
-    compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<typeof_term_t>(env, term);
 }
 counted_t<term_t> make_info_term(
-    compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<info_term_t>(env, term);
 }
 

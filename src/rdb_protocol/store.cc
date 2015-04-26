@@ -177,18 +177,14 @@ scoped_ptr_t<sindex_superblock_t> acquire_sindex_for_read(
             &sindex_sb,
             &sindex_mapping_data,
             &sindex_uuid);
-        if (!found) {
-            // TODO: consider adding some logic on the machine handling the
-            // query to attach a real backtrace here.
-            throw ql::exc_t(
-                ql::base_exc_t::GENERIC,
+        // TODO: consider adding some logic on the machine handling the
+        // query to attach a real backtrace here.
+        rcheck_toplevel(found, ql::base_exc_t::GENERIC,
                 strprintf("Index `%s` was not found on table `%s`.",
-                          sindex_id.c_str(), table_name.c_str()),
-                NULL);
-        }
+                          sindex_id.c_str(), table_name.c_str()));
     } catch (const sindex_not_ready_exc_t &e) {
         throw ql::exc_t(
-            ql::base_exc_t::GENERIC, e.what(), NULL);
+            ql::base_exc_t::GENERIC, e.what(), ql::backtrace_id_t::empty());
     }
 
     try {
@@ -240,7 +236,7 @@ void do_read(ql::env_t *env,
         } catch (const ql::datum_exc_t &e) {
             // TODO: consider adding some logic on the machine handling the
             // query to attach a real backtrace here.
-            res->result = ql::exc_t(e, NULL);
+            res->result = ql::exc_t(e, ql::backtrace_id_t::empty());
             return;
         }
 
@@ -251,7 +247,7 @@ void do_read(ql::env_t *env,
                     "Index `%s` is a geospatial index.  Only get_nearest and "
                     "get_intersecting can use a geospatial index.",
                     rget.sindex->id.c_str()),
-                NULL);
+                ql::backtrace_id_t::empty());
             return;
         }
 
@@ -402,7 +398,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                     "Index `%s` is not a geospatial index.  get_intersecting can only "
                     "be used with a geospatial index.",
                     geo_read.sindex.id.c_str()),
-                NULL);
+                ql::backtrace_id_t::empty());
             return;
         }
 
@@ -452,7 +448,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                     "Index `%s` is not a geospatial index.  get_nearest can only be "
                     "used with a geospatial index.",
                     geo_read.sindex_id.c_str()),
-                NULL);
+                ql::backtrace_id_t::empty());
             return;
         }
 

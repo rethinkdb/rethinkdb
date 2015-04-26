@@ -789,7 +789,7 @@ done_traversing_t rget_cb_t::handle_pair(
 #ifndef NDEBUG
         unreachable();
 #else
-        io.response->result = ql::exc_t(e, NULL);
+        io.response->result = ql::exc_t(e, ql::backtrace_id_t::empty());
         return done_traversing_t::YES;
 #endif // NDEBUG
     }
@@ -930,7 +930,8 @@ void rdb_get_nearest_slice(
             callback.finish(&partial_response);
         } catch (const geo_exception_t &e) {
             partial_response.results_or_error =
-                ql::exc_t(ql::base_exc_t::GENERIC, e.what(), NULL);
+                ql::exc_t(ql::base_exc_t::GENERIC, e.what(),
+                          ql::backtrace_id_t::empty());
         }
         if (boost::get<ql::exc_t>(&partial_response.results_or_error)) {
             response->results_or_error = partial_response.results_or_error;
