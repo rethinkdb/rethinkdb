@@ -9,6 +9,35 @@
 class io_backender_t;
 class primary_dispatcher_t;
 
+/* `ack_counter_t` computes whether a write is guaranteed to be preserved
+even after a failover or other reconfiguration. */
+class ack_counter_t {
+public:
+    explicit ack_counter_t(const contract_t &_contract) :
+        contract(_contract), primary_ack(false), voter_acks(0), temp_voter_acks(0) { }
+    void note_ack(const server_id_t &server) {
+        if (static_cast<bool>(contract.primary)) {
+            primary_ack |= (server == contract.primary->server);
+        }
+        voter_acks += contract.voters.count(server);
+        if (static_cast<bool>(contract.temp_voters)) {
+            temp_voter_acks += contract.temp_voters->count(server);
+        }
+    }
+    bool is_safe() const {
+        return primary_ack &&
+            voter_acks * 2 > contract.voters.size() &&
+            (!static_cast<bool>(contract.temp_voters) ||
+                temp_voter_acks * 2 > contract.temp_voters->size());
+    }
+private:
+    const contract_t &contract;
+    bool primary_ack;
+    size_t voter_acks, temp_voter_acks;
+
+    DISABLE_COPYING(ack_counter_t);
+};
+
 class primary_execution_t :
     public execution_t,
     public home_thread_mixin_t,
@@ -38,31 +67,6 @@ private:
         contract_t contract;
         std::function<void(contract_ack_t)> ack_cb;
         cond_t obsolete;
-    };
-
-    /* `ack_counter_t` computes whether a write is guaranteed to be preserved
-    even after a failover or other reconfiguration. */
-    class ack_counter_t {
-    public:
-        explicit ack_counter_t(counted_t<contract_info_t> c) :
-            contract(c), primary_ack(false), voter_acks(0), temp_voter_acks(0) { }
-        void note_ack(const server_id_t &server) {
-            primary_ack |= (server == contract->contract.primary->server);
-            voter_acks += contract->contract.voters.count(server);
-            if (static_cast<bool>(contract->contract.temp_voters)) {
-                temp_voter_acks += contract->contract.temp_voters->count(server);
-            }
-        }
-        bool is_safe() const {
-            return primary_ack &&
-                voter_acks * 2 > contract->contract.voters.size() &&
-                (!static_cast<bool>(contract->contract.temp_voters) ||
-                    temp_voter_acks * 2 > contract->contract.temp_voters->size());
-        }
-    private:
-        counted_t<contract_info_t> contract;
-        bool primary_ack;
-        size_t voter_acks, temp_voter_acks;
     };
 
     /* This is started in a coroutine when the `primary_t` is created. It sets up the

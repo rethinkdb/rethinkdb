@@ -1,386 +1,323 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/administration/tables/table_status.hpp"
 
-// RSI(raft): Reimplement this once table IO works
-#if 0
+#include <algorithm>
 
 #include "clustering/administration/datum_adapter.hpp"
 #include "clustering/administration/servers/config_client.hpp"
+#include "clustering/table_contract/exec_primary.hpp"
+#include "clustering/table_manager/table_meta_client.hpp"
 
 table_status_artificial_table_backend_t::table_status_artificial_table_backend_t(
-            boost::shared_ptr< semilattice_readwrite_view_t<
+            boost::shared_ptr<semilattice_readwrite_view_t<
                 cluster_semilattice_metadata_t> > _semilattice_view,
-            watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
-                namespace_directory_metadata_t> *_directory_view,
+            table_meta_client_t *_table_meta_client,
             admin_identifier_format_t _identifier_format,
             server_config_client_t *_server_config_client) :
-        common_table_artificial_table_backend_t(_semilattice_view, _identifier_format),
-        directory_view(_directory_view),
-        server_config_client(_server_config_client),
-        directory_subs(directory_view,
-            [this](const std::pair<peer_id_t, namespace_id_t> &key,
-                   const namespace_directory_metadata_t *) {
-                notify_row(convert_uuid_to_datum(key.second));
-            })
-        { }
+        common_table_artificial_table_backend_t(
+            _semilattice_view, _table_meta_client, _identifier_format),
+        server_config_client(_server_config_client) {
+}
 
 table_status_artificial_table_backend_t::~table_status_artificial_table_backend_t() {
     begin_changefeed_destruction();
 }
 
-/* Names like `reactor_activity_entry_t::secondary_without_primary_t` are too long to
-type without this */
-using reactor_business_card_details::primary_when_safe_t;
-using reactor_business_card_details::primary_t;
-using reactor_business_card_details::secondary_up_to_date_t;
-using reactor_business_card_details::secondary_without_primary_t;
-using reactor_business_card_details::secondary_backfilling_t;
-using reactor_business_card_details::nothing_when_safe_t;
-using reactor_business_card_details::nothing_when_done_erasing_t;
-using reactor_business_card_details::nothing_t;
+struct server_acks_t {
+    contract_id_t latest_contract_id;
+    std::map<server_id_t, std::pair<contract_id_t, contract_ack_t> > acks;
+};
 
-static bool check_complete_set(const std::vector<reactor_activity_entry_t> &status) {
-    std::vector<hash_region_t<key_range_t> > regions;
-    for (const reactor_activity_entry_t &entry : status) {
-        regions.push_back(entry.region);
+bool get_contracts_and_acks(
+        namespace_id_t const &table_id,
+        signal_t *interruptor,
+        table_meta_client_t *table_meta_client,
+        server_config_client_t *server_config_client,
+        std::map<server_id_t, contracts_and_contract_acks_t> *contracts_and_acks_out,
+        std::map<
+                contract_id_t,
+                std::reference_wrapper<const std::pair<region_t, contract_t> >
+            > *contracts_out,
+        server_id_t *latest_contracts_server_id_out) {
+    std::map<peer_id_t, contracts_and_contract_acks_t> contracts_and_acks;
+    if (!table_meta_client->get_status(
+            table_id, interruptor, nullptr, &contracts_and_acks)) {
+        return false;
     }
-    hash_region_t<key_range_t> joined;
-    region_join_result_t res = region_join(regions, &joined);
-    return res == REGION_JOIN_OK &&
-        joined.beg == 0 &&
-        joined.end == HASH_REGION_HASH_SIZE;
-}
 
-template<class T>
-static size_t count_in_state(const std::vector<reactor_activity_entry_t> &status) {
-    int count = 0;
-    for (const reactor_activity_entry_t &entry : status) {
-        if (boost::get<T>(&entry.activity) != NULL) {
-            ++count;
-        }
-    }
-    return count;
-}
-
-template <class T>
-static size_t count_in_state(const std::vector<reactor_activity_entry_t> &status,
-                             const std::function<bool(const T&)> &predicate) {
-    int count = 0;
-    for (const reactor_activity_entry_t &entry : status) {
-        const T *role = boost::get<T>(&entry.activity);
-        if (role != NULL && predicate(*role)) {
-            ++count;
-        }
-    }
-    return count;
-}
-
-ql::datum_t convert_primary_replica_status_to_datum(
-        const ql::datum_t &name_or_uuid,
-        const std::vector<reactor_activity_entry_t> *status,
-        bool *has_primary_replica_out) {
-    ql::datum_object_builder_t object_builder;
-    object_builder.overwrite("server", name_or_uuid);
-    const char *state;
-    *has_primary_replica_out = false;
-    if (status == nullptr) {
-        state = "disconnected";
-    } else if (!check_complete_set(*status)) {
-        state = "transitioning";
-    } else {
-        size_t masters = count_in_state<primary_t>(*status,
-            [&](const reactor_business_card_t::primary_t &primary) -> bool {
-                return static_cast<bool>(primary.master);
-            });
-        if (masters == status->size()) {
-            state = "ready";
-            *has_primary_replica_out = true;
-        } else {
-            size_t all_primaries = count_in_state<primary_t>(*status) +
-                count_in_state<primary_when_safe_t>(*status);
-            if (all_primaries == status->size()) {
-                state = "backfilling_data";
-            } else {
-                state = "transitioning";
+    multi_table_manager_bcard_t::timestamp_t latest_timestamp;
+    latest_timestamp.epoch.timestamp = 0;
+    latest_timestamp.epoch.id = nil_uuid();
+    latest_timestamp.log_index = 0;
+    for (const auto &peer : contracts_and_acks) {
+        boost::optional<server_id_t> server_id =
+            server_config_client->get_server_id_for_peer_id(peer.first);
+        if (static_cast<bool>(server_id)) {
+            auto pair = contracts_and_acks_out->insert(
+                std::make_pair(server_id.get(), std::move(peer.second)));
+            contracts_out->insert(
+                pair.first->second.contracts.begin(),
+                pair.first->second.contracts.end());
+            if (pair.first->second.timestamp.supersedes(latest_timestamp)) {
+                *latest_contracts_server_id_out = pair.first->first;
+                latest_timestamp = pair.first->second.timestamp;
             }
         }
     }
-    object_builder.overwrite("state", ql::datum_t(state));
-    return std::move(object_builder).to_datum();
-}
 
-ql::datum_t convert_replica_status_to_datum(
-        const ql::datum_t &name_or_uuid,
-        const std::vector<reactor_activity_entry_t> *status,
-        bool *has_outdated_reader_out,
-        bool *has_replica_out) {
-    ql::datum_object_builder_t object_builder;
-    object_builder.overwrite("server", name_or_uuid);
-    const char *state;
-    *has_outdated_reader_out = *has_replica_out = false;
-    if (status == nullptr) {
-        state = "disconnected";
-    } else if (!check_complete_set(*status)) {
-        state = "transitioning";
-    } else {
-        size_t tally = count_in_state<secondary_up_to_date_t>(*status);
-        if (tally == status->size()) {
-            state = "ready";
-            *has_outdated_reader_out = *has_replica_out = true;
-        } else {
-            tally += count_in_state<secondary_without_primary_t>(*status);
-            if (tally == status->size()) {
-                state = "looking_for_primary_replica";
-                *has_outdated_reader_out = true;
-            } else {
-                tally += count_in_state<secondary_backfilling_t>(*status);
-                if (tally == status->size()) {
-                    state = "backfilling_data";
-                } else {
-                    state = "transitioning";
-                }
-            }
-        }
-    }
-    object_builder.overwrite("state", ql::datum_t(state));
-    return std::move(object_builder).to_datum();
-}
-
-ql::datum_t convert_nothing_status_to_datum(
-        const ql::datum_t &name_or_uuid,
-        const std::vector<reactor_activity_entry_t> *status,
-        bool *is_unfinished_out) {
-    if (status == nullptr) {
-        /* The server is disconnected. Don't display the missing server for this table
-        because the config says it shouldn't have data. This is misleading because it
-        might still have data for this table, if the config was changed but it didn't
-        get a chance to offload its data before disconnecting. But there's nothing we
-        can do. */
-        *is_unfinished_out = false;
-        return ql::datum_t();
-    } else if (!check_complete_set(*status)) {
-       /* The server is still in the process of resharding. Unfortunately, we have no way
-       of knowing if it has data for this table or not. So we omit it. This means that if
-       a server has data for a table but isn't present in the new config, a user watching
-       `table_status` will see a brief period where the server disappears and then
-       reappears. But this is better than every unrelated server mysteriously appearing
-       and then disappearing again. In order to do better we would have to store state so
-       we can remember if a server used to have data for us, and that's a pain. */
-       *is_unfinished_out = false;
-       return ql::datum_t();
-    } else {
-        size_t tally = count_in_state<nothing_t>(*status) +
-                       count_in_state<nothing_when_done_erasing_t>(*status);
-        if (tally == status->size()) {
-            /* This server doesn't have any data or is currently erasing it,
-               it shouldn't even appear in the map. */
-            *is_unfinished_out = false;
-            return ql::datum_t();
-        } else {
-            *is_unfinished_out = true;
-            const char *state;
-            tally += count_in_state<nothing_when_safe_t>(*status);
-            if (tally == status->size()) {
-                state = "offloading_data";
-            } else {
-                state = "transitioning";
-            }
-            ql::datum_object_builder_t object_builder;
-            object_builder.overwrite("server", name_or_uuid);
-            object_builder.overwrite("state", ql::datum_t(state));
-            return std::move(object_builder).to_datum();
-        }
-    }
+    return !contracts_and_acks_out->empty();
 }
 
 ql::datum_t convert_table_status_shard_to_datum(
-        namespace_id_t table_id,
-        key_range_t range,
         const table_config_t::shard_t &shard,
-        watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
-                        namespace_directory_metadata_t> *dir,
+        const region_map_t<server_acks_t> &regions,
+        const std::map<server_id_t, contracts_and_contract_acks_t> &contracts_and_acks,
+        const std::map<
+                contract_id_t,
+                std::reference_wrapper<const std::pair<region_t, contract_t> >
+            > &contracts,
         admin_identifier_format_t identifier_format,
         server_config_client_t *server_config_client,
-        const write_ack_config_checker_t &ack_checker,
         table_readiness_t *readiness_out) {
-    /* `server_states` will contain one entry per connected server. That entry will be a
-    vector with the current state of each hash-shard on the server whose key range
-    matches the expected range. */
-    std::map<server_id_t, std::vector<reactor_activity_entry_t> > server_states;
-    dir->read_all(
-        [&](const std::pair<peer_id_t, namespace_id_t> &key,
-                const namespace_directory_metadata_t *value) {
-            if (key.second != table_id) {
-                return;
-            }
-            /* Translate peer ID to server ID */
-            boost::optional<server_id_t> server_id =
-                server_config_client->get_server_id_for_peer_id(key.first);
-            if (!static_cast<bool>(server_id)) {
-                /* This can occur as a race condition if the peer has just connected or just
-                disconnected */
-                return;
-            }
-            /* Extract activity from reactor business card. `server_state` may be left
-            empty if the reactor doesn't have a business card for this table, or if no
-            entry has the same region as the target region. */
-            std::vector<reactor_activity_entry_t> server_state;
-            for (const auto &pair : value->internal->activities) {
-                if (pair.second.region.inner == range) {
-                    server_state.push_back(pair.second);
-                }
-            }
-            server_states[*server_id] = std::move(server_state);
-        });
-
     ql::datum_object_builder_t builder;
 
-    ql::datum_array_builder_t array_builder(ql::configured_limits_t::unlimited);
-    std::set<server_id_t> already_handled;
+    bool has_quorum = true;
+    bool has_primary_replica = true;
+    bool has_outdated_reader = true;
+    bool has_unfinished = false;
 
-    std::set<server_id_t> servers_for_acks;
-    bool has_primary_replica = false;
-    ql::datum_t primary_replica_name_or_uuid;
-    if (convert_server_id_to_datum(shard.primary_replica, identifier_format,
-            server_config_client, &primary_replica_name_or_uuid, nullptr)) {
-        array_builder.add(convert_primary_replica_status_to_datum(
-            primary_replica_name_or_uuid,
-            server_states.count(shard.primary_replica) == 1 ?
-                &server_states[shard.primary_replica] : NULL,
-            &has_primary_replica));
-        already_handled.insert(shard.primary_replica);
-        if (has_primary_replica) {
-            servers_for_acks.insert(shard.primary_replica);
-            builder.overwrite("primary_replica", primary_replica_name_or_uuid);
+    std::set<server_id_t> primary_replicas;
+    std::map<server_id_t, std::set<std::string> > replicas;
+    for (const auto &region : regions) {
+        const contract_t &latest_contract =
+            contracts.at(region.second.latest_contract_id).get().second;
+
+        ack_counter_t ack_counter(latest_contract);
+        bool region_has_primary_replica = false;
+        bool region_has_outdated_reader = false;
+
+        for (const auto &ack : region.second.acks) {
+            switch (ack.second.second.state) {
+                case contract_ack_t::state_t::primary_need_branch:
+                    has_unfinished = true;
+                    replicas[ack.first].insert("waiting_for_quorum");
+                    break;
+                case contract_ack_t::state_t::secondary_need_primary:
+                    region_has_outdated_reader = true;
+                    has_unfinished = true;
+                    replicas[ack.first].insert("waiting_for_primary_replica");
+                    break;
+                case contract_ack_t::state_t::primary_in_progress:
+                case contract_ack_t::state_t::primary_ready:
+                    region_has_primary_replica = true;
+                    primary_replicas.insert(ack.first);
+                    replicas[ack.first].insert("ready");
+                    break;
+                case contract_ack_t::state_t::secondary_backfilling:
+                    has_unfinished = true;
+                    replicas[ack.first].insert("backfilling");
+                    break;
+                case contract_ack_t::state_t::secondary_streaming:
+                    {
+                        const boost::optional<contract_t::primary_t> &region_primary =
+                            contracts.at(ack.second.first).get().second.primary;
+                        if (static_cast<bool>(latest_contract.primary) &&
+                                latest_contract.primary == region_primary) {
+                            region_has_outdated_reader = true;
+                            replicas[ack.first].insert("ready");
+                        } else {
+                            has_unfinished = true;
+                            replicas[ack.first].insert("transitioning");
+                        }
+                    }
+                    break;
+                case contract_ack_t::state_t::nothing:
+                    if (replicas.find(ack.first) == replicas.end()) {
+                        replicas[ack.first] = {};
+                    }
+                    break;
+            }
+
+            ack_counter.note_ack(ack.first);
         }
-    } else {
-        /* Primary replica was permanently removed; in `table_config` the
-        `primary_replica` field will have a value of `null`. So we don't show a primary
-        replica entry in `table_status`. */
-    }
-    if (!has_primary_replica) {
-        builder.overwrite("primary_replica", ql::datum_t::null());
+
+        for (const auto &replica : latest_contract.replicas) {
+            if (replicas.find(replica) == replicas.end()) {
+                has_unfinished = true;
+                replicas[replica].insert(
+                    contracts_and_acks.find(replica) == contracts_and_acks.end()
+                        ? "disconnected" : "transitioning");
+            }
+        }
+        for (const auto &replica : shard.replicas) {
+            if (replicas.find(replica) == replicas.end()) {
+                has_unfinished = true;
+                replicas[replica].insert(
+                    contracts_and_acks.find(replica) == contracts_and_acks.end()
+                        ? "disconnected" : "transitioning");
+            }
+        }
+
+        has_quorum &= ack_counter.is_safe();
+        has_primary_replica &= region_has_primary_replica;
+        has_outdated_reader &= region_has_outdated_reader;
     }
 
-    bool has_outdated_reader = false;
-    bool is_unfinished = false;
-    for (const server_id_t &replica : shard.replicas) {
-        if (already_handled.count(replica) == 1) {
-            /* Don't overwrite the primary replica's entry */
+    if (readiness_out != nullptr) {
+        if (has_primary_replica) {
+            if (has_quorum) {
+                if (!has_unfinished) {
+                    *readiness_out = table_readiness_t::finished;
+                } else {
+                    *readiness_out = table_readiness_t::writes;
+                }
+            } else {
+                *readiness_out = table_readiness_t::reads;
+            }
+        } else {
+            if (has_outdated_reader) {
+                *readiness_out = table_readiness_t::outdated_reads;
+            } else {
+                *readiness_out = table_readiness_t::unavailable;
+            }
+        }
+    }
+
+    ql::datum_array_builder_t primary_replicas_builder(
+        ql::configured_limits_t::unlimited);
+    for (const auto &primary_replica : primary_replicas) {
+        ql::datum_t primary_replica_name_or_uuid;
+        if (convert_server_id_to_datum(
+                primary_replica,
+                identifier_format,
+                server_config_client,
+                &primary_replica_name_or_uuid,
+                nullptr)) {
+            primary_replicas_builder.add(std::move(primary_replica_name_or_uuid));
+        }
+    }
+    builder.overwrite(
+        "primary_replicas", std::move(primary_replicas_builder).to_datum());
+
+    ql::datum_array_builder_t replicas_builder(ql::configured_limits_t::unlimited);
+    for (const auto &replica : replicas) {
+        if (replica.second.empty()) {
+            /* This server was in the `nothing` state and thus shouldn't appear in the
+               replica map. */
             continue;
         }
         ql::datum_t replica_name_or_uuid;
-        if (!convert_server_id_to_datum(replica, identifier_format, server_config_client,
-                &replica_name_or_uuid, nullptr)) {
-            /* Replica was permanently removed. It won't show up in `table_config`. So
-            we act as if it wasn't in `shard.replicas`. */
-            continue;
-        }
-        bool this_one_has_replica, this_one_has_outdated_reader;
-        array_builder.add(convert_replica_status_to_datum(
-            replica_name_or_uuid,
-            server_states.count(replica) == 1 ?
-                &server_states[replica] : NULL,
-            &this_one_has_outdated_reader,
-            &this_one_has_replica));
-        if (this_one_has_outdated_reader) {
-            has_outdated_reader = true;
-        }
-        if (this_one_has_replica) {
-            servers_for_acks.insert(replica);
-        } else {
-            is_unfinished = true;
-        }
-        already_handled.insert(replica);
-    }
-
-    std::multimap<name_string_t, server_id_t> other_names =
-        server_config_client->get_name_to_server_id_map()->get();
-    for (auto it = other_names.begin(); it != other_names.end(); ++it) {
-        if (already_handled.count(it->second) == 1) {
-            /* Don't overwrite a primary replica or replica entry */
-            continue;
-        }
-        ql::datum_t server_name_or_uuid;
-        if (!convert_server_id_to_datum(it->second, identifier_format,
-                server_config_client, &server_name_or_uuid, nullptr)) {
-            /* In general this won't happen; if a server was permanently deleted, it
-            won't show up in `get_name_to_server_id_map()`. But this might be possible
-            due to a race condition. */
-            continue;
-        }
-        bool this_one_is_unfinished;
-        ql::datum_t entry = convert_nothing_status_to_datum(
-            server_name_or_uuid,
-            server_states.count(it->second) == 1 ?
-                &server_states[it->second] : NULL,
-            &this_one_is_unfinished);
-        if (this_one_is_unfinished) {
-            is_unfinished = true;
-        }
-        if (entry.has()) {
-            array_builder.add(entry);
+        if (convert_server_id_to_datum(
+                replica.first,
+                identifier_format,
+                server_config_client,
+                &replica_name_or_uuid,
+                nullptr)) {
+            ql::datum_object_builder_t replica_builder;
+            replica_builder.overwrite("server", std::move(replica_name_or_uuid));
+            replica_builder.overwrite(
+                "states", convert_set_to_datum<std::string>(
+                    &convert_string_to_datum, replica.second));
+            replicas_builder.add(std::move(replica_builder).to_datum());
         }
     }
-
-    builder.overwrite("replicas", std::move(array_builder).to_datum());
-
-    if (has_primary_replica) {
-        if (ack_checker.check_acks(servers_for_acks)) {
-            if (!is_unfinished) {
-                *readiness_out = table_readiness_t::finished;
-            } else {
-                *readiness_out = table_readiness_t::writes;
-            }
-        } else {
-            *readiness_out = table_readiness_t::reads;
-        }
-    } else {
-        if (has_outdated_reader) {
-            *readiness_out = table_readiness_t::outdated_reads;
-        } else {
-            *readiness_out = table_readiness_t::unavailable;
-        }
-    }
+    builder.overwrite("replicas", std::move(replicas_builder).to_datum());
 
     return std::move(builder).to_datum();
 }
 
-ql::datum_t convert_table_status_to_datum(
-        name_string_t table_name,
+bool convert_table_status_to_datum(
+        const namespace_id_t &table_id,
         const ql::datum_t &db_name_or_uuid,
-        namespace_id_t table_id,
-        const table_replication_info_t &repli_info,
-        watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
-                        namespace_directory_metadata_t> *dir,
+        const table_config_and_shards_t &config_and_shards,
+        signal_t *interruptor,
         admin_identifier_format_t identifier_format,
-        const servers_semilattice_metadata_t &server_md,
+        table_meta_client_t *table_meta_client,
         server_config_client_t *server_config_client,
+        ql::datum_t *datum_out,
+        std::string *error_out,
         table_readiness_t *readiness_out) {
-    ql::datum_object_builder_t builder;
-    builder.overwrite("name", convert_name_to_datum(table_name));
-    builder.overwrite("db", db_name_or_uuid);
-    builder.overwrite("id", convert_uuid_to_datum(table_id));
+    /* Note that `contracts` and `latest_contracts` will contain references into
+       `contracts_and_acks`, thus this must remain in scope for them to be valid! */
+    std::map<server_id_t, contracts_and_contract_acks_t> contracts_and_acks;
+    std::map<
+            contract_id_t,
+            std::reference_wrapper<const std::pair<region_t, contract_t> >
+        > contracts;
+    server_id_t latest_contracts_server_id;
+    if (!get_contracts_and_acks(
+            table_id,
+            interruptor,
+            table_meta_client,
+            server_config_client,
+            &contracts_and_acks,
+            &contracts,
+            &latest_contracts_server_id)) {
+        if (error_out != nullptr) {
+            *error_out = strprintf(
+                "Lost contact with the server(s) hosting table `%s.%s`.",
+                uuid_to_str(config_and_shards.config.database).c_str(),
+                uuid_to_str(table_id).c_str());
+        }
+        return false;
+    }
+    const std::map<contract_id_t, std::pair<region_t, contract_t> > &latest_contracts =
+        contracts_and_acks.at(latest_contracts_server_id).contracts;
 
-    write_ack_config_checker_t ack_checker(repli_info.config, server_md);
+    std::vector<std::pair<region_t, server_acks_t> > regions_and_values;
+    regions_and_values.reserve(latest_contracts.size());
+    for (const auto &latest_contract : latest_contracts) {
+        server_acks_t server_acks;
+        server_acks.latest_contract_id = latest_contract.first;
+        server_acks.acks = {};
+        regions_and_values.emplace_back(
+            std::make_pair(latest_contract.second.first, std::move(server_acks)));
+    }
+    region_map_t<server_acks_t> regions(
+        regions_and_values.begin(), regions_and_values.end());
+
+    for (const auto &server : contracts_and_acks) {
+        for (const auto &contract_ack : server.second.contract_acks) {
+            auto contract_it = contracts.find(contract_ack.first);
+            if (contract_it == contracts.end()) {
+                /* When the executor is being reset we may receive acknowledgements for
+                   contracts that are no longer in the set of all contracts. Ignoring
+                   these will at worse result in a pessimistic status, which is fine
+                   when this function is being used as part of `table_wait`. */
+                continue;
+            }
+            region_map_t<server_acks_t> masked_regions =
+                regions.mask(contract_it->second.get().first);
+            for (auto &masked_region : masked_regions) {
+                masked_region.second.acks.insert(
+                    std::make_pair(server.first, contract_ack));
+            }
+            regions.update(masked_regions);
+        }
+    }
+
+    ql::datum_object_builder_t builder;
+    builder.overwrite("id", convert_uuid_to_datum(table_id));
+    builder.overwrite("db", db_name_or_uuid);
+    builder.overwrite("name", convert_name_to_datum(config_and_shards.config.name));
 
     table_readiness_t readiness = table_readiness_t::finished;
-    ql::datum_array_builder_t array_builder((ql::configured_limits_t::unlimited));
-    for (size_t i = 0; i < repli_info.config.shards.size(); ++i) {
-        table_readiness_t this_shard_readiness;
-        array_builder.add(
+    ql::datum_array_builder_t shards_builder(ql::configured_limits_t::unlimited);
+    for (size_t i = 0; i < config_and_shards.shard_scheme.num_shards(); ++i) {
+        region_t region(config_and_shards.shard_scheme.get_shard_range(i));
+        table_readiness_t shard_readiness;
+        shards_builder.add(
             convert_table_status_shard_to_datum(
-                table_id,
-                repli_info.shard_scheme.get_shard_range(i),
-                repli_info.config.shards[i],
-                dir,
+                config_and_shards.config.shards.at(i),
+                regions.mask(region),
+                contracts_and_acks,
+                contracts,
                 identifier_format,
                 server_config_client,
-                ack_checker,
-                &this_shard_readiness));
-        readiness = std::min(readiness, this_shard_readiness);
+                &shard_readiness));
+        readiness = std::min(readiness, shard_readiness);
     }
-    builder.overwrite("shards", std::move(array_builder).to_datum());
+    builder.overwrite("shards", std::move(shards_builder).to_datum());
 
     ql::datum_object_builder_t status_builder;
     status_builder.overwrite("ready_for_outdated_reads", ql::datum_t::boolean(
@@ -396,30 +333,31 @@ ql::datum_t convert_table_status_to_datum(
     if (readiness_out != nullptr) {
         *readiness_out = readiness;
     }
-
-    return std::move(builder).to_datum();
+    if (datum_out != nullptr) {
+        *datum_out = std::move(builder).to_datum();
+    }
+    return true;
 }
 
 bool table_status_artificial_table_backend_t::format_row(
         namespace_id_t table_id,
-        name_string_t table_name,
         const ql::datum_t &db_name_or_uuid,
-        const namespace_semilattice_metadata_t &metadata,
-        UNUSED signal_t *interruptor,
+        const table_config_and_shards_t &config_and_shards,
+        signal_t *interruptor,
         ql::datum_t *row_out,
-        UNUSED std::string *error_out) {
+        std::string *error_out) {
     assert_thread();
-    *row_out = convert_table_status_to_datum(
-        table_name,
-        db_name_or_uuid,
+    return convert_table_status_to_datum(
         table_id,
-        metadata.replication_info.get_ref(),
-        directory_view,
+        db_name_or_uuid,
+        config_and_shards,
+        interruptor,
         identifier_format,
-        semilattice_view->get().servers,
+        table_meta_client,
         server_config_client,
+        row_out,
+        error_out,
         nullptr);
-    return true;
 }
 
 bool table_status_artificial_table_backend_t::write_row(
@@ -432,58 +370,73 @@ bool table_status_artificial_table_backend_t::write_row(
     return false;
 }
 
+// These numbers are equal to those in `index_wait`.
+uint32_t initial_poll_ms = 50;
+uint32_t max_poll_ms = 10000;
+
 table_wait_result_t wait_for_table_readiness(
         const namespace_id_t &table_id,
         table_readiness_t wait_readiness,
-        table_status_artificial_table_backend_t *backend,
+        const table_status_artificial_table_backend_t *backend,
         signal_t *interruptor,
         ql::datum_t *status_out) {
-    int num_checks = 0;
-    bool deleted = false;
-    table_directory_converter_t table_directory(backend->directory_view, table_id);
-    table_directory.run_all_until_satisfied(
-        [&](UNUSED watchable_map_t<peer_id_t,
-                                   namespace_directory_metadata_t> *d) -> bool {
-            ASSERT_NO_CORO_WAITING;
-            ++num_checks;
-            backend->assert_thread();
+    backend->assert_thread();
 
-            cluster_semilattice_metadata_t md = backend->semilattice_view->get();
-            ql::datum_t db_name_or_uuid;
-            name_string_t table_name;
-            std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> >
-                ::const_iterator it;
-            bool ok1 = convert_table_id_to_datums(table_id, backend->identifier_format,
-                md, nullptr, &table_name, &db_name_or_uuid, nullptr);
-            bool ok2 = search_const_metadata_by_uuid(&md.rdb_namespaces->namespaces,
-                table_id, &it);
-            guarantee(ok1 == ok2);
-            if (!ok1) {
-                /* Table has been deleted. This is as ready as it's ever going to be. */
-                deleted = true;
-                return true;
+    table_config_and_shards_t config_and_shards;
+    if (!backend->table_meta_client->get_config(
+            table_id, interruptor, &config_and_shards)) {
+        /* We couldn't get the `config_and_shards` for this table due to an unknown
+           reason, the best option we have at this point is to report it deleted. */
+        return table_wait_result_t::DELETED;
+    }
+
+    cluster_semilattice_metadata_t metadata = backend->semilattice_view->get();
+
+    bool immediate = true;
+    /* Start with `initial_poll_ms`, then double the waiting period after each attempt up
+       to a maximum of `max_poll_ms`. */
+    uint32_t current_poll_ms = initial_poll_ms;
+    while (true) {
+        ql::datum_t db_name_or_uuid;
+        name_string_t db_name;
+        if (!convert_table_id_to_datums(
+                table_id,
+                backend->identifier_format,
+                metadata,
+                backend->table_meta_client,
+                nullptr,
+                nullptr,
+                &db_name_or_uuid,
+                &db_name) || db_name.str() == "__deleted_database__") {
+            // Either the database or the table was deleted.
+            return table_wait_result_t::DELETED;
+        }
+
+        ql::datum_t status;
+        table_readiness_t readiness;
+        bool table_status_result = convert_table_status_to_datum(
+            table_id,
+            db_name_or_uuid,
+            config_and_shards,
+            interruptor,
+            backend->identifier_format,
+            backend->table_meta_client,
+            backend->server_config_client,
+            &status,
+            nullptr,
+            &readiness);
+
+        if (table_status_result && readiness >= wait_readiness) {
+            if (status_out != nullptr) {
+                *status_out = std::move(status);
             }
-
-            table_readiness_t readiness;
-            ql::datum_t row = convert_table_status_to_datum(table_name, db_name_or_uuid,
-                table_id, it->second.get_ref().replication_info.get_ref(),
-                backend->directory_view, backend->identifier_format,
-                backend->semilattice_view->get().servers, backend->server_config_client,
-                &readiness);
-
-            if (readiness >= wait_readiness) {
-                if (status_out != nullptr) {
-                    *status_out = row;
-                }
-                return true;
-            } else {
-                return false;
-            }
-        },
-        interruptor);
-    return deleted ? table_wait_result_t::DELETED :
-                     num_checks > 1 ? table_wait_result_t::WAITED :
-                                      table_wait_result_t::IMMEDIATE;
+            return immediate
+                ? table_wait_result_t::IMMEDIATE
+                : table_wait_result_t::WAITED;
+        } else {
+            immediate = false;
+            nap(current_poll_ms, interruptor);
+            current_poll_ms = std::min(max_poll_ms, current_poll_ms * 2u);
+        }
+    }
 }
-#endif
-

@@ -64,7 +64,9 @@ public:
     bool get_status(
         const namespace_id_t &table_id,
         signal_t *interruptor,
-        std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > *res_out);
+        std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
+            *index_statuses_out,
+        std::map<peer_id_t, contracts_and_contract_acks_t> *contracts_and_acks_out);
 
     /* `create()` creates a table with the given configuration. It sets `*table_id_out`
     to the ID of the newly generated table. It may block. If it returns `false`, the

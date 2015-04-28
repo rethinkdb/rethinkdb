@@ -220,7 +220,7 @@ bool primary_execution_t::on_write(
     the write. This is because the user would get confused if their write returned an
     error about "not enough acks" and then got applied anyway. */
     {
-        ack_counter_t counter(latest_contract_store_thread);
+        ack_counter_t counter(latest_contract_store_thread->contract);
         our_dispatcher->get_ready_dispatchees()->apply_read(
             [&](const std::set<server_id_t> *servers) {
                 for (const server_id_t &s : *servers) {
@@ -238,8 +238,10 @@ bool primary_execution_t::on_write(
     class write_callback_t : public primary_dispatcher_t::write_callback_t {
     public:
         write_callback_t(write_response_t *_r_out, std::string *_e_out,
-                counted_t<contract_info_t> contract) :
-            ack_counter(contract), response_out(_r_out), error_out(_e_out) { }
+                counted_t<contract_info_t> contract_info) :
+            ack_counter(contract_info->contract),
+            response_out(_r_out),
+            error_out(_e_out) { }
         write_durability_t get_default_write_durability() {
             /* This only applies to writes that don't specify the durability */
             return write_durability_t::HARD;
@@ -391,18 +393,18 @@ void primary_execution_t::sync_contract_with_replicas(
 }
 
 bool primary_execution_t::is_contract_ackable(
-        counted_t<contract_info_t> contract, const std::set<server_id_t> &servers) {
+        counted_t<contract_info_t> contract_info, const std::set<server_id_t> &servers) {
     /* If it's a regular contract, we can ack it as soon as we send a sync to a quorum of
     replicas. If it's a hand-over contract, we can ack it as soon as we send a sync to
     the new primary. */
-    if (!static_cast<bool>(contract->contract.primary->hand_over)) {
-        ack_counter_t ack_counter(contract);
+    if (!static_cast<bool>(contract_info->contract.primary->hand_over)) {
+        ack_counter_t ack_counter(contract_info->contract);
         for (const server_id_t &s : servers) {
             ack_counter.note_ack(s);
         }
         return ack_counter.is_safe();
     } else {
-        return servers.count(*contract->contract.primary->hand_over) == 1;
+        return servers.count(*contract_info->contract.primary->hand_over) == 1;
     }
 }
 
