@@ -75,8 +75,8 @@ uint64_t strtou64_strict(const char *string, const char **end, int base);
 MUST_USE bool strtoi64_strict(const std::string &str, int base, int64_t *out_result);
 MUST_USE bool strtou64_strict(const std::string &str, int base, uint64_t *out_result);
 
-std::string strprintf(const char *format, ...) __attribute__((format (printf, 1, 2)));
-std::string vstrprintf(const char *format, va_list ap) __attribute__((format (printf, 1, 0)));
+std::string strprintf(const char *format, ...) ATTRIBUTE_FORMAT(printf, 1, 2);
+std::string vstrprintf(const char *format, va_list ap) ATTRIBUTE_FORMAT(printf, 1, 0);
 
 
 // formatted time:
@@ -147,14 +147,20 @@ private:
     T old_value;
 };
 
+std::string errno_string(int errsv);
+
 std::string sanitize_for_logger(const std::string &s);
 static inline std::string time2str(const time_t &t) {
-    char timebuf[26]; // I apologize for the magic constant.
-    //           ^^ See man 3 ctime_r
+	const int TIMEBUF_SIZE = 26; // As specified in man 3 ctime and by MSDN
+    char timebuf[TIMEBUF_SIZE];
+#ifdef _MSC_VER
+	errno_t ret = ctime_s(timebuf, sizeof timebuf, &t);
+	guarantee_err(ret != 0, "time2str: invalid time");
+	return timebuf;
+#else
     return ctime_r(&t, timebuf);
+#endif
 }
-
-std::string errno_string(int errsv);
 
 // Contains the name of the directory in which all data is stored.
 class base_path_t {

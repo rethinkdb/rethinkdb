@@ -6,6 +6,12 @@
 #include <signal.h>
 #include <stdlib.h>
 
+#ifdef _MSC_VER
+#define ATTRIBUTE_FORMAT(...)
+#else
+#define ATTRIBUTE_FORMAT(...) __attribute__((format (__VA_ARGS__)))
+#endif
+
 #ifndef DISABLE_BREAKPOINTS
 #ifdef __linux__
 #if defined __i386 || defined __x86_64
@@ -13,10 +19,12 @@
 #else   /* not x86/amd64 */
 #define BREAKPOINT (raise(SIGTRAP))
 #endif  /* x86/amd64 */
-#endif /* __linux__ */
-
-#ifdef __MACH__
+#elif defined(__MACH__)
 #define BREAKPOINT (raise(SIGTRAP))
+#elif defined(_MSC_VER)
+#define BREAKPOINT __asm int 3
+#else
+#error "BREAKPOINT not defined for this operating system"
 #endif
 #else /* Breakpoints Disabled */
 #define BREAKPOINT
@@ -84,7 +92,11 @@ void set_errno(int new_errno);
 
 #define UNUSED __attribute__((unused))
 
+#ifdef _MSC_VER
+#define MUST_USE _Check_return_
+#else
 #define MUST_USE __attribute__((warn_unused_result))
+#endif
 
 #define fail_due_to_user_error(msg, ...) do {  \
         report_user_error(msg, ##__VA_ARGS__); \
@@ -103,8 +115,8 @@ void set_errno(int new_errno);
         BREAKPOINT;                                                 \
     } while (0)
 
-void report_fatal_error(const char*, int, const char*, ...) __attribute__((format (printf, 3, 4)));
-void report_user_error(const char*, ...) __attribute__((format (printf, 1, 2)));
+void report_fatal_error(const char*, int, const char*, ...) ATTRIBUTE_FORMAT(printf, 3, 4);
+void report_user_error(const char*, ...) ATTRIBUTE_FORMAT(printf, 1, 2);
 
 // Our usual crash() method does not work well in out-of-memory conditions, because
 // it performs heap-allocations itself. Use `crash_oom()` instead for these cases.
@@ -118,25 +130,25 @@ MUST_USE const char *errno_string_maybe_using_buffer(int errsv, char *buf, size_
 #define stringify(x) #x
 
 #define format_assert_message(assert_type, cond) assert_type " failed: [" stringify(cond) "] "
-#define guarantee(cond, msg...) do {    \
+#define guarantee(cond, ...) do {    \
         if (!(cond)) {                  \
-            crash_or_trap(format_assert_message("Guarantee", cond) msg); \
+            crash_or_trap(format_assert_message("Guarantee", cond) __VA_ARGS__); \
         }                               \
     } while (0)
 
-#define guarantee_xerr(cond, err, msg, args...) do {                            \
+#define guarantee_xerr(cond, err, msg, ...) do {                            \
         int guarantee_xerr_errsv = (err);                                       \
         if (!(cond)) {                                                          \
             if (guarantee_xerr_errsv == 0) {                                    \
-                crash_or_trap(format_assert_message("Guarantee", cond) msg, ##args); \
+                crash_or_trap(format_assert_message("Guarantee", cond) msg, ##__VA_ARGS__); \
             } else {                                                            \
                 char guarantee_xerr_buf[250];                                      \
                 const char *errstr = errno_string_maybe_using_buffer(guarantee_xerr_errsv, guarantee_xerr_buf, sizeof(guarantee_xerr_buf)); \
-                crash_or_trap(format_assert_message("Guarantee", cond) " (errno %d - %s) " msg, guarantee_xerr_errsv, errstr, ##args); \
+                crash_or_trap(format_assert_message("Guarantee", cond) " (errno %d - %s) " msg, guarantee_xerr_errsv, errstr, ##__VA_ARGS__); \
             }                                                                   \
         }                                                                       \
     } while (0)
-#define guarantee_err(cond, msg, args...) guarantee_xerr(cond, get_errno(), msg, ##args)
+#define guarantee_err(cond, msg, ...) guarantee_xerr(cond, get_errno(), msg, ##__VA_ARGS__)
 
 #define unreachable(msg, ...) crash("Unreachable code: " msg, ##__VA_ARGS__)    // can't use crash_or_trap since code needs to depend on its noreturn property
 #define not_implemented(msg, ...) crash_or_trap("Not implemented: " msg, ##__VA_ARGS__)
@@ -145,12 +157,12 @@ MUST_USE const char *errno_string_maybe_using_buffer(int errsv, char *buf, size_
 #define rassert(cond, msg...) ((void)(0))
 #define rassert_err(cond, msg...) ((void)(0))
 #else
-#define rassert(cond, msg...) do {                                        \
+#define rassert(cond, ...) do {                                        \
         if (!(cond)) {                                                    \
-            crash_or_trap(format_assert_message("Assertion", cond) msg);  \
+            crash_or_trap(format_assert_message("Assertion", cond) __VA_ARGS__);  \
         }                                                                 \
     } while (0)
-#define rassert_err(cond, msg, args...) do {                                \
+#define rassert_err(cond, msg, ...) do {                                \
         int rassert_err_errsv = get_errno();                                      \
         if (!(cond)) {                                                      \
             if (rassert_err_errsv == 0) {                                   \
@@ -158,7 +170,7 @@ MUST_USE const char *errno_string_maybe_using_buffer(int errsv, char *buf, size_
             } else {                                                        \
                 char rassert_err_buf[250];                                  \
                 const char *errstr = errno_string_maybe_using_buffer(rassert_err_errsv, rassert_err_buf, sizeof(rassert_err_buf)); \
-                crash_or_trap(format_assert_message("Assert", cond) " (errno %d - %s) " msg, rassert_err_errsv, errstr, ##args);  \
+                crash_or_trap(format_assert_message("Assert", cond) " (errno %d - %s) " msg, rassert_err_errsv, errstr, ##__VA_ARGS__);  \
             }                                                               \
         }                                                                   \
     } while (0)

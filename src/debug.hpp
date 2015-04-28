@@ -7,9 +7,9 @@
 #include "time.hpp"
 
 #ifndef NDEBUG
-#define trace_call(fn, args...) do {                                          \
+#define trace_call(fn, ...) do {                                          \
         debugf("%s:%u: %s: entered\n", __FILE__, __LINE__, stringify(fn));  \
-        fn(args);                                                           \
+        fn(__VA_ARGS__);                                                           \
         debugf("%s:%u: %s: returned\n", __FILE__, __LINE__, stringify(fn)); \
     } while (0)
 #define TRACEPOINT debugf("%s:%u reached\n", __FILE__, __LINE__)
@@ -36,7 +36,7 @@ void debug_print(printf_buffer_t *buf, T *ptr) {
 }
 
 #ifndef NDEBUG
-void debugf(const char *msg, ...) __attribute__((format (printf, 1, 2)));
+void debugf(const char *msg, ...) ATTRIBUTE_FORMAT(printf, 1, 2);
 template <class T>
 void debugf_print(const char *msg, const T &obj) {
     printf_buffer_t buf;
@@ -60,7 +60,7 @@ std::string debug_strprint(const T &obj) {
 
 class debugf_in_dtor_t {
 public:
-    explicit debugf_in_dtor_t(const char *msg, ...) __attribute__((format (printf, 2, 3)));
+    explicit debugf_in_dtor_t(const char *msg, ...) ATTRIBUTE_FORMAT(printf, 2, 3);
     ~debugf_in_dtor_t();
 private:
     std::string message;

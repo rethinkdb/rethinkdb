@@ -71,7 +71,7 @@ archive_result_t deserialize_for_version(cluster_version_t version,
     case cluster_version_t::v2_0_is_latest:
         return deserialize<cluster_version_t::v2_0_is_latest>(s, thing);
     default:
-        unreachable();
+        unreachable("deserialize_for_version: unsupported cluster version");
     }
 }
 
@@ -98,7 +98,7 @@ size_t serialized_size_for_version(cluster_version_t version,
     case cluster_version_t::v2_0_is_latest:
         return serialized_size<cluster_version_t::v2_0_is_latest>(thing);
     default:
-        unreachable();
+        unreachable("serialize_size_for_version: unsupported version");
     }
 }
 
