@@ -30,7 +30,7 @@ inline MUST_USE archive_result_t deserialize_cluster_version(
     archive_result_t res = deserialize<cluster_version_t::LATEST_OVERALL>(s, &raw);
     if (raw == static_cast<int8_t>(obsolete_cluster_version_t::v1_13)
         || raw == static_cast<int8_t>(obsolete_cluster_version_t::v1_13_2)) {
-        crash("%s", v1_13_msg);
+        fail_due_to_user_error("%s", v1_13_msg);
     } else {
         // This is the same rassert in `ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE`.
         rassert(raw >= static_cast<int8_t>(cluster_version_t::v1_14)

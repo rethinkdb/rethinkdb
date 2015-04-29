@@ -1271,7 +1271,7 @@ void deserialize_sindex_info(const std::vector<char> &data,
     archive_result_t success = deserialize_cluster_version(
         &read_stream,
         &cluster_version,
-        "Encountered a v1_13 secondary index, which is no longer supported.  "
+        "Encountered a RethinkDB 1.13 secondary index, which is no longer supported.  "
         "You can use RethinkDB 2.0 to upgrade your secondary index.");
     throw_if_bad_deserialization(success, "sindex description");
 
