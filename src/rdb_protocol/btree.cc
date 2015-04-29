@@ -1212,12 +1212,20 @@ void compute_keys(const store_key_t &primary_key,
                     keys_out->push_back(std::make_pair(store_key_t(*it), skey));
                 }
             } else {
-                keys_out->push_back(
-                    std::make_pair(
-                        store_key_t(
-                            skey.print_secondary(
-                                reql_version, primary_key, i)),
-                        skey));
+                try {
+                    keys_out->push_back(
+                        std::make_pair(
+                            store_key_t(
+                                skey.print_secondary(
+                                    reql_version, primary_key, i)),
+                            skey));
+                } catch (const ql::base_exc_t &e) {
+                    if (reql_version < reql_version_t::v2_1) {
+                        throw e;
+                    }
+                    // One of the values couldn't be converted to an index key.
+                    // Ignore it and move on to the next one.
+                }
             }
         }
     } else {
