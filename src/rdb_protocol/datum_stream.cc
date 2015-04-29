@@ -143,6 +143,25 @@ bool rget_response_reader_t::is_finished() const {
     return shards_exhausted && items_index >= items.size();
 }
 
+struct last_read_start_visitor_t : public boost::static_visitor<store_key_t> {
+    store_key_t operator()(const intersecting_geo_read_t &geo) const {
+        return geo.sindex.region ? geo.sindex.region->inner.left : store_key_t::min();
+    }
+    store_key_t operator()(const rget_read_t &rget) const {
+        if (rget.sindex) {
+            return rget.sindex->region
+                ? rget.sindex->region->inner.left
+                : store_key_t::min();
+        } else {
+            return rget.region.inner.left;
+        }
+    }
+    template<class T>
+    store_key_t operator()(const T &) const {
+        r_sanity_fail();
+    }
+};
+
 rget_read_response_t rget_response_reader_t::do_read(env_t *env, const read_t &read) {
     read_response_t res;
     table->read_with_profile(env, read, &res, use_outdated);
@@ -151,17 +170,7 @@ rget_read_response_t rget_response_reader_t::do_read(env_t *env, const read_t &r
     if (auto e = boost::get<exc_t>(&rget_res->result)) {
         throw *e;
     }
-
-    auto *rr = boost::get<rget_read_t>(&read.read);
-    guarantee(rr != NULL);
-    if (rr->sindex) {
-        if (rr->sindex->region) {
-            last_read_start = rr->sindex->region->inner.left;
-        }
-    } else {
-        last_read_start = rr->region.inner.left;
-    }
-
+    last_read_start = boost::apply_visitor(last_read_start_visitor_t(), read.read);
     return std::move(*rget_res);
 }
 
