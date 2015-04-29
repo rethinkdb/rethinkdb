@@ -15,46 +15,16 @@ multi_table_manager_t::multi_table_manager_t(
         table_persistence_interface_t *_persistence_interface,
         const base_path_t &_base_path,
         io_backender_t *_io_backender) :
-    server_id(_server_id),
-    mailbox_manager(_mailbox_manager),
-    multi_table_manager_directory(_multi_table_manager_directory),
-    table_manager_directory(_table_manager_directory),
-    persistence_interface(_persistence_interface),
-    base_path(_base_path),
-    io_backender(_io_backender),
-    /* Whenever a server connects, we need to sync all of our tables to it. */
-    multi_table_manager_directory_subs(
-        multi_table_manager_directory,
-        [this](const peer_id_t &peer, const multi_table_manager_bcard_t *bcard) {
-            if (peer != mailbox_manager->get_me() && bcard != nullptr) {
-                mutex_assertion_t::acq_t mutex_acq(&mutex);
-                for (const auto &pair : tables) {
-                    schedule_sync(pair.first, pair.second.get(), peer);
-                }
-            }
-        }, false),
-    /* Whenever a server changes its entry for a table in the directory, we need to
-    re-sync that table to that server. */
-    table_manager_directory_subs(
-        table_manager_directory,
-        [this](const std::pair<peer_id_t, namespace_id_t> &key,
-                const table_manager_bcard_t *) {
-            if (key.first != mailbox_manager->get_me()) {
-                mutex_assertion_t::acq_t mutex_acq(&mutex);
-                auto it = tables.find(key.second);
-                if (it != tables.end()) {
-                    schedule_sync(key.second, it->second.get(), key.first);
-                }
-            }
-        }, false),
-    action_mailbox(mailbox_manager,
-        std::bind(&multi_table_manager_t::on_action, this,
-            ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6, ph::_7)),
-    get_config_mailbox(mailbox_manager,
-        std::bind(&multi_table_manager_t::on_get_config, this,
-            ph::_1, ph::_2, ph::_3))
+    multi_table_manager_t(
+        _mailbox_manager,
+        _multi_table_manager_directory,
+        _table_manager_directory)
 {
-    guarantee(!server_id.is_unset());
+    is_proxy_server = false;
+    server_id = _server_id;
+    persistence_interface = _persistence_interface;
+    base_path = _base_path;
+    io_backender = _io_backender;
 
     /* Resurrect any tables that were sitting on disk from when we last shut down */
     cond_t non_interruptor;
@@ -97,6 +67,53 @@ multi_table_manager_t::multi_table_manager_t(
         &non_interruptor);
 }
 
+/* This constructor is used for proxy servers. The first constructor is also implemented
+in terms of this one, to reduce code duplication. */
+multi_table_manager_t::multi_table_manager_t(
+        mailbox_manager_t *_mailbox_manager,
+        watchable_map_t<peer_id_t, multi_table_manager_bcard_t>
+            *_multi_table_manager_directory,
+        watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
+            *_table_manager_directory) :
+    is_proxy_server(true),
+    server_id(nil_uuid()),
+    mailbox_manager(_mailbox_manager),
+    multi_table_manager_directory(_multi_table_manager_directory),
+    table_manager_directory(_table_manager_directory),
+    persistence_interface(nullptr),
+    /* Whenever a server connects, we need to sync all of our tables to it. */
+    multi_table_manager_directory_subs(
+        multi_table_manager_directory,
+        [this](const peer_id_t &peer, const multi_table_manager_bcard_t *bcard) {
+            if (peer != mailbox_manager->get_me() && bcard != nullptr) {
+                mutex_assertion_t::acq_t mutex_acq(&mutex);
+                for (const auto &pair : tables) {
+                    schedule_sync(pair.first, pair.second.get(), peer);
+                }
+            }
+        }, false),
+    /* Whenever a server changes its entry for a table in the directory, we need to
+    re-sync that table to that server. */
+    table_manager_directory_subs(
+        table_manager_directory,
+        [this](const std::pair<peer_id_t, namespace_id_t> &key,
+                const table_manager_bcard_t *) {
+            if (key.first != mailbox_manager->get_me()) {
+                mutex_assertion_t::acq_t mutex_acq(&mutex);
+                auto it = tables.find(key.second);
+                if (it != tables.end()) {
+                    schedule_sync(key.second, it->second.get(), key.first);
+                }
+            }
+        }, false),
+    action_mailbox(mailbox_manager,
+        std::bind(&multi_table_manager_t::on_action, this,
+            ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6, ph::_7)),
+    get_config_mailbox(mailbox_manager,
+        std::bind(&multi_table_manager_t::on_get_config, this,
+            ph::_1, ph::_2, ph::_3))
+    { }
+
 multi_table_manager_t::active_table_t::active_table_t(
         multi_table_manager_t *_parent,
         const namespace_id_t &table_id,
@@ -114,6 +131,7 @@ multi_table_manager_t::active_table_t::active_table_t(
         &parent->table_query_bcard_combiner, table_id, manager.get_table_query_bcards()),
     raft_committed_subs(std::bind(&active_table_t::on_raft_commit, this))
 {
+    guarantee(!parent->is_proxy_server, "proxy server shouldn't be hosting data");
     watchable_t<raft_member_t<table_raft_state_t>::state_and_config_t>::freeze_t
         freeze(manager.get_raft()->get_committed_state());
     raft_committed_subs.reset(manager.get_raft()->get_committed_state(), &freeze);
@@ -177,6 +195,7 @@ void multi_table_manager_t::on_action(
 
     /* Validate existing record */
     if (!is_new) {
+        guarantee(table->status != table_t::status_t::ACTIVE || !is_proxy_server);
         guarantee(table->multistore_ptr.has() ==
             (table->status == table_t::status_t::ACTIVE));
         guarantee(table->active.has() ==
@@ -220,6 +239,7 @@ void multi_table_manager_t::on_action(
 
     /* Bring record up to date */
     if (action_status == action_status_t::ACTIVE) {
+        guarantee(!is_proxy_server, "proxy server shouldn't be hosting data");
         if (is_new || table->status != table_t::status_t::ACTIVE)) {
             /* The table is being created, or we are joining it */
             table->status = table_t::status_t::ACTIVE;
@@ -299,10 +319,12 @@ void multi_table_manager_t::on_action(
         table->second_hand_timestamp = boost::make_optional(timestamp);
 
         /* Update the record on disk */
-        persistence_interface->write_metadata(
-            table_id,
-            table_persistent_state_t::inactive(*basic_config, timestamp),
-            interruptor);
+        if (!is_proxy_server) {
+            persistence_interface->write_metadata(
+                table_id,
+                table_persistent_state_t::inactive(*basic_config, timestamp),
+                interruptor);
+        }
 
     } else if (action_status == action_status_t::DELETED) {
         if (!is_new) {
@@ -325,8 +347,9 @@ void multi_table_manager_t::on_action(
         table->status = table_t::status_t::DELETED;
 
         /* Remove the record on disk */
-        persistence_interface->delete_metadata(table_id, interruptor);
-
+        if (!is_proxy_server) {
+            persistence_interface->delete_metadata(table_id, interruptor);
+        }
     }
 
     /* If we're in the `ACTIVE` or `DELETED` state, sync this table to all other peers.

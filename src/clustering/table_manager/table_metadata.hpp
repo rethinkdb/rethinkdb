@@ -129,7 +129,8 @@ public:
     get_config_mailbox_t::address_t get_config_mailbox;
 
     /* The server ID of the server sending this business card. In theory you could figure
-    it out from the peer ID, but this is way more convenient. */
+    it out from the peer ID, but this is way more convenient. Proxy servers will set this
+    to `nil_uuid()`. */
     server_id_t server_id;
 };
 RDB_DECLARE_SERIALIZABLE(

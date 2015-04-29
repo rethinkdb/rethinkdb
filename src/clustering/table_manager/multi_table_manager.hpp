@@ -78,6 +78,14 @@ public:
         const base_path_t &_base_path,
         io_backender_t *_io_backender);
 
+    /* This constructor is used on proxy servers. */
+    multi_table_manager_t(
+        mailbox_manager_t *_mailbox_manager,
+        watchable_map_t<peer_id_t, multi_table_manager_bcard_t>
+            *_multi_table_manager_directory,
+        watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
+            *_table_manager_directory);
+
     multi_table_manager_bcard_t get_multi_table_manager_bcard() {
         multi_table_manager_bcard_t bcard;
         bcard.action_mailbox = action_mailbox.get_address();
@@ -103,18 +111,20 @@ private:
         table.
 
     2. We've heard of the table, but we don't consider ourselves to be a replica for the
-        table. In this case, we store a `table_t` in our `tables` map, but we don't have
-        an `active_table_t`. We record the table's name and database in the metadata but
-        we don't have a data file for the table.
+        table. In this case, we store a `table_t` in our `tables` map with status
+        `INACTIVE`. We record the table's name and database in the metadata but we don't
+        have a data file for the table.
 
     3. We are currently a replica for the table, In this case, we store a `table_t` in
-        our `tables` map, and we store a `active_table_t` in the `table_t`. We store a
-        record for the table in the metadata and we also have a data file on disk for the
-        table. We also broadcast a business card for the table.
+        our `tables` map with status `ACTIVE`. We store a record for the table in the
+        on-disk metadata; we also have a data file on disk for the table; and we have an
+        `active_table_t`, which takes care of actually storing the data for the table. We
+        also broadcast a business card for the table.
 
     4. We believe the table has been deleted. In this case, we store a `table_t` in our
-        `tables` map, but without an `active_table_t`. We don't record anything on disk
-        for the table. This means that if we restart, we'll forget that it ever existed.
+        `tables` map with status `DELETED`. We don't record anything on disk for the
+        table. This means that if we restart, we'll forget that it ever existed and
+        return to the first state in this list.
     */
 
     class active_table_t {
@@ -246,16 +256,20 @@ private:
         table_t *table,
         const peer_id_t &peer_id);
 
-    const server_id_t server_id;
+    /* If we're a proxy server, then `is_proxy_server` will be `true`; `server_id` will
+    be `nil_uuid()`; and `persistence_interface` will be `nullptr`. */
+
+    bool is_proxy_server;
+    server_id_t server_id;
     mailbox_manager_t * const mailbox_manager;
     watchable_map_t<peer_id_t, multi_table_manager_bcard_t>
         * const multi_table_manager_directory;
     watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
         * const table_manager_directory;
-    table_persistence_interface_t * const persistence_interface;
+    table_persistence_interface_t *persistence_interface;
 
-    const base_path_t base_path;
-    io_backender_t * const io_backender;
+    base_path_t base_path;
+    io_backender_t *io_backender;
 
     backfill_throttler_t backfill_throttler;
 
@@ -269,8 +283,8 @@ private:
     watchable_map_combiner_t<namespace_id_t, uuid_u, table_query_bcard_t>
         table_query_bcard_combiner;
 
-    /* Note: `tables` must be destroyed before `table_manager_bcards` or any of the const
-    member variables. */
+    /* Note: `tables` must be destroyed before `table_manager_bcards` or any of the
+    earlier member variables. */
     std::map<namespace_id_t, scoped_ptr_t<table_t> > tables;
 
     /* You must hold this mutex whenever you:
