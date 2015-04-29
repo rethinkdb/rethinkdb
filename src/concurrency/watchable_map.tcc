@@ -132,9 +132,34 @@ watchable_map_var_t<key_t, value_t>::entry_t::operator=(entry_t &&other) {
 }
 
 template<class key_t, class value_t>
-key_t watchable_map_var_t<key_t, value_t>::entry_t::get_key() {
+key_t watchable_map_var_t<key_t, value_t>::entry_t::get_key() const {
     guarantee(parent != nullptr);
     return iterator->first;
+}
+
+template<class key_t, class value_t>
+value_t watchable_map_var_t<key_t, value_t>::entry_t::get_value() const {
+    guarantee(parent != nullptr);
+    return iterator->second;
+}
+
+template<class key_t, class value_t>
+void watchable_map_var_t<key_t, value_t>::entry_t::set(const value_t &new_value) {
+    guarantee(parent != nullptr);
+    rwi_lock_assertion_t::write_acq_t write_acq(&parent->rwi_lock);
+    if (iterator->second != new_value) {
+        iterator->second = new_value;
+        parent->notify_change(iterator->first, iterator->second, &write_acq);
+    }
+}
+
+template<class key_t, class value_t>
+void watchable_map_var_t<key_t, value_t>::entry_t::set_no_equals(
+        const value_t &new_value) {
+    guarantee(parent != nullptr);
+    rwi_lock_assertion_t::write_acq_t write_acq(&parent->rwi_lock);
+    iterator->second = new_value;
+    parent->notify_change(iterator->first, iterator->second, &write_acq);
 }
 
 template<class key_t, class value_t>

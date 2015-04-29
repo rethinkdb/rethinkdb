@@ -49,9 +49,8 @@ multi_table_manager_t::multi_table_manager_t(
             } else if (table_persistent_state_t::inactive_t *inactive =
                     boost::get<table_persistent_state_t::inactive_t>(&state.value)) {
                 table->status = table_t::status_t::INACTIVE;
-                table->second_hand_config =
-                    boost::make_optional(inactive->second_hand_config);
-                table->second_hand_timestamp = boost::make_optional(inactive->timestamp);
+                table->basic_configs_entry.create(&table_basic_configs, table_id,
+                    std::make_pair(inactive->second_hand_config, inactive->timestamp));
             }
 
             /* This probably won't do anything, since we probably won't be connected to
@@ -116,12 +115,15 @@ multi_table_manager_t::multi_table_manager_t(
 
 multi_table_manager_t::active_table_t::active_table_t(
         multi_table_manager_t *_parent,
-        const namespace_id_t &table_id,
+        table_t *_table,
+        const namespace_id_t &_table_id,
         const multi_table_manager_bcard_t::timestamp_t::epoch_t &epoch,
         const raft_member_id_t &member_id,
         const raft_persistent_state_t<table_raft_state_t> &initial_state,
         multistore_ptr_t *multistore_ptr) :
     parent(_parent),
+    table(_table),
+    table_id(_table_id),
     manager(parent->server_id, parent->mailbox_manager, parent->table_manager_directory,
         &parent->backfill_throttler, parent->persistence_interface, parent->base_path,
         parent->io_backender, table_id, epoch, member_id, initial_state, multistore_ptr),
@@ -135,9 +137,15 @@ multi_table_manager_t::active_table_t::active_table_t(
     watchable_t<raft_member_t<table_raft_state_t>::state_and_config_t>::freeze_t
         freeze(manager.get_raft()->get_committed_state());
     raft_committed_subs.reset(manager.get_raft()->get_committed_state(), &freeze);
+
+    update_basic_config_entry();
 }
 
 void multi_table_manager_t::active_table_t::on_raft_commit() {
+    /* If the Raft transaction changed the table's name, database, or primary key, push
+    the changes out to the `table_meta_client_t`. */
+    update_basic_config_entry();
+
     /* Every time the Raft cluster commits a transaction, we re-sync to every other
     server in the cluster. This is because the transaction might consist of adding or
     removing a server, in which case we need to notify that server.
@@ -146,15 +154,28 @@ void multi_table_manager_t::active_table_t::on_raft_commit() {
     not resyncing to a given peer unless the peer is mentioned in the Raft state; the
     peer has a `table_manager_bcard_t` for this table; or the table's name or database
     has changed. */
-    mutex_assertion_t::acq_t mutex_acq(&parent->mutex);
-    auto it = parent->tables.find(manager.table_id);
-    guarantee(it != parent->tables.end());
     parent->multi_table_manager_directory->read_all(
     [&](const peer_id_t &peer, const multi_table_manager_bcard_t *) {
         if (peer != parent->mailbox_manager->get_me()) {
-            parent->schedule_sync(manager.table_id, it->second.get(), peer);
+            parent->schedule_sync(manager.table_id, table, peer);
         }
     });
+}
+
+void multi_table_manager_t::active_table_t::update_basic_config_entry() {
+    manager.get_raft()->get_committed_state()->apply_read(
+        [&](const raft_member_t<table_raft_state_t>::state_and_config_t> *sc) {
+            std::pair<table_basic_config_t, multi_table_manager_bcard_t::timestamp_t> p;
+            p.first = sc->state.config.config.basic;
+            p.second.epoch = epoch;
+            p.second.log_index = sc->log_index;
+            if (table->basic_config_entry.has()) {
+                table->basic_config_entry->set(p);
+            } else {
+                table->basic_config_entry.create(
+                    &parent->table_basic_configs, table_id, p);
+            }
+        });
 }
 
 void multi_table_manager_t::on_action(
@@ -200,13 +221,8 @@ void multi_table_manager_t::on_action(
             (table->status == table_t::status_t::ACTIVE));
         guarantee(table->active.has() ==
             (table->status == table_t::status_t::ACTIVE));
-        guarantee(static_cast<bool>(table->second_hand_config) ==
-            (table->status == table_t::status_t::INACTIVE));
-        guarantee(static_cast<bool>(table->second_hand_timestamp) ==
-            (table->status == table_t::status_t::INACTIVE));
-        if (table->status == table_t::status_t::INACTIVE) {
-            guarantee(!table->second_hand_timestamp->is_deletion());
-        }
+        guarantee(table->basic_configs_entry.has() ==
+            (table->status != table_t::status_t::DELETED));
     }
 
     /* Reject outdated or redundant messages */
@@ -219,7 +235,7 @@ void multi_table_manager_t::on_action(
                     table->active->get_raft()->get_committed_state()->get().log_index;
                 break;
             case table_t::status_t::INACTIVE:
-                current_timestamp = *table->second_hand_timestamp;
+                current_timestamp = *table->basic_configs_entry->get_value().second;
                 break;
             case table_t::status_t::DELETION:
                 current_timestamp = multi_table_bcard_t::timestamp_t::deletion();
@@ -243,11 +259,6 @@ void multi_table_manager_t::on_action(
         if (is_new || table->status != table_t::status_t::ACTIVE)) {
             /* The table is being created, or we are joining it */
             table->status = table_t::status_t::ACTIVE;
-
-            /* If we were `INACTIVE` before, clean up `second_hand_config` and
-            `second_hand_timestamp` because we won't be using them anymore */
-            table->second_hand_config = boost::none;
-            table->second_hand_timestamp = boost::none;
 
             /* Write a record to disk for the new table */
             pesistence_interface->write_metadata(
@@ -315,8 +326,12 @@ void multi_table_manager_t::on_action(
         second-hand information record with newer information */
         table->status = table_t::status_t::INACTIVE;
 
-        table->second_hand_config = boost::make_optional(*basic_config);
-        table->second_hand_timestamp = boost::make_optional(timestamp);
+        if (table->basic_configs_entry.has()) {
+            table->basic_configs_entry->set(std::make_pair(*basic_config, timestamp));
+        } else {
+            table->basic_configs_entry.create(&table_basic_configs, table_id,
+                std::make_pair(*basic_config, timestamp));
+        }
 
         /* Update the record on disk */
         if (!is_proxy_server) {
@@ -338,10 +353,8 @@ void multi_table_manager_t::on_action(
                     table_id, &table->multistore_ptr, interruptor);
 
                 logDBG("Deleted table %s", uuid_to_str(table_id).c_str());
-            } else {
-                table->second_hand_config = boost::none;
-                table->second_hand_timestamp = boost::none;
             }
+            table->basic_configs_entry.reset();
         }
 
         table->status = table_t::status_t::DELETED;
@@ -463,8 +476,12 @@ void multi_table_manager_t::do_sync(
         }
 
         send(mailbox_manager, table_manager_bcard.action_mailbox,
-            table_id, timestamp, action_status,
-            basic_config, raft_member_id, initial_raft_state,
+            table_id,
+            timestamp,
+            action_status,
+            basic_config,
+            raft_member_id,
+            initial_raft_state,
             mailbox_t<void()>::address_t());
 
     } else if (table->status == table_t::status_t::INACTIVE) {
@@ -475,16 +492,21 @@ void multi_table_manager_t::do_sync(
         }
 
         send(mailbox_manager, table_manager_bcard.action_mailbox,
-            table_id, *table->second_hand_timestamp, action_status_t::MAYBE_ACTIVE,
-            *table->second_hand_config, boost;:optional<raft_member_id_t>(),
+            table_id,
+            table->basic_configs_entry->get_value().second,
+            action_status_t::MAYBE_ACTIVE,
+            table->basic_configs_entry->get_value().first,
+            boost;:optional<raft_member_id_t>(),
             boost::optional<raft_persistent_state_t<table_raft_state_t> >(),
             mailbox_t<void()>::address_t());
 
     } else if (table->status == table_t::status_t::DELETED) {
         send(mailbox_manager, table_manager_bcard.action_mailbox,
-            table_id, multi_table_manager_t::timestamp_t::deletion(),
+            table_id,
+            multi_table_manager_t::timestamp_t::deletion(),
             action_status_t::DELETED,
-            boost::optional<table_basic_config_t>(), boost;:optional<raft_member_id_t>(),
+            boost::optional<table_basic_config_t>(),
+            boost;:optional<raft_member_id_t>(),
             boost::optional<raft_persistent_state_t<table_raft_state_t> >(),
             mailbox_t<void()>::address_t());
 

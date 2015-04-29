@@ -154,21 +154,6 @@ bool do_serve(io_backender_t *io_backender,
                 &cluster_semilattice_metadata_t::servers,
                 semilattice_manager_cluster.get_root_view()));
 
-        /* Extract a subview of the directory with all the table meta manager business
-        cards. */
-        watchable_map_value_transform_t<peer_id_t, cluster_directory_metadata_t,
-                multi_table_manager_bcard_t>
-            multi_table_manager_directory(
-                directory_read_manager.get_root_map_view(),
-                [](const cluster_directory_metadata_t *cluster_md) {
-                    return cluster_md->multi_table_manager_bcard.get_ptr();
-                });
-
-        table_meta_client_t table_meta_client(
-            &mailbox_manager,
-            &multi_table_manager_directory,
-            table_directory_read_manager.get_root_view());
-
         jobs_manager_t jobs_manager(&mailbox_manager, server_id, &server_config_client);
         stat_manager_t stat_manager(&mailbox_manager, server_id);
 
@@ -238,40 +223,17 @@ bool do_serve(io_backender_t *io_backender,
                               serve_info.reql_http_proxy);
         jobs_manager.set_rdb_context(&rdb_ctx);
 
-        real_reql_cluster_interface_t real_reql_cluster_interface(
-                &mailbox_manager,
-                semilattice_manager_cluster.get_root_view(),
-                &rdb_ctx,
-                &server_config_client,
-                &table_meta_client,
-                table_query_directory_read_manager.get_root_view());
-
-        admin_artificial_tables_t admin_tables(
-                &real_reql_cluster_interface,
-                semilattice_manager_cluster.get_root_view(),
-                semilattice_manager_auth.get_root_view(),
-                directory_read_manager.get_root_view(),
-                directory_read_manager.get_root_map_view(),
-                &table_meta_client,
-                &server_config_client,
-                &mailbox_manager);
-
-        /* `real_reql_cluster_interface_t` needs access to the admin tables so that it
-        can return rows from the `table_status` and `table_config` artificial tables when
-        the user calls the corresponding porcelains. But `admin_artificial_tables_t`
-        needs access to the `real_reql_cluster_interface_t` because `table_config` needs
-        to be able to run distribution queries. The simplest solution is for them to have
-        references to each other. This is the place where we "close the loop". */
-        real_reql_cluster_interface.admin_tables = &admin_tables;
-
-        /* `rdb_context_t` needs access to the `reql_cluster_interface_t` so that it can
-        find tables and run meta-queries, but the `real_reql_cluster_interface_t` needs
-        access to the `rdb_context_t` so that it can construct instances of
-        `cluster_namespace_interface_t`. Again, we solve this problem by having a
-        circular reference. */
-        rdb_ctx.cluster_interface = admin_tables.get_reql_cluster_interface();
-
         {
+            /* Extract a subview of the directory with all the table meta manager
+            business cards. */
+            watchable_map_value_transform_t<peer_id_t, cluster_directory_metadata_t,
+                    multi_table_manager_bcard_t>
+                multi_table_manager_directory(
+                    directory_read_manager.get_root_map_view(),
+                    [](const cluster_directory_metadata_t *cluster_md) {
+                        return &cluster_md->multi_table_manager_bcard;
+                    });
+
             scoped_ptr_t<cache_balancer_t> cache_balancer;
             scoped_ptr_t<outdated_index_issue_tracker_t> outdated_index_issue_tracker;
             scoped_ptr_t<real_table_persistence_interface_t>
@@ -298,7 +260,55 @@ bool do_serve(io_backender_t *io_backender,
                     table_persistence_interface.get(),
                     base_path,
                     io_backender));
+            } else {
+                /* Proxies still need a `multi_table_manager_t` because it takes care of
+                receiving table names, databases, and primary keys from other servers and
+                providing them to the `table_meta_client_t`. */
+                multi_table_manager.init(new multi_table_manager_t(
+                    &mailbox_manager,
+                    &multi_table_manager_directory,
+                    table_directory_read_manager.get_root_view()));
             }
+
+            table_meta_client_t table_meta_client(
+                &mailbox_manager,
+                multi_table_manger.get(),
+                &multi_table_manager_directory,
+                table_directory_read_manager.get_root_view());
+
+            real_reql_cluster_interface_t real_reql_cluster_interface(
+                &mailbox_manager,
+                semilattice_manager_cluster.get_root_view(),
+                &rdb_ctx,
+                &server_config_client,
+                &table_meta_client,
+                table_query_directory_read_manager.get_root_view());
+
+            admin_artificial_tables_t admin_tables(
+                &real_reql_cluster_interface,
+                semilattice_manager_cluster.get_root_view(),
+                semilattice_manager_auth.get_root_view(),
+                directory_read_manager.get_root_view(),
+                directory_read_manager.get_root_map_view(),
+                &table_meta_client,
+                &server_config_client,
+                &mailbox_manager);
+
+            /* `real_reql_cluster_interface_t` needs access to the admin tables so that
+            it can return rows from the `table_status` and `table_config` artificial
+            tables when the user calls the corresponding porcelains. But
+            `admin_artificial_tables_t` needs access to the
+            `real_reql_cluster_interface_t` because `table_config` needs to be able to
+            run distribution queries. The simplest solution is for them to have
+            references to each other. This is the place where we "close the loop". */
+            real_reql_cluster_interface.admin_tables = &admin_tables;
+
+            /* `rdb_context_t` needs access to the `reql_cluster_interface_t` so that it
+            can find tables and run meta-queries, but the `real_reql_cluster_interface_t`
+            needs access to the `rdb_context_t` so that it can construct instances of
+            `cluster_namespace_interface_t`. Again, we solve this problem by having a
+            circular reference. */
+            rdb_ctx.cluster_interface = admin_tables.get_reql_cluster_interface();
 
             cluster_directory_metadata_t initial_directory(
                 server_id,
@@ -317,10 +327,7 @@ bool do_serve(io_backender_t *io_backender,
                 connectivity_cluster_run->get_canonical_addresses(),
                 serve_info.argv,
                 0,   /* we'll fill `actual_cache_size_bytes` in later */
-                i_am_a_server
-                    ? boost::make_optional(
-                        multi_table_manager->get_multi_table_manager_bcard())
-                    : boost::optional<multi_table_manager_bcard_t>(),
+                multi_table_manager->get_multi_table_manager_bcard(),
                 jobs_manager.get_business_card(),
                 stat_manager.get_address(),
                 log_server.get_business_card(),

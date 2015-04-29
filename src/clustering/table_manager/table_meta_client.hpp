@@ -15,6 +15,7 @@ class table_meta_client_t :
 public:
     table_meta_client_t(
         mailbox_manager_t *_mailbox_manager,
+        multi_table_manager_t *_multi_table_manager,
         watchable_map_t<peer_id_t, multi_table_manager_bcard_t>
             *_multi_table_manager_directory,
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
@@ -91,45 +92,26 @@ public:
         signal_t *interruptor);
 
 private:
-    /* We have one `table_metadata_t` for each table we know to exist. */
-    class table_metadata_t {
-    public:
-        database_id_t database;
-        name_string_t name;
-        std::string primary_key;
+    typedef std::pair<table_basic_config_t, multi_table_manager_bcard_t::timestamp_t>
+        timestamped_basic_config_t;
 
-        /* `timestamp` is the timestamp as of which `database` and `name` are up to date.
-        It's used to break ties if two different peers report different information. */
-        multi_table_manager_bcard_t::timestamp_t timestamp;
-
-        /* `witnesses` is the set of all visible peers that claim to be hosting this
-        table. If it ever becomes empty, we'll delete the `table_metadata_t`. */
-        std::set<peer_id_t> witnesses;
-    };
-
-    void on_directory_change(
-        const std::pair<peer_id_t, namespace_id_t> &key,
-        const table_manager_bcard_t *value);
+    bool wait_until_change_visible(
+        const table_id_t &table_id,
+        const std::function<bool(const timestamped_basic_config_t *)> &cb,
+        signal_t *interruptor);
 
     mailbox_manager_t *const mailbox_manager;
+    multi_table_manager_t *const multi_table_manager;
     watchable_map_t<peer_id_t, multi_table_manager_bcard_t>
         *const multi_table_manager_directory;
     watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
         *const table_manager_directory;
 
-    /* `table_metadata_by_id_var` is a summary of everything we know about the tables in
-    the cluster. `on_directory_change()` will always keep it up to date with respect to
-    `table_manager_directory`. `table_metadata_by_id` distributes
-    `table_metadata_by_id_var` to each thread, so that `find()`, `get_name()`, and
+    /* `table_basic_configs` distributes the `table_basic_config_t`s from the
+    `multi_table_manager_t` to each thread, so that `find()`, `get_name()`, and
     `list_names()` can run without blocking. */
-    watchable_map_var_t<namespace_id_t, table_metadata_t>
-        table_metadata_by_id_var;
-    all_thread_watchable_map_var_t<namespace_id_t, table_metadata_t>
-        table_metadata_by_id;
-
-    watchable_map_t<
-            std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>::all_subs_t
-        table_manager_directory_subs;
+    all_thread_watchable_map_var_t<namespace_id_t, timestamped_basic_config_t>
+        table_basic_configs;
 };
 
 #endif /* CLUSTERING_TABLE_MANAGER_TABLE_META_CLIENT_HPP_ */

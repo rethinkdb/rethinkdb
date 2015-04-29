@@ -104,6 +104,12 @@ public:
         return &table_query_bcard_combiner;
     }
 
+    watchable_map_t<namespace_id_t,
+            std::pair<table_basic_config_t, multi_table_manager_bcard_t::timestamp_t> >
+                *get_table_basic_configs() {
+        return &table_basic_configs;
+    }
+
 private:
     /* The `multi_table_manager_t` has four possible states with respect to a table:
 
@@ -131,6 +137,7 @@ private:
     public:
         active_table_t(
             multi_table_manager_t *parent,
+            table_t *table,
             const namespace_id_t &table_id,
             const multi_table_manager_bcard_t::timestamp_t::epoch_t &epoch,
             const raft_member_id_t &member_id,
@@ -141,9 +148,13 @@ private:
             return manager.get_raft();
         }
 
+    private:
         void on_raft_commit();
+        void update_basic_config_entry();
 
-        multi_table_manager_t *parent;
+        multi_table_manager_t *const parent;
+        table_t *const table;
+        namespace_id_t const table_id;
 
         /* The `table_manager_t` is the guts of the `active_table_t`. The
         `active_table_t` is just a thin wrapper that handles forwarding the bcards from
@@ -189,17 +200,27 @@ private:
 
         status_t status;
 
+        /* If `status` is either `ACTIVE` or `INACTIVE`, `basic_configs_entry` propagates
+        knowledge about the table's basic config to the `table_meta_client_t` via
+        `table_basic_configs`. When `status` is `ACTIVE`, it's kept up-to-date by the
+        `active_table_t`. (Note that the `active_table_t` may change the value without
+        holding `mutex`.) When `status` is `INACTIVE`, it's updated when we receive
+        messages from other servers. */
+        object_buffer_t<watchable_map_var_t<namespace_id_t,
+                std::pair<table_basic_config_t, multi_table_manager_bcard_t::timestamp_t>
+                >::entry_t>
+            basic_configs_entry;
+
         /* If `status` is `ACTIVE`, `multistore_ptr` contains our files on disk for the
         table, and `active` contains our Raft instance, etc. Otherwise these are empty.
         */
         scoped_ptr_t<multistore_ptr_t> multistore_ptr;
         scoped_ptr_t<active_table_t> active;
 
-        /* If `status` is `INACTIVE`, then `second_hand_config` contains our second-hand
-        knowledge about the table and `second_hand_timestamp` contains a timestamp at
-        which `second_hand_config` is known to be valid. Otherwise both are empty. */
-        boost::optional<table_basic_config_t> second_hand_config;
-        boost::optional<multi_table_manager_bcard_t::timestamp_t> second_hand_timestamp;
+        /* Destructor order matters here. We must destroy `active` before
+        `multistore_ptr` because `active` uses the multistore. We must destroy `active`
+        before `basic_configs_entry` because `active` sometimes manipulates
+        `basic_configs_entry` through a `table_t *`. */
     };
 
     void on_table_manager_directory_change(
@@ -272,6 +293,12 @@ private:
     io_backender_t *io_backender;
 
     backfill_throttler_t backfill_throttler;
+
+    /* This collects the `table_basic_config_t` for every non-deleted table in the
+    `tables` map, for the benefit of the `table_meta_client_t`. */
+    watchable_map_var_t<namespace_id_t,
+            std::pair<table_basic_config_t, multi_table_manager_bcard_t::timestamp_t> >
+        table_basic_configs;
 
     /* This map describes the table business cards that we show to other servers via the
     directory. `active_table_t` creates and deletes entries in this map. */

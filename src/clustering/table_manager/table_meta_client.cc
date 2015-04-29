@@ -6,17 +6,16 @@
 
 table_meta_client_t::table_meta_client_t(
         mailbox_manager_t *_mailbox_manager,
+        multi_table_manager_t *_multi_table_manager,
         watchable_map_t<peer_id_t, multi_table_manager_bcard_t>
             *_multi_table_manager_directory,
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
             *_table_manager_directory) :
     mailbox_manager(_mailbox_manager),
+    multi_table_manager(_multi_table_manager),
     multi_table_manager_directory(_multi_table_manager_directory),
     table_manager_directory(_table_manager_directory),
-    table_metadata_by_id(&table_metadata_by_id_var),
-    table_manager_directory_subs(table_manager_directory,
-        std::bind(&table_meta_client_t::on_directory_change, this, ph::_1, ph::_2),
-        true)
+    table_basic_configs(multi_table_manager->get_table_basic_configs()),
     { }
 
 table_meta_client_t::find_res_t table_meta_client_t::find(
@@ -25,13 +24,13 @@ table_meta_client_t::find_res_t table_meta_client_t::find(
         namespace_id_t *table_id_out,
         std::string *primary_key_out) {
     size_t count = 0;
-    table_metadata_by_id.get_watchable()->read_all(
-        [&](const namespace_id_t &key, const table_metadata_t *value) {
-            if (value->database == database && value->name == name) {
+    table_basic_configs.get_watchable()->read_all(
+        [&](const namespace_id_t &key, const timestamped_basic_config_t *value) {
+            if (value->first.database == database && value->first.name == name) {
                 ++count;
                 *table_id_out = key;
                 if (primary_key_out != nullptr) {
-                    *primary_key_out = value->primary_key;
+                    *primary_key_out = value->first.primary_key;
                 }
             }
         });
@@ -49,14 +48,14 @@ bool table_meta_client_t::get_name(
         database_id_t *db_out,
         name_string_t *name_out) {
     bool ok;
-    table_metadata_by_id.get_watchable()->read_key(table_id,
-        [&](const table_metadata_t *metadata) {
+    table_basic_configs.get_watchable()->read_key(table_id,
+        [&](const timestamped_basic_config_t *value) {
             if (metadata == nullptr) {
                 ok = false;
             } else {
                 ok = true;
-                *db_out = metadata->database;
-                *name_out = metadata->name;
+                *db_out = value->first.database;
+                *name_out = value->first.name;
             }
         });
     return ok;
@@ -64,9 +63,9 @@ bool table_meta_client_t::get_name(
 
 void table_meta_client_t::list_names(
         std::map<namespace_id_t, std::pair<database_id_t, name_string_t> > *names_out) {
-    table_metadata_by_id.get_watchable()->read_all(
-        [&](const namespace_id_t &table_id, const table_metadata_t *metadata) {
-            (*names_out)[table_id] = std::make_pair(metadata->database, metadata->name);
+    table_basic_configs.get_watchable()->read_all(
+        [&](const namespace_id_t &table_id, const timestamped_basic_config_t *value) {
+            (*names_out)[table_id] = std::make_pair(value->database, value->name);
         });
 }
 
@@ -266,9 +265,9 @@ bool table_meta_client_t::create(
     on_thread_t thread_switcher(home_thread());
 
     /* Sanity-check that `table_id` is unique */
-    table_metadata_by_id_var.read_key(table_id,
-        [&](const table_metadata_t *metadata) {
-            guarantee(metadata == nullptr);
+    multi_table_manager->get_table_basic_configs()->read_key(table_id,
+        [&](const timestamped_basic_config_t *value) {
+            guarantee(value == nullptr);
         });
 
     /* Prepare the message that we'll be sending to each server */
@@ -334,25 +333,11 @@ bool table_meta_client_t::create(
         return false;
     }
 
-    /* Wait until the table appears in the directory. It may never appear in the
-    directory if it's deleted or we lose contact immediately after the table is
-    created; this is why we have a timeout. */
-    signal_timer_t timeout;
-    timeout.start(10*1000);
-    wait_any_t interruptor_combined(&interruptor, &timeout);
-    try {
-        table_metadata_by_id_var.run_key_until_satisfied(table_id,
-            [](const table_metadata_t *m) { return m != nullptr; },
-            &interruptor_combined);
-    } catch (const interrupted_exc_t &) {
-        if (interruptor.is_pulsed()) {
-            throw;
-        } else {
-            return false;
-        }
-    }
-    table_metadata_by_id.flush();
-    return true;
+    /* Wait until the table appears in the directory. */
+    return wait_until_change_visible(
+        table_id,
+        [](const timestamped_basic_config_t *value) { return value != nullptr; },
+        &interruptor);
 }
 
 bool table_meta_client_t::drop(
@@ -414,22 +399,10 @@ bool table_meta_client_t::drop(
     }
 
     /* Wait until the table disappears from the directory. */
-    signal_timer_t timeout;
-    timeout.start(10*1000);
-    wait_any_t interruptor_combined(&interruptor, &timeout);
-    try {
-        table_metadata_by_id_var.run_key_until_satisfied(table_id,
-            [](const table_metadata_t *m) { return m == nullptr; },
-            &interruptor_combined);
-    } catch (const interrupted_exc_t &) {
-        if (interruptor.is_pulsed()) {
-            throw;
-        } else {
-            return false;
-        }
-    }
-    table_metadata_by_id.flush();
-    return true;
+    return wait_until_change_visible(
+        table_id,
+        [](const timestamped_basic_config_t *value) { return value == nullptr; },
+        &interruptor);
 }
 
 bool table_meta_client_t::set_config(
@@ -502,59 +475,37 @@ bool table_meta_client_t::set_config(
     until the table's name and database match whatever we just changed the config to. But
     this could go wrong if the table's name and database are changed again in quick
     succession. We detect that other case by using the timestamps. */
+    return wait_until_change_visible(
+        table_id,
+        [&](const timestamped_basic_config_t *value) {
+            return value == nullptr || value->timestamp.supersedes(*timestamp) ||
+                (value->name == new_config.config.name &&
+                    value->database == new_config.config.database);
+        },
+        &interruptor);
+}
+
+bool table_meta_client_t::wait_until_change_visible(
+        const table_id_t &table_id,
+        const std::function<bool(const timestamped_basic_config_t *)> &cb,
+        signal_t *interruptor) {
     signal_timer_t timeout;
     timeout.start(10*1000);
-    wait_any_t interruptor_combined(&interruptor, &timeout);
+    wait_any_t interruptor_combined(interruptor, &timeout);
     try {
-        table_metadata_by_id_var.run_key_until_satisfied(table_id,
-            [&](const table_metadata_t *m) {
-                return m == nullptr || m->timestamp.supersedes(*timestamp) ||
-                    (m->name == new_config.config.name &&
-                        m->database == new_config.config.database);
-            },
-            &interruptor_combined);
+        multi_table_manager->get_table_basic_configs()->run_key_until_satisfied(
+            table_id, cb, &interruptor_combined);
     } catch (const interrupted_exc_t &) {
         if (interruptor.is_pulsed()) {
             throw;
         } else {
-            /* We know the change was applied, but it isn't visible in the directory, so
-            we return `false` anyway. */
+            /* The timeout ran out. We know the change was applied, but it isn't visible
+            in the directory, so we return `false` anyway. */
             return false;
         }
     }
-
-    table_metadata_by_id.flush();
+    /* Wait until the change is also visible on other threads */
+    table_basic_configs.flush();
     return true;
-}
-
-void table_meta_client_t::on_directory_change(
-        const std::pair<peer_id_t, namespace_id_t> &key,
-        const table_manager_bcard_t *dir_value) {
-    table_metadata_by_id_var.change_key(key.second,
-    [&](bool *md_exists, table_metadata_t *md_value) -> bool {
-        if (dir_value != nullptr && !*md_exists) {
-            *md_exists = true;
-            md_value->witnesses = std::set<peer_id_t>({key.first});
-            md_value->database = dir_value->database;
-            md_value->name = dir_value->name;
-            md_value->primary_key = dir_value->primary_key;
-            md_value->timestamp = dir_value->timestamp;
-        } else if (dir_value != nullptr && *md_exists) {
-            md_value->witnesses.insert(key.first);
-            if (dir_value->timestamp.supersedes(md_value->timestamp)) {
-                md_value->database = dir_value->database;
-                md_value->name = dir_value->name;
-                md_value->timestamp = dir_value->timestamp;
-            }
-        } else {
-            if (*md_exists) {
-                md_value->witnesses.erase(key.first);
-                if (md_value->witnesses.empty()) {
-                    *md_exists = false;
-                }
-            }
-        }
-        return true;
-    });
 }
 
