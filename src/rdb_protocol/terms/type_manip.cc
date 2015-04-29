@@ -285,7 +285,7 @@ private:
         for (auto &&pair : *groups) {
             r_sanity_check(pair.first.has() && pair.second.has());
             std::map<datum_string_t, datum_t> m =
-                {{datum_string_t("group"), std::move(pair.first)},
+                {{datum_string_t("group"), pair.first},
                  {datum_string_t("reduction"), std::move(pair.second)}};
             v.push_back(datum_t(std::move(m)));
         }
