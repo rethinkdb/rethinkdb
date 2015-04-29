@@ -46,8 +46,9 @@ btree_sindex_block_magic_t<cluster_version_t::v2_0_is_latest_disk>::value
 
 cluster_version_t sindex_block_version(const btree_sindex_block_t *data) {
     if (data->magic == v1_13_sindex_block_magic) {
-        crash("Found a secondary index from unsupported version `v1_13`.  "
-              "You can migrate this secondary index using RethinkDB 2.0.");
+        fail_due_to_user_error(
+            "Found a secondary index from unsupported RethinkDB version 1.13.  "
+            "You can migrate this secondary index using RethinkDB 2.0.");
     } else if (data->magic
                == btree_sindex_block_magic_t<cluster_version_t::v1_14>::value) {
         return cluster_version_t::v1_14;
