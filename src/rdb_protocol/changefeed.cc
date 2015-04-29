@@ -1759,6 +1759,7 @@ public:
         start_stamps = std::move(resp->stamps);
         guarantee(start_stamps.size() != 0);
 
+        env = make_env(outer_env);
         if (maybe_src) {
             // Nothing can happen between constructing the new `scoped_ptr_t` and
             // releasing the old one.
