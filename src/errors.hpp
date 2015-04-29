@@ -98,8 +98,6 @@ void set_errno(int new_errno);
         abort();                                                    \
     } while (0)
 
-#define crash_1_13_block
-
 #define crash_or_trap(msg, ...) do {                                \
         report_fatal_error(__FILE__, __LINE__, msg, ##__VA_ARGS__); \
         BREAKPOINT;                                                 \
