@@ -2,6 +2,7 @@
 #include "clustering/table_manager/table_meta_client.hpp"
 
 #include "clustering/generic/raft_core.tcc"
+#include "clustering/table_manager/multi_table_manager.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 
 table_meta_client_t::table_meta_client_t(
@@ -15,7 +16,7 @@ table_meta_client_t::table_meta_client_t(
     multi_table_manager(_multi_table_manager),
     multi_table_manager_directory(_multi_table_manager_directory),
     table_manager_directory(_table_manager_directory),
-    table_basic_configs(multi_table_manager->get_table_basic_configs()),
+    table_basic_configs(multi_table_manager->get_table_basic_configs())
     { }
 
 table_meta_client_t::find_res_t table_meta_client_t::find(
@@ -50,7 +51,7 @@ bool table_meta_client_t::get_name(
     bool ok;
     table_basic_configs.get_watchable()->read_key(table_id,
         [&](const timestamped_basic_config_t *value) {
-            if (metadata == nullptr) {
+            if (value == nullptr) {
                 ok = false;
             } else {
                 ok = true;
@@ -65,7 +66,8 @@ void table_meta_client_t::list_names(
         std::map<namespace_id_t, std::pair<database_id_t, name_string_t> > *names_out) {
     table_basic_configs.get_watchable()->read_all(
         [&](const namespace_id_t &table_id, const timestamped_basic_config_t *value) {
-            (*names_out)[table_id] = std::make_pair(value->database, value->name);
+            (*names_out)[table_id] =
+                std::make_pair(value->first.database, value->first.name);
         });
 }
 
@@ -313,7 +315,8 @@ bool table_meta_client_t::create(
             send(mailbox_manager, pair.second.action_mailbox,
                 table_id,
                 timestamp,
-                false,
+                multi_table_manager_bcard_t::status_t::ACTIVE,
+                boost::optional<table_basic_config_t>(),
                 boost::optional<raft_member_id_t>(raft_state.member_ids.at(pair.first)),
                 boost::optional<raft_persistent_state_t<table_raft_state_t> >(raft_ps),
                 ack_mailbox.get_address());
@@ -380,7 +383,11 @@ bool table_meta_client_t::drop(
             mailbox_t<void()> ack_mailbox(mailbox_manager,
                 [&](signal_t *) { got_ack.pulse(); });
             send(mailbox_manager, pair.second.action_mailbox,
-                table_id, drop_timestamp, true, boost::optional<raft_member_id_t>(),
+                table_id,
+                multi_table_manager_bcard_t::timestamp_t::deletion(),
+                multi_table_manager_bcard_t::status_t::DELETED,
+                boost::optional<table_basic_config_t>(),
+                boost::optional<raft_member_id_t>(),
                 boost::optional<raft_persistent_state_t<table_raft_state_t> >(),
                 ack_mailbox.get_address());
             wait_any_t interruptor_combined(&dw, &interruptor);
@@ -438,8 +445,8 @@ bool table_meta_client_t::set_config(
     other server is no longer leader or if its leader UUID changes. */
     disconnect_watcher_t leader_disconnected(mailbox_manager, best_mailbox.get_peer());
     cond_t leader_stopped;
-    watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>::key_subs_t
-        leader_stopped_subs(
+    watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
+        ::key_subs_t leader_stopped_subs(
             table_manager_directory,
             std::make_pair(best_mailbox.get_peer(), table_id),
             [&](const table_manager_bcard_t *bcard) {
@@ -478,15 +485,15 @@ bool table_meta_client_t::set_config(
     return wait_until_change_visible(
         table_id,
         [&](const timestamped_basic_config_t *value) {
-            return value == nullptr || value->timestamp.supersedes(*timestamp) ||
-                (value->name == new_config.config.name &&
-                    value->database == new_config.config.database);
+            return value == nullptr || value->second.supersedes(*timestamp) ||
+                (value->first.name == new_config.config.basic.name &&
+                    value->first.database == new_config.config.basic.database);
         },
         &interruptor);
 }
 
 bool table_meta_client_t::wait_until_change_visible(
-        const table_id_t &table_id,
+        const namespace_id_t &table_id,
         const std::function<bool(const timestamped_basic_config_t *)> &cb,
         signal_t *interruptor) {
     signal_timer_t timeout;
@@ -496,7 +503,7 @@ bool table_meta_client_t::wait_until_change_visible(
         multi_table_manager->get_table_basic_configs()->run_key_until_satisfied(
             table_id, cb, &interruptor_combined);
     } catch (const interrupted_exc_t &) {
-        if (interruptor.is_pulsed()) {
+        if (interruptor->is_pulsed()) {
             throw;
         } else {
             /* The timeout ran out. We know the change was applied, but it isn't visible

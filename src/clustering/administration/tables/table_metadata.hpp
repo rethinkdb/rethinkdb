@@ -34,6 +34,9 @@ public:
     std::string primary_key;
 };
 
+RDB_DECLARE_SERIALIZABLE(table_basic_config_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(table_basic_config_t);
+
 class write_ack_config_t {
 public:
     enum class mode_t { single, majority, complex };

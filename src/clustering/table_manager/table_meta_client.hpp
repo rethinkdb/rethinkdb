@@ -6,6 +6,8 @@
 #include "concurrency/cross_thread_watchable.hpp"
 #include "concurrency/watchable_map.hpp"
 
+class multi_table_manager_t;
+
 /* `table_meta_client_t` is responsible for submitting client requests over the network
 to the `multi_table_manager_t`. It doesn't have any real state of its own; it's just a
 convenient way of bundling together all of the objects that are necessary for submitting
@@ -96,7 +98,7 @@ private:
         timestamped_basic_config_t;
 
     bool wait_until_change_visible(
-        const table_id_t &table_id,
+        const namespace_id_t &table_id,
         const std::function<bool(const timestamped_basic_config_t *)> &cb,
         signal_t *interruptor);
 

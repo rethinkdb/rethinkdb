@@ -24,14 +24,14 @@ public:
         io_backender_t *_io_backender,
         const namespace_id_t &_table_id,
         const multi_table_manager_bcard_t::timestamp_t::epoch_t &_epoch,
-        const raft_member_id_t &member_id,
+        const raft_member_id_t &raft_member_id,
         const raft_persistent_state_t<table_raft_state_t> &initial_state,
         multistore_ptr_t *multistore_ptr);
 
     /* These are public so that `multi_table_manager_t` can see them */
     const namespace_id_t table_id;
     const multi_table_manager_bcard_t::timestamp_t::epoch_t epoch;
-    const raft_member_id_t member_id;
+    const raft_member_id_t raft_member_id;
 
     raft_member_t<table_raft_state_t> *get_raft() {
         return raft.get_raft();
@@ -86,9 +86,6 @@ private:
     void on_table_directory_change(
         const std::pair<peer_id_t, namespace_id_t> &key,
         const table_manager_bcard_t *bcard);
-
-    /* This is the callback for `raft_committed_subs` */
-    void on_raft_committed_change();
 
     /* This is the callback for `raft_readiness_subs` */
     void on_raft_readiness_change();
@@ -170,8 +167,6 @@ private:
 
     watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
         ::all_subs_t table_directory_subs;
-    watchable_subscription_t<raft_member_t<table_raft_state_t>::state_and_config_t>
-        raft_committed_subs;
     watchable_subscription_t<bool> raft_readiness_subs;
 };
 

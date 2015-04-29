@@ -216,9 +216,9 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
 
         table_config_and_shards_t config;
 
-        config.config.name = name;
-        config.config.database = db->id;
-        config.config.primary_key = primary_key;
+        config.config.basic.name = name;
+        config.config.basic.database = db->id;
+        config.config.basic.primary_key = primary_key;
 
         /* We don't have any data to generate split points based on, so assume UUIDs */
         calculate_split_points_for_uuids(
@@ -685,9 +685,7 @@ bool real_reql_cluster_interface_t::reconfigure_internal(
 #endif
 
     table_config_and_shards_t new_config;
-    new_config.config.name = old_config.config.name;
-    new_config.config.database = old_config.config.database;
-    new_config.config.primary_key = old_config.config.primary_key;
+    new_config.config.basic = old_config.config.basic;
 
     if (!calculate_split_points_intelligently(
             table_id,

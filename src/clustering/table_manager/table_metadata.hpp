@@ -67,8 +67,15 @@ public:
             return ts;
         }
 
-        bool is_deletion() {
+        bool is_deletion() const {
             return epoch.is_deletion();
+        }
+
+        bool operator==(const timestamp_t &other) const {
+            return epoch == other.epoch && log_index == other.log_index;
+        }
+        bool operator!=(const timestamp_t &other) const {
+            return !(*this == other);
         }
 
         bool supersedes(const timestamp_t &other) const {
@@ -133,6 +140,11 @@ public:
     to `nil_uuid()`. */
     server_id_t server_id;
 };
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
+    multi_table_manager_bcard_t::status_t,
+    uint8_t,
+    multi_table_manager_bcard_t::status_t::ACTIVE,
+    multi_table_manager_bcard_t::status_t::MAYBE_ACTIVE);
 RDB_DECLARE_SERIALIZABLE(
     multi_table_manager_bcard_t::timestamp_t::epoch_t);
 RDB_DECLARE_SERIALIZABLE(multi_table_manager_bcard_t::timestamp_t);
@@ -250,6 +262,8 @@ public:
 
     boost::variant<active_t, inactive_t> value;
 };
+RDB_DECLARE_SERIALIZABLE(table_persistent_state_t::active_t);
+RDB_DECLARE_SERIALIZABLE(table_persistent_state_t::inactive_t);
 RDB_DECLARE_SERIALIZABLE(table_persistent_state_t);
 
 class table_persistence_interface_t {
@@ -268,15 +282,15 @@ public:
         signal_t *interruptor) = 0;
 
     virtual void load_multistore(
-        const namespace_id_t &table,
+        const namespace_id_t &table_id,
         scoped_ptr_t<multistore_ptr_t> *multistore_ptr_out,
         signal_t *interruptor) = 0;
     virtual void create_multistore(
-        const namespace_id_t &table,
+        const namespace_id_t &table_id,
         scoped_ptr_t<multistore_ptr_t> *multistore_ptr_out,
         signal_t *interruptor) = 0;
     virtual void destroy_multistore(
-        const namespace_id_t &table,
+        const namespace_id_t &table_id,
         scoped_ptr_t<multistore_ptr_t> *multistore_ptr_in,
         signal_t *interruptor) = 0;
 

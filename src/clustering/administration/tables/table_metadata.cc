@@ -12,6 +12,11 @@
 // RSI(raft): Some of these should be `SINCE_v1_N`, where `N` is the version number at
 // which Raft is released.
 
+RDB_IMPL_SERIALIZABLE_3_SINCE_v1_16(table_basic_config_t,
+    name, database, primary_key);
+RDB_IMPL_EQUALITY_COMPARABLE_3(table_basic_config_t,
+    name, database, primary_key);
+
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_16(write_ack_config_t::req_t, replicas, mode);
 RDB_IMPL_EQUALITY_COMPARABLE_2(write_ack_config_t::req_t, replicas, mode);
 
@@ -23,10 +28,10 @@ RDB_IMPL_SERIALIZABLE_2_SINCE_v1_16(table_config_t::shard_t,
 RDB_IMPL_EQUALITY_COMPARABLE_2(table_config_t::shard_t,
                                replicas, primary_replica);
 
-RDB_IMPL_SERIALIZABLE_7_SINCE_v1_16(table_config_t,
-    database, name, primary_key, shards, sindexes, write_ack_config, durability);
-RDB_IMPL_EQUALITY_COMPARABLE_7(table_config_t,
-    database, name, primary_key, shards, sindexes, write_ack_config, durability);
+RDB_IMPL_SERIALIZABLE_5_SINCE_v1_16(table_config_t,
+    basic, shards, sindexes, write_ack_config, durability);
+RDB_IMPL_EQUALITY_COMPARABLE_5(table_config_t,
+    basic, shards, sindexes, write_ack_config, durability);
 
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_16(table_shard_scheme_t, split_points);
 RDB_IMPL_EQUALITY_COMPARABLE_1(table_shard_scheme_t, split_points);

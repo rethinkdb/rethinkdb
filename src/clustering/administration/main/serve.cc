@@ -272,7 +272,7 @@ bool do_serve(io_backender_t *io_backender,
 
             table_meta_client_t table_meta_client(
                 &mailbox_manager,
-                multi_table_manger.get(),
+                multi_table_manager.get(),
                 &multi_table_manager_directory,
                 table_directory_read_manager.get_root_view());
 

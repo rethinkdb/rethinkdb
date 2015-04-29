@@ -35,8 +35,9 @@ bool common_table_artificial_table_backend_t::read_all_rows_as_vector(
     rows_out->clear();
     for (const auto &pair : configs) {
         ql::datum_t db_name_or_uuid;
-        if (!convert_database_id_to_datum(pair.second.config.database, identifier_format,
-                metadata, &db_name_or_uuid, nullptr)) {
+        if (!convert_database_id_to_datum(
+                pair.second.config.basic.database, identifier_format, metadata,
+                &db_name_or_uuid, nullptr)) {
             db_name_or_uuid = ql::datum_t("__deleted_database__");
         }
         ql::datum_t row;
@@ -71,7 +72,7 @@ bool common_table_artificial_table_backend_t::read_row(
         return true;
     }
     ql::datum_t db_name_or_uuid;
-    if (!convert_database_id_to_datum(config.config.database, identifier_format,
+    if (!convert_database_id_to_datum(config.config.basic.database, identifier_format,
             metadata, &db_name_or_uuid, nullptr)) {
         db_name_or_uuid = ql::datum_t("__deleted_database__");
     }

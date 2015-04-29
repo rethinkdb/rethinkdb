@@ -133,6 +133,8 @@ private:
         return to the first state in this list.
     */
 
+    class table_t;
+
     class active_table_t {
     public:
         active_table_t(
@@ -148,9 +150,8 @@ private:
             return manager.get_raft();
         }
 
-    private:
         void on_raft_commit();
-        void update_basic_config_entry();
+        void update_basic_configs_entry();
 
         multi_table_manager_t *const parent;
         table_t *const table;
@@ -289,7 +290,7 @@ private:
         * const table_manager_directory;
     table_persistence_interface_t *persistence_interface;
 
-    base_path_t base_path;
+    boost::optional<base_path_t> base_path;
     io_backender_t *io_backender;
 
     backfill_throttler_t backfill_throttler;

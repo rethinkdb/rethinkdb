@@ -280,10 +280,10 @@ ql::datum_t convert_table_config_to_datum(
         admin_identifier_format_t identifier_format,
         server_config_client_t *server_config_client) {
     ql::datum_object_builder_t builder;
-    builder.overwrite("name", convert_name_to_datum(config.name));
+    builder.overwrite("name", convert_name_to_datum(config.basic.name));
     builder.overwrite("db", db_name_or_uuid);
     builder.overwrite("id", convert_uuid_to_datum(table_id));
-    builder.overwrite("primary_key", convert_string_to_datum(config.primary_key));
+    builder.overwrite("primary_key", convert_string_to_datum(config.basic.primary_key));
     builder.overwrite("shards",
         convert_vector_to_datum<table_config_t::shard_t>(
             [&](const table_config_t::shard_t &shard) {
@@ -337,7 +337,7 @@ bool convert_table_config_and_name_from_datum(
         return false;
     }
     if (!convert_name_from_datum(
-            name_datum, "table name", &config_out->name, error_out)) {
+            name_datum, "table name", &config_out->basic.name, error_out)) {
         *error_out = "In `name`: " + *error_out;
         return false;
     }
@@ -361,12 +361,12 @@ bool convert_table_config_and_name_from_datum(
             return false;
         }
         if (!convert_string_from_datum(primary_key_datum,
-                &config_out->primary_key, error_out)) {
+                &config_out->basic.primary_key, error_out)) {
             *error_out = "In `primary_key`: " + *error_out;
             return false;
         }
     } else {
-        config_out->primary_key = "id";
+        config_out->basic.primary_key = "id";
     }
 
     if (existed_before || converter.has("shards")) {
@@ -479,7 +479,8 @@ bool table_config_artificial_table_backend_t::write_row(
     ql::datum_t old_db_name_or_uuid;
     name_string_t old_db_name;
     if (existed_before) {
-        if (!convert_database_id_to_datum(old_config.config.database, identifier_format,
+        if (!convert_database_id_to_datum(
+                old_config.config.basic.database, identifier_format,
                 metadata, &old_db_name_or_uuid, &old_db_name)) {
             old_db_name_or_uuid = ql::datum_t("__deleted_database__");
             old_db_name = name_string_t::guarantee_valid("__deleted_database__");
@@ -526,19 +527,20 @@ bool table_config_artificial_table_backend_t::write_row(
                 *error_out = "It's illegal to change a table's `database` field.";
                 return false;
             }
-            new_config.config.database = old_config.config.database;
+            new_config.config.basic.database = old_config.config.basic.database;
             db_name = old_db_name;
         } else {
             if (!convert_database_id_from_datum(
                     new_db_name_or_uuid, identifier_format, metadata,
-                    &new_config.config.database, &db_name, error_out)) {
+                    &new_config.config.basic.database, &db_name, error_out)) {
                 *error_out = "In `database`: " + *error_out;
                 return false;
             }
         }
 
         if (existed_before) {
-            if (new_config.config.primary_key != old_config.config.primary_key) {
+            if (new_config.config.basic.primary_key !=
+                    old_config.config.basic.primary_key) {
                 *error_out = "It's illegal to change a table's primary key.";
                 return false;
             }
@@ -552,7 +554,7 @@ bool table_config_artificial_table_backend_t::write_row(
                 *error_out = strprintf("Table `%s.%s` is not available for reading, so "
                     "we cannot compute a new sharding scheme for it. The table's "
                     "configuration was not changed.", db_name.c_str(),
-                    old_config.config.name.c_str());
+                    old_config.config.basic.name.c_str());
                 return false;
             }
         } else {
@@ -563,10 +565,11 @@ bool table_config_artificial_table_backend_t::write_row(
             new_config.shard_scheme = table_shard_scheme_t::one_shard();
         }
 
-        if (!existed_before || new_config.config.name != old_config.config.name) {
+        if (!existed_before ||
+                new_config.config.basic.name != old_config.config.basic.name) {
             namespace_id_t dummy_table_id;
-            if (table_meta_client->find(new_config.config.database,
-                    new_config.config.name, &dummy_table_id)
+            if (table_meta_client->find(new_config.config.basic.database,
+                    new_config.config.basic.name, &dummy_table_id)
                         != table_meta_client_t::find_res_t::none) {
                 if (!existed_before) {
                     /* This message looks weird in the context of the variable named
@@ -574,13 +577,13 @@ bool table_config_artificial_table_backend_t::write_row(
                     table with the specified UUID already exists; but we're showing the
                     user an error if a table with the specified name already exists. */
                     *error_out = strprintf("Table `%s.%s` already exists.",
-                        db_name.c_str(), new_config.config.name.c_str());
+                        db_name.c_str(), new_config.config.basic.name.c_str());
                 } else {
                     *error_out = strprintf("Cannot rename table `%s.%s` to `%s.%s` "
                         "because table `%s.%s` already exists.",
-                        db_name.c_str(), old_config.config.name.c_str(),
-                        db_name.c_str(), new_config.config.name.c_str(),
-                        db_name.c_str(), new_config.config.name.c_str());
+                        db_name.c_str(), old_config.config.basic.name.c_str(),
+                        db_name.c_str(), new_config.config.basic.name.c_str(),
+                        db_name.c_str(), new_config.config.basic.name.c_str());
                 }
                 return false;
             }
@@ -591,7 +594,7 @@ bool table_config_artificial_table_backend_t::write_row(
             if (!table_meta_client->set_config(table_id, new_config, &interruptor)) {
                 *error_out = strprintf("Lost contact with the server(s) hosting table "
                     "`%s.%s`. The configuration may or may not have been changed.",
-                    old_db_name.c_str(), old_config.config.name.c_str());
+                    old_db_name.c_str(), old_config.config.basic.name.c_str());
                 return false;
             }
         } else {
@@ -617,7 +620,7 @@ bool table_config_artificial_table_backend_t::write_row(
             if (!table_meta_client->drop(table_id, &interruptor)) {
                 *error_out = strprintf("Lost contact with the server(s) hosting table "
                     "`%s.%s`. The table may or may not have been dropped.",
-                    old_db_name.c_str(), old_config.config.name.c_str());
+                    old_db_name.c_str(), old_config.config.basic.name.c_str());
                 return false;
             }
         }

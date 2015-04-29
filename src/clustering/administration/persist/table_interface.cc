@@ -150,91 +150,44 @@ private:
     scoped_ptr_t<store_t> stores[CPU_SHARDING_FACTOR];
 };
 
-void real_table_persistence_interface_t::read_all_tables(
+void real_table_persistence_interface_t::read_all_metadata(
         const std::function<void(
             const namespace_id_t &table_id,
-            const table_persistent_state_t &state,
-            scoped_ptr_t<multistore_ptr_t> &&multistore_ptr)> &callback,
+            const table_persistent_state_t &state)> &callback,
         signal_t *interruptor) {
-    std::map<namespace_id_t, table_persistent_state_t> tables;
     metadata_file_t::read_txn_t read_txn(metadata_file, interruptor);
     read_txn.read_many<table_persistent_state_t>(
         mdprefix_table_persistent_state(),
         [&](const std::string &uuid_str, const table_persistent_state_t &state) {
-            namespace_id_t table_id = str_to_uuid(uuid_str);
-            tables.insert(std::make_pair(table_id, state));
+            callback(str_to_uuid(uuid_str), state);
         },
         interruptor);
-    for (const auto &pair : tables) {
-        scoped_ptr_t<multistore_ptr_t> multistore;
-        make_multistore(pair.first, interruptor, &multistore);
-        callback(pair.first, pair.second, std::move(multistore));
-    }
 }
 
-void real_table_persistence_interface_t::add_table(
-        const namespace_id_t &table,
-        const table_persistent_state_t &state,
-        scoped_ptr_t<multistore_ptr_t> *multistore_ptr_out,
-        signal_t *interruptor) {
-    /* Record the existence of the table in the metadata file before creating the table's
-    data files, so that if we crash, we won't leak any data files */
-    {
-        metadata_file_t::write_txn_t write_txn(metadata_file, interruptor);
-        write_txn.write(
-            mdprefix_table_persistent_state().suffix(uuid_to_str(table)),
-            state,
-            interruptor);
-    }
-    make_multistore(table, interruptor, multistore_ptr_out);
-}
-
-void real_table_persistence_interface_t::update_table(
-        const namespace_id_t &table,
+void real_table_persistence_interface_t::write_metadata(
+        const namespace_id_t &table_id,
         const table_persistent_state_t &state,
         signal_t *interruptor) {
     metadata_file_t::write_txn_t write_txn(metadata_file, interruptor);
     write_txn.write(
-        mdprefix_table_persistent_state().suffix(uuid_to_str(table)),
+        mdprefix_table_persistent_state().suffix(uuid_to_str(table_id)),
         state,
         interruptor);
 }
 
-void real_table_persistence_interface_t::remove_table(
-        const namespace_id_t &table,
+void real_table_persistence_interface_t::delete_metadata(
+        const namespace_id_t &table_id,
         signal_t *interruptor) {
-    /* Remove the table's data files before removing the record of the table's existence
-    from the metadata file, so that if we crash, we won't leak any data files */
-    std::string filepath = file_name_for(table).permanent_path();
-    logNTC("Removing file %s\n", filepath.c_str());
-    const int res = ::unlink(filepath.c_str());
-    guarantee_err(res == 0 || get_errno() == ENOENT,
-                  "unlink failed for file %s", filepath.c_str());
-
-    /* Also, remove the branch history before removing the main record, so we don't leak
-    the branch history */
-    real_branch_history_manager_t::erase(table, metadata_file, interruptor);
-
     metadata_file_t::write_txn_t write_txn(metadata_file, interruptor);
     write_txn.erase(
-        mdprefix_table_persistent_state().suffix(uuid_to_str(table)),
+        mdprefix_table_persistent_state().suffix(uuid_to_str(table_id)),
         interruptor);
 }
 
-serializer_filepath_t real_table_persistence_interface_t::file_name_for(
-        const namespace_id_t &table_id) {
-    return serializer_filepath_t(base_path, uuid_to_str(table_id));
-}
-
-threadnum_t real_table_persistence_interface_t::pick_thread() {
-    thread_counter = (thread_counter + 1) % get_num_db_threads();
-    return threadnum_t(thread_counter);
-}
-
-void real_table_persistence_interface_t::make_multistore(
+void real_table_persistence_interface_t::load_multistore(
         const namespace_id_t &table_id,
-        signal_t *interruptor,
-        scoped_ptr_t<multistore_ptr_t> *multistore_ptr_out) {
+        scoped_ptr_t<multistore_ptr_t> *multistore_ptr_out,
+        signal_t *interruptor) {
     scoped_ptr_t<real_branch_history_manager_t> bhm(
         new real_branch_history_manager_t(table_id, metadata_file, interruptor));
 
@@ -257,4 +210,38 @@ void real_table_persistence_interface_t::make_multistore(
         serializer_thread,
         store_threads));
 }
+
+void real_table_persistence_interface_t::create_multistore(
+        const namespace_id_t &table_id,
+        scoped_ptr_t<multistore_ptr_t> *multistore_ptr_out,
+        signal_t *interruptor) {
+    load_multistore(table_id, multistore_ptr_out, interruptor);
+}
+
+void real_table_persistence_interface_t::destroy_multistore(
+        const namespace_id_t &table_id,
+        scoped_ptr_t<multistore_ptr_t> *multistore_ptr_in,
+        signal_t *interruptor) {
+    guarantee(multistore_ptr_in->has());
+    multistore_ptr_in->reset();
+
+    std::string filepath = file_name_for(table_id).permanent_path();
+    logNTC("Removing file %s\n", filepath.c_str());
+    const int res = ::unlink(filepath.c_str());
+    guarantee_err(res == 0 || get_errno() == ENOENT,
+                  "unlink failed for file %s", filepath.c_str());
+
+    real_branch_history_manager_t::erase(table_id, metadata_file, interruptor);
+}
+
+serializer_filepath_t real_table_persistence_interface_t::file_name_for(
+        const namespace_id_t &table_id) {
+    return serializer_filepath_t(base_path, uuid_to_str(table_id));
+}
+
+threadnum_t real_table_persistence_interface_t::pick_thread() {
+    thread_counter = (thread_counter + 1) % get_num_db_threads();
+    return threadnum_t(thread_counter);
+}
+
 
