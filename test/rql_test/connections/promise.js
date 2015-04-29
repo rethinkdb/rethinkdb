@@ -1,126 +1,161 @@
 ////
-// Tests the driver cursor API
+// Tests the JavaScript driver using the promises interface
 /////
 
+var assert = require('assert');
 var path = require('path');
 
-process.on('uncaughtException', function(err) {
-    console.log(err);
-    if (err.stack) {
-        console.log(err.toString() + err.stack.toString());
-    } else {
-        console.log(err.toString());
-    }
-    process.exit(1)
-});
+// -- settings
 
-// -- get input
+var driverPort = process.env.RDB_DRIVER_PORT || (process.argv[2] ? parseInt(process.argv[2], 10) : 28015);
+var serverHost = process.env.RDB_SERVER_HOST || (process.argv[3] ? parseInt(process.argv[3], 10) : 'localhost');
 
-var port = parseInt(process.argv[2], 10)
-var num_rows = parseInt(process.argv[3], 10);
+var dbName = 'test';
+var tableName = 'test';
+var numRows = parseInt(process.env.TEST_ROWS) || 100;
 
 // -- load rethinkdb from the proper location
 
 var r = require(path.resolve(__dirname, '..', 'importRethinkDB.js')).r;
 
-// --
+// -- globals
 
-var assertNoError = function(err) {
-    if (err) {
-        console.log(1);
-        throw new Error("Error '"+err+"' not expected")
-    }
-};
+var tbl = r.db(dbName).table(tableName);
+var reqlConn = null;
 
-var assertArgError = function(expected, found, callback) {
-    var errFound = null;
-    try {
-        callback();
-    } catch (err) {
-        errFound = err;
-    }
+// -- helper functions
 
-    if (!errFound) {
-        throw new Error("No error thrown");
-    } else if (!(errFound.msg !== "Expected "+expected+" argument"
-                 +(expected === 1 ? "" : "s")+" but found "+found)) {
-        throw new Error("Wrong error message: "+errFound.msg);
-    }
-};
-
-var assert = function(predicate) {
-    if (!predicate) {
-        throw new Error("Assert failed");
-    }
-};
-
-r.connect({port: port}).then(function(c) {
-    
-    var tbl = r.db('test').table('test');
-    console.log("Testing for " + num_rows + " rows");
-
-
-    tbl.run(c).then(function(cur) {
-        cur.next().then(function(result) {
-            assert(result);
-            cur.toArray().then(function(result) {
-                assert(result.length === (num_rows-1))
-                var ar_to_send = []
-                var limit=10000; // Keep a "big" value to try hitting `maximum call stack exceed`
-                for(var i=0; i<limit; i++) {
-                    ar_to_send.push(i);
-                }
-                r(ar_to_send).run(c).then(function(res) {
-                    var i = 0;
-                    res.each(function(err, res2) {
-                        assert(res2 === ar_to_send[i])
-                        i++;
+var withConnection = function(fnct) {
+    if (fnct) {
+        return function(done) {
+            r.expr(1).run(reqlConn, function(err) {
+                if(err) {
+                    reqlConn = null;
+                    r.connect({host:serverHost, port:driverPort}, function(err, conn) {
+                        if(err) { done(err) }
+                        reqlConn = conn;
+                        fnct(done, reqlConn);;
                     })
-                }).error(function(err) {
-                    assertNoError(err);
-                });
+                } else {
+                    fnct(done, reqlConn);
+                }
+            });
+        };
+    } else {
+        return r.expr(1).run(reqlConn) // check the connection
+        .then(function() {
+            return reqlConn;
+        })
+        // re-establish the connection if it was bad
+        .catch(r.Error.RqlDriverError, r.Error.RqlRuntimeError, function(err) {
+        	reqlConn = null;
+        	return r.connect({host:serverHost, port:driverPort})
+        	.then(function(conn) {
+                // cache the new connection
+                reqlConn = conn;
+                return reqlConn;
+        	});
+        })
+    }
+}
 
-                // Test the toArray
-                limit = 3;
-                var ar_to_send2 = [0, 1, 2]
-                r(ar_to_send2).run(c).then(function(res) {
-                    res.toArray().then(function(res2) {
-                        // Make sure we didn't create a copy here
-                        assert(res === res2);
+// -- tests
 
-                        // Test values
-                        for(var i=0; i<ar_to_send2.length; i++) {
-                            assert(ar_to_send2[i] === res2[i]);
-                        }
-                    }).error(assertNoError)
-                    res.next().then(function(row) {
-                        assert(row === ar_to_send2[0])
-                        res.toArray().then(function(res2) {
-                            // Make sure we didn't create a copy here
-                            assert(res2.length === (ar_to_send2.length-1));
-
-                            // Test values
-                            for(var i=0; i<res2.length; i++) {
-                                assert(ar_to_send2[i+1] === res2[i]);
-                            }
-                            // Test reconnect, noreplyWait, close
-                            c.reconnect().then(function(c) {
-                                c.noreplyWait().then(function() {
-                                    c.close().then(function() {
-                                        c.reconnect().then(function(c) {
-                                            c.noreplyWait().then(function() {
-                                                c.close().then(function() {
-                                                }).error(assertNoError)
-                                            }).error(assertNoError)
-                                        }).error(assertNoError)
-                                    }).error(assertNoError)
-                                }).error(assertNoError)
-                            }).error(assertNoError)
-                        }).error(assertNoError)
-                    }).error(assertNoError)
-                }).error(assertNoError)
+describe('Promise tests', function() {
+    // ensure reqlConn is valid before each test
+    beforeEach(function() { return withConnection(); });
+        
+    it("simple expr(1)", function() {
+        return r.expr(1).run(reqlConn).nodeify(function(err, result) {
+            assert.equal(result, 1, 'Did not get the expected value (1): ' + result)
+        });
+    });
+    
+    if("toArray on an array", function() {
+        var cursorA = null;
+        return r.expr([1,2,3]).run(reqlConn)
+        .then(function(cur) {
+            cursorA = cur;
+            return cur.toArray();
+        })
+        .then(function(cursorB) {
+            // we should get back a reference to what we already had
+            assert.strictEqual(cursorB, cursorA);
+        });
+    });
+    
+    it("close a connection", function() {
+        return reqlConn.close()
+        .then(function() {
+            return reqlConn.close();
+        })
+        .then(function() {
+            // fail if we don't have an error
+            throw "A second close on a connection did not raise an error";
+        })
+        .catch(r.Error.RqlDriverError, function() {})
+    });
+    
+    it("reconnect", function() {
+        return reqlConn.close()
+        .then(function() {
+            return reqlConn.reconnect();
+        })
+    });
+    
+    it("noreplyWait", function() {
+        return reqlConn.noreplyWait();
+    });
+    
+    describe('With ' + numRows + ' rows', function() { 
+        before(function() {
+            this.timeout(20000);
+            
+            return withConnection()
+            // setup db/table
+            .then(function() {
+                return r.expr([dbName]).setDifference(r.dbList()).forEach(r.dbCreate(r.row)).run(reqlConn);
+            }).then(function() {
+                return r.expr([tableName]).setDifference(r.db(dbName).tableList()).forEach(r.db(dbName).tableCreate(r.row)).run(reqlConn);
+            })
+            // ensure content
+            .then(function() {
+                return tbl.delete().run(reqlConn);
+            })
+            .then(function() {
+                return r.range(0, numRows).forEach(function(row) {
+                    return tbl.insert(
+                        {'id':row, 'nums':r.range(0, 500).coerceTo('array')}
+                    )}
+                ).run(reqlConn)
             });
         });
-    }).error(assertNoError)
-}).error(assertNoError)
-
+        
+        it("array expr()", function() {
+            var limit = 10000 // large number to try hitting `maximum call stack exceed`
+            return r.range(0, limit).run(reqlConn)
+            .then(function(resCursor) {
+                var i = 0;
+                resCursor.each(
+                    function(err, value) {
+                        assert.strictEqual(value, i, "Value at poisition: " + i + " was: " + value + " rather than the expected: " + i);
+                        i++;
+                    },
+                    function() {
+                        assert.strictEqual(i, limit, "Final value was: " + i + " rather than the expected: " + limit);
+                    }
+                );
+            });
+        });
+        
+        it("next on a table cursor", function() {
+            return tbl.run(reqlConn).then(function(cur) { return cur.next(); });
+        });
+        
+        it("toArray on a table cursor", function() {
+            return tbl.run(reqlConn).then(function(cur) { return cur.toArray(); }).then(function(result) {
+                assert.strictEqual(result.length, numRows);
+            });
+        });
+    });
+});
