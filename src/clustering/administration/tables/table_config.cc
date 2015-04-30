@@ -514,6 +514,8 @@ bool table_config_artificial_table_backend_t::write_row(
                 "database generate the primary key automatically.";
             return false;
         }
+        try {
+            do_create(table_id, 
 
 bool table_config_artificial_table_backend_t::write_row(
         ql::datum_t primary_key,
