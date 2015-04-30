@@ -137,10 +137,11 @@ bool disk_format_version_is_recognized(uint32_t disk_format_version) {
     // add the new cluster_version_t value to this list of recognized ones.
     if (disk_format_version
         == static_cast<uint32_t>(obsolete_cluster_version_t::v1_13)) {
-        crash("Data directory is from version 1.13 of RethinkDB, "
-              "which is no longer supported.  "
-              "You can migrate by launching RethinkDB 2.0 with this data directory "
-              "and rebuilding your secondary indexes.");
+        fail_due_to_user_error(
+            "Data directory is from version 1.13 of RethinkDB, "
+            "which is no longer supported.  "
+            "You can migrate by launching RethinkDB 2.0 with this data directory "
+            "and rebuilding your secondary indexes.");
     }
     return disk_format_version == static_cast<uint32_t>(cluster_version_t::v1_14)
         || disk_format_version == static_cast<uint32_t>(cluster_version_t::v1_15)
