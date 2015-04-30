@@ -2,6 +2,10 @@
 #ifndef ERRORS_HPP_
 #define ERRORS_HPP_
 
+#ifdef _MSC_VER
+#include <Windows.h>
+#endif
+
 #include <errno.h>
 #include <signal.h>
 #include <stdlib.h>
@@ -22,7 +26,7 @@
 #elif defined(__MACH__)
 #define BREAKPOINT (raise(SIGTRAP))
 #elif defined(_MSC_VER)
-#define BREAKPOINT __asm int 3
+#define BREAKPOINT DebugBreak()
 #else
 #error "BREAKPOINT not defined for this operating system"
 #endif
