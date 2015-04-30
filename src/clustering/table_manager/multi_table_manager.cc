@@ -80,6 +80,8 @@ multi_table_manager_t::multi_table_manager_t(
     multi_table_manager_directory(_multi_table_manager_directory),
     table_manager_directory(_table_manager_directory),
     persistence_interface(nullptr),
+    base_path(boost::none),
+    io_backender(nullptr),
     /* Whenever a server connects, we need to sync all of our tables to it. */
     multi_table_manager_directory_subs(
         multi_table_manager_directory,

@@ -40,7 +40,7 @@ public:
 
 protected:
     /* This will always be called on the home thread */
-    virtual bool format_row(
+    virtual void format_row(
             namespace_id_t table_id,
             /* In theory `db_name_or_uuid` can be computed from `config`, but the
             computation is non-trivial, so it's easier if `table_common` does it for all
@@ -48,8 +48,9 @@ protected:
             const ql::datum_t &db_name_or_uuid,
             const table_config_and_shards_t &config,
             signal_t *interruptor,
-            ql::datum_t *row_out,
-            std::string *error_out) = 0;
+            ql::datum_t *row_out)
+        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,
+            std::runtime_error) = 0;
 
     boost::shared_ptr< semilattice_readwrite_view_t<
         cluster_semilattice_metadata_t> > semilattice_view;

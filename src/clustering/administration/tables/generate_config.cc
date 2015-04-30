@@ -50,37 +50,32 @@ void calculate_server_usage(
 }
 
 /* `validate_params()` checks if `params` are legal. */
-static bool validate_params(
+static void validate_params(
         const table_generate_config_params_t &params,
         const std::map<name_string_t, std::set<server_id_t> > &servers_with_tags,
-        const std::map<server_id_t, name_string_t> &server_names,
-        std::string *error_out) {
+        const std::map<server_id_t, name_string_t> &server_names)
+        THROWS_ONLY(generate_config_exc_t) {
     if (params.num_shards <= 0) {
-        *error_out = "Every table must have at least one shard.";
-        return false;
+        throw generate_config_exc_t("Every table must have at least one shard.");
     }
     size_t total_replicas = 0;
     for (const auto &pair : params.num_replicas) {
         total_replicas += pair.second;
     }
     if (total_replicas == 0) {
-        *error_out = "You must set `replicas` to at least one. `replicas` includes the "
-            "primary replica; if there are zero replicas, there is nowhere to put the "
-            "data.";
-        return false;
+        throw generate_config_exc_t("You must set `replicas` to at least one. "
+            "`replicas` includes the primary replica; if there are zero replicas, there "
+            "is nowhere to put the data.");
     }
     static const size_t max_shards = 32;
     if (params.num_shards > max_shards) {
-        *error_out = strprintf("Maximum number of shards is %zu.", max_shards);
-        return false;
+        throw generate_config_exc_t("Maximum number of shards is %zu.", max_shards);
     }
     if (params.num_replicas.count(params.primary_replica_tag) == 0 ||
             params.num_replicas.at(params.primary_replica_tag) == 0) {
-        *error_out = strprintf("Can't use server tag `%s` for primary replicas "
-                               "because you specified no replicas in server tag `%s`.",
-                               params.primary_replica_tag.c_str(),
-                               params.primary_replica_tag.c_str());
-        return false;
+        throw generate_config_exc_t("Can't use server tag `%s` for primary replicas "
+            "because you specified no replicas in server tag `%s`.",
+            params.primary_replica_tag.c_str(), params.primary_replica_tag.c_str());
     }
     std::map<server_id_t, name_string_t> servers_claimed;
     for (auto it = params.num_replicas.begin(); it != params.num_replicas.end(); ++it) {
@@ -91,15 +86,14 @@ static bool validate_params(
             if (servers_claimed.count(server) == 0) {
                 servers_claimed.insert(std::make_pair(server, it->first));
             } else {
-                *error_out = strprintf("Server tags `%s` and `%s` overlap; the server "
-                    "`%s` has both tags. The server tags used for replication settings "
-                    "for a given table must be non-overlapping.", it->first.c_str(),
-                    servers_claimed.at(server).c_str(), server_names.at(server).c_str());
-                return false;
+                throw generate_config_exc_t("Server tags `%s` and `%s` overlap; the "
+                    "server `%s` has both tags. The server tags used for replication "
+                    "settings for a given table must be non-overlapping.",
+                    it->first.c_str(), servers_claimed.at(server).c_str(),
+                    server_names.at(server).c_str());
             }
         }
     }
-    return true;
 }
 
 /* A `pairing_t` represents the possibility of using the given server as a replica for
@@ -244,11 +238,10 @@ bool table_generate_config(
         name_string_t server_tag = it->first;
         size_t num_in_tag = servers_with_tags.at(server_tag).size();
         if (num_in_tag < it->second) {
-            *error_out = strprintf("Can't put %zu replicas on servers with the tag "
+            throw generate_config_exc_t("Can't put %zu replicas on servers with the tag "
                 "`%s` because there are only %zu servers with the tag `%s`. It's "
                 "impossible to have more replicas of the data than there are servers.",
                 it->second, server_tag.c_str(), num_in_tag, server_tag.c_str());
-            return false;
         }
 
         /* Compute the desirability of each shard/server pair */

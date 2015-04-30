@@ -12,9 +12,16 @@ class real_reql_cluster_interface_t;
 class server_config_client_t;
 class table_meta_client_t;
 
+class generate_config_exc_t : public std::runtime_exc {
+public:
+    template<class A...>
+    generate_config_exc_t(A&&... args) :
+        std::runtime_error(strprintf(std::forward<A>(args)...)) { }
+};
+
 /* Suggests a `table_config_t` for the table. This is the brains behind
 `table.reconfigure()`. */
-bool table_generate_config(
+void table_generate_config(
         /* This is used to look up server names for error messages. */
         server_config_client_t *server_config_client,
         /* The UUID of the table being reconfigured. This can be `nil_uuid()`. */
@@ -32,8 +39,8 @@ bool table_generate_config(
         `nil_uuid()` this is unused. */
         const table_shard_scheme_t &shard_scheme,
         signal_t *interruptor,
-        std::vector<table_config_t::shard_t> *config_shards_out,
-        std::string *error_out);
+        std::vector<table_config_t::shard_t> *config_shards_out)
+        THROWS_ONLY(interrupted_exc_t, generate_config_exc_t);
 
 /* `calculate_server_usage()` adds usage statistics for the configuration described in
 `config` to the map `usage_inout`. */

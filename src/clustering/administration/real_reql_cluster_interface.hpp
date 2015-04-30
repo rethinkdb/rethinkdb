@@ -159,7 +159,10 @@ public:
                 *configs_and_statuses_out);
 
     /* `calculate_split_points_with_distribution` needs access to the underlying
-    `namespace_interface_t` */
+    `namespace_interface_t` and `table_meta_client_t`. */
+    table_meta_client_t *get_table_meta_client() {
+        return table_meta_client;
+    }
     namespace_repo_t *get_namespace_repo() {
         return &namespace_repo;
     }
@@ -181,29 +184,20 @@ private:
     ql::changefeed::client_t changefeed_client;
     server_config_client_t *server_config_client;
 
-    /* Thin wrapper around `table_meta_client_t::find()` that also formats error messages
-    for you */
-    bool find_table(const counted_t<const ql::db_t> &db,
-                    const name_string_t &name,
-                    namespace_id_t *table_id_out,
-                    std::string *primary_key_out,   /* may be null */
-                    std::string *error_out);
-
     void wait_for_metadata_to_propagate(const cluster_semilattice_metadata_t &metadata,
                                         signal_t *interruptor);
 
     // This could soooo be optimized if you don't want to copy the whole thing.
     void get_databases_metadata(databases_semilattice_metadata_t *out);
 
-    bool make_single_selection(
+    void make_single_selection(
             artificial_table_backend_t *table_backend,
             const name_string_t &table_name,
             const uuid_u &primary_key,
             const ql::protob_t<const Backtrace> &bt,
-            const std::string &msg_if_not_found,
             ql::env_t *env,
-            scoped_ptr_t<ql::val_t> *selection_out,
-            std::string *error_out);
+            scoped_ptr_t<ql::val_t> *selection_out)
+            THROWS_ONLY(no_such_table_exc_t, std::runtime_error);
 
     bool wait_internal(
             std::set<namespace_id_t> tables,
@@ -213,30 +207,33 @@ private:
             int *count_out,
             std::string *error_out);
 
-    bool reconfigure_internal(
+    void reconfigure_internal(
             const counted_t<const ql::db_t> &db,
             const namespace_id_t &table_id,
             const name_string_t &table_name,
             const table_generate_config_params_t &params,
             bool dry_run,
             signal_t *interruptor,
-            ql::datum_t *result_out,
-            std::string *error_out);
+            ql::datum_t *result_out)
+            THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, generate_config_exc_t,
+                failed_table_op_exc_t, maybe_failed_table_op_exc_t);
 
-    bool rebalance_internal(
+    void rebalance_internal(
             const counted_t<const ql::db_t> &db,
             const namespace_id_t &table_id,
             const name_string_t &table_name,
             signal_t *interruptor,
-            ql::datum_t *results_out,
-            std::string *error_out);
+            ql::datum_t *results_out)
+            THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t,
+                failed_table_op_exc_t, maybe_failed_table_op_exc_t);
 
-    bool sindex_change_internal(
+    void sindex_change_internal(
             const counted_t<const ql::db_t> &db,
             const name_string_t &table_name,
-            const std::function<bool(std::map<std::string, sindex_config_t> *)> &cb,
-            signal_t *interruptor,
-            std::string *error_out);
+            const std::function<void(std::map<std::string, sindex_config_t> *)> &cb,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t,
+                failed_table_op_exc_t, maybe_failed_table_op_exc_t);
 
     DISABLE_COPYING(real_reql_cluster_interface_t);
 };

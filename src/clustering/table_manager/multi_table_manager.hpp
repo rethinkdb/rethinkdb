@@ -279,7 +279,8 @@ private:
         const peer_id_t &peer_id);
 
     /* If we're a proxy server, then `is_proxy_server` will be `true`; `server_id` will
-    be `nil_uuid()`; and `persistence_interface` will be `nullptr`. */
+    be `nil_uuid()`; `persistence_interface` will be `nullptr`; `base_path` will be
+    empty; and `io_backender` will be `nullptr`. */
 
     bool is_proxy_server;
     server_id_t server_id;
