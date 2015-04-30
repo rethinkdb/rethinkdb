@@ -39,24 +39,25 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(ProjectDir)\build\release\proto;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)\build\release\proto;$(ProjectDir)\src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(ProjectDir)\build\release\proto;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)\build\release\proto;$(ProjectDir)\src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NOMINMAX;_SCL_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <WarningLevel>Level1</WarningLevel>
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
       <ObjectFileName>$(IntDir)/%(RelativeDir)/</ObjectFileName>
-      <AdditionalIncludeDirectories>$(ProjectDir)\..\protobuf-2.5.0\vsprojects\include;$(ProjectDir)\..\boost_1_58_0</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\protobuf-2.5.0\vsprojects\include;$(ProjectDir)\..\boost_1_58_0;$(ProjectDir)\external\gtest_1.7.0\include</AdditionalIncludeDirectories>
       <PreprocessToFile>false</PreprocessToFile>
       <SuppressStartupBanner>false</SuppressStartupBanner>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MinimalRebuild>false</MinimalRebuild>
     </ClCompile>
     <Link>
       <TargetMachine>MachineX86</TargetMachine>
@@ -66,12 +67,12 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NOMINMAX;_SCL_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
-      <WarningLevel>Level1</WarningLevel>
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <ObjectFileName>$(IntDir)/%(RelativeDir)/</ObjectFileName>
-      <AdditionalIncludeDirectories>$(ProjectDir)\..\protobuf-2.5.0\vsprojects\include;$(ProjectDir)\..\boost_1_58_0</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\protobuf-2.5.0\vsprojects\include;$(ProjectDir)\..\boost_1_58_0;$(ProjectDir)\external\gtest_1.7.0\include</AdditionalIncludeDirectories>
       <PreprocessToFile>false</PreprocessToFile>
       <SuppressStartupBanner>false</SuppressStartupBanner>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -476,7 +477,6 @@
     <ClCompile Include="src\unittest\leaf_node_test.cc" />
     <ClCompile Include="src\unittest\log_message.cc" />
     <ClCompile Include="src\unittest\lru_cache_test.cc" />
-    <ClCompile Include="src\unittest\main.cc" />
     <ClCompile Include="src\unittest\mock_file.cc" />
     <ClCompile Include="src\unittest\mock_store.cc" />
     <ClCompile Include="src\unittest\options_test.cc" />

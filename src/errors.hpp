@@ -44,7 +44,11 @@
 #define DEBUG_ONLY_CODE(expr) ((void)(0))
 #endif
 
+#ifdef _MSC_VER
+#define NORETURN __declspec(noreturn)
+#else
 #define NORETURN __attribute__((__noreturn__))
+#endif
 
 /* Accessors to errno.
  * Please access errno *only* through these access functions.
@@ -94,7 +98,11 @@ void set_errno(int new_errno);
 #define DEBUG_VAR __attribute__((unused))
 #endif
 
+#ifdef _MSC_VER
+#define UNUSED __pragma(warning(suppress: 4100 4101))
+#else
 #define UNUSED __attribute__((unused))
+#endif
 
 #ifdef _MSC_VER
 #define MUST_USE _Check_return_
@@ -154,7 +162,7 @@ MUST_USE const char *errno_string_maybe_using_buffer(int errsv, char *buf, size_
     } while (0)
 #define guarantee_err(cond, msg, ...) guarantee_xerr(cond, get_errno(), msg, ##__VA_ARGS__)
 
-#define unreachable(msg, ...) crash("Unreachable code: " msg, ##__VA_ARGS__)    // can't use crash_or_trap since code needs to depend on its noreturn property
+#define unreachable(...) crash("Unreachable code: " __VA_ARGS__)    // can't use crash_or_trap since code needs to depend on its noreturn property
 #define not_implemented(msg, ...) crash_or_trap("Not implemented: " msg, ##__VA_ARGS__)
 
 #ifdef NDEBUG
