@@ -71,6 +71,7 @@ pkg_fetch_archive () {
         *.tar.gz)  ext=tar.gz;  in_dir "$tmp_dir" tar -xzf "$archive" ;;
         *.tar.bz2) ext=tar.bz2; in_dir "$tmp_dir" tar -xjf "$archive" ;;
         *.tar.xz)  ext=tar.xz;  in_dir "$tmp_dir" tar -xJf "$archive" ;;
+        *.zip)     ext=zip;     in_dir "$tmp_dir" unzip    "$archive" ;;
         *) error "don't know how to extract $archive"
     esac
 

@@ -1,9 +1,6 @@
 
-version=1.6.0
-
-pkg_fetch () {
-    error "cannot fetch: gtest is already part of the source tree"
-}
+version=1.7.0
+src_url=https://googletest.googlecode.com/files/gtest-$version.zip
 
 pkg_install () {
     pkg_copy_src_to_build
