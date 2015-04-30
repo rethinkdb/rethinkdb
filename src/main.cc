@@ -1,5 +1,7 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
+#ifndef _MSC_VER
 #include <sys/resource.h>
+#endif
 
 #include <set>
 
@@ -9,10 +11,12 @@
 
 int main(int argc, char *argv[]) {
 #ifndef NDEBUG
+#ifndef _MSC_VER
     rlimit core_limit;
     core_limit.rlim_cur = 100 * MEGABYTE;
     core_limit.rlim_max = 200 * MEGABYTE;
     setrlimit(RLIMIT_CORE, &core_limit);
+#endif
 #endif
 
     startup_shutdown_t startup_shutdown;
