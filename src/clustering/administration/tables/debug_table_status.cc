@@ -3,6 +3,7 @@
 
 #include "clustering/administration/datum_adapter.hpp"
 #include "clustering/administration/servers/config_client.hpp"
+#include "clustering/administration/tables/table_config.hpp"
 #include "clustering/table_manager/table_meta_client.hpp"
 
 namespace ql {
@@ -138,69 +139,6 @@ ql::datum_t convert_debug_table_shard_scheme_to_datum(
     return std::move(builder).to_datum();
 }
 
-ql::datum_t convert_debug_table_config_shard_to_datum(
-        const table_config_t::shard_t &shard) {
-    ql::datum_object_builder_t builder;
-    builder.overwrite(
-        "replicas", convert_set_to_datum<server_id_t>(
-            &convert_uuid_to_datum, shard.replicas));
-    builder.overwrite("primary_replica", convert_uuid_to_datum(shard.primary_replica));
-    return std::move(builder).to_datum();
-}
-
-ql::datum_t convert_debug_write_ack_config_mode_to_datum(
-        const write_ack_config_t::mode_t &mode) {
-    switch (mode) {
-        case write_ack_config_t::mode_t::single:
-            return convert_string_to_datum("single");
-        case write_ack_config_t::mode_t::majority:
-            return convert_string_to_datum("majority");
-        case write_ack_config_t::mode_t::complex:
-            return convert_string_to_datum("complex");
-    }
-}
-
-ql::datum_t convert_debug_write_ack_config_req_to_datum(
-        const write_ack_config_t::req_t &req) {
-    ql::datum_object_builder_t builder;
-    builder.overwrite(
-        "replicas", convert_set_to_datum<server_id_t>(
-            &convert_uuid_to_datum, req.replicas));
-    builder.overwrite(
-        "mode", convert_debug_write_ack_config_mode_to_datum(req.mode));
-    return std::move(builder).to_datum();
-}
-
-ql::datum_t convert_debug_write_ack_config_to_datum(
-        const write_ack_config_t &write_ack_config) {
-    ql::datum_object_builder_t builder;
-    builder.overwrite(
-        "mode", convert_debug_write_ack_config_mode_to_datum(write_ack_config.mode));
-    builder.overwrite(
-        "complex_reqs", convert_vector_to_datum<write_ack_config_t::req_t>(
-            &convert_debug_write_ack_config_req_to_datum,
-            write_ack_config.complex_reqs));
-    return std::move(builder).to_datum();
-}
-
-ql::datum_t convert_debug_table_config_to_datum(const table_config_t &config) {
-    ql::datum_object_builder_t builder;
-    builder.overwrite("database", convert_uuid_to_datum(config.database));
-    builder.overwrite("name", convert_name_to_datum(config.name));
-    builder.overwrite("primary_key", convert_string_to_datum(config.primary_key));
-    builder.overwrite("shards", convert_vector_to_datum<table_config_t::shard_t>(
-        &convert_debug_table_config_shard_to_datum, config.shards));
-    // Note, `config.sindexes` is skipped as sindexes are handled separately
-    builder.overwrite(
-        "write_ack_config",
-        convert_debug_write_ack_config_to_datum(config.write_ack_config));
-    builder.overwrite(
-        "durability", config.durability == write_durability_t::SOFT
-            ? convert_string_to_datum("soft")
-            : convert_string_to_datum("hard"));
-    return std::move(builder).to_datum();
-}
-
 ql::datum_t convert_debug_sindex_statuses_to_datum(
         const std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
             &sindex_statuses) {
@@ -218,20 +156,19 @@ ql::datum_t convert_debug_contract_ack_state_to_datum(
        const contract_ack_t::state_t &state) {
     switch (state) {
         case contract_ack_t::state_t::primary_need_branch:
-            return convert_string_to_datum("primary_need_branch"); // transitioning
+            return convert_string_to_datum("primary_need_branch");
         case contract_ack_t::state_t::primary_in_progress:
-            return convert_string_to_datum("primary_in_progress"); // primary
+            return convert_string_to_datum("primary_in_progress");
         case contract_ack_t::state_t::primary_ready:
-            return convert_string_to_datum("primary_ready"); // primary
+            return convert_string_to_datum("primary_ready");
         case contract_ack_t::state_t::secondary_need_primary:
-            return convert_string_to_datum("secondary_need_primary"); // looking_for_primary_replica
+            return convert_string_to_datum("secondary_need_primary");
         case contract_ack_t::state_t::secondary_backfilling:
-            return convert_string_to_datum("secondary_backfilling"); // backfilling
+            return convert_string_to_datum("secondary_backfilling");
         case contract_ack_t::state_t::secondary_streaming:
-            return convert_string_to_datum("secondary_streaming"); // secondary, transitioning if contract_ack.server != contract.primary
+            return convert_string_to_datum("secondary_streaming");
         case contract_ack_t::state_t::nothing:
-            return convert_string_to_datum("nothing"); // ignore
-        // disconnected if contract but no contract_ack
+            return convert_string_to_datum("nothing");
     }
 }
 
@@ -302,10 +239,15 @@ ql::datum_t convert_debug_contract_acks_to_datum(
             "failover_timeout_elapsed",
             ql::datum_t::boolean(contract_ack.second.failover_timeout_elapsed));
         /* RSI(raft) The branch history is append-only thus it grows without bound,
-           printing it can be reinstated once it's garbage collected per #3879.
+           printing it can be reinstated once it's garbage collected per #3879. For the
+           time being we print the size instead.
         contract_builder.overwrite(
             "branch_history",
             convert_debug_branch_history_to_datum(contract_ack.second.branch_history)); */
+        contract_builder.overwrite(
+            "branch_history",
+            ql::datum_t(static_cast<double>(
+                contract_ack.second.branch_history.branches.size())));
         builder.add(std::move(contract_builder).to_datum());
     }
     return std::move(builder).to_datum();
@@ -342,7 +284,7 @@ ql::datum_t convert_debug_contracts_and_contrack_acks_to_datum(
 
 bool debug_table_status_artificial_table_backend_t::format_row(
         namespace_id_t table_id,
-        UNUSED const ql::datum_t &db_name_or_uuid,
+        const ql::datum_t &db_name_or_uuid,
         const table_config_and_shards_t &config_and_shards,
         signal_t *interruptor,
         ql::datum_t *row_out,
@@ -362,7 +304,13 @@ bool debug_table_status_artificial_table_backend_t::format_row(
     ql::datum_object_builder_t builder;
     builder.overwrite("table", convert_uuid_to_datum(table_id));
     builder.overwrite(
-        "config", convert_debug_table_config_to_datum(config_and_shards.config));
+        "config",
+        convert_table_config_to_datum(
+            table_id,
+            db_name_or_uuid,
+            config_and_shards.config,
+            admin_identifier_format_t::uuid,
+            server_config_client));
     builder.overwrite(
         "shard_scheme",
         convert_debug_table_shard_scheme_to_datum(config_and_shards.shard_scheme));

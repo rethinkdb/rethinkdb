@@ -12,6 +12,10 @@
 class server_config_client_t;
 class table_status_artificial_table_backend_t;
 
+/* Utility function to wait for table readiness through the `table_status` backend. Note
+that even if this function indicates that the table is ready, an attempt to write to it
+may fail, because this server's `cluster_namespace_interface_t` might not be ready yet.
+If you need that, call `namespace_interface_t::check_readiness()` after calling this. */
 enum class table_wait_result_t {
     WAITED,    // The table is ready after waiting for it
     IMMEDIATE, // The table was already ready
@@ -23,7 +27,7 @@ table_wait_result_t wait_for_table_readiness(
     table_readiness_t readiness,
     const table_status_artificial_table_backend_t *table_status_backend,
     signal_t *interruptor,
-    ql::datum_t *status_out);
+    ql::datum_t *status_out  /* can be null */);
 
 class table_status_artificial_table_backend_t :
     public common_table_artificial_table_backend_t

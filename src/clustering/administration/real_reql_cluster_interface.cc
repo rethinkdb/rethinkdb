@@ -248,10 +248,20 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
             admin_identifier_format_t::name, server_config_client);
     }
 
-    // RSI(raft): Wait for table to become available to handle queries
-    if (!wait_internal({table_id}, table_readiness_t::finished, interruptor,
-            nullptr, nullptr, error_out)) {
-        return false;
+    table_status_artificial_table_backend_t *status_backend =
+        admin_tables->table_status_backend[
+            static_cast<int>(admin_identifier_format_t::name)].get();
+    {
+        threadnum_t threadnum = status_backend->home_thread();
+        cross_thread_signal_t ct_interruptor(interruptor, threadnum);
+        on_thread_t thread_switcher(threadnum);
+
+        wait_for_table_readiness(
+            table_id,
+            table_readiness_t::finished,
+            status_backend,
+            &ct_interruptor,
+            nullptr);
     }
 
     ql::datum_object_builder_t result_builder;
@@ -543,12 +553,8 @@ bool real_reql_cluster_interface_t::wait_internal(
             ql::configured_limits_t::unlimited);
         for (const namespace_id_t &table_id : tables) {
             ql::datum_object_builder_t change_builder;
-            if (old_statuses.count(table_id) == 1) {
-                change_builder.overwrite("old_val", old_statuses.at(table_id));
-            }
-            if (new_statuses.count(table_id) == 1) {
-                change_builder.overwrite("new_val", new_statuses.at(table_id));
-            }
+            change_builder.overwrite("old_val", old_statuses.at(table_id));
+            change_builder.overwrite("new_val", new_statuses.at(table_id));
             status_changes_builder.add(std::move(change_builder).to_datum());
         }
         result_builder.overwrite("status_changes",
@@ -599,18 +605,13 @@ bool real_reql_cluster_interface_t::db_wait(
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
 
-    std::set<name_string_t> table_names;
-    if (!table_list(db, interruptor, &table_names, error_out)) {
-        return false;
-    }
-
     std::set<namespace_id_t> table_ids;
-    for (const auto &table_name : table_names) {
-        namespace_id_t table_id;
-        if (!find_table(db, table_name, &table_id, nullptr, error_out)) {
-            return false;
+    std::map<namespace_id_t, std::pair<database_id_t, name_string_t> > tables;
+    table_meta_client->list_names(&tables);
+    for (const auto &table : tables) {
+        if (table.second.first == db->id) {
+            table_ids.insert(table.first);
         }
-        table_ids.insert(table_id);
     }
 
     return wait_internal(table_ids, readiness, interruptor,
@@ -642,9 +643,6 @@ bool real_reql_cluster_interface_t::reconfigure_internal(
         table_id, convert_name_to_datum(db->name), old_config.config,
         admin_identifier_format_t::name, server_config_client);
 
-    /* RSI(raft): Reimplement this once `table_status` is implemented */
-    ql::datum_t old_status_datum("this is a fake status");
-#if 0
     table_status_artificial_table_backend_t *status_backend =
         admin_tables->table_status_backend[
             static_cast<int>(admin_identifier_format_t::name)].get();
@@ -653,7 +651,6 @@ bool real_reql_cluster_interface_t::reconfigure_internal(
             &old_status, error_out)) {
         return false;
     }
-#endif
 
     table_config_and_shards_t new_config;
     new_config.config.name = old_config.config.name;
@@ -698,15 +695,11 @@ bool real_reql_cluster_interface_t::reconfigure_internal(
     ql::datum_t new_config_datum = convert_table_config_to_datum(
         table_id, convert_name_to_datum(db->name), new_config.config,
         admin_identifier_format_t::name, server_config_client);
-
-    /* RSI(raft): Reimplement this once `table_status` is implemented */
-    ql::datum_t new_status_datum("this is a fake status");
-#if 0
+    ql::datum_t new_status;
     if (!status_backend->read_row(convert_uuid_to_datum(table_id), interruptor,
             &new_status, error_out)) {
         return false;
     }
-#endif
 
     ql::datum_object_builder_t result_builder;
     if (!dry_run) {
@@ -714,7 +707,7 @@ bool real_reql_cluster_interface_t::reconfigure_internal(
         result_builder.overwrite("config_changes",
             make_replacement_pair(old_config_datum, new_config_datum));
         result_builder.overwrite("status_changes",
-            make_replacement_pair(old_status_datum, new_status_datum));
+            make_replacement_pair(old_status, new_status));
     } else {
         result_builder.overwrite("reconfigured", ql::datum_t(0.0));
         result_builder.overwrite("config_changes",
@@ -797,9 +790,6 @@ bool real_reql_cluster_interface_t::rebalance_internal(
         return false;
     }
 
-    /* RSI(raft): Reimplement this once `table_status` is implemented */
-    ql::datum_t old_status_datum("this is a fake status");
-#if 0
     table_status_artificial_table_backend_t *status_backend =
         admin_tables->table_status_backend[
             static_cast<int>(admin_identifier_format_t::name)].get();
@@ -808,7 +798,6 @@ bool real_reql_cluster_interface_t::rebalance_internal(
             &old_status, error_out)) {
         return false;
     }
-#endif
 
     std::map<store_key_t, int64_t> counts;
     if (!fetch_distribution(table_id, this, interruptor, &counts)) {
@@ -835,18 +824,15 @@ bool real_reql_cluster_interface_t::rebalance_internal(
     }
 
     /* RSI(raft): Reimplement this once `table_status` is implemented */
-    ql::datum_t new_status_datum("this is a fake status");
-#if 0
+    ql::datum_t new_status;
     if (!status_backend->read_row(convert_uuid_to_datum(table_id), interruptor,
             &new_status, error_out)) {
         return false;
     }
-#endif
 
     ql::datum_object_builder_t builder;
     builder.overwrite("rebalanced", ql::datum_t(actually_rebalanced ? 1.0 : 0.0));
-    builder.overwrite("status_changes",
-        make_replacement_pair(old_status_datum, new_status_datum));
+    builder.overwrite("status_changes", make_replacement_pair(old_status, new_status));
     *results_out = std::move(builder).to_datum();
 
     return true;
