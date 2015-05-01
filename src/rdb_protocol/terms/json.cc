@@ -19,7 +19,6 @@ public:
         const datum_string_t data = args->arg(env, 0)->as_str();
 
         if (env->env->reql_version() < reql_version_t::v2_1) {
-            fprintf(stderr, "old json\n"); // TODO!
             const std::string std_data = data.to_std();
             scoped_cJSON_t cjson(cJSON_Parse(std_data.c_str()));
             rcheck(cjson.get() != NULL, base_exc_t::GENERIC,
@@ -70,7 +69,6 @@ public:
         datum_t d = v->as_datum();
         r_sanity_check(d.has());
         if (env->env->reql_version() < reql_version_t::v2_1) {
-            fprintf(stderr, "old to_json\n"); // TODO!
             scoped_cJSON_t json = d.as_json();
             return new_val(datum_t(datum_string_t(json.PrintUnformatted())));
         }

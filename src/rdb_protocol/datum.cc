@@ -592,7 +592,6 @@ std::string datum_t::get_type_name(name_for_sorting_t for_sorting) const {
 std::string datum_t::print(reql_version_t reql_version) const {
     if (has()) {
         if (reql_version < reql_version_t::v2_1) {
-            fprintf(stderr, "old print\n"); // TODO!
             return as_json().Print();
         } else {
             rapidjson::StringBuffer buffer;
