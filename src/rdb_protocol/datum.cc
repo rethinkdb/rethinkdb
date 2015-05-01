@@ -1774,9 +1774,14 @@ datum_t to_datum(const Datum *d, const configured_limits_t &limits,
     } break;
     case Datum::R_JSON: {
         fail_if_invalid(reql_version, d->r_str());
-        rapidjson::Document json;
-        json.Parse(d->r_str().c_str());
-        return to_datum(json, limits, reql_version);
+        if (reql_version < reql_version_t::v2_1) {
+            scoped_cJSON_t cjson(cJSON_Parse(d->r_str().c_str()));
+            return to_datum(cjson.get(), limits, reql_version);
+        } else {
+            rapidjson::Document json;
+            json.Parse(d->r_str().c_str());
+            return to_datum(json, limits, reql_version);
+        }
     } break;
     case Datum::R_ARRAY: {
         datum_array_builder_t out(limits);
