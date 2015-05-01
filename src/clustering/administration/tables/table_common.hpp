@@ -16,7 +16,7 @@
 pseudo-tables. Subclasses should implement `format_row()` and `write_row()`. */
 
 class common_table_artificial_table_backend_t :
-    public caching_cfeed_artificial_table_backend_t
+    public timer_cfeed_artificial_table_backend_t
 {
 public:
     common_table_artificial_table_backend_t(
@@ -55,7 +55,6 @@ protected:
         cluster_semilattice_metadata_t> > semilattice_view;
     table_meta_client_t *table_meta_client;
     admin_identifier_format_t identifier_format;
-    semilattice_readwrite_view_t<cluster_semilattice_metadata_t>::subscription_t subs;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_TABLES_TABLE_COMMON_HPP_ */

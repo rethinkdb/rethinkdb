@@ -4,6 +4,7 @@
 #include <utility>
 
 #include "clustering/immediate_consistency/remote_replicator_client.hpp"
+#include "clustering/query_routing/direct_query_server.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 
 secondary_execution_t::secondary_execution_t(
@@ -40,20 +41,26 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
     order_source_t order_source(store->home_thread());
     while (!keepalive.get_drain_signal()->is_pulsed()) {
         try {
-            /* Set our initial state to `secondary_need_primary`. */
+            /* Switch to the store thread so we can extract our metainfo and set up the
+            `direct_query_server_t` to serve queries while we wait for the primary to
+            be available */
+            cross_thread_signal_t interruptor_on_store_thread(
+                keepalive.get_drain_signal(), store->home_thread());
+            on_thread_t thread_switcher_1(store->home_thread());
+
             contract_ack_t initial_ack(contract_ack_t::state_t::secondary_need_primary);
-            {
-                cross_thread_signal_t interruptor_on_store_thread(
-                    keepalive.get_drain_signal(), store->home_thread());
-                on_thread_t thread_switcher(store->home_thread());
-                region_map_t<binary_blob_t> blobs;
-                read_token_t token;
-                store->new_read_token(&token);
-                store->do_get_metainfo(
-                    order_source.check_in("secondary_execution_t").with_read_mode(),
-                    &token, &interruptor_on_store_thread, &blobs);
-                initial_ack.version = boost::make_optional(to_version_map(blobs));
-            }
+            region_map_t<binary_blob_t> blobs;
+            read_token_t token;
+            store->new_read_token(&token);
+            store->do_get_metainfo(
+                order_source.check_in("secondary_execution_t").with_read_mode(),
+                &token, &interruptor_on_store_thread, &blobs);
+            initial_ack.version = boost::make_optional(to_version_map(blobs));
+
+            direct_query_server_t direct_query_server(context->mailbox_manager, store);
+
+            /* Switch back to the home thread so we can send the initial ack */
+            on_thread_t thread_switcher_2(home_thread());
 
             /* Note that in the initial ack, `failover_timeout_elapsed` will be `false`.
             This isn't quite right, because it's possible that hasn't been a primary for
@@ -67,6 +74,17 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
             initial_ack.failover_timeout_elapsed = false;
 
             send_ack(initial_ack);
+
+            /* Serve outdated reads while we wait for the primary */
+            object_buffer_t<watchable_map_var_t<uuid_u, table_query_bcard_t>::entry_t>
+                directory_entry;
+            {
+                table_query_bcard_t tq_bcard;
+                tq_bcard.region = region;
+                tq_bcard.direct = boost::make_optional(direct_query_server.get_bcard());
+                directory_entry.create(
+                    context->local_table_query_bcards, generate_uuid(), tq_bcard);
+            }
 
             /* Set up a subscription to look for the primary in the directory and also
             detect if we lose contact. Initially, `primary_bcard` and
@@ -118,6 +136,9 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
                     primary_bcard.get_ready_signal(), keepalive.get_drain_signal());
             }
 
+            /* Stop serving outdated reads, because we're going to do a backfill */
+            directory_entry.reset();
+
             /* Let the coordinator know we found the primary. */
             send_ack(contract_ack_t(contract_ack_t::state_t::secondary_backfilling));
 
@@ -133,7 +154,7 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
             stack variables get destructed we do the reverse. */
             cross_thread_signal_t stop_signal_on_store_thread(
                 &stop_signal, store->home_thread());
-            on_thread_t thread_switcher_1(store->home_thread());
+            on_thread_t thread_switcher_3(store->home_thread());
 
             /* Backfill and start streaming from the primary. */
             remote_replicator_client_t remote_replicator_client(
@@ -148,10 +169,19 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
                 context->branch_history_manager,
                 &stop_signal_on_store_thread);
 
-            on_thread_t thread_switcher_t(home_thread());
+            on_thread_t thread_switcher_4(home_thread());
 
             /* Let the coordinator know we finished backfilling */
             send_ack(contract_ack_t(contract_ack_t::state_t::secondary_streaming));
+
+            /* Resume serving outdated reads now that the backfill is over */
+            {
+                table_query_bcard_t tq_bcard;
+                tq_bcard.region = region;
+                tq_bcard.direct = boost::make_optional(direct_query_server.get_bcard());
+                directory_entry.create(
+                    context->local_table_query_bcards, generate_uuid(), tq_bcard);
+            }
 
             /* Wait until we lose contact with the primary or we get interrupted */
             stop_signal.wait_lazily_unordered();

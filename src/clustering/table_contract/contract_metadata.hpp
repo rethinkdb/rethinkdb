@@ -64,7 +64,7 @@ public:
         for (const server_id_t &s : voters) {
             guarantee(replicas.count(s) == 1);
         }
-        
+
     }
 
     /* `replicas` is all the servers that are replicas for this table, whether voting or

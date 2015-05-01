@@ -2,6 +2,7 @@
 #include "clustering/administration/tables/generate_config.hpp"
 
 #include "clustering/administration/servers/config_client.hpp"
+#include "clustering/table_manager/table_meta_client.hpp"
 #include "containers/counted.hpp"
 
 /* `long_calculation_yielder_t` is used in a long-running calculation to periodically
@@ -102,6 +103,35 @@ static bool validate_params(
     return true;
 }
 
+/* `estimate_backfill_cost()` estimates the cost of backfilling the data in `range` from
+the locations specified in `old_config` to the server `server`. The cost is measured in
+arbitrary units that are only comparable to each other. */
+double estimate_backfill_cost(
+        const key_range_t &range,
+        const table_config_and_shards_t &old_config,
+        const server_id_t &server) {
+    /* If `range` aligns perfectly to an existing shard, the cost is 0.0 if `server` is
+    already primary for that shard; 1.0 if it's already secondary; and 2.0 otherwise. If
+    `range` overlaps multiple existing shards' ranges, we average over all of them. */
+    guarantee(!range.is_empty());
+    double numerator = 0;
+    int denominator = 0;
+    for (size_t i = 0; i < old_config.shard_scheme.num_shards(); ++i) {
+        if (old_config.shard_scheme.get_shard_range(i).overlaps(range)) {
+            ++denominator;
+            if (old_config.config.shards[i].primary_replica == server) {
+                numerator += 0.0;
+            } else if (old_config.config.shards[i].replicas.count(server)) {
+                numerator += 1.0;
+            } else {
+                numerator += 2.0;
+            }
+        }
+    }
+    guarantee(denominator != 0);
+    return numerator / denominator;
+}
+
 /* A `pairing_t` represents the possibility of using the given server as a replica for
 the given shard.
 
@@ -191,12 +221,9 @@ void pick_best_pairings(
 bool table_generate_config(
         server_config_client_t *server_config_client,
         namespace_id_t table_id,
-        // RSI(raft): This will eventually be used
-        UNUSED table_meta_client_t *table_meta_client,
-        const std::map<server_id_t, int> &server_usage,
+        table_meta_client_t *table_meta_client,
         const table_generate_config_params_t &params,
-        // RSI(raft): This will eventually be used
-        UNUSED const table_shard_scheme_t &shard_scheme,
+        const table_shard_scheme_t &shard_scheme,
         signal_t *interruptor,
         std::vector<table_config_t::shard_t> *config_shards_out,
         std::string *error_out) {
@@ -230,6 +257,23 @@ bool table_generate_config(
 
     yielder.maybe_yield(interruptor);
 
+    /* Fetch the current configurations for all tables. We'll use this to calculate the
+    current load on each server, so we can distribute the load evenly over the cluster if
+    possible. If `table_id` is not nil, we'll also use this to find where this table's
+    data is currently stored so we don't move it unnecessarily. */
+    std::map<namespace_id_t, table_config_and_shards_t> current_configs;
+    table_meta_client->list_configs(interruptor, &current_configs);
+
+    /* Iterate over the current configurations to calculate the total load on each server
+    currently. */
+    std::map<server_id_t, int> server_usage;
+    for (const auto &pair : current_configs) {
+        /* Don't count any servers currently used by this table */
+        if (pair.first != table_id) {
+            calculate_server_usage(pair.second.config, &server_usage);
+        }
+    }
+
     config_shards_out->resize(params.num_shards);
 
     size_t total_replicas = 0;
@@ -262,13 +306,14 @@ bool table_generate_config(
             for (size_t shard = 0; shard < params.num_shards; ++shard) {
                 pairing_t p;
                 p.shard = shard;
-                if (table_id != nil_uuid()) {
-                    // RSI(raft): When table IO works, make this be a function of whether
-                    // data is already present on the server or not
-                    p.backfill_cost = 1.0;
+                auto jt = current_configs.find(table_id);
+                if (jt != current_configs.end()) {
+                    guarantee(!table_id.is_nil());
+                    p.backfill_cost = estimate_backfill_cost(
+                        shard_scheme.get_shard_range(shard), jt->second, server);
                 } else {
                     /* We're creating a new table, so we won't have to backfill no matter
-                    where we put the servers */
+                    which servers we choose. */
                     p.backfill_cost = 0;
                 }
                 sp.pairings.insert(p);

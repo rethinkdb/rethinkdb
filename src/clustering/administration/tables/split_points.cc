@@ -89,8 +89,7 @@ bool fetch_distribution(
         const namespace_id_t &table_id,
         real_reql_cluster_interface_t *reql_cluster_interface,
         signal_t *interruptor,
-        std::map<store_key_t, int64_t> *counts_out,
-        std::string *error_out) {
+        std::map<store_key_t, int64_t> *counts_out) {
     namespace_interface_access_t ns_if_access =
         reql_cluster_interface->get_namespace_repo()->get_namespace_interface(
             table_id, interruptor);
@@ -102,8 +101,6 @@ bool fetch_distribution(
     try {
         ns_if_access.get()->read_outdated(read, &resp, interruptor);
     } catch (cannot_perform_query_exc_t) {
-        *error_out = "Cannot calculate balanced shards because the table isn't "
-            "currently available for reading.";
         return false;
     }
     *counts_out = std::move(
@@ -218,12 +215,11 @@ bool calculate_split_points_intelligently(
         size_t num_shards,
         const table_shard_scheme_t &old_split_points,
         signal_t *interruptor,
-        table_shard_scheme_t *split_points_out,
-        std::string *error_out) {
+        table_shard_scheme_t *split_points_out) {
     if (num_shards > old_split_points.num_shards()) {
         std::map<store_key_t, int64_t> counts;
         if (!fetch_distribution(table_id, reql_cluster_interface,
-                interruptor, &counts, error_out)) {
+                interruptor, &counts)) {
             return false;
         }
         std::string dummy_error;

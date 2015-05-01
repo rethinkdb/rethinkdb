@@ -10,6 +10,8 @@
 #include "clustering/table_contract/exec.hpp"
 #include "rpc/mailbox/typed.hpp"
 
+class contracts_and_contract_acks_t;
+
 class multi_table_manager_bcard_t {
 public:
     /* Every message to the `action_mailbox` has an `timestamp_t` attached. This is used
@@ -161,11 +163,11 @@ public:
     minidir_bcard_t<std::pair<server_id_t, branch_id_t>, contract_execution_bcard_t>
         execution_bcard_minidir_bcard;
 
-    /* This is used for `sindex_status()` queries.
-    RSI(raft): Maybe this should be extended for regular status queries too. */
+    /* This is used for status queries. */
     typedef mailbox_t<void(
         mailbox_t<void(
-            std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
+            std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >,
+            contracts_and_contract_acks_t
             )>::address_t
         )> get_status_mailbox_t;
     get_status_mailbox_t::address_t get_status_mailbox;
@@ -176,6 +178,17 @@ public:
 };
 RDB_DECLARE_SERIALIZABLE(table_manager_bcard_t::leader_bcard_t);
 RDB_DECLARE_SERIALIZABLE(table_manager_bcard_t);
+
+class contracts_and_contract_acks_t {
+public:
+    typedef std::map<contract_id_t, contract_ack_t> contract_acks_t;
+    typedef std::map<contract_id_t, std::pair<region_t, contract_t> > contracts_t;
+
+    multi_table_manager_bcard_t::timestamp_t timestamp;
+    contracts_t contracts;
+    contract_acks_t contract_acks;
+};
+RDB_DECLARE_SERIALIZABLE(contracts_and_contract_acks_t);
 
 class table_persistent_state_t {
 public:

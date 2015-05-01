@@ -2,16 +2,12 @@
 #ifndef CLUSTERING_ADMINISTRATION_TABLES_DEBUG_TABLE_STATUS_HPP_
 #define CLUSTERING_ADMINISTRATION_TABLES_DEBUG_TABLE_STATUS_HPP_
 
-// RSI(raft): Reimplement this once table IO works
-#if 0
 #include <string>
-#include <vector>
 
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 
 #include "clustering/administration/tables/table_common.hpp"
-#include "concurrency/watchable.hpp"
 
 class server_config_client_t;
 
@@ -20,10 +16,9 @@ class debug_table_status_artificial_table_backend_t :
 {
 public:
     debug_table_status_artificial_table_backend_t(
-            boost::shared_ptr< semilattice_readwrite_view_t<
+            boost::shared_ptr<semilattice_readwrite_view_t<
                 cluster_semilattice_metadata_t> > _semilattice_view,
-            watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
-                namespace_directory_metadata_t> *_directory_view,
+            table_meta_client_t *_table_meta_client,
             server_config_client_t *_server_config_client);
     ~debug_table_status_artificial_table_backend_t();
 
@@ -37,20 +32,14 @@ public:
 private:
     bool format_row(
             namespace_id_t table_id,
-            name_string_t table_name,
             const ql::datum_t &db_name_or_uuid,
-            const namespace_semilattice_metadata_t &metadata,
+            const table_config_and_shards_t &config_and_shards,
             signal_t *interruptor,
             ql::datum_t *row_out,
             std::string *error_out);
 
-    watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
-        namespace_directory_metadata_t> *directory_view;
     server_config_client_t *server_config_client;
-    watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
-        namespace_directory_metadata_t>::all_subs_t directory_subs;
 };
-#endif
 
 #endif /* CLUSTERING_ADMINISTRATION_TABLES_DEBUG_TABLE_STATUS_HPP_ */
 

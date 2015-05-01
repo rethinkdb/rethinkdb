@@ -421,18 +421,15 @@ admin_artificial_tables_t::admin_artificial_tables_t(
     backends[name_string_t::guarantee_valid("table_config")] =
         std::make_pair(table_config_backend[0].get(), table_config_backend[1].get());
 
-    /* RSI(raft): Reimplement `rethinkdb.table_status` once table IO works. */
-#if 0
     for (int i = 0; i < 2; ++i) {
         table_status_backend[i].init(new table_status_artificial_table_backend_t(
             _semilattice_view,
-            _reactor_directory_view,
+            _table_meta_client,
             static_cast<admin_identifier_format_t>(i),
             _server_config_client));
     }
     backends[name_string_t::guarantee_valid("table_status")] =
         std::make_pair(table_status_backend[0].get(), table_status_backend[1].get());
-#endif
 
     for (int i = 0; i < 2; ++i) {
         jobs_backend[i].init(new jobs_artificial_table_backend_t(
@@ -459,16 +456,13 @@ admin_artificial_tables_t::admin_artificial_tables_t(
     backends[name_string_t::guarantee_valid("_debug_stats")] =
         std::make_pair(debug_stats_backend.get(), debug_stats_backend.get());
 
-    /* RSI(raft): Reimplement `rethinkdb._debug_table_status` once table IO works. */
-#if 0
     debug_table_status_backend.init(new debug_table_status_artificial_table_backend_t(
         _semilattice_view,
-        _reactor_directory_view,
+        _table_meta_client,
         _server_config_client));
     backends[name_string_t::guarantee_valid("_debug_table_status")] =
         std::make_pair(debug_table_status_backend.get(),
                        debug_table_status_backend.get());
-#endif
 
     reql_cluster_interface.init(new artificial_reql_cluster_interface_t(
         name_string_t::guarantee_valid("rethinkdb"),

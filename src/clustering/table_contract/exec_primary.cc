@@ -4,6 +4,7 @@
 #include "clustering/immediate_consistency/local_replicator.hpp"
 #include "clustering/immediate_consistency/primary_dispatcher.hpp"
 #include "clustering/immediate_consistency/remote_replicator_server.hpp"
+#include "clustering/query_routing/direct_query_server.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "store_view.hpp"
 
@@ -146,6 +147,10 @@ void primary_execution_t::run(auto_drainer_t::lock_t keepalive) {
             region,
             this);
 
+        direct_query_server_t direct_query_server(
+            context->mailbox_manager,
+            store);
+
         on_thread_t thread_switcher_4(home_thread());
 
         /* OK, now we have to make sure that `sync_contract_with_replicas()` gets called
@@ -174,6 +179,7 @@ void primary_execution_t::run(auto_drainer_t::lock_t keepalive) {
         table_query_bcard_t tq_bcard;
         tq_bcard.region = region;
         tq_bcard.primary = boost::make_optional(primary_query_server.get_bcard());
+        tq_bcard.direct = boost::make_optional(direct_query_server.get_bcard());
         watchable_map_var_t<uuid_u, table_query_bcard_t>::entry_t directory_entry(
             context->local_table_query_bcards, generate_uuid(), tq_bcard);
 
@@ -214,7 +220,7 @@ bool primary_execution_t::on_write(
     the write. This is because the user would get confused if their write returned an
     error about "not enough acks" and then got applied anyway. */
     {
-        ack_counter_t counter(latest_contract_store_thread);
+        ack_counter_t counter(latest_contract_store_thread->contract);
         our_dispatcher->get_ready_dispatchees()->apply_read(
             [&](const std::set<server_id_t> *servers) {
                 for (const server_id_t &s : *servers) {
@@ -232,8 +238,10 @@ bool primary_execution_t::on_write(
     class write_callback_t : public primary_dispatcher_t::write_callback_t {
     public:
         write_callback_t(write_response_t *_r_out, std::string *_e_out,
-                counted_t<contract_info_t> contract) :
-            ack_counter(contract), response_out(_r_out), error_out(_e_out) { }
+                counted_t<contract_info_t> contract_info) :
+            ack_counter(contract_info->contract),
+            response_out(_r_out),
+            error_out(_e_out) { }
         write_durability_t get_default_write_durability() {
             /* This only applies to writes that don't specify the durability */
             return write_durability_t::HARD;
@@ -385,18 +393,18 @@ void primary_execution_t::sync_contract_with_replicas(
 }
 
 bool primary_execution_t::is_contract_ackable(
-        counted_t<contract_info_t> contract, const std::set<server_id_t> &servers) {
+        counted_t<contract_info_t> contract_info, const std::set<server_id_t> &servers) {
     /* If it's a regular contract, we can ack it as soon as we send a sync to a quorum of
     replicas. If it's a hand-over contract, we can ack it as soon as we send a sync to
     the new primary. */
-    if (!static_cast<bool>(contract->contract.primary->hand_over)) {
-        ack_counter_t ack_counter(contract);
+    if (!static_cast<bool>(contract_info->contract.primary->hand_over)) {
+        ack_counter_t ack_counter(contract_info->contract);
         for (const server_id_t &s : servers) {
             ack_counter.note_ack(s);
         }
         return ack_counter.is_safe();
     } else {
-        return servers.count(*contract->contract.primary->hand_over) == 1;
+        return servers.count(*contract_info->contract.primary->hand_over) == 1;
     }
 }
 

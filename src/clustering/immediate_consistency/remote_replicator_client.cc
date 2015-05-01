@@ -507,7 +507,7 @@ void remote_replicator_client_t::on_write_async(
         state_timestamp_t timestamp,
         order_token_t order_token,
         const mailbox_t<void()>::address_t &ack_addr)
-        THROWS_NOTHING {
+        THROWS_ONLY(interrupted_exc_t) {
     wait_interruptible(&registered_, interruptor);
     timestamp_enforcer_->wait_all_before(timestamp.pred(), interruptor);
 
@@ -583,7 +583,7 @@ void remote_replicator_client_t::on_write_sync(
         order_token_t order_token,
         write_durability_t durability,
         const mailbox_t<void(write_response_t)>::address_t &ack_addr)
-        THROWS_NOTHING {
+        THROWS_ONLY(interrupted_exc_t) {
     /* The current implementation of the dispatcher will never send us an async write
     once it's started sending sync writes, but we don't want to rely on that detail, so
     we pass sync writes through the timestamp enforcer too. */
@@ -601,7 +601,7 @@ void remote_replicator_client_t::on_read(
         const read_t &read,
         state_timestamp_t min_timestamp,
         const mailbox_t<void(read_response_t)>::address_t &ack_addr)
-        THROWS_NOTHING {
+        THROWS_ONLY(interrupted_exc_t) {
     read_response_t response;
     replica_->do_read(read, min_timestamp, interruptor, &response);
     send(mailbox_manager_, ack_addr, response);
