@@ -20,6 +20,8 @@ extern const char *const data_key;
 void encode_base64_ptype(
         const datum_string_t &data,
         rapidjson::Writer<rapidjson::StringBuffer> *writer);
+// DEPRECATED
+scoped_cJSON_t encode_base64_ptype(const datum_string_t &data);
 void write_binary_to_protobuf(Datum *d, const datum_string_t &data);
 
 // Given a `r.binary` pseudotype with base64 encoding, decodes it into a raw data string

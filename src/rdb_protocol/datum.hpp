@@ -15,6 +15,7 @@
 #include <boost/optional.hpp>
 
 #include "btree/keys.hpp"
+#include "cjson/json.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/counted.hpp"
 #include "rdb_protocol/datum_string.hpp"
@@ -213,7 +214,7 @@ public:
     std::string get_reql_type() const;
     std::string get_type_name(
         name_for_sorting_t for_sorting = name_for_sorting_t::NO) const;
-    std::string print() const;
+    std::string print(reql_version_t reql_version = reql_version_t::LATEST) const;
     static const size_t trunc_len = 300;
     std::string trunc_print() const;
     std::string print_primary() const;
@@ -291,6 +292,11 @@ public:
     // json_writer_t can be rapidjson::Writer<rapidjson::StringBuffer>
     // or rapidjson::PrettyWriter<rapidjson::StringBuffer>
     template <class json_writer_t> void write_json(json_writer_t *writer) const;
+
+    // DEPRECATED: Used for backwards compatibility with reql_versions before 2.1
+    cJSON *as_json_raw() const;
+    scoped_cJSON_t as_json() const;
+
     counted_t<datum_stream_t> as_datum_stream(backtrace_id_t backtrace) const;
 
     // These behave as expected and defined in RQL.  Theoretically, two data of the
@@ -473,6 +479,8 @@ datum_t to_datum(
     const rapidjson::Value &json,
     const configured_limits_t &,
     reql_version_t);
+// DEPRECATED: Used in the r.json term for pre 2.1 backwards compatibility
+datum_t to_datum(cJSON *json, const configured_limits_t &, reql_version_t);
 
 // This should only be used to send responses to the client.
 datum_t to_datum_for_client_serialization(grouped_data_t &&gd,

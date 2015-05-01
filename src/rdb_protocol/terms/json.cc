@@ -1,4 +1,5 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
+#include "cjson/json.hpp"
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/term.hpp"
 #include "rdb_protocol/terms/terms.hpp"
@@ -17,30 +18,43 @@ public:
     scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         const datum_string_t data = args->arg(env, 0)->as_str();
 
-        // Copy the string into a null-terminated c-string that we can write to,
-        // so we can use RapidJSON in-situ parsing (and at least avoid some additional
-        // copying).
-        std::vector<char> str_buf(data.size() + 1);
-        memcpy(str_buf.data(), data.data(), data.size());
-        for (size_t i = 0; i < data.size(); ++i) {
-            rcheck(str_buf[i] != '\0', base_exc_t::GENERIC,
-                   "Encountered unescaped null byte in JSON string.");
+        if (env->env->reql_version() < reql_version_t::v2_1) {
+            fprintf(stderr, "old json\n"); // TODO!
+            const std::string std_data = data.to_std();
+            scoped_cJSON_t cjson(cJSON_Parse(std_data.c_str()));
+            rcheck(cjson.get() != NULL, base_exc_t::GENERIC,
+                   strprintf("Failed to parse \"%s\" as JSON.",
+                     (data.size() > 40
+                      ? (std_data.substr(0, 37) + "...").c_str()
+                      : std_data.c_str())));
+            return new_val(to_datum(cjson.get(), env->env->limits(),
+                                    env->env->reql_version()));
+        } else {
+            // Copy the string into a null-terminated c-string that we can write to,
+            // so we can use RapidJSON in-situ parsing (and at least avoid some additional
+            // copying).
+            std::vector<char> str_buf(data.size() + 1);
+            memcpy(str_buf.data(), data.data(), data.size());
+            for (size_t i = 0; i < data.size(); ++i) {
+                rcheck(str_buf[i] != '\0', base_exc_t::GENERIC,
+                       "Encountered unescaped null byte in JSON string.");
+            }
+            str_buf[data.size()] = '\0';
+
+            rapidjson::Document json;
+            // Note: Insitu will cause some parts of `json` to directly point into
+            // `str_buf`. `str_buf`'s life time must be at least as long as `json`'s.
+            json.ParseInsitu(str_buf.data());
+
+            rcheck(!json.HasParseError(), base_exc_t::GENERIC,
+                   strprintf("Failed to parse \"%s\" as JSON: %s",
+                       (data.size() > 40
+                        ? (data.to_std().substr(0, 37) + "...").c_str()
+                        : data.to_std().c_str()),
+                       rapidjson::GetParseError_En(json.GetParseError())));
+            return new_val(to_datum(json, env->env->limits(),
+                                    env->env->reql_version()));
         }
-        str_buf[data.size()] = '\0';
-
-        rapidjson::Document json;
-        // Note: Insitu will cause some parts of `json` to directly point into
-        // `str_buf`. `str_buf`'s life time must be at least as long as `json`'s.
-        json.ParseInsitu(str_buf.data());
-
-        rcheck(!json.HasParseError(), base_exc_t::GENERIC,
-               strprintf("Failed to parse \"%s\" as JSON: %s",
-                   (data.size() > 40
-                    ? (data.to_std().substr(0, 37) + "...").c_str()
-                    : data.to_std().c_str()),
-                   rapidjson::GetParseError_En(json.GetParseError())));
-        return new_val(to_datum(json, env->env->limits(),
-                                env->env->reql_version()));
     }
 
     virtual const char *name() const { return "json"; }
@@ -55,10 +69,17 @@ public:
         scoped_ptr_t<val_t> v = args->arg(env, 0);
         datum_t d = v->as_datum();
         r_sanity_check(d.has());
-        rapidjson::StringBuffer buffer;
-        rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
-        d.write_json(&writer);
-        return new_val(datum_t(datum_string_t(buffer.GetSize(), buffer.GetString())));
+        if (env->env->reql_version() < reql_version_t::v2_1) {
+            fprintf(stderr, "old to_json\n"); // TODO!
+            scoped_cJSON_t json = d.as_json();
+            return new_val(datum_t(datum_string_t(json.PrintUnformatted())));
+        }
+        else {
+            rapidjson::StringBuffer buffer;
+            rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+            d.write_json(&writer);
+            return new_val(datum_t(datum_string_t(buffer.GetSize(), buffer.GetString())));
+        }
     }
 
     virtual const char *name() const { return "to_json_string"; }
