@@ -185,7 +185,7 @@ class TestHttpTerm(WithServer):
         url = self.getHttpBinURL('robots.txt')
         
         self.assertRaisesRegex(
-            r.RqlRuntimeError, self.err_string('GET', url, 'failed to parse JSON response'),
+            r.RqlRuntimeError, self.err_string('GET', url, 'failed to parse JSON response: Invalid value.'),
             r.http(url, result_format='json').run, self.conn
         )
     

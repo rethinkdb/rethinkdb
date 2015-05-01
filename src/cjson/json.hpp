@@ -1,28 +1,16 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
-#ifndef HTTP_JSON_HPP_
-#define HTTP_JSON_HPP_
+#ifndef CJSON_JSON_HPP_
+#define CJSON_JSON_HPP_
 
 #include <string>
 #include <set>
 #include <utility>
 
-#include "http/json/cJSON.hpp"
+#include "cjson/cJSON.hpp"
 #include "containers/archive/archive.hpp"
-
-class http_res_t;
-
-void http_json_res(cJSON *json, http_res_t *result);
-
-//TODO: do we both merge and cJSON_merge?
-//Merge two cJSON objects, crashes if there are overlapping keys
-cJSON *merge(cJSON *, cJSON *);
-cJSON *cJSON_merge(cJSON *lhs, cJSON *rhs);
-void project(cJSON *json, std::set<std::string> keys);
 
 std::string cJSON_print_lexicographic(const cJSON *json);
 std::string cJSON_print_std_string(cJSON *json) THROWS_NOTHING;
-std::string cJSON_print_unformatted_std_string(cJSON *json) THROWS_NOTHING;
-const char *cJSON_type_to_string(int type);
 
 class scoped_cJSON_t {
 private:
@@ -140,10 +128,6 @@ public:
     explicit json_array_iterator_t(cJSON *target);
 };
 
-/* Json serialization */
-template <cluster_version_t W>
-void serialize(write_message_t *wm, const cJSON &cjson);
-template <cluster_version_t W>
-MUST_USE archive_result_t deserialize(read_stream_t *s, cJSON *cjson);
 
-#endif /* HTTP_JSON_HPP_ */
+#endif /* CJSON_JSON_HPP_ */
+

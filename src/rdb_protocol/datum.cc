@@ -13,8 +13,13 @@
 #include "errors.hpp"
 #include <boost/detail/endian.hpp>
 
+#include "cjson/json.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "containers/scoped.hpp"
+#include "rapidjson/prettywriter.h"
+#include "rapidjson/rapidjson.h"
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/pseudo_binary.hpp"
@@ -406,8 +411,7 @@ datum_t datum_t::binary(datum_string_t &&_data) {
 
 // two versions of these, because std::string is not necessarily null
 // terminated.
-inline void fail_if_invalid(reql_version_t reql_version, const std::string &string)
-{
+inline void fail_if_invalid(reql_version_t reql_version, const std::string &string) {
     switch (reql_version) {
         case reql_version_t::v1_13:
         case reql_version_t::v1_14: // v1_15 is the same as v1_14
@@ -430,8 +434,10 @@ inline void fail_if_invalid(reql_version_t reql_version, const std::string &stri
     }
 }
 
-inline void fail_if_invalid(reql_version_t reql_version, const char *string)
-{
+inline void fail_if_invalid(
+        reql_version_t reql_version,
+        const char *string,
+        size_t string_length) {
     switch (reql_version) {
         case reql_version_t::v1_13:
         case reql_version_t::v1_14: // v1_15 is the same as v1_14
@@ -440,7 +446,7 @@ inline void fail_if_invalid(reql_version_t reql_version, const char *string)
         case reql_version_t::v2_0:
         case reql_version_t::v2_1_is_latest:
             utf8::reason_t reason;
-            if (!utf8::is_valid(string, &reason)) {
+            if (!utf8::is_valid(string, string + string_length, &reason)) {
                 int truncation_length = std::min<size_t>(reason.position, 20);
                 rfail_datum(base_exc_t::GENERIC,
                             "String `%.*s` (truncated) is not a UTF-8 string; "
@@ -454,44 +460,52 @@ inline void fail_if_invalid(reql_version_t reql_version, const char *string)
     }
 }
 
-datum_t to_datum(cJSON *json, const configured_limits_t &limits,
+datum_t to_datum(const rapidjson::Value &json, const configured_limits_t &limits,
                  reql_version_t reql_version) {
-    switch (json->type) {
-    case cJSON_False: {
-        return datum_t::boolean(false);
-    } break;
-    case cJSON_True: {
-        return datum_t::boolean(true);
-    } break;
-    case cJSON_NULL: {
+    switch(json.GetType()) {
+    case rapidjson::kNullType: {
         return datum_t::null();
     } break;
-    case cJSON_Number: {
-        return datum_t(json->valuedouble);
+    case rapidjson::kFalseType: {
+        return datum_t::boolean(false);
     } break;
-    case cJSON_String: {
-        fail_if_invalid(reql_version, json->valuestring);
-        return datum_t(json->valuestring);
+    case rapidjson::kTrueType: {
+        return datum_t::boolean(true);
     } break;
-    case cJSON_Array: {
-        std::vector<datum_t> array;
-        json_array_iterator_t it(json);
-        while (cJSON *item = it.next()) {
-            array.push_back(to_datum(item, limits, reql_version));
-        }
-        return datum_t(std::move(array), limits);
-    } break;
-    case cJSON_Object: {
+    case rapidjson::kObjectType: {
         datum_object_builder_t builder;
-        json_object_iterator_t it(json);
-        while (cJSON *item = it.next()) {
-            fail_if_invalid(reql_version, item->string);
-            bool dup = builder.add(item->string, to_datum(item, limits, reql_version));
+        for (rapidjson::Value::ConstMemberIterator it = json.MemberBegin();
+             it != json.MemberEnd();
+             ++it) {
+            fail_if_invalid(reql_version,
+                            it->name.GetString(),
+                            it->name.GetStringLength());
+            bool dup = builder.add(datum_string_t(it->name.GetStringLength(),
+                                                  it->name.GetString()),
+                                   to_datum(it->value, limits, reql_version));
             rcheck_datum(!dup, base_exc_t::GENERIC,
-                         strprintf("Duplicate key `%s` in JSON.", item->string));
+                         strprintf("Duplicate key `%s` in JSON.",
+                                   it->name.GetString()));
         }
         const std::set<std::string> pts = { pseudo::literal_string };
         return std::move(builder).to_datum(pts);
+    } break;
+    case rapidjson::kArrayType: {
+        datum_array_builder_t builder(limits);
+        builder.reserve(json.Size());
+        for (rapidjson::Value::ConstValueIterator it = json.Begin();
+             it != json.End();
+             ++it) {
+            builder.add(to_datum(*it, limits, reql_version));
+        }
+        return std::move(builder).to_datum();
+    } break;
+    case rapidjson::kStringType: {
+        fail_if_invalid(reql_version, json.GetString(), json.GetStringLength());
+        return datum_t(datum_string_t(json.GetStringLength(), json.GetString()));
+    } break;
+    case rapidjson::kNumberType: {
+        return datum_t(json.GetDouble());
     } break;
     default: unreachable();
     }
@@ -575,8 +589,23 @@ std::string datum_t::get_type_name(name_for_sorting_t for_sorting) const {
     }
 }
 
-std::string datum_t::print() const {
-    return has() ? as_json().Print() : "UNINITIALIZED";
+std::string datum_t::print(reql_version_t reql_version) const {
+    if (has()) {
+        if (reql_version < reql_version_t::v2_1) {
+            return as_json().Print();
+        } else {
+            rapidjson::StringBuffer buffer;
+            rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
+            // Change indentation character to tab for compatibility with cJSON
+            // (it doesn't actually matter, but many of our tests are currently
+            //  assuming this format)
+            writer.SetIndent('\t', 1);
+            write_json(&writer);
+            return std::string(buffer.GetString(), buffer.GetSize());
+        }
+    } else {
+        return "UNINITIALIZED";
+    }
 }
 
 std::string datum_t::trunc_print() const {
@@ -1371,6 +1400,56 @@ datum_t datum_t::get_field(const char *key, throw_bool_t throw_bool) const {
     return get_field(datum_string_t(key), throw_bool);
 }
 
+template <class json_writer_t>
+void datum_t::write_json(json_writer_t *writer) const {
+    switch (get_type()) {
+    case MINVAL: rfail_datum(base_exc_t::GENERIC, "Cannot convert `r.minval` to JSON.");
+    case MAXVAL: rfail_datum(base_exc_t::GENERIC, "Cannot convert `r.maxval` to JSON.");
+    case R_NULL: writer->Null(); break;
+    case R_BINARY: pseudo::encode_base64_ptype(as_binary(), writer); break;
+    case R_BOOL: writer->Bool(as_bool()); break;
+    case R_NUM: {
+        const double d = as_num();
+        // Always print -0.0 as a double since integers cannot represent -0.
+        // Otherwise check if the number is an integer and print it as such.
+        int64_t i;
+        if (!(d == 0.0 && std::signbit(d))
+            && number_as_integer(d, &i)) {
+            writer->Int64(i);
+        } else {
+            writer->Double(d);
+        }
+    } break;
+    case R_STR: writer->String(as_str().data(), as_str().size()); break;
+    case R_ARRAY: {
+        writer->StartArray();
+        const size_t sz = arr_size();
+        for (size_t i = 0; i < sz; ++i) {
+            unchecked_get(i).write_json(writer);
+        }
+        writer->EndArray();
+    } break;
+    case R_OBJECT: {
+        writer->StartObject();
+        const size_t sz = obj_size();
+        for (size_t i = 0; i < sz; ++i) {
+            auto pair = get_pair(i);
+            writer->Key(pair.first.data(), pair.first.size());
+            pair.second.write_json(writer);
+        }
+        writer->EndObject();
+    } break;
+    case UNINITIALIZED: // fallthru
+    default: unreachable();
+    }
+}
+
+// Explicit instantiation
+template void datum_t::write_json(
+    rapidjson::Writer<rapidjson::StringBuffer> *writer) const;
+template void datum_t::write_json(
+    rapidjson::PrettyWriter<rapidjson::StringBuffer> *writer) const;
+
 cJSON *datum_t::as_json_raw() const {
     switch (get_type()) {
     case MINVAL: rfail_datum(base_exc_t::GENERIC, "Cannot convert `r.minval` to JSON.");
@@ -1695,8 +1774,14 @@ datum_t to_datum(const Datum *d, const configured_limits_t &limits,
     } break;
     case Datum::R_JSON: {
         fail_if_invalid(reql_version, d->r_str());
-        scoped_cJSON_t cjson(cJSON_Parse(d->r_str().c_str()));
-        return to_datum(cjson.get(), limits, reql_version);
+        if (reql_version < reql_version_t::v2_1) {
+            scoped_cJSON_t cjson(cJSON_Parse(d->r_str().c_str()));
+            return to_datum(cjson.get(), limits, reql_version);
+        } else {
+            rapidjson::Document json;
+            json.Parse(d->r_str().c_str());
+            return to_datum(json, limits, reql_version);
+        }
     } break;
     case Datum::R_ARRAY: {
         datum_array_builder_t out(limits);
@@ -1722,6 +1807,49 @@ datum_t to_datum(const Datum *d, const configured_limits_t &limits,
         }
         const std::set<std::string> pts = { pseudo::literal_string };
         return datum_t(std::move(map), pts);
+    } break;
+    default: unreachable();
+    }
+}
+
+datum_t to_datum(cJSON *json, const configured_limits_t &limits,
+                 reql_version_t reql_version) {
+    switch (json->type) {
+    case cJSON_False: {
+        return datum_t::boolean(false);
+    } break;
+    case cJSON_True: {
+        return datum_t::boolean(true);
+    } break;
+    case cJSON_NULL: {
+        return datum_t::null();
+    } break;
+    case cJSON_Number: {
+        return datum_t(json->valuedouble);
+    } break;
+    case cJSON_String: {
+        fail_if_invalid(reql_version, json->valuestring);
+        return datum_t(json->valuestring);
+    } break;
+    case cJSON_Array: {
+        std::vector<datum_t> array;
+        json_array_iterator_t it(json);
+        while (cJSON *item = it.next()) {
+            array.push_back(to_datum(item, limits, reql_version));
+        }
+        return datum_t(std::move(array), limits);
+    } break;
+    case cJSON_Object: {
+        datum_object_builder_t builder;
+        json_object_iterator_t it(json);
+        while (cJSON *item = it.next()) {
+            fail_if_invalid(reql_version, item->string);
+            bool dup = builder.add(item->string, to_datum(item, limits, reql_version));
+            rcheck_datum(!dup, base_exc_t::GENERIC,
+                         strprintf("Duplicate key `%s` in JSON.", item->string));
+        }
+        const std::set<std::string> pts = { pseudo::literal_string };
+        return std::move(builder).to_datum(pts);
     } break;
     default: unreachable();
     }
@@ -1805,7 +1933,10 @@ void datum_t::write_to_protobuf(Datum *d, use_json_t use_json) const {
     } break;
     case use_json_t::YES: {
         d->set_type(Datum::R_JSON);
-        d->set_r_str(as_json().PrintUnformatted());
+        rapidjson::StringBuffer buffer;
+        rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+        write_json(&writer);
+        d->set_r_str(buffer.GetString(), buffer.GetSize());
     } break;
     default: unreachable();
     }

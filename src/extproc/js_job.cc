@@ -10,7 +10,6 @@
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "extproc/extproc_job.hpp"
-#include "rdb_protocol/rdb_protocol_json.hpp"
 #include "rdb_protocol/pseudo_time.hpp"
 #include "rdb_protocol/configured_limits.hpp"
 #include "utils.hpp"

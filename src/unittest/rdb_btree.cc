@@ -10,6 +10,7 @@
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "containers/uuid.hpp"
+#include "rapidjson/document.h"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/erase_range.hpp"
@@ -49,9 +50,10 @@ void insert_rows(int start, int finish, store_t *store) {
         store_key_t pk(ql::datum_t(static_cast<double>(i)).print_primary());
         rdb_modification_report_t mod_report(pk);
         rdb_live_deletion_context_t deletion_context;
+        rapidjson::Document doc;
+        doc.Parse(data.c_str());
         rdb_set(pk,
-                ql::to_datum(scoped_cJSON_t(cJSON_Parse(data.c_str())).get(), limits,
-                             reql_version_t::LATEST),
+                ql::to_datum(doc, limits, reql_version_t::LATEST),
                 false, store->btree.get(), repli_timestamp_t::distant_past,
                 superblock.get(), &deletion_context, &response, &mod_report.info,
                 static_cast<profile::trace_t *>(NULL));
@@ -258,8 +260,9 @@ void _check_keys_are_present(store_t *store,
         ASSERT_EQ(1ul, stream->size());
 
         std::string expected_data = strprintf("{\"id\" : %d, \"sid\" : %d}", i, i * i);
-        scoped_cJSON_t expected_value(cJSON_Parse(expected_data.c_str()));
-        ASSERT_EQ(ql::to_datum(expected_value.get(), limits, reql_version_t::LATEST),
+        rapidjson::Document expected_value;
+        expected_value.Parse(expected_data.c_str());
+        ASSERT_EQ(ql::to_datum(expected_value, limits, reql_version_t::LATEST),
                   stream->front().data);
     }
 }

@@ -15,8 +15,8 @@
 #include "rdb_protocol/batching.hpp"
 #include "rdb_protocol/configured_limits.hpp"
 #include "rdb_protocol/datum.hpp"
+#include "rdb_protocol/datum_utils.hpp"
 #include "rdb_protocol/profile.hpp"
-#include "rdb_protocol/rdb_protocol_json.hpp"
 #include "rdb_protocol/wire_func.hpp"
 
 enum class is_primary_t { NO, YES };

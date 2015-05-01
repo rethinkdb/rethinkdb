@@ -21,8 +21,8 @@
   THE SOFTWARE.
 */
 
-#ifndef HTTP_JSON_CJSON_HPP_
-#define HTTP_JSON_CJSON_HPP_
+#ifndef CJSON_CJSON_HPP_
+#define CJSON_CJSON_HPP_
 
 #include <cstddef>
 
@@ -128,4 +128,5 @@ extern bool cJSON_Equal(cJSON *x, cJSON *y);
 }
 #endif
 
-#endif /* HTTP_JSON_CJSON_HPP_ */
+#endif /* CJSON_CJSON_HPP_ */
+

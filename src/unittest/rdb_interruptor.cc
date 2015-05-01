@@ -6,6 +6,7 @@
 #include <boost/optional.hpp>
 
 #include "protob/protob.hpp"
+#include "rapidjson/document.h"
 #include "rdb_protocol/backtrace.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/env.hpp"
@@ -350,31 +351,32 @@ void send_query(int64_t token, const std::string &query_json, tcp_conn_stream_t 
 
 std::string parse_json_error_message(const char *json,
                                      int32_t expected_type) {
-    scoped_cJSON_t response(cJSON_Parse(json));
-    guarantee(response.get() != nullptr);
+    rapidjson::Document response;
+    response.Parse(json);
+    guarantee(!response.HasParseError());
+    guarantee(response.IsObject());
 
-    json_object_iterator_t it(response.get());
+    rapidjson::Value::ConstMemberIterator it = response.MemberBegin();
+    guarantee(it != response.MemberEnd());
     // The `make_optional` call works around an incorrect warning in old versions of GCC
     boost::optional<Response::ResponseType> type =
         boost::make_optional(false, Response::COMPILE_ERROR);
     boost::optional<std::string> msg = boost::make_optional(false, std::string());
 
     while (!type || !msg) {
-        cJSON *item = it.next();
-        guarantee(item != nullptr);
-        std::string item_name(item->string);
+        std::string item_name(it->name.GetString(), it->name.GetStringLength());
 
         if (item_name == "t") {
-            guarantee(item->type == cJSON_Number);
-            type = static_cast<Response::ResponseType>(item->valueint);
+            guarantee(it->value.IsNumber());
+            type = static_cast<Response::ResponseType>(it->value.GetInt());
         } else if (item_name == "r") {
-            json_array_iterator_t rit(item);
-            item = rit.next();
-            guarantee(item != nullptr);
-            guarantee(item->type == cJSON_String);
-            msg = std::string(item->valuestring);
-            guarantee(rit.next() == nullptr);
+            rapidjson::Value::ConstValueIterator rit = it->value.Begin();
+            guarantee(rit != it->value.End());
+            guarantee(rit->IsString());
+            msg = std::string(rit->GetString(), rit->GetStringLength());
+            guarantee(++rit == it->value.End());
         }
+        ++it;
     }
     guarantee(type.get() == expected_type);
     guarantee(msg->length() != 0);
