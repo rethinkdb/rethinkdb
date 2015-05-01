@@ -67,8 +67,12 @@ const block_magic_t
     = { { 'R', 'D', 'm', 'g' } };
 template <>
 const block_magic_t
-    cluster_metadata_magic_t<cluster_version_t::v2_0_is_latest_disk>::value
+    cluster_metadata_magic_t<cluster_version_t::v2_0>::value
     = { { 'R', 'D', 'm', 'h' } };
+template <>
+const block_magic_t
+    cluster_metadata_magic_t<cluster_version_t::v2_1_is_latest_disk>::value
+    = { { 'R', 'D', 'm', 'i' } };
 
 template <cluster_version_t>
 struct auth_metadata_magic_t {
@@ -88,8 +92,11 @@ template <>
 const block_magic_t auth_metadata_magic_t<cluster_version_t::v1_16>::value
     = { { 'R', 'D', 'm', 'g' } };
 template <>
-const block_magic_t auth_metadata_magic_t<cluster_version_t::v2_0_is_latest_disk>::value
+const block_magic_t auth_metadata_magic_t<cluster_version_t::v2_0>::value
     = { { 'R', 'D', 'm', 'h' } };
+template <>
+const block_magic_t auth_metadata_magic_t<cluster_version_t::v2_1_is_latest_disk>::value
+    = { { 'R', 'D', 'm', 'i' } };
 
 cluster_version_t auth_superblock_version(const auth_metadata_superblock_t *sb) {
     if (sb->magic
@@ -105,8 +112,11 @@ cluster_version_t auth_superblock_version(const auth_metadata_superblock_t *sb) 
                == auth_metadata_magic_t<cluster_version_t::v1_16>::value) {
         return cluster_version_t::v1_16;
     } else if (sb->magic
-               == auth_metadata_magic_t<cluster_version_t::v2_0_is_latest_disk>::value) {
-        return cluster_version_t::v2_0_is_latest_disk;
+               == auth_metadata_magic_t<cluster_version_t::v2_0>::value) {
+        return cluster_version_t::v2_0;
+    } else if (sb->magic
+               == auth_metadata_magic_t<cluster_version_t::v2_1_is_latest_disk>::value) {
+        return cluster_version_t::v2_1_is_latest_disk;
     } else {
         crash("auth_metadata_superblock_t has invalid magic.");
     }
@@ -167,8 +177,11 @@ cluster_version_t cluster_superblock_version(const cluster_metadata_superblock_t
                == cluster_metadata_magic_t<cluster_version_t::v1_16>::value) {
         return cluster_version_t::v1_16;
     } else if (sb->magic
-               == cluster_metadata_magic_t<cluster_version_t::v2_0_is_latest_disk>::value) {
-        return cluster_version_t::v2_0_is_latest_disk;
+               == cluster_metadata_magic_t<cluster_version_t::v2_0>::value) {
+        return cluster_version_t::v2_0;
+    } else if (sb->magic
+               == cluster_metadata_magic_t<cluster_version_t::v2_1_is_latest_disk>::value) {
+        return cluster_version_t::v2_1_is_latest_disk;
     } else {
         crash("cluster_metadata_superblock_t has invalid magic.");
     }
@@ -197,7 +210,8 @@ void read_metadata_blob(buf_parent_t sb_buf,
                     case cluster_version_t::v1_15:
                         return deserialize<cluster_version_t::v1_15>(s, &old_metadata);
                     case cluster_version_t::v1_16:
-                    case cluster_version_t::v2_0_is_latest:
+                    case cluster_version_t::v2_0:
+                    case cluster_version_t::v2_1_is_latest:
                     default:
                         unreachable();
                 }
@@ -213,8 +227,10 @@ void read_metadata_blob(buf_parent_t sb_buf,
             cluster_metadata_superblock_t::METADATA_BLOB_MAXREFLEN,
             [&](read_stream_t *s) -> archive_result_t {
                 switch (v) {
-                    case cluster_version_t::v2_0_is_latest:
-                        return deserialize<cluster_version_t::v2_0_is_latest>(s, out);
+                    case cluster_version_t::v2_1_is_latest:
+                        return deserialize<cluster_version_t::v2_1_is_latest>(s, out);
+                    case cluster_version_t::v2_0:
+                        return deserialize<cluster_version_t::v2_0>(s, out);
                     case cluster_version_t::v1_16:
                         return deserialize<cluster_version_t::v1_16>(s, out);
                     case cluster_version_t::v1_13:
@@ -434,7 +450,8 @@ auth_semilattice_metadata_t auth_persistent_file_t::read_metadata() {
                     case cluster_version_t::v1_15:
                         return deserialize<cluster_version_t::v1_15>(s, &old_metadata);
                     case cluster_version_t::v1_16:
-                    case cluster_version_t::v2_0_is_latest:
+                    case cluster_version_t::v2_0:
+                    case cluster_version_t::v2_1_is_latest:
                     default:
                         unreachable();
                 }
@@ -451,8 +468,11 @@ auth_semilattice_metadata_t auth_persistent_file_t::read_metadata() {
             auth_metadata_superblock_t::METADATA_BLOB_MAXREFLEN,
             [&](read_stream_t *s) -> archive_result_t {
                 switch (v) {
-                    case cluster_version_t::v2_0_is_latest:
-                        return deserialize<cluster_version_t::v2_0_is_latest>(
+                    case cluster_version_t::v2_1_is_latest:
+                        return deserialize<cluster_version_t::v2_1_is_latest>(
+                            s, &metadata);
+                    case cluster_version_t::v2_0:
+                        return deserialize<cluster_version_t::v2_0>(
                             s, &metadata);
                     case cluster_version_t::v1_16:
                         return deserialize<cluster_version_t::v1_16>(s, &metadata);
