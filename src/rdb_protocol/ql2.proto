@@ -361,7 +361,7 @@ message Term {
         SKIP  = 70; // Sequence, NUMBER -> Sequence
         LIMIT = 71; // Sequence, NUMBER -> Sequence
         OFFSETS_OF = 87; // Sequence, DATUM -> Sequence | Sequence, Function(1) -> Sequence
-        CONTAINS = 93; // Sequence, DATUM -> BOOL | Sequence, Function(1) -> BOOL
+        CONTAINS = 93; // Sequence, (DATUM | Function(1))... -> BOOL
 
         // Stream/Object Ops
         // Get a particular field from an object, or map that over a
