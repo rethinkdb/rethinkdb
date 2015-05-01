@@ -71,8 +71,7 @@ public:
         if (env->env->reql_version() < reql_version_t::v2_1) {
             scoped_cJSON_t json = d.as_json();
             return new_val(datum_t(datum_string_t(json.PrintUnformatted())));
-        }
-        else {
+        } else {
             rapidjson::StringBuffer buffer;
             rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
             d.write_json(&writer);
