@@ -75,12 +75,12 @@ static_assert(cluster_version_t::CLUSTER != cluster_version_t::LATEST_DISK,
 // index keys are generated.  v1_13 has buggy secondary index key generation, and in
 // v1_16 pseudotypes are no longer permitted to be treated as objects.
 enum class reql_version_t {
-    v1_13,
-    v1_14,
+    v1_13 = 0,
+    v1_14 = 1,
     v1_15 = v1_14,
-    v1_16,
-    v2_0,
-    v2_1,
+    v1_16 = 2,
+    v2_0 = 3,
+    v2_1 = 4,
 
     // Code that uses _is_latest may need to be updated when the
     // version changes

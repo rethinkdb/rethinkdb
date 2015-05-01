@@ -789,7 +789,7 @@ done_traversing_t rget_cb_t::handle_pair(
 #ifndef NDEBUG
         unreachable();
 #else
-        io.response->result = ql::exc_t(e, NULL);
+        io.response->result = ql::exc_t(e, ql::backtrace_id_t::empty());
         return done_traversing_t::YES;
 #endif // NDEBUG
     }
@@ -930,7 +930,8 @@ void rdb_get_nearest_slice(
             callback.finish(&partial_response);
         } catch (const geo_exception_t &e) {
             partial_response.results_or_error =
-                ql::exc_t(ql::base_exc_t::GENERIC, e.what(), NULL);
+                ql::exc_t(ql::base_exc_t::GENERIC, e.what(),
+                          ql::backtrace_id_t::empty());
         }
         if (boost::get<ql::exc_t>(&partial_response.results_or_error)) {
             response->results_or_error = partial_response.results_or_error;
@@ -1211,12 +1212,20 @@ void compute_keys(const store_key_t &primary_key,
                     keys_out->push_back(std::make_pair(store_key_t(*it), skey));
                 }
             } else {
-                keys_out->push_back(
-                    std::make_pair(
-                        store_key_t(
-                            skey.print_secondary(
-                                reql_version, primary_key, i)),
-                        skey));
+                try {
+                    keys_out->push_back(
+                        std::make_pair(
+                            store_key_t(
+                                skey.print_secondary(
+                                    reql_version, primary_key, i)),
+                            skey));
+                } catch (const ql::base_exc_t &e) {
+                    if (reql_version < reql_version_t::v2_1) {
+                        throw e;
+                    }
+                    // One of the values couldn't be converted to an index key.
+                    // Ignore it and move on to the next one.
+                }
             }
         }
     } else {

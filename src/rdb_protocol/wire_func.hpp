@@ -33,10 +33,10 @@ public:
     // Constructs a wire_func_t with a body and arglist and backtrace, but no scope.  I
     // hope you remembered to propagate the backtrace to body!
     wire_func_t(protob_t<const Term> body, std::vector<sym_t> arg_names,
-                protob_t<const Backtrace> backtrace);
+                backtrace_id_t backtrace);
 
     counted_t<const func_t> compile_wire_func() const;
-    protob_t<const Backtrace> get_bt() const;
+    backtrace_id_t get_bt() const;
 
     template <cluster_version_t W>
     friend void serialize(write_message_t *wm, const wire_func_t &);
@@ -119,35 +119,20 @@ class zip_wire_func_t {
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(zip_wire_func_t);
 
-class bt_wire_func_t {
-public:
-    bt_wire_func_t() : bt(make_counted_backtrace()) { }
-    explicit bt_wire_func_t(const protob_t<const Backtrace> &_bt) : bt(_bt) { }
-
-    protob_t<const Backtrace> get_bt() const { return bt; }
-
-    template <cluster_version_t W>
-    friend void serialize(write_message_t *wm, const bt_wire_func_t &);
-    template <cluster_version_t W>
-    friend archive_result_t deserialize(read_stream_t *s, bt_wire_func_t *);
-private:
-    protob_t<const Backtrace> bt;
-};
-
 class group_wire_func_t {
 public:
-    group_wire_func_t() : bt(make_counted_backtrace()) { }
+    group_wire_func_t() : bt(backtrace_id_t::empty()) { }
     group_wire_func_t(std::vector<counted_t<const func_t> > &&_funcs,
                       bool _append_index, bool _multi);
     std::vector<counted_t<const func_t> > compile_funcs() const;
     bool should_append_index() const;
     bool is_multi() const;
-    protob_t<const Backtrace> get_bt() const;
+    backtrace_id_t get_bt() const;
     RDB_DECLARE_ME_SERIALIZABLE(group_wire_func_t);
 private:
     std::vector<wire_func_t> funcs;
     bool append_index, multi;
-    bt_wire_func_t bt;
+    backtrace_id_t bt;
 };
 
 class distinct_wire_func_t {
@@ -165,12 +150,12 @@ class skip_wire_func_t : public maybe_wire_func_t {
 protected:
     skip_wire_func_t() { }
     template <class... Args>
-    explicit skip_wire_func_t(const protob_t<const Backtrace> &_bt, Args... args)
+    explicit skip_wire_func_t(backtrace_id_t _bt, Args... args)
         : maybe_wire_func_t(args...), bt(_bt) { }
 private:
     template <class T>
     friend class skip_terminal_t;
-    bt_wire_func_t bt;
+    backtrace_id_t bt;
 };
 
 class sum_wire_func_t : public skip_wire_func_t {

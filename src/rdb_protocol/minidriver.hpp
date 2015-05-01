@@ -6,12 +6,12 @@
 #include <utility>
 #include <algorithm>
 
-#include "rdb_protocol/env.hpp"
-#include "rdb_protocol/ql2.pb.h"
-#include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/counted_term.hpp"
-#include "rdb_protocol/sym.hpp"
+#include "rdb_protocol/datum.hpp"
+#include "rdb_protocol/env.hpp"
 #include "rdb_protocol/pb_utils.hpp"
+#include "rdb_protocol/ql2.pb.h"
+#include "rdb_protocol/sym.hpp"
 
 /** RVALUE_THIS
  *
@@ -104,7 +104,7 @@ public:
     void swap(Term &t);
 
     void copy_optargs_from_term(const Term &from);
-    void copy_args_from_term(const Term &from, size_t start_index = 0);
+    void copy_args_from_term(const Term &from, size_t start_index);
 
 #define REQL_METHOD(name, termtype)                                     \
     template<class... T>                                                \

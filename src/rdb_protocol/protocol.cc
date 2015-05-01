@@ -50,7 +50,6 @@ store_key_t key_max(sorting_t sorting) {
 
 RDB_IMPL_PROTOB_SERIALIZABLE(Term);
 RDB_IMPL_PROTOB_SERIALIZABLE(Datum);
-RDB_IMPL_PROTOB_SERIALIZABLE(Backtrace);
 
 RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(backfill_atom_t, key, value, recency);
 
@@ -749,7 +748,7 @@ void rdb_r_unshard_visitor_t::unshard_range_batch(const query_t &q, sorting_t so
                     strprintf("INTERNAL ERROR: mismatched skey versions %d and %d.",
                               out->skey_version,
                               resp->skey_version),
-                    nullptr);
+                    ql::backtrace_id_t::empty());
                 return;
             }
 #endif // NDEBUG

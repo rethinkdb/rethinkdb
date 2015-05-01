@@ -330,7 +330,7 @@ private:
                         }
                     }
                 } catch (const exc_t &e) {
-                    throw exc_t(e.get_type(), fail_msg, e.backtrace());
+                    throw exc_t(e.get_type(), fail_msg, e.backtrace(), e.dummy_frames());
                 } catch (const datum_exc_t &de) {
                     rfail_target(v, base_exc_t::GENERIC, "%s  %s", fail_msg, de.what());
                 }
@@ -345,16 +345,18 @@ private:
     virtual const char *name() const { return "foreach"; }
 };
 
-counted_t<term_t>
-make_insert_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_insert_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<insert_term_t>(env, term);
 }
-counted_t<term_t>
-make_replace_term(compile_env_t *env, const protob_t<const Term> &term) {
+
+counted_t<term_t> make_replace_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<replace_term_t>(env, term);
 }
-counted_t<term_t>
-make_foreach_term(compile_env_t *env, const protob_t<const Term> &term) {
+
+counted_t<term_t> make_foreach_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<foreach_term_t>(env, term);
 }
 

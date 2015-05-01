@@ -19,30 +19,17 @@
 #include "containers/counted.hpp"
 #include "containers/intrusive_list.hpp"
 #include "containers/object_buffer.hpp"
-#include "rdb_protocol/term.hpp"
 #include "rdb_protocol/datum_stream.hpp"
+#include "rdb_protocol/backtrace.hpp"
+#include "rdb_protocol/error.hpp"
 #include "rdb_protocol/ql2.pb.h"
+#include "rdb_protocol/term.hpp"
 
 namespace ql {
 class env_t;
 }
 
 namespace ql {
-
-class query_cache_exc_t : public std::exception {
-public:
-    query_cache_exc_t(Response_ResponseType _type,
-                      std::string _message,
-                      backtrace_t _bt);
-    ~query_cache_exc_t() throw ();
-
-    void fill_response(Response *res) const;
-    const char *what() const throw ();
-
-    const Response_ResponseType type;
-    const std::string message;
-    const backtrace_t bt;
-};
 
 // A query id, should be allocated when each query is received from the client
 // in order, so order can be checked for in queries that require it
@@ -125,15 +112,17 @@ public:
 
 private:
     struct entry_t {
-        entry_t(protob_t<Query> original_query,
-                std::map<std::string, wire_func_t> &&global_optargs,
-                counted_t<const term_t> root_term);
+        entry_t(protob_t<Query> _original_query,
+                backtrace_registry_t &&_bt_reg,
+                std::map<std::string, wire_func_t> &&_global_optargs,
+                counted_t<const term_t> _root_term);
         ~entry_t();
 
         enum class state_t { START, STREAM, DONE, DELETING } state;
 
         const uuid_u job_id;
         const protob_t<Query> original_query;
+        const backtrace_registry_t bt_reg;
         const std::map<std::string, wire_func_t> global_optargs;
         const profile_bool_t profile;
         const microtime_t start_time;

@@ -16,11 +16,10 @@
 // destroyed.  That's what protob_t (almost) does.
 //
 // protob_t also supports the base object type being Query, instead of Term.
-// It also supports the base object type being Backtrace (used in wire_func_t).
 
 namespace ql {
 
-// A struct with a refcount and either a Term or a Query or a Backtrace.
+// A struct with a refcount and either a Term or a Query
 struct protob_pointee_t : public slow_atomic_countable_t<protob_pointee_t> {
     protob_pointee_t() { }
     virtual ~protob_pointee_t() { }
@@ -36,12 +35,6 @@ struct protob_query_t : public protob_pointee_t {
     protob_query_t() { }
 
     Query query;
-};
-
-struct protob_backtrace_t : public protob_pointee_t {
-    protob_backtrace_t() { }
-
-    Backtrace backtrace;
 };
 
 template <class T>
@@ -94,7 +87,6 @@ private:
 
     friend protob_t<Term> make_counted_term_copy(const Term &copyee);
     friend protob_t<Query> make_counted_query();
-    friend protob_t<Backtrace> make_counted_backtrace();
 
     // Used by make_counted_term_copy.
     protob_t(protob_pointee_t *term, T *pointee)
@@ -113,8 +105,6 @@ protob_t<Term> make_counted_term();
 // Makes a protob_t<Query> with a default-constructed Query, which is
 // reference-counted (with the base object being a Query!).
 protob_t<Query> make_counted_query();
-
-protob_t<Backtrace> make_counted_backtrace();
 
 }  // namespace ql
 

@@ -4,7 +4,7 @@
 #include "rdb_protocol/datum_stream.hpp"
 
 bool artificial_table_backend_t::read_all_rows_as_stream(
-        const ql::protob_t<const Backtrace> &bt,
+        ql::backtrace_id_t bt,
         const ql::datum_range_t &range,
         sorting_t sorting,
         signal_t *interruptor,

@@ -194,7 +194,7 @@ public:
         const datum_t &squash,
         bool include_states,
         const namespace_id_t &table,
-        const protob_t<const Backtrace> &bt,
+        backtrace_id_t bt,
         const std::string &table_name,
         const keyspec_t::spec_t &spec);
     void maybe_remove_feed(
@@ -533,7 +533,7 @@ public:
         const keyspec_t::spec_t &spec,
         const std::string &primary_key_name,
         const std::vector<datum_t> &initial_values,
-        const protob_t<const Backtrace> &bt);
+        backtrace_id_t bt);
 
     void send_all(const msg_t &msg);
 

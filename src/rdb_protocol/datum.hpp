@@ -291,8 +291,7 @@ public:
     // json_writer_t can be rapidjson::Writer<rapidjson::StringBuffer>
     // or rapidjson::PrettyWriter<rapidjson::StringBuffer>
     template <class json_writer_t> void write_json(json_writer_t *writer) const;
-    counted_t<datum_stream_t> as_datum_stream(
-            const protob_t<const Backtrace> &backtrace) const;
+    counted_t<datum_stream_t> as_datum_stream(backtrace_id_t backtrace) const;
 
     // These behave as expected and defined in RQL.  Theoretically, two data of the
     // same type should compare appropriately, while disparate types are compared

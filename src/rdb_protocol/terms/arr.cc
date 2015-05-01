@@ -13,7 +13,8 @@ namespace ql {
 
 class pend_term_t : public op_term_t {
 public:
-    pend_term_t(compile_env_t *env, const protob_t<const Term> &term) : op_term_t(env, term, argspec_t(2)) { }
+    pend_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : op_term_t(env, term, argspec_t(2)) { }
 protected:
     enum which_pend_t { PRE, AP };
 
@@ -41,7 +42,8 @@ protected:
 
 class append_term_t : public pend_term_t {
 public:
-    append_term_t(compile_env_t *env, const protob_t<const Term> &term) : pend_term_t(env, term) { }
+    append_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : pend_term_t(env, term) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env,
                                        args_t *args,
@@ -53,7 +55,8 @@ private:
 
 class prepend_term_t : public pend_term_t {
 public:
-    prepend_term_t(compile_env_t *env, const protob_t<const Term> &term) : pend_term_t(env, term) { }
+    prepend_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : pend_term_t(env, term) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         return pend(env, args, PRE);
@@ -180,8 +183,8 @@ private:
 
 class is_empty_term_t : public op_term_t {
 public:
-    is_empty_term_t(compile_env_t *env, const protob_t<const Term> &term) :
-        op_term_t(env, term, argspec_t(1)) { }
+    is_empty_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         batchspec_t batchspec = batchspec_t::user(batch_type_t::NORMAL, env->env);
@@ -468,7 +471,7 @@ public:
      * indexes so we need to make it here. */
     enum index_method_t { ELEMENTS, SPACES};
 
-    at_term_t(compile_env_t *env, protob_t<const Term> term,
+    at_term_t(compile_env_t *env, const protob_t<const Term> term,
               argspec_t argspec, index_method_t index_method)
         : op_term_t(env, term, argspec), index_method_(index_method) { }
 
@@ -553,7 +556,8 @@ private:
 
 class offsets_of_term_t : public op_term_t {
 public:
-    offsets_of_term_t(compile_env_t *env, const protob_t<const Term> &term) : op_term_t(env, term, argspec_t(2)) { }
+    offsets_of_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         scoped_ptr_t<val_t> v = args->arg(env, 1);
