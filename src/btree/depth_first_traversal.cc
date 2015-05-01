@@ -76,7 +76,7 @@ continue_bool_t btree_depth_first_traversal(
     }
 
     block_id_t root_block_id = superblock->get_root_block_id();
-    if (root_block_id == NULL_BLOCK_ID || range.is_empty()) {
+    if (root_block_id == NULL_BLOCK_ID) {
         if (release_superblock == release_superblock_t::RELEASE) {
             superblock->release();
         }
