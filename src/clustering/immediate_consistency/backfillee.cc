@@ -47,6 +47,11 @@ public:
             &session_t::run, this, drainer.lock()));
     }
 
+    ~session_t() {
+        guarantee(!done_cond.is_pulsed() || items_mem_size_unacked == 0,
+            "we seem to have leaked some semaphore credits");
+    }
+
     /* `backfillee_t()` calls these callbacks when it receives messages from the
     backfiller via the corresponding mailboxes. */
     void on_items(
@@ -85,6 +90,12 @@ private:
                 /* Wait until we receive some items from the backfiller so we have
                 something to do, or the session is terminated. */
                 while (items.empty_domain()) {
+                    /* Make sure that the backfiller isn't waiting for us to ack more
+                    items, or else we'd wait forever. This also ensures that if we're
+                    ending the session, we'll ack every item instead of leaking semaphore
+                    credits. */
+                    send_ack_items();
+
                     if (got_ack_end_session.is_pulsed()) {
                         /* The callback returned false, so we sent an end-session message
                         to the backfiller, and it replied; then we drained the `items`
@@ -93,10 +104,6 @@ private:
                         done_cond.pulse();
                         return;
                     }
-
-                    /* Make sure that the backfiller isn't waiting for us to ack more
-                    items */
-                    send_ack_items();
 
                     /* `send_ack_items()` could block, so we have to check again */
                     if (!items.empty_domain()) {
@@ -199,7 +206,6 @@ private:
                 parent->store->receive_backfill(
                     subregion, &producer, keepalive.get_drain_signal());
             }
-
             /* We reached the end of the range to be backfilled. The callback may or may
             not have returned `false` at some point along the way. */
             guarantee(items.empty_domain());
