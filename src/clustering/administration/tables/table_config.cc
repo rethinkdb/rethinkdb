@@ -318,6 +318,7 @@ bool convert_table_config_and_name_from_datum(
         const cluster_semilattice_metadata_t &all_metadata,
         admin_identifier_format_t identifier_format,
         server_config_client_t *server_config_client,
+        table_meta_client_t *table_meta_client,
         signal_t *interruptor,
         namespace_id_t *id_out,
         table_config_t *config_out,
@@ -362,6 +363,9 @@ bool convert_table_config_and_name_from_datum(
         return false;
     }
 
+    /* As a special case, we allow the user to omit `primary_key`, `shards`,
+    `write_acks`, and/or `durability` for newly-created tables. */
+
     if (existed_before || converter.has("primary_key")) {
         ql::datum_t primary_key_datum;
         if (!converter.get("primary_key", &primary_key_datum, error_out)) {
@@ -399,11 +403,9 @@ bool convert_table_config_and_name_from_datum(
             return false;
         }
     } else {
-        std::map<server_id_t, int> server_usage;
-        // RSI(raft): Fill in `server_usage` so we make smarter choices
         try {
             table_generate_config(
-                server_config_client, nil_uuid(), nullptr, server_usage,
+                server_config_client, nil_uuid(), table_meta_client,
                 table_generate_config_params_t::make_default(), table_shard_scheme_t(),
                 interruptor, &config_out->shards);
         } catch (const generate_config_exc_t &msg) {
@@ -561,8 +563,9 @@ bool table_config_artificial_table_backend_t::write_row(
                 namespace_id_t new_table_id;
                 name_string_t new_db_name;
                 if (!convert_table_config_and_name_from_datum(*new_value_inout, true,
-                        metadata, identifier_format, server_config_client, &interruptor,
-                        &new_table_id, &new_config, &new_db_name, error_out)) {
+                        metadata, identifier_format, server_config_client,
+                        table_meta_client, &interruptor, &new_table_id, &new_config,
+                        &new_db_name, error_out)) {
                     *error_out = "The change you're trying to make to "
                         "`rethinkdb.table_config` has the wrong format. " + *error_out;
                     return false;
@@ -599,8 +602,8 @@ bool table_config_artificial_table_backend_t::write_row(
             table_config_t new_config;
             name_string_t new_db_name;
             if (!convert_table_config_and_name_from_datum(*new_value_inout, false,
-                    metadata, identifier_format, server_config_client, &interruptor,
-                    &new_table_id, &new_config, &new_db_name, error_out)) {
+                    metadata, identifier_format, server_config_client, table_meta_client,
+                    &interruptor, &new_table_id, &new_config, &new_db_name, error_out)) {
                 *error_out = "The change you're trying to make to "
                     "`rethinkdb.table_config` has the wrong format. " + *error_out;
                 return false;

@@ -95,7 +95,9 @@ public:
     void get_status(
         const namespace_id_t &table_id,
         signal_t *interruptor,
-        std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > *res_out)
+        std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
+            *index_statuses_out,
+        std::map<peer_id_t, contracts_and_contract_acks_t> *contracts_and_acks_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t);
 
     /* `create()` creates a table with the given configuration. It sets `*table_id_out`

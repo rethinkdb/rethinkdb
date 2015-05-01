@@ -148,11 +148,35 @@ void table_manager_t::write_persistent_state(
 void table_manager_t::on_get_status(
         signal_t *interruptor,
         const mailbox_t<void(
-            std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
+            std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >,
+            contracts_and_contract_acks_t
             )>::address_t &reply_addr) {
-    std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > res =
+    std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > sindex_status =
         sindex_manager.get_status(interruptor);
-    send(mailbox_manager, reply_addr, res);
+
+    contracts_and_contract_acks_t contracts_and_contract_acks;
+    {
+        /* Note that despite the `ASSERT_NO_CORO_WAITING` there may be contract
+           acknowledgements in `contract_acks` that refer to a contract that is not in
+           `contracts`.
+
+           This may happen because of the two-step process in
+           `contract_executor_t::update_blocking` which first resets the executor and
+           only then removes the acknowledgement from the `ack_map`. */
+        ASSERT_NO_CORO_WAITING;
+
+        contracts_and_contract_acks.timestamp.epoch = epoch;
+        contracts_and_contract_acks.timestamp.log_index =
+            raft.get_raft()->get_committed_state()->get().log_index;
+        contracts_and_contract_acks.contracts =
+            raft.get_raft()->get_committed_state()->get().state.contracts;
+        for (const auto &contract_ack : contract_executor.get_acks()->get_all()) {
+            contracts_and_contract_acks.contract_acks.insert(
+                std::make_pair(contract_ack.first.second, contract_ack.second));
+        }
+    }
+
+    send(mailbox_manager, reply_addr, sindex_status, contracts_and_contract_acks);
 }
 
 void table_manager_t::on_table_directory_change(

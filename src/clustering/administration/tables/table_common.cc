@@ -13,8 +13,7 @@ common_table_artificial_table_backend_t::common_table_artificial_table_backend_t
         admin_identifier_format_t _identifier_format) :
     semilattice_view(_semilattice_view),
     table_meta_client(_table_meta_client),
-    identifier_format(_identifier_format),
-    subs([this]() { notify_all(); }, semilattice_view)
+    identifier_format(_identifier_format)
 {
     semilattice_view->assert_thread();
 }

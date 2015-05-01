@@ -237,10 +237,8 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
             config_params.num_shards, &config.shard_scheme);
 
         /* Pick which servers to host the data */
-        std::map<server_id_t, int> server_usage;
-        // RSI(raft): Fill in `server_usage` so we make smarter choices
         table_generate_config(
-            server_config_client, nil_uuid(), nullptr, server_usage,
+            server_config_client, nil_uuid(), table_meta_client,
             config_params, config.shard_scheme, &interruptor2,
             &config.config.shards);
 
@@ -254,7 +252,21 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
             convert_name_to_datum(db->name), config.config,
             admin_identifier_format_t::name, server_config_client);
 
-        // RSI(raft): Wait for table to become available to handle queries
+        table_status_artificial_table_backend_t *status_backend =
+            admin_tables->table_status_backend[
+                static_cast<int>(admin_identifier_format_t::name)].get();
+        {
+            threadnum_t threadnum = status_backend->home_thread();
+            cross_thread_signal_t ct_interruptor(interruptor, threadnum);
+            on_thread_t thread_switcher(threadnum);
+
+            wait_for_table_readiness(
+                table_id,
+                table_readiness_t::finished,
+                status_backend,
+                &ct_interruptor,
+                nullptr);
+        }
 
         ql::datum_object_builder_t result_builder;
         result_builder.overwrite("tables_created", ql::datum_t(1.0));
@@ -436,19 +448,8 @@ bool real_reql_cluster_interface_t::table_status(
         ql::env_t *env,
         scoped_ptr_t<ql::val_t> *selection_out,
         std::string *error_out) {
-    // RSI(raft): Reimplement this once table meta operations work
-    not_implemented();
-    (void)db;
-    (void)name;
-    (void)bt;
-    (void)env;
-    (void)selection_out;
-    (void)error_out;
-    return false;
-#if 0
     namespace_id_t table_id;
-    if (!search_table_metadata_by_name(*get_namespaces_metadata(), db->id, db->name,
-            name, &table_id, error_out)) {
+    if (!find_table(db, name, &table_id, nullptr, error_out)) {
         return false;
     }
     return make_single_selection(
@@ -457,7 +458,6 @@ bool real_reql_cluster_interface_t::table_status(
         name_string_t::guarantee_valid("table_status"), table_id, bt,
         strprintf("Table `%s.%s` does not exist.", db->name.c_str(), name.c_str()),
         env, selection_out, error_out);
-#endif
 }
 
 /* Waits until all of the tables listed in `tables` are ready to the given level of
@@ -469,15 +469,6 @@ bool real_reql_cluster_interface_t::wait_internal(
         ql::datum_t *result_out,
         int *count_out,
         std::string *error_out) {
-    // RSI(raft): Reimplement this oncee table meta operations work
-    not_implemented();
-    (void)tables;
-    (void)readiness;
-    (void)interruptor;
-    (void)result_out;
-    (void)count_out;
-    (void)error_out;
-#if 0
     table_status_artificial_table_backend_t *status_backend =
         admin_tables->table_status_backend[
             static_cast<int>(admin_identifier_format_t::name)].get();
@@ -507,7 +498,7 @@ bool real_reql_cluster_interface_t::wait_internal(
     and running test queries. We consider ourselves done when both tests succeed for
     every table with no failures in between. */
     while (true) {
-        /* First we wait until all the `table_status_backend` checks succeed in a row */ 
+        /* First we wait until all the `table_status_backend` checks succeed in a row */
         {
             threadnum_t new_thread = status_backend->home_thread();
             cross_thread_signal_t ct_interruptor(interruptor, new_thread);
@@ -557,20 +548,25 @@ bool real_reql_cluster_interface_t::wait_internal(
 
     guarantee(new_statuses.size() == tables.size());
 
-    ql::datum_object_builder_t result_builder;
-    result_builder.overwrite("ready", ql::datum_t(static_cast<double>(tables.size())));
-    ql::datum_array_builder_t status_changes_builder(ql::configured_limits_t::unlimited);
-    for (const namespace_id_t &table_id : tables) {
-        ql::datum_object_builder_t change_builder;
-        change_builder.overwrite("old_val", old_statuses.at(table_id));
-        change_builder.overwrite("new_val", new_statuses.at(table_id));
-        status_changes_builder.add(std::move(change_builder).to_datum());
+    if (result_out != nullptr) {
+        ql::datum_object_builder_t result_builder;
+        result_builder.overwrite("ready",
+            ql::datum_t(static_cast<double>(tables.size())));
+        ql::datum_array_builder_t status_changes_builder(
+            ql::configured_limits_t::unlimited);
+        for (const namespace_id_t &table_id : tables) {
+            ql::datum_object_builder_t change_builder;
+            change_builder.overwrite("old_val", old_statuses.at(table_id));
+            change_builder.overwrite("new_val", new_statuses.at(table_id));
+            status_changes_builder.add(std::move(change_builder).to_datum());
+        }
+        result_builder.overwrite("status_changes",
+            std::move(status_changes_builder).to_datum());
+        *result_out = std::move(result_builder).to_datum();
     }
-    result_builder.overwrite("status_changes",
-        std::move(status_changes_builder).to_datum());
-    *result_out = std::move(result_builder).to_datum();
-    *count_out = tables.size();
-#endif
+    if (count_out != nullptr) {
+        *count_out = tables.size();
+    }
     return true;
 }
 
@@ -581,25 +577,13 @@ bool real_reql_cluster_interface_t::table_wait(
         signal_t *interruptor,
         ql::datum_t *result_out,
         std::string *error_out) {
-    // RSI(raft): Reimplement this once table meta operations work
-    not_implemented();
-    (void)db;
-    (void)name;
-    (void)readiness;
-    (void)interruptor;
-    (void)result_out;
-    (void)error_out;
-#if 0
     namespace_id_t table_id;
-    if (!search_table_metadata_by_name(*get_namespaces_metadata(), db->id, db->name,
-            name, &table_id, error_out)) {
+    if (!find_table(db, name, &table_id, nullptr, error_out)) {
         return false;
     }
 
-    std::set<namespace_id_t> table_ids;
-    table_ids.insert(table_id);
     int num_waited;
-    if (!wait_internal(table_ids, readiness, interruptor,
+    if (!wait_internal({table_id}, readiness, interruptor,
             result_out, &num_waited, error_out)) {
         return false;
     }
@@ -612,7 +596,6 @@ bool real_reql_cluster_interface_t::table_wait(
             db->name.c_str(), name.c_str());
         return false;
     }
-#endif
     return true;
 }
 
@@ -622,31 +605,20 @@ bool real_reql_cluster_interface_t::db_wait(
         signal_t *interruptor,
         ql::datum_t *result_out,
         std::string *error_out) {
-    // RSI(raft): Reimplement this once table meta operations work
-    not_implemented();
-    (void)db;
-    (void)readiness;
-    (void)interruptor;
-    (void)result_out;
-    (void)error_out;
-    return false;
-#if 0
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
 
-    cow_ptr_t<namespaces_semilattice_metadata_t> ns_metadata = get_namespaces_metadata();
     std::set<namespace_id_t> table_ids;
-    for (const auto &pair : ns_metadata->namespaces) {
-        if (!pair.second.is_deleted() &&
-                pair.second.get_ref().database.get_ref() == db->id) {
-            table_ids.insert(pair.first);
+    std::map<namespace_id_t, std::pair<database_id_t, name_string_t> > tables;
+    table_meta_client->list_names(&tables);
+    for (const auto &table : tables) {
+        if (table.second.first == db->id) {
+            table_ids.insert(table.first);
         }
     }
 
-    int dummy_num_waited;
     return wait_internal(table_ids, readiness, interruptor,
-        result_out, &dummy_num_waited, error_out);
-#endif
+        result_out, nullptr, error_out);
 }
 
 void real_reql_cluster_interface_t::reconfigure_internal(
@@ -669,9 +641,6 @@ void real_reql_cluster_interface_t::reconfigure_internal(
         table_id, convert_name_to_datum(db->name), old_config.config,
         admin_identifier_format_t::name, server_config_client);
 
-    /* RSI(raft): Reimplement this once `table_status` is implemented */
-    ql::datum_t old_status_datum("this is a fake status");
-#if 0
     table_status_artificial_table_backend_t *status_backend =
         admin_tables->table_status_backend[
             static_cast<int>(admin_identifier_format_t::name)].get();
@@ -680,7 +649,6 @@ void real_reql_cluster_interface_t::reconfigure_internal(
             &old_status, error_out)) {
         return false;
     }
-#endif
 
     table_config_and_shards_t new_config;
     new_config.config.basic = old_config.config.basic;
@@ -693,13 +661,10 @@ void real_reql_cluster_interface_t::reconfigure_internal(
         interruptor,
         &new_config.shard_scheme);
 
-    /* RSI(raft): Fill in `server_usage` so we make smarter choices */
-    std::map<server_id_t, int> server_usage;
-
     /* `table_generate_config()` just generates the config; it doesn't apply it */
     table_generate_config(
-            server_config_client, table_id, table_meta_client, server_usage,
-            params, new_config.shard_scheme, interruptor, &new_config.config.shards);
+        server_config_client, table_id, table_meta_client,
+        params, new_config.shard_scheme, interruptor, &new_config.config.shards);
 
     new_config.config.write_ack_config.mode = write_ack_config_t::mode_t::majority;
     new_config.config.durability = write_durability_t::HARD;
@@ -712,15 +677,11 @@ void real_reql_cluster_interface_t::reconfigure_internal(
     ql::datum_t new_config_datum = convert_table_config_to_datum(
         table_id, convert_name_to_datum(db->name), new_config.config,
         admin_identifier_format_t::name, server_config_client);
-
-    /* RSI(raft): Reimplement this once `table_status` is implemented */
-    ql::datum_t new_status_datum("this is a fake status");
-#if 0
+    ql::datum_t new_status;
     if (!status_backend->read_row(convert_uuid_to_datum(table_id), interruptor,
             &new_status, error_out)) {
         return false;
     }
-#endif
 
     ql::datum_object_builder_t result_builder;
     if (!dry_run) {
@@ -728,7 +689,7 @@ void real_reql_cluster_interface_t::reconfigure_internal(
         result_builder.overwrite("config_changes",
             make_replacement_pair(old_config_datum, new_config_datum));
         result_builder.overwrite("status_changes",
-            make_replacement_pair(old_status_datum, new_status_datum));
+            make_replacement_pair(old_status, new_status));
     } else {
         result_builder.overwrite("reconfigured", ql::datum_t(0.0));
         result_builder.overwrite("config_changes",
@@ -818,9 +779,6 @@ void real_reql_cluster_interface_t::rebalance_internal(
     table_config_and_shards_t config;
     table_meta_client->get_config(table_id, interruptor, &config);
 
-    /* RSI(raft): Reimplement this once `table_status` is implemented */
-    ql::datum_t old_status_datum("this is a fake status");
-#if 0
     table_status_artificial_table_backend_t *status_backend =
         admin_tables->table_status_backend[
             static_cast<int>(admin_identifier_format_t::name)].get();
@@ -829,7 +787,6 @@ void real_reql_cluster_interface_t::rebalance_internal(
             &old_status, error_out)) {
         return false;
     }
-#endif
 
     std::map<store_key_t, int64_t> counts;
     fetch_distribution(table_id, this, interruptor, &counts);
@@ -843,18 +800,15 @@ void real_reql_cluster_interface_t::rebalance_internal(
     }
 
     /* RSI(raft): Reimplement this once `table_status` is implemented */
-    ql::datum_t new_status_datum("this is a fake status");
-#if 0
+    ql::datum_t new_status;
     if (!status_backend->read_row(convert_uuid_to_datum(table_id), interruptor,
             &new_status, error_out)) {
         return false;
     }
-#endif
 
     ql::datum_object_builder_t builder;
     builder.overwrite("rebalanced", ql::datum_t(actually_rebalanced ? 1.0 : 0.0));
-    builder.overwrite("status_changes",
-        make_replacement_pair(old_status_datum, new_status_datum));
+    builder.overwrite("status_changes", make_replacement_pair(old_status, new_status));
     *results_out = std::move(builder).to_datum();
 }
 
@@ -1051,7 +1005,7 @@ bool real_reql_cluster_interface_t::sindex_list(
         namespace_id_t table_id;
         table_meta_client->find(db->id, table_name, &table_id);
         table_meta_client->get_status(
-            table_id, &ct_interruptor, configs_and_statuses_out);
+            table_id, &ct_interruptor, configs_and_statuses_out, nullptr);
         return true;
     } CATCH_NAME_ERRORS(db->name, table_name, error_out)
       CATCH_OP_ERRORS(db->name, table_name, error_out, "", "")

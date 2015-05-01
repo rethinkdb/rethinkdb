@@ -77,7 +77,8 @@ private:
     void on_get_status(
         signal_t *interruptor,
         const mailbox_t<void(
-            std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
+            std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >,
+            contracts_and_contract_acks_t
             )>::address_t &reply_addr);
 
     /* This is the callback for `table_directory_subs`. It's responsible for

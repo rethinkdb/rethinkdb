@@ -187,10 +187,13 @@ void table_meta_client_t::list_configs(
 void table_meta_client_t::get_status(
         const namespace_id_t &table_id,
         signal_t *interruptor_on_caller,
-        std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > *res_out)
+        std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
+            *sindex_statuses_out,
+        std::map<peer_id_t, contracts_and_contract_acks_t> *contracts_and_acks_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t) {
     typedef std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
-        statuses_t;
+        index_statuses_t;
+    typedef std::map<peer_id_t, contracts_and_contract_acks_t> contracts_and_acks_t;
 
     cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
@@ -198,11 +201,14 @@ void table_meta_client_t::get_status(
     /* Initialize the sindex map. We fill in the `sindex_config_t`s at this stage, but we
     set the `sindex_status_t`s to empty. The rest of this function is concerned with
     filling in the `sindex_status_t`s. */
-    res_out->clear();
-    table_config_and_shards_t config;
-    get_config(table_id, &interruptor, &config);
-    for (const auto &pair : config.config.sindexes) {
-        (*res_out)[pair.first] = std::make_pair(pair.second, sindex_status_t());
+    if (sindex_statuses_out != nullptr) {
+        sindex_statuses_out->clear();
+        table_config_and_shards_t config;
+        get_config(table_id, &interruptor, &config);
+        for (const auto &pair : config.config.sindexes) {
+            (*sindex_statuses_out)[pair.first] =
+                std::make_pair(pair.second, sindex_status_t());
+        }
     }
 
     /* Collect status mailbox addresses for every single server we can see that's hosting
@@ -216,49 +222,61 @@ void table_meta_client_t::get_status(
         }
     });
 
-    /* Send a message to every server and collect all of the results in `res` */
+    /* Send a message to every server and collect all of the results in
+       `sindex_statuses_out`, `contract_acks_t`, and `contracts_t`. */
     bool at_least_one_reply = false;
     pmap(addresses.begin(), addresses.end(),
-    [&](const table_manager_bcard_t::get_status_mailbox_t::address_t &a) {
+    [&](const table_manager_bcard_t::get_status_mailbox_t::address_t &addr) {
         /* There are two things that can go wrong. One is that we'll lose contact with
         the other server; in this case `server_disconnected` will be pulsed. The other is
         that the server will stop hosting the given table; in this case `server_stopped`
         will be pulsed. */
-        disconnect_watcher_t server_disconnected(mailbox_manager, a.get_peer());
+        disconnect_watcher_t server_disconnected(mailbox_manager, addr.get_peer());
         cond_t server_stopped;
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
                 ::key_subs_t bcard_subs(
-            table_manager_directory, std::make_pair(a.get_peer(), table_id),
+            table_manager_directory, std::make_pair(addr.get_peer(), table_id),
             [&](const table_manager_bcard_t *bcard) {
                 /* We check equality of `bcard->get_config_mailbox` because if the other
                 server stops hosting the table and then immediately starts again, any
                 messages we send will be dropped. */
-                if (bcard == nullptr || !(bcard->get_status_mailbox == a)) {
+                if (bcard == nullptr || !(bcard->get_status_mailbox == addr)) {
                     server_stopped.pulse_if_not_already_pulsed();
                 }
             }, true);
 
         cond_t got_reply;
-        mailbox_t<void(statuses_t)> ack_mailbox(
+        mailbox_t<void(index_statuses_t, contracts_and_contract_acks_t)> ack_mailbox(
             mailbox_manager,
-            [&](signal_t *, const statuses_t &statuses) {
+            [&](signal_t *,
+                    const index_statuses_t &statuses,
+                    const contracts_and_contract_acks_t &contracts_and_acks) {
                 /* Make sure every sindex in the config is present in the reply from this
                 server. If a sindex isn't present on this server, we set its `ready`
                 field to false. */
-                for (auto &&pair : *res_out) {
-                    auto it = statuses.find(pair.first);
-                    /* Note that we treat an index with the wrong definition like a
-                    missing index. */
-                    if (it != statuses.end() && it->second.first == pair.second.first) {
-                        pair.second.second.accum(it->second.second);
-                    } else {
-                        pair.second.second.ready = false;
+                if (sindex_statuses_out != nullptr) {
+                    for (auto &&pair : *sindex_statuses_out) {
+                        auto it = statuses.find(pair.first);
+                        /* Note that we treat an index with the wrong definition like a
+                        missing index. */
+                        if (it != statuses.end() &&
+                                it->second.first == pair.second.first) {
+                            pair.second.second.accum(it->second.second);
+                        } else {
+                            pair.second.second.ready = false;
+                        }
                     }
                 }
+
+                if (contracts_and_acks_out != nullptr) {
+                    contracts_and_acks_out->insert(
+                        std::make_pair(addr.get_peer(), contracts_and_acks));
+                }
+
                 got_reply.pulse();
             });
 
-        send(mailbox_manager, a, ack_mailbox.get_address());
+        send(mailbox_manager, addr, ack_mailbox.get_address());
         wait_any_t done_cond(
             &server_disconnected, &server_stopped, &got_reply, &interruptor);
         done_cond.wait_lazily_unordered();
