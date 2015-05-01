@@ -111,6 +111,27 @@ bool real_reql_cluster_interface_t::db_drop(const name_string_t &name,
             return false;
         }
 
+        /* Delete all of the tables in the database */
+        std::map<namespace_id_t, std::pair<database_id_t, name_string_t> > tables;
+        table_meta_client->list_names(&tables);
+        tables_dropped = 0;
+        for (const auto &pair : tables) {
+            if (pair.second.first == db_id) {
+                try {
+                    table_meta_client->drop(pair.first, &interruptor2);
+                    ++tables_dropped;
+                } catch (const no_such_table_exc_t &) {
+                    /* The table was dropped by something else between the time when we
+                    called `list_names()` and when we went to actually delete it. This is
+                    OK. */
+                } CATCH_OP_ERRORS(name, pair.second.second, error_out,
+                    "The database was not dropped, but some of the tables in it may or "
+                        "may not have been dropped.",
+                    "The database was not dropped, but some of the tables in it may or "
+                        "may not have been dropped.")
+            }
+        }
+
         old_config = convert_db_config_and_name_to_datum(name, db_id);
 
         metadata.databases.databases.at(db_id).mark_deleted();
@@ -118,19 +139,6 @@ bool real_reql_cluster_interface_t::db_drop(const name_string_t &name,
         semilattice_root_view->join(metadata);
         metadata = semilattice_root_view->get();
 
-        /* Delete all of the tables in the database */
-        std::map<namespace_id_t, std::pair<database_id_t, name_string_t> > tables;
-        table_meta_client->list_names(&tables);
-        tables_dropped = 0;
-        for (const auto &pair : tables) {
-            if (pair.second.first == db_id) {
-                /* Note that we silently ignore failures in this function. This is
-                consistent with our behavior if we cannot "see" the table at all. */
-                if (table_meta_client->drop(pair.first, &interruptor2)) {
-                    ++tables_dropped;
-                }
-            }
-        }
     }
     wait_for_metadata_to_propagate(metadata, interruptor);
 
@@ -188,7 +196,7 @@ bool real_reql_cluster_interface_t::db_config(
     } catch (const no_such_table_exc_t &) {
         *error_out = strprintf("Database `%s` does not exist.", db->name.c_str());
         return false;
-    } catch (const std::runtime_error &msg) {
+    } catch (const admin_op_exc_t &msg) {
         *error_out = msg.what();
         return false;
     }
@@ -212,22 +220,10 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
         on_thread_t thread_switcher(semilattice_root_view->home_thread());
 
         /* Make sure there isn't an existing table with the same name */
-        {
-            namespace_id_t dummy_table_id;
-            bool exists;
-            try {
-                table_meta_client->find(db->id, name, &dummy_table_id);
-                exists = true;
-            } catch (const no_such_table_exc_t &) {
-                exists = false;
-            } catch (const ambiguous_table_exc_t &) {
-                exists = true;
-            }
-            if (exists) {
-                *error_out = strprintf("Table `%s.%s` already exists.", db->name.c_str(),
-                    name.c_str());
-                return false;
-            }
+        if (table_meta_client->exists(db->id, name)) {
+            *error_out = strprintf("Table `%s.%s` already exists.", db->name.c_str(),
+                name.c_str());
+            return false;
         }
 
         table_config_and_shards_t config;
@@ -243,13 +239,10 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
         /* Pick which servers to host the data */
         std::map<server_id_t, int> server_usage;
         // RSI(raft): Fill in `server_usage` so we make smarter choices
-        if (!table_generate_config(
-                server_config_client, nil_uuid(), nullptr, server_usage,
-                config_params, config.shard_scheme, &interruptor2,
-                &config.config.shards, error_out)) {
-            *error_out = "When generating configuration for new table: " + *error_out;
-            return false;
-        }
+        table_generate_config(
+            server_config_client, nil_uuid(), nullptr, server_usage,
+            config_params, config.shard_scheme, &interruptor2,
+            &config.config.shards);
 
         config.config.write_ack_config.mode = write_ack_config_t::mode_t::majority;
         config.config.durability = durability;
@@ -271,6 +264,9 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
 
         return true;
 
+    } catch (const generate_config_exc_t &msg) {
+        *error_out = msg.what();
+        return false;
     } CATCH_NAME_ERRORS(db->name, name, error_out)
       CATCH_OP_ERRORS(db->name, name, error_out,
         "The table was not created.",
@@ -380,9 +376,7 @@ bool real_reql_cluster_interface_t::table_estimate_doc_counts(
 
         /* Perform a distribution query against the database */
         std::map<store_key_t, int64_t> counts;
-        if (!fetch_distribution(table_id, this, &interruptor2, &counts)) {
-            throw failed_table_op_exc_t();
-        }
+        fetch_distribution(table_id, this, &interruptor2, &counts);
 
         /* Match the results of the distribution query against the table's shard
         boundaries */
@@ -421,17 +415,18 @@ bool real_reql_cluster_interface_t::table_config(
         std::string *error_out) {
     try {
         namespace_id_t table_id;
-        table_meta_client->find(db, name, &table_id);
+        table_meta_client->find(db->id, name, &table_id);
         make_single_selection(
             admin_tables->table_config_backend[
                 static_cast<int>(admin_identifier_format_t::name)].get(),
             name_string_t::guarantee_valid("table_config"), table_id, bt,
             env, selection_out);
         return true;
-    } catch (const std::runtime_error &msg) {
+    } CATCH_NAME_ERRORS(db->name, name, error_out)
+      catch (const admin_op_exc_t &msg) {
         *error_out = msg.what();
         return false;
-    } CATCH_NAME_ERRORS(db->name, name, error_out)
+    } 
 }
 
 bool real_reql_cluster_interface_t::table_status(
@@ -657,7 +652,6 @@ bool real_reql_cluster_interface_t::db_wait(
 void real_reql_cluster_interface_t::reconfigure_internal(
         const counted_t<const ql::db_t> &db,
         const namespace_id_t &table_id,
-        const name_string_t &table_name,
         const table_generate_config_params_t &params,
         bool dry_run,
         signal_t *interruptor,
@@ -759,8 +753,7 @@ bool real_reql_cluster_interface_t::table_reconfigure(
         on_thread_t thread_switcher(server_config_client->home_thread());
         namespace_id_t table_id;
         table_meta_client->find(db->id, name, &table_id);
-        reconfigure_internal(
-            db, table_id, name, params, dry_run, &ct_interruptor, result_out);
+        reconfigure_internal(db, table_id, params, dry_run, &ct_interruptor, result_out);
         return true;
     } catch (const generate_config_exc_t &msg) {
         *error_out = "Invalid reconfiguration parameters: " + std::string(msg.what());
@@ -794,8 +787,8 @@ bool real_reql_cluster_interface_t::db_reconfigure(
         }
         ql::datum_t stats;
         try {
-            reconfigure_internal(db, pair.first, pair.second.second, params, dry_run,
-                &ct_interruptor, &stats);
+            reconfigure_internal(
+                db, pair.first, params, dry_run, &ct_interruptor, &stats);
         } catch (const no_such_table_exc_t &) {
             /* The table got deleted during the reconfiguration. It would be weird if
             `r.db('foo').reconfigure()` produced an error complaining that some table
@@ -809,15 +802,13 @@ bool real_reql_cluster_interface_t::db_reconfigure(
         combined_stats = combined_stats.merge(stats, &ql::stats_merge,
             ql::configured_limits_t::unlimited, &dummy_conditions);
         guarantee(dummy_conditions.empty());
-        return true;
     }
     *result_out = combined_stats;
+    return true;
 }
 
 void real_reql_cluster_interface_t::rebalance_internal(
-        const counted_t<const ql::db_t> &db,
         const namespace_id_t &table_id,
-        const name_string_t &table_name,
         signal_t *interruptor,
         ql::datum_t *results_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t,
@@ -880,8 +871,8 @@ bool real_reql_cluster_interface_t::table_rebalance(
     try {
         on_thread_t thread_switcher(server_config_client->home_thread());
         namespace_id_t table_id;
-        table_meta_client->find(db, name, &table_id);
-        rebalance_internal(db, table_id, name, &ct_interruptor, result_out);
+        table_meta_client->find(db->id, name, &table_id);
+        rebalance_internal(table_id, &ct_interruptor, result_out);
         return true;
     } CATCH_NAME_ERRORS(db->name, name, error_out)
       CATCH_OP_ERRORS(db->name, name, error_out,
@@ -910,8 +901,7 @@ bool real_reql_cluster_interface_t::db_rebalance(
         }
         ql::datum_t stats;
         try {
-            rebalance_internal(
-                db, pair.first, pair.second.second, &ct_interruptor, &stats);
+            rebalance_internal(pair.first, &ct_interruptor, &stats);
         } catch (const no_such_table_exc_t &) {
             /* This table was deleted while we were iterating over the tables list. So
             just ignore it to avoid making a confusing error message. */
@@ -941,19 +931,12 @@ void real_reql_cluster_interface_t::sindex_change_internal(
         server_config_client->home_thread());
     on_thread_t thread_switcher(server_config_client->home_thread());
     namespace_id_t table_id;
-    table_meta_client->find(db, table_name, &table_id);
+    table_meta_client->find(db->id, table_name, &table_id);
     table_config_and_shards_t config;
     table_meta_client->get_config(table_id, interruptor, &config);
     cb(&config.config.sindexes);
     table_meta_client->set_config(table_id, config, interruptor);
 }
-
-class sindex_op_exc_t : public std::runtime_error {
-public:
-    template<class A...>
-    sindex_op_exc_t(A&&... args) :
-        std::runtime_error(strprintf(std::forward<A>(args)...)) { }
-};
 
 bool real_reql_cluster_interface_t::sindex_create(
         counted_t<const ql::db_t> db,
@@ -965,16 +948,17 @@ bool real_reql_cluster_interface_t::sindex_create(
     try {
         sindex_change_internal(
             db, table,
-            [&](std::map<std::string, sindex_config_t> *map) -> bool {
+            [&](std::map<std::string, sindex_config_t> *map) {
                 if (map->count(name) == 1) {
-                    throw sindex_op_exc_t("Index `%s` already exists on table `%s.%s`.",
-                        name.c_str(), db->name.c_str(), table.c_str());
+                    throw admin_op_exc_t(strprintf(
+                        "Index `%s` already exists on table `%s.%s`.",
+                        name.c_str(), db->name.c_str(), table.c_str()));
                 }
                 map->insert(std::make_pair(name, config));
             },
             interruptor);
         return true;
-    } catch (const sindex_op_exc_t &exc) {
+    } catch (const admin_op_exc_t &exc) {
         *error_out = exc.what();
         return false;
     } CATCH_NAME_ERRORS(db->name, name, error_out)
@@ -992,16 +976,17 @@ bool real_reql_cluster_interface_t::sindex_drop(
     try {
         sindex_change_internal(
             db, table,
-            [&](std::map<std::string, sindex_config_t> *map) -> bool {
+            [&](std::map<std::string, sindex_config_t> *map) {
                 if (map->count(name) == 0) {
-                    throw sindex_op_exc_t("Index `%s` does not exist on table `%s.%s`.",
-                        name.c_str(), db->name.c_str(), table.c_str());
+                    throw admin_op_exc_t(strprintf(
+                        "Index `%s` does not exist on table `%s.%s`.",
+                        name.c_str(), db->name.c_str(), table.c_str()));
                 }
                 map->erase(name);
             },
             interruptor);
         return true;
-    } catch (const sindex_op_exc_t &exc) {
+    } catch (const admin_op_exc_t &exc) {
         *error_out = exc.what();
         return false;
     } CATCH_NAME_ERRORS(db->name, name, error_out)
@@ -1021,16 +1006,16 @@ bool real_reql_cluster_interface_t::sindex_rename(
     try {
         sindex_change_internal(
             db, table,
-            [&](std::map<std::string, sindex_config_t> *map) -> bool {
+            [&](std::map<std::string, sindex_config_t> *map) {
                 if (map->count(name) == 0) {
-                    throw sindex_op_exc_t("Index `%s` does not exist on table `%s.%s`.",
+                    throw admin_op_exc_t("Index `%s` does not exist on table `%s.%s`.",
                         name.c_str(), db->name.c_str(), table.c_str());
                 }
                 if (map->count(new_name) == 1) {
                     if (overwrite) {
                         map->erase(new_name);
                     } else {
-                        throw sindex_op_exc_t(
+                        throw admin_op_exc_t(
                             "Index `%s` already exists on table `%s.%s`.",
                             new_name.c_str(), db->name.c_str(), table.c_str());
                     }
@@ -1041,7 +1026,7 @@ bool real_reql_cluster_interface_t::sindex_rename(
             },
             interruptor);
         return true;
-    } catch (const sindex_op_exc_t &exc) {
+    } catch (const admin_op_exc_t &exc) {
         *error_out = exc.what();
         return false;
     } CATCH_NAME_ERRORS(db->name, name, error_out)
@@ -1064,7 +1049,7 @@ bool real_reql_cluster_interface_t::sindex_list(
     try {
         on_thread_t thread_switcher(server_config_client->home_thread());
         namespace_id_t table_id;
-        table_meta_client->find(db, table_name, &table_id);
+        table_meta_client->find(db->id, table_name, &table_id);
         table_meta_client->get_status(
             table_id, &ct_interruptor, configs_and_statuses_out);
         return true;
@@ -1113,12 +1098,12 @@ void real_reql_cluster_interface_t::make_single_selection(
         const ql::protob_t<const Backtrace> &bt,
         ql::env_t *env,
         scoped_ptr_t<ql::val_t> *selection_out)
-        THROWS_ONLY(no_such_table_exc_t, std::runtime_error) {
+        THROWS_ONLY(no_such_table_exc_t, admin_op_exc_t) {
     ql::datum_t row;
     std::string error;
     if (!table_backend->read_row(convert_uuid_to_datum(primary_key), env->interruptor,
             &row, &error)) {
-        throw std::runtime_error(error);
+        throw admin_op_exc_t(error);
     }
     if (!row.has()) {
         /* This is unlikely, but it can happen if the object is deleted between when we

@@ -244,7 +244,7 @@ void multi_table_manager_t::on_action(
                 break;
             default: unreachable();
         }
-        if (timestamp.supersedes(current_timestamp)) {
+        if (!timestamp.supersedes(current_timestamp)) {
             if (!ack_addr.is_nil()) {
                 send(mailbox_manager, ack_addr);
             }
@@ -344,6 +344,7 @@ void multi_table_manager_t::on_action(
         }
 
     } else if (action_status == action_status_t::DELETED) {
+        debugf("Got deletion action\n");
         if (!is_new) {
             /* Clean up the table's current records */
             if (table->status == table_t::status_t::ACTIVE) {

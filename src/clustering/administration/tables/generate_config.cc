@@ -69,13 +69,14 @@ static void validate_params(
     }
     static const size_t max_shards = 32;
     if (params.num_shards > max_shards) {
-        throw generate_config_exc_t("Maximum number of shards is %zu.", max_shards);
+        throw generate_config_exc_t(
+            strprintf("Maximum number of shards is %zu.", max_shards));
     }
     if (params.num_replicas.count(params.primary_replica_tag) == 0 ||
             params.num_replicas.at(params.primary_replica_tag) == 0) {
-        throw generate_config_exc_t("Can't use server tag `%s` for primary replicas "
-            "because you specified no replicas in server tag `%s`.",
-            params.primary_replica_tag.c_str(), params.primary_replica_tag.c_str());
+        throw generate_config_exc_t(strprintf("Can't use server tag `%s` for primary "
+            "replicas because you specified no replicas in server tag `%s`.",
+            params.primary_replica_tag.c_str(), params.primary_replica_tag.c_str()));
     }
     std::map<server_id_t, name_string_t> servers_claimed;
     for (auto it = params.num_replicas.begin(); it != params.num_replicas.end(); ++it) {
@@ -86,11 +87,11 @@ static void validate_params(
             if (servers_claimed.count(server) == 0) {
                 servers_claimed.insert(std::make_pair(server, it->first));
             } else {
-                throw generate_config_exc_t("Server tags `%s` and `%s` overlap; the "
-                    "server `%s` has both tags. The server tags used for replication "
-                    "settings for a given table must be non-overlapping.",
+                throw generate_config_exc_t(strprintf("Server tags `%s` and `%s` "
+                    "overlap; the server `%s` has both tags. The server tags used for "
+                    "replication settings for a given table must be non-overlapping.",
                     it->first.c_str(), servers_claimed.at(server).c_str(),
-                    server_names.at(server).c_str());
+                    server_names.at(server).c_str()));
             }
         }
     }
@@ -182,7 +183,7 @@ void pick_best_pairings(
     }
 }
 
-bool table_generate_config(
+void table_generate_config(
         server_config_client_t *server_config_client,
         namespace_id_t table_id,
         // RSI(raft): This will eventually be used
@@ -192,8 +193,8 @@ bool table_generate_config(
         // RSI(raft): This will eventually be used
         UNUSED const table_shard_scheme_t &shard_scheme,
         signal_t *interruptor,
-        std::vector<table_config_t::shard_t> *config_shards_out,
-        std::string *error_out) {
+        std::vector<table_config_t::shard_t> *config_shards_out)
+        THROWS_ONLY(interrupted_exc_t, generate_config_exc_t) {
     long_calculation_yielder_t yielder;
 
     /* First, make local copies of the server name map and the list of servers with each
@@ -218,9 +219,7 @@ bool table_generate_config(
         }
     }
 
-    if (!validate_params(params, servers_with_tags, server_names, error_out)) {
-        return false;
-    }
+    validate_params(params, servers_with_tags, server_names);
 
     yielder.maybe_yield(interruptor);
 
@@ -238,10 +237,11 @@ bool table_generate_config(
         name_string_t server_tag = it->first;
         size_t num_in_tag = servers_with_tags.at(server_tag).size();
         if (num_in_tag < it->second) {
-            throw generate_config_exc_t("Can't put %zu replicas on servers with the tag "
-                "`%s` because there are only %zu servers with the tag `%s`. It's "
-                "impossible to have more replicas of the data than there are servers.",
-                it->second, server_tag.c_str(), num_in_tag, server_tag.c_str());
+            throw generate_config_exc_t(strprintf("Can't put %zu replicas on servers "
+                "with the tag `%s` because there are only %zu servers with the tag "
+                "`%s`. It's impossible to have more replicas of the data than there "
+                "are servers.",
+                it->second, server_tag.c_str(), num_in_tag, server_tag.c_str()));
         }
 
         /* Compute the desirability of each shard/server pair */
@@ -347,7 +347,5 @@ bool table_generate_config(
         guarantee(!(*config_shards_out)[shard].primary_replica.is_unset());
         guarantee((*config_shards_out)[shard].replicas.size() == total_replicas);
     }
-
-    return true;
 }
 

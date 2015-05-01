@@ -5,8 +5,10 @@
 #include <set>
 #include <string>
 
+#include "clustering/administration/admin_op_exc.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/namespace_interface_repository.hpp"
+#include "clustering/administration/tables/generate_config.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
 #include "concurrency/watchable.hpp"
 #include "rdb_protocol/context.hpp"
@@ -197,7 +199,7 @@ private:
             const ql::protob_t<const Backtrace> &bt,
             ql::env_t *env,
             scoped_ptr_t<ql::val_t> *selection_out)
-            THROWS_ONLY(no_such_table_exc_t, std::runtime_error);
+            THROWS_ONLY(no_such_table_exc_t, admin_op_exc_t);
 
     bool wait_internal(
             std::set<namespace_id_t> tables,
@@ -210,7 +212,6 @@ private:
     void reconfigure_internal(
             const counted_t<const ql::db_t> &db,
             const namespace_id_t &table_id,
-            const name_string_t &table_name,
             const table_generate_config_params_t &params,
             bool dry_run,
             signal_t *interruptor,
@@ -219,9 +220,7 @@ private:
                 failed_table_op_exc_t, maybe_failed_table_op_exc_t);
 
     void rebalance_internal(
-            const counted_t<const ql::db_t> &db,
             const namespace_id_t &table_id,
-            const name_string_t &table_name,
             signal_t *interruptor,
             ql::datum_t *results_out)
             THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t,

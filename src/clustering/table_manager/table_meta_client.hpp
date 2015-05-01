@@ -20,17 +20,6 @@ public:
         std::runtime_error("there are multiple tables with the given name") { }
 };
 
-#define CATCH_NAME_ERRORS(db, name, error_out) \
-    catch (const no_such_table_exc_t &) { \
-        *(error_out) = strprintf("Table `%s.%s` does not exist.", (db).c_str(), \
-            (name).c_str()); \
-        return false; \
-    } catch (const ambiguous_table_exc_t &) { \
-        *(error_out) = strprintf("Table `%s.%s` is ambiguous; there are multiple " \
-            "tables with that name.", (db).c_str(), (name).c_str()); \
-        return false; \
-    }
-
 class failed_table_op_exc_t : public std::runtime_error {
 public:
     failed_table_op_exc_t() : std::runtime_error("the attempt to read or modify the "
@@ -43,17 +32,6 @@ public:
         "were trying to modify the table's configuration; the modification may or may "
         "not have been applied") { }
 };
-
-#define CATCH_OP_ERRORS(db, name, error_out, no_msg, maybe_msg) \
-    catch (const failed_table_op_exc_t &) { \
-        *(error_out) = strprintf("The server(s) hosting table `%s.%s` are currently " \
-            "unreachable. " no_msg, (db).c_str(), (name).c_str()); \
-        return false; \
-    } catch (const maybe_failed_table_op_exc_t &) { \
-        *(error_out) = strprintf("We lost contact with the server(s) hosting table " \
-            "`%s.%s`. " maybe_msg, (db).c_str(), (name).c_str(), op_description); \
-        return false; \
-    }
 
 /* `table_meta_client_t` is responsible for submitting client requests over the network
 to the `multi_table_manager_t`. It doesn't have any real state of its own; it's just a
@@ -78,6 +56,10 @@ public:
         const database_id_t &database, const name_string_t &name,
         namespace_id_t *table_id_out, std::string *primary_key_out = nullptr)
         THROWS_ONLY(no_such_table_exc_t, ambiguous_table_exc_t);
+
+    /* `exists()` returns `true` if one or more tables exist with the given name in the
+    given database. */
+    bool exists(const database_id_t &database, const name_string_t &name);
 
     /* `get_name()` determines the name and database of the table with the given ID; it's
     the reverse of `find()`. It returns `false` if there is no existing table with that
@@ -148,7 +130,7 @@ private:
     typedef std::pair<table_basic_config_t, multi_table_manager_bcard_t::timestamp_t>
         timestamped_basic_config_t;
 
-    void throw_appropriate_exception(const namespace_id_t &table_id)
+    [[noreturn]] void throw_appropriate_exception(const namespace_id_t &table_id)
         THROWS_ONLY(no_such_table_exc_t, failed_table_op_exc_t);
 
     void wait_until_change_visible(

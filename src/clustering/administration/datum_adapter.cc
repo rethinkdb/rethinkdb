@@ -157,7 +157,9 @@ bool convert_table_id_to_datums(
         name_string_t *db_name_out) {
     database_id_t db_id;
     name_string_t table_name;
-    if (!table_meta_client->get_name(table_id, &db_id, &table_name)) {
+    try {
+        table_meta_client->get_name(table_id, &db_id, &table_name);
+    } catch (const no_such_table_exc_t &) {
         return false;
     }
     if (table_name_or_uuid_out != nullptr) {

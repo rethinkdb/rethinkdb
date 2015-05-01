@@ -43,6 +43,18 @@ void table_meta_client_t::find(
     }
 }
 
+bool table_meta_client_t::exists(
+        const database_id_t &database, const name_string_t &name) {
+    bool found = false;
+    table_basic_configs.get_watchable()->read_all(
+        [&](const namespace_id_t &, const timestamped_basic_config_t *value) {
+            if (value->first.database == database && value->first.name == name) {
+                found = true;
+            }
+        });
+    return found;
+}
+
 void table_meta_client_t::get_name(
         const namespace_id_t &table_id,
         database_id_t *db_out,
@@ -70,8 +82,7 @@ void table_meta_client_t::list_names(
 void table_meta_client_t::get_config(
         const namespace_id_t &table_id,
         signal_t *interruptor_on_caller,
-        table_config_and_shards_t *config_out,
-        table_basic_config_t *basic_config_out)
+        table_config_and_shards_t *config_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t) {
     cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
@@ -166,7 +177,7 @@ void table_meta_client_t::list_configs(
 
     /* Make sure we contacted at least one server for every table */
     multi_table_manager->get_table_basic_configs()->read_all(
-        [&](const namespace_id_t &table_id, const timestamped_basic_config_t *value) {
+        [&](const namespace_id_t &table_id, const timestamped_basic_config_t *) {
             if (configs_out->count(table_id) == 0) {
                 throw failed_table_op_exc_t();
             }
@@ -386,7 +397,7 @@ void table_meta_client_t::drop(
     });
 
     if (bcards.empty()) {
-        throw_appropriate_exception();
+        throw_appropriate_exception(table_id);
     }
 
     /* Send a message to each server. It's possible that the table will move to other
@@ -425,10 +436,12 @@ void table_meta_client_t::drop(
     }
 
     /* Wait until the table disappears from the directory. */
+    debugf("before wait_until_change_visible()\n");
     wait_until_change_visible(
         table_id,
         [](const timestamped_basic_config_t *value) { return value == nullptr; },
         &interruptor);
+    debugf("after wait_until_change_visible()\n");
 }
 
 void table_meta_client_t::set_config(
@@ -513,7 +526,7 @@ void table_meta_client_t::set_config(
         &interruptor);
 }
 
-void table_meta_client_t::throw_appropriate_exception(
+[[noreturn]] void table_meta_client_t::throw_appropriate_exception(
         const namespace_id_t &table_id)
         THROWS_ONLY(no_such_table_exc_t, failed_table_op_exc_t) {
     multi_table_manager->get_table_basic_configs()->read_key(

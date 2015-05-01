@@ -12,11 +12,9 @@ class real_reql_cluster_interface_t;
 class server_config_client_t;
 class table_meta_client_t;
 
-class generate_config_exc_t : public std::runtime_exc {
+class generate_config_exc_t : public std::runtime_error {
 public:
-    template<class A...>
-    generate_config_exc_t(A&&... args) :
-        std::runtime_error(strprintf(std::forward<A>(args)...)) { }
+    generate_config_exc_t(std::string &&msg) : std::runtime_error(std::move(msg)) { }
 };
 
 /* Suggests a `table_config_t` for the table. This is the brains behind

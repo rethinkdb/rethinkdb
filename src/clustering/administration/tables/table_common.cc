@@ -33,27 +33,32 @@ bool common_table_artificial_table_backend_t::read_all_rows_as_vector(
     std::map<namespace_id_t, table_config_and_shards_t> configs;
     try {
         table_meta_client->list_configs(&interruptor, &configs);
+        rows_out->clear();
+        for (const auto &pair : configs) {
+            ql::datum_t db_name_or_uuid;
+            if (!convert_database_id_to_datum(
+                    pair.second.config.basic.database, identifier_format, metadata,
+                    &db_name_or_uuid, nullptr)) {
+                db_name_or_uuid = ql::datum_t("__deleted_database__");
+            }
+            try {
+                ql::datum_t row;
+                format_row(pair.first, db_name_or_uuid, pair.second, &interruptor, &row);
+                rows_out->push_back(row);
+            } catch (const no_such_table_exc_t &) {
+                /* The table got deleted between the call to `list_configs()` and the
+                call to `format_row()`. Ignore it. */
+            }
+        }
+        return true;
     } catch (const failed_table_op_exc_t &) {
         *error_out = "Failed to retrieve current configurations for one or more tables "
             "because the server(s) hosting the table(s) are all unreachable.";
         return false;
+    } catch (const admin_op_exc_t &msg) {
+        *error_out = msg.what();
+        return false;
     }
-    rows_out->clear();
-    for (const auto &pair : configs) {
-        ql::datum_t db_name_or_uuid;
-        if (!convert_database_id_to_datum(
-                pair.second.config.basic.database, identifier_format, metadata,
-                &db_name_or_uuid, nullptr)) {
-            db_name_or_uuid = ql::datum_t("__deleted_database__");
-        }
-        ql::datum_t row;
-        if (!format_row(pair.first, db_name_or_uuid, pair.second,
-                &interruptor, &row, error_out)) {
-            return false;
-        }
-        rows_out->push_back(row);
-    }
-    return true;
 }
 
 bool common_table_artificial_table_backend_t::read_row(
@@ -94,7 +99,7 @@ bool common_table_artificial_table_backend_t::read_row(
             *error_out = strprintf("The server(s) hosting table `%s.%s` are currently "
                 "unreachable.", db_name.c_str(), name.c_str());
             return false;
-        } catch (const std::runtime_error &msg) {
+        } catch (const admin_op_exc_t &msg) {
             *error_out = msg.what();
             return false;
         }

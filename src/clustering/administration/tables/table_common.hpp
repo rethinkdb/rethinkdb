@@ -8,6 +8,7 @@
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 
+#include "clustering/administration/admin_op_exc.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "rdb_protocol/artificial_table/caching_cfeed_backend.hpp"
 #include "rpc/semilattice/view.hpp"
@@ -50,7 +51,7 @@ protected:
             signal_t *interruptor,
             ql::datum_t *row_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,
-            std::runtime_error) = 0;
+            admin_op_exc_t) = 0;
 
     boost::shared_ptr< semilattice_readwrite_view_t<
         cluster_semilattice_metadata_t> > semilattice_view;

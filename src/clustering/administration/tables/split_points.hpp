@@ -7,10 +7,9 @@
 #include <vector>
 
 #include "btree/keys.hpp"
+#include "clustering/table_manager/table_meta_client.hpp"
 #include "containers/uuid.hpp"
 
-class failed_table_op_exc_t;
-class no_such_table_exc_t;
 class real_reql_cluster_interface_t;
 class signal_t;
 class table_shard_scheme_t;

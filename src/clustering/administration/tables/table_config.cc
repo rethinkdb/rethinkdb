@@ -306,7 +306,7 @@ void table_config_artificial_table_backend_t::format_row(
         UNUSED signal_t *interruptor,
         ql::datum_t *row_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,
-            std::runtime_error) {
+            admin_op_exc_t) {
     assert_thread();
     *row_out = convert_table_config_to_datum(table_id, db_name_or_uuid,
         config.config, identifier_format, server_config_client);
@@ -319,9 +319,9 @@ bool convert_table_config_and_name_from_datum(
         admin_identifier_format_t identifier_format,
         server_config_client_t *server_config_client,
         signal_t *interruptor,
-        ql::datum_t *db_out,
         namespace_id_t *id_out,
         table_config_t *config_out,
+        name_string_t *db_name_out,
         std::string *error_out) {
     /* In practice, the input will always be an object and the `id` field will always
     be valid, because `artificial_table_t` will check those thing before passing the
@@ -342,7 +342,13 @@ bool convert_table_config_and_name_from_datum(
         return false;
     }
 
-    if (!converter.get("db", db_out, error_out)) {
+    ql::datum_t db_datum;
+    if (!converter.get("db", &db_datum, error_out)) {
+        return false;
+    }
+    if (!convert_database_id_from_datum(
+            db_datum, identifier_format, all_metadata, &config_out->basic.database,
+            db_name_out, error_out)) {
         return false;
     }
 
@@ -394,11 +400,14 @@ bool convert_table_config_and_name_from_datum(
     } else {
         std::map<server_id_t, int> server_usage;
         // RSI(raft): Fill in `server_usage` so we make smarter choices
-        if (!table_generate_config(
+        try {
+            table_generate_config(
                 server_config_client, nil_uuid(), nullptr, server_usage,
                 table_generate_config_params_t::make_default(), table_shard_scheme_t(),
-                interruptor, &config_out->shards, error_out)) {
-            *error_out = "When generating configuration for new table: " + *error_out;
+                interruptor, &config_out->shards);
+        } catch (const generate_config_exc_t &msg) {
+            *error_out = "When generating configuration for new table: " +
+                std::string(msg.what());
             return false;
         }
     }
@@ -453,6 +462,66 @@ bool convert_table_config_and_name_from_datum(
     return true;
 }
 
+void table_config_artificial_table_backend_t::do_modify(
+        const namespace_id_t &table_id,
+        table_config_t &&new_config_no_shards,
+        const name_string_t &old_db_name,
+        const name_string_t &new_db_name,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,
+            maybe_failed_table_op_exc_t, admin_op_exc_t) {
+    table_config_and_shards_t new_config;
+    new_config.config = std::move(new_config_no_shards);
+
+    /* Fetch the previous table configuration */
+    table_config_and_shards_t old_config;
+    table_meta_client->get_config(table_id, interruptor, &old_config);
+
+    if (new_config.config.basic.primary_key != old_config.config.basic.primary_key) {
+        throw admin_op_exc_t("It's illegal to change a table's primary key");
+    }
+
+    if (new_config.config.basic.database != old_config.config.basic.database ||
+            new_config.config.basic.name != old_config.config.basic.name) {
+        if (table_meta_client->exists(
+                new_config.config.basic.database, new_config.config.basic.name)) {
+            throw admin_op_exc_t("Can't rename table `%s.%s` to `%s.%s` because table "
+                "`%s.%s` already exists.",
+                old_db_name.c_str(), old_config.config.basic.name.c_str(),
+                new_db_name.c_str(), new_config.config.basic.name.c_str(),
+                new_db_name.c_str(), new_config.config.basic.name.c_str());
+        }
+    }
+
+    calculate_split_points_intelligently(table_id, reql_cluster_interface,
+        new_config.config.shards.size(), old_config.shard_scheme, interruptor,
+        &new_config.shard_scheme);
+
+    table_meta_client->set_config(table_id, new_config, interruptor);
+}
+
+void table_config_artificial_table_backend_t::do_create(
+        const namespace_id_t &table_id,
+        table_config_t &&new_config_no_shards,
+        const name_string_t &new_db_name,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,
+            maybe_failed_table_op_exc_t, admin_op_exc_t) {
+    table_config_and_shards_t new_config;
+    new_config.config = std::move(new_config_no_shards);
+
+    if (table_meta_client->exists(
+            new_config.config.basic.database, new_config.config.basic.name)) {
+        throw admin_op_exc_t("Table `%s.%s` already exists.",
+            new_db_name.c_str(), new_config.config.basic.name.c_str());
+    }
+
+    calculate_split_points_for_uuids(
+        new_config.config.shards.size(), &new_config.shard_scheme);
+
+    table_meta_client->create(table_id, new_config, interruptor);
+}
+
 bool table_config_artificial_table_backend_t::write_row(
         ql::datum_t primary_key,
         bool pkey_was_autogenerated,
@@ -470,28 +539,38 @@ bool table_config_artificial_table_backend_t::write_row(
         table_id = nil_uuid();
     }
 
-    try {
-        cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
-        on_thread_t thread_switcher(home_thread());
-        cluster_semilattice_metadata_t metadata = semilattice_view->get();
+    cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
+    on_thread_t thread_switcher(home_thread());
+    cluster_semilattice_metadata_t metadata = semilattice_view->get();
 
+    try {
+        /* Fetch the name of the table and its database for error messages */
         database_id_t old_db_id;
         name_string_t old_name;
         table_meta_client->get_name(table_id, &old_db_id, &old_name);
         guarantee(!pkey_was_autogenerated, "UUID collision happened");
-
-        ql::datum_t old_db_name_or_uuid;
         name_string_t old_db_name;
-        if (!convert_database_id_to_datum(
-                old_config.config.basic.database, identifier_format,
-                metadata, &old_db_name_or_uuid, &old_db_name)) {
-            old_db_name_or_uuid = ql::datum_t("__deleted_database__");
+        if (!convert_database_id_to_datum(old_db_id, identifier_format, metadata,
+                nullptr, &old_db_name)) {
             old_db_name = name_string_t::guarantee_valid("__deleted_database__");
         }
 
         if (new_value_inout->has()) {
+            table_config_t new_config;
+            namespace_id_t new_table_id;
+            name_string_t new_db_name;
+            if (!convert_table_config_and_name_from_datum(*new_value_inout, true,
+                    metadata, identifier_format, server_config_client, &interruptor,
+                    &new_table_id, &new_config, &new_db_name, error_out)) {
+                *error_out = "The change you're trying to make to "
+                    "`rethinkdb.table_config` has the wrong format. " + *error_out;
+                return false;
+            }
+            guarantee(new_table_id == table_id, "artificial_table_t shouldn't have "
+                "allowed the primary key to change");
             try {
-                do_modify(table_id, new_value_inout, &interruptor);
+                do_modify(table_id, std::move(new_config), old_db_name, new_db_name,
+                    &interruptor);
                 return true;
             } CATCH_OP_ERRORS(old_db_name, old_name, error_out,
                 "The table's configuration was not changed.",
@@ -501,8 +580,8 @@ bool table_config_artificial_table_backend_t::write_row(
                 table_meta_client->drop(table_id, &interruptor);
                 return true;
             } CATCH_OP_ERRORS(old_db_name, old_name, error_out,
-                "The table's configuration was not changed.",
-                "The table's configuration may or may not have been changed.")
+                "The table was not dropped.",
+                "The table may or may not have been dropped.")
         }
     } catch (const no_such_table_exc_t &) {
         /* Fall through */
@@ -514,201 +593,34 @@ bool table_config_artificial_table_backend_t::write_row(
                 "database generate the primary key automatically.";
             return false;
         }
-        try {
-            do_create(table_id, 
 
-bool table_config_artificial_table_backend_t::write_row(
-        ql::datum_t primary_key,
-        bool pkey_was_autogenerated,
-        ql::datum_t *new_value_inout,
-        signal_t *interruptor_on_caller,
-        std::string *error_out) {
-    cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
-    try {
-        on_thread_t thread_switcher(home_thread());
-        cluster_semilattice_metadata_t metadata = semilattice_view->get();
-
-        /* Look for an existing table with the given UUID */
-        namespace_id_t table_id;
-        std::string dummy_error;
-        if (!convert_uuid_from_datum(primary_key, &table_id, &dummy_error)) {
-            /* If the primary key was not a valid UUID, then it must refer to a nonexistent
-            row. */
-            guarantee(!pkey_was_autogenerated, "auto-generated primary key should have been "
-                "a valid UUID string.");
-            table_id = nil_uuid();
-        }
-        table_config_and_shards_t old_config;
-        bool existed_before;
-        try {
-            table_meta_client->get_config(table_id, &interruptor, &old_config);
-            existed_before = true;
-        } catch (const no_such_table_exc_t &) {
-            existed_before = false;
-        }
-        case table_meta_client_t::get_res_t::success:
-            existed_before = true;
-            break;
-        case table_meta_client_t::get_res_t::nonexistent:
-            existed_before = false;
-            break;
-        case table_meta_client_t::get_res_t::error:
-            *error_out = "Lost contact with the server(s) hosting the table. The "
-                "configuration was not changed.";
-            return false;
-    }
-
-    ql::datum_t old_db_name_or_uuid;
-    name_string_t old_db_name;
-    if (existed_before) {
-        if (!convert_database_id_to_datum(
-                old_config.config.basic.database, identifier_format,
-                metadata, &old_db_name_or_uuid, &old_db_name)) {
-            old_db_name_or_uuid = ql::datum_t("__deleted_database__");
-            old_db_name = name_string_t::guarantee_valid("__deleted_database__");
-        }
-    }
-
-    if (new_value_inout->has()) {
-        /* We're updating an existing table (if `existed_before == true`) or creating
-        a new one (if `existed_before == false`) */
-
-        /* Parse the new value the user provided for the table */
-        table_config_and_shards_t new_config;
-        ql::datum_t new_db_name_or_uuid;
         namespace_id_t new_table_id;
-        if (!convert_table_config_and_name_from_datum(*new_value_inout, existed_before,
+        table_config_t new_config;
+        name_string_t new_db_name;
+        if (!convert_table_config_and_name_from_datum(*new_value_inout, false,
                 metadata, identifier_format, server_config_client, &interruptor,
-                &new_db_name_or_uuid, &new_table_id, &new_config.config, error_out)) {
+                &new_table_id, &new_config, &new_db_name, error_out)) {
             *error_out = "The change you're trying to make to "
                 "`rethinkdb.table_config` has the wrong format. " + *error_out;
             return false;
         }
-        guarantee(new_table_id == table_id, "artificial_table_t should ensure that the "
-            "primary key doesn't change.");
+        guarantee(new_table_id == table_id, "artificial_table_t shouldn't have "
+            "allowed the primary key to change");
 
-        if (existed_before) {
-            guarantee(!pkey_was_autogenerated, "UUID collision happened");
-        } else {
-            if (!pkey_was_autogenerated) {
-                *error_out = "If you want to create a new table by inserting into "
-                    "`rethinkdb.table_config`, you must use an auto-generated primary "
-                    "key.";
-                return false;
-            }
-        }
+        /* `convert_table_config_and_name_from_datum()` might have filled in missing
+        fields, so we need to write back the filled-in values to `new_value_inout`. */
+        *new_value_inout = convert_table_config_to_datum(
+            table_id, new_value_inout->get_field("db"), new_config,
+            identifier_format, server_config_client);
 
-        /* The way we handle the `db` field is a bit convoluted, but for good reason. If
-        we're updating an existing table, we require that the DB field is the same as it
-        is before. By not looking up the DB's UUID, we avoid any problems if there is a
-        DB name collision or if the DB was deleted. If we're creating a new table, only
-        then do we actually look up the DB's UUID. */
-        name_string_t db_name;
-        if (existed_before) {
-            if (new_db_name_or_uuid != old_db_name_or_uuid) {
-                *error_out = "It's illegal to change a table's `database` field.";
-                return false;
-            }
-            new_config.config.basic.database = old_config.config.basic.database;
-            db_name = old_db_name;
-        } else {
-            if (!convert_database_id_from_datum(
-                    new_db_name_or_uuid, identifier_format, metadata,
-                    &new_config.config.basic.database, &db_name, error_out)) {
-                *error_out = "In `database`: " + *error_out;
-                return false;
-            }
-        }
-
-        if (existed_before) {
-            if (new_config.config.basic.primary_key !=
-                    old_config.config.basic.primary_key) {
-                *error_out = "It's illegal to change a table's primary key.";
-                return false;
-            }
-        }
-
-        /* Decide on the sharding scheme for the table */
-        if (existed_before) {
-            if (!calculate_split_points_intelligently(table_id, reql_cluster_interface,
-                    new_config.config.shards.size(), old_config.shard_scheme,
-                    &interruptor, &new_config.shard_scheme)) {
-                *error_out = strprintf("Table `%s.%s` is not available for reading, so "
-                    "we cannot compute a new sharding scheme for it. The table's "
-                    "configuration was not changed.", db_name.c_str(),
-                    old_config.config.basic.name.c_str());
-                return false;
-            }
-        } else {
-            if (new_config.config.shards.size() != 1) {
-                *error_out = "Newly created tables must start with exactly one shard";
-                return false;
-            }
-            new_config.shard_scheme = table_shard_scheme_t::one_shard();
-        }
-
-        if (!existed_before ||
-                new_config.config.basic.name != old_config.config.basic.name) {
-            namespace_id_t dummy_table_id;
-            if (table_meta_client->find(new_config.config.basic.database,
-                    new_config.config.basic.name, &dummy_table_id)
-                        != table_meta_client_t::find_res_t::none) {
-                if (!existed_before) {
-                    /* This message looks weird in the context of the variable named
-                    `existed_before`, but it's correct. `existed_before` is true if a
-                    table with the specified UUID already exists; but we're showing the
-                    user an error if a table with the specified name already exists. */
-                    *error_out = strprintf("Table `%s.%s` already exists.",
-                        db_name.c_str(), new_config.config.basic.name.c_str());
-                } else {
-                    *error_out = strprintf("Cannot rename table `%s.%s` to `%s.%s` "
-                        "because table `%s.%s` already exists.",
-                        db_name.c_str(), old_config.config.basic.name.c_str(),
-                        db_name.c_str(), new_config.config.basic.name.c_str(),
-                        db_name.c_str(), new_config.config.basic.name.c_str());
-                }
-                return false;
-            }
-        }
-
-        /* Apply the changes */
-        if (existed_before) {
-            if (!table_meta_client->set_config(table_id, new_config, &interruptor)) {
-                *error_out = strprintf("Lost contact with the server(s) hosting table "
-                    "`%s.%s`. The configuration may or may not have been changed.",
-                    old_db_name.c_str(), old_config.config.basic.name.c_str());
-                return false;
-            }
-        } else {
-            if (!table_meta_client->create(table_id, new_config, &interruptor)) {
-                *error_out = "Lost contact with the server(s) that were supposed to "
-                    "host the newly-created table. The table may or may not have been "
-                    "created.";
-                return false;
-            }
-        }
-
-        /* Because we might have filled in the `primary_key` and `shards` fields, we need
-        to write back to `new_value_inout` */
-        if (!format_row(table_id, new_db_name_or_uuid, new_config, &interruptor,
-                new_value_inout, error_out)) {
-            return false;
-        }
-
+        try {
+            do_create(table_id, std::move(new_config), new_db_name, &interruptor);
+            return true;
+        } CATCH_OP_ERRORS(new_db_name, new_config.basic.name, error_out,
+            "The table was not created.",
+            "The table may or may not have been created.")
     } else {
-        /* We're deleting a table (or it was already deleted) */
-        if (existed_before) {
-            guarantee(!pkey_was_autogenerated, "UUID collision happened");
-            if (!table_meta_client->drop(table_id, &interruptor)) {
-                *error_out = strprintf("Lost contact with the server(s) hosting table "
-                    "`%s.%s`. The table may or may not have been dropped.",
-                    old_db_name.c_str(), old_config.config.basic.name.c_str());
-                return false;
-            }
-        }
+        /* The user is deleting a table that doesn't exist. Do nothing. */
+        return true;
     }
-
-    return true;
 }
-
-
