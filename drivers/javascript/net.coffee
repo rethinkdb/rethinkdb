@@ -20,11 +20,6 @@ net = require('net')
 # encrypted connection for `TcpConnection` objects
 tls = require('tls')
 
-# The [fs module](http://nodejs.org/api/fs.html) is the high-level
-# File I/O library Node.js provides. We need it to load any
-# certificate objects for SSL connections with `TcpConnection` objects
-fs = require('fs')
-
 # The [events module](http://nodejs.org/api/events.html) is a core
 # Node.js module that provides the ability for objects to emit events,
 # and for callbacks to be attached to those events.
@@ -154,10 +149,17 @@ class Connection extends events.EventEmitter
         @timeout = host.timeout || @DEFAULT_TIMEOUT
 
         # Configuration options for enabling an SSL connection
-        # Currently, the only support option is '"sslCaCerts"' which
-        # is needed to perform host verification and prevent Man in
-        # the Middle attacks.
-        @ssl = host.ssl || {}
+        # Allows the ability to pass in all the options as specified in
+        # [tls.connect](https://nodejs.org/api/tls.html#tls_tls_connect_options_callback)
+        # or just true  in case the client wants ssl but the server
+        # is using a certificate with a valid verified chain and there
+        # is no need to specify certificates on the client
+        if typeof host.ssl is 'boolean' && host.ssl
+            @ssl = {}
+        else if typeof host.ssl is 'object'
+            @ssl = host.ssl
+        else
+            @ssl = false
 
         # The protocol allows for responses to queries on the same
         # connection to be returned interleaved. When a query is run
@@ -916,17 +918,8 @@ class TcpConnection extends Connection
         # Next we create the underlying tcp connection to the server
         # using the net module and store it in the `@rawSocket`
         # attribute.
-        options = {
-            host: @host,
-            port: @port,
-        }
-        if Object.keys(@ssl).length > 0
-            if 'caCerts' of @ssl
-                options.ca = [ fs.readFileSync(@ssl.caCerts) ]
-                options.servername = @host
-                @rawSocket = tls.connect options
-            else
-                throw new err.RqlDriverError "SSL options provided but 'caCerts' argument missing"
+        if @ssl
+            @rawSocket = tls.connect options
         else
             @rawSocket = net.connect @port, @host
 
