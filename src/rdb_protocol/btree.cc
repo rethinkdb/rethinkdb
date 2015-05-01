@@ -1287,7 +1287,8 @@ void deserialize_sindex_info(const std::vector<char> &data,
     case cluster_version_t::v1_14:
     case cluster_version_t::v1_15:
     case cluster_version_t::v1_16:
-    case cluster_version_t::v2_0_is_latest:
+    case cluster_version_t::v2_0:
+    case cluster_version_t::v2_1_is_latest:
         success = deserialize_for_version(
                 cluster_version,
                 &read_stream,

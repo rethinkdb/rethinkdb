@@ -8,10 +8,10 @@ namespace archive_internal {
 
 // This is used to implement serialize_cluster_version and
 // deserialize_cluster_version.  (cluster_version_t conveniently has a contiguous set
-// of valid representation, from v1_13 to v2_0_is_latest).
+// of valid representation, from v1_13 to v2_1_is_latest).
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(cluster_version_t, int8_t,
                                       cluster_version_t::v1_13,
-                                      cluster_version_t::v2_0_is_latest);
+                                      cluster_version_t::v2_1_is_latest);
 
 class bogus_made_up_type_t;
 
@@ -68,8 +68,10 @@ archive_result_t deserialize_for_version(cluster_version_t version,
         return deserialize<cluster_version_t::v1_15>(s, thing);
     case cluster_version_t::v1_16:
         return deserialize<cluster_version_t::v1_16>(s, thing);
-    case cluster_version_t::v2_0_is_latest:
-        return deserialize<cluster_version_t::v2_0_is_latest>(s, thing);
+    case cluster_version_t::v2_0:
+        return deserialize<cluster_version_t::v2_0>(s, thing);
+    case cluster_version_t::v2_1_is_latest:
+        return deserialize<cluster_version_t::v2_1_is_latest>(s, thing);
     default:
         unreachable();
     }
@@ -95,8 +97,10 @@ size_t serialized_size_for_version(cluster_version_t version,
         return serialized_size<cluster_version_t::v1_15>(thing);
     case cluster_version_t::v1_16:
         return serialized_size<cluster_version_t::v1_16>(thing);
-    case cluster_version_t::v2_0_is_latest:
-        return serialized_size<cluster_version_t::v2_0_is_latest>(thing);
+    case cluster_version_t::v2_0:
+        return serialized_size<cluster_version_t::v2_0>(thing);
+    case cluster_version_t::v2_1_is_latest:
+        return serialized_size<cluster_version_t::v2_1_is_latest>(thing);
     default:
         unreachable();
     }
@@ -146,7 +150,9 @@ size_t serialized_size_for_version(cluster_version_t version,
             read_stream_t *, typ *);                                             \
     template archive_result_t deserialize<cluster_version_t::v1_16>(             \
             read_stream_t *, typ *);                                             \
-    template archive_result_t deserialize<cluster_version_t::v2_0_is_latest>(    \
+    template archive_result_t deserialize<cluster_version_t::v2_0>(              \
+            read_stream_t *, typ *);                                             \
+    template archive_result_t deserialize<cluster_version_t::v2_1_is_latest>(    \
             read_stream_t *, typ *)
 
 #define INSTANTIATE_SERIALIZABLE_SINCE_v1_13(typ)        \
@@ -156,7 +162,9 @@ size_t serialized_size_for_version(cluster_version_t version,
 #define INSTANTIATE_DESERIALIZE_SINCE_v1_16(typ)                                 \
     template archive_result_t deserialize<cluster_version_t::v1_16>(             \
             read_stream_t *, typ *);                                             \
-    template archive_result_t deserialize<cluster_version_t::v2_0_is_latest>(    \
+    template archive_result_t deserialize<cluster_version_t::v2_0>(              \
+            read_stream_t *, typ *);                                             \
+    template archive_result_t deserialize<cluster_version_t::v2_1_is_latest>(    \
             read_stream_t *, typ *)
 
 #define INSTANTIATE_SERIALIZABLE_SINCE_v1_16(typ)        \
