@@ -48,6 +48,11 @@ bool get_contracts_and_acks(
     return !contracts_and_acks_out->empty();
 }
 
+struct region_acks_t {
+    contract_id_t latest_contract_id;
+    std::map<server_id_t, std::pair<contract_id_t, contract_ack_t> > acks;
+};
+
 shard_status_t calculate_shard_status(
         const table_config_t::shard_t &shard,
         const region_map_t<region_acks_t> &regions,
@@ -88,6 +93,7 @@ shard_status_t calculate_shard_status(
                 case contract_ack_t::state_t::primary_ready:
                     ack_counter.note_ack(ack.first);
                     region_has_primary_replica = true;
+                    region_has_outdated_reader = true;
                     shard_status.primary_replicas.insert(ack.first);
                     shard_status.replicas[ack.first].insert(
                         server_status_t::READY);
@@ -115,28 +121,17 @@ shard_status_t calculate_shard_status(
                     }
                     break;
                 case contract_ack_t::state_t::nothing:
-                    /* We don't want to show shards that are in the `nothing` state thus
-                       we don't insert a string into `replicas`. However, to prevent
-                       them from being marked as "transitioning" below we insert an
-                       empty std::set if it doesn't exist yet. */
-                    if (shard_status.replicas.find(ack.first) ==
-                            shard_status.replicas.end()) {
-                        shard_status.replicas[ack.first] = {};
-                    }
+                    shard_status.replicas[ack.first].insert(
+                        server_status_t::NOTHING);
                     break;
             }
         }
 
-        for (const auto &replica : latest_contract.replicas) {
-            if (shard_status.replicas.find(replica) == shard_status.replicas.end()) {
-                has_unfinished = true;
-                shard_status.replicas[replica].insert(
-                    contracts_and_acks.find(replica) == contracts_and_acks.end()
-                        ? server_status_t::DISCONNECTED
-                        : server_status_t::TRANSITIONING);
-            }
-        }
-        for (const auto &replica : shard.replicas) {
+        std::set<server_id_t> replicas;
+        replicas.insert(
+            latest_contract.replicas.begin(), latest_contract.replicas.end());
+        replicas.insert(shard.replicas.begin(), shard.replicas.end());
+        for (const auto &replica : replicas) {
             if (shard_status.replicas.find(replica) == shard_status.replicas.end()) {
                 has_unfinished = true;
                 shard_status.replicas[replica].insert(
@@ -179,7 +174,7 @@ bool calculate_status(
         table_meta_client_t *table_meta_client,
         server_config_client_t *server_config_client,
         table_readiness_t *readiness_out,
-        region_map_t<shard_status_t> *shard_statuses_out,
+        std::vector<shard_status_t> *shard_statuses_out,
         std::string *error_out) {
     /* Note that `contracts` and `latest_contracts` will contain references into
        `contracts_and_acks`, thus this must remain in scope for them to be valid! */
@@ -240,8 +235,9 @@ bool calculate_status(
         }
     }
 
-    *readiness_out = table_readiness_t::finished;
-    std::vector<std::pair<region_t, shard_status_t> > foo;
+    if (readiness_out != nullptr) {
+        *readiness_out = table_readiness_t::finished;
+    }
     for (size_t i = 0; i < config_and_shards.shard_scheme.num_shards(); ++i) {
         region_t shard_region(config_and_shards.shard_scheme.get_shard_range(i));
 
@@ -251,11 +247,12 @@ bool calculate_status(
             contracts_and_acks,
             contracts);
 
-        *readiness_out = std::min(*readiness_out, shard_status.readiness);
-        foo.emplace_back(std::make_pair(shard_region, std::move(shard_status)));
-    }
-    if (shard_statuses_out != nullptr) {
-        *shard_statuses_out = std::move(region_map_t<shard_status_t>(foo.begin(), foo.end()));
+        if (readiness_out != nullptr) {
+            *readiness_out = std::min(*readiness_out, shard_status.readiness);
+        }
+        if (shard_statuses_out != nullptr) {
+            shard_statuses_out->emplace_back(std::move(shard_status));
+        }
     }
 
     return true;

@@ -4,6 +4,7 @@
 
 #include <map>
 #include <set>
+#include <vector>
 
 #include "clustering/administration/servers/config_client.hpp"
 #include "clustering/table_contract/contract_metadata.hpp"
@@ -13,15 +14,11 @@
 enum class server_status_t {
     BACKFILLING,
     DISCONNECTED,
+    NOTHING,
     READY,
     TRANSITIONING,
     WAITING_FOR_PRIMARY,
     WAITING_FOR_QUORUM
-};
-
-struct region_acks_t {
-    contract_id_t latest_contract_id;
-    std::map<server_id_t, std::pair<contract_id_t, contract_ack_t> > acks;
 };
 
 struct shard_status_t {
@@ -37,7 +34,7 @@ bool calculate_status(
         table_meta_client_t *table_meta_client,
         server_config_client_t *server_config_client,
         table_readiness_t *readiness_out,
-        region_map_t<shard_status_t> *shard_statuses_out,
+        std::vector<shard_status_t> *shard_statuses_out,
         std::string *error_out);
 
 #endif /* CLUSTERING_ADMINISTRATION_TABLES_CALCULATE_STATUS_HPP_ */

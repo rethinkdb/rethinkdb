@@ -24,14 +24,14 @@ table_status_artificial_table_backend_t::~table_status_artificial_table_backend_
     begin_changefeed_destruction();
 }
 
-ql::datum_t convert_shard_statuses_to_datum(
+ql::datum_t convert_table_status_to_datum(
         const namespace_id_t &table_id,
         const ql::datum_t &db_name_or_uuid,
         const table_config_and_shards_t &config_and_shards,
         admin_identifier_format_t identifier_format,
         server_config_client_t *server_config_client,
         table_readiness_t readiness,
-        const region_map_t<shard_status_t> &shard_statuses) {
+        const std::vector<shard_status_t> &shard_statuses) {
     ql::datum_object_builder_t builder;
     builder.overwrite("id", convert_uuid_to_datum(table_id));
     builder.overwrite("db", db_name_or_uuid);
@@ -42,7 +42,7 @@ ql::datum_t convert_shard_statuses_to_datum(
         ql::datum_object_builder_t shard_builder;
         ql::datum_array_builder_t primary_replicas_builder(
             ql::configured_limits_t::unlimited);
-        for (const auto &primary_replica : shard_status.second.primary_replicas) {
+        for (const auto &primary_replica : shard_status.primary_replicas) {
             ql::datum_t primary_replica_name_or_uuid;
             if (convert_server_id_to_datum(
                     primary_replica,
@@ -57,7 +57,7 @@ ql::datum_t convert_shard_statuses_to_datum(
             "primary_replicas", std::move(primary_replicas_builder).to_datum());
 
         ql::datum_array_builder_t replicas_builder(ql::configured_limits_t::unlimited);
-        for (const auto &replica : shard_status.second.replicas) {
+        for (const auto &replica : shard_status.replicas) {
             if (replica.second.empty()) {
                 /* This server was in the `nothing` state and thus shouldn't appear in the
                    replica map. */
@@ -82,6 +82,9 @@ ql::datum_t convert_shard_statuses_to_datum(
                         case server_status_t::DISCONNECTED:
                             replica_states_builder.add(ql::datum_t("disconnected"));
                             break;
+                        case server_status_t::NOTHING:
+                            // Ignored
+                            break;
                         case server_status_t::READY:
                             replica_states_builder.add(ql::datum_t("ready"));
                             break;
@@ -98,13 +101,17 @@ ql::datum_t convert_shard_statuses_to_datum(
                             break;
                     }
                 }
-                replica_builder.overwrite(
-                    "states", std::move(replica_states_builder).to_datum());
-                replicas_builder.add(std::move(replica_builder).to_datum());
+                if (!replica_states_builder.empty()) {
+                    replica_builder.overwrite(
+                        "states", std::move(replica_states_builder).to_datum());
+                    replicas_builder.add(std::move(replica_builder).to_datum());
+                }
             }
         }
-        shard_builder.overwrite("replicas", std::move(replicas_builder).to_datum());
-        shards_builder.add(std::move(shard_builder).to_datum());
+        if (!replicas_builder.empty()) {
+            shard_builder.overwrite("replicas", std::move(replicas_builder).to_datum());
+            shards_builder.add(std::move(shard_builder).to_datum());
+        }
     }
     builder.overwrite("shards", std::move(shards_builder).to_datum());
 
@@ -132,7 +139,7 @@ bool table_status_artificial_table_backend_t::format_row(
     assert_thread();
 
     table_readiness_t readiness;
-    region_map_t<shard_status_t> shard_statuses;
+    std::vector<shard_status_t> shard_statuses;
     if (!calculate_status(
             table_id,
             config_and_shards,
@@ -145,7 +152,7 @@ bool table_status_artificial_table_backend_t::format_row(
         return false;
     }
 
-    *row_out = convert_shard_statuses_to_datum(
+    *row_out = convert_table_status_to_datum(
         table_id,
         db_name_or_uuid,
         config_and_shards,
@@ -179,66 +186,60 @@ table_wait_result_t wait_for_table_readiness(
         ql::datum_t *status_out) {
     backend->assert_thread();
 
-    table_config_and_shards_t config_and_shards;
-    if (!backend->table_meta_client->get_config(
-            table_id, interruptor, &config_and_shards)) {
-        /* We couldn't get the `config_and_shards` for this table due to an unknown
-           reason, the best option we have at this point is to report it deleted. */
-        return table_wait_result_t::DELETED;
-    }
-
-    cluster_semilattice_metadata_t metadata = backend->semilattice_view->get();
-
     bool immediate = true;
     /* Start with `initial_poll_ms`, then double the waiting period after each attempt up
        to a maximum of `max_poll_ms`. */
     uint32_t current_poll_ms = initial_poll_ms;
     while (true) {
-        ql::datum_t db_name_or_uuid;
-        name_string_t db_name;
-        if (!convert_table_id_to_datums(
-                table_id,
-                backend->identifier_format,
-                metadata,
-                backend->table_meta_client,
-                nullptr,
-                nullptr,
-                &db_name_or_uuid,
-                &db_name) || db_name.str() == "__deleted_database__") {
-            // Either the database or the table was deleted.
-            return table_wait_result_t::DELETED;
-        }
-
-        table_readiness_t readiness;
-        region_map_t<shard_status_t> shard_statuses;
-        bool status_result = calculate_status(
-            table_id,
-            config_and_shards,
-            interruptor,
-            backend->table_meta_client,
-            backend->server_config_client,
-            &readiness,
-            &shard_statuses,
-            nullptr);
-
-        if (status_result && readiness >= wait_readiness) {
-            if (status_out != nullptr) {
-                *status_out = convert_shard_statuses_to_datum(
+        table_config_and_shards_t config_and_shards;
+        if (backend->table_meta_client->get_config(
+                table_id, interruptor, &config_and_shards)) {
+            ql::datum_t db_name_or_uuid;
+            name_string_t db_name;
+            if (!convert_table_id_to_datums(
                     table_id,
-                    db_name_or_uuid,
-                    config_and_shards,
                     backend->identifier_format,
-                    backend->server_config_client,
-                    readiness,
-                    shard_statuses);
+                    backend->semilattice_view->get(),
+                    backend->table_meta_client,
+                    nullptr,
+                    nullptr,
+                    &db_name_or_uuid,
+                    &db_name) || db_name.str() == "__deleted_database__") {
+                // Either the database or the table was deleted.
+                return table_wait_result_t::DELETED;
             }
-            return immediate
-                ? table_wait_result_t::IMMEDIATE
-                : table_wait_result_t::WAITED;
-        } else {
-            immediate = false;
-            nap(current_poll_ms, interruptor);
-            current_poll_ms = std::min(max_poll_ms, current_poll_ms * 2u);
+
+            table_readiness_t readiness;
+            std::vector<shard_status_t> shard_statuses;
+            bool status_result = calculate_status(
+                table_id,
+                config_and_shards,
+                interruptor,
+                backend->table_meta_client,
+                backend->server_config_client,
+                &readiness,
+                &shard_statuses,
+                nullptr);
+
+            if (status_result && readiness >= wait_readiness) {
+                if (status_out != nullptr) {
+                    *status_out = convert_table_status_to_datum(
+                        table_id,
+                        db_name_or_uuid,
+                        config_and_shards,
+                        backend->identifier_format,
+                        backend->server_config_client,
+                        readiness,
+                        shard_statuses);
+                }
+                return immediate
+                    ? table_wait_result_t::IMMEDIATE
+                    : table_wait_result_t::WAITED;
+            }
         }
+
+        immediate = false;
+        nap(current_poll_ms, interruptor);
+        current_poll_ms = std::min(max_poll_ms, current_poll_ms * 2u);
     }
 }
