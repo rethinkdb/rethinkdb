@@ -120,7 +120,7 @@ private:
                 range or we run out of items */
                 class producer_t : public store_view_t::backfill_item_producer_t {
                 public:
-                    producer_t(session_t *_parent) : parent(_parent) {
+                    explicit producer_t(session_t *_parent) : parent(_parent) {
                         coro_t::spawn_sometime(std::bind(
                             &producer_t::ack_periodically, this, drainer.lock()));
                     }

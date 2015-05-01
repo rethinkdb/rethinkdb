@@ -23,7 +23,8 @@ public:
     /* `region_map` should be the timestamps of the store as of when the backfill
     completed. It assumes that the backfill timestamps increase as keys increase in
     lexicographical order. */
-    backfill_end_timestamps_t(const region_map_t<state_timestamp_t> &region_map) {
+    explicit backfill_end_timestamps_t(
+            const region_map_t<state_timestamp_t> &region_map) {
         region = region_map.get_domain();
         std::vector<std::pair<store_key_t, state_timestamp_t> > temp;
         for (const auto &pair : region_map) {
@@ -224,8 +225,11 @@ remote_replicator_client_t::remote_replicator_client_t(
                     right_bound);
                 right_bound = chunk.get_domain().inner.right;
                 backfill_end_timestamps.combine(
-                    region_map_transform<version_t, state_timestamp_t>(chunk,
-                        [](const version_t &version) { return version.timestamp; }));
+                    backfill_end_timestamps_t(
+                        region_map_transform<version_t, state_timestamp_t>(chunk,
+                            [](const version_t &version) {
+                                return version.timestamp;
+                            })));
                 return (queue->size() < config->write_queue_count);
             }
             std::queue<queue_entry_t> *queue;
@@ -380,7 +384,7 @@ void remote_replicator_client_t::apply_write_or_metainfo(
 #endif
         write_response_t dummy_response;
         store->write(
-            DEBUG_ONLY(checker,)
+            DEBUG_ONLY(checker, )
             new_metainfo,
             write,
             &dummy_response,

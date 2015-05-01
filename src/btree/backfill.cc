@@ -209,7 +209,9 @@ public:
 
 private:
     void handle_item(
-            backfill_item_t &item,
+            /* Conceptually this is passed by move, but `std::bind()` isn't smart enough
+            to handle that. */
+            backfill_item_t &item,   // NOLINT runtime/references
             const counted_t<counted_buf_lock_and_read_t> &buf,
             const new_semaphore_acq_t &,
             fifo_enforcer_write_token_t token,

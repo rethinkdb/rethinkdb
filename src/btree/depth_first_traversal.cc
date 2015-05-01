@@ -194,7 +194,7 @@ continue_bool_t btree_depth_first_traversal(
                     profile::starter_t starter("Acquire block for read.", cb->get_trace());
                     lock = make_counted<counted_buf_lock_and_read_t>(
                         &block->lock, pair->lnode, access);
-                    wait_interruptible(lock->lock.read_acq_signal(),interruptor);
+                    wait_interruptible(lock->lock.read_acq_signal(), interruptor);
                 }
                 if (continue_bool_t::ABORT == btree_depth_first_traversal(
                         std::move(lock), range, cb, access, direction,

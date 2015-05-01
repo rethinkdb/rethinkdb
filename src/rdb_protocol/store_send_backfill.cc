@@ -114,7 +114,7 @@ continue_bool_t store_t::send_backfill_pre(
 `btree_backfill_pre_item_producer_t`. */
 class pre_item_adapter_t : public btree_backfill_pre_item_producer_t {
 public:
-    pre_item_adapter_t(store_view_t::backfill_pre_item_producer_t *_inner) :
+    explicit pre_item_adapter_t(store_view_t::backfill_pre_item_producer_t *_inner) :
         aborted(false), inner(_inner) { }
     continue_bool_t consume_range(
             key_range_t::right_bound_t *cursor_inout,

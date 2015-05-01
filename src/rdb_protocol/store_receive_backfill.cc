@@ -32,19 +32,24 @@ void flush_cache(cache_conn_t *cache, UNUSED signal_t *interruptor) {
 
 class unsaved_data_limiter_t {
 public:
-    unsaved_data_limiter_t(cache_conn_t *_cache) :
-        cache(_cache), semaphore(MAX_UNSAVED_CHANGES),
-        unflushed_sem_acq(new new_semaphore_acq_t(&semaphore, 0)) { }
+    explicit unsaved_data_limiter_t(cache_conn_t *_cache) :
+        cache(_cache), semaphore(MAX_UNSAVED_CHANGES)
+        { }
 
     /* `prepare_for_changes()` indicates an intention to change `num_changes` keys. If
     there's too much unsaved data already, then it will block until some of the data is
     flushed. */
     void prepare_for_changes(int num_changes, signal_t *interruptor) {
-        new_semaphore_acq_t sem_acq(&semaphore, num_changes);
-        wait_interruptible(sem_acq.acquisition_signal(), interruptor);
-        unflushed_sem_acq->transfer_in(std::move(sem_acq));
+        scoped_ptr_t<new_semaphore_acq_t> sem_acq =
+            make_scoped<new_semaphore_acq_t>(&semaphore, num_changes);
+        wait_interruptible(sem_acq->acquisition_signal(), interruptor);
+        if (unflushed_sem_acq.has()) {
+            unflushed_sem_acq->transfer_in(std::move(*sem_acq));
+        } else {
+            unflushed_sem_acq = std::move(sem_acq);
+        }
         if (unflushed_sem_acq->count() > MAX_UNSAVED_CHANGES / 4) {
-            scoped_ptr_t<new_semaphore_acq_t> temp = make_scoped<new_semaphore_acq_t>();
+            scoped_ptr_t<new_semaphore_acq_t> temp;
             std::swap(temp, unflushed_sem_acq);
             coro_t::spawn_sometime(std::bind(&unsaved_data_limiter_t::flush, this,
                 std::move(temp), drainer.lock()));
@@ -212,7 +217,8 @@ void apply_single_key_item(
         const receive_backfill_tokens_t &tokens,
         /* `item` is conceptually passed by move, but `std::bind()` isn't smart enough to
         handle that. */
-        backfill_item_t &item) {
+        backfill_item_t &item   // NOLINT runtime/references
+        ) {
     try {
         /* Acquire the superblock */
         scoped_ptr_t<txn_t> txn;
@@ -261,7 +267,8 @@ void apply_multi_key_item(
         const receive_backfill_tokens_t &tokens,
         /* `item` is conceptually passed by move, but `std::bind()` isn't smart enough to
         handle that. */
-        backfill_item_t &item) {
+        backfill_item_t &item   // NOLINT runtime/references
+        ) {
     try {
         /* Acquire and hold both `fifo_enforcer_sink_t`s until we're completely finished;
         since we're going to be making multiple B-tree queries in separate B-tree
