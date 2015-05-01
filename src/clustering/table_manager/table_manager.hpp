@@ -28,6 +28,8 @@ public:
         const raft_persistent_state_t<table_raft_state_t> &initial_state,
         multistore_ptr_t *multistore_ptr);
 
+    ~table_manager_t();
+
     /* These are public so that `multi_table_manager_t` can see them */
     const namespace_id_t table_id;
     const multi_table_manager_bcard_t::timestamp_t::epoch_t epoch;

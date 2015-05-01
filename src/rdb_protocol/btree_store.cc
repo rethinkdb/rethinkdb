@@ -710,7 +710,7 @@ void store_t::clear_sindex(
 
         /* 1. Collect a bunch of keys to delete */
         clear_sindex_traversal_cb_t traversal_cb;
-        reached_end = (continue_bool_t::CONTINUE ==btree_depth_first_traversal(
+        reached_end = (continue_bool_t::CONTINUE == btree_depth_first_traversal(
             sindex_superblock.get(),
             key_range_t::universe(),
             &traversal_cb,

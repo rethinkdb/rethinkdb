@@ -5,6 +5,10 @@
 #include "clustering/immediate_consistency/backfillee.hpp"
 #include "store_view.hpp"
 
+/* `MAX_CONCURRENT_STREAM_QUEUE_ITEMS` is the maximum number of coroutines we'll spawn in
+parallel when draining the stream queue */
+static const int MAX_CONCURRENT_STREAM_QUEUE_ITEMS = 16;
+
 /* Sometimes we'll receive the same write as part of our stream of writes from the
 dispatcher and as part of our backfill from the backfiller. To avoid corruption, we need
 to be sure that we don't apply the write twice. `backfill_end_timestamps_t` tracks which
@@ -87,8 +91,7 @@ private:
 };
 
 remote_replicator_client_t::remote_replicator_client_t(
-        /* RSI(raft): Respect backfill_throttler */
-        UNUSED backfill_throttler_t *backfill_throttler,
+        backfill_throttler_t *backfill_throttler,
         const backfill_config_t &backfill_config,
         mailbox_manager_t *mailbox_manager,
         const server_id_t &server_id,
@@ -118,6 +121,16 @@ remote_replicator_client_t::remote_replicator_client_t(
         std::bind(&remote_replicator_client_t::on_read, this,
             ph::_1, ph::_2, ph::_3, ph::_4))
 {
+    backfill_throttler_t::lock_t backfill_throttler_lock(
+        backfill_throttler,
+        replica_bcard.synchronize_mailbox.get_peer(),
+        interruptor);
+
+    /* If the store is currently constructing a secondary index, wait until it finishes
+    before we start the backfill. We'll also check again periodically during the
+    backfill. */
+    store->wait_until_ok_to_receive_backfill(interruptor);
+
     /* Initially, the streaming and queueing regions are empty, and the discarding region
     is the entire key-space. */
     region_streaming_ = region_queueing_ = region_discarding_ = store->get_region();
@@ -158,6 +171,16 @@ remote_replicator_client_t::remote_replicator_client_t(
         new rwlock_acq_t(&rwlock_, access_t::write, interruptor));
 
     while (region_streaming_.inner.right != store->get_region().inner.right) {
+        rwlock_acq.reset();
+
+        /* If the store is currently constructing a secondary index, wait until it
+        finishes before we do the next phase of the backfill. This is the correct phase
+        of the backfill cycle at which to wait because we aren't currently receiving
+        anything from the backfiller and we aren't piling up changes in any queues. */
+        store->wait_until_ok_to_receive_backfill(interruptor);
+
+        rwlock_acq.init(new rwlock_acq_t(&rwlock_, access_t::write, interruptor));
+
         /* Previously we were streaming some sub-range and discarding the rest. Here we
         leave the streaming region as it was but we start queueing the region we were
         previously discarding. */
@@ -386,7 +409,7 @@ void remote_replicator_client_t::drain_stream_queue(
         const std::function<void(signal_t *)> &on_finished_one_entry,
         signal_t *interruptor) {
     auto_drainer_t drainer;
-    new_semaphore_t semaphore(64);
+    new_semaphore_t semaphore(MAX_CONCURRENT_STREAM_QUEUE_ITEMS);
     while (true) {
         /* If the queue is empty, notify our caller and give them a chance to put more
         things on the queue. If they don't, then we're done. */
@@ -445,9 +468,10 @@ void remote_replicator_client_t::drain_stream_queue(
             scoped_ptr_t<queue_entry_t> entry_2(entry_ptr);
             scoped_ptr_t<write_token_t> token_2(token_ptr);
             try {
-                /* Note that we don't block on the `auto_drainer_t::lock_t`'s drain
-                signal. This way, `drain_stream_queue()` won't return until either all of
-                the writes have been applied or the interruptor is pulsed. */
+                /* Note that we keep going even if the `auto_drainer_t::lock_t`'s drain
+                signal is pulsed. This way, `drain_stream_queue()` won't return until
+                either all of the writes have been applied or the interruptor is pulsed.
+                */
                 apply_write_or_metainfo(store, branch_id, applicable_region,
                     entry_2->has_write, entry_2->write, entry_2->timestamp,
                     token_2.get(), entry_2->order_token, interruptor);

@@ -465,6 +465,13 @@ continue_bool_t mock_store_t::receive_backfill(
     return continue_bool_t::CONTINUE;
 }
 
+void mock_store_t::wait_until_ok_to_receive_backfill(signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t) {
+    if (rng_.randint(2) == 0) {
+        nap(rng_.randint(100), interruptor);
+    }
+}
+
 void mock_store_t::reset_data(
         const binary_blob_t &zero_version,
         const region_t &subregion,

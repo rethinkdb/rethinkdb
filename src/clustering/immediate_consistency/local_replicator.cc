@@ -49,7 +49,8 @@ local_replicator_t::local_replicator_t(
             &interruptor_on_bhm_thread);
     }
 
-    /* Initialize the metainfo to the new branch */
+    /* Initialize the metainfo to the new branch. Note we use hard durability, to avoid
+    the potential for subtle bugs. */
     write_token_t write_token;
     store->new_write_token(&write_token);
     store->set_metainfo(

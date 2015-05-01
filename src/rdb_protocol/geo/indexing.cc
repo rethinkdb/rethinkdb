@@ -163,11 +163,23 @@ void geo_index_traversal_helper_t::filter_range(
 
 bool geo_index_traversal_helper_t::any_query_cell_intersects(
         const btree_key_t *left_incl_or_null, const btree_key_t *right_incl) {
+    /* This is a bit fragile in that we assume `left_incl_or_null` and `right_incl` are
+    valid complete secondary index keys (or that `right_incl` is the max possible B-tree
+    key). If we were to change the B-tree logic so that it truncated B-tree internal node
+    keys, then this code would break. */
+
     S2CellId left_cell =
         left_incl_or_null == NULL
         ? S2CellId::FromFacePosLevel(0, 0, 0) // The smallest valid cell id
         : btree_key_to_s2cellid(left_incl_or_null);
-    S2CellId right_cell = btree_key_to_s2cellid(right_incl);
+
+    S2CellId right_cell;
+    store_key_t max_btree_key = store_key_t::max();
+    if (btree_key_cmp(right_incl, max_btree_key.btree_key()) == 0) {
+        right_cell = S2CellId::FromFacePosLevel(5, 0, 0);
+    } else {
+        right_cell = btree_key_to_s2cellid(right_incl);
+    }
 
     // Determine a S2CellId range that is a superset of what's intersecting
     // with anything stored in [left_cell, right_cell].

@@ -157,6 +157,11 @@ public:
         return store_view->receive_backfill(region, item_producer, interruptor);
     }
 
+    void wait_until_ok_to_receive_backfill(signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t) {
+        store_view->wait_until_ok_to_receive_backfill(interruptor);
+    }
+
     void reset_data(
             const binary_blob_t &zero_version,
             const region_t &subregion,

@@ -41,7 +41,8 @@ public:
     5. Repeat steps 1-4 until the whole region has been backfilled.
 
     The `remote_replicator_client_t` constructor blocks until this entire process is
-    complete. */
+    complete. The backfilled data will be safely flushed to disk by the time it returns.
+    */
 
     remote_replicator_client_t(
         backfill_throttler_t *backfill_throttler,

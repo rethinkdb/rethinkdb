@@ -14,6 +14,66 @@ backfill faster, but it will also cause the backfill-related transactions to hol
 superblock for a longer time. */
 static const int MAX_CHANGES_PER_TXN = 16;
 
+/* `MAX_UNSAVED_CHANGES` is the maximum number of keys we'll modify or delete before
+flushing our changes out to disk. This prevents the backfill from using too much of the
+cache's unsaved data limit, which would slow down queries on other shards. */
+static const int MAX_UNSAVED_CHANGES = 1000;
+
+void flush_cache(cache_conn_t *cache, UNUSED signal_t *interruptor) {
+    scoped_ptr_t<txn_t> txn;
+    scoped_ptr_t<real_superblock_t> superblock;
+    get_btree_superblock_and_txn_for_writing(cache, nullptr,
+        write_access_t::write, 1, write_durability_t::HARD, &superblock, &txn);
+    buf_write_t write(superblock->get());
+    /* `txn`'s destructor will block until all of the transactions that acquired the
+    superblock before we did and modified the metainfo have been flushed to disk. It's a
+    shame we can't wait on `interruptor` using this API. */
+}
+
+class unsaved_data_limiter_t {
+public:
+    unsaved_data_limiter_t(cache_conn_t *_cache) :
+        cache(_cache), semaphore(MAX_UNSAVED_CHANGES),
+        unflushed_sem_acq(new new_semaphore_acq_t(&semaphore, 0)) { }
+
+    /* `prepare_for_changes()` indicates an intention to change `num_changes` keys. If
+    there's too much unsaved data already, then it will block until some of the data is
+    flushed. */
+    void prepare_for_changes(int num_changes, signal_t *interruptor) {
+        new_semaphore_acq_t sem_acq(&semaphore, num_changes);
+        wait_interruptible(sem_acq.acquisition_signal(), interruptor);
+        unflushed_sem_acq->transfer_in(std::move(sem_acq));
+        if (unflushed_sem_acq->count() > MAX_UNSAVED_CHANGES / 4) {
+            scoped_ptr_t<new_semaphore_acq_t> temp = make_scoped<new_semaphore_acq_t>();
+            std::swap(temp, unflushed_sem_acq);
+            coro_t::spawn_sometime(std::bind(&unsaved_data_limiter_t::flush, this,
+                std::move(temp), drainer.lock()));
+        }
+    }
+
+private:
+    void flush(
+            const scoped_ptr_t<new_semaphore_acq_t> &,
+            auto_drainer_t::lock_t keepalive) {
+        try {
+            flush_cache(cache, keepalive.get_drain_signal());
+        } catch (const interrupted_exc_t &) {
+            /* ignore */
+        }
+        /* Once `flush()` returns, then the `std::bind` will be destroyed, releasing the
+        `new_semaphore_acq_t`. */
+    }
+
+    cache_conn_t *cache;
+
+    /* Destructor order matters here. We have to destroy `drainer` first, because that
+    will stop the `flush()` coroutines. Then we have to destroy `unflushed_sem_acq`
+    before `semaphore` because `unflushed_sem_acq` references `semaphore`. */
+    new_semaphore_t semaphore;
+    scoped_ptr_t<new_semaphore_acq_t> unflushed_sem_acq;
+    auto_drainer_t drainer;
+};
+
 /* `receive_backfill()` spawns a series of coroutines running `apply_empty_range()`,
 `apply_single_key_item()`, and `apply_multi_key_item()`. Each coroutine gets a
 `receive_backfill_tokens_t` that keeps track of order, takes care of updating the
@@ -22,13 +82,18 @@ entire backfill task, that the tokens need access to. */
 
 class receive_backfill_info_t {
 public:
-    receive_backfill_info_t(cache_conn_t *c, btree_slice_t *s) :
-        cache_conn(c), slice(s), semaphore(MAX_CONCURRENT_BACKFILL_ITEMS) { }
+    receive_backfill_info_t(
+            cache_conn_t *c, btree_slice_t *s, unsaved_data_limiter_t *l) :
+        cache_conn(c), slice(s), limiter(l),
+        semaphore(MAX_CONCURRENT_BACKFILL_ITEMS) { }
 
     /* `cache_conn` and `slice` are just copied from the corresponding fields of the
     `store_t` object */
     cache_conn_t *cache_conn;
     btree_slice_t *slice;
+
+    /* `limiter` lives on the stack in `receive_backfill()` */
+    unsaved_data_limiter_t *limiter;
 
     /* `semaphore` limits how many coroutines can be running at once. */
     new_semaphore_t semaphore;
@@ -156,6 +221,13 @@ void apply_single_key_item(
             fifo_enforcer_sink_t::exit_write_t exiter(
                 &tokens.info->btree_fifo_sink, tokens.write_token);
             wait_interruptible(&exiter, tokens.keepalive.get_drain_signal());
+
+            /* Block until there's not too much unsaved data. We have to be careful about
+            deadlocks; acquiring `limiter` only when we also hold `btree_fifo_sink` is
+            sufficient to prevent deadlocks. */
+            tokens.info->limiter->prepare_for_changes(
+                1, tokens.keepalive.get_drain_signal());
+
             get_btree_superblock_and_txn_for_writing(tokens.info->cache_conn, nullptr,
                 write_access_t::write, 1, write_durability_t::SOFT, &superblock, &txn);
         }
@@ -208,6 +280,11 @@ void apply_multi_key_item(
         key_range_t::right_bound_t threshold(item.range.left);
         while (threshold != item.range.right) {
             std::vector<rdb_modification_report_t> mod_reports;
+
+            /* Block until there's not too much unsaved data. Note that
+            `MAX_CHANGES_PER_TXN` might be an overestimate, but that's OK. */
+            tokens.info->limiter->prepare_for_changes(
+                MAX_CHANGES_PER_TXN, tokens.keepalive.get_drain_signal());
 
             /* Acquire the superblock. */
             scoped_ptr_t<txn_t> txn;
@@ -289,7 +366,10 @@ continue_bool_t store_t::receive_backfill(
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     guarantee(region.beg == get_region().beg && region.end == get_region().end);
-    receive_backfill_info_t info(general_cache_conn.get(), btree.get());
+
+    unsaved_data_limiter_t unsaved_data_limiter(general_cache_conn.get());
+    receive_backfill_info_t info(
+        general_cache_conn.get(), btree.get(), &unsaved_data_limiter);
 
     /* `spawn_threshold` is the point up to which we've spawned coroutines.
     `metainfo_threshold` is the point up to which we've applied the metainfo to the
@@ -402,6 +482,24 @@ continue_bool_t store_t::receive_backfill(
         guarantee(commit_threshold == region.inner.right);
     }
 
+    /* Flush remaining data to disk. This serves two purposes. The first reason is
+    correctness; it's potentially dangerous to report that we finished the backfill when
+    there is data that's not yet safely on disk. The other is to make sure that we don't
+    use increasingly large amounts of the unsaved data limit if `receive_backfill()` is
+    called repeatedly. */
+    flush_cache(general_cache_conn.get(), interruptor);
+
     return result;
+}
+
+void store_t::wait_until_ok_to_receive_backfill(signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t) {
+    // As long as our secondary index post construction is implemented using a
+    // secondary index mod queue, it doesn't make sense from a performance point
+    // of view to run secondary index post construction and backfilling at the same
+    // time. We pause backfilling while any index post construction is going on on
+    // this store by acquiring a read lock on `backfill_postcon_lock`.
+    rwlock_in_line_t lock_acq(&backfill_postcon_lock, access_t::read);
+    wait_interruptible(lock_acq.read_signal(), interruptor);
 }
 

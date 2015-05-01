@@ -73,7 +73,11 @@ public:
     point for which `on_progress()` returned `true` and the last point for which
     `on_progress()` returned `false`.
     
-    Pulsing `interruptor` invalidates the `backfillee_t`. */
+    Pulsing `interruptor` invalidates the `backfillee_t`.
+
+    Durability guarantees: The data is not necessarily safely on disk when
+    `on_progress()` is called, but it will be safely on disk by the time `go()` returns.
+    */
     void go(
         callback_t *callback,
         const key_range_t::right_bound_t &start_point,

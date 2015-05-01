@@ -82,6 +82,9 @@ public:
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
 
+    void wait_until_ok_to_receive_backfill(signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
+
     void reset_data(
             const binary_blob_t &zero_version,
             const region_t &subregion,

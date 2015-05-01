@@ -135,7 +135,13 @@ continue_bool_t btree_depth_first_traversal(
     superblock_t *superblock,
     const key_range_t &range,
     depth_first_traversal_callback_t *cb,
+
+    /* It's possible to run a depth-first traversal with write access to blocks. However,
+    it won't handle split/merge/level properly. Therefore, most B-tree operations are not
+    safe in a depth-first traversal in write mode. The only thing we actually use this
+    for is erasing old deletion entries, which can never trigger a merge/split/level. */
     access_t access,
+
     direction_t direction,
     release_superblock_t release_superblock,
     signal_t *interruptor);

@@ -244,7 +244,11 @@ public:
     if `next_item()` generates item A and then the next call to `next_item()` returns
     `ABORT`, then `receive_backfill()` would apply item A to the B-tree, then call
     `on_commit()` (*after* the call to `next_item()` that returned `ABORT`), then return
-    `ABORT`. */
+    `ABORT`.
+
+    Durability guarantees: The data is not necessarily durable on disk when `on_commit()`
+    is called, but it's definitely durable on disk by the time `receive_backfill()`
+    returns. */
     class backfill_item_producer_t {
     public:
         /* These callbacks may block, but they shouldn't block for very long because
@@ -273,6 +277,11 @@ public:
             const region_t &region,
             backfill_item_producer_t *item_producer,
             signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t) = 0;
+
+    /* Blocks if a secondary index is post-constructing so it's not a good time to
+    perform a backfill. */
+    virtual void wait_until_ok_to_receive_backfill(signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
     /* Deletes every key in the region, and sets the metainfo for that region to

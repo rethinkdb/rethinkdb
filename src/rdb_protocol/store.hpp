@@ -145,18 +145,21 @@ public:
             const region_map_t<state_timestamp_t> &start_point,
             backfill_pre_item_consumer_t *pre_item_consumer,
             signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t);
+        THROWS_ONLY(interrupted_exc_t);
     continue_bool_t send_backfill(
             const region_map_t<state_timestamp_t> &start_point,
             backfill_pre_item_producer_t *pre_item_producer,
             backfill_item_consumer_t *item_consumer,
             signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t);
+        THROWS_ONLY(interrupted_exc_t);
     continue_bool_t receive_backfill(
             const region_t &region,
             backfill_item_producer_t *item_producer,
             signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t);
+        THROWS_ONLY(interrupted_exc_t);
+
+    void wait_until_ok_to_receive_backfill(signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t);
 
     void reset_data(
             const binary_blob_t &zero_version,
@@ -422,7 +425,6 @@ public:
     // actually wait for the write lock, so multiple secondary indexes can be
     // post constructed at the same time.
     // A read lock is acquired before a backfill chunk is being processed.
-    /* RSI(raft): Reimplement the backfill side of this. */
     rwlock_t backfill_postcon_lock;
 
     // Mind the constructor ordering. We must destruct drainer before destructing

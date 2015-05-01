@@ -156,7 +156,9 @@ public:
     /* `try_consume_empty_range()` consumes the range from `left_excl_or_null` to
     `right_incl` if there are no pre-items in that range. If this works, it returns
     `true`. If the range is not completely empty, or the producer doesn't yet know
-    whether or not it's completely empty, it returns `false` and nothing is changed. */
+    whether or not it's completely empty, it returns `false` and nothing is changed. The
+    left end of the range must be the right-hand edge of the last range that was
+    consumed. */
     virtual bool try_consume_empty_range(
         const key_range_t &range) = 0;
 
@@ -198,7 +200,7 @@ public:
         const void *value_in_leaf_node,
         signal_t *interruptor,
         std::vector<char> *value_out) = 0;
-public:
+protected:
     virtual ~btree_backfill_item_consumer_t() { }
 };
 

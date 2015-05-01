@@ -55,6 +55,10 @@ continue_bool_t btree_depth_first_traversal(
         direction_t direction,
         release_superblock_t release_superblock,
         signal_t *interruptor) {
+    if (range.is_empty()) {
+        return continue_bool_t::CONTINUE;
+    }
+
     const btree_key_t *left_excl_or_null;
     store_key_t left_excl_buf(range.left);
     if (left_excl_buf.decrement()) {
@@ -76,12 +80,8 @@ continue_bool_t btree_depth_first_traversal(
         if (release_superblock == release_superblock_t::RELEASE) {
             superblock->release();
         }
-        if (!range.is_empty()) {
-            return cb->handle_empty(left_excl_or_null, right_incl_buf.btree_key(),
-                interruptor);
-        } else {
-            return continue_bool_t::CONTINUE;
-        }
+        return cb->handle_empty(left_excl_or_null, right_incl_buf.btree_key(),
+            interruptor);
     } else {
         counted_t<counted_buf_lock_and_read_t> root_block;
         {
@@ -106,13 +106,17 @@ continue_bool_t btree_depth_first_traversal(
     }
 }
 
-void get_child_key_range(const internal_node_t *inode,
-                         int child_index,
-                         const btree_key_t *parent_left_excl_or_null,
-                         const btree_key_t *parent_right_incl,
-                         const btree_key_t **left_excl_or_null_out,
-                         const btree_key_t **right_incl_out) {
-    const btree_internal_pair *pair = internal_node::get_pair_by_index(inode, child_index);
+void get_child_key_range(
+        const internal_node_t *inode,
+        int child_index,
+        /* `parent_*` describe the intersection of `inode`'s range and the range of keys
+        that the traversal is interested in */
+        const btree_key_t *parent_left_excl_or_null,
+        const btree_key_t *parent_right_incl,
+        const btree_key_t **left_excl_or_null_out,
+        const btree_key_t **right_incl_out) {
+    const btree_internal_pair *pair =
+        internal_node::get_pair_by_index(inode, child_index);
     if (child_index != inode->npairs - 1) {
         rassert(child_index < inode->npairs - 1);
         if (btree_key_cmp(&pair->key, parent_right_incl) < 0) {

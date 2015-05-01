@@ -87,8 +87,8 @@ continue_bool_t store_t::send_backfill_pre(
         while (threshold != pair.first.right) {
             scoped_ptr_t<txn_t> txn;
             scoped_ptr_t<real_superblock_t> sb;
-            get_btree_superblock_and_txn_for_reading(
-                general_cache_conn.get(), CACHE_SNAPSHOTTED_NO, &sb, &txn);
+            get_btree_superblock_and_txn_for_backfilling(
+                general_cache_conn.get(), btree->get_backfill_account(), &sb, &txn);
 
             limiting_btree_backfill_pre_item_consumer_t
                 limiter(pre_item_consumer, &threshold);
@@ -237,8 +237,8 @@ continue_bool_t store_t::send_backfill(
         while (threshold != pair.first.right) {
             scoped_ptr_t<txn_t> txn;
             scoped_ptr_t<real_superblock_t> sb;
-            get_btree_superblock_and_txn_for_reading(
-                general_cache_conn.get(), CACHE_SNAPSHOTTED_NO, &sb, &txn);
+            get_btree_superblock_and_txn_for_backfilling(
+                general_cache_conn.get(), btree->get_backfill_account(), &sb, &txn);
             region_map_t<binary_blob_t> metainfo;
             get_metainfo_internal(sb.get(), &metainfo);
 

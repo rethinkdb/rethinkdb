@@ -106,6 +106,11 @@ continue_bool_t btree_send_backfill_pre(
                                 || btree_key_cmp(key, right_incl) > 0) {
                             return continue_bool_t::CONTINUE;
                         }
+                        /* `visit_entries()` calls the callback in order from newest to
+                        oldest timestamps. So once we find one entry that's older than
+                        the threshold we care about, we know that there won't be any more
+                        entries that are newer than the threshold we care about, so we
+                        abort. */
                         if (timestamp <= reference_timestamp) {
                             return continue_bool_t::ABORT;
                         }
@@ -142,12 +147,10 @@ continue_bool_t btree_send_backfill_pre(
         }
 
         btree_backfill_pre_item_consumer_t *pre_item_consumer;
-        key_range_t range;
         repli_timestamp_t reference_timestamp;
         value_sizer_t *sizer;
     } callback;
     callback.pre_item_consumer = pre_item_consumer;
-    callback.range = range;
     callback.reference_timestamp = reference_timestamp;
     callback.sizer = sizer;
     return btree_depth_first_traversal(superblock, range, &callback, access_t::read,
