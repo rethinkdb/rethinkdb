@@ -179,7 +179,7 @@ std::vector<rget_item_t> rget_reader_t::do_range_read(
     store_key_t *key = &res.last_key;
     if (*key == store_key_t::max() && !reversed(rr->sorting)) {
         if (!rng.right.unbounded) {
-            *key = rng.right.key;
+            *key = rng.right.key();
             bool b = key->decrement();
             r_sanity_check(b);
         }
@@ -304,7 +304,7 @@ std::vector<rget_item_t> intersecting_reader_t::do_intersecting_read(
     store_key_t *key = &res.last_key;
     if (*key == store_key_t::max()) {
         if (!rng.right.unbounded) {
-            *key = rng.right.key;
+            *key = rng.right.key();
             bool b = key->decrement();
             r_sanity_check(b);
         }
@@ -341,13 +341,13 @@ bool readgen_t::update_range(key_range_t *active_range,
     if (!reversed(sorting)) {
         if (!active_range->left.increment()
             || (!active_range->right.unbounded
-                && (active_range->right.key < active_range->left))) {
+                && (active_range->right.key() < active_range->left))) {
             return true;
         }
     } else {
         r_sanity_check(!active_range->right.unbounded);
-        if (!active_range->right.key.decrement()
-            || active_range->right.key < active_range->left) {
+        if (!active_range->right.key().decrement()
+            || active_range->right.key() < active_range->left) {
             return true;
         }
     }
@@ -564,7 +564,7 @@ boost::optional<read_t> sindex_readgen_t::sindex_sort_read(
                 // possible row with this truncated sindex.
                 rng.left = store_key_t(skey);
             }
-            if (rng.right.unbounded || rng.left < rng.right.key) {
+            if (rng.right.unbounded || rng.left < rng.right.key()) {
                 return read_t(
                     rget_read_t(
                         region_t::universe(),

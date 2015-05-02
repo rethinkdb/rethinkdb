@@ -136,6 +136,7 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
         &get_global_perfmon_collection());
 
     store_t store(
+            region_t::universe(),
             &serializer,
             &balancer,
             "unit_test_store",

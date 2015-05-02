@@ -209,7 +209,7 @@ public:
     server, even if it's not a primary. */
     void read_store(const std::string &key, const std::string &expect) {
         store_key_t key2(key);
-        uint64_t hash = hash_region_hasher(key2.contents(), key2.size());
+        uint64_t hash = hash_region_hasher(key2);
         size_t cpu_shard = hash / (HASH_REGION_HASH_SIZE / CPU_SHARDING_FACTOR);
         std::string value;
         {

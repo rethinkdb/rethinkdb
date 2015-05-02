@@ -76,7 +76,8 @@ const char* sindex_not_ready_exc_t::what() const throw() {
 
 sindex_not_ready_exc_t::~sindex_not_ready_exc_t() throw() { }
 
-store_t::store_t(serializer_t *serializer,
+store_t::store_t(const region_t &region,
+                 serializer_t *serializer,
                  cache_balancer_t *balancer,
                  const std::string &perfmon_name,
                  bool create,
@@ -88,7 +89,7 @@ store_t::store_t(serializer_t *serializer,
                  not by looking at the `store_t`. */
                  scoped_ptr_t<outdated_index_report_t> &&_index_report,
                  namespace_id_t _table_id)
-    : store_view_t(region_t::universe()),
+    : store_view_t(region),
       perfmon_collection(),
       io_backender_(io_backender), base_path_(base_path),
       perfmon_collection_membership(parent_perfmon_collection, &perfmon_collection, perfmon_name),
@@ -221,113 +222,21 @@ void store_t::write(
     protocol_write(write, response, timestamp, &superblock, interruptor);
 }
 
-// TODO: Figure out wtf does the backfill filtering, figure out wtf constricts delete range operations to hit only a certain hash-interval, figure out what filters keys.
-bool store_t::send_backfill(
-        const region_map_t<state_timestamp_t> &start_point,
-        send_backfill_callback_t *send_backfill_cb,
-        traversal_progress_combiner_t *progress,
-        read_token_t *token,
-        signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t) {
-    assert_thread();
-
-    scoped_ptr_t<txn_t> txn;
-    scoped_ptr_t<real_superblock_t> superblock;
-    acquire_superblock_for_backfill(token, &txn, &superblock, interruptor);
-
-    buf_lock_t sindex_block(superblock->expose_buf(), superblock->get_sindex_block_id(),
-                            access_t::read);
-
-    region_map_t<binary_blob_t> unmasked_metainfo;
-    get_metainfo_internal(superblock.get(), &unmasked_metainfo);
-    region_map_t<binary_blob_t> metainfo = unmasked_metainfo.mask(start_point.get_domain());
-    if (send_backfill_cb->should_backfill(metainfo)) {
-        protocol_send_backfill(start_point, send_backfill_cb, superblock.get(), &sindex_block, progress, interruptor);
-        return true;
-    }
-    return false;
-}
-
-void store_t::throttle_backfill_chunk(signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t) {
-    // Warning: No re-ordering is allowed during throttling!
-
-    // As long as our secondary index post construction is implemented using a
-    // secondary index mod queue, it doesn't make sense from a performance point
-    // of view to run secondary index post construction and backfilling at the same
-    // time. We pause backfilling while any index post construction is going on on
-    // this store by acquiring a read lock on `backfill_postcon_lock`.
-    rwlock_in_line_t lock_acq(&backfill_postcon_lock, access_t::read);
-    wait_any_t waiter(lock_acq.read_signal(), interruptor);
-    waiter.wait_lazily_ordered();
-    if (interruptor->is_pulsed()) {
-        throw interrupted_exc_t();
-    }
-}
-
-struct backfill_chunk_timestamp_t : public boost::static_visitor<repli_timestamp_t> {
-    repli_timestamp_t operator()(const backfill_chunk_t::delete_key_t &del) const {
-        return del.recency;
-    }
-
-    repli_timestamp_t operator()(const backfill_chunk_t::delete_range_t &) const {
-        return repli_timestamp_t::distant_past;
-    }
-
-    repli_timestamp_t operator()(const backfill_chunk_t::key_value_pairs_t &kv) const {
-        repli_timestamp_t most_recent = repli_timestamp_t::distant_past;
-        rassert(!kv.backfill_atoms.empty());
-        for (size_t i = 0; i < kv.backfill_atoms.size(); ++i) {
-            most_recent = superceding_recency(most_recent, kv.backfill_atoms[i].recency);
-        }
-        return most_recent;
-    }
-};
-
-void store_t::receive_backfill(
-        const backfill_chunk_t &chunk,
-        write_token_t *token,
-        signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t) {
-    assert_thread();
-    with_priority_t p(CORO_PRIORITY_BACKFILL_RECEIVER);
-
-    scoped_ptr_t<txn_t> txn;
-    scoped_ptr_t<real_superblock_t> real_superblock;
-    const int expected_change_count = 1; // TODO: this is not correct
-
-    // We use HARD durability because we want backfilling to be throttled if we
-    // receive data faster than it can be written to disk. Otherwise we might
-    // exhaust the cache's dirty page limit and bring down the whole table.
-    // Other than that, the hard durability guarantee is not actually
-    // needed here.
-    acquire_superblock_for_write(expected_change_count,
-                                 write_durability_t::HARD,
-                                 token,
-                                 &txn,
-                                 &real_superblock,
-                                 interruptor);
-
-    scoped_ptr_t<real_superblock_t> superblock(real_superblock.release());
-    protocol_receive_backfill(std::move(superblock),
-                              interruptor,
-                              chunk);
-}
-
 void store_t::reset_data(
         const binary_blob_t &zero_metainfo,
         const region_t &subregion,
         const write_durability_t durability,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
+    guarantee(subregion.beg == get_region().beg && subregion.end == get_region().end);
     assert_thread();
     with_priority_t p(CORO_PRIORITY_RESET_DATA);
 
     // Erase the data in small chunks
     always_true_key_tester_t key_tester;
     const uint64_t max_erased_per_pass = 100;
-    for (done_traversing_t done_erasing = done_traversing_t::NO;
-         done_erasing == done_traversing_t::NO;) {
+    for (continue_bool_t done_erasing = continue_bool_t::CONTINUE;
+         done_erasing == continue_bool_t::CONTINUE;) {
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
 
@@ -366,7 +275,7 @@ void store_t::reset_data(
         get_metainfo_internal(superblock.get(), &old_metainfo);
         region_map_t<binary_blob_t> new_metainfo = old_metainfo;
         region_t deleted_region(subregion.beg, subregion.end, deleted_range);
-        new_metainfo.set(deleted_region, zero_metainfo);
+        new_metainfo.update(deleted_region, zero_metainfo);
         update_metainfo(old_metainfo, new_metainfo, superblock.get());
 
         superblock.reset();
@@ -746,12 +655,12 @@ public:
     clear_sindex_traversal_cb_t() {
         collected_keys.reserve(CHUNK_SIZE);
     }
-    done_traversing_t handle_pair(scoped_key_value_t &&keyvalue) {
+    continue_bool_t handle_pair(scoped_key_value_t &&keyvalue, signal_t *) {
         collected_keys.push_back(store_key_t(keyvalue.key()));
         if (collected_keys.size() >= CHUNK_SIZE) {
-            return done_traversing_t::YES;
+            return continue_bool_t::ABORT;
         } else {
-            return done_traversing_t::NO;
+            return continue_bool_t::CONTINUE;
         }
     }
     const std::vector<store_key_t> &get_keys() const {
@@ -801,11 +710,14 @@ void store_t::clear_sindex(
 
         /* 1. Collect a bunch of keys to delete */
         clear_sindex_traversal_cb_t traversal_cb;
-        reached_end = btree_depth_first_traversal(sindex_superblock.get(),
-                                 key_range_t::universe(),
-                                 &traversal_cb,
-                                 direction_t::FORWARD,
-                                 release_superblock_t::KEEP);
+        reached_end = (continue_bool_t::CONTINUE == btree_depth_first_traversal(
+            sindex_superblock.get(),
+            key_range_t::universe(),
+            &traversal_cb,
+            access_t::read,
+            direction_t::FORWARD,
+            release_superblock_t::KEEP,
+            interruptor));
 
         /* 2. Actually delete them */
         const std::vector<store_key_t> &keys = traversal_cb.get_keys();
@@ -1283,21 +1195,18 @@ void store_t::update_metainfo(const region_map_t<binary_blob_t> &old_metainfo,
 
     std::vector<std::vector<char> > keys;
     std::vector<binary_blob_t> values;
-    keys.reserve(updated_metadata.size());
-    values.reserve(updated_metadata.size());
-    for (region_map_t<binary_blob_t>::const_iterator i = updated_metadata.begin();
-         i != updated_metadata.end();
-         ++i) {
-        vector_stream_t key;
-        write_message_t wm;
-        serialize_for_metainfo(&wm, i->first);
-        key.reserve(wm.size());
-        DEBUG_VAR int res = send_write_message(&key, &wm);
-        rassert(!res);
+    updated_metadata.visit(region_t::universe(),
+        [&](const region_t &region, const binary_blob_t &value) {
+            vector_stream_t key;
+            write_message_t wm;
+            serialize_for_metainfo(&wm, region);
+            key.reserve(wm.size());
+            DEBUG_VAR int res = send_write_message(&key, &wm);
+            rassert(!res);
 
-        keys.push_back(std::move(key.vector()));
-        values.push_back(i->second);
-    }
+            keys.push_back(std::move(key.vector()));
+            values.push_back(value);
+        });
 
     set_superblock_metainfo(superblock, keys, values);
 }
@@ -1327,20 +1236,21 @@ get_metainfo_internal(real_superblock_t *superblock,
     // TODO: this is inefficient, cut out the middleman (vector)
     get_superblock_metainfo(superblock, &kv_pairs);
 
-    std::vector<std::pair<region_t, binary_blob_t> > result;
-    for (std::vector<std::pair<std::vector<char>, std::vector<char> > >::iterator i = kv_pairs.begin(); i != kv_pairs.end(); ++i) {
-        const std::vector<char> &value = i->second;
-
+    std::vector<region_t> regions;
+    std::vector<binary_blob_t> values;
+    for (auto &pair : kv_pairs) {
         region_t region;
         {
-            buffer_read_stream_t key(i->first.data(), i->first.size());
+            buffer_read_stream_t key(pair.first.data(), pair.first.size());
             archive_result_t res = deserialize_for_metainfo(&key, &region);
             guarantee_deserialization(res, "region");
         }
-
-        result.push_back(std::make_pair(region, binary_blob_t(value.begin(), value.end())));
+        regions.push_back(region);
+        values.push_back(binary_blob_t(pair.second.begin(), pair.second.end()));
     }
-    region_map_t<binary_blob_t> res(result.begin(), result.end());
+    region_map_t<binary_blob_t> res =
+        region_map_t<binary_blob_t>::from_unordered_fragments(
+            std::move(regions), std::move(values));;
     rassert(res.get_domain() == region_t::universe());
     *out = res;
 }
@@ -1348,13 +1258,14 @@ get_metainfo_internal(real_superblock_t *superblock,
 void store_t::set_metainfo(const region_map_t<binary_blob_t> &new_metainfo,
                            UNUSED order_token_t order_token,  // TODO
                            write_token_t *token,
+                           write_durability_t durability,
                            signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
 
     scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
     acquire_superblock_for_write(1,
-                                 write_durability_t::HARD,
+                                 durability,
                                  token,
                                  &txn,
                                  &superblock,
@@ -1383,22 +1294,6 @@ void store_t::acquire_superblock_for_read(
         use_snapshot ? CACHE_SNAPSHOTTED_YES : CACHE_SNAPSHOTTED_NO;
     get_btree_superblock_and_txn_for_reading(
         general_cache_conn.get(), cache_snapshotted, sb_out, txn_out);
-}
-
-void store_t::acquire_superblock_for_backfill(
-        read_token_t *token,
-        scoped_ptr_t<txn_t> *txn_out,
-        scoped_ptr_t<real_superblock_t> *sb_out,
-        signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t) {
-    assert_thread();
-
-    object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(&token->main_read_token);
-    wait_interruptible(token->main_read_token.get(), interruptor);
-
-    get_btree_superblock_and_txn_for_backfilling(general_cache_conn.get(),
-                                                 btree->get_backfill_account(),
-                                                 sb_out, txn_out);
 }
 
 void store_t::acquire_superblock_for_write(

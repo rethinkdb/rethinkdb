@@ -56,9 +56,10 @@ public:
     test_store_t(io_backender_t *io_backender, order_source_t *order_source, rdb_context_t *ctx) :
             serializer(create_and_construct_serializer(&temp_file, io_backender)),
             balancer(new dummy_cache_balancer_t(GIGABYTE)),
-            store(serializer.get(), balancer.get(), temp_file.name().permanent_path(), true,
-                  &get_global_perfmon_collection(), ctx, io_backender, base_path_t("."),
-                  scoped_ptr_t<outdated_index_report_t>(), generate_uuid()) {
+            store(region_t::universe(), serializer.get(), balancer.get(),
+                temp_file.name().permanent_path(), true,
+                &get_global_perfmon_collection(), ctx, io_backender, base_path_t("."),
+                scoped_ptr_t<outdated_index_report_t>(), generate_uuid()) {
         /* Initialize store metadata */
         cond_t non_interruptor;
         write_token_t token;
@@ -66,7 +67,8 @@ public:
         region_map_t<binary_blob_t> new_metainfo(
                 store.get_region(),
                 binary_blob_t(version_t::zero()));
-        store.set_metainfo(new_metainfo, order_source->check_in("test_store_t"), &token, &non_interruptor);
+        store.set_metainfo(new_metainfo, order_source->check_in("test_store_t"), &token,
+            write_durability_t::SOFT, &non_interruptor);
     }
 
     temp_file_t temp_file;
@@ -75,82 +77,41 @@ public:
     store_t store;
 };
 
-inline void test_inserter_write_primary_query_client(
-        primary_query_client_t *client, const std::string &key, const std::string &value,
-        order_token_t otok, signal_t *interruptor) {
-    write_t w = mock_overwrite(key, value);
-    write_response_t response;
-    fifo_enforcer_sink_t::exit_write_t write_token;
-    client->new_write_token(&write_token);
-    client->write(w, &response, otok, &write_token, interruptor);
-}
-
-inline std::string test_inserter_read_primary_query_client(
-        primary_query_client_t *client, const std::string &key,
-        order_token_t otok, signal_t *interruptor) {
-    read_t r = mock_read(key);
-    read_response_t response;
-    fifo_enforcer_sink_t::exit_read_t read_token;
-    client->new_read_token(&read_token);
-    client->read(r, &response, otok, &read_token, interruptor);
-    return mock_parse_read_response(response);
-}
-
-inline void test_inserter_write_namespace_if(namespace_interface_t *nif, const std::string &key, const std::string &value, order_token_t otok, signal_t *interruptor) {
-    write_response_t response;
-    nif->write(mock_overwrite(key, value), &response, otok, interruptor);
-}
-
-inline std::string test_inserter_read_namespace_if(namespace_interface_t *nif, const std::string &key, order_token_t otok, signal_t *interruptor) {
-    read_response_t response;
-    nif->read(mock_read(key), &response, otok, interruptor);
-    return mock_parse_read_response(response);
-}
-
 class test_inserter_t {
 
 public:
     typedef std::map<std::string, std::string> state_t;
 
-    test_inserter_t(std::function<void(const std::string &, const std::string &, order_token_t, signal_t *)> _wfun,
-               std::function<std::string(const std::string &, order_token_t, signal_t *)> _rfun,
-               std::function<std::string()> _key_gen_fun,
-                    order_source_t *_osource, const std::string& tag, state_t *state)
-        : values_inserted(state), drainer(new auto_drainer_t), wfun(_wfun), rfun(_rfun), key_gen_fun(_key_gen_fun), osource(_osource)
-    {
-        coro_t::spawn_sometime(std::bind(&test_inserter_t::insert_forever,
-                                         this, tag, auto_drainer_t::lock_t(drainer.get())));
-    }
-
-    test_inserter_t(namespace_interface_t *namespace_if, std::function<std::string()> _key_gen_fun, order_source_t *_osource, const std::string& tag, state_t *state)
-        : values_inserted(state),
-          drainer(new auto_drainer_t),
-          wfun(std::bind(&test_inserter_t::write_namespace_if, namespace_if, ph::_1, ph::_2, ph::_3, ph::_4)),
-          rfun(std::bind(&test_inserter_t::read_namespace_if, namespace_if, ph::_1, ph::_2, ph::_3)),
-          key_gen_fun(_key_gen_fun),
-          osource(_osource)
-    {
-        coro_t::spawn_sometime(std::bind(&test_inserter_t::insert_forever,
-                                         this, tag, auto_drainer_t::lock_t(drainer.get())));
-    }
-
     test_inserter_t(
-            primary_query_client_t *client,
+            std::function<void(const std::string &, const std::string &, order_token_t, signal_t *)> _wfun,
+            std::function<std::string(const std::string &, order_token_t, signal_t *)> _rfun,
             std::function<std::string()> _key_gen_fun,
             order_source_t *_osource,
-            const std::string& tag,
-            state_t *state)
-        : values_inserted(state),
-          drainer(new auto_drainer_t),
-          wfun(std::bind(&test_inserter_t::write_primary_query_client,
-            client, ph::_1, ph::_2, ph::_3, ph::_4)),
-          rfun(std::bind(&test_inserter_t::read_primary_query_client,
-            client, ph::_1, ph::_2, ph::_3)),
-          key_gen_fun(_key_gen_fun),
-          osource(_osource)
+            const std::string &_tag,
+            state_t *state,
+            bool should_start = true) :
+        values_inserted(state), wfun(_wfun), rfun(_rfun), key_gen_fun(_key_gen_fun),
+        osource(_osource), tag(_tag), next_value(0)
     {
-        coro_t::spawn_sometime(std::bind(&test_inserter_t::insert_forever,
-                                         this, tag, auto_drainer_t::lock_t(drainer.get())));
+        for (const auto &pair : *values_inserted) {
+            keys_used.push_back(pair.first);
+        }
+        if (should_start) {
+            start();
+        }
+    }
+
+    void insert(size_t n) {
+        while (n-- > 0) {
+            insert_one();
+        }
+    }
+
+    void start() {
+        drainer.init(new auto_drainer_t);
+        coro_t::spawn_sometime(std::bind(
+            &test_inserter_t::insert_forever, this,
+            auto_drainer_t::lock_t(drainer.get())));
     }
 
     void stop() {
@@ -158,42 +119,40 @@ public:
         drainer.reset();
     }
 
+    bool running() const {
+        return drainer.has();
+    }
+
     state_t *values_inserted;
 
 private:
-    static void write_primary_query_client(primary_query_client_t *client,
-            const std::string& key, const std::string& value,
-            order_token_t otok, signal_t *interruptor) {
-        test_inserter_write_primary_query_client(client, key, value, otok, interruptor);
-    }
-
-    static std::string read_primary_query_client(primary_query_client_t *client,
-            const std::string& key, order_token_t otok, signal_t *interruptor) {
-        return test_inserter_read_primary_query_client(client, key, otok, interruptor);
-    }
-
-    static void write_namespace_if(namespace_interface_t *namespace_if, const std::string& key, const std::string& value, order_token_t otok, signal_t *interruptor) {
-        test_inserter_write_namespace_if(namespace_if, key, value, otok, interruptor);
-    }
-
-    static std::string read_namespace_if(namespace_interface_t *namespace_if, const std::string& key, order_token_t otok, signal_t *interruptor) {
-        return test_inserter_read_namespace_if(namespace_if, key, otok, interruptor);
-    }
-
     scoped_ptr_t<auto_drainer_t> drainer;
 
-    void insert_forever(const std::string &msg, auto_drainer_t::lock_t keepalive) {
+    void insert_one() {
+        std::string key, value;
+        if (randint(3) != 0 || keys_used.empty()) {
+            key = key_gen_fun();
+            value = strprintf("%d", next_value++);
+            keys_used.push_back(key);
+        } else {
+            key = keys_used.at(randint(keys_used.size()));
+            if (randint(2) == 0) {
+                /* `wfun()` may choose to interpret this as a deletion */
+                value = "";
+            } else {
+                value = strprintf("%d", next_value++);
+            }
+        }
+        (*values_inserted)[key] = value;
+        cond_t interruptor;
+        wfun(key, value, osource->check_in(tag), &interruptor);
+    }
+
+    void insert_forever(auto_drainer_t::lock_t keepalive) {
         try {
-            std::string tag = strprintf("insert_forever(%p,%s)", this, msg.c_str());
-            for (int i = 0; ; i++) {
+            for (;;) {
                 if (keepalive.get_drain_signal()->is_pulsed()) throw interrupted_exc_t();
-
-                std::string key = key_gen_fun();
-                std::string value = (*values_inserted)[key] = strprintf("%d", i);
-
-                cond_t interruptor;
-                wfun(key, value, osource->check_in(tag), &interruptor);
-
+                insert_one();
                 nap(10, keepalive.get_drain_signal());
             }
         } catch (const interrupted_exc_t &) {
@@ -206,32 +165,61 @@ public:
         for (state_t::iterator it = values_inserted->begin();
                                it != values_inserted->end();
                                it++) {
-            cond_t interruptor;
-            std::string response = rfun(it->first, osource->check_in(strprintf("mock::test_inserter_t::validate(%p)", this)).with_read_mode(), &interruptor);
+            cond_t non_interruptor;
+            std::string response = rfun(
+                it->first,
+                osource->check_in(strprintf("mock::test_inserter_t::validate(%p)", this))
+                    .with_read_mode(),
+                &non_interruptor);
             guarantee(it->second == response, "For key `%s`: expected `%s`, got `%s`\n",
                 it->first.c_str(), it->second.c_str(), response.c_str());
         }
     }
 
+    /* `validate_no_extras()` makes sure that no keys from `extras` are present that are
+    not supposed to be present. It complements `validate`, which only checks for the
+    existence of keys that are supposed to exist. */
+    void validate_no_extras(const std::map<std::string, std::string> &extras) {
+        for (const auto &pair : extras) {
+            auto it = values_inserted->find(pair.first);
+            std::string expect = it != values_inserted->end() ? it->second : "";
+            cond_t non_interruptor;
+            std::string actual = rfun(
+                pair.first,
+                osource->check_in(strprintf("mock::test_inserter_t::validate(%p)", this))
+                    .with_read_mode(),
+                &non_interruptor);
+            guarantee(expect == actual, "For key `%s`: expected `%s`, got `%s`\n",
+                pair.first.c_str(), expect.c_str(), actual.c_str());
+        }
+    }
+
 private:
+    std::vector<std::string> keys_used;
     std::function<void(const std::string &, const std::string &, order_token_t, signal_t *)> wfun;
     std::function<std::string(const std::string &, order_token_t, signal_t *)> rfun;
     std::function<std::string()> key_gen_fun;
     order_source_t *osource;
+    std::string tag;
+    int next_value;
 
     DISABLE_COPYING(test_inserter_t);
 };
 
-inline std::string dummy_key_gen() {
-    return std::string(1, 'a' + randint(26));
-}
-
-inline std::string mc_key_gen() {
+inline std::string alpha_key_gen(int len) {
     std::string key;
-    for (int j = 0; j < 100; j++) {
+    for (int j = 0; j < len; j++) {
         key.push_back('a' + randint(26));
     }
     return key;
+}
+
+inline std::string dummy_key_gen() {
+    return alpha_key_gen(1);
+}
+
+inline std::string mc_key_gen() {
+    return alpha_key_gen(100);
 }
 
 peer_address_t get_cluster_local_address(connectivity_cluster_t *cm);
@@ -269,26 +257,6 @@ private:
     mailbox_manager_t mailbox_manager;
     connectivity_cluster_t::run_t connectivity_cluster_run;
 };
-
-#ifndef NDEBUG
-struct equality_metainfo_checker_callback_t : public metainfo_checker_callback_t {
-    explicit equality_metainfo_checker_callback_t(const binary_blob_t& expected_value)
-        : value_(expected_value) { }
-
-    void check_metainfo(const region_map_t<binary_blob_t>& metainfo, const region_t& region) const {
-        region_map_t<binary_blob_t> masked = metainfo.mask(region);
-
-        for (region_map_t<binary_blob_t>::const_iterator it = masked.begin(); it != masked.end(); ++it) {
-            rassert(it->second == value_);
-        }
-    }
-
-private:
-    const binary_blob_t value_;
-
-    DISABLE_COPYING(equality_metainfo_checker_callback_t);
-};
-#endif
 
 }  // namespace unittest
 

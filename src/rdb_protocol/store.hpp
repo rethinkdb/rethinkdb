@@ -86,7 +86,8 @@ class store_t final : public store_view_t {
 public:
     using home_thread_mixin_t::assert_thread;
 
-    store_t(serializer_t *serializer,
+    store_t(const region_t &region,
+            serializer_t *serializer,
             cache_balancer_t *balancer,
             const std::string &perfmon_name,
             bool create,
@@ -116,6 +117,7 @@ public:
             const region_map_t<binary_blob_t> &new_metainfo,
             order_token_t order_token,
             write_token_t *token,
+            write_durability_t durability,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -139,22 +141,24 @@ public:
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
-    bool send_backfill(
+    continue_bool_t send_backfill_pre(
             const region_map_t<state_timestamp_t> &start_point,
-            send_backfill_callback_t *send_backfill_cb,
-            traversal_progress_combiner_t *progress,
-            read_token_t *token,
+            backfill_pre_item_consumer_t *pre_item_consumer,
+            signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t);
+    continue_bool_t send_backfill(
+            const region_map_t<state_timestamp_t> &start_point,
+            backfill_pre_item_producer_t *pre_item_producer,
+            backfill_item_consumer_t *item_consumer,
+            signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t);
+    continue_bool_t receive_backfill(
+            const region_t &region,
+            backfill_item_producer_t *item_producer,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
-    void receive_backfill(
-            const backfill_chunk_t &chunk,
-            write_token_t *token,
-            signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t);
-
-    // Preserves ordering
-    void throttle_backfill_chunk(signal_t *interruptor)
+    void wait_until_ok_to_receive_backfill(signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
     void reset_data(
@@ -309,18 +313,6 @@ public:
                         scoped_ptr_t<real_superblock_t> *superblock,
                         signal_t *interruptor);
 
-    void protocol_send_backfill(const region_map_t<state_timestamp_t> &start_point,
-                                chunk_fun_callback_t *chunk_fun_cb,
-                                real_superblock_t *superblock,
-                                buf_lock_t *sindex_block,
-                                traversal_progress_combiner_t *progress,
-                                signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t);
-
-    void protocol_receive_backfill(scoped_ptr_t<real_superblock_t> &&superblock,
-                                   signal_t *interruptor,
-                                   const backfill_chunk_t &chunk);
-
     void get_metainfo_internal(real_superblock_t *superblock,
                                region_map_t<binary_blob_t> *out)
         const THROWS_NOTHING;
@@ -331,13 +323,6 @@ public:
             scoped_ptr_t<real_superblock_t> *sb_out,
             signal_t *interruptor,
             bool use_snapshot)
-            THROWS_ONLY(interrupted_exc_t);
-
-    void acquire_superblock_for_backfill(
-            read_token_t *token,
-            scoped_ptr_t<txn_t> *txn_out,
-            scoped_ptr_t<real_superblock_t> *sb_out,
-            signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
 
     void acquire_superblock_for_write(

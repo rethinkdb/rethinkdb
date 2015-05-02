@@ -61,6 +61,7 @@ inline void debug_print(printf_buffer_t *buf, const version_t& v) {
 }
 
 region_map_t<version_t> to_version_map(const region_map_t<binary_blob_t> &blob_map);
+region_map_t<binary_blob_t> from_version_map(const region_map_t<version_t> &version_map);
 
 /* The state of the database at the time that the `broadcaster_t` was created and the
 sequence of writes that pass through a `broadcaster_t` are collectively referred to as a
@@ -151,9 +152,9 @@ the table passed through `ancestor` version on the way to `descendent` version.
 Also returns true if `ancestor` and `descendent` are the same version. */
 bool version_is_ancestor(
     const branch_history_reader_t *bh,
-    version_t ancestor,
-    version_t descendent,
-    region_t relevant_region);
+    const version_t &ancestor,
+    const version_t &descendent,
+    const region_t &relevant_region);
 
 /* `version_find_common()` finds the last common ancestor of two other versions. The
 result may be different for different sub-regions, so it returns a `region_map_t`. */

@@ -70,15 +70,11 @@ dummy_timestamper_t::dummy_timestamper_t(dummy_performer_t *n,
                                  &read_token, &interruptor, &metainfo);
 
     current_timestamp = state_timestamp_t::zero();
-    for (typename region_map_t<binary_blob_t>::iterator it  = metainfo.begin();
-                                                        it != metainfo.end();
-                                                        it++) {
-        state_timestamp_t region_timestamp
-            = binary_blob_t::get<state_timestamp_t>(it->second);
-        if (region_timestamp > current_timestamp) {
-            current_timestamp = region_timestamp;
-        }
-    }
+    metainfo.visit(metainfo.get_domain(),
+        [&](const region_t &, const binary_blob_t &b) {
+            state_timestamp_t region_ts = binary_blob_t::get<state_timestamp_t>(b);
+            current_timestamp = std::max(current_timestamp, region_ts);
+        });
 }
 
 void dummy_timestamper_t::read(const read_t &read, read_response_t *response, order_token_t otok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
@@ -177,27 +173,25 @@ dummy_namespace_interface_t(std::vector<region_t> shards,
             read_token_t read_token;
             stores[i]->new_read_token(&read_token);
 
-            region_map_t<binary_blob_t> metadata;
+            region_map_t<binary_blob_t> metainfo;
             stores[i]->do_get_metainfo(order_source->check_in("dummy_namespace_interface_t::dummy_namespace_interface_t (do_get_metainfo)").with_read_mode(),
-                                       &read_token, &interruptor, &metadata);
+                                       &read_token, &interruptor, &metainfo);
 
-            rassert(metadata.get_domain() == shards[i]);
-            for (region_map_t<binary_blob_t>::const_iterator it = metadata.begin();
-                 it != metadata.end();
-                 ++it) {
-                rassert(it->second.size() == 0);
-            }
+            rassert(metainfo.get_domain() == shards[i]);
+            metainfo.visit(shards[i], [&](const region_t &, const binary_blob_t &b) {
+                rassert(b.size() == 0);
+            });
 
             write_token_t write_token;
             stores[i]->new_write_token(&write_token);
 
             stores[i]->set_metainfo(
-                    region_map_transform<state_timestamp_t, binary_blob_t>(
-                            region_map_t<state_timestamp_t>(shards[i], state_timestamp_t::zero()),
-                            &binary_blob_t::make<state_timestamp_t>
-                                                                           ),
-                    order_source->check_in("dummy_namespace_interface_t::dummy_namespace_interface_t (set_metainfo)"),
+                    region_map_t<binary_blob_t>(
+                        shards[i], binary_blob_t(state_timestamp_t::zero())),
+                    order_source->check_in("dummy_namespace_interface_t::"
+                        "dummy_namespace_interface_t (set_metainfo)"),
                     &write_token,
+                    write_durability_t::SOFT,
                     &interruptor);
         }
 

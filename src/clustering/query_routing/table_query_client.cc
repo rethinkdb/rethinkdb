@@ -110,11 +110,12 @@ void table_query_client_t::write(
 std::set<region_t> table_query_client_t::get_sharding_scheme()
         THROWS_ONLY(cannot_perform_query_exc_t) {
     std::vector<region_t> s;
-    for (const auto &pair : relationships) {
-        for (relationship_t *rel : pair.second) {
+    relationships.visit(relationships.get_domain(),
+    [&](const region_t &, const std::set<relationship_t *> &rels) {
+        for (relationship_t *rel : rels) {
             s.push_back(rel->region);
         }
-    }
+    });
     region_t whole;
     region_join_result_t res = region_join(s, &whole);
     if (res != REGION_JOIN_OK || whole != region_t::universe()) {
@@ -151,13 +152,11 @@ void table_query_client_t::dispatch_immediate_op(
         primaries_to_contact;
     scoped_ptr_t<immediate_op_info_t<op_type, fifo_enforcer_token_type> >
         new_op_info(new immediate_op_info_t<op_type, fifo_enforcer_token_type>());
-    for (auto it = relationships.begin(); it != relationships.end(); ++it) {
-        if (op.shard(it->first, &new_op_info->sharded_op)) {
+    relationships.visit(region_t::universe(),
+    [&](const region_t &reg, const std::set<relationship_t *> &rels) {
+        if (op.shard(reg, &new_op_info->sharded_op)) {
             relationship_t *chosen_relationship = NULL;
-            const std::set<relationship_t *> *relationship_map = &it->second;
-            for (auto jt = relationship_map->begin();
-                 jt != relationship_map->end();
-                 ++jt) {
+            for (auto jt = rels.begin(); jt != rels.end(); ++jt) {
                 if ((*jt)->primary_client) {
                     if (chosen_relationship) {
                         throw cannot_perform_query_exc_t(
@@ -169,7 +168,7 @@ void table_query_client_t::dispatch_immediate_op(
             if (!chosen_relationship) {
                 throw cannot_perform_query_exc_t(
                     strprintf("primary replica for shard %s not available",
-                              key_range_to_string(it->first.inner).c_str()));
+                              key_range_to_string(reg.inner).c_str()));
             }
             new_op_info->primary_client = chosen_relationship->primary_client;
             (new_op_info->primary_client->*how_to_make_token)(
@@ -180,7 +179,7 @@ void table_query_client_t::dispatch_immediate_op(
             new_op_info.init(
                 new immediate_op_info_t<op_type, fifo_enforcer_token_type>());
         }
-    }
+    });
 
     std::vector<op_response_type> results(primaries_to_contact.size());
     std::vector<std::string> failures(primaries_to_contact.size());
@@ -262,15 +261,12 @@ void table_query_client_t::dispatch_outdated_read(
     std::vector<scoped_ptr_t<outdated_read_info_t> > replicas_to_contact;
 
     scoped_ptr_t<outdated_read_info_t> new_op_info(new outdated_read_info_t());
-    for (auto it = relationships.begin(); it != relationships.end(); ++it) {
-        if (op.shard(it->first, &new_op_info->sharded_op)) {
+    relationships.visit(region_t::universe(),
+    [&](const region_t &region, const std::set<relationship_t *> &rels) {
+        if (op.shard(region, &new_op_info->sharded_op)) {
             std::vector<relationship_t *> potential_relationships;
             relationship_t *chosen_relationship = NULL;
-
-            const std::set<relationship_t *> *relationship_map = &it->second;
-            for (auto jt = relationship_map->begin();
-                 jt != relationship_map->end();
-                 ++jt) {
+            for (auto jt = rels.begin(); jt != rels.end(); ++jt) {
                 if ((*jt)->direct_bcard != nullptr) {
                     if ((*jt)->is_local) {
                         chosen_relationship = *jt;
@@ -296,7 +292,7 @@ void table_query_client_t::dispatch_outdated_read(
             replicas_to_contact.push_back(std::move(new_op_info));
             new_op_info.init(new outdated_read_info_t());
         }
-    }
+    });
 
     std::vector<read_response_t> results(replicas_to_contact.size());
     std::vector<std::string> failures(replicas_to_contact.size());
@@ -372,18 +368,16 @@ class region_map_set_membership_t {
 public:
     region_map_set_membership_t(region_map_t<std::set<value_t> > *m, const region_t &r, const value_t &v) :
         map(m), region(r), value(v) {
-        region_map_t<std::set<value_t> > submap = map->mask(region);
-        for (typename region_map_t<std::set<value_t> >::iterator it = submap.begin(); it != submap.end(); it++) {
-            it->second.insert(value);
-        }
-        map->update(submap);
+        map->visit_mutable(region, [&](const region_t &, std::set<value_t> *set) {
+            rassert(set->count(value) == 0);
+            set->insert(value);
+        });
     }
     ~region_map_set_membership_t() {
-        region_map_t<std::set<value_t> > submap = map->mask(region);
-        for (typename region_map_t<std::set<value_t> >::iterator it = submap.begin(); it != submap.end(); it++) {
-            it->second.erase(value);
-        }
-        map->update(submap);
+        map->visit_mutable(region, [&](const region_t &, std::set<value_t> *set) {
+            rassert(set->count(value) == 1);
+            set->erase(value);
+        });
     }
 private:
     region_map_t<std::set<value_t> > *map;

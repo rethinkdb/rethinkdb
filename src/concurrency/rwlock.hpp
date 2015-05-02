@@ -71,6 +71,10 @@ public:
     rwlock_acq_t(rwlock_t *lock, access_t access, signal_t *interruptor);
     ~rwlock_acq_t();
 
+    void reset() {
+        rwlock_in_line_t::reset();
+    }
+
     void guarantee_is_holding(rwlock_t *lock) {
         rwlock_in_line_t::guarantee_is_for_lock(lock);
     }

@@ -96,22 +96,6 @@ class sindex_readgen_t;
 class intersecting_readgen_t;
 } // namespace ql
 
-struct backfill_atom_t {
-    store_key_t key;
-    ql::datum_t value;
-    repli_timestamp_t recency;
-
-    backfill_atom_t() { }
-    backfill_atom_t(const store_key_t &_key,
-                    const ql::datum_t &_value,
-                    const repli_timestamp_t &_recency) :
-        key(_key),
-        value(_value),
-        recency(_recency)
-    { }
-};
-RDB_DECLARE_SERIALIZABLE(backfill_atom_t);
-
 namespace rdb_protocol {
 
 void bring_sindexes_up_to_date(
@@ -707,50 +691,6 @@ struct write_t {
           limits(_limits) { }
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(write_t);
-
-struct backfill_chunk_t {
-    struct delete_key_t {
-        store_key_t key;
-        repli_timestamp_t recency;
-
-        delete_key_t() { }
-        delete_key_t(const store_key_t& _key, const repli_timestamp_t& _recency) : key(_key), recency(_recency) { }
-    };
-    struct delete_range_t {
-        region_t range;
-        delete_range_t() { }
-        explicit delete_range_t(const region_t& _range) : range(_range) { }
-    };
-    struct key_value_pairs_t {
-        std::vector<backfill_atom_t> backfill_atoms;
-
-        key_value_pairs_t() { }
-        explicit key_value_pairs_t(std::vector<backfill_atom_t> &&_backfill_atoms)
-            : backfill_atoms(std::move(_backfill_atoms)) { }
-    };
-
-    typedef boost::variant<delete_range_t, delete_key_t, key_value_pairs_t> value_t;
-
-    backfill_chunk_t() { }
-    explicit backfill_chunk_t(const value_t &_val) : val(_val) { }
-    value_t val;
-
-    static backfill_chunk_t delete_range(const region_t& range) {
-        return backfill_chunk_t(delete_range_t(range));
-    }
-    static backfill_chunk_t delete_key(const store_key_t& key, const repli_timestamp_t& recency) {
-        return backfill_chunk_t(delete_key_t(key, recency));
-    }
-    static backfill_chunk_t set_keys(std::vector<backfill_atom_t> &&keys) {
-        return backfill_chunk_t(key_value_pairs_t(std::move(keys)));
-    }
-};
-
-RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(backfill_chunk_t::delete_key_t);
-RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(backfill_chunk_t::delete_range_t);
-RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(backfill_chunk_t::key_value_pairs_t);
-RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(backfill_chunk_t);
-
 
 class store_t;
 

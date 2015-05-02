@@ -59,13 +59,16 @@ std::string key_to_debug_str(const btree_key_t *key) {
 key_range_t::key_range_t() :
     left(), right(store_key_t()) { }
 
-key_range_t::key_range_t(bound_t lm, const store_key_t& l, bound_t rm, const store_key_t& r) {
+key_range_t::key_range_t(bound_t lm, const store_key_t& l, bound_t rm, const store_key_t& r) :
+    key_range_t(lm, l.btree_key(), rm, r.btree_key()) { }
+
+key_range_t::key_range_t(bound_t lm, const btree_key_t *l, bound_t rm, const btree_key_t *r) {
     switch (lm) {
         case closed:
-            left = l;
+            left.assign(l);
             break;
         case open:
-            left = l;
+            left.assign(l);
             if (left.increment()) {
                 break;
             } else {
@@ -76,7 +79,7 @@ key_range_t::key_range_t(bound_t lm, const store_key_t& l, bound_t rm, const sto
                 return;
             }
         case none:
-            left = store_key_t();
+            left = store_key_t::min();
             break;
         default:
             unreachable();
@@ -84,32 +87,28 @@ key_range_t::key_range_t(bound_t lm, const store_key_t& l, bound_t rm, const sto
 
     switch (rm) {
         case closed: {
-            store_key_t r_copy(r);
-            if (r_copy.increment()) {
-                right = right_bound_t(r_copy);
-                break;
-            } else {
-                /* Our right bound is the largest possible key, and we are
-                closed on the right-hand side. The only way to express this is
-                to set `right` to `right_bound_t()`. */
-                right = right_bound_t();
-                break;
-            }
+            right.unbounded = false;
+            right.key().assign(r);
+            bool ok = right.increment();
+            guarantee(ok);
+            break;
         }
         case open:
-            right = right_bound_t(r);
+            right.unbounded = false;
+            right.key().assign(r);
             break;
         case none:
-            right = right_bound_t();
+            right.unbounded = true;
             break;
         default:
             unreachable();
     }
 
-    rassert(right.unbounded || left <= right.key,
+    rassert(right.unbounded || left <= right.key(),
             "left_key(%d)=%.*s, right_key(%d)=%.*s",
             left.size(), left.size(), left.contents(),
-            right.key.size(), right.key.size(), right.key.contents());
+            right.internal_key.size(), right.internal_key.size(),
+            right.internal_key.contents());
 }
 
 bool key_range_t::is_superset(const key_range_t &other) const {
@@ -136,19 +135,31 @@ key_range_t key_range_t::intersection(const key_range_t &other) const {
     return ixn;
 }
 
+void debug_print(printf_buffer_t *buf, const btree_key_t *k) {
+    if (k != nullptr) {
+        debug_print_quoted_string(buf, k->contents, k->size);
+    } else {
+        buf->appendf("NULL");
+    }
+}
+
 void debug_print(printf_buffer_t *buf, const store_key_t &k) {
-    debug_print_quoted_string(buf, k.contents(), k.size());
+    debug_print(buf, k.btree_key());
+}
+
+void debug_print(printf_buffer_t *buf, const key_range_t::right_bound_t &rb) {
+    if (rb.unbounded) {
+        buf->appendf("+inf");
+    } else {
+        debug_print(buf, rb.key());
+    }
 }
 
 void debug_print(printf_buffer_t *buf, const key_range_t &kr) {
     buf->appendf("[");
     debug_print(buf, kr.left);
     buf->appendf(", ");
-    if (kr.right.unbounded) {
-        buf->appendf("+inf");
-    } else {
-        debug_print(buf, kr.right.key);
-    }
+    debug_print(buf, kr.right);
     buf->appendf(")");
 }
 
@@ -160,7 +171,7 @@ std::string key_range_to_string(const key_range_t &kr) {
     if (kr.right.unbounded) {
         res += "+inf";
     } else {
-        res += key_to_debug_str(kr.right.key);
+        res += key_to_debug_str(kr.right.key());
     }
     res += ")";
     return res;
@@ -176,7 +187,8 @@ void debug_print(printf_buffer_t *buf, const store_key_t *k) {
 
 
 bool operator==(const key_range_t::right_bound_t &a, const key_range_t::right_bound_t &b) {
-    return a.unbounded == b.unbounded && a.key == b.key;
+    return (a.unbounded && b.unbounded)
+        || (!a.unbounded && !b.unbounded && a.key() == b.key());
 }
 bool operator!=(const key_range_t::right_bound_t &a, const key_range_t::right_bound_t &b) {
     return !(a == b);
@@ -184,7 +196,7 @@ bool operator!=(const key_range_t::right_bound_t &a, const key_range_t::right_bo
 bool operator<(const key_range_t::right_bound_t &a, const key_range_t::right_bound_t &b) {
     if (a.unbounded) return false;
     if (b.unbounded) return true;
-    return a.key < b.key;
+    return a.key() < b.key();
 }
 bool operator<=(const key_range_t::right_bound_t &a, const key_range_t::right_bound_t &b) {
     return a == b || a < b;
@@ -208,18 +220,18 @@ bool operator<(const key_range_t &a, const key_range_t &b) THROWS_NOTHING {
     return (a.left < b.left || (a.left == b.left && a.right < b.right));
 }
 
-RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(key_range_t::right_bound_t, unbounded, key);
+RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(key_range_t::right_bound_t, unbounded, internal_key);
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(key_range_t, left, right);
 
 void serialize_for_metainfo(write_message_t *wm, const key_range_t &kr) {
     kr.left.serialize_for_metainfo(wm);
     serialize_universal(wm, kr.right.unbounded);
-    kr.right.key.serialize_for_metainfo(wm);
+    kr.right.internal_key.serialize_for_metainfo(wm);
 }
 archive_result_t deserialize_for_metainfo(read_stream_t *s, key_range_t *out) {
     archive_result_t res = out->left.deserialize_for_metainfo(s);
     if (bad(res)) { return res; }
     res = deserialize_universal(s, &out->right.unbounded);
     if (bad(res)) { return res; }
-    return out->right.key.deserialize_for_metainfo(s);
+    return out->right.internal_key.deserialize_for_metainfo(s);
 }

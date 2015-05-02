@@ -15,6 +15,12 @@ public:
     /* Blocks until all timestamps less than or equal to `goal` have been completed. */
     void wait_all_before(state_timestamp_t goal, signal_t *interruptor);
 
+    /* Returns the latest timestamp such that all timestamps less than or equal to it
+    have been completed. */
+    state_timestamp_t get_latest_all_before_completed() const {
+        return timestamp;
+    }
+
     /* Marks the given timestamp as completed. */
     void complete(state_timestamp_t completed);
 

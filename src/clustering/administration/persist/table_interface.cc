@@ -81,6 +81,7 @@ public:
             }
     
             stores[ix].init(new store_t(
+                cpu_sharding_subspace(ix),
                 multiplexer->proxies[ix],
                 cache_balancer,
                 strprintf("shard_%d", ix),
@@ -106,6 +107,7 @@ public:
                         binary_blob_t(version_t::zero())),
                     order_source.check_in("real_multistore_ptr_t"),
                     &write_token,
+                    write_durability_t::HARD,
                     &non_interruptor);
             }
         });

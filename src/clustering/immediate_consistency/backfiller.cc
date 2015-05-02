@@ -1,210 +1,447 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/immediate_consistency/backfiller.hpp"
 
-#include <functional>
-
-#include "btree/parallel_traversal.hpp"
 #include "clustering/immediate_consistency/history.hpp"
-#include "concurrency/cross_thread_signal.hpp"
-#include "concurrency/fifo_enforcer.hpp"
-#include "concurrency/semaphore.hpp"
 #include "rdb_protocol/protocol.hpp"
-#include "rpc/semilattice/view.hpp"
-#include "stl_utils.hpp"
 #include "store_view.hpp"
 
-// The number of backfill chunks that may be sent but not yet acknowledged (~processed)
-// by the receiver.
-// Each chunk can contain multiple key/value pairs, but its (approximate) maximum
-// size is limited by BACKFILL_MAX_KVPAIRS_SIZE as defined in btree/backfill.hpp.
-// When setting this value, keep memory consumption in mind.
-// Must be >= ALLOCATION_CHUNK in backfillee.cc, or backfilling will stall and
-// never finish.
-#define MAX_CHUNKS_OUT 64
+backfiller_t::backfiller_t(
+        mailbox_manager_t *_mailbox_manager,
+        branch_history_manager_t *_branch_history_manager,
+        store_view_t *_store) :
+    mailbox_manager(_mailbox_manager),
+    branch_history_manager(_branch_history_manager),
+    store(_store),
+    registrar(mailbox_manager, this)
+    { }
 
-backfiller_t::backfiller_t(mailbox_manager_t *mm,
-                           branch_history_manager_t *bhm,
-                           store_view_t *_svs)
-    : mailbox_manager(mm), branch_history_manager(bhm),
-      svs(_svs),
-      backfill_mailbox(mailbox_manager,
-                       std::bind(&backfiller_t::on_backfill, this, ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6, ph::_7, ph::_8)),
-      cancel_backfill_mailbox(mailbox_manager,
-                              std::bind(&backfiller_t::on_cancel_backfill, this, ph::_1, ph::_2))
-      { }
-
-backfiller_business_card_t backfiller_t::get_business_card() {
-    return backfiller_business_card_t(backfill_mailbox.get_address(),
-                                                  cancel_backfill_mailbox.get_address());
-}
-
-bool backfiller_t::confirm_and_send_metainfo(region_map_t<binary_blob_t> metainfo,
-                                             region_map_t<version_t> start_point,
-                                             mailbox_addr_t<void(region_map_t<version_t>, branch_history_t)> end_point_cont) {
-    guarantee(metainfo.get_domain() == start_point.get_domain());
-    region_map_t<version_t> end_point = region_map_transform<binary_blob_t, version_t>(
-        metainfo, &binary_blob_t::get<version_t>);
-
-    /* Package a subset of the branch history graph that includes every branch
-    that `end_point` mentions and all their ancestors recursively */
-    branch_history_t branch_history;
+backfiller_t::client_t::client_t(
+        backfiller_t *_parent,
+        const backfiller_bcard_t::intro_1_t &_intro,
+        signal_t *interruptor) :
+    parent(_parent),
+    intro(_intro),
+    full_region(intro.initial_version.get_domain()),
+    pre_items(full_region.beg, full_region.end,
+        key_range_t::right_bound_t(full_region.inner.left)),
+    item_throttler(intro.config.item_queue_mem_size),
+    item_throttler_acq(&item_throttler, 0),
+    pre_items_mailbox(parent->mailbox_manager,
+        std::bind(&client_t::on_pre_items, this, ph::_1, ph::_2, ph::_3)),
+    begin_session_mailbox(parent->mailbox_manager,
+        std::bind(&client_t::on_begin_session, this, ph::_1, ph::_2, ph::_3)),
+    end_session_mailbox(parent->mailbox_manager,
+        std::bind(&client_t::on_end_session, this, ph::_1, ph::_2)),
+    ack_items_mailbox(parent->mailbox_manager,
+        std::bind(&client_t::on_ack_items, this, ph::_1, ph::_2, ph::_3))
+{
+    /* Compute the common ancestor of our version and the backfillee's version */
     {
-        on_thread_t th(branch_history_manager->home_thread());
-        branch_history_manager->export_branch_history(end_point, &branch_history);
+        region_map_t<binary_blob_t> our_version_blob;
+        read_token_t read_token;
+        parent->store->new_read_token(&read_token);
+        parent->store->do_get_metainfo(order_token_t::ignore.with_read_mode(),
+            &read_token, interruptor, &our_version_blob);
+        region_map_t<version_t> our_version = to_version_map(our_version_blob);
+
+        branch_history_combiner_t combined_history(
+            parent->branch_history_manager,
+            &intro.initial_version_history);
+
+        common_version = intro.initial_version.map_multi(
+            intro.initial_version.get_domain(),
+            [&](const region_t &region1, const version_t &version1) {
+                return our_version.map_multi(region1,
+                    [&](const region_t &region2, const version_t &version2) {
+                        return version_find_common(
+                                &combined_history, version1, version2, region2)
+                            .map(region2,
+                                [](const version_t &v) { return v.timestamp; });
+                    });
+            });
     }
 
-    /* Transmit `end_point` to the backfillee */
-    send(mailbox_manager, end_point_cont, end_point, branch_history);
-
-    return true;
+    /* Send the computed common ancestor to the backfillee, along with the mailboxes it
+    can use to contact us */
+    backfiller_bcard_t::intro_2_t our_intro;
+    our_intro.common_version = common_version;
+    our_intro.pre_items_mailbox = pre_items_mailbox.get_address();
+    our_intro.begin_session_mailbox = begin_session_mailbox.get_address();
+    our_intro.end_session_mailbox = end_session_mailbox.get_address();
+    our_intro.ack_items_mailbox = ack_items_mailbox.get_address();
+    send(parent->mailbox_manager, intro.intro_mailbox, our_intro);
 }
 
-class backfiller_send_backfill_callback_t : public send_backfill_callback_t {
+/* `item_seq_pre_item_producer_t` is a `backfill_pre_item_producer_t` that reads from a
+`backfill_item_seq_t<backfill_pre_item_t>`. It keeps track of its position in the seq by
+moving the elements of the seq to an internal seq; it restores the seq to its original
+state when it goes out of scope. */
+class item_seq_pre_item_producer_t : public store_view_t::backfill_pre_item_producer_t {
 public:
-    backfiller_send_backfill_callback_t(
-            const region_map_t<version_t> *start_point,
-            mailbox_addr_t<void(region_map_t<version_t>, branch_history_t)> end_point_cont,
-            mailbox_manager_t *mailbox_manager,
-            mailbox_addr_t<void(
-                backfill_chunk_t,
-                double,
-                fifo_enforcer_write_token_t
-                )> chunk_cont,
-            fifo_enforcer_source_t *fifo_src,
-            co_semaphore_t *chunk_semaphore,
-            backfiller_t *backfiller)
-        : start_point_(start_point),
-          end_point_cont_(end_point_cont),
-          mailbox_manager_(mailbox_manager),
-          chunk_cont_(chunk_cont),
-          fifo_src_(fifo_src),
-          chunk_semaphore_(chunk_semaphore),
-          backfiller_(backfiller) { }
-
-    traversal_progress_combiner_t progress_combiner_;
-
-    bool should_backfill_impl(const region_map_t<binary_blob_t> &metainfo) {
-        return backfiller_->confirm_and_send_metainfo(metainfo, *start_point_, end_point_cont_);
+    item_seq_pre_item_producer_t(
+            backfill_item_seq_t<backfill_pre_item_t> *_pi,
+            const key_range_t::right_bound_t &_c) :
+        pre_items(_pi),
+        temp_buf(_pi->get_beg_hash(), _pi->get_end_hash(), _pi->get_left_key()),
+        last_cursor(_c)
+    {
+        guarantee(pre_items->get_left_key() <= last_cursor);
+        guarantee(pre_items->get_right_key() >= last_cursor);
+        guarantee(pre_items->empty_of_items()
+            || pre_items->front().range.right > last_cursor,
+            "We're trying to start iteration after the first pre-item. This probably "
+            "indicates that we skipped backfilling part of the key-space.");
     }
-
-    void send_chunk(const backfill_chunk_t &chunk, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        chunk_semaphore_->co_lock_interruptible(interruptor);
-        progress_completion_fraction_t frac = progress_combiner_.guess_completion();
-        send(mailbox_manager_, chunk_cont_,
-            chunk,
-            frac.invalid()
-                ? 0.0   /* `frac.invalid()` is only true at start (I think) */
-                : static_cast<double>(frac.estimate_of_released_nodes) /
-                    frac.estimate_of_total_nodes,
-            fifo_src_->enter_write());
+    ~item_seq_pre_item_producer_t() {
+        temp_buf.concat(std::move(*pre_items));
+        *pre_items = std::move(temp_buf);
+    }
+    continue_bool_t consume_range(
+            key_range_t::right_bound_t *cursor_inout,
+            const key_range_t::right_bound_t &limit,
+            const std::function<void(const backfill_pre_item_t &)> &callback) {
+        guarantee(last_cursor == *cursor_inout);
+        if (*cursor_inout == pre_items->get_right_key()) {
+            return continue_bool_t::ABORT;
+        }
+        rassert(pre_items->empty_of_items()
+            || pre_items->front().range.right >= *cursor_inout);
+        while (true) {
+            if (pre_items->empty_of_items()) {
+                *cursor_inout = std::min(limit, pre_items->get_right_key());
+                break;
+            }
+            if (key_range_t::right_bound_t(pre_items->front().range.left) < limit) {
+                callback(pre_items->front());
+            } else {
+                *cursor_inout = limit;
+                break;
+            }
+            if (pre_items->front().range.right <= limit) {
+                pre_items->pop_front_into(&temp_buf);
+            } else {
+                *cursor_inout = limit;
+                break;
+            }
+        }
+        rassert(*cursor_inout <= pre_items->get_right_key());
+        rassert(last_cursor < *cursor_inout);
+        last_cursor = *cursor_inout;
+        return continue_bool_t::CONTINUE;
+    }
+    bool try_consume_empty_range(const key_range_t &range) {
+        guarantee(key_range_t::right_bound_t(range.left) == last_cursor);
+        if (pre_items->get_right_key() >= range.right &&
+                (pre_items->empty_of_items() ||
+                    key_range_t::right_bound_t(pre_items->front().range.left)
+                        >= range.right)) {
+            last_cursor = range.right;
+            return true;
+        } else {
+            return false;
+        }
+    }
+    void rewind(const key_range_t::right_bound_t &point) {
+        guarantee(last_cursor >= point);
+        last_cursor = point;
+        while (!temp_buf.empty_of_items() && temp_buf.back().range.right > point) {
+            temp_buf.pop_back_into(pre_items);
+        }
     }
 private:
-    const region_map_t<version_t> *start_point_;
-    mailbox_addr_t<void(region_map_t<version_t>, branch_history_t)> end_point_cont_;
-    mailbox_manager_t *mailbox_manager_;
-    mailbox_addr_t<void(
-        backfill_chunk_t,
-        double,
-        fifo_enforcer_write_token_t
-        )> chunk_cont_;
-    fifo_enforcer_source_t *fifo_src_;
-    co_semaphore_t *chunk_semaphore_;
-    backfiller_t *backfiller_;
+    /* `pre_items` is the sequence we're reading from */
+    backfill_item_seq_t<backfill_pre_item_t> *pre_items;
 
-    DISABLE_COPYING(backfiller_send_backfill_callback_t);
+    /* Temporary storage for pre-items that have been consumed */
+    backfill_item_seq_t<backfill_pre_item_t> temp_buf;
+
+    /* Our current position in the sequence, used to sanity-check the method calls we're
+    getting. */
+    key_range_t::right_bound_t last_cursor;
 };
 
-void backfiller_t::on_backfill(
-        signal_t *interruptor,
-        backfill_session_id_t session_id,
-        const region_map_t<version_t> &start_point,
-        const branch_history_t &start_point_associated_branch_history,
-        mailbox_addr_t<void(region_map_t<version_t>, branch_history_t)> end_point_cont,
-        mailbox_addr_t<void(
-            backfill_chunk_t,
-            double,
-            fifo_enforcer_write_token_t
-            )> chunk_cont,
-        mailbox_addr_t<void(fifo_enforcer_write_token_t)> done_cont,
-        mailbox_addr_t<void(mailbox_addr_t<void(int)>)> allocation_registration_box) {
-
-    assert_thread();
-    guarantee(region_is_superset(svs->get_region(), start_point.get_domain()));
-
-    /* Set up a local interruptor cond and put it in the map so that this
-       session can be interrupted if the backfillee decides to abort */
-    cond_t local_interruptor;
-    map_insertion_sentry_t<backfill_session_id_t, cond_t *> be_interruptible(&local_interruptors, session_id, &local_interruptor);
-
-    /* Set up a cond that gets pulsed if we're interrupted by either the
-       backfillee stopping or the backfiller destructor being called, but don't
-       wait on that cond yet. */
-    wait_any_t interrupted(&local_interruptor, interruptor);
-
-    static_semaphore_t chunk_semaphore(MAX_CHUNKS_OUT);
-    mailbox_t<void(int)> receive_allocations_mbox(mailbox_manager,
-        [&](signal_t *, int allocs) {
-            chunk_semaphore.unlock(allocs);
-        });
-    send(mailbox_manager, allocation_registration_box, receive_allocations_mbox.get_address());
-
-    try {
-        {
-            cross_thread_signal_t interruptor_on_bhm_thread(
-                &interrupted, branch_history_manager->home_thread());
-            on_thread_t th(branch_history_manager->home_thread());
-            branch_history_manager->import_branch_history(
-                start_point_associated_branch_history,
-                &interruptor_on_bhm_thread);
-        }
-
-        // TODO: Describe this fifo source's purpose a bit.  It's for ordering backfill operations, right?
-        fifo_enforcer_source_t fifo_src;
-
-        read_token_t send_backfill_token;
-        svs->new_read_token(&send_backfill_token);
-
-        backfiller_send_backfill_callback_t send_backfill_cb(
-            &start_point, end_point_cont, mailbox_manager, chunk_cont, &fifo_src,
-            &chunk_semaphore, this);
-
-        /* Actually perform the backfill */
-        svs->send_backfill(
-                     region_map_transform<version_t, state_timestamp_t>(
-                         start_point,
-                         [](const version_t &v) { return v.timestamp; } ),
-                     &send_backfill_cb,
-                     &send_backfill_cb.progress_combiner_,
-                     &send_backfill_token,
-                     &interrupted);
-
-        /* Send a confirmation */
-        send(mailbox_manager, done_cont, fifo_src.enter_write());
-
-    } catch (const interrupted_exc_t &) {
-        /* Ignore. If we were interrupted by the backfillee, then it already
-           knows the backfill is cancelled. If we were interrupted by the
-           backfiller shutting down, the backfillee will find out via the
-           directory. */
+/* When the `client_t` receives a begin-session message from the backfillee, it creates a
+`session_t`. The `session_t` is responsible for sending items to the backfillee. When the
+session is over, the backfillee will send an end-session message to the `client_t`, which
+will destroy the `session_t` and then send an ack-end-session message back to the
+backfillee. */
+class backfiller_t::client_t::session_t {
+public:
+    session_t(client_t *_parent, const key_range_t::right_bound_t &_threshold) :
+        parent(_parent), threshold(_threshold), pulse_when_pre_items_arrive(nullptr)
+    {
+        guarantee(parent->pre_items.empty_of_items() ||
+            key_range_t::right_bound_t(parent->pre_items.front().range.left)
+                >= threshold,
+            "Every key must be backfilled at least once; it's not OK to start a new "
+            "session after the end of the furthest-right previous session");
+        coro_t::spawn_sometime(std::bind(&session_t::run, this, drainer.lock()));
     }
+
+    /* Every time the `client_t` receives more pre-items from the backfillee, it calls
+    `on_pre_items()` to notify us. */
+    void on_pre_items() {
+        if (pulse_when_pre_items_arrive != nullptr) {
+            pulse_when_pre_items_arrive->pulse_if_not_already_pulsed();
+        }
+    }
+
+private:
+    void run(auto_drainer_t::lock_t keepalive) {
+        with_priority_t p(CORO_PRIORITY_BACKFILL_SENDER);
+        try {
+            while (threshold != parent->full_region.inner.right) {
+                /* Wait until there's room in the semaphore for the chunk we're about to
+                process */
+                new_semaphore_acq_t sem_acq(
+                    &parent->item_throttler, parent->intro.config.item_chunk_mem_size);
+                wait_interruptible(
+                    sem_acq.acquisition_signal(), keepalive.get_drain_signal());
+
+                /* Wait until we have some pre items, or else we won't be able to make
+                any progress on the backfill */
+                while (parent->pre_items.get_right_key() == threshold) {
+                    cond_t cond;
+                    assignment_sentry_t<cond_t *> sentry(
+                        &pulse_when_pre_items_arrive, &cond);
+                    wait_interruptible(&cond, keepalive.get_drain_signal());
+                }
+
+                /* Set up a `region_t` describing the range that still needs to be
+                backfilled */
+                region_t subregion = parent->full_region;
+                subregion.inner.left = threshold.key();
+
+                /* Copy items from the store into `chunk` until the total size hits
+                `ITEM_CHUNK_SIZE`; we finish the backfill range; or we run out of
+                pre-items. */
+
+                backfill_item_seq_t<backfill_item_t> chunk(
+                    parent->full_region.beg, parent->full_region.end,
+                    threshold);
+                region_map_t<version_t> metainfo = region_map_t<version_t>::empty();
+
+                {
+                    /* `producer` will pop items off of `parent->pre_items` as
+                    `send_backfill()` requests them, but it will restore them all when it
+                    goes out of scope. Restoring them is important because when we
+                    interrupt `send_backfill()`, it might not yet have produced items
+                    corresponding to all of the pre-items it consumed, so those pre-items
+                    might be needed again in a later call to `send_backfill()`. It's a
+                    little sketchy that `producer` modifies `pre_items` like this, but
+                    it's safe because only one `session_t` can exist at once and because
+                    `client_t::on_pre_items` only touches the right-hand end of
+                    `parent->pre_items`. */
+                    item_seq_pre_item_producer_t producer(
+                        &parent->pre_items, threshold);
+
+                    /* `consumer_t` is responsible for receiving backfill items and
+                    the corresponding metainfo from `send_backfill()` and storing them in
+                    `chunk` and in `metainfo`. */
+                    class consumer_t : public store_view_t::backfill_item_consumer_t {
+                    public:
+                        consumer_t(
+                                backfill_item_seq_t<backfill_item_t> *_chunk,
+                                region_map_t<version_t> *_metainfo,
+                                const backfill_config_t *_config) :
+                            chunk(_chunk), metainfo(_metainfo), config(_config) { }
+                        continue_bool_t on_item(
+                                const region_map_t<binary_blob_t> &item_metainfo,
+                                backfill_item_t &&item) THROWS_NOTHING {
+                            rassert(key_range_t::right_bound_t(item.range.left) >=
+                                chunk->get_right_key());
+                            rassert(!item.range.is_empty());
+                            on_metainfo(item_metainfo, item.range.right);
+                            chunk->push_back(std::move(item));
+                            if (chunk->get_mem_size() < config->item_chunk_mem_size) {
+                                return continue_bool_t::CONTINUE;
+                            } else {
+                                return continue_bool_t::ABORT;
+                            }
+                        }
+                        continue_bool_t on_empty_range(
+                                const region_map_t<binary_blob_t> &range_metainfo,
+                                const key_range_t::right_bound_t &new_threshold)
+                                THROWS_NOTHING {
+                            rassert(new_threshold >= chunk->get_right_key());
+                            on_metainfo(range_metainfo, new_threshold);
+                            chunk->push_back_nothing(new_threshold);
+                            return continue_bool_t::CONTINUE;
+                        }
+                    private:
+                        void on_metainfo(
+                                const region_map_t<binary_blob_t> &new_metainfo,
+                                const key_range_t::right_bound_t &new_threshold) {
+                            if (new_threshold == chunk->get_right_key()) {
+                                /* This is a no-op. But if `chunk->get_right_key()` is
+                                already unbounded, calling `key()` on it will crash. So
+                                the normal code path might break on certain no-ops and we
+                                should just return instead. */
+                                return;
+                            }
+                            region_t mask;
+                            mask.beg = chunk->get_beg_hash();
+                            mask.end = chunk->get_end_hash();
+                            mask.inner.left = chunk->get_right_key().key();
+                            mask.inner.right = new_threshold;
+                            metainfo->extend_keys_right(
+                                to_version_map(new_metainfo.mask(mask)));
+                        }
+                        backfill_item_seq_t<backfill_item_t> *const chunk;
+                        region_map_t<version_t> *const metainfo;
+                        backfill_config_t const *const config;
+                    } consumer(&chunk, &metainfo, &parent->intro.config);
+
+                    parent->parent->store->send_backfill(
+                        parent->common_version.mask(subregion), &producer, &consumer,
+                        keepalive.get_drain_signal());
+
+                    /* `producer` goes out of scope here, so it restores `pre_items` to
+                    what it was before */
+                }
+
+                /* Check if we actually got a non-empty chunk; if we got an empty chunk
+                there's no point in sending it over the network. Note that we use
+                `empty_domain()` instead of `empty_of_items()`, because the knowledge
+                that there are no backfill items in the given range is still very useful
+                information for the backfillee to have. */
+                if (!chunk.empty_domain()) {
+                    /* Adjust for the fact that `chunk.get_mem_size()` isn't precisely
+                    equal to `ITEM_CHUNK_SIZE`, and then transfer the semaphore
+                    ownership. */
+                    sem_acq.change_count(chunk.get_mem_size());
+                    parent->item_throttler_acq.transfer_in(std::move(sem_acq));
+
+                    /* Update `threshold` */
+                    guarantee(chunk.get_left_key() == threshold);
+                    threshold = chunk.get_right_key();
+
+                    /* Note: It's essential that we update `common_version` and
+                    `pre_items` if and only if we send the chunk over the network. So
+                    we shouldn't e.g. check the interruptor in between. This is because
+                    we want to make sure that `common_version` and `pre_items` accurately
+                    represent the state of the backfillee after it applies all the chunks
+                    we've sent. */
+                    try {
+                        /* Send the chunk over the network */
+                        send(parent->parent->mailbox_manager,
+                            parent->intro.items_mailbox,
+                            parent->fifo_source.enter_write(), metainfo, chunk);
+
+                        /* Update `common_version` to reflect the changes that will
+                        happen on the backfillee in response to the chunk */
+                        parent->common_version.update(
+                            metainfo.map(metainfo.get_domain(),
+                                [](const version_t &v) { return v.timestamp; }));
+
+                        /* Discard pre-items we don't need anymore. This has two
+                        purposes: it saves memory, and it keeps `pre_items` consistent
+                        with `common_version`. However, we note that the domain of the
+                        `pre_items` seq still starts at the left-hand end of the range to
+                        be backfilled, representing that there are no pre items there.
+                        This is correct because after the backfillee applies the item we
+                        just sent, it won't have any divergent data relative to us in
+                        that region. */
+                        size_t old_size = parent->pre_items.get_mem_size();
+                        parent->pre_items.delete_to_key(threshold);
+                        parent->pre_items.push_front_nothing(
+                            key_range_t::right_bound_t(parent->full_region.inner.left));
+                        size_t new_size = parent->pre_items.get_mem_size();
+
+                        /* Notify the backfiller that it's OK to send us more pre items.
+
+                        Note that the way we acknowledge pre-items is different from how
+                        the backfillee acknowledges items; the backfillee acknowledges
+                        items periodically during the call to `receive_backfill()`, but
+                        we wait until after `send_backfill()` returns to acknowledge the
+                        pre-items. This way of doing things is simpler; the reason we
+                        can't do things the same way in the backfillee is because the
+                        call to `receive_backfill()` might run for a long time, but our
+                        call to `send_backfill()` will only go until it fills up the
+                        chunk. */
+                        if (old_size != new_size) {
+                            send(parent->parent->mailbox_manager,
+                                parent->intro.ack_pre_items_mailbox,
+                                parent->fifo_source.enter_write(), old_size - new_size);
+                        }
+                    } catch (const interrupted_exc_t &) {
+                        /* This is just a sanity check in case someone unthinkingly makes
+                        something interruptible in the above code block */
+                        crash("We shouldn't be interrupted during this block");
+                    }
+                }
+            }
+        } catch (const interrupted_exc_t &) {
+            /* The backfillee sent us a stop message; or the backfillee was destroyed; or
+            the backfiller was destroyed. */
+        }
+    }
+
+    client_t *const parent;
+
+    /* This is the current location we've backfilled up to. Initially it's set to the
+    point that the backfillee sent us with the begin-session message, and it moves right
+    from there. */
+    key_range_t::right_bound_t threshold;
+
+    /* This exists if we're waiting for more pre items. `on_pre_items()` pulses it if it
+    exists. */
+    cond_t *pulse_when_pre_items_arrive;
+
+    /* Destructor order matters here: `drainer` must be destroyed before the other member
+    variables because `drainer` stops `run()`, which accesses the other member
+    variables. */
+    auto_drainer_t drainer;
+};
+
+void backfiller_t::client_t::on_begin_session(
+        signal_t *interruptor,
+        const fifo_enforcer_write_token_t &write_token,
+        const key_range_t::right_bound_t &threshold) {
+    fifo_enforcer_sink_t::exit_write_t exit_write(&fifo_sink, write_token);
+    wait_interruptible(&exit_write, interruptor);
+
+    guarantee(!current_session.has());
+    current_session.init(new session_t(this, threshold));
 }
 
+void backfiller_t::client_t::on_end_session(
+        signal_t *interruptor,
+        const fifo_enforcer_write_token_t &write_token) {
+    fifo_enforcer_sink_t::exit_write_t exit_write(&fifo_sink, write_token);
+    wait_interruptible(&exit_write, interruptor);
 
-void backfiller_t::on_cancel_backfill(
-        UNUSED signal_t *interruptor, backfill_session_id_t session_id) {
+    guarantee(current_session.has());
+    current_session.reset();
 
-    assert_thread();
+    /* `session_t`'s destructor won't return until it's done sending items over the
+    network, so we can be sure that the ack-end-session message comes after all of the
+    items that were part of the session. */
+    send(parent->mailbox_manager, intro.ack_end_session_mailbox,
+        fifo_source.enter_write());
+}
 
-    std::map<backfill_session_id_t, cond_t *>::iterator it =
-        local_interruptors.find(session_id);
-    if (it != local_interruptors.end()) {
-        it->second->pulse();
-    } else {
-        /* The backfill ended on its own right as we were trying to cancel
-           it. Since the backfill was over, we removed the local interruptor
-           from the map, but the cancel message was already in flight. Since
-           there is no backfill to cancel, we just ignore the cancel message.
-        */
+void backfiller_t::client_t::on_ack_items(
+        signal_t *interruptor,
+        const fifo_enforcer_write_token_t &write_token,
+        size_t mem_size) {
+    fifo_enforcer_sink_t::exit_write_t exit_write(&fifo_sink, write_token);
+    wait_interruptible(&exit_write, interruptor);
+
+    guarantee(static_cast<int64_t>(mem_size) <= item_throttler_acq.count());
+    item_throttler_acq.change_count(item_throttler_acq.count() - mem_size);
+}
+
+void backfiller_t::client_t::on_pre_items(
+        signal_t *interruptor,
+        const fifo_enforcer_write_token_t &write_token,
+        backfill_item_seq_t<backfill_pre_item_t> &&chunk) {
+    fifo_enforcer_sink_t::exit_write_t exit_write(&fifo_sink, write_token);
+    wait_interruptible(&exit_write, interruptor);
+
+    pre_items.concat(std::move(chunk));
+    if (current_session.has()) {
+        current_session->on_pre_items();
     }
 }
 

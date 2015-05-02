@@ -79,9 +79,10 @@ primary_dispatcher_t::primary_dispatcher_t(
     ready_dispatchees_as_set(std::set<server_id_t>())
 {
     current_timestamp = state_timestamp_t::zero();
-    for (const auto &pair : base_version) {
-        current_timestamp = std::max(pair.second.timestamp, current_timestamp);
-    }
+    base_version.visit(base_version.get_domain(),
+        [&](const region_t &, const version_t &v) {
+            current_timestamp = std::max(v.timestamp, current_timestamp);
+        });
     most_recent_acked_write_timestamp = current_timestamp;
 
     branch_id = generate_uuid();

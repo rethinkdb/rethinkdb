@@ -8,8 +8,14 @@
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(version_t, branch, timestamp);
 
 region_map_t<version_t> to_version_map(const region_map_t<binary_blob_t> &blob_map) {
-    return region_map_transform<binary_blob_t, version_t>(
-        blob_map, &binary_blob_t::get<version_t>);
+    return blob_map.map(blob_map.get_domain(),
+        [&](const binary_blob_t &b) -> version_t {
+            return binary_blob_t::get<version_t>(b);
+        });
+}
+
+region_map_t<binary_blob_t> from_version_map(const region_map_t<version_t> &vers_map) {
+    return vers_map.map(vers_map.get_domain(), &binary_blob_t::make<version_t>);
 }
 
 /* RSI(raft): This should be SINCE_N, where N is the version when Raft is released */
@@ -29,23 +35,24 @@ void branch_history_reader_t::export_branch_history(
         to_process.erase(to_process.begin());
         auto res = out->branches.insert(std::make_pair(next, get_branch(next)));
         guarantee(res.second);
-        for (const auto &pair : res.first->second.origin) {
-            branch_id_t parent = pair.second.branch;
-            if (!parent.is_nil() && out->branches.count(parent) == 0) {
-                to_process.insert(parent);
+        res.first->second.origin.visit(res.first->second.region,
+        [&](const region_t &, const version_t &vers) {
+            if (!vers.branch.is_nil() && out->branches.count(vers.branch) == 0) {
+                to_process.insert(vers.branch);
             }
-        }
+        });
     }
 }
 
 void branch_history_reader_t::export_branch_history(
         const region_map_t<version_t> &region_map, branch_history_t *out)
         const THROWS_NOTHING {
-    for (const auto &pair : region_map) {
-        if (!pair.second.branch.is_nil()) {
-            export_branch_history(pair.second.branch, out);
+    region_map.visit(region_map.get_domain(),
+    [&](const region_t &, const version_t &vers) {
+        if (!vers.branch.is_nil()) {
+            export_branch_history(vers.branch, out);
         }
-    }
+    });
 }
 
 branch_birth_certificate_t branch_history_t::get_branch(const branch_id_t &branch)
@@ -65,72 +72,29 @@ RDB_IMPL_EQUALITY_COMPARABLE_1(branch_history_t, branches);
 
 bool version_is_ancestor(
         const branch_history_reader_t *bh,
-        const version_t ancestor,
-        version_t descendent,
-        region_t relevant_region) {
-    typedef region_map_t<version_t> version_map_t;
-    // A stack of version maps and iterators pointing an the next element in the map to
-    // traverse.
-    std::stack<std::pair<version_map_t *, version_map_t::const_iterator> > origin_stack;
-
-    // We break from this for loop when the version is shown not to be an ancestor.
-    for (;;) {
-        if (region_is_empty(relevant_region)) {
-            // do nothing, continue to next part of tree.
-        } else if (ancestor.branch.is_nil()) {
-            /* Everything is descended from the root pseudobranch. */
-            // do nothing, continue to next part of tree.
-        } else if (descendent.branch.is_nil()) {
-            /* The root psuedobranch is descended from nothing but itself. */
-            // fail!
-            break;
-        } else if (ancestor.branch == descendent.branch) {
-            if (ancestor.timestamp <= descendent.timestamp) {
-                // do nothing, continue to next part of tree.
-            } else {
-                // fail!
-                break;
-            }
+        const version_t &ancestor,
+        const version_t &descendent,
+        const region_t &relevant_region) {
+    std::stack<std::pair<region_t, version_t> > stack;
+    stack.push(std::make_pair(relevant_region, descendent));
+    while (!stack.empty()) {
+        region_t reg = stack.top().first;
+        version_t vers = stack.top().second;
+        stack.pop();
+        if (vers.branch == ancestor.branch && vers.timestamp >= ancestor.timestamp) {
+            /* OK, this part matches; we don't need to do any further checking here */
+        } else if (vers.timestamp <= ancestor.timestamp) {
+            /* This part definitely doesn't match */
+            return false;
         } else {
-            branch_birth_certificate_t descendent_branch_bc =
-                bh->get_branch(descendent.branch);
-
-            rassert(region_is_superset(descendent_branch_bc.region, relevant_region));
-            guarantee(descendent.timestamp >= descendent_branch_bc.initial_timestamp);
-
-            version_map_t *relevant_origin =
-                new version_map_t(descendent_branch_bc.origin.mask(relevant_region));
-            guarantee(relevant_origin->begin() != relevant_origin->end());
-
-            origin_stack.push(std::make_pair(relevant_origin, relevant_origin->begin()));
-        }
-
-        if (origin_stack.empty()) {
-            // We've navigated the entire tree and succeed in seeing version_is_ancestor
-            // for all children.  Yay.
-            return true;
-        }
-
-        version_map_t::const_iterator it = origin_stack.top().second;
-        descendent = it->second;
-        relevant_region = it->first;
-
-        ++it;
-        if (it == origin_stack.top().first->end()) {
-            delete origin_stack.top().first;
-            origin_stack.pop();
-        } else {
-            origin_stack.top().second = it;
+            branch_birth_certificate_t birth_certificate = bh->get_branch(vers.branch);
+            birth_certificate.origin.visit(reg,
+                [&](const region_t &subreg, const version_t &subvers) {
+                    stack.push(std::make_pair(subreg, subvers));
+                });
         }
     }
-
-    // We failed.  We need to clean up some memory.
-    while (!origin_stack.empty()) {
-        delete origin_stack.top().first;
-        origin_stack.pop();
-    }
-
-    return false;
+    return true;
 }
 
 /* Arbitrary comparison operator for `version_t`, so we can make sets of them. */
@@ -165,7 +129,8 @@ region_map_t<version_t> version_find_common(
         std::set<version_t, version_set_less_t> v1_equiv, v2_equiv;
     };
     std::stack<fragment_t> stack;
-    std::vector<std::pair<region_t, version_t> > result;
+    std::vector<region_t> result_regions;
+    std::vector<version_t> result_versions;
     stack.push({initial_region, initial_v1, initial_v2, {}, {}});
     while (!stack.empty()) {
         fragment_t x = stack.top();
@@ -174,17 +139,21 @@ region_map_t<version_t> version_find_common(
             /* This is the base case; we got to two versions which are on the same
             branch, so one of them is the common ancestor of both. */
             version_t common(x.v1.branch, std::min(x.v1.timestamp, x.v2.timestamp));
-            result.push_back({x.r, common});
+            result_regions.push_back(x.r);
+            result_versions.push_back(common);
         } else if (x.v1_equiv.count(x.v2) == 1) {
             /* Alternative base case: `v1` and `v2` are equivalent. */
-            result.push_back({x.r, x.v2});
+            result_regions.push_back(x.r);
+            result_versions.push_back(x.v2);
         } else if (x.v2_equiv.count(x.v1) == 1) {
-            result.push_back({x.r, x.v1});
+            result_regions.push_back(x.r);
+            result_versions.push_back(x.v1);
         } else if (x.v1 == version_t::zero() || x.v2 == version_t::zero()) {
             /* Conceptually, this case is a subset of the next case. We handle it
             separately because `bh->get_branch()` crashes on a nil branch ID, so we'd
             have to make the next case implementation more complicated. */
-            result.push_back({x.r, version_t::zero()});
+            result_regions.push_back(x.r);
+            result_versions.push_back(version_t::zero());
         } else {
             /* The versions are on two separate branches. */
             branch_birth_certificate_t b1 = bh->get_branch(x.v1.branch);
@@ -217,12 +186,14 @@ region_map_t<version_t> version_find_common(
 
             /* OK, now recurse to `b1`'s parents. */
             guarantee(region_is_superset(b1.origin.get_domain(), x.r));
-            for (const auto &pair : b1.origin.mask(x.r)) {
-                stack.push({pair.first, pair.second, x.v2, v1_equiv, x.v2_equiv});
-            }
+            b1.origin.visit(x.r,
+            [&](const region_t &reg, const version_t &vers) {
+                stack.push({reg, vers, x.v2, v1_equiv, x.v2_equiv});
+            });
         }
     }
-    return region_map_t<version_t>(result.begin(), result.end());
+    return region_map_t<version_t>::from_unordered_fragments(
+        std::move(result_regions), std::move(result_versions));
 }
 
 region_map_t<version_t> version_find_branch_common(
