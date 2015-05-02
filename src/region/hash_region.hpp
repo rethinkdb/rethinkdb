@@ -12,12 +12,14 @@
 
 enum region_join_result_t { REGION_JOIN_OK, REGION_JOIN_BAD_JOIN, REGION_JOIN_BAD_REGION };
 
+struct btree_key_t;
 struct key_range_t;
 struct store_key_t;
 
 // Returns a value in [0, HASH_REGION_HASH_SIZE).
 const uint64_t HASH_REGION_HASH_SIZE = 1ULL << 63;
-uint64_t hash_region_hasher(const uint8_t *s, ssize_t len);
+uint64_t hash_region_hasher(const btree_key_t *key);
+uint64_t hash_region_hasher(const store_key_t &key);
 
 // Forms a region that shards an inner_region_t by a different
 // dimension: hash values, which are computed by the function

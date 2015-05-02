@@ -48,18 +48,17 @@ backfiller_t::client_t::client_t(
             parent->branch_history_manager,
             &intro.initial_version_history);
 
-        std::vector<std::pair<region_t, state_timestamp_t> > common_pairs;
-        for (const auto &pair1 : our_version) {
-            for (const auto &pair2 : intro.initial_version.mask(pair1.first)) {
-                for (const auto &pair3 : version_find_common(&combined_history,
-                        pair1.second, pair2.second, pair2.first)) {
-                    common_pairs.push_back(
-                        std::make_pair(pair3.first, pair3.second.timestamp));
-                }
-            }
-        }
-        common_version = region_map_t<state_timestamp_t>(
-            common_pairs.begin(), common_pairs.end());
+        common_version = intro.initial_version.map_multi(
+            intro.initial_version.get_domain(),
+            [&](const region_t &region1, const version_t &version1) {
+                return our_version.map_multi(region1,
+                    [&](const region_t &region2, const version_t &version2) {
+                        return version_find_common(
+                                &combined_history, version1, version2, region2)
+                            .map(region2,
+                                [](const version_t &v) { return v.timestamp; });
+                    });
+            });
     }
 
     /* Send the computed common ancestor to the backfillee, along with the mailboxes it
@@ -285,7 +284,8 @@ private:
                             mask.end = chunk->get_end_hash();
                             mask.inner.left = chunk->get_right_key().key();
                             mask.inner.right = new_threshold;
-                            metainfo->concat(to_version_map(new_metainfo.mask(mask)));
+                            metainfo->extend_keys_right(
+                                to_version_map(new_metainfo.mask(mask)));
                         }
                         backfill_item_seq_t<backfill_item_t> *const chunk;
                         region_map_t<version_t> *const metainfo;
@@ -331,8 +331,7 @@ private:
                         /* Update `common_version` to reflect the changes that will
                         happen on the backfillee in response to the chunk */
                         parent->common_version.update(
-                            region_map_transform<version_t, state_timestamp_t>(
-                                metainfo,
+                            metainfo.map(metainfo.get_domain(),
                                 [](const version_t &v) { return v.timestamp; }));
 
                         /* Discard pre-items we don't need anymore. This has two

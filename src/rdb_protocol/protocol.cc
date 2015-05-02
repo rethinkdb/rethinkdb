@@ -287,7 +287,7 @@ void post_construct_and_drain_queue(
 
 
 bool range_key_tester_t::key_should_be_erased(const btree_key_t *key) {
-    uint64_t h = hash_region_hasher(key->contents, key->size);
+    uint64_t h = hash_region_hasher(key);
     return delete_range->beg <= h && h < delete_range->end
         && delete_range->inner.contains_key(key->contents, key->size);
 }
@@ -297,7 +297,7 @@ bool range_key_tester_t::key_should_be_erased(const btree_key_t *key) {
 namespace rdb_protocol {
 // Construct a region containing only the specified key
 region_t monokey_region(const store_key_t &k) {
-    uint64_t h = hash_region_hasher(k.contents(), k.size());
+    uint64_t h = hash_region_hasher(k);
     return region_t(h, h + 1, key_range_t(key_range_t::closed, k, key_range_t::closed, k));
 }
 
@@ -903,7 +903,7 @@ region_t region_from_keys(const std::vector<store_key_t> &keys) {
             max_key = key;
         }
 
-        const uint64_t hash_value = hash_region_hasher(key.contents(), key.size());
+        const uint64_t hash_value = hash_region_hasher(key);
         if (hash_value < min_hash_value) {
             min_hash_value = hash_value;
         }

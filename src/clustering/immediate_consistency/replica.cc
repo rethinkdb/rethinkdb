@@ -12,10 +12,9 @@ public:
     void check_metainfo(
             const region_map_t<binary_blob_t> &metainfo, 
             const region_t& region) const {
-        for (const auto &pair : metainfo.mask(region)) {
-            version_t version = binary_blob_t::get<version_t>(pair.second);
-            guarantee(version.timestamp <= tstamp_);
-        }
+        metainfo.visit(region, [&](const region_t &, const binary_blob_t &b) { 
+            guarantee(binary_blob_t::get<version_t>(b).timestamp <= tstamp_);
+        });
     }
 
 private:

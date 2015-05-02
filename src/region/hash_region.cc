@@ -33,6 +33,14 @@ uint64_t hash_region_hasher(const uint8_t *s, ssize_t len) {
     //           ^...^...^...^...
 }
 
+uint64_t hash_region_hasher(const btree_key_t *key) {
+    return hash_region_hasher(key->contents, key->size);
+}
+
+uint64_t hash_region_hasher(const store_key_t &key) {
+    return hash_region_hasher(key.contents(), key.size());
+}
+
 const hash_region_t<key_range_t> *double_lookup(int i, const std::vector<hash_region_t<key_range_t> > &vec) {
     rassert(0 <= i && i < static_cast<ssize_t>(vec.size() * 2));
     return &vec[i / 2];
@@ -236,7 +244,7 @@ bool region_contains_key_with_precomputed_hash(const hash_region_t<key_range_t> 
 }
 
 bool region_contains_key(const hash_region_t<key_range_t> &region, const store_key_t &key) {
-    const uint64_t hash_value = hash_region_hasher(key.contents(), key.size());
+    const uint64_t hash_value = hash_region_hasher(key);
     return region_contains_key_with_precomputed_hash(region, key, hash_value);
 }
 

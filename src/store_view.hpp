@@ -36,11 +36,9 @@ struct equality_metainfo_checker_callback_t : public metainfo_checker_callback_t
         : value_(expected_value) { }
 
     void check_metainfo(const region_map_t<binary_blob_t>& metainfo, const region_t& region) const {
-        region_map_t<binary_blob_t> masked = metainfo.mask(region);
-
-        for (region_map_t<binary_blob_t>::const_iterator it = masked.begin(); it != masked.end(); ++it) {
-            rassert(it->second == value_);
-        }
+        metainfo.visit(region, [&](const region_t &, const binary_blob_t &actual) {
+            rassert(actual == value_);
+        });
     }
 
 private:

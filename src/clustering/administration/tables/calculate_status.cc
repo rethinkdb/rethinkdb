@@ -49,6 +49,10 @@ bool get_contracts_and_acks(
 }
 
 struct region_acks_t {
+    bool operator==(const region_acks_t &other) const {
+        return latest_contract_id == other.latest_contract_id && acks == other.acks;
+    }
+
     contract_id_t latest_contract_id;
     std::map<server_id_t, std::pair<contract_id_t, contract_ack_t> > acks;
 };
@@ -68,15 +72,16 @@ shard_status_t calculate_shard_status(
     bool has_outdated_reader = true;
     bool has_unfinished = false;
 
-    for (const auto &region : regions) {
+    regions.visit(regions.get_domain(),
+    [&](const region_t &, const region_acks_t &region_acks) {
         const contract_t &latest_contract =
-            contracts.at(region.second.latest_contract_id).get().second;
+            contracts.at(region_acks.latest_contract_id).get().second;
 
         ack_counter_t ack_counter(latest_contract);
         bool region_has_primary_replica = false;
         bool region_has_outdated_reader = false;
 
-        for (const auto &ack : region.second.acks) {
+        for (const auto &ack : region_acks.acks) {
             switch (ack.second.second.state) {
                 case contract_ack_t::state_t::primary_need_branch:
                     has_unfinished = true;
@@ -144,7 +149,7 @@ shard_status_t calculate_shard_status(
         has_quorum &= ack_counter.is_safe();
         has_primary_replica &= region_has_primary_replica;
         has_outdated_reader &= region_has_outdated_reader;
-    }
+    });
 
     if (has_primary_replica) {
         if (has_quorum) {
@@ -203,17 +208,24 @@ bool calculate_status(
     const std::map<contract_id_t, std::pair<region_t, contract_t> > &latest_contracts =
         contracts_and_acks.at(latest_contracts_server_id).contracts;
 
-    std::vector<std::pair<region_t, region_acks_t> > regions_and_values;
-    regions_and_values.reserve(latest_contracts.size());
-    for (const auto &latest_contract : latest_contracts) {
-        region_acks_t server_acks;
-        server_acks.latest_contract_id = latest_contract.first;
-        server_acks.acks = {};
-        regions_and_values.emplace_back(
-            std::make_pair(latest_contract.second.first, std::move(server_acks)));
+    region_map_t<region_acks_t> regions;
+    {
+        std::vector<region_t> regions_vec;
+        std::vector<region_acks_t> acks_vec;
+        regions_vec.reserve(latest_contracts.size());
+        acks_vec.reserve(latest_contracts.size());
+        std::vector<std::pair<region_t, region_acks_t> > regions_and_values;
+        regions_and_values.reserve(latest_contracts.size());
+        for (const auto &latest_contract : latest_contracts) {
+            regions_vec.push_back(latest_contract.second.first);
+            region_acks_t server_acks;
+            server_acks.latest_contract_id = latest_contract.first;
+            server_acks.acks = {};
+            acks_vec.push_back(server_acks);
+        }
+        regions = region_map_t<region_acks_t>::from_unordered_fragments(
+            std::move(regions_vec), std::move(acks_vec));
     }
-    region_map_t<region_acks_t> regions(
-        regions_and_values.begin(), regions_and_values.end());
 
     for (const auto &server : contracts_and_acks) {
         for (const auto &contract_ack : server.second.contract_acks) {
@@ -225,13 +237,11 @@ bool calculate_status(
                    when this function is being used as part of `table_wait`. */
                 continue;
             }
-            region_map_t<region_acks_t> masked_regions =
-                regions.mask(contract_it->second.get().first);
-            for (auto &masked_region : masked_regions) {
-                masked_region.second.acks.insert(
-                    std::make_pair(server.first, contract_ack));
-            }
-            regions.update(masked_regions);
+            regions.visit_mutable(
+                contract_it->second.get().first,
+                [&](const region_t &, region_acks_t *region_acks) {
+                    region_acks->acks.insert(std::make_pair(server.first, contract_ack));
+                });
         }
     }
 

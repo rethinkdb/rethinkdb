@@ -6,41 +6,50 @@
 #include <utility>
 
 #include "containers/archive/stl_types.hpp"
+#include "containers/range_map.hpp"
 #include "region/region.hpp"
-#include "rpc/serialize_macros.hpp"
 
-/* Regions contained in region_map_t must never intersect. */
+/* `region_map_t` is a mapping from contiguous non-overlapping `region_t`s to `value_t`s.
+It will automatically merge contiguous regions with the same value (in most cases).
+Internally, it's implemented as two nested `range_map_t`s. */
 template <class value_t>
 class region_map_t {
 private:
-    typedef std::vector<std::pair<region_t, value_t> > internal_vec_t;
-public:
-    typedef typename internal_vec_t::const_iterator const_iterator;
-    typedef typename internal_vec_t::iterator iterator;
+    typedef range_map_t<uint64_t, value_t> hash_range_map_t;
+    typedef key_range_t::right_bound_t key_edge_t;
+    typedef range_map_t<key_edge_t, hash_range_map_t> key_range_map_t;
 
-    /* I got the ypedefs like a std::map. */
-    typedef region_t key_type;
+public:
     typedef value_t mapped_type;
 
-    region_map_t() THROWS_NOTHING {
-        regions_and_values.push_back(std::make_pair(region_t::universe(), value_t()));
-    }
+    region_map_t() THROWS_NOTHING : region_map_t(region_t::universe(), value_t()) { }
 
-    explicit region_map_t(region_t r, value_t v = value_t()) THROWS_NOTHING {
-        regions_and_values.push_back(std::make_pair(r, v));
+    explicit region_map_t(region_t r, value_t v = value_t()) THROWS_NOTHING :
+        inner(
+            key_edge_t(r.inner.left),
+            r.inner.right,
+            hash_range_map_t(r.beg, r.end, std::move(v))),
+        hash_beg(r.beg),
+        hash_end(r.end)
+        { }
+
+    static region_map_t from_unordered_fragments(
+            std::vector<region_t> &&regions,
+            std::vector<value_t> &&values) {
+        region_t domain;
+        region_join_result_t res = region_join(regions, &domain);
+        guarantee(res == REGION_JOIN_OK);
+        region_map_t map(domain);
+        for (size_t i = 0; i < regions.size(); ++i) {
+            map.update(regions[i], values[i]);
+        }
+        return map;
     }
 
     static region_map_t empty() {
         region_map_t r;
-        r.regions_and_values.clear();
+        r.inner = key_range_map_t(key_edge_t());
         return r;
-    }
-
-    template <class input_iterator_t>
-    region_map_t(const input_iterator_t &_begin, const input_iterator_t &_end)
-        : regions_and_values(_begin, _end)
-    {
-        DEBUG_ONLY(get_domain());
     }
 
     region_map_t(const region_map_t &) = default;
@@ -49,155 +58,232 @@ public:
     region_map_t &operator=(region_map_t &&) = default;
 
     region_t get_domain() const THROWS_NOTHING {
-        std::vector<region_t> regions;
-        for (const_iterator it = begin(); it != end(); ++it) {
-            regions.push_back(it->first);
+        if (inner.empty_domain()) {
+            return region_t::empty();
+        } else {
+            region_t r;
+            r.beg = hash_beg;
+            r.end = hash_end;
+            r.inner.left = inner.left_edge().key();
+            r.inner.right = inner.right_edge();
+            return r;
         }
-        region_t join;
-        region_join_result_t join_result = region_join(regions, &join);
-        guarantee(join_result == REGION_JOIN_OK);
-        return join;
     }
 
-    const_iterator cbegin() const {
-        return regions_and_values.cbegin();
+
+    const value_t &lookup(const store_key_t &key) const {
+        uint64_t h = hash_region_hasher(key);
+        rassert(h >= hash_beg);
+        rassert(h < hash_end);
+        return inner.lookup(key_edge_t(key)).lookup(h);
     }
 
-    const_iterator cend() const {
-        return regions_and_values.cend();
+    /* Calls `cb` for a set of (subregion, value) pairs that cover all of `region`. The
+    signature of `cb` is:
+        void cb(const region_t &, const value_t &)
+    */
+    template<class callable_t>
+    void visit(const region_t &region, const callable_t &cb) const {
+        inner.visit(key_edge_t(region.inner.left), region.inner.right,
+            [&](const key_edge_t &l, const key_edge_t &r, const hash_range_map_t &hrm) {
+                hrm.visit(region.beg, region.end,
+                    [&](uint64_t b, uint64_t e, const value_t &value) {
+                        key_range_t subrange;
+                        subrange.left = l.key();
+                        subrange.right = r;
+                        region_t subregion(b, e, subrange);
+                        cb(subregion, value);
+                    });
+            });
     }
 
-    const_iterator begin() const { return cbegin(); }
-
-    const_iterator end() const { return cend(); }
-
-    iterator begin() {
-        return regions_and_values.begin();
+    /* Derives a new `region_map_t` from the given region of this `region_map_t` by
+    applying `cb` to transform each value. The signature of `cb` is:
+        value2_t cb(const value_t &);
+    and the return value will have type `region_map_t<value2_t>` and domain equal to
+    `region`. */
+    template<class callable_t>
+    auto map(const region_t &region, const callable_t &cb) const
+            -> region_map_t<typename std::decay<
+                typename std::result_of<decltype(cb)(value_t)>::type>::type> {
+        return region_map_t<typename std::decay<
+                typename std::result_of<callable_t(value_t)>::type>::type>(
+            inner.map(key_edge_t(region.inner.left), region.inner.right,
+                [&](const hash_range_map_t &slice) {
+                    return slice.map(region.beg, region.end, cb);
+                }),
+            region.beg,
+            region.end);
     }
 
-    iterator end() {
-        return regions_and_values.end();
+    /* Like `map()`, but the mapping can take into account the original location and can
+    produce non-homogeneous results from a homogeneous input. The signature of `cb` is:
+        region_map_t<value2_t> cb(const region_t &, const value_t &);
+    and the return value will have type `region_map_t<value2_t>` and domain equal to
+    `region`. */
+    template<class callable_t>
+    auto map_multi(const region_t &region, const callable_t &cb) const
+            -> region_map_t<typename std::decay<
+                typename std::result_of<callable_t(region_t, value_t)>::type>
+                ::type::mapped_type> {
+        typedef typename std::decay<
+            typename std::result_of<callable_t(region_t, value_t)>::type>
+            ::type::mapped_type result_t;
+        return region_map_t<result_t>(
+            inner.map_multi(key_edge_t(region.inner.left), region.inner.right,
+            [&](const key_edge_t &l, const key_edge_t &r, const hash_range_map_t &hrm) {
+                key_range_t sub_reg;
+                sub_reg.left = l.key();
+                sub_reg.right = r;
+                range_map_t<key_edge_t, range_map_t<uint64_t, result_t> >
+                    sub_res(l, r, range_map_t<uint64_t, result_t>(region.beg));
+                hrm.visit(region.beg, region.end,
+                [&](uint64_t b, uint64_t e, const value_t &value) {
+                    region_t sub_sub_reg(b, e, sub_reg);
+                    auto sub_sub_res = cb(sub_sub_reg, value);
+                    rassert(sub_sub_res.get_domain() == sub_sub_reg);
+                    sub_sub_res.inner.visit(l, r,
+                    [&](const key_edge_t &l2, const key_edge_t &r2,
+                            const range_map_t<uint64_t, result_t> &sub_sub_sub_res) {
+                        sub_res.visit_mutable(l2, r2,
+                        [&](const key_edge_t &, const key_edge_t &,
+                                range_map_t<uint64_t, result_t> *sub_res_hrm) {
+                            sub_res_hrm->extend_right(
+                                range_map_t<uint64_t, result_t>(sub_sub_sub_res));
+                        });
+                    });
+                });
+                return sub_res;
+            }),
+            region.beg,
+            region.end);
     }
 
-    MUST_USE region_map_t mask(region_t region) const {
-        internal_vec_t masked_pairs;
-        for (size_t i = 0; i < regions_and_values.size(); ++i) {
-            region_t ixn = region_intersection(regions_and_values[i].first, region);
-            if (!region_is_empty(ixn)) {
-                masked_pairs.push_back(std::make_pair(ixn, regions_and_values[i].second));
-            }
-        }
-        return region_map_t(masked_pairs.begin(), masked_pairs.end());
+    /* Copies a subset of this `region_map_t` into a new `region_map_t`. */
+    MUST_USE region_map_t mask(const region_t &region) const {
+        return region_map_t(
+            inner.map(
+                key_edge_t(region.inner.left),
+                region.inner.right,
+                [&](const hash_range_map_t &hm) {
+                    return hm.mask(region.beg, region.end);
+                }),
+            region.beg,
+            region.end);
     }
 
-    const value_t &get_point(const store_key_t &key) const {
-        for (const auto &pair : regions_and_values) {
-            if (region_contains_key(pair.first, key)) {
-                return pair.second;
-            }
-        }
-        crash("region_map_t::get_point() called with point not in domain");
+    bool operator==(const region_map_t &other) const {
+        return inner == other.inner;
+    }
+    bool operator!=(const region_map_t &other) const {
+        return inner != other.inner;
     }
 
-    // Important: 'update' assumes that new_values regions do not intersect
+    /* Overwrites part or all of this `region_map_t` with the contents of the given
+    `region_map_t`. This does not change the domain of this `region_map_t`; `new_values`
+    must lie entirely within the current domain. */
     void update(const region_map_t& new_values) {
-        rassert(region_is_superset(get_domain(), new_values.get_domain()), "Update cannot expand the domain of a region_map.");
-        std::vector<region_t> overlay_regions;
-        for (const_iterator i = new_values.begin(); i != new_values.end(); ++i) {
-            overlay_regions.push_back(i->first);
+        rassert(region_is_superset(get_domain(), new_values.get_domain()));
+        new_values.inner.visit(
+            new_values.inner.left_edge(), new_values.inner.right_edge(),
+            [&](const key_edge_t &l, const key_edge_t &r, const hash_range_map_t &_new) {
+                inner.visit_mutable(l, r,
+                    [&](const key_edge_t &, const key_edge_t &, hash_range_map_t *cur) {
+                        cur->update(hash_range_map_t(_new));
+                    });
+            });
+    }
+
+    /* `update()` sets the value for `r` to `v`. */
+    void update(const region_t &r, const value_t &v) {
+        rassert(region_is_superset(get_domain(), r));
+        inner.visit_mutable(key_edge_t(r.inner.left), r.inner.right,
+            [&](const key_edge_t &, const key_edge_t &, hash_range_map_t *cur) {
+                cur->update(r.beg, r.end, value_t(v));
+            });
+    }
+
+    /* Merges two `region_map_t`s that cover the same part of the hash-space and adjacent
+    ranges of the key-space. */
+    void extend_keys_right(region_map_t &&new_values) {
+        if (hash_end == hash_beg || inner.empty_domain()) {
+            *this = std::move(new_values);
+        } else {
+            rassert(new_values.hash_beg == hash_beg && new_values.hash_end == hash_end);
+            rassert(new_values.inner.left_edge() == inner.right_edge());
+            inner.extend_right(std::move(new_values.inner));
         }
-
-        internal_vec_t updated_pairs;
-        for (const_iterator i = begin(); i != end(); ++i) {
-            region_t old = i->first;
-            std::vector<region_t> old_subregions = region_subtract_many(old, overlay_regions);
-
-            // Insert the unchanged parts of the old region into updated_pairs with the old value
-            for (typename std::vector<region_t>::const_iterator j = old_subregions.begin(); j != old_subregions.end(); ++j) {
-                updated_pairs.push_back(std::make_pair(*j, i->second));
-            }
-        }
-        std::copy(new_values.begin(), new_values.end(), std::back_inserter(updated_pairs));
-
-        regions_and_values = updated_pairs;
     }
 
-    void concat(region_map_t &&new_values) {
-        rassert(!region_overlaps(get_domain(), new_values.get_domain()));
-        regions_and_values.insert(regions_and_values.end(),
-            new_values.regions_and_values.begin(), new_values.regions_and_values.end());
-        DEBUG_ONLY(get_domain());
+    /* Applies `cb` to every value in the given region. If some sub-region lies partially
+    inside and partially outside of `region`, then it will be split and `cb` will only be
+    applied to the part that lies inside `region`. The signature of `cb` is:
+        void cb(const region_t &, value_t *);
+    */
+    template<class callable_t>
+    void visit_mutable(const region_t &region, const callable_t &cb) {
+        inner.visit_mutable(key_edge_t(region.inner.left), region.inner.right,
+            [&](const key_edge_t &l, const key_edge_t &r, hash_range_map_t *hrm) {
+                hrm->visit_mutable(region.beg, region.end,
+                    [&](uint64_t b, uint64_t e, value_t *value) {
+                        key_range_t subrange;
+                        subrange.left = l.key();
+                        subrange.right = r;
+                        region_t subregion(b, e, subrange);
+                        cb(subregion, value);
+                    });
+            });
     }
-
-    void set(const region_t &r, const value_t &v) {
-        update(region_map_t(r, v));
-    }
-
-    size_t size() const {
-        return regions_and_values.size();
-    }
-
-    // A region map now has an order!  And it's indexable!  The order is
-    // guaranteed to stay the same as long as you don't modify the map.
-    // Hopefully this horribleness is only temporary.
-    const std::pair<region_t, value_t> &get_nth(size_t n) const {
-        return regions_and_values[n];
-    }
-
-    RDB_MAKE_ME_SERIALIZABLE_1(region_map_t, regions_and_values);
 
 private:
-    internal_vec_t regions_and_values;
+    template<class other_value_t>
+    friend class region_map_t;
+
+    region_map_t(key_range_map_t &&_inner, uint64_t _hash_beg, uint64_t _hash_end) :
+        inner(_inner), hash_beg(_hash_beg), hash_end(_hash_end) { }
+
+    key_range_map_t inner;
+
+    /* All of the `hash_range_map_t`s in `inner` should begin and end at `hash_beg` and
+    `hash_end`. We store them redundantly out here for easy access. */
+    uint64_t hash_beg, hash_end;
 };
 
 template <class V>
 void debug_print(printf_buffer_t *buf, const region_map_t<V> &map) {
     buf->appendf("rmap{");
-    for (typename region_map_t<V>::const_iterator it = map.begin(); it != map.end(); ++it) {
-        if (it != map.begin()) {
-            buf->appendf(", ");
-        }
-        debug_print(buf, it->first);
-        buf->appendf(" => ");
-        debug_print(buf, it->second);
-    }
+    debug_print(map.inner);
     buf->appendf("}");
 }
 
-template <class V>
-bool operator==(const region_map_t<V> &left, const region_map_t<V> &right) {
-    if (left.get_domain() != right.get_domain()) {
-        return false;
-    }
+/* These serialization functions are implemented manually for backwards compatibility.
+Older RethinkDB versions serialized `region_map_t` as a `vector<pair<region_t, V> >`, so
+we have to support reading that format. We could in theory use a newer format when
+writing data, but we currently don't. */
 
-    for (typename region_map_t<V>::const_iterator i = left.begin(); i != left.end(); ++i) {
-        region_map_t<V> r = right.mask(i->first);
-        for (typename region_map_t<V>::const_iterator j = r.begin(); j != r.end(); ++j) {
-            if (j->second != i->second) {
-                return false;
-            }
-        }
-    }
-    return true;
+template<cluster_version_t W, class V>
+void serialize(write_message_t *wm, const region_map_t<V> &map) {
+    std::vector<std::pair<region_t, V> > pairs;
+    map.visit(map.get_domain(), [&](const region_t &reg, const V &val) {
+        pairs.push_back(std::make_pair(reg, val));
+    });
+    serialize<W>(wm, pairs);
 }
 
-template <class P, class V>
-bool operator!=(const region_map_t<V> &left, const region_map_t<V> &right) {
-    return !(left == right);
-}
-
-template <class old_t, class new_t, class callable_t>
-region_map_t<new_t> region_map_transform(const region_map_t<old_t> &original, const callable_t &callable) {
-    std::vector<std::pair<region_t, new_t> > new_pairs;
-    for (typename region_map_t<old_t>::const_iterator it =  original.begin();
-         it != original.end();
-         ++it) {
-        new_pairs.push_back(std::pair<region_t, new_t>(
-                it->first,
-                callable(it->second)));
+template<cluster_version_t W, class V>
+MUST_USE archive_result_t deserialize(read_stream_t *s, region_map_t<V> *map) {
+    std::vector<std::pair<region_t, V> > pairs;
+    archive_result_t res = deserialize<W>(s, &pairs);
+    if (bad(res)) { return res; }
+    std::vector<region_t> regions;
+    std::vector<V> values;
+    for (auto &&pair : pairs) {
+        regions.push_back(pair.first);
+        values.push_back(std::move(pair.second));
     }
-    return region_map_t<new_t>(new_pairs.begin(), new_pairs.end());
+    *map = region_map_t<V>::from_unordered_fragments(
+        std::move(regions), std::move(values));
+    return archive_result_t::SUCCESS;
 }
-
 
 #endif  // REGION_REGION_MAP_HPP_

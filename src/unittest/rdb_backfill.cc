@@ -385,24 +385,10 @@ TPTEST(RDBBackfill, LargeTable) {
     /* This approximates a realistic backfill scenario. So we insert a relatively large
     number of keys. */
     backfill_test_config_t cfg;
-    cfg.num_initial_writes = 20000;
+    cfg.num_initial_writes = 50000;
     cfg.num_step_writes = 1000;
     run_backfill_test(cfg);
 }
-
-#if 0
-/* RSI(raft): This test is disabled because inefficiencies in region_map make it take too
-long. It should be reenabled once region_map is rewritten. */
-
-TPTEST(RDBBackfill, VeryLargeTable) {
-    /* This is like `LargeTable`, except more realistic because the table is even larger.
-    */
-    backfill_test_config_t cfg;
-    cfg.num_initial_writes = 100000;
-    cfg.num_step_writes = 1000;
-    run_backfill_test(cfg);
-}
-#endif
 
 TPTEST(RDBBackfill, EmptyTable) {
     /* Test the corner case where no data is actually present; we take a different code

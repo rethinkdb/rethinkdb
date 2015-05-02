@@ -26,20 +26,11 @@ public:
     explicit backfill_end_timestamps_t(
             const region_map_t<state_timestamp_t> &region_map) {
         region = region_map.get_domain();
-        std::vector<std::pair<store_key_t, state_timestamp_t> > temp;
-        for (const auto &pair : region_map) {
-            temp.push_back(std::make_pair(pair.first.inner.left, pair.second));
-        }
-        std::sort(temp.begin(), temp.end());
-        for (const auto &step : temp) {
-            if (!steps.empty()) {
-                guarantee(step.second >= steps.back().second);
-                if (step.second == steps.back().second) {
-                    continue;
-                }
-            }
-            steps.push_back(step);
-        }
+        region_map.visit(region, [&](const region_t &reg, state_timestamp_t ts) {
+            rassert(region.beg == reg.beg && region.end == reg.end);
+            rassert(steps.empty() || steps.back().first < reg.inner.left);
+            steps.push_back(std::make_pair(reg.inner.left, ts));
+        });
         max_timestamp = steps.back().second;
     }
 
@@ -224,12 +215,10 @@ remote_replicator_client_t::remote_replicator_client_t(
                 rassert(key_range_t::right_bound_t(chunk.get_domain().inner.left) ==
                     right_bound);
                 right_bound = chunk.get_domain().inner.right;
-                backfill_end_timestamps.combine(
-                    backfill_end_timestamps_t(
-                        region_map_transform<version_t, state_timestamp_t>(chunk,
-                            [](const version_t &version) {
-                                return version.timestamp;
-                            })));
+                backfill_end_timestamps.combine(backfill_end_timestamps_t(
+                    chunk.map(
+                        chunk.get_domain(),
+                        [](const version_t &version) { return version.timestamp; })));
                 return (queue->size() < config->write_queue_count);
             }
             std::queue<queue_entry_t> *queue;
@@ -344,11 +333,12 @@ remote_replicator_client_t::remote_replicator_client_t(
             &read_token, interruptor, &metainfo_blob);
         version_t expect(branch_id,
             timestamp_enforcer_->get_latest_all_before_completed());
-        for (const auto &pair : to_version_map(metainfo_blob)) {
-            rassert(pair.second == expect, "Expected version %s for sub-range %s, but "
+        to_version_map(metainfo_blob).visit(store->get_region(),
+        [&](const region_t &region, const version_t &actual) {
+            rassert(actual == expect, "Expected version %s for sub-range %s, but "
                 "got version %s.", debug_strprint(expect).c_str(),
-                debug_strprint(pair.first).c_str(), debug_strprint(pair.second).c_str());
-        }
+                debug_strprint(region).c_str(), debug_strprint(actual).c_str());
+        });
     }
 #endif
 

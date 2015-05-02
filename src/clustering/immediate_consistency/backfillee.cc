@@ -60,7 +60,7 @@ public:
         rassert(metainfo_chunk.get_domain() == chunk.get_region());
         items_mem_size_unacked += chunk.get_mem_size();
         items.concat(std::move(chunk));
-        metainfo.concat(std::move(metainfo_chunk));
+        metainfo.extend_keys_right(std::move(metainfo_chunk));
         metainfo_binary = from_version_map(metainfo);
         if (pulse_when_items_arrive != nullptr) {
             pulse_when_items_arrive->pulse_if_not_already_pulsed();
