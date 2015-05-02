@@ -163,9 +163,9 @@ continue_bool_t btree_concurrent_traversal(
     {
         concurrent_traversal_adapter_t adapter(cb, &failure_cond);
         cond_t non_interruptor;
-        failure_seen = !btree_depth_first_traversal(
+        failure_seen = (continue_bool_t::ABORT == btree_depth_first_traversal(
             superblock, range, &adapter, access_t::read, direction, release_superblock,
-            &non_interruptor);
+            &non_interruptor));
     }
     // Now that adapter is destroyed, the operations that might have failed have all
     // drained.  (If we fail, we try to report it to btree_depth_first_traversal (to

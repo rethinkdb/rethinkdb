@@ -349,6 +349,9 @@ private:
         while (it != zones.end() && it->first <= r) {
             auto jt = it;
             ++it;
+            if (it == zones.end()) {
+                break;
+            }
             if (jt->second == it->second) {
                 zones.erase(jt);
             }
