@@ -9,9 +9,6 @@ a string error message which is suitable for presenting to the user. */
 class admin_op_exc_t : public std::runtime_error {
 public:
     explicit admin_op_exc_t(const std::string &msg) : std::runtime_error(msg) { }
-
-    explicit admin_op_exc_t(const char *format, ...)
-        __attribute__((format (printf, 2, 3)));
 };
 
 /* `CATCH_NAME_ERRORS` and `CATCH_OP_ERRORS` are helper macros for catching the

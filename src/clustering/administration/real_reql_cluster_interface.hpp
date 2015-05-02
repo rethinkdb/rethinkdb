@@ -201,13 +201,13 @@ private:
             scoped_ptr_t<ql::val_t> *selection_out)
             THROWS_ONLY(no_such_table_exc_t, admin_op_exc_t);
 
-    bool wait_internal(
+    void wait_internal(
             std::set<namespace_id_t> tables,
             table_readiness_t readiness,
             signal_t *interruptor,
             ql::datum_t *result_out,
-            int *count_out,
-            std::string *error_out);
+            int *count_out)
+            THROWS_ONLY(interrupted_exc_t, admin_op_exc_t);
 
     void reconfigure_internal(
             const counted_t<const ql::db_t> &db,
@@ -216,15 +216,15 @@ private:
             bool dry_run,
             signal_t *interruptor,
             ql::datum_t *result_out)
-            THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, generate_config_exc_t,
-                failed_table_op_exc_t, maybe_failed_table_op_exc_t);
+            THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t,
+                failed_table_op_exc_t, maybe_failed_table_op_exc_t, admin_op_exc_t);
 
     void rebalance_internal(
             const namespace_id_t &table_id,
             signal_t *interruptor,
             ql::datum_t *results_out)
             THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t,
-                failed_table_op_exc_t, maybe_failed_table_op_exc_t);
+                failed_table_op_exc_t, maybe_failed_table_op_exc_t, admin_op_exc_t);
 
     void sindex_change_internal(
             const counted_t<const ql::db_t> &db,

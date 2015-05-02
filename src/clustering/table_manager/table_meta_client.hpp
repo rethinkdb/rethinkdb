@@ -61,19 +61,18 @@ public:
     given database. */
     bool exists(const database_id_t &database, const name_string_t &name);
 
-    /* `get_name()` determines the name and database of the table with the given ID; it's
-    the reverse of `find()`. It returns `false` if there is no existing table with that
-    ID. `get_name()` will not block. */
+    /* `get_name()` determines the name, database, and primary key of the table with the
+    given ID; it's the reverse of `find()`. It returns `false` if there is no existing
+    table with that ID. `get_name()` will not block. */
     void get_name(
         const namespace_id_t &table_id,
-        database_id_t *db_out,
-        name_string_t *name_out)
+        table_basic_config_t *basic_config_out)
         THROWS_ONLY(no_such_table_exc_t);
 
-    /* `list_names()` determines the IDs, names, and databases of every table. It will
-    not block. */
+    /* `list_names()` determines the IDs, names, databases, and primary keys of every
+    table. It will not block. */
     void list_names(
-        std::map<namespace_id_t, std::pair<database_id_t, name_string_t> > *names_out);
+        std::map<namespace_id_t, table_basic_config_t> *names_out);
 
     /* `get_config()` fetches the configuration of the table with the given ID. It may
     block and it may fail. */

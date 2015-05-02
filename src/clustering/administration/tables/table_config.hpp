@@ -52,9 +52,9 @@ public:
 
 private:
     void format_row(
-            namespace_id_t table_id,
+            const namespace_id_t &table_id,
+            const table_basic_config_t &basic_config,
             const ql::datum_t &db_name_or_uuid,
-            const table_config_and_shards_t &config,
             signal_t *interruptor,
             ql::datum_t *row_out)
             THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,

@@ -155,20 +155,19 @@ bool convert_table_id_to_datums(
         name_string_t *table_name_out,
         ql::datum_t *db_name_or_uuid_out,
         name_string_t *db_name_out) {
-    database_id_t db_id;
-    name_string_t table_name;
+    table_basic_config_t basic_config;
     try {
-        table_meta_client->get_name(table_id, &db_id, &table_name);
+        table_meta_client->get_name(table_id, &basic_config);
     } catch (const no_such_table_exc_t &) {
         return false;
     }
     if (table_name_or_uuid_out != nullptr) {
         *table_name_or_uuid_out = convert_name_or_uuid_to_datum(
-            table_name, table_id, identifier_format);
+            basic_config.name, table_id, identifier_format);
     }
-    if (table_name_out != nullptr) *table_name_out = table_name;
+    if (table_name_out != nullptr) *table_name_out = basic_config.name;
     name_string_t db_name;
-    auto jt = metadata.databases.databases.find(db_id);
+    auto jt = metadata.databases.databases.find(basic_config.database);
     if (jt == metadata.databases.databases.end() || jt->second.is_deleted()) {
         db_name = name_string_t::guarantee_valid("__deleted_database__");
     } else {
@@ -176,7 +175,7 @@ bool convert_table_id_to_datums(
     }
     if (db_name_or_uuid_out != nullptr) {
         *db_name_or_uuid_out = convert_name_or_uuid_to_datum(
-            db_name, db_id, identifier_format);
+            db_name, basic_config.database, identifier_format);
     }
     if (db_name_out != nullptr) *db_name_out = db_name;
     return true;

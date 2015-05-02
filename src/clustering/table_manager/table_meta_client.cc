@@ -57,25 +57,22 @@ bool table_meta_client_t::exists(
 
 void table_meta_client_t::get_name(
         const namespace_id_t &table_id,
-        database_id_t *db_out,
-        name_string_t *name_out)
+        table_basic_config_t *basic_config_out)
         THROWS_ONLY(no_such_table_exc_t) {
     table_basic_configs.get_watchable()->read_key(table_id,
         [&](const timestamped_basic_config_t *value) {
             if (value == nullptr) {
                 throw no_such_table_exc_t();
             }
-            *db_out = value->first.database;
-            *name_out = value->first.name;
+            *basic_config_out = value->first;
         });
 }
 
 void table_meta_client_t::list_names(
-        std::map<namespace_id_t, std::pair<database_id_t, name_string_t> > *names_out) {
+        std::map<namespace_id_t, table_basic_config_t> *names_out) {
     table_basic_configs.get_watchable()->read_all(
         [&](const namespace_id_t &table_id, const timestamped_basic_config_t *value) {
-            (*names_out)[table_id] =
-                std::make_pair(value->first.database, value->first.name);
+            (*names_out)[table_id] = value->first;
         });
 }
 

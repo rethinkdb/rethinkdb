@@ -103,10 +103,8 @@ void fetch_distribution(
         ns_if_access.get()->read_outdated(read, &resp, interruptor);
     } catch (const cannot_perform_query_exc_t &) {
         /* If the table was deleted, this will throw `no_such_table_exc_t` */
-        database_id_t dummy_db;
-        name_string_t dummy_name;
-        reql_cluster_interface->get_table_meta_client()->get_name(
-            table_id, &dummy_db, &dummy_name);
+        table_basic_config_t dummy;
+        reql_cluster_interface->get_table_meta_client()->get_name(table_id, &dummy);
         /* If `get_name()` didn't throw, the table exists but is inaccessible */
         throw failed_table_op_exc_t();
     }

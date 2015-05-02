@@ -18,12 +18,10 @@ bool get_contracts_and_acks(
                 contract_id_t,
                 std::reference_wrapper<const std::pair<region_t, contract_t> >
             > *contracts_out,
-        server_id_t *latest_contracts_server_id_out) {
+        server_id_t *latest_contracts_server_id_out)
+        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t) {
     std::map<peer_id_t, contracts_and_contract_acks_t> contracts_and_acks;
-    if (!table_meta_client->get_status(
-            table_id, interruptor, nullptr, &contracts_and_acks)) {
-        return false;
-    }
+    table_meta_client->get_status(table_id, interruptor, nullptr, &contracts_and_acks);
 
     multi_table_manager_bcard_t::timestamp_t latest_timestamp;
     latest_timestamp.epoch.timestamp = 0;
@@ -167,38 +165,43 @@ shard_status_t calculate_shard_status(
     return shard_status;
 }
 
-bool calculate_status(
+void calculate_status(
         const namespace_id_t &table_id,
-        const table_config_and_shards_t &config_and_shards,
         signal_t *interruptor,
         table_meta_client_t *table_meta_client,
         server_config_client_t *server_config_client,
         table_readiness_t *readiness_out,
-        std::vector<shard_status_t> *shard_statuses_out,
-        std::string *error_out) {
+        std::vector<shard_status_t> *shard_statuses_out)
+        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t) {
+
+
     /* Note that `contracts` and `latest_contracts` will contain references into
        `contracts_and_acks`, thus this must remain in scope for them to be valid! */
+    table_config_and_shards_t config_and_shards;
     std::map<server_id_t, contracts_and_contract_acks_t> contracts_and_acks;
     std::map<
             contract_id_t,
             std::reference_wrapper<const std::pair<region_t, contract_t> >
         > contracts;
     server_id_t latest_contracts_server_id;
-    if (!get_contracts_and_acks(
+    try {
+        table_meta_client->get_config(table_id, interruptor, &config_and_shards);
+        get_contracts_and_acks(
             table_id,
             interruptor,
             table_meta_client,
             server_config_client,
             &contracts_and_acks,
             &contracts,
-            &latest_contracts_server_id)) {
-        if (error_out != nullptr) {
-            *error_out = strprintf(
-                "Lost contact with the server(s) hosting table `%s.%s`.",
-                uuid_to_str(config_and_shards.config.database).c_str(),
-                uuid_to_str(table_id).c_str());
+            &latest_contracts_server_id);
+    } catch (const failed_table_op_exc_t &) {
+        if (readiness_out != nullptr) {
+            *readiness_out = table_readiness_t::unavailable;
         }
-        return false;
+        if (shard_statuses_out != nullptr) {
+            shard_statuses_out->clear();
+        }
+        return;
     }
     const std::map<contract_id_t, std::pair<region_t, contract_t> > &latest_contracts =
         contracts_and_acks.at(latest_contracts_server_id).contracts;
@@ -254,6 +257,4 @@ bool calculate_status(
             shard_statuses_out->emplace_back(std::move(shard_status));
         }
     }
-
-    return true;
 }
