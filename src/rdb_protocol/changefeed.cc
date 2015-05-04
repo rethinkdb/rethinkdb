@@ -2442,7 +2442,6 @@ private:
             range.right.unbounded = false;
             range.right.key = store_key_t::max();
         }
-        // Default construct if we have a new shard uuid.
         auto it = stamped_ranges.find(uuid);
         r_sanity_check(it != stamped_ranges.end());
         if (it->second.ranges.size() == 0) {
