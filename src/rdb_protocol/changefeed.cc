@@ -1246,16 +1246,16 @@ public:
         : subscription_t(std::forward<Args>(args)...),
           queue(make_maybe_squashing_queue(squash)) { }
     virtual void add_el(
-        const uuid_u &uuid,
+        const uuid_u &shard_uuid,
         uint64_t stamp,
         const store_key_t &pkey,
         const boost::optional<std::string> &DEBUG_ONLY(sindex),
         boost::optional<indexed_datum_t> old_val,
         boost::optional<indexed_datum_t> new_val,
         const configured_limits_t &limits) {
-        if (update_stamp(uuid, stamp)) {
+        if (update_stamp(shard_uuid, stamp)) {
             queue->add(change_val_t(
-                std::make_pair(uuid, stamp),
+                std::make_pair(shard_uuid, stamp),
                 pkey,
                 old_val,
                 new_val,
