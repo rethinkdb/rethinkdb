@@ -1,5 +1,5 @@
 
 npm_package=bluebird
-version=2.3.2
+version=2.9.25
 
 include npm-pkg.inc
