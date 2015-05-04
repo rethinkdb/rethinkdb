@@ -1939,13 +1939,6 @@ public:
         }
     }
 
-    NORETURN virtual void start_artificial(env_t *,
-                                           const uuid_u &,
-                                           const std::string &,
-                                           const std::vector<datum_t> &) {
-        crash("Cannot start a limit subscription on an artificial table.");
-    }
-
     void init(const std::vector<std::pair<std::string, std::pair<datum_t, datum_t> > >
               &start_data) {
 #ifndef NDEBUG
