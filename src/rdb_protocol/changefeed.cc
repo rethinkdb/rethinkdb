@@ -1790,6 +1790,7 @@ public:
         scoped_ptr_t<subscription_t> &&self,
         const protob_t<const Backtrace> &bt) {
         assert_thread();
+        r_sanity_check(self.get() == this);
 
         artificial_include_initial_vals = include_initial_vals;
 
