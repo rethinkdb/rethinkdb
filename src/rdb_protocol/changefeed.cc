@@ -2475,15 +2475,15 @@ private:
         }
     }
 
-    const key_range_t &last_read_range() {
+    const key_range_t &last_read_range() const {
         r_sanity_check(active_state);
         return active_state->last_read;
     }
-    const std::map<uuid_u, uint64_t> &last_read_stamps() {
+    const std::map<uuid_u, uint64_t> &last_read_stamps() const {
         r_sanity_check(active_state);
         return active_state->shard_stamps;
     }
-    const skey_version_t &skey_version() {
+    const skey_version_t &skey_version() const {
         r_sanity_check(active_state);
         r_sanity_check(active_state->skey_version);
         return *(active_state->skey_version);
