@@ -2422,7 +2422,6 @@ private:
             key = pkey;
         }
 
-        // Default construct if we have a new shard uuid.
         auto it = stamped_ranges.find(source_stamp.first);
         r_sanity_check(it != stamped_ranges.end());
         it->second.next_expected_stamp = source_stamp.second + 1;
