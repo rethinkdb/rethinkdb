@@ -1565,6 +1565,7 @@ public:
         scoped_ptr_t<subscription_t> &&self,
         const protob_t<const Backtrace> &bt) final {
         assert_thread();
+        r_sanity_check(self.get() == this);
 
         include_initial_vals = maybe_src.has();
         if (!include_initial_vals) {
@@ -1617,6 +1618,9 @@ public:
         bool _include_initial_vals,
         scoped_ptr_t<subscription_t> &&self,
         const protob_t<const Backtrace> &bt) {
+        assert_thread();
+        r_sanity_check(self.get() == this);
+
         include_initial_vals = _include_initial_vals;
         if (!include_initial_vals) {
             state = state_t::READY;
@@ -2085,6 +2089,7 @@ public:
         scoped_ptr_t<subscription_t> &&self,
         const protob_t<const Backtrace> &bt) final {
         assert_thread();
+        r_sanity_check(self.get() == this);
         include_initial_vals = maybe_src.has();
         read_response_t read_resp;
         nif->read(
