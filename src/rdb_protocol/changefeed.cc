@@ -1203,7 +1203,7 @@ public:
         env_t *env,
         const uuid_u &uuid,
         const std::string &primary_key_name,
-        const std::vector<datum_t> &iniital_vals,
+        const std::vector<datum_t> &initial_vals,
         bool include_initial_vals,
         scoped_ptr_t<subscription_t> &&self,
         const protob_t<const Backtrace> &bt) = 0;
