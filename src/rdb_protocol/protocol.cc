@@ -632,7 +632,7 @@ void unshard_stamps(const std::vector<changefeed_stamp_response_t *> &resps,
 void rdb_r_unshard_visitor_t::operator()(const changefeed_stamp_t &) {
     response_out->response = changefeed_stamp_response_t();
     auto *out = boost::get<changefeed_stamp_response_t>(&response_out->response);
-    guarantee(out);
+    guarantee(out != nullptr);
     std::vector<changefeed_stamp_response_t *> resps;
     resps.reserve(count);
     for (size_t i = 0; i < count; ++i) {
