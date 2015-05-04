@@ -2355,13 +2355,9 @@ public:
             stamped_ranges.insert(std::make_pair(p.first, stamped_range_t(p.second)));
         }
     }
-    ~splice_stream_t() {
-        // debugf("DESTROYING %s\n", log.c_str());
-    }
 private:
     std::vector<datum_t> next_stream_batch(env_t *env, const batchspec_t &bs) final {
         // If there's nothing left to read, behave like a normal feed.
-        // debugf("nsb %d\n", src->is_exhausted());
         if (src->is_exhausted()) {
             if (ready()) {
                 // This will send the `ready` state as its first doc.
@@ -2387,7 +2383,6 @@ private:
                         cv.pkey, cv.new_val->tag_num, cv.source_stamp, *cv.new_val));
                 if (el.has()) {
                     batcher.note_el(el);
-                    log += strprintf("pushing %s\n", debug::print(el).c_str());
                     ret.push_back(std::move(el));
                 }
             }
@@ -2399,8 +2394,6 @@ private:
         }
         if (!batcher.should_send_batch()) {
             std::vector<datum_t> batch = src->next_batch(env, bs);
-            log += strprintf("batch: %s\n", debug::print(batch).c_str());
-            // debugf("ready %zu\n", batch.size());
             update_ranges();
             r_sanity_check(active_state);
             read_once = true;
@@ -2421,10 +2414,6 @@ private:
                  const boost::optional<uint64_t> &tag_num,
                  const std::pair<uuid_u, uint64_t> &source_stamp,
                  const indexed_datum_t &val) {
-        log += strprintf("discard(%s, %s, %s)\n",
-                         debug::print(pkey).c_str(),
-                         debug::print(source_stamp).c_str(),
-                         debug::print(val).c_str());
         store_key_t key;
         if (val.index.has()) {
             key = store_key_t(
@@ -2437,15 +2426,7 @@ private:
         auto it = stamped_ranges.find(source_stamp.first);
         r_sanity_check(it != stamped_ranges.end());
         it->second.next_expected_stamp = source_stamp.second + 1;
-        log += strprintf("%s < %s = %d\n",
-                         debug::print(key).c_str(),
-                         debug::print(it->second.left_fencepost).c_str(),
-                         key < it->second.left_fencepost);
         if (key < it->second.left_fencepost) return false;
-        log += strprintf("%s >= %s = %d\n",
-                         debug::print(key).c_str(),
-                         debug::print(it->second.get_right_fencepost()).c_str(),
-                         key >= it->second.get_right_fencepost());
         if (key >= it->second.get_right_fencepost()) return true;
         // `ranges` should be extremely small
         for (const auto &pair : it->second.ranges) {
@@ -2457,10 +2438,6 @@ private:
         r_sanity_fail();
     }
     void add_range(uuid_u uuid, uint64_t stamp, key_range_t range) {
-        log += strprintf("add_range(%s %zu %s)\n",
-                         debug::print(uuid).c_str(),
-                         stamp,
-                         debug::print(range).c_str());
         // Safe because we never generate `store_key_t::max()`.
         if (range.right.unbounded) {
             range.right.unbounded = false;
@@ -2519,9 +2496,6 @@ private:
         if (!cached_ready) {
             remove_outdated_ranges();
             for (const auto &pair : stamped_ranges) {
-                // debugf("%s %s\n",
-                //        uuid_to_str(pair.first).c_str(),
-                //        debug::print(pair.second).c_str());
                 if (pair.second.ranges.size() != 0) return cached_ready;
             }
             cached_ready = true;
@@ -2533,7 +2507,6 @@ private:
     counted_t<datum_stream_t> src;
     boost::optional<active_state_t> active_state;
     std::map<uuid_u, stamped_range_t> stamped_ranges;
-    std::string log;
 };
 
 subscription_t::subscription_t(
