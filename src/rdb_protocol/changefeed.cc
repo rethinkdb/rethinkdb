@@ -2357,12 +2357,12 @@ public:
     }
 private:
     std::vector<datum_t> next_stream_batch(env_t *env, const batchspec_t &bs) final {
-        // If there's nothing left to read, behave like a normal feed.
-        if (src->is_exhausted()) {
-            if (ready()) {
-                // This will send the `ready` state as its first doc.
-                return stream_t::next_stream_batch(env, bs);
-            }
+        // If there's nothing left to read, behave like a normal feed.  `ready`
+        // should only be called after we've confirmed `is_exhausted` returns
+        // true.
+        if (src->is_exhausted() && ready()) {
+            // This will send the `ready` state as its first doc.
+            return stream_t::next_stream_batch(env, bs);
         }
 
         std::vector<datum_t> ret;
