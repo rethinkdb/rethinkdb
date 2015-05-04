@@ -6,17 +6,17 @@
 
 from __future__ import print_function
 
+import asyncio
 import datetime
 import os
 import random
 import re
+import socket
 import sys
 import tempfile
 import time
 import traceback
 import unittest
-import socket
-import asyncio
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                 os.pardir, os.pardir, "common"))
