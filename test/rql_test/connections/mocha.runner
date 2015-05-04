@@ -46,7 +46,8 @@ r.db(dbName).table(tableName).delete().run(conn)
 
 # -- Run with mocha
 
-os.environ['BLUEBIRD_DEBUG'] = '1' # better stacktraces
+# disabling following line due to #4178
+#os.environ['BLUEBIRD_DEBUG'] = '1' # better stacktraces
 
 mochaReporterOptions = ['-R', 'spec']
 if not utils.supportsTerminalColors():
