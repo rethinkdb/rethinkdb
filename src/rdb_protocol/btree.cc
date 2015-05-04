@@ -356,10 +356,10 @@ void do_a_replace_from_batched_replace(
     // We wait to make sure we acquire `acq` in the same order we were
     // originally called.
     exiter.wait();
-    scoped_ptr_t<new_mutex_in_line_t> sindex_spot = mod_cb->get_in_line_for_sindex();
+    new_mutex_in_line_t sindex_spot = mod_cb->get_in_line_for_sindex();
 
     mod_cb->on_mod_report(
-        mod_report, update_pkey_cfeeds, sindex_spot.get(), &stamp_spot);
+        mod_report, update_pkey_cfeeds, &sindex_spot, &stamp_spot);
 }
 
 batched_replace_response_t rdb_batched_replace(
@@ -1050,8 +1050,7 @@ void rdb_modification_report_cb_t::finish(
         });
 }
 
-scoped_ptr_t<new_mutex_in_line_t>
-rdb_modification_report_cb_t::get_in_line_for_sindex() {
+new_mutex_in_line_t rdb_modification_report_cb_t::get_in_line_for_sindex() {
     return store_->get_in_line_for_sindex_queue(sindex_block_);
 }
 rwlock_in_line_t rdb_modification_report_cb_t::get_in_line_for_stamp() {

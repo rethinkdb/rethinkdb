@@ -304,7 +304,7 @@ public:
             auto_drainer_t::lock_t lock);
     ~rdb_modification_report_cb_t();
 
-    scoped_ptr_t<new_mutex_in_line_t> get_in_line_for_sindex();
+    new_mutex_in_line_t get_in_line_for_sindex();
     rwlock_in_line_t get_in_line_for_stamp();
 
     void on_mod_report(const rdb_modification_report_t &mod_report,

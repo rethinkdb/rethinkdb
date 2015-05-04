@@ -99,9 +99,8 @@ void bring_sindexes_up_to_date(
                 &store->perfmon_collection));
 
     {
-        scoped_ptr_t<new_mutex_in_line_t> acq =
-            store->get_in_line_for_sindex_queue(sindex_block);
-        store->register_sindex_queue(mod_queue.get(), acq.get());
+        new_mutex_in_line_t acq = store->get_in_line_for_sindex_queue(sindex_block);
+        store->register_sindex_queue(mod_queue.get(), &acq);
     }
 
     std::map<sindex_name_t, secondary_index_t> sindexes;
@@ -212,11 +211,11 @@ void post_construct_and_drain_queue(
                 break;
             }
 
-            scoped_ptr_t<new_mutex_in_line_t> acq =
+            new_mutex_in_line_t acq =
                 store->get_in_line_for_sindex_queue(&queue_sindex_block);
             // TODO (daniel): Is there a way to release the queue_sindex_block
             // earlier than we do now, ideally before we wait for the acq signal?
-            acq->acq_signal()->wait_lazily_unordered();
+            acq.acq_signal()->wait_lazily_unordered();
 
             const int MAX_CHUNK_SIZE = 10;
             int current_chunk_size = 0;
@@ -243,7 +242,7 @@ void post_construct_and_drain_queue(
                      it != sindexes_to_bring_up_to_date.end(); ++it) {
                     store->mark_index_up_to_date(*it, &queue_sindex_block);
                 }
-                store->deregister_sindex_queue(mod_queue.get(), acq.get());
+                store->deregister_sindex_queue(mod_queue.get(), &acq);
                 return;
             }
         }
@@ -283,9 +282,9 @@ void post_construct_and_drain_queue(
 
         queue_superblock->release();
 
-        scoped_ptr_t<new_mutex_in_line_t> acq =
-                store->get_in_line_for_sindex_queue(&queue_sindex_block);
-        store->deregister_sindex_queue(mod_queue.get(), acq.get());
+        new_mutex_in_line_t acq =
+            store->get_in_line_for_sindex_queue(&queue_sindex_block);
+        store->deregister_sindex_queue(mod_queue.get(), &acq);
     }
 }
 
