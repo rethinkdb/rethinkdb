@@ -1868,9 +1868,7 @@ public:
             if (include_initial_vals) {
                 if (include_states) els.push_back(initializing_datum());
                 for (auto &&it : active_data) {
-                    els.push_back(
-                        datum_t(std::map<datum_string_t, datum_t> {
-                                { datum_string_t("new_val"), (*it)->second.second } }));
+                    els.push_back(vals_to_change(datum_t(), (*it)->second.second, true));
                 }
             }
             if (include_states) els.push_back(ready_datum());
@@ -1978,9 +1976,9 @@ public:
         if (old_val.has() && new_val.has()) {
             rassert(old_val != new_val);
         }
-        datum_t el = datum_t(std::map<datum_string_t, datum_t> {
-            { datum_string_t("old_val"), old_val.has() ? old_val : datum_t::null() },
-            { datum_string_t("new_val"), new_val.has() ? new_val : datum_t::null() } });
+        datum_t el = vals_to_change(
+            old_val.has() ? old_val : datum_t::null(),
+            new_val.has() ? new_val : datum_t::null());
         els.push_back(std::move(el));
     }
 
@@ -2410,9 +2408,7 @@ private:
             read_once = true;
             ret.reserve(ret.size() + batch.size());
             for (auto &&datum : batch) {
-                ret.push_back(
-                    datum_t(std::map<datum_string_t, datum_t>{
-                            { datum_string_t("new_val"), std::move(datum)}}));
+                ret.push_back(vals_to_change(datum_t(), std::move(datum), true));
             }
         }
 
