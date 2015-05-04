@@ -27,6 +27,9 @@ struct indexed_datum_t {
     }
     datum_t val, index;
     boost::optional<uint64_t> tag_num;
+    // This should be true, but older versions of boost don't support `move`
+    // well in optionals.
+    // MOVABLE_BUT_NOT_COPYABLE(indexed_datum_t);
 };
 
 struct stamped_range_t {
@@ -39,6 +42,7 @@ struct stamped_range_t {
     uint64_t next_expected_stamp;
     store_key_t left_fencepost;
     std::deque<std::pair<key_range_t, uint64_t> > ranges;
+    MOVABLE_BUT_NOT_COPYABLE(stamped_range_t);
 };
 
 struct change_val_t {
@@ -62,6 +66,9 @@ struct change_val_t {
     store_key_t pkey;
     boost::optional<indexed_datum_t> old_val, new_val;
     DEBUG_ONLY(boost::optional<std::string> sindex;);
+    // This should be true, but older versions of boost don't support `move`
+    // well in optionals.
+    // MOVABLE_BUT_NOT_COPYABLE(change_val_t);
 };
 
 namespace debug {

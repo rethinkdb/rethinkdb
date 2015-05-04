@@ -41,7 +41,7 @@ public:
     // before the lock has been acquired.
     ~rwlock_in_line_t();
 
-    rwlock_in_line_t(rwlock_in_line_t &&) = default;
+    MOVABLE_BUT_NOT_COPYABLE(rwlock_in_line_t);
 
     const signal_t *read_signal() const { return &read_cond_; }
     const signal_t *write_signal() const {
@@ -56,7 +56,6 @@ public:
     }
 
 private:
-    DISABLE_COPYING(rwlock_in_line_t);
     friend class rwlock_t;
     rwlock_t *lock_;
     access_t access_;
