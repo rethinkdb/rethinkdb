@@ -26,7 +26,9 @@ var reqlConn = null;
 // -- helper functions
 
 var withConnection = function(fnct) {
+    // ensure that the shared connection 'reqlConn' is valid
     if (fnct) {
+        // nested function style
         return function(done) {
             r.expr(1).run(reqlConn, function(err) {
                 if(err) {
@@ -42,6 +44,7 @@ var withConnection = function(fnct) {
             });
         };
     } else {
+        // promises style
         return r.expr(1).run(reqlConn) // check the connection
         .then(function() {
             return reqlConn;
@@ -55,7 +58,7 @@ var withConnection = function(fnct) {
                 reqlConn = conn;
                 return reqlConn;
         	});
-        })
+        });
     }
 }
 
