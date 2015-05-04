@@ -1774,8 +1774,8 @@ public:
             scoped_ptr_t<range_sub_t> sub_self(this);
             UNUSED subscription_t *super_self = self.release();
             bool stamped = maybe_src->add_stamp(changefeed_stamp_t(addr));
-            rcheck_datum(stamped, base_exc_t::GENERIC,
-                         "Cannot call `include_initial_vals` on an unstampable stream.");
+            rcheck_src(bt.get(), stamped, base_exc_t::GENERIC,
+                       "Cannot call `include_initial_vals` on an unstampable stream.");
             return make_splice_stream(maybe_src, std::move(sub_self), bt);
         } else {
             return make_counted<stream_t<subscription_t> >(std::move(self), bt);
