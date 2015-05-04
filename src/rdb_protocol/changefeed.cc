@@ -493,6 +493,7 @@ void server_t::send_all(const msg_t &msg,
             stamps[pair.first] = pair.second.stamp++;
         }
     }
+    acq.reset();
     stamp_spot->reset(); // Done stamping, no need to hold onto it while we send.
     for (const auto &pair : stamps) {
         send(manager, pair.first, stamped_msg_t(uuid, pair.second, msg));
