@@ -821,12 +821,8 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
     for (size_t i = 1; i <= 20; ++i) {
         bundles.insert(std::make_pair(i, cfeed_bundle_t(&env, &artificial_cfeed)));
         artificial_cfeed.send_all(msg_t(msg_t::change_t{
-            std::map<std::string,
-                     std::vector<std::pair<ql::datum_t,
-                                           boost::optional<uint64_t> > > >(),
-            std::map<std::string,
-                     std::vector<std::pair<ql::datum_t,
-                                           boost::optional<uint64_t> > > >(),
+            index_vals_t(),
+            index_vals_t(),
             store_key_t(ql::datum_t(static_cast<double>(i)).print_primary()),
             ql::datum_t(-static_cast<double>(i)),
             ql::datum_t(static_cast<double>(i))}));
