@@ -4,310 +4,312 @@
 // ../../../../../../../../templates/AstSubclass.java
 package com.rethinkdb.ast.gen;
 
-import com.rethinkdb.Cursor;
 import com.rethinkdb.ast.helper.Arguments;
-import com.rethinkdb.ast.helper.OptionalArguments;
+import com.rethinkdb.ast.helper.OptArgs;
 import com.rethinkdb.ast.RqlAst;
 import com.rethinkdb.proto.TermType;
 import java.util.*;
 
 public class TopLevel extends RqlAst {
 
+    protected TopLevel(RqlAst previous, TermType termType, Arguments args, OptArgs optargs){
+        super(previous, termType, args, optargs);
+    }
     /* Query level terms */
     public Javascript js(Object... fields) {
-        return new Javascript(this, new Arguments(fields), new Optargs());
+        return new Javascript(this, new Arguments(fields), new OptArgs());
     }
 
     public Uuid uuid(Object... fields) {
-        return new Uuid(this, new Arguments(fields), new Optargs());
+        return new Uuid(this, new Arguments(fields), new OptArgs());
     }
 
     public Http http(Object... fields) {
-        return new Http(this, new Arguments(fields), new Optargs());
+        return new Http(this, new Arguments(fields), new OptArgs());
     }
 
     public Error error(Object... fields) {
-        return new Error(this, new Arguments(fields), new Optargs());
+        return new Error(this, new Arguments(fields), new OptArgs());
     }
 
     public Db db(Object... fields) {
-        return new Db(this, new Arguments(fields), new Optargs());
+        return new Db(this, new Arguments(fields), new OptArgs());
     }
 
     public Table table(Object... fields) {
-        return new Table(this, new Arguments(fields), new Optargs());
+        return new Table(this, new Arguments(fields), new OptArgs());
     }
 
     public Eq eq(Object... fields) {
-        return new Eq(this, new Arguments(fields), new Optargs());
+        return new Eq(this, new Arguments(fields), new OptArgs());
     }
 
     public Ne ne(Object... fields) {
-        return new Ne(this, new Arguments(fields), new Optargs());
+        return new Ne(this, new Arguments(fields), new OptArgs());
     }
 
     public Lt lt(Object... fields) {
-        return new Lt(this, new Arguments(fields), new Optargs());
+        return new Lt(this, new Arguments(fields), new OptArgs());
     }
 
     public Le le(Object... fields) {
-        return new Le(this, new Arguments(fields), new Optargs());
+        return new Le(this, new Arguments(fields), new OptArgs());
     }
 
     public Gt gt(Object... fields) {
-        return new Gt(this, new Arguments(fields), new Optargs());
+        return new Gt(this, new Arguments(fields), new OptArgs());
     }
 
     public Ge ge(Object... fields) {
-        return new Ge(this, new Arguments(fields), new Optargs());
+        return new Ge(this, new Arguments(fields), new OptArgs());
     }
 
     public Not not(Object... fields) {
-        return new Not(this, new Arguments(fields), new Optargs());
+        return new Not(this, new Arguments(fields), new OptArgs());
     }
 
     public Add add(Object... fields) {
-        return new Add(this, new Arguments(fields), new Optargs());
+        return new Add(this, new Arguments(fields), new OptArgs());
     }
 
     public Sub sub(Object... fields) {
-        return new Sub(this, new Arguments(fields), new Optargs());
+        return new Sub(this, new Arguments(fields), new OptArgs());
     }
 
     public Mul mul(Object... fields) {
-        return new Mul(this, new Arguments(fields), new Optargs());
+        return new Mul(this, new Arguments(fields), new OptArgs());
     }
 
     public Div div(Object... fields) {
-        return new Div(this, new Arguments(fields), new Optargs());
+        return new Div(this, new Arguments(fields), new OptArgs());
     }
 
     public Mod mod(Object... fields) {
-        return new Mod(this, new Arguments(fields), new Optargs());
+        return new Mod(this, new Arguments(fields), new OptArgs());
     }
 
     public Object object(Object... fields) {
-        return new Object(this, new Arguments(fields), new Optargs());
+        return new Object(this, new Arguments(fields), new OptArgs());
     }
 
     public Map map(Object... fields) {
-        return new Map(this, new Arguments(fields), new Optargs());
+        return new Map(this, new Arguments(fields), new OptArgs());
     }
 
     public Range range(Object... fields) {
-        return new Range(this, new Arguments(fields), new Optargs());
+        return new Range(this, new Arguments(fields), new OptArgs());
     }
 
     public TypeOf typeOf(Object... fields) {
-        return new TypeOf(this, new Arguments(fields), new Optargs());
+        return new TypeOf(this, new Arguments(fields), new OptArgs());
     }
 
     public DbCreate dbCreate(Object... fields) {
-        return new DbCreate(this, new Arguments(fields), new Optargs());
+        return new DbCreate(this, new Arguments(fields), new OptArgs());
     }
 
     public DbDrop dbDrop(Object... fields) {
-        return new DbDrop(this, new Arguments(fields), new Optargs());
+        return new DbDrop(this, new Arguments(fields), new OptArgs());
     }
 
     public DbList dbList(Object... fields) {
-        return new DbList(this, new Arguments(fields), new Optargs());
+        return new DbList(this, new Arguments(fields), new OptArgs());
     }
 
     public TableCreate tableCreate(Object... fields) {
-        return new TableCreate(this, new Arguments(fields), new Optargs());
+        return new TableCreate(this, new Arguments(fields), new OptArgs());
     }
 
     public TableDrop tableDrop(Object... fields) {
-        return new TableDrop(this, new Arguments(fields), new Optargs());
+        return new TableDrop(this, new Arguments(fields), new OptArgs());
     }
 
     public TableList tableList(Object... fields) {
-        return new TableList(this, new Arguments(fields), new Optargs());
+        return new TableList(this, new Arguments(fields), new OptArgs());
     }
 
     public Wait wait(Object... fields) {
-        return new Wait(this, new Arguments(fields), new Optargs());
+        return new Wait(this, new Arguments(fields), new OptArgs());
     }
 
     public Reconfigure reconfigure(Object... fields) {
-        return new Reconfigure(this, new Arguments(fields), new Optargs());
+        return new Reconfigure(this, new Arguments(fields), new OptArgs());
     }
 
     public Rebalance rebalance(Object... fields) {
-        return new Rebalance(this, new Arguments(fields), new Optargs());
+        return new Rebalance(this, new Arguments(fields), new OptArgs());
     }
 
     public Funcall do_(Object... fields) {
-        return new Funcall(this, new Arguments(fields), new Optargs());
+        return new Funcall(this, new Arguments(fields), new OptArgs());
     }
 
     public Branch branch(Object... fields) {
-        return new Branch(this, new Arguments(fields), new Optargs());
+        return new Branch(this, new Arguments(fields), new OptArgs());
     }
 
     public Or or(Object... fields) {
-        return new Or(this, new Arguments(fields), new Optargs());
+        return new Or(this, new Arguments(fields), new OptArgs());
     }
 
     public And and(Object... fields) {
-        return new And(this, new Arguments(fields), new Optargs());
+        return new And(this, new Arguments(fields), new OptArgs());
     }
 
     public Asc asc(Object... fields) {
-        return new Asc(this, new Arguments(fields), new Optargs());
+        return new Asc(this, new Arguments(fields), new OptArgs());
     }
 
     public Desc desc(Object... fields) {
-        return new Desc(this, new Arguments(fields), new Optargs());
+        return new Desc(this, new Arguments(fields), new OptArgs());
     }
 
     public Info info(Object... fields) {
-        return new Info(this, new Arguments(fields), new Optargs());
+        return new Info(this, new Arguments(fields), new OptArgs());
     }
 
     public Json json(Object... fields) {
-        return new Json(this, new Arguments(fields), new Optargs());
+        return new Json(this, new Arguments(fields), new OptArgs());
     }
 
     public Iso8601 iso8601(Object... fields) {
-        return new Iso8601(this, new Arguments(fields), new Optargs());
+        return new Iso8601(this, new Arguments(fields), new OptArgs());
     }
 
     public EpochTime epochTime(Object... fields) {
-        return new EpochTime(this, new Arguments(fields), new Optargs());
+        return new EpochTime(this, new Arguments(fields), new OptArgs());
     }
 
     public Now now(Object... fields) {
-        return new Now(this, new Arguments(fields), new Optargs());
+        return new Now(this, new Arguments(fields), new OptArgs());
     }
 
     public Time time(Object... fields) {
-        return new Time(this, new Arguments(fields), new Optargs());
+        return new Time(this, new Arguments(fields), new OptArgs());
     }
 
     public Monday monday(Object... fields) {
-        return new Monday(this, new Arguments(fields), new Optargs());
+        return new Monday(this, new Arguments(fields), new OptArgs());
     }
 
     public Tuesday tuesday(Object... fields) {
-        return new Tuesday(this, new Arguments(fields), new Optargs());
+        return new Tuesday(this, new Arguments(fields), new OptArgs());
     }
 
     public Wednesday wednesday(Object... fields) {
-        return new Wednesday(this, new Arguments(fields), new Optargs());
+        return new Wednesday(this, new Arguments(fields), new OptArgs());
     }
 
     public Thursday thursday(Object... fields) {
-        return new Thursday(this, new Arguments(fields), new Optargs());
+        return new Thursday(this, new Arguments(fields), new OptArgs());
     }
 
     public Friday friday(Object... fields) {
-        return new Friday(this, new Arguments(fields), new Optargs());
+        return new Friday(this, new Arguments(fields), new OptArgs());
     }
 
     public Saturday saturday(Object... fields) {
-        return new Saturday(this, new Arguments(fields), new Optargs());
+        return new Saturday(this, new Arguments(fields), new OptArgs());
     }
 
     public Sunday sunday(Object... fields) {
-        return new Sunday(this, new Arguments(fields), new Optargs());
+        return new Sunday(this, new Arguments(fields), new OptArgs());
     }
 
     public January january(Object... fields) {
-        return new January(this, new Arguments(fields), new Optargs());
+        return new January(this, new Arguments(fields), new OptArgs());
     }
 
     public February february(Object... fields) {
-        return new February(this, new Arguments(fields), new Optargs());
+        return new February(this, new Arguments(fields), new OptArgs());
     }
 
     public March march(Object... fields) {
-        return new March(this, new Arguments(fields), new Optargs());
+        return new March(this, new Arguments(fields), new OptArgs());
     }
 
     public May may(Object... fields) {
-        return new May(this, new Arguments(fields), new Optargs());
+        return new May(this, new Arguments(fields), new OptArgs());
     }
 
     public June june(Object... fields) {
-        return new June(this, new Arguments(fields), new Optargs());
+        return new June(this, new Arguments(fields), new OptArgs());
     }
 
     public July july(Object... fields) {
-        return new July(this, new Arguments(fields), new Optargs());
+        return new July(this, new Arguments(fields), new OptArgs());
     }
 
     public August august(Object... fields) {
-        return new August(this, new Arguments(fields), new Optargs());
+        return new August(this, new Arguments(fields), new OptArgs());
     }
 
     public September september(Object... fields) {
-        return new September(this, new Arguments(fields), new Optargs());
+        return new September(this, new Arguments(fields), new OptArgs());
     }
 
     public October october(Object... fields) {
-        return new October(this, new Arguments(fields), new Optargs());
+        return new October(this, new Arguments(fields), new OptArgs());
     }
 
     public November november(Object... fields) {
-        return new November(this, new Arguments(fields), new Optargs());
+        return new November(this, new Arguments(fields), new OptArgs());
     }
 
     public December december(Object... fields) {
-        return new December(this, new Arguments(fields), new Optargs());
+        return new December(this, new Arguments(fields), new OptArgs());
     }
 
     public Literal literal(Object... fields) {
-        return new Literal(this, new Arguments(fields), new Optargs());
+        return new Literal(this, new Arguments(fields), new OptArgs());
     }
 
     public Random random(Object... fields) {
-        return new Random(this, new Arguments(fields), new Optargs());
+        return new Random(this, new Arguments(fields), new OptArgs());
     }
 
     public Args args(Object... fields) {
-        return new Args(this, new Arguments(fields), new Optargs());
+        return new Args(this, new Arguments(fields), new OptArgs());
     }
 
     public Binary binary(Object... fields) {
-        return new Binary(this, new Arguments(fields), new Optargs());
+        return new Binary(this, new Arguments(fields), new OptArgs());
     }
 
     public Geojson geojson(Object... fields) {
-        return new Geojson(this, new Arguments(fields), new Optargs());
+        return new Geojson(this, new Arguments(fields), new OptArgs());
     }
 
     public Point point(Object... fields) {
-        return new Point(this, new Arguments(fields), new Optargs());
+        return new Point(this, new Arguments(fields), new OptArgs());
     }
 
     public Line line(Object... fields) {
-        return new Line(this, new Arguments(fields), new Optargs());
+        return new Line(this, new Arguments(fields), new OptArgs());
     }
 
     public Polygon polygon(Object... fields) {
-        return new Polygon(this, new Arguments(fields), new Optargs());
+        return new Polygon(this, new Arguments(fields), new OptArgs());
     }
 
     public Distance distance(Object... fields) {
-        return new Distance(this, new Arguments(fields), new Optargs());
+        return new Distance(this, new Arguments(fields), new OptArgs());
     }
 
     public Intersects intersects(Object... fields) {
-        return new Intersects(this, new Arguments(fields), new Optargs());
+        return new Intersects(this, new Arguments(fields), new OptArgs());
     }
 
     public Circle circle(Object... fields) {
-        return new Circle(this, new Arguments(fields), new Optargs());
+        return new Circle(this, new Arguments(fields), new OptArgs());
     }
 
     public Minval minval(Object... fields) {
-        return new Minval(this, new Arguments(fields), new Optargs());
+        return new Minval(this, new Arguments(fields), new OptArgs());
     }
 
     public Maxval maxval(Object... fields) {
-        return new Maxval(this, new Arguments(fields), new Optargs());
+        return new Maxval(this, new Arguments(fields), new OptArgs());
     }
 
 }

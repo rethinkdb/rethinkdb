@@ -4,17 +4,19 @@
 // ../../../../../../../../templates/AstSubclass.java
 package com.rethinkdb.ast.gen;
 
-import com.rethinkdb.Cursor;
 import com.rethinkdb.ast.helper.Arguments;
-import com.rethinkdb.ast.helper.OptionalArguments;
+import com.rethinkdb.ast.helper.OptArgs;
 import com.rethinkdb.ast.RqlAst;
 import com.rethinkdb.proto.TermType;
 import java.util.*;
 
 public class ToGeojson extends RqlQuery {
 
-    public ToGeojson(RqlAst prev, Arguments args, OptionalArguments optargs) {
-        super(prev, TermType.TO_GEOJSON, args, optargs);
+    public ToGeojson(RqlAst prev, Arguments args, OptArgs optargs) {
+        this(prev, TermType.TO_GEOJSON, args, optargs);
+    }
+    protected ToGeojson(RqlAst previous, TermType termType, Arguments args, OptArgs optargs){
+        super(previous, termType, args, optargs);
     }
     /* Query level terms */
 }

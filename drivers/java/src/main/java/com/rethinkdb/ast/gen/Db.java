@@ -4,49 +4,51 @@
 // ../../../../../../../../templates/AstSubclass.java
 package com.rethinkdb.ast.gen;
 
-import com.rethinkdb.Cursor;
 import com.rethinkdb.ast.helper.Arguments;
-import com.rethinkdb.ast.helper.OptionalArguments;
+import com.rethinkdb.ast.helper.OptArgs;
 import com.rethinkdb.ast.RqlAst;
 import com.rethinkdb.proto.TermType;
 import java.util.*;
 
 public class Db extends RqlAst {
 
-    public Db(RqlAst prev, Arguments args, OptionalArguments optargs) {
-        super(prev, TermType.DB, args, optargs);
+    public Db(RqlAst prev, Arguments args, OptArgs optargs) {
+        this(prev, TermType.DB, args, optargs);
+    }
+    protected Db(RqlAst previous, TermType termType, Arguments args, OptArgs optargs){
+        super(previous, termType, args, optargs);
     }
     /* Query level terms */
     public Table table(Object... fields) {
-        return new Table(this, new Arguments(fields), new Optargs());
+        return new Table(this, new Arguments(fields), new OptArgs());
     }
 
     public TableCreate tableCreate(Object... fields) {
-        return new TableCreate(this, new Arguments(fields), new Optargs());
+        return new TableCreate(this, new Arguments(fields), new OptArgs());
     }
 
     public TableDrop tableDrop(Object... fields) {
-        return new TableDrop(this, new Arguments(fields), new Optargs());
+        return new TableDrop(this, new Arguments(fields), new OptArgs());
     }
 
     public TableList tableList(Object... fields) {
-        return new TableList(this, new Arguments(fields), new Optargs());
+        return new TableList(this, new Arguments(fields), new OptArgs());
     }
 
     public Config config(Object... fields) {
-        return new Config(this, new Arguments(fields), new Optargs());
+        return new Config(this, new Arguments(fields), new OptArgs());
     }
 
     public Wait wait(Object... fields) {
-        return new Wait(this, new Arguments(fields), new Optargs());
+        return new Wait(this, new Arguments(fields), new OptArgs());
     }
 
     public Reconfigure reconfigure(Object... fields) {
-        return new Reconfigure(this, new Arguments(fields), new Optargs());
+        return new Reconfigure(this, new Arguments(fields), new OptArgs());
     }
 
     public Rebalance rebalance(Object... fields) {
-        return new Rebalance(this, new Arguments(fields), new Optargs());
+        return new Rebalance(this, new Arguments(fields), new OptArgs());
     }
 
 }

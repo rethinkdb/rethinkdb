@@ -4,17 +4,19 @@
 // ../../../../../../../../templates/AstSubclass.java
 package com.rethinkdb.ast.gen;
 
-import com.rethinkdb.Cursor;
 import com.rethinkdb.ast.helper.Arguments;
-import com.rethinkdb.ast.helper.OptionalArguments;
+import com.rethinkdb.ast.helper.OptArgs;
 import com.rethinkdb.ast.RqlAst;
 import com.rethinkdb.proto.TermType;
 import java.util.*;
 
 public class Info extends RqlQuery {
 
-    public Info(RqlAst prev, Arguments args, OptionalArguments optargs) {
-        super(prev, TermType.INFO, args, optargs);
+    public Info(RqlAst prev, Arguments args, OptArgs optargs) {
+        this(prev, TermType.INFO, args, optargs);
+    }
+    protected Info(RqlAst previous, TermType termType, Arguments args, OptArgs optargs){
+        super(previous, termType, args, optargs);
     }
     /* Query level terms */
 }
