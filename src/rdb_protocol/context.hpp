@@ -28,11 +28,12 @@
 
 enum class return_changes_t {
     NO = 0,
-    YES = 1
+    YES = 1,
+    ALWAYS = 2
 };
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         return_changes_t, int8_t,
-        return_changes_t::NO, return_changes_t::YES);
+        return_changes_t::NO, return_changes_t::ALWAYS);
 
 class auth_semilattice_metadata_t;
 class ellipsoid_spec_t;
