@@ -68,7 +68,7 @@ return_changes_t parse_return_changes(
         if (d.get_type() == datum_t::R_STR) {
             rcheck_src(bt, d.as_str() == "always", base_exc_t::GENERIC,
                        strprintf("Invalid return_changes value `%s` "
-                                 "(options are `true`, `false`, and `'always'`)",
+                                 "(options are `true`, `false`, and `'always'`.)",
                                  d.as_str().to_std().c_str()));
             return return_changes_t::ALWAYS;
         } else {
