@@ -3,6 +3,7 @@
 
 #include "arch/timing.hpp"
 #include "clustering/immediate_consistency/history.hpp"
+#include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/wait_any.hpp"
 
 /* `ITEM_ACK_INTERVAL_MS` controls how often we send acknowledgements back to the
@@ -336,6 +337,9 @@ backfillee_t::backfillee_t(
         store->do_get_metainfo(order_token_t::ignore.with_read_mode(), &read_token,
             interruptor, &initial_state_blob);
         our_intro.initial_version = to_version_map(initial_state_blob);
+    }
+    {
+        on_thread_t thread_switcher(branch_history_manager->home_thread());
         branch_history_manager->export_branch_history(
             our_intro.initial_version,
             &our_intro.initial_version_history);
@@ -358,8 +362,13 @@ backfillee_t::backfillee_t(
     wait_interruptible(&got_intro, interruptor);
 
     /* Record the branch history we got from the backfiller */
-    branch_history_manager->import_branch_history(
-        intro.final_version_history, interruptor);
+    {
+        cross_thread_signal_t interruptor_on_bhm_thread(
+            interruptor, branch_history_manager->home_thread());
+        on_thread_t thread_switcher(branch_history_manager->home_thread());
+        branch_history_manager->import_branch_history(
+            intro.final_version_history, &interruptor_on_bhm_thread);
+    }
 
     /* Spawn the coroutine that will stream pre-items to the backfiller. */
     coro_t::spawn_sometime(

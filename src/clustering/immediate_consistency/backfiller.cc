@@ -35,15 +35,23 @@ backfiller_t::client_t::client_t(
     ack_items_mailbox(parent->mailbox_manager,
         std::bind(&client_t::on_ack_items, this, ph::_1, ph::_2, ph::_3))
 {
-    /* Compute the common ancestor of our version and the backfillee's version */
-    branch_history_t our_branch_history;
+    /* Fetch our current state from the superblock metainfo */
+    region_map_t<version_t> our_version;
     {
         region_map_t<binary_blob_t> our_version_blob;
         read_token_t read_token;
         parent->store->new_read_token(&read_token);
         parent->store->do_get_metainfo(order_token_t::ignore.with_read_mode(),
             &read_token, interruptor, &our_version_blob);
-        region_map_t<version_t> our_version = to_version_map(our_version_blob);
+        our_version = to_version_map(our_version_blob);
+    }
+
+    /* Compute the common ancestor of `intro.initial_version` and `our_version`, storing
+    it in `common_version`. And while we're on the branch history manager's thread,
+    retrieve the branch history for `our_version`. */
+    branch_history_t our_version_history;
+    {
+        on_thread_t thread_switcher(parent->branch_history_manager->home_thread());
 
         branch_history_combiner_t combined_history(
             parent->branch_history_manager,
@@ -66,14 +74,14 @@ backfiller_t::client_t::client_t(
         store isn't allowed to transition to a new branch while the `backfiller_t`
         exists. */
         parent->branch_history_manager->export_branch_history(
-            our_version, &our_branch_history);
+            our_version, &our_version_history);
     }
 
     /* Send the computed common ancestor to the backfillee, along with the mailboxes it
     can use to contact us. */
     backfiller_bcard_t::intro_2_t our_intro;
     our_intro.common_version = common_version;
-    our_intro.final_version_history = std::move(our_branch_history);
+    our_intro.final_version_history = std::move(our_version_history);
     our_intro.pre_items_mailbox = pre_items_mailbox.get_address();
     our_intro.begin_session_mailbox = begin_session_mailbox.get_address();
     our_intro.end_session_mailbox = end_session_mailbox.get_address();

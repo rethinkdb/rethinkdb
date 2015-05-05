@@ -28,9 +28,10 @@ void in_memory_branch_history_manager_t::create_branch(
         const branch_birth_certificate_t &bc,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
-    rassert(bh.branches.find(branch_id) == bh.branches.end());
-    nap(10, interruptor);
-    bh.branches[branch_id] = bc;
+    if (bh.branches.find(branch_id) != bh.branches.end()) {
+        nap(10, interruptor);
+        bh.branches[branch_id] = bc;
+    }
 }
 
 void in_memory_branch_history_manager_t::import_branch_history(

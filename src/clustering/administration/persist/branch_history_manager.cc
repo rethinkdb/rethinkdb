@@ -43,11 +43,13 @@ real_branch_history_manager_t::real_branch_history_manager_t(
 branch_birth_certificate_t 
 real_branch_history_manager_t::get_branch(const branch_id_t &branch)
         const THROWS_NOTHING {
+    assert_thread();
     return cache.get_branch(branch);
 }
 
 bool real_branch_history_manager_t::is_branch_known(const branch_id_t &branch)
         const THROWS_NOTHING {
+    assert_thread();
     return cache.is_branch_known(branch);
 }
 
@@ -56,6 +58,7 @@ void real_branch_history_manager_t::create_branch(
         const branch_birth_certificate_t &bc,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
+    assert_thread();
     {
         metadata_file_t::write_txn_t write_txn(metadata_file, interruptor);
         write_txn.write(
@@ -71,6 +74,7 @@ void real_branch_history_manager_t::import_branch_history(
         const branch_history_t &new_records,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
+    assert_thread();
     {
         metadata_file_t::write_txn_t write_txn(metadata_file, interruptor);
         for (const auto &pair : new_records.branches) {
