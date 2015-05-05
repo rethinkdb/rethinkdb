@@ -20,7 +20,6 @@ tests:
     - cd: tbl.insert({'id':0}, return_changes:'always').pluck('changes', 'first_error')
       py: tbl.insert({'id':0}, return_changes='always).pluck('changes', 'first_error')
       js: tbl.insert({'id':0}, {'return__changes':'always'}).pluck('changes', 'first__error')
-      # We still return the old value if there's an error.
       ot: ({'first_error':"Duplicate primary key `id`:\n{\n\t\"id\":\t0\n}\n{\n\t\"id\":\t0\n}",'changes':[{'old_val':{'id':0},'new_val':{'id':0}}]})
     - cd: tbl.insert([{'id':1}], :return_changes => true)
       py: tbl.insert([{'id':1}], return_changes=True)
@@ -35,7 +34,6 @@ tests:
       py: tbl.get(0).update({'x':1}, return_changes=True).pluck('changes', 'first_error')
       js: tbl.get(0).update({'x':1}, {'return__changes':true}).pluck('changes', 'first__error')
       ot: ({'changes':[{'old_val':{'id':0},'new_val':{'id':0,'x':1}}]})
-      # We still return the old value if there's an error.
     - cd: tbl.get(0).update({'x':r.error("a")}, :return_changes => true).pluck('changes', 'first_error')
       py: tbl.get(0).update({'x':r.error("a")}, return_changes=True).pluck('changes', 'first_error')
       js: tbl.get(0).update({'x':r.error("a")}, {'return__changes':true}).pluck('changes', 'first__error')
@@ -49,7 +47,6 @@ tests:
       py: tbl.get(0).replace({'id':0,'x':2}, return_changes=True).pluck('changes', 'first_error')
       js: tbl.get(0).replace({'id':0,'x':2}, {'return__changes':true}).pluck('changes', 'first__error')
       ot: ({'changes':[{'old_val':{'id':0,'x':3},'new_val':{'id':0,'x':2}}]})
-      # We still return the old value if there's an error.
     - cd: tbl.get(0).replace(:return_changes => true){{'x':r.error('a')}}.pluck('changes', 'first_error')
       py: tbl.get(0).replace(lambda y:{'x':r.error('a')}, return_changes=True).pluck('changes', 'first_error')
       js: tbl.get(0).replace(function(y){return {'x':r.error('a')}}, {'return__changes':true}).pluck('changes', 'first__error')
