@@ -823,7 +823,6 @@ bool real_reql_cluster_interface_t::rebalance_internal(
         }
     }
 
-    /* RSI(raft): Reimplement this once `table_status` is implemented */
     ql::datum_t new_status;
     if (!status_backend->read_row(convert_uuid_to_datum(table_id), interruptor,
             &new_status, error_out)) {
