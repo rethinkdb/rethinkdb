@@ -252,7 +252,7 @@ void multi_table_manager_t::on_action(
         }
     }
 
-    guarantee(table->status != table_t::status_t::DELETED,
+    guarantee(is_new || table->status != table_t::status_t::DELETED,
         "It shouldn't be possible to undelete a table.");
 
     /* Bring record up to date */

@@ -451,12 +451,10 @@ void table_meta_client_t::drop(
     }
 
     /* Wait until the table disappears from the directory. */
-    debugf("before wait_until_change_visible()\n");
     wait_until_change_visible(
         table_id,
         [](const timestamped_basic_config_t *value) { return value == nullptr; },
         &interruptor);
-    debugf("after wait_until_change_visible()\n");
 }
 
 void table_meta_client_t::set_config(
