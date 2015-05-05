@@ -8,6 +8,27 @@
 
 class multi_table_manager_t;
 
+/* These four exception classes are all thrown by `table_meta_client_t` to describe
+different error conditions. There are several reasons why this is better than having
+`table_meta_client_t` just throw an `admin_op_exc_t`:
+
+ 1. Sometimes we want to catch `no_such_table_exc_t` instead of reporting it to the user.
+    For example, if we call `list_names()` and then run some other operation on each
+    table in the list, we want to ignore any `no_such_table_exc_t`s thrown by that
+    operation.
+
+ 2. `table_meta_client_t` usually doesn't have access to the name of the table. The
+    caller will typically catch the exception at a point where the table name is known
+    and then produce a user-readable error message that includes the table name.
+
+ 3. `table_meta_client_t` often doesn't have enough context to produce an optimal error
+    message. The caller will typically add more context when it catches the exception and
+    forwards it to the user. For example, instead of saying "the table's configuration
+    was not modified" it can say "the secondary index was not renamed".
+
+Note that the exception descriptions here are mostly just for documentation; unless there
+is a bug, they will never be shown to the user. */
+
 class no_such_table_exc_t : public std::runtime_error {
 public:
     no_such_table_exc_t() :
@@ -23,14 +44,17 @@ public:
 class failed_table_op_exc_t : public std::runtime_error {
 public:
     failed_table_op_exc_t() : std::runtime_error("the attempt to read or modify the "
-        "table's configuration failed because none of the servers were accessible") { }
+        "table's configuration failed because none of the servers were accessible. if "
+        "it was an attempt to modify, the modification did not take place.") { }
 };
 
 class maybe_failed_table_op_exc_t : public std::runtime_error {
 public:
-    maybe_failed_table_op_exc_t() : std::runtime_error("something went wrong while we "
-        "were trying to modify the table's configuration; the modification may or may "
-        "not have been applied") { }
+    maybe_failed_table_op_exc_t() : std::runtime_error("the attempt to modify the "
+        "table's configuration failed because we lost contact with the servers after "
+        "initiating the modification, or the Raft leader lost contact with its "
+        "followers, or we timed out while waiting for the changes to propagate. the "
+        "modification may or may not have taken place.") { }
 };
 
 /* `table_meta_client_t` is responsible for submitting client requests over the network
