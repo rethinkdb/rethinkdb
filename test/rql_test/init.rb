@@ -1,8 +1,9 @@
-load 'quickstart3.rb'
 require 'eventmachine'
+require_relative './importRethinkDB.rb'
 
-$c.reconnect
-$conn = $c
+$port ||= (ARGV[0] || ENV['RDB_DRIVER_PORT'] || raise('driver port not supplied')).to_i
+ARGV.clear
+$c = r.connect(port: $port).repl
 
 class H < RethinkDB::Handler
   def initialize(field)
@@ -56,10 +57,12 @@ end
 
 $statelog = []
 
+r.table_create('test').run rescue nil
+r.table('test').index_create('a').run rescue nil
 ['id', 'a'].each {|field|
   r.table('test').delete.run
   r.table('test').insert((0...100).map{|i| {field => i, z: 9}}).run
-  q = r.table('test').between(10, 20, index: field).changes(return_initial: true)
+  q = r.table('test').between(10, 20, index: field).changes(include_initial_vals: true)
   EM.run {
     $h = H.new(field)
     $handle = q.em_run($h, max_batch_rows: 1)
