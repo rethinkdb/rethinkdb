@@ -1,1 +1,18 @@
 apply plugin: 'java'
+
+repositories {
+  mavenCentral()
+}
+
+dependencies {
+  //Dependencies here
+}
+
+task generateAst(type:Exec) {
+  commandLine 'python2', 'convert_protofile.py'
+}
+
+jar {
+  dependsOn generateAst
+  archiveName = "rethinkdb.jar"
+}

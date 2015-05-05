@@ -30,7 +30,7 @@ def main():
     if new_json != term_meta:
         write_term_metadata(new_json)
         term_meta = new_json
-    render_enums(proto)
+    render_proto_enums(proto)
     java_meta = java_specific_term_meta(term_meta)
     render_ast_subclasses(java_meta)
 
@@ -220,19 +220,19 @@ def render(template_name, output_dir, output_name=None, **kwargs):
         outfile.write(rendered)
 
 
-def render_enums(proto):
+def render_proto_enums(proto):
     '''Render protocol enums'''
-    render_enum("Version", proto["VersionDummy"]["Version"])
-    render_enum("Protocol", proto["VersionDummy"]["Protocol"])
-    render_enum("QueryType", proto["Query"]["QueryType"])
-    render_enum("FrameType", proto["Frame"]["FrameType"])
-    render_enum("ResponseType", proto["Response"]["ResponseType"])
-    render_enum("ResponseNote", proto["Response"]["ResponseNote"])
-    render_enum("DatumType", proto["Datum"]["DatumType"])
-    render_enum("TermType", proto["Term"]["TermType"])
+    render_proto_enum("Version", proto["VersionDummy"]["Version"])
+    render_proto_enum("Protocol", proto["VersionDummy"]["Protocol"])
+    render_proto_enum("QueryType", proto["Query"]["QueryType"])
+    render_proto_enum("FrameType", proto["Frame"]["FrameType"])
+    render_proto_enum("ResponseType", proto["Response"]["ResponseType"])
+    render_proto_enum("ResponseNote", proto["Response"]["ResponseNote"])
+    render_proto_enum("DatumType", proto["Datum"]["DatumType"])
+    render_proto_enum("TermType", proto["Term"]["TermType"])
 
 
-def render_enum(classname, mapping):
+def render_proto_enum(classname, mapping):
     render("Enum.java",
            PROTO_DIR,
            output_name=classname+'.java',
