@@ -4,85 +4,87 @@
 // ../../../../../../../../templates/AstSubclass.java
 package com.rethinkdb.ast.gen;
 
-import com.rethinkdb.Cursor;
 import com.rethinkdb.ast.helper.Arguments;
-import com.rethinkdb.ast.helper.OptionalArguments;
+import com.rethinkdb.ast.helper.OptArgs;
 import com.rethinkdb.ast.RqlAst;
 import com.rethinkdb.proto.TermType;
 import java.util.*;
 
 public class Table extends RqlQuery {
 
-    public Table(RqlAst prev, Arguments args, OptionalArguments optargs) {
-        super(prev, TermType.TABLE, args, optargs);
+    public Table(RqlAst prev, Arguments args, OptArgs optargs) {
+        this(prev, TermType.TABLE, args, optargs);
+    }
+    protected Table(RqlAst previous, TermType termType, Arguments args, OptArgs optargs){
+        super(previous, termType, args, optargs);
     }
     /* Query level terms */
     public Get get(Object... fields) {
-        return new Get(this, new Arguments(fields), new Optargs());
+        return new Get(this, new Arguments(fields), new OptArgs());
     }
 
     public GetAll getAll(Object... fields) {
-        return new GetAll(this, new Arguments(fields), new Optargs());
+        return new GetAll(this, new Arguments(fields), new OptArgs());
     }
 
     public Insert insert(Object... fields) {
-        return new Insert(this, new Arguments(fields), new Optargs());
+        return new Insert(this, new Arguments(fields), new OptArgs());
     }
 
     public Config config(Object... fields) {
-        return new Config(this, new Arguments(fields), new Optargs());
+        return new Config(this, new Arguments(fields), new OptArgs());
     }
 
     public Status status(Object... fields) {
-        return new Status(this, new Arguments(fields), new Optargs());
+        return new Status(this, new Arguments(fields), new OptArgs());
     }
 
     public Wait wait(Object... fields) {
-        return new Wait(this, new Arguments(fields), new Optargs());
+        return new Wait(this, new Arguments(fields), new OptArgs());
     }
 
     public Reconfigure reconfigure(Object... fields) {
-        return new Reconfigure(this, new Arguments(fields), new Optargs());
+        return new Reconfigure(this, new Arguments(fields), new OptArgs());
     }
 
     public Rebalance rebalance(Object... fields) {
-        return new Rebalance(this, new Arguments(fields), new Optargs());
+        return new Rebalance(this, new Arguments(fields), new OptArgs());
     }
 
     public Sync sync(Object... fields) {
-        return new Sync(this, new Arguments(fields), new Optargs());
+        return new Sync(this, new Arguments(fields), new OptArgs());
     }
 
     public IndexCreate indexCreate(Object... fields) {
-        return new IndexCreate(this, new Arguments(fields), new Optargs());
+        return new IndexCreate(this, new Arguments(fields), new OptArgs());
     }
 
     public IndexDrop indexDrop(Object... fields) {
-        return new IndexDrop(this, new Arguments(fields), new Optargs());
+        return new IndexDrop(this, new Arguments(fields), new OptArgs());
     }
 
     public IndexList indexList(Object... fields) {
-        return new IndexList(this, new Arguments(fields), new Optargs());
+        return new IndexList(this, new Arguments(fields), new OptArgs());
     }
 
     public IndexStatus indexStatus(Object... fields) {
-        return new IndexStatus(this, new Arguments(fields), new Optargs());
+        return new IndexStatus(this, new Arguments(fields), new OptArgs());
     }
 
     public IndexWait indexWait(Object... fields) {
-        return new IndexWait(this, new Arguments(fields), new Optargs());
+        return new IndexWait(this, new Arguments(fields), new OptArgs());
     }
 
     public IndexRename indexRename(Object... fields) {
-        return new IndexRename(this, new Arguments(fields), new Optargs());
+        return new IndexRename(this, new Arguments(fields), new OptArgs());
     }
 
     public GetIntersecting getIntersecting(Object... fields) {
-        return new GetIntersecting(this, new Arguments(fields), new Optargs());
+        return new GetIntersecting(this, new Arguments(fields), new OptArgs());
     }
 
     public GetNearest getNearest(Object... fields) {
-        return new GetNearest(this, new Arguments(fields), new Optargs());
+        return new GetNearest(this, new Arguments(fields), new OptArgs());
     }
 
 }

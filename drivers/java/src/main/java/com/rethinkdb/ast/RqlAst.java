@@ -1,9 +1,8 @@
 package com.rethinkdb.ast;
 
-import com.rethinkdb.Cursor;
 import com.rethinkdb.RethinkDBConnection;
 import com.rethinkdb.ast.helper.Arguments;
-import com.rethinkdb.ast.helper.OptionalArguments;
+import com.rethinkdb.ast.helper.OptArgs;
 import com.rethinkdb.proto.TermType;
 
 import java.security.Key;
@@ -12,59 +11,43 @@ import java.util.*;
 /** Base class for all reql queries.
  */
 public class RqlAst {
-    public static RqlAst R = new RqlAst(null, null);
 
     private TermType termType;
-    protected List<RqlAst> args = new ArrayList<>();
-    protected java.util.Map<String, RqlAst> optargs =
-        new HashMap<>();
-        // ** Protected Methods ** //
+    protected Arguments args = new Arguments();
+    protected OptArgs optargs = new OptArgs();
 
-    protected RqlAst(TermType termType, List<Object> args) {
-        this(termType, args, new HashMap<String, Object>());
+    // ** Protected Methods ** //
+
+    protected RqlAst(TermType termType, Arguments args) {
+        this(termType, args, new OptArgs());
     }
 
     protected RqlAst(TermType termType) {
-        this(termType, new ArrayList<Object>(), new HashMap<String, Object>());
+        this(termType, new Arguments(), new OptArgs());
     }
 
-    protected RqlAst(TermType termType, List<Object> args, java.util.Map<String, Object> optargs) {
+    protected RqlAst(TermType termType, Arguments args, OptArgs optargs) {
         this(null, termType, args, optargs);
     }
-    public RqlAst(RqlAst previous, TermType termType, List<Object> args, Map<String, Object> optargs) {
+    public RqlAst(RqlAst previous, TermType termType, Arguments args, OptArgs optargs) {
         this.termType = termType;
 
         init(previous, args, optargs);
     }
 
-    protected void init(RqlAst previous, List<Object> args, Map<String, Object> optargs) {
-        if (previous != null && previous.termType != null) {
-            this.args.add(previous);
-        }
+    protected void init(RqlAst previous, Arguments args, OptArgs optargs) {
 
-        if (args != null) {
-            for (Object arg : args) {
-                this.args.add(RqlUtil.toRqlAst(arg));
-            }
-        }
-
-        if (optargs != null) {
-            for (Map.Entry<String, Object> kv : optargs.entrySet()) {
-                this.optargs.put(kv.getKey(),
-                                 RqlUtil.toRqlAst(kv.getValue()));
-            }
-        }
     }
 
     protected TermType getTermType() {
         return termType;
     }
 
-    protected List<RqlAst> getArgs() {
+    protected Arguments getArguments() {
         return args;
     }
 
-    protected Map<String, RqlAst> getOptArgs() {
+    protected OptArgs getOptArgs() {
         return optargs;
     }
 

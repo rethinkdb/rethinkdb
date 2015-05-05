@@ -4,17 +4,19 @@
 // ../../../../../../../../templates/AstSubclass.java
 package com.rethinkdb.ast.gen;
 
-import com.rethinkdb.Cursor;
 import com.rethinkdb.ast.helper.Arguments;
-import com.rethinkdb.ast.helper.OptionalArguments;
+import com.rethinkdb.ast.helper.OptArgs;
 import com.rethinkdb.ast.RqlAst;
 import com.rethinkdb.proto.TermType;
 import java.util.*;
 
 public class DeleteAt extends RqlQuery {
 
-    public DeleteAt(RqlAst prev, Arguments args, OptionalArguments optargs) {
-        super(prev, TermType.DELETE_AT, args, optargs);
+    public DeleteAt(RqlAst prev, Arguments args, OptArgs optargs) {
+        this(prev, TermType.DELETE_AT, args, optargs);
+    }
+    protected DeleteAt(RqlAst previous, TermType termType, Arguments args, OptArgs optargs){
+        super(previous, termType, args, optargs);
     }
     /* Query level terms */
 }
