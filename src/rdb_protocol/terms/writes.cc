@@ -57,7 +57,7 @@ durability_requirement_t parse_durability_optarg(const scoped_ptr_t<val_t> &arg)
 }
 
 return_changes_t parse_return_changes(
-    scope_env_t *env, args_t *args, backtrace_id_t bt) {
+    scope_env_t *env, args_t *args, const Backtrace *bt) {
     if (args->optarg(env, "return_vals")) {
         rfail_src(bt, base_exc_t::GENERIC,
                   "Error: encountered obsolete optarg `return_vals`.  "
@@ -126,7 +126,8 @@ private:
     virtual scoped_ptr_t<val_t>
     eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<table_t> t = args->arg(env, 0)->as_table();
-        return_changes_t return_changes = parse_return_changes(env, args, backtrace());
+        return_changes_t return_changes = parse_return_changes(
+            env, args, backtrace().get());
 
         const conflict_behavior_t conflict_behavior
             = parse_conflict_optarg(args->optarg(env, "conflict"));
@@ -238,7 +239,8 @@ private:
         if (scoped_ptr_t<val_t> v = args->optarg(env, "non_atomic")) {
             nondet_ok = v->as_bool();
         }
-        return_changes_t return_changes = parse_return_changes(env, args, backtrace());
+        return_changes_t return_changes =
+            parse_return_changes(env, args, backtrace().get());
 
         const durability_requirement_t durability_requirement
             = parse_durability_optarg(args->optarg(env, "durability"));
