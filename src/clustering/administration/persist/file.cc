@@ -198,7 +198,7 @@ void metadata_file_t::read_txn_t::read_many_bin(
     metadata_superblock_t superblock(std::move(sb_lock));
     class : public depth_first_traversal_callback_t {
     public:
-        done_traversing_t handle_pair(scoped_key_value_t &&kv) {
+        continue_bool_t handle_pair(scoped_key_value_t &&kv, signal_t *) {
             guarantee(kv.key()->size >= key_prefix.size());
             guarantee(memcmp(
                 kv.key()->contents, key_prefix.contents(), key_prefix.size()) == 0);
@@ -209,28 +209,23 @@ void metadata_file_t::read_txn_t::read_many_bin(
                 kv.expose_buf(),
                 kv.value(),
                 [&](read_stream_t *s) { (*cb)(suffix, s); });
-            return interruptor->is_pulsed()
-                ? done_traversing_t::YES
-                : done_traversing_t::NO;
+            return continue_bool_t::CONTINUE;
         }
         read_txn_t *txn;
         store_key_t key_prefix;
         const std::function<void(const std::string &key_suffix, read_stream_t *)> *cb;
-        signal_t *interruptor;
     } dftcb;
     dftcb.txn = this;
     dftcb.key_prefix = key_prefix;
     dftcb.cb = &cb;
-    dftcb.interruptor = interruptor;
     btree_depth_first_traversal(
         &superblock,
         key_range_t::with_prefix(key_prefix),
         &dftcb,
+        access_t::read,
         FORWARD,
-        release_superblock_t::RELEASE);
-    if (interruptor->is_pulsed()) {
-        throw interrupted_exc_t();
-    }
+        release_superblock_t::RELEASE,
+        interruptor);
 }
 
 metadata_file_t::write_txn_t::write_txn_t(

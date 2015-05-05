@@ -46,13 +46,14 @@ private:
                 registration_id_t rid,
                 peer_id_t peer,
                 business_card_t business_card,
-                auto_drainer_t::lock_t &&_keepalive) :
+                auto_drainer_t::lock_t &&_keepalive,
+                signal_t *interruptor) :
             keepalive(std::move(_keepalive)),
             registrar(_registrar),
             mutex_acq(std::move(_mutex_acq)),
             /* Construct a `registrant_t` to tell the controller that something has
             now registered. */
-            registrant(registrar->controller, business_card),
+            registrant(registrar->controller, business_card, interruptor),
             /* Expose `deletion_cond` so that `on_delete()` can find it. */
             registration_map_sentry(&registrar->registrations, rid, &deletion_cond),
             /* Begin monitoring the peer so we can disconnect when necessary. */
@@ -115,7 +116,7 @@ private:
     };
 
     void on_create(
-            UNUSED signal_t *interruptor,
+            signal_t *interruptor,
             registration_id_t rid,
             peer_id_t peer,
             business_card_t business_card) {
@@ -142,7 +143,7 @@ private:
         of the other signals it waits on). */
         auto_drainer_t::lock_t keepalive(&drainer);
         new active_registration_t(this, std::move(mutex_acq), rid, peer,
-                                  business_card, std::move(keepalive));
+                                  business_card, std::move(keepalive), interruptor);
     }
 
     void on_delete(UNUSED signal_t *interruptor, registration_id_t rid) {

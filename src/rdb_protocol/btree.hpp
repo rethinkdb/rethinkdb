@@ -8,7 +8,6 @@
 #include <utility>
 #include <vector>
 
-#include "backfill_progress.hpp"
 #include "btree/types.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "rdb_protocol/datum.hpp"
@@ -16,6 +15,7 @@
 #include "rdb_protocol/store.hpp"
 
 class btree_slice_t;
+enum class delete_or_erase_t;
 class deletion_context_t;
 class key_tester_t;
 class parallel_traversal_progress_t;
@@ -123,42 +123,16 @@ void rdb_set(const store_key_t &key, ql::datum_t data,
              point_write_response_t *response,
              rdb_modification_info_t *mod_info,
              profile::trace_t *trace,
-             promise_t<superblock_t *> *pass_back_superblock = NULL);
-
-class rdb_backfill_callback_t {
-public:
-    virtual void on_delete_range(
-        const key_range_t &range,
-        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
-    virtual void on_deletion(
-        const btree_key_t *key,
-        repli_timestamp_t recency,
-        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
-    virtual void on_keyvalues(
-        std::vector<backfill_atom_t> &&atoms,
-        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
-    virtual void on_sindexes(
-        const std::map<std::string, secondary_index_t> &sindexes,
-        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
-protected:
-    virtual ~rdb_backfill_callback_t() { }
-};
-
-
-void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range,
-                  repli_timestamp_t since_when, rdb_backfill_callback_t *callback,
-                  refcount_superblock_t *superblock,
-                  buf_lock_t *sindex_block,
-                  parallel_traversal_progress_t *p, signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t);
-
+             promise_t<superblock_t *> *pass_back_superblock = nullptr);
 
 void rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t
                 timestamp, real_superblock_t *superblock,
                 const deletion_context_t *deletion_context,
+                delete_or_erase_t delete_or_erase,
                 point_delete_response_t *response,
                 rdb_modification_info_t *mod_info,
-                profile::trace_t *trace);
+                profile::trace_t *trace,
+                promise_t<superblock_t *> *pass_back_superblock = nullptr);
 
 void rdb_rget_slice(
     btree_slice_t *slice,

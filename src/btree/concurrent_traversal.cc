@@ -43,6 +43,15 @@ public:
           cb_(cb),
           failure_cond_(failure_cond) { }
 
+    continue_bool_t filter_range(
+            const btree_key_t *left_excl_or_null,
+            const btree_key_t *right_incl,
+            signal_t *,
+            bool *skip_out) {
+        cb_->filter_range(left_excl_or_null, right_incl, skip_out);
+        return continue_bool_t::CONTINUE;
+    }
+
     void handle_pair_coro(scoped_key_value_t *fragile_keyvalue,
                           semaphore_acq_t *fragile_acq,
                           fifo_enforcer_write_token_t token,
@@ -55,21 +64,21 @@ public:
 
         fifo_enforcer_sink_t::exit_write_t exit_write(&sink_, token);
 
-        done_traversing_t done;
+        continue_bool_t done;
         try {
             done = cb_->handle_pair(
                 std::move(keyvalue),
                 concurrent_traversal_fifo_enforcer_signal_t(&exit_write, this));
         } catch (const interrupted_exc_t &) {
-            done = done_traversing_t::YES;
+            done = continue_bool_t::ABORT;
         }
 
-        if (done == done_traversing_t::YES) {
+        if (done == continue_bool_t::ABORT) {
             failure_cond_->pulse_if_not_already_pulsed();
         }
     }
 
-    virtual done_traversing_t handle_pair(scoped_key_value_t &&keyvalue) {
+    virtual continue_bool_t handle_pair(scoped_key_value_t &&keyvalue, signal_t *) {
         // First thing first: Get in line with the token enforcer.
 
         fifo_enforcer_write_token_t token = source_.enter_write();
@@ -82,12 +91,8 @@ public:
                       this, &keyvalue, &acq, token, auto_drainer_t::lock_t(&drainer_)));
 
         // Report if we've failed by the time this handle_pair call is called.
-        return failure_cond_->is_pulsed() ? done_traversing_t::YES : done_traversing_t::NO;
-    }
-
-    virtual bool is_range_interesting(const btree_key_t *left_excl_or_null,
-                                      const btree_key_t *right_incl_or_null) {
-        return cb_->is_range_interesting(left_excl_or_null, right_incl_or_null);
+        return failure_cond_->is_pulsed()
+            ? continue_bool_t::ABORT : continue_bool_t::CONTINUE;
     }
 
     virtual profile::trace_t *get_trace() THROWS_NOTHING {
@@ -147,22 +152,26 @@ void concurrent_traversal_fifo_enforcer_signal_t::wait_interruptible()
     ::wait_interruptible(eval_exclusivity_signal_, parent_->failure_cond_);
 }
 
-bool btree_concurrent_traversal(superblock_t *superblock,
-                                const key_range_t &range,
-                                concurrent_traversal_callback_t *cb,
-                                direction_t direction,
-                                release_superblock_t release_superblock) {
+continue_bool_t btree_concurrent_traversal(
+        superblock_t *superblock,
+        const key_range_t &range,
+        concurrent_traversal_callback_t *cb,
+        direction_t direction,
+        release_superblock_t release_superblock) {
     cond_t failure_cond;
     bool failure_seen;
     {
         concurrent_traversal_adapter_t adapter(cb, &failure_cond);
-        failure_seen = !btree_depth_first_traversal(
-            superblock, range, &adapter, direction, release_superblock);
+        cond_t non_interruptor;
+        failure_seen = (continue_bool_t::ABORT == btree_depth_first_traversal(
+            superblock, range, &adapter, access_t::read, direction, release_superblock,
+            &non_interruptor));
     }
     // Now that adapter is destroyed, the operations that might have failed have all
     // drained.  (If we fail, we try to report it to btree_depth_first_traversal (to
     // kill the traversal), but it's possible for us to fail after
     // btree_depth_first_traversal returns.)
     guarantee(!(failure_seen && !failure_cond.is_pulsed()));
-    return !failure_cond.is_pulsed();
+    return failure_cond.is_pulsed() ? continue_bool_t::ABORT : continue_bool_t::CONTINUE;
 }
+

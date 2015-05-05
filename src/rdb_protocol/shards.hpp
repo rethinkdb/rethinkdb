@@ -370,11 +370,11 @@ public:
     // May be overridden as an optimization (currently is for `count`).
     virtual bool uses_val() { return true; }
     virtual bool should_send_batch() = 0;
-    virtual done_traversing_t operator()(env_t *env,
-                                         groups_t *groups,
-                                         const store_key_t &key,
-                                         // sindex_val may be NULL
-                                         const datum_t &sindex_val) = 0;
+    virtual continue_bool_t operator()(env_t *env,
+                                       groups_t *groups,
+                                       const store_key_t &key,
+                                       // sindex_val may be NULL
+                                       const datum_t &sindex_val) = 0;
     virtual void finish(result_t *out);
     virtual void unshard(env_t *env,
                          const store_key_t &last_key,

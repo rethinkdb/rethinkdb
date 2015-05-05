@@ -80,7 +80,7 @@ ql::datum_t convert_debug_region_to_datum(const region_t &region) {
     builder.overwrite("key_max",
         region.inner.right.unbounded
             ? ql::datum_t::null()
-            : convert_debug_store_key_to_datum(region.inner.right.key));
+            : convert_debug_store_key_to_datum(region.inner.right.key()));
     return std::move(builder).to_datum();
 }
 
@@ -183,14 +183,16 @@ ql::datum_t convert_debug_version_to_datum(const version_t &version) {
 ql::datum_t convert_debug_version_map_to_datum(
         const region_map_t<version_t> &map) {
     ql::datum_array_builder_t builder(ql::configured_limits_t::unlimited);
-    for (const auto &pair : map) {
-        ql::datum_object_builder_t pair_builder;
-        pair_builder.overwrite("region",
-            convert_debug_region_to_datum(pair.first));
-        pair_builder.overwrite("version",
-            convert_debug_version_to_datum(pair.second));
-        builder.add(std::move(pair_builder).to_datum());
-    }
+    map.visit(
+        region_t::universe(),
+        [&](const region_t &region, const version_t &version) {
+            ql::datum_object_builder_t pair_builder;
+            pair_builder.overwrite("region",
+                convert_debug_region_to_datum(region));
+            pair_builder.overwrite("version",
+                convert_debug_version_to_datum(version));
+            builder.add(std::move(pair_builder).to_datum());
+        });
     return std::move(builder).to_datum();
 }
 

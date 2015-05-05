@@ -16,13 +16,15 @@ public:
 };
 region_map_t<version_t> quick_version_map(
         std::initializer_list<quick_version_map_args_t> qvms) {
-    std::vector<std::pair<region_t, version_t> > parts;
+    std::vector<region_t> region_vector;
+    std::vector<version_t> version_vector;
     for (const quick_version_map_args_t &qvm : qvms) {
-        region_t region(quick_range(qvm.quick_range_spec));
-        version_t version(qvm.branch, state_timestamp_t::from_num(qvm.timestamp));
-        parts.push_back({ region, version });
+        region_vector.push_back(region_t(quick_range(qvm.quick_range_spec)));
+        version_vector.push_back(
+            version_t(qvm.branch, state_timestamp_t::from_num(qvm.timestamp)));
     }
-    return region_map_t<version_t>(parts.begin(), parts.end());
+    return region_map_t<version_t>::from_unordered_fragments(
+        std::move(region_vector), std::move(version_vector));
 }
 
 version_t quick_vers(const branch_id_t &branch, int timestamp) {
@@ -36,9 +38,9 @@ branch_id_t quick_branch(
     bc.origin = quick_version_map(origin);
     bc.region = bc.origin.get_domain();
     bc.initial_timestamp = state_timestamp_t::zero();
-    for (const auto &pair : bc.origin) {
-        bc.initial_timestamp = std::max(bc.initial_timestamp, pair.second.timestamp);
-    }
+    bc.origin.visit(bc.region, [&](const region_t &, const version_t &version) {
+        bc.initial_timestamp = std::max(bc.initial_timestamp, version.timestamp);
+    });
     branch_id_t bid = generate_uuid();
     bhist->branches.insert(std::make_pair(bid, bc));
     return bid;

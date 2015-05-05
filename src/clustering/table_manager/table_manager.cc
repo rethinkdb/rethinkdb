@@ -88,6 +88,13 @@ table_manager_t::table_manager_t(
     }
 }
 
+table_manager_t::~table_manager_t() {
+    /* This is defined in the `.cc` file so that we can see and instantiate the
+    destructors for the templated types `raft_networked_member_t` and
+    `minidir_write_manager_t`. The destructors are defined in `.tcc` files which are
+    visible here but not in the `.hpp`. */
+}
+
 table_manager_t::leader_t::leader_t(table_manager_t *_parent) :
     parent(_parent),
     contract_ack_read_manager(parent->mailbox_manager),

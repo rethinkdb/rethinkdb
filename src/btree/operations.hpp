@@ -104,8 +104,12 @@ public:
           there_originally_was_value(false), stat_block(NULL_BLOCK_ID) { }
 
     ~keyvalue_location_t() {
-        if (pass_back_superblock != NULL && superblock != NULL) {
-            pass_back_superblock->pulse(superblock);
+        if (superblock != nullptr) {
+            if (pass_back_superblock != nullptr) {
+                pass_back_superblock->pulse(superblock);
+            } else {
+                superblock->release();
+            }
         }
     }
 

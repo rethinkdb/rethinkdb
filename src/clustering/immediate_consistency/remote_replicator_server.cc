@@ -11,7 +11,8 @@ remote_replicator_server_t::remote_replicator_server_t(
 
 remote_replicator_server_t::proxy_replica_t::proxy_replica_t(
         remote_replicator_server_t *_parent,
-        const remote_replicator_client_bcard_t &_client_bcard) :
+        const remote_replicator_client_bcard_t &_client_bcard,
+        UNUSED signal_t *interruptor) :
     client_bcard(_client_bcard), parent(_parent), is_ready(false),
     ready_mailbox(
         parent->mailbox_manager,

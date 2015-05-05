@@ -6,7 +6,8 @@ namespace unittest {
 region_map_t<version_t> quick_cpu_version_map(
         size_t which_cpu_subspace,
         std::initializer_list<quick_cpu_version_map_args_t> qvms) {
-    std::vector<std::pair<region_t, version_t> > parts;
+    std::vector<region_t> region_vector;
+    std::vector<version_t> version_vector;
     for (const quick_cpu_version_map_args_t &qvm : qvms) {
         key_range_t range = quick_range(qvm.quick_range_spec);
         region_t region = region_intersection(
@@ -20,9 +21,11 @@ region_map_t<version_t> quick_cpu_version_map(
                 qvm.branch->branch_ids[which_cpu_subspace],
                 state_timestamp_t::from_num(qvm.timestamp));
         }
-        parts.push_back({ region, version });
+        region_vector.push_back(region);
+        version_vector.push_back(version);
     }
-    return region_map_t<version_t>(parts.begin(), parts.end());
+    return region_map_t<version_t>::from_unordered_fragments(
+        std::move(region_vector), std::move(version_vector));
 }
 
 cpu_branch_ids_t quick_cpu_branch(
@@ -50,10 +53,9 @@ cpu_branch_ids_t quick_cpu_branch(
             region_t(res.range), cpu_sharding_subspace(i));
         bcs[i].initial_timestamp = state_timestamp_t::zero();
         bcs[i].origin = quick_cpu_version_map(i, origin);
-        for (const auto &pair : bcs[i].origin) {
-            bcs[i].initial_timestamp = std::max(bcs[i].initial_timestamp,
-                pair.second.timestamp);
-        }
+        bcs[i].origin.visit(bcs[i].region, [&](const region_t &, const version_t &v) {
+            bcs[i].initial_timestamp = std::max(bcs[i].initial_timestamp, v.timestamp);
+        });
         
     }
 

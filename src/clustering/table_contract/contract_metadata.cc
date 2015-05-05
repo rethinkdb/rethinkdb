@@ -14,8 +14,11 @@ RDB_IMPL_SERIALIZABLE_2_SINCE_v1_16(
     contract_t::primary_t, server, hand_over);
 RDB_IMPL_SERIALIZABLE_5_SINCE_v1_16(
     contract_t, replicas, voters, temp_voters, primary, branch);
+
 RDB_IMPL_SERIALIZABLE_5_FOR_CLUSTER(
     contract_ack_t, state, version, failover_timeout_elapsed, branch, branch_history);
+RDB_IMPL_EQUALITY_COMPARABLE_5(
+    contract_ack_t, state, version, failover_timeout_elapsed, branch, branch_history);    
 
 void table_raft_state_t::apply_change(const table_raft_state_t::change_t &change) {
     class visitor_t : public boost::static_visitor<void> {

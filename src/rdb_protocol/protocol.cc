@@ -52,8 +52,6 @@ RDB_IMPL_PROTOB_SERIALIZABLE(Term);
 RDB_IMPL_PROTOB_SERIALIZABLE(Datum);
 RDB_IMPL_PROTOB_SERIALIZABLE(Backtrace);
 
-RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(backfill_atom_t, key, value, recency);
-
 namespace rdb_protocol {
 
 void post_construct_and_drain_queue(
@@ -289,7 +287,7 @@ void post_construct_and_drain_queue(
 
 
 bool range_key_tester_t::key_should_be_erased(const btree_key_t *key) {
-    uint64_t h = hash_region_hasher(key->contents, key->size);
+    uint64_t h = hash_region_hasher(key);
     return delete_range->beg <= h && h < delete_range->end
         && delete_range->inner.contains_key(key->contents, key->size);
 }
@@ -299,7 +297,7 @@ bool range_key_tester_t::key_should_be_erased(const btree_key_t *key) {
 namespace rdb_protocol {
 // Construct a region containing only the specified key
 region_t monokey_region(const store_key_t &k) {
-    uint64_t h = hash_region_hasher(k.contents(), k.size());
+    uint64_t h = hash_region_hasher(k);
     return region_t(h, h + 1, key_range_t(key_range_t::closed, k, key_range_t::closed, k));
 }
 
@@ -905,7 +903,7 @@ region_t region_from_keys(const std::vector<store_key_t> &keys) {
             max_key = key;
         }
 
-        const uint64_t hash_value = hash_region_hasher(key.contents(), key.size());
+        const uint64_t hash_value = hash_region_hasher(key);
         if (hash_value < min_hash_value) {
             min_hash_value = hash_value;
         }
@@ -1203,8 +1201,6 @@ RDB_IMPL_SERIALIZABLE_0_FOR_CLUSTER(dummy_write_response_t);
 
 RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(write_response_t, response, event_log, n_shards);
 
-// Serialization format for these changed in 1.14.  We only support the
-// latest version, since these are cluster-only types.
 RDB_IMPL_SERIALIZABLE_5_FOR_CLUSTER(
         batched_replace_t, keys, pkey, f, optargs, return_changes);
 RDB_IMPL_SERIALIZABLE_5_FOR_CLUSTER(
@@ -1215,13 +1211,7 @@ RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(point_delete_t, key);
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(sync_t, region);
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(dummy_write_t, region);
 
-// Serialization format changed in 1.14.0. We only support the latest version,
-// since this is a cluster-only type.
 RDB_IMPL_SERIALIZABLE_4_FOR_CLUSTER(
     write_t, write, durability_requirement, profile, limits);
 
-RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(backfill_chunk_t::delete_key_t, key, recency);
-RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(backfill_chunk_t::delete_range_t, range);
-RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(backfill_chunk_t::key_value_pairs_t, backfill_atoms);
-RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(backfill_chunk_t, val);
 

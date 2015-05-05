@@ -151,6 +151,7 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
     contract_ack_t::state_t, int8_t,
     contract_ack_t::state_t::primary_need_branch, contract_ack_t::state_t::nothing);
 RDB_DECLARE_SERIALIZABLE(contract_ack_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(contract_ack_t);
 
 /* Each contract is tagged with a `contract_id_t`. If the contract changes in any way, it
 gets a new ID. All the `contract_ack_t`s are tagged with the contract ID that they are

@@ -211,9 +211,39 @@ struct key_range_t {
     greater than or equal to `left` and less than `right.key`. */
     struct right_bound_t {
         right_bound_t() : unbounded(true) { }
-        explicit right_bound_t(store_key_t k) : unbounded(false), key(k) { }
+
+        explicit right_bound_t(store_key_t k) : unbounded(false), internal_key(k) { }
+        static right_bound_t make_unbounded() {
+            right_bound_t rb;
+            rb.unbounded = true;
+            return rb;
+        }
+
+        bool increment() {
+            if (unbounded) {
+                return false;
+            } else {
+                if (!internal_key.increment()) {
+                    unbounded = true;
+                }
+                return true;
+            }
+        }
+
+        store_key_t &key() {
+            rassert(!unbounded);
+            return internal_key;
+        }
+        const store_key_t &key() const {
+            rassert(!unbounded);
+            return internal_key;
+        }
+
         bool unbounded;
-        store_key_t key;
+
+        /* This is meaningless if `unbounded` is true. Usually you should call `key()`
+        instead of accessing this directly. */
+        store_key_t internal_key;
     };
 
     enum bound_t {
@@ -225,6 +255,16 @@ struct key_range_t {
     key_range_t();   /* creates a range containing no keys */
     key_range_t(bound_t lm, const store_key_t &l,
                 bound_t rm, const store_key_t &r);
+    key_range_t(bound_t lm, const btree_key_t *l,
+                bound_t rm, const btree_key_t *r);
+
+    explicit key_range_t(const btree_key_t *key) {
+        left.assign(key);
+        right.unbounded = false;
+        right.key().assign(key);
+        bool ok = right.increment();
+        guarantee(ok);
+    }
 
     static key_range_t empty() THROWS_NOTHING {
         return key_range_t();
@@ -252,29 +292,26 @@ struct key_range_t {
         if (right.unbounded) {
             return false;
         } else {
-            rassert(left <= right.key);
-            return left == right.key;
+            rassert(left <= right.key());
+            return left == right.key();
         }
     }
 
     bool contains_key(const store_key_t& key) const {
         bool left_ok = left <= key;
-        bool right_ok = right.unbounded || key < right.key;
+        bool right_ok = right.unbounded || key < right.key();
         return left_ok && right_ok;
     }
 
     bool contains_key(const uint8_t *key, uint8_t size) const {
         bool left_ok = sized_strcmp(left.contents(), left.size(), key, size) <= 0;
-        bool right_ok = right.unbounded || sized_strcmp(key, size, right.key.contents(), right.key.size()) < 0;
+        bool right_ok = right.unbounded ||
+            sized_strcmp(key, size, right.key().contents(), right.key().size()) < 0;
         return left_ok && right_ok;
     }
 
-    store_key_t last_key_in_range() const {
-        if (right.unbounded) {
-            return store_key_t::max();
-        } else {
-            return right.key;
-        }
+    bool contains_key(const btree_key_t *key) const {
+        return contains_key(key->contents, key->size);
     }
 
     std::string print();
@@ -293,8 +330,10 @@ RDB_DECLARE_SERIALIZABLE(key_range_t);
 void serialize_for_metainfo(write_message_t *wm, const key_range_t &kr);
 MUST_USE archive_result_t deserialize_for_metainfo(read_stream_t *s, key_range_t *out);
 
+void debug_print(printf_buffer_t *buf, const btree_key_t *k);
 void debug_print(printf_buffer_t *buf, const store_key_t &k);
 void debug_print(printf_buffer_t *buf, const store_key_t *k);
+void debug_print(printf_buffer_t *buf, const key_range_t::right_bound_t &rb);
 void debug_print(printf_buffer_t *buf, const key_range_t &kr);
 std::string key_range_to_string(const key_range_t &kr);
 
