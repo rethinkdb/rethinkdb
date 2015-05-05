@@ -15,7 +15,6 @@ tests:
     - cd: tbl.insert({'id':0}, :return_changes => true).pluck('changes', 'first_error')
       py: tbl.insert({'id':0}, return_changes=True).pluck('changes', 'first_error')
       js: tbl.insert({'id':0}, {'return__changes':true}).pluck('changes', 'first__error')
-      # We still return the old value if there's an error.
       ot: ({'changes':[], 'first_error':"Duplicate primary key `id`:\n{\n\t\"id\":\t0\n}\n{\n\t\"id\":\t0\n}"})
     - cd: tbl.insert({'id':0}, return_changes:'always').pluck('changes', 'first_error')
       py: tbl.insert({'id':0}, return_changes='always').pluck('changes', 'first_error')
