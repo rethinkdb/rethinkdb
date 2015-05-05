@@ -806,7 +806,6 @@ void real_reql_cluster_interface_t::rebalance_internal(
         table_meta_client->set_config(table_id, config, interruptor);
     }
 
-    /* RSI(raft): Reimplement this once `table_status` is implemented */
     ql::datum_t new_status;
     if (!status_backend->read_row(convert_uuid_to_datum(table_id), interruptor,
             &new_status, &error)) {
