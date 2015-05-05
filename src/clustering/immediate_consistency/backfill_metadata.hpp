@@ -152,6 +152,7 @@ public:
     class intro_2_t {
     public:
         region_map_t<state_timestamp_t> common_version;
+        branch_history_t final_version_history;
         pre_items_mailbox_t::address_t pre_items_mailbox;
         begin_session_mailbox_t::address_t begin_session_mailbox;
         end_session_mailbox_t::address_t end_session_mailbox;

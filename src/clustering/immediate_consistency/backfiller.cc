@@ -36,6 +36,7 @@ backfiller_t::client_t::client_t(
         std::bind(&client_t::on_ack_items, this, ph::_1, ph::_2, ph::_3))
 {
     /* Compute the common ancestor of our version and the backfillee's version */
+    branch_history_t our_branch_history;
     {
         region_map_t<binary_blob_t> our_version_blob;
         read_token_t read_token;
@@ -59,12 +60,20 @@ backfiller_t::client_t::client_t(
                                 [](const version_t &v) { return v.timestamp; });
                     });
             });
+
+        /* Also copy out the current value of the branch history. We only send the branch
+        history once at the beginning of the backfill; this is OK because the underlying
+        store isn't allowed to transition to a new branch while the `backfiller_t`
+        exists. */
+        parent->branch_history_manager->export_branch_history(
+            our_version, &our_branch_history);
     }
 
     /* Send the computed common ancestor to the backfillee, along with the mailboxes it
-    can use to contact us */
+    can use to contact us. */
     backfiller_bcard_t::intro_2_t our_intro;
     our_intro.common_version = common_version;
+    our_intro.final_version_history = std::move(our_branch_history);
     our_intro.pre_items_mailbox = pre_items_mailbox.get_address();
     our_intro.begin_session_mailbox = begin_session_mailbox.get_address();
     our_intro.end_session_mailbox = end_session_mailbox.get_address();

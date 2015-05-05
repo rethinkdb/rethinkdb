@@ -357,6 +357,10 @@ backfillee_t::backfillee_t(
         mailbox_manager, backfiller.registrar, our_intro));
     wait_interruptible(&got_intro, interruptor);
 
+    /* Record the branch history we got from the backfiller */
+    branch_history_manager->import_branch_history(
+        intro.final_version_history, interruptor);
+
     /* Spawn the coroutine that will stream pre-items to the backfiller. */
     coro_t::spawn_sometime(
         std::bind(&backfillee_t::send_pre_items, this, drainer.lock()));
