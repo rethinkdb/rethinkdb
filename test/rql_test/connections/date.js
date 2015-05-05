@@ -2,38 +2,44 @@
 // Tests the driver API for converting dates to native Date objects
 /////
 
-var path = require('path');
-var fs = require('fs');
-var spawn = require('child_process').spawn
-
 var assert = require('assert');
+var path = require('path');
 
 // -- load rethinkdb from the proper location
 
 var r = require(path.resolve(__dirname, '..', 'importRethinkDB.js')).r;
 
-// --
-
-var rethinkdbExe = process.env.RDB_EXE_PATH
-if (!process.env.RDB_EXE_PATH) {
-    throw new Error('RDB_EXE_PATH ENV variable was not set!')
-}
+// -- get ENV inforamtion
 
 var testDefault = process.env.TEST_DEFAULT_PORT == "1"
+var driverPort = process.env.RDB_DRIVER_PORT || 28015;
+var serverHost = process.env.RDB_SERVER_HOST || 'localhost';
 
-var driver_port = null;
+/// -- global variables
+
+var sharedConnection = null;
+
+// -- helper functions
 
 var assertNoError = function(err) {
     if (err) {
+        try {
+            sharedConnection.close();
+        } catch(err) {}
+        sharedConnection = null;
         throw new Error("Error '"+err+"' not expected")
     }
 };
 
-var withConnection = function(f){
-    return function(done){
-        r.connect({port:driver_port}, function(err, c){
-            assert.equal(err, null);
-            f(done, c);
+var withConnection = function(f) {
+    return function(done) {
+        r.expr(1).run(sharedConnection).then(function() {
+            f(done, sharedConnection);
+        }).catch(function(err) {
+            r.connect({host:serverHost, port:driverPort}).then(function(conn) {
+                sharedConnection = conn;
+                f(done, sharedConnection);
+            }).catch(done)
         });
     };
 };
@@ -47,32 +53,7 @@ Object.size = function(obj) {
 };
 
 describe('Javascript date pseudotype conversion', function(){
-    var cpp_server;
-    var server_out_log;
-    var server_err_log;
-    var cluster_port;
-
-    beforeEach(function(done){
-        driver_port = Math.floor(Math.random()*(65535 - 1025)+1025);
-        cluster_port = driver_port + 1;
-        server_out_log = fs.openSync('run/server-log.txt', 'a');
-        server_err_log = fs.openSync('run/server-error-log.txt', 'a');
-        cpp_server = spawn(
-            rethinkdbExe,
-            ['--driver-port', driver_port, '--http-port', '0', '--cluster-port', cluster_port, '--cache-size', '512'],
-            {stdio: ['ignore', server_out_log, server_err_log]});
-        this.timeout(5000);
-        setTimeout(done, 2000);
-    });
-
-    afterEach(function(done){
-        cpp_server.kill();
-        spawn('rm', ['-rf', 'rethinkdb_data']);
-        setTimeout(done, 10);
-        fs.close(server_out_log);
-        fs.close(server_err_log);
-    });
-
+    
     it("flat time", withConnection(function(done, conn){
         r.expr(r.epochTime(896571240)).run(conn, function(err, time) {
             assertNoError(err);

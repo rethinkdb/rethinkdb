@@ -195,7 +195,7 @@ std::string create_sindex(const std::vector<scoped_ptr_t<store_t> > *stores) {
     const ql::sym_t arg(1);
     ql::protob_t<const Term> mapping = ql::r::var(arg)["sid"].release_counted();
     sindex_config_t sindex(
-        ql::map_wire_func_t(mapping, make_vector(arg), get_backtrace(mapping)),
+        ql::map_wire_func_t(mapping, make_vector(arg), ql::backtrace_id_t::empty()),
         reql_version_t::LATEST,
         sindex_multi_bool_t::SINGLE,
         sindex_geo_bool_t::REGULAR);
@@ -247,22 +247,20 @@ void run_create_drop_sindex_test(
     std::string id = create_sindex(stores);
     wait_for_sindex(stores, id);
 
-    std::shared_ptr<const scoped_cJSON_t> data(
-        new scoped_cJSON_t(cJSON_Parse("{\"id\" : 0, \"sid\" : 1}")));
+    rapidjson::Document data;
+    data.Parse("{\"id\" : 0, \"sid\" : 1}");
+    ASSERT_FALSE(data.HasParseError());
     ql::configured_limits_t limits;
     ql::datum_t d
-        = ql::to_datum(cJSON_slow_GetObjectItem(data->get(), "id"), limits,
-                       reql_version_t::LATEST);
+        = ql::to_datum(data.FindMember("id")->value, limits, reql_version_t::LATEST);
     store_key_t pk = store_key_t(d.print_primary());
     ql::datum_t sindex_key_literal = ql::datum_t(1.0);
 
-    ASSERT_TRUE(data->get());
     {
         /* Insert a piece of data (it will be indexed using the secondary
          * index). */
         write_t write(
-            point_write_t(pk, ql::to_datum(data->get(), limits,
-                                           reql_version_t::LATEST)),
+            point_write_t(pk, ql::to_datum(data, limits, reql_version_t::LATEST)),
             DURABILITY_REQUIREMENT_DEFAULT,
             profile_bool_t::PROFILE,
             ql::configured_limits_t());
@@ -300,7 +298,7 @@ void run_create_drop_sindex_test(
             auto stream = &streams->begin(ql::grouped::order_doesnt_matter_t())->second;
             ASSERT_TRUE(stream != NULL);
             ASSERT_EQ(1u, stream->size());
-            ASSERT_EQ(ql::to_datum(data->get(), limits, reql_version_t::LATEST),
+            ASSERT_EQ(ql::to_datum(data, limits, reql_version_t::LATEST),
                       stream->at(0).data);
         } else {
             ADD_FAILURE() << "got wrong type of result back";
@@ -350,17 +348,18 @@ void populate_sindex(namespace_interface_t *nsi,
                      int num_docs) {
     for (int i = 0; i < num_docs; ++i) {
         std::string json_doc = strprintf("{\"id\" : %d, \"sid\" : %d}", i, i % 4);
-        std::shared_ptr<const scoped_cJSON_t> data(
-            new scoped_cJSON_t(cJSON_Parse(json_doc.c_str())));
+        rapidjson::Document data;
+        data.Parse(json_doc.c_str());
+        ASSERT_FALSE(data.HasParseError());
         ql::configured_limits_t limits;
         ql::datum_t d
-            = ql::to_datum(cJSON_slow_GetObjectItem(data->get(), "id"), limits,
+            = ql::to_datum(data.FindMember("id")->value, limits,
                            reql_version_t::LATEST);
         store_key_t pk = store_key_t(d.print_primary());
 
         /* Insert a piece of data (it will be indexed using the secondary
          * index). */
-        write_t write(point_write_t(pk, ql::to_datum(data->get(), limits,
+        write_t write(point_write_t(pk, ql::to_datum(data, limits,
                                                      reql_version_t::LATEST)),
                       DURABILITY_REQUIREMENT_SOFT, profile_bool_t::PROFILE, limits);
         write_response_t response;
@@ -605,25 +604,26 @@ void run_sindex_oversized_keys_test(
                 + std::string(i + rdb_protocol::MAX_PRIMARY_KEY_SIZE - 10, ' ');
             std::string sid(j, 'a');
             auto sindex_key_literal = ql::datum_t(datum_string_t(sid));
-            std::shared_ptr<const scoped_cJSON_t> data(
-                new scoped_cJSON_t(cJSON_CreateObject()));
-            cJSON_AddItemToObject(data->get(), "id", cJSON_CreateString(id.c_str()));
-            cJSON_AddItemToObject(data->get(), "sid", cJSON_CreateString(sid.c_str()));
+            std::string json_doc = strprintf("{\"id\" : \"%s\", \"sid\" : \"%s\"}",
+                                             id.c_str(),
+                                             sid.c_str());
+            rapidjson::Document data;
+            data.Parse(json_doc.c_str());
+            ASSERT_FALSE(data.HasParseError());
             store_key_t pk;
             try {
                 pk = store_key_t(ql::to_datum(
-                                     cJSON_slow_GetObjectItem(data->get(), "id"),
+                                     data.FindMember("id")->value,
                                      limits, reql_version_t::LATEST).print_primary());
             } catch (const ql::base_exc_t &ex) {
                 ASSERT_TRUE(id.length() >= rdb_protocol::MAX_PRIMARY_KEY_SIZE);
                 continue;
             }
-            ASSERT_TRUE(data->get());
 
             {
                 /* Insert a piece of data (it will be indexed using the secondary
                  * index). */
-                write_t write(point_write_t(pk, ql::to_datum(data->get(), limits,
+                write_t write(point_write_t(pk, ql::to_datum(data, limits,
                                                              reql_version_t::LATEST)),
                               DURABILITY_REQUIREMENT_DEFAULT,
                               profile_bool_t::PROFILE,
@@ -691,16 +691,16 @@ void run_sindex_missing_attr_test(
     create_sindex(stores);
 
     ql::configured_limits_t limits;
-    std::shared_ptr<const scoped_cJSON_t> data(
-        new scoped_cJSON_t(cJSON_Parse("{\"id\" : 0}")));
+    rapidjson::Document data;
+    data.Parse("{\"id\" : 0}");
+    ASSERT_FALSE(data.HasParseError());
     store_key_t pk = store_key_t(ql::to_datum(
-                                     cJSON_slow_GetObjectItem(data->get(), "id"),
+                                     data.FindMember("id")->value,
                                      limits, reql_version_t::LATEST).print_primary());
-    ASSERT_TRUE(data->get());
     {
         /* Insert a piece of data (it will be indexed using the secondary
          * index). */
-        write_t write(point_write_t(pk, ql::to_datum(data->get(), limits,
+        write_t write(point_write_t(pk, ql::to_datum(data, limits,
                                                      reql_version_t::LATEST)),
                       DURABILITY_REQUIREMENT_DEFAULT,
                       profile_bool_t::PROFILE,
@@ -745,7 +745,7 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
     dummy_artificial_t artificial_cfeed;
     struct cfeed_bundle_t {
         cfeed_bundle_t(ql::env_t *env, artificial_t *a)
-            : bt(ql::make_counted_backtrace()),
+            : bt(ql::backtrace_id_t::empty()),
               point_0(a->subscribe(
                           env,
                           false,
@@ -775,7 +775,7 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
                         "id",
                         std::vector<ql::datum_t>(),
                         bt)) { }
-        ql::protob_t<const Backtrace> bt;
+        ql::backtrace_id_t bt;
         counted_t<ql::datum_stream_t> point_0, point_10, range;
     };
     cond_t interruptor;

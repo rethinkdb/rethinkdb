@@ -1,0 +1,4 @@
+{ "name": "packed-bluebird",
+  "version": "2.9.25",
+  "dependencies": { "bluebird": "2.9.25" },
+  "bundleDependencies": [ "bluebird" ] }

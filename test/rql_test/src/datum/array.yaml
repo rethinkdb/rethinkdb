@@ -22,7 +22,7 @@ tests:
     - cd:
         - r.expr([1, 2]).coerce_to('string')
         - r.expr([1, 2]).coerce_to('STRING')
-      ot: "'[1, 2]'"
+      ot: "'[1,2]'"
 
     - cd: r.expr([1, 2]).coerce_to('array')
       ot: [1, 2]

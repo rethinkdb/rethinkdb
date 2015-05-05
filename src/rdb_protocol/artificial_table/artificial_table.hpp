@@ -30,7 +30,7 @@ public:
     counted_t<ql::datum_stream_t> read_all(
         ql::env_t *env,
         const std::string &get_all_sindex_id,
-        const ql::protob_t<const Backtrace> &bt,
+        ql::backtrace_id_t bt,
         const std::string &table_name,   /* the table's own name, for display purposes */
         const ql::datum_range_t &range,
         sorting_t sorting,
@@ -40,12 +40,12 @@ public:
         const ql::datum_t &, // TODO: implement squash
         bool include_states,
         ql::changefeed::keyspec_t::spec_t &&spec,
-        const ql::protob_t<const Backtrace> &bt,
+        ql::backtrace_id_t bt,
         const std::string &table_name);
     counted_t<ql::datum_stream_t> read_intersecting(
         ql::env_t *env,
         const std::string &sindex,
-        const ql::protob_t<const Backtrace> &bt,
+        ql::backtrace_id_t bt,
         const std::string &table_name,
         bool use_outdated,
         const ql::datum_t &query_geometry);

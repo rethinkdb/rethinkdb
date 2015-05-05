@@ -29,11 +29,11 @@ class val_t;
 
 /* A `table_t` is an `r.table` term, possibly with some other things chained onto
 onto it. */
-class table_t : public single_threaded_countable_t<table_t>, public pb_rcheckable_t {
+class table_t : public single_threaded_countable_t<table_t>, public bt_rcheckable_t {
 public:
     table_t(counted_t<base_table_t> &&,
             counted_t<const db_t> db, const std::string &name,
-            bool use_outdated, const protob_t<const Backtrace> &src);
+            bool use_outdated, backtrace_id_t src);
     ql::datum_t get_id() const;
     const std::string &get_pkey() const;
     datum_t get_row(env_t *env, datum_t pval);
@@ -41,12 +41,12 @@ public:
             env_t *env,
             datum_t value,
             const std::string &sindex_id,
-            const protob_t<const Backtrace> &bt);
+            backtrace_id_t bt);
     counted_t<datum_stream_t> get_intersecting(
             env_t *env,
             const datum_t &query_geometry,
             const std::string &new_sindex_id,
-            const pb_rcheckable_t *parent);
+            const bt_rcheckable_t *parent);
     datum_t get_nearest(
             env_t *env,
             lon_lat_point_t center,
@@ -89,7 +89,7 @@ public:
     counted_t<datum_stream_t> as_seq(
         env_t *env,
         const std::string &idx,
-        const protob_t<const Backtrace> &bt,
+        backtrace_id_t bt,
         const datum_range_t &bounds,
         sorting_t sorting);
 
@@ -110,13 +110,13 @@ private:
 };
 
 class table_slice_t
-    : public single_threaded_countable_t<table_slice_t>, public pb_rcheckable_t {
+    : public single_threaded_countable_t<table_slice_t>, public bt_rcheckable_t {
 public:
     table_slice_t(counted_t<table_t> _tbl,
                   boost::optional<std::string> _idx = boost::none,
                   sorting_t _sorting = sorting_t::UNORDERED,
                   datum_range_t _bounds = datum_range_t::universe());
-    counted_t<datum_stream_t> as_seq(env_t *env, const protob_t<const Backtrace> &bt);
+    counted_t<datum_stream_t> as_seq(env_t *env, backtrace_id_t bt);
     counted_t<table_slice_t> with_sorting(std::string idx, sorting_t sorting);
     counted_t<table_slice_t> with_bounds(std::string idx, datum_range_t bounds);
     const counted_t<table_t> &get_tbl() const { return tbl; }
@@ -141,13 +141,13 @@ enum function_shortcut_t {
 class single_selection_t : public single_threaded_countable_t<single_selection_t> {
 public:
     static counted_t<single_selection_t> from_key(
-        env_t *env, protob_t<const Backtrace> bt,
+        env_t *env, backtrace_id_t bt,
         counted_t<table_t> table, datum_t key);
     static counted_t<single_selection_t> from_row(
-        env_t *env, protob_t<const Backtrace> bt,
+        env_t *env, backtrace_id_t bt,
         counted_t<table_t> table, datum_t row);
     static counted_t<single_selection_t> from_slice(
-        env_t *env, protob_t<const Backtrace> bt,
+        env_t *env, backtrace_id_t bt,
         counted_t<table_slice_t> table, std::string err);
     virtual ~single_selection_t() { }
 
@@ -172,7 +172,7 @@ public:
 
 // A value is anything RQL can pass around -- a datum, a sequence, a function, a
 // selection, whatever.
-class val_t : public pb_rcheckable_t {
+class val_t : public bt_rcheckable_t {
 public:
     // This type is intentionally opaque.  It is almost always an error to
     // compare two `val_t` types rather than testing whether one is convertible
@@ -206,16 +206,16 @@ public:
     type_t get_type() const;
     const char *get_type_name() const;
 
-    val_t(datum_t _datum, protob_t<const Backtrace> bt);
+    val_t(datum_t _datum, backtrace_id_t bt);
     val_t(const counted_t<grouped_data_t> &groups,
-          protob_t<const Backtrace> bt);
-    val_t(counted_t<single_selection_t> _selection, protob_t<const Backtrace> bt);
-    val_t(env_t *env, counted_t<datum_stream_t> _seq, protob_t<const Backtrace> bt);
-    val_t(counted_t<table_t> _table, protob_t<const Backtrace> bt);
-    val_t(counted_t<table_slice_t> _table_slice, protob_t<const Backtrace> bt);
-    val_t(counted_t<selection_t> _selection, protob_t<const Backtrace> bt);
-    val_t(counted_t<const db_t> _db, protob_t<const Backtrace> bt);
-    val_t(counted_t<const func_t> _func, protob_t<const Backtrace> bt);
+          backtrace_id_t bt);
+    val_t(counted_t<single_selection_t> _selection, backtrace_id_t bt);
+    val_t(env_t *env, counted_t<datum_stream_t> _seq, backtrace_id_t bt);
+    val_t(counted_t<table_t> _table, backtrace_id_t bt);
+    val_t(counted_t<table_slice_t> _table_slice, backtrace_id_t bt);
+    val_t(counted_t<selection_t> _selection, backtrace_id_t bt);
+    val_t(counted_t<const db_t> _db, backtrace_id_t bt);
+    val_t(counted_t<const func_t> _func, backtrace_id_t bt);
     ~val_t();
 
     counted_t<const db_t> as_db() const;

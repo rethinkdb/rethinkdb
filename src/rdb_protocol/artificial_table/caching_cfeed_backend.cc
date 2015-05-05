@@ -230,7 +230,7 @@ bool caching_cfeed_artificial_table_backend_t::caching_machinery_t::get_values(
     std::string error;
     counted_t<ql::datum_stream_t> stream;
     if (!parent->read_all_rows_as_stream(
-            ql::protob_t<const Backtrace>(),
+            ql::backtrace_id_t(),
             ql::datum_range_t::universe(),
             sorting_t::UNORDERED,
             interruptor,

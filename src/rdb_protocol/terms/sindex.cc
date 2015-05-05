@@ -10,6 +10,7 @@
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/minidriver.hpp"
+#include "rdb_protocol/term_walker.hpp"
 
 namespace ql {
 
@@ -138,8 +139,8 @@ public:
             pb::dummy_var_t x = pb::dummy_var_t::SINDEXCREATE_X;
             protob_t<Term> func_term
                 = r::fun(x, r::var(x)[name_datum]).release_counted();
+            propagate_backtrace(func_term.get(), backtrace());
 
-            prop_bt(func_term.get());
             compile_env_t empty_compile_env((var_visibility_t()));
             counted_t<func_term_t> func_term_term = make_counted<func_term_t>(
                 &empty_compile_env, func_term);
@@ -374,22 +375,28 @@ public:
     virtual const char *name() const { return "sindex_rename"; }
 };
 
-counted_t<term_t> make_sindex_create_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_sindex_create_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<sindex_create_term_t>(env, term);
 }
-counted_t<term_t> make_sindex_drop_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_sindex_drop_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<sindex_drop_term_t>(env, term);
 }
-counted_t<term_t> make_sindex_list_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_sindex_list_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<sindex_list_term_t>(env, term);
 }
-counted_t<term_t> make_sindex_status_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_sindex_status_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<sindex_status_term_t>(env, term);
 }
-counted_t<term_t> make_sindex_wait_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_sindex_wait_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<sindex_wait_term_t>(env, term);
 }
-counted_t<term_t> make_sindex_rename_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_sindex_rename_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<sindex_rename_term_t>(env, term);
 }
 

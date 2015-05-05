@@ -5,6 +5,7 @@
 #include "clustering/administration/jobs/report.hpp"
 #include "containers/cow_ptr.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
+#include "rdb_protocol/backtrace.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
@@ -17,7 +18,7 @@
 
 namespace ql {
 
-counted_t<const term_t> compile_term(compile_env_t *env, protob_t<const Term> t) {
+counted_t<const term_t> compile_term(compile_env_t *env, const protob_t<const Term> t) {
     // HACK: per @srh, use unlimited array size at compile time
     ql::configured_limits_t limits = ql::configured_limits_t::unlimited;
     switch (t->type()) {
@@ -224,14 +225,16 @@ void run(query_id_t &&query_id,
     try {
         validate_pb(*q);
     } catch (const base_exc_t &e) {
-        fill_error(res, Response::CLIENT_ERROR, e.what(), backtrace_t());
+        fill_error(res, Response::CLIENT_ERROR, e.what(),
+                   backtrace_registry_t::EMPTY_BACKTRACE);
         return;
     }
 
     try {
         validate_optargs(*q);
     } catch (const base_exc_t &e) {
-        fill_error(res, Response::COMPILE_ERROR, e.what(), backtrace_t());
+        fill_error(res, Response::COMPILE_ERROR, e.what(),
+                   backtrace_registry_t::EMPTY_BACKTRACE);
         return;
     }
 #ifdef INSTRUMENT
@@ -265,22 +268,20 @@ void run(query_id_t &&query_id,
         } break;
         default: unreachable();
         }
-    } catch (const exc_t &e) {
-        fill_error(res, Response::RUNTIME_ERROR, e.what(), e.backtrace());
-    } catch (const datum_exc_t &e) {
-        fill_error(res, Response::RUNTIME_ERROR, e.what(), backtrace_t());
-    } catch (const query_cache_exc_t &e) {
-        fill_error(res, e.type, e.message, e.bt);
+    } catch (const bt_exc_t &ex) {
+        fill_error(res, ex.response_type, ex.message, ex.bt_datum);
     }
 }
 
-runtime_term_t::runtime_term_t(protob_t<const Backtrace> bt)
-    : pb_rcheckable_t(std::move(bt)) { }
+runtime_term_t::runtime_term_t(backtrace_id_t bt)
+    : bt_rcheckable_t(bt) { }
 
 runtime_term_t::~runtime_term_t() { }
 
 term_t::term_t(protob_t<const Term> _src)
-    : runtime_term_t(get_backtrace(_src)), src(_src) { }
+    : runtime_term_t(backtrace_id_t(_src.get())),
+      src(_src) { }
+
 term_t::~term_t() { }
 
 // Uncomment the define to enable instrumentation (you'll be able to see where
@@ -306,14 +307,10 @@ protob_t<const Term> term_t::get_src() const {
     return src;
 }
 
-void term_t::prop_bt(Term *t) const {
-    propagate_backtrace(t, &get_src()->GetExtension(ql2::extension::backtrace));
-}
-
 scoped_ptr_t<val_t> runtime_term_t::eval(scope_env_t *env, eval_flags_t eval_flags) const {
     // This is basically a hook for unit tests to change things mid-query
     profile::starter_t starter(strprintf("Evaluating %s.", name()), env->env->trace);
-    DEBUG_ONLY_CODE(env->env->do_eval_callback());
+    env->env->do_eval_callback();
     DBG("EVALUATING %s (%d):\n", name(), is_deterministic());
     if (env->env->interruptor->is_pulsed()) {
         throw interrupted_exc_t();

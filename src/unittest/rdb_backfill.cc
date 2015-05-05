@@ -9,6 +9,7 @@
 #include "clustering/immediate_consistency/remote_replicator_server.hpp"
 #include "extproc/extproc_pool.hpp"
 #include "extproc/extproc_spawner.hpp"
+#include "rapidjson/document.h"
 #include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/env.hpp"

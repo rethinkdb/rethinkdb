@@ -31,7 +31,7 @@ namespace unittest {
 // These classes are used to provide a mock environment for running reql queries
 
 // The mock namespace interface handles all read and write calls, using a simple in-
-//  memory map of store_key_t to scoped_cJSON_t.  The get_data function allows a test to
+//  memory map of store_key_t to datum_t.  The get_data function allows a test to
 //  read or modify the dataset to prepare for a query or to check that changes were made.
 class mock_namespace_interface_t : public namespace_interface_t {
 public:
@@ -165,7 +165,7 @@ public:
                 counted_t<const ql::db_t> *db_out, std::string *error_out);
         bool db_config(
                 const counted_t<const ql::db_t> &db,
-                const ql::protob_t<const Backtrace> &bt,
+                ql::backtrace_id_t bt,
                 ql::env_t *env,
                 scoped_ptr_t<ql::val_t> *selection_out,
                 std::string *error_out);
@@ -192,14 +192,14 @@ public:
         bool table_config(
                 counted_t<const ql::db_t> db,
                 const name_string_t &name,
-                const ql::protob_t<const Backtrace> &bt,
+                ql::backtrace_id_t bt,
                 ql::env_t *env,
                 scoped_ptr_t<ql::val_t> *selection_out,
                 std::string *error_out);
         bool table_status(
                 counted_t<const ql::db_t> db,
                 const name_string_t &name,
-                const ql::protob_t<const Backtrace> &bt,
+                ql::backtrace_id_t bt,
                 ql::env_t *env,
                 scoped_ptr_t<ql::val_t> *selection_out,
                 std::string *error_out);

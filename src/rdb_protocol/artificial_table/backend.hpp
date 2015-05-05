@@ -38,7 +38,7 @@ public:
        `read_all_rows_as_stream()` will also take care of the filtering and sorting,
        which you must handle yourself when overriding it. */
     virtual bool read_all_rows_as_stream(
-        const ql::protob_t<const Backtrace> &bt,
+        ql::backtrace_id_t bt,
         const ql::datum_range_t &range,
         sorting_t sorting,
         signal_t *interruptor,
@@ -76,7 +76,7 @@ public:
     virtual bool read_changes(
         ql::env_t *env,
         bool include_states,
-        const ql::protob_t<const Backtrace> &bt,
+        ql::backtrace_id_t bt,
         ql::changefeed::keyspec_t::spec_t &&spec,
         signal_t *interruptor,
         counted_t<ql::datum_stream_t> *cfeed_out,

@@ -271,6 +271,18 @@ tests:
     - cd: r.expr([1, 2]).map(r.db('test').table_create('nested_table'))
       ot: err('RqlCompileError', 'Cannot nest writes or meta ops in stream operations.  Use FOR_EACH instead.', [0])
 
+    - cd: r.expr([1, 2]).map(r.db('test').table_create('nested_table'))
+      ot: err('RqlCompileError', 'Cannot nest writes or meta ops in stream operations.  Use FOR_EACH instead.', [0])
+
+    - cd: r.expr([1, 2]).map(tbl.insert({'foo':r.row}).get_field('inserted'))
+      rb: r.expr([1, 2]).map{|x| tbl.insert({'foo':x}).get_field('inserted')}
+      ot: err('RqlCompileError', 'Cannot nest writes or meta ops in stream operations.  Use FOR_EACH instead.', [0])
+
+    - cd: r.expr([1, 2]).map(tbl.insert({'foo':r.row}).get_field('inserted').add(5))
+      rb: r.expr([1, 2]).map{|x| tbl.insert({'foo':x}).get_field('inserted').add(5)}
+      ot: err('RqlCompileError', 'Cannot nest writes or meta ops in stream operations.  Use FOR_EACH instead.', [0])
+
     - cd: r.expr(1).do(r.db('test').table_create('nested_table'))
       ot: partial({'tables_created':1})
+
     - cd: r.db('test').table_drop('nested_table')

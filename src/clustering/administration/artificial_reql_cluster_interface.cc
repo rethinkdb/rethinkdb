@@ -49,7 +49,7 @@ bool artificial_reql_cluster_interface_t::db_find(const name_string_t &name,
 }
 
 bool artificial_reql_cluster_interface_t::db_config(
-        const counted_t<const ql::db_t> &db, const ql::protob_t<const Backtrace> &bt,
+        const counted_t<const ql::db_t> &db, ql::backtrace_id_t bt,
         ql::env_t *env, scoped_ptr_t<ql::val_t> *selection_out,
         std::string *error_out) {
     if (db->name == database) {
@@ -142,7 +142,7 @@ bool artificial_reql_cluster_interface_t::table_estimate_doc_counts(
             /* We arbitrarily choose to read from the UUID version of the system table
             rather than the name version. */
             if (!it->second.second->read_all_rows_as_stream(
-                    ql::protob_t<const Backtrace>(),
+                    ql::backtrace_id_t::empty(),
                     ql::datum_range_t::universe(),
                     sorting_t::UNORDERED,
                     env->interruptor,
@@ -172,7 +172,7 @@ bool artificial_reql_cluster_interface_t::table_estimate_doc_counts(
 
 bool artificial_reql_cluster_interface_t::table_config(
         counted_t<const ql::db_t> db, const name_string_t &name,
-        const ql::protob_t<const Backtrace> &bt, ql::env_t *env,
+        ql::backtrace_id_t bt, ql::env_t *env,
         scoped_ptr_t<ql::val_t> *selection_out, std::string *error_out) {
     if (db->name == database) {
         *error_out = strprintf("Database `%s` is special; you can't configure the "
@@ -184,7 +184,7 @@ bool artificial_reql_cluster_interface_t::table_config(
 
 bool artificial_reql_cluster_interface_t::table_status(
         counted_t<const ql::db_t> db, const name_string_t &name,
-        const ql::protob_t<const Backtrace> &bt, ql::env_t *env,
+        ql::backtrace_id_t bt, ql::env_t *env,
         scoped_ptr_t<ql::val_t> *selection_out, std::string *error_out) {
     if (db->name == database) {
         *error_out = strprintf("Database `%s` is special; the system tables in it don't "

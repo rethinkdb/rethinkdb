@@ -122,7 +122,7 @@ public:
     virtual counted_t<ql::datum_stream_t> read_all(
         ql::env_t *env,
         const std::string &sindex,
-        const ql::protob_t<const Backtrace> &bt,
+        ql::backtrace_id_t bt,
         const std::string &table_name,   /* the table's own name, for display purposes */
         const ql::datum_range_t &range,
         sorting_t sorting,
@@ -132,12 +132,12 @@ public:
         const ql::datum_t &squash,
         bool include_states,
         ql::changefeed::keyspec_t::spec_t &&spec,
-        const ql::protob_t<const Backtrace> &bt,
+        ql::backtrace_id_t bt,
         const std::string &table_name) = 0;
     virtual counted_t<ql::datum_stream_t> read_intersecting(
         ql::env_t *env,
         const std::string &sindex,
-        const ql::protob_t<const Backtrace> &bt,
+        ql::backtrace_id_t bt,
         const std::string &table_name,
         bool use_outdated,
         const ql::datum_t &query_geometry) = 0;
@@ -196,7 +196,7 @@ public:
             counted_t<const ql::db_t> *db_out, std::string *error_out) = 0;
     virtual bool db_config(
             const counted_t<const ql::db_t> &db,
-            const ql::protob_t<const Backtrace> &bt,
+            ql::backtrace_id_t bt,
             ql::env_t *env,
             scoped_ptr_t<ql::val_t> *selection_out,
             std::string *error_out) = 0;
@@ -224,14 +224,14 @@ public:
     virtual bool table_config(
             counted_t<const ql::db_t> db,
             const name_string_t &name,
-            const ql::protob_t<const Backtrace> &bt,
+            ql::backtrace_id_t bt,
             ql::env_t *env,
             scoped_ptr_t<ql::val_t> *selection_out,
             std::string *error_out) = 0;
     virtual bool table_status(
             counted_t<const ql::db_t> db,
             const name_string_t &name,
-            const ql::protob_t<const Backtrace> &bt,
+            ql::backtrace_id_t bt,
             ql::env_t *env,
             scoped_ptr_t<ql::val_t> *selection_out,
             std::string *error_out) = 0;

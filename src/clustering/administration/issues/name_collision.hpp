@@ -8,7 +8,6 @@
 
 #include "clustering/administration/issues/issue.hpp"
 #include "clustering/administration/metadata.hpp"
-#include "http/json.hpp"
 #include "rpc/semilattice/view.hpp"
 
 // Base issue for all name collisions (server, database, and table)

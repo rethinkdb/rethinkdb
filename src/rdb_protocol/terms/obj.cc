@@ -71,11 +71,13 @@ private:
     virtual const char *name() const { return "object"; }
 };
 
-counted_t<term_t> make_keys_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_keys_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<keys_term_t>(env, term);
 }
 
-counted_t<term_t> make_object_term(compile_env_t *env, const protob_t<const Term> &term){
+counted_t<term_t> make_object_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<object_term_t>(env, term);
 }
 

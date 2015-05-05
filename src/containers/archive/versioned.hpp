@@ -12,7 +12,6 @@ namespace archive_internal {
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(cluster_version_t, int8_t,
                                       cluster_version_t::v1_13,
                                       cluster_version_t::raft_is_latest);
-
 class bogus_made_up_type_t;
 
 }  // namespace archive_internal
@@ -70,6 +69,8 @@ archive_result_t deserialize_for_version(cluster_version_t version,
         return deserialize<cluster_version_t::v1_16>(s, thing);
     case cluster_version_t::v2_0:
         return deserialize<cluster_version_t::v2_0>(s, thing);
+    case cluster_version_t::v2_1:
+        return deserialize<cluster_version_t::v2_1>(s, thing);
     case cluster_version_t::raft_is_latest:
         return deserialize<cluster_version_t::raft_is_latest>(s, thing);
     default:
@@ -99,6 +100,8 @@ size_t serialized_size_for_version(cluster_version_t version,
         return serialized_size<cluster_version_t::v1_16>(thing);
     case cluster_version_t::v2_0:
         return serialized_size<cluster_version_t::v2_0>(thing);
+    case cluster_version_t::v2_1:
+        return serialized_size<cluster_version_t::v2_1>(thing);
     case cluster_version_t::raft_is_latest:
         return serialized_size<cluster_version_t::raft_is_latest>(thing);
     default:
@@ -152,6 +155,8 @@ size_t serialized_size_for_version(cluster_version_t version,
             read_stream_t *, typ *);                                             \
     template archive_result_t deserialize<cluster_version_t::v2_0>(              \
             read_stream_t *, typ *);                                             \
+    template archive_result_t deserialize<cluster_version_t::v2_1>(              \
+            read_stream_t *, typ *);                                             \
     template archive_result_t deserialize<cluster_version_t::raft_is_latest>(    \
             read_stream_t *, typ *)
 
@@ -164,6 +169,8 @@ size_t serialized_size_for_version(cluster_version_t version,
             read_stream_t *, typ *);                                             \
     template archive_result_t deserialize<cluster_version_t::v2_0>(              \
             read_stream_t *, typ *);                                             \
+    template archive_result_t deserialize<cluster_version_t::v2_1>(              \
+            read_stream_t *, typ *)                                              \
     template archive_result_t deserialize<cluster_version_t::raft_is_latest>(    \
             read_stream_t *, typ *)
 

@@ -50,7 +50,7 @@ private:
             }
         } catch (const datum_exc_t &e) {
             if (e.get_type() == base_exc_t::NON_EXISTENCE) {
-                err.init(new exc_t(e.get_type(), e.what(), backtrace().get()));
+                err.init(new exc_t(e.get_type(), e.what(), backtrace()));
                 func_arg = datum_t(e.what());
             } else {
                 throw;
@@ -83,10 +83,12 @@ private:
     virtual bool can_be_grouped() const { return false; }
 };
 
-counted_t<term_t> make_error_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_error_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<error_term_t>(env, term);
 }
-counted_t<term_t> make_default_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_default_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<default_term_t>(env, term);
 }
 

@@ -10,7 +10,7 @@ namespace ql {
 class var_term_t : public term_t {
 public:
     var_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : term_t(term) {
+            : term_t(term) {
         rcheck(term->args_size() == 1, base_exc_t::GENERIC,
                "A variable term has the wrong number of arguments.");
 
@@ -80,10 +80,12 @@ private:
     virtual const char *name() const { return "implicit_var"; }
 };
 
-counted_t<term_t> make_var_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_var_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<var_term_t>(env, term);
 }
-counted_t<term_t> make_implicit_var_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_implicit_var_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<implicit_var_term_t>(env, term);
 }
 

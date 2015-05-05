@@ -233,7 +233,7 @@ private:
         guarantee(false); // Don't use this as an eager accumulator.
     }
     virtual scoped_ptr_t<val_t> finish_eager(
-        protob_t<const Backtrace>, bool, const ql::configured_limits_t &) {
+        backtrace_id_t, bool, const ql::configured_limits_t &) {
         guarantee(false); // Don't use this as an eager accumulator.
         unreachable();
     }
@@ -371,9 +371,9 @@ private:
         }
     }
 
-    virtual scoped_ptr_t<val_t> finish_eager(protob_t<const Backtrace> bt,
-                                          bool is_grouped,
-                                          const configured_limits_t &limits) {
+    virtual scoped_ptr_t<val_t> finish_eager(backtrace_id_t bt,
+                                             bool is_grouped,
+                                             const configured_limits_t &limits) {
         if (is_grouped) {
             counted_t<grouped_data_t> ret(new grouped_data_t());
             for (auto kv = groups.begin(); kv != groups.end(); ++kv) {
@@ -421,9 +421,9 @@ private:
         groups->clear();
     }
 
-    virtual scoped_ptr_t<val_t> finish_eager(protob_t<const Backtrace> bt,
-                                          bool is_grouped,
-                                          UNUSED const configured_limits_t &limits) {
+    virtual scoped_ptr_t<val_t> finish_eager(backtrace_id_t bt,
+                                             bool is_grouped,
+                                             UNUSED const configured_limits_t &limits) {
         accumulator_t::mark_finished();
         grouped_t<T> *acc = grouped_acc_t<T>::get_acc();
         const T *default_val = grouped_acc_t<T>::get_default_val();
@@ -531,7 +531,7 @@ protected:
     skip_terminal_t(const skip_wire_func_t &wf, T &&t)
         : terminal_t<T>(std::move(t)),
           f(wf.compile_wire_func_or_null()),
-          bt(wf.bt.get_bt()) { }
+          bt(wf.bt) { }
     virtual bool accumulate(env_t *env,
                             const datum_t &el,
                             T *out) {
@@ -540,7 +540,7 @@ protected:
             return true;
         } catch (const datum_exc_t &e) {
             if (e.get_type() != base_exc_t::NON_EXISTENCE) {
-                throw exc_t(e, bt.get());
+                throw exc_t(e, bt);
             }
         } catch (const exc_t &e2) {
             if (e2.get_type() != base_exc_t::NON_EXISTENCE) {
@@ -556,7 +556,7 @@ private:
                            const acc_func_t &f) = 0;
 
     acc_func_t f;
-    protob_t<const Backtrace> bt;
+    backtrace_id_t bt;
 };
 
 class sum_terminal_t : public skip_terminal_t<double> {
@@ -698,7 +698,7 @@ private:
             *out = out->has() ? f->call(env, *out, el)->as_datum() : el;
             return true;
         } catch (const datum_exc_t &e) {
-            throw exc_t(e, f->backtrace().get(), 1);
+            throw exc_t(e, f->backtrace(), 1);
         }
     }
     virtual datum_t unpack(datum_t *el) {
@@ -801,7 +801,7 @@ private:
                         }
                     }
                 } catch (const datum_exc_t &e) {
-                    throw exc_t(e, (*f)->backtrace().get(), 1);
+                    throw exc_t(e, (*f)->backtrace(), 1);
                 }
             }
             if (append_index) {
@@ -830,7 +830,7 @@ private:
                 r_sanity_check(instance.size() == 0);
             }
 
-            rcheck_src(bt.get(),
+            rcheck_src(bt,
                        groups->size() <= env->limits().array_size_limit(),
                        base_exc_t::GENERIC,
                        strprintf("Too many groups (> %zu).",
@@ -879,7 +879,7 @@ private:
 
     std::vector<counted_t<const func_t> > funcs;
     bool append_index, multi;
-    protob_t<const Backtrace> bt;
+    backtrace_id_t bt;
 };
 
 class map_trans_t : public ungrouped_op_t {
@@ -894,7 +894,7 @@ private:
                 *it = f->call(env, *it)->as_datum();
             }
         } catch (const datum_exc_t &e) {
-            throw exc_t(e, f->backtrace().get(), 1);
+            throw exc_t(e, f->backtrace(), 1);
         }
     }
     counted_t<const func_t> f;
@@ -951,7 +951,7 @@ private:
                 }
             }
         } catch (const datum_exc_t &e) {
-            throw exc_t(e, f->backtrace().get(), 1);
+            throw exc_t(e, f->backtrace(), 1);
         }
         lst->erase(loc, lst->end());
     }
@@ -980,7 +980,7 @@ private:
                 }
             }
         } catch (const datum_exc_t &e) {
-            throw exc_t(e, f->backtrace().get(), 1);
+            throw exc_t(e, f->backtrace(), 1);
         }
         lst->swap(new_lst);
     }

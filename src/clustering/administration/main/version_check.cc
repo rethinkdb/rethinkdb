@@ -15,7 +15,7 @@ void dispatch_http(ql::env_t *env,
                    const http_opts_t &opts,
                    http_runner_t *runner,
                    http_result_t *res_out,
-                   const ql::pb_rcheckable_t *parent);
+                   const ql::bt_rcheckable_t *parent);
 };
 
 static const int64_t day_in_ms = 24 * 60 * 60 * 1000;

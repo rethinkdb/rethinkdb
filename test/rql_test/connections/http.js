@@ -11,7 +11,6 @@ process.on('uncaughtException', function(err) {
 
 var assert = require('assert');
 var path = require('path');
-var spawn = require('child_process').spawn
 
 // -- load rethinkdb from the proper location
 
@@ -315,7 +314,7 @@ describe('Javascript HTTP test - ', function() {
         var url = 'http://' + httpbinAddress + '/html'
         it('failed json parse', withConnection(function(done, conn) {
             r.http(url, {resultFormat:'json'}).run(conn, function(err, res) {
-                expect_error(res, err, 'RqlRuntimeError', err_string('GET', url, 'failed to parse JSON response'));
+                expect_error(res, err, 'RqlRuntimeError', err_string('GET', url, 'failed to parse JSON response: Invalid value.'));
                 done();
             });
         }));

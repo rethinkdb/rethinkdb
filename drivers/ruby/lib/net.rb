@@ -4,6 +4,7 @@ require 'socket'
 require 'thread'
 require 'timeout'
 require 'pp' # This is needed for pretty_inspect
+require 'openssl'
 
 module RethinkDB
   module Faux_Abort
@@ -152,14 +153,14 @@ module RethinkDB
     end
     def handle_open
       if !@opened
-        handle(:on_open)
         @opened = true
+        handle(:on_open)
       end
     end
     def handle_close
       if !@closed
-        handle(:on_close)
         @closed = true
+        handle(:on_close)
       end
     end
     def safe_next_tick(&b)
@@ -434,6 +435,7 @@ module RethinkDB
   end
 
   class Connection
+    include OpenSSL
     def auto_reconnect(x=true)
       @auto_reconnect = x
       self
@@ -450,11 +452,12 @@ module RethinkDB
       opts = Hash[opts.map{|(k,v)| [k.to_sym,v]}] if opts.is_a?(Hash)
       opts = {:host => opts} if opts.is_a?(String)
       @host = opts[:host] || "localhost"
-      @port = opts[:port].to_i || 28015
+      @port = (opts[:port] || 28015).to_i
       @default_db = opts[:db]
       @auth_key = opts[:auth_key] || ""
       @timeout = opts[:timeout].to_i
       @timeout = 20 if @timeout <= 0
+      @ssl_opts = opts[:ssl] || {}
 
       @@last = self
       @default_opts = @default_db ? {:db => RQL.new.db(@default_db)} : {}
@@ -636,8 +639,7 @@ module RethinkDB
 
     def connect()
       raise RuntimeError, "Connection must be closed before calling connect." if @socket
-      @socket = TCPSocket.open(@host, @port)
-      @socket.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1)
+      init_socket
       @mon = Monitor.new
       @waiters = {}
       @opts = {}
@@ -645,6 +647,45 @@ module RethinkDB
       @conn_id += 1
       start_listener
       self
+    end
+
+    def init_socket
+      unless @ssl_opts.empty?
+        @tcp_socket = base_socket
+        context = create_context(@ssl_opts)
+        @socket = OpenSSL::SSL::SSLSocket.new(@tcp_socket, context)
+        @socket.sync_close = true
+        @socket.connect
+        verify_cert!(@socket, context)
+      else
+        @socket = base_socket
+      end
+    end
+
+    def base_socket
+      socket = TCPSocket.open(@host, @port)
+      socket.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1)
+      socket
+    end
+
+    def create_context(options)
+      context = OpenSSL::SSL::SSLContext.new
+      context.ssl_version = :TLSv1_2
+      if options[:ca_certs]
+        context.ca_file = options[:ca_certs]
+        context.verify_mode = OpenSSL::SSL::VERIFY_PEER
+      else
+        raise 'ssl options provided but missing required "ca_certs" option'
+      end
+      context
+    end
+
+    def verify_cert!(socket, context)
+      if context.verify_mode == OpenSSL::SSL::VERIFY_PEER
+        unless OpenSSL::SSL.verify_certificate_identity(socket.peer_cert, host)
+          raise 'SSL handshake failed due to a hostname mismatch.'
+        end
+      end
     end
 
     def is_open

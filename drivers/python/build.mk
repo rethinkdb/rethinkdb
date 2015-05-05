@@ -10,13 +10,14 @@ PY_PROTO_BUILD_FILE := $(PY_BUILD_DIR)/rethinkdb/$(PY_PROTO_FILE_NAME)
 # convenience file for driver development
 PY_PROTO_DEV_FILE := $(PY_SRC_DIR)/rethinkdb/$(PY_PROTO_FILE_NAME)
 
-PY_SRC_FILES := $(filter-out $(PY_SRC_DIR)/rethinkdb/$(PY_PROTO_FILE_NAME),$(wildcard $(PY_SRC_DIR)/rethinkdb/*.py))
+PY_SRC_FILES := $(filter-out $(PY_SRC_DIR)/rethinkdb/$(PY_PROTO_FILE_NAME),$(shell find $(PY_SRC_DIR)/rethinkdb/ -type f ! -iname '*.pyc'))
 PY_BUILD_FILES := $(patsubst $(PY_SRC_DIR)/rethinkdb/%,$(PY_BUILD_DIR)/rethinkdb/%,$(PY_SRC_FILES)) $(PY_PROTO_BUILD_FILE)
 
 .PHONY: py-driver
 py-driver: $(PY_BUILD_FILES) $(PY_PROTO_DEV_FILE) | $(PY_BUILD_DIR)/.
 
-$(PY_BUILD_DIR)/rethinkdb/%.py: $(PY_SRC_DIR)/rethinkdb/%.py py_build_files
+$(PY_BUILD_DIR)/rethinkdb/%: $(PY_SRC_DIR)/rethinkdb/% py_build_files
+	mkdir -p $(@D)
 	cp $< $@
 
 .INTERMEDIATE: py_build_files
