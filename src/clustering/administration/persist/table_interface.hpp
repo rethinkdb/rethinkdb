@@ -2,7 +2,7 @@
 #ifndef CLUSTERING_ADMINISTRATION_PERSIST_TABLE_INTERFACE_HPP_
 #define CLUSTERING_ADMINISTRATION_PERSIST_TABLE_INTERFACE_HPP_
 
-#include "clustering/table_manager/multi_table_manager.hpp"
+#include "clustering/table_manager/table_metadata.hpp"
 
 class cache_balancer_t;
 class metadata_file_t;
@@ -27,32 +27,35 @@ public:
         thread_counter(0)
         { }
 
-    void read_all_tables(
+    void read_all_metadata(
         const std::function<void(
             const namespace_id_t &table_id,
-            const table_persistent_state_t &state,
-            scoped_ptr_t<multistore_ptr_t> &&multistore_ptr)> &callback,
+            const table_persistent_state_t &state)> &callback,
         signal_t *interruptor);
-    void add_table(
-        const namespace_id_t &table,
+    void write_metadata(
+        const namespace_id_t &table_id,
         const table_persistent_state_t &state,
+        signal_t *interruptor);
+    void delete_metadata(
+        const namespace_id_t &table_id,
+        signal_t *interruptor);
+
+    void load_multistore(
+        const namespace_id_t &table_id,
         scoped_ptr_t<multistore_ptr_t> *multistore_ptr_out,
         signal_t *interruptor);
-    void update_table(
-        const namespace_id_t &table,
-        const table_persistent_state_t &state,
+    void create_multistore(
+        const namespace_id_t &table_id,
+        scoped_ptr_t<multistore_ptr_t> *multistore_ptr_out,
         signal_t *interruptor);
-    void remove_table(
-        const namespace_id_t &table,
+    void destroy_multistore(
+        const namespace_id_t &table_id,
+        scoped_ptr_t<multistore_ptr_t> *multistore_ptr_in,
         signal_t *interruptor);
 
 private:
     serializer_filepath_t file_name_for(const namespace_id_t &table_id);
     threadnum_t pick_thread();
-    void make_multistore(
-        const namespace_id_t &table_id,
-        signal_t *interruptor,
-        scoped_ptr_t<multistore_ptr_t> *multistore_ptr_out);
 
     io_backender_t * const io_backender;
     cache_balancer_t * const cache_balancer;

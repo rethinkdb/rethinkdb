@@ -5,6 +5,7 @@
 #include <map>
 #include <string>
 
+#include "clustering/administration/admin_op_exc.hpp"
 #include "clustering/administration/tables/table_metadata.hpp"
 #include "rdb_protocol/context.hpp"
 
@@ -14,7 +15,7 @@ class table_meta_client_t;
 
 /* Suggests a `table_config_t` for the table. This is the brains behind
 `table.reconfigure()`. */
-bool table_generate_config(
+void table_generate_config(
         /* This is used to get the list of servers with each tag, and to look up the
         names for error messages. */
         server_config_client_t *server_config_client,
@@ -32,8 +33,9 @@ bool table_generate_config(
         `nil_uuid()` this is unused. */
         const table_shard_scheme_t &shard_scheme,
         signal_t *interruptor,
-        std::vector<table_config_t::shard_t> *config_shards_out,
-        std::string *error_out);
+        std::vector<table_config_t::shard_t> *config_shards_out)
+        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,
+            admin_op_exc_t);
 
 #endif /* CLUSTERING_ADMINISTRATION_TABLES_GENERATE_CONFIG_HPP_ */
 

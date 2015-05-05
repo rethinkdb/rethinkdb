@@ -29,23 +29,35 @@ bool common_table_artificial_table_backend_t::read_all_rows_as_vector(
     cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
     cluster_semilattice_metadata_t metadata = semilattice_view->get();
-    std::map<namespace_id_t, table_config_and_shards_t> configs;
-    table_meta_client->list_configs(&interruptor, &configs);
-    rows_out->clear();
-    for (const auto &pair : configs) {
-        ql::datum_t db_name_or_uuid;
-        if (!convert_database_id_to_datum(pair.second.config.database, identifier_format,
-                metadata, &db_name_or_uuid, nullptr)) {
-            db_name_or_uuid = ql::datum_t("__deleted_database__");
+    std::map<namespace_id_t, table_basic_config_t> configs;
+    try {
+        table_meta_client->list_names(&configs);
+        rows_out->clear();
+        for (const auto &pair : configs) {
+            ql::datum_t db_name_or_uuid;
+            if (!convert_database_id_to_datum(
+                    pair.second.database, identifier_format, metadata,
+                    &db_name_or_uuid, nullptr)) {
+                db_name_or_uuid = ql::datum_t("__deleted_database__");
+            }
+            try {
+                ql::datum_t row;
+                format_row(pair.first, pair.second, db_name_or_uuid, &interruptor, &row);
+                rows_out->push_back(row);
+            } catch (const no_such_table_exc_t &) {
+                /* The table got deleted between the call to `list_configs()` and the
+                call to `format_row()`. Ignore it. */
+            }
         }
-        ql::datum_t row;
-        if (!format_row(pair.first, db_name_or_uuid, pair.second,
-                &interruptor, &row, error_out)) {
-            return false;
-        }
-        rows_out->push_back(row);
+        return true;
+    } catch (const failed_table_op_exc_t &) {
+        *error_out = "Failed to retrieve current configurations for one or more tables "
+            "because the server(s) hosting the table(s) are all unreachable.";
+        return false;
+    } catch (const admin_op_exc_t &msg) {
+        *error_out = msg.what();
+        return false;
     }
-    return true;
 }
 
 bool common_table_artificial_table_backend_t::read_row(
@@ -64,18 +76,33 @@ bool common_table_artificial_table_backend_t::read_row(
         *row_out = ql::datum_t();
         return true;
     }
-    table_config_and_shards_t config;
-    if (!table_meta_client->get_config(table_id, &interruptor, &config)) {
+    try {
+        table_basic_config_t basic_config;
+        table_meta_client->get_name(table_id, &basic_config);
+
+        ql::datum_t db_name_or_uuid;
+        name_string_t db_name;
+        if (!convert_database_id_to_datum(basic_config.database, identifier_format,
+                metadata, &db_name_or_uuid, &db_name)) {
+            db_name_or_uuid = ql::datum_t("__deleted_database__");
+            db_name = name_string_t::guarantee_valid("__deleted_database__");
+        }
+
+        try {
+            format_row(table_id, basic_config, db_name_or_uuid, &interruptor, row_out);
+            return true;
+        } catch (const failed_table_op_exc_t &) {
+            *error_out = strprintf("The server(s) hosting table `%s.%s` are currently "
+                "unreachable.", db_name.c_str(), basic_config.name.c_str());
+            return false;
+        } catch (const admin_op_exc_t &msg) {
+            *error_out = msg.what();
+            return false;
+        }
+    } catch (const no_such_table_exc_t &) {
         *row_out = ql::datum_t();
         return true;
     }
-    ql::datum_t db_name_or_uuid;
-    if (!convert_database_id_to_datum(config.config.database, identifier_format,
-            metadata, &db_name_or_uuid, nullptr)) {
-        db_name_or_uuid = ql::datum_t("__deleted_database__");
-    }
-    return format_row(table_id, db_name_or_uuid, config,
-        &interruptor, row_out, error_out);
 }
 
 

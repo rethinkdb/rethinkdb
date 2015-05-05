@@ -2,78 +2,85 @@
 #include "clustering/table_manager/table_meta_client.hpp"
 
 #include "clustering/generic/raft_core.tcc"
+#include "clustering/table_manager/multi_table_manager.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 
 table_meta_client_t::table_meta_client_t(
         mailbox_manager_t *_mailbox_manager,
+        multi_table_manager_t *_multi_table_manager,
         watchable_map_t<peer_id_t, multi_table_manager_bcard_t>
             *_multi_table_manager_directory,
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
             *_table_manager_directory) :
     mailbox_manager(_mailbox_manager),
+    multi_table_manager(_multi_table_manager),
     multi_table_manager_directory(_multi_table_manager_directory),
     table_manager_directory(_table_manager_directory),
-    table_metadata_by_id(&table_metadata_by_id_var),
-    table_manager_directory_subs(table_manager_directory,
-        std::bind(&table_meta_client_t::on_directory_change, this, ph::_1, ph::_2),
-        true)
+    table_basic_configs(multi_table_manager->get_table_basic_configs())
     { }
 
-table_meta_client_t::find_res_t table_meta_client_t::find(
+void table_meta_client_t::find(
         const database_id_t &database,
         const name_string_t &name,
         namespace_id_t *table_id_out,
-        std::string *primary_key_out) {
+        std::string *primary_key_out)
+        THROWS_ONLY(no_such_table_exc_t, ambiguous_table_exc_t) {
     size_t count = 0;
-    table_metadata_by_id.get_watchable()->read_all(
-        [&](const namespace_id_t &key, const table_metadata_t *value) {
-            if (value->database == database && value->name == name) {
+    table_basic_configs.get_watchable()->read_all(
+        [&](const namespace_id_t &key, const timestamped_basic_config_t *value) {
+            if (value->first.database == database && value->first.name == name) {
                 ++count;
                 *table_id_out = key;
                 if (primary_key_out != nullptr) {
-                    *primary_key_out = value->primary_key;
+                    *primary_key_out = value->first.primary_key;
                 }
             }
         });
     if (count == 0) {
-        return find_res_t::none;
-    } else if (count == 1) {
-        return find_res_t::ok;
-    } else {
-        return find_res_t::multiple;
+        throw no_such_table_exc_t();
+    } else if (count >= 2) {
+        throw ambiguous_table_exc_t();
     }
 }
 
-bool table_meta_client_t::get_name(
-        const namespace_id_t &table_id,
-        database_id_t *db_out,
-        name_string_t *name_out) {
-    bool ok;
-    table_metadata_by_id.get_watchable()->read_key(table_id,
-        [&](const table_metadata_t *metadata) {
-            if (metadata == nullptr) {
-                ok = false;
-            } else {
-                ok = true;
-                *db_out = metadata->database;
-                *name_out = metadata->name;
+bool table_meta_client_t::exists(
+        const database_id_t &database, const name_string_t &name) {
+    bool found = false;
+    table_basic_configs.get_watchable()->read_all(
+        [&](const namespace_id_t &, const timestamped_basic_config_t *value) {
+            if (value->first.database == database && value->first.name == name) {
+                found = true;
             }
         });
-    return ok;
+    return found;
+}
+
+void table_meta_client_t::get_name(
+        const namespace_id_t &table_id,
+        table_basic_config_t *basic_config_out)
+        THROWS_ONLY(no_such_table_exc_t) {
+    table_basic_configs.get_watchable()->read_key(table_id,
+        [&](const timestamped_basic_config_t *value) {
+            if (value == nullptr) {
+                throw no_such_table_exc_t();
+            }
+            *basic_config_out = value->first;
+        });
 }
 
 void table_meta_client_t::list_names(
-        std::map<namespace_id_t, std::pair<database_id_t, name_string_t> > *names_out) {
-    table_metadata_by_id.get_watchable()->read_all(
-        [&](const namespace_id_t &table_id, const table_metadata_t *metadata) {
-            (*names_out)[table_id] = std::make_pair(metadata->database, metadata->name);
+        std::map<namespace_id_t, table_basic_config_t> *names_out) {
+    table_basic_configs.get_watchable()->read_all(
+        [&](const namespace_id_t &table_id, const timestamped_basic_config_t *value) {
+            (*names_out)[table_id] = value->first;
         });
 }
 
-bool table_meta_client_t::get_config(
+void table_meta_client_t::get_config(
         const namespace_id_t &table_id,
         signal_t *interruptor_on_caller,
-        table_config_and_shards_t *config_out) {
+        table_config_and_shards_t *config_out)
+        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t) {
     cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
 
@@ -97,7 +104,7 @@ bool table_meta_client_t::get_config(
         }
     });
     if (best_mailbox.is_nil()) {
-        return false;
+        throw_appropriate_exception(table_id);
     }
 
     /* Send a request to the server we found */
@@ -115,16 +122,16 @@ bool table_meta_client_t::get_config(
     wait_interruptible(&done_cond, &interruptor);
     std::map<namespace_id_t, table_config_and_shards_t> maybe_result = promise.wait();
     if (maybe_result.empty()) {
-        return false;
+        throw_appropriate_exception(table_id);
     }
     guarantee(maybe_result.size() == 1);
     *config_out = maybe_result.at(table_id);
-    return true;
 }
 
 void table_meta_client_t::list_configs(
         signal_t *interruptor_on_caller,
-        std::map<namespace_id_t, table_config_and_shards_t> *configs_out) {
+        std::map<namespace_id_t, table_config_and_shards_t> *configs_out)
+        THROWS_ONLY(interrupted_exc_t, failed_table_op_exc_t) {
     cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
     configs_out->clear();
@@ -164,14 +171,23 @@ void table_meta_client_t::list_configs(
     if (interruptor.is_pulsed()) {
         throw interrupted_exc_t();
     }
+
+    /* Make sure we contacted at least one server for every table */
+    multi_table_manager->get_table_basic_configs()->read_all(
+        [&](const namespace_id_t &table_id, const timestamped_basic_config_t *) {
+            if (configs_out->count(table_id) == 0) {
+                throw failed_table_op_exc_t();
+            }
+        });
 }
 
-bool table_meta_client_t::get_status(
+void table_meta_client_t::get_status(
         const namespace_id_t &table_id,
         signal_t *interruptor_on_caller,
         std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
             *sindex_statuses_out,
-        std::map<peer_id_t, contracts_and_contract_acks_t> *contracts_and_acks_out) {
+        std::map<peer_id_t, contracts_and_contract_acks_t> *contracts_and_acks_out)
+        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t) {
     typedef std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
         index_statuses_t;
     typedef std::map<peer_id_t, contracts_and_contract_acks_t> contracts_and_acks_t;
@@ -185,9 +201,7 @@ bool table_meta_client_t::get_status(
     if (sindex_statuses_out != nullptr) {
         sindex_statuses_out->clear();
         table_config_and_shards_t config;
-        if (!get_config(table_id, &interruptor, &config)) {
-            return false;
-        }
+        get_config(table_id, &interruptor, &config);
         for (const auto &pair : config.config.sindexes) {
             (*sindex_statuses_out)[pair.first] =
                 std::make_pair(pair.second, sindex_status_t());
@@ -273,20 +287,24 @@ bool table_meta_client_t::get_status(
         throw interrupted_exc_t();
     }
 
-    return at_least_one_reply;
+    if (!at_least_one_reply) {
+        throw_appropriate_exception(table_id);
+    }
 }
 
-bool table_meta_client_t::create(
+void table_meta_client_t::create(
         namespace_id_t table_id,
         const table_config_and_shards_t &initial_config,
-        signal_t *interruptor_on_caller) {
+        signal_t *interruptor_on_caller)
+        THROWS_ONLY(interrupted_exc_t, failed_table_op_exc_t,
+            maybe_failed_table_op_exc_t) {
     cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
 
     /* Sanity-check that `table_id` is unique */
-    table_metadata_by_id_var.read_key(table_id,
-        [&](const table_metadata_t *metadata) {
-            guarantee(metadata == nullptr);
+    multi_table_manager->get_table_basic_configs()->read_key(table_id,
+        [&](const timestamped_basic_config_t *value) {
+            guarantee(value == nullptr);
         });
 
     /* Prepare the message that we'll be sending to each server */
@@ -319,6 +337,10 @@ bool table_meta_client_t::create(
             }
         });
 
+    if (bcards.empty()) {
+        throw failed_table_op_exc_t();
+    }
+
     size_t num_acked = 0;
     pmap(bcards.begin(), bcards.end(),
     [&](const std::pair<server_id_t, multi_table_manager_bcard_t> &pair) {
@@ -332,7 +354,8 @@ bool table_meta_client_t::create(
             send(mailbox_manager, pair.second.action_mailbox,
                 table_id,
                 timestamp,
-                false,
+                multi_table_manager_bcard_t::status_t::ACTIVE,
+                boost::optional<table_basic_config_t>(),
                 boost::optional<raft_member_id_t>(raft_state.member_ids.at(pair.first)),
                 boost::optional<raft_persistent_state_t<table_raft_state_t> >(raft_ps),
                 ack_mailbox.get_address());
@@ -349,33 +372,21 @@ bool table_meta_client_t::create(
     }
 
     if (num_acked == 0) {
-        return false;
+        throw maybe_failed_table_op_exc_t();
     }
 
-    /* Wait until the table appears in the directory. It may never appear in the
-    directory if it's deleted or we lose contact immediately after the table is
-    created; this is why we have a timeout. */
-    signal_timer_t timeout;
-    timeout.start(10*1000);
-    wait_any_t interruptor_combined(&interruptor, &timeout);
-    try {
-        table_metadata_by_id_var.run_key_until_satisfied(table_id,
-            [](const table_metadata_t *m) { return m != nullptr; },
-            &interruptor_combined);
-    } catch (const interrupted_exc_t &) {
-        if (interruptor.is_pulsed()) {
-            throw;
-        } else {
-            return false;
-        }
-    }
-    table_metadata_by_id.flush();
-    return true;
+    /* Wait until the table appears in the directory. */
+    wait_until_change_visible(
+        table_id,
+        [](const timestamped_basic_config_t *value) { return value != nullptr; },
+        &interruptor);
 }
 
-bool table_meta_client_t::drop(
+void table_meta_client_t::drop(
         const namespace_id_t &table_id,
-        signal_t *interruptor_on_caller) {
+        signal_t *interruptor_on_caller)
+        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,
+            maybe_failed_table_op_exc_t) {
     cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
 
@@ -400,6 +411,10 @@ bool table_meta_client_t::drop(
         }
     });
 
+    if (bcards.empty()) {
+        throw_appropriate_exception(table_id);
+    }
+
     /* Send a message to each server. It's possible that the table will move to other
     servers while the messages are in-flight; but this is OK, since the servers will pass
     the deletion message on. */
@@ -413,7 +428,11 @@ bool table_meta_client_t::drop(
             mailbox_t<void()> ack_mailbox(mailbox_manager,
                 [&](signal_t *) { got_ack.pulse(); });
             send(mailbox_manager, pair.second.action_mailbox,
-                table_id, drop_timestamp, true, boost::optional<raft_member_id_t>(),
+                table_id,
+                multi_table_manager_bcard_t::timestamp_t::deletion(),
+                multi_table_manager_bcard_t::status_t::DELETED,
+                boost::optional<table_basic_config_t>(),
+                boost::optional<raft_member_id_t>(),
                 boost::optional<raft_persistent_state_t<table_raft_state_t> >(),
                 ack_mailbox.get_address());
             wait_any_t interruptor_combined(&dw, &interruptor);
@@ -428,32 +447,24 @@ bool table_meta_client_t::drop(
     }
 
     if (num_acked == 0) {
-        return false;
+        throw maybe_failed_table_op_exc_t();
     }
 
     /* Wait until the table disappears from the directory. */
-    signal_timer_t timeout;
-    timeout.start(10*1000);
-    wait_any_t interruptor_combined(&interruptor, &timeout);
-    try {
-        table_metadata_by_id_var.run_key_until_satisfied(table_id,
-            [](const table_metadata_t *m) { return m == nullptr; },
-            &interruptor_combined);
-    } catch (const interrupted_exc_t &) {
-        if (interruptor.is_pulsed()) {
-            throw;
-        } else {
-            return false;
-        }
-    }
-    table_metadata_by_id.flush();
-    return true;
+    debugf("before wait_until_change_visible()\n");
+    wait_until_change_visible(
+        table_id,
+        [](const timestamped_basic_config_t *value) { return value == nullptr; },
+        &interruptor);
+    debugf("after wait_until_change_visible()\n");
 }
 
-bool table_meta_client_t::set_config(
+void table_meta_client_t::set_config(
         const namespace_id_t &table_id,
         const table_config_and_shards_t &new_config,
-        signal_t *interruptor_on_caller) {
+        signal_t *interruptor_on_caller)
+        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,
+            maybe_failed_table_op_exc_t) {
     cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
 
@@ -473,7 +484,7 @@ bool table_meta_client_t::set_config(
         }
     });
     if (best_mailbox.is_nil()) {
-        return false;
+        throw_appropriate_exception(table_id);
     }
 
     /* There are two reasons why our message might get lost. The first is that the other
@@ -483,8 +494,8 @@ bool table_meta_client_t::set_config(
     other server is no longer leader or if its leader UUID changes. */
     disconnect_watcher_t leader_disconnected(mailbox_manager, best_mailbox.get_peer());
     cond_t leader_stopped;
-    watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>::key_subs_t
-        leader_stopped_subs(
+    watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
+        ::key_subs_t leader_stopped_subs(
             table_manager_directory,
             std::make_pair(best_mailbox.get_peer(), table_id),
             [&](const table_manager_bcard_t *bcard) {
@@ -506,13 +517,13 @@ bool table_meta_client_t::set_config(
         &leader_disconnected, &leader_stopped);
     wait_interruptible(&done_cond, &interruptor);
     if (!promise.get_ready_signal()->is_pulsed()) {
-        return false;
+        throw maybe_failed_table_op_exc_t();
     }
 
     /* Sometimes the server will reply by indicating that something went wrong */
     boost::optional<multi_table_manager_bcard_t::timestamp_t> timestamp = promise.wait();
     if (!static_cast<bool>(timestamp)) {
-        return false;
+        throw maybe_failed_table_op_exc_t();
     }
 
     /* We know for sure that the change has been applied; now we just need to wait until
@@ -520,59 +531,54 @@ bool table_meta_client_t::set_config(
     until the table's name and database match whatever we just changed the config to. But
     this could go wrong if the table's name and database are changed again in quick
     succession. We detect that other case by using the timestamps. */
-    signal_timer_t timeout;
-    timeout.start(10*1000);
-    wait_any_t interruptor_combined(&interruptor, &timeout);
-    try {
-        table_metadata_by_id_var.run_key_until_satisfied(table_id,
-            [&](const table_metadata_t *m) {
-                return m == nullptr || m->timestamp.supersedes(*timestamp) ||
-                    (m->name == new_config.config.name &&
-                        m->database == new_config.config.database);
-            },
-            &interruptor_combined);
-    } catch (const interrupted_exc_t &) {
-        if (interruptor.is_pulsed()) {
-            throw;
-        } else {
-            /* We know the change was applied, but it isn't visible in the directory, so
-            we return `false` anyway. */
-            return false;
-        }
-    }
-
-    table_metadata_by_id.flush();
-    return true;
+    wait_until_change_visible(
+        table_id,
+        [&](const timestamped_basic_config_t *value) {
+            return value == nullptr || value->second.supersedes(*timestamp) ||
+                (value->first.name == new_config.config.basic.name &&
+                    value->first.database == new_config.config.basic.database);
+        },
+        &interruptor);
 }
 
-void table_meta_client_t::on_directory_change(
-        const std::pair<peer_id_t, namespace_id_t> &key,
-        const table_manager_bcard_t *dir_value) {
-    table_metadata_by_id_var.change_key(key.second,
-    [&](bool *md_exists, table_metadata_t *md_value) -> bool {
-        if (dir_value != nullptr && !*md_exists) {
-            *md_exists = true;
-            md_value->witnesses = std::set<peer_id_t>({key.first});
-            md_value->database = dir_value->database;
-            md_value->name = dir_value->name;
-            md_value->primary_key = dir_value->primary_key;
-            md_value->timestamp = dir_value->timestamp;
-        } else if (dir_value != nullptr && *md_exists) {
-            md_value->witnesses.insert(key.first);
-            if (dir_value->timestamp.supersedes(md_value->timestamp)) {
-                md_value->database = dir_value->database;
-                md_value->name = dir_value->name;
-                md_value->timestamp = dir_value->timestamp;
+[[noreturn]] void table_meta_client_t::throw_appropriate_exception(
+        const namespace_id_t &table_id)
+        THROWS_ONLY(no_such_table_exc_t, failed_table_op_exc_t) {
+    multi_table_manager->get_table_basic_configs()->read_key(
+        table_id,
+        [&](const timestamped_basic_config_t *value) {
+            if (value == nullptr) {
+                throw no_such_table_exc_t();
+            } else {
+                throw failed_table_op_exc_t();
             }
+        });
+    unreachable();
+}
+
+void table_meta_client_t::wait_until_change_visible(
+        const namespace_id_t &table_id,
+        const std::function<bool(const timestamped_basic_config_t *)> &cb,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t, maybe_failed_table_op_exc_t)
+{
+    signal_timer_t timeout;
+    timeout.start(10*1000);
+    wait_any_t interruptor_combined(interruptor, &timeout);
+    try {
+        multi_table_manager->get_table_basic_configs()->run_key_until_satisfied(
+            table_id, cb, &interruptor_combined);
+    } catch (const interrupted_exc_t &) {
+        if (interruptor->is_pulsed()) {
+            throw;
         } else {
-            if (*md_exists) {
-                md_value->witnesses.erase(key.first);
-                if (md_value->witnesses.empty()) {
-                    *md_exists = false;
-                }
-            }
+            /* The timeout ran out. We know the change was applied, but it isn't visible
+            to us yet, so we error anyway to preserve the guarantee that changes should
+            be visible after the operation completes. */
+            throw maybe_failed_table_op_exc_t();
         }
-        return true;
-    });
+    }
+    /* Wait until the change is also visible on other threads */
+    table_basic_configs.flush();
 }
 

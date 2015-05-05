@@ -27,15 +27,17 @@ struct shard_status_t {
     std::map<server_id_t, std::set<server_status_t> > replicas;
 };
 
-bool calculate_status(
+/* Note: `calculate_status()` may leave `shard_statuses_out` empty. This means that not
+only is the table unavailable, but we couldn't even figure out which servers were
+supposed to be hosting it or how many shards it has. */
+void calculate_status(
         const namespace_id_t &table_id,
-        const table_config_and_shards_t &config_and_shards,
         signal_t *interruptor,
         table_meta_client_t *table_meta_client,
         server_config_client_t *server_config_client,
         table_readiness_t *readiness_out,
-        std::vector<shard_status_t> *shard_statuses_out,
-        std::string *error_out);
+        std::vector<shard_status_t> *shard_statuses_out)
+        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t);
 
 #endif /* CLUSTERING_ADMINISTRATION_TABLES_CALCULATE_STATUS_HPP_ */
 

@@ -69,7 +69,7 @@ public:
             std::set<host_and_port_t> _canonical_addresses,
             const std::vector<std::string> &_argv,
             uint64_t _actual_cache_size_bytes,
-            const boost::optional<multi_table_manager_bcard_t> &mtmbc,
+            const multi_table_manager_bcard_t &mtmbc,
             const jobs_manager_business_card_t& _jobs_mailbox,
             const get_stats_mailbox_address_t& _stats_mailbox,
             const log_server_business_card_t &lmb,
@@ -141,7 +141,7 @@ public:
     std::vector<std::string> argv;
     uint64_t actual_cache_size_bytes;   /* might be user-set or automatically picked */
 
-    boost::optional<multi_table_manager_bcard_t> multi_table_manager_bcard;
+    multi_table_manager_bcard_t multi_table_manager_bcard;
     jobs_manager_business_card_t jobs_mailbox;
     get_stats_mailbox_address_t get_stats_mailbox_address;
     log_server_business_card_t log_mailbox;

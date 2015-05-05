@@ -53,9 +53,9 @@ public:
     };
     void set_config(std::initializer_list<quick_shard_args_t> qss) {
         table_config_and_shards_t cs;
-        cs.config.database = generate_uuid();
-        cs.config.name = name_string_t::guarantee_valid("test");
-        cs.config.primary_key = "id";
+        cs.config.basic.database = generate_uuid();
+        cs.config.basic.name = name_string_t::guarantee_valid("test");
+        cs.config.basic.primary_key = "id";
         cs.config.write_ack_config.mode = write_ack_config_t::mode_t::majority;
         cs.config.durability = write_durability_t::HARD;
 

@@ -145,7 +145,10 @@ public:
         entry_t &operator=(const entry_t &) = delete;
         entry_t &operator=(entry_t &&);
 
-        key_t get_key();
+        key_t get_key() const;
+        value_t get_value() const;
+        void set(const value_t &new_value);
+        void set_no_equals(const value_t &new_value);
         void change(const std::function<bool(value_t *value)> &callback);
 
     private:
