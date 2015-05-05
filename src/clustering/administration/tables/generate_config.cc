@@ -55,28 +55,27 @@ static void validate_params(
         const table_generate_config_params_t &params,
         const std::map<name_string_t, std::set<server_id_t> > &servers_with_tags,
         const std::map<server_id_t, name_string_t> &server_names)
-        THROWS_ONLY(generate_config_exc_t) {
+        THROWS_ONLY(admin_op_exc_t) {
     if (params.num_shards <= 0) {
-        throw generate_config_exc_t("Every table must have at least one shard.");
+        throw admin_op_exc_t("Every table must have at least one shard.");
     }
     size_t total_replicas = 0;
     for (const auto &pair : params.num_replicas) {
         total_replicas += pair.second;
     }
     if (total_replicas == 0) {
-        throw generate_config_exc_t("You must set `replicas` to at least one. "
-            "`replicas` includes the primary replica; if there are zero replicas, there "
-            "is nowhere to put the data.");
+        throw admin_op_exc_t("You must set `replicas` to at least one. `replicas` "
+            "includes the primary replica; if there are zero replicas, there is nowhere "
+            "to put the data.");
     }
     static const size_t max_shards = 32;
     if (params.num_shards > max_shards) {
-        throw generate_config_exc_t(
-            strprintf("Maximum number of shards is %zu.", max_shards));
+        throw admin_op_exc_t(strprintf("Maximum number of shards is %zu.", max_shards));
     }
     if (params.num_replicas.count(params.primary_replica_tag) == 0 ||
             params.num_replicas.at(params.primary_replica_tag) == 0) {
-        throw generate_config_exc_t(strprintf("Can't use server tag `%s` for primary "
-            "replicas because you specified no replicas in server tag `%s`.",
+        throw admin_op_exc_t(strprintf("Can't use server tag `%s` for primary replicas "
+            "because you specified no replicas in server tag `%s`.",
             params.primary_replica_tag.c_str(), params.primary_replica_tag.c_str()));
     }
     std::map<server_id_t, name_string_t> servers_claimed;
@@ -88,9 +87,9 @@ static void validate_params(
             if (servers_claimed.count(server) == 0) {
                 servers_claimed.insert(std::make_pair(server, it->first));
             } else {
-                throw generate_config_exc_t(strprintf("Server tags `%s` and `%s` "
-                    "overlap; the server `%s` has both tags. The server tags used for "
-                    "replication settings for a given table must be non-overlapping.",
+                throw admin_op_exc_t(strprintf("Server tags `%s` and `%s` overlap; the "
+                    "server `%s` has both tags. The server tags used for replication "
+                    "settings for a given table must be non-overlapping.",
                     it->first.c_str(), servers_claimed.at(server).c_str(),
                     server_names.at(server).c_str()));
             }
@@ -221,7 +220,8 @@ void table_generate_config(
         const table_shard_scheme_t &shard_scheme,
         signal_t *interruptor,
         std::vector<table_config_t::shard_t> *config_shards_out)
-        THROWS_ONLY(interrupted_exc_t, generate_config_exc_t) {
+        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,
+            admin_op_exc_t) {
     long_calculation_yielder_t yielder;
 
     /* First, make local copies of the server name map and the list of servers with each
@@ -250,21 +250,34 @@ void table_generate_config(
 
     yielder.maybe_yield(interruptor);
 
-    /* Fetch the current configurations for all tables. We'll use this to calculate the
-    current load on each server, so we can distribute the load evenly over the cluster if
-    possible. If `table_id` is not nil, we'll also use this to find where this table's
-    data is currently stored so we don't move it unnecessarily. */
-    std::map<namespace_id_t, table_config_and_shards_t> current_configs;
-    table_meta_client->list_configs(interruptor, &current_configs);
+    /* If `table_id` is not nil, fetch the current config for this table. */
+    table_config_and_shards_t old_config;
+    if (!table_id.is_nil()) {
+        table_meta_client->get_config(table_id, interruptor, &old_config);
+    }
 
-    /* Iterate over the current configurations to calculate the total load on each server
-    currently. */
+    /* Fetch the current configurations for all other tables, and calculate the current
+    load on each server. */
     std::map<server_id_t, int> server_usage;
-    for (const auto &pair : current_configs) {
-        /* Don't count any servers currently used by this table */
-        if (pair.first != table_id) {
-            calculate_server_usage(pair.second.config, &server_usage);
+    std::map<namespace_id_t, table_basic_config_t> all_tables;
+    table_meta_client->list_names(&all_tables);
+    for (const auto &pair : all_tables) {
+        if (pair.first == table_id) {
+            /* Don't count the table being reconfigured in the load calculation */
+            continue;
         }
+        table_config_and_shards_t config;
+        try {
+            table_meta_client->get_config(pair.first, interruptor, &config);
+        } catch (const no_such_table_exc_t &) {
+            /* The table was just deleted; ignore it. */
+            continue;
+        } catch (const failed_table_op_exc_t &) {
+            /* This can only happen if the table is located entirely on unavailable
+            servers, but we won't be using unavailable servers anyway, so ignore it. */
+            continue;
+        }
+        calculate_server_usage(config.config, &server_usage);
     }
 
     config_shards_out->resize(params.num_shards);
@@ -281,10 +294,9 @@ void table_generate_config(
         name_string_t server_tag = it->first;
         size_t num_in_tag = servers_with_tags.at(server_tag).size();
         if (num_in_tag < it->second) {
-            throw generate_config_exc_t(strprintf("Can't put %zu replicas on servers "
-                "with the tag `%s` because there are only %zu servers with the tag "
-                "`%s`. It's impossible to have more replicas of the data than there "
-                "are servers.",
+            throw admin_op_exc_t(strprintf("Can't put %zu replicas on servers with the "
+                "tag `%s` because there are only %zu servers with the tag `%s`. It's "
+                "impossible to have more replicas of the data than there are servers.",
                 it->second, server_tag.c_str(), num_in_tag, server_tag.c_str()));
         }
 
@@ -299,11 +311,9 @@ void table_generate_config(
             for (size_t shard = 0; shard < params.num_shards; ++shard) {
                 pairing_t p;
                 p.shard = shard;
-                auto jt = current_configs.find(table_id);
-                if (jt != current_configs.end()) {
-                    guarantee(!table_id.is_nil());
+                if (!table_id.is_nil()) {
                     p.backfill_cost = estimate_backfill_cost(
-                        shard_scheme.get_shard_range(shard), jt->second, server);
+                        shard_scheme.get_shard_range(shard), old_config, server);
                 } else {
                     /* We're creating a new table, so we won't have to backfill no matter
                     which servers we choose. */

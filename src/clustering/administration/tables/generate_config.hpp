@@ -5,17 +5,13 @@
 #include <map>
 #include <string>
 
+#include "clustering/administration/admin_op_exc.hpp"
 #include "clustering/administration/tables/table_metadata.hpp"
 #include "rdb_protocol/context.hpp"
 
 class real_reql_cluster_interface_t;
 class server_config_client_t;
 class table_meta_client_t;
-
-class generate_config_exc_t : public std::runtime_error {
-public:
-    generate_config_exc_t(std::string &&msg) : std::runtime_error(std::move(msg)) { }
-};
 
 /* Suggests a `table_config_t` for the table. This is the brains behind
 `table.reconfigure()`. */
@@ -38,7 +34,8 @@ void table_generate_config(
         const table_shard_scheme_t &shard_scheme,
         signal_t *interruptor,
         std::vector<table_config_t::shard_t> *config_shards_out)
-        THROWS_ONLY(interrupted_exc_t, generate_config_exc_t);
+        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,
+            admin_op_exc_t);
 
 #endif /* CLUSTERING_ADMINISTRATION_TABLES_GENERATE_CONFIG_HPP_ */
 

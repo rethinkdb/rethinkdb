@@ -270,7 +270,7 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
 
         return true;
 
-    } catch (const generate_config_exc_t &msg) {
+    } catch (const admin_op_exc_t &msg) {
         *error_out = msg.what();
         return false;
     } CATCH_NAME_ERRORS(db->name, name, error_out)
@@ -665,13 +665,9 @@ void real_reql_cluster_interface_t::reconfigure_internal(
         &new_config.shard_scheme);
 
     /* `table_generate_config()` just generates the config; it doesn't apply it */
-    try {
-        table_generate_config(
-            server_config_client, table_id, table_meta_client,
-            params, new_config.shard_scheme, interruptor, &new_config.config.shards);
-    } catch (const generate_config_exc_t &msg) {
-        throw admin_op_exc_t(msg.what());
-    }
+    table_generate_config(
+        server_config_client, table_id, table_meta_client,
+        params, new_config.shard_scheme, interruptor, &new_config.config.shards);
 
     new_config.config.write_ack_config.mode = write_ack_config_t::mode_t::majority;
     new_config.config.durability = write_durability_t::HARD;

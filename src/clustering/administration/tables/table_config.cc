@@ -410,9 +410,16 @@ bool convert_table_config_and_name_from_datum(
                 server_config_client, nil_uuid(), table_meta_client,
                 table_generate_config_params_t::make_default(), table_shard_scheme_t(),
                 interruptor, &config_out->shards);
-        } catch (const generate_config_exc_t &msg) {
+        } catch (const admin_op_exc_t &msg) {
             throw admin_op_exc_t("Unable to automatically generate configuration for "
                 "new table: " + std::string(msg.what()));
+        } catch (const no_such_table_exc_t &) {
+            /* This can't happen when calling `table_generate_config()` for a new table,
+            only when updating an existing one */
+            unreachable();
+        } catch (const failed_table_op_exc_t &) {
+            /* Same as with `no_such_table_exc_t` */
+            unreachable();
         }
     }
 
