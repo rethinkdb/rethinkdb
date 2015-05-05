@@ -88,8 +88,15 @@ ql::datum_t make_row_replacement_stats(
 
     *was_changed_out = (old_row != new_row);
 
+    bool should_ret;
+    switch (return_changes) {
+    case return_changes_t::NO: should_ret = false; break;
+    case return_changes_t::YES: should_ret = *was_changed_out; break;
+    case return_changes_t::ALWAYS: should_ret = true; break;
+    default: unreachable();
+    }
     ql::datum_object_builder_t resp;
-    if (*was_changed_out && return_changes == return_changes_t::YES) {
+    if (should_ret) {
         bool conflict = resp.add("changes", make_replacement_pair(old_row, new_row));
         guarantee(!conflict);
     }
@@ -130,7 +137,14 @@ ql::datum_t make_row_replacement_error_stats(
         return_changes_t return_changes,
         const char *error_message) {
     ql::datum_object_builder_t resp;
-    if (return_changes == return_changes_t::YES) {
+    bool should_ret;
+    switch (return_changes) {
+    case return_changes_t::NO: should_ret = false; break;
+    case return_changes_t::YES: should_ret = false; break;
+    case return_changes_t::ALWAYS: should_ret = true; break;
+    default: unreachable();
+    }
+    if (should_ret) {
         bool conflict = resp.add("changes", make_replacement_pair(old_row, old_row));
         guarantee(!conflict);
     }
