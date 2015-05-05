@@ -75,7 +75,7 @@ cluster_version_t sindex_block_version(const btree_sindex_block_t *data) {
         return cluster_version_t::v2_0;
     } else if (data->magic
                == btree_sindex_block_magic_t<cluster_version_t::v2_1>::value) {
-        return cluster_version_t::v2_1_is_latest_disk;
+        return cluster_version_t::v2_1;
     } else if (data->magic == btree_sindex_block_magic_t<
                    cluster_version_t::raft_is_latest_disk>::value) {
         return cluster_version_t::raft_is_latest_disk;

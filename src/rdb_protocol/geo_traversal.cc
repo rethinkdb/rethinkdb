@@ -149,9 +149,9 @@ continue_bool_t geo_intersecting_cb_t::on_candidate(scoped_key_value_t &&keyvalu
             && post_filter(sindex_val, val)) {
             if (distinct_emitted->size() >= env->limits().array_size_limit()) {
                 emit_error(ql::exc_t(ql::base_exc_t::GENERIC,
-                        "Array size limit exceeded during geospatial index traversal.",
-                        NULL));
-                return done_traversing_t::YES;
+                    "Array size limit exceeded during geospatial index traversal.",
+                    ql::backtrace_id_t::empty()));
+                return continue_bool_t::ABORT;
             }
             distinct_emitted->insert(primary_key);
             return emit_result(std::move(sindex_val), std::move(store_key), std::move(val));
@@ -169,11 +169,12 @@ continue_bool_t geo_intersecting_cb_t::on_candidate(scoped_key_value_t &&keyvalu
         emit_error(e);
         return continue_bool_t::ABORT;
     } catch (const geo_exception_t &e) {
-        emit_error(ql::exc_t(ql::base_exc_t::GENERIC, e.what(), NULL));
-        return done_traversing_t::YES;
+        emit_error(ql::exc_t(ql::base_exc_t::GENERIC, e.what(),
+                             ql::backtrace_id_t::empty()));
+        return continue_bool_t::ABORT;
     } catch (const ql::base_exc_t &e) {
-        emit_error(ql::exc_t(e, NULL));
-        return done_traversing_t::YES;
+        emit_error(ql::exc_t(e, ql::backtrace_id_t::empty()));
+        return continue_bool_t::ABORT;
     }
 }
 
