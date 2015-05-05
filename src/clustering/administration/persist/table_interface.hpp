@@ -2,6 +2,7 @@
 #ifndef CLUSTERING_ADMINISTRATION_PERSIST_TABLE_INTERFACE_HPP_
 #define CLUSTERING_ADMINISTRATION_PERSIST_TABLE_INTERFACE_HPP_
 
+#include "clustering/administration/perfmon_collection_repo.hpp"
 #include "clustering/table_manager/table_metadata.hpp"
 
 class cache_balancer_t;
@@ -17,13 +18,15 @@ public:
             const base_path_t &_base_path,
             outdated_index_issue_tracker_t *_outdated_index_issue_tracker,
             rdb_context_t *_rdb_context,
-            metadata_file_t *_metadata_file) :
+            metadata_file_t *_metadata_file,
+            perfmon_collection_repo_t *_perfmon_collection_repo) :
         io_backender(_io_backender),
         cache_balancer(_cache_balancer),
         base_path(_base_path),
         outdated_index_issue_tracker(_outdated_index_issue_tracker),
         rdb_context(_rdb_context),
         metadata_file(_metadata_file),
+        perfmon_collection_repo(_perfmon_collection_repo),
         thread_counter(0)
         { }
 
@@ -63,6 +66,7 @@ private:
     outdated_index_issue_tracker_t * const outdated_index_issue_tracker;
     rdb_context_t * const rdb_context;
     metadata_file_t * const metadata_file;
+    perfmon_collection_repo_t *perfmon_collection_repo;
 
     /* `pick_thread()` uses this to distribute objects evenly over threads */
     int thread_counter;

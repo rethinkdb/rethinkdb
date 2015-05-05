@@ -14,7 +14,8 @@ multi_table_manager_t::multi_table_manager_t(
             *_table_manager_directory,
         table_persistence_interface_t *_persistence_interface,
         const base_path_t &_base_path,
-        io_backender_t *_io_backender) :
+        io_backender_t *_io_backender,
+        perfmon_collection_repo_t *_perfmon_collection_repo) :
     multi_table_manager_t(
         _mailbox_manager,
         _multi_table_manager_directory,
@@ -25,6 +26,7 @@ multi_table_manager_t::multi_table_manager_t(
     persistence_interface = _persistence_interface;
     base_path = boost::make_optional(_base_path);
     io_backender = _io_backender;
+    perfmon_collection_repo = _perfmon_collection_repo;
 
     /* Resurrect any tables that were sitting on disk from when we last shut down */
     cond_t non_interruptor;
@@ -45,7 +47,8 @@ multi_table_manager_t::multi_table_manager_t(
                 table->active = make_scoped<active_table_t>(
                     this, table, table_id,
                     active->epoch, active->raft_member_id, active->raft_state,
-                    table->multistore_ptr.get());
+                    table->multistore_ptr.get(),
+                    perfmon_collection_repo->get_perfmon_collections_for_namespace(table_id));
             } else if (const table_persistent_state_t::inactive_t *inactive =
                     boost::get<table_persistent_state_t::inactive_t>(&state.value)) {
                 table->status = table_t::status_t::INACTIVE;
@@ -82,6 +85,7 @@ multi_table_manager_t::multi_table_manager_t(
     persistence_interface(nullptr),
     base_path(boost::none),
     io_backender(nullptr),
+    perfmon_collection_repo(nullptr),
     /* Whenever a server connects, we need to sync all of our tables to it. */
     multi_table_manager_directory_subs(
         multi_table_manager_directory,
@@ -122,13 +126,15 @@ multi_table_manager_t::active_table_t::active_table_t(
         const multi_table_manager_bcard_t::timestamp_t::epoch_t &epoch,
         const raft_member_id_t &member_id,
         const raft_persistent_state_t<table_raft_state_t> &initial_state,
-        multistore_ptr_t *multistore_ptr) :
+        multistore_ptr_t *multistore_ptr,
+        perfmon_collection_repo_t::collections_t *perfmon_collections) :
     parent(_parent),
     table(_table),
     table_id(_table_id),
     manager(parent->server_id, parent->mailbox_manager, parent->table_manager_directory,
         &parent->backfill_throttler, parent->persistence_interface, *parent->base_path,
-        parent->io_backender, table_id, epoch, member_id, initial_state, multistore_ptr),
+        parent->io_backender, table_id, epoch, member_id, initial_state, multistore_ptr,
+        &perfmon_collections->namespace_collection),
     table_manager_bcard_copier(
         &parent->table_manager_bcards, table_id, manager.get_table_manager_bcard()),
     table_query_bcard_source(
@@ -280,7 +286,8 @@ void multi_table_manager_t::on_action(
             all of the important work of actually handing queries */
             table->active = make_scoped<active_table_t>(
                 this, table, table_id, timestamp.epoch, *raft_member_id,
-                *initial_raft_state, table->multistore_ptr.get());
+                *initial_raft_state, table->multistore_ptr.get(),
+                perfmon_collection_repo->get_perfmon_collections_for_namespace(table_id));
 
             logDBG("Added replica for table %s", uuid_to_str(table_id).c_str());
 
@@ -301,7 +308,8 @@ void multi_table_manager_t::on_action(
 
             table->active = make_scoped<active_table_t>(
                 this, table, table_id, timestamp.epoch, *raft_member_id,
-                *initial_raft_state, table->multistore_ptr.get());
+                *initial_raft_state, table->multistore_ptr.get(),
+                perfmon_collection_repo->get_perfmon_collections_for_namespace(table_id));
 
             logDBG("Reset replica for table %s", uuid_to_str(table_id).c_str());
         }

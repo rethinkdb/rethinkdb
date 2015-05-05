@@ -43,6 +43,15 @@ void table_meta_client_t::find(
     }
 }
 
+bool table_meta_client_t::exists(const namespace_id_t &table_id) {
+    bool found = false;
+    table_basic_configs.get_watchable()->read_key(table_id,
+        [&](const timestamped_basic_config_t *value) {
+            found = (value != nullptr);
+        });
+    return found;
+}
+
 bool table_meta_client_t::exists(
         const database_id_t &database, const name_string_t &name) {
     bool found = false;

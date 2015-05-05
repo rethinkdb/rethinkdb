@@ -81,6 +81,9 @@ public:
         namespace_id_t *table_id_out, std::string *primary_key_out = nullptr)
         THROWS_ONLY(no_such_table_exc_t, ambiguous_table_exc_t);
 
+    /* `exists()` returns `true` if a table with the given `table_id` exists. */
+    bool exists(const namespace_id_t &table_id);
+
     /* `exists()` returns `true` if one or more tables exist with the given name in the
     given database. */
     bool exists(const database_id_t &database, const name_string_t &name);

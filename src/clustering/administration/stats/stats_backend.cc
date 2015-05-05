@@ -2,6 +2,7 @@
 #include "clustering/administration/stats/stats_backend.hpp"
 
 #include "clustering/administration/stats/request.hpp"
+#include "clustering/table_manager/table_meta_client.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 
 stats_artificial_table_backend_t::stats_artificial_table_backend_t(
@@ -123,31 +124,27 @@ bool stats_artificial_table_backend_t::read_all_rows_as_vector(
             metadata, server_config_client, table_meta_client, admin_format, rows_out);
     }
 
-    // RSI(raft): Reimplement this once table metadata operations are implemented.
-#if 0
-    for (auto const &table_pair : metadata.rdb_namespaces->namespaces) {
-        if (table_pair.second.is_deleted()) {
-            continue;
-        }
+    std::map<namespace_id_t, table_basic_config_t> names;
+    table_meta_client->list_names(&names);
+    for (const auto &table_pair : names) {
         maybe_append_result(table_stats_request_t(table_pair.first), parsed_stats,
             metadata, server_config_client, table_meta_client, admin_format, rows_out);
     }
 
-    for (auto const &server_pair : metadata.servers.servers) {
-        if (server_pair.second.is_deleted()) {
-            continue;
+    std::map<namespace_id_t, table_config_and_shards_t> configs;
+    table_meta_client->list_configs(interruptor, &configs);
+    for (const auto &table_pair : configs) {
+        std::set<namespace_id_t> servers;
+        for (const auto &shard : table_pair.second.config.shards) {
+            servers.insert(shard.replicas.begin(), shard.replicas.end());
         }
-        for (auto const &table_pair : metadata.rdb_namespaces->namespaces) {
-            if (table_pair.second.is_deleted()) {
-                continue;
-            }
+        for (const auto &server : servers) {
             maybe_append_result(
-                table_server_stats_request_t(table_pair.first, server_pair.first),
+                table_server_stats_request_t(table_pair.first, server),
                 parsed_stats, metadata, server_config_client, table_meta_client,
                 admin_format, rows_out);
         }
     }
-#endif
 
     return true;
 }
@@ -193,7 +190,7 @@ bool stats_artificial_table_backend_t::read_row(
     std::vector<ql::datum_t> results_map;
 
     if (!request.has() ||
-        !request->check_existence(metadata)) {
+        !request->check_existence(metadata, table_meta_client)) {
         *row_out = ql::datum_t();
         return true;
     }
