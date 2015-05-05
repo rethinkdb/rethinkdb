@@ -67,6 +67,10 @@ public:
         return reinterpret_cast<const T *>(&object_data[0]);
     }
 
+    const T *operator->() const {
+        return get();
+    }
+
     void reset() {
         T *obj_ptr = get();
         state = DESTRUCTING;

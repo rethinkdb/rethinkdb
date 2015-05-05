@@ -16,17 +16,18 @@ table_manager_t::table_manager_t(
         io_backender_t *_io_backender,
         const namespace_id_t &_table_id,
         const multi_table_manager_bcard_t::timestamp_t::epoch_t &_epoch,
-        const raft_member_id_t &_member_id,
+        const raft_member_id_t &_raft_member_id,
         const raft_persistent_state_t<table_raft_state_t> &initial_state,
         multistore_ptr_t *multistore_ptr) :
     table_id(_table_id),
     epoch(_epoch),
-    member_id(_member_id),
+    raft_member_id(_raft_member_id),
     mailbox_manager(_mailbox_manager),
     persistence_interface(_persistence_interface),
     perfmon_membership(
         &get_global_perfmon_collection(), &perfmon_collection, uuid_to_str(_table_id)),
-    raft(member_id, _mailbox_manager, raft_directory.get_values(), this, initial_state),
+    raft(raft_member_id, _mailbox_manager, raft_directory.get_values(), this,
+        initial_state),
     table_manager_bcard(table_manager_bcard_t()),   /* we'll set this later */
     execution_bcard_read_manager(_mailbox_manager),
     contract_executor(
@@ -60,10 +61,9 @@ table_manager_t::table_manager_t(
         _table_manager_directory,
         std::bind(&table_manager_t::on_table_directory_change, this, ph::_1, ph::_2),
         true),
-    raft_committed_subs(std::bind(&table_manager_t::on_raft_committed_change, this)),
     raft_readiness_subs(std::bind(&table_manager_t::on_raft_readiness_change, this))
 {
-    guarantee(!member_id.is_nil());
+    guarantee(!raft_member_id.is_nil());
     guarantee(!epoch.id.is_unset());
 
     /* Set up the initial table bcard */
@@ -73,22 +73,13 @@ table_manager_t::table_manager_t(
         raft.get_raft()->get_committed_state()->apply_read(
             [&](const raft_member_t<table_raft_state_t>::state_and_config_t *sc) {
                 bcard.timestamp.log_index = sc->log_index;
-                bcard.database = sc->state.config.config.database;
-                bcard.name = sc->state.config.config.name;
-                bcard.primary_key = sc->state.config.config.primary_key;
             });
-        bcard.raft_member_id = member_id;
+        bcard.raft_member_id = raft_member_id;
         bcard.raft_business_card = raft.get_business_card();
         bcard.execution_bcard_minidir_bcard = execution_bcard_read_manager.get_bcard();
         bcard.get_status_mailbox = get_status_mailbox.get_address();
         bcard.server_id = _server_id;
         table_manager_bcard.set_value_no_equals(bcard);
-    }
-
-    {
-        watchable_t<raft_member_t<table_raft_state_t>::state_and_config_t>::freeze_t
-            freeze(raft.get_raft()->get_committed_state());
-        raft_committed_subs.reset(raft.get_raft()->get_committed_state(), &freeze);
     }
 
     {
@@ -152,11 +143,13 @@ void table_manager_t::leader_t::on_set_config(
 void table_manager_t::write_persistent_state(
         const raft_persistent_state_t<table_raft_state_t> &inner_ps,
         signal_t *interruptor) {
+    table_persistent_state_t::active_t active;
+    active.epoch = epoch;
+    active.raft_member_id = raft_member_id;
+    active.raft_state = inner_ps;
     table_persistent_state_t outer_ps;
-    outer_ps.epoch = epoch;
-    outer_ps.member_id = member_id;
-    outer_ps.raft_state = inner_ps;
-    persistence_interface->update_table(table_id, outer_ps, interruptor);
+    outer_ps.value = active;
+    persistence_interface->write_metadata(table_id, outer_ps, interruptor);
 }
 
 void table_manager_t::on_get_status(
@@ -227,27 +220,6 @@ void table_manager_t::on_table_directory_change(
             contract_ack_minidir_directory.delete_key(key.first);
         }
     }
-}
-
-void table_manager_t::on_raft_committed_change() {
-    /* Check if the table's name or database changed, and update the bcard if so */
-    raft.get_raft()->get_committed_state()->apply_read(
-    [&](const raft_member_t<table_raft_state_t>::state_and_config_t *sc) {
-        table_manager_bcard.apply_atomic_op([&](table_manager_bcard_t *bcard) {
-            if (sc->state.config.config.name != bcard->name ||
-                    sc->state.config.config.database != bcard->database) {
-                bcard->timestamp.log_index = sc->log_index;
-                bcard->name = sc->state.config.config.name;
-                bcard->database = sc->state.config.config.database;
-                return true;
-            } else {
-                /* If we return `false`, updates won't be sent to the other servers. This
-                way, we don't send a message to every server every time Raft commits a
-                change. */
-                return false;
-            }
-        });
-    });
 }
 
 void table_manager_t::on_raft_readiness_change() {

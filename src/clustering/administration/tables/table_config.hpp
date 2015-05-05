@@ -51,13 +51,31 @@ public:
             std::string *error_out);
 
 private:
-    bool format_row(
-            namespace_id_t table_id,
+    void format_row(
+            const namespace_id_t &table_id,
+            const table_basic_config_t &basic_config,
             const ql::datum_t &db_name_or_uuid,
-            const table_config_and_shards_t &config,
             signal_t *interruptor,
-            ql::datum_t *row_out,
-            std::string *error_out);
+            ql::datum_t *row_out)
+            THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,
+                admin_op_exc_t);
+
+    void do_modify(
+        const namespace_id_t &table_id,
+        table_config_t &&new_config_no_shards,
+        const name_string_t &old_db_name,
+        const name_string_t &new_db_name,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,
+            maybe_failed_table_op_exc_t, admin_op_exc_t);
+
+    void do_create(
+        const namespace_id_t &table_id,
+        table_config_t &&new_config_no_shards,
+        const name_string_t &new_db_name,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,
+            maybe_failed_table_op_exc_t, admin_op_exc_t);
 
     real_reql_cluster_interface_t *reql_cluster_interface;
     server_config_client_t *server_config_client;

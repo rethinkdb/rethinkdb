@@ -284,24 +284,23 @@ ql::datum_t convert_debug_contracts_and_contrack_acks_to_datum(
     return std::move(builder).to_datum();
 }
 
-bool debug_table_status_artificial_table_backend_t::format_row(
-        namespace_id_t table_id,
+void debug_table_status_artificial_table_backend_t::format_row(
+        const namespace_id_t &table_id,
+        const table_basic_config_t &,
         const ql::datum_t &db_name_or_uuid,
-        const table_config_and_shards_t &config_and_shards,
         signal_t *interruptor,
-        ql::datum_t *row_out,
-        std::string *error_out) {
+        ql::datum_t *row_out)
+        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,
+            admin_op_exc_t) {
     assert_thread();
+
+    table_config_and_shards_t config_and_shards;
+    table_meta_client->get_config(table_id, interruptor, &config_and_shards);
 
     std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > sindex_statuses;
     std::map<peer_id_t, contracts_and_contract_acks_t> contracts_and_acks;
-    if (!table_meta_client->get_status(
-            table_id, interruptor, &sindex_statuses, &contracts_and_acks)) {
-        *error_out = strprintf("Lost contact with the server(s) hosting table `%s.%s`.",
-            uuid_to_str(config_and_shards.config.database).c_str(),
-            uuid_to_str(table_id).c_str());
-        return false;
-    }
+    table_meta_client->get_status(
+        table_id, interruptor, &sindex_statuses, &contracts_and_acks);
 
     ql::datum_object_builder_t builder;
     builder.overwrite("table", convert_uuid_to_datum(table_id));
@@ -323,6 +322,4 @@ bool debug_table_status_artificial_table_backend_t::format_row(
         convert_debug_contracts_and_contrack_acks_to_datum(
             contracts_and_acks, server_config_client));
     *row_out = std::move(builder).to_datum();
-
-    return true;
 }

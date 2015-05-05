@@ -27,7 +27,8 @@ table_wait_result_t wait_for_table_readiness(
     table_readiness_t readiness,
     const table_status_artificial_table_backend_t *table_status_backend,
     signal_t *interruptor,
-    ql::datum_t *status_out  /* can be null */);
+    ql::datum_t *status_out  /* can be null */)
+    THROWS_ONLY(interrupted_exc_t);
 
 class table_status_artificial_table_backend_t :
     public common_table_artificial_table_backend_t
@@ -49,20 +50,22 @@ public:
             std::string *error_out);
 
 private:
-    bool format_row(
-            namespace_id_t table_id,
+    void format_row(
+            const namespace_id_t &table_id,
+            const table_basic_config_t &basic_config,
             const ql::datum_t &db_name_or_uuid,
-            const table_config_and_shards_t &config_and_shards,
             signal_t *interruptor,
-            ql::datum_t *row_out,
-            std::string *error_out);
+            ql::datum_t *row_out)
+            THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,
+                admin_op_exc_t);
 
     friend table_wait_result_t wait_for_table_readiness(
         const namespace_id_t &,
         table_readiness_t,
         const table_status_artificial_table_backend_t *,
         signal_t *,
-        ql::datum_t *);
+        ql::datum_t *)
+        THROWS_ONLY(interrupted_exc_t);
 
     server_config_client_t *server_config_client;
 };
