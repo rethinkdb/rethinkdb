@@ -541,7 +541,7 @@ void table_meta_client_t::set_config(
         &interruptor);
 }
 
-[[noreturn]] void table_meta_client_t::throw_appropriate_exception(
+NORETURN void table_meta_client_t::throw_appropriate_exception(
         const namespace_id_t &table_id)
         THROWS_ONLY(no_such_table_exc_t, failed_table_op_exc_t) {
     multi_table_manager->get_table_basic_configs()->read_key(
