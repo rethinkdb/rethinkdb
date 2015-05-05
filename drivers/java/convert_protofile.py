@@ -33,7 +33,6 @@ def main():
     render_enums(proto)
     java_meta = java_specific_term_meta(term_meta)
     render_ast_subclasses(java_meta)
-    generate_ast_files(java_meta)
 
 
 def camel(varname):
@@ -142,12 +141,6 @@ def java_specific_term_meta(term_meta):
             new_meta['BRACKET']['alias'] = 'field'
     return new_meta
 
-
-def generate_ast_files(term_meta):
-    '''Creates the AST files in com/rethinkdb/ast/query/gen'''
-    print "Generating ast files"
-    for key, value in term_meta.items():
-        pass
 
 # Used in parsing protofile
 MESSAGE_REGEX = re.compile('\s*(message|enum) (?P<name>\w+) \{')
