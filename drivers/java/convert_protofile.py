@@ -17,6 +17,7 @@ from mako.lookup import TemplateLookup
 PACKAGE_DIR = './src/main/java/com/rethinkdb'
 TEMPLATE_DIR = './templates'
 PROTO_DIR = PACKAGE_DIR + '/proto'
+AST_GEN_DIR = PACKAGE_DIR + '/ast/gen'
 PROTO_FILE = '../../src/rdb_protocol/ql2.proto'
 PROTO_JSON = './proto_basic.json'
 META_JSON = './term_info.json'
@@ -31,7 +32,7 @@ def main():
         term_meta = new_json
     render_enums(proto)
     java_meta = java_specific_term_meta(term_meta)
-    render_rqlquery_class(java_meta)
+    render_ast_subclasses(java_meta)
     generate_ast_files(java_meta)
 
 
@@ -121,9 +122,17 @@ def java_specific_term_meta(term_meta):
         'while'
     }
 
-    for term_name, info in new_meta.items():
-        if dromedary(term_name) in java_keywords or \
-           info.get('alias') in java_keywords:
+    java_blacklist = {
+        "row"  # Java 8 lambda syntax is nice, so skipping this
+    }
+
+    def term_called(info, name, set_):
+        return dromedary(name) in set_ or info.get('alias') in set_
+
+    for term_name, info in list(new_meta.items()):
+        if term_called(info, term_name, java_blacklist):
+            del new_meta[term_name]
+        if term_called(info, term_name, java_keywords):
             info = info.copy()
             alias = info.get('alias', dromedary(term_name)) + '_'
             print "Alias for", term_name, "will be", alias
@@ -239,11 +248,51 @@ def render_enum(classname, mapping):
            )
 
 
-def render_rqlquery_class(term_meta):
-    render("RqlQuery.java",
-           PACKAGE_DIR+'/ast',
-           meta=term_meta)
+def render_ast_subclass(
+        term_type, include_in, meta, classname=None, superclass="RqlQuery"):
+    '''Generates a RqlAst subclass. Either term_type or classname should
+    be given'''
+    classname = classname or camel(term_type)
+    render("AstSubclass.java",
+           AST_GEN_DIR,
+           output_name=classname+'.java',
+           term_type=term_type,
+           classname=classname,
+           meta=meta,
+           include_in=include_in,
+           superclass=superclass,
+           )
 
+
+def render_ast_subclasses(meta):
+    special_superclasses = {
+        "DB": "RqlAst",
+        "RqlQuery": "RqlAst",
+        "TopLevel": "RqlAst",
+    }
+    render_ast_subclass(
+        term_type=None,
+        include_in="query",
+        meta=meta,
+        classname="RqlQuery",
+        superclass=special_superclasses["RqlQuery"],
+    )
+    render_ast_subclass(
+        term_type=None,
+        include_in="top",
+        meta=meta,
+        classname="TopLevel",
+        superclass=special_superclasses["TopLevel"],
+    )
+    for term_name, info in list(meta.items()):
+        if not info.get('deprecated'):
+            render_ast_subclass(
+                term_type=term_name,
+                include_in=term_name.lower(),
+                meta=meta,
+                superclass=special_superclasses.get(term_name, "RqlQuery"),
+                classname=None,
+            )
 
 if __name__ == '__main__':
     main()
