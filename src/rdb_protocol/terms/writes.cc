@@ -58,7 +58,7 @@ durability_requirement_t parse_durability_optarg(const scoped_ptr_t<val_t> &arg)
 
 return_changes_t parse_return_changes(
     scope_env_t *env, args_t *args, backtrace_id_t bt) {
-    if (scoped_ptr_t<val_t> v = args->optarg(env, "return_vals")) {
+    if (args->optarg(env, "return_vals")) {
         rfail_src(bt, base_exc_t::GENERIC,
                   "Error: encountered obsolete optarg `return_vals`.  "
                   "Use `return_changes` instead.");
