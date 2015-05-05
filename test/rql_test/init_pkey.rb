@@ -11,6 +11,7 @@ class H < RethinkDB::Handler
   end
   def on_initial_val(val)
     id = val['id']
+    raise "Duplicate initial val." if @state[id]
     @state[id] = val['z']
     $statelog << @state.dup
     r.table('test').between([id-1, 11].max, 20).update {|row|
@@ -25,7 +26,6 @@ class H < RethinkDB::Handler
       EM.defer {
         sleep 0.1
         $handle.close
-        EM.stop
         @state.each {|k,v|
           if k == 10 || k == 19
             raise RuntimeError, "#{k} = #{v}" if v != 19
@@ -33,6 +33,7 @@ class H < RethinkDB::Handler
             raise RuntimeError, "#{k} = #{v}" if v != k+1
           end
         }
+        EM.stop
       }
     else
       id = old_val['id']
