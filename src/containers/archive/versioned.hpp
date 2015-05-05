@@ -170,7 +170,7 @@ size_t serialized_size_for_version(cluster_version_t version,
     template archive_result_t deserialize<cluster_version_t::v2_0>(              \
             read_stream_t *, typ *);                                             \
     template archive_result_t deserialize<cluster_version_t::v2_1>(              \
-            read_stream_t *, typ *)                                              \
+            read_stream_t *, typ *);                                             \
     template archive_result_t deserialize<cluster_version_t::raft_is_latest>(    \
             read_stream_t *, typ *)
 
