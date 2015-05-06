@@ -334,7 +334,6 @@ public:
             THROWS_ONLY(interrupted_exc_t);
 
     void acquire_superblock_for_write(
-            repli_timestamp_t timestamp,
             int expected_change_count,
             write_durability_t durability,
             write_token_t *token,

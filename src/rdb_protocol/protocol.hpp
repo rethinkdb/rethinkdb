@@ -42,7 +42,6 @@ class traversal_progress_combiner_t;
 template <class> class watchable_t;
 class Term;
 class Datum;
-class Backtrace;
 
 enum class profile_bool_t {
     PROFILE,

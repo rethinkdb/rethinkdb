@@ -28,7 +28,7 @@ tests:
   - rb: r([1]).info
     py: r.expr([1]).info()
     js: r([1]).info()
-    ot: ({'type':'ARRAY','value':'[1]'})
+    ot: ({'type':'ARRAY','value':"[\n\t1\n]"})
   - rb: r({:a => 1}).info
     py: r.expr({'a':1}).info()
     js: r({a:1}).info()

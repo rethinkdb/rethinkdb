@@ -1,9 +1,10 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "rdb_protocol/pseudo_binary.hpp"
 
 #include "errors.hpp"
 
 #include "utils.hpp"
+#include "rapidjson/rapidjson.h"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/error.hpp"
 
@@ -140,6 +141,18 @@ datum_string_t decode_base64(const datum_string_t &data) {
 }
 
 // Given a raw data string, encodes it into a `r.binary` pseudotype with base64 encoding
+void encode_base64_ptype(
+        const datum_string_t &data,
+        rapidjson::Writer<rapidjson::StringBuffer> *writer) {
+    writer->StartObject();
+    writer->Key(datum_t::reql_type_string.data(), datum_t::reql_type_string.size());
+    writer->String(binary_string);
+    const std::string encoded_data = encode_base64(data);
+    writer->Key(data_key);
+    writer->String(encoded_data.data(), encoded_data.size());
+    writer->EndObject();
+}
+
 scoped_cJSON_t encode_base64_ptype(const datum_string_t &data) {
     scoped_cJSON_t res(cJSON_CreateObject());
     res.AddItemToObject(datum_t::reql_type_string.to_std().c_str(),

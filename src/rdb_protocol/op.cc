@@ -53,8 +53,8 @@ optargspec_t optargspec_t::with(std::initializer_list<const char *> args) const 
 
 class faux_term_t : public runtime_term_t {
 public:
-    faux_term_t(protob_t<const Backtrace> bt, datum_t _d)
-        : runtime_term_t(std::move(bt)), d(std::move(_d)) { }
+    faux_term_t(backtrace_id_t bt, datum_t _d)
+        : runtime_term_t(bt), d(std::move(_d)) { }
     const char *name() const final { return "<EXPANDED FROM r.args>"; }
 private:
     scoped_ptr_t<val_t> term_eval(scope_env_t *, eval_flags_t) const final {
@@ -64,10 +64,9 @@ private:
 };
 
 
-class arg_terms_t : public pb_rcheckable_t {
+class arg_terms_t : public bt_rcheckable_t {
 public:
-    arg_terms_t(protob_t<const Term> _src,
-                argspec_t _argspec,
+    arg_terms_t(const protob_t<const Term> _src, argspec_t _argspec,
                 std::vector<counted_t<const term_t> > _original_args);
     // Evals the r.args arguments, and returns the expanded argument list.
     argvec_t start_eval(scope_env_t *env, eval_flags_t flags) const;
@@ -83,10 +82,9 @@ private:
     DISABLE_COPYING(arg_terms_t);
 };
 
-arg_terms_t::arg_terms_t(protob_t<const Term> _src,
-                         argspec_t _argspec,
+arg_terms_t::arg_terms_t(const protob_t<const Term> _src, argspec_t _argspec,
                          std::vector<counted_t<const term_t> > _original_args)
-    : pb_rcheckable_t(get_backtrace(_src)),
+    : bt_rcheckable_t(backtrace_id_t(_src.get())),
       src(std::move(_src)),
       argspec(std::move(_argspec)),
       original_args(std::move(_original_args)) {
@@ -112,7 +110,7 @@ argvec_t arg_terms_t::start_eval(scope_env_t *env, eval_flags_t flags) const {
             scoped_ptr_t<val_t> v = (*it)->eval(env, new_flags);
             datum_t d = v->as_datum();
             for (size_t i = 0; i < d.arr_size(); ++i) {
-                args.push_back(make_counted<faux_term_t>(get_backtrace(src), d.get(i)));
+                args.push_back(make_counted<faux_term_t>(backtrace(), d.get(i)));
             }
         } else {
             args.push_back(counted_t<const runtime_term_t>(*it));
@@ -164,9 +162,9 @@ args_t::args_t(const op_term_t *_op_term,
     : op_term(_op_term), argv(std::move(_argv)), arg0(std::move(_arg0)) { }
 
 
-op_term_t::op_term_t(compile_env_t *env, protob_t<const Term> term,
+op_term_t::op_term_t(compile_env_t *env, const protob_t<const Term> term,
                      argspec_t argspec, optargspec_t optargspec)
-    : term_t(term) {
+        : term_t(term) {
     std::vector<counted_t<const term_t> > original_args;
     original_args.reserve(term->args_size());
     for (int i = 0; i < term->args_size(); ++i) {
@@ -178,15 +176,15 @@ op_term_t::op_term_t(compile_env_t *env, protob_t<const Term> term,
 
     for (int i = 0; i < term->optargs_size(); ++i) {
         const Term_AssocPair *ap = &term->optargs(i);
-        rcheck(optargspec.contains(ap->key()),
-               base_exc_t::GENERIC,
-               strprintf("Unrecognized optional argument `%s`.",
-                         ap->key().c_str()));
-        counted_t<const term_t> t = compile_term(env, term.make_child(&ap->val()));
+        rcheck_src(backtrace_id_t(&ap->val()), optargspec.contains(ap->key()),
+                   base_exc_t::GENERIC, strprintf("Unrecognized optional argument `%s`.",
+                                                  ap->key().c_str()));
+        counted_t<const term_t> t =
+            compile_term(env, term.make_child(&ap->val()));
         auto res = optargs.insert(std::make_pair(ap->key(), std::move(t)));
-        rcheck(res.second,
-               base_exc_t::GENERIC,
-               strprintf("Duplicate optional argument: %s", ap->key().c_str()));
+        rcheck_src(backtrace_id_t(&ap->val()), res.second,
+                   base_exc_t::GENERIC, strprintf("Duplicate optional argument: %s",
+                                                  ap->key().c_str()));
     }
 }
 op_term_t::~op_term_t() { }

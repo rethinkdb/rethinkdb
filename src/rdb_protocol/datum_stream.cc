@@ -329,11 +329,10 @@ bool intersecting_reader_t::load_items(env_t *env, const batchspec_t &batchspec)
                 r_sanity_check(unfiltered_items[i].key.size() > 0);
                 store_key_t pkey(ql::datum_t::extract_primary(unfiltered_items[i].key));
                 if (processed_pkeys.count(pkey) == 0) {
-                    if (processed_pkeys.size() >= env->limits().array_size_limit()) {
-                        throw ql::exc_t(ql::base_exc_t::GENERIC,
-                            "Array size limit exceeded during geospatial index "
-                            "traversal.", NULL);
-                    }
+                    rcheck_toplevel(
+                        processed_pkeys.size() < env->limits().array_size_limit(),
+                        ql::base_exc_t::GENERIC,
+                        "Array size limit exceeded during geospatial index traversal.");
                     processed_pkeys.insert(pkey);
                     items.push_back(std::move(unfiltered_items[i]));
                 }
@@ -806,12 +805,12 @@ counted_t<datum_stream_t> datum_stream_t::ordered_distinct() {
     return make_counted<ordered_distinct_datum_stream_t>(counted_from_this());
 }
 
-datum_stream_t::datum_stream_t(const protob_t<const Backtrace> &bt_src)
-    : pb_rcheckable_t(bt_src), batch_cache_index(0), grouped(false) {
+datum_stream_t::datum_stream_t(backtrace_id_t bt)
+    : bt_rcheckable_t(bt), batch_cache_index(0), grouped(false) {
 }
 
 void datum_stream_t::add_grouping(transform_variant_t &&tv,
-                                  const protob_t<const Backtrace> &bt) {
+                                  backtrace_id_t bt) {
     check_not_grouped("Cannot call `group` on the output of `group` "
                       "(did you mean to `ungroup`?).");
     grouped = true;
@@ -823,7 +822,7 @@ void datum_stream_t::check_not_grouped(const char *msg) {
 
 std::vector<datum_t>
 datum_stream_t::next_batch(env_t *env, const batchspec_t &batchspec) {
-    DEBUG_ONLY_CODE(env->do_eval_callback());
+    env->do_eval_callback();
     if (env->interruptor->is_pulsed()) {
         throw interrupted_exc_t();
     }
@@ -867,7 +866,7 @@ bool datum_stream_t::batch_cache_exhausted() const {
 }
 
 void eager_datum_stream_t::add_transformation(
-    transform_variant_t &&tv, const protob_t<const Backtrace> &bt) {
+    transform_variant_t &&tv, backtrace_id_t bt) {
     ops.push_back(make_op(tv));
     transforms.push_back(std::move(tv));
     update_bt(bt);
@@ -937,15 +936,14 @@ datum_t eager_datum_stream_t::as_array(env_t *env) {
 }
 
 // LAZY_DATUM_STREAM_T
-lazy_datum_stream_t::lazy_datum_stream_t(
-    scoped_ptr_t<reader_t> &&_reader,
-    const protob_t<const Backtrace> &bt_src)
-    : datum_stream_t(bt_src),
+lazy_datum_stream_t::lazy_datum_stream_t(scoped_ptr_t<reader_t> &&_reader,
+                                         backtrace_id_t bt)
+    : datum_stream_t(bt),
       current_batch_offset(0),
       reader(std::move(_reader)) { }
 
 void lazy_datum_stream_t::add_transformation(transform_variant_t &&tv,
-                                             const protob_t<const Backtrace> &bt) {
+                                             backtrace_id_t bt) {
     reader->add_transformation(std::move(tv));
     update_bt(bt);
 }
@@ -977,8 +975,8 @@ bool lazy_datum_stream_t::is_infinite() const {
 }
 
 array_datum_stream_t::array_datum_stream_t(datum_t _arr,
-                                           const protob_t<const Backtrace> &bt_source)
-    : eager_datum_stream_t(bt_source), index(0), arr(_arr) { }
+                                           backtrace_id_t bt)
+    : eager_datum_stream_t(bt), index(0), arr(_arr) { }
 
 datum_t array_datum_stream_t::next(env_t *env, const batchspec_t &bs) {
     return ops_to_do() ? datum_stream_t::next(env, bs) : next_arr_el();
@@ -1286,7 +1284,7 @@ private:
 union_datum_stream_t::union_datum_stream_t(
     env_t *env,
     std::vector<counted_t<datum_stream_t> > &&streams,
-    const protob_t<const Backtrace> &bt_src,
+    backtrace_id_t bt,
     size_t expected_states)
     : datum_stream_t(bt_src),
       union_type(feed_type_t::not_feed),
@@ -1397,7 +1395,7 @@ union_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) 
 }
 
 void union_datum_stream_t::add_transformation(transform_variant_t &&tv,
-                                              const protob_t<const Backtrace> &bt) {
+                                              backtrace_id_t bt) {
     for (auto &&coro_stream : coro_streams) {
         coro_stream->stream->add_transformation(transform_variant_t(tv), bt);
     }
@@ -1466,8 +1464,8 @@ std::vector<changespec_t> union_datum_stream_t::get_changespecs() {
 range_datum_stream_t::range_datum_stream_t(bool _is_infinite_range,
                                            int64_t _start,
                                            int64_t _stop,
-                                           const protob_t<const Backtrace> &bt_source)
-    : eager_datum_stream_t(bt_source),
+                                           backtrace_id_t bt)
+    : eager_datum_stream_t(bt),
       is_infinite_range(_is_infinite_range),
       start(_start),
       stop(_stop) { }
@@ -1511,10 +1509,11 @@ bool range_datum_stream_t::is_exhausted() const {
 }
 
 // MAP_DATUM_STREAM_T
-map_datum_stream_t::map_datum_stream_t(std::vector<counted_t<datum_stream_t> > &&_streams,
-                                       counted_t<const func_t> &&_func,
-                                       const protob_t<const Backtrace> &bt_src)
-    : eager_datum_stream_t(bt_src), streams(std::move(_streams)), func(std::move(_func)),
+map_datum_stream_t::map_datum_stream_t(
+        std::vector<counted_t<datum_stream_t> > &&_streams,
+        counted_t<const func_t> &&_func,
+        backtrace_id_t bt)
+    : eager_datum_stream_t(bt), streams(std::move(_streams)), func(std::move(_func)),
       union_type(feed_type_t::not_feed), is_array_map(true), is_infinite_map(true) {
     for (const auto &stream : streams) {
         is_array_map &= stream->is_array();
@@ -1566,10 +1565,10 @@ bool map_datum_stream_t::is_exhausted() const {
 }
 
 vector_datum_stream_t::vector_datum_stream_t(
-        const protob_t<const Backtrace> &bt_source,
+        backtrace_id_t bt,
         std::vector<datum_t> &&_rows,
         boost::optional<ql::changefeed::keyspec_t> &&_changespec) :
-    eager_datum_stream_t(bt_source),
+    eager_datum_stream_t(bt),
     rows(std::move(_rows)),
     index(0),
     changespec(std::move(_changespec)) { }
@@ -1606,7 +1605,7 @@ std::vector<datum_t> vector_datum_stream_t::next_raw_batch(
 }
 
 void vector_datum_stream_t::add_transformation(
-    transform_variant_t &&tv, const protob_t<const Backtrace> &bt) {
+    transform_variant_t &&tv, backtrace_id_t bt) {
     if (changespec) {
         if (auto *rng = boost::get<changefeed::keyspec_t::range_t>(&changespec->spec)) {
             rng->transforms.push_back(tv);

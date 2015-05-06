@@ -30,7 +30,7 @@ init () {
     all_libs="$required_libs $optional_libs $other_libs"
     default_static="tcmalloc jemalloc"
 
-    web_assets_deps="npm lessc coffee handlebars browserify bluebird"
+    web_assets_deps="npm coffee browserify bluebird"
     required_bin_deps="protoc python"
     optional_bin_deps="wget curl"
     bin_deps="cxx $web_assets_deps $required_bin_deps $optional_bin_deps"
@@ -105,6 +105,7 @@ configure () {
         fi
     fi
     boolvar USE_PRECOMPILED_WEB_ASSETS $enable_precompiled_web
+    check_admin_deps
     for bin in $required_bin_deps; do
         require_dep $bin
         check_bin $bin
@@ -313,11 +314,7 @@ dep_descrs=':
 cxx:C++ Compiler
 protoc:Protobuf compiler
 npm:Node.js package manager
-lessc:LESS css
-coffee:CoffeeScript
-handlebars:Handlebars
 unwind:libunwind
-tcmalloc_minimal:Google Perf Tools library
 v8:v8 javascript engine
 protobuf:Protobuf library
 browserify:Browserify
@@ -1111,7 +1108,6 @@ check_boost () {
 bin_pkg_name () {
     case "$1" in
         protoc) echo protobuf ;;
-        lessc) echo less ;;
         coffee) echo coffee-script ;;
         npm) echo node ;;
         # The curl-bin package doesn't exist. It is placed here to avoid
@@ -1178,6 +1174,15 @@ check_cxx11 () {
     if $can_show; then
         show_no "C++11"
     fi
+}
+
+check_admin_deps () {
+    require "web UI dependencies"
+    local version
+    version=$(pkg version admin-deps)
+    add_fetch admin-deps
+    macro "GULP"         "\$(abspath \$(SUPPORT_BUILD_DIR)/admin-deps_$version/bin/gulp)"
+    macro "GULP_BIN_DEP" "\$(SUPPORT_BUILD_DIR)/admin-deps_$version/bin/gulp"
 }
 
 # The root of the source tree

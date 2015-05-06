@@ -495,23 +495,35 @@ def nonblocking_readline(source):
         
         # wrap around to pass the data back
 
-def cleanupPath(path):
-    '''meant to be used with atexit, this deletes the given folder'''
-    path = str(path)
-    if os.path.isdir(path):
-        try:
-            shutil.rmtree(path)
-        except Exception as e:
-            warnings.warn('Warning: unable to cleanup folder: %s - got error: %s' % (str(path), str(e)))
-    elif os.path.isfile(path):
-        try:
-            os.unlink(path)
-        except Exception as e:
-            warnings.warn('Warning: unable to cleanup file: %s - got error: %s' % (str(path), str(e)))
+pathsToClean = []
+@atexit.register # Note that this needs to be registerd with atexit before driver.endRunningServers
+def atExitCleanup():
+    '''Delete all of the paths that registered using cleanupPathAtExit.'''
+    
+    for path in pathsToClean:
+        if not os.path.exists(path):
+            continue
+        
+        elif os.path.isdir(path):
+            try:
+                shutil.rmtree(path)
+            except Exception as e:
+                sys.stdout.write('Warning: unable to cleanup folder: %s - got error: %s\n' % (str(path), str(e)))
+        elif os.path.isfile(path):
+            try:
+                os.unlink(path)
+            except Exception as e:
+                sys.stdout.write('Warning: unable to cleanup file: %s - got error: %s\n' % (str(path), str(e)))
 
 def cleanupPathAtExit(path):
-    '''helper for cleanupPath'''
-    atexit.register(cleanupPath, path)
+    '''method to register with atExitCleanup'''
+    
+    path = str(path)
+    assert os.path.exists(path), 'cleanupPathAtExit given a non-existent path: %s' % path
+    
+    global pathsToClean
+    if path not in pathsToClean:
+        pathsToClean.append(path)
 
 def getShardRanges(conn, table, db='test'):
     '''Given a table and a connection return a list of tuples'''
@@ -616,7 +628,7 @@ class NextWithTimeout(threading.Thread):
                 continue
             try:
                 self.latestResult = next(self.feed)
-                time.sleep(.5)
+                time.sleep(.05)
             except Exception as e:
                 self.latestResult = e
                 if not self.stopOnEmpty:

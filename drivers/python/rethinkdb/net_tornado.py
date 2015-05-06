@@ -57,7 +57,9 @@ class TornadoCursor(Cursor):
         while len(self.items) == 0 and self.error is None:
             self._maybe_fetch_batch()
             yield with_absolute_timeout(deadline, self.new_response)
-        raise gen.Return(len(self.items) != 0)
+        # If there is a (non-empty) error to be received, we return True, so the
+        # user will receive it on the next `next` call.
+        raise gen.Return(len(self.items) != 0 or not isinstance(self.error, RqlCursorEmpty))
 
     def _empty_error(self):
         # We do not have RqlCursorEmpty inherit from StopIteration as that interferes
@@ -87,7 +89,16 @@ class ConnectionInstance(object):
             self._io_loop = IOLoop.current()
 
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
-        self._stream = iostream.IOStream(self._socket, io_loop=self._io_loop)
+        self._socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        if len(self._parent.ssl) > 0:
+            ssl_options = {}
+            if self._parent.ssl["ca_certs"]:
+                ssl_options['ca_certs'] = self._parent.ssl["ca_certs"]
+                ssl_options['cert_reqs'] = 2 # ssl.CERT_REQUIRED
+            self._stream = iostream.SSLIOStream(
+                self._socket, ssl_options=ssl_options, io_loop=self._io_loop)
+        else:
+            self._stream = iostream.IOStream(self._socket, io_loop=self._io_loop)
 
     @gen.coroutine
     def connect(self, timeout):
@@ -96,7 +107,8 @@ class ConnectionInstance(object):
             yield with_absolute_timeout(
                 deadline,
                 self._stream.connect((self._parent.host,
-                                      self._parent.port)),
+                                      self._parent.port),
+                                      server_hostname=self._parent.host),
                 io_loop=self._io_loop,
                 quiet_exceptions=(iostream.StreamClosedError))
         except Exception as err:

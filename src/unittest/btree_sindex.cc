@@ -36,8 +36,7 @@ TPTEST(BTreeSindex, LowLevelOps) {
     cache_conn_t cache_conn(&cache);
 
     {
-        txn_t txn(&cache_conn, write_durability_t::HARD,
-                  repli_timestamp_t::distant_past, 1);
+        txn_t txn(&cache_conn, write_durability_t::HARD, 1);
         buf_lock_t sb_lock(&txn, SUPERBLOCK_ID, alt_create_t::create);
         real_superblock_t superblock(std::move(sb_lock));
         btree_slice_t::init_real_superblock(&superblock,
@@ -53,7 +52,6 @@ TPTEST(BTreeSindex, LowLevelOps) {
         scoped_ptr_t<real_superblock_t> superblock;
         get_btree_superblock_and_txn_for_writing(&cache_conn, nullptr,
                                                  write_access_t::write, 1,
-                                                 repli_timestamp_t::distant_past,
                                                  write_durability_t::SOFT,
                                                  &superblock, &txn);
 
@@ -79,7 +77,6 @@ TPTEST(BTreeSindex, LowLevelOps) {
         scoped_ptr_t<real_superblock_t> superblock;
         get_btree_superblock_and_txn_for_writing(&cache_conn, nullptr,
                                                  write_access_t::write, 1,
-                                                 repli_timestamp_t::distant_past,
                                                  write_durability_t::SOFT,
                                                  &superblock, &txn);
         buf_lock_t sindex_block(superblock->expose_buf(),
@@ -94,7 +91,6 @@ TPTEST(BTreeSindex, LowLevelOps) {
         scoped_ptr_t<real_superblock_t> superblock;
         get_btree_superblock_and_txn_for_writing(&cache_conn, nullptr,
                                                  write_access_t::write, 1,
-                                                 repli_timestamp_t::distant_past,
                                                  write_durability_t::SOFT,
                                                  &superblock, &txn);
         buf_lock_t sindex_block(superblock->expose_buf(),
@@ -165,7 +161,7 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
             scoped_ptr_t<txn_t> txn;
             scoped_ptr_t<real_superblock_t> super_block;
 
-            store.acquire_superblock_for_write(repli_timestamp_t::distant_past,
+            store.acquire_superblock_for_write(
                     1, write_durability_t::SOFT, &token,
                     &txn, &super_block, &dummy_interruptor);
 
@@ -183,8 +179,7 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
             scoped_ptr_t<txn_t> txn;
             scoped_ptr_t<real_superblock_t> super_block;
 
-            store.acquire_superblock_for_write(repli_timestamp_t::distant_past,
-                                               1, write_durability_t::SOFT, &token,
+            store.acquire_superblock_for_write(1, write_durability_t::SOFT, &token,
                                                &txn, &super_block, &dummy_interruptor);
 
             buf_lock_t sindex_block(super_block->expose_buf(),
@@ -203,7 +198,7 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
             scoped_ptr_t<real_superblock_t> super_block;
 
             store.acquire_superblock_for_write(
-                    repli_timestamp_t::distant_past, 1, write_durability_t::SOFT,
+                    1, write_durability_t::SOFT,
                     &token, &txn, &super_block,
                     &dummy_interruptor);
 
@@ -276,8 +271,7 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> super_block;
 
-        store.acquire_superblock_for_write(repli_timestamp_t::distant_past,
-                                           1, write_durability_t::SOFT, &token,
+        store.acquire_superblock_for_write(1, write_durability_t::SOFT, &token,
                                            &txn, &super_block, &dummy_interruptor);
 
         buf_lock_t sindex_block(super_block->expose_buf(),

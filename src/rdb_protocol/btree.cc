@@ -225,11 +225,13 @@ batched_replace_response_t rdb_replace_and_return_superblock(
         rdb_value_sizer_t sizer(info.superblock->cache()->max_block_size());
         find_keyvalue_location_for_write(&sizer, info.superblock,
                                          info.key->btree_key(),
+                                         info.btree->timestamp,
                                          deletion_context->balancing_detacher(),
                                          &kv_location,
-                                         &info.btree->slice->stats,
                                          trace,
                                          superblock_promise);
+        info.btree->slice->stats.pm_keys_set.record();
+        info.btree->slice->stats.pm_total_keys_set += 1;
 
         ql::datum_t old_val;
         if (!kv_location.value.has()) {
@@ -448,10 +450,11 @@ void rdb_set(const store_key_t &key,
              promise_t<superblock_t *> *pass_back_superblock) {
     keyvalue_location_t kv_location;
     rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
-    find_keyvalue_location_for_write(&sizer, superblock, key.btree_key(),
+    find_keyvalue_location_for_write(&sizer, superblock, key.btree_key(), timestamp,
                                      deletion_context->balancing_detacher(),
-                                     &kv_location, &slice->stats, trace,
-                                     pass_back_superblock);
+                                     &kv_location, trace, pass_back_superblock);
+    slice->stats.pm_keys_set.record();
+    slice->stats.pm_total_keys_set += 1;
     const bool had_value = kv_location.value.has();
 
     /* update the modification report */
@@ -570,8 +573,10 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice,
                 profile::trace_t *trace) {
     keyvalue_location_t kv_location;
     rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
-    find_keyvalue_location_for_write(&sizer, superblock, key.btree_key(),
-            deletion_context->balancing_detacher(), &kv_location, &slice->stats, trace);
+    find_keyvalue_location_for_write(&sizer, superblock, key.btree_key(), timestamp,
+            deletion_context->balancing_detacher(), &kv_location, trace);
+    slice->stats.pm_keys_set.record();
+    slice->stats.pm_total_keys_set += 1;
     bool exists = kv_location.value.has();
 
     /* Update the modification report. */
@@ -725,11 +730,13 @@ done_traversing_t rget_cb_t::handle_pair(
     lazy_json_t row(static_cast<const rdb_value_t *>(keyvalue.value()),
                     keyvalue.expose_buf());
     ql::datum_t val;
+
+    // Count stats whether or not we deserialize the value
+    io.slice->stats.pm_keys_read.record();
+    io.slice->stats.pm_total_keys_read += 1;
     // We only load the value if we actually use it (`count` does not).
     if (job.accumulator->uses_val() || job.transformers.size() != 0 || sindex) {
         val = row.get();
-        io.slice->stats.pm_keys_read.record();
-        io.slice->stats.pm_total_keys_read += 1;
     } else {
         row.reset();
     }
@@ -786,7 +793,7 @@ done_traversing_t rget_cb_t::handle_pair(
 #ifndef NDEBUG
         unreachable();
 #else
-        io.response->result = ql::exc_t(e, NULL);
+        io.response->result = ql::exc_t(e, ql::backtrace_id_t::empty());
         return done_traversing_t::YES;
 #endif // NDEBUG
     }
@@ -927,7 +934,8 @@ void rdb_get_nearest_slice(
             callback.finish(&partial_response);
         } catch (const geo_exception_t &e) {
             partial_response.results_or_error =
-                ql::exc_t(ql::base_exc_t::GENERIC, e.what(), NULL);
+                ql::exc_t(ql::base_exc_t::GENERIC, e.what(),
+                          ql::backtrace_id_t::empty());
         }
         if (boost::get<ql::exc_t>(&partial_response.results_or_error)) {
             response->results_or_error = partial_response.results_or_error;
@@ -1213,14 +1221,22 @@ void compute_keys(const store_key_t &primary_key,
                     keys_out->push_back(std::make_pair(store_key_t(*it), skey));
                 }
             } else {
-                keys_out->push_back(
-                    std::make_pair(
-                        store_key_t(
-                            skey.print_secondary(
-                                ql::skey_version_from_reql_version(reql_version),
-                                primary_key,
-                                i)),
-                        skey));
+                try {
+                    keys_out->push_back(
+                        std::make_pair(
+                            store_key_t(
+                                skey.print_secondary(
+                                    ql::skey_version_from_reql_version(reql_version),
+                                    primary_key,
+                                    i)),
+                            skey));
+                } catch (const ql::base_exc_t &e) {
+                    if (reql_version < reql_version_t::v2_1) {
+                        throw e;
+                    }
+                    // One of the values couldn't be converted to an index key.
+                    // Ignore it and move on to the next one.
+                }
             }
         }
     } else {
@@ -1278,7 +1294,8 @@ void deserialize_sindex_info(const std::vector<char> &data,
     case cluster_version_t::v1_14:
     case cluster_version_t::v1_15:
     case cluster_version_t::v1_16:
-    case cluster_version_t::v2_0_is_latest:
+    case cluster_version_t::v2_0:
+    case cluster_version_t::v2_1_is_latest:
         success = deserialize_for_version(
                 cluster_version,
                 &read_stream,
@@ -1396,9 +1413,9 @@ void rdb_update_single_sindex(
                         &sizer,
                         superblock,
                         it->first.btree_key(),
+                        repli_timestamp_t::distant_past,
                         deletion_context->balancing_detacher(),
                         &kv_location,
-                        &sindex->btree->stats,
                         trace,
                         &return_superblock_local);
 
@@ -1476,9 +1493,9 @@ void rdb_update_single_sindex(
                         &sizer,
                         superblock,
                         it->first.btree_key(),
+                        repli_timestamp_t::distant_past,
                         deletion_context->balancing_detacher(),
                         &kv_location,
-                        &sindex->btree->stats,
                         trace,
                         &return_superblock_local);
 
@@ -1629,7 +1646,6 @@ public:
                     // Other than that, the hard durability guarantee is not actually
                     // needed here.
                     store_->acquire_superblock_for_write(
-                            repli_timestamp_t::distant_past,
                             2 + MAX_CHUNK_SIZE,
                             write_durability_t::HARD,
                             &token,

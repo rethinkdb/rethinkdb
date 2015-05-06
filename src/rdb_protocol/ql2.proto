@@ -335,6 +335,10 @@ message Term {
         DIV = 27; // NUMBER... -> NUMBER
         MOD = 28; // NUMBER, NUMBER -> NUMBER
 
+        FLOOR = 183;    // NUMBER -> NUMBER
+        CEIL = 184;     // NUMBER -> NUMBER
+        ROUND = 185;    // NUMBER -> NUMBER
+
         // DATUM Array Ops
         // Append a single element to the end of an array (like `snoc`).
         APPEND = 29; // ARRAY, DATUM -> ARRAY
@@ -357,7 +361,7 @@ message Term {
         SKIP  = 70; // Sequence, NUMBER -> Sequence
         LIMIT = 71; // Sequence, NUMBER -> Sequence
         OFFSETS_OF = 87; // Sequence, DATUM -> Sequence | Sequence, Function(1) -> Sequence
-        CONTAINS = 93; // Sequence, DATUM -> BOOL | Sequence, Function(1) -> BOOL
+        CONTAINS = 93; // Sequence, (DATUM | Function(1))... -> BOOL
 
         // Stream/Object Ops
         // Get a particular field from an object, or map that over a
@@ -408,7 +412,7 @@ message Term {
         // Map a function over a sequence and then concatenate the results together.
         CONCAT_MAP = 40; // Sequence, Function(1) -> Sequence
         // Order a sequence based on one or more attributes.
-        ORDER_BY   = 41; // Sequence, (!STRING | Ordering)... -> Sequence
+        ORDER_BY   = 41; // Sequence, (!STRING | Ordering)..., {index: (!STRING | Ordering)} -> Sequence
         // Get all distinct elements of a sequence (like `uniq`).
         DISTINCT  = 42; // Sequence -> Sequence
         // Count the number of elements in a sequence, or only the elements that match

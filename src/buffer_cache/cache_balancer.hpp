@@ -146,7 +146,7 @@ private:
         alt::evicter_t *evicter;
         uint64_t new_size;
         uint64_t old_size;
-        uint64_t bytes_loaded;
+        int64_t bytes_loaded;
         uint64_t access_count;
     };
 

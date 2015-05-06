@@ -19,9 +19,4 @@ protob_t<Query> make_counted_query() {
     return protob_t<Query>(query, &query->query);
 }
 
-protob_t<Backtrace> make_counted_backtrace() {
-    protob_backtrace_t *pointee = new protob_backtrace_t();
-    return protob_t<Backtrace>(pointee, &pointee->backtrace);
-}
-
 }  // namespace ql

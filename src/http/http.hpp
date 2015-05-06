@@ -147,13 +147,6 @@ protected:
     virtual ~http_app_t() { }
 };
 
-class scoped_cJSON_t;
-
-class http_json_app_t : public http_app_t {
-public:
-    virtual void get_root(scoped_cJSON_t *json_out) = 0;
-};
-
 /* creating an http server will bind to the specified port and listen for http
  * connections, the data from incoming connections will be parsed into
  * http_req_ts and passed to the handle function which must then return an http

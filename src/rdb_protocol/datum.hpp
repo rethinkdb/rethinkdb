@@ -15,10 +15,13 @@
 #include <boost/optional.hpp>
 
 #include "btree/keys.hpp"
+#include "cjson/json.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/counted.hpp"
 #include "rdb_protocol/datum_string.hpp"
-#include "http/json.hpp"
+#include "rapidjson/document.h"
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
 #include "rdb_protocol/configured_limits.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/serialize_datum.hpp"
@@ -198,8 +201,6 @@ public:
     // TODO(2015-01): Remove this constructor, it's a hack.
     datum_t(std::map<datum_string_t, datum_t> &&object, no_sanitize_ptype_t);
 
-    ~datum_t();
-
     // has() checks whether a datum is uninitialized. reset() makes any datum
     // uninitialized.
     bool has() const;
@@ -213,7 +214,7 @@ public:
     std::string get_reql_type() const;
     std::string get_type_name(
         name_for_sorting_t for_sorting = name_for_sorting_t::NO) const;
-    std::string print() const;
+    std::string print(reql_version_t reql_version = reql_version_t::LATEST) const;
     static const size_t trunc_len = 300;
     std::string trunc_print() const;
     std::string print_primary() const;
@@ -288,10 +289,15 @@ public:
                   const configured_limits_t &limits,
                   std::set<std::string> *conditions) const;
 
+    // json_writer_t can be rapidjson::Writer<rapidjson::StringBuffer>
+    // or rapidjson::PrettyWriter<rapidjson::StringBuffer>
+    template <class json_writer_t> void write_json(json_writer_t *writer) const;
+
+    // DEPRECATED: Used for backwards compatibility with reql_versions before 2.1
     cJSON *as_json_raw() const;
     scoped_cJSON_t as_json() const;
-    counted_t<datum_stream_t> as_datum_stream(
-            const protob_t<const Backtrace> &backtrace) const;
+
+    counted_t<datum_stream_t> as_datum_stream(backtrace_id_t backtrace) const;
 
     // These behave as expected and defined in RQL.  Theoretically, two data of the
     // same type should compare appropriately, while disparate types are compared
@@ -457,6 +463,11 @@ private:
 };
 
 datum_t to_datum(const Datum *d, const configured_limits_t &, reql_version_t);
+datum_t to_datum(
+    const rapidjson::Value &json,
+    const configured_limits_t &,
+    reql_version_t);
+// DEPRECATED: Used in the r.json term for pre 2.1 backwards compatibility
 datum_t to_datum(cJSON *json, const configured_limits_t &, reql_version_t);
 
 // This should only be used to send responses to the client.

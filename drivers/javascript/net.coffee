@@ -15,6 +15,11 @@
 # objects
 net = require('net')
 
+# The [tls module](http://nodejs.org/api/tls.html) is the TLS/SSL
+# networking library Node.js provides. We need it to establish an
+# encrypted connection for `TcpConnection` objects
+tls = require('tls')
+
 # The [events module](http://nodejs.org/api/events.html) is a core
 # Node.js module that provides the ability for objects to emit events,
 # and for callbacks to be attached to those events.
@@ -143,6 +148,19 @@ class Connection extends events.EventEmitter
         @authKey = host.authKey || @DEFAULT_AUTH_KEY
         @timeout = host.timeout || @DEFAULT_TIMEOUT
 
+        # Configuration options for enabling an SSL connection
+        # Allows the ability to pass in all the options as specified in
+        # [tls.connect](https://nodejs.org/api/tls.html#tls_tls_connect_options_callback)
+        # or just true  in case the client wants ssl but the server
+        # is using a certificate with a valid verified chain and there
+        # is no need to specify certificates on the client
+        if typeof host.ssl is 'boolean' && host.ssl
+            @ssl = {}
+        else if typeof host.ssl is 'object'
+            @ssl = host.ssl
+        else
+            @ssl = false
+
         # The protocol allows for responses to queries on the same
         # connection to be returned interleaved. When a query is run
         # with this connection, an entry is added to
@@ -224,6 +242,11 @@ class Connection extends events.EventEmitter
             @open = true
             callback null, @
         @once 'connect', conCallback
+
+        # closePromise holds the promise created when `.close()` is
+        # first called. Subsequent calls to close will simply add to
+        # this promise, rather than attempt closing again.
+        @_closePromise = null
 
 
     # #### Connection _data method
@@ -465,9 +488,8 @@ class Connection extends events.EventEmitter
                     else
                         cb new err.RqlDriverError "Unknown response type"
         else
-            # Throw an error if we get a response with a token not
-            # found in `@outstandingCallbacks`
-            @emit 'error', new err.RqlDriverError "Unexpected token #{token}."
+            # We just ignore tokens we don't have a record of. This is
+            # what the other drivers do as well.
 
     # #### Connection close method
     #
@@ -503,6 +525,21 @@ class Connection extends events.EventEmitter
             unless key in ['noreplyWait']
                 throw new err.RqlDriverError "First argument to two-argument `close` must be { noreplyWait: <bool> }."
 
+        # If we're currently in the process of closing, just add the
+        # callback to the current promise
+        if @_closePromise?
+            return @_closePromise.nodeify(cb)
+        else if not @open
+            # if we're closed, we still need to return a promise. So
+            # we create a dummy promise that resolves on the next tick
+            # of the event loop and will invoke all of the callbacks
+            # attached to it.
+            return new Promise((resolve, reject) =>
+                if cb?
+                    cb(null , @)
+                else
+                process.nextTick(resolve)
+            )
         # Next we set `@closing` to true. It will be set false once
         # the promise that `.close` returns resolves (see below). The
         # `isOpen` method takes this variable into account.
@@ -534,7 +571,11 @@ class Connection extends events.EventEmitter
         # here. Those steps are done in the subclasses because they
         # have knowledge about what kind of underlying connection is
         # being used.
-        new Promise( (resolve, reject) =>
+        #
+        # We save the promise here in case others attempt to call
+        # `close` before we've gotten a response from the server (when
+        # the @closing flag is true).
+        @_closePromise = new Promise( (resolve, reject) =>
         # Now we create the Promise that `.close` returns. If we
         # aren't waiting for `noreply` queries, then we set the flags
         # and cancel feeds/cursors immediately. If we are waiting,
@@ -549,6 +590,7 @@ class Connection extends events.EventEmitter
                 @open = false
                 @closing = false
                 @cancel()
+                @_closePromise = null
                 if err?
                     reject err
                 else
@@ -656,14 +698,10 @@ class Connection extends events.EventEmitter
                 opts = {}
             cb = callback
 
-        # Disconnect and reconnect with the same parameters. Right now
-        # this code explicitly mentions the `@rawSocket` attribute,
-        # which is only present on the TcpConnection subclass. This
-        # code should probably move to that class ultimately.
+        # Here we call `close` with a callback that will reconnect
+        # with the same parameters
         new Promise( (resolve, reject) =>
             closeCb = (err) =>
-                @rawSocket.removeAllListeners()
-                @rawSocket = null # The rawSocket has been closed
                 @constructor.call @,
                     host:@host,
                     port:@port
@@ -880,7 +918,10 @@ class TcpConnection extends Connection
         # Next we create the underlying tcp connection to the server
         # using the net module and store it in the `@rawSocket`
         # attribute.
-        @rawSocket = net.connect @port, @host
+        if @ssl
+            @rawSocket = tls.connect options
+        else
+            @rawSocket = net.connect @port, @host
 
         # We disable [Nagle's
         # algorithm](http://en.wikipedia.org/wiki/Nagle%27s_algorithm)
@@ -1080,13 +1121,29 @@ class TcpConnection extends Connection
         #    promise).
         new Promise( (resolve, reject) =>
             wrappedCb = (error, result) =>
-                @rawSocket.once "close", =>
+                closeCb = =>
                     if error?
                         reject error
                     else
                         resolve result
-
-                @rawSocket.end()
+                if @rawSocket?
+                    @rawSocket.once("close", =>
+                        closeCb()
+                        # In the case where we're actually being
+                        # called in response to the rawSocket 'close'
+                        # event, we need to additionally clean up the
+                        # rawSocket.
+                        @rawSocket.removeAllListeners()
+                        @rawSocket = null
+                    )
+                    @rawSocket.end()
+                else
+                    # If the rawSocket is already closed, there's no
+                    # reason to wait for a 'close' event that will
+                    # never come. However we still need to fulfill the
+                    # promise interface, so we do the next best thing
+                    # and resolve it on the next event loop tick.
+                    process.nextTick(closeCb)
 
             TcpConnection.__super__.close.call(@, opts, wrappedCb)
         ).nodeify cb

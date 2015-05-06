@@ -185,7 +185,6 @@ void post_construct_and_drain_queue(
             // Other than that, the hard durability guarantee is not actually
             // needed here.
             store->acquire_superblock_for_write(
-                repli_timestamp_t::distant_past,
                 2,
                 write_durability_t::HARD,
                 &token,
@@ -266,7 +265,6 @@ void post_construct_and_drain_queue(
         scoped_ptr_t<real_superblock_t> queue_superblock;
 
         store->acquire_superblock_for_write(
-            repli_timestamp_t::distant_past,
             2,
             write_durability_t::HARD,
             &token,
@@ -759,10 +757,11 @@ void rdb_r_unshard_visitor_t::unshard_range_batch(const query_t &q, sorting_t so
 #else
             if (out->skey_version != resp->skey_version) {
                 out->result = ql::exc_t(
-                    base_exc_t::GENERIC,
+                    ql::base_exc_t::GENERIC,
                     strprintf("INTERNAL ERROR: mismatched skey versions %d and %d.",
                               out->skey_version,
-                              resp->skey_version));
+                              resp->skey_version),
+                    ql::backtrace_id_t::empty());
                 return;
             }
 #endif // NDEBUG

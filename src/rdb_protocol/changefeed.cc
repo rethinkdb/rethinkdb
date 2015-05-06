@@ -1871,8 +1871,10 @@ public:
             ASSERT_NO_CORO_WAITING;
             if (include_initial_vals) {
                 if (include_states) els.push_back(initializing_datum());
-                for (auto &&it : active_data) {
-                    els.push_back(vals_to_change(datum_t(), (*it)->second.second, true));
+                for (auto it = active_data.rbegin(); it != active_data.rend(); ++it) {
+                    els.push_back(
+                        datum_t(std::map<datum_string_t, datum_t>{
+                                {datum_string_t("new_val"), (**it)->second.second}}));
                 }
             }
             if (include_states) els.push_back(ready_datum());
@@ -2944,7 +2946,7 @@ counted_t<datum_stream_t> client_t::new_stream(
     const datum_t &squash,
     bool include_states,
     const namespace_id_t &uuid,
-    const protob_t<const Backtrace> &bt,
+    backtrace_id_t bt,
     const std::string &table_name,
     const keyspec_t::spec_t &spec) {
     try {
@@ -3053,7 +3055,7 @@ counted_t<datum_stream_t> artificial_t::subscribe(
     const keyspec_t::spec_t &spec,
     const std::string &primary_key_name,
     const std::vector<datum_t> &initial_values,
-    const protob_t<const Backtrace> &bt) {
+    backtrace_id_t bt) {
     // It's OK not to switch threads here because `feed.get()` can be called
     // from any thread and `new_sub` ends up calling `feed_t::add_sub_with_lock`
     // which does the thread switch itself.  If you later change this to switch

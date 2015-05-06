@@ -19,6 +19,8 @@
 #include "containers/auth_key.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protob/json_shim.hpp"
+#include "rapidjson/stringbuffer.h"
+#include "rdb_protocol/backtrace.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rpc/semilattice/view.hpp"
 #include "utils.hpp"
@@ -161,7 +163,8 @@ public:
             Response error_response;
             error_response.set_token(token);
             ql::fill_error(&error_response, Response::CLIENT_ERROR,
-                           too_large_query_message(size));
+                           too_large_query_message(size),
+                           ql::backtrace_registry_t::EMPTY_BACKTRACE);
             send_response(error_response, handler, conn, interruptor);
             throw tcp_conn_read_closed_exc_t();
         } else {
@@ -169,11 +172,14 @@ public:
             conn->read(data.data(), size, interruptor);
             data[size] = 0; // Null terminate the string, which the json parser requires
 
-            if (!json_shim::parse_json_pb(query_out->get(), token, data.data())) {
+            if (!json_shim::parse_json_pb(query_out->get(),
+                                          token,
+                                          data.data())) {
                 Response error_response;
                 error_response.set_token(token);
                 ql::fill_error(&error_response, Response::CLIENT_ERROR,
-                               unparseable_query_message);
+                               unparseable_query_message,
+                               ql::backtrace_registry_t::EMPTY_BACKTRACE);
                 send_response(error_response, handler, conn, interruptor);
                 return false;
             }
@@ -190,33 +196,34 @@ public:
         uint32_t data_size; // filled in below
         const size_t prefix_size = sizeof(token) + sizeof(data_size);
         // Reserve space for the token and the size
-        std::string str(prefix_size, '\0');
+        rapidjson::StringBuffer str;
+        str.Push(prefix_size);
 
         json_shim::write_json_pb(response, &str);
-        guarantee(str.size() >= prefix_size);
+        guarantee(str.GetSize() >= prefix_size);
 
-        if (str.size() - prefix_size >= TOO_LARGE_RESPONSE_SIZE) {
+        if (str.GetSize() - prefix_size >= TOO_LARGE_RESPONSE_SIZE) {
             Response error_response;
             error_response.set_token(response.token());
             ql::fill_error(&error_response, Response::RUNTIME_ERROR,
-                           too_large_response_message(str.size() - prefix_size));
+                           too_large_response_message(str.GetSize() - prefix_size),
+                           ql::backtrace_registry_t::EMPTY_BACKTRACE);
             send_response(error_response, handler, conn, interruptor);
             return;
         }
 
-        data_size = static_cast<uint32_t>(str.size() - prefix_size);
+        data_size = static_cast<uint32_t>(str.GetSize() - prefix_size);
 
         // Fill in the prefix.
-        // std::string::operator[] has unspecified complexity, but in practice
-        // it should be fine.
+        char *mutable_str = str.GetMutableBuffer();
         for (size_t i = 0; i < sizeof(token); ++i) {
-            str[i] = reinterpret_cast<const char *>(&token)[i];
+            mutable_str[i] = reinterpret_cast<const char *>(&token)[i];
         }
         for (size_t i = 0; i < sizeof(data_size); ++i) {
-            str[i + sizeof(token)] = reinterpret_cast<const char *>(&data_size)[i];
+            mutable_str[i + sizeof(token)] = reinterpret_cast<const char *>(&data_size)[i];
         }
 
-        conn->write(str.data(), str.size(), interruptor);
+        conn->write(str.GetString(), str.GetSize(), interruptor);
     }
 };
 
@@ -233,7 +240,8 @@ public:
             Response error_response;
             error_response.set_token(0); // We don't actually know the token
             ql::fill_error(&error_response, Response::CLIENT_ERROR,
-                           too_large_query_message(size));
+                           too_large_query_message(size),
+                           ql::backtrace_registry_t::EMPTY_BACKTRACE);
             send_response(error_response, handler, conn, interruptor);
             return false;
         } else {
@@ -245,7 +253,8 @@ public:
                 error_response.set_token(query_out->get()->has_token() ?
                                          query_out->get()->token() : 0);
                 ql::fill_error(&error_response, Response::CLIENT_ERROR,
-                               unparseable_query_message);
+                               unparseable_query_message,
+                               ql::backtrace_registry_t::EMPTY_BACKTRACE);
                 send_response(error_response, handler, conn, interruptor);
                 return false;
             }
@@ -262,7 +271,8 @@ public:
             Response error_response;
             error_response.set_token(response.token());
             ql::fill_error(&error_response, Response::RUNTIME_ERROR,
-                           too_large_response_message(data_size));
+                           too_large_response_message(data_size),
+                           ql::backtrace_registry_t::EMPTY_BACKTRACE);
             send_response(error_response, handler, conn, interruptor);
         } else {
             const size_t prefix_size = sizeof(data_size);
@@ -393,8 +403,19 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
                                       pre_4 ? ql::return_empty_normal_batches_t::YES :
                                               ql::return_empty_normal_batches_t::NO);
 
-        const char *success_msg = "SUCCESS";
-        conn->write(success_msg, strlen(success_msg) + 1, &ct_keepalive);
+        switch (wire_protocol) {
+            case VersionDummy::JSON:
+            case VersionDummy::PROTOBUF: break;
+            default: {
+                throw protob_server_exc_t(strprintf("Unrecognized protocol specified: '%d'",
+                                                    wire_protocol));
+            }
+        }
+
+        if (!pre_2) {
+            const char *success_msg = "SUCCESS";
+            conn->write(success_msg, strlen(success_msg) + 1, &ct_keepalive);
+        }
 
         if (wire_protocol == VersionDummy::JSON) {
             connection_loop<json_protocol_t>(
@@ -403,8 +424,7 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
             connection_loop<protobuf_protocol_t>(
                 conn.get(), max_concurrent_queries, &query_cache, &ct_keepalive);
         } else {
-            throw protob_server_exc_t(strprintf("Unrecognized protocol specified: '%d'",
-                                                wire_protocol));
+            unreachable();
         }
     } catch (const protob_server_exc_t &ex) {
         // Can't write response here due to coro switching inside exception handler
@@ -438,15 +458,18 @@ void query_server_t::make_error_response(bool is_draining,
     if (!conn.is_write_open()) {
         // The other side closed it's socket - it won't get this message
         ql::fill_error(response_out, Response::RUNTIME_ERROR,
-                       "Client closed the connection.");
+                       "Client closed the connection.",
+                       ql::backtrace_registry_t::EMPTY_BACKTRACE);
     } else if (is_draining) {
         // The query_server_t is being destroyed so this won't actually be written
         ql::fill_error(response_out, Response::RUNTIME_ERROR,
-                       "Server is shutting down.");
+                       "Server is shutting down.",
+                       ql::backtrace_registry_t::EMPTY_BACKTRACE);
     } else {
         // Sort of a catch-all - there could be other reasons for this
         ql::fill_error(response_out, Response::RUNTIME_ERROR,
-                       strprintf("Fatal error on another query: %s", err_str.c_str()));
+                       strprintf("Fatal error on another query: %s", err_str.c_str()),
+                       ql::backtrace_registry_t::EMPTY_BACKTRACE);
     }
 }
 
@@ -464,13 +487,6 @@ void save_exception(std::exception_ptr *err,
         }
         abort->pulse_if_not_already_pulsed();
     }
-}
-
-bool should_reply(const ql::protob_t<Query> &query) {
-    ql::datum_t noreply = static_optarg("noreply", query);
-    return !(noreply.has() &&
-             noreply.get_type() == ql::datum_t::type_t::R_BOOL &&
-             noreply.as_bool());
 }
 
 template <class protocol_t>
@@ -523,7 +539,7 @@ void query_server_t::connection_loop(tcp_conn_t *conn,
             save_exception(&err, &err_str, &abort, [&]() {
                     handler->run_query(std::move(query_id), query_pb, &response,
                                        query_cache, &cb_interruptor);
-                    if (should_reply(query_pb)) {
+                    if (!ql::is_noreply(query_pb)) {
                         response.set_token(query_pb->token());
                         new_mutex_acq_t send_lock(&send_mutex, &cb_interruptor);
                         protocol_t::send_response(response, handler,
@@ -532,7 +548,7 @@ void query_server_t::connection_loop(tcp_conn_t *conn,
                     }
                 });
 
-            if (!replied && should_reply(query_pb)) {
+            if (!replied && !ql::is_noreply(query_pb)) {
                 save_exception(&err, &err_str, &abort, [&]() {
                         make_error_response(drain_signal->is_pulsed(), *conn,
                                             err_str, &response);
@@ -567,7 +583,7 @@ void query_server_t::connection_loop(tcp_conn_t *conn,
 
     // Respond to any queries still in the run queue
     for (auto const &pair : query_list) {
-        if (should_reply(pair.second)) {
+        if (!ql::is_noreply(pair.second)) {
             Response response;
             save_exception(&err, &err_str, &abort, [&]() {
                     make_error_response(drain_signal->is_pulsed(), *conn,
@@ -626,8 +642,13 @@ void query_server_t::handle(const http_req_t &req,
         return;
     }
 
+    // Copy the body into a mutable buffer so we can move it into parse_json_pb.
+    std::vector<char> body_buf(req.body.size() + 1);
+    memcpy(body_buf.data(), req.body.data(), req.body.size());
+    body_buf[req.body.size()] = '\0';
+
     // Parse the token out from the start of the request
-    const char *data = req.body.c_str();
+    char *data = body_buf.data();
     token = *reinterpret_cast<const int64_t *>(data);
     data += sizeof(token);
 
@@ -635,16 +656,19 @@ void query_server_t::handle(const http_req_t &req,
         json_shim::parse_json_pb(query.get(), token, data);
 
     if (!parse_succeeded) {
-        ql::fill_error(&response, Response::CLIENT_ERROR, unparseable_query_message);
+        ql::fill_error(&response, Response::CLIENT_ERROR,
+                       unparseable_query_message,
+                       ql::backtrace_registry_t::EMPTY_BACKTRACE);
     } else {
         counted_t<http_conn_cache_t::http_conn_t> conn = http_conn_cache.find(conn_id);
         if (!conn.has()) {
             ql::fill_error(&response, Response::CLIENT_ERROR,
-                           "This HTTP connection is not open.");
+                           "This HTTP connection is not open.",
+                           ql::backtrace_registry_t::EMPTY_BACKTRACE);
         } else {
             // Check for noreply, which we don't support here, as it causes
             // problems with interruption
-            if (!should_reply(query)) {
+            if (ql::is_noreply(query)) {
                 *result = http_res_t(http_status_code_t::BAD_REQUEST,
                                      "application/text",
                                      "noreply queries are not supported over HTTP\n");
@@ -662,16 +686,20 @@ void query_server_t::handle(const http_req_t &req,
                     // This will only be sent back if this was interrupted by a http conn
                     // cache timeout.
                     ql::fill_error(&response, Response::RUNTIME_ERROR,
-                                   http_conn_cache.expired_error_message());
+                                   http_conn_cache.expired_error_message(),
+                                   ql::backtrace_registry_t::EMPTY_BACKTRACE);
                 } else if (interruptor->is_pulsed()) {
                     ql::fill_error(&response, Response::RUNTIME_ERROR,
-                                   "This ReQL connection has been terminated.");
+                                   "This ReQL connection has been terminated.",
+                                   ql::backtrace_registry_t::EMPTY_BACKTRACE);
                 } else if (drainer.is_draining()) {
                     ql::fill_error(&response, Response::RUNTIME_ERROR,
-                                   "Server is shutting down.");
+                                   "Server is shutting down.",
+                                   ql::backtrace_registry_t::EMPTY_BACKTRACE);
                 } else if (conn->get_interruptor()->is_pulsed()) {
                     ql::fill_error(&response, Response::RUNTIME_ERROR,
-                                   "This ReQL connection has been terminated.");
+                                   "This ReQL connection has been terminated.",
+                                   ql::backtrace_registry_t::EMPTY_BACKTRACE);
                 } else {
                     throw;
                 }
@@ -681,20 +709,27 @@ void query_server_t::handle(const http_req_t &req,
 
     response.set_token(token);
 
-    uint32_t size;
-    std::string str;
-
+    rapidjson::StringBuffer str;
     json_shim::write_json_pb(response, &str);
-    size = str.size();
+    if (str.GetSize() >= TOO_LARGE_RESPONSE_SIZE) {
+        Response error_response;
+        error_response.set_token(response.token());
+        ql::fill_error(&error_response, Response::RUNTIME_ERROR,
+                       too_large_response_message(str.GetSize()),
+                       ql::backtrace_registry_t::EMPTY_BACKTRACE);
+        str.Clear();
+        json_shim::write_json_pb(error_response, &str);
+    }
+    uint32_t size = static_cast<uint32_t>(str.GetSize());
 
     char header_buffer[sizeof(token) + sizeof(size)];
     memcpy(&header_buffer[0], &token, sizeof(token));
     memcpy(&header_buffer[sizeof(token)], &size, sizeof(size));
 
     std::string body_data;
-    body_data.reserve(sizeof(header_buffer) + str.length());
+    body_data.reserve(sizeof(header_buffer) + str.GetSize());
     body_data.append(&header_buffer[0], sizeof(header_buffer));
-    body_data.append(str);
+    body_data.append(str.GetString(), str.GetSize());
     result->set_body("application/octet-stream", body_data);
     result->code = http_status_code_t::OK;
 }

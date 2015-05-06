@@ -226,7 +226,7 @@ private:
                     r::reql_t f = r::var(row)[idx_str];
                     body->Swap(&f.get());
                 }
-                propagate(body.get());
+                propagate_backtrace(body.get(), backtrace());
                 counted_t<datum_stream_t> s = tbl_slice->as_seq(env->env, backtrace());
                 map_wire_func_t mwf(body, std::move(distinct_args), backtrace());
                 s->add_transformation(std::move(mwf), backtrace());
@@ -265,16 +265,20 @@ private:
     virtual const char *name() const { return "distinct"; }
 };
 
-counted_t<term_t> make_orderby_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_orderby_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<orderby_term_t>(env, term);
 }
-counted_t<term_t> make_distinct_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_distinct_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<distinct_term_t>(env, term);
 }
-counted_t<term_t> make_asc_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_asc_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<asc_term_t>(env, term);
 }
-counted_t<term_t> make_desc_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_desc_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<desc_term_t>(env, term);
 }
 

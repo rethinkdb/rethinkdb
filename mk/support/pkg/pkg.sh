@@ -274,6 +274,7 @@ pkg () {
 
 # Configure some default paths
 pkg_dir=$(niceabspath "$(dirname $0)")
+root_dir=$(niceabspath "$pkg_dir/../../..")
 conf_dir=$(niceabspath "$pkg_dir/../config")
 external_dir=$(niceabspath "$pkg_dir/../../../external")
 root_build_dir=${BUILD_ROOT_DIR:-$(niceabspath "$pkg_dir/../../../build")}

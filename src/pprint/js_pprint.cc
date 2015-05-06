@@ -906,6 +906,9 @@ static void pprint_update_reminder() {
     case Term::BETWEEN_DEPRECATED:
     case Term::MINVAL:
     case Term::MAXVAL:
+    case Term::FLOOR:
+    case Term::CEIL:
+    case Term::ROUND:
         break;
     }
     Datum_DatumType d = Datum::R_NULL;

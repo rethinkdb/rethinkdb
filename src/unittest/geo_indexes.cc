@@ -160,7 +160,7 @@ void prepare_namespace(namespace_interface_t *nsi,
 
     const ql::sym_t arg(1);
     ql::protob_t<const Term> mapping = ql::r::var(arg).release_counted();
-    ql::map_wire_func_t m(mapping, make_vector(arg), get_backtrace(mapping));
+    ql::map_wire_func_t m(mapping, make_vector(arg), ql::backtrace_id_t::empty());
 
     write_t write(sindex_create_t(index_id, m, sindex_multi_bool_t::SINGLE,
                                   sindex_geo_bool_t::GEO),

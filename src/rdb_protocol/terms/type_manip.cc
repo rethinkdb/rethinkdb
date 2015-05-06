@@ -5,6 +5,8 @@
 #include <map>
 #include <string>
 
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/op.hpp"
@@ -188,7 +190,16 @@ private:
 
                 // DATUM -> STR
                 if (end_type == R_STR_TYPE) {
-                    return new_val(datum_t(datum_string_t(d.print())));
+                    if (env->env->reql_version() < reql_version_t::v2_1) {
+                        return new_val(datum_t(
+                            datum_string_t(d.print(env->env->reql_version()))));
+                    } else {
+                        rapidjson::StringBuffer buffer;
+                        rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+                        d.write_json(&writer);
+                        return new_val(datum_t(
+                            datum_string_t(buffer.GetSize(), buffer.GetString())));
+                    }
                 }
 
                 // OBJECT -> ARRAY
@@ -417,7 +428,8 @@ private:
         case R_OBJECT_TYPE: // fallthru
         case DATUM_TYPE: {
             b |= info.add("value",
-                          datum_t(datum_string_t(v->as_datum().print())));
+                          datum_t(datum_string_t(
+                              v->as_datum().print(env->env->reql_version()))));
         } break;
 
         default: r_sanity_check(false);
@@ -431,19 +443,19 @@ private:
 };
 
 counted_t<term_t> make_coerce_term(
-    compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<coerce_term_t>(env, term);
 }
 counted_t<term_t> make_ungroup_term(
-    compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<ungroup_term_t>(env, term);
 }
 counted_t<term_t> make_typeof_term(
-    compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<typeof_term_t>(env, term);
 }
 counted_t<term_t> make_info_term(
-    compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<info_term_t>(env, term);
 }
 

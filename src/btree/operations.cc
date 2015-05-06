@@ -122,11 +122,11 @@ void check_and_handle_split(value_sizer_t *sizer,
         detach_all_children(node, buf_parent_t(buf), detacher);
     }
 
-    // (Perhaps) increase rbuf's recency to the max of the current txn's recency and
-    // buf's subtrees' recencies.  (This is conservative since rbuf doesn't have all
-    // of buf's subtrees.)
-    rbuf.manually_touch_recency(superceding_recency(rbuf.get_recency(),
-                                                    buf->get_recency()));
+    // Since we moved subtrees from `buf` to `rbuf`, we need to set `rbuf`'s recency
+    // greater than that of any of its subtrees. We know that `buf`'s recency is greater
+    // than that of any of the subtrees that were moved, so we can just copy `buf`'s
+    // recency onto `rbuf`. This is more conservative than it needs to be.
+    rbuf.set_recency(buf->get_recency());
 
     // Insert the key that sets the two nodes apart into the parent.
     if (last_buf->empty()) {
@@ -137,9 +137,8 @@ void check_and_handle_split(value_sizer_t *sizer,
             internal_node::init(sizer->block_size(),
                                 static_cast<internal_node_t *>(last_write.get_data_write()));
         }
-        // We set the recency of the new root block to the max of the subtrees'
-        // recency and the current transaction's recency.
-        last_buf->manually_touch_recency(buf->get_recency());
+        // We set the recency of the new root block to the recency of its two sub-trees.
+        last_buf->set_recency(buf->get_recency());
 
         insert_root(last_buf->block_id(), sb);
     }
@@ -272,10 +271,13 @@ void check_and_handle_underfull(value_sizer_t *sizer,
             sib_buf.mark_deleted();
             sib_buf.reset_buf_lock();
 
-            // We moved all of sib_buf's subtrees into buf, so buf's recency needs to
-            // be increased to the max of its new set of subtrees (a superset of what
-            // it was before) and the current txn's recency.
-            buf->manually_touch_recency(superceding_recency(buf_recency, sib_buf_recency));
+            /* `buf` now has sub-trees that came from both `buf` and `sib_buf`. We need
+            to set its recency greater than or equal to any of its new sub-trees. We know
+            that `buf`'s and `sib_buf`'s old recencies were greater than or equal to
+            those of their old sub-trees, so the greater of their recencies must be
+            greater than or equal to that of any sub-tree now in `buf`. This is more
+            conservative than it needs to be. */
+            buf->set_recency(superceding_recency(buf_recency, sib_buf_recency));
 
             if (!parent_was_doubleton) {
                 buf_write_t last_buf_write(last_buf);
@@ -338,12 +340,12 @@ void check_and_handle_underfull(value_sizer_t *sizer,
                 }
             }
 
-            // We moved new subtrees or values into buf, so its recency may need to
-            // be increased.  (We conservatively update it to the max of our subtrees
-            // and sib_buf's subtrees and our current txn's recency, to simplify the
-            // code.)
-            buf->manually_touch_recency(superceding_recency(sib_buf.get_recency(),
-                                                            buf->get_recency()));
+            // We moved new subtrees or values into `buf`, so its recency may need to
+            // be increased. Conservatively update it to the max of its old recency and
+            // `sib_buf`'s recency, because `sib_buf`'s recency is known to be greater
+            // than or equal to the recency of any of the moved subtrees or values.
+            buf->set_recency(superceding_recency(
+                sib_buf.get_recency(), buf->get_recency()));
 
             if (leveled) {
                 buf_write_t last_buf_write(last_buf);
@@ -364,17 +366,15 @@ void check_and_handle_underfull(value_sizer_t *sizer,
 void find_keyvalue_location_for_write(
         value_sizer_t *sizer,
         superblock_t *superblock, const btree_key_t *key,
+        repli_timestamp_t timestamp,
         const value_deleter_t *balancing_detacher,
         keyvalue_location_t *keyvalue_location_out,
-        btree_stats_t *stats,
         profile::trace_t *trace,
         promise_t<superblock_t *> *pass_back_superblock) THROWS_NOTHING {
     keyvalue_location_out->superblock = superblock;
     keyvalue_location_out->pass_back_superblock = pass_back_superblock;
 
     keyvalue_location_out->stat_block = keyvalue_location_out->superblock->get_stat_block_id();
-
-    keyvalue_location_out->stats = stats;
 
     buf_lock_t last_buf;
     buf_lock_t buf;
@@ -425,6 +425,13 @@ void find_keyvalue_location_for_write(
         // Release the old previous node (unless we're at the root), and set
         // the next previous node (which is the current node).
         last_buf.reset_buf_lock();
+
+        // As we traverse the path, update the recency of each node to maintain the
+        // invariant that each node's recency is greater than or equal to that of any
+        // value in it. This will allow the backfill logic to efficiently find recently
+        // changed nodes. Note that we do this after the split/merge/level logic; this
+        // isn't strictly necessary, but it makes the timestamps slightly tighter.
+        buf.set_recency(superceding_recency(buf.get_recency(), timestamp));
 
         // Look up and acquire the next node.
         block_id_t node_id;
@@ -577,6 +584,12 @@ void apply_keyvalue_change(
             population_change = 1;
         }
 
+        /* Update the leaf node's recency to the greater of its previous recency and the
+        newly-inserted value's recency, to maintain the invariant that its recency is
+        greater than or equal to that of any entry pair in it. */
+        const repli_timestamp_t previous_leaf_recency = kv_loc->buf.get_recency();
+        kv_loc->buf.set_recency(superceding_recency(tstamp, kv_loc->buf.get_recency()));
+
         {
             buf_write_t write(&kv_loc->buf);
             auto leaf_node = static_cast<leaf_node_t *>(write.get_data_write());
@@ -585,14 +598,21 @@ void apply_keyvalue_change(
                          key,
                          kv_loc->value.get(),
                          tstamp,
+                         previous_leaf_recency,
                          km_proof);
         }
-
-        kv_loc->stats->pm_keys_set.record();
-        kv_loc->stats->pm_total_keys_set += 1;
     } else {
         // Delete the value if it's there.
         if (kv_loc->there_originally_was_value) {
+            const repli_timestamp_t previous_leaf_recency = kv_loc->buf.get_recency();
+            if (delete_or_erase == delete_or_erase_t::DELETE) {
+                /* Update the leaf node's recency to the greater of its previous recency
+                and the deletion's recency, to maintain the invariant that its recency is
+                greater than or equal to that of any entry pair in it. */
+                kv_loc->buf.set_recency(superceding_recency(
+                    tstamp, kv_loc->buf.get_recency()));
+            }
+
             {
                 buf_write_t write(&kv_loc->buf);
                 auto leaf_node = static_cast<leaf_node_t *>(write.get_data_write());
@@ -602,6 +622,7 @@ void apply_keyvalue_change(
                              leaf_node,
                              key,
                              tstamp,
+                             previous_leaf_recency,
                              km_proof);
                     } break;
                     case delete_or_erase_t::ERASE: {
@@ -615,8 +636,6 @@ void apply_keyvalue_change(
 
             }
             population_change = -1;
-            kv_loc->stats->pm_keys_set.record();
-            kv_loc->stats->pm_total_keys_set += 1;
         } else {
             population_change = 0;
         }

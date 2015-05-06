@@ -13,6 +13,8 @@ var tests = [r.dbCreate('test')]
 var failure_count = 0;
 var tests_run = 0;
 
+var start_time = Date.now()
+
 // Provides a context for variables
 var defines = {}
 
@@ -164,7 +166,8 @@ function returnTrue() {
 
 function TRACE(){
     if (TRACE_ENABLED) {
-        console.log.apply(console, ["TRACE"].concat([].splice.call(arguments, 0)));
+    	var prefix = "TRACE " + ((Date.now() - start_time) / 1000).toFixed(2) + ": \t";
+        console.log(prefix.concat([].splice.call(arguments, 0)));
     }
 }
 
@@ -454,22 +457,19 @@ function processResult(err, result, test) {
                 result.each(
                     function processResult_iter(err, row) {
                         if (err) {
-	                        TRACE('processResult_iter err: ' + err)
+	                        TRACE('processResult_iter err: ' + err);
 	                        compareResult(err, accumulator, test);
                         } else {
-	                        TRACE('processResult_iter value')
+	                        TRACE('processResult_iter value');
                             try {
                                 if (test.testopts && test.testopts.rowfilter) {
                                     filterFunction = new Function('input', test.testopts.rowfilter);
-                                    row = filterFunction(row)
-                                    if (row) {
-                                        accumulator.push();
+                                    row = filterFunction(row);
+                                    if (typeof row != 'undefined') {
+                                        accumulator.push(row);
                                     }
                                 } else {
                                     accumulator.push(row);
-                                }
-                                if (test.testopts.result_limit && accumulator.length >= test.testopts.result_limit) {
-                                    return false; // stop iterating
                                 }
                             } catch(err) {
                                 console.log("stack: " + String(err.stack));
@@ -478,10 +478,10 @@ function processResult(err, result, test) {
                         }
                     },
                     function processResult_iterFinal() {
-                        TRACE('processResult_final' + test)
+                        TRACE('processResult_final' + test);
                         if (test.testopts && test.testopts.arrayfilter) {
                             arrayFunction = new Function('input', test.testopts.arrayfilter);
-                            accumulator = arrayFunction(accumulator)
+                            accumulator = arrayFunction(accumulator);
                         }
                         compareResult(null, accumulator, test);
                     }

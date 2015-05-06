@@ -67,18 +67,17 @@ struct changespec_t {
 };
 
 class datum_stream_t : public single_threaded_countable_t<datum_stream_t>,
-                       public pb_rcheckable_t {
+                       public bt_rcheckable_t {
 public:
     virtual ~datum_stream_t() { }
     virtual void set_notes(Response *) const { }
 
     virtual std::vector<changespec_t> get_changespecs() = 0;
-    virtual void add_transformation(transform_variant_t &&tv,
-                                    const protob_t<const Backtrace> &bt) = 0;
+    virtual void add_transformation(transform_variant_t &&tv, backtrace_id_t bt) = 0;
     virtual bool add_stamp(changefeed_stamp_t stamp);
     virtual boost::optional<active_state_t> get_active_state() const;
     void add_grouping(transform_variant_t &&tv,
-                      const protob_t<const Backtrace> &bt);
+                      backtrace_id_t bt);
 
     scoped_ptr_t<val_t> run_terminal(env_t *env, const terminal_variant_t &tv);
     scoped_ptr_t<val_t> to_array(env_t *env);
@@ -112,7 +111,7 @@ public:
 protected:
     bool batch_cache_exhausted() const;
     void check_not_grouped(const char *msg);
-    explicit datum_stream_t(const protob_t<const Backtrace> &bt_src);
+    explicit datum_stream_t(backtrace_id_t bt);
 
 private:
     virtual std::vector<datum_t>
@@ -125,7 +124,7 @@ private:
 
 class eager_datum_stream_t : public datum_stream_t {
 protected:
-    explicit eager_datum_stream_t(const protob_t<const Backtrace> &bt)
+    explicit eager_datum_stream_t(backtrace_id_t bt)
         : datum_stream_t(bt) { }
     virtual datum_t as_array(env_t *env);
     bool ops_to_do() { return ops.size() != 0; }
@@ -137,7 +136,7 @@ protected:
     std::vector<transform_variant_t> transforms;
 
     virtual void add_transformation(transform_variant_t &&tv,
-                                    const protob_t<const Backtrace> &bt);
+                                    backtrace_id_t bt);
 
 private:
     enum class done_t { YES, NO };
@@ -205,7 +204,7 @@ private:
 class array_datum_stream_t : public eager_datum_stream_t {
 public:
     array_datum_stream_t(datum_t _arr,
-                         const protob_t<const Backtrace> &bt_src);
+                         backtrace_id_t bt);
     virtual bool is_exhausted() const;
     virtual feed_type_t cfeed_type() const;
     virtual bool is_infinite() const;
@@ -266,11 +265,11 @@ class union_datum_stream_t : public datum_stream_t, public home_thread_mixin_t {
 public:
     union_datum_stream_t(env_t *env,
                          std::vector<counted_t<datum_stream_t> > &&_streams,
-                         const protob_t<const Backtrace> &bt_src,
+                         backtrace_id_t bt);
                          size_t expected_states = 0);
 
     virtual void add_transformation(transform_variant_t &&tv,
-                                    const protob_t<const Backtrace> &bt);
+                                    backtrace_id_t bt);
     virtual void accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv);
     virtual void accumulate_all(env_t *env, eager_acc_t *acc);
 
@@ -321,7 +320,7 @@ public:
     range_datum_stream_t(bool _is_infite_range,
                          int64_t _start,
                          int64_t _stop,
-                         const protob_t<const Backtrace> &);
+                         backtrace_id_t);
 
     virtual std::vector<datum_t>
     next_raw_batch(env_t *, const batchspec_t &batchspec);
@@ -346,7 +345,7 @@ class map_datum_stream_t : public eager_datum_stream_t {
 public:
     map_datum_stream_t(std::vector<counted_t<datum_stream_t> > &&_streams,
                        counted_t<const func_t> &&_func,
-                       const protob_t<const Backtrace> &bt_src);
+                       backtrace_id_t bt);
 
     virtual std::vector<datum_t>
     next_raw_batch(env_t *env, const batchspec_t &batchspec);
@@ -690,7 +689,7 @@ class lazy_datum_stream_t : public datum_stream_t {
 public:
     lazy_datum_stream_t(
         scoped_ptr_t<reader_t> &&_reader,
-        const protob_t<const Backtrace> &bt_src);
+        backtrace_id_t bt);
 
     virtual bool is_array() const { return false; }
     virtual datum_t as_array(UNUSED env_t *env) {
@@ -718,7 +717,7 @@ private:
     next_batch_impl(env_t *env, const batchspec_t &batchspec);
 
     virtual void add_transformation(transform_variant_t &&tv,
-                                    const protob_t<const Backtrace> &bt);
+                                    backtrace_id_t bt);
     virtual void accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv);
     virtual void accumulate_all(env_t *env, eager_acc_t *acc);
 
@@ -734,7 +733,7 @@ private:
 class vector_datum_stream_t : public eager_datum_stream_t {
 public:
     vector_datum_stream_t(
-            const protob_t<const Backtrace> &bt_source,
+            backtrace_id_t bt,
             std::vector<datum_t> &&_rows,
             boost::optional<ql::changefeed::keyspec_t> &&_changespec);
 private:
@@ -743,7 +742,7 @@ private:
     std::vector<datum_t> next_raw_batch(env_t *env, const batchspec_t &bs);
 
     void add_transformation(
-        transform_variant_t &&tv, const protob_t<const Backtrace> &bt);
+        transform_variant_t &&tv, backtrace_id_t bt);
 
     bool is_exhausted() const;
     virtual feed_type_t cfeed_type() const;

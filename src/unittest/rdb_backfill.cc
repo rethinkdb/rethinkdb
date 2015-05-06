@@ -8,6 +8,7 @@
 #include "clustering/immediate_consistency/branch/replier.hpp"
 #include "extproc/extproc_pool.hpp"
 #include "extproc/extproc_spawner.hpp"
+#include "rapidjson/document.h"
 #include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/env.hpp"
@@ -109,10 +110,11 @@ ql::datum_t generate_document(size_t value_padding_length, const std::string &va
     ql::configured_limits_t limits;
     // This is a kind of hacky way to add an object to a map but I'm not sure
     // anyone really cares.
-    return ql::to_datum(scoped_cJSON_t(cJSON_Parse(strprintf("{\"id\" : %s, \"padding\" : \"%s\"}",
-                                                             value.c_str(),
-                                                             std::string(value_padding_length, 'a').c_str()).c_str())).get(),
-                        limits, reql_version_t::LATEST);
+    rapidjson::Document doc;
+    doc.Parse(strprintf("{\"id\" : %s, \"padding\" : \"%s\"}",
+                        value.c_str(),
+                        std::string(value_padding_length, 'a').c_str()).c_str());
+    return ql::to_datum(doc, limits, reql_version_t::LATEST);
 }
 
 void write_to_broadcaster(size_t value_padding_length,
@@ -264,7 +266,7 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
         /* Create a secondary index object. */
         const ql::sym_t one(1);
         ql::protob_t<const Term> mapping = ql::r::var(one)["id"].release_counted();
-        ql::map_wire_func_t m(mapping, make_vector(one), get_backtrace(mapping));
+        ql::map_wire_func_t m(mapping, make_vector(one), ql::backtrace_id_t::empty());
 
         write_t write(sindex_create_t(id, m, sindex_multi_bool_t::SINGLE,
                                       sindex_geo_bool_t::REGULAR),
@@ -332,8 +334,9 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
 
     for (std::map<std::string, std::string>::iterator it = inserter_state.begin();
             it != inserter_state.end(); it++) {
-        scoped_cJSON_t sindex_key_json(cJSON_Parse(it->second.c_str()));
-        auto sindex_key_literal = ql::to_datum(sindex_key_json.get(),
+        rapidjson::Document sindex_key_json;
+        sindex_key_json.Parse(it->second.c_str());
+        auto sindex_key_literal = ql::to_datum(sindex_key_json,
                                                ql::configured_limits_t(),
                                                reql_version_t::LATEST);
         read_t read = make_sindex_read(sindex_key_literal, id);

@@ -51,7 +51,8 @@ class geo_obj_or_seq_op_term_t : public obj_or_seq_op_term_t {
 public:
     geo_obj_or_seq_op_term_t(compile_env_t *env, protob_t<const Term> term,
                              poly_type_t _poly_type, argspec_t argspec)
-        : obj_or_seq_op_term_t(env, term, _poly_type, argspec, std::set<std::string>{"GEOMETRY"}) { }
+        : obj_or_seq_op_term_t(env, term, _poly_type, argspec,
+                               std::set<std::string>{"GEOMETRY"}) { }
 private:
     // See comment in geo_term_t about non-determinism
     bool is_deterministic() const { return false; }
@@ -501,43 +502,56 @@ private:
 };
 
 
-counted_t<term_t> make_geojson_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_geojson_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<geojson_term_t>(env, term);
 }
-counted_t<term_t> make_to_geojson_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_to_geojson_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<to_geojson_term_t>(env, term);
 }
-counted_t<term_t> make_point_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_point_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<point_term_t>(env, term);
 }
-counted_t<term_t> make_line_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_line_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<line_term_t>(env, term);
 }
-counted_t<term_t> make_polygon_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_polygon_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<polygon_term_t>(env, term);
 }
-counted_t<term_t> make_intersects_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_intersects_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<intersects_term_t>(env, term);
 }
-counted_t<term_t> make_includes_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_includes_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<includes_term_t>(env, term);
 }
-counted_t<term_t> make_distance_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_distance_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<distance_term_t>(env, term);
 }
-counted_t<term_t> make_circle_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_circle_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<circle_term_t>(env, term);
 }
-counted_t<term_t> make_get_intersecting_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_get_intersecting_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<get_intersecting_term_t>(env, term);
 }
-counted_t<term_t> make_fill_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_fill_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<fill_term_t>(env, term);
 }
-counted_t<term_t> make_get_nearest_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_get_nearest_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<get_nearest_term_t>(env, term);
 }
-counted_t<term_t> make_polygon_sub_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_polygon_sub_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<polygon_sub_term_t>(env, term);
 }
 

@@ -456,7 +456,7 @@ int time_cmp(const datum_t &x, const datum_t &y) {
     r_sanity_check(x.is_ptype(time_string));
     r_sanity_check(y.is_ptype(time_string));
     // We know that these are both nums, so the reql_version doesn't actually affect
-    // anything (between v1_13 and v2_0_is_latest).  But it's safer not to have to
+    // anything (between v1_13 and v2_1_is_latest).  But it's safer not to have to
     // prove that, so we take it and pass it anyway.
     return x.get_field(epoch_time_key).cmp(y.get_field(epoch_time_key));
 }

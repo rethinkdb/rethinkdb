@@ -7,10 +7,13 @@ from .ast import *
 from . import docs
 from .version import version
 
+try:
+    import __builtin__ as builtins # Python 2
+except ImportError:
+    import builtins # Python 3
 
-# The __builtins__ here defends against re-importing something
-# obscuring `object`.
-class r(__builtins__['object']):
+# The builtins here defends against re-importing something obscuring `object`.
+class r(builtins.object):
     pass
 
 for module in (net, query, ast, errors):

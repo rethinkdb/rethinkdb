@@ -18,7 +18,8 @@ private:
         case reql_version_t::v1_14: // v1_15 is the same as v1_14
             break;
         case reql_version_t::v1_16:
-        case reql_version_t::v2_0_is_latest:
+        case reql_version_t::v2_0:
+        case reql_version_t::v2_1_is_latest:
             rcheck_target(v,
                           d.has() && d.get_type() == datum_t::R_OBJECT && !d.is_ptype(),
                           base_exc_t::GENERIC,
@@ -69,11 +70,13 @@ private:
     virtual const char *name() const { return "object"; }
 };
 
-counted_t<term_t> make_keys_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_keys_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<keys_term_t>(env, term);
 }
 
-counted_t<term_t> make_object_term(compile_env_t *env, const protob_t<const Term> &term){
+counted_t<term_t> make_object_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<object_term_t>(env, term);
 }
 

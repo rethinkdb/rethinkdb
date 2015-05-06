@@ -24,13 +24,13 @@
 #include "utils.hpp"
 
 // Number of messages after which the message handling loop yields
-#define MESSAGE_HANDLER_MAX_BATCH_SIZE           8
+#define MESSAGE_HANDLER_MAX_BATCH_SIZE           16
 
 // The cluster communication protocol version.
-static_assert(cluster_version_t::CLUSTER == cluster_version_t::v2_0_is_latest,
+static_assert(cluster_version_t::CLUSTER == cluster_version_t::v2_1_is_latest,
               "We need to update CLUSTER_VERSION_STRING when we add a new cluster "
               "version.");
-#define CLUSTER_VERSION_STRING "2.0"
+#define CLUSTER_VERSION_STRING "2.1.0"
 
 const std::string connectivity_cluster_t::cluster_proto_header("RethinkDB cluster\n");
 const std::string connectivity_cluster_t::cluster_version_string(CLUSTER_VERSION_STRING);
@@ -126,10 +126,20 @@ void connectivity_cluster_t::connection_t::kill_connection() {
 }
 
 connectivity_cluster_t::connection_t::connection_t(run_t *p,
-                                              peer_id_t id,
-                                              keepalive_tcp_conn_stream_t *c,
-                                              const peer_address_t &a) THROWS_NOTHING :
-    conn(c), peer_address(a),
+                                                   peer_id_t id,
+                                                   keepalive_tcp_conn_stream_t *c,
+                                                   const peer_address_t &a) THROWS_NOTHING :
+    conn(c),
+    peer_address(a),
+    flusher([&]() {
+        guarantee(this->conn != nullptr);
+        // We need to acquire the send_mutex because flushing the buffer
+        // must not interleave with other writes (restriction of linux_tcp_conn_t).
+        mutex_t::acq_t acq(&this->send_mutex);
+        // We ignore the return value of flush_buffer(). Closed connections
+        // must be handled elsewhere.
+        this->conn->flush_buffer();
+    }, 1),
     pm_collection(),
     pm_bytes_sent(secs_to_ticks(1), true),
     pm_collection_membership(&p->parent->connectivity_collection, &pm_collection,
@@ -1233,42 +1243,55 @@ void connectivity_cluster_t::send_message(connection_t *connection,
 
         /* Acquire the send-mutex so we don't collide with other things trying
         to send on the same connection. */
-        mutex_t::acq_t acq(&connection->send_mutex);
-
-        /* Write the tag to the network */
         {
-            // All cluster versions use a uint8_t tag here.
-            write_message_t wm;
-            static_assert(std::is_same<message_tag_t, uint8_t>::value,
-                          "We expect to be serializing a uint8_t -- if this has "
-                          "changed, the cluster communication format has changed and "
-                          "you need to ask yourself whether live cluster upgrades work."
-                          );
-            serialize_universal(&wm, tag);
-            int res = send_write_message(connection->conn, &wm);
-            if (res == -1) {
-                if (connection->conn->is_read_open()) {
-                    connection->conn->shutdown_read();
-                }
-                return;
-            }
-        }
+            /* The `true` is for eager waiting, which is a significant performance
+            optimization in this case. */
+            mutex_t::acq_t acq(&connection->send_mutex, true);
 
-        /* Write the message itself to the network */
-        {
-            int64_t res = connection->conn->write(buffer.vector().data(),
-                                                  buffer.vector().size());
-            if (res == -1) {
-                /* Close the other half of the connection to make sure that
-                   `connectivity_cluster_t::run_t::handle()` notices that something is
-                   up */
-                if (connection->conn->is_read_open()) {
-                    connection->conn->shutdown_read();
+            /* Write the tag to the network */
+            {
+                // All cluster versions use a uint8_t tag here.
+                write_message_t wm;
+                static_assert(std::is_same<message_tag_t, uint8_t>::value,
+                              "We expect to be serializing a uint8_t -- if this has "
+                              "changed, the cluster communication format has changed and "
+                              "you need to ask yourself whether live cluster upgrades work."
+                              );
+                serialize_universal(&wm, tag);
+                make_buffered_tcp_conn_stream_wrapper_t buffered_conn(connection->conn);
+                int res = send_write_message(&buffered_conn, &wm);
+                if (res == -1) {
+                    /* Close the other half of the connection to make sure that
+                       `connectivity_cluster_t::run_t::handle()` notices that something is
+                       up */
+                    if (connection->conn->is_read_open()) {
+                        connection->conn->shutdown_read();
+                    }
+                    return;
                 }
-                return;
-            } else {
-                guarantee(res == static_cast<int64_t>(buffer.vector().size()));
             }
+
+            /* Write the message itself to the network */
+            {
+                int64_t res = connection->conn->write_buffered(buffer.vector().data(),
+                                                               buffer.vector().size());
+                if (res == -1) {
+                    if (connection->conn->is_read_open()) {
+                        connection->conn->shutdown_read();
+                    }
+                    return;
+                } else {
+                    guarantee(res == static_cast<int64_t>(buffer.vector().size()));
+                }
+            }
+        } /* Releases the send_mutex */
+
+        connection->flusher.sync();
+        if (!connection->conn->is_write_open()) {
+            if (connection->conn->is_read_open()) {
+                connection->conn->shutdown_read();
+            }
+            return;
         }
     }
 
