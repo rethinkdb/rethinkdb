@@ -265,7 +265,7 @@ class union_datum_stream_t : public datum_stream_t, public home_thread_mixin_t {
 public:
     union_datum_stream_t(env_t *env,
                          std::vector<counted_t<datum_stream_t> > &&_streams,
-                         backtrace_id_t bt);
+                         backtrace_id_t bt,
                          size_t expected_states = 0);
 
     virtual void add_transformation(transform_variant_t &&tv,

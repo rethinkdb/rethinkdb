@@ -158,7 +158,6 @@ static void read_blob(buf_parent_t parent, const char *ref, int maxreflen,
     guarantee_deserialization(res, "T (template code)");
 }
 
-<<<<<<< HEAD
 superblock_version_t
 cluster_superblock_version(const cluster_metadata_superblock_t *sb) {
     if (sb->magic == v1_13_metadata_magic) {
