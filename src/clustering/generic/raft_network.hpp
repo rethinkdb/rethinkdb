@@ -82,7 +82,7 @@ private:
             if (value1 == nullptr) {
                 *value2_out = nullptr;
             } else {
-                static const std::nullptr_t null;
+                static const std::nullptr_t null = nullptr;
                 *value2_out = &null;
             }
         }

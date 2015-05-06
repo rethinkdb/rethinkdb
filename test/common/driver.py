@@ -506,7 +506,7 @@ class _Process(object):
         else:
             raise RuntimeError("Timed out after waiting %d seconds for startup." % timeout)
     
-    def read_ports_from_log(self, timeout=30):
+    def read_ports_from_log(self, timeout=300):
         deadline = time.time() + timeout
         
         # - wait for the log file to appear

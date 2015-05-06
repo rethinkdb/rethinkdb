@@ -27,14 +27,27 @@ contract_executor_t::contract_executor_t(
         _remote_contract_execution_bcards, &local_contract_execution_bcards,
         &local_table_query_bcards },
     perfmon_counter(0),
-    update_pumper(std::bind(&contract_executor_t::update_blocking, this, ph::_1)),
-    raft_state_subs([this]() { update_pumper.notify(); })
+    update_pumper(new pump_coro_t(
+        std::bind(&contract_executor_t::update_blocking, this, ph::_1))),
+    raft_state_subs([this]() { update_pumper->notify(); })
 {
     multistore->assert_thread();
 
     watchable_t<table_raft_state_t>::freeze_t freeze(raft_state);
     raft_state_subs.reset(raft_state, &freeze);
-    update_pumper.notify();
+    update_pumper->notify();
+}
+
+contract_executor_t::~contract_executor_t() {
+    /* Run destructors manually so that we can control how `executions` is destroyed. We
+    want to first destroy every individual execution without modifying the `std::map`,
+    then we want to destroy the `std::map`. This is because the `execution_t`s can
+    access the `std::map` via `send_ack()` until they are all destroyed. */
+    raft_state_subs.reset();
+    update_pumper.reset();
+    for (auto &&pair : executions) {
+        pair.second->execution.reset();
+    }
 }
 
 contract_executor_t::execution_key_t contract_executor_t::get_contract_key(
@@ -86,7 +99,7 @@ void contract_executor_t::update_blocking(UNUSED signal_t *interruptor) {
         }
         /* Now that we've deleted the executions, `update()` is likely to have new
         instructions for us, so we should run again. */
-        update_pumper.notify();
+        update_pumper->notify();
     }
 }
 
@@ -175,7 +188,7 @@ void contract_executor_t::send_ack(const execution_key_t &key, const contract_id
         const contract_ack_t &ack) {
     assert_thread();
     /* If the contract is out of date, don't send the ack */
-    if (executions.at(key)->contract_id == cid) {
+    if (executions.at(key).has() && executions.at(key)->contract_id == cid) {
         ack_map.set_key_no_equals(std::make_pair(server_id, cid), ack);
     }
 }

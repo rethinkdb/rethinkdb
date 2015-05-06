@@ -32,6 +32,7 @@ public:
         io_backender_t *io_backender,
         backfill_throttler_t *backfill_throttler,
         perfmon_collection_t *perfmons);
+    ~contract_executor_t();
 
     watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> *get_acks() {
         return &ack_map;
@@ -158,7 +159,7 @@ private:
     destroy `raft_state_subs` before `update_pumper` because it notifies `update_pumper`,
     but we must destroy `update_pumper` before the other member variables because
     `update_blocking()` accesses them. */
-    pump_coro_t update_pumper;
+    scoped_ptr_t<pump_coro_t> update_pumper;
 
     /* We subscribe to changes in the Raft committed state so we can find out when a new
     contract has been issued. */
