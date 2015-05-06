@@ -297,11 +297,13 @@ public:
     virtual void load_multistore(
         const namespace_id_t &table_id,
         scoped_ptr_t<multistore_ptr_t> *multistore_ptr_out,
-        signal_t *interruptor) = 0;
+        signal_t *interruptor,
+        perfmon_collection_t *perfmon_collection_serializers) = 0;
     virtual void create_multistore(
         const namespace_id_t &table_id,
         scoped_ptr_t<multistore_ptr_t> *multistore_ptr_out,
-        signal_t *interruptor) = 0;
+        signal_t *interruptor,
+        perfmon_collection_t *perfmon_collection_serializers) = 0;
     virtual void destroy_multistore(
         const namespace_id_t &table_id,
         scoped_ptr_t<multistore_ptr_t> *multistore_ptr_in,

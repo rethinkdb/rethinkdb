@@ -147,7 +147,7 @@ private:
             const raft_member_id_t &member_id,
             const raft_persistent_state_t<table_raft_state_t> &initial_state,
             multistore_ptr_t *multistore_ptr,
-            perfmon_collection_repo_t::collections_t *perfmon_collections);
+            perfmon_collection_t *perfmon_collection_namespace);
 
         raft_member_t<table_raft_state_t> *get_raft() {
             return manager.get_raft();

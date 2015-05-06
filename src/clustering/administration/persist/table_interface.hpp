@@ -18,15 +18,13 @@ public:
             const base_path_t &_base_path,
             outdated_index_issue_tracker_t *_outdated_index_issue_tracker,
             rdb_context_t *_rdb_context,
-            metadata_file_t *_metadata_file,
-            perfmon_collection_repo_t *_perfmon_collection_repo) :
+            metadata_file_t *_metadata_file) :
         io_backender(_io_backender),
         cache_balancer(_cache_balancer),
         base_path(_base_path),
         outdated_index_issue_tracker(_outdated_index_issue_tracker),
         rdb_context(_rdb_context),
         metadata_file(_metadata_file),
-        perfmon_collection_repo(_perfmon_collection_repo),
         thread_counter(0)
         { }
 
@@ -46,11 +44,13 @@ public:
     void load_multistore(
         const namespace_id_t &table_id,
         scoped_ptr_t<multistore_ptr_t> *multistore_ptr_out,
-        signal_t *interruptor);
+        signal_t *interruptor,
+        perfmon_collection_t *perfmon_collection_serializers);
     void create_multistore(
         const namespace_id_t &table_id,
         scoped_ptr_t<multistore_ptr_t> *multistore_ptr_out,
-        signal_t *interruptor);
+        signal_t *interruptor,
+        perfmon_collection_t *perfmon_collection_serializers);
     void destroy_multistore(
         const namespace_id_t &table_id,
         scoped_ptr_t<multistore_ptr_t> *multistore_ptr_in,
@@ -66,7 +66,6 @@ private:
     outdated_index_issue_tracker_t * const outdated_index_issue_tracker;
     rdb_context_t * const rdb_context;
     metadata_file_t * const metadata_file;
-    perfmon_collection_repo_t *perfmon_collection_repo;
 
     /* `pick_thread()` uses this to distribute objects evenly over threads */
     int thread_counter;

@@ -188,7 +188,8 @@ void real_table_persistence_interface_t::delete_metadata(
 void real_table_persistence_interface_t::load_multistore(
         const namespace_id_t &table_id,
         scoped_ptr_t<multistore_ptr_t> *multistore_ptr_out,
-        signal_t *interruptor) {
+        signal_t *interruptor,
+        perfmon_collection_t *perfmon_collection_serializers) {
     scoped_ptr_t<real_branch_history_manager_t> bhm(
         new real_branch_history_manager_t(table_id, metadata_file, interruptor));
 
@@ -197,9 +198,6 @@ void real_table_persistence_interface_t::load_multistore(
     for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
         store_threads.push_back(pick_thread());
     }
-
-    perfmon_collection_repo_t::collections_t *perfmon_collections =
-        perfmon_collection_repo->get_perfmon_collections_for_namespace(table_id);
 
     multistore_ptr_out->init(new real_multistore_ptr_t(
         table_id,
@@ -210,7 +208,7 @@ void real_table_persistence_interface_t::load_multistore(
         cache_balancer,
         rdb_context,
         outdated_index_issue_tracker,
-        &perfmon_collections->serializers_collection,
+        perfmon_collection_serializers,
         serializer_thread,
         store_threads));
 }
@@ -218,8 +216,10 @@ void real_table_persistence_interface_t::load_multistore(
 void real_table_persistence_interface_t::create_multistore(
         const namespace_id_t &table_id,
         scoped_ptr_t<multistore_ptr_t> *multistore_ptr_out,
-        signal_t *interruptor) {
-    load_multistore(table_id, multistore_ptr_out, interruptor);
+        signal_t *interruptor,
+        perfmon_collection_t *perfmon_collection_serializers) {
+    load_multistore(
+        table_id, multistore_ptr_out, interruptor, perfmon_collection_serializers);
 }
 
 void real_table_persistence_interface_t::destroy_multistore(

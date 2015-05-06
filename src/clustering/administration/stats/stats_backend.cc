@@ -134,7 +134,7 @@ bool stats_artificial_table_backend_t::read_all_rows_as_vector(
     std::map<namespace_id_t, table_config_and_shards_t> configs;
     try {
         table_meta_client->list_configs(interruptor, &configs);
-    catch (const failed_table_op_exc_t &) {
+    } catch (const failed_table_op_exc_t &) {
         // We failed to contact at least one server for every table
         return false;
     }

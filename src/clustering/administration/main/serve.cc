@@ -252,8 +252,7 @@ bool do_serve(io_backender_t *io_backender,
                         base_path,
                         outdated_index_issue_tracker.get(),
                         &rdb_ctx,
-                        metadata_file,
-                        &perfmon_collection_repo));
+                        metadata_file));
                 multi_table_manager.init(new multi_table_manager_t(
                     server_id,
                     &mailbox_manager,
