@@ -103,7 +103,7 @@ describe('Cursor tests', function() {
         });
     });
     
-    // ensure tableCursor is valid before each test
+    // ensure reqlConn is valid before each test
     beforeEach(function() { return withConnection(); });
     
     describe('nested function style', function() {
