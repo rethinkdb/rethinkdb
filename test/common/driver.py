@@ -200,7 +200,7 @@ class Cluster(object):
         for proc in self.processes:
             proc.check()
     
-    def wait_until_ready(self, timeout=30):
+    def wait_until_ready(self, timeout=300):
         for server in self.processes:
             server.wait_until_started_up(timeout=timeout)
         # ToDo: try all of them in parallel to handle the timeout correctly
@@ -327,7 +327,7 @@ class Files(object):
 class _Process(object):
     # Base class for Process & ProxyProcess. Do not instantiate directly.
     
-    startupTimeout = 30
+    startupTimeout = 300
     
     running = False
     ready = False
@@ -494,7 +494,7 @@ class _Process(object):
     def uuid(self):
         return self.__wait_for_value('uuid')
         
-    def wait_until_started_up(self, timeout=30):
+    def wait_until_started_up(self, timeout=300):
         deadline = time.time() + timeout
         while deadline > time.time():
             if not self.ready:
