@@ -931,6 +931,8 @@ page_txn_t::page_txn_t(page_cache_t *page_cache,
 }
 
 void page_txn_t::connect_preceder(page_txn_t *preceder) {
+    page_cache_->assert_thread();
+    rassert(preceder->page_cache_ == page_cache_);
     // We can't add ourselves as a preceder, we have to avoid that.
     rassert(preceder != this);
     // The flush_complete_cond_ is pulsed at the same time that this txn is removed
