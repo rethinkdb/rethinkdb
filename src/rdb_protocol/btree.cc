@@ -1327,7 +1327,8 @@ void deserialize_sindex_info(const std::vector<char> &data,
         break;
     case cluster_version_t::v1_15: // fallthru
     case cluster_version_t::v1_16: // fallthru
-    case cluster_version_t::v2_0_is_latest:
+    case cluster_version_t::v2_0: // fallthru
+    case cluster_version_t::v2_1_is_latest:
         success = deserialize_for_version(cluster_version, &read_stream, &info_out->geo);
         throw_if_bad_deserialization(success, "sindex description");
         break;

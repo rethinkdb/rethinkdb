@@ -146,10 +146,6 @@ archive_result_t deserialize(read_stream_t *s, wire_func_t *wf) {
     }
 }
 
-template archive_result_t deserialize<cluster_version_t::v1_13>(
-        read_stream_t *, wire_func_t *);
-template archive_result_t deserialize<cluster_version_t::v1_13_2>(
-        read_stream_t *, wire_func_t *);
 template archive_result_t deserialize<cluster_version_t::v1_14>(
         read_stream_t *, wire_func_t *);
 template archive_result_t deserialize<cluster_version_t::v1_15>(
@@ -160,8 +156,9 @@ template archive_result_t deserialize<cluster_version_t::v2_0>(
         read_stream_t *, wire_func_t *);
 
 template <>
-archive_result_t deserialize<cluster_version_t::v2_1_is_latest>(read_stream_t *s,
-                                                                wire_func_t *wf) {
+archive_result_t deserialize<cluster_version_t::v2_1_is_latest>(
+    read_stream_t *s, wire_func_t *wf) {
+
     const cluster_version_t W = cluster_version_t::v2_1_is_latest;
     archive_result_t res;
 

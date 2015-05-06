@@ -1198,7 +1198,7 @@ public:
         const client_t::addr_t &addr,
         counted_t<datum_stream_t> maybe_src,
         scoped_ptr_t<subscription_t> &&self,
-        const protob_t<const Backtrace> &bt) = 0;
+        backtrace_id_t bt) = 0;
     virtual counted_t<datum_stream_t> to_artificial_stream(
         env_t *env,
         const uuid_u &uuid,
@@ -1206,7 +1206,7 @@ public:
         const std::vector<datum_t> &initial_vals,
         bool include_initial_vals,
         scoped_ptr_t<subscription_t> &&self,
-        const protob_t<const Backtrace> &bt) = 0;
+        backtrace_id_t bt) = 0;
 protected:
     explicit subscription_t(feed_t *_feed, const datum_t &squash, bool include_states);
     void maybe_signal_cond() THROWS_NOTHING;
@@ -1563,7 +1563,7 @@ public:
         const client_t::addr_t &addr,
         counted_t<datum_stream_t> maybe_src,
         scoped_ptr_t<subscription_t> &&self,
-        const protob_t<const Backtrace> &bt) final {
+        backtrace_id_t bt) final {
         assert_thread();
         r_sanity_check(self.get() == this);
 
@@ -1617,7 +1617,7 @@ public:
         const std::vector<datum_t> &initial_values,
         bool _include_initial_vals,
         scoped_ptr_t<subscription_t> &&self,
-        const protob_t<const Backtrace> &bt) {
+        backtrace_id_t bt) {
         assert_thread();
         r_sanity_check(self.get() == this);
 
@@ -1757,7 +1757,7 @@ public:
         const client_t::addr_t &addr,
         counted_t<datum_stream_t> maybe_src,
         scoped_ptr_t<subscription_t> &&self,
-        const protob_t<const Backtrace> &bt) final {
+        backtrace_id_t bt) final {
         assert_thread();
         r_sanity_check(self.get() == this);
 
@@ -1778,7 +1778,7 @@ public:
             scoped_ptr_t<range_sub_t> sub_self(this);
             UNUSED subscription_t *super_self = self.release();
             bool stamped = maybe_src->add_stamp(changefeed_stamp_t(addr));
-            rcheck_src(bt.get(), stamped, base_exc_t::GENERIC,
+            rcheck_src(bt, stamped, base_exc_t::GENERIC,
                        "Cannot call `include_initial_vals` on an unstampable stream.");
             return make_splice_stream(maybe_src, std::move(sub_self), bt);
         } else {
@@ -1792,7 +1792,7 @@ public:
         const std::vector<datum_t> &initial_vals,
         bool include_initial_vals,
         scoped_ptr_t<subscription_t> &&self,
-        const protob_t<const Backtrace> &bt) {
+        backtrace_id_t bt) {
         assert_thread();
         r_sanity_check(self.get() == this);
 
@@ -2089,7 +2089,7 @@ public:
         const client_t::addr_t &addr,
         counted_t<datum_stream_t> maybe_src,
         scoped_ptr_t<subscription_t> &&self,
-        const protob_t<const Backtrace> &bt) final {
+        backtrace_id_t bt) final {
         assert_thread();
         r_sanity_check(self.get() == this);
         include_initial_vals = maybe_src.has();
@@ -2126,7 +2126,7 @@ public:
     }
     NORETURN virtual counted_t<datum_stream_t> to_artificial_stream(
         env_t *, const uuid_u &, const std::string &, const std::vector<datum_t> &,
-        bool, scoped_ptr_t<subscription_t> &&, const protob_t<const Backtrace> &) {
+        bool, scoped_ptr_t<subscription_t> &&, backtrace_id_t) {
         crash("Cannot start a limit subscription on an artificial table.");
     }
 

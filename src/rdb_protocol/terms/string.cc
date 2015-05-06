@@ -225,7 +225,8 @@ private:
         }
         return std::move(res);
     }
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(
+        scope_env_t *env, args_t *args, eval_flags_t) const {
         std::string s = args->arg(env, 0)->as_str().to_std();
 
         boost::optional<std::string> delim;
@@ -249,7 +250,6 @@ private:
         std::vector<datum_t> res;
 
         switch (env->env->reql_version()) {
-        case reql_version_t::v1_13:
         case reql_version_t::v1_14:
         case reql_version_t::v1_16: // v1_15 is the same as v1_14
         case reql_version_t::v2_0:

@@ -498,7 +498,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                 res->result = ql::exc_t(
                     ql::base_exc_t::GENERIC,
                     "Feed aborted before initial values were read.",
-                    nullptr);
+                    ql::backtrace_id_t::empty());
                 return;
             }
         }

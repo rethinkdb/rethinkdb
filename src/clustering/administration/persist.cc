@@ -215,7 +215,7 @@ void read_metadata_blob(buf_parent_t sb_buf,
             sb->metadata_blob,
             cluster_metadata_superblock_t::METADATA_BLOB_MAXREFLEN,
             [&](read_stream_t *s) -> archive_result_t {
-                return deserialize<cluster_version_t::v2_0_is_latest>(s, out);
+                return deserialize<cluster_version_t::v2_1_is_latest>(s, out);
             });
         break;
     default: unreachable();
@@ -243,7 +243,7 @@ void read_branch_history_blob(buf_parent_t sb_buf,
         sb->rdb_branch_history_blob,
         cluster_metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN,
         [&](read_stream_t *s) -> archive_result_t {
-            return deserialize<cluster_version_t::v2_0_is_latest>(s, out);
+            return deserialize<cluster_version_t::v2_1_is_latest>(s, out);
         });
 }
 
@@ -440,7 +440,7 @@ auth_semilattice_metadata_t auth_persistent_file_t::read_metadata() {
             sb->metadata_blob,
             auth_metadata_superblock_t::METADATA_BLOB_MAXREFLEN,
             [&](read_stream_t *s) -> archive_result_t {
-                return deserialize<cluster_version_t::v2_0_is_latest>(s, &metadata);
+                return deserialize<cluster_version_t::v2_1_is_latest>(s, &metadata);
             });
         break;
     default: unreachable();

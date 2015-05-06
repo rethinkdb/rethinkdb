@@ -1286,7 +1286,7 @@ union_datum_stream_t::union_datum_stream_t(
     std::vector<counted_t<datum_stream_t> > &&streams,
     backtrace_id_t bt,
     size_t expected_states)
-    : datum_stream_t(bt_src),
+    : datum_stream_t(bt),
       union_type(feed_type_t::not_feed),
       is_infinite_union(false),
       sent_init(false),
