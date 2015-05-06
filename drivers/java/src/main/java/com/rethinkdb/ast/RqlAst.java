@@ -36,7 +36,7 @@ public class RqlAst {
     }
 
     protected void init(RqlAst previous, Arguments args, OptArgs optargs) {
-
+        throw new RuntimeException("init is not implemented");
     }
 
     protected TermType getTermType() {
@@ -52,6 +52,6 @@ public class RqlAst {
     }
 
     protected Map<String, Object> build() {
-        return null; // TODO: fill me in
+        throw new RuntimeException("build is not implemented");
     }
 }
