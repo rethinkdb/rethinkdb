@@ -42,6 +42,6 @@ os.environ['BLUEBIRD_DEBUG'] = '1' # better stacktraces
 
 mochaOptions = ['-R', 'spec', '--timeout', '10000']
 if not utils.supportsTerminalColors():
-    mochaReporterOptions += ['--no-colors'] # handle https://github.com/mochajs/mocha/issues/1304
+    mochaOptions += ['--no-colors'] # handle https://github.com/mochajs/mocha/issues/1304
 
 sys.exit(subprocess.call(['mocha'] + mochaOptions + [os.path.join(os.path.dirname(__file__), 'http.js')]))
