@@ -132,7 +132,12 @@ bool stats_artificial_table_backend_t::read_all_rows_as_vector(
     }
 
     std::map<namespace_id_t, table_config_and_shards_t> configs;
-    table_meta_client->list_configs(interruptor, &configs);
+    try {
+        table_meta_client->list_configs(interruptor, &configs);
+    catch (const failed_table_op_exc_t &) {
+        // We failed to contact at least one server for every table
+        return false;
+    }
     for (const auto &table_pair : configs) {
         std::set<namespace_id_t> servers;
         for (const auto &shard : table_pair.second.config.shards) {
