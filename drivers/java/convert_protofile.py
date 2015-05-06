@@ -33,6 +33,8 @@ def main():
     render_proto_enums(proto)
     java_meta = java_specific_term_meta(term_meta)
     render_ast_subclasses(java_meta)
+    render_response_class(proto, java_meta)
+    render_datum_class(proto, java_meta)
 
 
 def camel(varname):
@@ -286,6 +288,24 @@ def render_ast_subclasses(meta):
                 superclass=special_superclasses.get(term_name, "RqlQuery"),
                 classname=None,
             )
+
+def render_response_class(proto, meta):
+    '''Renders the com.rethinkdb.response.Response class'''
+    render(
+        "Response.java",
+        PACKAGE_DIR+'/response',
+        meta=meta,
+        proto=proto,
+    )
+
+def render_datum_class(proto, meta):
+    '''Renders the com.rethinkdb.response.Datum class'''
+    render(
+        "Datum.java",
+        PACKAGE_DIR+'/response',
+        meta=meta,
+        proto=proto,
+    )
 
 if __name__ == '__main__':
     main()
