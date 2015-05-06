@@ -42,8 +42,6 @@ public:
         metainfo_binary(region_map_t<binary_blob_t>::empty()),
         pulse_when_items_arrive(nullptr)
     {
-        send(parent->mailbox_manager, parent->intro.begin_session_mailbox,
-            parent->fifo_source.enter_write(), threshold);
         coro_t::spawn_sometime(std::bind(
             &session_t::run, this, drainer.lock()));
     }
@@ -86,6 +84,9 @@ private:
     void run(auto_drainer_t::lock_t keepalive) {
         with_priority_t p(CORO_PRIORITY_BACKFILL_RECEIVER);
         try {
+            send(parent->mailbox_manager, parent->intro.begin_session_mailbox,
+                parent->fifo_source.enter_write(), threshold);
+
             /* Loop until we reach the end of the backfill range. */
             while (threshold != parent->store->get_region().inner.right) {
                 /* Wait until we receive some items from the backfiller so we have
