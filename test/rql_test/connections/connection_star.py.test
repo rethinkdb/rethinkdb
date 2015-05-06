@@ -2,15 +2,12 @@
 
 '''Basic test that `from rethinkdb import *` works'''
 
-from __future__ import print_function
-
 import os, sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, os.pardir, "common"))
 import driver, utils
 
-dbName = 'test'
-tableName = os.path.basename(__file__).split('.')[0] + '_' + '_'.join([str(x) for x in sys.version_info[:3]])
+dbName, tableName = utils.get_test_db_table()
 
 # -- import rethikndb driver via star method
 
