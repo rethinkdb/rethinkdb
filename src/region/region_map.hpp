@@ -239,6 +239,9 @@ private:
     template<class other_value_t>
     friend class region_map_t;
 
+    template<class V>
+    friend void debug_print(printf_buffer_t *buf, const region_map_t<V> &map);
+
     region_map_t(key_range_map_t &&_inner, uint64_t _hash_beg, uint64_t _hash_end) :
         inner(_inner), hash_beg(_hash_beg), hash_end(_hash_end) { }
 
@@ -252,7 +255,7 @@ private:
 template <class V>
 void debug_print(printf_buffer_t *buf, const region_map_t<V> &map) {
     buf->appendf("rmap{");
-    debug_print(map.inner);
+    debug_print(buf, map.inner);
     buf->appendf("}");
 }
 
