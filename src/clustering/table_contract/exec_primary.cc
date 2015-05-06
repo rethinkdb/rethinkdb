@@ -22,7 +22,8 @@ primary_execution_t::primary_execution_t(
 {
     guarantee(static_cast<bool>(c.primary));
     guarantee(c.primary->server == context->server_id);
-    coro_t::spawn_sometime(std::bind(&primary_execution_t::run, this, drainer.lock()));
+    coro_t::spawn_sometime(std::bind(
+        &primary_execution_t::run, this, drainer.lock()));
 }
 
 void primary_execution_t::update_contract(
@@ -140,7 +141,11 @@ void primary_execution_t::run(auto_drainer_t::lock_t keepalive) {
             context->mailbox_manager,
             &primary_dispatcher);
 
-        our_dispatcher = &primary_dispatcher;
+        auto_drainer_t primary_dispatcher_drainer;
+        assignment_sentry_t<auto_drainer_t *> our_dispatcher_drainer_assign(
+            &our_dispatcher_drainer, &primary_dispatcher_drainer);
+        assignment_sentry_t<primary_dispatcher_t *> our_dispatcher_assign(
+            &our_dispatcher, &primary_dispatcher);
 
         primary_query_server_t primary_query_server(
             context->mailbox_manager,
@@ -331,8 +336,11 @@ void primary_execution_t::update_contract_on_store_thread(
             /* If we have a broadcaster, then try to sync with replicas so we can ack the
             contract */
             if (our_dispatcher != nullptr) {
+                auto_drainer_t::lock_t keepalive2 = our_dispatcher_drainer->lock();
+                wait_any_t combiner(
+                    &interruptor_store_thread, keepalive2.get_drain_signal());
                 should_ack = true;
-                sync_contract_with_replicas(contract, &interruptor_store_thread);
+                sync_contract_with_replicas(contract, &combiner);
             } else {
                 should_ack = false;
             }

@@ -139,10 +139,16 @@ private:
     /* `our_dispatcher` stores the pointer to the `primary_dispatcher_t` we constructed.
     It will be `nullptr` until the `primary_dispatcher_t` actually exists and has a valid
     replica. */
-    primary_dispatcher_t * our_dispatcher;
+    primary_dispatcher_t *our_dispatcher;
 
-    /* `drainer` ensures that `run` is stopped before the other member variables are
-    destroyed. */
+    /* Anything that might try to use `our_dispatcher` after the `primary_execution_t`
+    destructor has begin should hold a lock on `*our_dispatcher_drainer`. (Specifically,
+    this applies to `update_contract_on_store_thread()`.) `our_dispatcher` and
+    `our_dispatcher_drainer` will always both be null or both be non-null. */
+    auto_drainer_t *our_dispatcher_drainer;
+
+    /* `drainer` ensures that `run()` and `update_contract_on_store_thread()` are
+    stopped before the other member variables are destroyed. */
     auto_drainer_t drainer;
 };
 
