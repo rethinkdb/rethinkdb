@@ -308,7 +308,8 @@ metadata_file_t::metadata_file_t(
             break;
         }
         case cluster_version_t::v1_16:
-        case cluster_version_t::v2_0: {
+        case cluster_version_t::v2_0:
+        case cluster_version_t::v2_1: {
             scoped_malloc_t<void> sb_copy(cache->max_block_size().value());
             memcpy(sb_copy.get(), sb_data, cache->max_block_size().value());
             init_metadata_superblock(sb_data, cache->max_block_size().value());
