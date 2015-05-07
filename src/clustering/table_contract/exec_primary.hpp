@@ -51,6 +51,7 @@ public:
             const contract_id_t &, const contract_ack_t &)> &ack_cb,
         const contract_id_t &cid,
         const table_raft_state_t &raft_state);
+    ~primary_execution_t();
     void update_contract(
         const contract_id_t &cid,
         const table_raft_state_t &raft_state);
