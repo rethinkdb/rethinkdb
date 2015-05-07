@@ -8,7 +8,6 @@ public class Arguments extends ArrayList<Object> {
 
     public Arguments() {}
     public Arguments(Object arg1) {
-        super();
         add(arg1);
     }
 
@@ -18,5 +17,9 @@ public class Arguments extends ArrayList<Object> {
 
     public Arguments(List<Object> args) {
         addAll(args);
+    }
+
+    public static Arguments make(Object... args){
+        return new Arguments(args);
     }
 }
