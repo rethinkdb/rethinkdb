@@ -25,7 +25,13 @@ primary_execution_t::primary_execution_t(
     guarantee(raft_state.contracts.at(cid).first == region);
     latest_contract_home_thread = make_counted<contract_info_t>(cid, c);
     latest_contract_store_thread = latest_contract_home_thread;
+    begin_write_mutex.rethread(store->home_thread());
     coro_t::spawn_sometime(std::bind(&primary_execution_t::run, this, drainer.lock()));
+}
+
+primary_execution_t::~primary_execution_t() {
+    drainer.drain();
+    begin_write_mutex.rethread(home_thread());
 }
 
 void primary_execution_t::update_contract(
