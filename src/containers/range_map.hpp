@@ -38,6 +38,8 @@ public:
             left(std::move(movee.left)),
             zones(std::move(movee.zones)) { }
     range_map_t(const range_map_t &) = default;
+    range_map_t &operator=(const range_map_t &) = default;
+    range_map_t &operator=(range_map_t &&) = default;
 
     /* Returns the left and right edges of the `range_map_t`. */
     const edge_t &left_edge() const {
