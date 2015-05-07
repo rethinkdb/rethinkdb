@@ -9,30 +9,36 @@
 
 secondary_execution_t::secondary_execution_t(
         const execution_t::context_t *_context,
-        const region_t &_region,
         store_view_t *_store,
         perfmon_collection_t *_perfmon_collection,
-        const contract_t &c,
-        const std::function<void(const contract_ack_t &)> &acb) :
-    execution_t(_context, _region, _store, _perfmon_collection),
-    primary(static_cast<bool>(c.primary) ? c.primary->server : nil_uuid()),
-    branch(c.branch), ack_cb(acb)
+        const std::function<void(
+            const contract_id_t &, const contract_ack_t &)> &_ack_cb,
+        const contract_id_t &cid,
+        const table_raft_state_t &raft_state) :
+    execution_t(_context, _store, _perfmon_collection, _ack_cb)
 {
+    const contract_t &c = raft_state.contracts.at(cid).second;
     guarantee(c.replicas.count(context->server_id) == 1);
+    guarantee(raft_state.contracts.at(cid).first == region);
+    primary = static_cast<bool>(c.primary) ? c.primary->server : nil_uuid();
+    branch = c.branch;
+    contract_id = cid;
     coro_t::spawn_sometime(std::bind(&secondary_execution_t::run, this, drainer.lock()));
 }
 
 void secondary_execution_t::update_contract(
-        const contract_t &c,
-        const std::function<void(const contract_ack_t &)> &acb) {
+        const contract_id_t &cid,
+        const table_raft_state_t &raft_state) {
     assert_thread();
+    const contract_t &c = raft_state.contracts.at(cid).second;
+    guarantee(raft_state.contracts.at(cid).first == region);
+    guarantee(c.replicas.count(context->server_id) == 1);
     guarantee(primary ==
         (static_cast<bool>(c.primary) ? c.primary->server : nil_uuid()));
     guarantee(branch == c.branch);
-    guarantee(c.replicas.count(context->server_id) == 1);
-    ack_cb = acb;
+    contract_id = cid;
     if (static_cast<bool>(last_ack)) {
-        ack_cb(*last_ack);
+        ack_cb(contract_id, *last_ack);
     }
 }
 
@@ -199,7 +205,7 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
 
 void secondary_execution_t::send_ack(const contract_ack_t &ca) {
     assert_thread();
-    ack_cb(ca);
+    ack_cb(contract_id, ca);
     last_ack = boost::make_optional(ca);
 }
 

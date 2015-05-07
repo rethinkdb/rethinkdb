@@ -45,14 +45,15 @@ class primary_execution_t :
 public:
     primary_execution_t(
         const execution_t::context_t *context,
-        const region_t &region,
         store_view_t *store,
         perfmon_collection_t *perfmon_collection,
-        const contract_t &c,
-        const std::function<void(const contract_ack_t &)> &ack_cb);
+        const std::function<void(
+            const contract_id_t &, const contract_ack_t &)> &ack_cb,
+        const contract_id_t &cid,
+        const table_raft_state_t &raft_state);
     void update_contract(
-        const contract_t &c,
-        const std::function<void(const contract_ack_t &)> &ack_cb);
+        const contract_id_t &cid,
+        const table_raft_state_t &raft_state);
 
 private:
     /* `contract_info_t` stores a contract, its ack callback, and a condition variable
@@ -60,12 +61,10 @@ private:
     need to reason about old contracts, so we may keep multiple versions around. */
     class contract_info_t : public slow_atomic_countable_t<contract_info_t> {
     public:
-        contract_info_t(
-                const contract_t &c,
-                const std::function<void(contract_ack_t)> &acb) :
-            contract(c), ack_cb(acb) { }
+        contract_info_t(const contract_id_t &cid, const contract_t &c) :
+            contract_id(cid), contract(c) { }
+        contract_id_t contract_id;
         contract_t contract;
-        std::function<void(contract_ack_t)> ack_cb;
         cond_t obsolete;
     };
 
