@@ -1,5 +1,7 @@
 package com.rethinkdb.ast.helper;
 
+import com.rethinkdb.ast.RqlAst;
+
 import java.util.HashMap;
 import java.util.List;
 
@@ -23,7 +25,7 @@ public class OptArgs extends HashMap<String, Object> {
         return this;
     }
 
-    public static OptArgs fromMap(java.util.Map<String, Object> map) {
+    public static OptArgs fromMap(java.util.Map<String, RqlAst> map) {
         OptArgs oa = new OptArgs();
         oa.putAll(map);
         return oa;
