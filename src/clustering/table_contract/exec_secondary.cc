@@ -20,7 +20,14 @@ secondary_execution_t::secondary_execution_t(
     const contract_t &c = raft_state.contracts.at(cid).second;
     guarantee(c.replicas.count(context->server_id) == 1);
     guarantee(raft_state.contracts.at(cid).first == region);
-    primary = static_cast<bool>(c.primary) ? c.primary->server : nil_uuid();
+    if (static_cast<bool>(c.primary) &&
+            raft_state.branch_history.branches.at(c.branch).region == region) {
+        connect_to_primary = true;
+        primary = c.primary->server;
+    } else {
+        connect_to_primary = false;
+        primary = nil_uuid();
+    }
     branch = c.branch;
     contract_id = cid;
     coro_t::spawn_sometime(std::bind(&secondary_execution_t::run, this, drainer.lock()));
@@ -33,8 +40,7 @@ void secondary_execution_t::update_contract(
     const contract_t &c = raft_state.contracts.at(cid).second;
     guarantee(raft_state.contracts.at(cid).first == region);
     guarantee(c.replicas.count(context->server_id) == 1);
-    guarantee(primary ==
-        (static_cast<bool>(c.primary) ? c.primary->server : nil_uuid()));
+    guarantee(primary.is_nil() || primary == c.primary->server);
     guarantee(branch == c.branch);
     contract_id = cid;
     if (static_cast<bool>(last_ack)) {
@@ -92,6 +98,13 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
                     context->local_table_query_bcards, generate_uuid(), tq_bcard);
             }
 
+            if (!connect_to_primary) {
+                /* Instead of establishing a connection to the primary and doing a
+                backfill, just stop here. */
+                keepalive.get_drain_signal()->wait_lazily_unordered();
+                return;
+            }
+
             /* Set up a subscription to look for the primary in the directory and also
             detect if we lose contact. Initially, `primary_bcard` and
             `primary_no_more_bcard` are both unpulsed, and `primary_disconnect_watcher`
@@ -106,24 +119,22 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
                 std::pair<server_id_t, branch_id_t>,
                 contract_execution_bcard_t>::key_subs_t>
                     primary_watcher;
-            if (!primary.is_nil()) {
-                primary_watcher.create(
-                    context->remote_contract_execution_bcards,
-                    std::make_pair(primary, branch),
-                    [&](const contract_execution_bcard_t *bc) {
-                        if (!primary_bcard.get_ready_signal()->is_pulsed()) {
-                            if (bc != nullptr) {
-                                primary_bcard.pulse(*bc);
-                                primary_disconnected.create(
-                                    context->mailbox_manager, bc->peer);
-                            }
-                        } else if (!primary_no_more_bcard.is_pulsed()) {
-                            if (bc == nullptr) {
-                                primary_no_more_bcard.pulse();
-                            }
+            primary_watcher.create(
+                context->remote_contract_execution_bcards,
+                std::make_pair(primary, branch),
+                [&](const contract_execution_bcard_t *bc) {
+                    if (!primary_bcard.get_ready_signal()->is_pulsed()) {
+                        if (bc != nullptr) {
+                            primary_bcard.pulse(*bc);
+                            primary_disconnected.create(
+                                context->mailbox_manager, bc->peer);
                         }
-                    }, true);
-            }
+                    } else if (!primary_no_more_bcard.is_pulsed()) {
+                        if (bc == nullptr) {
+                            primary_no_more_bcard.pulse();
+                        }
+                    }
+                }, true);
 
             /* Wait until we see a primary or the failover timeout elapses. */
             static const int failover_timeout_ms = 5000;
