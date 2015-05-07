@@ -186,7 +186,7 @@ enum class raft_log_entry_type_t {
     `raft_complex_config_t`. See Section 8 of the Raft paper. */
     noop
 };
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(raft_log_entry_type_t, uint8_t,
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(raft_log_entry_type_t, int8_t,
     raft_log_entry_type_t::regular, raft_log_entry_type_t::noop);
 
 /* `raft_log_entry_t` describes an entry in the Raft log. */
@@ -430,6 +430,12 @@ private:
     RDB_MAKE_ME_SERIALIZABLE_1(raft_rpc_reply_t, reply);
 };
 
+/* A helper type for using a watchable_map_t like a set */
+class empty_value_t {
+public:
+    empty_value_t() { }
+};
+
 /* `raft_network_interface_t` is the abstract class that `raft_member_t` uses to send
 messages over the network. */
 template<class state_t>
@@ -453,10 +459,8 @@ public:
 
     /* `get_connected_members()` returns the set of all Raft members for which an RPC is
     likely to succeed. The values in the map should always be `nullptr`; the only reason
-    it's a map at all is that we don't have a `watchable_set_t` type. `std::nullptr_t`
-    was chosen because it has exactly one legal value (`nullptr`) and it's already
-    defined. */
-    virtual watchable_map_t<raft_member_id_t, std::nullptr_t>
+    it's a map at all is that we don't have a `watchable_set_t` type. */
+    virtual watchable_map_t<raft_member_id_t, empty_value_t>
         *get_connected_members() = 0;
 
 protected:
@@ -880,7 +884,7 @@ private:
 
     /* This calls `update_readiness_for_change()` whenever a peer connects or
     disconnects. */
-    scoped_ptr_t<watchable_map_t<raft_member_id_t, std::nullptr_t>::all_subs_t>
+    scoped_ptr_t<watchable_map_t<raft_member_id_t, empty_value_t>::all_subs_t>
         connected_members_subs;
 };
 

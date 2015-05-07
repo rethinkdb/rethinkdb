@@ -59,10 +59,15 @@ std::string key_to_debug_str(const btree_key_t *key) {
 key_range_t::key_range_t() :
     left(), right(store_key_t()) { }
 
-key_range_t::key_range_t(bound_t lm, const store_key_t& l, bound_t rm, const store_key_t& r) :
-    key_range_t(lm, l.btree_key(), rm, r.btree_key()) { }
+key_range_t::key_range_t(bound_t lm, const store_key_t& l, bound_t rm, const store_key_t& r) {
+    init(lm, l.btree_key(), rm, r.btree_key());
+}
 
 key_range_t::key_range_t(bound_t lm, const btree_key_t *l, bound_t rm, const btree_key_t *r) {
+    init(lm, l, rm, r);
+}
+
+void key_range_t::init(bound_t lm, const btree_key_t *l, bound_t rm, const btree_key_t *r) {
     switch (lm) {
         case closed:
             left.assign(l);

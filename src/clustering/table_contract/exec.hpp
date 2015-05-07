@@ -50,7 +50,7 @@ public:
         exceptions or block.
     - A destructor which may block
     - A method `update_contract` that takes a new `contract_t` and callback.
-    */ 
+    */
     execution_t(
             const context_t *_context,
             store_view_t *_store,

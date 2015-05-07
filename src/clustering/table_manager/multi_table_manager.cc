@@ -16,17 +16,46 @@ multi_table_manager_t::multi_table_manager_t(
         const base_path_t &_base_path,
         io_backender_t *_io_backender,
         perfmon_collection_repo_t *_perfmon_collection_repo) :
-    multi_table_manager_t(
-        _mailbox_manager,
-        _multi_table_manager_directory,
-        _table_manager_directory)
-{
-    is_proxy_server = false;
-    server_id = _server_id;
-    persistence_interface = _persistence_interface;
-    base_path = boost::make_optional(_base_path);
-    io_backender = _io_backender;
-    perfmon_collection_repo = _perfmon_collection_repo;
+    is_proxy_server(false),
+    server_id(_server_id),
+    mailbox_manager(_mailbox_manager),
+    multi_table_manager_directory(_multi_table_manager_directory),
+    table_manager_directory(_table_manager_directory),
+    persistence_interface(_persistence_interface),
+    base_path(_base_path),
+    io_backender(_io_backender),
+    perfmon_collection_repo(_perfmon_collection_repo),
+    /* Whenever a server connects, we need to sync all of our tables to it. */
+    multi_table_manager_directory_subs(
+        multi_table_manager_directory,
+        [this](const peer_id_t &peer, const multi_table_manager_bcard_t *bcard) {
+            if (peer != mailbox_manager->get_me() && bcard != nullptr) {
+                mutex_assertion_t::acq_t mutex_acq(&mutex);
+                for (const auto &pair : tables) {
+                    schedule_sync(pair.first, pair.second.get(), peer);
+                }
+            }
+        }, false),
+    /* Whenever a server changes its entry for a table in the directory, we need to
+    re-sync that table to that server. */
+    table_manager_directory_subs(
+        table_manager_directory,
+        [this](const std::pair<peer_id_t, namespace_id_t> &key,
+                const table_manager_bcard_t *) {
+            if (key.first != mailbox_manager->get_me()) {
+                mutex_assertion_t::acq_t mutex_acq(&mutex);
+                auto it = tables.find(key.second);
+                if (it != tables.end()) {
+                    schedule_sync(key.second, it->second.get(), key.first);
+                }
+            }
+        }, false),
+    action_mailbox(mailbox_manager,
+        std::bind(&multi_table_manager_t::on_action, this,
+            ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6, ph::_7, ph::_8)),
+    get_config_mailbox(mailbox_manager,
+        std::bind(&multi_table_manager_t::on_get_config, this,
+            ph::_1, ph::_2, ph::_3)) {
 
     /* Resurrect any tables that were sitting on disk from when we last shut down */
     cond_t non_interruptor;
@@ -72,8 +101,7 @@ multi_table_manager_t::multi_table_manager_t(
         &non_interruptor);
 }
 
-/* This constructor is used for proxy servers. The first constructor is also implemented
-in terms of this one, to reduce code duplication. */
+/* This constructor is used for proxy servers. */
 multi_table_manager_t::multi_table_manager_t(
         mailbox_manager_t *_mailbox_manager,
         watchable_map_t<peer_id_t, multi_table_manager_bcard_t>
@@ -119,8 +147,7 @@ multi_table_manager_t::multi_table_manager_t(
             ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6, ph::_7, ph::_8)),
     get_config_mailbox(mailbox_manager,
         std::bind(&multi_table_manager_t::on_get_config, this,
-            ph::_1, ph::_2, ph::_3))
-    { }
+            ph::_1, ph::_2, ph::_3)) { }
 
 multi_table_manager_t::active_table_t::active_table_t(
         multi_table_manager_t *_parent,

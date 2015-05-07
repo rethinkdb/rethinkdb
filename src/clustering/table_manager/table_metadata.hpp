@@ -144,7 +144,7 @@ public:
 };
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
     multi_table_manager_bcard_t::status_t,
-    uint8_t,
+    int8_t,
     multi_table_manager_bcard_t::status_t::ACTIVE,
     multi_table_manager_bcard_t::status_t::MAYBE_ACTIVE);
 RDB_DECLARE_SERIALIZABLE(

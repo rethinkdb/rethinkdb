@@ -73,10 +73,10 @@ raft_member_t<state_t>::raft_member_t(
         [this]() { this->on_watchdog_timer(); }
         )),
     connected_members_subs(
-        new watchable_map_t<raft_member_id_t, std::nullptr_t>::all_subs_t(
+        new watchable_map_t<raft_member_id_t, empty_value_t>::all_subs_t(
             network->get_connected_members(),
-            [this](const raft_member_id_t &, const std::nullptr_t *) {
-                update_readiness_for_change();
+            [this](const raft_member_id_t &, const empty_value_t *) {
+                this->update_readiness_for_change();
             },
             /* There's no point in running `update_readiness_for_change()` now; we can't
             be ready for change because we're a follower. */
@@ -85,7 +85,7 @@ raft_member_t<state_t>::raft_member_t(
     new_mutex_acq_t mutex_acq(&mutex);
     /* Finish initializing `latest_state` */
     latest_state.apply_atomic_op([&](state_and_config_t *s) -> bool {
-        apply_log_entries(s, ps.log, s->log_index + 1, ps.log.get_latest_index());
+        this->apply_log_entries(s, ps.log, s->log_index + 1, ps.log.get_latest_index());
         return !ps.log.entries.empty();
     });
     DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
@@ -696,7 +696,7 @@ void raft_member_t<state_t>::on_append_entries_rpc(
             last committed state and then apply log entries from there. */
             *s = committed_state.get_ref();
         }
-        apply_log_entries(s, ps.log, s->log_index + 1, ps.log.get_latest_index());
+        this->apply_log_entries(s, ps.log, s->log_index + 1, ps.log.get_latest_index());
         return true;
     });
 
@@ -983,7 +983,7 @@ void raft_member_t<state_t>::update_commit_index(
         `candidate_and_leader_coro()` to start the second phase of the reconfiguration.
     */
     committed_state.apply_atomic_op([&](state_and_config_t *state_and_config) -> bool {
-        apply_log_entries(state_and_config, ps.log,
+        this->apply_log_entries(state_and_config, ps.log,
             state_and_config->log_index + 1, new_commit_index);
         return true;
     });
@@ -1075,7 +1075,7 @@ void raft_member_t<state_t>::update_readiness_for_change() {
     if (mode == mode_t::leader) {
         std::set<raft_member_id_t> peers;
         network->get_connected_members()->read_all(
-            [&](const raft_member_id_t &member_id, const std::nullptr_t *) {
+            [&](const raft_member_id_t &member_id, const empty_value_t *) {
                 peers.insert(member_id);
             });
         if (latest_state.get_ref().config.is_quorum(peers)) {
@@ -1318,7 +1318,7 @@ bool raft_member_t<state_t>::candidate_run_election(
                     /* Don't bother trying to send an RPC until the peer is present in
                     `get_connected_members()`. */
                     network->get_connected_members()->run_key_until_satisfied(peer,
-                        [](const std::nullptr_t *x) { return x != nullptr; },
+                        [](const empty_value_t *x) { return x != nullptr; },
                         request_vote_keepalive.get_drain_signal());
 
                     /* We're not holding the lock, but it's still safe to access these
@@ -1527,7 +1527,7 @@ void raft_member_t<state_t>::leader_send_updates(
             DEBUG_ONLY_CODE(check_invariants(mutex_acq.get()));
             mutex_acq.reset();
             network->get_connected_members()->run_key_until_satisfied(peer,
-                [](const std::nullptr_t *x) { return x != nullptr; },
+                [](const empty_value_t *x) { return x != nullptr; },
                 update_keepalive.get_drain_signal());
             mutex_acq.init(
                 new new_mutex_acq_t(&mutex, update_keepalive.get_drain_signal()));
@@ -1793,7 +1793,7 @@ void raft_member_t<state_t>::leader_append_log_entry(
     can be notified when there are new log entries to send to the followers. */
     latest_state.apply_atomic_op([&](state_and_config_t *s) -> bool {
         guarantee(s->log_index + 1 == ps.log.get_latest_index());
-        apply_log_entries(s, ps.log, s->log_index + 1, s->log_index + 1);
+        this->apply_log_entries(s, ps.log, s->log_index + 1, s->log_index + 1);
         return true;
     });
 

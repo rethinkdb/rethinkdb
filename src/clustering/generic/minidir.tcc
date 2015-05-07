@@ -210,7 +210,7 @@ void minidir_write_manager_t<key_t, value_t>::on_reader_change(
 
         /* Send initial values to the new reader */
         values->read_all([&](const key_t &key, const value_t *value) {
-            spawn_update(link_data, key, *value);
+            this->spawn_update(link_data, key, *value);
         });
     } else {
         /* Remove the entry in the link map. Unfortunately, we don't know which peer it's
