@@ -45,5 +45,8 @@ public class Func extends RqlQuery {
         }
     }
 
+    public static Func fromArgs(Object... args){
+        return new Func(new Arguments(args), null);
+    }
 
 }
