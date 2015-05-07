@@ -42,20 +42,23 @@ struct stamped_range_t {
     uint64_t next_expected_stamp;
     store_key_t left_fencepost;
     std::deque<std::pair<key_range_t, uint64_t> > ranges;
-    MOVABLE_BUT_NOT_COPYABLE(stamped_range_t);
+    // This should be true, but it breaks with GCC 4.6's STL.  (The cost of
+    // copying is low because if you look below we only ever copy
+    // `stamped_range_t` before populating `ranges`.)
+    // MOVABLE_BUT_NOT_COPYABLE(stamped_range_t);
 };
 
 struct change_val_t {
     change_val_t(std::pair<uuid_u, uint64_t> _source_stamp,
                  store_key_t _pkey,
                  boost::optional<indexed_datum_t> _old_val,
-                 boost::optional<indexed_datum_t> _new_val,
-                 DEBUG_ONLY(boost::optional<std::string> _sindex))
+                 boost::optional<indexed_datum_t> _new_val
+                 DEBUG_ONLY(, boost::optional<std::string> _sindex))
         : source_stamp(std::move(_source_stamp)),
           pkey(std::move(_pkey)),
           old_val(std::move(_old_val)),
-          new_val(std::move(_new_val)),
-          DEBUG_ONLY(sindex(std::move(_sindex))) {
+          new_val(std::move(_new_val))
+          DEBUG_ONLY(, sindex(std::move(_sindex))) {
         guarantee(old_val || new_val);
         if (old_val && new_val) {
             guarantee(old_val->index.has() == new_val->index.has());
@@ -1258,8 +1261,8 @@ public:
                 std::make_pair(shard_uuid, stamp),
                 pkey,
                 old_val,
-                new_val,
-                DEBUG_ONLY(sindex)));
+                new_val
+                DEBUG_ONLY(, sindex)));
             if (queue->size() > limits.array_size_limit()) {
                 skipped += queue->size();
                 queue->clear();
@@ -1587,8 +1590,8 @@ public:
                resp->stamp,
                store_key_t(pkey.print_primary()),
                boost::none,
-               indexed_datum_t(resp->initial_val, datum_t(), boost::none),
-               DEBUG_ONLY(boost::none));
+               indexed_datum_t(resp->initial_val, datum_t(), boost::none)
+               DEBUG_ONLY(, boost::none));
         if (start_stamp > stamp) {
             stamp = start_stamp;
             queue->clear();
@@ -1639,8 +1642,8 @@ public:
             std::make_pair(nil_uuid(), 0),
             store_key_t(pkey.print_primary()),
             boost::none,
-            indexed_datum_t(initial, datum_t(), boost::none),
-            DEBUG_ONLY(boost::none));
+            indexed_datum_t(initial, datum_t(), boost::none)
+            DEBUG_ONLY(, boost::none));
         started = true;
 
         return make_counted<stream_t<subscription_t> >(std::move(self), bt);
