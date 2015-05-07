@@ -201,7 +201,9 @@ bool primary_execution_t::on_write(
     store->assert_thread();
     guarantee(our_dispatcher != nullptr);
 
-    if (static_cast<bool>(latest_contract_store_thread->contract.primary->hand_over)) {
+    counted_t<contract_info_t> contract_snapshot = latest_contract_store_thread;
+
+    if (static_cast<bool>(contract_snapshot->contract.primary->hand_over)) {
         *error_out = "The primary replica is currently changing from one replica to "
             "another. The write was not performed. This error should go away in a "
             "couple of seconds.";
@@ -220,7 +222,7 @@ bool primary_execution_t::on_write(
     the write. This is because the user would get confused if their write returned an
     error about "not enough acks" and then got applied anyway. */
     {
-        ack_counter_t counter(latest_contract_store_thread->contract);
+        ack_counter_t counter(contract_snapshot->contract);
         our_dispatcher->get_ready_dispatchees()->apply_read(
             [&](const std::set<server_id_t> *servers) {
                 for (const server_id_t &s : *servers) {
@@ -266,10 +268,7 @@ bool primary_execution_t::on_write(
         cond_t done;
         write_response_t *response_out;
         std::string *error_out;
-    } write_callback(response_out, error_out, latest_contract_store_thread);
-
-    /* It's important that we don't block between making a local copy of
-    `latest_contract_store_thread` (above) and calling `spawn_write()` (below) */
+    } write_callback(response_out, error_out, contract_snapshot);
 
     our_dispatcher->spawn_write(request, order_token, &write_callback);
 
