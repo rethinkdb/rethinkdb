@@ -26,6 +26,9 @@ public class ${classname} extends ${superclass} {
         super(previous, termType, args, optargs);
     }
 </%block>
+    public static ${classname} fromArgs(Object... args){
+        return new ${classname}(new Arguments(args), null);
+    }
 <%block name="special_methods" />
 % for term, info in meta.iteritems():
     % if include_in in info.get('include_in', ['query']):
