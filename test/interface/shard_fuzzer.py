@@ -70,7 +70,7 @@ def fuzz_table(cluster, table, stop_event, random_seed):
         return query.run(c)
 
     def table_wait(q):
-        return q.wait(wait_for='all_replicas_ready', timeout=300)
+        return q.wait(wait_for='all_replicas_ready', timeout=30)
 
     def table_reconfigure(q):
         return q.reconfigure(shards=random.randint(1, 16), replicas=random.randint(1, len(server_names)))
