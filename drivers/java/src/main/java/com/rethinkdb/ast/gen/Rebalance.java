@@ -29,7 +29,7 @@ public class Rebalance extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Rebalance fromArgs(Object... args){
         return new Rebalance(new Arguments(args), null);
     }

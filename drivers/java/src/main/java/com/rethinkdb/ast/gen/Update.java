@@ -29,7 +29,7 @@ public class Update extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Update fromArgs(Object... args){
         return new Update(new Arguments(args), null);
     }

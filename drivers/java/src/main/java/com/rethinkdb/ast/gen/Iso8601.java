@@ -29,7 +29,7 @@ public class Iso8601 extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Iso8601 fromArgs(Object... args){
         return new Iso8601(new Arguments(args), null);
     }

@@ -29,7 +29,7 @@ public class EqJoin extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static EqJoin fromArgs(Object... args){
         return new EqJoin(new Arguments(args), null);
     }

@@ -29,7 +29,7 @@ public class Prepend extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Prepend fromArgs(Object... args){
         return new Prepend(new Arguments(args), null);
     }

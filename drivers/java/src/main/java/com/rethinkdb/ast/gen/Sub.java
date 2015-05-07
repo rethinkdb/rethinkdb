@@ -29,7 +29,7 @@ public class Sub extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Sub fromArgs(Object... args){
         return new Sub(new Arguments(args), null);
     }

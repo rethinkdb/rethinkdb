@@ -29,7 +29,7 @@ public class SpliceAt extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static SpliceAt fromArgs(Object... args){
         return new SpliceAt(new Arguments(args), null);
     }

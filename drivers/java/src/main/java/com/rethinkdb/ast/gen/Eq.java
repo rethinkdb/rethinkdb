@@ -29,7 +29,7 @@ public class Eq extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Eq fromArgs(Object... args){
         return new Eq(new Arguments(args), null);
     }

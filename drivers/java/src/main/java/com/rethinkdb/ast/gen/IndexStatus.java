@@ -29,7 +29,7 @@ public class IndexStatus extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static IndexStatus fromArgs(Object... args){
         return new IndexStatus(new Arguments(args), null);
     }

@@ -29,7 +29,7 @@ public class Object extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Object fromArgs(Object... args){
         return new Object(new Arguments(args), null);
     }

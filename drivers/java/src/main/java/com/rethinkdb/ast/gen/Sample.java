@@ -29,7 +29,7 @@ public class Sample extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Sample fromArgs(Object... args){
         return new Sample(new Arguments(args), null);
     }

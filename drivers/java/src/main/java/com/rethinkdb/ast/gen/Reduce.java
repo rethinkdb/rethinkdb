@@ -29,7 +29,7 @@ public class Reduce extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Reduce fromArgs(Object... args){
         return new Reduce(new Arguments(args), null);
     }

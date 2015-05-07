@@ -29,7 +29,7 @@ public class Max extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Max fromArgs(Object... args){
         return new Max(new Arguments(args), null);
     }

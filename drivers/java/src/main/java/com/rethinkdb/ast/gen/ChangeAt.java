@@ -29,7 +29,7 @@ public class ChangeAt extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static ChangeAt fromArgs(Object... args){
         return new ChangeAt(new Arguments(args), null);
     }

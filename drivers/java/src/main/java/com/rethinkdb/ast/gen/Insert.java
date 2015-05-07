@@ -29,7 +29,7 @@ public class Insert extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Insert fromArgs(Object... args){
         return new Insert(new Arguments(args), null);
     }

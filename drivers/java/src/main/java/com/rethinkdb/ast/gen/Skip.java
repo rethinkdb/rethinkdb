@@ -29,7 +29,7 @@ public class Skip extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Skip fromArgs(Object... args){
         return new Skip(new Arguments(args), null);
     }

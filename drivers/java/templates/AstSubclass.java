@@ -27,7 +27,7 @@ public class ${classname} extends ${superclass} {
     }
 </%block>
 <%block name="static_factories">
-   /* Static factories */
+    /* Static factories */
 % if term_type is not None:
     public static ${classname} fromArgs(Object... args){
         return new ${classname}(new Arguments(args), null);

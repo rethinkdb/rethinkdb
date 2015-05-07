@@ -29,7 +29,7 @@ public class Sync extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Sync fromArgs(Object... args){
         return new Sync(new Arguments(args), null);
     }

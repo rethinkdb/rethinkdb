@@ -29,7 +29,7 @@ public class Fill extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Fill fromArgs(Object... args){
         return new Fill(new Arguments(args), null);
     }

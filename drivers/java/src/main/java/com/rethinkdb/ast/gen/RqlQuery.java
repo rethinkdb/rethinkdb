@@ -20,7 +20,7 @@ public class RqlQuery extends RqlAst {
     }
 
 
-   /* Static factories */
+    /* Static factories */
 
 
     public Eq eq(Object... fields) {

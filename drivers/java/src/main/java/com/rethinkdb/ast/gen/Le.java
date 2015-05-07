@@ -29,7 +29,7 @@ public class Le extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Le fromArgs(Object... args){
         return new Le(new Arguments(args), null);
     }

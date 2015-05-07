@@ -29,7 +29,7 @@ public class Config extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Config fromArgs(Object... args){
         return new Config(new Arguments(args), null);
     }

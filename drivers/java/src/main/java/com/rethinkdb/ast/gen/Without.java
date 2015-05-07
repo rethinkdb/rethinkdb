@@ -29,7 +29,7 @@ public class Without extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Without fromArgs(Object... args){
         return new Without(new Arguments(args), null);
     }

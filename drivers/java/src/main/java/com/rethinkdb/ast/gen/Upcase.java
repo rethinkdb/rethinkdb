@@ -29,7 +29,7 @@ public class Upcase extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Upcase fromArgs(Object... args){
         return new Upcase(new Arguments(args), null);
     }

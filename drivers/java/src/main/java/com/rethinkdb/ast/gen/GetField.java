@@ -29,7 +29,7 @@ public class GetField extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static GetField fromArgs(Object... args){
         return new GetField(new Arguments(args), null);
     }

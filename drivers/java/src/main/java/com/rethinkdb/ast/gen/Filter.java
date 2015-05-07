@@ -29,7 +29,7 @@ public class Filter extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Filter fromArgs(Object... args){
         return new Filter(new Arguments(args), null);
     }

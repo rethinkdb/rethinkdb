@@ -29,7 +29,7 @@ public class PolygonSub extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static PolygonSub fromArgs(Object... args){
         return new PolygonSub(new Arguments(args), null);
     }

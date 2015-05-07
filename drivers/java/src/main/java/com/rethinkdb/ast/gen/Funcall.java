@@ -29,7 +29,7 @@ public class Funcall extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Funcall fromArgs(Object... args){
         return new Funcall(new Arguments(args), null);
     }

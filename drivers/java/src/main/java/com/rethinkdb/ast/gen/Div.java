@@ -29,7 +29,7 @@ public class Div extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Div fromArgs(Object... args){
         return new Div(new Arguments(args), null);
     }

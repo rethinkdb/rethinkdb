@@ -29,7 +29,7 @@ public class Min extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Min fromArgs(Object... args){
         return new Min(new Arguments(args), null);
     }

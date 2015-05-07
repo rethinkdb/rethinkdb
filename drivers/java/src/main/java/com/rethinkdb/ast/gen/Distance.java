@@ -29,7 +29,7 @@ public class Distance extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Distance fromArgs(Object... args){
         return new Distance(new Arguments(args), null);
     }

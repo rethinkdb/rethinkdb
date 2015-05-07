@@ -29,7 +29,7 @@ public class DayOfYear extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static DayOfYear fromArgs(Object... args){
         return new DayOfYear(new Arguments(args), null);
     }

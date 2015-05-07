@@ -29,7 +29,7 @@ public class OffsetsOf extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static OffsetsOf fromArgs(Object... args){
         return new OffsetsOf(new Arguments(args), null);
     }

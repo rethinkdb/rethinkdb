@@ -29,7 +29,7 @@ public class Random extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Random fromArgs(Object... args){
         return new Random(new Arguments(args), null);
     }

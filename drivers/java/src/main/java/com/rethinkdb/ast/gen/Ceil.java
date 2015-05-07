@@ -29,7 +29,7 @@ public class Ceil extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Ceil fromArgs(Object... args){
         return new Ceil(new Arguments(args), null);
     }

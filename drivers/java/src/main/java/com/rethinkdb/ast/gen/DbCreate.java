@@ -29,7 +29,7 @@ public class DbCreate extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static DbCreate fromArgs(Object... args){
         return new DbCreate(new Arguments(args), null);
     }

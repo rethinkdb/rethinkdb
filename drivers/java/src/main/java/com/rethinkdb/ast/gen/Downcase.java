@@ -29,7 +29,7 @@ public class Downcase extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Downcase fromArgs(Object... args){
         return new Downcase(new Arguments(args), null);
     }

@@ -29,7 +29,7 @@ public class Or extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Or fromArgs(Object... args){
         return new Or(new Arguments(args), null);
     }

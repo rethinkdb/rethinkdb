@@ -20,7 +20,7 @@ public class TopLevel extends RqlAst {
     }
 
 
-   /* Static factories */
+    /* Static factories */
 
 
     public Javascript js(Object... fields) {

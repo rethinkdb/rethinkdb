@@ -29,7 +29,7 @@ public class SetDifference extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static SetDifference fromArgs(Object... args){
         return new SetDifference(new Arguments(args), null);
     }

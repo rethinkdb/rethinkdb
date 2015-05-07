@@ -29,7 +29,7 @@ public class Mul extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Mul fromArgs(Object... args){
         return new Mul(new Arguments(args), null);
     }

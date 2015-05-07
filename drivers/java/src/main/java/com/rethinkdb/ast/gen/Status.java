@@ -29,7 +29,7 @@ public class Status extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Status fromArgs(Object... args){
         return new Status(new Arguments(args), null);
     }

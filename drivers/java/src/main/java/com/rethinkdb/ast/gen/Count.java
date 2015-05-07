@@ -29,7 +29,7 @@ public class Count extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Count fromArgs(Object... args){
         return new Count(new Arguments(args), null);
     }

@@ -29,7 +29,7 @@ public class Between extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Between fromArgs(Object... args){
         return new Between(new Arguments(args), null);
     }

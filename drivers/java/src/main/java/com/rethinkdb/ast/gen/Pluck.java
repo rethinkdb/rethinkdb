@@ -29,7 +29,7 @@ public class Pluck extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Pluck fromArgs(Object... args){
         return new Pluck(new Arguments(args), null);
     }

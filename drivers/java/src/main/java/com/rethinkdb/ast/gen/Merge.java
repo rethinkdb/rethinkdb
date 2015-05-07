@@ -29,7 +29,7 @@ public class Merge extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Merge fromArgs(Object... args){
         return new Merge(new Arguments(args), null);
     }

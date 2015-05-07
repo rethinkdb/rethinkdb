@@ -29,7 +29,7 @@ public class Changes extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Changes fromArgs(Object... args){
         return new Changes(new Arguments(args), null);
     }

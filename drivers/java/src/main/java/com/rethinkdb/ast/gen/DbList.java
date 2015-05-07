@@ -29,7 +29,7 @@ public class DbList extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static DbList fromArgs(Object... args){
         return new DbList(new Arguments(args), null);
     }

@@ -29,7 +29,7 @@ public class GetIntersecting extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static GetIntersecting fromArgs(Object... args){
         return new GetIntersecting(new Arguments(args), null);
     }

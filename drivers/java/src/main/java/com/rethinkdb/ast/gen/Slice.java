@@ -29,7 +29,7 @@ public class Slice extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Slice fromArgs(Object... args){
         return new Slice(new Arguments(args), null);
     }

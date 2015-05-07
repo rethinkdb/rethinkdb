@@ -29,7 +29,7 @@ public class Literal extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Literal fromArgs(Object... args){
         return new Literal(new Arguments(args), null);
     }

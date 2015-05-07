@@ -29,7 +29,7 @@ public class Contains extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Contains fromArgs(Object... args){
         return new Contains(new Arguments(args), null);
     }

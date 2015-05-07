@@ -29,7 +29,7 @@ public class OrderBy extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static OrderBy fromArgs(Object... args){
         return new OrderBy(new Arguments(args), null);
     }

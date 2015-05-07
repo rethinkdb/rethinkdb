@@ -29,7 +29,7 @@ public class Floor extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Floor fromArgs(Object... args){
         return new Floor(new Arguments(args), null);
     }

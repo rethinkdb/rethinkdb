@@ -29,7 +29,7 @@ public class Wait extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Wait fromArgs(Object... args){
         return new Wait(new Arguments(args), null);
     }

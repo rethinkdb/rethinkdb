@@ -29,7 +29,7 @@ public class IndexRename extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static IndexRename fromArgs(Object... args){
         return new IndexRename(new Arguments(args), null);
     }

@@ -29,7 +29,7 @@ public class Round extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Round fromArgs(Object... args){
         return new Round(new Arguments(args), null);
     }

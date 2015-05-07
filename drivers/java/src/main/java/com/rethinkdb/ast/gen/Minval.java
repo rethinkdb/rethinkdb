@@ -29,7 +29,7 @@ public class Minval extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Minval fromArgs(Object... args){
         return new Minval(new Arguments(args), null);
     }

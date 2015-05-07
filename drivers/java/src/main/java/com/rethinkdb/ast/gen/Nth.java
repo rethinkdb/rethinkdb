@@ -29,7 +29,7 @@ public class Nth extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Nth fromArgs(Object... args){
         return new Nth(new Arguments(args), null);
     }

@@ -29,7 +29,7 @@ public class HasFields extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static HasFields fromArgs(Object... args){
         return new HasFields(new Arguments(args), null);
     }

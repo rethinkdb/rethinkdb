@@ -29,7 +29,7 @@ public class IndexWait extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static IndexWait fromArgs(Object... args){
         return new IndexWait(new Arguments(args), null);
     }

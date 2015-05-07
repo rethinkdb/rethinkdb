@@ -29,7 +29,7 @@ public class Circle extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Circle fromArgs(Object... args){
         return new Circle(new Arguments(args), null);
     }

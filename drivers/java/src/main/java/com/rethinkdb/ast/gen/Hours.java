@@ -29,7 +29,7 @@ public class Hours extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Hours fromArgs(Object... args){
         return new Hours(new Arguments(args), null);
     }

@@ -29,7 +29,7 @@ public class Json extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Json fromArgs(Object... args){
         return new Json(new Arguments(args), null);
     }

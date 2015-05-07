@@ -29,7 +29,7 @@ public class ToJsonString extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static ToJsonString fromArgs(Object... args){
         return new ToJsonString(new Arguments(args), null);
     }

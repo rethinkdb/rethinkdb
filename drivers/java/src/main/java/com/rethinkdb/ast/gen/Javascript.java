@@ -29,7 +29,7 @@ public class Javascript extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Javascript fromArgs(Object... args){
         return new Javascript(new Arguments(args), null);
     }

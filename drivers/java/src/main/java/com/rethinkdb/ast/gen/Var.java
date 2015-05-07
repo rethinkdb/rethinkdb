@@ -29,7 +29,7 @@ public class Var extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Var fromArgs(Object... args){
         return new Var(new Arguments(args), null);
     }

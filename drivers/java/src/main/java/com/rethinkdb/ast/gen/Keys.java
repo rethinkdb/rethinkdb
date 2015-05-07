@@ -29,7 +29,7 @@ public class Keys extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Keys fromArgs(Object... args){
         return new Keys(new Arguments(args), null);
     }

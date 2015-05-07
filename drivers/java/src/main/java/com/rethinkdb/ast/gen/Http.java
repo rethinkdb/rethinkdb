@@ -29,7 +29,7 @@ public class Http extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Http fromArgs(Object... args){
         return new Http(new Arguments(args), null);
     }

@@ -29,7 +29,7 @@ public class Table extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Table fromArgs(Object... args){
         return new Table(new Arguments(args), null);
     }
