@@ -6,8 +6,11 @@ import com.rethinkdb.ast.RqlAst;
 import com.rethinkdb.proto.TermType;
 import java.util.*;
 
-public class ${classname} extends ${superclass} {
+<%block name="add_imports" />
 
+public class ${classname} extends ${superclass} {
+<%block name="member_vars" />
+<%block name="constructors">
 % if term_type is not None:
     public ${classname}(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.${term_type}, args, optargs);
@@ -16,7 +19,8 @@ public class ${classname} extends ${superclass} {
     protected ${classname}(RqlAst previous, TermType termType, Arguments args, OptArgs optargs){
         super(previous, termType, args, optargs);
     }
-    /* Query level terms */
+</%block>
+<%block name="special_methods" />
 % for term, info in meta.iteritems():
     % if include_in in info.get('include_in', ['query']):
     public ${camel(term)} ${info.get('alias', dromedary(term))}(Object... fields) {

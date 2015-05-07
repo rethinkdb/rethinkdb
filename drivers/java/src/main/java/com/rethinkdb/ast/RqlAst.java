@@ -5,7 +5,6 @@ import com.rethinkdb.ast.helper.Arguments;
 import com.rethinkdb.ast.helper.OptArgs;
 import com.rethinkdb.proto.TermType;
 
-import java.security.Key;
 import java.util.*;
 
 /** Base class for all reql queries.
@@ -36,7 +35,21 @@ public class RqlAst {
     }
 
     protected void init(RqlAst previous, Arguments args, OptArgs optargs) {
-        throw new RuntimeException("init is not implemented");
+        if (previous != null && previous.termType != null) {
+            this.args.add(previous);
+        }
+
+        if (args != null) {
+            for (Object arg : args) {
+                this.args.add(RqlUtil.toRqlAst(arg));
+            }
+        }
+
+        if (optargs != null) {
+            for (Map.Entry<String, Object> kv : optargs.entrySet()) {
+                this.optargs.put(kv.getKey(), RqlUtil.toRqlAst(kv.getValue()));
+            }
+        }
     }
 
     protected TermType getTermType() {
