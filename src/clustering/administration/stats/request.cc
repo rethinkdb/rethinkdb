@@ -3,6 +3,7 @@
 
 #include "clustering/administration/datum_adapter.hpp"
 #include "clustering/administration/servers/config_client.hpp"
+#include "clustering/table_manager/table_meta_client.hpp"
 
 const char *cluster_stats_request_t::cluster_request_type = "cluster";
 const char *server_stats_request_t::server_request_type = "server";
@@ -293,7 +294,8 @@ std::vector<peer_id_t> cluster_stats_request_t::get_peers(
     return all_peers(directory);
 }
 
-bool cluster_stats_request_t::check_existence(const metadata_t &) const {
+bool cluster_stats_request_t::check_existence(const metadata_t &,
+                                              table_meta_client_t *) const {
     return true; // Cluster stats always exist
 }
 
@@ -356,16 +358,10 @@ std::vector<peer_id_t> table_stats_request_t::get_peers(
     return all_peers(directory);
 }
 
-bool table_stats_request_t::check_existence(UNUSED const metadata_t &metadata) const {
-    // RSI(raft): Reimplement this once table metadata operations are implemented.
-    not_implemented();
-#if 0
-    std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> >
-        ::const_iterator table_it;
-    return search_const_metadata_by_uuid(&metadata.rdb_namespaces->namespaces,
-                                         table_id, &table_it);
-#endif
-    return false;
+bool table_stats_request_t::check_existence(
+        const metadata_t &,
+        table_meta_client_t *table_meta_client) const {
+    return table_meta_client->exists(table_id);
 }
 
 bool table_stats_request_t::to_datum(const parsed_stats_t &stats,
@@ -435,9 +431,9 @@ std::vector<peer_id_t> server_stats_request_t::get_peers(
     return std::vector<peer_id_t>(1, peer.get());
 }
 
-bool server_stats_request_t::check_existence(const metadata_t &metadata) const {
-    auto server_it = metadata.servers.servers.find(server_id);
-    return server_it != metadata.servers.servers.end();
+bool server_stats_request_t::check_existence(const metadata_t &metadata,
+                                             table_meta_client_t *) const {
+    return metadata.servers.servers.count(server_id) == 1;
 }
 
 bool server_stats_request_t::to_datum(const parsed_stats_t &stats,
@@ -527,20 +523,13 @@ std::vector<peer_id_t> table_server_stats_request_t::get_peers(
     return std::vector<peer_id_t>(1, peer.get());
 }
 
-bool table_server_stats_request_t::check_existence(const metadata_t &metadata) const {
-    auto server_it = metadata.servers.servers.find(server_id);
-    if (server_it == metadata.servers.servers.end()) {
+bool table_server_stats_request_t::check_existence(
+        const metadata_t &metadata,
+        table_meta_client_t *table_meta_client) const {
+    if (metadata.servers.servers.count(server_id) == 0) {
         return false;
     }
-    // RSI(raft): Reimplement this once table metadata operations are implemented.
-    not_implemented();
-#if 0
-    std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t> >
-        ::const_iterator table_it;
-    return search_const_metadata_by_uuid(&metadata.rdb_namespaces->namespaces,
-                                         table_id, &table_it);
-#endif
-    return false;
+    return table_meta_client->exists(table_id);
 }
 
 bool table_server_stats_request_t::to_datum(const parsed_stats_t &stats,
@@ -562,7 +551,7 @@ bool table_server_stats_request_t::to_datum(const parsed_stats_t &stats,
         return false;
     }
     row_builder.overwrite("server", server_identifier);
-    
+
     if (!add_table_fields(table_id, metadata, table_meta_client, admin_format,
             &row_builder)) {
         return false;

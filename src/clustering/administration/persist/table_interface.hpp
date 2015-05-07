@@ -2,6 +2,7 @@
 #ifndef CLUSTERING_ADMINISTRATION_PERSIST_TABLE_INTERFACE_HPP_
 #define CLUSTERING_ADMINISTRATION_PERSIST_TABLE_INTERFACE_HPP_
 
+#include "clustering/administration/perfmon_collection_repo.hpp"
 #include "clustering/table_manager/table_metadata.hpp"
 
 class cache_balancer_t;
@@ -43,11 +44,13 @@ public:
     void load_multistore(
         const namespace_id_t &table_id,
         scoped_ptr_t<multistore_ptr_t> *multistore_ptr_out,
-        signal_t *interruptor);
+        signal_t *interruptor,
+        perfmon_collection_t *perfmon_collection_serializers);
     void create_multistore(
         const namespace_id_t &table_id,
         scoped_ptr_t<multistore_ptr_t> *multistore_ptr_out,
-        signal_t *interruptor);
+        signal_t *interruptor,
+        perfmon_collection_t *perfmon_collection_serializers);
     void destroy_multistore(
         const namespace_id_t &table_id,
         scoped_ptr_t<multistore_ptr_t> *multistore_ptr_in,

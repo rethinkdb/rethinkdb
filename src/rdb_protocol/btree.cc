@@ -713,8 +713,8 @@ continue_bool_t rget_cb_t::handle_pair(
 #ifndef NDEBUG
         unreachable();
 #else
-        io.response->result = ql::exc_t(e, NULL);
-        return done_traversing_t::YES;
+        io.response->result = ql::exc_t(e, ql::backtrace_id_t::empty());
+        return continue_bool_t::ABORT;
 #endif // NDEBUG
     }
 }

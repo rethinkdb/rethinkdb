@@ -212,7 +212,8 @@ bool do_serve(io_backender_t *io_backender,
             }
         }
 
-        perfmon_collection_repo_t perfmon_repo(&get_global_perfmon_collection());
+        perfmon_collection_repo_t perfmon_collection_repo(
+            &get_global_perfmon_collection());
 
         // ReQL evaluation context and supporting structures
         rdb_context_t rdb_ctx(&extproc_pool,
@@ -259,7 +260,8 @@ bool do_serve(io_backender_t *io_backender,
                     table_directory_read_manager.get_root_view(),
                     table_persistence_interface.get(),
                     base_path,
-                    io_backender));
+                    io_backender,
+                    &perfmon_collection_repo));
             } else {
                 /* Proxies still need a `multi_table_manager_t` because it takes care of
                 receiving table names, databases, and primary keys from other servers and

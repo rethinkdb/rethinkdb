@@ -2,6 +2,7 @@
 #ifndef CLUSTERING_TABLE_MANAGER_MULTI_TABLE_MANAGER_HPP_
 #define CLUSTERING_TABLE_MANAGER_MULTI_TABLE_MANAGER_HPP_
 
+#include "clustering/administration/perfmon_collection_repo.hpp"
 #include "clustering/immediate_consistency/backfill_throttler.hpp"
 #include "clustering/table_contract/coordinator.hpp"
 #include "clustering/table_contract/cpu_sharding.hpp"
@@ -76,7 +77,8 @@ public:
             *_table_manager_directory,
         table_persistence_interface_t *_persistence_interface,
         const base_path_t &_base_path,
-        io_backender_t *_io_backender);
+        io_backender_t *_io_backender,
+        perfmon_collection_repo_t *_perfmon_collection_repo);
 
     /* This constructor is used on proxy servers. */
     multi_table_manager_t(
@@ -144,7 +146,8 @@ private:
             const multi_table_manager_bcard_t::timestamp_t::epoch_t &epoch,
             const raft_member_id_t &member_id,
             const raft_persistent_state_t<table_raft_state_t> &initial_state,
-            multistore_ptr_t *multistore_ptr);
+            multistore_ptr_t *multistore_ptr,
+            perfmon_collection_t *perfmon_collection_namespace);
 
         raft_member_t<table_raft_state_t> *get_raft() {
             return manager.get_raft();
@@ -293,6 +296,8 @@ private:
 
     boost::optional<base_path_t> base_path;
     io_backender_t *io_backender;
+
+    perfmon_collection_repo_t *perfmon_collection_repo;
 
     backfill_throttler_t backfill_throttler;
 

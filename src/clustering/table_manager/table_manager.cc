@@ -18,14 +18,14 @@ table_manager_t::table_manager_t(
         const multi_table_manager_bcard_t::timestamp_t::epoch_t &_epoch,
         const raft_member_id_t &_raft_member_id,
         const raft_persistent_state_t<table_raft_state_t> &initial_state,
-        multistore_ptr_t *multistore_ptr) :
+        multistore_ptr_t *multistore_ptr,
+        perfmon_collection_t *perfmon_collection_namespace) :
     table_id(_table_id),
     epoch(_epoch),
     raft_member_id(_raft_member_id),
     mailbox_manager(_mailbox_manager),
     persistence_interface(_persistence_interface),
-    perfmon_membership(
-        &get_global_perfmon_collection(), &perfmon_collection, uuid_to_str(_table_id)),
+    perfmon_membership(perfmon_collection_namespace, &perfmon_collection, "regions"),
     raft(raft_member_id, _mailbox_manager, raft_directory.get_values(), this,
         initial_state),
     table_manager_bcard(table_manager_bcard_t()),   /* we'll set this later */
