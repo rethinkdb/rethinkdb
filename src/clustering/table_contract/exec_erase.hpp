@@ -10,14 +10,15 @@ class erase_execution_t : public execution_t, public home_thread_mixin_t {
 public:
     erase_execution_t(
         const execution_t::context_t *context,
-        const region_t &region,
         store_view_t *store,
         perfmon_collection_t *perfmon_collection,
-        const contract_t &c,
-        const std::function<void(const contract_ack_t &)> &ack_cb);
+        const std::function<void(
+            const contract_id_t &, const contract_ack_t &)> &ack_cb,
+        const contract_id_t &cid,
+        const table_raft_state_t &raft_state);
     void update_contract(
-        const contract_t &c,
-        const std::function<void(const contract_ack_t &)> &ack_cb);
+        const contract_id_t &cid,
+        const table_raft_state_t &raft_state);
 
 private:
     /* `run()` does the actual work of erasing the data. */
