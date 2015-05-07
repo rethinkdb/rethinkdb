@@ -552,7 +552,6 @@ void remote_replicator_client_t::on_write_async(
             queue_entry.order_token = queue_order_checkpoint_.check_through(order_token);
             (*queue_fun_)(std::move(queue_entry), &queue_throttler);
         } else {
-            rassert(region_is_empty(region_queueing_));
             queue_throttler.pulse();
         }
 

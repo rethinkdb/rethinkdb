@@ -448,6 +448,7 @@ void current_page_acq_t::init(page_txn_t *txn,
             current_page_ = page_cache_->page_for_block_id(block_id);
         }
         dirtied_page_ = false;
+        touched_page_ = false;
 
         the_txn_->add_acquirer(this);
         current_page_->add_acquirer(this);
@@ -464,6 +465,7 @@ void current_page_acq_t::init(page_txn_t *txn,
     declared_snapshotted_ = false;
     current_page_ = page_cache_->page_for_new_block_id(&block_id_);
     dirtied_page_ = false;
+    touched_page_ = false;
 
     the_txn_->add_acquirer(this);
     current_page_->add_acquirer(this);
@@ -481,6 +483,7 @@ void current_page_acq_t::init(page_cache_t *page_cache,
     block_id_ = block_id;
     current_page_ = page_cache_->page_for_block_id(block_id);
     dirtied_page_ = false;
+    touched_page_ = false;
 
     current_page_->add_acquirer(this);
 }
@@ -588,6 +591,7 @@ void current_page_acq_t::set_recency(repli_timestamp_t recency) {
     rassert(current_page_ != NULL);
     write_cond_.wait();
     rassert(current_page_ != NULL);
+    touched_page_ = true;
     page_cache_->set_recency_for_block_id(block_id_, recency);
 }
 
@@ -606,6 +610,11 @@ void current_page_acq_t::mark_deleted() {
 bool current_page_acq_t::dirtied_page() const {
     assert_thread();
     return dirtied_page_;
+}
+
+bool current_page_acq_t::touched_page() const {
+    assert_thread();
+    return touched_page_;
 }
 
 block_version_t current_page_acq_t::block_version() const {
@@ -1017,7 +1026,7 @@ void page_txn_t::remove_acquirer(current_page_acq_t *acq) {
         // with a _correct_ value indicating that we're holding redundant dirty
         // pages for the same block id.
         throttler_acq_.update_dirty_page_count(snapshotted_dirtied_pages_.size());
-    } else {
+    } else if (acq->touched_page()) {
         // It's okay to have two dirtied_page_t's or touched_page_t's for the
         // same block id -- compute_changes handles this.
         touched_pages_.push_back(touched_page_t(block_version, acq->block_id(),
