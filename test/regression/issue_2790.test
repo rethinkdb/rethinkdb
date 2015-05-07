@@ -20,7 +20,7 @@ import utils
 
 bufferSize = 4096
 waitSeconds = 5
-serverExecutable = os.path.join(utils.latest_build_dir(), 'rethinkdb')
+serverExecutable = utils.find_rethinkdb_executable()
 
 containingFolder = tempfile.mkdtemp()
 serverFolder = os.path.join(containingFolder, 'rethinkdb_data')
@@ -36,7 +36,7 @@ subprocess.check_call([serverExecutable, 'create', '-d', serverFolder], stdout=t
 
 # -- start the server
 
-serverCommand = [serverExecutable, '-d', serverFolder, '--http-port', '0', '--cluster-port', '0', '--driver-port', '0']
+serverCommand = [serverExecutable, '-d', serverFolder, '--http-port', '0', '--cluster-port', '0', '--driver-port', '0', '--no-update-check']
 serverProcess = subprocess.Popen(serverCommand, bufsize=bufferSize, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
 # --  wait, then check for the "Server ready" message
