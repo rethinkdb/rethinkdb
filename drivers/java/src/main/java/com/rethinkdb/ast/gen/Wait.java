@@ -15,6 +15,12 @@ import java.util.*;
 public class Wait extends RqlQuery {
 
 
+    public Wait(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Wait(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Wait(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.WAIT, args, optargs);
     }

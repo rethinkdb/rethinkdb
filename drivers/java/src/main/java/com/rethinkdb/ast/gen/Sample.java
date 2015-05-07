@@ -15,6 +15,12 @@ import java.util.*;
 public class Sample extends RqlQuery {
 
 
+    public Sample(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Sample(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Sample(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.SAMPLE, args, optargs);
     }

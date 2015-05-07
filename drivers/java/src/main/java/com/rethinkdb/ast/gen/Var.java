@@ -15,6 +15,12 @@ import java.util.*;
 public class Var extends RqlQuery {
 
 
+    public Var(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Var(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Var(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.VAR, args, optargs);
     }

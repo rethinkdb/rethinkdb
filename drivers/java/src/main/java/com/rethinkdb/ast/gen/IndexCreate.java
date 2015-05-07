@@ -15,6 +15,12 @@ import java.util.*;
 public class IndexCreate extends RqlQuery {
 
 
+    public IndexCreate(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public IndexCreate(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public IndexCreate(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.INDEX_CREATE, args, optargs);
     }

@@ -15,6 +15,12 @@ import java.util.*;
 public class SpliceAt extends RqlQuery {
 
 
+    public SpliceAt(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public SpliceAt(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public SpliceAt(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.SPLICE_AT, args, optargs);
     }

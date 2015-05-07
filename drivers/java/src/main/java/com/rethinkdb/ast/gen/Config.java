@@ -15,6 +15,12 @@ import java.util.*;
 public class Config extends RqlQuery {
 
 
+    public Config(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Config(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Config(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.CONFIG, args, optargs);
     }

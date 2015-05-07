@@ -15,6 +15,12 @@ import java.util.*;
 public class Funcall extends RqlQuery {
 
 
+    public Funcall(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Funcall(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Funcall(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.FUNCALL, args, optargs);
     }

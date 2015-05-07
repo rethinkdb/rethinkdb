@@ -15,6 +15,12 @@ import java.util.*;
 public class SetUnion extends RqlQuery {
 
 
+    public SetUnion(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public SetUnion(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public SetUnion(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.SET_UNION, args, optargs);
     }

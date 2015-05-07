@@ -15,6 +15,12 @@ import java.util.*;
 public class Db extends RqlAst {
 
 
+    public Db(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Db(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Db(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.DB, args, optargs);
     }

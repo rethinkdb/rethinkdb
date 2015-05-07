@@ -15,6 +15,12 @@ import java.util.*;
 public class ToIso8601 extends RqlQuery {
 
 
+    public ToIso8601(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public ToIso8601(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public ToIso8601(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.TO_ISO8601, args, optargs);
     }

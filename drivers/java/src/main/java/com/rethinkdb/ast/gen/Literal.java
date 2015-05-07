@@ -15,6 +15,12 @@ import java.util.*;
 public class Literal extends RqlQuery {
 
 
+    public Literal(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Literal(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Literal(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.LITERAL, args, optargs);
     }

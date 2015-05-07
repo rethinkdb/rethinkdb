@@ -15,6 +15,12 @@ import java.util.*;
 public class InnerJoin extends RqlQuery {
 
 
+    public InnerJoin(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public InnerJoin(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public InnerJoin(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.INNER_JOIN, args, optargs);
     }

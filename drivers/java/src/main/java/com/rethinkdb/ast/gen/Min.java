@@ -15,6 +15,12 @@ import java.util.*;
 public class Min extends RqlQuery {
 
 
+    public Min(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Min(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Min(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.MIN, args, optargs);
     }

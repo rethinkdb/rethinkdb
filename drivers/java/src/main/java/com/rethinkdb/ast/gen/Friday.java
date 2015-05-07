@@ -15,6 +15,12 @@ import java.util.*;
 public class Friday extends RqlQuery {
 
 
+    public Friday(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Friday(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Friday(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.FRIDAY, args, optargs);
     }

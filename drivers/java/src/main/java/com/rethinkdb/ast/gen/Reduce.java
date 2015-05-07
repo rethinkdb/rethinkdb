@@ -15,6 +15,12 @@ import java.util.*;
 public class Reduce extends RqlQuery {
 
 
+    public Reduce(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Reduce(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Reduce(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.REDUCE, args, optargs);
     }

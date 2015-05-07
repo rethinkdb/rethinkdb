@@ -15,6 +15,12 @@ import java.util.*;
 public class Filter extends RqlQuery {
 
 
+    public Filter(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Filter(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Filter(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.FILTER, args, optargs);
     }

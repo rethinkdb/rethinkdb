@@ -15,6 +15,12 @@ import java.util.*;
 public class GetIntersecting extends RqlQuery {
 
 
+    public GetIntersecting(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public GetIntersecting(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public GetIntersecting(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.GET_INTERSECTING, args, optargs);
     }

@@ -15,6 +15,12 @@ import java.util.*;
 public class Distinct extends RqlQuery {
 
 
+    public Distinct(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Distinct(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Distinct(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.DISTINCT, args, optargs);
     }

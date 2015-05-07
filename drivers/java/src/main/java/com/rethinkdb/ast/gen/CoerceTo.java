@@ -15,6 +15,12 @@ import java.util.*;
 public class CoerceTo extends RqlQuery {
 
 
+    public CoerceTo(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public CoerceTo(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public CoerceTo(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.COERCE_TO, args, optargs);
     }

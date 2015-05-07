@@ -15,6 +15,12 @@ import java.util.*;
 public class And extends RqlQuery {
 
 
+    public And(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public And(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public And(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.AND, args, optargs);
     }

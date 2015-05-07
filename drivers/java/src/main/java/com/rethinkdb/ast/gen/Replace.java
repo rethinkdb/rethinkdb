@@ -15,6 +15,12 @@ import java.util.*;
 public class Replace extends RqlQuery {
 
 
+    public Replace(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Replace(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Replace(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.REPLACE, args, optargs);
     }

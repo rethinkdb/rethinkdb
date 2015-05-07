@@ -15,6 +15,12 @@ import java.util.*;
 public class Includes extends RqlQuery {
 
 
+    public Includes(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Includes(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Includes(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.INCLUDES, args, optargs);
     }

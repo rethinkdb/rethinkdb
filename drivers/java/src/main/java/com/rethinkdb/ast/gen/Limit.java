@@ -15,6 +15,12 @@ import java.util.*;
 public class Limit extends RqlQuery {
 
 
+    public Limit(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Limit(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Limit(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.LIMIT, args, optargs);
     }

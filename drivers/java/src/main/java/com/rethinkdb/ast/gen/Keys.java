@@ -15,6 +15,12 @@ import java.util.*;
 public class Keys extends RqlQuery {
 
 
+    public Keys(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Keys(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Keys(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.KEYS, args, optargs);
     }

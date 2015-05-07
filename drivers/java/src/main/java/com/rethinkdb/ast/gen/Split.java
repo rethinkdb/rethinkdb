@@ -15,6 +15,12 @@ import java.util.*;
 public class Split extends RqlQuery {
 
 
+    public Split(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Split(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Split(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.SPLIT, args, optargs);
     }

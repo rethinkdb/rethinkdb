@@ -15,6 +15,12 @@ import java.util.*;
 public class Contains extends RqlQuery {
 
 
+    public Contains(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Contains(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Contains(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.CONTAINS, args, optargs);
     }

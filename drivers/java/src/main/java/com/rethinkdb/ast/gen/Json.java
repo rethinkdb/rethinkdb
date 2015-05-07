@@ -15,6 +15,12 @@ import java.util.*;
 public class Json extends RqlQuery {
 
 
+    public Json(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Json(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Json(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.JSON, args, optargs);
     }

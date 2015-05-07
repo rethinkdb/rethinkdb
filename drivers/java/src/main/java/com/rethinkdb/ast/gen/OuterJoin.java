@@ -15,6 +15,12 @@ import java.util.*;
 public class OuterJoin extends RqlQuery {
 
 
+    public OuterJoin(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public OuterJoin(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public OuterJoin(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.OUTER_JOIN, args, optargs);
     }

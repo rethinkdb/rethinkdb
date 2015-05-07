@@ -15,6 +15,12 @@ import java.util.*;
 public class Time extends RqlQuery {
 
 
+    public Time(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Time(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Time(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.TIME, args, optargs);
     }

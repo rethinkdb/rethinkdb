@@ -15,6 +15,12 @@ import java.util.*;
 public class EqJoin extends RqlQuery {
 
 
+    public EqJoin(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public EqJoin(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public EqJoin(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.EQ_JOIN, args, optargs);
     }

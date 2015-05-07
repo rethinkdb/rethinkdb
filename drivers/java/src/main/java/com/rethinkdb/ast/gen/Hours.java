@@ -15,6 +15,12 @@ import java.util.*;
 public class Hours extends RqlQuery {
 
 
+    public Hours(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Hours(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Hours(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.HOURS, args, optargs);
     }

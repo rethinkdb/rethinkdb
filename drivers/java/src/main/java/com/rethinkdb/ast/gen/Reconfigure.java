@@ -15,6 +15,12 @@ import java.util.*;
 public class Reconfigure extends RqlQuery {
 
 
+    public Reconfigure(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Reconfigure(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Reconfigure(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.RECONFIGURE, args, optargs);
     }

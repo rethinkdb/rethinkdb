@@ -15,6 +15,12 @@ import java.util.*;
 public class Random extends RqlQuery {
 
 
+    public Random(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Random(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Random(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.RANDOM, args, optargs);
     }

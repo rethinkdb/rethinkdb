@@ -15,6 +15,12 @@ import java.util.*;
 public class IsEmpty extends RqlQuery {
 
 
+    public IsEmpty(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public IsEmpty(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public IsEmpty(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.IS_EMPTY, args, optargs);
     }

@@ -15,6 +15,12 @@ import java.util.*;
 public class Fill extends RqlQuery {
 
 
+    public Fill(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Fill(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Fill(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.FILL, args, optargs);
     }

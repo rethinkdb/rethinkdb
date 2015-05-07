@@ -21,7 +21,7 @@ AST_GEN_DIR = PACKAGE_DIR + '/ast/gen'
 PROTO_FILE = '../../src/rdb_protocol/ql2.proto'
 PROTO_JSON = './proto_basic.json'
 META_JSON = './term_info.json'
-CWD = os.getcwd()
+MTIME = os.path.getmtime(__file__)
 
 
 def main():
@@ -225,8 +225,10 @@ def already_rendered(tpl, output_path):
     '''Check if rendered file is already up to date'''
     tpl_mtime = max([os.path.getmtime(t) for t in dependent_templates(tpl)])
     output_exists = os.path.exists(output_path)
-    template_is_older = tpl_mtime <= os.path.getmtime(output_path)
-    return output_exists and template_is_older
+    output_mtime = os.path.getmtime(output_path)
+    template_is_older = tpl_mtime <= output_mtime
+    convert_is_older = MTIME <= output_mtime
+    return output_exists and template_is_older and convert_is_older
 
 
 def render(template_name, output_dir, output_name=None, **kwargs):

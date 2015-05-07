@@ -15,6 +15,12 @@ import java.util.*;
 public class GetField extends RqlQuery {
 
 
+    public GetField(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public GetField(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public GetField(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.GET_FIELD, args, optargs);
     }

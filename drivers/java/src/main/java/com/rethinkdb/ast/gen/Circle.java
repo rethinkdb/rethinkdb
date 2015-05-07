@@ -15,6 +15,12 @@ import java.util.*;
 public class Circle extends RqlQuery {
 
 
+    public Circle(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Circle(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Circle(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.CIRCLE, args, optargs);
     }

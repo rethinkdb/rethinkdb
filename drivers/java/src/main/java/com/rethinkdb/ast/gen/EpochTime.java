@@ -15,6 +15,12 @@ import java.util.*;
 public class EpochTime extends RqlQuery {
 
 
+    public EpochTime(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public EpochTime(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public EpochTime(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.EPOCH_TIME, args, optargs);
     }

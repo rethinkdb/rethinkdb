@@ -15,6 +15,12 @@ import java.util.*;
 public class Append extends RqlQuery {
 
 
+    public Append(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Append(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Append(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.APPEND, args, optargs);
     }

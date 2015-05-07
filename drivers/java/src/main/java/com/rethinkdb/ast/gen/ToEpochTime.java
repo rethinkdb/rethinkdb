@@ -15,6 +15,12 @@ import java.util.*;
 public class ToEpochTime extends RqlQuery {
 
 
+    public ToEpochTime(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public ToEpochTime(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public ToEpochTime(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.TO_EPOCH_TIME, args, optargs);
     }

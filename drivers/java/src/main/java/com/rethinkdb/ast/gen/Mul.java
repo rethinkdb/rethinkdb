@@ -15,6 +15,12 @@ import java.util.*;
 public class Mul extends RqlQuery {
 
 
+    public Mul(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Mul(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Mul(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.MUL, args, optargs);
     }

@@ -15,6 +15,12 @@ import java.util.*;
 public class During extends RqlQuery {
 
 
+    public During(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public During(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public During(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.DURING, args, optargs);
     }

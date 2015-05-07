@@ -15,6 +15,12 @@ import java.util.*;
 public class ChangeAt extends RqlQuery {
 
 
+    public ChangeAt(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public ChangeAt(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public ChangeAt(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.CHANGE_AT, args, optargs);
     }

@@ -15,6 +15,12 @@ import java.util.*;
 public class DayOfWeek extends RqlQuery {
 
 
+    public DayOfWeek(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public DayOfWeek(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public DayOfWeek(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.DAY_OF_WEEK, args, optargs);
     }

@@ -15,6 +15,12 @@ import java.util.*;
 public class ConcatMap extends RqlQuery {
 
 
+    public ConcatMap(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public ConcatMap(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public ConcatMap(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.CONCAT_MAP, args, optargs);
     }

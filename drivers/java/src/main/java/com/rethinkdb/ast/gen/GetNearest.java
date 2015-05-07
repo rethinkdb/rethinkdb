@@ -15,6 +15,12 @@ import java.util.*;
 public class GetNearest extends RqlQuery {
 
 
+    public GetNearest(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public GetNearest(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public GetNearest(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.GET_NEAREST, args, optargs);
     }

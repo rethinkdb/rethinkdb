@@ -15,6 +15,12 @@ import java.util.*;
 public class Update extends RqlQuery {
 
 
+    public Update(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Update(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Update(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.UPDATE, args, optargs);
     }

@@ -15,6 +15,12 @@ import java.util.*;
 public class Rebalance extends RqlQuery {
 
 
+    public Rebalance(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Rebalance(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Rebalance(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.REBALANCE, args, optargs);
     }

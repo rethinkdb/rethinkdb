@@ -15,6 +15,12 @@ import java.util.*;
 public class Ceil extends RqlQuery {
 
 
+    public Ceil(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Ceil(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Ceil(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.CEIL, args, optargs);
     }

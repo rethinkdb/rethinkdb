@@ -15,6 +15,12 @@ import java.util.*;
 public class Bracket extends RqlQuery {
 
 
+    public Bracket(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Bracket(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Bracket(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.BRACKET, args, optargs);
     }

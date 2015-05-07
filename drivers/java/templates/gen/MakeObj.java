@@ -1,6 +1,7 @@
 <%inherit file="../AstSubclass.java" />
-<%block name="constructors">
-    public MakeObj(java.util.Map<String, Object> fields){
-        super(null, TermType.MAKE_OBJ, new Arguments(), fields);
+
+<%block name="special_methods">
+    public static MakeObj fromMap(java.util.Map<String, RqlAst> map){
+        return new MakeObj(OptArgs.fromMap(map));
     }
 </%block>

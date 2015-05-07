@@ -15,6 +15,12 @@ import java.util.*;
 public class Line extends RqlQuery {
 
 
+    public Line(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Line(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Line(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.LINE, args, optargs);
     }

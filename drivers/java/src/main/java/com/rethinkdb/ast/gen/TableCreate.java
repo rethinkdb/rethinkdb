@@ -15,6 +15,12 @@ import java.util.*;
 public class TableCreate extends RqlQuery {
 
 
+    public TableCreate(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public TableCreate(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public TableCreate(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.TABLE_CREATE, args, optargs);
     }

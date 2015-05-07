@@ -15,6 +15,12 @@ import java.util.*;
 public class IndexList extends RqlQuery {
 
 
+    public IndexList(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public IndexList(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public IndexList(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.INDEX_LIST, args, optargs);
     }

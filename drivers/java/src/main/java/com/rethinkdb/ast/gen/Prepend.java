@@ -15,6 +15,12 @@ import java.util.*;
 public class Prepend extends RqlQuery {
 
 
+    public Prepend(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Prepend(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Prepend(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.PREPEND, args, optargs);
     }

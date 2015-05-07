@@ -15,6 +15,12 @@ import java.util.*;
 public class Without extends RqlQuery {
 
 
+    public Without(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Without(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Without(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.WITHOUT, args, optargs);
     }

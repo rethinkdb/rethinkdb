@@ -15,6 +15,12 @@ import java.util.*;
 public class Day extends RqlQuery {
 
 
+    public Day(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Day(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Day(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.DAY, args, optargs);
     }

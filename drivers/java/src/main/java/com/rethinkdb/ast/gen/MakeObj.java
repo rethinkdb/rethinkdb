@@ -15,9 +15,22 @@ import java.util.*;
 public class MakeObj extends RqlQuery {
 
 
-    public MakeObj(java.util.Map<String, Object> fields){
-        super(null, TermType.MAKE_OBJ, new Arguments(), fields);
+    public MakeObj(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public MakeObj(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
+    public MakeObj(RqlAst prev, Arguments args, OptArgs optargs) {
+        this(prev, TermType.MAKE_OBJ, args, optargs);
+    }
+    protected MakeObj(RqlAst previous, TermType termType, Arguments args, OptArgs optargs){
+        super(previous, termType, args, optargs);
     }
 
+
+    public static MakeObj fromMap(java.util.Map<String, RqlAst> map){
+        return new MakeObj(OptArgs.fromMap(map));
+    }
 
 }

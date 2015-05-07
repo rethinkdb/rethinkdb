@@ -15,6 +15,12 @@ import java.util.*;
 public class Javascript extends RqlQuery {
 
 
+    public Javascript(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Javascript(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Javascript(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.JAVASCRIPT, args, optargs);
     }

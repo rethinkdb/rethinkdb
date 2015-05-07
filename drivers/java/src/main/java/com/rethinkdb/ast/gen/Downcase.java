@@ -15,6 +15,12 @@ import java.util.*;
 public class Downcase extends RqlQuery {
 
 
+    public Downcase(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Downcase(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Downcase(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.DOWNCASE, args, optargs);
     }

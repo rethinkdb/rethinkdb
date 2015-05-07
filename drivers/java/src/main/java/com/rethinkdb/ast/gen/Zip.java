@@ -15,6 +15,12 @@ import java.util.*;
 public class Zip extends RqlQuery {
 
 
+    public Zip(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Zip(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Zip(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.ZIP, args, optargs);
     }

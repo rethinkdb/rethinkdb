@@ -15,6 +15,12 @@ import java.util.*;
 public class InTimezone extends RqlQuery {
 
 
+    public InTimezone(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public InTimezone(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public InTimezone(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.IN_TIMEZONE, args, optargs);
     }
