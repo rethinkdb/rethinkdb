@@ -172,6 +172,8 @@ std::string errno_string(int errsv);
 // Contains the name of the directory in which all data is stored.
 class base_path_t {
 public:
+    // Constructs an empty path.
+    base_path_t() { }
     explicit base_path_t(const std::string& path);
     const std::string& path() const;
 

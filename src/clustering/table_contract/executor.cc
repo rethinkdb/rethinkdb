@@ -21,15 +21,22 @@ contract_executor_t::contract_executor_t(
     raft_state(_raft_state),
     multistore(_multistore),
     perfmons(_perfmons),
-    execution_context(
-        _server_id, _mailbox_manager, multistore->get_branch_history_manager(),
-        _base_path, _io_backender, _backfill_throttler,
-        _remote_contract_execution_bcards, &local_contract_execution_bcards,
-        &local_table_query_bcards),
     perfmon_counter(0),
     update_pumper(std::bind(&contract_executor_t::update_blocking, this, ph::_1)),
     raft_state_subs([this]() { update_pumper.notify(); })
 {
+    execution_context.server_id = _server_id;
+    execution_context.mailbox_manager = _mailbox_manager;
+    execution_context.branch_history_manager = multistore->get_branch_history_manager();
+    execution_context.base_path = _base_path;
+    execution_context.io_backender = _io_backender;
+    execution_context.backfill_throttler = _backfill_throttler;
+    execution_context.remote_contract_execution_bcards
+        = _remote_contract_execution_bcards;
+    execution_context.local_contract_execution_bcards
+        = &local_contract_execution_bcards;
+    execution_context.local_table_query_bcards = &local_table_query_bcards;
+
     multistore->assert_thread();
 
     watchable_t<table_raft_state_t>::freeze_t freeze(raft_state);
