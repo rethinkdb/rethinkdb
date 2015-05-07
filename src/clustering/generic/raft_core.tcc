@@ -76,7 +76,7 @@ raft_member_t<state_t>::raft_member_t(
         new watchable_map_t<raft_member_id_t, std::nullptr_t>::all_subs_t(
             network->get_connected_members(),
             [this](const raft_member_id_t &, const std::nullptr_t *) {
-                update_readiness_for_change();
+                this->update_readiness_for_change();
             },
             /* There's no point in running `update_readiness_for_change()` now; we can't
             be ready for change because we're a follower. */
@@ -85,7 +85,7 @@ raft_member_t<state_t>::raft_member_t(
     new_mutex_acq_t mutex_acq(&mutex);
     /* Finish initializing `latest_state` */
     latest_state.apply_atomic_op([&](state_and_config_t *s) -> bool {
-        apply_log_entries(s, ps.log, s->log_index + 1, ps.log.get_latest_index());
+        this->apply_log_entries(s, ps.log, s->log_index + 1, ps.log.get_latest_index());
         return !ps.log.entries.empty();
     });
     DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
@@ -696,7 +696,7 @@ void raft_member_t<state_t>::on_append_entries_rpc(
             last committed state and then apply log entries from there. */
             *s = committed_state.get_ref();
         }
-        apply_log_entries(s, ps.log, s->log_index + 1, ps.log.get_latest_index());
+        this->apply_log_entries(s, ps.log, s->log_index + 1, ps.log.get_latest_index());
         return true;
     });
 
@@ -983,7 +983,7 @@ void raft_member_t<state_t>::update_commit_index(
         `candidate_and_leader_coro()` to start the second phase of the reconfiguration.
     */
     committed_state.apply_atomic_op([&](state_and_config_t *state_and_config) -> bool {
-        apply_log_entries(state_and_config, ps.log,
+        this->apply_log_entries(state_and_config, ps.log,
             state_and_config->log_index + 1, new_commit_index);
         return true;
     });
@@ -1793,7 +1793,7 @@ void raft_member_t<state_t>::leader_append_log_entry(
     can be notified when there are new log entries to send to the followers. */
     latest_state.apply_atomic_op([&](state_and_config_t *s) -> bool {
         guarantee(s->log_index + 1 == ps.log.get_latest_index());
-        apply_log_entries(s, ps.log, s->log_index + 1, s->log_index + 1);
+        this->apply_log_entries(s, ps.log, s->log_index + 1, s->log_index + 1);
         return true;
     });
 

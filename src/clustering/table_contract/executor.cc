@@ -21,11 +21,11 @@ contract_executor_t::contract_executor_t(
     raft_state(_raft_state),
     multistore(_multistore),
     perfmons(_perfmons),
-    execution_context {
+    execution_context(
         _server_id, _mailbox_manager, multistore->get_branch_history_manager(),
         _base_path, _io_backender, _backfill_throttler,
         _remote_contract_execution_bcards, &local_contract_execution_bcards,
-        &local_table_query_bcards },
+        &local_table_query_bcards),
     perfmon_counter(0),
     update_pumper(std::bind(&contract_executor_t::update_blocking, this, ph::_1)),
     raft_state_subs([this]() { update_pumper.notify(); })

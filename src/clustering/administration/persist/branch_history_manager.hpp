@@ -5,10 +5,7 @@
 #include "clustering/administration/persist/file.hpp"
 #include "clustering/immediate_consistency/history.hpp"
 
-class real_branch_history_manager_t :
-    public branch_history_manager_t,
-    public home_thread_mixin_t
-{
+class real_branch_history_manager_t : public branch_history_manager_t {
 public:
     static void erase(
         const namespace_id_t &_table_id,

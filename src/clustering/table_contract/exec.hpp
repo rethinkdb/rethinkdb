@@ -42,6 +42,27 @@ public:
         watchable_map_var_t<std::pair<server_id_t, branch_id_t>,
             contract_execution_bcard_t> *local_contract_execution_bcards;
         watchable_map_var_t<uuid_u, table_query_bcard_t> *local_table_query_bcards;
+
+        context_t(
+                decltype(server_id) sid,
+                decltype(mailbox_manager) mm,
+                decltype(branch_history_manager) bhm,
+                decltype(base_path) bp,
+                decltype(io_backender) ib,
+                decltype(backfill_throttler) bt,
+                decltype(remote_contract_execution_bcards) rceb,
+                decltype(local_contract_execution_bcards) lceb,
+                decltype(local_table_query_bcards) ltqb) :
+            server_id(sid),
+            mailbox_manager(mm),
+            branch_history_manager(bhm),
+            base_path(bp),
+            io_backender(ib),
+            backfill_throttler(bt),
+            remote_contract_execution_bcards(rceb),
+            local_contract_execution_bcards(lceb),
+            local_table_query_bcards(ltqb) { }
+
     };
 
     /* All subclasses of `execution_t` have the following things in common:

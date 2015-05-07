@@ -205,7 +205,8 @@ std::string key_to_debug_str(const store_key_t &key);
 std::string key_to_debug_str(const btree_key_t *key);
 
 /* `key_range_t` represents a contiguous set of keys. */
-struct key_range_t {
+class key_range_t {
+public:
     /* If `right.unbounded`, then the range contains all keys greater than or
     equal to `left`. If `right.bounded`, then the range contains all keys
     greater than or equal to `left` and less than `right.key`. */
@@ -321,6 +322,10 @@ struct key_range_t {
 
     store_key_t left;
     right_bound_t right;
+
+private:
+    void init(bound_t lm, const btree_key_t *l,
+              bound_t rm, const btree_key_t *r);
 };
 
 RDB_DECLARE_SERIALIZABLE(key_range_t::right_bound_t);

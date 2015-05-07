@@ -186,7 +186,7 @@ enum class raft_log_entry_type_t {
     `raft_complex_config_t`. See Section 8 of the Raft paper. */
     noop
 };
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(raft_log_entry_type_t, uint8_t,
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(raft_log_entry_type_t, int8_t,
     raft_log_entry_type_t::regular, raft_log_entry_type_t::noop);
 
 /* `raft_log_entry_t` describes an entry in the Raft log. */

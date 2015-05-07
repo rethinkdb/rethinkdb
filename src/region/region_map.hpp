@@ -22,9 +22,9 @@ private:
 public:
     typedef value_t mapped_type;
 
-    region_map_t() THROWS_NOTHING : region_map_t(region_t::universe(), value_t()) { }
-
-    explicit region_map_t(region_t r, value_t v = value_t()) THROWS_NOTHING :
+    explicit region_map_t(
+            region_t r = region_t::universe(),
+            value_t v = value_t()) THROWS_NOTHING :
         inner(
             key_edge_t(r.inner.left),
             r.inner.right,

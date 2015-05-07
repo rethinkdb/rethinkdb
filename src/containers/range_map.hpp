@@ -17,7 +17,7 @@ public:
 
     /* Constructs an empty `range_map_t` that starts and ends at the default-constructed
     `edge_t`. */
-    range_map_t() : range_map_t(edge_t()) { }
+    range_map_t() : left(edge_t()) { }
 
     /* Constructs an empty `range_map_t` that starts and ends at the given point. Even
     when empty, a `range_map_t` is still considered to be at some specific point in the
@@ -33,6 +33,11 @@ public:
         }
         DEBUG_ONLY_CODE(validate());
     }
+
+    range_map_t(range_map_t &&movee) :
+            left(std::move(movee.left)),
+            zones(std::move(movee.zones)) { }
+    range_map_t(const range_map_t &) = default;
 
     /* Returns the left and right edges of the `range_map_t`. */
     const edge_t &left_edge() const {
@@ -284,7 +289,7 @@ public:
         auto it = zones.upper_bound(l);
         if (l != left && zones.count(l) == 0) {
             /* We need to chop off the part to the left of `l` */
-            auto res = zones.insert(std::make_pair(l, it->second));
+            DEBUG_VAR auto res = zones.insert(std::make_pair(l, it->second));
             rassert(res.second);
         }
         edge_t prev = l;

@@ -135,7 +135,7 @@ bool blocking_read_file(const char *path, std::string *contents_out);
 template <class T>
 class assignment_sentry_t {
 public:
-    assignment_sentry_t() : var(nullptr) { }
+    assignment_sentry_t() : var(nullptr), old_value() { }
     assignment_sentry_t(T *v, const T &value) :
             var(v), old_value(*var) {
         *var = value;
