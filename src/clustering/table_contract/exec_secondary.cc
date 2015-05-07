@@ -20,7 +20,7 @@ secondary_execution_t::secondary_execution_t(
     const contract_t &c = raft_state.contracts.at(cid).second;
     guarantee(c.replicas.count(context->server_id) == 1);
     guarantee(raft_state.contracts.at(cid).first == region);
-    if (static_cast<bool>(c.primary) &&
+    if (static_cast<bool>(c.primary) && !c.branch.is_nil() &&
             raft_state.branch_history.branches.at(c.branch).region == region) {
         connect_to_primary = true;
         primary = c.primary->server;
@@ -172,11 +172,6 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
             cross_thread_signal_t stop_signal_on_store_thread(
                 &stop_signal, store->home_thread());
             on_thread_t thread_switcher_3(store->home_thread());
-
-            debugf("secondary: branch %s store.region %s rrs.region %s\n",
-                uuid_to_str(branch).c_str(),
-                debug_strprint(store->get_region()).c_str(),
-                debug_strprint(primary_bcard.assert_get_value().remote_replicator_server.region).c_str());
 
             /* Backfill and start streaming from the primary. */
             remote_replicator_client_t remote_replicator_client(
