@@ -93,48 +93,51 @@ void table_meta_client_t::get_config(
     cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
 
-    /* Find a mailbox of a server that claims to be hosting the given table */
-    multi_table_manager_bcard_t::get_config_mailbox_t::address_t best_mailbox;
-    multi_table_manager_bcard_t::timestamp_t best_timestamp;
-    table_manager_directory->read_all(
-    [&](const std::pair<peer_id_t, namespace_id_t> &key,
-            const table_manager_bcard_t *table_bcard) {
-        if (key.second == table_id) {
-            multi_table_manager_directory->read_key(key.first,
-            [&](const multi_table_manager_bcard_t *server_bcard) {
-                if (server_bcard != nullptr) {
-                    if (best_mailbox.is_nil() ||
-                            table_bcard->timestamp.supersedes(best_timestamp)) {
-                        best_mailbox = server_bcard->get_config_mailbox;
-                        best_timestamp = table_bcard->timestamp;
+    retry([&]() {
+        /* Find a mailbox of a server that claims to be hosting the given table */
+        multi_table_manager_bcard_t::get_config_mailbox_t::address_t best_mailbox;
+        multi_table_manager_bcard_t::timestamp_t best_timestamp;
+        table_manager_directory->read_all(
+        [&](const std::pair<peer_id_t, namespace_id_t> &key,
+                const table_manager_bcard_t *table_bcard) {
+            if (key.second == table_id) {
+                multi_table_manager_directory->read_key(key.first,
+                [&](const multi_table_manager_bcard_t *server_bcard) {
+                    if (server_bcard != nullptr) {
+                        if (best_mailbox.is_nil() ||
+                                table_bcard->timestamp.supersedes(best_timestamp)) {
+                            best_mailbox = server_bcard->get_config_mailbox;
+                            best_timestamp = table_bcard->timestamp;
+                        }
                     }
-                }
-            });
-        }
-    });
-    if (best_mailbox.is_nil()) {
-        throw_appropriate_exception(table_id);
-    }
-
-    /* Send a request to the server we found */
-    disconnect_watcher_t dw(mailbox_manager, best_mailbox.get_peer());
-    promise_t<std::map<namespace_id_t, table_config_and_shards_t> > promise;
-    mailbox_t<void(std::map<namespace_id_t, table_config_and_shards_t>)> ack_mailbox(
-        mailbox_manager,
-        [&](signal_t *,
-                const std::map<namespace_id_t, table_config_and_shards_t> &configs) {
-            promise.pulse(configs);
+                });
+            }
         });
-    send(mailbox_manager, best_mailbox,
-        boost::make_optional(table_id), ack_mailbox.get_address());
-    wait_any_t done_cond(promise.get_ready_signal(), &dw);
-    wait_interruptible(&done_cond, &interruptor);
-    std::map<namespace_id_t, table_config_and_shards_t> maybe_result = promise.wait();
-    if (maybe_result.empty()) {
-        throw_appropriate_exception(table_id);
-    }
-    guarantee(maybe_result.size() == 1);
-    *config_out = maybe_result.at(table_id);
+        if (best_mailbox.is_nil()) {
+            throw_appropriate_exception(table_id);
+        }
+
+        /* Send a request to the server we found */
+        disconnect_watcher_t dw(mailbox_manager, best_mailbox.get_peer());
+        promise_t<std::map<namespace_id_t, table_config_and_shards_t> > promise;
+        mailbox_t<void(std::map<namespace_id_t, table_config_and_shards_t>)> ack_mailbox(
+            mailbox_manager,
+            [&](signal_t *,
+                    const std::map<namespace_id_t, table_config_and_shards_t> &configs) {
+                promise.pulse(configs);
+            });
+        send(mailbox_manager, best_mailbox,
+            boost::make_optional(table_id), ack_mailbox.get_address());
+        wait_any_t done_cond(promise.get_ready_signal(), &dw);
+        wait_interruptible(&done_cond, &interruptor);
+        std::map<namespace_id_t, table_config_and_shards_t> maybe_result =
+            promise.wait();
+        if (maybe_result.empty()) {
+            throw_appropriate_exception(table_id);
+        }
+        guarantee(maybe_result.size() == 1);
+        *config_out = maybe_result.at(table_id);
+    });
 }
 
 void table_meta_client_t::list_configs(
