@@ -69,9 +69,7 @@ public:
             key_range_t::right_bound_t(next.region.inner.left));
         region.inner.right = next.region.inner.right;
         guarantee(!steps.empty() && !next.steps.empty());
-        guarantee(steps.back().second <= next.steps.front().second,
-            "address is: %p steps is: %s next.steps is: %s",
-            this, debug_strprint(steps).c_str(), debug_strprint(next.steps).c_str());
+        guarantee(steps.back().second <= next.steps.front().second);
         auto begin = next.steps.begin();
         if (steps.back().second == next.steps.front().second) {
             ++begin;
@@ -552,6 +550,9 @@ void remote_replicator_client_t::on_write_async(
             queue_entry.order_token = queue_order_checkpoint_.check_through(order_token);
             (*queue_fun_)(std::move(queue_entry), &queue_throttler);
         } else {
+            /* Usually the only reason for `queue_fun_` to be null would be if we're
+            currently between two queueing phases. But it could also be null if the
+            constructor just got interrupted. */
             queue_throttler.pulse();
         }
 

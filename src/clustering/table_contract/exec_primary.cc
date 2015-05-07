@@ -339,6 +339,10 @@ void primary_execution_t::update_contract_on_store_thread(
             /* If we have a broadcaster, then try to sync with replicas so we can ack the
             contract */
             if (our_dispatcher != nullptr) {
+                /* We're going to hold a pointer to the `primary_dispatcher_t` that lives
+                on the stack in `run()`, so we need to make sure we'll stop before
+                `run()` stops. We do this by acquiring a lock on the `auto_drainer_t` on
+                the stack in `run()`. */
                 auto_drainer_t::lock_t keepalive2 = our_dispatcher_drainer->lock();
                 wait_any_t combiner(
                     &interruptor_store_thread, keepalive2.get_drain_signal());

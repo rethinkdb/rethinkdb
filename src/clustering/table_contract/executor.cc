@@ -190,7 +190,7 @@ void contract_executor_t::send_ack(const execution_key_t &key, const contract_id
         const contract_ack_t &ack) {
     assert_thread();
     /* If the contract is out of date, don't send the ack */
-    if (executions.at(key).has() && executions.at(key)->contract_id == cid) {
+    if (executions.at(key)->contract_id == cid) {
         ack_map.set_key_no_equals(std::make_pair(server_id, cid), ack);
     }
 }

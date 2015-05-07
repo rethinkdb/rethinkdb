@@ -241,6 +241,10 @@ void primary_dispatcher_t::background_write(
 }
 
 void primary_dispatcher_t::refresh_ready_dispatchees_as_set() {
+    /* Note that it's possible that we'll have multiple dispatchees with the same server
+    ID. This won't happen during normal operation, but it can happen temporarily during
+    a transition. For example, a secondary might disconnect and reconnect as a different
+    dispatchee before we realize that its original dispatchee is no longer valid. */
     std::set<server_id_t> ready;
     for (const auto &pair : dispatchees) {
         if (pair.first->is_ready) {

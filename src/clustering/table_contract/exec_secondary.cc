@@ -20,6 +20,14 @@ secondary_execution_t::secondary_execution_t(
     const contract_t &c = raft_state.contracts.at(cid).second;
     guarantee(c.replicas.count(context->server_id) == 1);
     guarantee(raft_state.contracts.at(cid).first == region);
+
+    /* If the current contract doesn't have a primary, we won't attempt to connect to the
+    primary. Also, if the current contract's region doesn't match the branch's region, we
+    won't attempt to connect. This is because the only way that can happen is if the
+    table was just resharded, so the primary is about to stop and restart with a
+    different branch ID, and there's no point in trying to connect to the existing
+    primary. In fact, we can't connect to the existing primary, since it's impossible to
+    subscribe to a primary with a different region. */
     if (static_cast<bool>(c.primary) && !c.branch.is_nil() &&
             raft_state.branch_history.branches.at(c.branch).region == region) {
         connect_to_primary = true;
@@ -28,6 +36,7 @@ secondary_execution_t::secondary_execution_t(
         connect_to_primary = false;
         primary = nil_uuid();
     }
+
     branch = c.branch;
     contract_id = cid;
     coro_t::spawn_sometime(std::bind(&secondary_execution_t::run, this, drainer.lock()));

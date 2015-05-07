@@ -270,8 +270,14 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
         "The table was not created.",
         "The table may or may not have been created.")
 
-    // This could hang because of a node disconnecting or the user deleting the table.
-    // In that case, timeout after 10 seconds and pretend everything's alright.
+    /* Because `wait_for_table_readiness()` succeeded, we know that the replicas are all
+    set up. However, `wait_for_table_readiness()` doesn't check that we've established a
+    `namespace_interface_t` for the table. If we haven't done so yet, this could cause
+    the first few queries to fail. So we have to run dummy queries until we get a query
+    through, and only then we return to the user.
+
+    This could hang because of a node disconnecting or the user deleting the table. In
+    that case, timeout after 10 seconds and pretend everything's alright. */
     signal_timer_t timer_interruptor;
     wait_any_t combined_interruptor(interruptor, &timer_interruptor);
     timer_interruptor.start(10000);
