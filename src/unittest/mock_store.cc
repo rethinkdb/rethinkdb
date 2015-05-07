@@ -308,7 +308,7 @@ continue_bool_t mock_store_t::send_backfill(
     key_range_t::right_bound_t right_bound = start_point.get_domain().inner.right;
 
     std::list<backfill_pre_item_t> pre_items;
-    key_range_t::right_bound_t pre_items_limit;
+    key_range_t::right_bound_t pre_items_limit = table_cursor;
     auto more_pre_items = [&]() -> continue_bool_t {
         return pre_item_producer->consume_range(
             &pre_items_limit, right_bound,
