@@ -158,6 +158,12 @@ private:
     typedef std::pair<table_basic_config_t, multi_table_manager_bcard_t::timestamp_t>
         timestamped_basic_config_t;
 
+    /* `retry()` calls `fun()` repeatedly. If `fun()` fails with a
+    `failed_table_op_exc_t` or `maybe_failed_table_op_exc_t`, then `retry()` catches the
+    exception, waits for some time, and calls `fun()` again. After some number of tries
+    it gives up and allows the exception to bubble up to the caller. */
+    void retry(const std::function<void()> &fun);
+
     NORETURN void throw_appropriate_exception(const namespace_id_t &table_id)
         THROWS_ONLY(no_such_table_exc_t, failed_table_op_exc_t);
 

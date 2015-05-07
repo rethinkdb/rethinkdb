@@ -405,59 +405,61 @@ void table_meta_client_t::drop(
     drop_timestamp.epoch.id = nil_uuid();
     drop_timestamp.log_index = std::numeric_limits<raft_log_index_t>::max();
 
-    /* Find all servers that are hosting the table */
-    std::map<server_id_t, multi_table_manager_bcard_t> bcards;
-    table_manager_directory->read_all(
-    [&](const std::pair<peer_id_t, namespace_id_t> &key,
-            const table_manager_bcard_t *) {
-        if (key.second == table_id) {
-            multi_table_manager_directory->read_key(key.first,
-            [&](const multi_table_manager_bcard_t *bc) {
-                if (bc != nullptr) {
-                    bcards[bc->server_id] = *bc;
-                }
-            });
+    retry([&]() {
+        /* Find all servers that are hosting the table */
+        std::map<server_id_t, multi_table_manager_bcard_t> bcards;
+        table_manager_directory->read_all(
+        [&](const std::pair<peer_id_t, namespace_id_t> &key,
+                const table_manager_bcard_t *) {
+            if (key.second == table_id) {
+                multi_table_manager_directory->read_key(key.first,
+                [&](const multi_table_manager_bcard_t *bc) {
+                    if (bc != nullptr) {
+                        bcards[bc->server_id] = *bc;
+                    }
+                });
+            }
+        });
+
+        if (bcards.empty()) {
+            throw_appropriate_exception(table_id);
+        }
+
+        /* Send a message to each server. It's possible that the table will move to other
+        servers while the messages are in-flight; but this is OK, since the servers will
+        pass the deletion message on. */
+        size_t num_acked = 0;
+        pmap(bcards.begin(), bcards.end(),
+        [&](const std::pair<server_id_t, multi_table_manager_bcard_t> &pair) {
+            try {
+                disconnect_watcher_t dw(mailbox_manager,
+                    pair.second.action_mailbox.get_peer());
+                cond_t got_ack;
+                mailbox_t<void()> ack_mailbox(mailbox_manager,
+                    [&](signal_t *) { got_ack.pulse(); });
+                send(mailbox_manager, pair.second.action_mailbox,
+                    table_id,
+                    multi_table_manager_bcard_t::timestamp_t::deletion(),
+                    multi_table_manager_bcard_t::status_t::DELETED,
+                    boost::optional<table_basic_config_t>(),
+                    boost::optional<raft_member_id_t>(),
+                    boost::optional<raft_persistent_state_t<table_raft_state_t> >(),
+                    ack_mailbox.get_address());
+                wait_any_t interruptor_combined(&dw, &interruptor);
+                wait_interruptible(&got_ack, &interruptor_combined);
+                ++num_acked;
+            } catch (const interrupted_exc_t &) {
+                /* do nothing */
+            }
+        });
+        if (interruptor.is_pulsed()) {
+            throw interrupted_exc_t();
+        }
+
+        if (num_acked == 0) {
+            throw maybe_failed_table_op_exc_t();
         }
     });
-
-    if (bcards.empty()) {
-        throw_appropriate_exception(table_id);
-    }
-
-    /* Send a message to each server. It's possible that the table will move to other
-    servers while the messages are in-flight; but this is OK, since the servers will pass
-    the deletion message on. */
-    size_t num_acked = 0;
-    pmap(bcards.begin(), bcards.end(),
-    [&](const std::pair<server_id_t, multi_table_manager_bcard_t> &pair) {
-        try {
-            disconnect_watcher_t dw(mailbox_manager,
-                pair.second.action_mailbox.get_peer());
-            cond_t got_ack;
-            mailbox_t<void()> ack_mailbox(mailbox_manager,
-                [&](signal_t *) { got_ack.pulse(); });
-            send(mailbox_manager, pair.second.action_mailbox,
-                table_id,
-                multi_table_manager_bcard_t::timestamp_t::deletion(),
-                multi_table_manager_bcard_t::status_t::DELETED,
-                boost::optional<table_basic_config_t>(),
-                boost::optional<raft_member_id_t>(),
-                boost::optional<raft_persistent_state_t<table_raft_state_t> >(),
-                ack_mailbox.get_address());
-            wait_any_t interruptor_combined(&dw, &interruptor);
-            wait_interruptible(&got_ack, &interruptor_combined);
-            ++num_acked;
-        } catch (const interrupted_exc_t &) {
-            /* do nothing */
-        }
-    });
-    if (interruptor.is_pulsed()) {
-        throw interrupted_exc_t();
-    }
-
-    if (num_acked == 0) {
-        throw maybe_failed_table_op_exc_t();
-    }
 
     /* Wait until the table disappears from the directory. */
     wait_until_change_visible(
@@ -475,63 +477,73 @@ void table_meta_client_t::set_config(
     cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
 
-    /* Find the server (if any) which is acting as leader for the table */
-    uuid_u best_leader_uuid;
-    table_manager_bcard_t::leader_bcard_t::set_config_mailbox_t::address_t best_mailbox;
-    multi_table_manager_bcard_t::timestamp_t best_timestamp;
-    table_manager_directory->read_all(
-    [&](const std::pair<peer_id_t, namespace_id_t> &key,
-            const table_manager_bcard_t *bcard) {
-        if (key.second == table_id && static_cast<bool>(bcard->leader)) {
-            if (best_mailbox.is_nil() || bcard->timestamp.supersedes(best_timestamp)) {
-                best_leader_uuid = bcard->leader->uuid;
-                best_mailbox = bcard->leader->set_config_mailbox;
-                best_timestamp = bcard->timestamp;
-            }
-        }
-    });
-    if (best_mailbox.is_nil()) {
-        throw_appropriate_exception(table_id);
-    }
-
-    /* There are two reasons why our message might get lost. The first is that the other
-    server disconnects. The second is that the other server remains connected but it
-    stops being leader for that table. We detect the first with a `disconnect_watcher_t`.
-    We detect the second by setting up a `key_subs_t` that pulses `leader_stopped` if the
-    other server is no longer leader or if its leader UUID changes. */
-    disconnect_watcher_t leader_disconnected(mailbox_manager, best_mailbox.get_peer());
-    cond_t leader_stopped;
-    watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
-        ::key_subs_t leader_stopped_subs(
-            table_manager_directory,
-            std::make_pair(best_mailbox.get_peer(), table_id),
-            [&](const table_manager_bcard_t *bcard) {
-                if (!static_cast<bool>(bcard->leader) ||
-                        bcard->leader->uuid != best_leader_uuid) {
-                    leader_stopped.pulse_if_not_already_pulsed();
+    multi_table_manager_bcard_t::timestamp_t timestamp;
+    retry([&]() {
+        /* Find the server (if any) which is acting as leader for the table */
+        uuid_u best_leader_uuid;
+        table_manager_bcard_t::leader_bcard_t::set_config_mailbox_t::address_t
+            best_mailbox;
+        multi_table_manager_bcard_t::timestamp_t best_timestamp;
+        table_manager_directory->read_all(
+        [&](const std::pair<peer_id_t, namespace_id_t> &key,
+                const table_manager_bcard_t *bcard) {
+            if (key.second == table_id && static_cast<bool>(bcard->leader)) {
+                if (best_mailbox.is_nil() ||
+                        bcard->timestamp.supersedes(best_timestamp)) {
+                    best_leader_uuid = bcard->leader->uuid;
+                    best_mailbox = bcard->leader->set_config_mailbox;
+                    best_timestamp = bcard->timestamp;
                 }
-            });
-
-    /* OK, now send the change and wait for a reply, or for something to go wrong */
-    promise_t<boost::optional<multi_table_manager_bcard_t::timestamp_t> > promise;
-    mailbox_t<void(boost::optional<multi_table_manager_bcard_t::timestamp_t>)>
-        ack_mailbox(mailbox_manager,
-        [&](signal_t *, boost::optional<multi_table_manager_bcard_t::timestamp_t> res) {
-            promise.pulse(res);
+            }
         });
-    send(mailbox_manager, best_mailbox, new_config, ack_mailbox.get_address());
-    wait_any_t done_cond(promise.get_ready_signal(),
-        &leader_disconnected, &leader_stopped);
-    wait_interruptible(&done_cond, &interruptor);
-    if (!promise.get_ready_signal()->is_pulsed()) {
-        throw maybe_failed_table_op_exc_t();
-    }
+        if (best_mailbox.is_nil()) {
+            throw_appropriate_exception(table_id);
+        }
 
-    /* Sometimes the server will reply by indicating that something went wrong */
-    boost::optional<multi_table_manager_bcard_t::timestamp_t> timestamp = promise.wait();
-    if (!static_cast<bool>(timestamp)) {
-        throw maybe_failed_table_op_exc_t();
-    }
+        /* There are two reasons why our message might get lost. The first is that the
+        other server disconnects. The second is that the other server remains connected
+        but it stops being leader for that table. We detect the first with a
+        `disconnect_watcher_t`. We detect the second by setting up a `key_subs_t` that
+        pulses `leader_stopped` if the other server is no longer leader or if its leader
+        UUID changes. */
+        disconnect_watcher_t leader_disconnected(
+            mailbox_manager, best_mailbox.get_peer());
+        cond_t leader_stopped;
+        watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
+            ::key_subs_t leader_stopped_subs(
+                table_manager_directory,
+                std::make_pair(best_mailbox.get_peer(), table_id),
+                [&](const table_manager_bcard_t *bcard) {
+                    if (!static_cast<bool>(bcard->leader) ||
+                            bcard->leader->uuid != best_leader_uuid) {
+                        leader_stopped.pulse_if_not_already_pulsed();
+                    }
+                });
+
+        /* OK, now send the change and wait for a reply, or for something to go wrong */
+        promise_t<boost::optional<multi_table_manager_bcard_t::timestamp_t> > promise;
+        mailbox_t<void(boost::optional<multi_table_manager_bcard_t::timestamp_t>)>
+            ack_mailbox(mailbox_manager,
+            [&](signal_t *, const boost::optional<
+                    multi_table_manager_bcard_t::timestamp_t> &res) {
+                promise.pulse(res);
+            });
+        send(mailbox_manager, best_mailbox, new_config, ack_mailbox.get_address());
+        wait_any_t done_cond(promise.get_ready_signal(),
+            &leader_disconnected, &leader_stopped);
+        wait_interruptible(&done_cond, &interruptor);
+        if (!promise.get_ready_signal()->is_pulsed()) {
+            throw maybe_failed_table_op_exc_t();
+        }
+
+        /* Sometimes the server will reply by indicating that something went wrong */
+        boost::optional<multi_table_manager_bcard_t::timestamp_t> maybe_timestamp =
+            promise.wait();
+        if (!static_cast<bool>(maybe_timestamp)) {
+            throw maybe_failed_table_op_exc_t();
+        }
+        timestamp = *maybe_timestamp;
+    });
 
     /* We know for sure that the change has been applied; now we just need to wait until
     the change is visible in the directory before returning. The naive thing is to wait
@@ -541,11 +553,41 @@ void table_meta_client_t::set_config(
     wait_until_change_visible(
         table_id,
         [&](const timestamped_basic_config_t *value) {
-            return value == nullptr || value->second.supersedes(*timestamp) ||
+            return value == nullptr || value->second.supersedes(timestamp) ||
                 (value->first.name == new_config.config.basic.name &&
                     value->first.database == new_config.config.basic.database);
         },
         &interruptor);
+}
+
+void table_meta_client_t::retry(const std::function<void()> &fun) {
+    static const int max_tries = 5;
+    static const int initial_wait_ms = 300;
+    int tries_left = max_tries;
+    int wait_ms = initial_wait_ms;
+    bool maybe_succeeded = false;
+    for (;;) {
+        try {
+            fun();
+            return;
+        } catch (const failed_table_op_exc_t &) {
+            /* ignore */
+        } catch (const maybe_failed_table_op_exc_t &) {
+            maybe_succeeded = true;
+        }
+        --tries_left;
+        if (tries_left == 0) {
+            if (maybe_succeeded) {
+                /* Throw `maybe_failed_table_op_exc_t` if any of the tries threw
+                `maybe_failed_table_op_exc_t`. */
+                throw maybe_failed_table_op_exc_t();
+            } else {
+                throw failed_table_op_exc_t();
+            }
+        }
+        nap(wait_ms);
+        wait_ms *= 1.5;
+    }
 }
 
 NORETURN void table_meta_client_t::throw_appropriate_exception(
