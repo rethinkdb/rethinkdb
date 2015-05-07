@@ -13,7 +13,8 @@ branch_birth_certificate_t in_memory_branch_history_manager_t::get_branch(
         const branch_id_t &branch) const THROWS_NOTHING {
     assert_thread();
     std::map<branch_id_t, branch_birth_certificate_t>::const_iterator it = bh.branches.find(branch);
-    rassert(it != bh.branches.end(), "no such branch");
+    guarantee(it != bh.branches.end(),
+        "no such branch: %s", uuid_to_str(branch).c_str());
     return it->second;
 }
 
@@ -28,9 +29,10 @@ void in_memory_branch_history_manager_t::create_branch(
         const branch_birth_certificate_t &bc,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
-    rassert(bh.branches.find(branch_id) == bh.branches.end());
-    nap(10, interruptor);
-    bh.branches[branch_id] = bc;
+    if (bh.branches.find(branch_id) == bh.branches.end()) {
+        nap(10, interruptor);
+        bh.branches[branch_id] = bc;
+    }
 }
 
 void in_memory_branch_history_manager_t::import_branch_history(

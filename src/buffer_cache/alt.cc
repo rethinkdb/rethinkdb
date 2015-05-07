@@ -518,6 +518,8 @@ void buf_lock_t::wait_for_parent(buf_parent_t parent, access_t access) {
 }
 
 void buf_lock_t::help_construct(buf_parent_t parent, alt_create_t) {
+    cache()->assert_thread();
+
     buf_lock_t::wait_for_parent(parent, access_t::write);
 
     // Makes sure nothing funny can happen in current_page_acq_t constructor.
@@ -565,11 +567,12 @@ buf_lock_t::buf_lock_t(buf_lock_t *parent,
 }
 
 buf_lock_t::~buf_lock_t() {
-#if ALT_DEBUG
     if (txn_ != NULL) {
+        cache()->assert_thread();
+#if ALT_DEBUG
         debugf("%p: buf_lock_t %p destroy %lu\n", cache(), this, block_id());
-    }
 #endif
+    }
     guarantee(access_ref_count_ == 0);
 
     if (snapshot_node_ != NULL) {
@@ -619,6 +622,7 @@ void buf_lock_t::reset_buf_lock() {
 }
 
 void buf_lock_t::snapshot_subdag() {
+    cache()->assert_thread();
 #if ALT_DEBUG
     debugf("%p: buf_lock_t %p snapshot %lu\n", cache(), this, block_id());
 #endif

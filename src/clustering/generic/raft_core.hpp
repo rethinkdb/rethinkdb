@@ -431,7 +431,10 @@ private:
 };
 
 /* A helper type for using a watchable_map_t like a set */
-struct empty_value_t { };
+class empty_value_t {
+public:
+    empty_value_t() { }
+};
 
 /* `raft_network_interface_t` is the abstract class that `raft_member_t` uses to send
 messages over the network. */

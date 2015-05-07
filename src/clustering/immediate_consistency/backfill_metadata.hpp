@@ -58,7 +58,10 @@ implicitly defines the range that the backfill will apply to. The backfiller com
 backfillee's initial version with its own version and finds their closest common
 ancestor. Then it sends back an `intro_2_t` via the `intro_1_t::intro_mailbox`. The
 `intro_2_t` contains the common version which the backfiller calculated, along with its
-own set of mailbox addresses.
+own set of mailbox addresses. It also includes the branch history for the branch that the
+backfiller is currently on. The backfiller is guaranteed not to change branches during
+the backfill, so this is the only time branch history needs to be transmitted from the
+backfiller to the backfillee.
 
 Once the initial handshake is completed, two processes happen in parallel: the backfillee
 transmits `backfill_pre_item_t`s to the backfiller, and the backfiller transmits
@@ -152,6 +155,7 @@ public:
     class intro_2_t {
     public:
         region_map_t<state_timestamp_t> common_version;
+        branch_history_t final_version_history;
         pre_items_mailbox_t::address_t pre_items_mailbox;
         begin_session_mailbox_t::address_t begin_session_mailbox;
         end_session_mailbox_t::address_t end_session_mailbox;

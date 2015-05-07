@@ -22,8 +22,9 @@ contract_executor_t::contract_executor_t(
     multistore(_multistore),
     perfmons(_perfmons),
     perfmon_counter(0),
-    update_pumper(std::bind(&contract_executor_t::update_blocking, this, ph::_1)),
-    raft_state_subs([this]() { update_pumper.notify(); })
+    update_pumper(new pump_coro_t(
+        std::bind(&contract_executor_t::update_blocking, this, ph::_1))),
+    raft_state_subs([this]() { update_pumper->notify(); })
 {
     execution_context.server_id = _server_id;
     execution_context.mailbox_manager = _mailbox_manager;
@@ -41,7 +42,19 @@ contract_executor_t::contract_executor_t(
 
     watchable_t<table_raft_state_t>::freeze_t freeze(raft_state);
     raft_state_subs.reset(raft_state, &freeze);
-    update_pumper.notify();
+    update_pumper->notify();
+}
+
+contract_executor_t::~contract_executor_t() {
+    /* Run destructors manually so that we can control how `executions` is destroyed. We
+    want to first destroy every individual execution without modifying the `std::map`,
+    then we want to destroy the `std::map`. This is because the `execution_t`s can
+    access the `std::map` via `send_ack()` until they are all destroyed. */
+    raft_state_subs.reset();
+    update_pumper.reset();
+    for (auto &&pair : executions) {
+        pair.second->execution.reset();
+    }
 }
 
 contract_executor_t::execution_key_t contract_executor_t::get_contract_key(
@@ -93,7 +106,7 @@ void contract_executor_t::update_blocking(UNUSED signal_t *interruptor) {
         }
         /* Now that we've deleted the executions, `update()` is likely to have new
         instructions for us, so we should run again. */
-        update_pumper.notify();
+        update_pumper->notify();
     }
 }
 

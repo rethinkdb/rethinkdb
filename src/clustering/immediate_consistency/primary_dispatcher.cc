@@ -38,16 +38,11 @@ primary_dispatcher_t::dispatchee_registration_t::dispatchee_registration_t(
 primary_dispatcher_t::dispatchee_registration_t::~dispatchee_registration_t() {
     DEBUG_VAR mutex_assertion_t::acq_t acq(&parent->mutex);
     ASSERT_FINITE_CORO_WAITING;
-    if (is_ready) {
-        parent->ready_dispatchees_as_set.apply_atomic_op(
-            [&](std::set<server_id_t> *servers) {
-                guarantee(servers->count(server_id) == 1);
-                servers->erase(server_id);
-                return true;
-            });
-    }
-    parent->dispatchees.erase(this);
     parent->assert_thread();
+    parent->dispatchees.erase(this);
+    if (is_ready) {
+        parent->refresh_ready_dispatchees_as_set();
+    }
 }
 
 void primary_dispatcher_t::dispatchee_registration_t::mark_ready() {
@@ -55,12 +50,7 @@ void primary_dispatcher_t::dispatchee_registration_t::mark_ready() {
     ASSERT_FINITE_CORO_WAITING;
     guarantee(!is_ready);
     is_ready = true;
-    parent->ready_dispatchees_as_set.apply_atomic_op(
-        [&](std::set<server_id_t> *servers) {
-            guarantee(servers->count(server_id) == 0);
-            servers->insert(server_id);
-            return true;
-            });
+    parent->refresh_ready_dispatchees_as_set();
 }
 
 primary_dispatcher_t::write_callback_t::write_callback_t() : write(nullptr) { }
@@ -248,5 +238,19 @@ void primary_dispatcher_t::background_write(
     } catch (const interrupted_exc_t &) {
         /* ignore */
     }
+}
+
+void primary_dispatcher_t::refresh_ready_dispatchees_as_set() {
+    /* Note that it's possible that we'll have multiple dispatchees with the same server
+    ID. This won't happen during normal operation, but it can happen temporarily during
+    a transition. For example, a secondary might disconnect and reconnect as a different
+    dispatchee before we realize that its original dispatchee is no longer valid. */
+    std::set<server_id_t> ready;
+    for (const auto &pair : dispatchees) {
+        if (pair.first->is_ready) {
+            ready.insert(pair.first->server_id);
+        }
+    }
+    ready_dispatchees_as_set.set_value(ready);
 }
 

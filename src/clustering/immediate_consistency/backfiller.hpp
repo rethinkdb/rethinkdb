@@ -14,10 +14,11 @@
 `backfillee_t`.
 
 It assumes that if the state of the underlying store changes, the only change will be to
-apply writes. In particular, it might break if the underlying store receives a backfill
-or erases data while the `backfiller_t` exists. (If the underlying store is a
-`store_subview_t`, it's OK if other changes happen to the underlying store's underlying
-store outside of the region covered by the `store_subview_t`.) */
+apply writes along the current branch. In particular, it might break if the underlying
+store receives a backfill, changes branches, or erases data while the `backfiller_t`
+exists. (If the underlying store is a `store_subview_t`, it's OK if other changes happen
+to the underlying store's underlying store outside of the region covered by the
+`store_subview_t`.) */
 
 class backfiller_t : public home_thread_mixin_debug_only_t {
 public:

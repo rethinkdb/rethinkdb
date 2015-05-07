@@ -28,6 +28,12 @@ private:
     void run(auto_drainer_t::lock_t);
     void send_ack(const contract_ack_t &ca);
 
+    /* If we are secondary for a contract for which there is no primary, or if the
+    contract's region doesn't match the branch's region, we'll set `connect_to_primary`
+    to `false`. In this case, we'll serve outdated reads but won't attempt to find a
+    primary in the directory. */
+    bool connect_to_primary;
+
     server_id_t primary;
     branch_id_t branch;
 

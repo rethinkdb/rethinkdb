@@ -262,14 +262,6 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
             &interruptor2,
             nullptr);
 
-        ql::datum_object_builder_t result_builder;
-        result_builder.overwrite("tables_created", ql::datum_t(1.0));
-        result_builder.overwrite("config_changes",
-            make_replacement_pair(ql::datum_t::null(), new_config));
-        *result_out = std::move(result_builder).to_datum();
-
-        return true;
-
     } catch (const admin_op_exc_t &msg) {
         *error_out = msg.what();
         return false;
@@ -277,6 +269,36 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
       CATCH_OP_ERRORS(db->name, name, error_out,
         "The table was not created.",
         "The table may or may not have been created.")
+
+    /* Because `wait_for_table_readiness()` succeeded, we know that the replicas are all
+    set up. However, `wait_for_table_readiness()` doesn't check that we've established a
+    `namespace_interface_t` for the table. If we haven't done so yet, this could cause
+    the first few queries to fail. So we have to run dummy queries until we get a query
+    through, and only then we return to the user.
+
+    This could hang because of a node disconnecting or the user deleting the table. In
+    that case, timeout after 10 seconds and pretend everything's alright. */
+    signal_timer_t timer_interruptor;
+    wait_any_t combined_interruptor(interruptor, &timer_interruptor);
+    timer_interruptor.start(10000);
+    try {
+        namespace_interface_access_t ns_if =
+            namespace_repo.get_namespace_interface(table_id, &combined_interruptor);
+        while (!ns_if.get()->check_readiness(table_readiness_t::writes,
+                                             &combined_interruptor)) {
+            nap(100, &combined_interruptor);
+        }
+    } catch (const interrupted_exc_t &) {
+        // Do nothing
+    }
+
+    ql::datum_object_builder_t result_builder;
+    result_builder.overwrite("tables_created", ql::datum_t(1.0));
+    result_builder.overwrite("config_changes",
+        make_replacement_pair(ql::datum_t::null(), new_config));
+    *result_out = std::move(result_builder).to_datum();
+
+    return true;
 }
 
 bool real_reql_cluster_interface_t::table_drop(const name_string_t &name,

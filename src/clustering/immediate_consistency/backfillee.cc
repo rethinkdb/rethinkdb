@@ -3,6 +3,7 @@
 
 #include "arch/timing.hpp"
 #include "clustering/immediate_consistency/history.hpp"
+#include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/wait_any.hpp"
 
 /* `ITEM_ACK_INTERVAL_MS` controls how often we send acknowledgements back to the
@@ -41,8 +42,6 @@ public:
         metainfo_binary(region_map_t<binary_blob_t>::empty()),
         pulse_when_items_arrive(nullptr)
     {
-        send(parent->mailbox_manager, parent->intro.begin_session_mailbox,
-            parent->fifo_source.enter_write(), threshold);
         coro_t::spawn_sometime(std::bind(
             &session_t::run, this, drainer.lock()));
     }
@@ -85,6 +84,9 @@ private:
     void run(auto_drainer_t::lock_t keepalive) {
         with_priority_t p(CORO_PRIORITY_BACKFILL_RECEIVER);
         try {
+            send(parent->mailbox_manager, parent->intro.begin_session_mailbox,
+                parent->fifo_source.enter_write(), threshold);
+
             /* Loop until we reach the end of the backfill range. */
             while (threshold != parent->store->get_region().inner.right) {
                 /* Wait until we receive some items from the backfiller so we have
@@ -310,6 +312,8 @@ backfillee_t::backfillee_t(
     backfill_config(_backfill_config),
     pre_item_throttler(backfill_config.pre_item_queue_mem_size),
     pre_item_throttler_acq(&pre_item_throttler, 0),
+    current_session(nullptr),
+    session_interrupted(false),
     items_mailbox(mailbox_manager,
         std::bind(&backfillee_t::on_items, this, ph::_1, ph::_2, ph::_3, ph::_4)),
     ack_end_session_mailbox(mailbox_manager,
@@ -336,6 +340,9 @@ backfillee_t::backfillee_t(
         store->do_get_metainfo(order_token_t::ignore.with_read_mode(), &read_token,
             interruptor, &initial_state_blob);
         our_intro.initial_version = to_version_map(initial_state_blob);
+    }
+    {
+        on_thread_t thread_switcher(branch_history_manager->home_thread());
         branch_history_manager->export_branch_history(
             our_intro.initial_version,
             &our_intro.initial_version_history);
@@ -357,6 +364,15 @@ backfillee_t::backfillee_t(
         mailbox_manager, backfiller.registrar, our_intro));
     wait_interruptible(&got_intro, interruptor);
 
+    /* Record the branch history we got from the backfiller */
+    {
+        cross_thread_signal_t interruptor_on_bhm_thread(
+            interruptor, branch_history_manager->home_thread());
+        on_thread_t thread_switcher(branch_history_manager->home_thread());
+        branch_history_manager->import_branch_history(
+            intro.final_version_history, &interruptor_on_bhm_thread);
+    }
+
     /* Spawn the coroutine that will stream pre-items to the backfiller. */
     coro_t::spawn_sometime(
         std::bind(&backfillee_t::send_pre_items, this, drainer.lock()));
@@ -372,16 +388,18 @@ void backfillee_t::go(
         const key_range_t::right_bound_t &threshold,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
-    /* Note: If we get interrupted during this function, then `current_session` will be
-    left in place, which will make future calls to `go()` fail. So interrupting a call to
-    `go()` invalidates the `backfillee_t`, and the only way to recover is to destroy the
-    `backfillee_t`. Destroying the `backfillee_t` will destroy `current_session`, thereby
-    interrupting whatever it is doing. */
-
-    guarantee(!current_session.has());
-    current_session.init(new session_t(this, threshold, callback));
-    current_session->wait_done(interruptor);
-    current_session.reset();
+    guarantee(current_session == nullptr);
+    guarantee(!session_interrupted);
+    session_t session(this, threshold, callback);
+    current_session = &session;
+    try {
+        session.wait_done(interruptor);
+        current_session = nullptr;
+    } catch (const interrupted_exc_t &) {
+        current_session = nullptr;
+        session_interrupted = true;
+        throw;
+    }
 }
 
 void backfillee_t::on_items(
@@ -391,7 +409,10 @@ void backfillee_t::on_items(
         backfill_item_seq_t<backfill_item_t> &&chunk) {
     fifo_enforcer_sink_t::exit_write_t exit_write(&fifo_sink, fifo_token);
     wait_interruptible(&exit_write, interruptor);
-    guarantee(current_session.has());
+    if (session_interrupted) {
+        return;
+    }
+    guarantee(current_session != nullptr);
     current_session->on_items(std::move(version), std::move(chunk));
 }
 
@@ -400,7 +421,10 @@ void backfillee_t::on_ack_end_session(
         const fifo_enforcer_write_token_t &fifo_token) {
     fifo_enforcer_sink_t::exit_write_t exit_write(&fifo_sink, fifo_token);
     wait_interruptible(&exit_write, interruptor);
-    guarantee(current_session.has());
+    if (session_interrupted) {
+        return;
+    }
+    guarantee(current_session != nullptr);
     current_session->on_ack_end_session();
 }
 

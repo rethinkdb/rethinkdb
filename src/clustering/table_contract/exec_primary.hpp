@@ -51,6 +51,7 @@ public:
             const contract_id_t &, const contract_ack_t &)> &ack_cb,
         const contract_id_t &cid,
         const table_raft_state_t &raft_state);
+    ~primary_execution_t();
     void update_contract(
         const contract_id_t &cid,
         const table_raft_state_t &raft_state);
@@ -127,9 +128,10 @@ private:
     /* `latest_ack` stores the latest contract ack we've sent. */
     boost::optional<contract_ack_t> latest_ack;
 
-    /* `mutex` is used to order calls to `update_contract_on_store_thread()`, so that we
-    don't overwrite a newer contract with an older one */
-    new_mutex_t mutex;
+    /* `update_contract_mutex` is used to order calls to
+    `update_contract_on_store_thread()`, so that we don't overwrite a newer contract with
+    an older one */
+    new_mutex_t update_contract_mutex;
 
     /* `branch_registered` is pulsed once the coordinator has committed our branch ID to
     the Raft state. */
@@ -138,10 +140,20 @@ private:
     /* `our_dispatcher` stores the pointer to the `primary_dispatcher_t` we constructed.
     It will be `nullptr` until the `primary_dispatcher_t` actually exists and has a valid
     replica. */
-    primary_dispatcher_t * our_dispatcher;
+    primary_dispatcher_t *our_dispatcher;
 
-    /* `drainer` ensures that `run` is stopped before the other member variables are
-    destroyed. */
+    /* Anything that might try to use `our_dispatcher` after the `primary_execution_t`
+    destructor has begin should hold a lock on `*our_dispatcher_drainer`. (Specifically,
+    this applies to `update_contract_on_store_thread()`.) `our_dispatcher` and
+    `our_dispatcher_drainer` will always both be null or both be non-null. */
+    auto_drainer_t *our_dispatcher_drainer;
+
+    /* `begin_write_mutex` is used to ensure that we don't ack a contract until all past
+    and ongoing writes are safe under the contract's conditions. */
+    mutex_assertion_t begin_write_mutex;
+
+    /* `drainer` ensures that `run()` and `update_contract_on_store_thread()` are
+    stopped before the other member variables are destroyed. */
     auto_drainer_t drainer;
 };
 

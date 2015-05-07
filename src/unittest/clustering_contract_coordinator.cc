@@ -536,26 +536,16 @@ TPTEST(ClusteringContractCoordinator, FailoverSplit) {
         true);
 
     test.coordinate();
-    cpu_contract_ids_t cid2ABC = test.check_contract("L: No primary", "*-M",
-        quick_contract_no_primary({alice, billy, carol}, &branch1));
-    cpu_contract_ids_t cid2DE = test.check_contract("R: No primary", "N-*",
+    cpu_contract_ids_t cid2 = test.check_contract("No primary", "*-*",
         quick_contract_no_primary({alice, billy, carol}, &branch1));
 
-    test.add_ack(billy, cid2ABC, contract_ack_t::state_t::secondary_need_primary,
+    test.add_ack(billy, cid2, contract_ack_t::state_t::secondary_need_primary,
         test.state.branch_history,
-        { {"*-M", &branch1, 100} },
+        { {"*-M", &branch1, 100}, {"N-*", &branch1, 100} },
         true);
-    test.add_ack(carol, cid2ABC, contract_ack_t::state_t::secondary_need_primary,
+    test.add_ack(carol, cid2, contract_ack_t::state_t::secondary_need_primary,
         test.state.branch_history,
-        { {"*-M", &branch1, 101} },
-        true);
-    test.add_ack(billy, cid2DE, contract_ack_t::state_t::secondary_need_primary,
-        test.state.branch_history,
-        { {"N-*", &branch1, 100} },
-        true);
-    test.add_ack(carol, cid2DE, contract_ack_t::state_t::secondary_need_primary,
-        test.state.branch_history,
-        { {"N-*", &branch1, 99} },
+        { {"*-M", &branch1, 101}, {"N-*", &branch1, 99 } },
         true);
 
     test.coordinate();

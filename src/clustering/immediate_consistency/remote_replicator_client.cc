@@ -3,6 +3,7 @@
 
 #include "clustering/immediate_consistency/backfill_throttler.hpp"
 #include "clustering/immediate_consistency/backfillee.hpp"
+#include "stl_utils.hpp"
 #include "store_view.hpp"
 
 /* `MAX_CONCURRENT_STREAM_QUEUE_ITEMS` is the maximum number of coroutines we'll spawn in
@@ -56,24 +57,28 @@ public:
     /* `combine` concatenates two `backfill_end_timestamps_t`s that cover adjacent
     regions. */
     void combine(backfill_end_timestamps_t &&next) {
+        if (region_is_empty(next.region)) {
+            return;
+        }
         if (region_is_empty(region)) {
             *this = std::move(next);
-        } else {
-            guarantee(region.beg == next.region.beg && region.end == next.region.end);
-            guarantee(region.inner.right ==
-                key_range_t::right_bound_t(next.region.inner.left));
-            region.inner.right = next.region.inner.right;
-            guarantee(steps.back().second <= next.steps.front().second);
-            auto begin = next.steps.begin();
-            if (steps.back().second == next.steps.front().second) {
-                ++begin;
-            }
-            steps.insert(
-                steps.end(),
-                std::make_move_iterator(begin),
-                std::make_move_iterator(next.steps.end()));
-            max_timestamp = std::max(max_timestamp, next.max_timestamp);
+            return;
         }
+        guarantee(region.beg == next.region.beg && region.end == next.region.end);
+        guarantee(region.inner.right ==
+            key_range_t::right_bound_t(next.region.inner.left));
+        region.inner.right = next.region.inner.right;
+        guarantee(!steps.empty() && !next.steps.empty());
+        guarantee(steps.back().second <= next.steps.front().second);
+        auto begin = next.steps.begin();
+        if (steps.back().second == next.steps.front().second) {
+            ++begin;
+        }
+        steps.insert(
+            steps.end(),
+            std::make_move_iterator(begin),
+            std::make_move_iterator(next.steps.end()));
+        max_timestamp = std::max(max_timestamp, next.max_timestamp);
     }
 
 private:
@@ -113,6 +118,9 @@ remote_replicator_client_t::remote_replicator_client_t(
         std::bind(&remote_replicator_client_t::on_read, this,
             ph::_1, ph::_2, ph::_3, ph::_4))
 {
+    guarantee(remote_replicator_server_bcard.branch == branch_id);
+    guarantee(remote_replicator_server_bcard.region == store->get_region());
+
     backfill_throttler_t::lock_t backfill_throttler_lock(
         backfill_throttler,
         replica_bcard.synchronize_mailbox.get_peer(),
@@ -129,7 +137,6 @@ remote_replicator_client_t::remote_replicator_client_t(
     region_streaming_.inner = region_queueing_.inner = key_range_t::empty();
 
     /* Subscribe to the stream of writes coming from the primary */
-    guarantee(remote_replicator_server_bcard.branch == branch_id);
     remote_replicator_client_intro_t intro;
     {
         remote_replicator_client_bcard_t::intro_mailbox_t intro_mailbox(
@@ -210,7 +217,8 @@ remote_replicator_client_t::remote_replicator_client_t(
                     std::queue<queue_entry_t> *_queue,
                     const key_range_t::right_bound_t &_right_bound,
                     const backfill_config_t *_config) :
-                queue(_queue), right_bound(_right_bound), config(_config), prog(0) { }
+                queue(_queue), right_bound(_right_bound), config(_config), prog(0)
+                { }
             bool on_progress(const region_map_t<version_t> &chunk) THROWS_NOTHING {
                 rassert(key_range_t::right_bound_t(chunk.get_domain().inner.left) ==
                     right_bound);
@@ -542,7 +550,9 @@ void remote_replicator_client_t::on_write_async(
             queue_entry.order_token = queue_order_checkpoint_.check_through(order_token);
             (*queue_fun_)(std::move(queue_entry), &queue_throttler);
         } else {
-            rassert(region_is_empty(region_queueing_));
+            /* Usually the only reason for `queue_fun_` to be null would be if we're
+            currently between two queueing phases. But it could also be null if the
+            constructor just got interrupted. */
             queue_throttler.pulse();
         }
 

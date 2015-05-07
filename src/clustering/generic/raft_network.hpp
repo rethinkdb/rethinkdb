@@ -77,10 +77,14 @@ private:
             *key2_out = key1;
             return true;
         }
-        void value_1_to_2(const raft_business_card_t<state_t> *,
-                          const empty_value_t **) {
-            /* Do nothing; the `empty_value_t *` must already be set to the correct
-            value. */
+        void value_1_to_2(const raft_business_card_t<state_t> *value1,
+                          const empty_value_t **value2_out) {
+            if (value1 == nullptr) {
+                *value2_out = nullptr;
+            } else {
+                static const empty_value_t empty;
+                *value2_out = &empty;
+            }
         }
         bool key_2_to_1(const raft_member_id_t &key2, raft_member_id_t *key1_out) {
             *key1_out = key2;

@@ -198,14 +198,16 @@ public:
     /* Adds a new branch to the database. Blocks until it is safely on disk. Blocks to
     avoid a race condition where we write the branch ID to a B-tree's metainfo, crash
     before flushing the `branch_birth_certificate_t` to disk, and then cannot find the
-    `branch_birth_certificate_t` upon restarting. */
+    `branch_birth_certificate_t` upon restarting. If it already exists, this is a no-op.
+    */
     virtual void create_branch(
         branch_id_t branch_id,
         const branch_birth_certificate_t &bc,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) = 0;
 
-    /* Like `create_branch` but for all the records in a `branch_history_t`. */
+    /* Like `create_branch` but for all the records in a `branch_history_t`, atomically.
+    */
     virtual void import_branch_history(
         const branch_history_t &new_records,
         signal_t *interruptor)

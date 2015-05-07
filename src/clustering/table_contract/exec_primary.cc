@@ -25,7 +25,13 @@ primary_execution_t::primary_execution_t(
     guarantee(raft_state.contracts.at(cid).first == region);
     latest_contract_home_thread = make_counted<contract_info_t>(cid, c);
     latest_contract_store_thread = latest_contract_home_thread;
+    begin_write_mutex.rethread(store->home_thread());
     coro_t::spawn_sometime(std::bind(&primary_execution_t::run, this, drainer.lock()));
+}
+
+primary_execution_t::~primary_execution_t() {
+    drainer.drain();
+    begin_write_mutex.rethread(home_thread());
 }
 
 void primary_execution_t::update_contract(
@@ -68,7 +74,7 @@ void primary_execution_t::update_contract(
         &primary_execution_t::update_contract_on_store_thread, this,
         latest_contract_home_thread,
         drainer.lock(),
-        new new_mutex_in_line_t(&mutex)));
+        new new_mutex_in_line_t(&update_contract_mutex)));
 
     if (static_cast<bool>(latest_ack)) {
         ack_cb(cid, *latest_ack);
@@ -125,7 +131,7 @@ void primary_execution_t::run(auto_drainer_t::lock_t keepalive) {
         `sync_contract_with_replicas()` for it. */
         counted_t<contract_info_t> pre_replica_contract = latest_contract_home_thread;
         scoped_ptr_t<new_mutex_in_line_t> pre_replica_mutex_in_line(
-            new new_mutex_in_line_t(&mutex));
+            new new_mutex_in_line_t(&update_contract_mutex));
         wait_interruptible(
             pre_replica_mutex_in_line->acq_signal(), keepalive.get_drain_signal());
 
@@ -145,7 +151,11 @@ void primary_execution_t::run(auto_drainer_t::lock_t keepalive) {
             context->mailbox_manager,
             &primary_dispatcher);
 
-        our_dispatcher = &primary_dispatcher;
+        auto_drainer_t primary_dispatcher_drainer;
+        assignment_sentry_t<auto_drainer_t *> our_dispatcher_drainer_assign(
+            &our_dispatcher_drainer, &primary_dispatcher_drainer);
+        assignment_sentry_t<primary_dispatcher_t *> our_dispatcher_assign(
+            &our_dispatcher, &primary_dispatcher);
 
         primary_query_server_t primary_query_server(
             context->mailbox_manager,
@@ -206,7 +216,16 @@ bool primary_execution_t::on_write(
     store->assert_thread();
     guarantee(our_dispatcher != nullptr);
 
-    if (static_cast<bool>(latest_contract_store_thread->contract.primary->hand_over)) {
+    /* `acq` ensures that `update_contract_on_store_thread()` doesn't run between when we
+    take `contract_snapshot` and when we call `spawn_write()`. This is important because
+    `update_contract_on_store_thread()` needs to be able to make sure that all writes
+    that see the old contract are spawned before it calls
+    `sync_contract_with_replicas()`. */
+    mutex_assertion_t::acq_t begin_write_mutex_acq(&begin_write_mutex);
+
+    counted_t<contract_info_t> contract_snapshot = latest_contract_store_thread;
+
+    if (static_cast<bool>(contract_snapshot->contract.primary->hand_over)) {
         *error_out = "The primary replica is currently changing from one replica to "
             "another. The write was not performed. This error should go away in a "
             "couple of seconds.";
@@ -225,7 +244,7 @@ bool primary_execution_t::on_write(
     the write. This is because the user would get confused if their write returned an
     error about "not enough acks" and then got applied anyway. */
     {
-        ack_counter_t counter(latest_contract_store_thread->contract);
+        ack_counter_t counter(contract_snapshot->contract);
         our_dispatcher->get_ready_dispatchees()->apply_read(
             [&](const std::set<server_id_t> *servers) {
                 for (const server_id_t &s : *servers) {
@@ -271,12 +290,14 @@ bool primary_execution_t::on_write(
         cond_t done;
         write_response_t *response_out;
         std::string *error_out;
-    } write_callback(response_out, error_out, latest_contract_store_thread);
-
-    /* It's important that we don't block between making a local copy of
-    `latest_contract_store_thread` (above) and calling `spawn_write()` (below) */
+    } write_callback(response_out, error_out, contract_snapshot);
 
     our_dispatcher->spawn_write(request, order_token, &write_callback);
+
+    /* Now that we've called `spawn_write()`, our write is in the queue. So it's safe to
+    release the `begin_write_mutex`; any calls to `update_contract_on_store_thread()`
+    will enter the queue after us. */
+    begin_write_mutex_acq.reset();
 
     /* This will allow other calls to `on_write()` to happen. */
     exiter->end();
@@ -330,14 +351,39 @@ void primary_execution_t::update_contract_on_store_thread(
                 &interruptor_home_thread, store->home_thread());
             on_thread_t thread_switcher(store->home_thread());
 
+            /* We can only send a `primary_ready` response to the contract coordinator
+            once we're sure that both all incoming writes will be executed under the new
+            contract, and all previous writes are safe under the conditions of the new
+            contract. We ensure the former condition by setting
+            `latest_contract_store_thread`, so that incoming writes will pick up the new
+            contract. We ensure the latter condition by running sync writes until we get
+            one to succeed under the new contract. The sync writes must enter the
+            dispatcher's queue after any writes that were run under the old contract, so
+            that the sync writes can't succeed under the new contract until the old
+            writes are also safe under the new contract. */
+
             /* Deliver the latest contract */
-            latest_contract_store_thread = contract;
+            {
+                /* We acquire `begin_write_mutex` to make sure we're not interleaving
+                with a call to `on_write()`. This way, we can be sure that any writes
+                that saw the old contract will enter the primary dispatcher's queue
+                before we call `sync_contract_with_replicas()`. */
+                mutex_assertion_t::acq_t begin_write_mutex_acq(&begin_write_mutex);
+                latest_contract_store_thread = contract;
+            }
 
             /* If we have a broadcaster, then try to sync with replicas so we can ack the
-            contract */
+            contract. */
             if (our_dispatcher != nullptr) {
+                /* We're going to hold a pointer to the `primary_dispatcher_t` that lives
+                on the stack in `run()`, so we need to make sure we'll stop before
+                `run()` stops. We do this by acquiring a lock on the `auto_drainer_t` on
+                the stack in `run()`. */
+                auto_drainer_t::lock_t keepalive2 = our_dispatcher_drainer->lock();
+                wait_any_t combiner(
+                    &interruptor_store_thread, keepalive2.get_drain_signal());
                 should_ack = true;
-                sync_contract_with_replicas(contract, &interruptor_store_thread);
+                sync_contract_with_replicas(contract, &combiner);
             } else {
                 should_ack = false;
             }

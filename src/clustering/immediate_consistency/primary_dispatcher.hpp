@@ -195,6 +195,8 @@ private:
         auto_drainer_t::lock_t dispatchee_lock,
         counted_t<incomplete_write_t> write) THROWS_NOTHING;
 
+    void refresh_ready_dispatchees_as_set();
+
     branch_id_t branch_id;
     branch_birth_certificate_t branch_bc;
 

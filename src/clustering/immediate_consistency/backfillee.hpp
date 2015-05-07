@@ -128,7 +128,12 @@ private:
     new_semaphore_t pre_item_throttler;
     new_semaphore_acq_t pre_item_throttler_acq;
 
-    scoped_ptr_t<session_t> current_session;
+    /* Between sessions, `current_session` is `nullptr` and `session_interrupted` is
+    `false`. During a session, `current_session` is valid and `session_interrupted` is
+    `false`. If the last session was interrupted, `current_session` is `nullptr` and
+    `session_interrupted` is `true`. */
+    session_t *current_session;
+    bool session_interrupted;
 
     /* Destructor order matters here; `drainer` and `*_mailbox` must be destroyed before
     the other members of `backfillee_t` because they can spawn coroutines that access the
