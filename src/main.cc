@@ -10,8 +10,8 @@
 int main(int argc, char *argv[]) {
 #ifndef NDEBUG
     rlimit core_limit;
-    core_limit.rlim_cur = 100 * MEGABYTE;
-    core_limit.rlim_max = 200 * MEGABYTE;
+    core_limit.rlim_cur = 10 * GIGABYTE;
+    core_limit.rlim_max = 10 * GIGABYTE;
     setrlimit(RLIMIT_CORE, &core_limit);
 #endif
 

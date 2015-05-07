@@ -219,16 +219,23 @@ remote_replicator_client_t::remote_replicator_client_t(
                     std::queue<queue_entry_t> *_queue,
                     const key_range_t::right_bound_t &_right_bound,
                     const backfill_config_t *_config) :
-                queue(_queue), right_bound(_right_bound), config(_config), prog(0) { }
+                queue(_queue), right_bound(_right_bound), config(_config), prog(0)
+            {
+                debugf("%p/%p constructor\n", this, &backfill_end_timestamps);
+            }
+            ~callback_t() {
+                debugf("%p/%p destructor\n", this, &backfill_end_timestamps);
+            }
             bool on_progress(const region_map_t<version_t> &chunk) THROWS_NOTHING {
                 rassert(key_range_t::right_bound_t(chunk.get_domain().inner.left) ==
                     right_bound);
                 right_bound = chunk.get_domain().inner.right;
-                debugf_print(strprintf("%p got", &backfill_end_timestamps).c_str(), chunk);
+                debugf_print(strprintf("%p/%p got", this, &backfill_end_timestamps).c_str(), chunk);
                 backfill_end_timestamps.combine(backfill_end_timestamps_t(
                     chunk.map(
                         chunk.get_domain(),
                         [](const version_t &version) { return version.timestamp; })));
+                debugf("%p/%p ok\n", this, &backfill_end_timestamps);
                 return (queue->size() < config->write_queue_count);
             }
             std::queue<queue_entry_t> *queue;

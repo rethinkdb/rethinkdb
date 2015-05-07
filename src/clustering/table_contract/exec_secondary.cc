@@ -156,6 +156,11 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
                 &stop_signal, store->home_thread());
             on_thread_t thread_switcher_3(store->home_thread());
 
+            debugf("secondary: branch %s store.region %s rrs.region %s\n",
+                uuid_to_str(branch).c_str(),
+                debug_strprint(store->get_region()).c_str(),
+                debug_strprint(primary_bcard.assert_get_value().remote_replicator_server.region).c_str());
+
             /* Backfill and start streaming from the primary. */
             remote_replicator_client_t remote_replicator_client(
                 context->backfill_throttler,

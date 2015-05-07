@@ -141,6 +141,11 @@ void primary_execution_t::run(auto_drainer_t::lock_t keepalive) {
             context->mailbox_manager,
             &primary_dispatcher);
 
+        debugf("primary: branch %s store.region %s rrs.region %s\n",
+            uuid_to_str(primary_dispatcher.get_branch_id()).c_str(),
+            debug_strprint(store->get_region()).c_str(),
+            debug_strprint(remote_replicator_server.get_bcard().region).c_str());
+
         auto_drainer_t primary_dispatcher_drainer;
         assignment_sentry_t<auto_drainer_t *> our_dispatcher_drainer_assign(
             &our_dispatcher_drainer, &primary_dispatcher_drainer);
