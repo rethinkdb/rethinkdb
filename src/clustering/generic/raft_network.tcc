@@ -54,7 +54,7 @@ bool raft_networked_member_t<state_t>::send_rpc(
 }
 
 template<class state_t>
-watchable_map_t<raft_member_id_t, std::nullptr_t> *
+watchable_map_t<raft_member_id_t, empty_value_t> *
         raft_networked_member_t<state_t>::get_connected_members() {
     return &peers_map_transformer;
 }
