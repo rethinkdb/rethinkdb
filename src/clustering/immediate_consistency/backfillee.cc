@@ -312,6 +312,8 @@ backfillee_t::backfillee_t(
     backfill_config(_backfill_config),
     pre_item_throttler(backfill_config.pre_item_queue_mem_size),
     pre_item_throttler_acq(&pre_item_throttler, 0),
+    current_session(nullptr),
+    session_interrupted(false),
     items_mailbox(mailbox_manager,
         std::bind(&backfillee_t::on_items, this, ph::_1, ph::_2, ph::_3, ph::_4)),
     ack_end_session_mailbox(mailbox_manager,
@@ -386,16 +388,18 @@ void backfillee_t::go(
         const key_range_t::right_bound_t &threshold,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
-    /* Note: If we get interrupted during this function, then `current_session` will be
-    left in place, which will make future calls to `go()` fail. So interrupting a call to
-    `go()` invalidates the `backfillee_t`, and the only way to recover is to destroy the
-    `backfillee_t`. Destroying the `backfillee_t` will destroy `current_session`, thereby
-    interrupting whatever it is doing. */
-
-    guarantee(!current_session.has());
-    current_session.init(new session_t(this, threshold, callback));
-    current_session->wait_done(interruptor);
-    current_session.reset();
+    guarantee(current_session == nullptr);
+    guarantee(!session_interrupted);
+    session_t session(this, threshold, callback);
+    current_session = &session;
+    try {
+        session.wait_done(interruptor);
+        current_session = nullptr;
+    } catch (const interrupted_exc_t &) {
+        current_session = nullptr;
+        session_interrupted = true;
+        throw;
+    }
 }
 
 void backfillee_t::on_items(
@@ -405,7 +409,10 @@ void backfillee_t::on_items(
         backfill_item_seq_t<backfill_item_t> &&chunk) {
     fifo_enforcer_sink_t::exit_write_t exit_write(&fifo_sink, fifo_token);
     wait_interruptible(&exit_write, interruptor);
-    guarantee(current_session.has());
+    if (session_interrupted) {
+        return;
+    }
+    guarantee(current_session != nullptr);
     current_session->on_items(std::move(version), std::move(chunk));
 }
 
@@ -414,7 +421,10 @@ void backfillee_t::on_ack_end_session(
         const fifo_enforcer_write_token_t &fifo_token) {
     fifo_enforcer_sink_t::exit_write_t exit_write(&fifo_sink, fifo_token);
     wait_interruptible(&exit_write, interruptor);
-    guarantee(current_session.has());
+    if (session_interrupted) {
+        return;
+    }
+    guarantee(current_session != nullptr);
     current_session->on_ack_end_session();
 }
 
