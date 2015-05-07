@@ -15,6 +15,12 @@ import java.util.*;
 public class IndexWait extends RqlQuery {
 
 
+    public IndexWait(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public IndexWait(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public IndexWait(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.INDEX_WAIT, args, optargs);
     }

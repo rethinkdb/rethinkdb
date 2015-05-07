@@ -15,6 +15,12 @@ import java.util.*;
 public class DbCreate extends RqlQuery {
 
 
+    public DbCreate(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public DbCreate(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public DbCreate(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.DB_CREATE, args, optargs);
     }

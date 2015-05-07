@@ -15,6 +15,12 @@ import java.util.*;
 public class Union extends RqlQuery {
 
 
+    public Union(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Union(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Union(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.UNION, args, optargs);
     }

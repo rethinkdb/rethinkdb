@@ -15,6 +15,12 @@ import java.util.*;
 public class DbList extends RqlQuery {
 
 
+    public DbList(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public DbList(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public DbList(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.DB_LIST, args, optargs);
     }

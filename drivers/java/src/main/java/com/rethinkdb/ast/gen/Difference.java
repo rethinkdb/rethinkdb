@@ -15,6 +15,12 @@ import java.util.*;
 public class Difference extends RqlQuery {
 
 
+    public Difference(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Difference(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Difference(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.DIFFERENCE, args, optargs);
     }

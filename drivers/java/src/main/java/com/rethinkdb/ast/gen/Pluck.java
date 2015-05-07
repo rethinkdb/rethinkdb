@@ -15,6 +15,12 @@ import java.util.*;
 public class Pluck extends RqlQuery {
 
 
+    public Pluck(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Pluck(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Pluck(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.PLUCK, args, optargs);
     }

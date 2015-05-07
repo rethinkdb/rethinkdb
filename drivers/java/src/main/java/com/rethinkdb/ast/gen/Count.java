@@ -15,6 +15,12 @@ import java.util.*;
 public class Count extends RqlQuery {
 
 
+    public Count(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Count(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Count(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.COUNT, args, optargs);
     }

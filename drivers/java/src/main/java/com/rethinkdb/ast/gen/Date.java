@@ -15,6 +15,12 @@ import java.util.*;
 public class Date extends RqlQuery {
 
 
+    public Date(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Date(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Date(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.DATE, args, optargs);
     }

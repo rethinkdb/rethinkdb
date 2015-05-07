@@ -15,6 +15,12 @@ import java.util.*;
 public class HasFields extends RqlQuery {
 
 
+    public HasFields(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public HasFields(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public HasFields(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.HAS_FIELDS, args, optargs);
     }

@@ -15,6 +15,12 @@ import java.util.*;
 public class IndexStatus extends RqlQuery {
 
 
+    public IndexStatus(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public IndexStatus(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public IndexStatus(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.INDEX_STATUS, args, optargs);
     }

@@ -15,6 +15,12 @@ import java.util.*;
 public class Floor extends RqlQuery {
 
 
+    public Floor(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Floor(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Floor(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.FLOOR, args, optargs);
     }

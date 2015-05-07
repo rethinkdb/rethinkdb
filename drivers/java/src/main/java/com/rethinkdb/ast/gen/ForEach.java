@@ -15,6 +15,12 @@ import java.util.*;
 public class ForEach extends RqlQuery {
 
 
+    public ForEach(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public ForEach(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public ForEach(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.FOR_EACH, args, optargs);
     }

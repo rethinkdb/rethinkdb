@@ -15,6 +15,12 @@ import java.util.*;
 public class Seconds extends RqlQuery {
 
 
+    public Seconds(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Seconds(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Seconds(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.SECONDS, args, optargs);
     }

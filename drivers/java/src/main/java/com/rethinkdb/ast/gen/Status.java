@@ -15,6 +15,12 @@ import java.util.*;
 public class Status extends RqlQuery {
 
 
+    public Status(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Status(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Status(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.STATUS, args, optargs);
     }

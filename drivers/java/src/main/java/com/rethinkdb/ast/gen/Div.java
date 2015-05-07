@@ -15,6 +15,12 @@ import java.util.*;
 public class Div extends RqlQuery {
 
 
+    public Div(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Div(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Div(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.DIV, args, optargs);
     }

@@ -15,6 +15,12 @@ import java.util.*;
 public class Binary extends RqlQuery {
 
 
+    public Binary(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Binary(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Binary(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.BINARY, args, optargs);
     }

@@ -15,6 +15,12 @@ import java.util.*;
 public class Upcase extends RqlQuery {
 
 
+    public Upcase(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Upcase(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Upcase(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.UPCASE, args, optargs);
     }

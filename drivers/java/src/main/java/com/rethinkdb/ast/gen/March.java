@@ -15,6 +15,12 @@ import java.util.*;
 public class March extends RqlQuery {
 
 
+    public March(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public March(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public March(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.MARCH, args, optargs);
     }

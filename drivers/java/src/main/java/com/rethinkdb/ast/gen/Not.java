@@ -15,6 +15,12 @@ import java.util.*;
 public class Not extends RqlQuery {
 
 
+    public Not(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Not(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Not(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.NOT, args, optargs);
     }

@@ -15,6 +15,12 @@ import java.util.*;
 public class SetIntersection extends RqlQuery {
 
 
+    public SetIntersection(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public SetIntersection(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public SetIntersection(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.SET_INTERSECTION, args, optargs);
     }

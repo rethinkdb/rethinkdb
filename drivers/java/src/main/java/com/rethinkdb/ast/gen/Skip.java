@@ -15,6 +15,12 @@ import java.util.*;
 public class Skip extends RqlQuery {
 
 
+    public Skip(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Skip(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Skip(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.SKIP, args, optargs);
     }

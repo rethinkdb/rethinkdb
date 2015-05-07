@@ -15,6 +15,12 @@ import java.util.*;
 public class Minval extends RqlQuery {
 
 
+    public Minval(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Minval(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Minval(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.MINVAL, args, optargs);
     }

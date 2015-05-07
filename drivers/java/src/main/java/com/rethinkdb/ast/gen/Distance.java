@@ -15,6 +15,12 @@ import java.util.*;
 public class Distance extends RqlQuery {
 
 
+    public Distance(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Distance(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Distance(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.DISTANCE, args, optargs);
     }

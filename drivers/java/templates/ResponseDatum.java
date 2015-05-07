@@ -2,7 +2,7 @@ package com.rethinkdb.response;
 
 import com.rethinkdb.proto.DatumType;
 
-public class ResponseDatum {
+public class Datum {
     private DatumType datumType;
 
     public Datum(){

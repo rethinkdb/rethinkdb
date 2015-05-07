@@ -15,6 +15,12 @@ import java.util.*;
 public class TypeOf extends RqlQuery {
 
 
+    public TypeOf(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public TypeOf(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public TypeOf(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.TYPE_OF, args, optargs);
     }

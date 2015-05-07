@@ -15,6 +15,12 @@ import java.util.*;
 public class TimeOfDay extends RqlQuery {
 
 
+    public TimeOfDay(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public TimeOfDay(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public TimeOfDay(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.TIME_OF_DAY, args, optargs);
     }

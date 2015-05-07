@@ -15,6 +15,12 @@ import java.util.*;
 public class Ungroup extends RqlQuery {
 
 
+    public Ungroup(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Ungroup(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Ungroup(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.UNGROUP, args, optargs);
     }

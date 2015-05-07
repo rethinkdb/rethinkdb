@@ -15,6 +15,12 @@ import java.util.*;
 public class OrderBy extends RqlQuery {
 
 
+    public OrderBy(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public OrderBy(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public OrderBy(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.ORDER_BY, args, optargs);
     }

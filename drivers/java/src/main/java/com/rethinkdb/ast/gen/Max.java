@@ -15,6 +15,12 @@ import java.util.*;
 public class Max extends RqlQuery {
 
 
+    public Max(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Max(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Max(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.MAX, args, optargs);
     }

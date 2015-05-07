@@ -15,6 +15,12 @@ import java.util.*;
 public class Point extends RqlQuery {
 
 
+    public Point(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Point(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Point(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.POINT, args, optargs);
     }

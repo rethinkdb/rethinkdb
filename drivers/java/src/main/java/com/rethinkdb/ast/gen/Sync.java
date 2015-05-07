@@ -15,6 +15,12 @@ import java.util.*;
 public class Sync extends RqlQuery {
 
 
+    public Sync(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Sync(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Sync(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.SYNC, args, optargs);
     }

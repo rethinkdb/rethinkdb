@@ -15,6 +15,12 @@ import java.util.*;
 public class Range extends RqlQuery {
 
 
+    public Range(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Range(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Range(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.RANGE, args, optargs);
     }

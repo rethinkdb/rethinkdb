@@ -15,6 +15,12 @@ import java.util.*;
 public class Match extends RqlQuery {
 
 
+    public Match(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Match(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Match(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.MATCH, args, optargs);
     }

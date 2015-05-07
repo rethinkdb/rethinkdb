@@ -15,6 +15,12 @@ import java.util.*;
 public class Or extends RqlQuery {
 
 
+    public Or(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Or(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Or(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.OR, args, optargs);
     }

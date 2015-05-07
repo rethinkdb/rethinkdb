@@ -15,6 +15,12 @@ import java.util.*;
 public class Polygon extends RqlQuery {
 
 
+    public Polygon(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Polygon(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Polygon(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.POLYGON, args, optargs);
     }

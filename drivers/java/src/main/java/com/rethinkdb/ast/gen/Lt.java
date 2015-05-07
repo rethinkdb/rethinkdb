@@ -15,6 +15,12 @@ import java.util.*;
 public class Lt extends RqlQuery {
 
 
+    public Lt(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Lt(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Lt(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.LT, args, optargs);
     }

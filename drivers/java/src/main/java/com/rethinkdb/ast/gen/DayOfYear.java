@@ -15,6 +15,12 @@ import java.util.*;
 public class DayOfYear extends RqlQuery {
 
 
+    public DayOfYear(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public DayOfYear(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public DayOfYear(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.DAY_OF_YEAR, args, optargs);
     }

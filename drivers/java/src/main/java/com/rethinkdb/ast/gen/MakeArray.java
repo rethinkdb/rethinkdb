@@ -15,6 +15,12 @@ import java.util.*;
 public class MakeArray extends RqlQuery {
 
 
+    public MakeArray(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public MakeArray(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public MakeArray(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.MAKE_ARRAY, args, optargs);
     }

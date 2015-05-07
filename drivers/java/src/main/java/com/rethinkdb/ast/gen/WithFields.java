@@ -15,6 +15,12 @@ import java.util.*;
 public class WithFields extends RqlQuery {
 
 
+    public WithFields(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public WithFields(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public WithFields(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.WITH_FIELDS, args, optargs);
     }

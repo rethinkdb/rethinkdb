@@ -15,6 +15,12 @@ import java.util.*;
 public class SetInsert extends RqlQuery {
 
 
+    public SetInsert(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public SetInsert(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public SetInsert(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.SET_INSERT, args, optargs);
     }

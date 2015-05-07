@@ -15,6 +15,12 @@ import java.util.*;
 public class DbDrop extends RqlQuery {
 
 
+    public DbDrop(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public DbDrop(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public DbDrop(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.DB_DROP, args, optargs);
     }

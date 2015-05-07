@@ -8,11 +8,12 @@ dependencies {
   compile 'org.slf4j:slf4j-api:1.7.2'
 }
 
-task generateAst(type:Exec) {
+task generateProtocolFiles(type:Exec) {
   commandLine 'python2', 'convert_protofile.py'
 }
 
+compileJava.dependsOn generateProtocolFiles
+
 jar {
-  dependsOn generateAst
   archiveName = "rethinkdb.jar"
 }

@@ -15,6 +15,12 @@ import java.util.*;
 public class TableDrop extends RqlQuery {
 
 
+    public TableDrop(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public TableDrop(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public TableDrop(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.TABLE_DROP, args, optargs);
     }

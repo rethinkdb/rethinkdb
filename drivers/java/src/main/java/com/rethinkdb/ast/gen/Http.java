@@ -15,6 +15,12 @@ import java.util.*;
 public class Http extends RqlQuery {
 
 
+    public Http(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Http(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Http(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.HTTP, args, optargs);
     }

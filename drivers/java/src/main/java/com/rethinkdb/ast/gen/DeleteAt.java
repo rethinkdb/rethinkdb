@@ -15,6 +15,12 @@ import java.util.*;
 public class DeleteAt extends RqlQuery {
 
 
+    public DeleteAt(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public DeleteAt(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public DeleteAt(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.DELETE_AT, args, optargs);
     }

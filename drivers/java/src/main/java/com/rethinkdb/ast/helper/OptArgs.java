@@ -23,4 +23,10 @@ public class OptArgs extends HashMap<String, Object> {
         return this;
     }
 
+    public static OptArgs fromMap(java.util.Map<String, Object> map) {
+        OptArgs oa = new OptArgs();
+        oa.putAll(map);
+        return oa;
+    }
+
 }

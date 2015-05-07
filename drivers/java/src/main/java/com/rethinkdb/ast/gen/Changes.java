@@ -15,6 +15,12 @@ import java.util.*;
 public class Changes extends RqlQuery {
 
 
+    public Changes(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Changes(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Changes(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.CHANGES, args, optargs);
     }

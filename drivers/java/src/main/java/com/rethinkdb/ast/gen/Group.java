@@ -15,6 +15,12 @@ import java.util.*;
 public class Group extends RqlQuery {
 
 
+    public Group(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Group(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Group(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.GROUP, args, optargs);
     }

@@ -15,6 +15,12 @@ import java.util.*;
 public class Map extends RqlQuery {
 
 
+    public Map(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Map(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Map(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.MAP, args, optargs);
     }

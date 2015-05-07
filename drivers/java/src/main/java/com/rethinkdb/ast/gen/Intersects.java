@@ -15,6 +15,12 @@ import java.util.*;
 public class Intersects extends RqlQuery {
 
 
+    public Intersects(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Intersects(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Intersects(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.INTERSECTS, args, optargs);
     }

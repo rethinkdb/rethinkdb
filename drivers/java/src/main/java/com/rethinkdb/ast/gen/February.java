@@ -15,6 +15,12 @@ import java.util.*;
 public class February extends RqlQuery {
 
 
+    public February(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public February(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public February(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.FEBRUARY, args, optargs);
     }

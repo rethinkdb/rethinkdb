@@ -15,6 +15,12 @@ import java.util.*;
 public class Desc extends RqlQuery {
 
 
+    public Desc(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Desc(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Desc(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.DESC, args, optargs);
     }

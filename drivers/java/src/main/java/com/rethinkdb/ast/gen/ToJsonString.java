@@ -15,6 +15,12 @@ import java.util.*;
 public class ToJsonString extends RqlQuery {
 
 
+    public ToJsonString(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public ToJsonString(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public ToJsonString(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.TO_JSON_STRING, args, optargs);
     }

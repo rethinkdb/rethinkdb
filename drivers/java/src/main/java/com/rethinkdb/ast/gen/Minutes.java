@@ -15,6 +15,12 @@ import java.util.*;
 public class Minutes extends RqlQuery {
 
 
+    public Minutes(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Minutes(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Minutes(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.MINUTES, args, optargs);
     }

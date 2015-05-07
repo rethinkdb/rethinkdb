@@ -15,6 +15,12 @@ import java.util.*;
 public class PolygonSub extends RqlQuery {
 
 
+    public PolygonSub(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public PolygonSub(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public PolygonSub(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.POLYGON_SUB, args, optargs);
     }

@@ -15,6 +15,12 @@ import java.util.*;
 public class Sub extends RqlQuery {
 
 
+    public Sub(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Sub(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Sub(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.SUB, args, optargs);
     }

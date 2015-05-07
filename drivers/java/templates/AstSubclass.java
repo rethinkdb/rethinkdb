@@ -12,6 +12,12 @@ public class ${classname} extends ${superclass} {
 <%block name="member_vars" />
 <%block name="constructors">
 % if term_type is not None:
+    public ${classname}(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public ${classname}(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public ${classname}(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.${term_type}, args, optargs);
     }

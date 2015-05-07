@@ -15,6 +15,12 @@ import java.util.*;
 public class Round extends RqlQuery {
 
 
+    public Round(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Round(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Round(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.ROUND, args, optargs);
     }

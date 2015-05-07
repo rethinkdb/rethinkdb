@@ -15,6 +15,12 @@ import java.util.*;
 public class Timezone extends RqlQuery {
 
 
+    public Timezone(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Timezone(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Timezone(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.TIMEZONE, args, optargs);
     }

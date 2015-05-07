@@ -15,6 +15,12 @@ import java.util.*;
 public class Table extends RqlQuery {
 
 
+    public Table(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Table(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Table(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.TABLE, args, optargs);
     }

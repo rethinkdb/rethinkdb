@@ -15,6 +15,12 @@ import java.util.*;
 public class Between extends RqlQuery {
 
 
+    public Between(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Between(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Between(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.BETWEEN, args, optargs);
     }

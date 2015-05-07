@@ -15,6 +15,12 @@ import java.util.*;
 public class Branch extends RqlQuery {
 
 
+    public Branch(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Branch(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Branch(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.BRANCH, args, optargs);
     }

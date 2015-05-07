@@ -15,6 +15,12 @@ import java.util.*;
 public class Geojson extends RqlQuery {
 
 
+    public Geojson(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Geojson(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Geojson(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.GEOJSON, args, optargs);
     }

@@ -15,6 +15,12 @@ import java.util.*;
 public class Uuid extends RqlQuery {
 
 
+    public Uuid(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Uuid(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Uuid(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.UUID, args, optargs);
     }

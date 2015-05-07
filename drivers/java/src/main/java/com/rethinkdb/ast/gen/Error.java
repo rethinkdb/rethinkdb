@@ -15,6 +15,12 @@ import java.util.*;
 public class Error extends RqlQuery {
 
 
+    public Error(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Error(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Error(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.ERROR, args, optargs);
     }

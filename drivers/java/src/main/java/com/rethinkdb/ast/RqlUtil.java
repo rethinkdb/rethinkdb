@@ -1,13 +1,15 @@
 package com.rethinkdb.ast;
 
 import com.rethinkdb.RethinkDB;
+import com.rethinkdb.ast.helper.Arguments;
+import com.rethinkdb.ast.helper.OptArgs;
 import com.rethinkdb.RethinkDBException;
 import com.rethinkdb.model.RqlFunction;
 import com.rethinkdb.ast.gen.Datum;
 import com.rethinkdb.ast.gen.Func;
 import com.rethinkdb.ast.gen.MakeArray;
 import com.rethinkdb.ast.gen.MakeObj;
-import com.rethinkdb.ast.gen.ISO8601;
+import com.rethinkdb.ast.gen.Iso8601;
 import com.rethinkdb.model.RqlLambda;
 
 import java.lang.*;
@@ -33,7 +35,7 @@ public class RqlUtil {
         }
 
         if (val instanceof List) {
-            List<java.lang.Object> innerValues = new ArrayList<Object>();
+            Arguments innerValues = new Arguments();
             for (java.lang.Object innerValue : (List) val) {
                 innerValues.add(toRqlAst(innerValue, remainingDepth - 1));
             }
@@ -41,7 +43,7 @@ public class RqlUtil {
         }
 
         if (val instanceof Map) {
-            Map<String, RqlAst> obj = new HashMap<String, RqlAst>();
+            Map<String, RqlAst> obj = new HashMap<>();
             for (Map.Entry<Object, Object> entry : (Set<Map.Entry>) ((Map) val).entrySet()) {
                 if (!(entry.getKey() instanceof String)) {
                     throw new RethinkDBException("Object key can only be strings");
@@ -49,7 +51,7 @@ public class RqlUtil {
 
                 obj.put((String) entry.getKey(), toRqlAst(entry.getValue()));
             }
-            return new MakeObj(obj);
+            return MakeObj.fromMap(obj);
         }
 
         if (val instanceof RqlLambda) {
@@ -60,7 +62,7 @@ public class RqlUtil {
             TimeZone tz = TimeZone.getTimeZone("UTC");
             DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mmZ");
             df.setTimeZone(tz);
-            return ISO8601(df.format((Date) val));
+            return Iso8601.fromString(df.format((Date) val));
         }
 
         return new Datum(val);

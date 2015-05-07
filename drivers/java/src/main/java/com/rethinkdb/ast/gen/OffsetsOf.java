@@ -15,6 +15,12 @@ import java.util.*;
 public class OffsetsOf extends RqlQuery {
 
 
+    public OffsetsOf(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public OffsetsOf(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public OffsetsOf(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.OFFSETS_OF, args, optargs);
     }

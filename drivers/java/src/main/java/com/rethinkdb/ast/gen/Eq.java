@@ -15,6 +15,12 @@ import java.util.*;
 public class Eq extends RqlQuery {
 
 
+    public Eq(java.lang.Object arg) {
+        this(new Arguments(arg), null);
+    }
+    public Eq(Arguments args, OptArgs optargs) {
+        this(null, args, optargs);
+    }
     public Eq(RqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.EQ, args, optargs);
     }
