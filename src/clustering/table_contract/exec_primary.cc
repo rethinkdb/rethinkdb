@@ -10,33 +10,38 @@
 
 primary_execution_t::primary_execution_t(
         const execution_t::context_t *_context,
-        const region_t &_region,
         store_view_t *_store,
         perfmon_collection_t *_perfmon_collection,
-        const contract_t &c,
-        const std::function<void(const contract_ack_t &)> &acb) :
-    execution_t(_context, _region, _store, _perfmon_collection),
-    latest_contract_home_thread(make_counted<contract_info_t>(c, acb)),
-    latest_contract_store_thread(latest_contract_home_thread),
+        const std::function<void(
+            const contract_id_t &, const contract_ack_t &)> &_ack_cb,
+        const contract_id_t &cid,
+        const table_raft_state_t &raft_state) :
+    execution_t(_context, _store, _perfmon_collection, _ack_cb),
     our_dispatcher(nullptr)
 {
+    const contract_t &c = raft_state.contracts.at(cid).second;
     guarantee(static_cast<bool>(c.primary));
     guarantee(c.primary->server == context->server_id);
+    guarantee(raft_state.contracts.at(cid).first == region);
+    latest_contract_home_thread = make_counted<contract_info_t>(cid, c);
+    latest_contract_store_thread = latest_contract_home_thread;
     coro_t::spawn_sometime(std::bind(&primary_execution_t::run, this, drainer.lock()));
 }
 
 void primary_execution_t::update_contract(
-        const contract_t &c,
-        const std::function<void(const contract_ack_t &)> &acb) {
+        const contract_id_t &cid,
+        const table_raft_state_t &raft_state) {
     assert_thread();
     ASSERT_NO_CORO_WAITING;
 
+    const contract_t &c = raft_state.contracts.at(cid).second;
     guarantee(static_cast<bool>(c.primary));
     guarantee(c.primary->server == context->server_id);
+    guarantee(raft_state.contracts.at(cid).first == region);
 
     /* Mark the old contract as obsolete, and record the new one */
     latest_contract_home_thread->obsolete.pulse();
-    latest_contract_home_thread = make_counted<contract_info_t>(c, acb);
+    latest_contract_home_thread = make_counted<contract_info_t>(cid, c);
 
     /* Has our branch ID been registered yet? */
     if (!branch_registered.is_pulsed() &&
@@ -66,7 +71,7 @@ void primary_execution_t::update_contract(
         new new_mutex_in_line_t(&mutex)));
 
     if (static_cast<bool>(latest_ack)) {
-        latest_contract_home_thread->ack_cb(*latest_ack);
+        ack_cb(cid, *latest_ack);
     }
 }
 
@@ -105,7 +110,7 @@ void primary_execution_t::run(auto_drainer_t::lock_t keepalive) {
                 *our_branch_id,
                 primary_dispatcher.get_branch_birth_certificate()));
             latest_ack = boost::make_optional(ack);
-            latest_contract_home_thread->ack_cb(ack);
+            ack_cb(latest_contract_home_thread->contract_id, ack);
         }
 
         /* Wait until we get our branch registered */
@@ -342,7 +347,7 @@ void primary_execution_t::update_contract_on_store_thread(
             /* OK, time to ack the contract */
             latest_ack = boost::make_optional(
                 contract_ack_t(contract_ack_t::state_t::primary_ready));
-            contract->ack_cb(*latest_ack);
+            ack_cb(contract->contract_id, *latest_ack);
         }
 
     } catch (const interrupted_exc_t &) {

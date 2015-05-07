@@ -53,24 +53,24 @@ public:
     */ 
     execution_t(
             const context_t *_context,
-            const region_t &_region,
             store_view_t *_store,
-            perfmon_collection_t *_perfmon_collection) :
-        context(_context), region(_region), store(_store),
-        perfmon_collection(_perfmon_collection)
-    {
-        guarantee(store->get_region() == region);
-    }
+            perfmon_collection_t *_perfmon_collection,
+            const std::function<void(
+                const contract_id_t &, const contract_ack_t &)> &_ack_cb) :
+        context(_context), region(_store->get_region()), store(_store),
+        perfmon_collection(_perfmon_collection), ack_cb(_ack_cb)
+        { }
     virtual ~execution_t() { }
     virtual void update_contract(
-        const contract_t &c,
-        const std::function<void(const contract_ack_t &)> &ack_cb) = 0;
+        const contract_id_t &cid,
+        const table_raft_state_t &raft_state) = 0;
 
 protected:
     context_t const *const context;
     region_t const region;
     store_view_t *const store;
     perfmon_collection_t *const perfmon_collection;
+    std::function<void(const contract_id_t &, const contract_ack_t &)> ack_cb;
 };
 
 #endif /* CLUSTERING_TABLE_CONTRACT_EXEC_HPP_ */

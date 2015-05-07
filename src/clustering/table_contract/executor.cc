@@ -101,15 +101,14 @@ void contract_executor_t::update(const table_raft_state_t &new_state,
         auto it = executions.find(key);
         if (it != executions.end()) {
             /* Update the existing execution */
-            if (it->second->contract_id != new_pair.first) {
-                contract_id_t old_contract_id = it->second->contract_id;
-                it->second->contract_id = new_pair.first;
-                std::function<void(const contract_ack_t &)> acker =
-                    std::bind(&contract_executor_t::send_ack, this,
-                        key, new_pair.first, ph::_1);
-                /* Note that `update_contract()` will never block. */
-                it->second->execution->update_contract(new_pair.second.second, acker);
-                /* Delete the old contract, if there was one */
+            contract_id_t old_contract_id = it->second->contract_id;
+            it->second->contract_id = new_pair.first;
+            /* Note that `update_contract()` will never block. Also note that we call it
+            even if the contract ID has not actually changed, because it might care about
+            the changes to the parts of the Raft state other than the contract. */
+            it->second->execution->update_contract(new_pair.first, new_state);
+            if (old_contract_id != new_pair.first) {
+                /* Delete the old contract ack, if there was one */
                 ack_map.delete_key(std::make_pair(server_id, old_contract_id));
             }
         } else {
@@ -137,25 +136,28 @@ void contract_executor_t::update(const table_raft_state_t &new_state,
                     perfmons, &data->perfmon_collection,
                     strprintf("%s-%d", key.role_name().c_str(), ++perfmon_counter));
 
-                std::function<void(const contract_ack_t &)> acker =
-                    std::bind(&contract_executor_t::send_ack, this,
-                        key, new_pair.first, ph::_1);
+                std::function<void(const contract_id_t &, const contract_ack_t &)>
+                    acker = std::bind(&contract_executor_t::send_ack, this,
+                        key, ph::_1, ph::_2);
                 /* Note that these constructors will never block. */
                 switch (key.role) {
                 case execution_key_t::role_t::primary:
                     data->execution.init(new primary_execution_t(
-                        &execution_context, key.region, data->store_subview.get(),
-                        &data->perfmon_collection, new_pair.second.second, acker));
+                        &execution_context, data->store_subview.get(),
+                        &data->perfmon_collection, acker,
+                        new_pair.first, new_state));
                     break;
                 case execution_key_t::role_t::secondary:
                     data->execution.init(new secondary_execution_t(
-                        &execution_context, key.region, data->store_subview.get(),
-                        &data->perfmon_collection, new_pair.second.second, acker));
+                        &execution_context, data->store_subview.get(),
+                        &data->perfmon_collection, acker,
+                        new_pair.first, new_state));
                     break;
                 case execution_key_t::role_t::erase:
                     data->execution.init(new erase_execution_t(
-                        &execution_context, key.region, data->store_subview.get(),
-                        &data->perfmon_collection, new_pair.second.second, acker));
+                        &execution_context, data->store_subview.get(),
+                        &data->perfmon_collection, acker,
+                        new_pair.first, new_state));
                     break;
                 default: unreachable();
                 }
