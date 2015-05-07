@@ -127,9 +127,10 @@ private:
     /* `latest_ack` stores the latest contract ack we've sent. */
     boost::optional<contract_ack_t> latest_ack;
 
-    /* `mutex` is used to order calls to `update_contract_on_store_thread()`, so that we
-    don't overwrite a newer contract with an older one */
-    new_mutex_t mutex;
+    /* `update_contract_mutex` is used to order calls to
+    `update_contract_on_store_thread()`, so that we don't overwrite a newer contract with
+    an older one */
+    new_mutex_t update_contract_mutex;
 
     /* `branch_registered` is pulsed once the coordinator has committed our branch ID to
     the Raft state. */
@@ -145,6 +146,10 @@ private:
     this applies to `update_contract_on_store_thread()`.) `our_dispatcher` and
     `our_dispatcher_drainer` will always both be null or both be non-null. */
     auto_drainer_t *our_dispatcher_drainer;
+
+    /* `begin_write_mutex` is used to ensure that we don't ack a contract until all past
+    and ongoing writes are safe under the contract's conditions. */
+    mutex_assertion_t begin_write_mutex;
 
     /* `drainer` ensures that `run()` and `update_contract_on_store_thread()` are
     stopped before the other member variables are destroyed. */
