@@ -29,7 +29,7 @@ public class ToEpochTime extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static ToEpochTime fromArgs(Object... args){
         return new ToEpochTime(new Arguments(args), null);
     }

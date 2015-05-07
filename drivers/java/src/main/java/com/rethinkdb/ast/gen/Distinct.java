@@ -29,7 +29,7 @@ public class Distinct extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Distinct fromArgs(Object... args){
         return new Distinct(new Arguments(args), null);
     }

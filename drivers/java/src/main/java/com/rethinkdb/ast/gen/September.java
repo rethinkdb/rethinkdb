@@ -29,7 +29,7 @@ public class September extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static September fromArgs(Object... args){
         return new September(new Arguments(args), null);
     }

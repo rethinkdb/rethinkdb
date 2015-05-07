@@ -29,7 +29,7 @@ public class Not extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Not fromArgs(Object... args){
         return new Not(new Arguments(args), null);
     }

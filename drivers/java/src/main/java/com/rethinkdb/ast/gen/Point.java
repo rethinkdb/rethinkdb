@@ -29,7 +29,7 @@ public class Point extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Point fromArgs(Object... args){
         return new Point(new Arguments(args), null);
     }

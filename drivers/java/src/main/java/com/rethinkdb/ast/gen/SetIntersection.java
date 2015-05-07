@@ -29,7 +29,7 @@ public class SetIntersection extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static SetIntersection fromArgs(Object... args){
         return new SetIntersection(new Arguments(args), null);
     }

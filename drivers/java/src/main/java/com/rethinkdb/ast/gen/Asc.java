@@ -29,7 +29,7 @@ public class Asc extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Asc fromArgs(Object... args){
         return new Asc(new Arguments(args), null);
     }

@@ -29,7 +29,7 @@ public class IndexCreate extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static IndexCreate fromArgs(Object... args){
         return new IndexCreate(new Arguments(args), null);
     }

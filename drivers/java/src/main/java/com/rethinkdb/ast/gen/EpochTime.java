@@ -29,7 +29,7 @@ public class EpochTime extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static EpochTime fromArgs(Object... args){
         return new EpochTime(new Arguments(args), null);
     }

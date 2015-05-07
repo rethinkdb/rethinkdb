@@ -29,7 +29,7 @@ public class Error extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Error fromArgs(Object... args){
         return new Error(new Arguments(args), null);
     }

@@ -29,7 +29,7 @@ public class GetNearest extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static GetNearest fromArgs(Object... args){
         return new GetNearest(new Arguments(args), null);
     }

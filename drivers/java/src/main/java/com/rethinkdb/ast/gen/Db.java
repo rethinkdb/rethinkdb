@@ -29,7 +29,7 @@ public class Db extends RqlAst {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Db fromArgs(Object... args){
         return new Db(new Arguments(args), null);
     }

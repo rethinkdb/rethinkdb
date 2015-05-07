@@ -29,7 +29,7 @@ public class Geojson extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Geojson fromArgs(Object... args){
         return new Geojson(new Arguments(args), null);
     }

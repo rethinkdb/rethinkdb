@@ -29,7 +29,7 @@ public class Limit extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Limit fromArgs(Object... args){
         return new Limit(new Arguments(args), null);
     }

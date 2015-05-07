@@ -29,7 +29,7 @@ public class CoerceTo extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static CoerceTo fromArgs(Object... args){
         return new CoerceTo(new Arguments(args), null);
     }

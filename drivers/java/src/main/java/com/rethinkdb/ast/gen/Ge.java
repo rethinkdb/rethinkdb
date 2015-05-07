@@ -29,7 +29,7 @@ public class Ge extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Ge fromArgs(Object... args){
         return new Ge(new Arguments(args), null);
     }

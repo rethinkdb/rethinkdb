@@ -29,7 +29,7 @@ public class Gt extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Gt fromArgs(Object... args){
         return new Gt(new Arguments(args), null);
     }

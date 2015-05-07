@@ -29,7 +29,7 @@ public class TableCreate extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static TableCreate fromArgs(Object... args){
         return new TableCreate(new Arguments(args), null);
     }

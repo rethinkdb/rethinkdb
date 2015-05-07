@@ -29,7 +29,7 @@ public class ToIso8601 extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static ToIso8601 fromArgs(Object... args){
         return new ToIso8601(new Arguments(args), null);
     }

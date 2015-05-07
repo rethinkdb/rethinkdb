@@ -29,7 +29,7 @@ public class Info extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Info fromArgs(Object... args){
         return new Info(new Arguments(args), null);
     }

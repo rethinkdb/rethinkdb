@@ -29,7 +29,7 @@ public class Split extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Split fromArgs(Object... args){
         return new Split(new Arguments(args), null);
     }

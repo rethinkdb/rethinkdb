@@ -29,7 +29,7 @@ public class May extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static May fromArgs(Object... args){
         return new May(new Arguments(args), null);
     }

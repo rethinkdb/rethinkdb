@@ -29,7 +29,7 @@ public class Sum extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Sum fromArgs(Object... args){
         return new Sum(new Arguments(args), null);
     }

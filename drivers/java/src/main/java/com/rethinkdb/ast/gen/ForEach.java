@@ -29,7 +29,7 @@ public class ForEach extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static ForEach fromArgs(Object... args){
         return new ForEach(new Arguments(args), null);
     }

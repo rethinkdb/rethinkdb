@@ -29,7 +29,7 @@ public class DbDrop extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static DbDrop fromArgs(Object... args){
         return new DbDrop(new Arguments(args), null);
     }

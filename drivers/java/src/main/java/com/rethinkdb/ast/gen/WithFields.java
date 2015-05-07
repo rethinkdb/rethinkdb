@@ -29,7 +29,7 @@ public class WithFields extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static WithFields fromArgs(Object... args){
         return new WithFields(new Arguments(args), null);
     }

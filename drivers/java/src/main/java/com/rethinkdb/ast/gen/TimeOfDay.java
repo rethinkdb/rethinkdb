@@ -29,7 +29,7 @@ public class TimeOfDay extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static TimeOfDay fromArgs(Object... args){
         return new TimeOfDay(new Arguments(args), null);
     }

@@ -29,7 +29,7 @@ public class During extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static During fromArgs(Object... args){
         return new During(new Arguments(args), null);
     }

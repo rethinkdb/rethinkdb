@@ -29,7 +29,7 @@ public class Replace extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Replace fromArgs(Object... args){
         return new Replace(new Arguments(args), null);
     }

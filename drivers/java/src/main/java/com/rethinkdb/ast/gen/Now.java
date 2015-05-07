@@ -29,7 +29,7 @@ public class Now extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Now fromArgs(Object... args){
         return new Now(new Arguments(args), null);
     }

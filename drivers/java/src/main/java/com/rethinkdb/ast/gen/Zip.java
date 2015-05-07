@@ -29,7 +29,7 @@ public class Zip extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Zip fromArgs(Object... args){
         return new Zip(new Arguments(args), null);
     }

@@ -29,7 +29,7 @@ public class Avg extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Avg fromArgs(Object... args){
         return new Avg(new Arguments(args), null);
     }

@@ -29,7 +29,7 @@ public class Binary extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Binary fromArgs(Object... args){
         return new Binary(new Arguments(args), null);
     }

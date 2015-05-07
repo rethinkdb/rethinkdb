@@ -29,7 +29,7 @@ public class DayOfWeek extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static DayOfWeek fromArgs(Object... args){
         return new DayOfWeek(new Arguments(args), null);
     }

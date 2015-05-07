@@ -29,7 +29,7 @@ public class Difference extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Difference fromArgs(Object... args){
         return new Difference(new Arguments(args), null);
     }

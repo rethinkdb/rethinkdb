@@ -29,7 +29,7 @@ public class Branch extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Branch fromArgs(Object... args){
         return new Branch(new Arguments(args), null);
     }

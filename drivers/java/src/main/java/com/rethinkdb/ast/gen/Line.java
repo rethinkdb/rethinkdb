@@ -29,7 +29,7 @@ public class Line extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Line fromArgs(Object... args){
         return new Line(new Arguments(args), null);
     }

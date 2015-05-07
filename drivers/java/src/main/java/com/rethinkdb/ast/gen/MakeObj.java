@@ -29,7 +29,7 @@ public class MakeObj extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static MakeObj fromArgs(Object... args){
         return new MakeObj(new Arguments(args), null);
     }

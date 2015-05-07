@@ -29,7 +29,7 @@ public class Day extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Day fromArgs(Object... args){
         return new Day(new Arguments(args), null);
     }

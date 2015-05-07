@@ -29,7 +29,7 @@ public class InnerJoin extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static InnerJoin fromArgs(Object... args){
         return new InnerJoin(new Arguments(args), null);
     }

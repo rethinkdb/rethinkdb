@@ -29,7 +29,7 @@ public class Default extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Default fromArgs(Object... args){
         return new Default(new Arguments(args), null);
     }

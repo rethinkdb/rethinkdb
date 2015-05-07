@@ -29,7 +29,7 @@ public class MakeArray extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static MakeArray fromArgs(Object... args){
         return new MakeArray(new Arguments(args), null);
     }

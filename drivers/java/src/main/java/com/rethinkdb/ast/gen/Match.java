@@ -29,7 +29,7 @@ public class Match extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Match fromArgs(Object... args){
         return new Match(new Arguments(args), null);
     }

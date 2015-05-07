@@ -29,7 +29,7 @@ public class InTimezone extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static InTimezone fromArgs(Object... args){
         return new InTimezone(new Arguments(args), null);
     }

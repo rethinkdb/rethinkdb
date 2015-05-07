@@ -29,7 +29,7 @@ public class Year extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Year fromArgs(Object... args){
         return new Year(new Arguments(args), null);
     }

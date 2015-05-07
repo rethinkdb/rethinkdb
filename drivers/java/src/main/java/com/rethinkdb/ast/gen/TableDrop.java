@@ -29,7 +29,7 @@ public class TableDrop extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static TableDrop fromArgs(Object... args){
         return new TableDrop(new Arguments(args), null);
     }

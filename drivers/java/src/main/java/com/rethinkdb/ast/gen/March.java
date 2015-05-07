@@ -29,7 +29,7 @@ public class March extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static March fromArgs(Object... args){
         return new March(new Arguments(args), null);
     }

@@ -29,7 +29,7 @@ public class Group extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Group fromArgs(Object... args){
         return new Group(new Arguments(args), null);
     }

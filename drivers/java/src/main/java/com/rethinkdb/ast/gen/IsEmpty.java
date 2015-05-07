@@ -29,7 +29,7 @@ public class IsEmpty extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static IsEmpty fromArgs(Object... args){
         return new IsEmpty(new Arguments(args), null);
     }

@@ -29,7 +29,7 @@ public class Map extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Map fromArgs(Object... args){
         return new Map(new Arguments(args), null);
     }

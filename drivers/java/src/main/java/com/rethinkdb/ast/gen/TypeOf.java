@@ -29,7 +29,7 @@ public class TypeOf extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static TypeOf fromArgs(Object... args){
         return new TypeOf(new Arguments(args), null);
     }

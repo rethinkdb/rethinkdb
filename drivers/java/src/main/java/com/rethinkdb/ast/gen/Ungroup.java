@@ -29,7 +29,7 @@ public class Ungroup extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Ungroup fromArgs(Object... args){
         return new Ungroup(new Arguments(args), null);
     }

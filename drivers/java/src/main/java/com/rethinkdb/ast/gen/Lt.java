@@ -29,7 +29,7 @@ public class Lt extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Lt fromArgs(Object... args){
         return new Lt(new Arguments(args), null);
     }

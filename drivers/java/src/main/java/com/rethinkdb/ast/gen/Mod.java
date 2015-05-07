@@ -29,7 +29,7 @@ public class Mod extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Mod fromArgs(Object... args){
         return new Mod(new Arguments(args), null);
     }

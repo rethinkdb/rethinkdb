@@ -29,7 +29,7 @@ public class Uuid extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Uuid fromArgs(Object... args){
         return new Uuid(new Arguments(args), null);
     }

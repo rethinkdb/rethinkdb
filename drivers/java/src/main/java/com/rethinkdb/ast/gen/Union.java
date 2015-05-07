@@ -29,7 +29,7 @@ public class Union extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Union fromArgs(Object... args){
         return new Union(new Arguments(args), null);
     }

@@ -29,7 +29,7 @@ public class OuterJoin extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static OuterJoin fromArgs(Object... args){
         return new OuterJoin(new Arguments(args), null);
     }

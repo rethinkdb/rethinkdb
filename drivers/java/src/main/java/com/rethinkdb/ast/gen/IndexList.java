@@ -29,7 +29,7 @@ public class IndexList extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static IndexList fromArgs(Object... args){
         return new IndexList(new Arguments(args), null);
     }

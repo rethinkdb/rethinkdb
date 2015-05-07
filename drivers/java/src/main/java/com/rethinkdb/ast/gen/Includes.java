@@ -29,7 +29,7 @@ public class Includes extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Includes fromArgs(Object... args){
         return new Includes(new Arguments(args), null);
     }

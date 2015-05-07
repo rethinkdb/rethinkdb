@@ -29,7 +29,7 @@ public class Intersects extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Intersects fromArgs(Object... args){
         return new Intersects(new Arguments(args), null);
     }

@@ -29,7 +29,7 @@ public class Reconfigure extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Reconfigure fromArgs(Object... args){
         return new Reconfigure(new Arguments(args), null);
     }

@@ -29,7 +29,7 @@ public class Ne extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Ne fromArgs(Object... args){
         return new Ne(new Arguments(args), null);
     }

@@ -29,7 +29,7 @@ public class Delete extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Delete fromArgs(Object... args){
         return new Delete(new Arguments(args), null);
     }

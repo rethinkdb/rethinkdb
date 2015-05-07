@@ -29,7 +29,7 @@ public class ConcatMap extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static ConcatMap fromArgs(Object... args){
         return new ConcatMap(new Arguments(args), null);
     }

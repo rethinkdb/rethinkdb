@@ -29,7 +29,7 @@ public class Bracket extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Bracket fromArgs(Object... args){
         return new Bracket(new Arguments(args), null);
     }

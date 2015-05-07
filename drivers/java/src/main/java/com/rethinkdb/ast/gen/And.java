@@ -29,7 +29,7 @@ public class And extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static And fromArgs(Object... args){
         return new And(new Arguments(args), null);
     }

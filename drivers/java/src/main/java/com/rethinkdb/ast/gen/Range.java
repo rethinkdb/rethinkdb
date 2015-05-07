@@ -29,7 +29,7 @@ public class Range extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Range fromArgs(Object... args){
         return new Range(new Arguments(args), null);
     }

@@ -29,7 +29,7 @@ public class Desc extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Desc fromArgs(Object... args){
         return new Desc(new Arguments(args), null);
     }

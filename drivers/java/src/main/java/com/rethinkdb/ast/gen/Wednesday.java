@@ -29,7 +29,7 @@ public class Wednesday extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Wednesday fromArgs(Object... args){
         return new Wednesday(new Arguments(args), null);
     }

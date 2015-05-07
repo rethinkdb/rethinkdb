@@ -29,7 +29,7 @@ public class Timezone extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Timezone fromArgs(Object... args){
         return new Timezone(new Arguments(args), null);
     }

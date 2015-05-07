@@ -29,7 +29,7 @@ public class Polygon extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static Polygon fromArgs(Object... args){
         return new Polygon(new Arguments(args), null);
     }

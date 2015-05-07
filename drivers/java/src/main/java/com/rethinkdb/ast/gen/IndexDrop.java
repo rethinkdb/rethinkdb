@@ -29,7 +29,7 @@ public class IndexDrop extends RqlQuery {
     }
 
 
-   /* Static factories */
+    /* Static factories */
     public static IndexDrop fromArgs(Object... args){
         return new IndexDrop(new Arguments(args), null);
     }
