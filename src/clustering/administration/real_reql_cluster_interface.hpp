@@ -199,7 +199,7 @@ private:
             ql::backtrace_id_t bt,
             ql::env_t *env,
             scoped_ptr_t<ql::val_t> *selection_out)
-            THROWS_ONLY(no_such_table_exc_t, admin_op_exc_t);
+            THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, admin_op_exc_t);
 
     void wait_internal(
             std::set<namespace_id_t> tables,

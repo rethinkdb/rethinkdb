@@ -1087,7 +1087,7 @@ void real_reql_cluster_interface_t::make_single_selection(
         ql::backtrace_id_t bt,
         ql::env_t *env,
         scoped_ptr_t<ql::val_t> *selection_out)
-        THROWS_ONLY(no_such_table_exc_t, admin_op_exc_t) {
+        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, admin_op_exc_t) {
     ql::datum_t row;
     std::string error;
     if (!table_backend->read_row(convert_uuid_to_datum(primary_key), env->interruptor,
