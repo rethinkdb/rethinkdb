@@ -4,7 +4,7 @@
 import com.rethinkdb.model.RqlFunction2;
 import com.rethinkdb.model.RqlFunction;
 import com.rethinkdb.model.RqlLambda;
-import com.rethinkdb.ast.RqlUtil;
+import com.rethinkdb.ast.Util;
 </%block>
 
 <%block name="constructors">
@@ -15,7 +15,7 @@ import com.rethinkdb.ast.RqlUtil;
                 null,
                 Arguments.make(
                     new MakeArray(new Arguments(1), null),
-                    RqlUtil.toRqlAst(
+                    Util.toRqlAst(
                         ((RqlFunction)function).apply(
                             new Var(new Arguments(1), null)))
                 ),
@@ -27,7 +27,7 @@ import com.rethinkdb.ast.RqlUtil;
                 null,
                 Arguments.make(
                     new MakeArray(Arguments.make(1, 2), null),
-                    RqlUtil.toRqlAst(
+                    Util.toRqlAst(
                         ((RqlFunction2)function).apply(
                             new Var(new Arguments(1), null),
                             new Var(new Arguments(2), null)))
