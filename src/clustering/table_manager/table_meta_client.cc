@@ -93,7 +93,7 @@ void table_meta_client_t::get_config(
     cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
 
-    retry([&]() {
+    retry([&](signal_t *interruptor2) {
         /* Find a mailbox of a server that claims to be hosting the given table */
         multi_table_manager_bcard_t::get_config_mailbox_t::address_t best_mailbox;
         multi_table_manager_bcard_t::timestamp_t best_timestamp;
@@ -129,7 +129,7 @@ void table_meta_client_t::get_config(
         send(mailbox_manager, best_mailbox,
             boost::make_optional(table_id), ack_mailbox.get_address());
         wait_any_t done_cond(promise.get_ready_signal(), &dw);
-        wait_interruptible(&done_cond, &interruptor);
+        wait_interruptible(&done_cond, interruptor2);
         std::map<namespace_id_t, table_config_and_shards_t> maybe_result =
             promise.wait();
         if (maybe_result.empty()) {
@@ -137,7 +137,7 @@ void table_meta_client_t::get_config(
         }
         guarantee(maybe_result.size() == 1);
         *config_out = maybe_result.at(table_id);
-    });
+    }, &interruptor);
 }
 
 void table_meta_client_t::list_configs(
@@ -408,7 +408,7 @@ void table_meta_client_t::drop(
     drop_timestamp.epoch.id = nil_uuid();
     drop_timestamp.log_index = std::numeric_limits<raft_log_index_t>::max();
 
-    retry([&]() {
+    retry([&](signal_t *interruptor2) {
         /* Find all servers that are hosting the table */
         std::map<server_id_t, multi_table_manager_bcard_t> bcards;
         table_manager_directory->read_all(
@@ -448,21 +448,21 @@ void table_meta_client_t::drop(
                     boost::optional<raft_member_id_t>(),
                     boost::optional<raft_persistent_state_t<table_raft_state_t> >(),
                     ack_mailbox.get_address());
-                wait_any_t interruptor_combined(&dw, &interruptor);
+                wait_any_t interruptor_combined(&dw, interruptor2);
                 wait_interruptible(&got_ack, &interruptor_combined);
                 ++num_acked;
             } catch (const interrupted_exc_t &) {
                 /* do nothing */
             }
         });
-        if (interruptor.is_pulsed()) {
+        if (interruptor2->is_pulsed()) {
             throw interrupted_exc_t();
         }
 
         if (num_acked == 0) {
             throw maybe_failed_table_op_exc_t();
         }
-    });
+    }, &interruptor);
 
     /* Wait until the table disappears from the directory. */
     wait_until_change_visible(
@@ -481,7 +481,7 @@ void table_meta_client_t::set_config(
     on_thread_t thread_switcher(home_thread());
 
     multi_table_manager_bcard_t::timestamp_t timestamp;
-    retry([&]() {
+    retry([&](signal_t *interruptor2) {
         /* Find the server (if any) which is acting as leader for the table */
         uuid_u best_leader_uuid;
         table_manager_bcard_t::leader_bcard_t::set_config_mailbox_t::address_t
@@ -534,7 +534,7 @@ void table_meta_client_t::set_config(
         send(mailbox_manager, best_mailbox, new_config, ack_mailbox.get_address());
         wait_any_t done_cond(promise.get_ready_signal(),
             &leader_disconnected, &leader_stopped);
-        wait_interruptible(&done_cond, &interruptor);
+        wait_interruptible(&done_cond, interruptor2);
         if (!promise.get_ready_signal()->is_pulsed()) {
             throw maybe_failed_table_op_exc_t();
         }
@@ -546,7 +546,7 @@ void table_meta_client_t::set_config(
             throw maybe_failed_table_op_exc_t();
         }
         timestamp = *maybe_timestamp;
-    });
+    }, &interruptor);
 
     /* We know for sure that the change has been applied; now we just need to wait until
     the change is visible in the directory before returning. The naive thing is to wait
@@ -563,7 +563,9 @@ void table_meta_client_t::set_config(
         &interruptor);
 }
 
-void table_meta_client_t::retry(const std::function<void()> &fun) {
+void table_meta_client_t::retry(
+        const std::function<void(signal_t *)> &fun,
+        signal_t *interruptor) {
     static const int max_tries = 5;
     static const int initial_wait_ms = 300;
     int tries_left = max_tries;
@@ -571,7 +573,7 @@ void table_meta_client_t::retry(const std::function<void()> &fun) {
     bool maybe_succeeded = false;
     for (;;) {
         try {
-            fun();
+            fun(interruptor);
             return;
         } catch (const failed_table_op_exc_t &) {
             /* ignore */
@@ -588,7 +590,7 @@ void table_meta_client_t::retry(const std::function<void()> &fun) {
                 throw failed_table_op_exc_t();
             }
         }
-        nap(wait_ms);
+        nap(wait_ms, interruptor);
         wait_ms *= 1.5;
     }
 }

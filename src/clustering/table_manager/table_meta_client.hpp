@@ -162,7 +162,7 @@ private:
     `failed_table_op_exc_t` or `maybe_failed_table_op_exc_t`, then `retry()` catches the
     exception, waits for some time, and calls `fun()` again. After some number of tries
     it gives up and allows the exception to bubble up to the caller. */
-    void retry(const std::function<void()> &fun);
+    void retry(const std::function<void(signal_t *)> &fun, signal_t *interruptor);
 
     NORETURN void throw_appropriate_exception(const namespace_id_t &table_id)
         THROWS_ONLY(no_such_table_exc_t, failed_table_op_exc_t);
