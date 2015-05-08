@@ -305,7 +305,10 @@ void debug_table_status_artificial_table_backend_t::format_row(
         table_id, interruptor, &sindex_statuses, &contracts_and_acks);
 
     ql::datum_object_builder_t builder;
-    builder.overwrite("table", convert_uuid_to_datum(table_id));
+    builder.overwrite("id", convert_uuid_to_datum(table_id));
+    builder.overwrite("name",
+        convert_name_to_datum(config_and_shards.config.basic.name));
+    builder.overwrite("database", db_name_or_uuid);
     builder.overwrite(
         "config",
         convert_table_config_to_datum(
