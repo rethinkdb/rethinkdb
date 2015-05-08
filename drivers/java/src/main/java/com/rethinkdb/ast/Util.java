@@ -16,9 +16,12 @@ import java.lang.*;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 
-public class RqlUtil {
+public class Util {
+    private Util(){}
     /**
      * Coerces objects from their native type to RqlAst
      *
@@ -68,6 +71,10 @@ public class RqlUtil {
         return new Datum(val);
     }
 
+    public static ByteBuffer leByteBuffer(int capacity) {
+        return ByteBuffer.allocate(capacity)
+            .order(ByteOrder.LITTLE_ENDIAN);
+    }
 
     // /*
     //     Called on arguments that should be functions

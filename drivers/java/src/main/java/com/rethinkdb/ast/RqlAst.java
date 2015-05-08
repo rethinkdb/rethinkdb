@@ -7,6 +7,9 @@ import com.rethinkdb.proto.TermType;
 
 import java.util.*;
 
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+
 /** Base class for all reql queries.
  */
 public class RqlAst {
@@ -40,15 +43,11 @@ public class RqlAst {
         }
 
         if (args != null) {
-            for (Object arg : args) {
-                this.args.add(RqlUtil.toRqlAst(arg));
-            }
+            this.args.addAll(args);
         }
 
         if (optargs != null) {
-            for (Map.Entry<String, Object> kv : optargs.entrySet()) {
-                this.optargs.put(kv.getKey(), RqlUtil.toRqlAst(kv.getValue()));
-            }
+            this.optargs.putAll(optargs);
         }
     }
 
@@ -64,7 +63,22 @@ public class RqlAst {
         return optargs;
     }
 
-    protected Map<String, Object> build() {
-        throw new RuntimeException("build is not implemented");
+    protected JSONArray build() {
+        // Create a JSON object from the Ast
+        JSONArray list = new JSONArray();
+        list.add(termType.value);
+        if (args != null) {
+            for(RqlAst arg: args){
+                list.add(arg.build());
+            }
+        }
+        if (optargs != null) {
+            JSONObject joptargs = new JSONObject();
+            for(Map.Entry<String, RqlAst> entry: optargs.entrySet()){
+                joptargs.put(entry.getKey(), entry.getValue().build());
+            }
+            list.add(joptargs);
+        }
+        return list;
     }
 }
