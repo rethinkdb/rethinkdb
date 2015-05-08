@@ -96,6 +96,10 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
 
             send_ack(initial_ack);
 
+            static const int failover_timeout_ms = 5000;
+            signal_timer_t failover_timer;
+            failover_timer.start(failover_timeout_ms);
+
             /* Serve outdated reads while we wait for the primary */
             object_buffer_t<watchable_map_var_t<uuid_u, table_query_bcard_t>::entry_t>
                 directory_entry;
@@ -109,7 +113,12 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
 
             if (!connect_to_primary) {
                 /* Instead of establishing a connection to the primary and doing a
-                backfill, just stop here. */
+                backfill, we'll just wait for the failover timeout to elapse, update our
+                ack, and then wait to be interrupted. In other words, we act as though we
+                were looking for a primary but never found it. */
+                wait_interruptible(&failover_timer, keepalive.get_drain_signal());
+                initial_ack.failover_timeout_elapsed = true;
+                send_ack(initial_ack);
                 keepalive.get_drain_signal()->wait_lazily_unordered();
                 return;
             }
@@ -146,9 +155,6 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
                 }, true);
 
             /* Wait until we see a primary or the failover timeout elapses. */
-            static const int failover_timeout_ms = 5000;
-            signal_timer_t failover_timer;
-            failover_timer.start(failover_timeout_ms);
             wait_any_t waiter(primary_bcard.get_ready_signal(), &failover_timer);
             wait_interruptible(&waiter, keepalive.get_drain_signal());
 
