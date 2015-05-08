@@ -186,7 +186,7 @@ ql::datum_t convert_debug_version_map_to_datum(
         const region_map_t<version_t> &map) {
     ql::datum_array_builder_t builder(ql::configured_limits_t::unlimited);
     map.visit(
-        region_t::universe(),
+        map.get_domain(),
         [&](const region_t &region, const version_t &version) {
             ql::datum_object_builder_t pair_builder;
             pair_builder.overwrite("region",
