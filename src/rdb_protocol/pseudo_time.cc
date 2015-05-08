@@ -452,13 +452,13 @@ datum_t time_now() {
     } HANDLE_BOOST_ERRORS_NO_TARGET;
 }
 
-int time_cmp(reql_version_t reql_version, const datum_t &x, const datum_t &y) {
+int time_cmp(const datum_t &x, const datum_t &y) {
     r_sanity_check(x.is_ptype(time_string));
     r_sanity_check(y.is_ptype(time_string));
     // We know that these are both nums, so the reql_version doesn't actually affect
-    // anything (between v1_13 and raft_is_latest).  But it's safer not to have to prove
-    // that, so we take it and pass it anyway.
-    return x.get_field(epoch_time_key).cmp(reql_version, y.get_field(epoch_time_key));
+    // anything (between v1_13 and v2_1_is_latest).  But it's safer not to have to
+    // prove that, so we take it and pass it anyway.
+    return x.get_field(epoch_time_key).cmp(y.get_field(epoch_time_key));
 }
 
 double sanitize_epoch_sec(double d) {

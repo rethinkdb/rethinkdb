@@ -17,6 +17,7 @@
 
 #include "containers/counted.hpp"
 #include "containers/scoped.hpp"
+#include "rdb_protocol/changefeed.hpp"
 #include "rdb_protocol/context.hpp"
 #include "rdb_protocol/math_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
@@ -48,15 +49,33 @@ inline feed_type_t union_of(feed_type_t a, feed_type_t b) {
     unreachable();
 }
 
+struct active_state_t {
+    key_range_t last_read;
+    std::map<uuid_u, uint64_t> shard_stamps;
+    boost::optional<skey_version_t> skey_version; // none for pkey
+    DEBUG_ONLY(boost::optional<std::string> sindex;)
+};
+
+struct changespec_t {
+    changespec_t(changefeed::keyspec_t _keyspec,
+                 counted_t<datum_stream_t> _stream)
+        : keyspec(std::move(_keyspec)),
+          stream(std::move(_stream)) { }
+    bool include_initial_vals();
+    changefeed::keyspec_t keyspec;
+    counted_t<datum_stream_t> stream;
+};
+
 class datum_stream_t : public single_threaded_countable_t<datum_stream_t>,
                        public bt_rcheckable_t {
 public:
     virtual ~datum_stream_t() { }
     virtual void set_notes(Response *) const { }
 
-    virtual std::vector<changefeed::keyspec_t> get_change_specs() = 0;
-    virtual void add_transformation(transform_variant_t &&tv,
-                                    backtrace_id_t bt) = 0;
+    virtual std::vector<changespec_t> get_changespecs() = 0;
+    virtual void add_transformation(transform_variant_t &&tv, backtrace_id_t bt) = 0;
+    virtual bool add_stamp(changefeed_stamp_t stamp);
+    virtual boost::optional<active_state_t> get_active_state() const;
     void add_grouping(transform_variant_t &&tv,
                       backtrace_id_t bt);
 
@@ -111,7 +130,7 @@ protected:
     bool ops_to_do() { return ops.size() != 0; }
 
 protected:
-    virtual std::vector<changefeed::keyspec_t> get_change_specs() {
+    virtual std::vector<changespec_t> get_changespecs() {
         rfail(base_exc_t::GENERIC, "%s", "Cannot call `changes` on an eager stream.");
     }
     std::vector<transform_variant_t> transforms;
@@ -210,7 +229,7 @@ class slice_datum_stream_t : public wrapper_datum_stream_t {
 public:
     slice_datum_stream_t(uint64_t left, uint64_t right, counted_t<datum_stream_t> src);
 private:
-    virtual std::vector<changefeed::keyspec_t> get_change_specs();
+    virtual std::vector<changespec_t> get_changespecs();
     virtual std::vector<datum_t>
     next_raw_batch(env_t *env, const batchspec_t &batchspec);
     virtual bool is_exhausted() const;
@@ -246,7 +265,8 @@ class union_datum_stream_t : public datum_stream_t, public home_thread_mixin_t {
 public:
     union_datum_stream_t(env_t *env,
                          std::vector<counted_t<datum_stream_t> > &&_streams,
-                         backtrace_id_t bt);
+                         backtrace_id_t bt,
+                         size_t expected_states = 0);
 
     virtual void add_transformation(transform_variant_t &&tv,
                                     backtrace_id_t bt);
@@ -262,7 +282,7 @@ public:
 private:
     friend class coro_stream_t;
 
-    virtual std::vector<changefeed::keyspec_t> get_change_specs();
+    virtual std::vector<changespec_t> get_changespecs();
     std::vector<datum_t >
     next_batch_impl(env_t *env, const batchspec_t &batchspec);
 
@@ -278,6 +298,9 @@ private:
     scoped_ptr_t<env_t> coro_env;
     // Set the first time `next_batch_impl` is called.
     scoped_ptr_t<batchspec_t> coro_batchspec;
+
+    bool sent_init;
+    size_t ready_needed;
 
     size_t active;
     // We recompute this only when `next_batch_impl` returns to retain the
@@ -367,7 +390,8 @@ public:
 
     virtual read_t next_read(
         const boost::optional<key_range_t> &active_range,
-        const std::vector<transform_variant_t> &transform,
+        boost::optional<changefeed_stamp_t> stamp,
+        std::vector<transform_variant_t> transform,
         const batchspec_t &batchspec) const = 0;
     // This generates a read that will read as many rows as we need to be able
     // to do an sindex sort, or nothing if no such read is necessary.  Such a
@@ -376,7 +400,8 @@ public:
     virtual boost::optional<read_t> sindex_sort_read(
         const key_range_t &active_range,
         const std::vector<rget_item_t> &items,
-        const std::vector<transform_variant_t> &transform,
+        boost::optional<changefeed_stamp_t> stamp,
+        std::vector<transform_variant_t> transform,
         const batchspec_t &batchspec) const = 0;
 
     virtual boost::optional<key_range_t> original_keyrange() const = 0;
@@ -414,7 +439,8 @@ public:
 
     virtual read_t next_read(
         const boost::optional<key_range_t> &active_range,
-        const std::vector<transform_variant_t> &transform,
+        boost::optional<changefeed_stamp_t> stamp,
+        std::vector<transform_variant_t> transform,
         const batchspec_t &batchspec) const;
 
     virtual changefeed::keyspec_t::range_t get_range_spec(
@@ -425,7 +451,8 @@ public:
 private:
     virtual rget_read_t next_read_impl(
         const boost::optional<key_range_t> &active_range,
-        const std::vector<transform_variant_t> &transform,
+        boost::optional<changefeed_stamp_t> stamp,
+        std::vector<transform_variant_t> transform,
         const batchspec_t &batchspec) const = 0;
 
 protected:
@@ -448,12 +475,14 @@ private:
                       sorting_t sorting);
     virtual rget_read_t next_read_impl(
         const boost::optional<key_range_t> &active_range,
-        const std::vector<transform_variant_t> &transform,
+        boost::optional<changefeed_stamp_t> stamp,
+        std::vector<transform_variant_t> transform,
         const batchspec_t &batchspec) const;
     virtual boost::optional<read_t> sindex_sort_read(
         const key_range_t &active_range,
         const std::vector<rget_item_t> &items,
-        const std::vector<transform_variant_t> &transform,
+        boost::optional<changefeed_stamp_t> stamp,
+        std::vector<transform_variant_t> transform,
         const batchspec_t &batchspec) const;
     virtual void sindex_sort(std::vector<rget_item_t> *vec) const;
     virtual boost::optional<key_range_t> original_keyrange() const;
@@ -473,7 +502,8 @@ public:
     virtual boost::optional<read_t> sindex_sort_read(
         const key_range_t &active_range,
         const std::vector<rget_item_t> &items,
-        const std::vector<transform_variant_t> &transform,
+        boost::optional<changefeed_stamp_t> stamp,
+        std::vector<transform_variant_t> transform,
         const batchspec_t &batchspec) const;
     virtual void sindex_sort(std::vector<rget_item_t> *vec) const;
     virtual boost::optional<key_range_t> original_keyrange() const;
@@ -489,7 +519,8 @@ private:
         sorting_t sorting);
     virtual rget_read_t next_read_impl(
         const boost::optional<key_range_t> &active_range,
-        const std::vector<transform_variant_t> &transform,
+        boost::optional<changefeed_stamp_t> stamp,
+        std::vector<transform_variant_t> transform,
         const batchspec_t &batchspec) const;
 
     const std::string sindex;
@@ -512,13 +543,15 @@ public:
 
     virtual read_t next_read(
         const boost::optional<key_range_t> &active_range,
-        const std::vector<transform_variant_t> &transform,
+        boost::optional<changefeed_stamp_t> stamp,
+        std::vector<transform_variant_t> transform,
         const batchspec_t &batchspec) const;
 
     virtual boost::optional<read_t> sindex_sort_read(
         const key_range_t &active_range,
         const std::vector<rget_item_t> &items,
-        const std::vector<transform_variant_t> &transform,
+        boost::optional<changefeed_stamp_t> stamp,
+        std::vector<transform_variant_t> transform,
         const batchspec_t &batchspec) const;
     virtual void sindex_sort(std::vector<rget_item_t> *vec) const;
     virtual boost::optional<key_range_t> original_keyrange() const;
@@ -543,7 +576,8 @@ private:
     // geo read.
     intersecting_geo_read_t next_read_impl(
         const boost::optional<key_range_t> &active_range,
-        const std::vector<transform_variant_t> &transforms,
+        boost::optional<changefeed_stamp_t> stamp,
+        std::vector<transform_variant_t> transforms,
         const batchspec_t &batchspec) const;
 
     const std::string sindex;
@@ -554,6 +588,8 @@ class reader_t {
 public:
     virtual ~reader_t() { }
     virtual void add_transformation(transform_variant_t &&tv) = 0;
+    virtual bool add_stamp(changefeed_stamp_t stamp) = 0;
+    virtual boost::optional<active_state_t> get_active_state() const = 0;
     virtual void accumulate(env_t *env, eager_acc_t *acc,
                             const terminal_variant_t &tv) = 0;
     virtual void accumulate_all(env_t *env, eager_acc_t *acc) = 0;
@@ -561,28 +597,31 @@ public:
                                             const batchspec_t &batchspec) = 0;
     virtual bool is_finished() const = 0;
 
-    virtual changefeed::keyspec_t get_change_spec() const = 0;
+    virtual changefeed::keyspec_t get_changespec() const = 0;
 };
 
-// For reads that generate read_response_t results
+// For reads that generate read_response_t results.
 class rget_response_reader_t : public reader_t {
 public:
     rget_response_reader_t(
         const counted_t<real_table_t> &table,
         bool use_outdated,
         scoped_ptr_t<readgen_t> &&readgen);
-    void add_transformation(transform_variant_t &&tv);
-    void accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv);
+    virtual void add_transformation(transform_variant_t &&tv);
+    virtual bool add_stamp(changefeed_stamp_t stamp);
+    virtual boost::optional<active_state_t> get_active_state() const;
+    virtual void accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv);
     virtual void accumulate_all(env_t *env, eager_acc_t *acc) = 0;
-    std::vector<datum_t> next_batch(env_t *env, const batchspec_t &batchspec);
-    bool is_finished() const;
+    virtual std::vector<datum_t> next_batch(env_t *env, const batchspec_t &batchspec);
+    virtual bool is_finished() const;
 
-    virtual changefeed::keyspec_t get_change_spec() const {
+    virtual changefeed::keyspec_t get_changespec() const {
         return changefeed::keyspec_t(
             readgen->get_range_spec(transforms),
             table,
             readgen->get_table_name());
     }
+
 protected:
     // Returns `true` if there's data in `items`.
     // Overwrite this in an implementation
@@ -592,10 +631,14 @@ protected:
     counted_t<real_table_t> table;
     const bool use_outdated;
     std::vector<transform_variant_t> transforms;
+    boost::optional<changefeed_stamp_t> stamp;
 
     bool started, shards_exhausted;
     const scoped_ptr_t<const readgen_t> readgen;
+    store_key_t last_read_start;
     boost::optional<key_range_t> active_range;
+    boost::optional<skey_version_t> skey_version;
+    std::map<uuid_u, uint64_t> shard_stamps;
 
     // We need this to handle the SINDEX_CONSTANT case.
     std::vector<rget_item_t> items;
@@ -657,9 +700,17 @@ public:
     virtual feed_type_t cfeed_type() const;
     virtual bool is_infinite() const;
 
+    virtual bool add_stamp(changefeed_stamp_t stamp) {
+        return reader->add_stamp(std::move(stamp));
+    }
+    virtual boost::optional<active_state_t> get_active_state() const {
+        return reader->get_active_state();
+    }
+
 private:
-    virtual std::vector<changefeed::keyspec_t> get_change_specs() {
-        return std::vector<changefeed::keyspec_t>{reader->get_change_spec()};
+    virtual std::vector<changespec_t> get_changespecs() {
+        return std::vector<changespec_t>{changespec_t(
+                reader->get_changespec(), counted_from_this())};
     }
 
     std::vector<datum_t >
@@ -679,8 +730,7 @@ private:
     scoped_ptr_t<reader_t> reader;
 };
 
-class vector_datum_stream_t : public eager_datum_stream_t
-{
+class vector_datum_stream_t : public eager_datum_stream_t {
 public:
     vector_datum_stream_t(
             backtrace_id_t bt,
@@ -699,7 +749,7 @@ private:
     bool is_array() const;
     bool is_infinite() const;
 
-    std::vector<changefeed::keyspec_t> get_change_specs();
+    std::vector<changespec_t> get_changespecs();
 
     std::vector<datum_t> rows;
     size_t index;

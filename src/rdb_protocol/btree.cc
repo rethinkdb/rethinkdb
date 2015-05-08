@@ -335,16 +335,19 @@ void do_a_replace_from_batched_replace(
     const one_replace_t one_replace,
     const ql::configured_limits_t &limits,
     promise_t<superblock_t *> *superblock_promise,
-    rdb_modification_report_cb_t *sindex_cb,
+    rdb_modification_report_cb_t *mod_cb,
     bool update_pkey_cfeeds,
     batched_replace_response_t *stats_out,
     profile::sampler_t *sampler,
     profile::trace_t *trace,
-    std::set<std::string> *conditions)
-{
+    std::set<std::string> *conditions) {
+
     sampler->new_sample();
     fifo_enforcer_sink_t::exit_write_t exiter(
         batched_replaces_fifo_sink, batched_replaces_fifo_token);
+    // We need to get in line for this while still holding the superblock so
+    // that stamp read operations can't queue-skip.
+    rwlock_in_line_t stamp_spot = mod_cb->get_in_line_for_stamp();
 
     rdb_live_deletion_context_t deletion_context;
     rdb_modification_report_t mod_report(*info.key);
@@ -356,9 +359,10 @@ void do_a_replace_from_batched_replace(
     // We wait to make sure we acquire `acq` in the same order we were
     // originally called.
     exiter.wait();
-    scoped_ptr_t<new_mutex_in_line_t> acq = sindex_cb->get_in_line();
+    new_mutex_in_line_t sindex_spot = mod_cb->get_in_line_for_sindex();
 
-    sindex_cb->on_mod_report(mod_report, update_pkey_cfeeds, acq.get());
+    mod_cb->on_mod_report(
+        mod_report, update_pkey_cfeeds, &sindex_spot, &stamp_spot);
 }
 
 batched_replace_response_t rdb_batched_replace(
@@ -688,12 +692,12 @@ continue_bool_t rget_cb_t::handle_pair(
                 sindex_val = sindex_val.get(*tag, ql::NOTHROW);
                 guarantee(sindex_val.has());
             }
-            if (!sindex->range.contains(sindex->func_reql_version, sindex_val)) {
+            if (!sindex->range.contains(sindex_val)) {
                 return continue_bool_t::CONTINUE;
             }
         }
 
-        ql::groups_t data(optional_datum_less_t(job.env->reql_version()));
+        ql::groups_t data;
         data = {{ql::datum_t(), ql::datums_t{val}}};
 
         for (auto it = job.transformers.begin(); it != job.transformers.end(); ++it) {
@@ -978,25 +982,29 @@ void rdb_modification_report_cb_t::finish(
         });
 }
 
-scoped_ptr_t<new_mutex_in_line_t> rdb_modification_report_cb_t::get_in_line() {
+new_mutex_in_line_t rdb_modification_report_cb_t::get_in_line_for_sindex() {
     return store_->get_in_line_for_sindex_queue(sindex_block_);
+}
+rwlock_in_line_t rdb_modification_report_cb_t::get_in_line_for_stamp() {
+    return store_->changefeed_server->get_in_line_for_stamp(access_t::write);
 }
 
 void rdb_modification_report_cb_t::on_mod_report(
     const rdb_modification_report_t &report,
     bool update_pkey_cfeeds,
-    new_mutex_in_line_t *spot) {
+    new_mutex_in_line_t *sindex_spot,
+    rwlock_in_line_t *cfeed_stamp_spot) {
     if (report.info.deleted.first.has() || report.info.added.first.has()) {
         // We spawn the sindex update in its own coroutine because we don't want to
         // hold the sindex update for the changefeed update or vice-versa.
         cond_t sindexes_updated_cond, keys_available_cond;
-        std::map<std::string, std::vector<ql::datum_t> > old_keys, new_keys;
-        spot->acq_signal()->wait_lazily_unordered();
+        index_vals_t old_keys, new_keys;
+        sindex_spot->acq_signal()->wait_lazily_unordered();
         coro_t::spawn_now_dangerously(
             std::bind(&rdb_modification_report_cb_t::on_mod_report_sub,
                       this,
                       report,
-                      spot,
+                      sindex_spot,
                       &keys_available_cond,
                       &sindexes_updated_cond,
                       &old_keys,
@@ -1035,7 +1043,8 @@ void rdb_modification_report_cb_t::on_mod_report(
                     report.primary_key,
                     report.info.deleted.first,
                     report.info.added.first}),
-            report.primary_key);
+            report.primary_key,
+            cfeed_stamp_spot);
         sindexes_updated_cond.wait_lazily_unordered();
     }
 }
@@ -1045,8 +1054,8 @@ void rdb_modification_report_cb_t::on_mod_report_sub(
     new_mutex_in_line_t *spot,
     cond_t *keys_available_cond,
     cond_t *done_cond,
-    std::map<std::string, std::vector<ql::datum_t> > *old_keys_out,
-    std::map<std::string, std::vector<ql::datum_t> > *new_keys_out) {
+    index_vals_t *old_keys_out,
+    index_vals_t *new_keys_out) {
     store_->sindex_queue_push(mod_report, spot);
     rdb_live_deletion_context_t deletion_context;
     rdb_update_sindexes(store_,
@@ -1141,7 +1150,9 @@ void compute_keys(const store_key_t &primary_key,
                         std::make_pair(
                             store_key_t(
                                 skey.print_secondary(
-                                    reql_version, primary_key, i)),
+                                    ql::skey_version_from_reql_version(reql_version),
+                                    primary_key,
+                                    i)),
                             skey));
                 } catch (const ql::base_exc_t &e) {
                     if (reql_version < reql_version_t::v2_1) {
@@ -1166,7 +1177,9 @@ void compute_keys(const store_key_t &primary_key,
                 std::make_pair(
                     store_key_t(
                         index.print_secondary(
-                            reql_version, primary_key, boost::none)),
+                            ql::skey_version_from_reql_version(reql_version),
+                            primary_key,
+                            boost::none)),
                     index));
         }
     }
@@ -1194,26 +1207,19 @@ void deserialize_sindex_info(const std::vector<char> &data,
     // This cluster version field is _not_ a ReQL evaluation version field, which is
     // in secondary_index_t -- it only says how the value was serialized.
     cluster_version_t cluster_version;
-    archive_result_t success
-        = deserialize_cluster_version(&read_stream, &cluster_version);
+    archive_result_t success = deserialize_cluster_version(
+        &read_stream,
+        &cluster_version,
+        "Encountered a RethinkDB 1.13 secondary index, which is no longer supported.  "
+        "You can use RethinkDB 2.0 to upgrade your secondary index.");
     throw_if_bad_deserialization(success, "sindex description");
 
     switch (cluster_version) {
-    case cluster_version_t::v1_13:
-    case cluster_version_t::v1_13_2:
-        info_out->mapping_version_info.original_reql_version =
-            reql_version_t::v1_13;
-        info_out->mapping_version_info.latest_compatible_reql_version =
-            reql_version_t::v1_13;
-        info_out->mapping_version_info.latest_checked_reql_version =
-            reql_version_t::v1_13;
-        break;
     case cluster_version_t::v1_14:
     case cluster_version_t::v1_15:
     case cluster_version_t::v1_16:
     case cluster_version_t::v2_0:
-    case cluster_version_t::v2_1:
-    case cluster_version_t::raft_is_latest:
+    case cluster_version_t::v2_1_is_latest:
         success = deserialize_for_version(
                 cluster_version,
                 &read_stream,
@@ -1239,15 +1245,19 @@ void deserialize_sindex_info(const std::vector<char> &data,
 
     success = deserialize_for_version(cluster_version, &read_stream, &info_out->multi);
     throw_if_bad_deserialization(success, "sindex description");
-    if (cluster_version == cluster_version_t::v1_13
-        || cluster_version == cluster_version_t::v1_13_2
-        || cluster_version == cluster_version_t::v1_14) {
+    switch (cluster_version) {
+    case cluster_version_t::v1_14:
         info_out->geo = sindex_geo_bool_t::REGULAR;
-    } else {
+        break;
+    case cluster_version_t::v1_15: // fallthru
+    case cluster_version_t::v1_16: // fallthru
+    case cluster_version_t::v2_0: // fallthru
+    case cluster_version_t::v2_1_is_latest:
         success = deserialize_for_version(cluster_version, &read_stream, &info_out->geo);
         throw_if_bad_deserialization(success, "sindex description");
+        break;
+    default: unreachable();
     }
-
     guarantee(static_cast<size_t>(read_stream.tell()) == data.size(),
               "An sindex description was incompletely deserialized.");
 }
@@ -1261,8 +1271,9 @@ void rdb_update_single_sindex(
         size_t *updates_left,
         auto_drainer_t::lock_t,
         cond_t *keys_available_cond,
-        std::vector<ql::datum_t> *old_keys_out,
-        std::vector<ql::datum_t> *new_keys_out) THROWS_NOTHING {
+        std::vector<std::pair<ql::datum_t, boost::optional<uint64_t> > > *old_keys_out,
+        std::vector<std::pair<ql::datum_t, boost::optional<uint64_t> > > *new_keys_out)
+    THROWS_NOTHING {
     // Note if you get this error it's likely that you've passed in a default
     // constructed mod_report. Don't do that.  Mod reports should always be passed
     // to a function as an output parameter before they're passed to this
@@ -1296,7 +1307,10 @@ void rdb_update_single_sindex(
             compute_keys(modification->primary_key, deleted, sindex_info, &keys);
             if (old_keys_out != NULL) {
                 for (const auto &pair : keys) {
-                    old_keys_out->push_back(pair.second);
+                    old_keys_out->push_back(
+                        std::make_pair(
+                            pair.second, ql::datum_t::extract_all(
+                                key_to_unescaped_str(pair.first)).tag_num));
                 }
             }
             if (server != NULL) {
@@ -1368,7 +1382,10 @@ void rdb_update_single_sindex(
             if (new_keys_out != NULL) {
                 guarantee(keys_available_cond != NULL);
                 for (const auto &pair : keys) {
-                    new_keys_out->push_back(pair.second);
+                    new_keys_out->push_back(
+                        std::make_pair(
+                            pair.second, ql::datum_t::extract_all(
+                                key_to_unescaped_str(pair.first)).tag_num));
                 }
                 guarantee(*updates_left > 0);
                 decremented_updates_left = true;
@@ -1470,8 +1487,8 @@ void rdb_update_sindexes(
     txn_t *txn,
     const deletion_context_t *deletion_context,
     cond_t *keys_available_cond,
-    std::map<std::string, std::vector<ql::datum_t> > *old_keys_out,
-    std::map<std::string, std::vector<ql::datum_t> > *new_keys_out) {
+    index_vals_t *old_keys_out,
+    index_vals_t *new_keys_out) {
     {
         auto_drainer_t drainer;
 

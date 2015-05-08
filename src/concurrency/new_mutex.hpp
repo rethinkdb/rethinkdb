@@ -26,26 +26,18 @@ private:
 class new_mutex_in_line_t {
 public:
     new_mutex_in_line_t() { }
-
     explicit new_mutex_in_line_t(new_mutex_t *new_mutex)
         : rwlock_in_line_(&new_mutex->rwlock_, access_t::write) { }
 
-    const signal_t *acq_signal() const {
-        return rwlock_in_line_.write_signal();
-    }
+    MOVABLE_BUT_NOT_COPYABLE(new_mutex_in_line_t);
 
-    void reset() {
-        rwlock_in_line_.reset();
-    }
-
+    const signal_t *acq_signal() const { return rwlock_in_line_.write_signal(); }
+    void reset() { rwlock_in_line_.reset(); }
     void guarantee_is_for_lock(const new_mutex_t *mutex) const {
         rwlock_in_line_.guarantee_is_for_lock(&mutex->rwlock_);
     }
-
 private:
     rwlock_in_line_t rwlock_in_line_;
-
-    DISABLE_COPYING(new_mutex_in_line_t);
 };
 
 class new_mutex_acq_t {

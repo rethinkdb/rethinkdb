@@ -147,10 +147,6 @@ archive_result_t deserialize(read_stream_t *s, wire_func_t *wf) {
     }
 }
 
-template archive_result_t deserialize<cluster_version_t::v1_13>(
-        read_stream_t *, wire_func_t *);
-template archive_result_t deserialize<cluster_version_t::v1_13_2>(
-        read_stream_t *, wire_func_t *);
 template archive_result_t deserialize<cluster_version_t::v1_14>(
         read_stream_t *, wire_func_t *);
 template archive_result_t deserialize<cluster_version_t::v1_15>(
@@ -162,9 +158,10 @@ template archive_result_t deserialize<cluster_version_t::v2_0>(
 
 // deserialize function for 2.1 and above
 template <>
-archive_result_t deserialize<cluster_version_t::v2_1>(read_stream_t *s,
-                                                                wire_func_t *wf) {
-    const cluster_version_t W = cluster_version_t::v2_1;
+archive_result_t deserialize<cluster_version_t::v2_1_is_latest>(
+    read_stream_t *s, wire_func_t *wf) {
+
+    const cluster_version_t W = cluster_version_t::v2_1_is_latest;
     archive_result_t res;
 
     wire_func_type_t type;
@@ -213,12 +210,6 @@ archive_result_t deserialize<cluster_version_t::v2_1>(read_stream_t *s,
     default:
         unreachable();
     }
-}
-
-template <>
-archive_result_t deserialize<cluster_version_t::raft_is_latest>(read_stream_t *s,
-                                                                wire_func_t *wf) {
-    return deserialize<cluster_version_t::v2_1>(s, wf);
 }
 
 template <cluster_version_t W>

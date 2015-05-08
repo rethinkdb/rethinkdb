@@ -8,15 +8,18 @@ static const int machinery_expiration_secs = 60;
 
 void cfeed_artificial_table_backend_t::machinery_t::send_all_change(
         const new_mutex_acq_t *proof,
-        const store_key_t &key,
+        const store_key_t &pkey,
         const ql::datum_t &old_val,
         const ql::datum_t &new_val) {
     proof->guarantee_is_holding(&mutex);
-    ql::changefeed::msg_t::change_t change;
-    change.pkey = key;
-    change.old_val = old_val;
-    change.new_val = new_val;
-    send_all(ql::changefeed::msg_t(change));
+    send_all(
+        ql::changefeed::msg_t(
+            ql::changefeed::msg_t::change_t{
+                index_vals_t(),
+                index_vals_t(),
+                pkey,
+                old_val,
+                new_val}));
 }
 
 void cfeed_artificial_table_backend_t::machinery_t::send_all_stop() {
@@ -47,6 +50,7 @@ cfeed_artificial_table_backend_t::~cfeed_artificial_table_backend_t() {
 
 bool cfeed_artificial_table_backend_t::read_changes(
     ql::env_t *env,
+    bool include_initial_vals,
     bool include_states,
     ql::backtrace_id_t bt,
     ql::changefeed::keyspec_t::spec_t &&spec,
@@ -91,8 +95,12 @@ bool cfeed_artificial_table_backend_t::read_changes(
     on_thread_t thread_switcher_2(request_thread);
     try {
         *cfeed_out = machinery->subscribe(
-            env, include_states, std::move(spec),
-            get_primary_key_name(), initial_values, bt);
+            env, include_initial_vals,
+            include_states,
+            std::move(spec),
+            get_primary_key_name(),
+            initial_values,
+            bt);
     } catch (const ql::base_exc_t &e) {
         *error_out = e.what();
         return false;

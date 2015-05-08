@@ -56,6 +56,29 @@ durability_requirement_t parse_durability_optarg(const scoped_ptr_t<val_t> &arg)
                  str.to_std().c_str());
 }
 
+return_changes_t parse_return_changes(
+    scope_env_t *env, args_t *args, backtrace_id_t bt) {
+    if (args->optarg(env, "return_vals")) {
+        rfail_src(bt, base_exc_t::GENERIC,
+                  "Error: encountered obsolete optarg `return_vals`.  "
+                  "Use `return_changes` instead.");
+    }
+    if (scoped_ptr_t<val_t> v = args->optarg(env, "return_changes")) {
+        datum_t d = v->as_datum();
+        if (d.get_type() == datum_t::R_STR) {
+            rcheck_src(bt, d.as_str() == "always", base_exc_t::GENERIC,
+                       strprintf("Invalid return_changes value `%s` "
+                                 "(options are `true`, `false`, and `'always'`.)",
+                                 d.as_str().to_std().c_str()));
+            return return_changes_t::ALWAYS;
+        } else {
+            return v->as_bool() ? return_changes_t::YES : return_changes_t::NO;
+        }
+    } else {
+        return return_changes_t::NO;
+    }
+}
+
 class insert_term_t : public op_term_t {
 public:
     insert_term_t(compile_env_t *env, const protob_t<const Term> &term)
@@ -103,13 +126,7 @@ private:
     virtual scoped_ptr_t<val_t>
     eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<table_t> t = args->arg(env, 0)->as_table();
-        return_changes_t return_changes = return_changes_t::NO;
-        if (scoped_ptr_t<val_t> v = args->optarg(env, "return_changes")) {
-            return_changes = v->as_bool() ? return_changes_t::YES : return_changes_t::NO;
-        }
-        if (scoped_ptr_t<val_t> v = args->optarg(env, "return_vals")) {
-            rfail(base_exc_t::GENERIC, "return_vals renamed to return_changes");
-        }
+        return_changes_t return_changes = parse_return_changes(env, args, backtrace());
 
         const conflict_behavior_t conflict_behavior
             = parse_conflict_optarg(args->optarg(env, "conflict"));
@@ -221,14 +238,7 @@ private:
         if (scoped_ptr_t<val_t> v = args->optarg(env, "non_atomic")) {
             nondet_ok = v->as_bool();
         }
-        return_changes_t return_changes = return_changes_t::NO;
-        if (scoped_ptr_t<val_t> v = args->optarg(env, "return_changes")) {
-            return_changes =
-                v->as_bool() ? return_changes_t::YES : return_changes_t::NO;
-        }
-        if (scoped_ptr_t<val_t> v = args->optarg(env, "return_vals")) {
-            rfail(base_exc_t::GENERIC, "return_vals renamed to return_changes");
-        }
+        return_changes_t return_changes = parse_return_changes(env, args, backtrace());
 
         const durability_requirement_t durability_requirement
             = parse_durability_optarg(args->optarg(env, "durability"));

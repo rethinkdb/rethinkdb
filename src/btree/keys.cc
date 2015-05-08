@@ -4,7 +4,7 @@
 #include "debug.hpp"
 #include "utils.hpp"
 
-std::string key_range_t::print() {
+std::string key_range_t::print() const {
     printf_buffer_t buf;
     debug_print(&buf, *this);
     return buf.c_str();

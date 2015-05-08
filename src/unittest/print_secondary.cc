@@ -6,14 +6,15 @@ namespace unittest {
 void test_mangle(const std::string &pkey, const std::string &skey, boost::optional<uint64_t> tag = boost::optional<uint64_t>()) {
     std::string tag_string;
     if (tag) {
-        tag_string = std::string(reinterpret_cast<const char *>(&*tag), sizeof(uint64_t));
+        tag_string = std::string(reinterpret_cast<const char *>(&*tag),
+                                 sizeof(uint64_t));
     }
     auto versions = {
-        reql_version_t::v1_13,
         reql_version_t::v1_14,
         reql_version_t::v1_16,
         reql_version_t::v2_0,
-        reql_version_t::v2_1_is_latest};
+        reql_version_t::v2_1_is_latest
+    };
     for (reql_version_t rv : versions) {
         ql::skey_version_t skey_version = ql::skey_version_from_reql_version(rv);
         std::string mangled = ql::datum_t::mangle_secondary(

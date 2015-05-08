@@ -38,8 +38,6 @@ private:
     uint8_t data_[kStaticSize];
 };
 
-
-
 bool operator==(const uuid_u& x, const uuid_u& y);
 inline bool operator!=(const uuid_u& x, const uuid_u& y) { return !(x == y); }
 bool operator<(const uuid_u& x, const uuid_u& y);
