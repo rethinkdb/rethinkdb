@@ -62,10 +62,18 @@ private:
     need to reason about old contracts, so we may keep multiple versions around. */
     class contract_info_t : public slow_atomic_countable_t<contract_info_t> {
     public:
-        contract_info_t(const contract_id_t &cid, const contract_t &c) :
-            contract_id(cid), contract(c) { }
+        contract_info_t(const contract_id_t &_contract_id,
+                        const contract_t &_contract,
+                        const table_config_t &config) :
+                contract_id(_contract_id),
+                contract(_contract),
+                default_write_durability(config.durability),
+                write_ack_config(config.write_ack_config) {
+        }
         contract_id_t contract_id;
         contract_t contract;
+        write_durability_t default_write_durability;
+        write_ack_config_t write_ack_config;
         cond_t obsolete;
     };
 

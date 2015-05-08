@@ -57,105 +57,28 @@ bool convert_replica_list_from_datum(
     return true;
 }
 
-ql::datum_t convert_write_ack_config_req_to_datum(
-        const write_ack_config_t::req_t &req,
-        admin_identifier_format_t identifier_format,
-        server_config_client_t *server_config_client) {
-    ql::datum_object_builder_t builder;
-    builder.overwrite("replicas",
-        convert_replica_list_to_datum(req.replicas, identifier_format,
-                                      server_config_client));
-    const char *acks =
-        (req.mode == write_ack_config_t::mode_t::majority) ? "majority" : "single";
-    builder.overwrite("acks", ql::datum_t(acks));
-    return std::move(builder).to_datum();
-}
-
-bool convert_write_ack_config_req_from_datum(
-        const ql::datum_t &datum,
-        admin_identifier_format_t identifier_format,
-        server_config_client_t *server_config_client,
-        write_ack_config_t::req_t *req_out,
-        std::string *error_out) {
-    converter_from_datum_object_t converter;
-    if (!converter.init(datum, error_out)) {
-        return false;
-    }
-
-    ql::datum_t replicas_datum;
-    if (!converter.get("replicas", &replicas_datum, error_out)) {
-        return false;
-    }
-    if (!convert_replica_list_from_datum(replicas_datum, identifier_format,
-            server_config_client, &req_out->replicas, error_out)) {
-        *error_out = "In `replicas`: " + *error_out;
-        return false;
-    }
-
-    ql::datum_t acks_datum;
-    if (!converter.get("acks", &acks_datum, error_out)) {
-        return false;
-    }
-    if (acks_datum == ql::datum_t("single")) {
-        req_out->mode = write_ack_config_t::mode_t::single;
-    } else if (acks_datum == ql::datum_t("majority")) {
-        req_out->mode = write_ack_config_t::mode_t::majority;
-    } else {
-        *error_out = "In `acks`: Expected 'single' or 'majority', got: " +
-            acks_datum.print();
-        return false;
-    }
-
-    if (!converter.check_no_extra_keys(error_out)) {
-        return false;
-    }
-
-    return true;
-}
-
 ql::datum_t convert_write_ack_config_to_datum(
-        const write_ack_config_t &config,
-        admin_identifier_format_t identifier_format,
-        server_config_client_t *server_config_client) {
-    if (config.mode == write_ack_config_t::mode_t::single) {
-        return ql::datum_t("single");
-    } else if (config.mode == write_ack_config_t::mode_t::majority) {
-        return ql::datum_t("majority");
-    } else {
-        return convert_vector_to_datum<write_ack_config_t::req_t>(
-            [&](const write_ack_config_t::req_t &req) {
-                return convert_write_ack_config_req_to_datum(
-                    req, identifier_format, server_config_client);
-            }, config.complex_reqs);
+        const write_ack_config_t &config) {
+    switch (config) {
+        case write_ack_config_t::SINGLE:
+            return ql::datum_t("single");
+        case write_ack_config_t::MAJORITY:
+            return ql::datum_t("majority");
+        default:
+            unreachable();
     }
 }
 
 bool convert_write_ack_config_from_datum(
         const ql::datum_t &datum,
-        admin_identifier_format_t identifier_format,
-        server_config_client_t *server_config_client,
         write_ack_config_t *config_out,
         std::string *error_out) {
     if (datum == ql::datum_t("single")) {
-        config_out->mode = write_ack_config_t::mode_t::single;
-        config_out->complex_reqs.clear();
+        *config_out = write_ack_config_t::SINGLE;
     } else if (datum == ql::datum_t("majority")) {
-        config_out->mode = write_ack_config_t::mode_t::majority;
-        config_out->complex_reqs.clear();
-    } else if (datum.get_type() == ql::datum_t::R_ARRAY) {
-        config_out->mode = write_ack_config_t::mode_t::complex;
-        if (!convert_vector_from_datum<write_ack_config_t::req_t>(
-                [&](const ql::datum_t &datum_2, write_ack_config_t::req_t *req_out,
-                        std::string *error_out_2) {
-                    return convert_write_ack_config_req_from_datum(
-                        datum_2, identifier_format, server_config_client,
-                        req_out, error_out_2);
-                }, datum, &config_out->complex_reqs, error_out)) {
-            return false;
-        }
+        *config_out = write_ack_config_t::MAJORITY;
     } else {
-        *error_out = "Expected `single`, `majority`, or a list of ack requirements, but "
-            "instead got: " + datum.print();
+        *error_out = "Expected \"single\" or \"majority\", got: " + datum.print();
         return false;
     }
     return true;
@@ -203,7 +126,7 @@ ql::datum_t convert_table_config_shard_to_datum(
     if (!convert_server_id_to_datum(shard.primary_replica, identifier_format,
                                     server_config_client, &primary_replica, nullptr)) {
         /* If the previous primary replica was declared dead, just display `null`. The
-        user will have to change this to a new server before the table will come back 
+        user will have to change this to a new server before the table will come back
         online. */
         primary_replica = ql::datum_t::null();
     }
@@ -244,7 +167,7 @@ bool convert_table_config_shard_from_datum(
     if (primary_replica_datum.get_type() == ql::datum_t::R_NULL) {
         /* There's never a good reason for the user to intentionally set the primary
         replica to `null`; setting the primary replica to `null` will ensure that the
-        table cannot accept queries. We allow it because if the primary replica is 
+        table cannot accept queries. We allow it because if the primary replica is
         declared dead, it will appear to the user as `null`; and we want to allow the
         user to do things like `r.table_config("foo").update({"name": "bar"})` even when
         the primary replica is in that state. */
@@ -292,8 +215,7 @@ ql::datum_t convert_table_config_to_datum(
             },
             config.shards));
     builder.overwrite("write_acks",
-        convert_write_ack_config_to_datum(
-            config.write_ack_config, identifier_format, server_config_client));
+        convert_write_ack_config_to_datum(config.write_ack_config));
     builder.overwrite("durability",
         convert_durability_to_datum(config.durability));
     return std::move(builder).to_datum();
@@ -428,14 +350,13 @@ bool convert_table_config_and_name_from_datum(
         if (!converter.get("write_acks", &write_acks_datum, error_out)) {
             return false;
         }
-        if (!convert_write_ack_config_from_datum(write_acks_datum, identifier_format,
-                server_config_client, &config_out->write_ack_config, error_out)) {
+        if (!convert_write_ack_config_from_datum(write_acks_datum,
+                &config_out->write_ack_config, error_out)) {
             *error_out = "In `write_acks`: " + *error_out;
             return false;
         }
     } else {
-        config_out->write_ack_config.mode = write_ack_config_t::mode_t::majority;
-        config_out->write_ack_config.complex_reqs.clear();
+        config_out->write_ack_config = write_ack_config_t::MAJORITY;
     }
 
     if (existed_before || converter.has("durability")) {
@@ -450,20 +371,6 @@ bool convert_table_config_and_name_from_datum(
         }
     } else {
         config_out->durability = write_durability_t::HARD;
-    }
-
-    write_ack_config_checker_t ack_checker(*config_out, all_metadata.servers);
-    for (const table_config_t::shard_t &shard : config_out->shards) {
-        std::set<server_id_t> replicas;
-        replicas.insert(shard.replicas.begin(), shard.replicas.end());
-        if (!ack_checker.check_acks(replicas)) {
-            *error_out = "The `write_acks` settings you provided make some shard(s) "
-                "unwritable. This usually happens because different shards have "
-                "different numbers of replicas; the 'majority' write ack setting "
-                "applies the same threshold to every shard, but it computes the "
-                "threshold based on the shard with the most replicas.";
-            return false;
-        }
     }
 
     if (!converter.check_no_extra_keys(error_out)) {

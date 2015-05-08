@@ -37,28 +37,15 @@ public:
 RDB_DECLARE_SERIALIZABLE(table_basic_config_t);
 RDB_DECLARE_EQUALITY_COMPARABLE(table_basic_config_t);
 
-class write_ack_config_t {
-public:
-    enum class mode_t { single, majority, complex };
-    class req_t {
-    public:
-        std::set<server_id_t> replicas;
-        mode_t mode;   /* must not be `complex` */
-    };
-    mode_t mode;
-    /* `complex_reqs` must be empty unless `mode` is `complex`. */
-    std::vector<req_t> complex_reqs;
+enum class write_ack_config_t {
+    SINGLE,
+    MAJORITY
 };
-
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
-    write_ack_config_t::mode_t,
+    write_ack_config_t,
     int8_t,
-    write_ack_config_t::mode_t::single,
-    write_ack_config_t::mode_t::complex);
-RDB_DECLARE_SERIALIZABLE(write_ack_config_t::req_t);
-RDB_DECLARE_EQUALITY_COMPARABLE(write_ack_config_t::req_t);
-RDB_DECLARE_SERIALIZABLE(write_ack_config_t);
-RDB_DECLARE_EQUALITY_COMPARABLE(write_ack_config_t);
+    write_ack_config_t::SINGLE,
+    write_ack_config_t::MAJORITY);
 
 /* `table_config_t` describes the complete contents of the `rethinkdb.table_config`
 artificial table. */
@@ -131,24 +118,5 @@ public:
 
 RDB_DECLARE_SERIALIZABLE(table_config_and_shards_t);
 RDB_DECLARE_EQUALITY_COMPARABLE(table_config_and_shards_t);
-
-/* `write_ack_config_checker_t` is used for checking if a set of acks satisfies the
-requirements in the given `table_config_t`. The reason it needs the `table_config_t` and
-the `servers_semilattice_metadata_t` is because the meaning of the `write_ack_config_t`
-may depend on how many replicas the shards have and on which servers have been
-permanently removed. The reason it's an object instead of a function is that it caches
-intermediate results for best performance. */
-class write_ack_config_checker_t {
-public:
-    /* The default constructor results in a checker with undefined content. In the
-    current implementation, calling `check_acks()` on a default-constructed checker will
-    always return `true`; but don't rely on this behavior. */
-    write_ack_config_checker_t() { }
-    write_ack_config_checker_t(const table_config_t &config,
-                               const servers_semilattice_metadata_t &servers);
-    bool check_acks(const std::set<server_id_t> &acks) const;
-private:
-    std::vector<std::pair<std::set<server_id_t>, size_t> > reqs;
-};
 
 #endif /* CLUSTERING_ADMINISTRATION_TABLES_TABLE_METADATA_HPP_ */
