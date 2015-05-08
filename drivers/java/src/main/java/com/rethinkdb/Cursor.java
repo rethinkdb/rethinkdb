@@ -3,6 +3,7 @@ package com.rethinkdb;
 import com.rethinkdb.proto.ResponseType;
 import com.rethinkdb.response.DBResultFactory;
 import com.rethinkdb.response.Response;
+import com.rethinkdb.ast.Query;
 
 import java.util.*;
 

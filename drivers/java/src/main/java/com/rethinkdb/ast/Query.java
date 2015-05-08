@@ -11,7 +11,8 @@ import org.json.simple.JSONObject;
 import org.json.simple.JSONArray;
 
 /* An instance for a query that has been sent to the server. Keeps
- * track of its token, the args to .run() it was called with, as well as
+ * track of its token, the args to .run() it was called with, and its
+ * query type.
 */
 
 public class Query {
