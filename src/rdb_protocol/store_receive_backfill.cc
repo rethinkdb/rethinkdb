@@ -160,11 +160,11 @@ void apply_empty_range(
             wait_interruptible(&exiter, tokens.keepalive.get_drain_signal());
             get_btree_superblock_and_txn_for_writing(tokens.info->cache_conn, nullptr,
                 write_access_t::write, 1, write_durability_t::SOFT, &superblock, &txn);
-        }
 
-        /* Update the metainfo and release the superblock. */
-        tokens.update_metainfo_cb(empty_range, superblock.get());
-        superblock.reset();
+            /* Update the metainfo and release the superblock. */
+            tokens.update_metainfo_cb(empty_range, superblock.get());
+            superblock.reset();
+        }
 
         /* Notify that we're done */
         fifo_enforcer_sink_t::exit_write_t exiter(
@@ -223,6 +223,7 @@ void apply_single_key_item(
         /* Acquire the superblock */
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
+        buf_lock_t sindex_block;
         {
             fifo_enforcer_sink_t::exit_write_t exiter(
                 &tokens.info->btree_fifo_sink, tokens.write_token);
@@ -236,13 +237,13 @@ void apply_single_key_item(
 
             get_btree_superblock_and_txn_for_writing(tokens.info->cache_conn, nullptr,
                 write_access_t::write, 1, write_durability_t::SOFT, &superblock, &txn);
-        }
 
-        /* Acquire the sindex block and update the metainfo now, because we'll release
-        the superblock soon */
-        buf_lock_t sindex_block(superblock->expose_buf(),
-            superblock->get_sindex_block_id(), access_t::write);
-        tokens.update_metainfo_cb(item.range.right, superblock.get());
+            /* Acquire the sindex block and update the metainfo now, because we'll
+            release the superblock soon */
+            sindex_block = buf_lock_t(superblock->expose_buf(),
+                superblock->get_sindex_block_id(), access_t::write);
+            tokens.update_metainfo_cb(item.range.right, superblock.get());
+        }
 
         /* Actually apply the change, releasing the superblock in the process. */
         std::vector<rdb_modification_report_t> mod_reports;
@@ -408,19 +409,24 @@ continue_bool_t store_t::receive_backfill(
         receive_backfill_tokens_t tokens(&info, interruptor);
 
         if (is_item) {
+            rassert(key_range_t::right_bound_t(item.get_range().left)
+                >= spawn_threshold);
             spawn_threshold = item.get_range().right;
         } else {
+            rassert(empty_range >= spawn_threshold);
             spawn_threshold = empty_range;
         }
 
         /* The `apply_*()` functions will call back to `update_metainfo_cb` when they
         want to apply the metainfo to the superblock. They may make multiple calls, but
         the last call will have `progress` equal to `item.get_range().right`. */
-        tokens.update_metainfo_cb = [this, &region, &metainfo_threshold, &item_producer](
+        tokens.update_metainfo_cb = [this, &region, &metainfo_threshold, &item_producer,
+                    &spawn_threshold](
                 const key_range_t::right_bound_t &progress,
                 real_superblock_t *superblock) {
             /* Compute the section of metainfo we're applying */
             guarantee(progress >= metainfo_threshold);
+            guarantee(progress <= spawn_threshold);
             if (progress == metainfo_threshold) {
                 /* This is a no-op */
                 return;
@@ -440,7 +446,7 @@ continue_bool_t store_t::receive_backfill(
         /* The `apply_*()` functions will call back to `commit_cb` when they're done
         applying the changes for a given sub-region. They may make multiple calls, but
         the last call will have `progress` equal to `item.get_range().right`. */
-        tokens.commit_cb = [this, item_producer, &commit_threshold](
+        tokens.commit_cb = [this, item_producer, &commit_threshold, &metainfo_threshold](
                 const key_range_t::right_bound_t &progress,
                 scoped_ptr_t<txn_t> &&txn,
                 buf_lock_t &&sindex_block,
@@ -455,6 +461,7 @@ continue_bool_t store_t::receive_backfill(
             /* End the transaction and notify that we've made progress */
             txn.reset();
             guarantee(progress >= commit_threshold);
+            guarantee(progress <= metainfo_threshold);
             if (progress == commit_threshold) {
                 /* This is a no-op */
                 guarantee(mod_reports.empty());
