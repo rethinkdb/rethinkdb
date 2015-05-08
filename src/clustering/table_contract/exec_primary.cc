@@ -234,13 +234,12 @@ bool primary_execution_t::on_write(
         return false;
     }
 
-    /* Make sure we have contact with a quorum of replicas. If not, don't even attempt
-    the write. This is because the user would get confused if their write returned an
-    error about "not enough acks" and then got applied anyway.
+    /* Make sure we have contact with a quorum of replicas, our safety condition. If not,
+    don't even attempt the write. This is because the user would get confused if their
+    write returned an error about "not enough acks" and then got applied anyway.
 
-    This initial test checks for the stronger of the user's condition and the safety
-    condition; for example, if the user has tree replicas and they set the ack threshold
-    to "single", and only the primary replica is available, we should reject the write
+    For example, if the user has tree replicas and they set the ack threshold to
+    "single", and only the primary replica is available, we should reject the write
     because it's impossible for it to be safe, even though the user's condition is
     satisfiable. */
     {
