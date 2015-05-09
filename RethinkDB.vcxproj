@@ -47,7 +47,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <PreprocessorDefinitions>WIN32;NOMINMAX;_SCL_SECURE_NO_WARNINGS;NOGDI;NOUSER</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NOMINMAX;_SCL_SECURE_NO_WARNINGS;NOGDI;NOUSER;RETHINKDB_VERSION="2.0.1-dev-windows"</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -68,7 +68,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <PreprocessorDefinitions>WIN32;NOMINMAX;_SCL_SECURE_NO_WARNINGS;NOGDI;NOUSER</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NOMINMAX;_SCL_SECURE_NO_WARNINGS;NOGDI;NOUSER;RETHINKDB_VERSION="2.0.1-dev-windows"</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>

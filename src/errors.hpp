@@ -163,6 +163,9 @@ MUST_USE const char *errno_string_maybe_using_buffer(int errsv, char *buf, size_
     } while (0)
 #define guarantee_err(cond, msg, ...) guarantee_xerr(cond, get_errno(), msg, ##__VA_ARGS__)
 
+// ATN: TODO use GetLastError()
+#define guarantee_winerr guarantee
+
 #define unreachable(...) crash("Unreachable code: " __VA_ARGS__)    // can't use crash_or_trap since code needs to depend on its noreturn property
 #define not_implemented(msg, ...) crash_or_trap("Not implemented: " msg, ##__VA_ARGS__)
 

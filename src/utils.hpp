@@ -13,6 +13,7 @@
 
 #ifdef _MSC_VER // ATN: TODO: feature macro
 #include <BaseTsd.h>
+#include <random>
 typedef SSIZE_T ssize_t;
 #endif
 
@@ -32,11 +33,6 @@ struct const_charslice {
     const_charslice() : beg(NULL), end(NULL) { }
 };
 
-/* Forbid the following function definition to be inlined
- * (note: some compilers might require `noinline` instead of `__attribute__ ((noinline))`)
- */
-#define NOINLINE __attribute__ ((noinline))
-
 void *raw_malloc_aligned(size_t size, size_t alignment);
 void raw_free_aligned(void *ptr);
 
@@ -50,14 +46,21 @@ bool risfinite(double);
 
 class rng_t {
 public:
+// ATN : fix comment
 // Returns a random number in [0, n).  Is not perfectly uniform; the
 // bias tends to get worse when RAND_MAX is far from a multiple of n.
     int randint(int n);
     uint64_t randuint64(uint64_t n);
     double randdouble();
-    explicit rng_t(int seed = -1);
+    explicit rng_t(int seed);
+	rng_t() : rng_t(-1) { }
+	rng_t(rng_t&&) = default;
 private:
-    unsigned short xsubi[3];  // NOLINT(runtime/int)
+#ifndef _WIN32
+	unsigned short xsubi[3];  // NOLINT(runtime/int)
+#else
+	std::ranlux48 gen;
+#endif
     DISABLE_COPYING(rng_t);
 };
 
@@ -235,5 +238,18 @@ void remove_directory_recursive(const char *path);
 #endif
 
 #define ANY_PORT 0
+
+class defer_t {
+public:
+	defer_t(std::function<void()> f) {
+		f_ = f;
+	}
+	~defer_t() {
+		f_();
+	}
+private:
+	std::function<void()> f_;
+	DISABLE_COPYING(defer_t);
+};
 
 #endif // UTILS_HPP_

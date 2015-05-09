@@ -60,57 +60,35 @@
  * cannot be inlined, and that it does not use on_thread_t.
  */
 
+#define TLS(type, name) TLS_with_init(type, name, )
+
 #ifndef THREADED_COROUTINES
 #define TLS_with_init(type, name, initial)                              \
-    static __thread type TLS_ ## name = initial;                        \
+    static DECL_THREAD_LOCAL type TLS_ ## name{initial};                \
                                                                         \
-    NOINLINE type TLS_get_ ## name () {                                 \
+    NOINLINE type &TLS_get_ ## name () {                                \
         return TLS_ ## name;                                            \
     }                                                                   \
                                                                         \
-    NOINLINE void TLS_set_ ## name (type const &val) {                  \
-        TLS_ ## name = val;                                             \
+	template <class T>													\
+    NOINLINE void TLS_set_ ## name (T&& val) {					        \
+        TLS_ ## name = std::forward<T>(val);                            \
     }
 
 #else  // THREADED_COROUTINES
 #define TLS_with_init(type, name, initial)                              \
     static std::vector<cache_line_padded_t<type> >                      \
-        TLS_ ## name(MAX_THREADS, cache_line_padded_t<type>(initial));  \
+        TLS_ ## name(MAX_THREADS, cache_line_padded_t<type>{initial});  \
                                                                         \
-    type TLS_get_ ## name () {                                          \
+    type &TLS_get_ ## name () {                                         \
         return TLS_ ## name[get_thread_id().threadnum].value;           \
     }                                                                   \
                                                                         \
-    void TLS_set_ ## name(type const &val) {                            \
-        TLS_ ## name[get_thread_id().threadnum].value = val;            \
+    tempalte <class T>													\
+	void TLS_set_ ## name(T&& val) {									\
+        TLS_ ## name[get_thread_id().threadnum].value = std::forward<T>(val); \
     }
 
 #endif  // THREADED_COROUTINES
-
-#ifndef THREADED_COROUTINES
-#define TLS(type, name)                                                 \
-    static __thread type TLS_ ## name;                                  \
-                                                                        \
-    NOINLINE type TLS_get_ ## name () {                                 \
-        return TLS_ ## name;                                            \
-    }                                                                   \
-                                                                        \
-    NOINLINE void TLS_set_ ## name (type const &val) {                  \
-        TLS_ ## name = val;                                             \
-    }
-
-#else // THREADED_COROUTINES
-#define TLS(type, name)                                                 \
-    static cache_line_padded_t<type> TLS_ ## name[MAX_THREADS];         \
-                                                                        \
-    type TLS_get_ ## name () {                                          \
-        return TLS_ ## name[get_thread_id().threadnum].value;           \
-    }                                                                   \
-                                                                        \
-    void TLS_set_ ## name(type const &val) {                            \
-        TLS_ ## name[get_thread_id().threadnum].value = val;            \
-    }
-
-#endif // not THREADED_COROUTINES
 
 #endif /* THREAD_LOCAL_HPP_ */

@@ -15,7 +15,10 @@
 #include <sys/types.h>
 
 #ifdef _MSC_VER
+#include <io.h>
+#include <direct.h>
 #include <filesystem>
+#include <random>
 #else
 #include <ftw.h>
 #include <sys/time.h>
@@ -288,29 +291,46 @@ bool risfinite(double arg) {
 rng_t::rng_t(int seed) {
 #ifndef NDEBUG
     if (seed == -1) {
+#ifdef _MSC_VER
+		seed = std::random_device{}();
+#else
 		seed = get_secs();
+#endif
     }
 #else
     seed = 314159;
 #endif
+#ifdef _MSC_VER
+	gen.seed(seed);
+#else
     xsubi[2] = seed / (1 << 16);
     xsubi[1] = seed % (1 << 16);
     xsubi[0] = 0x330E;
+#endif
 }
 
 int rng_t::randint(int n) {
     guarantee(n > 0, "non-positive argument for randint's [0,n) interval");
+#ifndef _MSC_VER
     long x = nrand48(xsubi);  // NOLINT(runtime/int)
-    return x % n;
+#else
+	unsigned long x = gen();
+#endif
+    return x % static_cast<unsigned int>(n);
 }
 
 uint64_t rng_t::randuint64(uint64_t n) {
+#ifndef _WIN32
     uint32_t x_low = jrand48(xsubi);  // NOLINT(runtime/int)
     uint32_t x_high = jrand48(xsubi);  // NOLINT(runtime/int)
     uint64_t x = x_high;
     x <<= 32;
     x += x_low;
     return x % n;
+#else
+	std::uniform_int_distribution<uint64_t> dist;
+	return dist(gen);
+#endif
 }
 
 double rng_t::randdouble() {
@@ -319,50 +339,30 @@ double rng_t::randdouble() {
     return res / (1LL << 53);
 }
 
-struct nrand_xsubi_t {
-    unsigned short xsubi[3];  // NOLINT(runtime/int)
-};
+TLS(rng_t, rng)
 
-TLS_with_init(bool, rng_initialized, false)
-TLS(nrand_xsubi_t, rng_data)
-
-void get_dev_urandom(void *out, int64_t nbytes) {
+void system_random_bytes(void *out, int64_t nbytes) {
+#ifndef _WIN32
     blocking_read_file_stream_t urandom;
     guarantee(urandom.init("/dev/urandom"), "failed to open /dev/urandom to initialize thread rng");
     int64_t readres = force_read(&urandom, out, nbytes);
     guarantee(readres == nbytes);
+#else
+	HCRYPTPROV hProv;
+	BOOL res = CryptAcquireContext(&hProv, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT | CRYPT_SILENT);
+	guarantee_winerr(res, "CryptAcquireContext failed");
+	defer_t cleanup([&]{ CryptReleaseContext(hProv, 0); });
+	res = CryptGenRandom(hProv, nbytes, static_cast<BYTE*>(out));
+	guarantee_winerr(res, "CryptGenRandom failed");
+#endif
 }
 
 int randint(int n) {
-    nrand_xsubi_t buffer;
-    if (!TLS_get_rng_initialized()) {
-        CT_ASSERT(sizeof(buffer.xsubi) == 6);
-        get_dev_urandom(&buffer.xsubi, sizeof(buffer.xsubi));
-        TLS_set_rng_initialized(true);
-    } else {
-        buffer = TLS_get_rng_data();
-    }
-    long x = nrand48(buffer.xsubi);  // NOLINT(runtime/int)
-    TLS_set_rng_data(buffer);
-    return x % n;
+	return TLS_get_rng().randint(n);
 }
 
 uint64_t randuint64(uint64_t n) {
-    nrand_xsubi_t buffer;
-    if (!TLS_get_rng_initialized()) {
-        CT_ASSERT(sizeof(buffer.xsubi) == 6);
-        get_dev_urandom(&buffer.xsubi, sizeof(buffer.xsubi));
-        TLS_set_rng_initialized(true);
-    } else {
-        buffer = TLS_get_rng_data();
-    }
-    uint32_t x_low = jrand48(buffer.xsubi);  // NOLINT(runtime/int)
-    uint32_t x_high = jrand48(buffer.xsubi);  // NOLINT(runtime/int)
-    uint64_t x = x_high;
-    x <<= 32;
-    x += x_low;
-    TLS_set_rng_data(buffer);
-    return x % n;
+	return TLS_get_rng().randuint64(n);
 }
 
 size_t randsize(size_t n) {
@@ -377,9 +377,8 @@ size_t randsize(size_t n) {
 }
 
 double randdouble() {
-    uint64_t x = randuint64(1LL << 53);
-    double res = x;
-    return res / (1LL << 53);
+	return TLS_get_rng().randdouble();
+
 }
 
 bool begins_with_minus(const char *string) {
@@ -485,6 +484,7 @@ char int_to_hex(int x) {
 }
 
 bool blocking_read_file(const char *path, std::string *contents_out) {
+#ifndef _WIN32
     scoped_fd_t fd;
 
     {
@@ -513,12 +513,31 @@ bool blocking_read_file(const char *path, std::string *contents_out) {
         }
 
         if (res == 0) {
-            *contents_out = ret;
+            *contents_out = std::move(ret);
             return true;
         }
 
         ret.append(buf, buf + res);
     }
+#else
+	HANDLE hFile = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_ALWAYS, 0, NULL);
+	guarantee_winerr(hFile != INVALID_HANDLE_VALUE, "CreateFile failed: %s", path);
+	defer_t cleanup([&] { CloseHandle(hFile); });
+	LARGE_INTEGER fileSize;
+	BOOL res = GetFileSizeEx(hFile, &fileSize);
+	guarantee_winerr(res, "GetFileSizeEx failed");
+	DWORD remaining = fileSize.QuadPart;
+	std::string ret;
+	ret.resize(remaining);
+	size_t index = 0;
+	while (remaining > 0) {
+		DWORD consumed;
+		res = ReadFile(hFile, &ret[index], remaining, &consumed, NULL);
+		remaining -= consumed;
+		index += consumed;
+	}
+	*contents_out = std::move(ret);
+#endif
 }
 
 std::string blocking_read_file(const char *path) {
@@ -566,11 +585,12 @@ void remove_directory_recursive(const char *dirpath) {
     int res = nftw(dirpath, remove_directory_helper, max_openfd, FTW_PHYS | FTW_MOUNT | FTW_DEPTH);
     guarantee_err(res == 0 || get_errno() == ENOENT, "Trouble while traversing and destroying temporary directory %s.", dirpath);
 #else
-	auto go = [](path dir){
-		for (auto it : directory_iterator(dir)) {
-			remove_directory_helper(it->filename());
+	using namespace std::tr2;
+	auto go = [](sys::path dir){
+		for (auto it : sys::directory_iterator(dir)) {
+			remove_directory_helper(it.path().string().c_str());
 		}
-		remove_directory_helper(dir.fielname());
+		remove_directory_helper(dir.string().c_str());
 	};
 	go(dirpath);
 #endif
@@ -579,10 +599,26 @@ void remove_directory_recursive(const char *dirpath) {
 base_path_t::base_path_t(const std::string &path) : path_(path) { }
 
 void base_path_t::make_absolute() {
+#ifndef _MSC_VER
     char absolute_path[PATH_MAX];
     char *res = realpath(path_.c_str(), absolute_path);
     guarantee_err(res != NULL, "Failed to determine absolute path for '%s'", path_.c_str());
-    path_.assign(absolute_path);
+	path_.assign(absolute_path);
+#else
+	char absolute_path[MAX_PATH];
+	DWORD size = GetFullPathName(path_.c_str(), sizeof absolute_path, absolute_path, NULL);
+	guarantee_winerr(size != 0, "GetFullPathName failed");
+	if (size < sizeof absolute_path) {
+		path_.assign(absolute_path);
+		return;
+	}
+	std::string long_absolute_path;
+	long_absolute_path.resize(size);
+	DWORD new_size = GetFullPathName(path_.c_str(), size, &long_absolute_path[0], NULL);
+	guarantee_winerr(size != 0, "GetFullPathName failed");
+	guarantee(new_size < size, "GetFullPathName: name too long");
+	path_ = std::move(long_absolute_path);
+#endif
 }
 
 const std::string& base_path_t::path() const {
@@ -595,8 +631,13 @@ std::string temporary_directory_path(const base_path_t& base_path) {
 }
 
 bool is_rw_directory(const base_path_t& path) {
-    if (access(path.path().c_str(), R_OK | F_OK | W_OK) != 0)
+#ifndef _WIN32
+	if (access(path.path().c_str(), R_OK | F_OK | W_OK) != 0)
         return false;
+#else
+	if (_access(path.path().c_str(), 06 /* read and write */) != 0)
+		return false;
+#endif
     struct stat details;
     if (stat(path.path().c_str(), &details) != 0)
         return false;
@@ -611,9 +652,13 @@ void recreate_temporary_directory(const base_path_t& base_path) {
     remove_directory_recursive(path.path().c_str());
 
     int res;
+#ifndef _WIN32
     do {
         res = mkdir(path.path().c_str(), 0755);
     } while (res == -1 && get_errno() == EINTR);
+#else
+	res = _mkdir(path.path().c_str());
+#endif
     guarantee_err(res == 0, "mkdir of temporary directory %s failed",
                   path.path().c_str());
 
