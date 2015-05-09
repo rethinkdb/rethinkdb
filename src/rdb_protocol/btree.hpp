@@ -194,8 +194,7 @@ void rdb_distribution_get(int max_depth,
 /* Secondary Indexes */
 
 struct rdb_modification_info_t {
-    typedef std::pair<ql::datum_t,
-                      std::vector<char> > data_pair_t;
+    typedef std::pair<ql::datum_t, std::vector<char> > data_pair_t;
     data_pair_t deleted;
     data_pair_t added;
 };
@@ -277,15 +276,17 @@ public:
             store_t *store,
             buf_lock_t *sindex_block,
             auto_drainer_t::lock_t lock);
+    ~rdb_modification_report_cb_t();
 
-    scoped_ptr_t<new_mutex_in_line_t> get_in_line();
+    new_mutex_in_line_t get_in_line_for_sindex();
+    rwlock_in_line_t get_in_line_for_stamp();
+
     void on_mod_report(const rdb_modification_report_t &mod_report,
                        bool update_pkey_cfeeds,
-                       new_mutex_in_line_t *spot);
+                       new_mutex_in_line_t *sindex_spot,
+                       rwlock_in_line_t *stamp_spot);
     bool has_pkey_cfeeds();
     void finish(btree_slice_t *btree, real_superblock_t *superblock);
-
-    ~rdb_modification_report_cb_t();
 
 private:
     void on_mod_report_sub(
@@ -293,8 +294,8 @@ private:
         new_mutex_in_line_t *spot,
         cond_t *keys_available_cond,
         cond_t *done_cond,
-        std::map<std::string, std::vector<ql::datum_t> > *old_keys_out,
-        std::map<std::string, std::vector<ql::datum_t> > *new_keys_out);
+        index_vals_t *old_keys_out,
+        index_vals_t *new_keys_out);
 
     /* Fields initialized by the constructor. */
     auto_drainer_t::lock_t lock_;
@@ -312,8 +313,8 @@ void rdb_update_sindexes(
     txn_t *txn,
     const deletion_context_t *deletion_context,
     cond_t *keys_available_cond,
-    std::map<std::string, std::vector<ql::datum_t> > *old_keys_out,
-    std::map<std::string, std::vector<ql::datum_t> > *new_keys_out);
+    index_vals_t *old_keys_out,
+    index_vals_t *new_keys_out);
 
 void post_construct_secondary_indexes(
         store_t *store,

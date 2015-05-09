@@ -14,16 +14,17 @@ primary_execution_t::primary_execution_t(
         perfmon_collection_t *_perfmon_collection,
         const std::function<void(
             const contract_id_t &, const contract_ack_t &)> &_ack_cb,
-        const contract_id_t &cid,
+        const contract_id_t &contract_id,
         const table_raft_state_t &raft_state) :
     execution_t(_context, _store, _perfmon_collection, _ack_cb),
     our_dispatcher(nullptr)
 {
-    const contract_t &c = raft_state.contracts.at(cid).second;
-    guarantee(static_cast<bool>(c.primary));
-    guarantee(c.primary->server == context->server_id);
-    guarantee(raft_state.contracts.at(cid).first == region);
-    latest_contract_home_thread = make_counted<contract_info_t>(cid, c);
+    const contract_t &contract = raft_state.contracts.at(contract_id).second;
+    guarantee(static_cast<bool>(contract.primary));
+    guarantee(contract.primary->server == context->server_id);
+    guarantee(raft_state.contracts.at(contract_id).first == region);
+    latest_contract_home_thread = make_counted<contract_info_t>(
+        contract_id, contract, raft_state.config.config);
     latest_contract_store_thread = latest_contract_home_thread;
     begin_write_mutex.rethread(store->home_thread());
     coro_t::spawn_sometime(std::bind(&primary_execution_t::run, this, drainer.lock()));
@@ -35,23 +36,24 @@ primary_execution_t::~primary_execution_t() {
 }
 
 void primary_execution_t::update_contract(
-        const contract_id_t &cid,
+        const contract_id_t &contract_id,
         const table_raft_state_t &raft_state) {
     assert_thread();
     ASSERT_NO_CORO_WAITING;
 
-    const contract_t &c = raft_state.contracts.at(cid).second;
-    guarantee(static_cast<bool>(c.primary));
-    guarantee(c.primary->server == context->server_id);
-    guarantee(raft_state.contracts.at(cid).first == region);
+    const contract_t &contract = raft_state.contracts.at(contract_id).second;
+    guarantee(static_cast<bool>(contract.primary));
+    guarantee(contract.primary->server == context->server_id);
+    guarantee(raft_state.contracts.at(contract_id).first == region);
 
     /* Mark the old contract as obsolete, and record the new one */
     latest_contract_home_thread->obsolete.pulse();
-    latest_contract_home_thread = make_counted<contract_info_t>(cid, c);
+    latest_contract_home_thread = make_counted<contract_info_t>(
+        contract_id, contract, raft_state.config.config);
 
     /* Has our branch ID been registered yet? */
     if (!branch_registered.is_pulsed() &&
-            boost::make_optional(c.branch) == our_branch_id) {
+            boost::make_optional(contract.branch) == our_branch_id) {
         /* This contract just issued us our initial branch ID */
         branch_registered.pulse();
         /* Change `latest_ack` immediately so we don't keep sending the branch
@@ -77,7 +79,7 @@ void primary_execution_t::update_contract(
         new new_mutex_in_line_t(&update_contract_mutex)));
 
     if (static_cast<bool>(latest_ack)) {
-        ack_cb(cid, *latest_ack);
+        ack_cb(contract_id, *latest_ack);
     }
 }
 
@@ -232,17 +234,10 @@ bool primary_execution_t::on_write(
         return false;
     }
 
-    /* RSI(raft): Right now we ack the write when it's safe (i.e. won't be lost by
-    failover or othe reconfiguration). We should let the user control when the write is
-    acked, by adjusting both the durability and the ack thresholds. But the initial test
-    should still check for the stronger of the user's condition and the safety condition;
-    for example, if the user has three replicas and they set the ack threshold to one,
-    and only the primary replica is available, we should reject the write because it's
-    impossible for it to be safe, even though the user's condition is satisfiable. */
-
-    /* Make sure we have contact with a quorum of replicas. If not, don't even attempt
-    the write. This is because the user would get confused if their write returned an
-    error about "not enough acks" and then got applied anyway. */
+    /* Make sure that we have contact with a majority of replicas. It's bad practice to
+    accept writes if we can't contact a majority of replicas because those writes might
+    be lost during a failover. We do this even if the user set the ack threshold to
+    "single". */
     {
         ack_counter_t counter(contract_snapshot->contract);
         our_dispatcher->get_ready_dispatchees()->apply_read(
@@ -264,19 +259,29 @@ bool primary_execution_t::on_write(
         write_callback_t(write_response_t *_r_out, std::string *_e_out,
                 counted_t<contract_info_t> contract_info) :
             ack_counter(contract_info->contract),
+            default_write_durability(contract_info->default_write_durability),
+            write_ack_config(contract_info->write_ack_config),
             response_out(_r_out),
             error_out(_e_out) { }
         write_durability_t get_default_write_durability() {
             /* This only applies to writes that don't specify the durability */
-            return write_durability_t::HARD;
+            return default_write_durability;
         }
         void on_ack(const server_id_t &server, write_response_t &&resp) {
             if (!done.is_pulsed()) {
-                ack_counter.note_ack(server);
-                if (ack_counter.is_safe()) {
-                    *response_out = std::move(resp);
-                    done.pulse();
+                switch (write_ack_config) {
+                    case write_ack_config_t::SINGLE:
+                        break;
+                    case write_ack_config_t::MAJORITY:
+                        ack_counter.note_ack(server);
+                        if (!ack_counter.is_safe()) {
+                            // We're not ready to safely ack the query yet.
+                            return;
+                        }
+                        break;
                 }
+                *response_out = std::move(resp);
+                done.pulse();
             }
         }
         void on_end() {
@@ -287,6 +292,8 @@ bool primary_execution_t::on_write(
             }
         }
         ack_counter_t ack_counter;
+        write_durability_t default_write_durability;
+        write_ack_config_t write_ack_config;
         cond_t done;
         write_response_t *response_out;
         std::string *error_out;

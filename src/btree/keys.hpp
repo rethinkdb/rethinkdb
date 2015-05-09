@@ -315,7 +315,7 @@ public:
         return contains_key(key->contents, key->size);
     }
 
-    std::string print();
+    std::string print() const;
     bool is_superset(const key_range_t &other) const;
     bool overlaps(const key_range_t &other) const;
     key_range_t intersection(const key_range_t &other) const;

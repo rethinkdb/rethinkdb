@@ -18,7 +18,7 @@ struct metadata_disk_superblock_t {
 
 // Etymology: In version 1.13, the magic was 'RDmd', for "(R)ethink(D)B (m)eta(d)ata".
 // Every subsequent version, the last character has been incremented.
-static const block_magic_t metadata_sb_magic = { { 'R', 'D', 'm', 'h' } };
+static const block_magic_t metadata_sb_magic = { { 'R', 'D', 'm', 'i' } };
 
 void init_metadata_superblock(void *sb_void, size_t block_size) {
     memset(sb_void, 0, block_size);
@@ -28,19 +28,27 @@ void init_metadata_superblock(void *sb_void, size_t block_size) {
     sb->stat_block = NULL_BLOCK_ID;
 }
 
-cluster_version_t magic_to_version(block_magic_t magic) {
+
+enum class superblock_version_t { pre_1_16 = 0, from_1_16_to_2_0 = 1, post_2_1 = 2 };
+
+superblock_version_t magic_to_version(block_magic_t magic) {
     guarantee(magic.bytes[0] == metadata_sb_magic.bytes[0]);
     guarantee(magic.bytes[1] == metadata_sb_magic.bytes[1]);
     guarantee(magic.bytes[2] == metadata_sb_magic.bytes[2]);
     switch (magic.bytes[3]) {
-        case 'd': return cluster_version_t::v1_13;
-        case 'e': return cluster_version_t::v1_14;
-        case 'f': return cluster_version_t::v1_15;
-        case 'g': return cluster_version_t::v1_16;
-        case 'h': return cluster_version_t::raft_is_latest_disk;
+        case 'd': return superblock_version_t::pre_1_16;
+        case 'e': return superblock_version_t::pre_1_16;
+        case 'f': return superblock_version_t::pre_1_16;
+        case 'g': return superblock_version_t::from_1_16_to_2_0;
+        case 'h': return superblock_version_t::from_1_16_to_2_0;
+        case 'i': return superblock_version_t::post_2_1;
         default: crash("You're trying to use an earlier version of RethinkDB to open a "
             "database created by a later version of RethinkDB.");
     }
+    // This is here so you don't forget to add new versions above.
+    // Please also update the value of metadata_sb_magic at the top of this file!
+    static_assert(cluster_version_t::v2_1_is_latest_disk == cluster_version_t::v2_1,
+        "Please add new version to magic_to_version.");
 }
 
 class metadata_superblock_t : public superblock_t {
@@ -296,20 +304,15 @@ metadata_file_t::metadata_file_t(
     object_buffer_t<buf_write_t> sb_write;
     sb_write.create(sb_lock.get());
     void *sb_data = sb_write->get_data_write();
-    cluster_version_t metadata_version =
+    superblock_version_t metadata_version =
         magic_to_version(*static_cast<block_magic_t *>(sb_data));
     switch (metadata_version) {
-        case cluster_version_t::v1_13:
-        case cluster_version_t::v1_13_2:
-        case cluster_version_t::v1_14:
-        case cluster_version_t::v1_15: {
+        case superblock_version_t::pre_1_16: {
             crash("This version of RethinkDB cannot migrate in place from databases "
                 "created by versions older than RethinkDB 1.16.");
             break;
         }
-        case cluster_version_t::v1_16:
-        case cluster_version_t::v2_0:
-        case cluster_version_t::v2_1: {
+        case superblock_version_t::from_1_16_to_2_0: {
             scoped_malloc_t<void> sb_copy(cache->max_block_size().value());
             memcpy(sb_copy.get(), sb_data, cache->max_block_size().value());
             init_metadata_superblock(sb_data, cache->max_block_size().value());
@@ -319,7 +322,7 @@ metadata_file_t::metadata_file_t(
                 &write_txn.txn, buf_parent_t(&write_txn.txn), sb_copy.get(), &write_txn);
             break;
         }
-        case cluster_version_t::raft_is_latest: {
+        case superblock_version_t::post_2_1: {
             /* No need to do any migration */
             break;
         }

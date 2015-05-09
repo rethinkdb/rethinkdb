@@ -75,6 +75,7 @@ public:
 
     virtual bool read_changes(
         ql::env_t *env,
+        bool include_initial_vals,
         bool include_states,
         ql::backtrace_id_t bt,
         ql::changefeed::keyspec_t::spec_t &&spec,

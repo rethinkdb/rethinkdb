@@ -31,9 +31,17 @@ public:
         return row;
     }
     virtual counted_t<datum_stream_t> read_changes(
-        const datum_t &squash, bool include_states) {
+        bool include_initial_vals, const datum_t &squash, bool include_states) {
+        counted_t<datum_stream_t> maybe_src;
+        if (include_initial_vals) {
+            // We want to provide an empty stream in this case because we get
+            // the initial values from the stamp read instead.
+            maybe_src = make_counted<vector_datum_stream_t>(
+                bt, std::vector<datum_t>(), boost::none);
+        }
         return tbl->tbl->read_changes(
             env,
+            maybe_src,
             squash,
             include_states,
             changefeed::keyspec_t::point_t{key},
@@ -79,11 +87,19 @@ public:
         return row;
     }
     virtual counted_t<datum_stream_t> read_changes(
-        const datum_t &squash, bool include_states) {
+        bool include_initial_vals, const datum_t &squash, bool include_states) {
         changefeed::keyspec_t::spec_t spec =
             ql::changefeed::keyspec_t::limit_t{slice->get_range_spec(), 1};
+        counted_t<datum_stream_t> maybe_src;
+        if (include_initial_vals) {
+            // We want to provide an empty stream in this case because we get
+            // the initial values from the stamp read instead.
+            maybe_src = make_counted<vector_datum_stream_t>(
+                bt, std::vector<datum_t>(), boost::none);
+        }
         auto s = slice->get_tbl()->tbl->read_changes(
             env,
+            maybe_src,
             squash,
             include_states,
             std::move(spec),
@@ -144,7 +160,7 @@ table_slice_t::table_slice_t(counted_t<table_t> _tbl,
 
 counted_t<datum_stream_t> table_slice_t::as_seq(
     env_t *env, backtrace_id_t bt) {
-    if (bounds.is_empty(env->reql_version())) {
+    if (bounds.is_empty()) {
         return make_counted<array_datum_stream_t>(datum_t::empty_array(), bt);
     } else {
         return tbl->as_seq(env, idx ? *idx : tbl->get_pkey(), bt, bounds, sorting);

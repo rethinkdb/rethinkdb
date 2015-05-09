@@ -57,7 +57,7 @@ public:
         cs.config.basic.database = generate_uuid();
         cs.config.basic.name = name_string_t::guarantee_valid("test");
         cs.config.basic.primary_key = "id";
-        cs.config.write_ack_config.mode = write_ack_config_t::mode_t::majority;
+        cs.config.write_ack_config = write_ack_config_t::MAJORITY;
         cs.config.durability = write_durability_t::HARD;
 
         key_range_t::right_bound_t prev_right(store_key_t::min());

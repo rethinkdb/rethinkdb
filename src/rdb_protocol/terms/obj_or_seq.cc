@@ -58,7 +58,6 @@ scoped_ptr_t<val_t> obj_or_seq_op_impl_t::eval_impl_dereferenced(
 
     if (d.has() && d.get_type() == datum_t::R_OBJECT) {
         switch (env->env->reql_version()) {
-        case reql_version_t::v1_13:
         case reql_version_t::v1_14: // v1_15 is the same as v1_14
             break;
         case reql_version_t::v1_16:
@@ -226,7 +225,6 @@ private:
                 datum_t d0 = v->as_datum();
                 if (d0.get_type() == datum_t::R_OBJECT) {
                     switch (env->env->reql_version()) {
-                    case reql_version_t::v1_13:
                     case reql_version_t::v1_14: // v1_15 is the same as v1_14
                         break;
                     case reql_version_t::v1_16:
@@ -248,7 +246,6 @@ private:
                 datum_t d0 = f->call(env->env, d, LITERAL_OK)->as_datum();
                 if (d0.get_type() == datum_t::R_OBJECT) {
                     switch (env->env->reql_version()) {
-                    case reql_version_t::v1_13:
                     case reql_version_t::v1_14: // v1_15 is the same as v1_14
                         break;
                     case reql_version_t::v1_16:

@@ -378,8 +378,9 @@ struct rcheck_spec_visitor_t : public bt_rcheckable_t,
 class changes_term_t : public op_term_t {
 public:
     changes_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(1),
-                    optargspec_t({"squash", "include_states"})) { }
+        : op_term_t(
+            env, term, argspec_t(1),
+            optargspec_t({"squash", "include_initial_vals", "include_states"})) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
         scope_env_t *env, args_t *args, eval_flags_t) const {
@@ -400,24 +401,34 @@ private:
         if (scoped_ptr_t<val_t> v = args->optarg(env, "include_states")) {
             include_states = v->as_bool();
         }
+        scoped_ptr_t<val_t> include_initial_vals_val =
+            args->optarg(env, "include_initial_vals");
 
         scoped_ptr_t<val_t> v = args->arg(env, 0);
         if (v->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
             counted_t<datum_stream_t> seq = v->as_seq(env->env);
             std::vector<counted_t<datum_stream_t> > streams;
-            std::vector<changefeed::keyspec_t> keyspecs = seq->get_change_specs();
-            r_sanity_check(keyspecs.size() >= 1);
-            for (auto &&keyspec : keyspecs) {
+            std::vector<changespec_t> changespecs = seq->get_changespecs();
+            r_sanity_check(changespecs.size() >= 1);
+            for (auto &&changespec : changespecs) {
+                bool include_initial_vals = include_initial_vals_val.has()
+                    ? include_initial_vals_val->as_bool()
+                    : changespec.include_initial_vals();
+                if (include_initial_vals) {
+                    r_sanity_check(changespec.stream.has());
+                }
                 boost::apply_visitor(rcheck_spec_visitor_t(env->env, backtrace()),
-                                     keyspec.spec);
+                                     changespec.keyspec.spec);
                 streams.push_back(
-                    keyspec.table->read_changes(
+                    changespec.keyspec.table->read_changes(
                         env->env,
+                        include_initial_vals ? std::move(changespec.stream)
+                                             : counted_t<datum_stream_t>(),
                         squash,
                         include_states,
-                        std::move(keyspec.spec),
+                        std::move(changespec.keyspec.spec),
                         backtrace(),
-                        keyspec.table_name));
+                        changespec.keyspec.table_name));
             }
             if (streams.size() == 1) {
                 return new_val(env->env, streams[0]);
@@ -425,12 +436,19 @@ private:
                 return new_val(
                     env->env,
                     make_counted<union_datum_stream_t>(
-                        env->env, std::move(streams), backtrace()));
+                        env->env,
+                        std::move(streams),
+                        backtrace(),
+                        streams.size()));
             }
         } else if (v->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
+                bool include_initial_vals = include_initial_vals_val.has()
+                    ? include_initial_vals_val->as_bool()
+                    : true;
             return new_val(
                 env->env,
-                v->as_single_selection()->read_changes(squash, include_states));
+                v->as_single_selection()->read_changes(
+                    include_initial_vals, squash, include_states));
         }
         auto selection = v->as_selection(env->env);
         rfail(base_exc_t::GENERIC,

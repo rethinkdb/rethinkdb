@@ -39,6 +39,9 @@ class sindex_superblock_t;
 struct rdb_modification_report_t;
 struct sindex_disk_info_t;
 
+typedef std::pair<ql::datum_t, boost::optional<uint64_t> > index_pair_t;
+typedef std::map<std::string, std::vector<index_pair_t> > index_vals_t;
+
 namespace ql {
 
 class base_exc_t;
@@ -85,7 +88,7 @@ struct msg_t {
         RDB_DECLARE_ME_SERIALIZABLE(limit_stop_t);
     };
     struct change_t {
-        std::map<std::string, std::vector<datum_t> > old_indexes, new_indexes;
+        index_vals_t old_indexes, new_indexes;
         store_key_t pkey;
         /* For a newly-created row, `old_val` is an empty `datum_t`. For a deleted row,
         `new_val` is an empty `datum_t`. */
@@ -98,21 +101,15 @@ struct msg_t {
 
     msg_t() { }
     msg_t(msg_t &&msg) : op(std::move(msg.op)) { }
-    template<class T>
-    explicit msg_t(T &&_op) : op(std::move(_op)) { }
-
-    // We need to define the copy constructor.  GCC 4.4 doesn't let us use `=
-    // default`, and SRH is uncomfortable violating the rule of 3, so we define
-    // the destructor and assignment operator as well.
-    msg_t(const msg_t &msg) : op(msg.op) { }
-    ~msg_t() { }
-    const msg_t &operator=(const msg_t &msg) {
-        op = msg.op;
-        return *this;
-    }
+    msg_t(const msg_t &) = default;
+    msg_t &operator=(const msg_t &) = default;
 
     // Starts with STOP to avoid doing work for default initialization.
     boost::variant<stop_t, change_t, limit_start_t, limit_change_t, limit_stop_t> op;
+
+    // Accursed reference collapsing!
+    template<class T, class = typename std::enable_if<std::is_object<T>::value>::type>
+    explicit msg_t(T &&_op) : op(decltype(op)(std::move(_op))) { }
 };
 
 RDB_DECLARE_SERIALIZABLE(msg_t);
@@ -191,6 +188,7 @@ public:
     // Throws QL exceptions.
     counted_t<datum_stream_t> new_stream(
         env_t *env,
+        counted_t<datum_stream_t> maybe_src,
         const datum_t &squash,
         bool include_states,
         const namespace_id_t &table,
@@ -388,10 +386,11 @@ public:
     const uuid_u uuid;
 private:
     // Can throw `exc_t` exceptions if an error occurs while reading from disk.
-    std::vector<item_t> read_more(const boost::variant<primary_ref_t, sindex_ref_t> &ref,
-                         sorting_t sorting,
-                         const boost::optional<item_queue_t::iterator> &start,
-                         size_t n);
+    std::vector<item_t> read_more(
+        const boost::variant<primary_ref_t, sindex_ref_t> &ref,
+        sorting_t sorting,
+        const boost::optional<item_queue_t::iterator> &start,
+        size_t n);
     void send(msg_t &&msg);
 
     scoped_ptr_t<env_t> env;
@@ -436,11 +435,13 @@ public:
         limit_order_t lt,
         std::vector<item_t> &&start_data);
     // `key` should be non-NULL if there is a key associated with the message.
-    void send_all(const msg_t &msg, const store_key_t &key);
+    void send_all(const msg_t &msg,
+                  const store_key_t &key,
+                  rwlock_in_line_t *stamp_spot);
     void stop_all();
     addr_t get_stop_addr();
     limit_addr_t get_limit_stop_addr();
-    uint64_t get_stamp(const client_t::addr_t &addr);
+    boost::optional<uint64_t> get_stamp(const client_t::addr_t &addr);
     uuid_u get_uuid();
     // `f` will be called with a read lock on `clients` and a write lock on the
     // limit manager.
@@ -451,6 +452,9 @@ public:
                                           rwlock_in_line_t *,
                                           limit_manager_t *)> f) THROWS_NOTHING;
     bool has_limit(const boost::optional<std::string> &s);
+    rwlock_in_line_t get_in_line_for_stamp(access_t access) {
+        return rwlock_in_line_t(&stamp_lock, access);
+    }
 private:
     friend class limit_manager_t;
     void stop_mailbox_cb(signal_t *interruptor, client_t::addr_t addr);
@@ -493,6 +497,10 @@ private:
                             std::pair<const client_t::addr_t, client_info_t> *client,
                             msg_t msg);
 
+    // Used to control access to stamps.  We need this so that `do_stamp` in
+    // `store.cc` can synchronize with with the `rdb_modification_report_cb_t`
+    // in `btree.cc`.
+    rwlock_t stamp_lock;
     // Controls access to `clients`.  A `server_t` needs to read `clients` when:
     // * `send_all` is called
     // * `get_stamp` is called
@@ -529,6 +537,7 @@ public:
 
     counted_t<datum_stream_t> subscribe(
         env_t *env,
+        bool include_initial_vals,
         bool include_states,
         const keyspec_t::spec_t &spec,
         const std::string &primary_key_name,

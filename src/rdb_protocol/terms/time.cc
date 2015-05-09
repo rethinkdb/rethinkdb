@@ -99,8 +99,8 @@ private:
         datum_t t = args->arg(env, 0)->as_ptype(pseudo::time_string);
         datum_t lb = args->arg(env, 1)->as_ptype(pseudo::time_string);
         datum_t rb = args->arg(env, 2)->as_ptype(pseudo::time_string);
-        int lcmp = pseudo::time_cmp(env->env->reql_version(), lb, t);
-        int rcmp = pseudo::time_cmp(env->env->reql_version(), t, rb);
+        int lcmp = pseudo::time_cmp(lb, t);
+        int rcmp = pseudo::time_cmp(t, rb);
         return new_val_bool(!(lcmp > 0 || (lcmp == 0 && is_left_open(env, args))
                               || rcmp > 0 || (rcmp == 0 && is_right_open(env, args))));
     }

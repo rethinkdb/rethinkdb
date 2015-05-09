@@ -15,7 +15,6 @@ private:
         scoped_ptr_t<val_t> v = args->arg(env, 0);
         datum_t d = v->as_datum();
         switch (env->env->reql_version()) {
-        case reql_version_t::v1_13:
         case reql_version_t::v1_14: // v1_15 is the same as v1_14
             break;
         case reql_version_t::v1_16:

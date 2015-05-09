@@ -75,10 +75,8 @@ void insert_rows(int start, int finish, store_t *store) {
                                 NULL,
                                 NULL);
 
-            scoped_ptr_t<new_mutex_in_line_t> acq =
-                store->get_in_line_for_sindex_queue(&sindex_block);
-
-            store->sindex_queue_push(mod_report, acq.get());
+            new_mutex_in_line_t acq = store->get_in_line_for_sindex_queue(&sindex_block);
+            store->sindex_queue_push(mod_report, &acq);
         }
     }
 }
@@ -210,8 +208,7 @@ void _check_keys_are_present(store_t *store,
         ASSERT_TRUE(groups != NULL);
         ASSERT_EQ(1, groups->size());
         // The order of `groups` doesn't matter because this is a small unit test.
-        ql::stream_t *stream
-            = &groups->begin(ql::grouped::order_doesnt_matter_t())->second;
+        ql::stream_t *stream = &groups->begin()->second;
         ASSERT_TRUE(stream != NULL);
         ASSERT_EQ(1ul, stream->size());
 

@@ -180,7 +180,7 @@ public:
 
 TEST(RDBInterrupt, GetOp) {
     uint32_t eval_count;
-    std::set<ql::datum_t, latest_version_optional_datum_less_t> initial_data;
+    std::set<ql::datum_t, optional_datum_less_t> initial_data;
 
     ql::datum_object_builder_t row;
     row.overwrite("id", ql::datum_t(datum_string_t("key")));
@@ -213,7 +213,7 @@ TEST(RDBInterrupt, GetOp) {
 
 TEST(RDBInterrupt, DeleteOp) {
     uint32_t eval_count;
-    std::set<ql::datum_t, latest_version_optional_datum_less_t> initial_data;
+    std::set<ql::datum_t, optional_datum_less_t> initial_data;
 
     ql::datum_object_builder_t row;
     row.overwrite("id", ql::datum_t(datum_string_t("key")));

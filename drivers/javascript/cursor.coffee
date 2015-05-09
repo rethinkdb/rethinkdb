@@ -259,50 +259,49 @@ class IterableResult
             throw new err.RqlDriverError "You cannot use the cursor interface and the EventEmitter interface at the same time."
 
 
-    addListener: (args...) ->
+    addListener: (event, listener) ->
         if not @emitter?
             @_makeEmitter()
             setImmediate => @_each @_eachCb
-        @emitter.addListener(args...)
+        @emitter.addListener(event, listener)
 
-    on: (args...) ->
+    on: (event, listener) ->
         if not @emitter?
             @_makeEmitter()
             setImmediate => @_each @_eachCb
-        @emitter.on(args...)
+        @emitter.on(event, listener)
 
-
-    once: ->
+    once: (event, listener) ->
         if not @emitter?
             @_makeEmitter()
             setImmediate => @_each @_eachCb
-        @emitter.once(args...)
+        @emitter.once(event, listener)
 
-    removeListener: ->
+    removeListener: (event, listener) ->
         if not @emitter?
             @_makeEmitter()
             setImmediate => @_each @_eachCb
-        @emitter.removeListener(args...)
+        @emitter.removeListener(event, listener)
 
-    removeAllListeners: ->
+    removeAllListeners: (event) ->
         if not @emitter?
             @_makeEmitter()
             setImmediate => @_each @_eachCb
-        @emitter.removeAllListeners(args...)
+        @emitter.removeAllListeners(event)
 
-    setMaxListeners: ->
+    setMaxListeners: (n) ->
         if not @emitter?
             @_makeEmitter()
             setImmediate => @_each @_eachCb
-        @emitter.setMaxListeners(args...)
+        @emitter.setMaxListeners(n)
 
-    listeners: ->
+    listeners: (event) ->
         if not @emitter?
             @_makeEmitter()
             setImmediate => @_each @_eachCb
-        @emitter.listeners(args...)
+        @emitter.listeners(event)
 
-    emit: ->
+    emit: (args...) ->
         if not @emitter?
             @_makeEmitter()
             setImmediate => @_each @_eachCb

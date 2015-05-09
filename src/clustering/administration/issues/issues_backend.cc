@@ -26,7 +26,7 @@ issues_artificial_table_backend_t::issues_artificial_table_backend_t(
                                        cluster_directory_metadata_t>(
                 &cluster_directory_metadata_t::server_id))),
     invalid_config_issue_tracker(cluster_sl_view),
-    name_collision_issue_tracker(cluster_sl_view)
+    name_collision_issue_tracker(cluster_sl_view, table_meta_client)
 {
     trackers.insert(&remote_issue_tracker);
     trackers.insert(&invalid_config_issue_tracker);

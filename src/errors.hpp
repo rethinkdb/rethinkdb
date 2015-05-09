@@ -179,6 +179,11 @@ void assertion_failed(char const * expr, char const * function, char const * fil
     T(const T&) = delete;                       \
     T& operator=(const T&) = delete
 
+#define MOVABLE_BUT_NOT_COPYABLE(T) \
+    DISABLE_COPYING(T);             \
+    T(T &&) = default;              \
+    T &operator=(T &&) = default
+
 
 /* Put these after functions to indicate what they throw. In release mode, they
 turn into noops so that the compiler doesn't have to generate exception-checking
