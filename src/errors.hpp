@@ -3,7 +3,10 @@
 #define ERRORS_HPP_
 
 #ifdef _MSC_VER
+// ATN windows.h includes should be elsewhere
 #include <windows.h>
+#include <wincrypt.h>
+#include <winsock.h>
 #undef DELETE // RSI
 #endif
 

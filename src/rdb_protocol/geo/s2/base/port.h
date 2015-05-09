@@ -101,7 +101,7 @@ typedef uint16_t u_int16_t;
 
 // The following guarenty declaration of the byte swap functions, and
 // define __BYTE_ORDER for MSVC
-#ifdef COMPILER_MSVC
+#ifdef _MSC_VER
 #include <stdlib.h>
 #define __BYTE_ORDER __LITTLE_ENDIAN
 #define bswap_16(x) _byteswap_ushort(x)

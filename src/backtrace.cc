@@ -1,8 +1,11 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "backtrace.hpp"
 
+#ifndef _MSC_VER
 #include <cxxabi.h>
 #include <execinfo.h>
+#endif
+
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -106,6 +109,7 @@ int set_o_cloexec(int fd) {
     return fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
 }
 
+#ifndef _WIN32 // TODO ATN
 address_to_line_t::addr2line_t::addr2line_t(const char *executable) : input(NULL), output(NULL), bad(false), pid(-1) {
     if (pipe(child_in) || set_o_cloexec(child_in[0]) || set_o_cloexec(child_in[1]) || pipe(child_out) || set_o_cloexec(child_out[0]) || set_o_cloexec(child_out[1])) {
         bad = true;
@@ -192,6 +196,7 @@ std::string address_to_line_t::address_to_line(const std::string &executable, co
         return std::string(line);
     }
 }
+#endif
 
 std::string format_backtrace(bool use_addr2line) {
     lazy_backtrace_formatter_t bt;

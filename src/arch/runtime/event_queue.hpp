@@ -28,7 +28,13 @@ struct pm_eventloop_singleton_t {
 };
 
 /* Pick the queue now*/
-#if defined(__MACH__)
+#if defined(_WIN32)
+
+// Use IO Completion Ports
+#include "arch/runtime/event_queue/iocp.hpp"
+typedef iocp_event_queue_t linux_event_queue_t;
+
+#elif defined(__MACH__)
 
 // Use kqueue, which is much faster than poll on OS X
 #include "arch/runtime/event_queue/kqueue.hpp"

@@ -47,7 +47,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <PreprocessorDefinitions>WIN32;NOMINMAX;_SCL_SECURE_NO_WARNINGS;NOGDI;NOUSER;RETHINKDB_VERSION="2.0.1-dev-windows"</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NOMINMAX;_SCL_SECURE_NO_WARNINGS;NOGDI;NOUSER;RETHINKDB_VERSION="2.0.1-dev-windows";WIN32_LEAN_AND_MEAN</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -56,7 +56,7 @@
       <AdditionalIncludeDirectories>$(ProjectDir)\..\protobuf-2.5.0\vsprojects\include;$(ProjectDir)\..\boost_1_58_0;$(ProjectDir)\external\gtest_1.7.0\include;$(ProjectDir)\windows_stub</AdditionalIncludeDirectories>
       <PreprocessToFile>false</PreprocessToFile>
       <SuppressStartupBanner>false</SuppressStartupBanner>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MultiProcessorCompilation>false</MultiProcessorCompilation>
       <MinimalRebuild>true</MinimalRebuild>
       <AdditionalOptions>/we4005</AdditionalOptions>
     </ClCompile>
@@ -68,7 +68,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <PreprocessorDefinitions>WIN32;NOMINMAX;_SCL_SECURE_NO_WARNINGS;NOGDI;NOUSER;RETHINKDB_VERSION="2.0.1-dev-windows"</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NOMINMAX;_SCL_SECURE_NO_WARNINGS;NOGDI;NOUSER;RETHINKDB_VERSION="2.0.1-dev-windows";WIN32_LEAN_AND_MEAN</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -76,7 +76,7 @@
       <AdditionalIncludeDirectories>$(ProjectDir)\..\protobuf-2.5.0\vsprojects\include;$(ProjectDir)\..\boost_1_58_0;$(ProjectDir)\external\gtest_1.7.0\include;$(ProjectDir)\windows_stub</AdditionalIncludeDirectories>
       <PreprocessToFile>false</PreprocessToFile>
       <SuppressStartupBanner>false</SuppressStartupBanner>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MultiProcessorCompilation>false</MultiProcessorCompilation>
       <AdditionalOptions>/we4005</AdditionalOptions>
       <MinimalRebuild>true</MinimalRebuild>
     </ClCompile>

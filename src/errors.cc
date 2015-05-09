@@ -1,7 +1,9 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "errors.hpp"
 
+#ifndef _MSC_VER
 #include <cxxabi.h>
+#endif
 
 #include <signal.h>
 #include <stdarg.h>

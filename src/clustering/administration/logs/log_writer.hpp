@@ -56,8 +56,8 @@ private:
     DISABLE_COPYING(file_reverse_reader_t);
 };
 
-void log_internal(const char *src_file, int src_line, log_level_t level, const char *format, ...) __attribute__((format (printf, 4, 5)));
-void vlog_internal(const char *src_file, int src_line, log_level_t level, const char *format, va_list args) __attribute__((format (printf, 4, 0)));
+void log_internal(const char *src_file, int src_line, log_level_t level, const char *format, ...) ATTR_FORMAT(printf, 4, 5);
+void vlog_internal(const char *src_file, int src_line, log_level_t level, const char *format, va_list args) ATTR_FORMAT(printf, 4, 0);
 
 class thread_pool_log_writer_t : public home_thread_mixin_t {
 public:

@@ -2,11 +2,15 @@
 #ifndef ARCH_ADDRESS_HPP_
 #define ARCH_ADDRESS_HPP_
 
+#ifndef _WIN32
 #include <arpa/inet.h>   /* for `inet_ntop()` */
 #include <net/if.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <sys/ioctl.h>
+#else
+#include <In6addr.h>
+#endif
 
 #include <algorithm>
 #include <string>
