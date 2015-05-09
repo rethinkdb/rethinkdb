@@ -32,7 +32,8 @@ public:
         mailbox_manager_t *mailbox_manager,
         watchable_map_t<raft_member_id_t, raft_business_card_t<state_t> > *peers,
         raft_storage_interface_t<state_t> *storage,
-        const raft_persistent_state_t<state_t> &persistent_state);
+        const raft_persistent_state_t<state_t> &persistent_state,
+        const std::string &log_prefix);
 
     raft_business_card_t<state_t> get_business_card();
 

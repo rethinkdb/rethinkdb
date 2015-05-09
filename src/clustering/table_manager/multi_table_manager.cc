@@ -323,7 +323,8 @@ void multi_table_manager_t::on_action(
                 *initial_raft_state, table->multistore_ptr.get(),
                 &perfmon_collections->namespace_collection);
 
-            logDBG("Added replica for table %s", uuid_to_str(table_id).c_str());
+            logINF("Table %s: Added replica on this server.",
+                uuid_to_str(table_id).c_str());
 
         } else if (table->active->manager.epoch != timestamp.epoch ||
                 table->active->manager.raft_member_id != *raft_member_id) {
@@ -345,7 +346,8 @@ void multi_table_manager_t::on_action(
                 *initial_raft_state, table->multistore_ptr.get(),
                 &perfmon_collections->namespace_collection);
 
-            logDBG("Reset replica for table %s", uuid_to_str(table_id).c_str());
+            logINF("Table %s: Reset replica on this server.",
+                uuid_to_str(table_id).c_str());
         }
 
     } else if (action_status == action_status_t::INACTIVE ||
@@ -363,7 +365,8 @@ void multi_table_manager_t::on_action(
             persistence_interface->destroy_multistore(
                 table_id, &table->multistore_ptr, interruptor);
 
-            logDBG("Removed replica for table %s", uuid_to_str(table_id).c_str());
+            logINF("Table %s: Removed replica on this server.",
+                uuid_to_str(table_id).c_str());
         }
 
         /* We just found out about this table, or we are updating an existing
@@ -386,7 +389,6 @@ void multi_table_manager_t::on_action(
         }
 
     } else if (action_status == action_status_t::DELETED) {
-        debugf("Got deletion action\n");
         if (!is_new) {
             /* Clean up the table's current records */
             if (table->status == table_t::status_t::ACTIVE) {
@@ -397,7 +399,7 @@ void multi_table_manager_t::on_action(
                 persistence_interface->destroy_multistore(
                     table_id, &table->multistore_ptr, interruptor);
 
-                logDBG("Deleted table %s", uuid_to_str(table_id).c_str());
+                logINF("Table %s: Deleted the table.", uuid_to_str(table_id).c_str());
             }
             table->basic_configs_entry.reset();
         }

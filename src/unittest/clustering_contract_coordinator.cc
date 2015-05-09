@@ -20,6 +20,7 @@ declare them here. */
 void calculate_all_contracts(
         const table_raft_state_t &old_state,
         watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> *acks,
+        const std::string &log_prefix,
         std::set<contract_id_t> *remove_contracts_out,
         std::map<contract_id_t, std::pair<region_t, contract_t> > *add_contracts_out);
 void calculate_branch_history(
@@ -156,7 +157,7 @@ public:
     void coordinate() {
         std::set<contract_id_t> remove_contracts;
         std::map<contract_id_t, std::pair<region_t, contract_t> > add_contracts;
-        calculate_all_contracts(state, &acks,
+        calculate_all_contracts(state, &acks, "",
             &remove_contracts, &add_contracts);
         std::set<branch_id_t> remove_branches;
         branch_history_t add_branches;

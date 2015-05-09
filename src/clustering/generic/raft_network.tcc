@@ -10,11 +10,12 @@ raft_networked_member_t<state_t>::raft_networked_member_t(
         mailbox_manager_t *_mailbox_manager,
         watchable_map_t<raft_member_id_t, raft_business_card_t<state_t> > *_peers,
         raft_storage_interface_t<state_t> *storage,
-        const raft_persistent_state_t<state_t> &persistent_state) :
+        const raft_persistent_state_t<state_t> &persistent_state,
+        const std::string &log_prefix) :
     mailbox_manager(_mailbox_manager),
     peers(_peers),
     peers_map_transformer(peers),
-    member(this_member_id, storage, this, persistent_state),
+    member(this_member_id, storage, this, persistent_state, log_prefix),
     rpc_mailbox(mailbox_manager,
         std::bind(&raft_networked_member_t::on_rpc, this, ph::_1, ph::_2, ph::_3))
     { }

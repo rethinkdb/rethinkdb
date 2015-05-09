@@ -6,6 +6,7 @@
 
 #include "arch/runtime/coroutines.hpp"
 #include "containers/map_sentries.hpp"
+#include "logger.hpp"
 
 #include "debug.hpp"
 
@@ -40,10 +41,12 @@ raft_member_t<state_t>::raft_member_t(
         const raft_member_id_t &_this_member_id,
         raft_storage_interface_t<state_t> *_storage,
         raft_network_interface_t<state_t> *_network,
-        const raft_persistent_state_t<state_t> &_persistent_state) :
+        const raft_persistent_state_t<state_t> &_persistent_state,
+        const std::string &_log_prefix) :
     this_member_id(_this_member_id),
     storage(_storage),
     network(_network),
+    log_prefix(_log_prefix),
     ps(_persistent_state),
     /* Restore state machine from snapshot. */
     committed_state(state_and_config_t(
@@ -1124,6 +1127,11 @@ void raft_member_t<state_t>::candidate_and_leader_coro(
     /* `update_term()` changed `ps`, but we don't need to flush to stable storage
     immediately, because `candidate_run_election()` will do it. */
 
+    if (!log_prefix.empty()) {
+        logINF("%s: Starting a new Raft election for term %lu.",
+            log_prefix.c_str(), ps.current_term);
+    }
+
     mode = mode_t::candidate;
 
     /* While we're candidate or leader, we'll never update our log in response to an RPC.
@@ -1154,12 +1162,23 @@ void raft_member_t<state_t>::candidate_and_leader_coro(
                 election by incrementing its term and initiating another round of
                 RequestVote RPCs." */
                 update_term(ps.current_term + 1, mutex_acq.get());
+
+                if (!log_prefix.empty()) {
+                    logINF("%s: Raft election timed out. Starting a new election for "
+                        "term %lu.", log_prefix.c_str(), ps.current_term);
+                }
+
                 /* Go around the `while`-loop again. */
             }
         }
 
         /* We got elected. */
         guarantee(mode == mode_t::leader);
+
+        if (!log_prefix.empty()) {
+            logINF("%s: This server is Raft leader for term %lu.",
+                log_prefix.c_str(), ps.current_term);
+        }
 
         guarantee(current_term_leader_id.is_nil());
         current_term_leader_id = this_member_id;

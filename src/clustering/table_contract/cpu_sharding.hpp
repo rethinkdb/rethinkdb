@@ -21,6 +21,10 @@ subregion number for `region`'s hash subspace. It ignores `region`'s key boundar
 crashes. */
 int get_cpu_shard_number(const region_t &region);
 
+/* `get_cpu_shard_approx_number()` is like `get_cpu_shard_number()`, except that if the
+input doesn't correspond exactly to a CPU shard, it returns an estimate. */
+int get_cpu_shard_approx_number(const region_t &region);
+
 /* `multistore_ptr_t` is a bundle of `store_view_t`s, one for each CPU shard. The rule
 is that `get_cpu_sharded_store(i)->get_region() == cpu_sharding_subspace(i)`. The
 individual stores' home threads may be different from the `multistore_ptr_t`'s home

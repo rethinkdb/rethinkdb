@@ -477,7 +477,10 @@ public:
         const raft_member_id_t &this_member_id,
         raft_storage_interface_t<state_t> *storage,
         raft_network_interface_t<state_t> *network,
-        const raft_persistent_state_t<state_t> &persistent_state);
+        const raft_persistent_state_t<state_t> &persistent_state,
+        /* We'll print log messages of the form `<log_prefix>: <message>`. If
+        `log_prefix` is empty, we won't print any messages. */
+        const std::string &log_prefix);
 
     ~raft_member_t();
 
@@ -793,6 +796,8 @@ private:
 
     raft_storage_interface_t<state_t> *const storage;
     raft_network_interface_t<state_t> *const network;
+
+    const std::string log_prefix;
 
     /* This stores all of the state variables of the Raft member that need to be written
     to stable storage when they change. We end up writing `ps.*` a lot, which is why the

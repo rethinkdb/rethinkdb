@@ -3,6 +3,7 @@
 
 #include "clustering/generic/raft_core.tcc"
 #include "clustering/table_contract/cpu_sharding.hpp"
+#include "logger.hpp"
 
 /* A `contract_ack_t` is not necessarily homogeneous. It may have different `version_t`s
 for different regions, and a region with a single `version_t` may need to be split
@@ -69,7 +70,10 @@ contract_t calculate_contract(
         /* Contract acks from replicas regarding `old_c`. If a replica hasn't sent us an
         ack *specifically* for `old_c`, it won't appear in this map; we don't include
         acks for contracts that were in the same region before `old_c`. */
-        const std::map<server_id_t, contract_ack_frag_t> &acks) {
+        const std::map<server_id_t, contract_ack_frag_t> &acks,
+        /* We'll print log messages of the form `<log prefix>: <message>`, unless
+        `log_prefix` is empty, in which case we won't print anything. */
+        const std::string &log_prefix) {
 
     contract_t new_c = old_c;
 
@@ -96,6 +100,9 @@ contract_t calculate_contract(
         if (num_streaming > config.replicas.size() / 2) {
             /* OK, we're ready to go */
             new_c.temp_voters = boost::make_optional(config.replicas);
+            if (!log_prefix.empty()) {
+                logINF("%s: Beginning replica set change.", log_prefix.c_str());
+            }
         }
     }
 
@@ -116,6 +123,9 @@ contract_t calculate_contract(
             /* OK, it's safe to commit. */
             new_c.voters = *new_c.temp_voters;
             new_c.temp_voters = boost::none;
+            if (!log_prefix.empty()) {
+                logINF("%s: Committed replica set change.", log_prefix.c_str());
+            }
         }
     }
 
@@ -131,6 +141,10 @@ contract_t calculate_contract(
             if (static_cast<bool>(old_c.primary) && old_c.primary->server == server) {
                 /* Actual killing happens further down */
                 should_kill_primary = true;
+                if (!log_prefix.empty()) {
+                    logINF("%s: Stopping server %s as primary because it's no longer a "
+                        "voter.", log_prefix.c_str(), uuid_to_str(server).c_str());
+                }
             }
         }
     }
@@ -221,6 +235,13 @@ contract_t calculate_contract(
             p.server = eligible_candidates.back();
             new_c.primary = boost::make_optional(p);
         }
+
+        if (static_cast<bool>(new_c.primary)) {
+            if (!log_prefix.empty()) {
+                logINF("%s: Selected server %s as primary.", log_prefix.c_str(),
+                    uuid_to_str(new_c.primary->server).c_str());
+            }
+        }
     }
 
     /* Sometimes we already have a primary, but we need to pick a different one. There
@@ -256,6 +277,11 @@ contract_t calculate_contract(
         }
         if (voters_cant_reach_primary > new_c.voters.size() / 2) {
             should_kill_primary = true;
+            if (!log_prefix.empty()) {
+                logINF("%s: Stopping server %s as primary because a majority of voters "
+                    "cannot reach it.", log_prefix.c_str(),
+                    uuid_to_str(old_c.primary->server).c_str());
+            }
         }
 
         if (should_kill_primary) {
@@ -279,6 +305,12 @@ contract_t calculate_contract(
                 new_c.primary = boost::none;
             } else {
                 new_c.primary->hand_over = boost::make_optional(config.primary_replica);
+                if (!log_prefix.empty()) {
+                    logINF("%s: Handing off primary from %s to %s to match table "
+                        "config.", log_prefix.c_str(),
+                        uuid_to_str(old_c.primary->server).c_str(),
+                        uuid_to_str(config.primary_replica).c_str());
+                }
             }
         } else {
             /* We're sticking with the current primary, so `hand_over` should be empty.
@@ -314,6 +346,7 @@ makes sense to combine those two diff processes. */
 void calculate_all_contracts(
         const table_raft_state_t &old_state,
         watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> *acks,
+        const std::string &log_prefix,
         std::set<contract_id_t> *remove_contracts_out,
         std::map<contract_id_t, std::pair<region_t, contract_t> > *add_contracts_out) {
 
@@ -329,10 +362,11 @@ void calculate_all_contracts(
             old_state.contracts) {
         /* Next iterate over all shards of the table config and find the ones that
         overlap the contract in question: */
-        for (size_t si = 0; si < old_state.config.config.shards.size(); ++si) {
+        for (size_t shard_index = 0; shard_index < old_state.config.config.shards.size();
+                ++shard_index) {
             region_t region = region_intersection(
                 cpair.second.first,
-                region_t(old_state.config.shard_scheme.get_shard_range(si)));
+                region_t(old_state.config.shard_scheme.get_shard_range(shard_index)));
             if (region_is_empty(region)) {
                 continue;
             }
@@ -360,16 +394,34 @@ void calculate_all_contracts(
                     });
                 });
             });
+            size_t subshard_index = 0;
             frags_by_server.visit(region,
             [&](const region_t &reg,
                     const std::map<server_id_t, contract_ack_frag_t> &acks_map) {
                 /* We've finally collected all the inputs to `calculate_contract()` and
                 broken the key space into regions across which the inputs are
                 homogeneous. So now we can actually call it. */
+
+                /* Compute a shard identifier for logging, of the form:
+                    "shard <user shard>.<subshard>.<hash shard>"
+                This relies on the fact that `visit()` goes first in subshard order and
+                then in hash shard order; it increments `subshard_index` whenever it
+                finds a region with `reg.beg` equal to zero. */
+                std::string log_subprefix;
+                if (!log_prefix.empty()) {
+                    log_subprefix = strprintf("%s: shard %zu.%zu.%d",
+                        log_prefix.c_str(),
+                        shard_index, subshard_index, get_cpu_shard_approx_number(reg));
+                    if (reg.beg == 0) {
+                        ++subshard_index;
+                    }
+                }
+
                 contract_t new_contract = calculate_contract(
                     cpair.second.second,
-                    old_state.config.config.shards[si],
-                    acks_map);
+                    old_state.config.config.shards[shard_index],
+                    acks_map,
+                    log_subprefix);
                 new_contract_region_vector.push_back(reg);
                 new_contract_vector.push_back(new_contract);
             });
@@ -510,9 +562,11 @@ void calculate_member_ids_and_raft_config(
 
 contract_coordinator_t::contract_coordinator_t(
         raft_member_t<table_raft_state_t> *_raft,
-        watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> *_acks) :
+        watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> *_acks,
+        const std::string &_log_prefix) :
     raft(_raft),
     acks(_acks),
+    log_prefix(_log_prefix),
     config_pumper(std::bind(&contract_coordinator_t::pump_configs, this, ph::_1)),
     contract_pumper(std::bind(&contract_coordinator_t::pump_contracts, this, ph::_1)),
     ack_subs(acks, std::bind(&pump_coro_t::notify, &contract_pumper), false)
@@ -529,6 +583,9 @@ boost::optional<raft_log_index_t> contract_coordinator_t::change_config(
         const std::function<void(table_config_and_shards_t *)> &changer,
         signal_t *interruptor) {
     assert_thread();
+    if (!log_prefix.empty()) {
+        logINF("%s: Changing table's configuration.", log_prefix.c_str());
+    }
     scoped_ptr_t<raft_member_t<table_raft_state_t>::change_token_t> change_token;
     raft_log_index_t log_index;
     {
@@ -596,7 +653,7 @@ void contract_coordinator_t::pump_contracts(signal_t *interruptor) {
         raft->get_latest_state()->apply_read(
         [&](const raft_member_t<table_raft_state_t>::state_and_config_t *state) {
             calculate_all_contracts(
-                state->state, acks,
+                state->state, acks, log_prefix,
                 &change.remove_contracts, &change.add_contracts);
             calculate_branch_history(
                 state->state, acks,

@@ -125,7 +125,8 @@ public:
             }
             if (!i->member.has() && live != live_t::dead) {
                 i->member.init(new raft_networked_member_t<dummy_raft_state_t>(
-                    member_id, &mailbox_manager, &member_directory, i, i->stored_state));
+                    member_id, &mailbox_manager, &member_directory, i, i->stored_state,
+                    ""));
                 i->member_drainer.init(new auto_drainer_t);
             }
         }

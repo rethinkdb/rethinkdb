@@ -27,7 +27,7 @@ table_manager_t::table_manager_t(
     persistence_interface(_persistence_interface),
     perfmon_membership(perfmon_collection_namespace, &perfmon_collection, "regions"),
     raft(raft_member_id, _mailbox_manager, raft_directory.get_values(), this,
-        initial_state),
+        initial_state, "Table " + uuid_to_str(table_id)),
     table_manager_bcard(table_manager_bcard_t()),   /* we'll set this later */
     execution_bcard_read_manager(_mailbox_manager),
     contract_executor(
@@ -98,7 +98,8 @@ table_manager_t::~table_manager_t() {
 table_manager_t::leader_t::leader_t(table_manager_t *_parent) :
     parent(_parent),
     contract_ack_read_manager(parent->mailbox_manager),
-    coordinator(parent->get_raft(), contract_ack_read_manager.get_values()),
+    coordinator(parent->get_raft(), contract_ack_read_manager.get_values(),
+        "Table " + uuid_to_str(parent->table_id)),
     set_config_mailbox(parent->mailbox_manager,
         std::bind(&leader_t::on_set_config, this, ph::_1, ph::_2, ph::_3))
 {

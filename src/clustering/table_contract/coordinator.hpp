@@ -31,7 +31,8 @@ class contract_coordinator_t : public home_thread_mixin_debug_only_t {
 public:
     contract_coordinator_t(
         raft_member_t<table_raft_state_t> *raft,
-        watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> *acks);
+        watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> *acks,
+        const std::string &log_prefix);
 
     /* `table_meta_client_t` calls `change_config()` to change the cluster config. */
     boost::optional<raft_log_index_t> change_config(
@@ -52,6 +53,7 @@ private:
 
     raft_member_t<table_raft_state_t> *const raft;
     watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> *const acks;
+    const std::string log_prefix;
 
     /* These `pump_coro_t`s are responsible for calling `pump_contracts()` and
     `pump_configs()`. Destructor order matters here. We have to destroy `ack_subs` first,
