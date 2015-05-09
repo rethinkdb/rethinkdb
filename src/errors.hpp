@@ -3,7 +3,8 @@
 #define ERRORS_HPP_
 
 #ifdef _MSC_VER
-#include <Windows.h>
+#include <windows.h>
+#undef DELETE // RSI
 #endif
 
 #include <errno.h>
@@ -45,7 +46,7 @@
 #endif
 
 #ifdef _MSC_VER
-#define NORETURN __declspec(noreturn)
+#define NORETURN // ATN: TODO: __declspec(noreturn)
 #else
 #define NORETURN __attribute__((__noreturn__))
 #endif
@@ -259,7 +260,7 @@ release mode. */
         #define override
         #define final
     #endif
-#elif GNUC_VERSION < 40700
+#elif defined(__GNUC__) && GNUC_VERSION < 40700
     #define override
     #define final
 #endif

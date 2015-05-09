@@ -2,12 +2,13 @@
 #ifndef SERIALIZER_LOG_LBA_IN_MEMORY_INDEX_HPP_
 #define SERIALIZER_LOG_LBA_IN_MEMORY_INDEX_HPP_
 
+#include "arch/compiler.hpp"
 #include "containers/two_level_array.hpp"
 #include "config/args.hpp"
 #include "serializer/serializer.hpp"
 #include "serializer/log/lba/disk_format.hpp"
 
-struct index_block_info_t {
+ATTR_PACKED(struct index_block_info_t {
     index_block_info_t()
         : offset(flagged_off64_t::unused()),
           recency(repli_timestamp_t::invalid),
@@ -30,7 +31,7 @@ struct index_block_info_t {
     flagged_off64_t offset;
     repli_timestamp_t recency;
     uint32_t ser_block_size;
-} __attribute__((__packed__));
+});
 
 
 

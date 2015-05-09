@@ -8,6 +8,7 @@
 #include <string>
 #include <utility>
 
+#include "arch/compiler.hpp"
 #include "containers/counted.hpp"
 #include "containers/scoped.hpp"
 #include "errors.hpp"
@@ -24,9 +25,9 @@ typedef uint64_t block_id_t;
 #define PR_BLOCK_ID PRIu64
 
 // The first bytes of any block stored on disk or (as it happens) cached in memory.
-struct ls_buf_data_t {
+ATTR_PACKED(struct ls_buf_data_t {
     block_id_t block_id;
-} __attribute__((__packed__));
+});
 
 // For use via scoped_malloc_t, a buffer that represents a block on disk.  Contains
 // convenient access to the serializer header and cache portion of the block.  This
@@ -34,10 +35,10 @@ struct ls_buf_data_t {
 // between the cache and serializer.  When used in memory, this structure _might_ be
 // aligned to a device block size boundary, to save copying when reading from disk.
 // Since block sizes can vary, don't generally assume this to be the case.
-struct ser_buffer_t {
+ATTR_PACKED(struct ser_buffer_t {
     ls_buf_data_t ser_header;
     char cache_data[];
-} __attribute__((__packed__));
+});
 
 
 class block_size_t {

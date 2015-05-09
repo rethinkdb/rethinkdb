@@ -11,6 +11,11 @@
 #include "debug.hpp"
 #include "config/args.hpp"
 
+#ifdef _MSC_VER // ATN: TODO: feature macro
+#include <BaseTsd.h>
+typedef SSIZE_T ssize_t;
+#endif
+
 class printf_buffer_t;
 
 namespace ph = std::placeholders;
@@ -32,7 +37,8 @@ struct const_charslice {
  */
 #define NOINLINE __attribute__ ((noinline))
 
-void *malloc_aligned(size_t size, size_t alignment);
+void *raw_malloc_aligned(size_t size, size_t alignment);
+void raw_free_aligned(void *ptr);
 
 /* Calls `malloc()` and checks its return value to crash if the allocation fails. */
 void *rmalloc(size_t size);
@@ -92,7 +98,7 @@ bool parse_time(
     struct timespec *out, std::string *errmsg_out);
 
 /* Printing binary data to stderr in a nice format */
-void print_hd(const void *buf, size_t offset, size_t length);
+void print_hexdump(const void *buf, size_t offset, size_t length);
 
 
 

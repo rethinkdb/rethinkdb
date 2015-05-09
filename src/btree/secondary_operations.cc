@@ -15,12 +15,12 @@ RDB_IMPL_SERIALIZABLE_5_SINCE_v1_13(
 
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(sindex_name_t, name, being_deleted);
 
-struct btree_sindex_block_t {
+ATTR_PACKED(struct btree_sindex_block_t {
     static const int SINDEX_BLOB_MAXREFLEN = 4076;
 
     block_magic_t magic;
     char sindex_blob[SINDEX_BLOB_MAXREFLEN];
-} __attribute__((__packed__));
+});
 
 template <cluster_version_t W>
 struct btree_sindex_block_magic_t {

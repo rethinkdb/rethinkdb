@@ -224,10 +224,10 @@ private:
 
 // For dumb structs that get rmalloc/free for allocation.
 
-template <class T>
+template <class T, void (*deallocate)(void*) = free>
 class scoped_malloc_t {
 public:
-    template <class U>
+    template <class U, void(*F)(void*)>
     friend class scoped_malloc_t;
 
     scoped_malloc_t() : ptr_(NULL) { }
@@ -254,7 +254,7 @@ public:
     }
 
     ~scoped_malloc_t() {
-        free(ptr_);
+        deallocate(ptr_);
     }
 
     void operator=(scoped_malloc_t &&movee) noexcept {
@@ -296,5 +296,10 @@ private:
 
     DISABLE_COPYING(scoped_malloc_t);
 };
+
+template <class T>
+scoped_malloc_t<T, raw_free_aligned> malloc_aligned(size_t size, size_t alignment) {
+	return raw_malloc_aligned(size, alignment);
+}
 
 #endif  // CONTAINERS_SCOPED_HPP_

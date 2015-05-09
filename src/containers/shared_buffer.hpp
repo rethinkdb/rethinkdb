@@ -30,7 +30,11 @@ private:
     friend void counted_release(const shared_buf_t *p);
     friend intptr_t counted_use_count(const shared_buf_t *p);
 
+#if defined(_MSC_VER) // ATN: TODO: check 32/64?
+	mutable volatile int64_t refcount_;
+#else
     mutable intptr_t refcount_;
+#endif
 
     // The size of data_, for boundary checking.
     size_t size_;
@@ -91,13 +95,22 @@ private:
 };
 
 
+
 inline void counted_add_ref(const shared_buf_t *p) {
+#if defined(_MSC_VER) // ATN: TODO: check 32/64?
+	int64_t res = InterlockedIncrement64(&p->refcount_);
+#else
     DEBUG_VAR intptr_t res = __sync_add_and_fetch(&p->refcount_, 1);
-    rassert(res > 0);
+#endif
+	rassert(res > 0);
 }
 
 inline void counted_release(const shared_buf_t *p) {
+#if defined(_MSC_VER) // ATN: TODO: check 32/64?
+	int64_t res = InterlockedDecrement64(&p->refcount_);
+#else
     intptr_t res = __sync_sub_and_fetch(&p->refcount_, 1);
+#endif
     rassert(res >= 0);
     if (res == 0) {
         delete const_cast<shared_buf_t *>(p);

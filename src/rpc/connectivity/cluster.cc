@@ -1215,7 +1215,7 @@ void connectivity_cluster_t::send_message(connection_t *connection,
         buf.appendf(" to ");
         debug_print(&buf, dest);
         buf.appendf("\n");
-        print_hd(buffer.vector().data(), 0, buffer.vector().size());
+        print_hexdump(buffer.vector().data(), 0, buffer.vector().size());
     }
 #endif
 

@@ -6,6 +6,7 @@
 #include <utility>
 #include <vector>
 
+#include "arch/comiler.hpp"
 #include "buffer_cache/types.hpp"
 #include "errors.hpp"
 
@@ -36,7 +37,7 @@ class reverse_iterator;
 } //namespace leaf
 
 // The leaf node begins with the following struct layout.
-struct leaf_node_t {
+ATTR_PACKED(struct leaf_node_t {
     // The value-type-specific magic value.  It's a bit of a hack, but
     // it's possible to construct a value_sizer_t based on this value.
     block_magic_t magic;
@@ -61,7 +62,7 @@ struct leaf_node_t {
     //Iteration
     typedef leaf::iterator iterator;
     typedef leaf::reverse_iterator reverse_iterator;
-} __attribute__ ((__packed__));
+});
 
 namespace leaf {
 

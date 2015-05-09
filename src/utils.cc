@@ -2,10 +2,9 @@
 #include "utils.hpp"
 
 #include <math.h>
-#include <ftw.h>
 #include <fcntl.h>
 #include <limits.h>
-#include <locale.h>
+#include <locale.h>	
 #include <signal.h>
 #include <stdarg.h>
 #include <inttypes.h>
@@ -13,10 +12,16 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <sys/time.h>
 #include <sys/types.h>
+
+#ifdef _MSC_VER
+#include <filesystem>
+#else
+#include <ftw.h>
+#include <sys/time.h>
 #include <sys/resource.h>
 #include <unistd.h>
+#endif
 
 #include <google/protobuf/stubs/common.h>
 
@@ -45,6 +50,7 @@ void run_generic_global_startup_behavior() {
     // two servers in the same cluster have different locales.
     setlocale(LC_ALL, "C");
 
+#if !defined(_MSC_VER) // ATN: TODO: use feature macro. also TODO: extend limit on windows
     rlimit file_limit;
     int res = getrlimit(RLIMIT_NOFILE, &file_limit);
     guarantee_err(res == 0, "getrlimit with RLIMIT_NOFILE failed");
@@ -71,6 +77,7 @@ void run_generic_global_startup_behavior() {
         logWRN("The call to set the open file descriptor limit failed (errno = %d - %s)\n",
             get_errno(), errno_string(get_errno()).c_str());
     }
+#endif
 
 }
 
@@ -83,8 +90,10 @@ startup_shutdown_t::~startup_shutdown_t() {
 }
 
 
-void print_hd(const void *vbuf, size_t offset, size_t ulength) {
+void print_hexddump(const void *vbuf, size_t offset, size_t ulength) {
+#ifndef _MSC_VER // ATN: TODO
     flockfile(stderr);
+#endif
 
     const char *buf = reinterpret_cast<const char *>(vbuf);
     ssize_t length = ulength;
@@ -138,7 +147,9 @@ void print_hd(const void *vbuf, size_t offset, size_t ulength) {
         length -= 16;
     }
 
+#ifndef _MSC_VER // ATN: TODO
     funlockfile(stderr);
+#endif
 }
 
 void format_time(struct timespec time, printf_buffer_t *buf, local_or_utc_time_t zone) {
@@ -147,9 +158,14 @@ void format_time(struct timespec time, printf_buffer_t *buf, local_or_utc_time_t
         boost::posix_time::ptime as_ptime = boost::posix_time::from_time_t(time.tv_sec);
         t = boost::posix_time::to_tm(as_ptime);
     } else {
+#ifndef _MSC_VER
         struct tm *res1;
         res1 = localtime_r(&time.tv_sec, &t);
         guarantee_err(res1 == &t, "localtime_r() failed.");
+#else
+		errno_t res = localtime_s(&t, &time.tv_sec);
+		guarantee(res == 0, "localtime_s() failed.");
+#endif
     }
     buf->appendf(
         "%04d-%02d-%02dT%02d:%02d:%02d.%09ld",
@@ -217,8 +233,9 @@ with_priority_t::~with_priority_t() {
     coro_t::self()->set_priority(previous_priority);
 }
 
-void *malloc_aligned(size_t size, size_t alignment) {
+void *raw_malloc_aligned(size_t size, size_t alignment) {
     void *ptr = NULL;
+#ifndef _MSC_VER
     int res = posix_memalign(&ptr, alignment, size);  // NOLINT(runtime/rethinkdb_fn)
     if (res != 0) {
         if (res == EINVAL) {
@@ -229,7 +246,21 @@ void *malloc_aligned(size_t size, size_t alignment) {
             crash_or_trap("posix_memalign failed with unknown result: %d.", res);
         }
     }
+#else
+	ptr = _aligned_malloc(size, alignment);
+	if (ptr == NULL) {
+		crash_oom();
+	}
+#endif
     return ptr;
+}
+
+void raw_free_aligned(void *ptr) {
+#ifdef _MSC_VER
+	_aligned_free(ptr);
+#else
+	free(ptr);
+#endif
 }
 
 void *rmalloc(size_t size) {
@@ -257,9 +288,7 @@ bool risfinite(double arg) {
 rng_t::rng_t(int seed) {
 #ifndef NDEBUG
     if (seed == -1) {
-        struct timeval tv;
-        gettimeofday(&tv, NULL);
-        seed = tv.tv_usec;
+		seed = get_secs();
     }
 #else
     seed = 314159;
@@ -518,24 +547,33 @@ std::string errno_string(int errsv) {
     return std::string(errstr);
 }
 
-int remove_directory_helper(const char *path, UNUSED const struct stat *ptr,
-                            UNUSED const int flag, UNUSED FTW *ftw) {
+int remove_directory_helper(const char *path, ...) {
     logNTC("In recursion: removing file %s\n", path);
     int res = ::remove(path);
     guarantee_err(res == 0, "Fatal error: failed to delete '%s'.", path);
     return 0;
 }
 
-void remove_directory_recursive(const char *path) {
+void remove_directory_recursive(const char *dirpath) {
+#ifndef _MSC_VER
     // max_openfd is ignored on OS X (which claims the parameter
     // specifies the maximum traversal depth) and used by Linux to
     // limit the number of file descriptors that are open (by opening
     // and closing directories extra times if it needs to go deeper
     // than that).
     const int max_openfd = 128;
-    logNTC("Recursively removing directory %s\n", path);
-    int res = nftw(path, remove_directory_helper, max_openfd, FTW_PHYS | FTW_MOUNT | FTW_DEPTH);
-    guarantee_err(res == 0 || get_errno() == ENOENT, "Trouble while traversing and destroying temporary directory %s.", path);
+    logNTC("Recursively removing directory %s\n", dirpath);
+    int res = nftw(dirpath, remove_directory_helper, max_openfd, FTW_PHYS | FTW_MOUNT | FTW_DEPTH);
+    guarantee_err(res == 0 || get_errno() == ENOENT, "Trouble while traversing and destroying temporary directory %s.", dirpath);
+#else
+	auto go = [](path dir){
+		for (auto it : directory_iterator(dir)) {
+			remove_directory_helper(it->filename());
+		}
+		remove_directory_helper(dir.fielname());
+	};
+	go(dirpath);
+#endif
 }
 
 base_path_t::base_path_t(const std::string &path) : path_(path) { }

@@ -71,7 +71,7 @@ public:
 private:
     bool action_on_heap;
     callable_action_t *action_;
-    char action_data[CALLABLE_CUTOFF_SIZE] ATTR_ALIGNED(sizeof(void*));
+	ATTR_ALIGNED(sizeof(void*)) char action_data[CALLABLE_CUTOFF_SIZE];
 
     DISABLE_COPYING(callable_action_wrapper_t);
 };

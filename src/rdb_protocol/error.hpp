@@ -143,28 +143,28 @@ private:
 #define rcheck_toplevel(pred, type, msg) \
     rcheck_src(ql::backtrace_id_t::empty(), pred, type, msg)
 
-#define rfail_datum(type, args...) do {                          \
-        rcheck_datum(false, type, strprintf(args));              \
+#define rfail_datum(type, ...) do {                             \
+        rcheck_datum(false, type, strprintf(__VA_ARGS__));       \
         unreachable();                                           \
     } while (0)
-#define rfail_target(target, type, args...) do {                 \
-        rcheck_target(target, false, type, strprintf(args));     \
-        unreachable();                                           \
+#define rfail_target(target, type, ...) do {                        \
+        rcheck_target(target, false, type, strprintf(__VA_ARGS__)); \
+        unreachable();                                              \
     } while (0)
-#define rfail_typed_target(target, args...) do {                  \
-        rcheck_typed_target(target, false, strprintf(args));      \
+#define rfail_typed_target(target, ...) do {                      \
+        rcheck_typed_target(target, false, strprintf(__VA_ARGS__));      \
         unreachable();                                            \
     } while (0)
-#define rfail_src(src, type, args...) do {                       \
-        rcheck_src(src, false, type, strprintf(args));            \
+#define rfail_src(src, type, ...) do {                       \
+        rcheck_src(src, false, type, strprintf(__VA_ARGS__));            \
         unreachable();                                           \
     } while (0)
-#define rfail(type, args...) do {                                       \
-        rcheck(false, type, strprintf(args));                           \
+#define rfail(type, ...) do {                                       \
+        rcheck(false, type, strprintf(__VA_ARGS__));                           \
         unreachable();                                                  \
     } while (0)
-#define rfail_toplevel(type, args...) do {               \
-        rcheck_toplevel(false, type, strprintf(args));   \
+#define rfail_toplevel(type, ...) do {               \
+        rcheck_toplevel(false, type, strprintf(__VA_ARGS__));   \
         unreachable();                                   \
     } while (0)
 
@@ -180,7 +180,7 @@ base_exc_t::type_t exc_type(const scoped_ptr_t<val_t> &v);
 // guarantee will almost always fail due to an error in the query logic rather
 // than memory corruption.
 #ifndef NDEBUG
-#define r_sanity_check(test, msg...) guarantee(test, ##msg)
+#define r_sanity_check(test, ...) guarantee(test, ##__VA_ARGS__)
 #else
 #define r_sanity_check(test, msg...) do {                      \
         if (!(test)) {                                         \

@@ -1,6 +1,8 @@
 #ifndef THREADING_HPP_
 #define THREADING_HPP_
 
+#include <stdint.h>
+
 #include "errors.hpp"
 
 // A thread number as used by the thread pool.
