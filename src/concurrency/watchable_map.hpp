@@ -204,6 +204,15 @@ private:
     rwi_lock_assertion_t rwi_lock;
 };
 
+/* A helper type for using a `watchable_map_t` like a set */
+class empty_value_t {
+public:
+    empty_value_t() { }
+    bool operator==(const empty_value_t &) const {
+        return true;
+    }
+};
+
 #include "concurrency/watchable_map.tcc"
 
 #endif   /* CONCURRENCY_WATCHABLE_MAP_HPP_ */

@@ -12,6 +12,8 @@ table_manager_t::table_manager_t(
             *_table_manager_directory,
         backfill_throttler_t *_backfill_throttler,
         table_persistence_interface_t *_persistence_interface,
+        watchable_map_t<std::pair<server_id_t, server_id_t>, empty_value_t>
+            *_connections_map,
         const base_path_t &_base_path,
         io_backender_t *_io_backender,
         const namespace_id_t &_table_id,
@@ -25,6 +27,7 @@ table_manager_t::table_manager_t(
     raft_member_id(_raft_member_id),
     mailbox_manager(_mailbox_manager),
     persistence_interface(_persistence_interface),
+    connections_map(_connections_map),
     perfmon_membership(perfmon_collection_namespace, &perfmon_collection, "regions"),
     raft(raft_member_id, _mailbox_manager, raft_directory.get_values(), this,
         initial_state, "Table " + uuid_to_str(table_id)),
@@ -99,7 +102,7 @@ table_manager_t::leader_t::leader_t(table_manager_t *_parent) :
     parent(_parent),
     contract_ack_read_manager(parent->mailbox_manager),
     coordinator(parent->get_raft(), contract_ack_read_manager.get_values(),
-        "Table " + uuid_to_str(parent->table_id)),
+        parent->connections_map, "Table " + uuid_to_str(parent->table_id)),
     set_config_mailbox(parent->mailbox_manager,
         std::bind(&leader_t::on_set_config, this, ph::_1, ph::_2, ph::_3))
 {

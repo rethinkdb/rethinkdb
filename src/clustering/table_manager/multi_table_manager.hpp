@@ -75,6 +75,8 @@ public:
             *_multi_table_manager_directory,
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
             *_table_manager_directory,
+        watchable_map_t<std::pair<server_id_t, server_id_t>, empty_value_t>
+            *_connections_map,
         table_persistence_interface_t *_persistence_interface,
         const base_path_t &_base_path,
         io_backender_t *_io_backender,
@@ -292,6 +294,8 @@ private:
         * const multi_table_manager_directory;
     watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
         * const table_manager_directory;
+    watchable_map_t<std::pair<server_id_t, server_id_t>, empty_value_t>
+        * const connections_map;
     table_persistence_interface_t *persistence_interface;
 
     boost::optional<base_path_t> base_path;

@@ -20,6 +20,7 @@ declare them here. */
 void calculate_all_contracts(
         const table_raft_state_t &old_state,
         watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> *acks,
+        watchable_map_t<std::pair<server_id_t, server_id_t>, empty_value_t> *connections,
         const std::string &log_prefix,
         std::set<contract_id_t> *remove_contracts_out,
         std::map<contract_id_t, std::pair<region_t, contract_t> > *add_contracts_out);
@@ -35,6 +36,15 @@ namespace unittest {
 
 class coordinator_tester_t {
 public:
+    explicit coordinator_tester_t(const std::set<server_id_t> &_all_servers) :
+            all_servers(_all_servers) {
+        for (const server_id_t &s1 : all_servers) {
+            for (const server_id_t &s2 : all_servers) {
+                connections.set_key(std::make_pair(s1, s2), empty_value_t());
+            }
+        }
+    }
+
     /* `set_config()` is a fast way to change the Raft config. Use it something like
     this:
 
@@ -114,13 +124,11 @@ public:
             const cpu_contract_ids_t &contracts,
             contract_ack_t::state_t st,
             const branch_history_t &branch_history,
-            std::initializer_list<quick_cpu_version_map_args_t> version,
-            bool failover_timeout_elapsed) {
+            std::initializer_list<quick_cpu_version_map_args_t> version) {
         guarantee(st == contract_ack_t::state_t::secondary_need_primary);
         for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
             contract_ack_t ack(st);
             ack.version = boost::make_optional(quick_cpu_version_map(i, version));
-            ack.failover_timeout_elapsed = failover_timeout_elapsed;
             ack.branch_history = branch_history;
             acks.set_key_no_equals(
                 std::make_pair(server, contracts.contract_ids[i]),
@@ -152,12 +160,35 @@ public:
         }
     }
 
+    /* `set_visible()` adds or removes entries in the `connections` map. The first form
+    sets bidirectional visibility between one server and all other servers; the second
+    form sets unidirectional visibility from one specific server to one specific other
+    server.  */
+    void set_visible(const server_id_t &s, bool visible) {
+        for (const server_id_t &s2 : all_servers) {
+            if (visible) {
+                connections.set_key(std::make_pair(s, s2), empty_value_t());
+                connections.set_key(std::make_pair(s2, s), empty_value_t());
+            } else {
+                connections.delete_key(std::make_pair(s, s2));
+                connections.delete_key(std::make_pair(s2, s));
+            }
+        }
+    }
+    void set_visible(const server_id_t &s1, const server_id_t &s2, bool visible) {
+        if (visible) {
+            connections.set_key(std::make_pair(s1, s2), empty_value_t());
+        } else {
+            connections.delete_key(std::make_pair(s1, s2));
+        }
+    }
+
     /* Call `coordinate()` to run the contract coordinator logic on the inputs you've
     created. */
     void coordinate() {
         std::set<contract_id_t> remove_contracts;
         std::map<contract_id_t, std::pair<region_t, contract_t> > add_contracts;
-        calculate_all_contracts(state, &acks, "",
+        calculate_all_contracts(state, &acks, &connections, "",
             &remove_contracts, &add_contracts);
         std::set<branch_id_t> remove_branches;
         branch_history_t add_branches;
@@ -235,13 +266,15 @@ public:
     }
 
     table_raft_state_t state;
+    std::set<server_id_t> all_servers;
     watchable_map_var_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> acks;
+    watchable_map_var_t<std::pair<server_id_t, server_id_t>, empty_value_t> connections;
 };
 
 /* In the `AddReplica` test, we add a single replica to a table. */
 TPTEST(ClusteringContractCoordinator, AddReplica) {
-    coordinator_tester_t test;
     server_id_t alice = generate_uuid(), billy = generate_uuid();
+    coordinator_tester_t test({ alice, billy });
     test.set_config({ {"*-*", {alice}, alice} });
     cpu_branch_ids_t branch = quick_cpu_branch(
         &test.state.branch_history,
@@ -277,8 +310,8 @@ TPTEST(ClusteringContractCoordinator, AddReplica) {
 
 /* In the `RemoveReplica` test, we remove a single replica from a table. */
 TPTEST(ClusteringContractCoordinator, RemoveReplica) {
-    coordinator_tester_t test;
     server_id_t alice = generate_uuid(), billy = generate_uuid();
+    coordinator_tester_t test({ alice, billy });
     test.set_config({ {"*-*", {alice, billy}, alice} });
     cpu_branch_ids_t branch = quick_cpu_branch(
         &test.state.branch_history,
@@ -307,8 +340,8 @@ TPTEST(ClusteringContractCoordinator, RemoveReplica) {
 
 /* In the `ChangePrimary` test, we move the primary from one replica to another. */
 TPTEST(ClusteringContractCoordinator, ChangePrimary) {
-    coordinator_tester_t test;
     server_id_t alice = generate_uuid(), billy = generate_uuid();
+    coordinator_tester_t test({ alice, billy });
     test.set_config({ {"*-*", {alice, billy}, alice} });
     cpu_branch_ids_t branch1 = quick_cpu_branch(
         &test.state.branch_history,
@@ -336,12 +369,10 @@ TPTEST(ClusteringContractCoordinator, ChangePrimary) {
 
     test.add_ack(alice, cid3, contract_ack_t::state_t::secondary_need_primary,
         test.state.branch_history,
-        { {"*-*", &branch1, 123} },
-        false);
+        { {"*-*", &branch1, 123} });
     test.add_ack(billy, cid3, contract_ack_t::state_t::secondary_need_primary,
         test.state.branch_history,
-        { {"*-*", &branch1, 123} },
-        false);
+        { {"*-*", &branch1, 123} });
 
     test.coordinate();
     cpu_contract_ids_t cid4 = test.check_contract("Billy primary; old branch", "*-*",
@@ -353,8 +384,7 @@ TPTEST(ClusteringContractCoordinator, ChangePrimary) {
         { {"*-*", &branch1, 123} });
     test.add_ack(alice, cid4, contract_ack_t::state_t::secondary_need_primary,
         test.state.branch_history,
-        { {"*-*", &branch1, 123} },
-        false);
+        { {"*-*", &branch1, 123} });
     test.add_ack(billy, cid4, contract_ack_t::state_t::primary_need_branch,
         billy_branch_history, &branch2);
 
@@ -365,8 +395,8 @@ TPTEST(ClusteringContractCoordinator, ChangePrimary) {
 
 /* In the `Split` test, we break a shard into two sub-shards. */
 TPTEST(ClusteringContractCoordinator, Split) {
-    coordinator_tester_t test;
     server_id_t alice = generate_uuid(), billy = generate_uuid();
+    coordinator_tester_t test({ alice, billy });
     test.set_config({ {"*-*", {alice}, alice} });
     cpu_branch_ids_t branch1 = quick_cpu_branch(
         &test.state.branch_history,
@@ -401,8 +431,7 @@ TPTEST(ClusteringContractCoordinator, Split) {
         alice_branch_history, &branch2DE);
     test.add_ack(billy, cid2DE, contract_ack_t::state_t::secondary_need_primary,
         branch_history_t(),
-        { {"N-*", nullptr, 0} },
-        false);
+        { {"N-*", nullptr, 0} });
 
     test.coordinate();
     cpu_contract_ids_t cid3ABC = test.check_contract("L: Alice gets branch ID", "*-M",
@@ -432,8 +461,7 @@ TPTEST(ClusteringContractCoordinator, Split) {
     test.add_ack(alice, cid5DE, contract_ack_t::state_t::nothing);
     test.add_ack(billy, cid5DE, contract_ack_t::state_t::secondary_need_primary,
         test.state.branch_history,
-        { {"N-*", &branch2DE, 456 } },
-        false);
+        { {"N-*", &branch2DE, 456 } });
 
     test.coordinate();
     test.check_same_contract(cid3ABC);
@@ -457,10 +485,10 @@ TPTEST(ClusteringContractCoordinator, Split) {
 /* In the `Failover` test, we test that a new primary will be elected if the old primary
 fails. */
 TPTEST(ClusteringContractCoordinator, Failover) {
-    coordinator_tester_t test;
     server_id_t alice = generate_uuid(),
                 billy = generate_uuid(),
                 carol = generate_uuid();
+    coordinator_tester_t test({ alice, billy, carol });
     test.set_config({ {"*-*", {alice, billy, carol}, alice} });
     cpu_branch_ids_t branch1 = quick_cpu_branch(
         &test.state.branch_history,
@@ -474,32 +502,30 @@ TPTEST(ClusteringContractCoordinator, Failover) {
     test.coordinate();
     test.check_same_contract(cid1);
 
-    /* Report that the primary has failed, but initially set `failover_timeout_elapsed`
-    to `false` on one of the secondaries; nothing will happen */
-
+    /* Report that the primary has failed, but initially indicate that both of the
+    secondaries can still see it; nothing will happen. */
+    test.set_visible(alice, false);
+    test.set_visible(billy, alice, true);
+    test.set_visible(carol, alice, true);
     test.remove_ack(alice, cid1);
     test.add_ack(billy, cid1, contract_ack_t::state_t::secondary_need_primary,
         test.state.branch_history,
-        { {"*-*", &branch1, 100} },
-        true);
+        { {"*-*", &branch1, 100} });
     test.add_ack(carol, cid1, contract_ack_t::state_t::secondary_need_primary,
         test.state.branch_history,
-        { {"*-*", &branch1, 101} },
-        false);
+        { {"*-*", &branch1, 101} });
 
     test.coordinate();
     test.check_same_contract(cid1);
 
-    /* OK, now try again with the failover timeout elapsed on both secondaries */
-
+    /* OK, now try again with both secondaries reporting the primary is disconnected. */
+    test.set_visible(alice, false);
     test.add_ack(billy, cid1, contract_ack_t::state_t::secondary_need_primary,
         test.state.branch_history,
-        { {"*-*", &branch1, 100} },
-        true);
+        { {"*-*", &branch1, 100} });
     test.add_ack(carol, cid1, contract_ack_t::state_t::secondary_need_primary,
         test.state.branch_history,
-        { {"*-*", &branch1, 101} },
-        true);
+        { {"*-*", &branch1, 101} });
 
     test.coordinate();
     test.check_contract("Failover", "*-*",
@@ -509,10 +535,10 @@ TPTEST(ClusteringContractCoordinator, Failover) {
 /* In the `FailoverSplit` test, we test a corner case where different servers are
 eligile to be primary for different parts of the new key-space. */
 TPTEST(ClusteringContractCoordinator, FailoverSplit) {
-    coordinator_tester_t test;
     server_id_t alice = generate_uuid(),
                 billy = generate_uuid(),
                 carol = generate_uuid();
+    coordinator_tester_t test({ alice, billy, carol });
     test.set_config({ {"*-*", {alice, billy, carol}, alice} });
     cpu_branch_ids_t branch1 = quick_cpu_branch(
         &test.state.branch_history,
@@ -527,14 +553,13 @@ TPTEST(ClusteringContractCoordinator, FailoverSplit) {
     test.check_same_contract(cid1);
 
     test.remove_ack(alice, cid1);
+    test.set_visible(alice, false);
     test.add_ack(billy, cid1, contract_ack_t::state_t::secondary_need_primary,
         test.state.branch_history,
-        { {"*-*", &branch1, 100} },
-        true);
+        { {"*-*", &branch1, 100} });
     test.add_ack(carol, cid1, contract_ack_t::state_t::secondary_need_primary,
         test.state.branch_history,
-        { {"*-M", &branch1, 101}, {"N-*", &branch1, 99} },
-        true);
+        { {"*-M", &branch1, 101}, {"N-*", &branch1, 99} });
 
     test.coordinate();
     cpu_contract_ids_t cid2 = test.check_contract("No primary", "*-*",
@@ -542,12 +567,10 @@ TPTEST(ClusteringContractCoordinator, FailoverSplit) {
 
     test.add_ack(billy, cid2, contract_ack_t::state_t::secondary_need_primary,
         test.state.branch_history,
-        { {"*-M", &branch1, 100}, {"N-*", &branch1, 100} },
-        true);
+        { {"*-M", &branch1, 100}, {"N-*", &branch1, 100} });
     test.add_ack(carol, cid2, contract_ack_t::state_t::secondary_need_primary,
         test.state.branch_history,
-        { {"*-M", &branch1, 101}, {"N-*", &branch1, 99 } },
-        true);
+        { {"*-M", &branch1, 101}, {"N-*", &branch1, 99 } });
 
     test.coordinate();
     test.check_contract("L: Failover", "*-M",

@@ -3,31 +3,33 @@
 
 server_config_client_t::server_config_client_t(
         mailbox_manager_t *_mailbox_manager,
-        clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
-            cluster_directory_metadata_t> > > _directory_view,
+        watchable_map_t<peer_id_t, cluster_directory_metadata_t> *_directory_view,
         boost::shared_ptr<semilattice_readwrite_view_t<servers_semilattice_metadata_t> >
-            _semilattice_view) :
+            _semilattice_view,
+        watchable_map_t<std::pair<peer_id_t, server_id_t>, empty_value_t>
+            *_peer_connections_map) :
     mailbox_manager(_mailbox_manager),
     directory_view(_directory_view),
     semilattice_view(_semilattice_view),
+    peer_connections_map(_peer_connections_map),
     server_id_to_peer_id_map(std::map<server_id_t, peer_id_t>()),
     peer_id_to_server_id_map(std::map<peer_id_t, server_id_t>()),
     name_to_server_id_map(std::multimap<name_string_t, server_id_t>()),
     server_id_to_name_map(std::map<server_id_t, name_string_t>()),
-    directory_subs([this]() {
-        this->recompute_server_id_to_peer_id_map();
-        }),
-    semilattice_subs([this]() {
-        this->recompute_server_id_to_peer_id_map();
-        this->recompute_name_to_server_id_map();
-        })
+    directory_subs(
+        directory_view,
+        std::bind(&server_config_client_t::on_directory_change, this, ph::_1, ph::_2),
+        true),
+    semilattice_subs(
+        std::bind(&server_config_client_t::on_semilattice_change, this)),
+    peer_connections_map_subs(
+        peer_connections_map,
+        std::bind(&server_config_client_t::on_peer_connections_map_change,
+            this, ph::_1, ph::_2),
+        true)
 {
-    watchable_t< change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> >
-        ::freeze_t freeze(directory_view);
-    directory_subs.reset(directory_view, &freeze);
     semilattice_subs.reset(semilattice_view);
-    recompute_server_id_to_peer_id_map();
-    recompute_name_to_server_id_map();
+    on_semilattice_change();
 }
 
 std::set<server_id_t> server_config_client_t::get_servers_with_tag(
@@ -195,14 +197,12 @@ bool server_config_client_t::do_change(
 
     server_config_business_card_t bcard;
     bool found;
-    directory_view->apply_read(
-        [&](const change_tracking_map_t<peer_id_t, cluster_directory_metadata_t>
-                *dir_metadata) {
-            auto it = dir_metadata->get_inner().find(peer);
-            if (it != dir_metadata->get_inner().end()) {
-                guarantee(it->second.server_config_business_card, "We shouldn't be "
+    directory_view->read_key(peer,
+        [&](const cluster_directory_metadata_t *metadata) {
+            if (metadata != nullptr) {
+                guarantee(metadata->server_config_business_card, "We shouldn't be "
                     "trying to change configuration on a proxy.");
-                bcard = it->second.server_config_business_card.get();
+                bcard = metadata->server_config_business_card.get();
                 found = true;
             } else {
                 found = false;
@@ -249,7 +249,70 @@ bool server_config_client_t::do_change(
     return true;
 }
 
-void server_config_client_t::recompute_name_to_server_id_map() {
+void server_config_client_t::on_directory_change(
+        const peer_id_t &peer_id,
+        const cluster_directory_metadata_t *metadata) {
+    if (metadata != nullptr) {
+        if (metadata->peer_type != SERVER_PEER) {
+            return;
+        }
+        peer_id_to_server_id_map.apply_atomic_op(
+            [&](std::map<peer_id_t, server_id_t> *map) -> bool {
+                (*map)[peer_id] = metadata->server_id;
+                return true;
+            });
+        server_id_to_peer_id_map.apply_atomic_op(
+            [&](std::map<server_id_t, peer_id_t> *map) -> bool {
+                (*map)[metadata->server_id] = peer_id;
+                return true;
+            });
+        while (true) {
+            auto it = connections_map_unknowns.lower_bound(
+                    std::make_pair(peer_id, nil_uuid()));
+            if (it != connections_map_unknowns.end() && it->first == peer_id) {
+                static const empty_value_t empty_value;
+                on_peer_connections_map_change(*it, &empty_value);
+            } else {
+                break;
+            }
+        }
+    } else {
+        /* This is a bit complicated for two reasons. First, the disconnected peer might
+        have been a proxy, so there might not be an entry for it in the maps. Second, we
+        no longer know what its server ID was, so we have to simply eliminate all entries
+        from the `server_id_to_peer_id_map` that don't correspond to entries in the
+        `peer_id_to_server_id_map`. In theory we could use the erased entry from the
+        `peer_id_to_server_id_map` to figure out the server ID, but that would produce
+        bad results in the rare case of two peers with the same server ID. */
+        bool erased = false;
+        std::set<server_id_t> live_server_ids;
+        peer_id_to_server_id_map.apply_atomic_op(
+            [&](std::map<peer_id_t, server_id_t> *map) -> bool {
+                if (map->erase(peer_id) == 1) {
+                    erased = true;
+                    for (const auto &pair : *map) {
+                        live_server_ids.insert(pair.second);
+                    }
+                }
+                return true;
+            });
+        if (erased) {
+            server_id_to_peer_id_map.apply_atomic_op(
+                [&](std::map<server_id_t, peer_id_t> *map) -> bool {
+                    for (auto it = map->begin(); it != map->end();) {
+                        if (live_server_ids.count(it->first) == 0) {
+                            map->erase(it++);
+                        } else {
+                            ++it;
+                        }
+                    }
+                    return true;
+                });
+        }
+    }
+}
+
+void server_config_client_t::on_semilattice_change() {
     std::multimap<name_string_t, server_id_t> new_map_n2m;
     std::map<server_id_t, name_string_t> new_map_m2n;
     servers_semilattice_metadata_t sl_metadata = semilattice_view->get();
@@ -270,23 +333,29 @@ void server_config_client_t::recompute_name_to_server_id_map() {
     server_id_to_name_map.set_value(new_map_m2n);
 }
 
-void server_config_client_t::recompute_server_id_to_peer_id_map() {
-    std::map<server_id_t, peer_id_t> new_map_s2p;
-    std::map<peer_id_t, server_id_t> new_map_p2s;
-    directory_view->apply_read(
-        [&](const change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> *dir) {
-            for (auto dir_it = dir->get_inner().begin();
-                      dir_it != dir->get_inner().end();
-                    ++dir_it) {
-                if (dir_it->second.peer_type == SERVER_PEER) {
-                    new_map_s2p.insert(std::make_pair(
-                        dir_it->second.server_id, dir_it->first));
-                    new_map_p2s.insert(std::make_pair(
-                        dir_it->first, dir_it->second.server_id));
+void server_config_client_t::on_peer_connections_map_change(
+        const std::pair<peer_id_t, server_id_t> &key,
+        const empty_value_t *value) {
+    if (value) {
+        directory_view->read_key(key.first,
+        [&](const cluster_directory_metadata_t *metadata) {
+            if (metadata != nullptr) {
+                connections_map_unknowns.erase(key);
+                if (connections_map_entries.count(key) == 0) {
+                    connections_map_entries[key] = connections_map_t::entry_t(
+                        &connections_map,
+                        std::make_pair(key.second, metadata->server_id),
+                        empty_value_t());
                 }
+            } else {
+                connections_map_entries.erase(key);
+                connections_map_unknowns.insert(key);
             }
-    });
-    server_id_to_peer_id_map.set_value(new_map_s2p);
-    peer_id_to_server_id_map.set_value(new_map_p2s);
+        });
+    } else {
+        connections_map_entries.erase(key);
+        connections_map_unknowns.erase(key);
+    }
 }
+
 

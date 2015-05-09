@@ -32,6 +32,8 @@ public:
     contract_coordinator_t(
         raft_member_t<table_raft_state_t> *raft,
         watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> *acks,
+        watchable_map_t<std::pair<server_id_t, server_id_t>, empty_value_t>
+            *connections_map,
         const std::string &log_prefix);
 
     /* `table_meta_client_t` calls `change_config()` to change the cluster config. */
@@ -53,6 +55,8 @@ private:
 
     raft_member_t<table_raft_state_t> *const raft;
     watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> *const acks;
+    watchable_map_t<std::pair<server_id_t, server_id_t>, empty_value_t>
+        *const connections_map;
     const std::string log_prefix;
 
     /* These `pump_coro_t`s are responsible for calling `pump_contracts()` and
