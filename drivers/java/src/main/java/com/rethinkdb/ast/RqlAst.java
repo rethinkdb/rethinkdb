@@ -14,54 +14,36 @@ import org.json.simple.JSONObject;
  */
 public class RqlAst {
 
-    private TermType termType;
-    protected Arguments args = new Arguments();
-    protected OptArgs optargs = new OptArgs();
+    protected final RqlAst prev;
+    protected final TermType termType;
+    protected final Arguments args;
+    protected final OptArgs optargs;
 
-    // ** Protected Methods ** //
+    protected RqlAst(RqlAst prev, TermType termType, Arguments args, OptArgs optargs) {
+        this.prev = prev;
+        if (termType == null) {
+            throw new RuntimeException("termType can't be null.");
+        }
+        this.termType = termType;
+        if (args != null) {
+            this.args = args;
+        } else {
+            this.args = new Arguments();
+        }
+        if (optargs != null) {
+            this.optargs = optargs;
+        } else {
+            this.optargs = new OptArgs();
+        }
+    }
 
     protected RqlAst(TermType termType, Arguments args) {
-        this(termType, args, new OptArgs());
+        this(null, termType, args, null);
     }
 
-    protected RqlAst(TermType termType) {
-        this(termType, new Arguments(), new OptArgs());
-    }
+    // protected RqlAst(TermType termType, Object[] args) {
 
-    protected RqlAst(TermType termType, Arguments args, OptArgs optargs) {
-        this(null, termType, args, optargs);
-    }
-    public RqlAst(RqlAst previous, TermType termType, Arguments args, OptArgs optargs) {
-        this.termType = termType;
-
-        init(previous, args, optargs);
-    }
-
-    protected void init(RqlAst previous, Arguments args, OptArgs optargs) {
-        if (previous != null && previous.termType != null) {
-            this.args.add(previous);
-        }
-
-        if (args != null) {
-            this.args.addAll(args);
-        }
-
-        if (optargs != null) {
-            this.optargs.putAll(optargs);
-        }
-    }
-
-    protected TermType getTermType() {
-        return termType;
-    }
-
-    protected Arguments getArguments() {
-        return args;
-    }
-
-    protected OptArgs getOptArgs() {
-        return optargs;
-    }
+    // }
 
     protected JSONArray build() {
         // Create a JSON object from the Ast

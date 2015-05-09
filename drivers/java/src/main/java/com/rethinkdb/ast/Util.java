@@ -10,7 +10,9 @@ import com.rethinkdb.ast.gen.Func;
 import com.rethinkdb.ast.gen.MakeArray;
 import com.rethinkdb.ast.gen.MakeObj;
 import com.rethinkdb.ast.gen.Iso8601;
-import com.rethinkdb.model.RqlLambda;
+import com.rethinkdb.model.RqlFunction;
+import com.rethinkdb.model.RqlFunction2;
+
 
 import java.lang.*;
 import java.text.DateFormat;
@@ -57,8 +59,11 @@ public class Util {
             return MakeObj.fromMap(obj);
         }
 
-        if (val instanceof RqlLambda) {
-            return new Func((RqlLambda) val);
+        if (val instanceof RqlFunction) {
+            return new Func((RqlFunction) val);
+        }
+        if (val instanceof RqlFunction2) {
+            return new Func((RqlFunction2) val);
         }
 
         if (val instanceof Date) {
