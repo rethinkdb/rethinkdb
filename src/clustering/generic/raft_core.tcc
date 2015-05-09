@@ -664,26 +664,6 @@ void raft_member_t<state_t>::on_append_entries_rpc(
         }
     }
 
-    std::string new_entries;
-    for (raft_log_index_t i = ps.log.get_latest_index() + 1;
-            i <= request.entries.get_latest_index();
-            ++i) {
-        if (!new_entries.empty()) {
-            new_entries += ", ";
-        }
-        const raft_log_entry_t<state_t> &e = request.entries.get_entry_ref(i);
-        if (e.type == raft_log_entry_type_t::regular) {
-            new_entries += "CHANGE";
-        } else if (e.type == raft_log_entry_type_t::config) {
-            new_entries += "CONFIG";
-        } else {
-            new_entries += "NOOP";
-        }
-    }
-    if (new_entries.empty()) {
-        new_entries = "<none>";
-    }
-
     /* Raft paper, Figure 2: "Append any new entries not already in the log" */
     for (raft_log_index_t i = ps.log.get_latest_index() + 1;
             i <= request.entries.get_latest_index();
@@ -1176,8 +1156,8 @@ void raft_member_t<state_t>::candidate_and_leader_coro(
         guarantee(mode == mode_t::leader);
 
         if (!log_prefix.empty()) {
-            logINF("%s: This server is Raft leader for term %lu.",
-                log_prefix.c_str(), ps.current_term);
+            logINF("%s: This server is Raft leader for term %lu. Latest log index is "
+                "%lu.", log_prefix.c_str(), ps.current_term, ps.log.get_latest_index());
         }
 
         guarantee(current_term_leader_id.is_nil());
