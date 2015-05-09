@@ -635,7 +635,9 @@ contract_coordinator_t::contract_coordinator_t(
     log_prefix(_log_prefix),
     config_pumper(std::bind(&contract_coordinator_t::pump_configs, this, ph::_1)),
     contract_pumper(std::bind(&contract_coordinator_t::pump_contracts, this, ph::_1)),
-    ack_subs(acks, std::bind(&pump_coro_t::notify, &contract_pumper), false)
+    ack_subs(acks, std::bind(&pump_coro_t::notify, &contract_pumper), false),
+    connections_map_subs(connections_map,
+        std::bind(&pump_coro_t::notify, &contract_pumper), false)
 {
     raft->assert_thread();
     /* Do an initial round of pumping, in case there are any changes the previous

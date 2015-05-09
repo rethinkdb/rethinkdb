@@ -69,6 +69,8 @@ private:
 
     watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t>::all_subs_t
         ack_subs;
+    watchable_map_t<std::pair<server_id_t, server_id_t>, empty_value_t>::all_subs_t
+        connections_map_subs;
 };
 
 #endif /* CLUSTERING_TABLE_CONTRACT_COORDINATOR_HPP_ */
