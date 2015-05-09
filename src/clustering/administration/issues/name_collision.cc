@@ -1,6 +1,7 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/administration/issues/name_collision.hpp"
 #include "clustering/administration/datum_adapter.hpp"
+#include "clustering/table_manager/table_meta_client.hpp"
 #include "rdb_protocol/configured_limits.hpp"
 
 const datum_string_t server_name_collision_issue_t::server_name_collision_issue_type =
@@ -131,8 +132,10 @@ bool table_name_collision_issue_t::build_info_and_description(
 
 name_collision_issue_tracker_t::name_collision_issue_tracker_t(
             boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
-                _cluster_sl_view) :
-    cluster_sl_view(_cluster_sl_view) { }
+                _cluster_sl_view,
+            table_meta_client_t *_table_meta_client) :
+    cluster_sl_view(_cluster_sl_view),
+    table_meta_client(_table_meta_client) { }
 
 name_collision_issue_tracker_t::~name_collision_issue_tracker_t() { }
 
@@ -155,14 +158,36 @@ void find_duplicates(const map_t &data,
     }
 }
 
+void find_table_duplicates(
+        table_meta_client_t *table_meta_client,
+        std::vector<scoped_ptr_t<issue_t> > *issues_out) {
+    std::map<namespace_id_t, table_basic_config_t> table_names;
+    table_meta_client->list_names(&table_names);
+
+    std::map<std::pair<database_id_t, name_string_t>, std::vector<namespace_id_t> >
+        name_counts;
+    for (auto const &table_name : table_names) {
+        auto pair = std::make_pair(table_name.second.database, table_name.second.name);
+        name_counts[pair].push_back(table_name.first);
+    }
+
+    for (auto const &name_count : name_counts) {
+        if (name_count.second.size() > 1) {
+            issues_out->push_back(scoped_ptr_t<issue_t>(
+                new table_name_collision_issue_t(name_count.first.second,
+                                                 name_count.first.first,
+                                                 name_count.second)));
+        }
+    }
+}
+
 std::vector<scoped_ptr_t<issue_t> > name_collision_issue_tracker_t::get_issues() const {
     cluster_semilattice_metadata_t metadata = cluster_sl_view->get();
     std::vector<scoped_ptr_t<issue_t> > issues;
 
     find_duplicates<server_name_collision_issue_t>(metadata.servers.servers, &issues);
     find_duplicates<db_name_collision_issue_t>(metadata.databases.databases, &issues);
-
-    // RSI(raft): Look for table name conflicts
+    find_table_duplicates(table_meta_client, &issues);
 
     return issues;
 }

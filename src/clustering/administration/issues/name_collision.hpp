@@ -89,7 +89,8 @@ class name_collision_issue_tracker_t : public issue_tracker_t {
 public:
     name_collision_issue_tracker_t(
         boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
-            _cluster_sl_view);
+            _cluster_sl_view,
+        table_meta_client_t *_table_meta_client);
 
     ~name_collision_issue_tracker_t();
 
@@ -98,6 +99,7 @@ public:
 private:
     boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
         cluster_sl_view;
+    table_meta_client_t *table_meta_client;
 
     DISABLE_COPYING(name_collision_issue_tracker_t);
 };
