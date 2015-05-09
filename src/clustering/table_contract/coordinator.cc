@@ -148,13 +148,18 @@ contract_t calculate_contract(
         }
     }
 
-    /* `visible_voters` includes all members of `voters` which could be visible to a
-    majority of `voters` (and `temp_voters`, if `temp_voters` exists). Note that if the
-    coordinator can't see server X, it will assume server X can see every other server;
-    this reduces spurious failovers when the coordinator loses contact with other
-    servers. */
+    /* `visible_voters` includes all members of `voters` and `temp_voters` which could be
+    visible to a majority of `voters` (and `temp_voters`, if `temp_voters` exists). Note
+    that if the coordinator can't see server X, it will assume server X can see every
+    other server; this reduces spurious failovers when the coordinator loses contact with
+    other servers. */
     std::set<server_id_t> visible_voters;
-    for (const server_id_t &server : new_c.voters) {
+    for (const server_id_t &server : new_c.replicas) {
+        if (new_c.voters.count(server) == 0 &&
+                (!static_cast<bool>(new_c.temp_voters) ||
+                    new_c.temp_voters->count(server) == 0)) {
+            continue;
+        }
         if (invisible_to_majority_of_set(server, new_c.voters, connections_map)) {
             continue;
         }
