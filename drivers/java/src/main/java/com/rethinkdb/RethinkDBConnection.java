@@ -3,26 +3,29 @@ package com.rethinkdb;
 import com.rethinkdb.proto.TermType;
 import com.rethinkdb.proto.Version;
 import com.rethinkdb.proto.QueryType;
-import com.rethinkdb.proto.QueryBuilder;
+import com.rethinkdb.ast.Query;
+import com.rethinkdb.ast.helper.OptArgs;
 import com.rethinkdb.response.Response;
 import com.rethinkdb.response.DBResultFactory;
 import com.rethinkdb.ast.RqlAst;
+import com.rethinkdb.RethinkDBException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.*;
 
 public class RethinkDBConnection {
     private static final Logger logger = LoggerFactory.getLogger(RethinkDBConnection.class);
 
-    private static final AtomicInteger tokenGenerator = new AtomicInteger();
+    private static final AtomicLong tokenGenerator = new AtomicLong();
 
     private String hostname;
     private String authKey;
     private int port;
     private int timeout;
     private String dbName = null;
+    protected Map<Long, Cursor> cursorCache = new HashMap<>();
 
     private SocketChannelFacade socket = new SocketChannelFacade();
 
@@ -70,6 +73,20 @@ public class RethinkDBConnection {
         return socket.isClosed();
     }
 
+    public boolean isOpen() {
+        return !isClosed();
+    }
+
+    protected void assertOpen() {
+        if (isClosed()){
+            throw new RethinkDBException("Connection is closed");
+        }
+    }
+
+    protected long nextToken() {
+        return tokenGenerator.getAndIncrement();
+    }
+
     public void use(String dbName) {
         this.dbName = dbName;
     }
@@ -88,16 +105,25 @@ public class RethinkDBConnection {
         return null;
     }
 
-    private QueryBuilder startQuery(RqlAst query) {
-        // TODO send token and START
+    private <T> Response execute(Query query) {
+        // logger.debug("running {} ", query);
+        // socket.write(query.toByteArray());
+        // return socket.read();
+        socket.write(query.serialize());
 
-        throw new RuntimeException("startQuery not implemented");
     }
 
-    private <T> Response execute(QueryBuilder query) {
-        logger.debug("running {} ", query);
-        socket.write(query.toByteArray());
-        return socket.read();
+    void addToCache(long token, Cursor cursor) {
+        cursorCache.put(token, cursor);
+    }
+
+    Query startQuery(RqlAst query, OptArgs globalOptargs) {
+        execute(Query.start(nextToken(), query, globalOptargs));
+    }
+
+    void stop(Cursor cursor) {
+        assertOpen();
+        execute(Query.stop(cursor.token));
     }
 
 }

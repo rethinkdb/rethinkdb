@@ -4,86 +4,61 @@ import com.rethinkdb.proto.ResponseType;
 import com.rethinkdb.response.DBResultFactory;
 import com.rethinkdb.response.Response;
 import com.rethinkdb.ast.Query;
+import com.rethinkdb.RethinkDBException;
 
 import java.util.*;
 
 
 public class Cursor<T> implements Iterator<T> {
 
-    private List<T> currentBatch;
-    private RethinkDBConnection connection;
-    private Response response;
-    public final long token;
-    private boolean closed;
-    private boolean ended;
+    protected final RethinkDBConnection connection;
+    protected final Query query;
+    protected List<T> items = new ArrayList<>();
+    protected int outstandingRequests = 1;
+    protected int threshold = 0;
+    protected RethinkDBException error = null;
 
-    public final boolean isFeed;
-
-    public Cursor(RethinkDBConnection connection, Response response) {
+    public Cursor(RethinkDBConnection connection, Query query) {
         this.connection = connection;
-        this.response = response;
-        this.currentBatch = (List<T>) DBResultFactory.convert(response);
-        this.isFeed = response.isFeed();
-        this.token = response.getToken();
+        this.query = query;
+        connection.addToCache(query.token, this);
     }
 
-    public boolean isClosed() {
-        closed = closed
-                || connection.isClosed()
-                || response.getType() != ResponseType.SUCCESS_PARTIAL;
-        return closed;
-    }
-
-    protected long getToken() {
-        return response.getToken();
+    public void close() {
+        if (error == null && connection.isOpen()) {
+            outstandingRequests += 1;
+            connection.stop(this);
+        }
     }
 
     @Override
     public boolean hasNext() {
-        if (currentBatch.size() > 0) {
-            return true;
-        } else if (!isClosed()) {
-            if (isFeed) {
-                return true;
-            } else if (response.isPartial()) {
-                loadNextBatch();
-                return hasNext();
-            }
-        }
-        return false;
-    }
-
-    private void loadNextBatch() {
-        response = connection.getNext(response.getToken());
-
-        ended = !response.isPartial();
-        Object converted = DBResultFactory.convert(response);
-        currentBatch.addAll((java.util.Collection<T>) converted);
-    }
-
-    public void close() {
-        if(!isClosed() && response.isPartial()) {
-            connection.closeCursor(this);
-            closed = true;
-        }
-    }
-
-    private T _next(){
-        return currentBatch.remove(0);
+        // if (currentBatch.size() > 0) {
+        //     return true;
+        // } else if (!isClosed()) {
+        //     if (isFeed) {
+        //         return true;
+        //     } else if (response.isPartial()) {
+        //         loadNextBatch();
+        //         return hasNext();
+        //     }
+        // }
+        // return false;
+        throw new RuntimeException("not implemented yet");
     }
 
     @Override
     public T next() {
-        if (currentBatch.size() > 0) {
-            return _next();
-        } else if (!isClosed()){
-            while(!ended && currentBatch.size() == 0){
-                loadNextBatch();
-            }
-            if(currentBatch.size() != 0) {
-                return _next();
-            }
-        }
+        // if (currentBatch.size() > 0) {
+        //     return _next();
+        // } else if (!isClosed()){
+        //     while(!ended && currentBatch.size() == 0){
+        //         loadNextBatch();
+        //     }
+        //     if(currentBatch.size() != 0) {
+        //         return _next();
+        //     }
+        // }
         throw new NoSuchElementException("There are no more elements to get");
     }
 

@@ -21,7 +21,7 @@ public class SocketChannelFacade {
         }
     }
 
-    private void _write(ByteBuffer buffer) {
+    public void write(ByteBuffer buffer) {
         try {
             buffer.flip();
             while (buffer.hasRemaining()) {
@@ -60,7 +60,7 @@ public class SocketChannelFacade {
         ByteBuffer buffer = ByteBuffer.allocate(4);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
         buffer.putInt(i);
-        _write(buffer);
+        write(buffer);
     }
 
     public void writeStringWithLength(String s) {
@@ -68,7 +68,7 @@ public class SocketChannelFacade {
 
         ByteBuffer buffer = ByteBuffer.allocate(s.length());
         buffer.put(s.getBytes());
-        _write(buffer);
+        write(buffer);
     }
 
     public String readString() {
@@ -77,11 +77,7 @@ public class SocketChannelFacade {
 
     public void write(byte[] bytes) {
         writeLEInt(bytes.length);
-
-        ByteBuffer buffer = ByteBuffer.allocate(bytes.length);
-        buffer.put(bytes);
-
-        _write(buffer);
+        write(ByteBuffer.wrap(bytes));
     }
 
     public Response read() {

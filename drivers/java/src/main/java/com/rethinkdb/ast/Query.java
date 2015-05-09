@@ -18,21 +18,41 @@ import org.json.simple.JSONArray;
 public class Query {
     public final QueryType type;
     public final RqlAst term;
-    public final int token;
+    public final long token;
     public final OptArgs globalOptargs;
 
-    public Query(QueryType type, int token, RqlAst term, OptArgs globalOptargs) {
+    public Query(QueryType type, long token, RqlAst term, OptArgs globalOptargs) {
         this.type = type;
         this.token = token;
         this.term = term;
         this.globalOptargs = globalOptargs;
     }
 
+    public static Query stop(long token) {
+        return new Query(QueryType.STOP, token, null, null);
+    }
+
+    public static Query continue_(long token) {
+        return new Query(QueryType.CONTINUE, token, null, null);
+    }
+
+    public static Query stop(long token, RqlAst term, OptArgs globalOptargs) {
+        return new Query(QueryType.START, token, term, globalOptargs);
+    }
+
+    public static Query noreplyWait(long token) {
+        return new Query(QueryType.NOREPLY_WAIT, token, null, null);
+    }
+
     public ByteBuffer serialize() {
         JSONArray queryArr = new JSONArray();
         queryArr.add(type.value);
-        queryArr.add(term.build());
-        queryArr.add(globalOptargs);
+        if (term != null) {
+            queryArr.add(term.build());
+        }
+        if (globalOptargs != null) {
+            queryArr.add(globalOptargs);
+        }
         String queryJson = queryArr.toJSONString();
         return Util.leByteBuffer(8 + 4 + queryJson.length())
             .putLong(token)
