@@ -286,38 +286,56 @@ contract_t calculate_contract(
 
         if (should_kill_primary) {
             new_c.primary = boost::none;
-        } else if (old_c.primary->server != config.primary_replica &&
-                acks.count(config.primary_replica) == 1 &&
-                acks.at(config.primary_replica).state ==
-                    contract_ack_t::state_t::secondary_streaming) {
+        } else if (old_c.primary->server != config.primary_replica) {
             /* The old primary is still a valid replica, but it isn't equal to
             `config.primary_replica`. So we have to do a hand-over to ensure that after
             we kill the primary, `config.primary_replica` will be a valid candidate. */
 
-            if (old_c.primary->hand_over == config.primary_replica) {
+            if (old_c.primary->hand_over !=
+                    boost::make_optional(config.primary_replica)) {
+                /* We haven't started the hand-over yet, or we're in the middle of a
+                hand-over to a different primary. */
+                if (acks.count(config.primary_replica) == 1 &&
+                        acks.at(config.primary_replica).state ==
+                            contract_ack_t::state_t::secondary_streaming) {
+                    /* The new primary is ready, so begin the hand-over. */
+                    new_c.primary->hand_over =
+                        boost::make_optional(config.primary_replica);
+                    if (!log_prefix.empty()) {
+                        logINF("%s: Handing over primary from %s to %s to match table "
+                            "config.", log_prefix.c_str(),
+                            uuid_to_str(old_c.primary->server).c_str(),
+                            uuid_to_str(config.primary_replica).c_str());
+                    }
+                } else {
+                    /* We're not ready to switch to the new primary yet. */
+                    if (static_cast<bool>(old_c.primary->hand_over)) {
+                        /* We were in the middle of a hand over to a different primary,
+                        and then the user changed `config.primary_replica`. But the new
+                        primary isn't ready yet, so cancel the old hand-over. (This is
+                        very uncommon.) */
+                        new_c.primary->hand_over = boost::none;
+                    }
+                }
+            } else {
+                /* We're already in the process of handing over to the new primary. */
                 if (acks.count(old_c.primary->server) == 1 &&
                         acks.at(old_c.primary->server).state ==
                             contract_ack_t::state_t::primary_ready) {
-                    /* We already did the hand over. Now it's safe to stop the old
-                    primary. The new primary will be started later, after a majority of
-                    the replicas acknowledge that they are no longer listening for writes
+                    /* The hand over is complete. Now it's safe to stop the old primary.
+                    The new primary will be started later, after a majority of the
+                    replicas acknowledge that they are no longer listening for writes
                     from the old primary. */
                     new_c.primary = boost::none;
                 }
-            } else {
-                new_c.primary->hand_over = boost::make_optional(config.primary_replica);
-                if (!log_prefix.empty()) {
-                    logINF("%s: Handing off primary from %s to %s to match table "
-                        "config.", log_prefix.c_str(),
-                        uuid_to_str(old_c.primary->server).c_str(),
-                        uuid_to_str(config.primary_replica).c_str());
-                }
             }
         } else {
-            /* We're sticking with the current primary, so `hand_over` should be empty.
-            In the unlikely event that we were in the middle of a hand-over and then
-            changed our minds, it might not be empty, so we clear it manually. */
-            new_c.primary->hand_over = boost::none;
+            if (static_cast<bool>(old_c.primary->hand_over)) {
+                /* We were in the middle of a hand over, but then the user changed
+                `config.primary_replica` back to what it was before. (This is very
+                uncommon.) */
+                new_c.primary->hand_over = boost::none;
+            }
         }
     }
 
