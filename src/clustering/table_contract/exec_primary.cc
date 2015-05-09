@@ -234,14 +234,10 @@ bool primary_execution_t::on_write(
         return false;
     }
 
-    /* Make sure we have contact with a quorum of replicas, our safety condition. If not,
-    don't even attempt the write. This is because the user would get confused if their
-    write returned an error about "not enough acks" and then got applied anyway.
-
-    For example, if the user has tree replicas and they set the ack threshold to
-    "single", and only the primary replica is available, we should reject the write
-    because it's impossible for it to be safe, even though the user's condition is
-    satisfiable. */
+    /* Make sure that we have contact with a majority of replicas. It's bad practice to
+    accept writes if we can't contact a majority of replicas because those writes might
+    be lost during a failover. We do this even if the user set the ack threshold to
+    "single". */
     {
         ack_counter_t counter(contract_snapshot->contract);
         our_dispatcher->get_ready_dispatchees()->apply_read(
