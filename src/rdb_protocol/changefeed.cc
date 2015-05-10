@@ -92,7 +92,7 @@ std::string print(const std::string &s) {
     return "str(" + s + ")";
 }
 std::string print(uint64_t i) {
-    return strprintf("%zu", i);
+    return strprintf("%zu", (size_t)i);
 }
 std::string print(const key_range_t &rng) {
     return rng.print();
@@ -128,7 +128,7 @@ std::string print(const store_key_t &key) {
 }
 std::string print(const stamped_range_t &srng) {
     return strprintf("stamped_range_t(%zu, %s, %s)",
-                     srng.next_expected_stamp,
+                     (size_t)srng.next_expected_stamp,
                      key_to_debug_str(srng.left_fencepost).c_str(),
                      print(srng.ranges).c_str());
 }
