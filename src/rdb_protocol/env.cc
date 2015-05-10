@@ -44,7 +44,7 @@ bool is_noreply(const protob_t<const Query> &q) {
 
 wire_func_t construct_optarg_wire_func(const Term &val) {
     protob_t<Term> arg = r::fun(r::expr(val)).release_counted();
-    propagate_backtrace(arg.get(), &val.GetExtension(ql2::extension::backtrace));
+    propagate_backtrace(arg.get(), backtrace_id_t::empty());
 
     compile_env_t empty_compile_env((var_visibility_t()));
     counted_t<func_term_t> func_term
@@ -54,13 +54,7 @@ wire_func_t construct_optarg_wire_func(const Term &val) {
 }
 
 std::map<std::string, wire_func_t> parse_global_optargs(protob_t<Query> q) {
-    rassert(q.has());
-
-    Term *t = q->mutable_query();
-    preprocess_term(t);
-
     std::map<std::string, wire_func_t> optargs;
-
     for (int i = 0; i < q->global_optargs_size(); ++i) {
         const Query::AssocPair &ap = q->global_optargs(i);
         auto insert_res
@@ -76,8 +70,6 @@ std::map<std::string, wire_func_t> parse_global_optargs(protob_t<Query> q) {
     // Supply a default db of "test" if there is no "db" optarg.
     if (!optargs.count("db")) {
         Term arg = r::db("test").get();
-        Backtrace *t_bt = t->MutableExtension(ql2::extension::backtrace);
-        propagate_backtrace(&arg, t_bt); // duplicate toplevel backtrace
         optargs["db"] = construct_optarg_wire_func(arg);
     }
 

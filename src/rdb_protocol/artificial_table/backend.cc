@@ -4,7 +4,7 @@
 #include "rdb_protocol/datum_stream.hpp"
 
 bool artificial_table_backend_t::read_all_rows_as_stream(
-        const ql::protob_t<const Backtrace> &bt,
+        ql::backtrace_id_t bt,
         const ql::datum_range_t &range,
         sorting_t sorting,
         signal_t *interruptor,
@@ -24,7 +24,7 @@ bool artificial_table_backend_t::read_all_rows_as_stream(
         for (const ql::datum_t &row : rows) {
             ql::datum_t key = row.get_field(primary_key.c_str(), ql::NOTHROW);
             guarantee(key.has());
-            if (range.contains(reql_version_t::LATEST, key)) {
+            if (range.contains(key)) {
                 temp.push_back(row);
             }
         }
@@ -44,9 +44,9 @@ bool artificial_table_backend_t::read_all_rows_as_stream(
                 ql::datum_t b_key = b.get_field(primary_key.c_str(), ql::NOTHROW);
                 guarantee(a_key.has() && b_key.has());
                 if (sorting == sorting_t::ASCENDING) {
-                    return a_key.compare_lt(reql_version_t::LATEST, b_key);
+                    return a_key < b_key;
                 } else {
-                    return a_key.compare_gt(reql_version_t::LATEST, b_key);
+                    return a_key > b_key;
                 }
             });
     }

@@ -102,7 +102,7 @@ void caching_cfeed_artificial_table_backend_t::caching_machinery_t::run(
                 new_mutex_acq_t mutex_acq(&mutex);
                 success = diff_dirty(&mutex_acq, keepalive.get_drain_signal());
             }
-                
+
             if (success) {
                 ready.pulse_if_not_already_pulsed();
             } else {
@@ -134,7 +134,7 @@ bool caching_cfeed_artificial_table_backend_t::caching_machinery_t::diff_dirty(
     /* Copy the dirtiness flags into local variables and reset them. Resetting them now
     is important because it means that notifications that arrive while we're processing
     the current batch will be queued up instead of ignored. */
-    std::set<ql::datum_t, latest_version_optional_datum_less_t> local_dirty_keys;
+    std::set<ql::datum_t, optional_datum_less_t> local_dirty_keys;
     dirtiness_t local_dirtiness = dirtiness_t::none_or_some;
     std::swap(dirty_keys, local_dirty_keys);
     std::swap(dirtiness, local_dirtiness);
@@ -230,7 +230,7 @@ bool caching_cfeed_artificial_table_backend_t::caching_machinery_t::get_values(
     std::string error;
     counted_t<ql::datum_stream_t> stream;
     if (!parent->read_all_rows_as_stream(
-            ql::protob_t<const Backtrace>(),
+            ql::backtrace_id_t(),
             ql::datum_range_t::universe(),
             sorting_t::UNORDERED,
             interruptor,

@@ -15,7 +15,6 @@ private:
         scoped_ptr_t<val_t> v = args->arg(env, 0);
         datum_t d = v->as_datum();
         switch (env->env->reql_version()) {
-        case reql_version_t::v1_13:
         case reql_version_t::v1_14: // v1_15 is the same as v1_14
             break;
         case reql_version_t::v1_16:
@@ -71,11 +70,13 @@ private:
     virtual const char *name() const { return "object"; }
 };
 
-counted_t<term_t> make_keys_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_keys_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<keys_term_t>(env, term);
 }
 
-counted_t<term_t> make_object_term(compile_env_t *env, const protob_t<const Term> &term){
+counted_t<term_t> make_object_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<object_term_t>(env, term);
 }
 

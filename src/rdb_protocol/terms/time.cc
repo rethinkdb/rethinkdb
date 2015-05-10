@@ -99,8 +99,8 @@ private:
         datum_t t = args->arg(env, 0)->as_ptype(pseudo::time_string);
         datum_t lb = args->arg(env, 1)->as_ptype(pseudo::time_string);
         datum_t rb = args->arg(env, 2)->as_ptype(pseudo::time_string);
-        int lcmp = pseudo::time_cmp(env->env->reql_version(), lb, t);
-        int rcmp = pseudo::time_cmp(env->env->reql_version(), t, rb);
+        int lcmp = pseudo::time_cmp(lb, t);
+        int rcmp = pseudo::time_cmp(t, rb);
         return new_val_bool(!(lcmp > 0 || (lcmp == 0 && is_left_open(env, args))
                               || rcmp > 0 || (rcmp == 0 && is_right_open(env, args))));
     }
@@ -142,7 +142,7 @@ private:
 
 class portion_term_t : public op_term_t {
 public:
-    portion_term_t(compile_env_t *env, protob_t<const Term> term,
+    portion_term_t(compile_env_t *env, const protob_t<const Term> term,
                    pseudo::time_component_t _component)
         : op_term_t(env, term, argspec_t(1)), component(_component) { }
 private:
@@ -200,42 +200,64 @@ private:
     virtual const char *name() const { return "time"; }
 };
 
-counted_t<term_t> make_iso8601_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_iso8601_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<iso8601_term_t>(env, term);
 }
-counted_t<term_t> make_to_iso8601_term(compile_env_t *env, const protob_t<const Term> &term) {
+
+counted_t<term_t> make_to_iso8601_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<to_iso8601_term_t>(env, term);
 }
-counted_t<term_t> make_epoch_time_term(compile_env_t *env, const protob_t<const Term> &term) {
+
+counted_t<term_t> make_epoch_time_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<epoch_time_term_t>(env, term);
 }
-counted_t<term_t> make_to_epoch_time_term(compile_env_t *env, const protob_t<const Term> &term) {
+
+counted_t<term_t> make_to_epoch_time_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<to_epoch_time_term_t>(env, term);
 }
-counted_t<term_t> make_now_term(compile_env_t *env, const protob_t<const Term> &term) {
+
+counted_t<term_t> make_now_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<now_term_t>(env, term);
 }
-counted_t<term_t> make_in_timezone_term(compile_env_t *env, const protob_t<const Term> &term) {
+
+counted_t<term_t> make_in_timezone_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<in_timezone_term_t>(env, term);
 }
-counted_t<term_t> make_during_term(compile_env_t *env, const protob_t<const Term> &term) {
+
+counted_t<term_t> make_during_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<during_term_t>(env, term);
 }
 
-counted_t<term_t> make_date_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_date_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<date_term_t>(env, term);
 }
-counted_t<term_t> make_time_of_day_term(compile_env_t *env, const protob_t<const Term> &term) {
+
+counted_t<term_t> make_time_of_day_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<time_of_day_term_t>(env, term);
 }
-counted_t<term_t> make_timezone_term(compile_env_t *env, const protob_t<const Term> &term) {
+
+counted_t<term_t> make_timezone_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<timezone_term_t>(env, term);
 }
-counted_t<term_t> make_time_term(compile_env_t *env, const protob_t<const Term> &term) {
+
+counted_t<term_t> make_time_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<time_term_t>(env, term);
 }
-counted_t<term_t> make_portion_term(compile_env_t *env, const protob_t<const Term> &term,
-                                    pseudo::time_component_t component) {
+
+counted_t<term_t> make_portion_term(
+        compile_env_t *env, const protob_t<const Term> &term,
+        pseudo::time_component_t component) {
     return make_counted<portion_term_t>(env, term, component);
 }
 

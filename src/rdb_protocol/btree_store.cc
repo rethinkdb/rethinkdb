@@ -427,8 +427,7 @@ void store_t::reset_data(
     }
 }
 
-scoped_ptr_t<new_mutex_in_line_t> store_t::get_in_line_for_sindex_queue(
-        buf_lock_t *sindex_block) {
+new_mutex_in_line_t store_t::get_in_line_for_sindex_queue(buf_lock_t *sindex_block) {
     assert_thread();
     // The line for the sindex queue is there to guarantee that we push things to
     // the sindex queue(s) in the same order in which we held the sindex block.
@@ -445,8 +444,7 @@ scoped_ptr_t<new_mutex_in_line_t> store_t::get_in_line_for_sindex_queue(
         // acquisition. It is ok in that context, and we have to handle it here.
         sindex_block->read_acq_signal()->wait();
     }
-    return scoped_ptr_t<new_mutex_in_line_t>(
-            new new_mutex_in_line_t(&sindex_queue_mutex));
+    return new_mutex_in_line_t(&sindex_queue_mutex);
 }
 
 void store_t::register_sindex_queue(
@@ -492,8 +490,7 @@ void store_t::update_sindexes(
             buf_lock_t *sindex_block,
             const std::vector<rdb_modification_report_t> &mod_reports,
             bool release_sindex_block) {
-    scoped_ptr_t<new_mutex_in_line_t> acq =
-            get_in_line_for_sindex_queue(sindex_block);
+    new_mutex_in_line_t acq = get_in_line_for_sindex_queue(sindex_block);
     {
         sindex_access_vector_t sindexes;
         acquire_post_constructed_sindex_superblocks_for_write(
@@ -517,7 +514,7 @@ void store_t::update_sindexes(
 
     // Write mod reports onto the sindex queue. We are in line for the
     // sindex_queue mutex and can already release all other locks.
-    sindex_queue_push(mod_reports, acq.get());
+    sindex_queue_push(mod_reports, &acq);
 }
 
 void store_t::sindex_queue_push(const rdb_modification_report_t &mod_report,

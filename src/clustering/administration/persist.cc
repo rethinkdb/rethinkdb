@@ -49,10 +49,8 @@ struct cluster_metadata_magic_t {
     static const block_magic_t value;
 };
 
-template <>
-const block_magic_t
-    cluster_metadata_magic_t<cluster_version_t::v1_13>::value
-    = { { 'R', 'D', 'm', 'd' } };
+const block_magic_t v1_13_metadata_magic = { { 'R', 'D', 'm', 'd' } };
+
 template <>
 const block_magic_t
     cluster_metadata_magic_t<cluster_version_t::v1_14>::value
@@ -67,17 +65,18 @@ const block_magic_t
     = { { 'R', 'D', 'm', 'g' } };
 template <>
 const block_magic_t
-    cluster_metadata_magic_t<cluster_version_t::v2_0_is_latest_disk>::value
+    cluster_metadata_magic_t<cluster_version_t::v2_0>::value
     = { { 'R', 'D', 'm', 'h' } };
+template <>
+const block_magic_t
+    cluster_metadata_magic_t<cluster_version_t::v2_1_is_latest_disk>::value
+    = { { 'R', 'D', 'm', 'i' } };
 
 template <cluster_version_t>
 struct auth_metadata_magic_t {
     static const block_magic_t value;
 };
 
-template <>
-const block_magic_t auth_metadata_magic_t<cluster_version_t::v1_13>::value
-    = { { 'R', 'D', 'm', 'd' } };
 template <>
 const block_magic_t auth_metadata_magic_t<cluster_version_t::v1_14>::value
     = { { 'R', 'D', 'm', 'e' } };
@@ -88,25 +87,32 @@ template <>
 const block_magic_t auth_metadata_magic_t<cluster_version_t::v1_16>::value
     = { { 'R', 'D', 'm', 'g' } };
 template <>
-const block_magic_t auth_metadata_magic_t<cluster_version_t::v2_0_is_latest_disk>::value
+const block_magic_t auth_metadata_magic_t<cluster_version_t::v2_0>::value
     = { { 'R', 'D', 'm', 'h' } };
+template <>
+const block_magic_t auth_metadata_magic_t<cluster_version_t::v2_1_is_latest_disk>::value
+    = { { 'R', 'D', 'm', 'i' } };
 
-cluster_version_t auth_superblock_version(const auth_metadata_superblock_t *sb) {
-    if (sb->magic
-        == auth_metadata_magic_t<cluster_version_t::v1_13>::value) {
-        return cluster_version_t::v1_13;
+enum class superblock_version_t { pre_1_16 = 0, post_1_16 = 1 };
+
+superblock_version_t auth_superblock_version(const auth_metadata_superblock_t *sb) {
+    if (sb->magic == v1_13_metadata_magic) {
+        return superblock_version_t::pre_1_16;
     } else if (sb->magic
                == auth_metadata_magic_t<cluster_version_t::v1_14>::value) {
-        return cluster_version_t::v1_14;
+        return superblock_version_t::pre_1_16;
     } else if (sb->magic
                == auth_metadata_magic_t<cluster_version_t::v1_15>::value) {
-        return cluster_version_t::v1_15;
+        return superblock_version_t::pre_1_16;
     } else if (sb->magic
                == auth_metadata_magic_t<cluster_version_t::v1_16>::value) {
-        return cluster_version_t::v1_16;
+        return superblock_version_t::post_1_16;
     } else if (sb->magic
-               == auth_metadata_magic_t<cluster_version_t::v2_0_is_latest_disk>::value) {
-        return cluster_version_t::v2_0_is_latest_disk;
+               == auth_metadata_magic_t<cluster_version_t::v2_0>::value) {
+        return superblock_version_t::post_1_16;
+    } else if (sb->magic
+               == auth_metadata_magic_t<cluster_version_t::v2_1_is_latest_disk>::value) {
+        return superblock_version_t::post_1_16;
     } else {
         crash("auth_metadata_superblock_t has invalid magic.");
     }
@@ -152,23 +158,23 @@ static void read_blob(buf_parent_t parent, const char *ref, int maxreflen,
     guarantee_deserialization(res, "T (template code)");
 }
 
-
-cluster_version_t cluster_superblock_version(const cluster_metadata_superblock_t *sb) {
-    if (sb->magic
-        == cluster_metadata_magic_t<cluster_version_t::v1_13>::value) {
-        return cluster_version_t::v1_13;
+superblock_version_t
+cluster_superblock_version(const cluster_metadata_superblock_t *sb) {
+    if (sb->magic == v1_13_metadata_magic) {
+        return superblock_version_t::pre_1_16;
+    } else if (sb->magic == cluster_metadata_magic_t<cluster_version_t::v1_14>::value) {
+        return superblock_version_t::pre_1_16;
+    } else if (sb->magic == cluster_metadata_magic_t<cluster_version_t::v1_15>::value) {
+        return superblock_version_t::pre_1_16;
+    } else if (sb->magic == cluster_metadata_magic_t<cluster_version_t::v1_16>::value) {
+        return superblock_version_t::post_1_16;
     } else if (sb->magic
-               == cluster_metadata_magic_t<cluster_version_t::v1_14>::value) {
-        return cluster_version_t::v1_14;
+               == cluster_metadata_magic_t<cluster_version_t::v2_0>::value) {
+        return superblock_version_t::post_1_16;
     } else if (sb->magic
-               == cluster_metadata_magic_t<cluster_version_t::v1_15>::value) {
-        return cluster_version_t::v1_15;
-    } else if (sb->magic
-               == cluster_metadata_magic_t<cluster_version_t::v1_16>::value) {
-        return cluster_version_t::v1_16;
-    } else if (sb->magic
-               == cluster_metadata_magic_t<cluster_version_t::v2_0_is_latest_disk>::value) {
-        return cluster_version_t::v2_0_is_latest_disk;
+               == cluster_metadata_magic_t<
+                   cluster_version_t::v2_1_is_latest_disk>::value) {
+        return superblock_version_t::post_1_16;
     } else {
         crash("cluster_metadata_superblock_t has invalid magic.");
     }
@@ -178,53 +184,41 @@ void read_metadata_blob(buf_parent_t sb_buf,
                         const cluster_metadata_superblock_t *sb,
                         cluster_semilattice_metadata_t *out,
                         bool log_migrate) {
-    cluster_version_t v = cluster_superblock_version(sb);
-    if (v == cluster_version_t::v1_13 || v == cluster_version_t::v1_13_2 ||
-            v == cluster_version_t::v1_14 || v == cluster_version_t::v1_15) {
-        pre_v1_16::cluster_semilattice_metadata_t old_metadata;
+    // As far as I can tell this code doesn't use the new serialization logic
+    // idiomatically.  The way it should work is that
+    // `deserialize<less_than_1_16>(s, &metadata)` should do the old
+    // deserialization and then call `migrate_cluster_metadata_to_v1_16`, but
+    // instead whoever wrote this put the migration logic here and made the
+    // deserialization logic for `auth_semilattice_metadata_t` and
+    // `pre_v1_16::auth_semilattice_metadata_t` do the same thing for all
+    // template values.  I didn't bother changing it, but don't use this code as
+    // a model for how to use the new serialization logic.
+    pre_v1_16::cluster_semilattice_metadata_t old_metadata;
+    switch (cluster_superblock_version(sb)) {
+    case superblock_version_t::pre_1_16:
         read_blob(
             sb_buf,
             sb->metadata_blob,
             cluster_metadata_superblock_t::METADATA_BLOB_MAXREFLEN,
             [&](read_stream_t *s) -> archive_result_t {
-                switch (v) {
-                    case cluster_version_t::v1_13:
-                        return deserialize<cluster_version_t::v1_13>(s, &old_metadata);
-                    case cluster_version_t::v1_13_2:
-                        return deserialize<cluster_version_t::v1_13_2>(s, &old_metadata);
-                    case cluster_version_t::v1_14:
-                        return deserialize<cluster_version_t::v1_14>(s, &old_metadata);
-                    case cluster_version_t::v1_15:
-                        return deserialize<cluster_version_t::v1_15>(s, &old_metadata);
-                    case cluster_version_t::v1_16:
-                    case cluster_version_t::v2_0_is_latest:
-                    default:
-                        unreachable();
-                }
+                return deserialize<cluster_version_t::LATEST_DISK>(s, &old_metadata);
             });
         if (log_migrate) {
-            logNTC("Migrating existing cluster metadata to the new RethinkDB 1.16 format...");
+            logNTC("Migrating existing cluster metadata to the new "
+                   "RethinkDB 1.16 format...");
         }
         *out = migrate_cluster_metadata_to_v1_16(old_metadata);
-    } else {
+        break;
+    case superblock_version_t::post_1_16:
         read_blob(
             sb_buf,
             sb->metadata_blob,
             cluster_metadata_superblock_t::METADATA_BLOB_MAXREFLEN,
             [&](read_stream_t *s) -> archive_result_t {
-                switch (v) {
-                    case cluster_version_t::v2_0_is_latest:
-                        return deserialize<cluster_version_t::v2_0_is_latest>(s, out);
-                    case cluster_version_t::v1_16:
-                        return deserialize<cluster_version_t::v1_16>(s, out);
-                    case cluster_version_t::v1_13:
-                    case cluster_version_t::v1_13_2:
-                    case cluster_version_t::v1_14:
-                    case cluster_version_t::v1_15:
-                    default:
-                        unreachable();
-                }
+                return deserialize<cluster_version_t::v2_1_is_latest>(s, out);
             });
+        break;
+    default: unreachable();
     }
 }
 
@@ -234,7 +228,7 @@ template <cluster_version_t W>
 void write_metadata_blob(buf_parent_t sb_buf,
                          cluster_metadata_superblock_t *sb,
                          const cluster_semilattice_metadata_t &metadata) {
-    guarantee(cluster_superblock_version(sb) == W);
+    guarantee(sb->magic == cluster_metadata_magic_t<W>::value);
     write_blob<W>(sb_buf,
                   sb->metadata_blob,
                   cluster_metadata_superblock_t::METADATA_BLOB_MAXREFLEN,
@@ -244,13 +238,12 @@ void write_metadata_blob(buf_parent_t sb_buf,
 void read_branch_history_blob(buf_parent_t sb_buf,
                               const cluster_metadata_superblock_t *sb,
                               branch_history_t *out) {
-    cluster_version_t v = cluster_superblock_version(sb);
     read_blob(
         sb_buf,
         sb->rdb_branch_history_blob,
         cluster_metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN,
         [&](read_stream_t *s) -> archive_result_t {
-            return deserialize_for_version(v, s, out);
+            return deserialize<cluster_version_t::v2_1_is_latest>(s, out);
         });
 }
 
@@ -260,7 +253,7 @@ template <cluster_version_t W>
 void write_branch_history_blob(buf_parent_t sb_buf,
                                cluster_metadata_superblock_t *sb,
                                const branch_history_t &history) {
-    guarantee(cluster_superblock_version(sb) == W);
+    guarantee(sb->magic == cluster_metadata_magic_t<W>::value);
     write_blob<W>(sb_buf,
                   sb->rdb_branch_history_blob,
                   cluster_metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN,
@@ -270,7 +263,7 @@ void write_branch_history_blob(buf_parent_t sb_buf,
 void bring_up_to_date(
         buf_parent_t sb_buf,
         cluster_metadata_superblock_t *sb) {
-    if (cluster_superblock_version(sb) == cluster_version_t::LATEST_DISK) {
+    if (sb->magic == cluster_metadata_magic_t<cluster_version_t::LATEST_DISK>::value) {
         // Usually we're already up to date.
         return;
     }
@@ -376,13 +369,14 @@ auth_persistent_file_t::auth_persistent_file_t(io_backender_t *io_backender,
     update_metadata(read_metadata());
 }
 
-auth_persistent_file_t::auth_persistent_file_t(io_backender_t *io_backender,
-                                               const serializer_filepath_t &filename,
-                                               perfmon_collection_t *perfmon_parent,
-                                               const auth_semilattice_metadata_t &initial_metadata) :
-        persistent_file_t<auth_semilattice_metadata_t>(io_backender, filename,
-                                                       perfmon_parent, true),
-        log_migrate(false) {
+auth_persistent_file_t::auth_persistent_file_t(
+    io_backender_t *io_backender,
+    const serializer_filepath_t &filename,
+    perfmon_collection_t *perfmon_parent,
+    const auth_semilattice_metadata_t &initial_metadata) :
+    persistent_file_t<auth_semilattice_metadata_t>(
+        io_backender, filename, perfmon_parent, true),
+    log_migrate(false) {
     object_buffer_t<txn_t> txn;
     get_write_transaction(&txn);
     buf_lock_t superblock(buf_parent_t(txn.get()), SUPERBLOCK_ID,
@@ -398,8 +392,7 @@ auth_persistent_file_t::auth_persistent_file_t(io_backender_t *io_backender,
             sb->metadata_blob,
             auth_metadata_superblock_t::METADATA_BLOB_MAXREFLEN,
             initial_metadata);
-
-    rassert(auth_superblock_version(sb) == cluster_version_t::LATEST_DISK);
+    rassert(sb->magic == auth_metadata_magic_t<cluster_version_t::LATEST_DISK>::value);
 }
 
 auth_persistent_file_t::~auth_persistent_file_t() {
@@ -415,60 +408,48 @@ auth_semilattice_metadata_t auth_persistent_file_t::read_metadata() {
     const auth_metadata_superblock_t *sb
         = static_cast<const auth_metadata_superblock_t *>(sb_read.get_data_read());
     auth_semilattice_metadata_t metadata;
-    cluster_version_t v = auth_superblock_version(sb);
-    if (v == cluster_version_t::v1_13 || v == cluster_version_t::v1_13_2 ||
-            v == cluster_version_t::v1_14 || v == cluster_version_t::v1_15) {
-        pre_v1_16::auth_semilattice_metadata_t old_metadata;
+    // As far as I can tell this code doesn't use the new serialization logic
+    // idiomatically.  The way it should work is that
+    // `deserialize<less_than_1_16>(s, &metadata)` should do the old
+    // deserialization and then call `migrate_auth_metadata_to_v1_16`, but
+    // instead whoever wrote this put the migration logic here and made the
+    // deserialization logic for `auth_semilattice_metadata_t` and
+    // `pre_v1_16::auth_semilattice_metadata_t` do the same thing for all
+    // template values.  I didn't bother changing it, but don't use this code as
+    // a model for how to use the new serialization logic.
+    pre_v1_16::auth_semilattice_metadata_t old_metadata;
+    switch (auth_superblock_version(sb)) {
+    case superblock_version_t::pre_1_16:
         read_blob(
             buf_parent_t(&superblock),
             sb->metadata_blob,
             auth_metadata_superblock_t::METADATA_BLOB_MAXREFLEN,
             [&](read_stream_t *s) -> archive_result_t {
-                switch (v) {
-                    case cluster_version_t::v1_13:
-                        return deserialize<cluster_version_t::v1_13>(s, &old_metadata);
-                    case cluster_version_t::v1_13_2:
-                        return deserialize<cluster_version_t::v1_13_2>(s, &old_metadata);
-                    case cluster_version_t::v1_14:
-                        return deserialize<cluster_version_t::v1_14>(s, &old_metadata);
-                    case cluster_version_t::v1_15:
-                        return deserialize<cluster_version_t::v1_15>(s, &old_metadata);
-                    case cluster_version_t::v1_16:
-                    case cluster_version_t::v2_0_is_latest:
-                    default:
-                        unreachable();
-                }
+                return deserialize<cluster_version_t::LATEST_DISK>(s, &old_metadata);
             });
         if (log_migrate) {
-            logNTC("Migrating existing auth metadata to the new RethinkDB 1.16 format...");
+            logNTC(
+                "Migrating existing auth metadata to the new RethinkDB 1.16 format...");
             log_migrate = false;
         }
         metadata = migrate_auth_metadata_to_v1_16(old_metadata);
-    } else {
+        break;
+    case superblock_version_t::post_1_16:
         read_blob(
             buf_parent_t(&superblock),
             sb->metadata_blob,
             auth_metadata_superblock_t::METADATA_BLOB_MAXREFLEN,
             [&](read_stream_t *s) -> archive_result_t {
-                switch (v) {
-                    case cluster_version_t::v2_0_is_latest:
-                        return deserialize<cluster_version_t::v2_0_is_latest>(
-                            s, &metadata);
-                    case cluster_version_t::v1_16:
-                        return deserialize<cluster_version_t::v1_16>(s, &metadata);
-                    case cluster_version_t::v1_13:
-                    case cluster_version_t::v1_13_2:
-                    case cluster_version_t::v1_14:
-                    case cluster_version_t::v1_15:
-                    default:
-                        unreachable();
-                }
+                return deserialize<cluster_version_t::v2_1_is_latest>(s, &metadata);
             });
+        break;
+    default: unreachable();
     }
     return metadata;
 }
 
-void auth_persistent_file_t::update_metadata(const auth_semilattice_metadata_t &metadata) {
+void auth_persistent_file_t::update_metadata(
+    const auth_semilattice_metadata_t &metadata) {
     // KSI: This and other functions here seem sketchy.  They used order tokens to
     // worry about transaction/superblock acquisition ordering, but they don't
     // actually enforce ordering with some kind of mutex or fifo enforcer.  Or do
@@ -490,26 +471,28 @@ void auth_persistent_file_t::update_metadata(const auth_semilattice_metadata_t &
             auth_metadata_superblock_t::METADATA_BLOB_MAXREFLEN, metadata);
 }
 
-cluster_persistent_file_t::cluster_persistent_file_t(io_backender_t *io_backender,
-                                                     const serializer_filepath_t &filename,
-                                                     perfmon_collection_t *perfmon_parent) :
-        persistent_file_t<cluster_semilattice_metadata_t>(io_backender, filename,
-                                                          perfmon_parent, false),
-        log_migrate(true) {
+cluster_persistent_file_t::cluster_persistent_file_t(
+    io_backender_t *io_backender,
+    const serializer_filepath_t &filename,
+    perfmon_collection_t *perfmon_parent)
+    : persistent_file_t<cluster_semilattice_metadata_t>(io_backender, filename,
+                                                        perfmon_parent, false),
+      log_migrate(true) {
     construct_branch_history_managers(false);
 
     /* Force migration to happen */
     update_metadata(read_metadata());
 }
 
-cluster_persistent_file_t::cluster_persistent_file_t(io_backender_t *io_backender,
-                                                     const serializer_filepath_t &filename,
-                                                     perfmon_collection_t *perfmon_parent,
-                                                     const server_id_t &server_id,
-                                                     const cluster_semilattice_metadata_t &initial_metadata) :
-        persistent_file_t<cluster_semilattice_metadata_t>(io_backender, filename,
-                                                          perfmon_parent, true),
-        log_migrate(false) {
+cluster_persistent_file_t::cluster_persistent_file_t(
+    io_backender_t *io_backender,
+    const serializer_filepath_t &filename,
+    perfmon_collection_t *perfmon_parent,
+    const server_id_t &server_id,
+    const cluster_semilattice_metadata_t &initial_metadata)
+    : persistent_file_t<cluster_semilattice_metadata_t>(
+        io_backender, filename, perfmon_parent, true),
+      log_migrate(false) {
     object_buffer_t<txn_t> txn;
     get_write_transaction(&txn);
     buf_lock_t superblock(buf_parent_t(txn.get()), SUPERBLOCK_ID,
@@ -550,7 +533,8 @@ cluster_semilattice_metadata_t cluster_persistent_file_t::read_metadata() {
     return metadata;
 }
 
-void cluster_persistent_file_t::update_metadata(const cluster_semilattice_metadata_t &metadata) {
+void cluster_persistent_file_t::update_metadata(
+    const cluster_semilattice_metadata_t &metadata) {
     object_buffer_t<txn_t> txn;
     get_write_transaction(&txn);
     buf_lock_t superblock(buf_parent_t(txn.get()), SUPERBLOCK_ID,

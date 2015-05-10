@@ -1,13 +1,8 @@
 desc: Tests updates of selections
-table_variable_name: tbl
+table_variable_name: tbl, tbl2
 tests:
 
     # Set up some data
-    - cd: r.db('test').table_create('test2')
-      ot: partial({'tables_created':1})
-
-    - def: tbl2 = r.db('test').table('test2')
-
     - py: tbl.insert([{'id':i} for i in xrange(100)])
       js: |
         tbl.insert(function(){
@@ -175,8 +170,4 @@ tests:
 
     - cd: tbl2.order_by('id').nth(0)
       ot: ({'id':0,'foo':1})
-
-    # clean up
-    - cd: r.db('test').table_drop('test2')
-      ot: partial({'tables_dropped':1})
 

@@ -163,8 +163,7 @@ public:
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
-    scoped_ptr_t<new_mutex_in_line_t> get_in_line_for_sindex_queue(
-            buf_lock_t *sindex_block);
+    new_mutex_in_line_t get_in_line_for_sindex_queue(buf_lock_t *sindex_block);
 
     void register_sindex_queue(
             internal_disk_backed_queue_t *disk_backed_queue,

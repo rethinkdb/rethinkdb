@@ -99,9 +99,8 @@ void bring_sindexes_up_to_date(
                 &store->perfmon_collection));
 
     {
-        scoped_ptr_t<new_mutex_in_line_t> acq =
-            store->get_in_line_for_sindex_queue(sindex_block);
-        store->register_sindex_queue(mod_queue.get(), acq.get());
+        new_mutex_in_line_t acq = store->get_in_line_for_sindex_queue(sindex_block);
+        store->register_sindex_queue(mod_queue.get(), &acq);
     }
 
     std::map<sindex_name_t, secondary_index_t> sindexes;
@@ -211,11 +210,11 @@ void post_construct_and_drain_queue(
                 break;
             }
 
-            scoped_ptr_t<new_mutex_in_line_t> acq =
+            new_mutex_in_line_t acq =
                 store->get_in_line_for_sindex_queue(&queue_sindex_block);
             // TODO (daniel): Is there a way to release the queue_sindex_block
             // earlier than we do now, ideally before we wait for the acq signal?
-            acq->acq_signal()->wait_lazily_unordered();
+            acq.acq_signal()->wait_lazily_unordered();
 
             const int MAX_CHUNK_SIZE = 10;
             int current_chunk_size = 0;
@@ -242,7 +241,7 @@ void post_construct_and_drain_queue(
                      it != sindexes_to_bring_up_to_date.end(); ++it) {
                     store->mark_index_up_to_date(*it, &queue_sindex_block);
                 }
-                store->deregister_sindex_queue(mod_queue.get(), acq.get());
+                store->deregister_sindex_queue(mod_queue.get(), &acq);
                 return;
             }
         }
@@ -281,9 +280,9 @@ void post_construct_and_drain_queue(
 
         queue_superblock->release();
 
-        scoped_ptr_t<new_mutex_in_line_t> acq =
-                store->get_in_line_for_sindex_queue(&queue_sindex_block);
-        store->deregister_sindex_queue(mod_queue.get(), acq.get());
+        new_mutex_in_line_t acq =
+            store->get_in_line_for_sindex_queue(&queue_sindex_block);
+        store->deregister_sindex_queue(mod_queue.get(), &acq);
     }
 }
 
@@ -613,20 +612,32 @@ void rdb_r_unshard_visitor_t::operator()(const changefeed_limit_subscribe_t &) {
         changefeed_limit_subscribe_response_t(shards, std::move(limit_addrs));
 }
 
-void rdb_r_unshard_visitor_t::operator()(const changefeed_stamp_t &) {
-    response_out->response = changefeed_stamp_response_t();
-    auto out = boost::get<changefeed_stamp_response_t>(&response_out->response);
-    for (size_t i = 0; i < count; ++i) {
-        auto res = boost::get<changefeed_stamp_response_t>(&responses[i].response);
-        for (auto it = res->stamps.begin(); it != res->stamps.end(); ++it) {
-            auto it_out = out->stamps.find(it->first);
-            if (it_out == out->stamps.end()) {
-                out->stamps[it->first] = it->second;
-            } else {
-                it_out->second = std::max(it->second, it_out->second);
-            }
+void unshard_stamps(const std::vector<changefeed_stamp_response_t *> &resps,
+                    changefeed_stamp_response_t *out) {
+    for (auto &&resp : resps) {
+        for (auto &&stamp : resp->stamps) {
+            // Previously conflicts were resolved with `it_out->second =
+            // std::max(it->second, it_out->second)`, but I don't think that
+            // should ever happen and it isn't correct for
+            // `include_initial_vals` changefeeds.
+            auto pair = out->stamps.insert(std::make_pair(stamp.first, stamp.second));
+            guarantee(pair.second);
         }
     }
+}
+
+void rdb_r_unshard_visitor_t::operator()(const changefeed_stamp_t &) {
+    response_out->response = changefeed_stamp_response_t();
+    auto *out = boost::get<changefeed_stamp_response_t>(&response_out->response);
+    guarantee(out != nullptr);
+    std::vector<changefeed_stamp_response_t *> resps;
+    resps.reserve(count);
+    for (size_t i = 0; i < count; ++i) {
+        auto *resp = boost::get<changefeed_stamp_response_t>(&responses[i].response);
+        guarantee(resp);
+        resps.push_back(resp);
+    }
+    unshard_stamps(resps, out);
 }
 
 void rdb_r_unshard_visitor_t::operator()(const changefeed_point_stamp_t &) {
@@ -726,6 +737,7 @@ void rdb_r_unshard_visitor_t::unshard_range_batch(const query_t &q, sorting_t so
 
     // Fill in `truncated` and `last_key`, get responses, abort if there's an error.
     std::vector<ql::result_t *> results(count);
+    std::vector<changefeed_stamp_response_t *> stamp_resps(count);
     store_key_t *best = NULL;
     key_le_t key_le(sorting);
     for (size_t i = 0; i < count; ++i) {
@@ -749,7 +761,7 @@ void rdb_r_unshard_visitor_t::unshard_range_batch(const query_t &q, sorting_t so
                     strprintf("INTERNAL ERROR: mismatched skey versions %d and %d.",
                               out->skey_version,
                               resp->skey_version),
-                    nullptr);
+                    ql::backtrace_id_t::empty());
                 return;
             }
 #endif // NDEBUG
@@ -761,8 +773,16 @@ void rdb_r_unshard_visitor_t::unshard_range_batch(const query_t &q, sorting_t so
             }
         }
         results[i] = &resp->result;
+        if (q.stamp) {
+            guarantee(resp->stamp_response);
+            stamp_resps[i] = &*resp->stamp_response;
+        }
     }
     out->last_key = (best != NULL) ? std::move(*best) : key_max(sorting);
+    if (q.stamp) {
+        out->stamp_response = changefeed_stamp_response_t();
+        unshard_stamps(stamp_resps, &*out->stamp_response);
+    }
 
     // Unshard and finish up.
     try {
@@ -913,11 +933,12 @@ bool read_t::use_snapshot() const THROWS_NOTHING {
     return boost::apply_visitor(use_snapshot_visitor_t(), read);
 }
 
-
 struct route_to_primary_visitor_t : public boost::static_visitor<bool> {
+    bool operator()(const rget_read_t &rget) const {
+        return rget.stamp;
+    }
     bool operator()(const point_read_t &) const {                 return false; }
     bool operator()(const dummy_read_t &) const {                 return false; }
-    bool operator()(const rget_read_t &) const {                  return false; }
     bool operator()(const intersecting_geo_read_t &) const {      return false; }
     bool operator()(const nearest_geo_read_t &) const {           return false; }
     bool operator()(const changefeed_subscribe_t &) const {       return true;  }
@@ -933,8 +954,6 @@ struct route_to_primary_visitor_t : public boost::static_visitor<bool> {
 bool read_t::route_to_primary() const THROWS_NOTHING {
     return boost::apply_visitor(route_to_primary_visitor_t(), read);
 }
-
-
 
 /* write_t::get_region() implementation */
 
@@ -1258,8 +1277,8 @@ RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(point_read_response_t, data);
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
     ql::skey_version_t, int8_t,
     ql::skey_version_t::pre_1_16, ql::skey_version_t::post_1_16);
-RDB_IMPL_SERIALIZABLE_4_FOR_CLUSTER(rget_read_response_t,
-                                    result, skey_version, truncated, last_key);
+RDB_IMPL_SERIALIZABLE_5_FOR_CLUSTER(
+    rget_read_response_t, stamp_response, result, skey_version, truncated, last_key);
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(nearest_geo_read_response_t, results_or_error);
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(distribution_read_response_t, region, key_counts);
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(sindex_list_response_t, sindexes);
@@ -1281,9 +1300,9 @@ RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(sindex_rangespec_t, id, region, original_ran
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         sorting_t, int8_t,
         sorting_t::UNORDERED, sorting_t::DESCENDING);
-RDB_IMPL_SERIALIZABLE_8_FOR_CLUSTER(
-        rget_read_t,
-        region, optargs, table_name, batchspec, transforms, terminal, sindex, sorting);
+RDB_IMPL_SERIALIZABLE_9_FOR_CLUSTER(rget_read_t,
+                                    stamp, region, optargs, table_name, batchspec,
+                                    transforms, terminal, sindex, sorting);
 RDB_IMPL_SERIALIZABLE_8_FOR_CLUSTER(
         intersecting_geo_read_t, region, optargs, table_name, batchspec, transforms,
         terminal, sindex, query_geometry);

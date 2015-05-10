@@ -9,7 +9,7 @@ namespace ql {
 
 class datum_term_t : public term_t {
 public:
-    datum_term_t(protob_t<const Term> t, const configured_limits_t &limits,
+    datum_term_t(const protob_t<const Term> t, const configured_limits_t &limits,
                  reql_version_t reql_version)
         : term_t(t), datum(to_datum(&t->datum(), limits, reql_version)) { }
 private:
@@ -24,7 +24,7 @@ private:
 
 class constant_term_t : public op_term_t {
 public:
-    constant_term_t(compile_env_t *env, protob_t<const Term> t,
+    constant_term_t(compile_env_t *env, const protob_t<const Term> t,
                     double constant, const char *name)
         : op_term_t(env, t, argspec_t(0)), _constant(constant), _name(name) { }
 private:
@@ -127,22 +127,26 @@ private:
     virtual const char *name() const { return "binary"; }
 };
 
-counted_t<term_t> make_datum_term(const protob_t<const Term> &term,
-                                  const configured_limits_t &limits,
-                                  reql_version_t reql_version) {
+counted_t<term_t> make_datum_term(
+        const protob_t<const Term> &term, const configured_limits_t &limits,
+        reql_version_t reql_version) {
     return make_counted<datum_term_t>(term, limits, reql_version);
 }
-counted_t<term_t> make_constant_term(compile_env_t *env, const protob_t<const Term> &term,
-                                     double constant, const char *name) {
+counted_t<term_t> make_constant_term(
+        compile_env_t *env, const protob_t<const Term> &term,
+        double constant, const char *name) {
     return make_counted<constant_term_t>(env, term, constant, name);
 }
-counted_t<term_t> make_make_array_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_make_array_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<make_array_term_t>(env, term);
 }
-counted_t<term_t> make_make_obj_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_make_obj_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<make_obj_term_t>(env, term);
 }
-counted_t<term_t> make_binary_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_binary_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<binary_term_t>(env, term);
 }
 

@@ -42,7 +42,6 @@ class traversal_progress_combiner_t;
 template <class> class watchable_t;
 class Term;
 class Datum;
-class Backtrace;
 
 enum class profile_bool_t {
     PROFILE,
@@ -166,7 +165,17 @@ struct point_read_response_t {
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(point_read_response_t);
 
+struct changefeed_stamp_response_t {
+    changefeed_stamp_response_t() { }
+    // The `uuid_u` below is the uuid of the changefeed `server_t`.  (We have
+    // different timestamps for each `server_t` because they're on different
+    // servers and don't synchronize with each other.)
+    std::map<uuid_u, uint64_t> stamps;
+};
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(changefeed_stamp_response_t);
+
 struct rget_read_response_t {
+    boost::optional<changefeed_stamp_response_t> stamp_response;
     ql::result_t result;
     ql::skey_version_t skey_version;
     bool truncated;
@@ -242,16 +251,6 @@ struct changefeed_subscribe_response_t {
     std::set<ql::changefeed::server_t::addr_t> addrs;
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(changefeed_subscribe_response_t);
-
-struct changefeed_stamp_response_t {
-    changefeed_stamp_response_t() { }
-    // The `uuid_u` below is the uuid of the changefeed `server_t`.  (We have
-    // different timestamps for each `server_t` because they're on different
-    // servers and don't synchronize with each other.)
-    std::map<uuid_u, uint64_t> stamps;
-};
-
-RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(changefeed_stamp_response_t);
 
 struct changefeed_limit_subscribe_response_t {
     int64_t shards;
@@ -339,26 +338,39 @@ struct sindex_rangespec_t {
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(sindex_rangespec_t);
 
+struct changefeed_stamp_t {
+    changefeed_stamp_t() : region(region_t::universe()) { }
+    explicit changefeed_stamp_t(ql::changefeed::client_t::addr_t _addr)
+        : addr(std::move(_addr)), region(region_t::universe()) { }
+    ql::changefeed::client_t::addr_t addr;
+    region_t region;
+};
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(changefeed_stamp_t);
+
 class rget_read_t {
 public:
     rget_read_t() : batchspec(ql::batchspec_t::empty()) { }
 
-    rget_read_t(const region_t &_region,
-                const std::map<std::string, ql::wire_func_t> &_optargs,
-                const std::string &_table_name,
-                const ql::batchspec_t &_batchspec,
-                const std::vector<ql::transform_variant_t> &_transforms,
+    rget_read_t(boost::optional<changefeed_stamp_t> &&_stamp,
+                region_t _region,
+                std::map<std::string, ql::wire_func_t> _optargs,
+                std::string _table_name,
+                ql::batchspec_t _batchspec,
+                std::vector<ql::transform_variant_t> _transforms,
                 boost::optional<ql::terminal_variant_t> &&_terminal,
                 boost::optional<sindex_rangespec_t> &&_sindex,
                 sorting_t _sorting)
-        : region(_region),
-          optargs(_optargs),
-          table_name(_table_name),
-          batchspec(_batchspec),
-          transforms(_transforms),
-          terminal(std::move(_terminal)),
-          sindex(std::move(_sindex)),
-          sorting(_sorting) { }
+    : stamp(std::move(_stamp)),
+      region(std::move(_region)),
+      optargs(std::move(_optargs)),
+      table_name(std::move(_table_name)),
+      batchspec(std::move(_batchspec)),
+      transforms(std::move(_transforms)),
+      terminal(std::move(_terminal)),
+      sindex(std::move(_sindex)),
+      sorting(std::move(_sorting)) { }
+
+    boost::optional<changefeed_stamp_t> stamp;
 
     region_t region; // We need this even for sindex reads due to sharding.
     std::map<std::string, ql::wire_func_t> optargs;
@@ -383,22 +395,26 @@ public:
     intersecting_geo_read_t() : batchspec(ql::batchspec_t::empty()) { }
 
     intersecting_geo_read_t(
-            const region_t &_region,
-            const std::map<std::string, ql::wire_func_t> &_optargs,
-            const std::string &_table_name,
-            const ql::batchspec_t &_batchspec,
-            const std::vector<ql::transform_variant_t> &_transforms,
-            boost::optional<ql::terminal_variant_t> &&_terminal,
-            sindex_rangespec_t &&_sindex,
-            const ql::datum_t &_query_geometry)
-        : region(_region),
-          optargs(_optargs),
-          table_name(_table_name),
-          batchspec(_batchspec),
-          transforms(_transforms),
+        boost::optional<changefeed_stamp_t> &&_stamp,
+        region_t _region,
+        std::map<std::string, ql::wire_func_t> _optargs,
+        std::string _table_name,
+        ql::batchspec_t _batchspec,
+        std::vector<ql::transform_variant_t> _transforms,
+        boost::optional<ql::terminal_variant_t> &&_terminal,
+        sindex_rangespec_t &&_sindex,
+        ql::datum_t _query_geometry)
+        : stamp(std::move(_stamp)),
+          region(std::move(_region)),
+          optargs(std::move(_optargs)),
+          table_name(std::move(_table_name)),
+          batchspec(std::move(_batchspec)),
+          transforms(std::move(_transforms)),
           terminal(std::move(_terminal)),
           sindex(std::move(_sindex)),
-          query_geometry(_query_geometry) { }
+          query_geometry(std::move(_query_geometry)) { }
+
+    boost::optional<changefeed_stamp_t> stamp;
 
     region_t region; // Primary key range. We need this because of sharding.
     std::map<std::string, ql::wire_func_t> optargs;
@@ -507,17 +523,6 @@ struct changefeed_limit_subscribe_t {
     region_t region;
 };
 RDB_DECLARE_SERIALIZABLE(changefeed_limit_subscribe_t);
-
-struct changefeed_stamp_t {
-    changefeed_stamp_t() : region(region_t::universe()) { }
-    explicit changefeed_stamp_t(
-        ql::changefeed::client_t::addr_t _addr)
-        : addr(std::move(_addr)),
-          region(region_t::universe()) { }
-    ql::changefeed::client_t::addr_t addr;
-    region_t region;
-};
-RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(changefeed_stamp_t);
 
 // This is a separate class because it needs to shard and unshard differently.
 struct changefeed_point_stamp_t {

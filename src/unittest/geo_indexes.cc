@@ -160,7 +160,7 @@ void prepare_namespace(namespace_interface_t *nsi,
 
     const ql::sym_t arg(1);
     ql::protob_t<const Term> mapping = ql::r::var(arg).release_counted();
-    ql::map_wire_func_t m(mapping, make_vector(arg), get_backtrace(mapping));
+    ql::map_wire_func_t m(mapping, make_vector(arg), ql::backtrace_id_t::empty());
 
     write_t write(sindex_create_t(index_id, m, sindex_multi_bool_t::SINGLE,
                                   sindex_geo_bool_t::GEO),
@@ -310,7 +310,8 @@ std::vector<datum_t> perform_get_intersecting(
 
     std::string table_name = "test_table"; // This is just used to print error messages
     std::string idx_name = "geo";
-    read_t read(intersecting_geo_read_t(region_t::universe(),
+    read_t read(intersecting_geo_read_t(boost::optional<changefeed_stamp_t>(),
+                                        region_t::universe(),
                                         std::map<std::string, ql::wire_func_t>(),
                                         table_name, ql::batchspec_t::all(),
                                         std::vector<ql::transform_variant_t>(),

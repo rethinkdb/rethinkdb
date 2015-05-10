@@ -3,10 +3,11 @@
 
 #include <string>
 
-#include "rdb_protocol/op.hpp"
 #include "rdb_protocol/error.hpp"
-#include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/minidriver.hpp"
+#include "rdb_protocol/op.hpp"
+#include "rdb_protocol/pb_utils.hpp"
+#include "rdb_protocol/term_walker.hpp"
 
 namespace ql {
 
@@ -14,18 +15,19 @@ namespace ql {
 
 class rewrite_term_t : public term_t {
 public:
-    rewrite_term_t(compile_env_t *env, protob_t<const Term> term, argspec_t argspec,
+    rewrite_term_t(compile_env_t *env, const protob_t<const Term> term,
+                   argspec_t argspec,
                    r::reql_t (*rewrite)(protob_t<const Term> in,
-                                        const pb_rcheckable_t *bt_src,
                                         protob_t<const Term> optargs_in))
-        : term_t(term), in(term), out(make_counted_term()) {
+            : term_t(term), in(term), out(make_counted_term()) {
         int args_size = in->args_size();
         rcheck(argspec.contains(args_size),
                base_exc_t::GENERIC,
                strprintf("Expected %s but found %d.",
                          argspec.print().c_str(), args_size));
-        out->Swap(&rewrite(in, this, in).get());
-        propagate(out.get()); // duplicates `in` backtrace (see `pb_rcheckable_t`)
+        out->Swap(&rewrite(in, in).get());
+        propagate_backtrace(out.get(), backtrace());
+
         real = compile_term(env, out);
     }
 
@@ -53,7 +55,6 @@ public:
         : rewrite_term_t(env, term, argspec_t(3), rewrite) { }
 
     static r::reql_t rewrite(protob_t<const Term> in,
-                             UNUSED const pb_rcheckable_t *bt_src,
                              protob_t<const Term> optargs_in) {
         const Term &left = in->args(0);
         const Term &right = in->args(1);
@@ -81,11 +82,10 @@ public:
 
 class outer_join_term_t : public rewrite_term_t {
 public:
-    outer_join_term_t(compile_env_t *env, const protob_t<const Term> &term) :
-        rewrite_term_t(env, term, argspec_t(3), rewrite) { }
+    outer_join_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : rewrite_term_t(env, term, argspec_t(3), rewrite) { }
 
     static r::reql_t rewrite(protob_t<const Term> in,
-                             UNUSED const pb_rcheckable_t *bt_src,
                              protob_t<const Term> optargs_in) {
         const Term &left = in->args(0);
         const Term &right = in->args(1);
@@ -120,12 +120,11 @@ public:
 
 class eq_join_term_t : public rewrite_term_t {
 public:
-    eq_join_term_t(compile_env_t *env, const protob_t<const Term> &term) :
-        rewrite_term_t(env, term, argspec_t(3), rewrite) { }
+    eq_join_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : rewrite_term_t(env, term, argspec_t(3), rewrite) { }
 private:
 
     static r::reql_t rewrite(protob_t<const Term> in,
-                             UNUSED const pb_rcheckable_t *bt_src,
                              protob_t<const Term> optargs_in) {
         const Term &left = in->args(0);
         const Term &left_attr = in->args(1);
@@ -158,7 +157,6 @@ public:
 private:
 
     static r::reql_t rewrite(protob_t<const Term> in,
-                             UNUSED const pb_rcheckable_t *bt_src,
                              protob_t<const Term> optargs_in) {
         auto x = pb::dummy_var_t::IGNORED;
 
@@ -176,7 +174,6 @@ public:
         : rewrite_term_t(env, term, argspec_t(2), rewrite) { }
 private:
     static r::reql_t rewrite(protob_t<const Term> in,
-                             UNUSED const pb_rcheckable_t *bt_src,
                              protob_t<const Term> optargs_in) {
         auto old_row = pb::dummy_var_t::UPDATE_OLDROW;
         auto new_row = pb::dummy_var_t::UPDATE_NEWROW;
@@ -208,7 +205,6 @@ public:
         : rewrite_term_t(env, term, argspec_t(2), rewrite) { }
 private:
     static r::reql_t rewrite(protob_t<const Term> in,
-                             UNUSED const pb_rcheckable_t *bt_src,
                              protob_t<const Term> optargs_in) {
         r::reql_t term =
             r::expr(in->args(0)).slice(in->args(1), -1,
@@ -226,7 +222,6 @@ public:
         : rewrite_term_t(env, term, argspec_t(2), rewrite) { }
 private:
     static r::reql_t rewrite(protob_t<const Term> in,
-                             UNUSED const pb_rcheckable_t *bt_src,
                              protob_t<const Term> optargs_in) {
         auto row = pb::dummy_var_t::DIFFERENCE_ROW;
 
@@ -248,9 +243,7 @@ public:
         : rewrite_term_t(env, term, argspec_t(1, -1), rewrite) { }
 private:
     static r::reql_t rewrite(protob_t<const Term> in,
-                             UNUSED const pb_rcheckable_t *bt_src,
                              protob_t<const Term> optargs_in) {
-
         r::reql_t has_fields = r::expr(in->args(0)).has_fields();
         has_fields.copy_args_from_term(*in, 1);
         has_fields.copy_optargs_from_term(*optargs_in);
@@ -263,35 +256,35 @@ private:
 };
 
 counted_t<term_t> make_skip_term(
-    compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<skip_term_t>(env, term);
 }
 counted_t<term_t> make_inner_join_term(
-    compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<inner_join_term_t>(env, term);
 }
 counted_t<term_t> make_outer_join_term(
-    compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<outer_join_term_t>(env, term);
 }
 counted_t<term_t> make_eq_join_term(
-    compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<eq_join_term_t>(env, term);
 }
 counted_t<term_t> make_update_term(
-    compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<update_term_t>(env, term);
 }
 counted_t<term_t> make_delete_term(
-    compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<delete_term_t>(env, term);
 }
 counted_t<term_t> make_difference_term(
-    compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<difference_term_t>(env, term);
 }
 counted_t<term_t> make_with_fields_term(
-    compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<with_fields_term_t>(env, term);
 }
 

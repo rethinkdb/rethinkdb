@@ -179,7 +179,7 @@ bool real_reql_cluster_interface_t::db_find(const name_string_t &name,
 
 bool real_reql_cluster_interface_t::db_config(
         const counted_t<const ql::db_t> &db,
-        const ql::protob_t<const Backtrace> &bt,
+        ql::backtrace_id_t bt,
         ql::env_t *env,
         scoped_ptr_t<ql::val_t> *selection_out,
         std::string *error_out) {
@@ -462,7 +462,7 @@ bool real_reql_cluster_interface_t::table_estimate_doc_counts(
 bool real_reql_cluster_interface_t::table_config(
         counted_t<const ql::db_t> db,
         const name_string_t &name,
-        const ql::protob_t<const Backtrace> &bt,
+        ql::backtrace_id_t bt,
         ql::env_t *env,
         scoped_ptr_t<ql::val_t> *selection_out,
         std::string *error_out) {
@@ -482,7 +482,7 @@ bool real_reql_cluster_interface_t::table_config(
 bool real_reql_cluster_interface_t::table_status(
         counted_t<const ql::db_t> db,
         const name_string_t &name,
-        const ql::protob_t<const Backtrace> &bt,
+        ql::backtrace_id_t bt,
         ql::env_t *env,
         scoped_ptr_t<ql::val_t> *selection_out,
         std::string *error_out) {
@@ -994,7 +994,7 @@ bool real_reql_cluster_interface_t::make_single_selection(
         artificial_table_backend_t *table_backend,
         const name_string_t &table_name,
         const uuid_u &primary_key,
-        const ql::protob_t<const Backtrace> &bt,
+        ql::backtrace_id_t bt,
         const std::string &msg_if_not_found,
         ql::env_t *env,
         scoped_ptr_t<ql::val_t> *selection_out,

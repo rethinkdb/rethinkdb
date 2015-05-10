@@ -76,12 +76,6 @@ void validate_pb(const Frame &f) {
     }
 }
 
-void validate_pb(const Backtrace &bt) {
-    for (int i = 0; i < bt.frames_size(); ++i) {
-        validate_pb(bt.frames(i));
-    }
-}
-
 void validate_pb(const Response &r) {
     check_type(Response, r);
     if (r.type() == Response::SUCCESS_ATOM
@@ -231,6 +225,7 @@ static std::set<std::string> acceptable_keys = {
     "replicas",
     "result_format",
     "return_changes",
+    "include_initial_vals",
     "return_vals",
     "right_bound",
     "shards",

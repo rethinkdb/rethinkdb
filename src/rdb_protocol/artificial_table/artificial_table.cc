@@ -58,7 +58,7 @@ ql::datum_t artificial_table_t::read_row(ql::env_t *env,
 counted_t<ql::datum_stream_t> artificial_table_t::read_all(
         ql::env_t *env,
         const std::string &get_all_sindex_id,
-        const ql::protob_t<const Backtrace> &bt,
+        ql::backtrace_id_t bt,
         const std::string &table_name,
         const ql::datum_range_t &range,
         sorting_t sorting,
@@ -79,17 +79,25 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_all(
 }
 
 counted_t<ql::datum_stream_t> artificial_table_t::read_changes(
-        ql::env_t *env,
-        const ql::datum_t &,
-        bool include_states,
-        ql::changefeed::keyspec_t::spec_t &&spec,
-        const ql::protob_t<const Backtrace> &bt,
-        UNUSED const std::string &table_name) {
+    ql::env_t *env,
+    counted_t<ql::datum_stream_t> maybe_src,
+    const ql::datum_t &,
+    bool include_states,
+    ql::changefeed::keyspec_t::spec_t &&spec,
+    ql::backtrace_id_t bt,
+    UNUSED const std::string &table_name) {
+
     counted_t<ql::datum_stream_t> stream;
     std::string error;
     if (!backend->read_changes(
-            env, include_states, bt, std::move(spec),
-            env->interruptor, &stream, &error)) {
+            env,
+            maybe_src.has(),
+            include_states,
+            bt,
+            std::move(spec),
+            env->interruptor,
+            &stream,
+            &error)) {
         rfail_datum(ql::base_exc_t::GENERIC, "%s", error.c_str());
     }
     return stream;
@@ -98,7 +106,7 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_changes(
 counted_t<ql::datum_stream_t> artificial_table_t::read_intersecting(
         UNUSED ql::env_t *env,
         const std::string &sindex,
-        UNUSED const ql::protob_t<const Backtrace> &bt,
+        UNUSED ql::backtrace_id_t bt,
         const std::string &table_name,
         UNUSED bool use_outdated,
         UNUSED const ql::datum_t &query_geometry) {

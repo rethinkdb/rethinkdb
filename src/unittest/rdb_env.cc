@@ -277,7 +277,7 @@ test_rdb_env_t::~test_rdb_env_t() { }
 void test_rdb_env_t::add_table(const std::string &db_name,
                                const std::string &table_name,
                                const std::string &primary_key) {
-    std::set<ql::datum_t, latest_version_optional_datum_less_t> empty_data;
+    std::set<ql::datum_t, optional_datum_less_t> empty_data;
     add_table(db_name, table_name, primary_key, empty_data);
 }
 
@@ -285,13 +285,13 @@ void test_rdb_env_t::add_table(
         const std::string &db_name,
         const std::string &table_name,
         const std::string &primary_key,
-        const std::set<ql::datum_t, latest_version_optional_datum_less_t> &initial_data) {
+        const std::set<ql::datum_t, optional_datum_less_t> &initial_data) {
     std::pair<name_string_t, name_string_t> db_table(
         { name_string_t::guarantee_valid(db_name.c_str()),
           name_string_t::guarantee_valid(table_name.c_str()) });
 
     auto table_it = tables.insert(std::make_pair(db_table, table_data_t())).first;
-    guarantee(table_it != tables.end()); 
+    guarantee(table_it != tables.end());
 
     table_it->second.primary_key = datum_string_t(primary_key);
 
@@ -402,7 +402,7 @@ bool test_rdb_env_t::instance_t::db_find(const name_string_t &name,
 
 bool test_rdb_env_t::instance_t::db_config(
         UNUSED const counted_t<const ql::db_t> &db,
-        UNUSED const ql::protob_t<const Backtrace> &bt,
+        UNUSED ql::backtrace_id_t bt,
         UNUSED ql::env_t *local_env,
         UNUSED scoped_ptr_t<ql::val_t> *selection_out,
         std::string *error_out) {
@@ -484,7 +484,7 @@ bool test_rdb_env_t::instance_t::table_estimate_doc_counts(
 bool test_rdb_env_t::instance_t::table_config(
         UNUSED counted_t<const ql::db_t> db,
         UNUSED const name_string_t &name,
-        UNUSED const ql::protob_t<const Backtrace> &bt,
+        UNUSED ql::backtrace_id_t bt,
         UNUSED ql::env_t *local_env,
         UNUSED scoped_ptr_t<ql::val_t> *selection_out,
         std::string *error_out) {
@@ -495,7 +495,7 @@ bool test_rdb_env_t::instance_t::table_config(
 bool test_rdb_env_t::instance_t::table_status(
         UNUSED counted_t<const ql::db_t> db,
         UNUSED const name_string_t &name,
-        UNUSED const ql::protob_t<const Backtrace> &bt,
+        UNUSED ql::backtrace_id_t bt,
         UNUSED ql::env_t *local_env,
         UNUSED scoped_ptr_t<ql::val_t> *selection_out,
         std::string *error_out) {

@@ -25,7 +25,7 @@ namespace ql {
 
 class func_visitor_t;
 
-class func_t : public slow_atomic_countable_t<func_t>, public pb_rcheckable_t {
+class func_t : public slow_atomic_countable_t<func_t>, public bt_rcheckable_t {
 public:
     virtual ~func_t();
 
@@ -60,7 +60,7 @@ public:
                              eval_flags_t eval_flags = NO_FLAGS) const;
 
 protected:
-    explicit func_t(const protob_t<const Backtrace> &bt_source);
+    explicit func_t(backtrace_id_t bt);
 
 private:
     virtual bool filter_helper(env_t *env, datum_t arg) const = 0;
@@ -70,7 +70,7 @@ private:
 
 class reql_func_t : public func_t {
 public:
-    reql_func_t(const protob_t<const Backtrace> backtrace,  // for pb_rcheckable_t
+    reql_func_t(backtrace_id_t backtrace, // for bt_rcheckable_t
                 const var_scope_t &captured_scope,
                 std::vector<sym_t> arg_names,
                 counted_t<const term_t> body);
@@ -109,7 +109,7 @@ class js_func_t : public func_t {
 public:
     js_func_t(const std::string &_js_source,
               uint64_t timeout_ms,
-              protob_t<const Backtrace> backtrace);
+              backtrace_id_t backtrace);
     ~js_func_t();
 
     // Some queries, like filter, can take a shortcut object instead of a
@@ -150,25 +150,25 @@ protected:
 // function as their argument.
 
 counted_t<const func_t> new_constant_func(datum_t obj,
-                                          const protob_t<const Backtrace> &root);
+                                          backtrace_id_t bt);
 
 counted_t<const func_t> new_pluck_func(datum_t obj,
-                                       const protob_t<const Backtrace> &bt_src);
+                                       backtrace_id_t bt);
 
 counted_t<const func_t> new_get_field_func(datum_t obj,
-                                           const protob_t<const Backtrace> &bt_src);
+                                           backtrace_id_t bt);
 
 counted_t<const func_t> new_eq_comparison_func(datum_t obj,
-                                               const protob_t<const Backtrace> &bt_src);
+                                               backtrace_id_t bt);
 
 counted_t<const func_t> new_page_func(datum_t method,
-                                      const protob_t<const Backtrace> &bt_src);
+                                      backtrace_id_t bt);
 
 class js_result_visitor_t : public boost::static_visitor<val_t *> {
 public:
     js_result_visitor_t(const std::string &_code,
                         uint64_t _timeout_ms,
-                        const pb_rcheckable_t *_parent)
+                        const bt_rcheckable_t *_parent)
         : code(_code),
           timeout_ms(_timeout_ms),
           parent(_parent) { }
@@ -186,7 +186,7 @@ public:
 private:
     std::string code;
     uint64_t timeout_ms;
-    const pb_rcheckable_t *parent;
+    const bt_rcheckable_t *parent;
 };
 
 // Evaluating this returns a `func_t` wrapped in a `val_t`.

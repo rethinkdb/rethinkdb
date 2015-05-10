@@ -78,12 +78,12 @@ counted_t<term_t> make_funcall_term(
     compile_env_t *env, const protob_t<const Term> &term);
 
 // datum_terms.cc
-counted_t<term_t> make_datum_term(const protob_t<const Term> &term,
-                                  const configured_limits_t &limits,
-                                  reql_version_t reql_version);
+counted_t<term_t> make_datum_term(
+    const protob_t<const Term> &term,
+    const configured_limits_t &limits, reql_version_t reql_version);
 counted_t<term_t> make_constant_term(
     compile_env_t *env, const protob_t<const Term> &term,
-                                     double constant, const char *name);
+    double constant, const char *name);
 counted_t<term_t> make_make_array_term(
     compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_make_obj_term(
@@ -320,7 +320,7 @@ counted_t<term_t> make_time_term(
     compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_portion_term(
     compile_env_t *env, const protob_t<const Term> &term,
-                                    pseudo::time_component_t component);
+    pseudo::time_component_t component);
 
 // type_manip.cc
 counted_t<term_t> make_coerce_term(

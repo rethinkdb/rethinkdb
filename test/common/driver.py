@@ -418,6 +418,11 @@ class _Process(object):
             self.local_cluster_port = utils.get_avalible_port()
             options += ['--client-port', str(self.local_cluster_port)]
         
+        # -- supress update checks/reporting in
+        
+        if not '--no-update-check' in options:
+            options += ['--no-update-check']
+        
         # - set to join the cluster
         
         for peer in cluster.processes:

@@ -97,17 +97,14 @@ private:
                          const store_key_t &last_key,
                          const std::vector<result_t *> &results) {
         guarantee(acc.size() == 0);
-        std::map<datum_t, std::vector<T *>, optional_datum_less_t>
-            vecs(optional_datum_less_t(env->reql_version()));
+        std::map<datum_t, std::vector<T *>, optional_datum_less_t> vecs;
         for (auto res = results.begin(); res != results.end(); ++res) {
             guarantee(*res);
             grouped_t<T> *gres = boost::get<grouped_t<T> >(*res);
             guarantee(gres);
             // `gres`'s ordering doesn't affect things here because we're putting the
             // values into a parallel map.
-            for (auto kv = gres->begin(grouped::order_doesnt_matter_t());
-                 kv != gres->end(grouped::order_doesnt_matter_t());
-                 ++kv) {
+            for (auto kv = gres->begin(); kv != gres->end(); ++kv) {
                 vecs[kv->first].push_back(&kv->second);
             }
         }
@@ -233,7 +230,7 @@ private:
         guarantee(false); // Don't use this as an eager accumulator.
     }
     virtual scoped_ptr_t<val_t> finish_eager(
-        protob_t<const Backtrace>, bool, const ql::configured_limits_t &) {
+        backtrace_id_t, bool, const ql::configured_limits_t &) {
         guarantee(false); // Don't use this as an eager accumulator.
         unreachable();
     }
@@ -314,8 +311,7 @@ bool is_grouped_data(grouped_t<stream_t> *streams, const ql::datum_t &q) {
 // (Also, I'm sorry for this absurd type hierarchy.)
 class to_array_t : public eager_acc_t {
 public:
-    explicit to_array_t(reql_version_t reql_version)
-        : groups(optional_datum_less_t(reql_version)), size(0) { }
+    to_array_t() : size(0) { }
 private:
     virtual void operator()(env_t *env, groups_t *gs) {
         for (auto kv = gs->begin(); kv != gs->end(); ++kv) {
@@ -346,9 +342,7 @@ private:
 
         // The order in which we iterate `streams` doesn't matter here because all
         // the `kv->first` values are unique.
-        for (auto kv = streams->begin(grouped::order_doesnt_matter_t());
-             kv != streams->end(grouped::order_doesnt_matter_t());
-             ++kv) {
+        for (auto kv = streams->begin(); kv != streams->end(); ++kv) {
             datums_t *lst = &groups[kv->first];
             stream_t *stream = &kv->second;
             size += stream->size();
@@ -371,9 +365,9 @@ private:
         }
     }
 
-    virtual scoped_ptr_t<val_t> finish_eager(protob_t<const Backtrace> bt,
-                                          bool is_grouped,
-                                          const configured_limits_t &limits) {
+    virtual scoped_ptr_t<val_t> finish_eager(backtrace_id_t bt,
+                                             bool is_grouped,
+                                             const configured_limits_t &limits) {
         if (is_grouped) {
             counted_t<grouped_data_t> ret(new grouped_data_t());
             for (auto kv = groups.begin(); kv != groups.end(); ++kv) {
@@ -395,8 +389,8 @@ private:
     size_t size;
 };
 
-scoped_ptr_t<eager_acc_t> make_to_array(reql_version_t reql_version) {
-    return make_scoped<to_array_t>(reql_version);
+scoped_ptr_t<eager_acc_t> make_to_array() {
+    return make_scoped<to_array_t>();
 }
 
 template<class T>
@@ -421,9 +415,9 @@ private:
         groups->clear();
     }
 
-    virtual scoped_ptr_t<val_t> finish_eager(protob_t<const Backtrace> bt,
-                                          bool is_grouped,
-                                          UNUSED const configured_limits_t &limits) {
+    virtual scoped_ptr_t<val_t> finish_eager(backtrace_id_t bt,
+                                             bool is_grouped,
+                                             UNUSED const configured_limits_t &limits) {
         accumulator_t::mark_finished();
         grouped_t<T> *acc = grouped_acc_t<T>::get_acc();
         const T *default_val = grouped_acc_t<T>::get_default_val();
@@ -432,9 +426,7 @@ private:
             counted_t<grouped_data_t> ret(new grouped_data_t());
             // The order of `acc` doesn't matter here because we're putting stuff
             // into the parallel map, `ret`.
-            for (auto kv = acc->begin(grouped::order_doesnt_matter_t());
-                 kv != acc->end(grouped::order_doesnt_matter_t());
-                 ++kv) {
+            for (auto kv = acc->begin(); kv != acc->end(); ++kv) {
                 ret->insert(std::make_pair(kv->first, unpack(&kv->second)));
             }
             retval = make_scoped<val_t>(std::move(ret), bt);
@@ -443,10 +435,8 @@ private:
             retval = make_scoped<val_t>(unpack(&t), bt);
         } else {
             // Order doesnt' matter here because the size is 1.
-            r_sanity_check(acc->size() == 1 &&
-                           !acc->begin(grouped::order_doesnt_matter_t())->first.has());
-            retval = make_scoped<val_t>(
-                unpack(&acc->begin(grouped::order_doesnt_matter_t())->second), bt);
+            r_sanity_check(acc->size() == 1 && !acc->begin()->first.has());
+            retval = make_scoped<val_t>(unpack(&acc->begin()->second), bt);
         }
         acc->clear();
         return retval;
@@ -467,8 +457,7 @@ private:
             // Order in fact does NOT matter here.  The reason is, each `kv->first`
             // value is different, which means each operation works on a different
             // key/value pair of `acc`.
-            for (auto kv = gres->begin(grouped::order_doesnt_matter_t());
-                 kv != gres->end(grouped::order_doesnt_matter_t()); ++kv) {
+            for (auto kv = gres->begin(); kv != gres->end(); ++kv) {
                 auto t_it = acc->insert(std::make_pair(kv->first, *default_val)).first;
                 unshard_impl(env, &t_it->second, &kv->second);
             }
@@ -531,7 +520,7 @@ protected:
     skip_terminal_t(const skip_wire_func_t &wf, T &&t)
         : terminal_t<T>(std::move(t)),
           f(wf.compile_wire_func_or_null()),
-          bt(wf.bt.get_bt()) { }
+          bt(wf.bt) { }
     virtual bool accumulate(env_t *env,
                             const datum_t &el,
                             T *out) {
@@ -540,7 +529,7 @@ protected:
             return true;
         } catch (const datum_exc_t &e) {
             if (e.get_type() != base_exc_t::NON_EXISTENCE) {
-                throw exc_t(e, bt.get());
+                throw exc_t(e, bt);
             }
         } catch (const exc_t &e2) {
             if (e2.get_type() != base_exc_t::NON_EXISTENCE) {
@@ -556,7 +545,7 @@ private:
                            const acc_func_t &f) = 0;
 
     acc_func_t f;
-    protob_t<const Backtrace> bt;
+    backtrace_id_t bt;
 };
 
 class sum_terminal_t : public skip_terminal_t<double> {
@@ -613,14 +602,11 @@ optimizer_t::optimizer_t(const datum_t &_row,
     : row(_row), val(_val) { }
 void optimizer_t::swap_if_other_better(
     optimizer_t *other,
-    reql_version_t reql_version,
-    bool (*beats)(reql_version_t reql_version,
-                  const datum_t &val1,
-                  const datum_t &val2)) {
+    bool (*beats)(const datum_t &val1, const datum_t &val2)) {
     r_sanity_check(val.has() == row.has());
     r_sanity_check(other->val.has() == other->row.has());
     if (other->val.has()) {
-        if (!val.has() || beats(reql_version, other->val, val)) {
+        if (!val.has() || beats(other->val, val)) {
             std::swap(row, other->row);
             std::swap(val, other->val);
         }
@@ -638,27 +624,21 @@ datum_t optimizer_t::unpack(const char *name) {
     return row;
 }
 
-bool datum_lt(reql_version_t reql_version,
-              const datum_t &val1,
-              const datum_t &val2) {
+bool datum_lt(const datum_t &val1, const datum_t &val2) {
     r_sanity_check(val1.has() && val2.has());
-    return val1.compare_lt(reql_version, val2);
+    return val1 < val2;
 }
 
-bool datum_gt(reql_version_t reql_version,
-              const datum_t &val1,
-              const datum_t &val2) {
+bool datum_gt(const datum_t &val1, const datum_t &val2) {
     r_sanity_check(val1.has() && val2.has());
-    return val1.compare_gt(reql_version, val2);
+    return val1 > val2;
 }
 
 class optimizing_terminal_t : public skip_terminal_t<optimizer_t> {
 public:
     optimizing_terminal_t(const skip_wire_func_t &f,
                           const char *_name,
-                          bool (*_cmp)(reql_version_t,
-                                       const datum_t &val1,
-                                       const datum_t &val2))
+                          bool (*_cmp)(const datum_t &val1, const datum_t &val2))
         : skip_terminal_t<optimizer_t>(f, optimizer_t()),
           name(_name),
           cmp(_cmp) { }
@@ -668,18 +648,16 @@ private:
                            optimizer_t *out,
                            const acc_func_t &f) {
         optimizer_t other(el, f(env, el));
-        out->swap_if_other_better(&other, env->reql_version(), cmp);
+        out->swap_if_other_better(&other, cmp);
     }
     virtual datum_t unpack(optimizer_t *el) {
         return el->unpack(name);
     }
-    virtual void unshard_impl(env_t *env, optimizer_t *out, optimizer_t *el) {
-        out->swap_if_other_better(el, env->reql_version(), cmp);
+    virtual void unshard_impl(env_t *, optimizer_t *out, optimizer_t *el) {
+        out->swap_if_other_better(el, cmp);
     }
     const char *name;
-    bool (*cmp)(reql_version_t,
-                const datum_t &val1,
-                const datum_t &val2);
+    bool (*cmp)(const datum_t &val1, const datum_t &val2);
 };
 
 const char *const empty_stream_msg =
@@ -698,7 +676,7 @@ private:
             *out = out->has() ? f->call(env, *out, el)->as_datum() : el;
             return true;
         } catch (const datum_exc_t &e) {
-            throw exc_t(e, f->backtrace().get(), 1);
+            throw exc_t(e, f->backtrace(), 1);
         }
     }
     virtual datum_t unpack(datum_t *el) {
@@ -801,7 +779,7 @@ private:
                         }
                     }
                 } catch (const datum_exc_t &e) {
-                    throw exc_t(e, (*f)->backtrace().get(), 1);
+                    throw exc_t(e, (*f)->backtrace(), 1);
                 }
             }
             if (append_index) {
@@ -830,7 +808,7 @@ private:
                 r_sanity_check(instance.size() == 0);
             }
 
-            rcheck_src(bt.get(),
+            rcheck_src(bt,
                        groups->size() <= env->limits().array_size_limit(),
                        base_exc_t::GENERIC,
                        strprintf("Too many groups (> %zu).",
@@ -879,7 +857,7 @@ private:
 
     std::vector<counted_t<const func_t> > funcs;
     bool append_index, multi;
-    protob_t<const Backtrace> bt;
+    backtrace_id_t bt;
 };
 
 class map_trans_t : public ungrouped_op_t {
@@ -894,7 +872,7 @@ private:
                 *it = f->call(env, *it)->as_datum();
             }
         } catch (const datum_exc_t &e) {
-            throw exc_t(e, f->backtrace().get(), 1);
+            throw exc_t(e, f->backtrace(), 1);
         }
     }
     counted_t<const func_t> f;
@@ -951,7 +929,7 @@ private:
                 }
             }
         } catch (const datum_exc_t &e) {
-            throw exc_t(e, f->backtrace().get(), 1);
+            throw exc_t(e, f->backtrace(), 1);
         }
         lst->erase(loc, lst->end());
     }
@@ -980,7 +958,7 @@ private:
                 }
             }
         } catch (const datum_exc_t &e) {
-            throw exc_t(e, f->backtrace().get(), 1);
+            throw exc_t(e, f->backtrace(), 1);
         }
         lst->swap(new_lst);
     }
