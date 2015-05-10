@@ -1414,6 +1414,214 @@ class HttpConnection extends Connection
         xhr.send view
         @xhr = xhr
 
+
+# ### WebSocketConnection class
+#
+# This class allows web apps to connect to a websocket proxy for RethinkDb
+#
+class WebSocketConnection extends Connection
+    # We defined the default protocol in case the user doesn't specify
+    # one.
+    DEFAULT_PROTOCOL: 'ws'
+
+
+    # We define the default ping interval in case the user doesn't specify one.
+    DEFAULT_PING_INTERVAL: 37*1000
+
+    # A static method used by `r.connect` to decide which kind of
+    # connection to create in a given environment. Here we check if
+    # XHRs are defined. If not, we aren't in the browser and shouldn't
+    # be using `HttpConnection`
+    @isAvailable: -> typeof WebSocket isnt "undefined"
+
+    # #### WebSocketConnection constructor method
+    #
+    constructor: (host, callback) ->
+        # A quick check to ensure we can create an `HttpConnection`
+        unless WebSocketConnection.isAvailable()
+            throw new err.RqlDriverError "WebSocket is not available in this environment"
+        # Call the superclass constructor. This initializes the
+        # attributes `@host`, `@port`, `@db`, `@authKey`, `@timeout`,
+        # `@outstandingCallbacks`, `@nextToken`, `@open`, `@closing`,
+        # and `@buffer`. It also registers the callback to be invoked
+        # once the `"connect"` event is emitted.
+        super(host, callback)
+
+        # A protocol may be supplied in the host object. If the host
+        # doesn't have a protocol key, (or is a string, which it's
+        # also allowed to be), then use the default protocol, which is
+        # 'ws'
+        protocol = if host.protocol is 'wss' then 'wss' else @DEFAULT_PROTOCOL
+
+        ping_interval = host.ping_interval or @DEFAULT_PING_INTERVAL
+
+        # Next we construct an XHR with the path to the reql query
+        # endpoint on the http server.
+        url = "#{protocol}://#{@host}:#{@port}#{host.pathname}"
+
+        if host.factory
+          @socket = host.factory(url, host.options || {})
+        else
+          @socket = new WebSocket(url)
+
+        @socket.binaryType = "arraybuffer"
+
+        @socket.onopen = (e) =>
+            # The protocol specifies that the magic number for the
+            # version should be given as a little endian 32 bit
+            # unsigned integer. The value is given in the `proto-def`
+            # module, but it is just a random number that's unlikely
+            # to be accidentally the first few bytes of an erroneous
+            # connection on the socket.
+            version = new Buffer(4)
+            version.writeUInt32LE(protoVersion, 0)
+
+            # Since the auth key has a variable length, we need to
+            # both encode its length in the wire format (little endian
+            # 32 bit), and the bytes themselves.
+            auth_buffer = new Buffer(@authKey, 'ascii')
+            auth_length = new Buffer(4)
+            auth_length.writeUInt32LE(auth_buffer.length, 0)
+
+            # Send the protocol type that we will be using to
+            # communicate with the server. This can be either
+            # protobuf, or json. The protobuf protocol is deprecated
+            # however.
+            protocol = new Buffer(4)
+            protocol.writeUInt32LE(protoProtocol, 0)
+
+            # Write the version, auth key length, auth key, and
+            # protocol number to the socket, in that order.
+            auth = Buffer.concat([version, auth_length, auth_buffer, protocol]).buffer
+            @socket.send(auth)
+
+        @socket.onmessage = (e) =>
+            buf = new Buffer(new Uint8Array(e.data))
+            # Once we receive a response, extend the current
+            # buffer with the data from the server. The reason we
+            # extend it, vs. just setting it to the value of `buf`
+            # is that this callback may be invoked several times
+            # before the server response is received in full. Each
+            # time through we check if we've received the entire
+            # response, and only disable this event listener at
+            # that time.
+            @buffer = Buffer.concat([@buffer, buf])
+
+            # Next we read bytes until we get a null byte. This is
+            # the response string from the server and should just
+            # be "SUCCESS\0". Anything else is an error.
+            for b,i in @buffer
+                if b is 0
+                    # Once we get the null byte, the server
+                    # response has been received and we can turn
+                    # off the handshake callback
+                    @socket.onmessage = null
+
+                    # Here we pull the status string out of the
+                    # buffer and convert it into a string.
+                    status_buf = @buffer.slice(0, i)
+                    @buffer = @buffer.slice(i + 1)
+                    status_str = status_buf.toString()
+
+                    # Finally, check the status string.
+                    if status_str == "SUCCESS"
+                        # Set up the `_data` method to receive all
+                        # further responses from the server. This
+                        # callback is only for the initial
+                        # connection, all future responses will be
+                        # in reply to queries.
+                        #
+                        # We wrap @_data in a function instead of
+                        # just giving it as a callback directly so
+                        # that it gets bound to the correct
+                        # `this`.
+                        @socket.onmessage = (e) =>
+                          if e.data != 'pong'
+                            @_data(new Buffer(new Uint8Array(e.data)))
+
+                        if ping_interval > 0
+                          @ping = setInterval =>
+                            @socket.send('ping')
+                          , ping_interval
+                        else
+                          @ping = null
+
+                        # Notify listeners we've connected
+                        # successfully. Notably, the Connection
+                        # constructor registers a listener for the
+                        # `"connect"` event that sets the `@open`
+                        # flag on the connection and invokes the
+                        # callback passed to the `r.connect`
+                        # function.
+                        @emit 'connect'
+                        return
+                    else
+                        # The protocol dictates that any other
+                        # string but `SUCCESS` is an error
+                        # indicating the problem, and that we
+                        # should report the error to the user.
+                        @emit 'error', new err.RqlDriverError "Server dropped connection with message: \"" + status_str.trim() + "\""
+                        return
+
+    # #### WebSocketConnection cancel method
+    #
+    # This sends a POST to the `close-connection` endpoint, so the
+    # server can deallocate resources related to the connection. This
+    # throws out any data for unconsumed cursors etc and invalidates
+    # this connection id.
+    cancel: ->
+        if @ping
+          clearInterval @ping
+
+        @socket.close()
+        super()
+
+    # #### WebSocketConnection close method
+    #
+    # Closes the websocket connection. Does nothing new or special beyond
+    # what the superclass already does. The server connection is
+    # closed in `cancel` above, which the superclass calls for us.
+    close: (varar 0, 2, (optsOrCallback, callback) ->
+        # This would simply be `super(opts, wrappedCb)`, if we were
+        # not in the varar anonymous function
+        WebSocketConnection.__super__.close.call(this, opts, cb)
+    )
+
+    # #### WebSocketConnection _writeQuery method
+    #
+    # This creates the buffer to send to the server, writes the token
+    # and data to it, then passes the data and buffer down to `write`
+    # to write the data itself to the xhr request.
+    #
+    # This differs from `TcpConnection`'s version of `_writeQuery`
+    # which only writes the token.
+    _writeQuery: (token, data) ->
+        # We use encodeURI to get the length of the unicode
+        # representation of the data.
+        buf = new Buffer(data.length + 12)
+
+        # Again, the token is encoded as a little-endian 8 byte
+        # unsigned integer.
+        buf.writeUInt32LE(token & 0xFFFFFFFF, 0)
+        buf.writeUInt32LE(Math.floor(token / 0xFFFFFFFF), 4)
+        buf.writeUInt32LE(data.length, 8)
+        # Write the data out to the bufferm then invoke `write` with
+        # the buffer and token
+        buf.write(data, 12)
+        @write buf
+
+    # #### WebSocketConnection write method
+    #
+    # This method takes a Node Buffer (or more accurately, the Buffer
+    # class that Browserify polyfills for us) and turns it into an
+    # ArrayBufferView, then sends it over the XHR with the current
+    # connection id.
+    #
+    # Despite not starting with an underscore, this is not a public
+    # method.
+    write: (chunk) ->
+      @socket.send(chunk.buffer)
+
 # ## isConnection
 #
 # This is an exported function that determines whether something is a
@@ -1451,6 +1659,8 @@ module.exports.connect = varar 0, 2, (hostOrCallback, callback) ->
         create_connection = (host, callback) =>
             if TcpConnection.isAvailable()
                 new TcpConnection host, callback
+            else if WebSocketConnection.isAvailable() and host.protocol.match(/^ws/)
+                new WebSocketConnection host, callback
             else if HttpConnection.isAvailable()
                 new HttpConnection host, callback
             else
