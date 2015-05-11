@@ -521,11 +521,11 @@ bool blocking_read_file(const char *path, std::string *contents_out) {
     }
 #else
 	HANDLE hFile = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_ALWAYS, 0, NULL);
-	guarantee_winerr(hFile != INVALID_HANDLE_VALUE, "CreateFile failed: %s", path);
+	if (hFile == INVALID_HANDLE_VALUE) return false;
 	defer_t cleanup([&] { CloseHandle(hFile); });
 	LARGE_INTEGER fileSize;
 	BOOL res = GetFileSizeEx(hFile, &fileSize);
-	guarantee_winerr(res, "GetFileSizeEx failed");
+	if (!res) return false;
 	DWORD remaining = fileSize.QuadPart;
 	std::string ret;
 	ret.resize(remaining);
@@ -537,6 +537,7 @@ bool blocking_read_file(const char *path, std::string *contents_out) {
 		index += consumed;
 	}
 	*contents_out = std::move(ret);
+	return true;
 #endif
 }
 

@@ -10,7 +10,7 @@
 #define ATTR_FORMAT(x)
 #define DECL_THREAD_LOCAL thread_local // ATN __declspec(thread)
 #define NOINLINE __declspec(noinline)
-#define CURRENT_FUCTION_PRETTY __FUNCSIG__
+#define CURRENT_FUNCTION_PRETTY __FUNCSIG__
 
 #else
 

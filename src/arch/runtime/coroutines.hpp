@@ -169,7 +169,7 @@ private:
     static coro_t *get_and_init_coro(Callable &&action) {
         coro_t *coro = get_coro();
 #ifndef NDEBUG
-        coro->parse_coroutine_type(PRETTY_FUNCTION);
+        coro->parse_coroutine_type(CURRENT_FUNCTION_PRETTY);
 #endif
         coro->grab_spawn_backtrace();
         coro->action_wrapper.reset(std::forward<Callable>(action));

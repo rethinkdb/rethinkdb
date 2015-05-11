@@ -91,6 +91,9 @@ void report_fatal_error(const char *file, int line, const char *msg, ...) {
 const char *errno_string_maybe_using_buffer(int errsv, char *buf, size_t buflen) {
 #ifdef _GNU_SOURCE
     return strerror_r(errsv, buf, buflen);
+#elif defined(_MSC_VER)
+	UNUSED errno_t res = strerror_s(buf, buflen, errsv);
+	return buf;
 #else
     // The result is either 0 or ERANGE (if the buffer is too small) or EINVAL (if the error number
     // is invalid), but in either case a friendly nul-terminated buffer is written.
@@ -109,15 +112,26 @@ NORETURN void generic_crash_handler(int signum) {
     }
 }
 
+#ifdef _WIN32 // ATN TODO
+#define terminate_handler terminate_handler_
+#endif
 NORETURN void terminate_handler() {
+#ifndef _WIN32
     std::type_info *t = abi::__cxa_current_exception_type();
+#else
+	bool t = std::uncaught_exception();
+#endif
     if (t) {
+#ifndef _WIN32
         std::string name;
         try {
             name = demangle_cpp_name(t->name());
         } catch (const demangle_failed_exc_t &) {
             name = t->name();
         }
+#else
+		std::string name = "unknown";
+#endif
         try {
             /* This will rethrow whatever unexpected exception was thrown. */
             throw;
@@ -133,7 +147,9 @@ NORETURN void terminate_handler() {
 }
 
 void install_generic_crash_handler() {
-
+#ifdef _WIN32
+#pragma message("ATN TODO")
+#else
 #ifndef VALGRIND
     {
         struct sigaction sa = make_sa_handler(0, generic_crash_handler);
@@ -148,6 +164,7 @@ void install_generic_crash_handler() {
     guarantee_err(res == 0, "Could not install PIPE handler");
 
     std::set_terminate(&terminate_handler);
+#endif
 }
 
 /* If a call to `operator new()` or `operator new[]()` fails, we have to crash

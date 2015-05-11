@@ -10,7 +10,10 @@
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
+
+#ifndef _WIN32 // ATN TODO
 #include <sys/wait.h>
+#endif
 
 #include <string>
 
@@ -90,6 +93,10 @@ Please don't change this function without talking to the people who have already
 been involved in this. */
 
 std::string demangle_cpp_name(const char *mangled_name) {
+#ifdef _WIN32
+	// ATN TODO UnDecorateSymbolName?
+	return mangled_name;
+#else
     int res;
     char *name_as_c_str = abi::__cxa_demangle(mangled_name, NULL, 0, &res);
     if (res == 0) {
@@ -99,8 +106,10 @@ std::string demangle_cpp_name(const char *mangled_name) {
     } else {
         throw demangle_failed_exc_t();
     }
+#endif
 }
 
+#ifndef _WIN32 // ATN TODO
 int set_o_cloexec(int fd) {
     int flags = fcntl(fd, F_GETFD);
     if (flags < 0) {
@@ -108,6 +117,7 @@ int set_o_cloexec(int fd) {
     }
     return fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
 }
+#endif
 
 #ifndef _WIN32 // TODO ATN
 address_to_line_t::addr2line_t::addr2line_t(const char *executable) : input(NULL), output(NULL), bad(false), pid(-1) {
@@ -229,6 +239,9 @@ backtrace_frame_t::backtrace_frame_t(const void* _addr) :
 }
 
 void backtrace_frame_t::initialize_symbols() {
+#ifdef _WIN32
+	// ATN TODO CaptureStackBackTrace, SymFromAddr
+#else
     void *addr_array[1] = {const_cast<void *>(addr)};
     char **symbols = backtrace_symbols(addr_array, 1);
     if (symbols != NULL) {
@@ -250,6 +263,7 @@ void backtrace_frame_t::initialize_symbols() {
         }
         free(symbols);
     }
+#endif
     symbols_initialized = true;
 }
 
@@ -303,6 +317,10 @@ std::string lazy_backtrace_formatter_t::lines() {
 }
 
 std::string lazy_backtrace_formatter_t::print_frames(bool use_addr2line) {
+#ifdef _WIN32
+	// TODO ATN
+	return "print_frames: unimplemented";
+#else
     address_to_line_t address_to_line;
     std::string output;
     for (size_t i = 0; i < get_num_frames(); i++) {
@@ -341,4 +359,5 @@ std::string lazy_backtrace_formatter_t::print_frames(bool use_addr2line) {
     }
 
     return output;
+#endif
 }

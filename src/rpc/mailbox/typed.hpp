@@ -11,6 +11,7 @@ Please modify '../scripts/generate_rpc_templates.py' instead of modifying this f
 #include "rpc/serialize_macros.hpp"
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/semilattice/joins/macros.hpp"
+#include "containers/archive/boost_types.hpp"
 
 template <class> class mailbox_t;
 
