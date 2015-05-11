@@ -17,7 +17,7 @@ public:
         signal_t *interruptor);
 
     branch_birth_certificate_t get_branch(const branch_id_t &branch)
-            const THROWS_NOTHING;
+        const THROWS_ONLY(missing_branch_exc_t);
     bool is_branch_known(const branch_id_t &branch) const THROWS_NOTHING;
     void create_branch(
         branch_id_t branch_id,

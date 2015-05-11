@@ -202,9 +202,12 @@ public:
     it. */
     std::map<contract_id_t, std::pair<region_t, contract_t> > contracts;
 
-    /* `branch_history` contains branch history information for any branch that appears
-    in the `branch` field of any contract in `contracts`.
-    RSI(raft): We should prune branches if they no longer meet this condition. */
+    /* `branch_history` contains all of the branches that appear in the `branch` fields
+    of the contracts, plus their ancestors going back to the common ancestor with the
+    data version stored on the replicas. The idea is that if a replica sends us its
+    current version and its branch history, we can combine the replica's branch history
+    with this branch history to form a complete picture of the relationship of the
+    replica's current data version to the contract's `branch`. */
     branch_history_t branch_history;
 
     /* `member_ids` assigns a Raft member ID to each server that's supposed to be part of

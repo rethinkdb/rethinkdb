@@ -32,7 +32,8 @@ region_map_t<contract_ack_frag_t> break_ack_into_fragments(
         const region_t &region,
         const contract_ack_t &ack,
         const branch_id_t &branch,
-        const branch_history_reader_t *raft_branch_history) {
+        const branch_history_reader_t *raft_branch_history,
+        bool ) {
     contract_ack_frag_t base_frag;
     base_frag.state = ack.state;
     base_frag.branch = ack.branch;
@@ -43,9 +44,13 @@ region_map_t<contract_ack_frag_t> break_ack_into_fragments(
             raft_branch_history, &ack.branch_history);
         return ack.version->map_multi(region,
             [&](const region_t &reg, const version_t &vers) {
-                region_map_t<version_t> points_on_canonical_branch =
-                    version_find_branch_common(&combined_branch_history,
-                        vers, branch, reg);
+                region_map_t<version_t> points_on_canonical_branch;
+                try {
+                    points_on_canonical_branch = version_find_branch_common(
+                        &combined_branch_history, vers, branch, reg);
+                } catch (const missing_branch_exc_t &) {
+                    RSI XXX
+                }
                 return points_on_canonical_branch.map(reg,
                     [&](const version_t &common_vers) {
                         base_frag.version = boost::make_optional(common_vers.timestamp);

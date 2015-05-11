@@ -58,8 +58,11 @@ void branch_history_reader_t::export_branch_history(
 branch_birth_certificate_t branch_history_t::get_branch(const branch_id_t &branch)
         const THROWS_NOTHING {
     auto it = branches.find(branch);
-    guarantee(it != branches.end(), "Branch is missing from branch history");
-    return it->second;
+    if (it == branches.end()) {
+        throw missing_branch_exc_t();
+    } else {
+        return it->second;
+    }
 }
 
 bool branch_history_t::is_branch_known(const branch_id_t &branch) const THROWS_NOTHING {
@@ -74,9 +77,11 @@ bool version_is_ancestor(
         const branch_history_reader_t *bh,
         const version_t &ancestor,
         const version_t &descendent,
-        const region_t &relevant_region) {
+        const region_t &relevant_region)
+        THROWS_ONLY(missing_branch_exc_t) {
     std::stack<std::pair<region_t, version_t> > stack;
     stack.push(std::make_pair(relevant_region, descendent));
+    bool missing = false;
     while (!stack.empty()) {
         region_t reg = stack.top().first;
         version_t vers = stack.top().second;
@@ -87,14 +92,27 @@ bool version_is_ancestor(
             /* This part definitely doesn't match */
             return false;
         } else {
-            branch_birth_certificate_t birth_certificate = bh->get_branch(vers.branch);
-            birth_certificate.origin.visit(reg,
-                [&](const region_t &subreg, const version_t &subvers) {
-                    stack.push(std::make_pair(subreg, subvers));
-                });
+            branch_birth_certificate_t birth_certificate;
+            try {
+                birth_certificate = bh->get_branch(vers.branch);
+                birth_certificate.origin.visit(reg,
+                    [&](const region_t &subreg, const version_t &subvers) {
+                        stack.push(std::make_pair(subreg, subvers));
+                    });
+            } catch (const missing_branch_exc_t &) {
+                /* We don't want to throw `missing_branch_exc_t` yet because we might
+                later encounter some part that definitely isn't a descendent of
+                `ancestor`. In other words, there might still be a possibility to return
+                `false`. */
+                missing = true;
+            }
         }
     }
-    return true;
+    if (missing) {
+        throw missing_branch_exc_t();
+    } else {
+        return true;
+    }
 }
 
 /* Arbitrary comparison operator for `version_t`, so we can make sets of them. */
@@ -109,7 +127,8 @@ region_map_t<version_t> version_find_common(
         const branch_history_reader_t *bh,
         const version_t &initial_v1,
         const version_t &initial_v2,
-        const region_t &initial_region) {
+        const region_t &initial_region)
+        THROWS_ONLY(missing_branch_exc_t) {
     /* In order to limit recursion depth in pathological cases, we use a heap-stack
     instead of the real stack. `stack` stores the sub-regions left to process and
     `result` stores the sub-regions that we've already solved. We repeatedly pop
@@ -200,13 +219,14 @@ region_map_t<version_t> version_find_branch_common(
         const branch_history_reader_t *bh,
         const version_t &version,
         const branch_id_t &branch,
-        const region_t &relevant_region) {
+        const region_t &relevant_region)
+        THROWS_ONLY(missing_branch_exc_t) {
     return version_find_common(
         bh, version, version_t(branch, state_timestamp_t::max()), relevant_region);
 }
 
 branch_birth_certificate_t branch_history_combiner_t::get_branch(
-        const branch_id_t &branch) const THROWS_NOTHING {
+        const branch_id_t &branch) const THROWS_ONLY(missing_branch_exc_t) {
     if (r1->is_branch_known(branch)) {
         return r1->get_branch(branch);
     } else {

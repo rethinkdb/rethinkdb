@@ -42,7 +42,7 @@ real_branch_history_manager_t::real_branch_history_manager_t(
 
 branch_birth_certificate_t 
 real_branch_history_manager_t::get_branch(const branch_id_t &branch)
-        const THROWS_NOTHING {
+        const THROWS_ONLY(missing_branch_exc_t) {
     assert_thread();
     return cache.get_branch(branch);
 }
