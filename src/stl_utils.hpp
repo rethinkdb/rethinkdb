@@ -36,8 +36,7 @@ void debug_print(printf_buffer_t *buf, const std::pair<T, U> &p);
 template <class T, class... Args>
 std::vector<T> make_vector(const T &arg, Args... args) {
     std::vector<T> ret;
-    ret.push_back(arg);
-    UNUSED int dummy[] = { (ret.push_back(args), 1)... };
+    UNUSED int dummy[] = { (ret.push_back(arg), 1), (ret.push_back(args), 1)... };
     return ret;
 }
 

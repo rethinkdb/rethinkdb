@@ -61,6 +61,9 @@ serializer_filepath_t manual_serializer_filepath(const std::string &permanent_pa
 static const char *const temp_file_create_suffix = ".create";
 
 temp_file_t::temp_file_t() {
+#ifdef _WIN32
+	BREAKPOINT;
+#else
     for (;;) {
         char tmpl[] = "/tmp/rdb_unittest.XXXXXX";
         const int fd = mkstemp(tmpl);
@@ -77,6 +80,7 @@ temp_file_t::temp_file_t() {
             EXPECT_EQ(0, unlink_res);
         }
     }
+#endif
 }
 
 temp_file_t::~temp_file_t() {

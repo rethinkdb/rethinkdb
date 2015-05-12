@@ -148,7 +148,7 @@ NORETURN void terminate_handler() {
 
 void install_generic_crash_handler() {
 #ifdef _WIN32
-#pragma message("ATN TODO")
+	// ATN TODO
 #else
 #ifndef VALGRIND
     {

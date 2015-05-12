@@ -9,7 +9,7 @@
 #include <netinet/in.h>
 #include <sys/ioctl.h>
 #else
-#include <In6addr.h>
+#include "windows.hpp"
 #endif
 
 #include <algorithm>

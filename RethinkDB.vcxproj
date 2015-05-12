@@ -118,6 +118,7 @@
       <SuppressStartupBanner>false</SuppressStartupBanner>
       <MultiProcessorCompilation>false</MultiProcessorCompilation>
       <AdditionalOptions>/we4005</AdditionalOptions>
+      <ShowIncludes>true</ShowIncludes>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -455,7 +456,7 @@
     <ClInclude Include="src\rdb_protocol\artificial_table\caching_cfeed_backend.hpp" />
     <ClInclude Include="src\rdb_protocol\artificial_table\cfeed_backend.hpp" />
     <ClInclude Include="src\rdb_protocol\artificial_table\in_memory.hpp" />
-    <ClInclude Include="src\rdb_protocol\backtrace.hpp" />
+    <ClInclude Include="src\rdb_protocol\rdb_backtrace.hpp" />
     <ClInclude Include="src\rdb_protocol\batching.hpp" />
     <ClInclude Include="src\rdb_protocol\blob_wrapper.hpp" />
     <ClInclude Include="src\rdb_protocol\btree.hpp" />
@@ -640,15 +641,21 @@
     <ClInclude Include="src\utils.hpp" />
     <ClInclude Include="src\valgrind.hpp" />
     <ClInclude Include="src\version.hpp" />
+    <ClInclude Include="src\windows.hpp" />
     <ClInclude Include="windows_stub\unistd.h" />
     <ClInclude Include="windows_stub\pthread.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\containers\printf_buffer.cc" />
     <ClCompile Include="src\errors.cc" />
+    <ClCompile Include="src\http\json.cc" />
+    <ClCompile Include="src\http\json\cJSON.cc" />
     <ClCompile Include="src\math.cc" />
+    <ClCompile Include="src\rdb_protocol\rdb_protocol_json.cc" />
+    <ClCompile Include="src\unittest\json.cc" />
     <ClCompile Include="src\unittest\main.cc" />
     <ClCompile Include="src\unittest\printf_buffer_test.cc" />
+    <ClCompile Include="src\unittest\unittest_utils.cc" />
     <ClCompile Include="src\utils.cc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
