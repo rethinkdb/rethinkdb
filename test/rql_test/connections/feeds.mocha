@@ -104,14 +104,14 @@ var cleanTable = function() {
 
 // -- tests
 
-describe('Changefeed tests', function() {
+describe('JavaScript changefeed', function() {
     
     before(cleanTable); // clean before the tests, some tests require continuity
     
     // ensure validity of reqlConn, tbl, and tableFeed
     beforeEach(withTableFeed);
     
-    describe('table feed', function() {
+    describe('on a table', function() {
         
         it('insert', function() {
             return tbl.insert({'id':idValue, value:'insert'}).run(reqlConn)
@@ -204,46 +204,43 @@ describe('Changefeed tests', function() {
                 });
             });
         });
-    });
-    
-    describe('expected errors', function() {
         
-        it('each with an onFinishedCallback', function() {
+        it('each errors with an onFinishedCallback', function() {
             return tbl.changes().run(reqlConn)
             .then(function(tableFeed) {
                 return tableFeed.each(function() {}, function() {});
             })
             .then(function() {
-                throw "Expected error on each with an onFinishedCallback was not thrown";
+                throw new Error("Expected error on each with an onFinishedCallback was not thrown");
             })
             .catch(r.Error.RqlRuntimeError, function(err) {
                 return true;
             });
         });
         
-        it('no next', function() {
+        it('errors on hasNext', function() {
             return tbl.changes().run(reqlConn)
             .then(function(tableFeed) {
                 tableFeed.hasNext();
             })
             .then(function() {
-                throw "Expected error on next was not thrown";
+                throw new Error("Expected error on next was not thrown");
             })
             .catch(r.Error.RqlDriverError, function() {})
         });
         
-        it('no toArray', function() {
+        it('errors on toArray', function() {
             return tbl.changes().run(reqlConn)
             .then(function(tableFeed) {
                 tableFeed.toArray();
             })
             .then(function() {
-                throw "Expected error on toArray was not thrown";
+                throw new Error("Expected error on toArray was not thrown");
             })
             .catch(r.Error.RqlDriverError, function() {})
         });
         
-        it('close', function(done) {
+        it('erros on next after close', function(done) {
             tbl.changes().run(reqlConn, function(err, tableFeed) {
                 assert.ifError(err);
                 tableFeed.close();
@@ -263,7 +260,7 @@ describe('Changefeed tests', function() {
             });
         });
         
-        it('dropped table', function() {
+        it('errors on dropped table', function() {
             var tableFeed = null;
             return tbl.changes().run(reqlConn)
             .then(function(newFeed) {
@@ -276,14 +273,17 @@ describe('Changefeed tests', function() {
                 return tableFeed.next();
             })
             .then(function() {
-                throw "Expected error when table was dropped was not thrown";
+                throw new Error("Expected error when table was dropped was not thrown");
             })
             .catch(r.Error.RqlRuntimeError, function() {})
         });
     });
     
-    describe('EventEmitter methods', function() {
+    describe('EventEmitter interface', function() {
         var shortTimeout = 200;
+        
+        // ensure we have a clean reqlConn for the next test
+        afterEach(function() { reqlConn.removeAllListeners; reqlConn = null; });
         
         it('add listener/listeners', function() {
             var listener = function() {};
@@ -335,27 +335,6 @@ describe('Changefeed tests', function() {
             }, shortTimeout);
         });
         
-        it('error on', function(done) {
-            var eventCounter = 0;
-            var expectedEvents = 1;
-            
-            // set the event reciever
-            tableFeed.on('error', function(error) { eventCounter += 1; });
-            
-            // drop the table to generate an error in the feed
-            r.db(dbName).tableDrop(tableName).run(reqlConn)
-            
-            // set a timeout to check on the result
-            setTimeout(function() {
-                if(eventCounter == expectedEvents) {
-                    done();
-                } else {
-                    err = new Error('Expected ' + expectedEvents + ' errors but only saw ' + eventCounter);
-                    done(err);
-                }
-            }, shortTimeout);
-        });
-        
         it('data once', function(done) {
             var eventCounter = 0;
             
@@ -380,6 +359,27 @@ describe('Changefeed tests', function() {
                     }
                 } else {
                     err = new Error('Expected 1 event but saw ' + eventCounter);
+                    done(err);
+                }
+            }, shortTimeout);
+        });
+        
+        it('error on', function(done) {
+            var eventCounter = 0;
+            var expectedEvents = 1;
+            
+            // set the event reciever
+            tableFeed.on('error', function(error) { eventCounter += 1; });
+            
+            // drop the table to generate an error in the feed
+            r.db(dbName).tableDrop(tableName).run(reqlConn)
+            
+            // set a timeout to check on the result
+            setTimeout(function() {
+                if(eventCounter == expectedEvents) {
+                    done();
+                } else {
+                    err = new Error('Expected ' + expectedEvents + ' errors but only saw ' + eventCounter);
                     done(err);
                 }
             }, shortTimeout);

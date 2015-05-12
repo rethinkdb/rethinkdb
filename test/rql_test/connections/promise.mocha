@@ -4,6 +4,7 @@
 
 var assert = require('assert');
 var path = require('path');
+var net = require('net')
 
 // -- settings
 
@@ -25,18 +26,52 @@ var reqlConn = null;
 
 // -- helper functions
 
+var givesError = function(type, msg, done) {
+    return function(err){
+        var error = null;
+        try {
+            assert(err instanceof Error, 'Expected error, but got: ' + err);
+            if(type.__super__.name == Error.name) {
+                assert(
+                    err instanceof type,
+                    'Got wrong type of error. Expected `' + type.name + '`, got: ' + err.constructor.name
+                );
+            } else {
+                assert.equal(
+                    err.constructor.name, type,
+                    'Got wrong type of error. Expected `' + type + '`, got: ' + err.constructor.name
+                );
+            }
+            var _msg = err.message.replace(/ in:\n([\r\n]|.)*/m, "");
+            _msg = _msg.replace(/\nFailed assertion:(.|\n)*/m, "")
+            assert.equal(_msg, msg);
+        } catch (e) {
+            error = e;
+        } finally {
+            if (done) {
+                done(error);
+            } else if (error) {
+                throw error;
+            } else {
+                return true; // error is correct
+            }
+        }
+    }
+}
+
 var withConnection = function(fnct) {
     // ensure that the shared connection 'reqlConn' is valid
     if (fnct) {
-        // nested function style
+        // callback style
         return function(done) {
-            r.expr(1).run(reqlConn, function(err) {
+            r.expr(1).run(reqlConn, function(err) { // check the connection
                 if(err) {
+                    // re-establish the connection
                     reqlConn = null;
                     r.connect({host:serverHost, port:driverPort}, function(err, conn) {
                         if(err) { done(err) }
-                        reqlConn = conn;
-                        fnct(done, reqlConn);;
+                        reqlConn = conn; // cache the new connection
+                        fnct(done, reqlConn);
                     })
                 } else {
                     fnct(done, reqlConn);
@@ -49,13 +84,12 @@ var withConnection = function(fnct) {
         .then(function() {
             return reqlConn;
         })
-        // re-establish the connection if it was bad
         .catch(r.Error.RqlDriverError, r.Error.RqlRuntimeError, function(err) {
+            // re-establish the connection
         	reqlConn = null;
         	return r.connect({host:serverHost, port:driverPort})
         	.then(function(conn) {
-                // cache the new connection
-                reqlConn = conn;
+                reqlConn = conn; // cache the new connection
                 return reqlConn;
         	});
         });
@@ -64,77 +98,316 @@ var withConnection = function(fnct) {
 
 // -- tests
 
-describe('Promise tests', function() {
-    // ensure reqlConn is valid before each test
-    beforeEach(function() { return withConnection(); });
+describe('JavaScript Promise style', function() {
+    
+    describe('connect', function() {
         
-    it("simple expr(1)", function() {
-        return r.expr(1).run(reqlConn).nodeify(function(err, result) {
-            assert.equal(result, 1, 'Did not get the expected value (1): ' + result)
-        });
-    });
-    
-    if("toArray on an array", function() {
-        var cursorA = null;
-        return r.expr([1,2,3]).run(reqlConn)
-        .then(function(cur) {
-            cursorA = cur;
-            return cur.toArray();
-        })
-        .then(function(cursorB) {
-            // we should get back a reference to what we already had
-            assert.strictEqual(cursorB, cursorA);
-        });
-    });
-    
-    it("close a connection", function() {
-        return reqlConn.close()
-        .then(function() {
-            return reqlConn.close();
-        })
-        .then(function() {
-            // fail if we don't have an error
-            throw "A second close on a connection did not raise an error";
-        })
-        .catch(r.Error.RqlDriverError, function() {})
-    });
-    
-    it("reconnect", function() {
-        return reqlConn.close()
-        .then(function() {
-            return reqlConn.reconnect();
-        })
-    });
-    
-    it("noreplyWait", function() {
-        return reqlConn.noreplyWait();
-    });
-    
-    describe('With ' + numRows + ' rows', function() { 
-        before(function() {
-            this.timeout(20000);
-            
-            return withConnection()
-            // setup db/table
-            .then(function() {
-                return r.expr([dbName]).setDifference(r.dbList()).forEach(r.dbCreate(r.row)).run(reqlConn);
-            }).then(function() {
-                return r.expr([tableName]).setDifference(r.db(dbName).tableList()).forEach(r.db(dbName).tableCreate(r.row)).run(reqlConn);
+        it('normally', function() {
+            return r.connect({host:serverHost, port:driverPort})
+            .then(function(conn) {
+                assert(conn);
+                assert.equal(conn.constructor.name, 'TcpConnection');
             })
-            // ensure content
-            .then(function() {
-                return tbl.delete().run(reqlConn);
-            })
-            .then(function() {
-                return r.range(0, numRows).forEach(function(row) {
-                    return tbl.insert(
-                        {'id':row, 'nums':r.range(0, 500).coerceTo('array')}
-                    )}
-                ).run(reqlConn)
+        });
+        
+        it('times out with a bad port', function(done) {
+            var server = net.createServer(function(c) {}); // Setup dummy sever
+            server.listen(0, function() {
+                var badPort = server.address().port;
+                r.connect({port:badPort, timeout:1})
+                .then(function() {
+                    done(new Error('Connection did not return an error on bad port: ' + badPort));
+                })
+                .catch(r.Error.RqlDriverError, function(err) {
+                    try {
+                        assert.equal(err.message, "Handshake timedout");
+                        done();
+                    } catch (err) {
+                        done(err);
+                    }
+                })
+                .catch(function(err) {
+                    done(err);
+                })
             });
         });
         
-        it("array expr()", function() {
+        it('fails with a non-open port', function(done) {
+            var server = net.createServer(function(c) {}); // Setup dummy sever to get open port
+            server.listen(0, function() {
+                var badPort = server.address().port;
+                server.close(function(err) { // close dummy sever and hope no-one picks up the port
+                    r.connect({port:badPort})
+                    .then(function() {
+                        done(new Error('Connection did nto return an error on bad port: ' + badPort));
+                    })
+                    .catch(r.Error.RqlDriverError, function(err) {
+                        try {
+                            assert.equal(err.message, "Could not connect to localhost:" + badPort + ".\nconnect ECONNREFUSED");
+                            done();
+                        } catch (err) {
+                            done(err);
+                        }
+                    })
+                    .catch(function(err) {
+                        done(err);
+                    })
+                });
+            });
+        });
+        
+        it('fails with a non-open port on host', function(done) {
+            var server = net.createServer(function(c) {}); // Setup dummy sever to get open port
+            server.listen(0, function() {
+                var badPort = server.address().port;
+                server.close(function(err) { // close dummy sever and hope no-one picks up the port
+                    r.connect({port:badPort, host:'0.0.0.0'})
+                    .then(function() {
+                        done(new Error('Connection did nto return an error on bad port: ' + badPort));
+                    })
+                    .catch(r.Error.RqlDriverError, function(err) {
+                        try {
+                            assert.equal(err.message, "Could not connect to 0.0.0.0:" + badPort + ".\nconnect ECONNREFUSED");
+                            done();
+                        } catch (err) {
+                            done(err);
+                        }
+                    })
+                    .catch(function(err) {
+                        done(err);
+                    })
+                });
+            });
+        });
+        
+        describe('with authorization key', function() {
+            // ensure reqlConn is valid before each test
+            beforeEach(function() { return withConnection() });
+            
+            // undo any auth_key changes
+            afterEach(function() {
+				return withConnection()
+				.then(function() {
+    				return r.db('rethinkdb').table('cluster_config').update({auth_key:null}).run(reqlConn);
+                })
+            });
+                        
+            it("when none needed", function(){
+                return r.connect({host:serverHost, port:driverPort, authKey: "hunter2"})
+                .then(function() {
+                    throw new Error('No error was thrown when connecting with an authKey when none needed.')
+                })
+                .catch(r.Error.RqlDriverError, function() {})
+            });
+            
+            it("suceeds with correct key", function(){
+                return r.db('rethinkdb').table('cluster_config').update({auth_key: "hunter3"}).run(reqlConn)
+                .then(function() {
+                    return r.connect({host:serverHost, port:driverPort, authKey: "hunter3"});
+                }).then(function(authConn) {
+                    return r.expr(1).run(authConn);
+                })
+            });
+            
+            it("fails with wrong authorization key", function(){
+                return r.db('rethinkdb').table('cluster_config').update({auth_key: "hunter4"}).run(reqlConn)
+                .then(function() {
+                    return r.connect({host:serverHost, port:driverPort, authKey: "hunter-bad"});
+                })
+                .then(function() {
+                    throw new Error('Unexpectedly connected with bad AuthKey');
+                })
+                .catch(r.Error.RqlDriverError, function(err) {
+                    assert.equal(err.message, 'Server dropped connection with message: "ERROR: Incorrect authorization key."');
+                })
+            });
+        });
+    });
+    
+    
+    describe('run', function() {
+        // ensure reqlConn is valid before each test
+        beforeEach(function() { return withConnection() });
+        
+        it("errors with no connection", function() {
+            return r.expr(1).run()
+            .then(function() {
+                throw new Error("Was expecting an error");
+            })
+            .catch(
+                r.Error.RqlDriverError,
+                givesError(
+                    r.Error.RqlDriverError,
+                    "First argument to `run` must be an open connection."
+                )
+            );
+        });
+        
+        it("errors with an object", function() {
+            return r.expr(1).run({})
+            .then(function() {
+                throw new Error("Was expecting an error");
+            })
+            .catch(
+                r.Error.RqlDriverError,
+                givesError(
+                    r.Error.RqlDriverError,
+                    "First argument to `run` must be an open connection."
+                )
+            );
+        });
+        
+        it("errors with an invalid optarg", function(){
+            return r.expr(1).run(reqlConn, {nonValidOption: true})
+            .then(function() {
+                throw new Error("Was expecting an error");
+            })
+            .catch(
+                r.Error.RqlCompileError,
+                givesError(
+                    r.Error.RqlCompileError,
+                    "Unrecognized global optional argument `non_valid_option`"
+                )
+            )
+        });
+        
+        it("errors with a non-function callback", function(){
+            return r.expr(1).run(reqlConn, {}, "not_a_function")
+            .then(function() {
+                throw new Error("Was expecting an error");
+            })
+            .catch(
+                r.Error.RqlDriverError,
+                givesError(
+                    r.Error.RqlDriverError,
+                    "If provided, the callback must be a function. Please use `run(connection[, options][, callback])"
+                )
+            )
+        });
+
+    })
+    
+    describe('connection', function() {
+        // ensure reqlConn is valid before each test
+        beforeEach(function() { return withConnection() });
+        
+        it("close", function() {
+            return reqlConn.close()
+        });
+        
+        it("fails queries after close", function() {
+            return reqlConn.close()
+            .then(function() {
+                return r.expr(1).run(reqlConn);
+            })
+            .then(function() {
+                throw new Error('Expected error on closed connection');
+            })
+            .catch(r.Error.RqlDriverError, function() {})
+        })
+        
+        it("close waits for noreply by default", function() {
+            var minTime = Date.now() + 500;
+            // set looping query
+            r.js('while(true);', {timeout: 0.5}).run(reqlConn, {noreply: true})
+            .catch(function(err) {})
+            // ensure we took longer than minTime
+            return reqlConn.close()
+            .then(function() {
+                assert(Date.now() > minTime);
+            })
+        });
+        
+        it("reconnect", function() {
+            return reqlConn.close()
+            .then(function() {
+                return reqlConn.reconnect();
+            })
+        });
+        
+        it("reconnect waits for noreply by default", function() {
+            var minTime = Date.now() + 500;
+            // set looping query
+            r.js('while(true);', {timeout: 0.5}).run(reqlConn, {noreply: true})
+            .catch(function(err) {})
+            // ensure we took longer than minTime
+            return reqlConn.reconnect()
+            .then(function() {
+                assert(Date.now() > minTime);
+            })
+        });
+        
+        it("noreplyWait", function() {
+            var minTime = Date.now() + 500;
+            // set looping query
+            r.js('while(true);', {timeout: 0.5}).run(reqlConn, {noreply: true})
+            .catch(function(err) {})
+            // ensure we took longer than minTime
+            return reqlConn.noreplyWait()
+            .then(function() {
+                assert(Date.now() > minTime);
+            })
+        });
+        
+        describe('close twice and reconnect', function() {
+            var simpleQuery = function(c) { return r(1).run(reqlConn); };
+            
+            it("synchronously", function() {
+                return simpleQuery()
+                .then(function() {
+                    return reqlConn.close();
+                })
+                .then(function() {
+                    return reqlConn.close();
+                })
+                .then(function() {
+                    return reqlConn.reconnect();
+                })
+                .then(function() {
+                    return simpleQuery();
+                })
+            });
+            
+            it("with noreplyWait=false", function() {
+                return simpleQuery()
+                .then(function() {
+                    return reqlConn.close({noreplyWait: false});
+                })
+                .then(function() {
+                    return reqlConn.close({noreplyWait: false});
+                })
+                .then(function() {
+                    return reqlConn.reconnect();
+                })
+                .then(function() {
+                    return simpleQuery();
+                })
+            });
+        });
+    });
+    
+    describe('expr', function() {
+        // ensure reqlConn is valid before each test
+        beforeEach(function() { return withConnection() });
+        
+        it('fails without a connection', function() {
+            r.expr(1).run()
+            .then(function(value) {
+                throw new Error("Did not fail with an empty run. Got: " + value);
+            })
+            .catch(r.Error.RqlDriverError, function(err) {
+                assert.equal(err.message, "First argument to `run` must be an open connection.")
+            })
+        });
+        
+        it("simple value", function() {
+            return r.expr(1).run(reqlConn)
+            .then(function(result) {
+                assert.equal(result, 1, 'Did not get the expected value (1), imtead got: ' + result)
+            });
+        });
+        
+        it("large array", function() {
             var limit = 10000 // large number to try hitting `maximum call stack exceed`
             return r.range(0, limit).run(reqlConn)
             .then(function(resCursor) {
@@ -151,11 +424,50 @@ describe('Promise tests', function() {
             });
         });
         
-        it("next on a table cursor", function() {
+        it("toArray on an array", function() {
+            var cursorA = null;
+            return r.expr([1,2,3]).run(reqlConn)
+            .then(function(cur) {
+                cursorA = cur;
+                return cur.toArray();
+            })
+            .then(function(cursorB) {
+                // we should get back a reference to what we already had
+                assert.strictEqual(cursorB, cursorA);
+            });
+        });
+    });
+    
+    describe('table cursor with ' + numRows + ' row table', function() { 
+        before(function() {
+            this.timeout(20000);
+            
+            return withConnection()
+            // setup db/table
+            .then(function() {
+                return r.expr([dbName]).setDifference(r.dbList()).forEach(r.dbCreate(r.row)).run(reqlConn);
+            }).then(function() {
+                return r.expr([tableName]).setDifference(r.db(dbName).tableList()).forEach(r.db(dbName).tableCreate(r.row)).run(reqlConn);
+            })
+            // ensure content
+            .then(function() {
+                return tbl.delete().run(reqlConn);
+            })
+            .then(function() {
+                return tbl.insert(r.range(numRows).map(function(row) {
+                    return {'id':row, 'nums':r.range(0, 500).coerceTo('array')};
+                })).run(reqlConn)
+            });
+        });
+        
+        // ensure reqlConn is valid before each test
+        beforeEach(function() { return withConnection() });
+        
+        it("cursor next", function() {
             return tbl.run(reqlConn).then(function(cur) { return cur.next(); });
         });
         
-        it("toArray on a table cursor", function() {
+        it("cursor toArray", function() {
             return tbl.run(reqlConn).then(function(cur) { return cur.toArray(); }).then(function(result) {
                 assert.strictEqual(result.length, numRows);
             });

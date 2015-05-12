@@ -1,5 +1,5 @@
 ////
-// Tests the JavaScript driver using the nested function interface
+// Tests the JavaScript driver using the callback interface
 /////
 
 var assert = require('assert');
@@ -30,7 +30,7 @@ var tableCursor = null;
 var withConnection = function(fnct) {
     // ensure that the shared connection 'reqlConn' is valid
     if (fnct) {
-        // nested function style
+        // callback style
         return function(done) {
             r.expr(1).run(reqlConn, function(err) {
                 if(err) {
@@ -64,6 +64,17 @@ var withConnection = function(fnct) {
     }
 }
 
+var withTableCursor = function() {
+    return withConnection()
+    .then(function() {
+        return tbl.orderBy({index:'id'}).run(reqlConn);
+    })
+    .then(function(cur) {
+        tableCursor = cur;
+        return tableCursor;
+    })
+}
+
 var argErrorTest = function(expectedMsg) {
     return function(err) {
         return (err instanceof r.Error.RqlDriverError) && (expectedMsg == err.msg)
@@ -72,7 +83,7 @@ var argErrorTest = function(expectedMsg) {
 
 // -- tests
 
-describe('Cursor tests', function() {
+describe('JavaScript Cursor', function() {
     
     // setup
     before(function() {
@@ -103,10 +114,10 @@ describe('Cursor tests', function() {
         });
     });
     
-    // ensure reqlConn is valid before each test
-    beforeEach(function() { return withConnection(); });
+    // ensure reqlConn and tableCursor are valid before each test
+    beforeEach(function() { return withTableCursor(); });
     
-    describe('nested function style', function() {
+    describe('callback style', function() {
         
         it('open', function(done) {
             tbl.run(reqlConn, function(err, cur) {
@@ -117,14 +128,11 @@ describe('Cursor tests', function() {
         });
         
         it('next', function(done) {
-            tbl.orderBy({index:'id'}).run(reqlConn, function(err, cur) {
+            tableCursor.next(function(err, row) {
                 assert.ifError(err);
-                cur.next(function(err, row) {
-                    assert.ifError(err);
-                    assert.deepEqual(row, {'id':0});
-                    done();
-                })
-            })
+                assert.deepEqual(row, {'id':0});
+                done();
+            });
         });
         
         it('toArray', function(done) {
@@ -132,73 +140,59 @@ describe('Cursor tests', function() {
             for (var i = 0; i < numRows; i++) {
                 expectedResult.push({'id':i});
             }
-            tbl.orderBy({index:'id'}).run(reqlConn, function(err, cur) {
-                cur.toArray(function(err, value) {
-                    assert.ifError(err);
-                    assert.deepEqual(value, expectedResult);
-                    done();
-                });
+            tableCursor.toArray(function(err, value) {
+                assert.ifError(err);
+                assert.deepEqual(value, expectedResult);
+                done();
             });
         });
         
         it('each', function(done) {
-            tbl.orderBy({index:'id'}).run(reqlConn, function(err, cur) {
-                assert.ifError(err);
-                var i = 0;
-                cur.each(
-                    function(err, row) {
-                        assert.ifError(err);
-                        assert.deepEqual(row, {'id':i});
-                        i++;
-                    },
-                    function() {
-                        assert.equal(i, numRows);
-                        done();
-                    }
-                );
-            });
+            var i = 0;
+            tableCursor.each(
+                function(err, row) {
+                    assert.ifError(err);
+                    assert.deepEqual(row, {'id':i});
+                    i++;
+                },
+                function() {
+                    assert.equal(i, numRows);
+                    done();
+                }
+            );
+        });
+        
+        it('each errors when missing argument', function(done) {
+            expectedMsg = 'Expected between 1 and 2 arguments but found 0.';
+            assert.throws(function() { tableCursor.each(); }, argErrorTest(expectedMsg));
+            done();
         });
         
         it('close', function(done) {
-            tbl.run(reqlConn, function(err, cur) {
+            tableCursor.close(function(err) {
                 assert.ifError(err);
-                cur.close(function(err) {
-                    assert.ifError(err);
-                    done();
-                });
-            });
-        });
-        
-        it('missing argument on each', function(done) {
-            tbl.run(reqlConn, function(err, cur) {
-                assert.ifError(err);
-                expectedMsg = 'Expected between 1 and 2 arguments but found 0.';
-                assert.throws(function() { cur.each(); }, argErrorTest(expectedMsg));
                 done();
             });
         });
         
-        it('extra argument to toString', function(done) {
-            tbl.run(reqlConn, function(err, cur) {
-                assert.ifError(err);
-                expectedMsg = 'Expected 0 arguments but found 1.';
-                assert.throws(function() { cur.toString(1); }, argErrorTest(expectedMsg));
-                done();
-            });
+        it('errors on extra argument to toString', function(done) {
+            expectedMsg = 'Expected 0 arguments but found 1.';
+            assert.throws(function() { tableCursor.toString(1); }, argErrorTest(expectedMsg));
+            done();
         });
     });
 });
 
-describe('Array tests', function() {
+describe('JavaScript array', function() {
     var testArray = [];
     for(var i = 0; i < numRows; i++) {
         testArray.push(i);
     }
     
-    // ensure tableCursor is valid before each test
+    // ensure reqlConn is valid before each test
     beforeEach(function() { return withConnection(); });
     
-    if('basic', function(done) {
+    if('basic properties', function(done) {
         r(testArray).run(c, function(err, res) {
             assert.ifError(err);
             
@@ -214,12 +208,12 @@ describe('Array tests', function() {
     })
     
     it('next', function(done) {
-         r(testArray).run(reqlConn, function(err, res) {
+        r(testArray).run(reqlConn, function(err, res) {
             res.next(function(err, value) {
                 assert.equal(value, testArray[0]);
                 done();
             });
-         });
+        });
     });
     
     it('toArray', function(done) {
@@ -235,7 +229,7 @@ describe('Array tests', function() {
         });
     });
     
-    it('large array', function(done) {
+    it('with a large array', function(done) {
         var bigArray = [];
         for(var i = 0; i < manyRows; i++) {
             bigArray.push(i);
