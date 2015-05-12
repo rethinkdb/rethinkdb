@@ -44,3 +44,9 @@ last_tested_versions
 /**/.rethinkdbTestTemp-*
 /**/run
 /test_results.*
+.vs
+/Debug
+/RethinkDB.sdf
+/RethinkDB.vcxproj.filters
+/RethinkDB.vcxproj.user
+/RethinkDB.opensdf

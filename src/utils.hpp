@@ -7,6 +7,7 @@
 
 #include <functional>
 #include <string>
+#include <boost/optional.hpp>
 
 #include "debug.hpp"
 #include "config/args.hpp"
@@ -241,14 +242,22 @@ void remove_directory_recursive(const char *path);
 
 class defer_t {
 public:
-	defer_t(std::function<void()> f) {
-		f_ = f;
+	explicit defer_t(std::function<void()> f) : f_(f) { }
+	defer_t(defer_t& d) {
+		f_.swap(d.f_);
+	}
+	defer_t& operator =(defer_t& d) {
+		boost::optional<std::function<void()>> tmp;
+		tmp.swap(d.f_);
+		f_.swap(tmp);
+		return *this;
 	}
 	~defer_t() {
-		f_();
+		if (f_)
+			(*f_)();
 	}
 private:
-	std::function<void()> f_;
+	boost::optional<std::function<void()>> f_;
 	DISABLE_COPYING(defer_t);
 };
 
