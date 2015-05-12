@@ -129,7 +129,9 @@ class SrcLang(object):
         self.envVariablesToSet = {}
         self.class_setup(version)
         self.instance_setup = True
-        self.envVariablesToSet['INTERPRETER_PATH'] = self.interpreter_path
+        try:
+            self.envVariablesToSet['INTERPRETER_PATH'] = self.interpreter_path
+        except Exception: pass
     
     # Translates names from canonical name representation
     # (underscores) to the convention for this language
