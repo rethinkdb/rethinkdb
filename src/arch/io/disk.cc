@@ -27,6 +27,11 @@
 #include "logger.hpp"
 #include "utils.hpp"
 
+// Fix BSD compilation
+#ifndef O_LARGEFILE
+#define O_LARGEFILE 0
+#endif
+
 void verify_aligned_file_access(DEBUG_VAR int64_t file_size, DEBUG_VAR int64_t offset,
                                 DEBUG_VAR size_t length,
                                 DEBUG_VAR const scoped_array_t<iovec> &bufs);
@@ -466,7 +471,7 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
 
     switch (backender->get_direct_io_mode()) {
     case file_direct_io_mode_t::direct_desired: {
-#ifdef __linux__
+#if defined(__linux__) || defined(__unix__)
         // fcntl(2) is documented to take an argument of type long, not of type int, with the
         // F_SETFL command, on Linux.  But POSIX says it's supposed to take an int?  Passing long
         // should be generally fine, with either the x86 or amd64 calling convention, on another
@@ -574,6 +579,11 @@ int perform_datasync(fd_t fd) {
     } while (fcntl_res == -1 && get_errno() == EINTR);
 
     return fcntl_res == -1 ? get_errno() : 0;
+
+#elif defined (__FreeBSD__)
+
+    int res = fsync(fd);
+    return res == -1 ? get_errno() : 0;
 
 #else  // __MACH__
 

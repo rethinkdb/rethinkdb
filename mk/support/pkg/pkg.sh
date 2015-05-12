@@ -126,7 +126,7 @@ pkg_configure () {
 }
 
 pkg_make () {
-    in_dir "$build_dir" make "$@"
+    in_dir "$build_dir" $MAKE_EXECUTABLE "$@"
 }
 
 pkg_install () {
@@ -283,6 +283,7 @@ root_build_dir=${BUILD_ROOT_DIR:-$(niceabspath "$pkg_dir/../../../build")}
 WGET=${WGET:-}
 CURL=${CURL:-}
 OS=${OS:-}
+MAKE_EXECUTABLE=${MAKE_EXECUTABLE:-}
 # FETCH_LIST
 # NPM
 # BUILD_ROOT_DIR

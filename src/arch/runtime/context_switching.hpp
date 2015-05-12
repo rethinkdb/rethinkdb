@@ -182,6 +182,9 @@ private:
     void get_stack_addr_size(void **stackaddr_out, size_t *stacksize_out);
 
     pthread_t thread;
+    #ifdef __FreeBSD__
+    pthread_attr_t* attr;
+    #endif
     void (*initial_fun)(void);
     system_cond_t launch_cond;
 

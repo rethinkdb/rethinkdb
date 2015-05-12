@@ -3,6 +3,10 @@
 
 #include "errors.hpp"
 
+#ifndef int32_t
+#define int32_t __int32_t
+#endif
+
 // A thread number as used by the thread pool.
 class threadnum_t {
 public:

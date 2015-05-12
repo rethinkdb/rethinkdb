@@ -26,7 +26,7 @@ pkg_install () (
             (
                 cross_build_env
                 in_dir "$cross_build_dir" ./configure --enable-static --disable-shared
-                in_dir "$cross_build_dir" make
+                in_dir "$cross_build_dir" $MAKE_EXECUTABLE
             )
         fi
     fi

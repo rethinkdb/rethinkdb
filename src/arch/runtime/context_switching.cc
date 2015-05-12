@@ -415,6 +415,10 @@ threaded_stack_t::threaded_stack_t(void (*initial_fun_)(void), size_t stack_size
                                 NULL,
                                 threaded_stack_t::internal_run,
                                 reinterpret_cast<void *>(this));
+    #ifdef __FreeBSD__
+    pthread_attr_init(attr);
+    #endif
+
     guarantee_xerr(result == 0, result, "Could not create thread: %i", result);
     // Wait for the thread to start
     launch_cond.wait(&virtual_thread_mutexes[linux_thread_pool_t::get_thread_id()]);
@@ -470,6 +474,10 @@ threaded_stack_t::~threaded_stack_t() {
             &virtual_thread_mutexes[linux_thread_pool_t::get_thread_id()]));
 #endif
     }
+
+    #ifdef __FreeBSD__
+    pthread_attr_destroy(attr);
+    #endif
 }
 
 void *threaded_stack_t::internal_run(void *p) {
@@ -525,6 +533,10 @@ void threaded_stack_t::get_stack_addr_size(void **stackaddr_out,
     *stackaddr_out = reinterpret_cast<void *>(
         reinterpret_cast<uintptr_t>(pthread_get_stackaddr_np(thread))
         - static_cast<uintptr_t>(*stacksize_out));
+#elif __FreeBSD__
+    // Implementation for FreeBSD
+    pthread_attr_getstacksize(attr, stacksize_out);
+    pthread_attr_getstackaddr(attr, stackaddr_out);
 #else
     // Implementation for Linux
     pthread_attr_t attr;
