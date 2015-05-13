@@ -17,8 +17,7 @@ of the `region_map_t<version_t>` it has a single `state_timestamp_t`. Use
 class contract_ack_frag_t {
 public:
     bool operator==(const contract_ack_frag_t &x) const {
-        return state == x.state && version == x.version &&
-            failover_timeout_elapsed == x.failover_timeout_elapsed && branch == x.branch;
+        return state == x.state && version == x.version && branch == x.branch;
     }
     bool operator!=(const contract_ack_frag_t &x) const {
         return !(*this == x);
@@ -26,7 +25,6 @@ public:
 
     contract_ack_t::state_t state;
     boost::optional<state_timestamp_t> version;
-    bool failover_timeout_elapsed;
     boost::optional<branch_id_t> branch;
 };
 
@@ -37,7 +35,6 @@ region_map_t<contract_ack_frag_t> break_ack_into_fragments(
         const branch_history_reader_t *raft_branch_history) {
     contract_ack_frag_t base_frag;
     base_frag.state = ack.state;
-    base_frag.failover_timeout_elapsed = ack.failover_timeout_elapsed;
     base_frag.branch = ack.branch;
     if (!static_cast<bool>(ack.version)) {
         return region_map_t<contract_ack_frag_t>(region, base_frag);
@@ -58,6 +55,24 @@ region_map_t<contract_ack_frag_t> break_ack_into_fragments(
     }
 }
 
+/* `invisible_to_majority_of_set()` returns `true` if `target` definitely cannot be seen
+by a majority of the servers in `judges`. If we can't see one of the servers in `judges`,
+we'll assume it can see `target` to reduce spurious failoves. */
+bool invisible_to_majority_of_set(
+        const server_id_t &target,
+        const std::set<server_id_t> &judges,
+        watchable_map_t<std::pair<server_id_t, server_id_t>, empty_value_t> *
+            connections_map) {
+    size_t count = 0;
+    for (const server_id_t &s : judges) {
+        if (static_cast<bool>(connections_map->get_key(std::make_pair(s, target))) ||
+                !static_cast<bool>(connections_map->get_key(std::make_pair(s, s)))) {
+            ++count;
+        }
+    }
+    return !(count > judges.size() / 2); 
+}
+
 /* `calculate_contract()` calculates a new contract for a region. Whenever any of the
 inputs changes, the coordinator will call `update_contract()` to compute a contract for
 each range of keys. The new contract will often be the same as the old, in which case it
@@ -71,6 +86,10 @@ contract_t calculate_contract(
         ack *specifically* for `old_c`, it won't appear in this map; we don't include
         acks for contracts that were in the same region before `old_c`. */
         const std::map<server_id_t, contract_ack_frag_t> &acks,
+        /* This `watchable_map_t` will have an entry for (X, Y) if we can see server X
+        and server X can see server Y. */
+        watchable_map_t<std::pair<server_id_t, server_id_t>, empty_value_t> *
+            connections_map,
         /* We'll print log messages of the form `<log prefix>: <message>`, unless
         `log_prefix` is empty, in which case we won't print anything. */
         const std::string &log_prefix) {
@@ -129,6 +148,30 @@ contract_t calculate_contract(
         }
     }
 
+    /* `visible_voters` includes all members of `voters` and `temp_voters` which could be
+    visible to a majority of `voters` (and `temp_voters`, if `temp_voters` exists). Note
+    that if the coordinator can't see server X, it will assume server X can see every
+    other server; this reduces spurious failovers when the coordinator loses contact with
+    other servers. */
+    std::set<server_id_t> visible_voters;
+    for (const server_id_t &server : new_c.replicas) {
+        if (new_c.voters.count(server) == 0 &&
+                (!static_cast<bool>(new_c.temp_voters) ||
+                    new_c.temp_voters->count(server) == 0)) {
+            continue;
+        }
+        if (invisible_to_majority_of_set(server, new_c.voters, connections_map)) {
+            continue;
+        }
+        if (static_cast<bool>(new_c.temp_voters)) {
+            if (invisible_to_majority_of_set(
+                    server, *new_c.temp_voters, connections_map)) {
+                continue;
+            }
+        }
+        visible_voters.insert(server);
+    }
+
     /* If a server was removed from `config.replicas` and `c.voters` but it's still in
     `c.replicas`, then remove it. And if it's primary, then make it not be primary. */
     bool should_kill_primary = false;
@@ -163,7 +206,8 @@ contract_t calculate_contract(
         of the branch history to `old_c.branch`. So we project each voter's state onto
         that path, then sort them by position along the path. Any voter that is at least
         as up to date, according to that metric, as more than half of the voters
-        (including itself) is eligible. */
+        (including itself) is eligible. We also take into account whether a server is
+        visible to its peers when deciding which server to select. */
 
         /* First, collect the states from the servers, and sort them by how up-to-date
         they are. Note that we use the server ID as a secondary sorting key. This mean we
@@ -179,10 +223,16 @@ contract_t calculate_contract(
         }
         std::sort(sorted_candidates.begin(), sorted_candidates.end());
 
-        /* Second, determine which servers are eligible to become primary. */
+        /* Second, determine which servers are eligible to become primary on the basis of
+        their data and their visibility to their peers. */
         std::vector<server_id_t> eligible_candidates;
         for (size_t i = 0; i < sorted_candidates.size(); ++i) {
             server_id_t server = sorted_candidates[i].second;
+            /* If the server is not visible to more than half of its peers, then it is
+            not eligible to be primary */
+            if (visible_voters.count(server) == 0) {
+                continue;
+            }
             /* `up_to_date_count` is the number of servers that `server` is at least as
             up-to-date as. We know `server` must be at least as up-to-date as itself and
             all of the servers that are earlier in the list. */
@@ -202,18 +252,6 @@ contract_t calculate_contract(
             }
         }
 
-        /* Third, check if the failover timeout is elapsed; this will be relevant if the
-        user's designated primary is ineligible. */
-        bool failover_timeout_elapsed = false;
-        for (const server_id_t &server : new_c.voters) {
-            if (acks.count(server) == 1 && acks.at(server).state ==
-                    contract_ack_t::state_t::secondary_need_primary &&
-                    acks.at(server).failover_timeout_elapsed) {
-                failover_timeout_elapsed = true;
-                break;
-            }
-        }
-
         /* OK, now we can pick a primary. */
         auto it = std::find(eligible_candidates.begin(), eligible_candidates.end(),
                 config.primary_replica);
@@ -222,18 +260,24 @@ contract_t calculate_contract(
             contract_t::primary_t p;
             p.server = config.primary_replica;
             new_c.primary = boost::make_optional(p);
-        } else if (!eligible_candidates.empty() &&
-                (config.primary_replica.is_nil() ||
-                    acks.count(config.primary_replica) == 1 ||
-                    failover_timeout_elapsed)) {
-            /* The user's designated primary is ineligible, but there are other eligible
-            candidates, and we're not going to wait for the user's designated primary to
-            send in an ack (because it already sent in an ack, or the failover timeout
-            elapsed) */
-            contract_t::primary_t p;
-            /* `eligible_candidates` is ordered by how up-to-date they are */
-            p.server = eligible_candidates.back();
-            new_c.primary = boost::make_optional(p);
+        } else if (!eligible_candidates.empty()) {
+            /* The user's designated primary is ineligible. We have to decide if we'll
+            wait for the user's designated primary to become eligible, or use one of the
+            other eligible candidates. */
+            if (!config.primary_replica.is_nil() &&
+                    visible_voters.count(config.primary_replica) == 1 &&
+                    acks.count(config.primary_replica) == 0) {
+                /* The user's designated primary is visible to a majority of its peers,
+                and the only reason it was disqualified is because we haven't seen an ack
+                from it yet. So we'll wait for it to send in an ack rather than electing
+                a different primary. */
+            } else {
+                /* We won't wait for it. */
+                contract_t::primary_t p;
+                /* `eligible_candidates` is ordered by how up-to-date they are */
+                p.server = eligible_candidates.back();
+                new_c.primary = boost::make_optional(p);
+            }
         }
 
         if (static_cast<bool>(new_c.primary)) {
@@ -267,15 +311,7 @@ contract_t calculate_contract(
         isn't important for correctness. If we do an auto-failover when the primary isn't
         actually dead, or don't do an auto-failover when the primary is actually dead,
         the worst that will happen is we'll lose availability. */
-        size_t voters_cant_reach_primary = 0;
-        for (const server_id_t &server : new_c.voters) {
-            if (acks.count(server) == 1 && acks.at(server).state ==
-                    contract_ack_t::state_t::secondary_need_primary &&
-                    acks.at(server).failover_timeout_elapsed) {
-                ++voters_cant_reach_primary;
-            }
-        }
-        if (voters_cant_reach_primary > new_c.voters.size() / 2) {
+        if (visible_voters.count(old_c.primary->server) == 0) {
             should_kill_primary = true;
             if (!log_prefix.empty()) {
                 logINF("%s: Stopping server %s as primary because a majority of voters "
@@ -297,7 +333,8 @@ contract_t calculate_contract(
                 hand-over to a different primary. */
                 if (acks.count(config.primary_replica) == 1 &&
                         acks.at(config.primary_replica).state ==
-                            contract_ack_t::state_t::secondary_streaming) {
+                            contract_ack_t::state_t::secondary_streaming &&
+                        visible_voters.count(config.primary_replica) == 1) {
                     /* The new primary is ready, so begin the hand-over. */
                     new_c.primary->hand_over =
                         boost::make_optional(config.primary_replica);
@@ -327,6 +364,10 @@ contract_t calculate_contract(
                     replicas acknowledge that they are no longer listening for writes
                     from the old primary. */
                     new_c.primary = boost::none;
+                } else if (visible_voters.count(config.primary_replica) == 0) {
+                    /* Something went wrong with the new primary before the hand-over was
+                    complete. So abort the hand-over. */
+                    new_c.primary->hand_over = boost::none;
                 }
             }
         } else {
@@ -365,6 +406,8 @@ makes sense to combine those two diff processes. */
 void calculate_all_contracts(
         const table_raft_state_t &old_state,
         watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> *acks,
+        watchable_map_t<std::pair<server_id_t, server_id_t>, empty_value_t>
+            *connections_map,
         const std::string &log_prefix,
         std::set<contract_id_t> *remove_contracts_out,
         std::map<contract_id_t, std::pair<region_t, contract_t> > *add_contracts_out) {
@@ -440,6 +483,7 @@ void calculate_all_contracts(
                     cpair.second.second,
                     old_state.config.config.shards[shard_index],
                     acks_map,
+                    connections_map,
                     log_subprefix);
                 new_contract_region_vector.push_back(reg);
                 new_contract_vector.push_back(new_contract);
@@ -582,13 +626,18 @@ void calculate_member_ids_and_raft_config(
 contract_coordinator_t::contract_coordinator_t(
         raft_member_t<table_raft_state_t> *_raft,
         watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> *_acks,
+        watchable_map_t<std::pair<server_id_t, server_id_t>, empty_value_t>
+            *_connections_map,
         const std::string &_log_prefix) :
     raft(_raft),
     acks(_acks),
+    connections_map(_connections_map),
     log_prefix(_log_prefix),
     config_pumper(std::bind(&contract_coordinator_t::pump_configs, this, ph::_1)),
     contract_pumper(std::bind(&contract_coordinator_t::pump_contracts, this, ph::_1)),
-    ack_subs(acks, std::bind(&pump_coro_t::notify, &contract_pumper), false)
+    ack_subs(acks, std::bind(&pump_coro_t::notify, &contract_pumper), false),
+    connections_map_subs(connections_map,
+        std::bind(&pump_coro_t::notify, &contract_pumper), false)
 {
     raft->assert_thread();
     /* Do an initial round of pumping, in case there are any changes the previous
@@ -672,7 +721,7 @@ void contract_coordinator_t::pump_contracts(signal_t *interruptor) {
         raft->get_latest_state()->apply_read(
         [&](const raft_member_t<table_raft_state_t>::state_and_config_t *state) {
             calculate_all_contracts(
-                state->state, acks, log_prefix,
+                state->state, acks, connections_map, log_prefix,
                 &change.remove_contracts, &change.add_contracts);
             calculate_branch_history(
                 state->state, acks,

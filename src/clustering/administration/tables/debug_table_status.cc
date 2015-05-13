@@ -239,9 +239,6 @@ ql::datum_t convert_debug_contract_acks_to_datum(
                 ? convert_debug_version_map_to_datum(
                         contract_ack.second.version.get())
                 : ql::datum_t::null());
-        contract_builder.overwrite(
-            "failover_timeout_elapsed",
-            ql::datum_t::boolean(contract_ack.second.failover_timeout_elapsed));
         /* RSI(raft) The branch history is append-only thus it grows without bound,
            printing it can be reinstated once it's garbage collected per #3879. For the
            time being we print the size instead.

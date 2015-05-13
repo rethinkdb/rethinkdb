@@ -135,6 +135,9 @@ bool do_serve(io_backender_t *io_backender,
                 table_query_bcard_t>
             table_query_directory_read_manager(&connectivity_cluster, 'Q');
 
+        directory_map_read_manager_t<server_id_t, empty_value_t>
+            server_connection_read_manager(&connectivity_cluster, 'C');
+
         log_server_t log_server(&mailbox_manager, &log_writer);
 
         scoped_ptr_t<server_config_server_t> server_config_server;
@@ -148,18 +151,20 @@ bool do_serve(io_backender_t *io_backender,
                     semilattice_manager_cluster.get_root_view())));
         }
 
-        server_config_client_t server_config_client(&mailbox_manager,
-            directory_read_manager.get_root_view(),
+        server_config_client_t server_config_client(
+            &mailbox_manager,
+            directory_read_manager.get_root_map_view(),
             metadata_field(
                 &cluster_semilattice_metadata_t::servers,
-                semilattice_manager_cluster.get_root_view()));
+                semilattice_manager_cluster.get_root_view()),
+            server_connection_read_manager.get_root_view());
 
         jobs_manager_t jobs_manager(&mailbox_manager, server_id, &server_config_client);
         stat_manager_t stat_manager(&mailbox_manager, server_id);
 
         network_logger_t network_logger(
             connectivity_cluster.get_me(),
-            directory_read_manager.get_root_view(),
+            directory_read_manager.get_root_map_view(),
             metadata_field(&cluster_semilattice_metadata_t::servers,
                            semilattice_manager_cluster.get_root_view()));
 
@@ -258,6 +263,7 @@ bool do_serve(io_backender_t *io_backender,
                     &mailbox_manager,
                     &multi_table_manager_directory,
                     table_directory_read_manager.get_root_view(),
+                    server_config_client.get_connections_map(),
                     table_persistence_interface.get(),
                     base_path,
                     io_backender,
@@ -361,6 +367,9 @@ bool do_serve(io_backender_t *io_backender,
 
             directory_write_manager_t<cluster_directory_metadata_t> directory_write_manager(
                 &connectivity_cluster, 'D', our_root_directory_variable.get_watchable());
+
+            directory_map_write_manager_t<server_id_t, empty_value_t> server_connection_write_manager(
+                &connectivity_cluster, 'C', network_logger.get_local_connections_map());
 
             scoped_ptr_t<directory_map_write_manager_t<
                     namespace_id_t, table_manager_bcard_t> >

@@ -11,3 +11,6 @@ template class directory_map_read_manager_t<
 #include "clustering/query_routing/metadata.hpp"
 template class directory_map_read_manager_t<
     std::pair<namespace_id_t, uuid_u>, table_query_bcard_t>;
+
+template class directory_map_read_manager_t<
+    server_id_t, empty_value_t>;
