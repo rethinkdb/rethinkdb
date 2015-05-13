@@ -1256,8 +1256,6 @@ union_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) 
                 }
 
                 data_available = make_scoped<cond_t>();
-                // TODO! Limit number of coros, unless we're a changefeed.
-                // union_type != feed_type_t::not_feed ?
                 for (auto &&s : coro_streams) s->maybe_launch_read();
                 r_sanity_check(active != 0 || data_available->is_pulsed());
                 wait_interruptible(data_available.get(), &interruptor);
