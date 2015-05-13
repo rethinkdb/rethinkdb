@@ -271,7 +271,10 @@ void server_config_client_t::on_directory_change(
                     std::make_pair(peer_id, nil_uuid()));
             if (it != connections_map_unknowns.end() && it->first == peer_id) {
                 static const empty_value_t empty_value;
-                on_peer_connections_map_change(*it, &empty_value);
+                std::pair<peer_id_t, server_id_t> key = *it;
+                /* Calling `on_peer_connections_map_change()` will remove the entry from
+                `connection_map_unknowns`, so the iterator will become invalid. */
+                on_peer_connections_map_change(key, &empty_value);
             } else {
                 break;
             }
@@ -294,7 +297,7 @@ void server_config_client_t::on_directory_change(
                         live_server_ids.insert(pair.second);
                     }
                 }
-                return true;
+                return erased;
             });
         if (erased) {
             server_id_to_peer_id_map.apply_atomic_op(
