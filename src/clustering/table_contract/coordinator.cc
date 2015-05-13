@@ -412,8 +412,6 @@ void calculate_all_contracts(
         std::set<contract_id_t> *remove_contracts_out,
         std::map<contract_id_t, std::pair<region_t, contract_t> > *add_contracts_out) {
 
-    logDBG("%s: begin calculate_all_contracts()", log_prefix.c_str());
-
     ASSERT_FINITE_CORO_WAITING;
 
     std::vector<region_t> new_contract_region_vector;
