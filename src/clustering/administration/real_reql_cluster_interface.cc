@@ -921,9 +921,9 @@ void real_reql_cluster_interface_t::sindex_change_internal(
     namespace_id_t table_id;
     table_meta_client->find(db->id, table_name, &table_id);
     table_config_and_shards_t config;
-    table_meta_client->get_config(table_id, interruptor, &config);
+    table_meta_client->get_config(table_id, &ct_interruptor, &config);
     cb(&config.config.sindexes);
-    table_meta_client->set_config(table_id, config, interruptor);
+    table_meta_client->set_config(table_id, config, &ct_interruptor);
 }
 
 bool real_reql_cluster_interface_t::sindex_create(
