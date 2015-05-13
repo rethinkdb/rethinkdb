@@ -302,13 +302,15 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
 }
 
 bool real_reql_cluster_interface_t::table_drop(const name_string_t &name,
-        counted_t<const ql::db_t> db, signal_t *interruptor, ql::datum_t *result_out,
-        std::string *error_out) {
+        counted_t<const ql::db_t> db, signal_t *interruptor_on_original_thread,
+        ql::datum_t *result_out, std::string *error_out) {
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
     cluster_semilattice_metadata_t metadata;
     ql::datum_t old_config;
     try {
+        cross_thread_signal_t interruptor_on_home_thread(
+            interruptor_on_original_thread, semilattice_root_view->home_thread());
         on_thread_t thread_switcher(semilattice_root_view->home_thread());
         metadata = semilattice_root_view->get();
 
@@ -316,13 +318,13 @@ bool real_reql_cluster_interface_t::table_drop(const name_string_t &name,
         table_meta_client->find(db->id, name, &table_id);
 
         table_config_and_shards_t config;
-        table_meta_client->get_config(table_id, interruptor, &config);
+        table_meta_client->get_config(table_id, &interruptor_on_home_thread, &config);
 
         old_config = convert_table_config_to_datum(table_id,
             convert_name_to_datum(db->name), config.config,
             admin_identifier_format_t::name, server_config_client);
 
-        table_meta_client->drop(table_id, interruptor);
+        table_meta_client->drop(table_id, &interruptor_on_home_thread);
 
         ql::datum_object_builder_t result_builder;
         result_builder.overwrite("tables_dropped", ql::datum_t(1.0));
