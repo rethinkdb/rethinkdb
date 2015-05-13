@@ -77,12 +77,8 @@ raft_member_t<state_t>::raft_member_t(
     connected_members_subs(
         new watchable_map_t<raft_member_id_t, boost::optional<raft_term_t> >::all_subs_t(
             network->get_connected_members(),
-            [this](const raft_member_id_t &, const boost::optional<raft_term_t> *) {
-                this->update_readiness_for_change();
-            },
-            /* There's no point in running `update_readiness_for_change()` now; we can't
-            be ready for change because we're a follower. */
-            false))
+            std::bind(&raft_member_t::on_connected_members_change, this, ph::_1, ph::_2)
+            ))
 {
     new_mutex_acq_t mutex_acq(&mutex);
     /* Finish initializing `latest_state` */
@@ -775,12 +771,12 @@ void raft_member_t<state_t>::on_connected_members_change(
     if (mode == mode_t::leader) {
         update_readiness_for_change();
     }
-    if (value != nullptr && static_cast<bool>(*value)) {
+    if (value != nullptr && static_cast<bool>(*value) && member_id != this_member_id) {
         /* We've received a "start virtual heartbeats" message. We process the term just
         like for an AppendEntries or InstallSnapshot RPC, but we don't actually append
         any entries or install any snapshots. */
         raft_term_t term = **value;
-        auto_drainer_t::lock_t keepalive(&drainer);
+        auto_drainer_t::lock_t keepalive(drainer.get());
         coro_t::spawn_sometime(
         [this, term, member_id, keepalive /* important to capture */]() {
             try {
@@ -814,6 +810,8 @@ bool raft_member_t<state_t>::on_rpc_from_leader(
         const new_mutex_acq_t *mutex_acq) {
     assert_thread();
     mutex_acq->guarantee_is_holding(&mutex);
+
+    guarantee(request_leader_id != this_member_id);
 
     /* Raft paper, Figure 2: "If RPC request or response contains term T > currentTerm:
     set currentTerm = T, convert to follower" */

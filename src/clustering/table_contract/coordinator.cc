@@ -311,7 +311,7 @@ contract_t calculate_contract(
         isn't important for correctness. If we do an auto-failover when the primary isn't
         actually dead, or don't do an auto-failover when the primary is actually dead,
         the worst that will happen is we'll lose availability. */
-        if (visible_voters.count(old_c.primary->server) == 0) {
+        if (!should_kill_primary && visible_voters.count(old_c.primary->server) == 0) {
             should_kill_primary = true;
             if (!log_prefix.empty()) {
                 logINF("%s: Stopping server %s as primary because a majority of voters "
@@ -411,6 +411,8 @@ void calculate_all_contracts(
         const std::string &log_prefix,
         std::set<contract_id_t> *remove_contracts_out,
         std::map<contract_id_t, std::pair<region_t, contract_t> > *add_contracts_out) {
+
+    logDBG("%s: begin calculate_all_contracts()", log_prefix.c_str());
 
     ASSERT_FINITE_CORO_WAITING;
 
