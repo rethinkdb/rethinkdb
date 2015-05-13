@@ -12,9 +12,9 @@ network_logger_t::network_logger_t(
     directory_view(dv), semilattice_view(sv),
     directory_subscription(directory_view,
         std::bind(&network_logger_t::on_change, this), false),
-    semilattice_subscription(std::bind(&network_logger_t::on_change, this))
+    semilattice_subscription(
+        std::bind(&network_logger_t::on_change, this), semilattice_view)
 {
-    semilattice_subscription.reset(semilattice_view);
     on_change();
 }
 
@@ -48,7 +48,8 @@ void network_logger_t::on_change() {
             }
             case PROXY_PEER: {
                 proxies_seen.insert(peer_id);
-                if (connected_proxies.count(peer_id)) {
+                if (connected_proxies.count(peer_id) == 0) {
+                    connected_proxies.insert(peer_id);
                     logNTC("Connected to proxy %s",
                         uuid_to_str(peer_id.get_uuid()).c_str());
                 }
