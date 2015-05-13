@@ -1131,12 +1131,14 @@ public:
         if (!stream->is_exhausted() && !running) {
             running = true;
             auto_drainer_t::lock_t lock(&parent->drainer);
-            if (parent->union_type == feed_type_t::not_feed) {
-                // If the union is not a feed, we only launch a limited number
-                // of reads at a time, controlled by a coro pool.
+            if (stream->cfeed_type() == feed_type_t::not_feed) {
+                // We only launch a limited number of non-feed reads per union
+                // at a time, controlled by a coro pool.
                 parent->read_queue.push([this, lock]{this->cb(lock);});
             } else {
-                // If the union is a feed, we have to spawn a coroutine
+                // For feeds, we have to spawn a coroutine since we cannot afford
+                // to wait for a specific subset of substreams to yield a result
+                // before spawning a read from the remaining ones.
                 coro_t::spawn_sometime([this, lock]{this->cb(lock);});
             }
         }
