@@ -50,7 +50,7 @@ bool raft_networked_member_t<state_t>::send_rpc(
 }
 
 template<class state_t>
-void send_virtual_heartbeats(
+void raft_networked_member_t<state_t>::send_virtual_heartbeats(
         const boost::optional<raft_term_t> &term) {
     business_card.apply_atomic_op(
         [&](raft_business_card_t<state_t> *bcard) {

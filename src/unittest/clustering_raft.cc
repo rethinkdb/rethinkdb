@@ -105,36 +105,53 @@ public:
     /* `set_live()` puts the given member into the given state. */
     void set_live(const raft_member_id_t &member_id, live_t live) {
         member_info_t *i = members.at(member_id).get();
-        if (i->rpc_drainer.has() && live != live_t::alive) {
-            member_directory.delete_key(member_id);
-            /* The reason we don't just do `i->rpc_drainer.reset()` is that if something
-            were to read `i->rpc_drainer` while the `auto_drainer_t` destructor was
-            blocking, it might get a pointer to an invalid `auto_drainer_t` instead of
-            getting a null pointer. This workaround ensures that `i->rpc_drainer` will
-            always either be valid or null. */
-            scoped_ptr_t<auto_drainer_t> dummy;
-            std::swap(i->rpc_drainer, dummy);
-            dummy.reset();
+        if (i->live == live_t::alive && live != live_t::alive) {
+            i->bcard_subs.reset();
+            for (const auto &pair : members) {
+                if (pair.second->live == live_t::alive) {
+                    pair.second->member_directory.delete_key(member_id);
+                    i->member_directory.delete_key(pair.first);
+                }
+            }
         }
         {
-            if (i->member.has() && live == live_t::dead) {
+            if (i->live != live_t::dead && live == live_t::dead) {
                 scoped_ptr_t<auto_drainer_t> dummy;
                 std::swap(i->member_drainer, dummy);
                 dummy.reset();
                 i->member.reset();
             }
-            if (!i->member.has() && live != live_t::dead) {
+            if (i->live == live_t::dead && live != live_t::dead) {
                 i->member.init(new raft_networked_member_t<dummy_raft_state_t>(
-                    member_id, &mailbox_manager, &member_directory, i, i->stored_state,
-                    ""));
+                    member_id, &mailbox_manager, &i->member_directory, i,
+                    i->stored_state, ""));
                 i->member_drainer.init(new auto_drainer_t);
             }
         }
-        if (!i->rpc_drainer.has() && live == live_t::alive) {
-            i->rpc_drainer.init(new auto_drainer_t);
-            member_directory.set_key_no_equals(
-                member_id, i->member->get_business_card());
+        if (i->live != live_t::alive && live == live_t::alive) {
+            i->bcard_subs.init(new watchable_t<raft_business_card_t<dummy_raft_state_t> >
+                ::subscription_t(
+                    [this, member_id, i]() {
+                        raft_business_card_t<dummy_raft_state_t> bcard =
+                            i->member->get_business_card()->get();
+                        for (const auto &pair : members) {
+                            if (pair.second->live == live_t::alive) {
+                                pair.second->member_directory.set_key(member_id, bcard);
+                            }
+                        }
+                    },
+                    i->member->get_business_card(),
+                    true));
+            for (const auto &pair : members) {
+                if (pair.second->live == live_t::alive) {
+                    i->member_directory.set_key(pair.first,
+                        pair.second->member->get_business_card()->get());
+                }
+            }
+            i->member_directory.set_key(
+                member_id, i->member->get_business_card()->get());
         }
+        i->live = live;
     }
 
     /* Blocks until it finds a cluster member which is advertising itself as ready for
@@ -267,7 +284,9 @@ private:
     class member_info_t :
         public raft_storage_interface_t<dummy_raft_state_t> {
     public:
-        member_info_t() { }
+        member_info_t(dummy_raft_cluster_t *p, const raft_member_id_t &mid,
+                const raft_persistent_state_t<dummy_raft_state_t> &ss) :
+            parent(p), member_id(mid), stored_state(ss), live(live_t::dead) { }
         member_info_t(member_info_t &&) = default;
         member_info_t &operator=(member_info_t &&) = default;
 
@@ -292,20 +311,19 @@ private:
         dummy_raft_cluster_t *parent;
         raft_member_id_t member_id;
         raft_persistent_state_t<dummy_raft_state_t> stored_state;
-        /* If the member is alive, `member`, `member_drainer`, and `rpc_drainer` are set.
-        If the member is isolated, `member` and `member_drainer` are set but
-        `rpc_drainer` is empty. If the member is dead, all are empty. */
+        watchable_map_var_t<raft_member_id_t, raft_business_card_t<dummy_raft_state_t> >
+            member_directory;
+        live_t live;
         scoped_ptr_t<raft_networked_member_t<dummy_raft_state_t> > member;
-        scoped_ptr_t<auto_drainer_t> member_drainer, rpc_drainer;
+        scoped_ptr_t<auto_drainer_t> member_drainer;
+        scoped_ptr_t<watchable_t<raft_business_card_t<dummy_raft_state_t> >
+            ::subscription_t> bcard_subs;
     };
 
     void add_member(
             const raft_member_id_t &member_id,
             raft_persistent_state_t<dummy_raft_state_t> initial_state) {
-        scoped_ptr_t<member_info_t> i(new member_info_t);
-        i->parent = this;
-        i->member_id = member_id;
-        i->stored_state = initial_state;
+        scoped_ptr_t<member_info_t> i(new member_info_t(this, member_id, initial_state));
         members[member_id] = std::move(i);
         set_live(member_id, live_t::alive);
     }
@@ -327,8 +345,6 @@ private:
     connectivity_cluster_t::run_t connectivity_cluster_run;
 
     std::map<raft_member_id_t, scoped_ptr_t<member_info_t> > members;
-    watchable_map_var_t<raft_member_id_t, raft_business_card_t<dummy_raft_state_t> >
-        member_directory;
     auto_drainer_t drainer;
     repeating_timer_t check_invariants_timer;
 };

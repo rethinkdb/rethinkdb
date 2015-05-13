@@ -23,6 +23,7 @@ public:
     boost::optional<raft_term_t> virtual_heartbeats;
 
     RDB_MAKE_ME_SERIALIZABLE_2(raft_business_card_t, rpc, virtual_heartbeats);
+    RDB_MAKE_ME_EQUALITY_COMPARABLE_2(raft_business_card_t, rpc, virtual_heartbeats);
 };
 
 template<class state_t>
@@ -79,7 +80,7 @@ private:
                 watchable_map_t<raft_member_id_t, raft_business_card_t<state_t> > *w) :
             watchable_map_transform_t<
                 raft_member_id_t, raft_business_card_t<state_t>,
-                raft_member_id_t, empty_value_t>(w) { }
+                raft_member_id_t, boost::optional<raft_term_t> >(w) { }
     private:
         bool key_1_to_2(const raft_member_id_t &key1, raft_member_id_t *key2_out) {
             *key2_out = key1;
@@ -100,7 +101,7 @@ private:
 
     typename raft_business_card_t<state_t>::rpc_mailbox_t rpc_mailbox;
 
-    watchable_variable_t<boost::optional<raft_term_t> > business_card;
+    watchable_variable_t<raft_business_card_t<state_t> > business_card;
 };
 
 #endif   /* CLUSTERING_GENERIC_RAFT_NETWORK_HPP_ */

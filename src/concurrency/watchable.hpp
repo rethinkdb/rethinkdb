@@ -47,6 +47,20 @@ public:
         freeze->rwi_lock_acquisition.assert_is_holding(watchable->get_rwi_lock_assertion());
     }
 
+    watchable_subscription_t(
+            const std::function<void()> &f,
+            const clone_ptr_t<watchable_t<value_t> > &watchable,
+            bool initial_call) :
+        subscription(f)
+    {
+        rwi_lock_assertion_t::read_acq_t rwi_lock_acquisition(
+            watchable->get_rwi_lock_assertion());
+        subscription.reset(watchable->get_publisher());
+        if (initial_call) {
+            f();
+        }
+    }
+
     void reset() {
         subscription.reset();
     }

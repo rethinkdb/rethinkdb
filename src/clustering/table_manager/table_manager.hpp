@@ -135,6 +135,9 @@ private:
     raft_networked_member_t<table_raft_state_t> raft;
 
     watchable_variable_t<table_manager_bcard_t> table_manager_bcard;
+    watchable_field_copier_t<
+        raft_business_card_t<table_raft_state_t>, table_manager_bcard_t
+        > raft_bcard_copier;
 
     /* `leader` will be non-empty if we are the Raft leader */
     scoped_ptr_t<leader_t> leader;
