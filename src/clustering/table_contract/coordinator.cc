@@ -431,7 +431,7 @@ void calculate_all_contracts(
                     log_subprefix = strprintf("%s: shard %zu.%zu.%d",
                         log_prefix.c_str(),
                         shard_index, subshard_index, get_cpu_shard_approx_number(reg));
-                    if (reg.beg == 0) {
+                    if (reg.end == HASH_REGION_HASH_SIZE) {
                         ++subshard_index;
                     }
                 }
