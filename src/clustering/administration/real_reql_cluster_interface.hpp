@@ -24,7 +24,9 @@ actions on the semilattices. By performing these actions through the abstract
 `reql_cluster_interface_t`, we can keep the ReQL code separate from the semilattice code.
 */
 
-class real_reql_cluster_interface_t : public reql_cluster_interface_t {
+class real_reql_cluster_interface_t :
+    public reql_cluster_interface_t,
+    public home_thread_mixin_t {
 public:
     real_reql_cluster_interface_t(
             mailbox_manager_t *mailbox_manager,
