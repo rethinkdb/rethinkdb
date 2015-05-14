@@ -83,22 +83,7 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
             /* Switch back to the home thread so we can send the initial ack */
             on_thread_t thread_switcher_2(home_thread());
 
-            /* Note that in the initial ack, `failover_timeout_elapsed` will be `false`.
-            This isn't quite right, because it's possible that hasn't been a primary for
-            a while before we got to this point. Consider the following scenario: The
-            primary fails. The failover timeout elapses. The coordinator sets the primary
-            to nil. All the `secondary_execution_t`s are destroyed and recreated with
-            `primary` set to `nil_uuid()`. But now they all report that the failover
-            timeout has not elapsed yet, so the failover timeout has to elapse again
-            before a new primary can be elected. This is annoying, but it doesn't really
-            break anything. */
-            initial_ack.failover_timeout_elapsed = false;
-
             send_ack(initial_ack);
-
-            static const int failover_timeout_ms = 5000;
-            signal_timer_t failover_timer;
-            failover_timer.start(failover_timeout_ms);
 
             /* Serve outdated reads while we wait for the primary */
             object_buffer_t<watchable_map_var_t<uuid_u, table_query_bcard_t>::entry_t>
@@ -113,12 +98,7 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
 
             if (!connect_to_primary) {
                 /* Instead of establishing a connection to the primary and doing a
-                backfill, we'll just wait for the failover timeout to elapse, update our
-                ack, and then wait to be interrupted. In other words, we act as though we
-                were looking for a primary but never found it. */
-                wait_interruptible(&failover_timer, keepalive.get_drain_signal());
-                initial_ack.failover_timeout_elapsed = true;
-                send_ack(initial_ack);
+                backfill, we'll just wait for a new contract. */
                 keepalive.get_drain_signal()->wait_lazily_unordered();
                 return;
             }
@@ -154,19 +134,9 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
                     }
                 }, true);
 
-            /* Wait until we see a primary or the failover timeout elapses. */
-            wait_any_t waiter(primary_bcard.get_ready_signal(), &failover_timer);
-            wait_interruptible(&waiter, keepalive.get_drain_signal());
-
-            if (!primary_bcard.is_pulsed()) {
-                /* The failover timeout elapsed. Send a new contract ack with
-                `failover_timeout_elapsed` set to `true`, then resume waiting for the
-                primary. */
-                initial_ack.failover_timeout_elapsed = true;
-                send_ack(initial_ack);
-                wait_interruptible(
-                    primary_bcard.get_ready_signal(), keepalive.get_drain_signal());
-            }
+            /* Wait until we see a primary */
+            wait_interruptible(
+                primary_bcard.get_ready_signal(), keepalive.get_drain_signal());
 
             /* Stop serving outdated reads, because we're going to do a backfill */
             directory_entry.reset();

@@ -18,6 +18,7 @@
 #include "concurrency/watchable_map.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/stl_types.hpp"
+#include "containers/empty_value.hpp"
 #include "containers/uuid.hpp"
 #include "time.hpp"
 
@@ -428,12 +429,6 @@ private:
     boost::variant<request_vote_t, install_snapshot_t, append_entries_t> reply;
 
     RDB_MAKE_ME_SERIALIZABLE_1(raft_rpc_reply_t, reply);
-};
-
-/* A helper type for using a watchable_map_t like a set */
-class empty_value_t {
-public:
-    empty_value_t() { }
 };
 
 /* `raft_network_interface_t` is the abstract class that `raft_member_t` uses to send

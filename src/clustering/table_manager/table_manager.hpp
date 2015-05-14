@@ -20,6 +20,8 @@ public:
             *_table_manager_directory,
         backfill_throttler_t *_backfill_throttler,
         table_persistence_interface_t *_persistence_interface,
+        watchable_map_t<std::pair<server_id_t, server_id_t>, empty_value_t>
+            *_connections_map,
         const base_path_t &_base_path,
         io_backender_t *_io_backender,
         const namespace_id_t &_table_id,
@@ -96,6 +98,8 @@ private:
 
     mailbox_manager_t * const mailbox_manager;
     table_persistence_interface_t * const persistence_interface;
+    watchable_map_t<std::pair<server_id_t, server_id_t>, empty_value_t>
+        * const connections_map;
 
     perfmon_collection_t perfmon_collection;
     perfmon_membership_t perfmon_membership;

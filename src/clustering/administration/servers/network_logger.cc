@@ -6,17 +6,16 @@
 
 network_logger_t::network_logger_t(
         peer_id_t our_peer_id,
-        const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > &dv,
+        watchable_map_t<peer_id_t, cluster_directory_metadata_t> *dv,
         const boost::shared_ptr<semilattice_read_view_t<servers_semilattice_metadata_t> > &sv) :
     us(our_peer_id),
     directory_view(dv), semilattice_view(sv),
-    directory_subscription(boost::bind(&network_logger_t::on_change, this)),
-    semilattice_subscription(boost::bind(&network_logger_t::on_change, this))
+    directory_subscription(directory_view,
+        std::bind(&network_logger_t::on_change, this), false),
+    semilattice_subscription(
+        std::bind(&network_logger_t::on_change, this), semilattice_view)
 {
-    watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> >::freeze_t directory_freeze(directory_view);
-    guarantee(directory_view->get().get_inner().empty());
-    directory_subscription.reset(directory_view, &directory_freeze);
-    semilattice_subscription.reset(semilattice_view);
+    on_change();
 }
 
 void network_logger_t::on_change() {
@@ -25,65 +24,56 @@ void network_logger_t::on_change() {
     std::set<server_id_t> servers_seen;
     std::set<peer_id_t> proxies_seen;
 
-    struct op_closure_t {
-        static void apply(const servers_semilattice_metadata_t &_semilattice,
-                          std::set<server_id_t> *_servers_seen,
-                          std::set<peer_id_t> *_proxies_seen,
-                          network_logger_t *parent,
-                          const change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> *directory) {
-            for (auto it = directory->get_inner().begin(); it != directory->get_inner().end(); it++) {
-                if (it->first == parent->us) {
-                    continue;
-                }
-                switch (it->second.peer_type) {
-                    case SERVER_PEER: {
-                        _servers_seen->insert(it->second.server_id);
-                        servers_semilattice_metadata_t::server_map_t::const_iterator jt
-                            = _semilattice.servers.find(it->second.server_id);
-                        /* If they don't appear in the servers map, assume that they're
-                        a new server and that an entry for them will appear as soon as
-                        the semilattice finishes syncing. */
-                        if (jt != _semilattice.servers.end()) {
-                            if (parent->connected_servers.count(it->second.server_id) == 0) {
-                                parent->connected_servers.insert(it->second.server_id);
-                                logNTC("Connected to server %s", parent->pretty_print_server(it->second.server_id).c_str());
-                            }
+    directory_view->read_all(
+    [&](const peer_id_t &peer_id, const cluster_directory_metadata_t *value) {
+        switch (value->peer_type) {
+            case SERVER_PEER: {
+                servers_seen.insert(value->server_id);
+                servers_semilattice_metadata_t::server_map_t::const_iterator jt
+                    = semilattice.servers.find(value->server_id);
+                /* If they don't appear in the servers map, assume that they're a new
+                server and that an entry for them will appear as soon as the semilattice
+                finishes syncing. */
+                if (jt != semilattice.servers.end()) {
+                    if (!static_cast<bool>(connected_servers.get_key(
+                            value->server_id))) {
+                        connected_servers.set_key(value->server_id, empty_value_t());
+                        if (peer_id != us) {
+                            logNTC("Connected to server %s",
+                                pretty_print_server(value->server_id).c_str());
                         }
-                        break;
                     }
-                    case PROXY_PEER: {
-                        _proxies_seen->insert(it->first);
-                        if (parent->connected_proxies.count(it->first)) {
-                            logNTC("Connected to proxy %s", uuid_to_str(it->first.get_uuid()).c_str());
-                        }
-                        break;
-                    }
-                    default: unreachable();
                 }
+                break;
             }
+            case PROXY_PEER: {
+                proxies_seen.insert(peer_id);
+                if (connected_proxies.count(peer_id) == 0) {
+                    connected_proxies.insert(peer_id);
+                    logNTC("Connected to proxy %s",
+                        uuid_to_str(peer_id.get_uuid()).c_str());
+                }
+                break;
+            }
+            default: unreachable();
         }
-    };
+    });
 
-    directory_view->apply_read(std::bind(&op_closure_t::apply,
-                                         std::ref(semilattice),
-                                         &servers_seen,
-                                         &proxies_seen,
-                                         this,
-                                         ph::_1));
-
-    std::set<server_id_t> connected_servers_copy = connected_servers;
-    for (std::set<server_id_t>::iterator it = connected_servers_copy.begin(); it != connected_servers_copy.end(); it++) {
-        if (servers_seen.count(*it) == 0) {
-            connected_servers.erase(*it);
-            logINF("Disconnected from server %s", pretty_print_server(*it).c_str());
+    std::map<server_id_t, empty_value_t> connected_servers_copy =
+        connected_servers.get_all();
+    for (const auto &pair : connected_servers_copy) {
+        if (servers_seen.count(pair.first) == 0) {
+            connected_servers.delete_key(pair.first);
+            logINF("Disconnected from server %s",
+                pretty_print_server(pair.first).c_str());
         }
     }
 
     std::set<peer_id_t> connected_proxies_copy = connected_proxies;
-    for (std::set<peer_id_t>::iterator it = connected_proxies_copy.begin(); it != connected_proxies_copy.end(); it++) {
-        if (proxies_seen.count(*it) == 0) {
-            connected_proxies.erase(*it);
-            logINF("Disconnected from proxy %s", uuid_to_str(it->get_uuid()).c_str());
+    for (const auto &proxy : connected_proxies_copy) {
+        if (proxies_seen.count(proxy) == 0) {
+            connected_proxies.erase(proxy);
+            logINF("Disconnected from proxy %s", uuid_to_str(proxy.get_uuid()).c_str());
         }
     }
 }
