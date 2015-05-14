@@ -4,6 +4,7 @@
 
 #include <set>
 #include <map>
+#include <random>
 #include <string>
 #include <vector>
 
@@ -35,6 +36,8 @@ class query_cache_t;
 class http_conn_cache_t : public repeating_timer_callback_t,
                           public home_thread_mixin_t {
 public:
+    typedef std::string conn_key_t;
+
     class http_conn_t : public single_threaded_countable_t<http_conn_t> {
     public:
         http_conn_t(rdb_context_t *rdb_ctx,
@@ -54,12 +57,14 @@ public:
         DISABLE_COPYING(http_conn_t);
     };
 
+    // WARNING: http_conn_cache_t might block since it needs to seed a random
+    //  number generator. Don't call this except at server startup.
     explicit http_conn_cache_t(uint32_t _http_timeout_sec);
     ~http_conn_cache_t();
 
-    counted_t<http_conn_t> find(int32_t key);
-    int32_t create(rdb_context_t *rdb_ctx, ip_and_port_t client_addr_port);
-    void erase(int32_t key);
+    counted_t<http_conn_t> find(const conn_key_t &key);
+    conn_key_t create(rdb_context_t *rdb_ctx, ip_and_port_t client_addr_port);
+    void erase(const conn_key_t &key);
 
     void on_ring();
     bool is_expired(const http_conn_t &conn) const;
@@ -68,8 +73,10 @@ public:
 private:
     static const int64_t TIMER_RESOLUTION_MS = 5000;
 
-    std::map<int32_t, counted_t<http_conn_t> > cache;
-    int32_t next_id;
+    // Random number generator used for generating cryptographic connection IDs
+    std::mt19937 key_generator;
+
+    std::map<conn_key_t, counted_t<http_conn_t> > cache;
     repeating_timer_t http_timeout_timer;
     uint32_t http_timeout_sec;
 };

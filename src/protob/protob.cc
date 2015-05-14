@@ -3,6 +3,8 @@
 
 #include <google/protobuf/stubs/common.h>
 
+#include <array>
+#include <random>
 #include <set>
 #include <string>
 #include <limits>
@@ -58,9 +60,28 @@ time_t http_conn_cache_t::http_conn_t::last_accessed_time() const {
 }
 
 http_conn_cache_t::http_conn_cache_t(uint32_t _http_timeout_sec) :
-    next_id(0),
     http_timeout_timer(TIMER_RESOLUTION_MS, this),
-    http_timeout_sec(_http_timeout_sec) { }
+    http_timeout_sec(_http_timeout_sec) {
+
+    // Seed the random number generator from a true random source.
+    // Note1: On some platforms std::random_device might not actually be
+    //   non-deterministic, and it seems that there is no reliable way to tell.
+    //   On major platforms it should be fine.
+    // Note2: std::random_device() might block for a while. Since we only create
+    //   http_conn_cache_t once at startup, that should be fine. But it's something
+    //   to keep in mind.
+
+    // Seed with an amount of bits equal to the state size of key_generator.
+    static_assert(std::mt19937::word_size == 32,
+                  "std::mt19937's word size doesn't match what we expected.");
+    std::array<uint32_t, std::mt19937::state_size> seed_data;
+    std::random_device rd;
+    for (size_t i = 0; i < seed_data.size(); ++i) {
+        seed_data[i] = rd();
+    }
+    std::seed_seq seed_seq(seed_data.begin(), seed_data.end());
+    key_generator.seed(seed_seq);
+}
 
 http_conn_cache_t::~http_conn_cache_t() {
     for (auto &pair : cache) pair.second->pulse();
@@ -75,23 +96,39 @@ bool http_conn_cache_t::is_expired(const http_conn_t &conn) const {
     return difftime(time(0), conn.last_accessed_time()) > http_timeout_sec;
 }
 
-counted_t<http_conn_cache_t::http_conn_t> http_conn_cache_t::find(int32_t key) {
+counted_t<http_conn_cache_t::http_conn_t> http_conn_cache_t::find(
+        const conn_key_t &key) {
     assert_thread();
     auto conn_it = cache.find(key);
     if (conn_it == cache.end()) return counted_t<http_conn_t>();
     return conn_it->second;
 }
 
-int32_t http_conn_cache_t::create(rdb_context_t *rdb_ctx,
-                                  ip_and_port_t client_addr_port) {
+http_conn_cache_t::conn_key_t http_conn_cache_t::create(
+        rdb_context_t *rdb_ctx,
+        ip_and_port_t client_addr_port) {
     assert_thread();
-    int32_t key = next_id++;
+    // Generate a 256 bit random key to avoid XSS attacks where someone
+    // could run queries by guessing the connection ID.
+    // The same origin policy of browsers will stop attackers from seeing
+    // the response of the connection setup, so the attacker will have no chance
+    // of getting a valid connection ID.
+    conn_key_t key;
+    key.reserve(32 * 9);
+    for(size_t i = 0; i < 32; ++i) {
+        // We simply print 32 integers in hexadecimal separated by underscores.
+        // Not the most efficient way of representing the key as a string,
+        // but it does the job.
+        const uint32_t key_item = key_generator();
+        key += strprintf("%" PRIx32 "_", key_item);
+    }
+
     cache.insert(
         std::make_pair(key, make_counted<http_conn_t>(rdb_ctx, client_addr_port)));
     return key;
 }
 
-void http_conn_cache_t::erase(int32_t key) {
+void http_conn_cache_t::erase(const conn_key_t &key) {
     assert_thread();
     auto it = cache.find(key);
     if (it != cache.end()) {
@@ -606,11 +643,10 @@ void query_server_t::handle(const http_req_t &req,
     auto_drainer_t::lock_t auto_drainer_lock(&drainer);
     if (req.method == http_method_t::POST &&
         req.resource.as_string().find("open-new-connection") != std::string::npos) {
-        int32_t conn_id = http_conn_cache.create(rdb_ctx, req.peer);
+        http_conn_cache_t::conn_key_t conn_id
+            = http_conn_cache.create(rdb_ctx, req.peer);
 
-        std::string body_data;
-        body_data.assign(reinterpret_cast<char *>(&conn_id), sizeof(conn_id));
-        result->set_body("application/octet-stream", body_data);
+        result->set_body("text/plain", conn_id);
         result->code = http_status_code_t::OK;
         return;
     }
@@ -623,7 +659,8 @@ void query_server_t::handle(const http_req_t &req,
     }
 
     std::string string_conn_id = *optional_conn_id;
-    int32_t conn_id = boost::lexical_cast<int32_t>(string_conn_id);
+    http_conn_cache_t::conn_key_t conn_id
+        = boost::lexical_cast<http_conn_cache_t::conn_key_t>(string_conn_id);
 
     if (req.method == http_method_t::POST &&
         req.resource.as_string().find("close-connection") != std::string::npos) {
