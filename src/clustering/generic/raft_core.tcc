@@ -1430,7 +1430,8 @@ bool raft_member_t<state_t>::candidate_run_election(
                     recently, so they might reject a vote and then later accept it in the
                     same term. But before we retry, we wait a bit, to avoid putting too
                     much traffic on the network. */
-                    nap(heartbeat_interval_ms,
+                    static const int32_t retry_interval_ms = 500;
+                    nap(retry_interval_ms,
                         request_vote_keepalive.get_drain_signal());
                 }
 

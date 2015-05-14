@@ -646,16 +646,6 @@ private:
     static const int32_t election_timeout_min_ms = 1000,
                          election_timeout_max_ms = 2000;
 
-    /* TODO: We should probably deviate from the Raft paper by using the network layer's
-    disconnect detection instead of timeouts to detect a dead leader. This will make
-    elections much faster and also make us less sensitive to timing. However, this will
-    involve adding a new RPC, for a master to inform followers that it is stepping down.
-    */
-
-    /* This is the amount of time the server waits between sending heartbeats. It should
-    be much shorter than the election timeout. */
-    static const int32_t heartbeat_interval_ms = 500;
-
     /* Note: Methods prefixed with `follower_`, `candidate_`, or `leader_` are methods
     that are only used when in that state. This convention will hopefully make the code
     slightly clearer. */
