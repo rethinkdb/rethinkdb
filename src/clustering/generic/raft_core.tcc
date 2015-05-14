@@ -245,16 +245,24 @@ void raft_member_t<state_t>::on_rpc(
     }
 }
 
+#ifndef NDEBUG
 template<class state_t>
 void raft_member_t<state_t>::check_invariants(
         const std::set<raft_member_t<state_t> *> &members) {
     /* We acquire each member's mutex to ensure we don't catch them in invalid states */
     std::vector<scoped_ptr_t<new_mutex_acq_t> > mutex_acqs;
     for (raft_member_t<state_t> *member : members) {
-        scoped_ptr_t<new_mutex_acq_t> mutex_acq(new new_mutex_acq_t(&member->mutex));
-        /* Check each member's invariants individually */
-        member->check_invariants(mutex_acq.get());
-        mutex_acqs.push_back(std::move(mutex_acq));
+        signal_timer_t timeout;
+        timeout.start(10000);
+        try {
+            scoped_ptr_t<new_mutex_acq_t> mutex_acq(
+                new new_mutex_acq_t(&member->mutex, &timeout));
+            /* Check each member's invariants individually */
+            member->check_invariants(mutex_acq.get());
+            mutex_acqs.push_back(std::move(mutex_acq));
+        } catch (const interrupted_exc_t &) {
+            crash("Raft member mutex is gridlocked");
+        }
     }
 
     {
@@ -327,6 +335,7 @@ void raft_member_t<state_t>::check_invariants(
         }
     }
 }
+#endif /* NDEBUG */
 
 template<class state_t>
 void raft_member_t<state_t>::on_request_vote_rpc(
@@ -609,6 +618,7 @@ void raft_member_t<state_t>::on_append_entries_rpc(
     DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
 }
 
+#ifndef NDEBUG
 template<class state_t>
 void raft_member_t<state_t>::check_invariants(
         const new_mutex_acq_t *mutex_acq) {
@@ -731,6 +741,11 @@ void raft_member_t<state_t>::check_invariants(
         "we shouldn't be getting virtual heartbeats from a non-leader");
     guarantee(leader_drainer.has() == (mode != mode_t::follower),
         "candidate_and_leader_coro() should be running unless we're a follower");
+    guarantee(mode == mode_t::leader || !readiness_for_change.get(),
+        "we shouldn't be accepting changes if we're not leader");
+    guarantee(readiness_for_change.get() || !readiness_for_change.get(),
+        "we shouldn't be accepting config changes but not regular changes");
+
 
     switch (mode) {
     case mode_t::follower:
@@ -762,15 +777,14 @@ void raft_member_t<state_t>::check_invariants(
     the log for the current term. But this would be false immediately after startup, so
     we'd need an extra flag to detect that, and that's more work than it's worth. */
 }
+#endif /* NDEBUG */
 
 template<class state_t>
 void raft_member_t<state_t>::on_connected_members_change(
         const raft_member_id_t &member_id,
         const boost::optional<raft_term_t> *value) {
     assert_thread();
-    if (mode == mode_t::leader) {
-        update_readiness_for_change();
-    }
+    update_readiness_for_change();
     if (value != nullptr && static_cast<bool>(*value) && member_id != this_member_id) {
         /* We've received a "start virtual heartbeats" message. We process the term just
         like for an AppendEntries or InstallSnapshot RPC, but we don't actually append
@@ -918,7 +932,7 @@ void raft_member_t<state_t>::on_watchdog_timer() {
                     this,
                     mutex_acq.release(),
                     auto_drainer_t::lock_t(leader_drainer.get())));
-            } catch (interrupted_exc_t) {
+            } catch (const interrupted_exc_t &) {
                 /* If `keepalive.get_drain_signal()` fires, the `raft_member_t` is being
                 destroyed, so don't start an election. */
             }
@@ -1301,7 +1315,7 @@ void raft_member_t<state_t>::candidate_and_leader_coro(
             }
         }
 
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         /* This means either the `raft_member_t` is being destroyed, or we were told to
         revert to follower state. In either case we do the same thing. */
     }
@@ -1315,7 +1329,7 @@ void raft_member_t<state_t>::candidate_and_leader_coro(
     strictly necessary; it's basically a sanity check. */
     match_indexes.clear();
 
-    /* Now that `mode` has switched to `mode_leader`, we might need to flip
+    /* Now that `mode` is no longer `mode_leader`, we might need to flip
     `readiness_for_change`. */
     update_readiness_for_change();
 }
@@ -1435,7 +1449,7 @@ bool raft_member_t<state_t>::candidate_run_election(
                         request_vote_keepalive.get_drain_signal());
                 }
 
-            } catch (interrupted_exc_t) {
+            } catch (const interrupted_exc_t &) {
                 /* Ignore since we're in a coroutine */
                 return;
             }
@@ -1727,7 +1741,7 @@ void raft_member_t<state_t>::leader_send_updates(
                 DEBUG_ONLY_CODE(check_invariants(mutex_acq.get()));
             }
         }
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         /* The leader interrupted us. This could be because the `raft_member_t` is being
         destroyed; because the leader is no longer leader; or because a config change
         removed `peer` from the cluster. In any case, we just return. */
@@ -1798,7 +1812,7 @@ bool raft_member_t<state_t>::candidate_or_leader_note_term(
                     storage->write_persistent_state(ps, keepalive.get_drain_signal());
                 }
                 DEBUG_ONLY_CODE(this->check_invariants(&mutex_acq_2));
-            } catch (interrupted_exc_t) {
+            } catch (const interrupted_exc_t &) {
                 /* If `keepalive.get_drain_signal()` is pulsed, then the `raft_member_t`
                 is being destroyed, so it doesn't matter if we update our term; the
                 `candidate_or_leader_coro` will stop on its own. */

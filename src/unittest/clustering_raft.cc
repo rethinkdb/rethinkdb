@@ -416,23 +416,23 @@ TPTEST(ClusteringRaft, Basic) {
     do_writes(&cluster, leader, 2000, 100);
 }
 
-TPTEST(ClusteringRaft, Failover) {
+void failover_test(dummy_raft_cluster_t::live_t failure_type) {
     std::vector<raft_member_id_t> member_ids;
     dummy_raft_cluster_t cluster(5, dummy_raft_state_t(), &member_ids);
     dummy_raft_traffic_generator_t traffic_generator(&cluster, 3);
     raft_member_id_t leader = cluster.find_leader(60000);
     do_writes(&cluster, leader, 2000, 100);
-    cluster.set_live(member_ids[0], dummy_raft_cluster_t::live_t::dead);
-    cluster.set_live(member_ids[1], dummy_raft_cluster_t::live_t::dead);
+    cluster.set_live(member_ids[0], failure_type);
+    cluster.set_live(member_ids[1], failure_type);
     leader = cluster.find_leader(60000);
     do_writes(&cluster, leader, 2000, 100);
-    cluster.set_live(member_ids[2], dummy_raft_cluster_t::live_t::dead);
-    cluster.set_live(member_ids[3], dummy_raft_cluster_t::live_t::dead);
+    cluster.set_live(member_ids[2], failure_type);
+    cluster.set_live(member_ids[3], failure_type);
     cluster.set_live(member_ids[0], dummy_raft_cluster_t::live_t::alive);
     cluster.set_live(member_ids[1], dummy_raft_cluster_t::live_t::alive);
     leader = cluster.find_leader(60000);
     do_writes(&cluster, leader, 2000, 100);
-    cluster.set_live(member_ids[4], dummy_raft_cluster_t::live_t::dead);
+    cluster.set_live(member_ids[4], failure_type);
     cluster.set_live(member_ids[2], dummy_raft_cluster_t::live_t::alive);
     cluster.set_live(member_ids[3], dummy_raft_cluster_t::live_t::alive);
     leader = cluster.find_leader(60000);
@@ -442,6 +442,14 @@ TPTEST(ClusteringRaft, Failover) {
         dummy_raft_state_t state = member->get_committed_state()->get().state;
         traffic_generator.check_changes_present(state);
     });
+}
+
+TPTEST(ClusteringRaft, Failover) {
+    failover_test(dummy_raft_cluster_t::live_t::dead);
+}
+
+TPTEST(ClusteringRaft, FailoverIsolated) {
+    failover_test(dummy_raft_cluster_t::live_t::isolated);
 }
 
 TPTEST(ClusteringRaft, MemberChange) {
