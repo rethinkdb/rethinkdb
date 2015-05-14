@@ -50,8 +50,14 @@ contract_executor_t::~contract_executor_t() {
     want to first destroy every individual execution without modifying the `std::map`,
     then we want to destroy the `std::map`. This is because the `execution_t`s can
     access the `std::map` via `send_ack()` until they are all destroyed. */
+
     raft_state_subs.reset();
+
+    /* Call `drain()` before setting `update_pumper` itself to null because
+    `update_blocking()` will sometimes try to dereference `update_pumper`. */
+    update_pumper->drain();
     update_pumper.reset();
+
     for (auto &&pair : executions) {
         pair.second->execution.reset();
     }

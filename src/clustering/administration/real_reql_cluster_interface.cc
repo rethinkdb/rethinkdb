@@ -920,7 +920,7 @@ void real_reql_cluster_interface_t::sindex_change_internal(
         const std::function<void(std::map<std::string, sindex_config_t> *)> &cb,
         signal_t *interruptor_on_caller)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t,
-            failed_table_op_exc_t, maybe_failed_table_op_exc_t){
+            failed_table_op_exc_t, maybe_failed_table_op_exc_t, admin_op_exc_t){
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
     cross_thread_signal_t interruptor_on_home(interruptor_on_caller, home_thread());
@@ -1007,18 +1007,20 @@ bool real_reql_cluster_interface_t::sindex_rename(
                         "Index `%s` does not exist on table `%s.%s`.",
                         name.c_str(), db->name.c_str(), table.c_str()));
                 }
-                if (map->count(new_name) == 1) {
-                    if (overwrite) {
-                        map->erase(new_name);
-                    } else {
-                        throw admin_op_exc_t(strprintf(
-                            "Index `%s` already exists on table `%s.%s`.",
-                            new_name.c_str(), db->name.c_str(), table.c_str()));
+                if (name != new_name) {
+                    if (map->count(new_name) == 1) {
+                        if (overwrite) {
+                            map->erase(new_name);
+                        } else {
+                            throw admin_op_exc_t(strprintf(
+                                "Index `%s` already exists on table `%s.%s`.",
+                                new_name.c_str(), db->name.c_str(), table.c_str()));
+                        }
                     }
+                    sindex_config_t config = map->at(name);
+                    map->erase(name);
+                    map->insert(std::make_pair(new_name, config));
                 }
-                sindex_config_t config = map->at(name);
-                map->erase(name);
-                map->insert(std::make_pair(new_name, config));
             },
             interruptor_on_caller);
         return true;
