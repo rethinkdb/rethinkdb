@@ -108,15 +108,15 @@ http_conn_cache_t::conn_key_t http_conn_cache_t::create(
         rdb_context_t *rdb_ctx,
         ip_and_port_t client_addr_port) {
     assert_thread();
-    // Generate a 256 bit random key to avoid XSS attacks where someone
+    // Generate a 128 bit random key to avoid XSS attacks where someone
     // could run queries by guessing the connection ID.
     // The same origin policy of browsers will stop attackers from seeing
     // the response of the connection setup, so the attacker will have no chance
     // of getting a valid connection ID.
     conn_key_t key;
-    key.reserve(32 * 9);
-    for(size_t i = 0; i < 32; ++i) {
-        // We simply print 32 integers in hexadecimal separated by underscores.
+    key.reserve(16 * 9);
+    for(size_t i = 0; i < 16; ++i) {
+        // We simply print 16 integers in hexadecimal separated by underscores.
         // Not the most efficient way of representing the key as a string,
         // but it does the job.
         const uint32_t key_item = key_generator();
