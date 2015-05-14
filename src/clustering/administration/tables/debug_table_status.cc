@@ -305,7 +305,7 @@ void debug_table_status_artificial_table_backend_t::format_row(
     builder.overwrite("id", convert_uuid_to_datum(table_id));
     builder.overwrite("name",
         convert_name_to_datum(config_and_shards.config.basic.name));
-    builder.overwrite("database", db_name_or_uuid);
+    builder.overwrite("db", db_name_or_uuid);
     builder.overwrite(
         "config",
         convert_table_config_to_datum(

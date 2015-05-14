@@ -160,11 +160,11 @@ public:
         }
     }
 
-    /* `set_visible()` adds or removes entries in the `connections` map. The first form
+    /* `set_visibility()` adds or removes entries in the `connections` map. The first form
     sets bidirectional visibility between one server and all other servers; the second
     form sets unidirectional visibility from one specific server to one specific other
     server.  */
-    void set_visible(const server_id_t &s, bool visible) {
+    void set_visibility(const server_id_t &s, bool visible) {
         for (const server_id_t &s2 : all_servers) {
             if (visible) {
                 connections.set_key(std::make_pair(s, s2), empty_value_t());
@@ -175,7 +175,7 @@ public:
             }
         }
     }
-    void set_visible(const server_id_t &s1, const server_id_t &s2, bool visible) {
+    void set_visibility(const server_id_t &s1, const server_id_t &s2, bool visible) {
         if (visible) {
             connections.set_key(std::make_pair(s1, s2), empty_value_t());
         } else {
@@ -504,9 +504,9 @@ TPTEST(ClusteringContractCoordinator, Failover) {
 
     /* Report that the primary has failed, but initially indicate that both of the
     secondaries can still see it; nothing will happen. */
-    test.set_visible(alice, false);
-    test.set_visible(billy, alice, true);
-    test.set_visible(carol, alice, true);
+    test.set_visibility(alice, false);
+    test.set_visibility(billy, alice, true);
+    test.set_visibility(carol, alice, true);
     test.remove_ack(alice, cid1);
     test.add_ack(billy, cid1, contract_ack_t::state_t::secondary_need_primary,
         test.state.branch_history,
@@ -519,7 +519,7 @@ TPTEST(ClusteringContractCoordinator, Failover) {
     test.check_same_contract(cid1);
 
     /* OK, now try again with both secondaries reporting the primary is disconnected. */
-    test.set_visible(alice, false);
+    test.set_visibility(alice, false);
     test.add_ack(billy, cid1, contract_ack_t::state_t::secondary_need_primary,
         test.state.branch_history,
         { {"*-*", &branch1, 100} });
@@ -553,7 +553,7 @@ TPTEST(ClusteringContractCoordinator, FailoverSplit) {
     test.check_same_contract(cid1);
 
     test.remove_ack(alice, cid1);
-    test.set_visible(alice, false);
+    test.set_visibility(alice, false);
     test.add_ack(billy, cid1, contract_ack_t::state_t::secondary_need_primary,
         test.state.branch_history,
         { {"*-*", &branch1, 100} });

@@ -18,6 +18,7 @@
 #include "concurrency/watchable_map.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/stl_types.hpp"
+#include "containers/empty_value.hpp"
 #include "containers/uuid.hpp"
 #include "time.hpp"
 
