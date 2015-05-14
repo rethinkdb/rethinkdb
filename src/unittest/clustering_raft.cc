@@ -43,6 +43,17 @@ public:
     any other members. A `dead` member is just a stored `raft_persistent_state_t`. */
     enum class live_t { alive, isolated, dead };
 
+#ifdef ENABLE_RAFT_DEBUG
+    const char *show_live(live_t l) {
+        switch (l) {
+            case live_t::alive: return "ALIVE";
+            case live_t::isolated: return "ISOLATED";
+            case live_t::dead: return "DEAD";
+            default: unreachable();
+        }
+    }
+#endif /* ENABLE_RAFT_DEBUG */
+
     /* The constructor starts a cluster of `num` alive members with the given initial
     state. */
     dummy_raft_cluster_t(
@@ -73,9 +84,11 @@ public:
                 raft_persistent_state_t<dummy_raft_state_t>::make_initial(
                     initial_state, initial_config));
         }
+        RAFT_DEBUG("dummy_raft_cluster_t started up\n");
     }
 
     ~dummy_raft_cluster_t() {
+        RAFT_DEBUG("dummy_raft_cluster_t shutting down\n");
         /* We could just let the destructors run, but then we'd have to worry about
         destructor order, so this is safer and clearer */
         for (const auto &pair : members) {
@@ -105,6 +118,8 @@ public:
     /* `set_live()` puts the given member into the given state. */
     void set_live(const raft_member_id_t &member_id, live_t live) {
         member_info_t *i = members.at(member_id).get();
+        RAFT_DEBUG("%s: liveness %s -> %s\n", show_member_id(member_id).c_str(),
+            show_live(i->live), show_live(live));
         if (i->live == live_t::alive && live != live_t::alive) {
             i->bcard_subs.reset();
             for (const auto &pair : members) {
@@ -365,14 +380,17 @@ public:
         return committed_changes.size();
     }
 
-    void check_changes_present(const dummy_raft_state_t &state) {
-        std::set<uuid_u> all_changes;
-        for (const uuid_u &change : state.state) {
-            all_changes.insert(change);
-        }
-        for (const uuid_u &change : committed_changes) {
-            ASSERT_EQ(1, all_changes.count(change));
-        }
+    void check_changes_present() {
+        raft_member_id_t leader = cluster->find_leader(60000);
+        cluster->run_on_member(leader, [&](dummy_raft_member_t *m, signal_t *) {
+            std::set<uuid_u> all_changes;
+            for (const uuid_u &change : m->get_committed_state()->get().state.state) {
+                all_changes.insert(change);
+            }
+            for (const uuid_u &change : committed_changes) {
+                ASSERT_EQ(1, all_changes.count(change));
+            }
+        });
     }
 
 private:
@@ -397,51 +415,74 @@ private:
     auto_drainer_t drainer;
 };
 
-void do_writes(dummy_raft_cluster_t *cluster, raft_member_id_t leader, int ms, int expect) {
-    dummy_raft_traffic_generator_t traffic_generator(cluster, 3);
-    cond_t non_interruptor;
-    nap(ms, &non_interruptor);
-    ASSERT_LT(expect, traffic_generator.get_num_changes());
-    cluster->run_on_member(leader, [&](dummy_raft_member_t *member, signal_t *) {
-        dummy_raft_state_t state = member->get_committed_state()->get().state;
-        traffic_generator.check_changes_present(state);
-    });
+void do_writes(dummy_raft_cluster_t *cluster, int expect, int ms) {
+#ifdef ENABLE_RAFT_DEBUG
+    RAFT_DEBUG("begin do_writes(%d, %d)\n", expect, ms);
+    microtime_t start = current_microtime();
+#endif /* ENABLE_RAFT_DEBUG */
+    std::set<uuid_u> committed_changes;
+    signal_timer_t timer;
+    timer.start(ms);
+    try {
+        while (static_cast<int>(committed_changes.size()) < expect) {
+            uuid_u change = generate_uuid();
+            raft_member_id_t leader = cluster->find_leader(&timer);
+            bool ok = cluster->try_change(leader, change, &timer);
+            if (ok) {
+                committed_changes.insert(change);
+            }
+        }
+        raft_member_id_t leader = cluster->find_leader(&timer);
+        cluster->run_on_member(leader, [&](dummy_raft_member_t *m, signal_t *) {
+            std::set<uuid_u> all_changes;
+            for (const uuid_u &change : m->get_committed_state()->get().state.state) {
+                all_changes.insert(change);
+            }
+            for (const uuid_u &change : committed_changes) {
+                ASSERT_EQ(1, all_changes.count(change));
+            }
+        });
+    } catch (const interrupted_exc_t &) {
+        ADD_FAILURE() << "completed only " << committed_changes.size() << "/" << expect
+            << " changes in " << ms << "ms";
+    }
+    RAFT_DEBUG("end do_writes() in %lums\n", (current_microtime() - start) / 1000);
 }
 
 TPTEST(ClusteringRaft, Basic) {
     /* Spin up a Raft cluster and wait for it to elect a leader */
     dummy_raft_cluster_t cluster(5, dummy_raft_state_t(), nullptr);
-    raft_member_id_t leader = cluster.find_leader(60000);
     /* Do some writes and check the result */
-    do_writes(&cluster, leader, 2000, 100);
+    do_writes(&cluster, 100, 60000);
 }
 
-TPTEST(ClusteringRaft, Failover) {
+void failover_test(dummy_raft_cluster_t::live_t failure_type) {
     std::vector<raft_member_id_t> member_ids;
     dummy_raft_cluster_t cluster(5, dummy_raft_state_t(), &member_ids);
     dummy_raft_traffic_generator_t traffic_generator(&cluster, 3);
-    raft_member_id_t leader = cluster.find_leader(60000);
-    do_writes(&cluster, leader, 2000, 100);
-    cluster.set_live(member_ids[0], dummy_raft_cluster_t::live_t::dead);
-    cluster.set_live(member_ids[1], dummy_raft_cluster_t::live_t::dead);
-    leader = cluster.find_leader(60000);
-    do_writes(&cluster, leader, 2000, 100);
-    cluster.set_live(member_ids[2], dummy_raft_cluster_t::live_t::dead);
-    cluster.set_live(member_ids[3], dummy_raft_cluster_t::live_t::dead);
+    do_writes(&cluster, 100, 60000);
+    cluster.set_live(member_ids[0], failure_type);
+    cluster.set_live(member_ids[1], failure_type);
+    do_writes(&cluster, 100, 60000);
+    cluster.set_live(member_ids[2], failure_type);
+    cluster.set_live(member_ids[3], failure_type);
     cluster.set_live(member_ids[0], dummy_raft_cluster_t::live_t::alive);
     cluster.set_live(member_ids[1], dummy_raft_cluster_t::live_t::alive);
-    leader = cluster.find_leader(60000);
-    do_writes(&cluster, leader, 2000, 100);
-    cluster.set_live(member_ids[4], dummy_raft_cluster_t::live_t::dead);
+    do_writes(&cluster, 100, 60000);
+    cluster.set_live(member_ids[4], failure_type);
     cluster.set_live(member_ids[2], dummy_raft_cluster_t::live_t::alive);
     cluster.set_live(member_ids[3], dummy_raft_cluster_t::live_t::alive);
-    leader = cluster.find_leader(60000);
-    do_writes(&cluster, leader, 2000, 100);
+    do_writes(&cluster, 100, 60000);
     ASSERT_LT(100, traffic_generator.get_num_changes());
-    cluster.run_on_member(leader, [&](dummy_raft_member_t *member, signal_t *) {
-        dummy_raft_state_t state = member->get_committed_state()->get().state;
-        traffic_generator.check_changes_present(state);
-    });
+    traffic_generator.check_changes_present();
+}
+
+TPTEST(ClusteringRaft, Failover) {
+    failover_test(dummy_raft_cluster_t::live_t::dead);
+}
+
+TPTEST(ClusteringRaft, FailoverIsolated) {
+    failover_test(dummy_raft_cluster_t::live_t::isolated);
 }
 
 TPTEST(ClusteringRaft, MemberChange) {
@@ -451,17 +492,15 @@ TPTEST(ClusteringRaft, MemberChange) {
     dummy_raft_traffic_generator_t traffic_generator(&cluster, 3);
     for (size_t i = 0; i < 10; ++i) {
         /* Do some test writes */
-        raft_member_id_t leader = cluster.find_leader(10000);
-        do_writes(&cluster, leader, 2000, 10);
+        do_writes(&cluster, 10, 60000);
 
         /* Kill one member and do some more test writes */
         cluster.set_live(member_ids[i], dummy_raft_cluster_t::live_t::dead);
-        leader = cluster.find_leader(10000);
-        do_writes(&cluster, leader, 2000, 10);
+        do_writes(&cluster, 10, 60000);
 
         /* Add a replacement member and do some more test writes */
         member_ids.push_back(cluster.join());
-        do_writes(&cluster, leader, 2000, 10);
+        do_writes(&cluster, 10, 60000);
 
         /* Update the configuration and do some more test writes */
         raft_config_t new_config;
@@ -470,10 +509,12 @@ TPTEST(ClusteringRaft, MemberChange) {
         }
         signal_timer_t timeout;
         timeout.start(10000);
+        raft_member_id_t leader = cluster.find_leader(&timeout);
         cluster.try_config_change(leader, new_config, &timeout);
-        do_writes(&cluster, leader, 2000, 10);
+        do_writes(&cluster, 10, 60000);
     }
     ASSERT_LT(100, traffic_generator.get_num_changes());
+    traffic_generator.check_changes_present();
 }
 
 }   /* namespace unittest */
