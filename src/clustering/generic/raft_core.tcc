@@ -1535,7 +1535,9 @@ void raft_member_t<state_t>::leader_send_updates(
         DEBUG_ONLY_CODE(check_invariants(mutex_acq.get()));
 
         /* `next_index` corresponds to the entry for this peer in the `nextIndex` map
-        described in Figure 2 of the Raft paper. */
+        described in Figure 2 of the Raft paper. Note that this is the index of the first
+        log entry that is not yet on the peer, not the index of the last log entry that
+        is currently on the peer. */
         raft_log_index_t next_index = initial_next_index;
 
         /* `member_commit_index` tracks the last value of `commit_index` we sent to the
@@ -1715,7 +1717,7 @@ void raft_member_t<state_t>::leader_send_updates(
                     latest_state.get_watchable(),
                     [&](const state_and_config_t &cs, const state_and_config_t &ls) {
                         return cs.log_index > member_commit_index ||
-                            ls.log_index > next_index;
+                            ls.log_index >= next_index;
                     },
                     update_keepalive.get_drain_signal());
 
