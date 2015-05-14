@@ -30,13 +30,13 @@ public:
     std::string get_primary_key_name();
 
     bool read_all_rows_as_vector(
-            signal_t *interruptor,
+            signal_t *interruptor_on_caller,
             std::vector<ql::datum_t> *rows_out,
             std::string *error_out);
 
     bool read_row(
             ql::datum_t primary_key,
-            signal_t *interruptor,
+            signal_t *interruptor_on_caller,
             ql::datum_t *row_out,
             std::string *error_out);
 
@@ -44,7 +44,7 @@ protected:
     virtual bool format_row(name_string_t const & name,
                             server_id_t const & server_id,
                             server_semilattice_metadata_t const & server,
-                            signal_t *interruptor,
+                            signal_t *interruptor_on_home,
                             ql::datum_t *row_out,
                             std::string *error_out) = 0;
 

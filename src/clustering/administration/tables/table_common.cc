@@ -26,7 +26,7 @@ bool common_table_artificial_table_backend_t::read_all_rows_as_vector(
         signal_t *interruptor_on_caller,
         std::vector<ql::datum_t> *rows_out,
         std::string *error_out) {
-    cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
+    cross_thread_signal_t interruptor_on_home(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
     cluster_semilattice_metadata_t metadata = semilattice_view->get();
     std::map<namespace_id_t, table_basic_config_t> configs;
@@ -42,7 +42,8 @@ bool common_table_artificial_table_backend_t::read_all_rows_as_vector(
             }
             try {
                 ql::datum_t row;
-                format_row(pair.first, pair.second, db_name_or_uuid, &interruptor, &row);
+                format_row(pair.first, pair.second, db_name_or_uuid,
+                    &interruptor_on_home, &row);
                 rows_out->push_back(row);
             } catch (const no_such_table_exc_t &) {
                 /* The table got deleted between the call to `list_configs()` and the
@@ -65,7 +66,7 @@ bool common_table_artificial_table_backend_t::read_row(
         signal_t *interruptor_on_caller,
         ql::datum_t *row_out,
         std::string *error_out) {
-    cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
+    cross_thread_signal_t interruptor_on_home(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
     cluster_semilattice_metadata_t metadata = semilattice_view->get();
     namespace_id_t table_id;
@@ -89,7 +90,8 @@ bool common_table_artificial_table_backend_t::read_row(
         }
 
         try {
-            format_row(table_id, basic_config, db_name_or_uuid, &interruptor, row_out);
+            format_row(table_id, basic_config, db_name_or_uuid, &interruptor_on_home,
+                row_out);
             return true;
         } catch (const failed_table_op_exc_t &) {
             *error_out = strprintf("The server(s) hosting table `%s.%s` are currently "
