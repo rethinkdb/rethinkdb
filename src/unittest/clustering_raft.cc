@@ -517,5 +517,38 @@ TPTEST(ClusteringRaft, MemberChange) {
     traffic_generator.check_changes_present();
 }
 
+TPTEST(ClusteringRaft, Regression4234) {
+    cond_t non_interruptor;
+    std::vector<raft_member_id_t> member_ids;
+    dummy_raft_cluster_t cluster(2, dummy_raft_state_t(), &member_ids);
+    dummy_raft_traffic_generator_t traffic_generator(&cluster, 3);
+    do_writes(&cluster, 10, 60000);
+    raft_member_id_t leader = cluster.find_leader(1000);
+
+    raft_config_t new_config;
+    for (const raft_member_id_t &member : member_ids) {
+        if (member != leader) {
+            new_config.voting_members.insert(member);
+        }
+    }
+
+    cluster.run_on_member(leader,
+    [&](dummy_raft_member_t *member, signal_t *interruptor2) {
+        guarantee(member != nullptr);
+        raft_member_t<dummy_raft_state_t>::change_lock_t change_lock(
+            member, &non_interruptor);
+        auto tok = member->propose_config_change(
+            &change_lock, new_config, interruptor2);
+        guarantee(tok.has());
+    });
+
+    nap(randint(30), &non_interruptor);
+    cluster.set_live(leader, dummy_raft_cluster_t::live_t::dead);
+    cluster.set_live(leader, dummy_raft_cluster_t::live_t::alive);
+
+    do_writes(&cluster, 10, 60000);
+    traffic_generator.check_changes_present();
+}
+
 }   /* namespace unittest */
 
