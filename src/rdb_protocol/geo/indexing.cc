@@ -77,11 +77,104 @@ S2CellId key_to_s2cellid(const std::string &sid) {
     return S2CellId::FromToken(sid.substr(2));
 }
 
+/* Returns the S2CellId corresponding to the given key, which must be a correctly
+formatted sindex key. */
 S2CellId btree_key_to_s2cellid(const btree_key_t *key) {
     rassert(key != NULL);
     return key_to_s2cellid(
         datum_t::extract_secondary(
             std::string(reinterpret_cast<const char *>(key->contents), key->size)));
+}
+
+/* `key_or_null` represents a point to the left or right of a key in the B-tree
+key-space. If `nullptr`, it means the point left of the leftmost key; otherwise, it means
+the point right of `*key_or_null`. It need not be a valid sindex key.
+
+`order_btree_key_relative_to_s2cellid_keys()` figures out where `key_or_null` lies
+relative to geospatial sindex keys. There are four possible outcomes:
+  - `key_or_null` lies within a range of sindex keys for a specific `S2CellId`. It will
+    return `(cell ID, true)`.
+  - `key_or_null` lies between two ranges of sindex keys for different `S2CellId`s. It
+    will return `(cell ID to the right, false)`.
+  - `key_or_null` lies after all possible sindex keys for `S2CellId`s. It will return
+    `(S2CellId::Sentinel(), false)`.
+  - `key_or_null` lies before all possible sindex keys for `S2CellId`s. It will return
+    `(S2CellId::FromFacePosLevel(0, 0, geo::S2::kMaxCellLevel), false)`. */
+std::pair<S2CellId, bool> order_btree_key_relative_to_s2cellid_keys(
+        const btree_key_t *key_or_null) {
+    static const std::pair<S2CellId, bool> before_all(
+        S2CellId::FromFacePosLevel(0, 0, geo::S2::kMaxCellLevel), false);
+    static const std::pair<S2CellId, bool> after_all(
+        S2CellId::Sentinel(), false);
+
+    /* A well-formed sindex key will start with the characters 'GC'. */
+    if (key_or_null == nullptr || key_or_null->size == 0) return before_all;
+    if (key_or_null->contents[0] < 'G') return before_all;
+    if (key_or_null->contents[0] > 'G') return after_all;
+    if (key_or_null->size == 1) return before_all;
+    if (key_or_null->contents[1] < 'C') return before_all;
+    if (key_or_null->contents[1] > 'C') return after_all;
+
+    /* A well-formed sindex key will next have 16 hexadecimal digits, using lowercase
+    letters. If `key_or_null` starts with such a well-formed string, we'll set
+    `cell_number` to the number represented by that string and `inside_cell` to `true`.
+    Otherwise we'll set `cell_number` to the smallest number represented by a larger
+    string and `inside_cell()` to `false`. */
+    uint64_t cell_number = 0;
+    bool inside_cell = true;
+    for (int i = 0; i < 16; ++i) {
+        if (i + 2 >= key_or_null->size) {
+            /* The string is too short. For example, "123" -> (0x1230..., false). */
+            inside_cell = false;
+            break;
+        }
+        uint8_t hex_digit = key_or_null->contents[i + 2];
+        if (hex_digit >= '0' && hex_digit <= '9') {
+            /* The string is still valid, so keep going. */
+            cell_number += static_cast<uint64_t>(hex_digit - '0') << (4 * (15 - i));
+        } else if (hex_digit >= 'a' && hex_digit <= 'f') {
+            /* The string is still valid, so keep going. */
+            cell_number +=
+                static_cast<uint64_t>(10 + (hex_digit - 'a')) << (4 * (15 - i));
+        } else if (hex_digit < '0') {
+            /* For example, "123/..." -> (0x1230..., false). ('/' comes before '0' in
+            ASCII order.) */
+            inside_cell = false;
+            break;
+        } else if (hex_digit > 'f') {
+            /* For example, "123g..." -> (0x1240..., false). Note that we have to
+            special-case the scenario where the first character is invalid because the
+            next largest number wouldn't fit into a 64-bit int. */
+            if (i == 0) return after_all;
+            cell_number += static_cast<uint64_t>(16) << (4 * (15 - i));
+            inside_cell = false;
+            break;
+        } else if (hex_digit > '9' && hex_digit < 'a') {
+            /* For example, "123:..." -> (0x123a..., false). (':' comes after '9' in
+            ASCII order.) */
+            cell_number += static_cast<uint64_t>(10) << (4 * (15 - i));
+            inside_cell = false;
+            break;
+        } else {
+            unreachable();
+        }
+    }
+
+    /* Not all 64-bit integers are valid S2 cell IDs. There are two possible problems:
+      - The face index can be 6 or 7. In this case, the key is larger than any valid ID,
+        since the face index is the most significant three bits.
+      - The last bit is not set properly. In this case, we set the first bit that we
+        can set that will turn it into a valid cell ID. In this case we have to set
+        `inside_cell` to `false`. */
+    S2CellId cell_id(cell_number);
+    if (cell_id.face() >= 6) return after_all;
+    if (!cell_id.is_valid()) {
+        inside_cell = false;
+        cell_id = S2CellId(cell_number | 1);
+        guarantee(cell_id.is_valid());
+    }
+
+    return std::make_pair(cell_id, inside_cell);
 }
 
 std::vector<std::string> compute_index_grid_keys(
@@ -162,24 +255,21 @@ void geo_index_traversal_helper_t::filter_range(
 }
 
 bool geo_index_traversal_helper_t::any_query_cell_intersects(
-        const btree_key_t *left_incl_or_null, const btree_key_t *right_incl) {
-    /* This is a bit fragile in that we assume `left_incl_or_null` and `right_incl` are
-    valid complete secondary index keys (or that `right_incl` is the max possible B-tree
-    key). If we were to change the B-tree logic so that it truncated B-tree internal node
-    keys, then this code would break. */
+        const btree_key_t *left_excl_or_null, const btree_key_t *right_incl) {
+    std::pair<S2CellId, bool> left =
+        order_btree_key_relative_to_s2cellid_keys(left_excl_or_null);
+    std::pair<S2CellId, bool> right =
+        order_btree_key_relative_to_s2cellid_keys(right_incl);
 
-    S2CellId left_cell =
-        left_incl_or_null == NULL
-        ? S2CellId::FromFacePosLevel(0, 0, 0) // The smallest valid cell id
-        : btree_key_to_s2cellid(left_incl_or_null);
-
-    S2CellId right_cell;
-    store_key_t max_btree_key = store_key_t::max();
-    if (btree_key_cmp(right_incl, max_btree_key.btree_key()) == 0) {
-        right_cell = S2CellId::FromFacePosLevel(5, 0, 0);
-    } else {
-        right_cell = btree_key_to_s2cellid(right_incl);
-    }
+    /* This is more conservative than necessary. For example, if `left_excl_or_null` is
+    after the largest possible cell or `right_incl` is before the smallest possible cell,
+    we could shortcut and return `false`, but we don't. Also, if `right.second` were
+    `false`, we could use the cell immediately before `right.first` instead of using
+    `right.first`. But that would be more trouble than it's worth. */
+    S2CellId left_cell = left.first == S2CellId::Sentinel()
+        ? S2CellId::FromFacePosLevel(5, 0, 0) : left.first;
+    S2CellId right_cell = right.first == S2CellId::Sentinel()
+        ? S2CellId::FromFacePosLevel(5, 0, 0) : right.first;
 
     // Determine a S2CellId range that is a superset of what's intersecting
     // with anything stored in [left_cell, right_cell].
