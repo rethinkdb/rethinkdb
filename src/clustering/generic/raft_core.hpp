@@ -26,7 +26,10 @@
 Search of an Understandable Consensus Algorithm (Extended Version)" (2014) by Diego
 Ongaro and John Ousterhout. Because of the complexity and subtlety of the Raft algorithm,
 we follow the paper closely and refer back to it regularly. You are advised to have a
-copy of the paper on hand when reading or modifying this file.
+copy of the paper on hand when reading or modifying this file. The comments also
+occasionally refer to Diego Ongaro's dissertation, "Consensus: Bridging Theory and
+Practice" (2014), as the dissertation addresses a few subtle points that the paper does
+not.
 
 This file only contains the basic Raft algorithm itself; it doesn't contain any
 networking or storage logic. Instead, it uses abstract interfaces to send and receive
@@ -34,7 +37,9 @@ network messages and write data to persistent storage. This both keeps this file
 as simple as possible and makes it easy to test the Raft algorithm using mocked-up
 network and storage systems.
 
-We support both log compaction and configuration changes.
+We support both log compaction and configuration changes. Configuration changes use the
+joint-configuration mechanism described in the original paper, rather than the
+one-server-at-a-time mechanism described in the dissertation.
 
 This implementation deviates significantly from the Raft paper in that we don't actually
 send a continuous stream of heartbeats from the leader to the followers. Instead, we send

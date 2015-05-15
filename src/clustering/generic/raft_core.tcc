@@ -830,13 +830,14 @@ void raft_member_t<state_t>::on_connected_members_change(
                 DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
 
                 if (!on_rpc_from_leader(member_id, term, &mutex_acq)) {
-                    /* Normally we would send an RPC reply to the leader informing it
-                    that our term is higher than its term. However, there's no
-                    way to send an RPC reply to a virtual heartbeat. So the leader needs
-                    some other way to find out that our term is higher than its term.
-                    In order to make this work, this implementation deviates from the
-                    Raft paper in how leaders handle RequestVote RPCs; see the comment
-                    in `on_request_vote_rpc()` for more information. */
+                    /* If this were a real AppendEntries or InstallSnapshot RPC, we would
+                    send an RPC reply to the leader informing it that our term is higher
+                    than its term. However, there's no way to send an RPC reply to a
+                    virtual heartbeat. So the leader needs some other way to find out
+                    that our term is higher than its term. In order to make this work,
+                    this implementation deviates from the Raft paper in how leaders
+                    handle RequestVote RPCs; see the comment in `on_request_vote_rpc()`
+                    for more information. */
                     DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
                     return;
                 }
@@ -950,9 +951,17 @@ void raft_member_t<state_t>::on_watchdog_timer() {
     }
     microtime_t last_heard = std::max(
         effective_last_heard_from_leader(), last_heard_from_candidate);
+
     /* Raft paper, Section 5.2: "If a follower receives no communication over a period of
     time called the election timeout, then it assumes there is no viable leader and
-    begins an election to choose a new leader." */
+    begins an election to choose a new leader."
+
+    Note that we may begin an election even if we are not a voter in our own latest
+    configuration. This is necessary to prevent deadlock in some configuration change
+    scenarios. This corner case is explicitly addressed in the Raft dissertation, section
+    4.2.2: "A server that is not part of its own latest configuration should still start
+    new elections, as it might still be needed until the C_new entry is committed." */
+
     if (last_heard < now - election_timeout_min_ms * 1000) {
         /* We shouldn't block in this callback, so we immediately spawn a coroutine */
         auto_drainer_t::lock_t keepalive(drainer.get());
@@ -969,9 +978,6 @@ void raft_member_t<state_t>::on_watchdog_timer() {
                 microtime_t last_heard_2 = std::max(
                     effective_last_heard_from_leader(), last_heard_from_candidate);
                 if (last_heard_2 >= now - election_timeout_min_ms * 1000) {
-                    return;
-                }
-                if (!latest_state.get_ref().config.is_valid_leader(this_member_id)) {
                     return;
                 }
                 /* Begin an election */

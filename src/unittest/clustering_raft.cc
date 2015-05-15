@@ -542,6 +542,8 @@ TPTEST(ClusteringRaft, Regression4234) {
         guarantee(tok.has());
     });
 
+    /* This test is probabilistic. When the bug was present, the test failed about
+    20% of the time. */
     nap(randint(30), &non_interruptor);
     cluster.set_live(leader, dummy_raft_cluster_t::live_t::dead);
     cluster.set_live(leader, dummy_raft_cluster_t::live_t::alive);
