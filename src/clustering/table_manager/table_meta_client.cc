@@ -176,7 +176,7 @@ void table_meta_client_t::list_configs(
         done_cond.wait_lazily_unordered();
         if (promise.get_ready_signal()->is_pulsed()) {
             std::map<namespace_id_t, table_config_and_shards_t> maybe_result =
-                promise.wait();
+                promise.assert_get_value();
             configs_out->insert(maybe_result.begin(), maybe_result.end());
         }
     });
