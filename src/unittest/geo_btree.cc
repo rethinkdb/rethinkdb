@@ -71,16 +71,31 @@ S2CellId random_cell_id() {
     }
 }
 
+std::string mutate(std::string s) {
+    /* Randomly replace up to 3 characters */
+    for (int k = 0; k < randint(3); ++k) {
+        int pos = randint(s.size());
+        s[pos] = randint(0xff);
+    }
+    /* Randomly add or remove up to 2 characters at the end of the string */
+    if (randint(2) == 0) {
+        size_t remove = randint(3);
+        s.resize(std::max(s.size(), remove) - remove);
+    } else {
+        for (int k = 0; k < randint(3); ++k) {
+            s.append(1, randint(0xff));
+        }
+    }
+    return s;
+}
+
 TEST(GeoBtree, OrderBtreeKeyRelativeToS2CellIdKeys) {
     for (int i = 0; i < 100; ++i) {
         S2CellId cell_id = random_cell_id();
         std::string str_key = s2cellid_to_key(cell_id);
         ASSERT_NO_FATAL_FAILURE(test_btree_key(str_key));
         for (int j = 0; j < 10; ++j) {
-            std::string variation = str_key;
-            int pos = randint(variation.size());
-            variation[pos] = randint(0xff);
-            ASSERT_NO_FATAL_FAILURE(test_btree_key(variation));
+            ASSERT_NO_FATAL_FAILURE(test_btree_key(mutate(str_key)));
         }
         ASSERT_NO_FATAL_FAILURE(
             test_btree_key(s2cellid_to_key(S2CellId(cell_id.id() - 1))));

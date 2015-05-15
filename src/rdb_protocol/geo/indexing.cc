@@ -248,9 +248,6 @@ void geo_index_traversal_helper_t::filter_range(
         const btree_key_t *right_incl,
         bool *skip_out) {
     guarantee(is_initialized_);
-    // We ignore the fact that the left key is exclusive and not inclusive.
-    // In rare cases this costs us a little bit of efficiency because we consider
-    // one extra key, but it saves us some complexity.
     *skip_out = !any_query_cell_intersects(left_excl_or_null, right_incl);
 }
 
@@ -270,6 +267,19 @@ bool geo_index_traversal_helper_t::any_query_cell_intersects(
         ? S2CellId::FromFacePosLevel(5, 0, 0) : left.first;
     S2CellId right_cell = right.first == S2CellId::Sentinel()
         ? S2CellId::FromFacePosLevel(5, 0, 0) : right.first;
+
+    /* RSI(raft): Remove these checks, they aren't even correct. */
+    if (left_excl_or_null != nullptr) {
+        guarantee(left_cell == btree_key_to_s2cellid(left_excl_or_null));
+    } else {
+        guarantee(left_cell == S2CellId::FromFacePosLevel(0, 0, geo::S2::kMaxCellLevel));
+    }
+    store_key_t max_key = store_key_t::max();
+    if (btree_key_cmp(right_incl, max_key.btree_key()) == 0) {
+        guarantee(right_cell == S2CellId::FromFacePosLevel(5, 0, 0));
+    } else {
+        guarantee(right_cell == btree_key_to_s2cellid(right_incl));
+    }
 
     // Determine a S2CellId range that is a superset of what's intersecting
     // with anything stored in [left_cell, right_cell].
