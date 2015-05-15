@@ -5,6 +5,7 @@
 #include "clustering/generic/raft_core.hpp"
 
 #include "arch/runtime/coroutines.hpp"
+#include "concurrency/exponential_backoff.hpp"
 #include "containers/map_sentries.hpp"
 #include "logger.hpp"
 
@@ -1431,6 +1432,7 @@ bool raft_member_t<state_t>::candidate_run_election(
         coro_t::spawn_sometime([this, &votes_for_us, &we_won_the_election, peer,
                 request_vote_keepalive /* important to capture */]() {
             try {
+                exponential_backoff_t backoff(100, 1000);
                 while (true) {
                     /* Don't bother trying to send an RPC until the peer is present in
                     `get_connected_members()`. */
@@ -1459,6 +1461,7 @@ bool raft_member_t<state_t>::candidate_run_election(
                     if (!ok) {
                         /* Raft paper, Section 5.1: "Servers retry RPCs if they do not
                         receive a response in a timely manner" */
+                        backoff.failure(request_vote_keepalive.get_drain_signal());
                         continue;
                     }
 
@@ -1503,9 +1506,7 @@ bool raft_member_t<state_t>::candidate_run_election(
                     recently, so they might reject a vote and then later accept it in the
                     same term. But before we retry, we wait a bit, to avoid putting too
                     much traffic on the network. */
-                    static const int32_t retry_interval_ms = 500;
-                    nap(retry_interval_ms,
-                        request_vote_keepalive.get_drain_signal());
+                    backoff.failure(request_vote_keepalive.get_drain_signal());
                 }
 
             } catch (const interrupted_exc_t &) {
@@ -1628,6 +1629,12 @@ void raft_member_t<state_t>::leader_send_updates(
         Setting `send_even_if_empty` will ensure that we send an RPC immediately. */
         bool send_even_if_empty = true;
 
+        /* If RPCs fail we'll wait a bit before trying again, in addition to waiting for
+        the peer to appear in `get_connected_members()`. This prevents us from locking up
+        the CPU if the peer is in `get_connected_members()` but always fails RPCs
+        immediately. */
+        exponential_backoff_t backoff(100, 1000);
+
         /* This implementation deviates slightly from the Raft paper in that the initial
         message may not be an empty append-entries RPC. Because `leader_send_updates()`
         runs in its own coroutine, it's possible that entries may be appended to the log
@@ -1675,8 +1682,15 @@ void raft_member_t<state_t>::leader_send_updates(
                 raft_rpc_reply_t reply_wrapper;
                 DEBUG_ONLY_CODE(check_invariants(mutex_acq.get()));
                 mutex_acq.reset();
+
                 bool ok = network->send_rpc(peer, request_wrapper,
                     update_keepalive.get_drain_signal(), &reply_wrapper);
+
+                /* If the RPC failed, do the backoff before reacquiring the mutex */
+                if (!ok) {
+                    backoff.failure(update_keepalive.get_drain_signal());
+                }
+
                 mutex_acq.init(
                     new new_mutex_acq_t(&mutex, update_keepalive.get_drain_signal()));
                 DEBUG_ONLY_CODE(check_invariants(mutex_acq.get()));
@@ -1689,6 +1703,8 @@ void raft_member_t<state_t>::leader_send_updates(
                     updated, we could send a newer snapshot on our next try. */
                     continue;
                 }
+
+                backoff.success();
 
                 const raft_rpc_reply_t::install_snapshot_t *reply =
                     boost::get<raft_rpc_reply_t::install_snapshot_t>(
@@ -1729,8 +1745,15 @@ void raft_member_t<state_t>::leader_send_updates(
                 raft_rpc_reply_t reply_wrapper;
                 DEBUG_ONLY_CODE(check_invariants(mutex_acq.get()));
                 mutex_acq.reset();
+
                 bool ok = network->send_rpc(peer, request_wrapper,
                     update_keepalive.get_drain_signal(), &reply_wrapper);
+
+                /* If the RPC failed, do the backoff before reacquiring the mutex */
+                if (!ok) {
+                    backoff.failure(update_keepalive.get_drain_signal());
+                }
+
                 mutex_acq.init(
                     new new_mutex_acq_t(&mutex, update_keepalive.get_drain_signal()));
                 DEBUG_ONLY_CODE(check_invariants(mutex_acq.get()));
@@ -1745,6 +1768,8 @@ void raft_member_t<state_t>::leader_send_updates(
                     RPC next time. */
                     continue;
                 }
+
+                backoff.success();
 
                 const raft_rpc_reply_t::append_entries_t *reply =
                     boost::get<raft_rpc_reply_t::append_entries_t>(
