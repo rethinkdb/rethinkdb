@@ -23,6 +23,7 @@
 #include "protob/json_shim.hpp"
 #include "rapidjson/stringbuffer.h"
 #include "rdb_protocol/backtrace.hpp"
+#include "rdb_protocol/base64.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rpc/semilattice/view.hpp"
 #include "utils.hpp"
@@ -113,15 +114,12 @@ http_conn_cache_t::conn_key_t http_conn_cache_t::create(
     // The same origin policy of browsers will stop attackers from seeing
     // the response of the connection setup, so the attacker will have no chance
     // of getting a valid connection ID.
-    conn_key_t key;
-    key.reserve(16 * 9);
-    for(size_t i = 0; i < 16; ++i) {
-        // We simply print 16 integers in hexadecimal separated by underscores.
-        // Not the most efficient way of representing the key as a string,
-        // but it does the job.
-        const uint32_t key_item = key_generator();
-        key += strprintf("%" PRIx32 "_", key_item);
+    uint32_t key_buf[4];
+    for(size_t i = 0; i < 4; ++i) {
+        key_buf[i] = key_generator();
     }
+    conn_key_t key = encode_base64(reinterpret_cast<const char *>(key_buf),
+                                   4 * sizeof(uint32_t));
 
     cache.insert(
         std::make_pair(key, make_counted<http_conn_t>(rdb_ctx, client_addr_port)));
