@@ -101,16 +101,26 @@ relative to geospatial sindex keys. There are four possible outcomes:
   - `key_or_null` lies before all possible sindex keys for `S2CellId`s. It will return
     `(S2CellId::FromFacePosLevel(0, 0, geo::S2::kMaxCellLevel), false)`. */
 std::pair<S2CellId, bool> order_btree_key_relative_to_s2cellid_keys(
-        const btree_key_t *key_or_null) {
+        const btree_key_t *key_or_null,
+        ql::skey_version_t skey_version) {
     static const std::pair<S2CellId, bool> before_all(
         S2CellId::FromFacePosLevel(0, 0, geo::S2::kMaxCellLevel), false);
     static const std::pair<S2CellId, bool> after_all(
         S2CellId::Sentinel(), false);
 
-    /* A well-formed sindex key will start with the characters 'GC'. */
+    /* A well-formed sindex key will start with the characters 'GC'. But if the sindex
+    version is 1.16 or higher, the high bit on the 'G' will be set. */
+    uint8_t first_char;
+    switch (skey_version) {
+        case ql::skey_version_t::pre_1_16:
+            first_char = 'G'; break;
+        case ql::skey_version_t::post_1_16:
+            first_char = static_cast<uint8_t>('G') | 0x80; break;
+        default: unreachable();
+    }
     if (key_or_null == nullptr || key_or_null->size == 0) return before_all;
-    if (key_or_null->contents[0] < 'G') return before_all;
-    if (key_or_null->contents[0] > 'G') return after_all;
+    if (key_or_null->contents[0] < first_char) return before_all;
+    if (key_or_null->contents[0] > first_char) return after_all;
     if (key_or_null->size == 1) return before_all;
     if (key_or_null->contents[1] < 'C') return before_all;
     if (key_or_null->contents[1] > 'C') return after_all;
@@ -203,15 +213,9 @@ std::vector<std::string> compute_index_grid_keys(
     return result;
 }
 
-geo_index_traversal_helper_t::geo_index_traversal_helper_t(const signal_t *interruptor)
-    : is_initialized_(false), interruptor_(interruptor) { }
-
 geo_index_traversal_helper_t::geo_index_traversal_helper_t(
-        const std::vector<std::string> &query_grid_keys,
-        const signal_t *interruptor)
-    : is_initialized_(false), interruptor_(interruptor) {
-    init_query(query_grid_keys);
-}
+        ql::skey_version_t skey_version, const signal_t *interruptor)
+    : is_initialized_(false), skey_version_(skey_version), interruptor_(interruptor) { }
 
 void geo_index_traversal_helper_t::init_query(
         const std::vector<std::string> &query_grid_keys) {
@@ -254,9 +258,9 @@ void geo_index_traversal_helper_t::filter_range(
 bool geo_index_traversal_helper_t::any_query_cell_intersects(
         const btree_key_t *left_excl_or_null, const btree_key_t *right_incl) {
     std::pair<S2CellId, bool> left =
-        order_btree_key_relative_to_s2cellid_keys(left_excl_or_null);
+        order_btree_key_relative_to_s2cellid_keys(left_excl_or_null, skey_version_);
     std::pair<S2CellId, bool> right =
-        order_btree_key_relative_to_s2cellid_keys(right_incl);
+        order_btree_key_relative_to_s2cellid_keys(right_incl, skey_version_);
 
     /* This is more conservative than necessary. For example, if `left_excl_or_null` is
     after the largest possible cell or `right_incl` is before the smallest possible cell,

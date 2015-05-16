@@ -1,5 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 
+#include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/geo/indexing.hpp"
 #include "unittest/gtest.hpp"
 
@@ -9,7 +10,7 @@ using geo::S2CellId;
 std::string s2cellid_to_key(S2CellId id);
 S2CellId key_to_s2cellid(const std::string &sid);
 std::pair<S2CellId, bool> order_btree_key_relative_to_s2cellid_keys(
-    const btree_key_t *key_or_null);
+    const btree_key_t *key_or_null, ql::skey_version_t);
 
 namespace unittest {
 
@@ -33,7 +34,10 @@ void test_btree_key(const std::string &str_key) {
     SCOPED_TRACE("test_btree_key(" + ::testing::PrintToString(str_key) + ")");
     store_key_t key(str_key);
     std::pair<S2CellId, bool> res =
-        order_btree_key_relative_to_s2cellid_keys(key.btree_key());
+        order_btree_key_relative_to_s2cellid_keys(
+            key.btree_key(),
+            /* `pre_1_16` matches the output of `s2cellid_to_key()`. */
+            ql::skey_version_t::pre_1_16);
     if (res.first == S2CellId::Sentinel()) {
         ASSERT_LT(s2cellid_to_key(S2CellId::FromFacePosLevel(5, 0, 0).range_max()),
             str_key);
