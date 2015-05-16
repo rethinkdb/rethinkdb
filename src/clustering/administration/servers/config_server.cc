@@ -5,148 +5,51 @@
 
 server_config_server_t::server_config_server_t(
         mailbox_manager_t *_mailbox_manager,
-        server_id_t _my_server_id,
-        clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
-            cluster_directory_metadata_t> > > _directory_view,
-        boost::shared_ptr<semilattice_readwrite_view_t<servers_semilattice_metadata_t> >
-            _semilattice_view) :
+        metadata_file_t *_file) :
     mailbox_manager(_mailbox_manager),
-    my_server_id(_my_server_id),
-    my_name(name_string_t()),
-    my_tags(std::set<name_string_t>()),
+    file(_file),
+    my_config(server_config_t()),
     actual_cache_size_bytes(0),
-    directory_view(_directory_view),
-    semilattice_view(_semilattice_view),
-    change_name_mailbox(mailbox_manager,
-        std::bind(&server_config_server_t::on_change_name_request, this,
-            ph::_1, ph::_2, ph::_3)),
-    change_tags_mailbox(mailbox_manager,
-        std::bind(&server_config_server_t::on_change_tags_request, this,
-            ph::_1, ph::_2, ph::_3)),
-    change_cache_size_mailbox(mailbox_manager,
-        std::bind(&server_config_server_t::on_change_cache_size_request, this,
-            ph::_1, ph::_2, ph::_3)),
-    semilattice_subs([this]() {
-        on_semilattice_change();
-        })
+    set_config_mailbox(mailbox_manager,
+        std::bind(&server_config_server_t::on_set_config, this,
+            ph::_1, ph::_2, ph::_3))
 {
-    /* Find our entry in the servers semilattice map and determine our current name from
-    it. */
-    servers_semilattice_metadata_t sl_metadata = semilattice_view->get();
-    auto it = sl_metadata.servers.find(my_server_id);
-    guarantee(it != sl_metadata.servers.end(), "We should already have an entry in the "
-        "semilattices");
-    if (it->second.is_deleted()) {
-        permanently_removed_cond.pulse();
-    } else {
-        my_name.set_value(it->second.get_ref().name.get_ref());
-        my_tags.set_value(it->second.get_ref().tags.get_ref());
-        update_actual_cache_size(it->second.get_ref().cache_size_bytes.get_ref());
-    }
-
-    semilattice_subs.reset(semilattice_view);
+    cond_t non_interruptor;
+    metadata_file_t::read_txn_t read_txn(file, &non_interruptor);
+    my_server_id = read_txn.read(mdkey_server_id(), &non_interruptor);
+    my_config.set_value(read_txn.read(mdkey_server_config(), &non_interruptor));
+    update_actual_cache_size(my_config.get_ref().cache_size_bytes);
 }
 
 server_config_business_card_t server_config_server_t::get_business_card() {
     server_config_business_card_t bcard;
-    bcard.change_name_addr = change_name_mailbox.get_address();
-    bcard.change_tags_addr = change_tags_mailbox.get_address();
-    bcard.change_cache_size_addr = change_cache_size_mailbox.get_address();
+    bcard.set_config_addr = set_config_mailbox.get_address();
     return bcard;
 }
 
-void server_config_server_t::on_change_name_request(
-        UNUSED signal_t *interruptor,
-        const name_string_t &new_name,
-        mailbox_t<void(std::string)>::address_t ack_addr) {
-    if (!permanently_removed_cond.is_pulsed() && new_name != my_name.get()) {
+void server_config_server_t::on_set_config(
+        signal_t *interruptor,
+        const server_config_t &new_config,
+        const mailbox_t<void(std::string)>::address_t &ack_addr) {
+    if (static_cast<bool>(new_config.cache_size) &&
+            *new_config.cache_size > get_max_total_cache_size()) {
+        send(mailbox_manager, ack_addr,
+            strprintf("The proposed cache size of %" PRIu64 " MB is larger than the "
+                "maximum legal value for this platform (%" PRIu64 " MB).",
+                *new_config.cache_size, get_max_total_cache_size()));
+        return;
+    }
+    if (my_config.get_ref().name != new_config.name) {
         logINF("Changed server's name from `%s` to `%s`.",
-            my_name.get().c_str(), new_name.c_str());
-        my_name.set_value(new_name);
-        servers_semilattice_metadata_t metadata = semilattice_view->get();
-        deletable_t<server_semilattice_metadata_t> *entry =
-            &metadata.servers.at(my_server_id);
-        if (!entry->is_deleted()) {
-            entry->get_mutable()->name.set(new_name);
-            semilattice_view->join(metadata);
-        }
+            my_config.get_ref().name.c_str(), new_config.name.c_str());
     }
-
-    /* Send an acknowledgement to the server that initiated the request */
-    send(mailbox_manager, ack_addr, std::string());
-}
-
-void server_config_server_t::on_change_tags_request(
-        UNUSED signal_t *interruptor,
-        const std::set<name_string_t> &new_tags,
-        mailbox_t<void(std::string)>::address_t ack_addr) {
-    if (!permanently_removed_cond.is_pulsed() && new_tags != my_tags.get()) {
-        std::string tag_str;
-        if (new_tags.empty()) {
-            tag_str = "(nothing)";
-        } else {
-            for (const name_string_t &tag : new_tags) {
-                if (!tag_str.empty()) {
-                    tag_str += ", ";
-                }
-                tag_str += tag.str();
-            }
-        }
-        logINF("Changed server's tags to: %s", tag_str.c_str());
-        my_tags.set_value(new_tags);
-        servers_semilattice_metadata_t metadata = semilattice_view->get();
-        deletable_t<server_semilattice_metadata_t> *entry =
-            &metadata.servers.at(my_server_id);
-        if (!entry->is_deleted()) {
-            entry->get_mutable()->tags.set(new_tags);
-            semilattice_view->join(metadata);
-        }
-    }
-
-    /* Send an acknowledgement to the server that initiated the request */
-    send(mailbox_manager, ack_addr, std::string());
-}
-
-void server_config_server_t::on_change_cache_size_request(
-        UNUSED signal_t *interruptor,
-        boost::optional<uint64_t> new_cache_size,
-        mailbox_t<void(std::string)>::address_t ack_addr) {
-    servers_semilattice_metadata_t metadata = semilattice_view->get();
-    deletable_t<server_semilattice_metadata_t> *entry =
-        &metadata.servers.at(my_server_id);
-    if (!permanently_removed_cond.is_pulsed() && !entry->is_deleted() &&
-            new_cache_size != entry->get_ref().cache_size_bytes.get_ref()) {
-        std::string error;
-        if (static_cast<bool>(new_cache_size) &&
-                *new_cache_size > get_max_total_cache_size()) {
-            send(mailbox_manager, ack_addr,
-                strprintf("The proposed cache size of %" PRIu64 " MB is larger than the "
-                    "maximum legal value for this platform (%" PRIu64 " MB).",
-                    *new_cache_size, get_max_total_cache_size()));
-            return;
-        }
-        update_actual_cache_size(new_cache_size);
-        entry->get_mutable()->cache_size_bytes.set(new_cache_size);
-        semilattice_view->join(metadata);
+    my_config.set_value(new_config);
+    update_actual_cache_size(new_config.cache_size);
+    {
+        metadata_file_t::write_txn_t write_txn(file, interruptor);
+        write_txn.write(mdkey_server_config(), new_config, interruptor);
     }
     send(mailbox_manager, ack_addr, std::string());
-}
-
-void server_config_server_t::on_semilattice_change() {
-    ASSERT_FINITE_CORO_WAITING;
-    servers_semilattice_metadata_t sl_metadata = semilattice_view->get();
-    guarantee(sl_metadata.servers.count(my_server_id) == 1);
-
-    /* Check if we've been permanently removed */
-    if (sl_metadata.servers.at(my_server_id).is_deleted()) {
-        if (!permanently_removed_cond.is_pulsed()) {
-            logERR("This server has been permanently removed from the cluster. Please "
-                "stop the process, erase its data files, and start a fresh RethinkDB "
-                "instance.");
-            my_name.set_value(name_string_t());
-            permanently_removed_cond.pulse();
-        }
-    }
 }
 
 void server_config_server_t::update_actual_cache_size(
