@@ -272,19 +272,6 @@ bool geo_index_traversal_helper_t::any_query_cell_intersects(
     S2CellId right_cell = right.first == S2CellId::Sentinel()
         ? S2CellId::FromFacePosLevel(5, 0, 0) : right.first;
 
-    /* RSI(raft): Remove these checks, they aren't even correct. */
-    if (left_excl_or_null != nullptr) {
-        guarantee(left_cell == btree_key_to_s2cellid(left_excl_or_null));
-    } else {
-        guarantee(left_cell == S2CellId::FromFacePosLevel(0, 0, geo::S2::kMaxCellLevel));
-    }
-    store_key_t max_key = store_key_t::max();
-    if (btree_key_cmp(right_incl, max_key.btree_key()) == 0) {
-        guarantee(right_cell == S2CellId::FromFacePosLevel(5, 0, 0));
-    } else {
-        guarantee(right_cell == btree_key_to_s2cellid(right_incl));
-    }
-
     // Determine a S2CellId range that is a superset of what's intersecting
     // with anything stored in [left_cell, right_cell].
     int common_level;
