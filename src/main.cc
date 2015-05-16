@@ -15,8 +15,6 @@ int main(int argc, char *argv[]) {
     setrlimit(RLIMIT_CORE, &core_limit);
 #endif
 
-    startup_shutdown_t startup_shutdown;
-
     std::set<std::string> subcommands_that_look_like_flags;
     subcommands_that_look_like_flags.insert("--version");
     subcommands_that_look_like_flags.insert("-v");
