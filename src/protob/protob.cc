@@ -26,7 +26,6 @@
 #include "rdb_protocol/base64.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rpc/semilattice/view.hpp"
-#include "utils.hpp"
 
 #include "rdb_protocol/ql2.pb.h"
 #include "rdb_protocol/query_server.hpp"
@@ -656,9 +655,7 @@ void query_server_t::handle(const http_req_t &req,
         return;
     }
 
-    std::string string_conn_id = *optional_conn_id;
-    http_conn_cache_t::conn_key_t conn_id
-        = boost::lexical_cast<http_conn_cache_t::conn_key_t>(string_conn_id);
+    http_conn_cache_t::conn_key_t conn_id = *optional_conn_id;
 
     if (req.method == http_method_t::POST &&
         req.resource.as_string().find("close-connection") != std::string::npos) {

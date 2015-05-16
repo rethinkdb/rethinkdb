@@ -6,7 +6,10 @@
 #include <map>
 #include <random>
 #include <string>
+#include <unordered_map>
 #include <vector>
+
+#include <openssl/evp.h>
 
 #include "errors.hpp"
 #include <boost/make_shared.hpp>
@@ -22,6 +25,7 @@
 #include "http/http.hpp"
 #include "perfmon/perfmon.hpp"
 #include "rdb_protocol/counted_term.hpp"
+#include "utils.hpp"
 
 class auth_key_t;
 class auth_semilattice_metadata_t;
@@ -76,7 +80,24 @@ private:
     // Random number generator used for generating cryptographic connection IDs
     std::mt19937 key_generator;
 
-    std::map<conn_key_t, counted_t<http_conn_t> > cache;
+    // We use a cryptographic hash with this unordered map to avoid timing
+    // side channel attacks that might leak information about existing connection
+    // keys.
+    struct sha_hasher_t {
+        size_t operator()(const conn_key_t &x) const {
+            EVP_MD_CTX c;
+            EVP_DigestInit(&c, EVP_sha256());
+            EVP_DigestUpdate(&c, x.data(), x.size());
+            std::vector<unsigned char> digest(EVP_MD_CTX_size(&c));
+            unsigned int digest_size = 0;
+            EVP_DigestFinal(&c, digest.data(), &digest_size);
+            rassert(digest_size >= sizeof(size_t));
+            size_t res = 0;
+            memcpy(&res, digest.data(), digest_size);
+            return res;
+        }
+    };
+    std::unordered_map<conn_key_t, counted_t<http_conn_t>, sha_hasher_t> cache;
     repeating_timer_t http_timeout_timer;
     uint32_t http_timeout_sec;
 };
