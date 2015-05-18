@@ -24,12 +24,19 @@ public:
 
 RDB_DECLARE_SERIALIZABLE(server_config_t);
 
+class server_config_versioned_t {
+public:
+    server_config_t config;
+    uint64_t version;
+};
+
 class server_config_business_card_t {
 public:
-    /* An empty reply string means success */
+    /* On success, the reply will be an empty string and the version of the new change.
+    On failure, the reply will be zero and an error string. */
     typedef mailbox_t< void(
             server_config_t_t,
-            mailbox_t<void(std::string)>::address_t
+            mailbox_t<void(uint64_t, std::string)>::address_t
         ) > set_config_mailbox_t;
     set_config_mailbox_t::address_t set_config_addr;
 };

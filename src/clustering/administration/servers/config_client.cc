@@ -23,8 +23,9 @@ server_config_client_t::server_config_client_t(
 bool server_config_client_t::set_config(const server_id_t &server_id,
         const server_config_t &new_config, signal_t *interruptor) {
     bool name_collision = false;
-    server_config_map.read_all([&](const server_id_t &sid, const server_config_t &conf) {
-        if (sid != server_id && conf.name == new_config.name) {
+    server_config_map.read_all(
+    [&](const server_id_t &sid, const server_config_versioned_t &conf) {
+        if (sid != server_id && conf.config.name == new_config.name) {
             name_collision = true;
         }
     });
@@ -42,10 +43,14 @@ bool server_config_client_t::set_config(const server_id_t &server_id,
         bcard = md->server_config_business_card.get();
     });
 
+    uint64_t version;
     {
-        promise_t<std::string> reply;
-        mailbox_t<void(std::string)> ack_mailbox(
-            mailbox_manager, std::bind(&promise_t<std::string>::pulse, &reply, ph::_2));
+        promise_t<std::pair<uint64_t, std::string> > reply;
+        mailbox_t<void(uint64_t, std::string)> ack_mailbox(
+            mailbox_manager,
+            [&](signal_t *, uint64_t v, const std::string &m) {
+                reply.pulse(std::make_pair(v, m));
+            });
         disconnect_watcher_t disconnect_watcher(mailbox_manager, *peer);
         send(mailbox_manager, bcard.set_config_addr,
             new_config, ack_mailbox.get_address());
@@ -54,22 +59,22 @@ bool server_config_client_t::set_config(const server_id_t &server_id,
         if (!reply.is_pulsed()) {
             return false;
         }
-        if (!reply.assert_get_value().empty()) {
+        if (!reply.assert_get_value().second.empty()) {
+            guarantee(reply.assert_get_value().first == 0);
             return false;
         }
+        version = reply.assert_get_value().first;
     }
 
-    /* Wait up to 10 seconds for the change to appear in the directory. Note that if
-    there is another change in quick succession, the change we care about might never
-    actually be seen; that's why we have a timeout. */
+    /* Wait up to 10 seconds for the change to appear in the directory. */
     try {
         signal_timer_t timeout;
         timeout.start(10000);
         wait_any_t waiter(interruptor, &timeout);
         server_config_map.run_key_until_satisfied(
             server_id,
-            [&](const server_config_t *conf) {
-                return conf == nullptr || *conf == new_config;
+            [&](const server_config_versioned_t *conf) {
+                return conf == nullptr || conf->version >= version;
             },
             &waiter);
     } catch (const interrupted_exc_t &) {

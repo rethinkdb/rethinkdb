@@ -16,7 +16,7 @@ metadata_file_t::key_t<server_id_t>
     return metadata_file_t::key_t<server_id_t>("server_id");
 }
 
-metadata_file_t::key_t<server_config_t>
+metadata_file_t::key_t<server_config_versioned_t>
         mdkey_server_config() {
     return metadata_file_t::key_t<server_id_t>("server_config");
 }

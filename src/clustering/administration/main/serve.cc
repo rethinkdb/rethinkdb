@@ -349,7 +349,8 @@ bool do_serve(io_backender_t *io_backender,
             or server config changes. It also fills in the initial value. */
             scoped_ptr_t<field_copier_t<uint64_t, cluster_directory_metadata_t> >
                 actual_cache_size_directory_copier;
-            scoped_ptr_t<field_copier_t<server_config_t, cluster_directory_metadata_t> >
+            scoped_ptr_t<field_copier_t<
+                    server_config_versioned_t, cluster_directory_metadata_t> >
                 server_config_directory_copier;
             if (i_am_a_server) {
                 actual_cache_size_directory_copier.init(

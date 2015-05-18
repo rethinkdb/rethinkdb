@@ -23,7 +23,7 @@ public:
 
     /* `get_server_config_map()` returns the server IDs and current configurations of
     every connected server. */
-    watchable_map_t<server_id_t, server_config_t> *get_server_config_map() {
+    watchable_map_t<server_id_t, server_config_versioned_t> *get_server_config_map() {
         return &server_config_map;
     }
 
@@ -77,7 +77,7 @@ private:
     watchable_map_t< std::pair<peer_id_t, server_id_t>, empty_value_t>
         * const peer_connections_map;
 
-    watchable_map_var_t<server_id_t, server_config_t> server_config_map;
+    watchable_map_var_t<server_id_t, server_config_versioned_t> server_config_map;
     watchable_map_var_t<peer_id_t, server_id_t> peer_to_server_map;
     watchable_map_var_t<server_id_t, peer_id_t> server_to_peer_map;
     watchable_map_var_t<std::pair<server_id_t, server_id_t>, empty_value_t>

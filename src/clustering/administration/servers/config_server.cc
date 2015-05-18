@@ -8,7 +8,7 @@ server_config_server_t::server_config_server_t(
         metadata_file_t *_file) :
     mailbox_manager(_mailbox_manager),
     file(_file),
-    my_config(server_config_t()),
+    my_config(server_config_versioned_t()),
     actual_cache_size_bytes(0),
     set_config_mailbox(mailbox_manager,
         std::bind(&server_config_server_t::on_set_config, this,
@@ -30,26 +30,30 @@ server_config_business_card_t server_config_server_t::get_business_card() {
 void server_config_server_t::on_set_config(
         signal_t *interruptor,
         const server_config_t &new_config,
-        const mailbox_t<void(std::string)>::address_t &ack_addr) {
+        const mailbox_t<void(uint64_t, std::string)>::address_t &ack_addr) {
     if (static_cast<bool>(new_config.cache_size) &&
             *new_config.cache_size > get_max_total_cache_size()) {
-        send(mailbox_manager, ack_addr,
+        send(mailbox_manager, ack_addr, 0,
             strprintf("The proposed cache size of %" PRIu64 " MB is larger than the "
                 "maximum legal value for this platform (%" PRIu64 " MB).",
                 *new_config.cache_size, get_max_total_cache_size()));
         return;
     }
-    if (my_config.get_ref().name != new_config.name) {
-        logINF("Changed server's name from `%s` to `%s`.",
-            my_config.get_ref().name.c_str(), new_config.name.c_str());
-    }
-    my_config.set_value(new_config);
-    update_actual_cache_size(new_config.cache_size);
+    my_config.apply_atomic_op([&](server_config_versioned_t *value) -> bool {
+        if (value->config.name != new_config.name) {
+            logINF("Changed server's name from `%s` to `%s`.",
+                value->config.name.c_str(), new_config.name.c_str());
+        }
+        value->config = new_config;
+        ++value->version;
+        return true;
+    });
     {
         metadata_file_t::write_txn_t write_txn(file, interruptor);
-        write_txn.write(mdkey_server_config(), new_config, interruptor);
+        write_txn.write(mdkey_server_config(), my_config.get_ref(), interruptor);
     }
-    send(mailbox_manager, ack_addr, std::string());
+    update_actual_cache_size(new_config.cache_size);
+    send(mailbox_manager, ack_addr, my_config.get_ref().version, std::string());
 }
 
 void server_config_server_t::update_actual_cache_size(

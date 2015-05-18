@@ -15,7 +15,7 @@ public:
 
     server_config_business_card_t get_business_card();
 
-    clone_ptr_t<watchable_t<server_config_t> > get_config() {
+    clone_ptr_t<watchable_t<server_config_versioned_t> > get_config() {
         return config.get_watchable();
     }
 
@@ -31,14 +31,14 @@ private:
     void on_set_config(
         signal_t *interruptor,
         const server_config_t &new_config,
-        mailbox_t<void(std::string)>::address_t ack_addr);
+        mailbox_t<void(uint64_t, std::string)>::address_t ack_addr);
 
     void update_actual_cache_size(const boost::optional<uint64_t> &setting);
 
     mailbox_manager_t *const mailbox_manager;
     metadata_file_t *const file;
     server_id_t my_server_id;
-    watchable_variable_t<server_config_t> my_config;
+    watchable_variable_t<server_config_versioned_t> my_config;
     watchable_variable_t<uint64_t> actual_cache_size_bytes;
 
     server_config_business_card_t::set_config_mailbox_t set_config_mailbox;

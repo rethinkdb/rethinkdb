@@ -20,7 +20,7 @@ metadata_file_t::key_t<auth_semilattice_metadata_t>
     mdkey_auth_semilattices();
 metadata_file_t::key_t<server_id_t>
     mdkey_server_id();
-metadata_file_t::key_t<server_config_t>
+metadata_file_t::key_t<server_config_versioned_t>
     mdkey_server_config();
 
 /* This prefix should be followed by the table's UUID as formatted by `uuid_to_str()`. */
