@@ -118,7 +118,7 @@ http_conn_cache_t::conn_key_t http_conn_cache_t::create(
         key_buf[i] = key_generator();
     }
     conn_key_t key = encode_base64(reinterpret_cast<const char *>(key_buf),
-                                   4 * sizeof(uint32_t));
+                                   sizeof(key_buf));
 
     cache.insert(
         std::make_pair(key, make_counted<http_conn_t>(rdb_ctx, client_addr_port)));

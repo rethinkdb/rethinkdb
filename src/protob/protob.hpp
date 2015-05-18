@@ -93,7 +93,8 @@ private:
             EVP_DigestFinal(&c, digest.data(), &digest_size);
             rassert(digest_size >= sizeof(size_t));
             size_t res = 0;
-            memcpy(&res, digest.data(), digest_size);
+            memcpy(&res, digest.data(), std::min(sizeof(size_t),
+                                                 static_cast<size_t>(digest_size)));
             return res;
         }
     };
