@@ -88,13 +88,13 @@ private:
             EVP_MD_CTX c;
             EVP_DigestInit(&c, EVP_sha256());
             EVP_DigestUpdate(&c, x.data(), x.size());
-            std::vector<unsigned char> digest(EVP_MD_CTX_size(&c));
+            unsigned char digest[EVP_MAX_MD_SIZE];
             unsigned int digest_size = 0;
-            EVP_DigestFinal(&c, digest.data(), &digest_size);
+            EVP_DigestFinal(&c, digest, &digest_size);
             rassert(digest_size >= sizeof(size_t));
             size_t res = 0;
-            memcpy(&res, digest.data(), std::min(sizeof(size_t),
-                                                 static_cast<size_t>(digest_size)));
+            memcpy(&res, digest, std::min(sizeof(size_t),
+                                          static_cast<size_t>(digest_size)));
             return res;
         }
     };
