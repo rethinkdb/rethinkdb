@@ -8,9 +8,7 @@ pkg_configure () {
 }
 
 pkg_make () {
-    # FIXME: Pretty cheap hack here.
-    MAKE_EXECUTABLE="gmake"
-    in_dir "$build_dir/source" $MAKE_EXECUTABLE "$@"
+    in_dir "$build_dir/source" make "$@"
 }
 
 pkg_install-include () {
@@ -38,7 +36,7 @@ pkg_install () {
             (
                 cross_build_env
                 in_dir "$cross_build_dir" ./configure
-                in_dir "$cross_build_dir" $MAKE_EXECUTABLE
+                in_dir "$cross_build_dir" make
             )
         fi
     fi

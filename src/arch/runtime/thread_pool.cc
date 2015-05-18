@@ -117,11 +117,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         backtrace for us. */
 #ifndef VALGRIND
         stack_t segv_stack;
-        #if __FreeBSD__
-        segv_stack.ss_sp = (char*)malloc_aligned(SEGV_STACK_SIZE, getpagesize());
-        #else
-        segv_stack.ss_sp = malloc_aligned(SEGV_STACK_SIZE, getpagesize())
-        #endif
+        segv_stack.ss_sp = malloc_aligned(SEGV_STACK_SIZE, getpagesize());
         segv_stack.ss_flags = 0;
         segv_stack.ss_size = SEGV_STACK_SIZE;
         int res = sigaltstack(&segv_stack, NULL);

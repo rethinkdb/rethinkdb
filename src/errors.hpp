@@ -15,7 +15,7 @@
 #endif  /* x86/amd64 */
 #endif /* __linux__ */
 
-#if defined (__unix) || (defined(__APPLE__) && defined(__MACH__))
+#ifdef __MACH__
 #define BREAKPOINT (raise(SIGTRAP))
 #endif
 #else /* Breakpoints Disabled */

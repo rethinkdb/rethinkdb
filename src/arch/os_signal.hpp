@@ -2,8 +2,6 @@
 #ifndef ARCH_OS_SIGNAL_HPP_
 #define ARCH_OS_SIGNAL_HPP_
 
-#include <unistd.h>
-
 #include "concurrency/cond_var.hpp"
 #include "arch/runtime/runtime_utils.hpp"
 

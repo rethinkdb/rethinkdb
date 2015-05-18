@@ -7,7 +7,7 @@
 int64_t get_file_size(int fd) {
     guarantee(fd != -1);
 
-#if defined(__MACH__) or (__unix__)
+#ifdef __MACH__
     struct stat buf;
     int res = fstat(fd, &buf);
 #else

@@ -20,7 +20,7 @@ pkg_configure () {
 pkg_install-include () {
     pkg_copy_src_to_build
     pkg_configure
-    $MAKE_EXECUTABLE -C "$build_dir/include" install
+    make -C "$build_dir/include" install
 }
 
 pkg_install () {
@@ -29,10 +29,10 @@ pkg_install () {
     pkg_configure
 
     # install the libraries
-    $MAKE_EXECUTABLE -C "$build_dir/lib" install-libLTLIBRARIES
+    make -C "$build_dir/lib" install-libLTLIBRARIES
 
     # install the curl-config script
-    $MAKE_EXECUTABLE -C "$build_dir" install-binSCRIPTS
+    make -C "$build_dir" install-binSCRIPTS
 }
 
 pkg_depends () {

@@ -9,13 +9,7 @@
 #include "logger.hpp"
 
 int _gettid() {
-    #ifdef SYS_gettid
     return syscall(SYS_gettid);
-    #elif defined (__unix__)
-    return syscall(SYS_getpid);
-    #else
-    #error "You should try to search for the good system call to get the PID of a thread."
-    #endif
 }
 
 fd_t scoped_fd_t::reset(fd_t f2) {
