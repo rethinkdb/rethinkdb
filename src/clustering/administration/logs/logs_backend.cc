@@ -185,7 +185,7 @@ logs_artificial_table_backend_t::cfeed_machinery_t::cfeed_machinery_t(
     dir_subs(
         parent->directory,
         std::bind(&cfeed_machinery_t::on_change, this, ph::_1, ph::_2),
-        true)
+        initial_call_t::YES)
 {
     starting = false;
     /* In the unlikely event that we're not connected to any servers (not even ourself)

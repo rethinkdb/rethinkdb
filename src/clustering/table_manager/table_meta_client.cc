@@ -252,7 +252,7 @@ void table_meta_client_t::get_status(
                 if (bcard == nullptr || !(bcard->get_status_mailbox == addr)) {
                     server_stopped.pulse_if_not_already_pulsed();
                 }
-            }, true);
+            }, initial_call_t::YES);
 
         cond_t got_reply;
         mailbox_t<void(index_statuses_t, contracts_and_contract_acks_t)> ack_mailbox(

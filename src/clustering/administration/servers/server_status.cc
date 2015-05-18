@@ -33,7 +33,7 @@ server_status_artificial_table_backend_t::server_status_artificial_table_backend
                 needs to be recomputed */
                 notify_row(convert_uuid_to_datum(md->server_id));
             }
-        }, false)
+        }, initial_call_t::NO)
     { }
 
 server_status_artificial_table_backend_t::~server_status_artificial_table_backend_t() {

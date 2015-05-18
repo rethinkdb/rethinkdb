@@ -38,7 +38,7 @@ multi_table_manager_t::multi_table_manager_t(
                     schedule_sync(pair.first, pair.second.get(), peer);
                 }
             }
-        }, false),
+        }, initial_call_t::NO),
     /* Whenever a server changes its entry for a table in the directory, we need to
     re-sync that table to that server. */
     table_manager_directory_subs(
@@ -52,7 +52,7 @@ multi_table_manager_t::multi_table_manager_t(
                     schedule_sync(key.second, it->second.get(), key.first);
                 }
             }
-        }, false),
+        }, initial_call_t::NO),
     action_mailbox(mailbox_manager,
         std::bind(&multi_table_manager_t::on_action, this,
             ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6, ph::_7, ph::_8)),
@@ -131,7 +131,7 @@ multi_table_manager_t::multi_table_manager_t(
                     schedule_sync(pair.first, pair.second.get(), peer);
                 }
             }
-        }, false),
+        }, initial_call_t::NO),
     /* Whenever a server changes its entry for a table in the directory, we need to
     re-sync that table to that server. */
     table_manager_directory_subs(
@@ -145,7 +145,7 @@ multi_table_manager_t::multi_table_manager_t(
                     schedule_sync(key.second, it->second.get(), key.first);
                 }
             }
-        }, false),
+        }, initial_call_t::NO),
     action_mailbox(mailbox_manager,
         std::bind(&multi_table_manager_t::on_action, this,
             ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6, ph::_7, ph::_8)),

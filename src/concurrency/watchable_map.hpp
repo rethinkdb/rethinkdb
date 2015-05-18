@@ -10,6 +10,7 @@
 
 #include "concurrency/signal.hpp"
 #include "concurrency/pubsub.hpp"
+#include "concurrency/watchable.hpp"
 #include "containers/map_sentries.hpp"
 #include "utils.hpp"
 
@@ -34,12 +35,12 @@ public:
     public:
         /* Starts watching for changes to the given map. When a change occurs to a key,
         `cb` will be called with the key and a pointer to the new value, or `nullptr` if
-        the key was deleted. If `initial_call` is `true`, then `cb` will be called once
+        the key was deleted. If `initial_call` is `YES`, then `cb` will be called once
         for each key-value pair in the map at the time the `all_subs_t` is created. */
         all_subs_t(
             watchable_map_t<key_t, value_t> *map,
             const std::function<void(const key_t &, const value_t *)> &cb,
-            bool initial_call = true);
+            initial_call_t initial_call = initial_call_t::YES);
 
     private:
         typename publisher_t<std::function<void(const key_t &, const value_t *)> >
@@ -53,13 +54,13 @@ public:
     public:
         /* Starts watching for changes to the given key in the given map. When `key` is
         inserted, changed, or deleted in `map`, `cb` will be called with a pointer to the
-        new value, or `nullptr` if `key` was deleted. If `initial_call` is `true`, then
+        new value, or `nullptr` if `key` was deleted. If `initial_call` is `YES`, then
         the constructor will call `cb` once with the initial value of `key`. */
         key_subs_t(
             watchable_map_t<key_t, value_t> *map,
             const key_t &key,
             const std::function<void(const value_t *maybe_value)> &cb,
-            bool initial_call = true);
+            initial_call_t initial_call = initial_call_t::YES);
 
     private:
         multimap_insertion_sentry_t<key_t, std::function<void(const value_t *)> > sentry;

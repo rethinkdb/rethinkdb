@@ -144,7 +144,7 @@ public:
                     context->contract_execution_bcards.delete_key(key);
                 }
             },
-            true));
+            initial_call_t::YES));
     }
 
     ~executor_tester_t() {
@@ -303,7 +303,7 @@ private:
                             disconnect.pulse_if_not_already_pulsed();
                         }
                     },
-                    true);
+                    initial_call_t::YES);
                 try {
                     query_client = make_scoped<primary_query_client_t>(
                         parent->context->cluster.get_mailbox_manager(),

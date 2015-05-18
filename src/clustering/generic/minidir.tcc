@@ -12,7 +12,7 @@ minidir_read_manager_t<key_t, value_t>::minidir_read_manager_t(
             ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6, ph::_7)),
     connection_subs(mailbox_manager->get_connectivity_cluster()->get_connections(),
         std::bind(&minidir_read_manager_t::on_connection_change, this, ph::_1, ph::_2),
-        false)
+        initial_call_t::NO)
     { }
 
 template<class key_t, class value_t>
@@ -110,17 +110,17 @@ minidir_write_manager_t<key_t, value_t>::minidir_write_manager_t(
     readers(_readers),
     stopping(false),
     /* The `reader_subs` constructor takes care of sending all the initial messages
-    because we pass `true` as the third parameter. We pass `false` to the other two
+    because we pass `YES` as the third parameter. We pass `NO` to the other two
     constructors to avoid redundancy. */
     connection_subs(mailbox_manager->get_connectivity_cluster()->get_connections(),
         std::bind(&minidir_write_manager_t::on_connection_change, this, ph::_1, ph::_2),
-        false),
+        initial_call_t::NO),
     value_subs(values,
         std::bind(&minidir_write_manager_t::on_value_change, this, ph::_1, ph::_2),
-        false),
+        initial_call_t::NO),
     reader_subs(readers,
         std::bind(&minidir_write_manager_t::on_reader_change, this, ph::_1, ph::_2),
-        true)
+        initial_call_t::YES)
     { }
 
 template<class key_t, class value_t>

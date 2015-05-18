@@ -29,6 +29,10 @@ home thread. */
 template <class value_t> class watchable_t;
 template <class value_t> class watchable_freeze_t;
 
+/* `initial_call_t` is used to indicate whether a subscription should call its callback
+immediately upon being created. */
+enum class initial_call_t { YES, NO };
+
 template <class value_t>
 class watchable_subscription_t {
 public:
@@ -50,13 +54,13 @@ public:
     watchable_subscription_t(
             const std::function<void()> &f,
             const clone_ptr_t<watchable_t<value_t> > &watchable,
-            bool initial_call) :
+            initial_call_t initial_call) :
         subscription(f)
     {
         rwi_lock_assertion_t::read_acq_t rwi_lock_acquisition(
             watchable->get_rwi_lock_assertion());
         subscription.reset(watchable->get_publisher());
-        if (initial_call) {
+        if (initial_call == initial_call_t::YES) {
             f();
         }
     }

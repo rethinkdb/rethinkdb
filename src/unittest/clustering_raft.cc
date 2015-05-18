@@ -156,7 +156,7 @@ public:
                         }
                     },
                     i->member->get_business_card(),
-                    true));
+                    initial_call_t::YES));
             for (const auto &pair : members) {
                 if (pair.second->live == live_t::alive) {
                     i->member_directory.set_key(pair.first,

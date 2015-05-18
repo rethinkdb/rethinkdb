@@ -65,7 +65,7 @@ table_manager_t::table_manager_t(
     table_directory_subs(
         _table_manager_directory,
         std::bind(&table_manager_t::on_table_directory_change, this, ph::_1, ph::_2),
-        true),
+        initial_call_t::YES),
     raft_readiness_subs(std::bind(&table_manager_t::on_raft_readiness_change, this))
 {
     guarantee(!raft_member_id.is_nil());

@@ -140,7 +140,7 @@ server_issue_tracker_t::server_issue_tracker_t(
                     cluster_sl_view),
     directory_subs(directory_view,
                    std::bind(&server_issue_tracker_t::recompute, this),
-                   false),
+                   initial_call_t::NO),
     server_config_client_subs(std::bind(&server_issue_tracker_t::recompute, this))
 {
     watchable_t<std::map<server_id_t, peer_id_t> >::freeze_t freeze(
