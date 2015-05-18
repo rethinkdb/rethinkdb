@@ -143,20 +143,12 @@ bool do_serve(io_backender_t *io_backender,
         scoped_ptr_t<server_config_server_t> server_config_server;
         if (i_am_a_server) {
             server_config_server.init(new server_config_server_t(
-                &mailbox_manager,
-                server_id,
-                directory_read_manager.get_root_view(),
-                metadata_field(
-                    &cluster_semilattice_metadata_t::servers,
-                    semilattice_manager_cluster.get_root_view())));
+                &mailbox_manager, metadata_file));
         }
 
         server_config_client_t server_config_client(
             &mailbox_manager,
             directory_read_manager.get_root_map_view(),
-            metadata_field(
-                &cluster_semilattice_metadata_t::servers,
-                semilattice_manager_cluster.get_root_view()),
             server_connection_read_manager.get_root_view());
 
         jobs_manager_t jobs_manager(&mailbox_manager, server_id, &server_config_client);
@@ -354,14 +346,21 @@ bool do_serve(io_backender_t *io_backender,
                     &our_root_directory_variable);
 
             /* This will take care of updating the directory every time our cache size
-            changes. It also fills in the initial value. */
+            or server config changes. It also fills in the initial value. */
             scoped_ptr_t<field_copier_t<uint64_t, cluster_directory_metadata_t> >
                 actual_cache_size_directory_copier;
+            scoped_ptr_t<field_copier_t<server_config_t, cluster_directory_metadata_t> >
+                server_config_directory_copier;
             if (i_am_a_server) {
                 actual_cache_size_directory_copier.init(
                     new field_copier_t<uint64_t, cluster_directory_metadata_t>(
                         &cluster_directory_metadata_t::actual_cache_size_bytes,
                         server_config_server->get_actual_cache_size_bytes(),
+                        &our_root_directory_variable));
+                server_config_directory_copier.init(
+                    new field_copier_t<uint64_t, cluster_directory_metadata_t>(
+                        &cluster_directory_metadata_t::server_config,
+                        server_config_server->get_config(),
                         &our_root_directory_variable));
             }
 
