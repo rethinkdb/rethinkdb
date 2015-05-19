@@ -120,6 +120,36 @@ private:
     typename watchable_t<value_t>::subscription_t subs;
 };
 
+/* `watchable_field_copier_t` keeps some field of a `watchable_variable_t` in sync with
+the value of some other `watchable_t`. */
+template<class inner_t, class outer_t>
+class watchable_field_copier_t {
+public:
+    watchable_field_copier_t(
+            inner_t outer_t::*_field,
+            const clone_ptr_t<watchable_t<inner_t> > &_inner,
+            watchable_variable_t<outer_t> *_outer) :
+        field(_field), inner(_inner), outer(_outer),
+        subscription(
+            [this]() {
+                outer->apply_atomic_op([this](outer_t *value) {
+                    value->*field = inner->get();
+                    return true;
+                });
+            },
+            inner,
+            true)
+        { }
+
+private:
+    inner_t outer_t::*field;
+    clone_ptr_t<watchable_t<inner_t> > inner;
+    watchable_variable_t<outer_t> *outer;
+    typename watchable_t<inner_t>::subscription_t subscription;
+
+    DISABLE_COPYING(watchable_field_copier_t);
+};
+
 /* `watchable_map_keyed_var_t` is like a `watchable_map_var_t`, except that the key-value
 pairs are indexed by a second set of keys, different from the key-value pairs that appear
 in the map. */
