@@ -64,11 +64,9 @@ with driver.Process(console_output=True, output_folder='.', command_prefix=comma
     doc_size = 10000
     overfill_factor = 1.2
     num_docs = int(high_cache_mb * megabyte * overfill_factor / doc_size)
-    res = \
-        r.range(num_docs).for_each(
-            r.table("test").insert(
-                {"id": r.row, "payload": "a" * doc_size})) \
-        .run(conn)
+    res = r.table("test").insert(r.range(num_docs).map(
+        lambda x: {"id":x, "payload":"a" * doc_size}
+    ), durability="soft").run(conn)
     assert res["inserted"] == num_docs and res["errors"] == 0, res
 
     check_cache_usage(high_cache_mb)

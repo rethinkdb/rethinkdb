@@ -223,7 +223,7 @@ std::vector<std::vector<T> > split(std::vector<T> &&v) {
         out.push_back(std::move(batch));
     }
     guarantee(i == v.size());
-    return std::move(out);
+    return out;
 }
 
 ql::datum_t real_table_t::write_batched_replace(

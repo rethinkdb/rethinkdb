@@ -1225,7 +1225,16 @@ public:
         if (!stream->is_exhausted() && !running) {
             running = true;
             auto_drainer_t::lock_t lock(&parent->drainer);
-            coro_t::spawn_sometime([this, lock]{this->cb(lock);});
+            if (stream->cfeed_type() == feed_type_t::not_feed) {
+                // We only launch a limited number of non-feed reads per union
+                // at a time, controlled by a coro pool.
+                parent->read_queue.push([this, lock]{this->cb(lock);});
+            } else {
+                // For feeds, we have to spawn a coroutine since we cannot afford
+                // to wait for a specific subset of substreams to yield a result
+                // before spawning a read from the remaining ones.
+                coro_t::spawn_sometime([this, lock]{this->cb(lock);});
+            }
         }
     }
     const counted_t<datum_stream_t> stream;
@@ -1281,6 +1290,10 @@ private:
     union_datum_stream_t *parent;
 };
 
+// The maximum number of reads that a union_datum_stream spawns on its substreams
+// at a time. This limit does not apply to changefeed streams.
+const size_t MAX_CONCURRENT_UNION_READS = 32;
+
 union_datum_stream_t::union_datum_stream_t(
     env_t *env,
     std::vector<counted_t<datum_stream_t> > &&streams,
@@ -1291,6 +1304,7 @@ union_datum_stream_t::union_datum_stream_t(
       is_infinite_union(false),
       sent_init(false),
       ready_needed(expected_states),
+      read_coro_pool(MAX_CONCURRENT_UNION_READS, &read_queue, &read_coro_callback),
       active(0),
       coros_exhausted(false) {
 
