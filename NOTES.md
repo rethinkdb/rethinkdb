@@ -1,3 +1,21 @@
+# Release 2.0.2 (Yojimbo)
+
+Released on 2015-05-22
+
+Bug fix release
+
+* Fixed "duplicate token" error in the web UI that happened with certain browsers (#4174)
+* Fixed a cross site request forgery vulnerability in the HTTP admin interface (#2018)
+* Fixed the EventEmitter interface in the JavaScript driver (#4192)
+* Fixed a problem with the RDBInterrupt.InsertOp unit test in some compilation modes (#4038)
+* Added packages for Ubuntu 15.04 (#4123)
+* Added a `return_changes: 'always'` option to restore the `return_changes` behavior from before 2.0.0 (#4068)
+* Fixed a bug with `return_changes` where it would populate `changes` despite an error occurring (#4208)
+* Fixed a performance regression when calling `get_all` with many keys (#4218)
+* Support `r.row` with the `contains` command in the JavaScript driver (#4125)
+
+--
+
 # Release 2.0.1 (Yojimbo)
 
 Released on 2015-04-20
