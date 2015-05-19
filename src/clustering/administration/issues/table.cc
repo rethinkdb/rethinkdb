@@ -47,10 +47,10 @@ table_availability_issue_t::table_availability_issue_t(
 table_availability_issue_t::~table_availability_issue_t() { }
 
 bool table_availability_issue_t::build_info_and_description(
-        UNUSED const metadata_t &metadata,
-        UNUSED server_config_client_t *server_config_client,
-        UNUSED table_meta_client_t *table_meta_client,
-        UNUSED admin_identifier_format_t identifier_format,
+        const metadata_t &metadata,
+        server_config_client_t *server_config_client,
+        table_meta_client_t *table_meta_client,
+        admin_identifier_format_t identifier_format,
         ql::datum_t *info_out,
         datum_string_t *description_out) const {
     ql::datum_t db_id_datum;
@@ -71,7 +71,7 @@ bool table_availability_issue_t::build_info_and_description(
     // Convert table id/name into the requested identifier format
     ql::datum_object_builder_t builder(table_status_datum);
     UNUSED bool b = builder.delete_field("id");
-    b = builder.delete_field("name");
+    UNUSED bool c = builder.delete_field("name");
     builder.overwrite("table", table_id_datum);
 
     *info_out = std::move(builder).to_datum();

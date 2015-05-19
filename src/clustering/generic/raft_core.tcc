@@ -828,9 +828,9 @@ void raft_member_t<state_t>::on_connected_members_change(
         [this, term, member_id, keepalive /* important to capture */]() {
             try {
                 new_mutex_acq_t mutex_acq(&mutex, keepalive.get_drain_signal());
-                DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
+                DEBUG_ONLY_CODE(this->check_invariants(&mutex_acq));
 
-                if (!on_rpc_from_leader(member_id, term, &mutex_acq)) {
+                if (!this->on_rpc_from_leader(member_id, term, &mutex_acq)) {
                     /* If this were a real AppendEntries or InstallSnapshot RPC, we would
                     send an RPC reply to the leader informing it that our term is higher
                     than its term. However, there's no way to send an RPC reply to a
@@ -839,7 +839,7 @@ void raft_member_t<state_t>::on_connected_members_change(
                     this implementation deviates from the Raft paper in how leaders
                     handle RequestVote RPCs; see the comment in `on_request_vote_rpc()`
                     for more information. */
-                    DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
+                    DEBUG_ONLY_CODE(this->check_invariants(&mutex_acq));
                     return;
                 }
 
@@ -852,7 +852,7 @@ void raft_member_t<state_t>::on_connected_members_change(
                     virtual_heartbeat_sender = member_id;
                 }
 
-                DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
+                DEBUG_ONLY_CODE(this->check_invariants(&mutex_acq));
             } catch (const interrupted_exc_t &) {
                 /* ignore */
             }
@@ -977,7 +977,7 @@ void raft_member_t<state_t>::on_watchdog_timer() {
                     return;
                 }
                 microtime_t last_heard_2 = std::max(
-                    effective_last_heard_from_leader(), last_heard_from_candidate);
+                    this->effective_last_heard_from_leader(), last_heard_from_candidate);
                 if (last_heard_2 >= now - election_timeout_min_ms * 1000) {
                     return;
                 }

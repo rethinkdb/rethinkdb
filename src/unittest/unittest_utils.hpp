@@ -48,6 +48,8 @@ The `quick_region()` variant just wraps the `key_range_t` in a `region_t`. */
 key_range_t quick_range(const char *bounds);
 region_t quick_region(const char *bounds);
 
+state_timestamp_t make_state_timestamp(int n);
+
 }  // namespace unittest
 
 

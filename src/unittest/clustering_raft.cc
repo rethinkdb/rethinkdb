@@ -352,7 +352,7 @@ private:
                 member_ptrs.insert(pair.second->member->get_raft());
             }
         }
-        dummy_raft_member_t::check_invariants(member_ptrs);
+        DEBUG_ONLY_CODE(dummy_raft_member_t::check_invariants(member_ptrs));
     }
 
     connectivity_cluster_t connectivity_cluster;
