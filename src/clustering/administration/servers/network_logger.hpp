@@ -17,9 +17,7 @@ class network_logger_t {
 public:
     network_logger_t(
         peer_id_t us,
-        watchable_map_t<peer_id_t, cluster_directory_metadata_t> *directory_view,
-        const boost::shared_ptr<semilattice_read_view_t<servers_semilattice_metadata_t> >
-            &semilattice_view);
+        watchable_map_t<peer_id_t, cluster_directory_metadata_t> *directory_view);
 
     /* This contains an entry for a given server ID if we can see a server with that ID.
     This will be piped over the network to other servers to form the full connections
@@ -34,7 +32,6 @@ private:
 
     peer_id_t us;
     watchable_map_t<peer_id_t, cluster_directory_metadata_t> *directory_view;
-    boost::shared_ptr<semilattice_read_view_t<servers_semilattice_metadata_t> > semilattice_view;
 
     watchable_map_t<peer_id_t, cluster_directory_metadata_t>::all_subs_t directory_subscription;
     semilattice_read_view_t<servers_semilattice_metadata_t>::subscription_t semilattice_subscription;

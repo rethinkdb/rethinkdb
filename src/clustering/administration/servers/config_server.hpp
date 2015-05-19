@@ -16,7 +16,7 @@ public:
     server_config_business_card_t get_business_card();
 
     clone_ptr_t<watchable_t<server_config_versioned_t> > get_config() {
-        return config.get_watchable();
+        return my_config.get_watchable();
     }
 
     /* Returns the actual cache size, not the cache size setting. If the cache size

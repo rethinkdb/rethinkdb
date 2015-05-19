@@ -183,9 +183,7 @@ bool do_serve(io_backender_t *io_backender,
         auto_reconnector_t auto_reconnector(
             &connectivity_cluster,
             connectivity_cluster_run.get(),
-            directory_read_manager.get_root_view()->incremental_subview(
-                incremental_field_getter_t<server_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::server_id)),
-            metadata_field(&cluster_semilattice_metadata_t::servers, semilattice_manager_cluster.get_root_view()));
+            &server_config_client);
 
         scoped_ptr_t<initial_joiner_t> initial_joiner;
         if (!serve_info.peers.empty()) {
