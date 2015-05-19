@@ -23,7 +23,7 @@ ql::datum_t convert_table_config_to_datum(
         const ql::datum_t &db_name_or_uuid,
         const table_config_t &config,
         admin_identifier_format_t identifier_format,
-        server_config_client_t *server_config_client);
+        const std::map<server_id_t, std::pair<uint64_t, name_string_t> > &server_names);
 
 class table_config_artificial_table_backend_t :
     public common_table_artificial_table_backend_t
@@ -62,7 +62,9 @@ private:
 
     void do_modify(
         const namespace_id_t &table_id,
+        table_config_and_shards_t &&old_config,
         table_config_t &&new_config_no_shards,
+        std::map<server_id_t, std::pair<uint64_t, name_string_t> > &&new_server_names,
         const name_string_t &old_db_name,
         const name_string_t &new_db_name,
         signal_t *interruptor)
@@ -72,6 +74,7 @@ private:
     void do_create(
         const namespace_id_t &table_id,
         table_config_t &&new_config_no_shards,
+        std::map<server_id_t, std::pair<uint64_t, name_string_t> > &&new_server_names,
         const name_string_t &new_db_name,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,

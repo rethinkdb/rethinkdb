@@ -51,22 +51,6 @@ ql::datum_t convert_name_or_uuid_to_datum(
         const uuid_u &uuid,
         admin_identifier_format_t identifier_format);
 
-/* `convert_server_id_to_datum()` will return `false` if the server ID corresponds to a
-permanently removed server. */
-bool convert_server_id_to_datum(
-        const server_id_t &server_id,
-        admin_identifier_format_t identifier_format,
-        server_config_client_t *server_config_client,
-        ql::datum_t *server_name_or_uuid_out,
-        name_string_t *server_name_out);
-bool convert_server_id_from_datum(
-        const ql::datum_t &server_name_or_uuid,
-        admin_identifier_format_t identifier_format,
-        server_config_client_t *server_config_client,
-        server_id_t *server_id_out,
-        name_string_t *server_name_out,
-        std::string *error_out);
-
 /* `convert_table_id_to_datums()` will return `false` if the table ID corresponds to a
 deleted table. If the table still exists but the database does not, it will return `true`
 but set the database to `__deleted_database__`. */

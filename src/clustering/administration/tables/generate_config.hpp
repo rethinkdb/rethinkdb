@@ -17,7 +17,7 @@ class table_meta_client_t;
 `table.reconfigure()`. */
 void table_generate_config(
         /* This is used to get the list of servers with each tag, and to look up the
-        names for error messages. */
+        names to fill `server_names_out`. */
         server_config_client_t *server_config_client,
         /* The UUID of the table being reconfigured. This can be `nil_uuid()`. */
         namespace_id_t table_id,
@@ -33,7 +33,8 @@ void table_generate_config(
         `nil_uuid()` this is unused. */
         const table_shard_scheme_t &shard_scheme,
         signal_t *interruptor,
-        std::vector<table_config_t::shard_t> *config_shards_out)
+        std::vector<table_config_t::shard_t> *config_shards_out,
+        std::map<server_id_t, std::pair<uint64_t, name_string_t> > *server_names_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,
             admin_op_exc_t);
 

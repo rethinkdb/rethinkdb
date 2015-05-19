@@ -240,7 +240,7 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
         table_generate_config(
             server_config_client, nil_uuid(), table_meta_client,
             config_params, config.shard_scheme, &interruptor2,
-            &config.config.shards);
+            &config.config.shards, &config.server_names);
 
         config.config.write_ack_config = write_ack_config_t::MAJORITY;
         config.config.durability = durability;
@@ -689,7 +689,8 @@ void real_reql_cluster_interface_t::reconfigure_internal(
     /* `table_generate_config()` just generates the config; it doesn't apply it */
     table_generate_config(
         server_config_client, table_id, table_meta_client,
-        params, new_config.shard_scheme, interruptor, &new_config.config.shards);
+        params, new_config.shard_scheme, interruptor, &new_config.config.shards,
+        &new_config.server_names);
 
     new_config.config.write_ack_config = write_ack_config_t::MAJORITY;
     new_config.config.durability = write_durability_t::HARD;
