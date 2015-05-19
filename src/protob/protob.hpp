@@ -4,8 +4,12 @@
 
 #include <set>
 #include <map>
+#include <random>
 #include <string>
+#include <unordered_map>
 #include <vector>
+
+#include <openssl/evp.h>
 
 #include "errors.hpp"
 #include <boost/make_shared.hpp>
@@ -21,6 +25,7 @@
 #include "http/http.hpp"
 #include "perfmon/perfmon.hpp"
 #include "rdb_protocol/counted_term.hpp"
+#include "utils.hpp"
 
 class auth_key_t;
 class auth_semilattice_metadata_t;
@@ -35,6 +40,8 @@ class query_cache_t;
 class http_conn_cache_t : public repeating_timer_callback_t,
                           public home_thread_mixin_t {
 public:
+    typedef std::string conn_key_t;
+
     class http_conn_t : public single_threaded_countable_t<http_conn_t> {
     public:
         http_conn_t(rdb_context_t *rdb_ctx,
@@ -54,12 +61,14 @@ public:
         DISABLE_COPYING(http_conn_t);
     };
 
+    // WARNING: http_conn_cache_t might block since it needs to seed a random
+    //  number generator. Don't call this except at server startup.
     explicit http_conn_cache_t(uint32_t _http_timeout_sec);
     ~http_conn_cache_t();
 
-    counted_t<http_conn_t> find(int32_t key);
-    int32_t create(rdb_context_t *rdb_ctx, ip_and_port_t client_addr_port);
-    void erase(int32_t key);
+    counted_t<http_conn_t> find(const conn_key_t &key);
+    conn_key_t create(rdb_context_t *rdb_ctx, ip_and_port_t client_addr_port);
+    void erase(const conn_key_t &key);
 
     void on_ring();
     bool is_expired(const http_conn_t &conn) const;
@@ -68,8 +77,28 @@ public:
 private:
     static const int64_t TIMER_RESOLUTION_MS = 5000;
 
-    std::map<int32_t, counted_t<http_conn_t> > cache;
-    int32_t next_id;
+    // Random number generator used for generating cryptographic connection IDs
+    std::mt19937 key_generator;
+
+    // We use a cryptographic hash with this unordered map to avoid timing
+    // side channel attacks that might leak information about existing connection
+    // keys.
+    struct sha_hasher_t {
+        size_t operator()(const conn_key_t &x) const {
+            EVP_MD_CTX c;
+            EVP_DigestInit(&c, EVP_sha256());
+            EVP_DigestUpdate(&c, x.data(), x.size());
+            unsigned char digest[EVP_MAX_MD_SIZE];
+            unsigned int digest_size = 0;
+            EVP_DigestFinal(&c, digest, &digest_size);
+            rassert(digest_size >= sizeof(size_t));
+            size_t res = 0;
+            memcpy(&res, digest, std::min(sizeof(size_t),
+                                          static_cast<size_t>(digest_size)));
+            return res;
+        }
+    };
+    std::unordered_map<conn_key_t, counted_t<http_conn_t>, sha_hasher_t> cache;
     repeating_timer_t http_timeout_timer;
     uint32_t http_timeout_sec;
 };

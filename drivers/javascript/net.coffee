@@ -1267,9 +1267,8 @@ class HttpConnection extends Connection
         # `true` argument is setting the request to be asynchronous.
         xhr.open("POST", url+"open-new-connection", true)
 
-        # We also want the response to come back as a buffer, to
-        # minimize the code that has to be HttpConnection specific
-        xhr.responseType = "arraybuffer"
+        # We response will be a connection ID, which we receive as text.
+        xhr.responseType = "text"
 
         # Next, set up the callback to process the response from the
         # server when the new connection is established.
@@ -1283,14 +1282,8 @@ class HttpConnection extends Connection
                     # since the url doesn't change.
                     @_url = url
 
-                    # We create a
-                    # [DataView](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/DataView)
-                    # for reading the data as an array of bytes. We
-                    # grab the value passed back and interpret it as a
-                    # signed 32 bit little-endian integer. (The `true`
-                    # argument causes it to be interpreted as
-                    # little-endian).
-                    @_connId = (new DataView xhr.response).getInt32(0, true)
+                    # Keep the connection ID we received.
+                    @_connId = xhr.response
 
                     # Emit the `"connect"` event. The `Connection`
                     # superclass's constructor listens for this event
