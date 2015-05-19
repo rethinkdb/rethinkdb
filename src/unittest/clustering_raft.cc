@@ -446,7 +446,7 @@ void do_writes(dummy_raft_cluster_t *cluster, int expect, int ms) {
         ADD_FAILURE() << "completed only " << committed_changes.size() << "/" << expect
             << " changes in " << ms << "ms";
     }
-    RAFT_DEBUG("end do_writes() in %lums\n", (current_microtime() - start) / 1000);
+    RAFT_DEBUG("end do_writes() in %" PRIu64 "ms\n", (current_microtime() - start) / 1000);
 }
 
 TPTEST(ClusteringRaft, Basic) {
