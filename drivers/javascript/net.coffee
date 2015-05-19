@@ -1265,7 +1265,12 @@ class HttpConnection extends Connection
         #The request is a `POST` to ensure the response isn't cached
         # by the browser (which has caused bugs in the past). The
         # `true` argument is setting the request to be asynchronous.
-        xhr.open("POST", url+"open-new-connection", true)
+        # Some browsers cache this request no matter what cache
+        # control headers are set on the request or the server's
+        # response. So the `cacheBuster` argument ensures every time
+        # we create a connection it's a unique url, and we really do
+        # create a new connection on the server.
+        xhr.open("POST", url+"open-new-connection?cacheBuster=#{Math.random()}", true)
 
         # We response will be a connection ID, which we receive as text.
         xhr.responseType = "text"
