@@ -31,14 +31,14 @@ bool debug_stats_artificial_table_backend_t::write_row(
 }
 
 bool debug_stats_artificial_table_backend_t::format_row(
-        name_string_t const & server_name,
         server_id_t const & server_id,
-        UNUSED server_semilattice_metadata_t const & server,
-        signal_t *interruptor,
+        UNUSED peer_id_t const & peer_id,
+        cluster_directory_metadata_t const & metadata,
         ql::datum_t *row_out,
         UNUSED std::string *error_out) {
     ql::datum_object_builder_t builder;
-    builder.overwrite("name", convert_name_to_datum(server_name));
+    builder.overwrite("name", convert_name_to_datum(
+        metadata.server_config->config.name));
     builder.overwrite("id", convert_uuid_to_datum(server_id));
 
     ql::datum_t stats;
