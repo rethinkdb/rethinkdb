@@ -12,7 +12,7 @@ Bug fix release
 * Added a `return_changes: 'always'` option to restore the `return_changes` behavior from before 2.0.0 (#4068)
 * Fixed a bug with `return_changes` where it would populate `changes` despite an error occurring (#4208)
 * Fixed a performance regression when calling `get_all` with many keys (#4218)
-* Support `r.row` with the `contains` command in the JavaScript driver (#4125)
+* Added support for using `r.row` with the `contains` command in the JavaScript driver (#4125)
 
 --
 
