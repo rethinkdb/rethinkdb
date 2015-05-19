@@ -449,8 +449,8 @@ bool server_stats_request_t::to_datum(const parsed_stats_t &stats,
     row_builder.overwrite("id", std::move(id_builder).to_datum());
 
     ql::datum_t server_identifier;
-    if (!convert_server_id_to_datum(server_id, admin_format, server_config_client,
-                                    &server_identifier, nullptr)) {
+    if (!convert_connected_server_id_to_datum(server_id, admin_format,
+            server_config_client, &server_identifier, nullptr)) {
         return false;
     }
     row_builder.overwrite("server", server_identifier);
@@ -546,8 +546,8 @@ bool table_server_stats_request_t::to_datum(const parsed_stats_t &stats,
     row_builder.overwrite("id", std::move(id_builder).to_datum());
 
     ql::datum_t server_identifier;
-    if (!convert_server_id_to_datum(server_id, admin_format, server_config_client,
-                                    &server_identifier, nullptr)) {
+    if (!convert_connected_server_id_to_datum(server_id, admin_format,
+            server_config_client, &server_identifier, nullptr)) {
         return false;
     }
     row_builder.overwrite("server", server_identifier);

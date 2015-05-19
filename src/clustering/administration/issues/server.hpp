@@ -10,6 +10,9 @@
 #include "rpc/semilattice/view.hpp"
 #include "containers/incremental_lenses.hpp"
 
+// RSI(raft): Delete these files, or make major changes
+#if 0
+
 class server_config_server_t;
 class server_config_client_t;
 
@@ -55,5 +58,7 @@ private:
         server_config_client_subs;
     DISABLE_COPYING(server_issue_tracker_t);
 };
+
+#endif
 
 #endif /* CLUSTERING_ADMINISTRATION_ISSUES_SERVER_HPP_ */

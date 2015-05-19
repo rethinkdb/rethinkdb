@@ -93,9 +93,9 @@ bool logs_artificial_table_backend_t::read_row(
 
     ql::datum_t server_datum;
     name_string_t server_name;
-    if (!convert_server_id_to_datum(server_id, identifier_format, server_config_client,
-            &server_datum, &server_name)) {
-        /* The server doesn't exist in the metadata */
+    if (!convert_connected_server_id_to_datum(server_id, identifier_format,
+            server_config_client, &server_datum, &server_name)) {
+        /* The server is not currently connected */
         *row_out = ql::datum_t();
         return true;
     }
@@ -329,10 +329,11 @@ void logs_artificial_table_backend_t::cfeed_machinery_t::run(
             if (!messages.empty()) {
                 /* Compute the server name to attach to the log messages */
                 ql::datum_t server_datum;
-                if (!convert_server_id_to_datum(server_id, parent->identifier_format,
-                        parent->server_config_client, &server_datum, nullptr)) {
-                    /* The server was permanently removed. Don't retrieve log messages
-                    from it. */
+                if (!convert_connected_server_id_to_datum(server_id,
+                        parent->identifier_format, parent->server_config_client,
+                        &server_datum, nullptr)) {
+                    /* The server is disconnected. Don't retrieve log messages until it
+                    reconnects. */
                     peers_handled.erase(peer);
                     return;
                 }
@@ -414,22 +415,21 @@ bool logs_artificial_table_backend_t::read_all_rows_raw(
             const ql::datum_t &server_datum)> &callback,
         signal_t *interruptor,
         std::string *error_out) {
-    std::map<server_id_t, log_server_business_card_t> servers;
+    std::map<server_id_t, std::pair<name_string_t, log_server_business_card_t> > servers;
     directory->read_all(
         [&](const peer_id_t &, const cluster_directory_metadata_t *value) {
-            servers.insert(std::make_pair(value->server_id, value->log_mailbox));
+            if (value->peer_type == server_peer_t::SERVER) {
+                servers.insert(std::make_pair(value->server_id,
+                    std::make_pair(value->server_config->name, value->log_mailbox)));
+            }
         });
 
     boost::optional<std::string> error;
     pmap(servers.begin(), servers.end(),
         [&](const std::pair<server_id_t, log_server_business_card_t> &server) {
-            ql::datum_t server_datum;
-            name_string_t server_name;
-            if (!convert_server_id_to_datum(server.first, identifier_format,
-                    server_config_client, &server_datum, &server_name)) {
-                /* The server was permanently removed. Don't display its log messages. */
-                return;
-            }
+            name_string_t server_name = server.at(server_id).first;
+            ql::datum_t server_datum = convert_name_or_uuid_to_datum(
+                server_name, server_id, identifier_format);
             std::vector<log_message_t> messages;
             try {
                 struct timespec min_time = { 0, 0 };

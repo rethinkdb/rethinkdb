@@ -5,6 +5,8 @@
 #include "clustering/administration/servers/config_server.hpp"
 #include "clustering/administration/datum_adapter.hpp"
 
+#if 0
+
 const datum_string_t server_disconnected_issue_t::server_disconnected_issue_type =
     datum_string_t("server_disconnected");
 const uuid_u server_disconnected_issue_t::base_issue_id =
@@ -234,3 +236,6 @@ void server_issue_tracker_t::combine(
     }
 
 }
+
+#endif
+

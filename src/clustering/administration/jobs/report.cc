@@ -101,7 +101,7 @@ bool backfill_job_report_t::info_derived(
     info_builder_out->overwrite("db", db_name_or_uuid);
 
     ql::datum_t source_server_name_or_uuid;
-    if (convert_server_id_to_datum(
+    if (convert_connected_server_id_to_datum(
             source_server,
             identifier_format,
             server_config_client,
@@ -113,7 +113,7 @@ bool backfill_job_report_t::info_derived(
     }
 
     ql::datum_t destination_server_name_or_uuid;
-    if (convert_server_id_to_datum(
+    if (convert_connected_server_id_to_datum(
             destination_server,
             identifier_format,
             server_config_client,

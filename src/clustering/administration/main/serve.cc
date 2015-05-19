@@ -160,16 +160,6 @@ bool do_serve(io_backender_t *io_backender,
             metadata_field(&cluster_semilattice_metadata_t::servers,
                            semilattice_manager_cluster.get_root_view()));
 
-        scoped_ptr_t<server_issue_tracker_t> server_issue_tracker;
-        if (i_am_a_server) {
-            server_issue_tracker.init(new server_issue_tracker_t(
-                &local_issue_aggregator,
-                semilattice_manager_cluster.get_root_view(),
-                directory_read_manager.get_root_map_view(),
-                &server_config_client,
-                server_config_server.get()));
-        }
-
         scoped_ptr_t<connectivity_cluster_t::run_t> connectivity_cluster_run;
 
         try {
