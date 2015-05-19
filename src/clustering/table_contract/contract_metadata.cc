@@ -39,6 +39,12 @@ void table_raft_state_t::apply_change(const table_raft_state_t::change_t &change
             state->branch_history.branches.insert(
                 new_contracts_change.add_branches.branches.begin(),
                 new_contracts_change.add_branches.branches.end());
+            for (const server_id_t &sid : new_contracts_change.remove_server_ids) {
+                state->server_names.erase(sid);
+            }
+            state->server_names.insert(
+                new_contracts_change.add_server_names.begin(),
+                new_contracts_change.add_server_names.end());
         }
         void operator()(const change_t::new_member_ids_t &new_member_ids_change) {
             for (const server_id_t &sid : new_member_ids_change.remove_member_ids) {
@@ -61,16 +67,17 @@ RDB_IMPL_EQUALITY_COMPARABLE_4(
 is released */
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_16(
     table_raft_state_t::change_t::set_table_config_t, new_config);
-RDB_IMPL_SERIALIZABLE_4_SINCE_v1_16(
+RDB_IMPL_SERIALIZABLE_6_SINCE_v1_16(
     table_raft_state_t::change_t::new_contracts_t,
-    remove_contracts, add_contracts, remove_branches, add_branches);
+    remove_contracts, add_contracts, remove_branches, add_branches,
+    remove_server_names, add_server_names);
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_16(
     table_raft_state_t::change_t::new_member_ids_t,
     remove_member_ids, add_member_ids);
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_16(
     table_raft_state_t::change_t, v);
-RDB_IMPL_SERIALIZABLE_4_SINCE_v1_16(
-    table_raft_state_t, config, contracts, branch_history, member_ids);
+RDB_IMPL_SERIALIZABLE_5_SINCE_v1_16(
+    table_raft_state_t, config, contracts, branch_history, member_ids, server_names);
 
 table_raft_state_t make_new_table_raft_state(
         const table_config_and_shards_t &config) {
@@ -98,6 +105,7 @@ table_raft_state_t make_new_table_raft_state(
             }
         }
     }
+    state.server_names = config.server_names;
     return state;
 }
 

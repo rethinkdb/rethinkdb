@@ -177,6 +177,8 @@ public:
             std::map<contract_id_t, std::pair<region_t, contract_t> > add_contracts;
             std::set<branch_id_t> remove_branches;
             branch_history_t add_branches;
+            std::set<server_id_t> remove_server_names;
+            std::map<server_id_t, std::pair<uint64_t, name_string_t> > add_server_names;
         };
 
         class new_member_ids_t {
@@ -212,6 +214,10 @@ public:
     `multi_table_manager_t` reads it and uses that information to add and remove servers
     to the Raft cluster. */
     std::map<server_id_t, raft_member_id_t> member_ids;
+
+    /* `server_names` contains the server name of every server that's mentioned in a
+    contract. This is used to display `server_status`. */
+    std::map<server_id_t, std::pair<uint64_t, name_string_t> > server_names;
 };
 
 RDB_DECLARE_EQUALITY_COMPARABLE(table_raft_state_t);

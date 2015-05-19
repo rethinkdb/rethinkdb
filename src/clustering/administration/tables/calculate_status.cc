@@ -18,7 +18,8 @@ bool get_contracts_and_acks(
                 contract_id_t,
                 std::reference_wrapper<const std::pair<region_t, contract_t> >
             > *contracts_out,
-        server_id_t *latest_contracts_server_id_out)
+        server_id_t *latest_contracts_server_id_out,
+        std::map<server_id_t, std::pair<uint64_t, name_string_t> > *server_names_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t) {
     std::map<peer_id_t, contracts_and_contract_acks_t> contracts_and_acks;
     table_meta_client->get_status(table_id, interruptor, nullptr, &contracts_and_acks);
