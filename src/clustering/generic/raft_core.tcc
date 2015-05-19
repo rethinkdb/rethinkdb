@@ -381,7 +381,7 @@ void raft_member_t<state_t>::on_request_vote_rpc(
                 !latest_state.get_ref().config.is_member(request.candidate_id))
             || (mode == mode_t::follower && current_microtime() <
                 effective_last_heard_from_leader() + election_timeout_min_ms * 1000)) {
-        RAFT_DEBUG_THIS("RequestVote from %s for %lu ignored (leader exists)\n",
+        RAFT_DEBUG_THIS("RequestVote from %s for %" PRIu64 " ignored (leader exists)\n",
             show_member_id(request.candidate_id).c_str(), request.term);
         reply_out->term = ps.current_term;
         reply_out->vote_granted = false;
@@ -436,7 +436,7 @@ void raft_member_t<state_t>::on_request_vote_rpc(
             (request.last_log_term == ps.log.get_entry_term(ps.log.get_latest_index()) &&
                 request.last_log_index >= ps.log.get_latest_index());
     if (!candidate_is_at_least_as_up_to_date) {
-        RAFT_DEBUG_THIS("RequestVote from %s for %lu ignored (not up-to-date)\n",
+        RAFT_DEBUG_THIS("RequestVote from %s for %" PRIu64 " ignored (not up-to-date)\n",
             show_member_id(request.candidate_id).c_str(), request.term);
         reply_out->term = ps.current_term;
         reply_out->vote_granted = false;
@@ -444,7 +444,7 @@ void raft_member_t<state_t>::on_request_vote_rpc(
         return;
     }
 
-    RAFT_DEBUG_THIS("RequestVote from %s for %lu granted\n",
+    RAFT_DEBUG_THIS("RequestVote from %s for %" PRIu64 " granted\n",
             show_member_id(request.candidate_id).c_str(), request.term);
 
     ps.voted_for = request.candidate_id;
@@ -878,7 +878,7 @@ bool raft_member_t<state_t>::on_rpc_from_leader(
     /* Raft paper, Figure 2: "If RPC request or response contains term T > currentTerm:
     set currentTerm = T, convert to follower" */
     if (request_term > ps.current_term) {
-        RAFT_DEBUG_THIS("Install/Append from %s for %lu\n",
+        RAFT_DEBUG_THIS("Install/Append from %s for %" PRIu64 "\n",
             show_member_id(request_leader_id).c_str(), request_term);
         update_term(request_term, mutex_acq);
         if (mode != mode_t::follower) {
@@ -905,7 +905,7 @@ bool raft_member_t<state_t>::on_rpc_from_leader(
     conceivably possible that the first RPC we receive from the leader may be an
     install-snapshot RPC rather than an append-entries RPC. */
     if (mode == mode_t::candidate) {
-        RAFT_DEBUG_THIS("Install/Append from %s for %lu\n",
+        RAFT_DEBUG_THIS("Install/Append from %s for %" PRIu64 "\n",
             show_member_id(request_leader_id).c_str(), request_term);
         candidate_or_leader_become_follower(mutex_acq);
     }
@@ -1211,10 +1211,10 @@ void raft_member_t<state_t>::candidate_and_leader_coro(
     immediately, because `candidate_run_election()` will do it. */
 
     if (!log_prefix.empty()) {
-        logINF("%s: Starting a new Raft election for term %lu.",
+        logINF("%s: Starting a new Raft election for term %" PRIu64 ".",
             log_prefix.c_str(), ps.current_term);
     }
-    RAFT_DEBUG_THIS("election begun for %lu\n", ps.current_term);
+    RAFT_DEBUG_THIS("election begun for %" PRIu64 "\n", ps.current_term);
 
     mode = mode_t::candidate;
 
@@ -1249,9 +1249,9 @@ void raft_member_t<state_t>::candidate_and_leader_coro(
 
                 if (!log_prefix.empty()) {
                     logINF("%s: Raft election timed out. Starting a new election for "
-                        "term %lu.", log_prefix.c_str(), ps.current_term);
+                        "term %" PRIu64 ".", log_prefix.c_str(), ps.current_term);
                 }
-                RAFT_DEBUG_THIS("election restarted for %lu\n", ps.current_term);
+                RAFT_DEBUG_THIS("election restarted for %" PRIu64 "\n", ps.current_term);
 
                 /* Go around the `while`-loop again. */
             }
@@ -1261,10 +1261,10 @@ void raft_member_t<state_t>::candidate_and_leader_coro(
         guarantee(mode == mode_t::leader);
 
         if (!log_prefix.empty()) {
-            logINF("%s: This server is Raft leader for term %lu. Latest log index is "
-                "%lu.", log_prefix.c_str(), ps.current_term, ps.log.get_latest_index());
+            logINF("%s: This server is Raft leader for term %" PRIu64 ". Latest log index is "
+                "%" PRIu64 ".", log_prefix.c_str(), ps.current_term, ps.log.get_latest_index());
         }
-        RAFT_DEBUG_THIS("won election for %lu\n", ps.current_term);
+        RAFT_DEBUG_THIS("won election for %" PRIu64 "\n", ps.current_term);
 
         guarantee(current_term_leader_id.is_nil());
         current_term_leader_id = this_member_id;
@@ -1891,7 +1891,7 @@ bool raft_member_t<state_t>::candidate_or_leader_note_term(
                 `candidate_or_leader_note_term()` was called and when this coroutine ran.
                 */
                 if (ps.current_term == local_current_term) {
-                    RAFT_DEBUG_THIS("got rpc reply with term %lu\n", term);
+                    RAFT_DEBUG_THIS("got rpc reply with term " PRIu64 "\n", term);
                     this->update_term(term, &mutex_acq_2);
                     this->candidate_or_leader_become_follower(&mutex_acq_2);
                     storage->write_persistent_state(ps, keepalive.get_drain_signal());
