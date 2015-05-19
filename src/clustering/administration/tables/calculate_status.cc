@@ -80,7 +80,7 @@ shard_status_t calculate_shard_status(
         bool region_has_outdated_reader = false;
 
         for (const auto &ack : region_acks.acks) {
-            server_status_t ack_server_status = server_status_t::DISCONNECTED;
+            server_status_t ack_server_status;
             switch (ack.second.second.state) {
                 case contract_ack_t::state_t::primary_need_branch:
                     has_unfinished = true;
