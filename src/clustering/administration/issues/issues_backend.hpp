@@ -11,8 +11,8 @@
 #include "rdb_protocol/artificial_table/caching_cfeed_backend.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "concurrency/watchable.hpp"
-#include "clustering/administration/issues/invalid_config.hpp"
 #include "clustering/administration/issues/name_collision.hpp"
+#include "clustering/administration/issues/table.hpp"
 #include "clustering/administration/issues/remote.hpp"
 
 
@@ -49,7 +49,7 @@ public:
                    std::string *error_out);
 
 private:
-    std::vector<scoped_ptr_t<issue_t> > all_issues() const;
+    std::vector<scoped_ptr_t<issue_t> > all_issues(signal_t *interruptor) const;
 
     admin_identifier_format_t identifier_format;
 
@@ -64,8 +64,8 @@ private:
     // Global issues are tracked here, local issues are collected by
     // the remote_issue_tracker out of the directory metadata
     remote_issue_tracker_t remote_issue_tracker;
-    invalid_config_issue_tracker_t invalid_config_issue_tracker;
     name_collision_issue_tracker_t name_collision_issue_tracker;
+    table_issue_tracker_t table_issue_tracker;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_ISSUES_ISSUES_BACKEND_HPP_ */

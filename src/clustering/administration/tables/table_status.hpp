@@ -7,6 +7,7 @@
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 
+#include "clustering/administration/tables/calculate_status.hpp"
 #include "clustering/administration/tables/table_common.hpp"
 
 class server_config_client_t;
@@ -29,6 +30,15 @@ table_wait_result_t wait_for_table_readiness(
     signal_t *interruptor,
     ql::datum_t *status_out  /* can be null */)
     THROWS_ONLY(interrupted_exc_t);
+
+ql::datum_t convert_table_status_to_datum(
+        const namespace_id_t &table_id,
+        const name_string_t &table_name,
+        const ql::datum_t &db_name_or_uuid,
+        table_readiness_t readiness,
+        const std::vector<shard_status_t> &shard_statuses,
+        admin_identifier_format_t identifier_format,
+        server_config_client_t *server_config_client);
 
 class table_status_artificial_table_backend_t :
     public common_table_artificial_table_backend_t

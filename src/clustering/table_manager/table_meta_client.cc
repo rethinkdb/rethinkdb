@@ -78,7 +78,7 @@ void table_meta_client_t::get_name(
 }
 
 void table_meta_client_t::list_names(
-        std::map<namespace_id_t, table_basic_config_t> *names_out) {
+        std::map<namespace_id_t, table_basic_config_t> *names_out) const {
     table_basic_configs.get_watchable()->read_all(
         [&](const namespace_id_t &table_id, const timestamped_basic_config_t *value) {
             (*names_out)[table_id] = value->first;
