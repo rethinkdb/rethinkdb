@@ -8,7 +8,7 @@
 class auth_semilattice_metadata_t;
 class branch_birth_certificate_t;
 class cluster_semilattice_metadata_t;
-class server_config_t;
+class server_config_versioned_t;
 class table_persistent_state_t;
 
 /* This file defines the keys that are used to index the `metadata_file_t`. Changing
