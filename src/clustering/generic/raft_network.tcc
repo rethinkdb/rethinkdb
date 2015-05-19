@@ -14,7 +14,10 @@ raft_networked_member_t<state_t>::raft_networked_member_t(
         const std::string &log_prefix) :
     mailbox_manager(_mailbox_manager),
     peers(_peers),
-    peers_map_transformer(peers),
+    peers_map_transformer(peers,
+        [](const raft_business_card_t<state_t> *value1) {
+            return &value1->virtual_heartbeats;
+        }),
     member(this_member_id, storage, this, persistent_state, log_prefix),
     rpc_mailbox(mailbox_manager,
         std::bind(&raft_networked_member_t::on_rpc, this, ph::_1, ph::_2, ph::_3)),
