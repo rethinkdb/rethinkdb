@@ -2412,7 +2412,7 @@ private:
         // back empty batches, but that's OK and should be rare in practice.  In
         // the future we should consider either sleeping for 100ms in that case
         // or hooking into the waiting logic to block until we're ready.
-        return std::move(ret);
+        return ret;
     }
 
     bool discard(const store_key_t &pkey,
