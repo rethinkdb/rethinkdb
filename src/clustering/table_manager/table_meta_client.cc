@@ -130,8 +130,11 @@ void table_meta_client_t::get_config(
             boost::make_optional(table_id), ack_mailbox.get_address());
         wait_any_t done_cond(promise.get_ready_signal(), &dw);
         wait_interruptible(&done_cond, interruptor2);
+        if (!promise.is_pulsed()) {
+            throw_appropriate_exception(table_id);
+        }
         std::map<namespace_id_t, table_config_and_shards_t> maybe_result =
-            promise.wait();
+            promise.assert_get_value();
         if (maybe_result.empty()) {
             throw_appropriate_exception(table_id);
         }
@@ -173,7 +176,7 @@ void table_meta_client_t::list_configs(
         done_cond.wait_lazily_unordered();
         if (promise.get_ready_signal()->is_pulsed()) {
             std::map<namespace_id_t, table_config_and_shards_t> maybe_result =
-                promise.wait();
+                promise.assert_get_value();
             configs_out->insert(maybe_result.begin(), maybe_result.end());
         }
     });

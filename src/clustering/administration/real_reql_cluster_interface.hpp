@@ -24,7 +24,9 @@ actions on the semilattices. By performing these actions through the abstract
 `reql_cluster_interface_t`, we can keep the ReQL code separate from the semilattice code.
 */
 
-class real_reql_cluster_interface_t : public reql_cluster_interface_t {
+class real_reql_cluster_interface_t :
+    public reql_cluster_interface_t,
+    public home_thread_mixin_t {
 public:
     real_reql_cluster_interface_t(
             mailbox_manager_t *mailbox_manager,
@@ -232,7 +234,7 @@ private:
             const std::function<void(std::map<std::string, sindex_config_t> *)> &cb,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t,
-                failed_table_op_exc_t, maybe_failed_table_op_exc_t);
+                failed_table_op_exc_t, maybe_failed_table_op_exc_t, admin_op_exc_t);
 
     DISABLE_COPYING(real_reql_cluster_interface_t);
 };

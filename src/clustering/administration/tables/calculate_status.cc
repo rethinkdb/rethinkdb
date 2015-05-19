@@ -80,17 +80,16 @@ shard_status_t calculate_shard_status(
         bool region_has_outdated_reader = false;
 
         for (const auto &ack : region_acks.acks) {
+            server_status_t ack_server_status;
             switch (ack.second.second.state) {
                 case contract_ack_t::state_t::primary_need_branch:
                     has_unfinished = true;
-                    shard_status.replicas[ack.first].insert(
-                        server_status_t::WAITING_FOR_QUORUM);
+                    ack_server_status = server_status_t::WAITING_FOR_QUORUM;
                     break;
                 case contract_ack_t::state_t::secondary_need_primary:
                     region_has_outdated_reader = true;
                     has_unfinished = true;
-                    shard_status.replicas[ack.first].insert(
-                        server_status_t::WAITING_FOR_PRIMARY);
+                    ack_server_status = server_status_t::WAITING_FOR_PRIMARY;
                     break;
                 case contract_ack_t::state_t::primary_in_progress:
                 case contract_ack_t::state_t::primary_ready:
@@ -98,13 +97,11 @@ shard_status_t calculate_shard_status(
                     region_has_primary_replica = true;
                     region_has_outdated_reader = true;
                     shard_status.primary_replicas.insert(ack.first);
-                    shard_status.replicas[ack.first].insert(
-                        server_status_t::READY);
+                    ack_server_status = server_status_t::READY;
                     break;
                 case contract_ack_t::state_t::secondary_backfilling:
                     has_unfinished = true;
-                    shard_status.replicas[ack.first].insert(
-                        server_status_t::BACKFILLING);
+                    ack_server_status = server_status_t::BACKFILLING;
                     break;
                 case contract_ack_t::state_t::secondary_streaming:
                     {
@@ -114,20 +111,22 @@ shard_status_t calculate_shard_status(
                                 latest_contract.primary == region_primary) {
                             ack_counter.note_ack(ack.first);
                             region_has_outdated_reader = true;
-                            shard_status.replicas[ack.first].insert(
-                                server_status_t::READY);
+                            ack_server_status = server_status_t::READY;
                         } else {
                             has_unfinished = true;
-                            shard_status.replicas[ack.first].insert(
-                                server_status_t::TRANSITIONING);
+                            ack_server_status = server_status_t::TRANSITIONING;
                         }
                     }
                     break;
                 case contract_ack_t::state_t::nothing:
-                    shard_status.replicas[ack.first].insert(
-                        server_status_t::NOTHING);
+                    ack_server_status = server_status_t::NOTHING;
                     break;
             }
+            /* The replica's `server_status_t` is initialised to `DISCONNECTED` upon
+               construction, taking the maximum of the current and new status to
+               aggregate them as explained in the header. */
+            shard_status.replicas[ack.first] = std::max(
+                shard_status.replicas[ack.first], ack_server_status);
         }
 
         std::set<server_id_t> replicas;
@@ -137,10 +136,10 @@ shard_status_t calculate_shard_status(
         for (const auto &replica : replicas) {
             if (shard_status.replicas.find(replica) == shard_status.replicas.end()) {
                 has_unfinished = true;
-                shard_status.replicas[replica].insert(
+                shard_status.replicas[replica] =
                     contracts_and_acks.find(replica) == contracts_and_acks.end()
                         ? server_status_t::DISCONNECTED
-                        : server_status_t::TRANSITIONING);
+                        : server_status_t::TRANSITIONING;
             }
         }
 
