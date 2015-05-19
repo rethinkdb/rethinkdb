@@ -152,11 +152,19 @@ std::pair<S2CellId, bool> order_btree_key_relative_to_s2cellid_keys(
             inside_cell = false;
             break;
         } else if (hex_digit > 'f') {
-            /* For example, "123g..." -> (0x1240..., false). Note that we have to
-            special-case the scenario where the first character is invalid because the
-            next largest number wouldn't fit into a 64-bit int. */
-            if (i == 0) return after_all;
-            cell_number += static_cast<uint64_t>(16) << (4 * (15 - i));
+            /* For example, "123g..." -> (0x1240..., false). */
+            if (i == 0) {
+                /* This case corresponds to "g123..." -> (sentinel, false). We have to
+                handle this separately from the other overflow case below because if
+                `i` is zero then `change` won't fit into a 64-bit int. */
+                return after_all;
+            }
+            uint64_t change = static_cast<uint64_t>(16) << (4 * (15 - i));
+            if (change > 0xffffffffffffffffull - cell_number) {
+                /* This case corresponds to "fffg..." -> (sentinel, false). */
+                return after_all;
+            }
+            cell_number += change;
             inside_cell = false;
             break;
         } else if (hex_digit > '9' && hex_digit < 'a') {

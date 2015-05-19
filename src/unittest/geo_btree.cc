@@ -115,6 +115,12 @@ TEST(GeoBtree, OrderBtreeKeyRelativeToS2CellIdKeys) {
         }
         ASSERT_NO_FATAL_FAILURE(test_btree_key(str_key));
     }
+    /* These examples trigger various overflow edge cases */
+    for (int j = 0; j < 10; ++j) {
+        ASSERT_NO_FATAL_FAILURE(test_btree_key(mutate("GCg1234567")));
+        ASSERT_NO_FATAL_FAILURE(test_btree_key(mutate("GCfffg4567")));
+        ASSERT_NO_FATAL_FAILURE(test_btree_key(mutate("GCffffffff")));
+    }
 }
 
 } /* namespace unittest */
