@@ -14,8 +14,16 @@
 /* Sometimes different parts of a shard can be in different states. To avoid confusing
    the user, we only ever present one state. The ordering of the states in this enum are
    used to decide which state to present; we'll always present the state that's furthest
-   down the list. This is such that the state can be default-constructed to
-   `DISCONNECTED`, updating the state to the maximum of the current and new state. */
+   down the list.
+
+   `backfilling` has a performance impact so we should display it whenever it's
+   happening. `waiting_for_quorum` can cause another machine to be `waiting_for_primary`,
+   so we should prioritize displaying `waiting_for_quorum` to make it clear why the
+   primary is stuck. `transitioning` is the least informative error condition, so we
+   shouldn't display it at all unless it's the only thing keeping us from being ready.
+   A replica in the `nothing` state is hidden, and last of all, the `disconnected` state
+   can never occur in conjunction with any other state, so it doesn't have a meaningful
+   position in the list. */
 enum class server_status_t {
     DISCONNECTED = 0,
     NOTHING,
