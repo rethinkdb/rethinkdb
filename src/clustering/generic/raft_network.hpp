@@ -70,32 +70,9 @@ private:
 
     /* This transforms the `watchable_map_t` that we got through our constructor into a
     value suitable for returning from `get_connected_members()` */
-    class peers_map_transformer_t :
-        public watchable_map_transform_t<
-            raft_member_id_t, raft_business_card_t<state_t>,
-            raft_member_id_t, boost::optional<raft_term_t> >
-    {
-    public:
-        peers_map_transformer_t(
-                watchable_map_t<raft_member_id_t, raft_business_card_t<state_t> > *w) :
-            watchable_map_transform_t<
-                raft_member_id_t, raft_business_card_t<state_t>,
-                raft_member_id_t, boost::optional<raft_term_t> >(w) { }
-    private:
-        bool key_1_to_2(const raft_member_id_t &key1, raft_member_id_t *key2_out) {
-            *key2_out = key1;
-            return true;
-        }
-        void value_1_to_2(const raft_business_card_t<state_t> *value1,
-                          const boost::optional<raft_term_t> **value2_out) {
-            *value2_out = &value1->virtual_heartbeats;
-        }
-        bool key_2_to_1(const raft_member_id_t &key2, raft_member_id_t *key1_out) {
-            *key1_out = key2;
-            return true;
-        }
-    };
-    peers_map_transformer_t peers_map_transformer;
+    watchable_map_value_transform_t<raft_member_id_t,
+        raft_business_card_t<state_t>, boost::optional<raft_term_t> >
+            peers_map_transformer;
 
     raft_member_t<state_t> member;
 

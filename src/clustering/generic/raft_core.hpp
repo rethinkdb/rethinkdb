@@ -26,7 +26,10 @@
 Search of an Understandable Consensus Algorithm (Extended Version)" (2014) by Diego
 Ongaro and John Ousterhout. Because of the complexity and subtlety of the Raft algorithm,
 we follow the paper closely and refer back to it regularly. You are advised to have a
-copy of the paper on hand when reading or modifying this file.
+copy of the paper on hand when reading or modifying this file. The comments also
+occasionally refer to Diego Ongaro's dissertation, "Consensus: Bridging Theory and
+Practice" (2014), as the dissertation addresses a few subtle points that the paper does
+not.
 
 This file only contains the basic Raft algorithm itself; it doesn't contain any
 networking or storage logic. Instead, it uses abstract interfaces to send and receive
@@ -34,7 +37,9 @@ network messages and write data to persistent storage. This both keeps this file
 as simple as possible and makes it easy to test the Raft algorithm using mocked-up
 network and storage systems.
 
-We support both log compaction and configuration changes.
+We support both log compaction and configuration changes. Configuration changes use the
+joint-configuration mechanism described in the original paper, rather than the
+one-server-at-a-time mechanism described in the dissertation.
 
 This implementation deviates significantly from the Raft paper in that we don't actually
 send a continuous stream of heartbeats from the leader to the followers. Instead, we send
@@ -495,11 +500,11 @@ public:
 
     ~raft_member_t();
 
-    /* Note that if a method on `raft_member_t` is interrupted, the `raft_member_t` will
-    be left in an undefined internal state. Therefore, the destructor should be called
-    after the interruptor has been pulsed. (However, even though the internal state
-    is undefined, the interrupted method call will not make invalid RPC calls or write
-    invalid data to persistent storage.) */
+    /* Note that if any public method on `raft_member_t` is interrupted, the
+    `raft_member_t` will be left in an undefined internal state. Therefore, the
+    destructor should be called after the interruptor has been pulsed. (However, even
+    though the internal state is undefined, the interrupted method call will not make
+    invalid RPC calls or write invalid data to persistent storage.) */
 
     /* `state_and_config_t` describes the Raft cluster's current state, configuration,
     and log index all in the same struct. The reason for putting them in the same struct
@@ -625,12 +630,14 @@ public:
         signal_t *interruptor,
         raft_rpc_reply_t *reply_out);
 
+#ifndef NDEBUG
     /* `check_invariants()` asserts that the given collection of Raft cluster members are
     in a valid, consistent state. This may block, because it needs to acquire each
     member's mutex, but it will not modify anything. Since this requires direct access to
     each member of the Raft cluster, it's only useful for testing. */
     static void check_invariants(
         const std::set<raft_member_t<state_t> *> &members);
+#endif
 
 private:
     enum class mode_t {
@@ -665,12 +672,14 @@ private:
         signal_t *interruptor,
         raft_rpc_reply_t::append_entries_t *reply_out);
 
+#ifndef NDEBUG
     /* Asserts that all of the invariants that can be checked locally hold true. This
     doesn't block or modify anything. It should be safe to call it at any time (except
     when in between modifying two variables that should remain consistent with each
     other, of course). In general we call it whenever we acquire or release the mutex,
     because we know that the variables should be consistent at those times. */
     void check_invariants(const new_mutex_acq_t *mutex_acq);
+#endif
 
     /* `on_connected_members_change()` is called whenever the contents of
     `network->get_connected_members()` changes. If we're a leader, we use it to run
