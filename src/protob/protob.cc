@@ -1,16 +1,24 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "protob/protob.hpp"
 
-#include <google/protobuf/stubs/common.h>
+// We need to include `openssl/evp.h` first, since it declares a function with the
+// name `final`.
+// Because of missing support for the `final` annotation in older GCC versions,
+// we redefine final to the empty string in `errors.hpp`. So we must make
+// sure that we haven't included `errors.hpp` by the time we include `evp.h`.
+#include <openssl/evp.h> // NOLINT(build/include_order)
 
-#include <array>
-#include <random>
-#include <set>
-#include <string>
-#include <limits>
+#include "protob/protob.hpp" // NOLINT(build/include_order)
 
-#include "errors.hpp"
-#include <boost/lexical_cast.hpp>
+#include <google/protobuf/stubs/common.h> // NOLINT(build/include_order)
+
+#include <array> // NOLINT(build/include_order)
+#include <random> // NOLINT(build/include_order)
+#include <set> // NOLINT(build/include_order)
+#include <string> // NOLINT(build/include_order)
+#include <limits> // NOLINT(build/include_order)
+
+#include "errors.hpp" // NOLINT(build/include_order)
+#include <boost/lexical_cast.hpp> // NOLINT(build/include_order)
 
 #include "arch/arch.hpp"
 #include "arch/io/network.hpp"
@@ -154,6 +162,19 @@ void http_conn_cache_t::on_ring() {
             guarantee(!conn);
         }
     }
+}
+
+size_t http_conn_cache_t::sha_hasher_t::operator()(const conn_key_t &x) const {
+    EVP_MD_CTX c;
+    EVP_DigestInit(&c, EVP_sha256());
+    EVP_DigestUpdate(&c, x.data(), x.size());
+    unsigned char digest[EVP_MAX_MD_SIZE];
+    unsigned int digest_size = 0;
+    EVP_DigestFinal(&c, digest, &digest_size);
+    rassert(digest_size >= sizeof(size_t));
+    size_t res = 0;
+    memcpy(&res, digest, std::min(sizeof(size_t), static_cast<size_t>(digest_size)));
+    return res;
 }
 
 struct protob_server_exc_t : public std::exception {
