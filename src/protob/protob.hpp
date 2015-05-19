@@ -84,19 +84,7 @@ private:
     // side channel attacks that might leak information about existing connection
     // keys.
     struct sha_hasher_t {
-        size_t operator()(const conn_key_t &x) const {
-            EVP_MD_CTX c;
-            EVP_DigestInit(&c, EVP_sha256());
-            EVP_DigestUpdate(&c, x.data(), x.size());
-            unsigned char digest[EVP_MAX_MD_SIZE];
-            unsigned int digest_size = 0;
-            EVP_DigestFinal(&c, digest, &digest_size);
-            rassert(digest_size >= sizeof(size_t));
-            size_t res = 0;
-            memcpy(&res, digest, std::min(sizeof(size_t),
-                                          static_cast<size_t>(digest_size)));
-            return res;
-        }
+        size_t operator()(const conn_key_t &x) const;
     };
     std::unordered_map<conn_key_t, counted_t<http_conn_t>, sha_hasher_t> cache;
     repeating_timer_t http_timeout_timer;
