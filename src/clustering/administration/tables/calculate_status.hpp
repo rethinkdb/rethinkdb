@@ -11,9 +11,11 @@
 #include "clustering/table_manager/table_meta_client.hpp"
 #include "protocol_api.hpp"
 
-/* The ordering was discussed in https://github.com/rethinkdb/rethinkdb/issues/4196, but
-   note it's in reverse here. This is such that the state can default-construct to
-   `DISCONNECTED`, and we then take the maximum of the current state and new state. */
+/* Sometimes different parts of a shard can be in different states. To avoid confusing
+   the user, we only ever present one state. The ordering of the states in this enum are
+   used to decide which state to present; we'll always present the state that's furthest
+   down the list. This is such that the state can be default-constructed to
+   `DISCONNECTED`, updating the state to the maximum of the current and new state. */
 enum class server_status_t {
     DISCONNECTED = 0,
     NOTHING,
