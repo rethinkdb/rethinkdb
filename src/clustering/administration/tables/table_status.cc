@@ -48,9 +48,7 @@ ql::datum_t convert_shard_status_to_datum(
 
     ql::datum_array_builder_t replicas_builder(ql::configured_limits_t::unlimited);
     for (const auto &replica : shard_status.replicas) {
-        if (replica.second.empty()) {
-            /* This server was in the `nothing` state and thus shouldn't appear in the
-               replica map. */
+        if (replica.second == server_status_t::NOTHING) {
             continue;
         }
         ql::datum_t replica_name_or_uuid;
@@ -62,40 +60,32 @@ ql::datum_t convert_shard_status_to_datum(
                 nullptr)) {
             ql::datum_object_builder_t replica_builder;
             replica_builder.overwrite("server", std::move(replica_name_or_uuid));
-            ql::datum_array_builder_t replica_states_builder(
-                ql::configured_limits_t::unlimited);
-            for (const auto &state : replica.second) {
-                switch (state) {
-                    case server_status_t::BACKFILLING:
-                        replica_states_builder.add(ql::datum_t("backfilling"));
-                        break;
-                    case server_status_t::DISCONNECTED:
-                        replica_states_builder.add(ql::datum_t("disconnected"));
-                        break;
-                    case server_status_t::NOTHING:
-                        // Ignored
-                        break;
-                    case server_status_t::READY:
-                        replica_states_builder.add(ql::datum_t("ready"));
-                        break;
-                    case server_status_t::TRANSITIONING:
-                        replica_states_builder.add(ql::datum_t("transitioning"));
-                        break;
-                    case server_status_t::WAITING_FOR_PRIMARY:
-                        replica_states_builder.add(
-                            ql::datum_t("waiting_for_primary_replica"));
-                        break;
-                    case server_status_t::WAITING_FOR_QUORUM:
-                        replica_states_builder.add(
-                            ql::datum_t("waiting_for_quorum"));
-                        break;
-                }
+            ql::datum_t replica_state;
+            switch (replica.second) {
+                case server_status_t::BACKFILLING:
+                    replica_builder.overwrite("state", ql::datum_t("backfilling"));
+                    break;
+                case server_status_t::DISCONNECTED:
+                    replica_builder.overwrite("state", ql::datum_t("disconnected"));
+                    break;
+                case server_status_t::READY:
+                    replica_builder.overwrite("state", ql::datum_t("ready"));
+                    break;
+                case server_status_t::TRANSITIONING:
+                    replica_builder.overwrite("state", ql::datum_t("transitioning"));
+                    break;
+                case server_status_t::WAITING_FOR_PRIMARY:
+                    replica_builder.overwrite(
+                        "state", ql::datum_t("waiting_for_primary_replica"));
+                    break;
+                case server_status_t::WAITING_FOR_QUORUM:
+                    replica_builder.overwrite(
+                        "state", ql::datum_t("waiting_for_quorum"));
+                    break;
+                case server_status_t::NOTHING:
+                    unreachable();
             }
-            if (!replica_states_builder.empty()) {
-                replica_builder.overwrite(
-                    "states", std::move(replica_states_builder).to_datum());
-                replicas_builder.add(std::move(replica_builder).to_datum());
-            }
+            replicas_builder.add(std::move(replica_builder).to_datum());
         }
     }
     shard_builder.overwrite("replicas", std::move(replicas_builder).to_datum());

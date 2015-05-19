@@ -11,20 +11,23 @@
 #include "clustering/table_manager/table_meta_client.hpp"
 #include "protocol_api.hpp"
 
+/* The ordering was discussed in https://github.com/rethinkdb/rethinkdb/issues/4196, but
+   note it's in reverse here. This is such that the state can default-construct to
+   `DISCONNECTED`, and we then take the maximum of the current state and new state. */
 enum class server_status_t {
-    BACKFILLING,
-    DISCONNECTED,
+    DISCONNECTED = 0,
     NOTHING,
     READY,
     TRANSITIONING,
     WAITING_FOR_PRIMARY,
-    WAITING_FOR_QUORUM
+    WAITING_FOR_QUORUM,
+    BACKFILLING
 };
 
 struct shard_status_t {
     table_readiness_t readiness;
     std::set<server_id_t> primary_replicas;
-    std::map<server_id_t, std::set<server_status_t> > replicas;
+    std::map<server_id_t, server_status_t> replicas;
 };
 
 /* Note: `calculate_status()` may leave `shard_statuses_out` empty. This means that not
