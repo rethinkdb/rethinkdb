@@ -11,7 +11,7 @@ pump_coro_t::pump_coro_t(
     callback(_callback),
     max_callbacks(_max_callbacks),
     running(0), starting(false), queued(false),
-    timestamp(0), running_timestamp(nullptr)
+    timestamp(0), drained(false), running_timestamp(nullptr)
 {
     guarantee(max_callbacks >= 1);
 }
@@ -19,6 +19,9 @@ pump_coro_t::pump_coro_t(
 void pump_coro_t::notify() {
     assert_thread();
     mutex_assertion_t::acq_t acq(&mutex);
+    if (drained) {
+        return;
+    }
     ++timestamp;
     /* If `starting` is `true`, then there's already a coroutine that's going to call the
     callback soon, so we don't need to start another one */
@@ -46,6 +49,7 @@ void pump_coro_t::include_latest_notifications() {
 void pump_coro_t::flush(signal_t *interruptor) {
     assert_thread();
     mutex_assertion_t::acq_t acq(&mutex);
+    guarantee(!drained, "flush() might never succeed if we're draining");
     if (running == 0 && !starting) {
         guarantee(!queued, "queued can't be true if running != max_callbacks");
         return;
@@ -55,6 +59,13 @@ void pump_coro_t::flush(signal_t *interruptor) {
         sentry(&flush_waiters, timestamp, &cond);
     acq.reset();
     wait_interruptible(&cond, interruptor);
+}
+
+void pump_coro_t::drain() {
+    assert_thread();
+    mutex_assertion_t::acq_t acq(&mutex);
+    drained = true;
+    drainer.drain();
 }
 
 void pump_coro_t::run(auto_drainer_t::lock_t keepalive) {

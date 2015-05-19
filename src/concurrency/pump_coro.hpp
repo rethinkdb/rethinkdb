@@ -42,6 +42,11 @@ public:
     called `include_latest_notification()` after the call to `notify()`.) */
     void flush(signal_t *interruptor);
 
+    /* `drain()` interrupts any running instances of the callback and waits until they
+    finish. No further callbacks will be spawned once `drain()` is called, even if
+    `notify()` is called again. */
+    void drain();
+
 private:
     void run(auto_drainer_t::lock_t keepalive);
 
@@ -65,6 +70,9 @@ private:
 
     /* `flush()` inserts into `flush_waiters` under the current value of `timestamp`. */
     std::multimap<uint64_t, cond_t *> flush_waiters;
+
+    /* `drained` is `true` if `drain()` has been called. */
+    bool drained;
 
     /* `run()` will make a copy of `timestamp` when it starts. If `max_callbacks` is 1,
     then it will set `running_timestamp` to a pointer to its local copy, so that

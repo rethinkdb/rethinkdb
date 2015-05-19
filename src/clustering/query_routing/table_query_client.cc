@@ -333,16 +333,14 @@ void table_query_client_t::perform_outdated_read(
             cont.get_address());
         wait_any_t waiter(replica_to_contact->keepalive.get_drain_signal(), &done);
         wait_interruptible(&waiter, interruptor);
-    } catch (const interrupted_exc_t &) {
-        if (interruptor->is_pulsed()) {
-            /* Return immediately. `dispatch_immediate_op()` will notice that the
-            interruptor has been pulsed. */
-            return;
-        } else {
-            /* `keepalive.get_drain_signal()` was pulsed because the other server
-            disconnected or stopped being a replica */
+        if (!done.is_pulsed()) {
+            /* `wait_interruptible()` returned because
+            `replica_to_contact->keepalive.get_drain_signal()` was pulsed */
             failures->at(i).assign("lost contact with replica");
         }
+    } catch (const interrupted_exc_t &) {
+        /* Return immediately. `dispatch_immediate_op()` will notice that the
+        interruptor has been pulsed. */
     }
 }
 

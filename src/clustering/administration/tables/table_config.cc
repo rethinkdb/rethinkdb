@@ -225,13 +225,13 @@ void table_config_artificial_table_backend_t::format_row(
         const namespace_id_t &table_id,
         const table_basic_config_t &,
         const ql::datum_t &db_name_or_uuid,
-        signal_t *interruptor,
+        signal_t *interruptor_on_home,
         ql::datum_t *row_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,
             admin_op_exc_t) {
     assert_thread();
     table_config_and_shards_t config_and_shards;
-    table_meta_client->get_config(table_id, interruptor, &config_and_shards);
+    table_meta_client->get_config(table_id, interruptor_on_home, &config_and_shards);
     *row_out = convert_table_config_to_datum(table_id, db_name_or_uuid,
         config_and_shards.config, identifier_format, server_config_client);
 }
@@ -458,7 +458,7 @@ bool table_config_artificial_table_backend_t::write_row(
         table_id = nil_uuid();
     }
 
-    cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
+    cross_thread_signal_t interruptor_on_home(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
     cluster_semilattice_metadata_t metadata = semilattice_view->get();
 
@@ -480,8 +480,8 @@ bool table_config_artificial_table_backend_t::write_row(
                 name_string_t new_db_name;
                 if (!convert_table_config_and_name_from_datum(*new_value_inout, true,
                         metadata, identifier_format, server_config_client,
-                        table_meta_client, &interruptor, &new_table_id, &new_config,
-                        &new_db_name, error_out)) {
+                        table_meta_client, &interruptor_on_home, &new_table_id,
+                        &new_config, &new_db_name, error_out)) {
                     *error_out = "The change you're trying to make to "
                         "`rethinkdb.table_config` has the wrong format. " + *error_out;
                     return false;
@@ -490,14 +490,14 @@ bool table_config_artificial_table_backend_t::write_row(
                     "allowed the primary key to change");
                 try {
                     do_modify(table_id, std::move(new_config), old_db_name, new_db_name,
-                        &interruptor);
+                        &interruptor_on_home);
                     return true;
                 } CATCH_OP_ERRORS(old_db_name, old_basic_config.name, error_out,
                     "The table's configuration was not changed.",
                     "The table's configuration may or may not have been changed.")
             } else {
                 try {
-                    table_meta_client->drop(table_id, &interruptor);
+                    table_meta_client->drop(table_id, &interruptor_on_home);
                     return true;
                 } CATCH_OP_ERRORS(old_db_name, old_basic_config.name, error_out,
                     "The table was not dropped.",
@@ -519,7 +519,8 @@ bool table_config_artificial_table_backend_t::write_row(
             name_string_t new_db_name;
             if (!convert_table_config_and_name_from_datum(*new_value_inout, false,
                     metadata, identifier_format, server_config_client, table_meta_client,
-                    &interruptor, &new_table_id, &new_config, &new_db_name, error_out)) {
+                    &interruptor_on_home, &new_table_id, &new_config, &new_db_name,
+                    error_out)) {
                 *error_out = "The change you're trying to make to "
                     "`rethinkdb.table_config` has the wrong format. " + *error_out;
                 return false;
@@ -535,7 +536,8 @@ bool table_config_artificial_table_backend_t::write_row(
                 identifier_format, server_config_client);
 
             try {
-                do_create(table_id, std::move(new_config), new_db_name, &interruptor);
+                do_create(table_id, std::move(new_config), new_db_name,
+                    &interruptor_on_home);
                 return true;
             } CATCH_OP_ERRORS(new_db_name, new_config.basic.name, error_out,
                 "The table was not created.",

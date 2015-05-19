@@ -29,13 +29,13 @@ public:
     std::string get_primary_key_name();
 
     bool read_all_rows_as_vector(
-            signal_t *interruptor,
+            signal_t *interruptor_on_caller,
             std::vector<ql::datum_t> *rows_out,
             std::string *error_out);
 
     bool read_row(
             ql::datum_t primary_key,
-            signal_t *interruptor,
+            signal_t *interruptor_on_caller,
             ql::datum_t *row_out,
             std::string *error_out);
 
@@ -48,7 +48,7 @@ protected:
             computation is non-trivial, so it's easier if `table_common` does it for all
             the subclasses. */
             const ql::datum_t &db_name_or_uuid,
-            signal_t *interruptor,
+            signal_t *interruptor_on_home,
             ql::datum_t *row_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,
             admin_op_exc_t) = 0;
