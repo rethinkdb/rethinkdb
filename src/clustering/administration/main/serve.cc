@@ -156,9 +156,7 @@ bool do_serve(io_backender_t *io_backender,
 
         network_logger_t network_logger(
             connectivity_cluster.get_me(),
-            directory_read_manager.get_root_map_view(),
-            metadata_field(&cluster_semilattice_metadata_t::servers,
-                           semilattice_manager_cluster.get_root_view()));
+            directory_read_manager.get_root_map_view());
 
         scoped_ptr_t<connectivity_cluster_t::run_t> connectivity_cluster_run;
 
@@ -320,6 +318,9 @@ bool do_serve(io_backender_t *io_backender,
                 stat_manager.get_address(),
                 log_server.get_business_card(),
                 i_am_a_server
+                    ? boost::make_optional(server_config_server->get_config()->get())
+                    : boost::optional<server_config_versioned_t>(),
+                i_am_a_server
                     ? boost::make_optional(server_config_server->get_business_card())
                     : boost::optional<server_config_business_card_t>(),
                 i_am_a_server ? SERVER_PEER : PROXY_PEER);
@@ -347,7 +348,7 @@ bool do_serve(io_backender_t *io_backender,
                         server_config_server->get_actual_cache_size_bytes(),
                         &our_root_directory_variable));
                 server_config_directory_copier.init(
-                    new field_copier_t<uint64_t, cluster_directory_metadata_t>(
+                    new field_copier_t<server_versioned_config_t, cluster_directory_metadata_t>(
                         &cluster_directory_metadata_t::server_config,
                         server_config_server->get_config(),
                         &our_root_directory_variable));

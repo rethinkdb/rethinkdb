@@ -23,24 +23,24 @@ public:
     This will be piped over the network to other servers to form the full connections
     map. */
     watchable_map_t<server_id_t, empty_value_t> *get_local_connections_map() {
-        return &connected_servers;
+        return &local_connections;
     }
 
 private:
-    void on_change();
-    std::string pretty_print_server(server_id_t id);
+    void on_change(const peer_id_t &peer_id, const cluster_directory_metadata_t *value);
 
     peer_id_t us;
     watchable_map_t<peer_id_t, cluster_directory_metadata_t> *directory_view;
 
-    watchable_map_t<peer_id_t, cluster_directory_metadata_t>::all_subs_t directory_subscription;
-    semilattice_read_view_t<servers_semilattice_metadata_t>::subscription_t semilattice_subscription;
-
     /* Whenever the directory changes, we compare the directory to
     `connected_servers` and `connected_proxies` to see what servers have
     connected or disconnected. */
-    watchable_map_var_t<server_id_t, empty_value_t> connected_servers;
     std::set<peer_id_t> connected_proxies;
+    std::map<peer_id_t, std::pair<server_id_t, name_string_t> > connected_servers;
+
+    watchable_map_var_t<server_id_t, empty_value_t> local_connections;
+
+    watchable_map_t<peer_id_t, cluster_directory_metadata_t>::all_subs_t directory_subscription;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_SERVERS_NETWORK_LOGGER_HPP_ */
