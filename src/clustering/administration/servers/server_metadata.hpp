@@ -25,14 +25,27 @@ public:
 RDB_DECLARE_SERIALIZABLE(server_config_t);
 RDB_DECLARE_EQUALITY_COMPARABLE(server_config_t);
 
+typedef uint64_t server_config_version_t;
+
 class server_config_versioned_t {
 public:
     server_config_t config;
-    uint64_t version;
+    server_config_version_t version;
 };
 
 RDB_DECLARE_SERIALIZABLE(server_config_versioned_t);
 RDB_DECLARE_EQUALITY_COMPARABLE(server_config_versioned_t);
+
+class server_name_map_t {
+public:
+    name_string_t get(const server_id_t &sid) const {
+        return names.at(sid).second;
+    }
+    std::map<server_id_t, std::pair<server_config_version_t, name_string_t> > names;
+};
+
+RDB_DECLARE_SERIALIZABLE(server_name_map_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(server_name_map_t);
 
 class server_config_business_card_t {
 public:
@@ -40,7 +53,7 @@ public:
     On failure, the reply will be zero and an error string. */
     typedef mailbox_t< void(
             server_config_t,
-            mailbox_t<void(uint64_t, std::string)>::address_t
+            mailbox_t<void(server_config_version_t, std::string)>::address_t
         ) > set_config_mailbox_t;
     set_config_mailbox_t::address_t set_config_addr;
 };

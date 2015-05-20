@@ -178,7 +178,7 @@ public:
             std::set<branch_id_t> remove_branches;
             branch_history_t add_branches;
             std::set<server_id_t> remove_server_names;
-            std::map<server_id_t, std::pair<uint64_t, name_string_t> > add_server_names;
+            server_name_map_t add_server_names;
         };
 
         class new_member_ids_t {
@@ -217,7 +217,7 @@ public:
 
     /* `server_names` contains the server name of every server that's mentioned in a
     contract. This is used to display `server_status`. */
-    std::map<server_id_t, std::pair<uint64_t, name_string_t> > server_names;
+    server_name_map_t server_names;
 };
 
 RDB_DECLARE_EQUALITY_COMPARABLE(table_raft_state_t);

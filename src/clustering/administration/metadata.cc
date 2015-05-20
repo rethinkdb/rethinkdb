@@ -19,6 +19,9 @@ RDB_IMPL_EQUALITY_COMPARABLE_3(server_config_t, name, tags, cache_size_bytes);
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_16(server_config_versioned_t, config, version);
 RDB_IMPL_EQUALITY_COMPARABLE_2(server_config_versioned_t, config, version);
 
+RDB_IMPL_SERIALIZABLE_1_SINCE_v1_16(server_name_map_t, names);
+RDB_IMPL_EQUALITY_COMPARABLE_1(server_name_map_t, names);
+
 RDB_IMPL_SERIALIZABLE_1(server_config_business_card_t, set_config_addr);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(server_config_business_card_t);
 

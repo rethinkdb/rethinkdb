@@ -50,7 +50,7 @@ void calculate_status(
         server_config_client_t *server_config_client,
         table_readiness_t *readiness_out,
         std::vector<shard_status_t> *shard_statuses_out,
-        std::map<server_id_t, std::pair<uint64_t, name_string_t> > *server_names_out)
+        server_name_map_t *server_names_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t);
 
 #endif /* CLUSTERING_ADMINISTRATION_TABLES_CALCULATE_STATUS_HPP_ */

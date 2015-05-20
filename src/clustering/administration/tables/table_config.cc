@@ -16,10 +16,9 @@ bool convert_server_id_from_datum(
         const ql::datum_t &datum,
         admin_identifier_format_t identifier_format,
         server_config_client_t *server_config_client,
-        const std::map<server_id_t, std::pair<uint64_t, name_string_t> >
-            &old_server_names,
+        const server_name_map_t &old_server_names,
         server_id_t *server_id_out,
-        std::map<server_id_t, std::pair<uint64_t, name_string_t> > *server_names_out,
+        server_name_map_t *server_names_out,
         std::string *error_out) {
     if (identifier_format == admin_identifier_format_t::name) {
         name_string_t name;
@@ -31,10 +30,10 @@ bool convert_server_id_from_datum(
         because that will reduce the likelihood of an accidental change if the servers'
         names have changed recently. */
         size_t count = 0;
-        for (const auto &pair : old_server_names) {
+        for (const auto &pair : old_server_names.names) {
             if (pair.second.second == name) {
                 *server_id_out = pair.first;
-                server_names_out->insert(pair);
+                server_names_out->names.insert(pair);
                 ++count;
             }
         }
@@ -43,7 +42,7 @@ bool convert_server_id_from_datum(
             [&](const server_id_t &server_id, const server_config_versioned_t *config) {
                 if (config->config.name == name) {
                     *server_id_out = server_id;
-                    server_names_out->insert(std::make_pair(
+                    server_names_out->names.insert(std::make_pair(
                         server_id, std::make_pair(config->version, name)));
                     ++count;
                 }
@@ -73,7 +72,7 @@ bool convert_server_id_from_datum(
         server_config_client->get_server_config_map()->read_key(*server_id_out,
             [&](const server_config_versioned_t *config) {
                 if (config != nullptr) {
-                    server_names_out->insert(std::make_pair(*server_id_out,
+                    server_names_out->names.insert(std::make_pair(*server_id_out,
                         std::make_pair(config->version, config->config.name)));
                     found = true;
                 } else {
@@ -83,9 +82,9 @@ bool convert_server_id_from_datum(
         if (found) {
             return true;
         }
-        auto it = old_server_names.find(*server_id_out);
-        if (it != old_server_names.end()) {
-            server_names_out->insert(*it);
+        auto it = old_server_names.names.find(*server_id_out);
+        if (it != old_server_names.names.end()) {
+            server_names_out->names.insert(*it);
             return true;
         }
         *error_out = strprintf("There is no server with UUID `%s`.",
@@ -97,11 +96,11 @@ bool convert_server_id_from_datum(
 ql::datum_t convert_replica_list_to_datum(
         const std::set<server_id_t> &replicas,
         admin_identifier_format_t identifier_format,
-        const std::map<server_id_t, std::pair<uint64_t, name_string_t> > &server_names) {
+        const server_name_map_t &server_names) {
     ql::datum_array_builder_t replicas_builder(ql::configured_limits_t::unlimited);
     for (const server_id_t &replica : replicas) {
         replicas_builder.add(convert_name_or_uuid_to_datum(
-            server_names.at(replica).second, replica, identifier_format));
+            server_names.get(replica), replica, identifier_format));
     }
     return std::move(replicas_builder).to_datum();
 }
@@ -110,10 +109,9 @@ bool convert_replica_list_from_datum(
         const ql::datum_t &datum,
         admin_identifier_format_t identifier_format,
         server_config_client_t *server_config_client,
-        const std::map<server_id_t, std::pair<uint64_t, name_string_t> >
-            &old_server_names,
+        const server_name_map_t &old_server_names,
         std::set<server_id_t> *replicas_out,
-        std::map<server_id_t, std::pair<uint64_t, name_string_t> > *server_names_out,
+        server_name_map_t *server_names_out,
         std::string *error_out) {
     if (datum.get_type() != ql::datum_t::R_ARRAY) {
         *error_out = "Expected an array, got " + datum.print();
@@ -130,7 +128,7 @@ bool convert_replica_list_from_datum(
         auto pair = replicas_out->insert(server_id);
         if (!pair.second) {
             *error_out = strprintf("Server `%s` is listed more than once.",
-                server_names_out->at(server_id).second.c_str());
+                server_names_out->get(server_id).c_str());
             return false;
         }
     }
@@ -195,13 +193,13 @@ bool convert_durability_from_datum(
 ql::datum_t convert_table_config_shard_to_datum(
         const table_config_t::shard_t &shard,
         admin_identifier_format_t identifier_format,
-        const std::map<server_id_t, std::pair<uint64_t, name_string_t> > &server_names) {
+        const server_name_map_t &server_names) {
     ql::datum_object_builder_t builder;
 
     builder.overwrite("replicas",
         convert_replica_list_to_datum(shard.replicas, identifier_format, server_names));
     builder.overwrite("primary_replica",
-        convert_name_or_uuid_to_datum(server_names.at(shard.primary_replica).second,
+        convert_name_or_uuid_to_datum(server_names.get(shard.primary_replica),
             shard.primary_replica, identifier_format));
 
     return std::move(builder).to_datum();
@@ -211,10 +209,9 @@ bool convert_table_config_shard_from_datum(
         ql::datum_t datum,
         admin_identifier_format_t identifier_format,
         server_config_client_t *server_config_client,
-        const std::map<server_id_t, std::pair<uint64_t, name_string_t> >
-            &old_server_names,
+        const server_name_map_t &old_server_names,
         table_config_t::shard_t *shard_out,
-        std::map<server_id_t, std::pair<uint64_t, name_string_t> > *server_names_out,
+        server_name_map_t *server_names_out,
         std::string *error_out) {
     converter_from_datum_object_t converter;
     if (!converter.init(datum, error_out)) {
@@ -250,7 +247,7 @@ bool convert_table_config_shard_from_datum(
     if (shard_out->replicas.count(shard_out->primary_replica) != 1) {
         *error_out = strprintf("The server listed in the `primary_replica` field "
             "(`%s`) must also appear in `replicas`.",
-            server_names_out->at(shard_out->primary_replica).second.c_str());
+            server_names_out->get(shard_out->primary_replica).c_str());
         return false;
     }
 
@@ -268,7 +265,7 @@ ql::datum_t convert_table_config_to_datum(
         const ql::datum_t &db_name_or_uuid,
         const table_config_t &config,
         admin_identifier_format_t identifier_format,
-        const std::map<server_id_t, std::pair<uint64_t, name_string_t> > &server_names) {
+        const server_name_map_t &server_names) {
     ql::datum_object_builder_t builder;
     builder.overwrite("name", convert_name_to_datum(config.basic.name));
     builder.overwrite("db", db_name_or_uuid);
@@ -309,13 +306,12 @@ bool convert_table_config_and_name_from_datum(
         const cluster_semilattice_metadata_t &all_metadata,
         admin_identifier_format_t identifier_format,
         server_config_client_t *server_config_client,
-        const std::map<server_id_t, std::pair<uint64_t, name_string_t> >
-            &old_server_names,
+        const server_name_map_t &old_server_names,
         table_meta_client_t *table_meta_client,
         signal_t *interruptor,
         namespace_id_t *id_out,
         table_config_t *config_out,
-        std::map<server_id_t, std::pair<uint64_t, name_string_t> > *server_names_out,
+        server_name_map_t *server_names_out,
         name_string_t *db_name_out,
         std::string *error_out)
         THROWS_ONLY(interrupted_exc_t, admin_op_exc_t) {
@@ -454,7 +450,7 @@ void table_config_artificial_table_backend_t::do_modify(
         const namespace_id_t &table_id,
         table_config_and_shards_t &&old_config,
         table_config_t &&new_config_no_shards,
-        std::map<server_id_t, std::pair<uint64_t, name_string_t> > &&new_server_names,
+        server_name_map_t &&new_server_names,
         const name_string_t &old_db_name,
         const name_string_t &new_db_name,
         signal_t *interruptor)
@@ -491,7 +487,7 @@ void table_config_artificial_table_backend_t::do_modify(
 void table_config_artificial_table_backend_t::do_create(
         const namespace_id_t &table_id,
         table_config_t &&new_config_no_shards,
-        std::map<server_id_t, std::pair<uint64_t, name_string_t> > &&new_server_names,
+        server_name_map_t &&new_server_names,
         const name_string_t &new_db_name,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,
@@ -551,8 +547,7 @@ bool table_config_artificial_table_backend_t::write_row(
                     table_id, &interruptor_on_home, &old_config);
 
                 table_config_t new_config;
-                std::map<server_id_t, std::pair<uint64_t, name_string_t> >
-                    new_server_names;
+                server_name_map_t new_server_names;
                 namespace_id_t new_table_id;
                 name_string_t new_db_name;
                 if (!convert_table_config_and_name_from_datum(*new_value_inout, true,
@@ -595,11 +590,11 @@ bool table_config_artificial_table_backend_t::write_row(
 
             namespace_id_t new_table_id;
             table_config_t new_config;
-            std::map<server_id_t, std::pair<uint64_t, name_string_t> > new_server_names;
+            server_name_map_t new_server_names;
             name_string_t new_db_name;
             if (!convert_table_config_and_name_from_datum(*new_value_inout, false,
                     metadata, identifier_format, server_config_client,
-                    std::map<server_id_t, std::pair<uint64_t, name_string_t> >(),
+                    server_name_map_t(),
                     table_meta_client, &interruptor_on_home, &new_table_id, &new_config,
                     &new_server_names, &new_db_name, error_out)) {
                 *error_out = "The change you're trying to make to "

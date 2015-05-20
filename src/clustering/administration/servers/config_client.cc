@@ -43,12 +43,12 @@ bool server_config_client_t::set_config(const server_id_t &server_id,
         bcard = md->server_config_business_card.get();
     });
 
-    uint64_t version;
+    server_config_version_t version;
     {
-        promise_t<std::pair<uint64_t, std::string> > reply;
-        mailbox_t<void(uint64_t, std::string)> ack_mailbox(
+        promise_t<std::pair<server_config_version_t, std::string> > reply;
+        mailbox_t<void(server_config_version_t, std::string)> ack_mailbox(
             mailbox_manager,
-            [&](signal_t *, uint64_t v, const std::string &m) {
+            [&](signal_t *, server_config_version_t v, const std::string &m) {
                 reply.pulse(std::make_pair(v, m));
             });
         disconnect_watcher_t disconnect_watcher(mailbox_manager, *peer);

@@ -14,7 +14,7 @@ public:
         const namespace_id_t &_table_id,
         table_readiness_t _readiness,
         std::vector<shard_status_t> _shard_statuses,
-        std::map<server_id_t, std::pair<uint64_t, name_string_t> > _server_names);
+        server_name_map_t _server_names);
     ~table_availability_issue_t();
 
     bool is_critical() const { return readiness < table_readiness_t::writes; };
@@ -35,14 +35,14 @@ private:
     const namespace_id_t table_id;
     const table_readiness_t readiness;
     const std::vector<shard_status_t> shard_statuses;
-    const std::map<server_id_t, std::pair<uint64_t, name_string_t> > server_names;
+    const server_name_map_t server_names;
 };
 
 table_availability_issue_t::table_availability_issue_t(
         const namespace_id_t &_table_id,
         table_readiness_t _readiness,
         std::vector<shard_status_t> _shard_statuses,
-        std::map<server_id_t, std::pair<uint64_t, name_string_t> > _server_names) :
+        server_name_map_t _server_names) :
     issue_t(from_hash(base_issue_id, _table_id)),
     table_id(_table_id),
     readiness(_readiness),
@@ -124,7 +124,7 @@ bool table_availability_issue_t::build_info_and_description(
         text += "\nThe servers that are not ready are:";
         for (auto const &pair : servers) {
             text += strprintf("\n %s (%s replica)",
-                              server_names.at(pair.first).second.c_str(),
+                              server_names.get(pair.first).c_str(),
                               pair.second ? "primary" : "secondary");
         }
     }
@@ -169,7 +169,7 @@ void table_issue_tracker_t::check_table(const namespace_id_t &table_id,
                                         signal_t *interruptor) const {
     table_readiness_t readiness = table_readiness_t::finished;
     std::vector<shard_status_t> shard_statuses;
-    std::map<server_id_t, std::pair<uint64_t, name_string_t> > server_names;
+    server_name_map_t server_names;
 
     try {
         calculate_status(table_id, interruptor, table_meta_client,

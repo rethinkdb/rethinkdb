@@ -38,7 +38,7 @@ ql::datum_t convert_table_status_to_datum(
         table_readiness_t readiness,
         const std::vector<shard_status_t> &shard_statuses,
         admin_identifier_format_t identifier_format,
-        const std::map<server_id_t, std::pair<uint64_t, name_string_t> > &server_names);
+        const server_name_map_t &server_names);
 
 class table_status_artificial_table_backend_t :
     public common_table_artificial_table_backend_t

@@ -567,8 +567,7 @@ void calculate_server_names(
         const std::set<contract_id_t> &remove_contracts,
         const std::map<contract_id_t, std::pair<region_t, contract_t> > &add_contracts,
         std::set<server_id_t> *remove_server_names_out,
-        std::map<server_id_t, std::pair<uint64_t, name_string_t> >
-            *add_server_names_out) {
+        server_name_map_t *add_server_names_out) {
     std::set<server_id_t> all_replicas;
     for (const auto &pair : old_state.contracts) {
         if (remove_contracts.count(pair.first) == 0) {
@@ -582,13 +581,13 @@ void calculate_server_names(
             pair.second.second.replicas.begin(),
             pair.second.second.replicas.end());
         for (const server_id_t &server : pair.second.second.replicas) {
-            if (old_state.server_names.count(server) == 0) {
-                add_server_names_out->insert(std::make_pair(server,
-                    old_state.config.server_names.at(server)));
+            if (old_state.server_names.names.count(server) == 0) {
+                add_server_names_out->names.insert(std::make_pair(server,
+                    old_state.config.server_names.names.at(server)));
             }
         }
     }
-    for (const auto &pair : old_state.server_names) {
+    for (const auto &pair : old_state.server_names.names) {
         if (all_replicas.count(pair.first) == 0) {
             remove_server_names_out->insert(pair.first);
         }

@@ -39,14 +39,14 @@ const char *convert_status_to_string(server_status_t status) {
 ql::datum_t convert_shard_status_to_datum(
         const shard_status_t &shard_status,
         admin_identifier_format_t identifier_format,
-        const std::map<server_id_t, std::pair<uint64_t, name_string_t> > &server_names) {
+        const server_name_map_t &server_names) {
     ql::datum_object_builder_t shard_builder;
 
     ql::datum_array_builder_t primary_replicas_builder(
         ql::configured_limits_t::unlimited);
     for (const auto &primary : shard_status.primary_replicas) {
         primary_replicas_builder.add(convert_name_or_uuid_to_datum(
-            server_names.at(primary).second, primary, identifier_format));
+            server_names.get(primary), primary, identifier_format));
     }
     shard_builder.overwrite(
         "primary_replicas", std::move(primary_replicas_builder).to_datum());
@@ -58,7 +58,7 @@ ql::datum_t convert_shard_status_to_datum(
         }
         ql::datum_object_builder_t replica_builder;
         replica_builder.overwrite("server", convert_name_or_uuid_to_datum(
-            server_names.at(replica.first).second, replica.first, identifier_format));
+            server_names.get(replica.first), replica.first, identifier_format));
         replica_builder.overwrite("state",
             ql::datum_t(convert_status_to_string(replica.second)));
         replicas_builder.add(std::move(replica_builder).to_datum());
@@ -74,7 +74,7 @@ ql::datum_t convert_table_status_to_datum(
         table_readiness_t readiness,
         const std::vector<shard_status_t> &shard_statuses,
         admin_identifier_format_t identifier_format,
-        const std::map<server_id_t, std::pair<uint64_t, name_string_t> > &server_names) {
+        const server_name_map_t &server_names) {
     ql::datum_object_builder_t builder;
     builder.overwrite("id", convert_uuid_to_datum(table_id));
     builder.overwrite("db", db_name_or_uuid);
@@ -118,7 +118,7 @@ void table_status_artificial_table_backend_t::format_row(
 
     table_readiness_t readiness;
     std::vector<shard_status_t> shard_statuses;
-    std::map<server_id_t, std::pair<uint64_t, name_string_t> > server_names;
+    server_name_map_t server_names;
     calculate_status(
         table_id,
         interruptor_on_home,
@@ -185,7 +185,7 @@ table_wait_result_t wait_for_table_readiness(
 
             table_readiness_t readiness;
             std::vector<shard_status_t> shard_statuses;
-            std::map<server_id_t, std::pair<uint64_t, name_string_t> > server_names;
+            server_name_map_t server_names;
             calculate_status(
                 table_id,
                 interruptor_on_home,

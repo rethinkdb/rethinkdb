@@ -19,7 +19,7 @@ bool get_contracts_and_acks(
                 std::reference_wrapper<const std::pair<region_t, contract_t> >
             > *contracts_out,
         server_id_t *latest_contracts_server_id_out,
-        std::map<server_id_t, std::pair<uint64_t, name_string_t> > *server_names_out)
+        server_name_map_t *server_names_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t) {
     std::map<peer_id_t, contracts_and_contract_acks_t> contracts_and_acks;
     table_meta_client->get_status(table_id, interruptor, nullptr, &contracts_and_acks);
@@ -37,9 +37,9 @@ bool get_contracts_and_acks(
             contracts_out->insert(
                 pair.first->second.contracts.begin(),
                 pair.first->second.contracts.end());
-            server_names_out->insert(
-                pair.first->second.server_names.begin(),
-                pair.first->second.server_names.end());
+            server_names_out->names.insert(
+                pair.first->second.server_names.names.begin(),
+                pair.first->second.server_names.names.end());
             if (pair.first->second.timestamp.supersedes(latest_timestamp)) {
                 *latest_contracts_server_id_out = pair.first->first;
                 latest_timestamp = pair.first->second.timestamp;
@@ -180,7 +180,7 @@ void calculate_status(
         server_config_client_t *server_config_client,
         table_readiness_t *readiness_out,
         std::vector<shard_status_t> *shard_statuses_out,
-        std::map<server_id_t, std::pair<uint64_t, name_string_t> > *server_names_out)
+        server_name_map_t *server_names_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t) {
 
     /* Note that `contracts` and `latest_contracts` will contain references into

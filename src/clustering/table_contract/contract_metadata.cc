@@ -40,11 +40,11 @@ void table_raft_state_t::apply_change(const table_raft_state_t::change_t &change
                 new_contracts_change.add_branches.branches.begin(),
                 new_contracts_change.add_branches.branches.end());
             for (const server_id_t &sid : new_contracts_change.remove_server_names) {
-                state->server_names.erase(sid);
+                state->server_names.names.erase(sid);
             }
-            state->server_names.insert(
-                new_contracts_change.add_server_names.begin(),
-                new_contracts_change.add_server_names.end());
+            state->server_names.names.insert(
+                new_contracts_change.add_server_names.names.begin(),
+                new_contracts_change.add_server_names.names.end());
         }
         void operator()(const change_t::new_member_ids_t &new_member_ids_change) {
             for (const server_id_t &sid : new_member_ids_change.remove_member_ids) {

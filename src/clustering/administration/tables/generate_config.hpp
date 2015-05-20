@@ -32,9 +32,12 @@ void table_generate_config(
         /* What the new sharding scheme for the table will be. If `table_id` is
         `nil_uuid()` this is unused. */
         const table_shard_scheme_t &shard_scheme,
+
         signal_t *interruptor,
+
         std::vector<table_config_t::shard_t> *config_shards_out,
-        std::map<server_id_t, std::pair<uint64_t, name_string_t> > *server_names_out)
+        server_name_map_t *server_names_out)
+
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,
             admin_op_exc_t);
 

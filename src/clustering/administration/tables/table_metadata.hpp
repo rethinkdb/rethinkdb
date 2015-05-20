@@ -117,7 +117,7 @@ public:
 
     /* This contains an entry for every server mentioned in the config. The `uint64_t`s
     are server config versions. */
-    std::map<server_id_t, std::pair<uint64_t, name_string_t> > server_names;
+    server_name_map_t server_names;
 };
 
 RDB_DECLARE_SERIALIZABLE(table_config_and_shards_t);
