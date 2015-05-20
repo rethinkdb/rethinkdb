@@ -28,7 +28,7 @@ with driver.Process(files="the_server", output_folder='.') as server:
     
     print("Making a log entry (%.2fs)" % (time.time() - startTime))
     
-    res = r.db("rethinkdb").table("server_config").update({"tags": ["xyz"]}).run(conn)
+    res = r.db("rethinkdb").table("server_config").update({"name": ["xyz"]}).run(conn)
     assert res["errors"] == 0 and res["replaced"] == 1, res
     
     print("Verifying the log entry (%.2fs)" % (time.time() - startTime))
@@ -41,7 +41,7 @@ with driver.Process(files="the_server", output_folder='.') as server:
     assert "xyz" in entry["message"]
     assert entry["level"] == "info"
     assert 0 < entry["uptime"] < 120
-    assert entry["server"] == "the_server"
+    assert entry["server"] in ["the_server", "xyz"]
     now = datetime.datetime.now(entry["timestamp"].tzinfo)
     assert entry["timestamp"] <= now
     assert entry["timestamp"] >= now - datetime.timedelta(minutes = 1)

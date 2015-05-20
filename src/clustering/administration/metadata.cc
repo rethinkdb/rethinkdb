@@ -13,18 +13,6 @@
 // RSI(raft): Some of these should be `SINCE_v1_N`, where `N` is the version number at
 // which Raft is released.
 
-RDB_IMPL_SERIALIZABLE_3_SINCE_v1_16(server_config_t, name, tags, cache_size_bytes);
-RDB_IMPL_EQUALITY_COMPARABLE_3(server_config_t, name, tags, cache_size_bytes);
-
-RDB_IMPL_SERIALIZABLE_2_SINCE_v1_16(server_config_versioned_t, config, version);
-RDB_IMPL_EQUALITY_COMPARABLE_2(server_config_versioned_t, config, version);
-
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_16(server_name_map_t, names);
-RDB_IMPL_EQUALITY_COMPARABLE_1(server_name_map_t, names);
-
-RDB_IMPL_SERIALIZABLE_1(server_config_business_card_t, set_config_addr);
-INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(server_config_business_card_t);
-
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_16(cluster_semilattice_metadata_t, databases);
 RDB_IMPL_SEMILATTICE_JOINABLE_1(cluster_semilattice_metadata_t, databases);
 RDB_IMPL_EQUALITY_COMPARABLE_1(cluster_semilattice_metadata_t, databases);

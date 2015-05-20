@@ -11,7 +11,6 @@ for interface_test_name in [
         'log_write_issue',
         'metadata_persistence',
         'net_corruption',
-        'permanently_remove',
         'progress',
         'resources',
         'server_config',

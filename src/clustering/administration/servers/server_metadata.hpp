@@ -38,9 +38,7 @@ RDB_DECLARE_EQUALITY_COMPARABLE(server_config_versioned_t);
 
 class server_name_map_t {
 public:
-    name_string_t get(const server_id_t &sid) const {
-        return names.at(sid).second;
-    }
+    name_string_t get(const server_id_t &sid) const;
     std::map<server_id_t, std::pair<server_config_version_t, name_string_t> > names;
 };
 
