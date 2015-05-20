@@ -53,15 +53,19 @@ public:
     int randint(int n);
     uint64_t randuint64(uint64_t n);
     double randdouble();
-    explicit rng_t(int seed);
+
+#ifndef _WIN32
+	typedef std::array<short, 3> state_t;
+#else
+	typedef std::ranlux48 state_t;
+#endif
+	
+	explicit rng_t(int seed);
 	rng_t() : rng_t(-1) { }
 	rng_t(rng_t&&) = default;
+	rng_t(const state_t& s) : state(s) { };
 private:
-#ifndef _WIN32
-	unsigned short xsubi[3];  // NOLINT(runtime/int)
-#else
-	std::ranlux48 gen;
-#endif
+	state_t state;
     DISABLE_COPYING(rng_t);
 };
 

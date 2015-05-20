@@ -115,10 +115,10 @@
       <ObjectFileName>$(IntDir)/%(RelativeDir)/</ObjectFileName>
       <AdditionalIncludeDirectories>$(ProjectDir)\..\protobuf-2.5.0\vsprojects\include;$(ProjectDir)\..\boost_1_58_0;$(ProjectDir)\external\gtest_1.7.0\include;$(ProjectDir)\windows_stub</AdditionalIncludeDirectories>
       <PreprocessToFile>false</PreprocessToFile>
-      <SuppressStartupBanner>false</SuppressStartupBanner>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
       <MultiProcessorCompilation>false</MultiProcessorCompilation>
       <AdditionalOptions>/we4005</AdditionalOptions>
-      <ShowIncludes>true</ShowIncludes>
+      <ShowIncludes>false</ShowIncludes>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -160,7 +160,7 @@
       <ObjectFileName>$(IntDir)/%(RelativeDir)/</ObjectFileName>
       <AdditionalIncludeDirectories>$(ProjectDir)\..\protobuf-2.5.0\vsprojects\include;$(ProjectDir)\..\boost_1_58_0;$(ProjectDir)\external\gtest_1.7.0\include;$(ProjectDir)\windows_stub</AdditionalIncludeDirectories>
       <PreprocessToFile>false</PreprocessToFile>
-      <SuppressStartupBanner>false</SuppressStartupBanner>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
       <MultiProcessorCompilation>false</MultiProcessorCompilation>
       <AdditionalOptions>/we4005</AdditionalOptions>
     </ClCompile>
@@ -646,12 +646,19 @@
     <ClInclude Include="windows_stub\pthread.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\arch\runtime\context_switching.cc" />
+    <ClCompile Include="src\arch\runtime\coroutines.cc" />
+    <ClCompile Include="src\arch\runtime\runtime_utils.cc" />
+    <ClCompile Include="src\clustering\administration\logs\log_writer.cc" />
     <ClCompile Include="src\containers\printf_buffer.cc" />
+    <ClCompile Include="src\debug.cc" />
     <ClCompile Include="src\errors.cc" />
     <ClCompile Include="src\http\json.cc" />
     <ClCompile Include="src\http\json\cJSON.cc" />
     <ClCompile Include="src\math.cc" />
     <ClCompile Include="src\rdb_protocol\rdb_protocol_json.cc" />
+    <ClCompile Include="src\threading.cc" />
+    <ClCompile Include="src\time.cc" />
     <ClCompile Include="src\unittest\json.cc" />
     <ClCompile Include="src\unittest\main.cc" />
     <ClCompile Include="src\unittest\printf_buffer_test.cc" />

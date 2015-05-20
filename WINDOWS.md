@@ -46,4 +46,5 @@ The dependency on Protobuf will hopefully go away soon.
 * Open `RethinkDB.sln`
 * Make sure you are in the Debug/x64 configuration
 * Press F7 to build
-* If you've done everything right, the build will fail.
+* Press F5 to run
+* Some unit tests should run.

@@ -50,3 +50,5 @@ last_tested_versions
 /RethinkDB.vcxproj.filters
 /RethinkDB.vcxproj.user
 /RethinkDB.opensdf
+/x64
+/external/gtest_1.7.0/x64

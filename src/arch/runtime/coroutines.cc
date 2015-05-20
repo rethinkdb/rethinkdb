@@ -93,7 +93,7 @@ struct coro_globals_t {
 
 };
 
-TLS_with_init(coro_globals_t *, cglobals, NULL);
+TLS_with_init(coro_globals_t *, cglobals, nullptr);
 
 // These must be initialized after TLS_cglobals, because perfmon_multi_membership_t
 // construction depends on coro_t::coroutines_have_been_initialized() which in turn
@@ -111,7 +111,7 @@ coro_runtime_t::coro_runtime_t() {
 coro_runtime_t::~coro_runtime_t() {
     rassert(TLS_get_cglobals());
     delete TLS_get_cglobals();
-    TLS_set_cglobals(NULL);
+    TLS_set_cglobals(nullptr);
 }
 
 #ifndef NDEBUG
@@ -183,8 +183,10 @@ void coro_t::run() {
     coro_t *coro = TLS_get_cglobals()->current_coro;
 
 #ifndef NDEBUG
+#ifndef _WIN32
     char dummy;  /* Make sure we're on the right stack. */
     rassert(coro->stack.address_in_stack(&dummy));
+#endif
 #endif
 
     while (true) {
@@ -374,7 +376,11 @@ stack. Could also in theory be used by a function to check if it's about to over
 the stack. */
 
 bool is_coroutine_stack_overflow(void *addr) {
+#ifndef _WIN32 // ATN TODO
     return TLS_get_cglobals()->current_coro && TLS_get_cglobals()->current_coro->stack.address_is_stack_overflow(addr);
+#else
+	return false;
+#endif
 }
 
 bool coroutines_have_been_initialized() {

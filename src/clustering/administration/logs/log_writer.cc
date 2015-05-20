@@ -8,6 +8,10 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#ifdef _WIN32
+#include <io.h>
+#endif
+
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
@@ -184,6 +188,14 @@ void throw_unless(bool condition, const std::string &where) {
     }
 }
 
+#ifdef _WIN32
+ssize_t pread(long fd, void* buf, size_t count, off_t offset) {
+	int res = _lseek(fd, offset, SEEK_SET);
+	if (res < 0) return res;
+	return _read(fd, buf, count);
+}
+#endif
+
 file_reverse_reader_t::file_reverse_reader_t(scoped_fd_t &&_fd) :
         fd(std::move(_fd)),
         current_chunk(chunk_size) {
@@ -279,7 +291,9 @@ private:
     struct timespec uptime_reference;
     struct timespec last_msg_timestamp;
     spinlock_t last_msg_timestamp_lock;
+#ifndef _WIN32 // ATN TODO
     struct flock filelock, fileunlock;
+#endif
     scoped_fd_t fd;
 
     DISABLE_COPYING(fallback_log_writer_t);
@@ -290,6 +304,7 @@ fallback_log_writer_t::fallback_log_writer_t() :
     uptime_reference = clock_monotonic();
     last_msg_timestamp = clock_realtime();
 
+#ifndef _WIN32 // ATN TODO
     filelock.l_type = F_WRLCK;
     filelock.l_whence = SEEK_SET;
     filelock.l_start = 0;
@@ -301,6 +316,7 @@ fallback_log_writer_t::fallback_log_writer_t() :
     fileunlock.l_start = 0;
     fileunlock.l_len = 0;
     fileunlock.l_pid = getpid();
+#endif
 }
 
 void fallback_log_writer_t::install(const std::string &logfile_name) {
@@ -366,6 +382,15 @@ log_message_t fallback_log_writer_t::assemble_log_message(
 bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_out) {
     std::string formatted = format_log_message(msg) + "\n";
 
+#ifdef _WIN32 // ATN TODO STDOUT_FILENOT
+	static int STDOUT_FILENO = -1;
+	static int STDERR_FILENO = -1;
+	if (STDOUT_FILENO == -1) {
+		STDOUT_FILENO = _open("conout$", _O_RDONLY, 0);
+		STDERR_FILENO = STDOUT_FILENO;
+	}
+#endif
+
     FILE* write_stream = nullptr;
     int fileno = -1;
     switch (msg.level) {
@@ -389,7 +414,9 @@ bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_o
     if (msg.level != log_level_info) {
         // Write to stdout/stderr for all log levels but info (#3040)
         std::string console_formatted = format_log_message(msg, true) + "\n";
+#ifndef _WIN32 // ATN TODO
         flockfile(write_stream);
+#endif
 
         ssize_t write_res = ::write(fileno, console_formatted.data(), console_formatted.length());
         if (write_res != static_cast<ssize_t>(console_formatted.length())) {
@@ -397,26 +424,29 @@ bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_o
             return false;
         }
 
+#ifndef _WIN32 // ATN TODO
         int fsync_res = fsync(fileno);
         if (fsync_res != 0 && !(get_errno() == EROFS || get_errno() == EINVAL ||
                 get_errno() == ENOTSUP)) {
             error_out->assign("cannot flush stdout/stderr: " + errno_string(get_errno()));
             return false;
         }
-
-        funlockfile(write_stream);
+ 
+		funlockfile(write_stream);
+#endif
     }
 
     if (fd.get() == INVALID_FD) {
         error_out->assign("cannot open or find log file");
         return false;
     }
-
+#ifndef _WIN32
     int fcntl_res = fcntl(fd.get(), F_SETLKW, &filelock);
     if (fcntl_res != 0) {
         error_out->assign("cannot lock log file: " + errno_string(get_errno()));
         return false;
     }
+#endif
 
     ssize_t write_res = ::write(fd.get(), formatted.data(), formatted.length());
     if (write_res != static_cast<ssize_t>(formatted.length())) {
@@ -424,11 +454,13 @@ bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_o
         return false;
     }
 
+#ifndef _WIN32
     fcntl_res = fcntl(fd.get(), F_SETLK, &fileunlock);
     if (fcntl_res != 0) {
         error_out->assign("cannot unlock log file: " + errno_string(get_errno()));
         return false;
     }
+#endif
 
     return true;
 }
@@ -441,10 +473,10 @@ void fallback_log_writer_t::initiate_write(log_level_t level, const std::string 
     }
 }
 
+typedef auto_drainer_t * type;
 
-
-TLS_with_init(thread_pool_log_writer_t *, global_log_writer, NULL);
-TLS_with_init(auto_drainer_t *, global_log_drainer, NULL);
+TLS_with_init(thread_pool_log_writer_t *, global_log_writer, nullptr);
+TLS_with_init(auto_drainer_t *, global_log_drainer, nullptr);
 TLS_with_init(int, log_writer_block, 0);
 
 thread_pool_log_writer_t::thread_pool_log_writer_t(local_issue_aggregator_t *local_issue_aggregator) :
@@ -495,9 +527,9 @@ void thread_pool_log_writer_t::install_on_thread(int i) {
 void thread_pool_log_writer_t::uninstall_on_thread(int i) {
     on_thread_t thread_switcher((threadnum_t(i)));
     guarantee(TLS_get_global_log_writer() == this);
-    TLS_set_global_log_writer(NULL);
+    TLS_set_global_log_writer(nullptr);
     delete TLS_get_global_log_drainer();
-    TLS_set_global_log_drainer(NULL);
+    TLS_set_global_log_drainer(nullptr);
 }
 
 void thread_pool_log_writer_t::write(const log_message_t &lm) {

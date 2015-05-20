@@ -2,6 +2,24 @@
 #ifndef ARCH_RUNTIME_CONTEXT_SWITCHING_HPP_
 #define ARCH_RUNTIME_CONTEXT_SWITCHING_HPP_
 
+#ifdef _WIN32 // ATN TODO
+
+typedef void* fiber_context_ref_t;
+
+class fiber_stack_t {
+public:
+	fiber_stack_t(void(*initial_fun)(void), size_t stack_size);
+	~fiber_stack_t();
+	fiber_context_ref_t context;
+};
+
+void context_switch(fiber_context_ref_t *current_context_out, fiber_context_ref_t *dest_context_in);
+	
+typedef fiber_stack_t coro_stack_t;
+typedef fiber_context_ref_t coro_context_ref_t;
+
+#else
+
 #include <pthread.h>
 
 #include "errors.hpp"
@@ -60,13 +78,13 @@ public:
     bool address_is_stack_overflow(void *addr);
 
     /* Returns the base of the stack */
-    void *get_stack_base() { return static_cast<char*>(stack) + stack_size; }
+    void *get_stack_base() { return static_cast<char*>(stack.get()) + stack_size; }
 
     /* Returns the end of the stack */
-    void *get_stack_bound() { return stack; }
+    void *get_stack_bound() { return stack.get(); }
 
 private:
-    void *stack;
+    scoped_aligned_malloc_t<char> stack;
     size_t stack_size;
 #ifdef VALGRIND
     int valgrind_stack_id;
@@ -204,5 +222,5 @@ typedef artificial_stack_t coro_stack_t;
 typedef artificial_stack_context_ref_t coro_context_ref_t;
 #endif
 
-
+#endif /* !defined(_WIN32) */
 #endif /* ARCH_RUNTIME_CONTEXT_SWITCHING_HPP_ */

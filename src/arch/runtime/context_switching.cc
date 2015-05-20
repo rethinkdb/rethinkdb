@@ -1,4 +1,34 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
+
+#ifdef _WIN32
+// TODO ATN :
+// move win32 to a separate file?
+// compare to other implementations to make sure nothign is missing
+// May be room for optimization: the coroutine api duplicates some of the fibers features
+
+#include "windows.hpp"
+#include "errors.hpp"
+#include "arch/runtime/context_switching.hpp"
+
+fiber_stack_t::fiber_stack_t(void(*initial_fun)(void), size_t stack_size) {
+	context = CreateFiber(
+		stack_size,
+		[](void* data) { static_cast<void(*)(void)>(data)(); },
+		static_cast<void*>(initial_fun));
+	guarantee_winerr(context != NULL, "CreateFiber failed");
+}
+
+fiber_stack_t::~fiber_stack_t() {
+	rassert(GetCurrentFiber() == context, "destroying the wrong fiber");
+	DeleteFiber(context);
+}
+
+void context_switch(fiber_context_ref_t *, fiber_context_ref_t *dest_context_in) {
+	SwitchToFiber(dest_context_in);
+}
+
+#else
+
 #include "arch/runtime/context_switching.hpp"
 
 #include <pthread.h>
@@ -41,7 +71,7 @@ bool artificial_stack_context_ref_t::is_nil() {
 artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t _stack_size)
     : stack_size(_stack_size) {
     /* Allocate the stack */
-    stack = malloc_aligned(stack_size, getpagesize());
+    stack = malloc_aligned<char>(stack_size, getpagesize());
 
     /* Tell the operating system that it can unmap the stack space
     (except for the first page, which we are definitely going to need).
@@ -69,7 +99,7 @@ artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t _stack_
     uintptr_t *sp; /* A pointer into the stack. Note that uintptr_t is ideal since it points to something of the same size as the native word or pointer. */
 
     /* Start at the beginning. */
-    sp = reinterpret_cast<uintptr_t *>(uintptr_t(stack) + stack_size);
+    sp = reinterpret_cast<uintptr_t *>(uintptr_t(stack.get()) + stack_size);
 
     /* Align stack. The x86-64 ABI requires the stack pointer to always be
     16-byte-aligned at function calls. That is, "(%rsp - 8) is always a multiple
@@ -162,9 +192,6 @@ artificial_stack_t::~artificial_stack_t() {
 #else
     madvise(stack, stack_size, MADV_DONTNEED);
 #endif
-
-    /* Release the stack we allocated */
-    free(stack);
 }
 
 bool artificial_stack_t::address_in_stack(void *addr) {
@@ -539,3 +566,4 @@ void threaded_stack_t::get_stack_addr_size(void **stackaddr_out,
 
 /* ^^^^ Threaded version of context_switching ^^^^ */
 
+#endif /* !defined(_WIN32) */

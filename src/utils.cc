@@ -301,35 +301,35 @@ rng_t::rng_t(int seed) {
     seed = 314159;
 #endif
 #ifdef _MSC_VER
-	gen.seed(seed);
+	state.seed(seed);
 #else
-    xsubi[2] = seed / (1 << 16);
-    xsubi[1] = seed % (1 << 16);
-    xsubi[0] = 0x330E;
+    state[2] = seed / (1 << 16);
+    state[1] = seed % (1 << 16);
+    state[0] = 0x330E;
 #endif
 }
 
 int rng_t::randint(int n) {
     guarantee(n > 0, "non-positive argument for randint's [0,n) interval");
 #ifndef _MSC_VER
-    long x = nrand48(xsubi);  // NOLINT(runtime/int)
+    long x = nrand48(state.data());  // NOLINT(runtime/int)
 #else
-	unsigned long x = gen();
+	unsigned long x = state();
 #endif
     return x % static_cast<unsigned int>(n);
 }
 
 uint64_t rng_t::randuint64(uint64_t n) {
 #ifndef _WIN32
-    uint32_t x_low = jrand48(xsubi);  // NOLINT(runtime/int)
-    uint32_t x_high = jrand48(xsubi);  // NOLINT(runtime/int)
+    uint32_t x_low = jrand48(state.data());  // NOLINT(runtime/int)
+    uint32_t x_high = jrand48(state.data());  // NOLINT(runtime/int)
     uint64_t x = x_high;
     x <<= 32;
     x += x_low;
     return x % n;
 #else
 	std::uniform_int_distribution<uint64_t> dist;
-	return dist(gen);
+	return dist(state);
 #endif
 }
 

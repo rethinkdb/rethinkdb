@@ -298,7 +298,10 @@ private:
 };
 
 template <class T>
-scoped_malloc_t<T, raw_free_aligned> malloc_aligned(size_t size, size_t alignment) {
+using scoped_aligned_malloc_t = scoped_malloc_t<T, raw_free_aligned>;
+
+template <class T>
+scoped_aligned_malloc_t<T> malloc_aligned(size_t size, size_t alignment) {
 	return raw_malloc_aligned(size, alignment);
 }
 
