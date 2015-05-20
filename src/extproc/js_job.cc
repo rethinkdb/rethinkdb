@@ -510,8 +510,7 @@ js_result_t js_env_t::call(js_id_t id,
 
     if (!value.IsEmpty()) {
         if (value->IsFunction()) {
-            v8::Handle<v8::Function> sub_func = v8::Handle<v8::Function>::Cast(value);
-            result = remember_value(sub_func);
+            *err_out = "Returning functions from within `r.js` is unsupported.";
         } else {
             // JSONify result.
             ql::datum_t datum = js_to_datum(value, limits, err_out);
