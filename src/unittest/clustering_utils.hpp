@@ -21,6 +21,7 @@
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/store.hpp"
 #include "serializer/config.hpp"
+#include "serializer/merger.hpp"
 
 namespace unittest {
 
@@ -42,13 +43,16 @@ public:
     int acks;
 };
 
-inline standard_serializer_t *create_and_construct_serializer(temp_file_t *temp_file, io_backender_t *io_backender) {
+inline merger_serializer_t *create_and_construct_serializer(temp_file_t *temp_file, io_backender_t *io_backender) {
     filepath_file_opener_t file_opener(temp_file->name(), io_backender);
     standard_serializer_t::create(&file_opener,
                                   standard_serializer_t::static_config_t());
-    return new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
-                                     &file_opener,
-                                     &get_global_perfmon_collection());
+    auto inner_serializer = make_scoped<standard_serializer_t>(
+            standard_serializer_t::dynamic_config_t(),
+            &file_opener,
+            &get_global_perfmon_collection());
+    return new merger_serializer_t(std::move(inner_serializer),
+                                   MERGER_SERIALIZER_MAX_ACTIVE_WRITES);
 }
 
 class test_store_t {
@@ -72,7 +76,7 @@ public:
     }
 
     temp_file_t temp_file;
-    scoped_ptr_t<standard_serializer_t> serializer;
+    scoped_ptr_t<merger_serializer_t> serializer;
     scoped_ptr_t<cache_balancer_t> balancer;
     store_t store;
 };
