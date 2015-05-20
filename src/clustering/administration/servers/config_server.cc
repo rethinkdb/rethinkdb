@@ -41,11 +41,8 @@ void server_config_server_t::on_set_config(
                 *new_config.cache_size_bytes, get_max_total_cache_size()));
         return;
     }
+    server_config_t old_config = my_config.get_ref().config;
     my_config.apply_atomic_op([&](server_config_versioned_t *value) -> bool {
-        if (value->config.name != new_config.name) {
-            logINF("Changed server's name from `%s` to `%s`.",
-                value->config.name.c_str(), new_config.name.c_str());
-        }
         value->config = new_config;
         ++value->version;
         return true;
@@ -54,7 +51,13 @@ void server_config_server_t::on_set_config(
         metadata_file_t::write_txn_t write_txn(file, interruptor);
         write_txn.write(mdkey_server_config(), my_config.get_ref(), interruptor);
     }
-    update_actual_cache_size(new_config.cache_size_bytes);
+    if (old_config.name != new_config.name) {
+        logINF("Changed server's name from `%s` to `%s`.",
+            old_config.name.c_str(), new_config.name.c_str());
+    }
+    if (old_config.cache_size_bytes != new_config.cache_size_bytes) {
+        update_actual_cache_size(new_config.cache_size_bytes);
+    }
     send(mailbox_manager, ack_addr, my_config.get_ref().version, std::string());
 }
 

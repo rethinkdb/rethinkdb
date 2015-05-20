@@ -28,7 +28,7 @@ with driver.Process(files="the_server", output_folder='.') as server:
     
     print("Making a log entry (%.2fs)" % (time.time() - startTime))
     
-    res = r.db("rethinkdb").table("server_config").update({"name": ["xyz"]}).run(conn)
+    res = r.db("rethinkdb").table("server_config").update({"name": "xyz"}).run(conn)
     assert res["errors"] == 0 and res["replaced"] == 1, res
     
     print("Verifying the log entry (%.2fs)" % (time.time() - startTime))
