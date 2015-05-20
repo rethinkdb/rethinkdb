@@ -16,20 +16,6 @@ RDB_IMPL_EQUALITY_COMPARABLE_3(outdated_index_issue_t,
                                issue_id, reporting_server_ids, indexes);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(outdated_index_issue_t);
 
-#if 0
-RDB_IMPL_SERIALIZABLE_3(server_disconnected_issue_t,
-                        issue_id, reporting_server_ids, disconnected_server_id);
-RDB_IMPL_EQUALITY_COMPARABLE_3(server_disconnected_issue_t,
-                               issue_id, reporting_server_ids, disconnected_server_id);
-INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(server_disconnected_issue_t);
-
-RDB_IMPL_SERIALIZABLE_4(server_ghost_issue_t,
-                        issue_id, ghost_server_id, hostname, pid);
-RDB_IMPL_EQUALITY_COMPARABLE_4(server_ghost_issue_t,
-                               issue_id, ghost_server_id, hostname, pid);
-INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(server_ghost_issue_t);
-#endif
-
 RDB_IMPL_SERIALIZABLE_2(local_issues_t,
                         log_write_issues,
                         outdated_index_issues);

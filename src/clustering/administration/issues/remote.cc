@@ -3,7 +3,6 @@
 #include "clustering/administration/issues/local_issue_aggregator.hpp"
 #include "clustering/administration/issues/outdated_index.hpp"
 #include "clustering/administration/issues/log_write.hpp"
-#include "clustering/administration/issues/server.hpp"
 
 template <typename T>
 void add_issues_from_server(const std::vector<T> &source,
