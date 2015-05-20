@@ -22,7 +22,7 @@ void network_logger_t::on_change(
             case SERVER_PEER: {
                 const name_string_t &name = value->server_config.config.name;
                 const server_id_t &server_id = value->server_id;
-                if (connected_servers.count(peer_id) == 0) {
+                if (peer_id != us && connected_servers.count(peer_id) == 0) {
                     logNTC("Connected to server \"%s\" %s",
                         name.c_str(), uuid_to_str(server_id).c_str());
                 }
@@ -31,7 +31,7 @@ void network_logger_t::on_change(
                 break;
             }
             case PROXY_PEER: {
-                if (connected_proxies.count(peer_id) == 0) {
+                if (peer_id != us && connected_proxies.count(peer_id) == 0) {
                     logNTC("Connected to proxy %s",
                         uuid_to_str(peer_id.get_uuid()).c_str());
                 }
@@ -43,15 +43,19 @@ void network_logger_t::on_change(
     } else {
         auto it = connected_servers.find(peer_id);
         if (it != connected_servers.end()) {
-            logNTC("Disconnected from server \"%s\" %s",
-                it->second.second.c_str(), uuid_to_str(it->second.first).c_str());
+            if (peer_id != us) {
+                logNTC("Disconnected from server \"%s\" %s",
+                    it->second.second.c_str(), uuid_to_str(it->second.first).c_str());
+            }
             local_connections.delete_key(it->second.first);
             connected_servers.erase(it);
         } else {
             auto jt = connected_proxies.find(peer_id);
             if (jt != connected_proxies.end()) {
-                logNTC("Disconnected from proxy %s",
-                    uuid_to_str(peer_id.get_uuid()).c_str());
+                if (peer_id != us) {
+                    logNTC("Disconnected from proxy %s",
+                        uuid_to_str(peer_id.get_uuid()).c_str());
+                }
                 connected_proxies.erase(jt);
             }
         }
