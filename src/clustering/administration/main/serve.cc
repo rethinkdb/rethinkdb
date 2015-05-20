@@ -296,22 +296,24 @@ bool do_serve(io_backender_t *io_backender,
             circular reference. */
             rdb_ctx.cluster_interface = admin_tables.get_reql_cluster_interface();
 
-            cluster_directory_metadata_t initial_directory(
-                server_id,
-                connectivity_cluster.get_me(),
+            proc_directory_metadata_t initial_proc_directory {
                 RETHINKDB_VERSION_STR,
                 current_microtime(),
                 getpid(),
                 str_gethostname(),
                 /* Note we'll update `reql_port` and `http_port` later, once final values
                 are available */
-                connectivity_cluster_run->get_port(),
-                serve_info.ports.reql_port,
+                static_cast<uint16_t>(connectivity_cluster_run->get_port()),
+                static_cast<uint16_t>(serve_info.ports.reql_port),
                 serve_info.ports.http_admin_is_disabled
                     ? boost::optional<uint16_t>()
                     : boost::optional<uint16_t>(serve_info.ports.http_port),
                 connectivity_cluster_run->get_canonical_addresses(),
-                serve_info.argv,
+                serve_info.argv };
+            cluster_directory_metadata_t initial_directory(
+                server_id,
+                connectivity_cluster.get_me(),
+                initial_proc_directory,
                 0,   /* we'll fill `actual_cache_size_bytes` in later */
                 multi_table_manager->get_multi_table_manager_bcard(),
                 jobs_manager.get_business_card(),
@@ -393,8 +395,8 @@ bool do_serve(io_backender_t *io_backender,
                 port, so we need to update the directory. */
                 our_root_directory_variable.apply_atomic_op(
                     [&](cluster_directory_metadata_t *md) -> bool {
-                        md->reql_port = rdb_query_server.get_port();
-                        return (md->reql_port != serve_info.ports.reql_port);
+                        md->proc.reql_port = rdb_query_server.get_port();
+                        return (md->proc.reql_port != serve_info.ports.reql_port);
                     });
 
                 scoped_ptr_t<semilattice_persister_t<cluster_semilattice_metadata_t> >
@@ -435,8 +437,8 @@ bool do_serve(io_backender_t *io_backender,
                         us a port, so we need to update the directory. */
                         our_root_directory_variable.apply_atomic_op(
                             [&](cluster_directory_metadata_t *md) -> bool {
-                                *md->http_admin_port = admin_server_ptr->get_port();
-                                return (*md->http_admin_port !=
+                                *md->proc.http_admin_port = admin_server_ptr->get_port();
+                                return (*md->proc.http_admin_port !=
                                     serve_info.ports.http_port);
                             });
                     }

@@ -50,33 +50,33 @@ bool server_status_artificial_table_backend_t::format_row(
 
     ql::datum_object_builder_t proc_builder;
     proc_builder.overwrite("time_started",
-        convert_microtime_to_datum(metadata.time_started));
+        convert_microtime_to_datum(metadata.proc.time_started));
     proc_builder.overwrite("version",
-        ql::datum_t(datum_string_t(metadata.version)));
-    proc_builder.overwrite("pid", ql::datum_t(static_cast<double>(metadata.pid)));
+        ql::datum_t(datum_string_t(metadata.proc.version)));
+    proc_builder.overwrite("pid", ql::datum_t(static_cast<double>(metadata.proc.pid)));
     proc_builder.overwrite("argv",
         convert_vector_to_datum<std::string>(
             &convert_string_to_datum,
-            metadata.argv));
+            metadata.proc.argv));
     proc_builder.overwrite("cache_size_mb", ql::datum_t(
         static_cast<double>(metadata.actual_cache_size_bytes) / MEGABYTE));
     builder.overwrite("process", std::move(proc_builder).to_datum());
 
     ql::datum_object_builder_t net_builder;
     net_builder.overwrite("hostname",
-        ql::datum_t(datum_string_t(metadata.hostname)));
+        ql::datum_t(datum_string_t(metadata.proc.hostname)));
     net_builder.overwrite("cluster_port",
-        convert_port_to_datum(metadata.cluster_port));
+        convert_port_to_datum(metadata.proc.cluster_port));
     net_builder.overwrite("reql_port",
-        convert_port_to_datum(metadata.reql_port));
+        convert_port_to_datum(metadata.proc.reql_port));
     net_builder.overwrite("http_admin_port",
-        static_cast<bool>(metadata.http_admin_port)
-            ? convert_port_to_datum(*metadata.http_admin_port)
+        static_cast<bool>(metadata.proc.http_admin_port)
+            ? convert_port_to_datum(*metadata.proc.http_admin_port)
             : ql::datum_t("<no http admin>"));
     net_builder.overwrite("canonical_addresses",
         convert_set_to_datum<host_and_port_t>(
             &convert_host_and_port_to_datum,
-            metadata.canonical_addresses));
+            metadata.proc.canonical_addresses));
     {
         auto conn_time_it = connect_times.find(peer_id);
         if (conn_time_it != connect_times.end()) {
