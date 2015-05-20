@@ -58,10 +58,26 @@ void table_raft_state_t::apply_change(const table_raft_state_t::change_t &change
     } visitor;
     visitor.state = this;
     boost::apply_visitor(visitor, change.v);
+    DEBUG_ONLY_CODE(sanity_check());
 }
 
-RDB_IMPL_EQUALITY_COMPARABLE_4(
-    table_raft_state_t, config, contracts, branch_history, member_ids);
+#ifndef NDEBUG
+void table_raft_state_t::sanity_check() const {
+    std::set<server_id_t> all_replicas;
+    for (const auto &pair : contracts) {
+        for (const server_id_t &replica : pair.second.second.replicas) {
+            all_replicas.insert(replica);
+            guarantee(server_names.names.count(replica) == 1);
+        }
+    }
+    for (const auto &pair : server_names.names) {
+        guarantee(all_replicas.count(pair.first) == 1);
+    }
+}
+#endif /* NDEBUG */
+
+RDB_IMPL_EQUALITY_COMPARABLE_5(
+    table_raft_state_t, config, contracts, branch_history, member_ids, server_names);
 
 /* RSI(raft): This should be `SINCE_v1_N`, where `N` is the version number at which Raft
 is released */
@@ -106,6 +122,7 @@ table_raft_state_t make_new_table_raft_state(
         }
     }
     state.server_names = config.server_names;
+    DEBUG_ONLY_CODE(state.sanity_check());
     return state;
 }
 

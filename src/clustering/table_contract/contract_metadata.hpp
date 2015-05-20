@@ -195,6 +195,10 @@ public:
 
     void apply_change(const change_t &c);
 
+#ifndef NDEBUG
+    void sanity_check() const;
+#endif /* NDEBUG */
+
     /* `config` is the latest user-specified config. The user can freely read and modify
     this at any time. */
     table_config_and_shards_t config;
