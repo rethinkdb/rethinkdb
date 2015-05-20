@@ -54,18 +54,10 @@ public:
         the server we're switching to. */
         boost::optional<server_id_t> hand_over;
     };
-    void sanity_check() const {
-        if (static_cast<bool>(primary)) {
-            guarantee(replicas.count(primary->server) == 1);
-            if (static_cast<bool>(primary->hand_over) && !primary->hand_over->is_nil()) {
-                guarantee(replicas.count(*primary->hand_over) == 1);
-            }
-        }
-        for (const server_id_t &s : voters) {
-            guarantee(replicas.count(s) == 1);
-        }
 
-    }
+#ifndef NDEBUG
+    void sanity_check() const;
+#endif /* NDEBUG */
 
     /* `replicas` is all the servers that are replicas for this table, whether voting or
     non-voting. `voters` is a subset of `replicas` that just contains the voting
@@ -235,6 +227,11 @@ RDB_DECLARE_SERIALIZABLE(table_raft_state_t);
 */
 table_raft_state_t make_new_table_raft_state(
     const table_config_and_shards_t &config);
+
+void debug_print(printf_buffer_t *buf, const contract_t::primary_t &primary);
+void debug_print(printf_buffer_t *buf, const contract_t &contract);
+void debug_print(printf_buffer_t *buf, const contract_ack_t &ack);
+void debug_print(printf_buffer_t *buf, const table_raft_state_t &state);
 
 #endif /* CLUSTERING_TABLE_CONTRACT_CONTRACT_METADATA_HPP_ */
 

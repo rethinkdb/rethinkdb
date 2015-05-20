@@ -1,7 +1,23 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/table_contract/contract_metadata.hpp"
 
+#include "boost_utils.hpp"
 #include "clustering/table_contract/cpu_sharding.hpp"
+#include "stl_utils.hpp"
+
+#ifndef NDEBUG
+void contract_t::sanity_check() const {
+    if (static_cast<bool>(primary)) {
+        guarantee(replicas.count(primary->server) == 1);
+        if (static_cast<bool>(primary->hand_over) && !primary->hand_over->is_nil()) {
+            guarantee(replicas.count(*primary->hand_over) == 1);
+        }
+    }
+    for (const server_id_t &s : voters) {
+        guarantee(replicas.count(s) == 1);
+    }
+}
+#endif /* NDEBUG */
 
 RDB_IMPL_EQUALITY_COMPARABLE_2(
     contract_t::primary_t, server, hand_over);
@@ -65,6 +81,7 @@ void table_raft_state_t::apply_change(const table_raft_state_t::change_t &change
 void table_raft_state_t::sanity_check() const {
     std::set<server_id_t> all_replicas;
     for (const auto &pair : contracts) {
+        pair.second.second.sanity_check();
         for (const server_id_t &replica : pair.second.second.replicas) {
             all_replicas.insert(replica);
             guarantee(server_names.names.count(replica) == 1);
@@ -124,5 +141,66 @@ table_raft_state_t make_new_table_raft_state(
     state.server_names = config.server_names;
     DEBUG_ONLY_CODE(state.sanity_check());
     return state;
+}
+
+void debug_print(printf_buffer_t *buf, const contract_t::primary_t &primary) {
+    buf->appendf("primary_t { server = ");
+    debug_print(buf, primary.server);
+    buf->appendf(" hand_over = ");
+    debug_print(buf, primary.hand_over);
+    buf->appendf(" }");
+}
+
+void debug_print(printf_buffer_t *buf, const contract_t &contract) {
+    buf->appendf("contract_t { replicas = ");
+    debug_print(buf, contract.replicas);
+    buf->appendf(" voters = ");
+    debug_print(buf, contract.voters);
+    buf->appendf(" temp_voters = ");
+    debug_print(buf, contract.temp_voters);
+    buf->appendf(" primary = ");
+    debug_print(buf, contract.primary);
+    buf->appendf(" branch = ");
+    debug_print(buf, contract.branch);
+    buf->appendf(" }");
+}
+
+const char *contract_ack_state_to_string(contract_ack_t::state_t state) {
+    typedef contract_ack_t::state_t state_t;
+    switch (state) {
+        case state_t::primary_need_branch: return "primary_need_branch";
+        case state_t::primary_in_progress: return "primary_in_progress";
+        case state_t::primary_ready: return "primary_ready";
+        case state_t::secondary_need_primary: return "secondary_need_primary";
+        case state_t::secondary_backfilling: return "secondary_backfilling";
+        case state_t::secondary_streaming: return "secondary_streaming";
+        case state_t::nothing: return "nothing";
+        default: unreachable();
+    }
+}
+
+void debug_print(printf_buffer_t *buf, const contract_ack_t &ack) {
+    buf->appendf("contract_ack_t { state = %s",
+        contract_ack_state_to_string(ack.state));
+    buf->appendf(" version = ");
+    debug_print(buf, ack.version);
+    buf->appendf(" branch = ");
+    debug_print(buf, ack.branch);
+    buf->appendf(" branch_history.size = ");
+    debug_print(buf, ack.branch_history.branches.size());
+    buf->appendf(" }");
+}
+
+void debug_print(printf_buffer_t *buf, const table_raft_state_t &state) {
+    buf->appendf("table_raft_state_t { config = ...");
+    buf->appendf(" contracts = ");
+    debug_print(buf, state.contracts);
+    buf->appendf(" branch_history.size = ");
+    debug_print(buf, state.branch_history.branches.size());
+    buf->appendf(" member_ids = ");
+    debug_print(buf, state.member_ids);
+    buf->appendf(" server_names = ");
+    debug_print(buf, state.server_names.names);
+    buf->appendf(" }");
 }
 

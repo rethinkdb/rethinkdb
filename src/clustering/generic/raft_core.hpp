@@ -80,6 +80,7 @@ public:
     uuid_u uuid;
 };
 RDB_DECLARE_SERIALIZABLE(raft_member_id_t);
+void debug_print(printf_buffer_t *buf, const raft_member_id_t &member_id);
 
 /* `raft_config_t` describes the set of members that are involved in the Raft cluster. */
 class raft_config_t {
