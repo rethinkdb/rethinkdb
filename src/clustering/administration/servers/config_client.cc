@@ -20,8 +20,12 @@ server_config_client_t::server_config_client_t(
         true)
     { }
 
-bool server_config_client_t::set_config(const server_id_t &server_id,
-        const server_config_t &new_config, signal_t *interruptor) {
+bool server_config_client_t::set_config(
+        const server_id_t &server_id,
+        const name_string_t &old_server_name,
+        const server_config_t &new_config,
+        signal_t *interruptor,
+        std::string *error_out) {
     bool name_collision = false, is_noop = false;
     server_config_map.read_all(
     [&](const server_id_t &sid, const server_config_versioned_t *conf) {
@@ -32,14 +36,22 @@ bool server_config_client_t::set_config(const server_id_t &server_id,
         }
     });
     if (name_collision) {
+        *error_out = strprintf("Cannot rename server `%s` to `%s` because server `%s` "
+            "already exists.", old_server_name.c_str(), new_config.name.c_str(),
+            new_config.name.c_str());
         return false;
     }
     if (is_noop) {
         return true;
     }
 
+    std::string disconnect_msg = strprintf("Lost contact with server `%s` while trying "
+        "to change the server configuration. The configuration may or may not have been "
+        "changed.", old_server_name.c_str());
+
     boost::optional<peer_id_t> peer = server_to_peer_map.get_key(server_id);
     if (!static_cast<bool>(peer)) {
+        *error_out = disconnect_msg;
         return false;
     }
     server_config_business_card_t bcard;
@@ -62,10 +74,14 @@ bool server_config_client_t::set_config(const server_id_t &server_id,
         wait_any_t waiter(reply.get_ready_signal(), &disconnect_watcher);
         wait_interruptible(&waiter, interruptor);
         if (!reply.is_pulsed()) {
+            *error_out = disconnect_msg;
             return false;
         }
         if (!reply.assert_get_value().second.empty()) {
             guarantee(reply.assert_get_value().first == 0);
+            *error_out = strprintf("Error when trying to change the configuration of "
+                "server `%s`: %s The configuration was not changed.",
+                old_server_name.c_str(), reply.assert_get_value().second.c_str());
             return false;
         }
         version = reply.assert_get_value().first;

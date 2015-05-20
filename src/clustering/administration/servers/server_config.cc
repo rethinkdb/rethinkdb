@@ -159,9 +159,8 @@ bool server_config_artificial_table_backend_t::write_row(
     }
     guarantee(server_id == new_server_id, "artificial_table_t should ensure that "
         "primary key is unchanged.");
-    if (!server_config_client->set_config(
-            server_id, new_server_config, &interruptor_on_home)) {
-        *error_out = "Something went wrong when trying to change the server config.";
+    if (!server_config_client->set_config(server_id, metadata.server_config.config.name,
+            new_server_config, &interruptor_on_home, error_out)) {
         return false;
     }
     return true;

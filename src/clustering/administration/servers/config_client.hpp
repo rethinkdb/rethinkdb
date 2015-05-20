@@ -46,22 +46,12 @@ public:
     /* `set_config()` changes the config of the server with the given server ID. */
     bool set_config(
         const server_id_t &server_id,
+        const name_string_t &old_server_name,   /* for error messages */
         const server_config_t &new_server_config,
-        signal_t *interruptor);
+        signal_t *interruptor,
+        std::string *error_out);
 
 private:
-    class visible_server_t {
-    public:
-        visible_server_t(server_config_client_t *par,
-            const server_id_t &sid, const peer_id_t &pid);
-        ~visible_server_t();
-        void update();
-    private:
-        server_config_client_t *parent;
-        const server_id_t server_id;
-        const peer_id_t peer_id;
-    };
-
     void install_server_metadata(
         const peer_id_t &peer_id,
         const cluster_directory_metadata_t &metadata);
