@@ -2,6 +2,8 @@
 #include "clustering/administration/servers/config_server.hpp"
 
 #include "clustering/administration/main/cache_size.hpp"
+#include "clustering/administration/persist/file.hpp"
+#include "clustering/administration/persist/file_keys.hpp"
 
 server_config_server_t::server_config_server_t(
         mailbox_manager_t *_mailbox_manager,
@@ -18,7 +20,7 @@ server_config_server_t::server_config_server_t(
     metadata_file_t::read_txn_t read_txn(file, &non_interruptor);
     my_server_id = read_txn.read(mdkey_server_id(), &non_interruptor);
     my_config.set_value(read_txn.read(mdkey_server_config(), &non_interruptor));
-    update_actual_cache_size(my_config.get_ref().cache_size_bytes);
+    update_actual_cache_size(my_config.get_ref().config.cache_size_bytes);
 }
 
 server_config_business_card_t server_config_server_t::get_business_card() {
@@ -31,12 +33,12 @@ void server_config_server_t::on_set_config(
         signal_t *interruptor,
         const server_config_t &new_config,
         const mailbox_t<void(uint64_t, std::string)>::address_t &ack_addr) {
-    if (static_cast<bool>(new_config.cache_size) &&
-            *new_config.cache_size > get_max_total_cache_size()) {
-        send(mailbox_manager, ack_addr, 0,
+    if (static_cast<bool>(new_config.cache_size_bytes) &&
+            *new_config.cache_size_bytes > get_max_total_cache_size()) {
+        send(mailbox_manager, ack_addr, static_cast<uint64_t>(0),
             strprintf("The proposed cache size of %" PRIu64 " MB is larger than the "
                 "maximum legal value for this platform (%" PRIu64 " MB).",
-                *new_config.cache_size, get_max_total_cache_size()));
+                *new_config.cache_size_bytes, get_max_total_cache_size()));
         return;
     }
     my_config.apply_atomic_op([&](server_config_versioned_t *value) -> bool {
@@ -52,7 +54,7 @@ void server_config_server_t::on_set_config(
         metadata_file_t::write_txn_t write_txn(file, interruptor);
         write_txn.write(mdkey_server_config(), my_config.get_ref(), interruptor);
     }
-    update_actual_cache_size(new_config.cache_size);
+    update_actual_cache_size(new_config.cache_size_bytes);
     send(mailbox_manager, ack_addr, my_config.get_ref().version, std::string());
 }
 

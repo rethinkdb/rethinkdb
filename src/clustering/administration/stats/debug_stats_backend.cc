@@ -6,12 +6,10 @@
 #include "clustering/administration/main/watchable_fields.hpp"
 
 debug_stats_artificial_table_backend_t::debug_stats_artificial_table_backend_t(
-        boost::shared_ptr<semilattice_readwrite_view_t<servers_semilattice_metadata_t> >
-            _servers_sl_view,
-        server_config_client_t *_server_config_client,
         watchable_map_t<peer_id_t, cluster_directory_metadata_t> *_directory_view,
+        server_config_client_t *_server_config_client,
         mailbox_manager_t *_mailbox_manager) :
-    common_server_artificial_table_backend_t(_servers_sl_view, _server_config_client),
+    common_server_artificial_table_backend_t(_server_config_client, _directory_view),
     directory_view(_directory_view),
     mailbox_manager(_mailbox_manager)
     { }
@@ -34,11 +32,12 @@ bool debug_stats_artificial_table_backend_t::format_row(
         server_id_t const & server_id,
         UNUSED peer_id_t const & peer_id,
         cluster_directory_metadata_t const & metadata,
+        signal_t *interruptor,
         ql::datum_t *row_out,
         UNUSED std::string *error_out) {
     ql::datum_object_builder_t builder;
     builder.overwrite("name", convert_name_to_datum(
-        metadata.server_config->config.name));
+        metadata.server_config.config.name));
     builder.overwrite("id", convert_uuid_to_datum(server_id));
 
     ql::datum_t stats;
@@ -59,7 +58,7 @@ bool debug_stats_artificial_table_backend_t::stats_for_server(
         ql::datum_t *stats_out,
         std::string *error_out) {
     boost::optional<peer_id_t> peer_id =
-        server_config_client->get_peer_id_for_server_id(server_id);
+        server_config_client->get_server_to_peer_map()->get_key(server_id);
     if (!static_cast<bool>(peer_id)) {
         *error_out = "Server is not connected.";
         return false;

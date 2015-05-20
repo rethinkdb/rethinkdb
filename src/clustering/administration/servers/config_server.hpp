@@ -7,6 +7,8 @@
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/servers/server_metadata.hpp"
 
+class metadata_file_t;
+
 class server_config_server_t : public home_thread_mixin_t {
 public:
     server_config_server_t(
@@ -31,7 +33,7 @@ private:
     void on_set_config(
         signal_t *interruptor,
         const server_config_t &new_config,
-        mailbox_t<void(uint64_t, std::string)>::address_t ack_addr);
+        const mailbox_t<void(uint64_t, std::string)>::address_t &ack_addr);
 
     void update_actual_cache_size(const boost::optional<uint64_t> &setting);
 

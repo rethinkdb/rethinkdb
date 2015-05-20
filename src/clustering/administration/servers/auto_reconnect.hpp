@@ -14,6 +14,8 @@
 #include "rpc/connectivity/cluster.hpp"
 #include "rpc/semilattice/view.hpp"
 
+class server_config_client_t;
+
 class auto_reconnector_t {
 public:
     auto_reconnector_t(

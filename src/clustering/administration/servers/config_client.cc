@@ -24,8 +24,8 @@ bool server_config_client_t::set_config(const server_id_t &server_id,
         const server_config_t &new_config, signal_t *interruptor) {
     bool name_collision = false;
     server_config_map.read_all(
-    [&](const server_id_t &sid, const server_config_versioned_t &conf) {
-        if (sid != server_id && conf.config.name == new_config.name) {
+    [&](const server_id_t &sid, const server_config_versioned_t *conf) {
+        if (sid != server_id && conf->config.name == new_config.name) {
             name_collision = true;
         }
     });
@@ -37,7 +37,7 @@ bool server_config_client_t::set_config(const server_id_t &server_id,
     if (!static_cast<bool>(peer)) {
         return false;
     }
-    server_config_bcard_t bcard;
+    server_config_business_card_t bcard;
     directory_view->read_key(*peer, [&](const cluster_directory_metadata_t *md) {
         guarantee(md != nullptr);
         bcard = md->server_config_business_card.get();
@@ -89,7 +89,7 @@ bool server_config_client_t::set_config(const server_id_t &server_id,
 void server_config_client_t::install_server_metadata(
         const peer_id_t &peer_id,
         const cluster_directory_metadata_t &metadata) {
-    const server_id_t &server_id = metadata->server_id;
+    const server_id_t &server_id = metadata.server_id;
     server_to_peer_map.set_key(server_id, peer_id);
     peer_connections_map->read_all(
         [&](const std::pair<peer_id_t, server_id_t> &pair, const empty_value_t *) {
@@ -98,7 +98,7 @@ void server_config_client_t::install_server_metadata(
                     std::make_pair(server_id, pair.second), empty_value_t());
             }
         });
-    server_config_map.set_key(server_id, metadata->server_config);
+    server_config_map.set_key(server_id, metadata.server_config);
 }
 
 void server_config_client_t::on_directory_change(

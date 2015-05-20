@@ -48,7 +48,7 @@ ql::datum_t convert_shard_status_to_datum(
         }
         ql::datum_object_builder_t replica_builder;
         replica_builder.overwrite("server", convert_name_or_uuid_to_datum(
-            server_names.at(replica).second, replica, identifier_format));
+            server_names.at(replica.first).second, replica.first, identifier_format));
         ql::datum_array_builder_t replica_states_builder(
             ql::configured_limits_t::unlimited);
         for (const auto &state : replica.second) {

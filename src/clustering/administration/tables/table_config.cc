@@ -201,8 +201,8 @@ ql::datum_t convert_table_config_shard_to_datum(
     builder.overwrite("replicas",
         convert_replica_list_to_datum(shard.replicas, identifier_format, server_names));
     builder.overwrite("primary_replica",
-        convert_name_or_uuid_to_datum(server_names.at(shard_primary_replica,
-            shard.primary_replica, identifier_format)));
+        convert_name_or_uuid_to_datum(server_names.at(shard.primary_replica).second,
+            shard.primary_replica, identifier_format));
 
     return std::move(builder).to_datum();
 }
@@ -547,7 +547,7 @@ bool table_config_artificial_table_backend_t::write_row(
 
             if (new_value_inout->has()) {
                 table_config_and_shards_t old_config;
-                table_meta_client->get_config(table_id, interruptor, &old_config);
+                table_meta_client->get_config(table_id, &interruptor, &old_config);
 
                 table_config_t new_config;
                 std::map<server_id_t, std::pair<uint64_t, name_string_t> >
@@ -613,7 +613,7 @@ bool table_config_artificial_table_backend_t::write_row(
             */
             *new_value_inout = convert_table_config_to_datum(
                 table_id, new_value_inout->get_field("db"), new_config,
-                identifier_format, server_config_client);
+                identifier_format, new_server_names);
 
             try {
                 do_create(table_id, std::move(new_config), std::move(new_server_names),

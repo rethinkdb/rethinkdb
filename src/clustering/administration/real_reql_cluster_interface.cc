@@ -250,7 +250,7 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
 
         new_config = convert_table_config_to_datum(table_id,
             convert_name_to_datum(db->name), config.config,
-            admin_identifier_format_t::name, server_config_client);
+            admin_identifier_format_t::name, config.server_names);
 
         table_status_artificial_table_backend_t *status_backend =
             admin_tables->table_status_backend[
@@ -320,7 +320,7 @@ bool real_reql_cluster_interface_t::table_drop(const name_string_t &name,
 
         old_config = convert_table_config_to_datum(table_id,
             convert_name_to_datum(db->name), config.config,
-            admin_identifier_format_t::name, server_config_client);
+            admin_identifier_format_t::name, config.server_names);
 
         table_meta_client->drop(table_id, interruptor);
 
@@ -663,7 +663,7 @@ void real_reql_cluster_interface_t::reconfigure_internal(
     // Store the old value of the config and status
     ql::datum_t old_config_datum = convert_table_config_to_datum(
         table_id, convert_name_to_datum(db->name), old_config.config,
-        admin_identifier_format_t::name, server_config_client);
+        admin_identifier_format_t::name, old_config.server_names);
 
     table_status_artificial_table_backend_t *status_backend =
         admin_tables->table_status_backend[
@@ -702,7 +702,7 @@ void real_reql_cluster_interface_t::reconfigure_internal(
     // Compute the new value of the config and status
     ql::datum_t new_config_datum = convert_table_config_to_datum(
         table_id, convert_name_to_datum(db->name), new_config.config,
-        admin_identifier_format_t::name, server_config_client);
+        admin_identifier_format_t::name, new_config.server_names);
     ql::datum_t new_status;
     if (!status_backend->read_row(convert_uuid_to_datum(table_id), interruptor,
             &new_status, &error)) {

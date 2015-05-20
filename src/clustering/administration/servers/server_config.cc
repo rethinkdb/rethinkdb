@@ -85,7 +85,7 @@ bool convert_server_config_from_datum(
 server_config_artificial_table_backend_t::server_config_artificial_table_backend_t(
         watchable_map_t<peer_id_t, cluster_directory_metadata_t> *_directory,
         server_config_client_t *_server_config_client) :
-    common_server_artificial_table_backend_t(_directory, _server_config_client)
+    common_server_artificial_table_backend_t(_server_config_client, _directory)
     { }
 
 server_config_artificial_table_backend_t::~server_config_artificial_table_backend_t() {
@@ -96,18 +96,19 @@ bool server_config_artificial_table_backend_t::format_row(
         server_id_t const & server_id,
         UNUSED peer_id_t const & peer_id,
         cluster_directory_metadata_t const & metadata,
+        UNUSED signal_t *interruptor,
         ql::datum_t *row_out,
         UNUSED std::string *error_out) {
     ql::datum_object_builder_t builder;
 
     builder.overwrite("name",
-        convert_name_to_datum(metadata.server_config->config.name));
+        convert_name_to_datum(metadata.server_config.config.name));
     builder.overwrite("id", convert_uuid_to_datum(server_id));
     builder.overwrite("tags", convert_set_to_datum<name_string_t>(
-            &convert_name_to_datum, metadata.server_config->config.tags));
+            &convert_name_to_datum, metadata.server_config.config.tags));
 
     boost::optional<uint64_t> cache_size_bytes =
-        metadata.server_config->config.cache_size_bytes;
+        metadata.server_config.config.cache_size_bytes;
     if (static_cast<bool>(cache_size_bytes)) {
         builder.overwrite("cache_size_mb",
             ql::datum_t(static_cast<double>(*cache_size_bytes) / MEGABYTE));
@@ -131,8 +132,9 @@ bool server_config_artificial_table_backend_t::write_row(
     new_mutex_in_line_t write_mutex_in_line(&write_mutex);
     wait_interruptible(write_mutex_in_line.acq_signal(), &interruptor2);
     server_id_t server_id;
-    cluster_directory_metadata_t *metadata;
-    if (!lookup(primary_key, &server_id, &metadata)) {
+    peer_id_t peer_id;
+    cluster_directory_metadata_t metadata;
+    if (!lookup(primary_key, &server_id, &peer_id, &metadata)) {
         if (new_value_inout->has()) {
             *error_out = "It's illegal to insert new rows into the "
                 "`rethinkdb.server_config` system table.";
@@ -148,7 +150,7 @@ bool server_config_artificial_table_backend_t::write_row(
         return false;
     }
     server_id_t new_server_id;
-    server_config_t new_server_config
+    server_config_t new_server_config;
     if (!convert_server_config_from_datum(*new_value_inout, &new_server_id,
             &new_server_config, error_out)) {
         *error_out = "The row you're trying to put into `rethinkdb.server_config` "

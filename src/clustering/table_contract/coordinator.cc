@@ -583,7 +583,7 @@ void calculate_server_names(
             pair.second.second.replicas.end());
         for (const server_id_t &server : pair.second.second.replicas) {
             if (old_state.server_names.count(server) == 0) {
-                add_server_names_out->insert(std:::make_pair(server,
+                add_server_names_out->insert(std::make_pair(server,
                     old_state.config.server_names.at(server)));
             }
         }

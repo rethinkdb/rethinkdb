@@ -1,5 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/administration/issues/issues_backend.hpp"
+
 #include "clustering/administration/datum_adapter.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
 
@@ -26,7 +27,8 @@ issues_artificial_table_backend_t::issues_artificial_table_backend_t(
                                        cluster_directory_metadata_t>(
                 &cluster_directory_metadata_t::server_id))),
     invalid_config_issue_tracker(cluster_sl_view),
-    name_collision_issue_tracker(cluster_sl_view, table_meta_client)
+    name_collision_issue_tracker(
+        server_config_client, cluster_sl_view, table_meta_client)
 {
     trackers.insert(&remote_issue_tracker);
     trackers.insert(&invalid_config_issue_tracker);

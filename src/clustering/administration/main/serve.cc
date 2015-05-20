@@ -318,8 +318,8 @@ bool do_serve(io_backender_t *io_backender,
                 stat_manager.get_address(),
                 log_server.get_business_card(),
                 i_am_a_server
-                    ? boost::make_optional(server_config_server->get_config()->get())
-                    : boost::optional<server_config_versioned_t>(),
+                    ? server_config_server->get_config()->get()
+                    : server_config_versioned_t(),
                 i_am_a_server
                     ? boost::make_optional(server_config_server->get_business_card())
                     : boost::optional<server_config_business_card_t>(),
@@ -348,7 +348,8 @@ bool do_serve(io_backender_t *io_backender,
                         server_config_server->get_actual_cache_size_bytes(),
                         &our_root_directory_variable));
                 server_config_directory_copier.init(
-                    new field_copier_t<server_versioned_config_t, cluster_directory_metadata_t>(
+                    new field_copier_t<server_config_versioned_t,
+                                       cluster_directory_metadata_t>(
                         &cluster_directory_metadata_t::server_config,
                         server_config_server->get_config(),
                         &our_root_directory_variable));
@@ -456,19 +457,9 @@ bool do_serve(io_backender_t *io_backender,
                     }
 
                     if (i_am_a_server) {
-                        // TODO: This duplicates part of network_logger_t::pretty_print_server, refactor
-                        servers_semilattice_metadata_t::server_map_t::const_iterator
-                            server_it = cluster_metadata.servers.servers.find(server_id);
-                        guarantee(server_it != cluster_metadata.servers.servers.end());
-                        std::string server_name;
-                        if (server_it->second.is_deleted()) {
-                            server_name = "__deleted_server__";
-                        } else {
-                            server_name =
-                                server_it->second.get_ref().name.get_ref().str();
-                        }
                         logNTC("Server ready, \"%s\" %s\n",
-                               server_name.c_str(),
+                               server_config_server->get_config()
+                                   ->get().config.name.c_str(),
                                uuid_to_str(server_id).c_str());
                     } else {
                         logNTC("Proxy ready");

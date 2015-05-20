@@ -19,16 +19,20 @@ class server_config_t {
 public:
     name_string_t name;
     std::set<name_string_t> tags;
-    boost::optional<uint64_t> cache_size;   /* in bytes */
+    boost::optional<uint64_t> cache_size_bytes;
 };
 
 RDB_DECLARE_SERIALIZABLE(server_config_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(server_config_t);
 
 class server_config_versioned_t {
 public:
     server_config_t config;
     uint64_t version;
 };
+
+RDB_DECLARE_SERIALIZABLE(server_config_versioned_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(server_config_versioned_t);
 
 class server_config_business_card_t {
 public:

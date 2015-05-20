@@ -30,30 +30,29 @@ std::string common_server_artificial_table_backend_t::get_primary_key_name() {
 }
 
 bool common_server_artificial_table_backend_t::read_all_rows_as_vector(
-        UNUSED signal_t *interruptor,
+        signal_t *interruptor,
         std::vector<ql::datum_t> *rows_out,
         std::string *error_out) {
     on_thread_t thread_switcher(home_thread());
     rows_out->clear();
-    bool ok = true;
-    directory->read_all(
-    [&](const peer_id_t &peer_id, const cluster_directory_metadata_t *md) {
-        if (md->peer_type != peer_type_t::SERVER_PEER) {
-            return;
+    std::map<peer_id_t, cluster_directory_metadata_t> metadata = directory->get_all();
+    for (const auto &pair : metadata) {
+        if (pair.second.peer_type != SERVER_PEER) {
+            continue;
         }
         ql::datum_t row;
-        if (!format_row(md->server_id, peer_id, *md, &row, error_out)) {
-            ok = false;
-            return;
+        if (!format_row(pair.second.server_id, pair.first, pair.second,
+                interruptor, &row, error_out)) {
+            return false;
         }
         rows_out->push_back(row);
-    });
-    return ok;
+    }
+    return true;
 }
 
 bool common_server_artificial_table_backend_t::read_row(
-        const ql::datum_t &primary_key,
-        UNUSED signal_t *interruptor,
+        ql::datum_t primary_key,
+        signal_t *interruptor,
         ql::datum_t *row_out,
         std::string *error_out) {
     on_thread_t thread_switcher(home_thread());
@@ -64,7 +63,7 @@ bool common_server_artificial_table_backend_t::read_row(
         *row_out = ql::datum_t();
         return true;
     } else {
-        return format_row(server_id, peer_id, metadata, row_out, error_out);
+        return format_row(server_id, peer_id, metadata, interruptor, row_out, error_out);
     }
 }
 
@@ -89,8 +88,8 @@ bool common_server_artificial_table_backend_t::lookup(
         if (metadata == nullptr) {
             ok = false;
         } else {
-            guarantee(metadata->peer_type == peer_type_t::SERVER_PEER);
-            *metadata_out = metadata;
+            guarantee(metadata->peer_type == SERVER_PEER);
+            *metadata_out = *metadata;
             ok = true;
         }
     });

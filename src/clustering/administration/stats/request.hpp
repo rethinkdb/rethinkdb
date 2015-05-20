@@ -95,16 +95,13 @@ private:
                            server_stats_t *stats_out);
 };
 
-// A `stats_request_t` encapsulates all the behavior that differentiates between
-// different types of rows in the `stats` table.  First, `get_filter` provides
-// a set of regular expressions for which stats are needed by the request.  Then,
-// `get_peers` will tell us which peers should be contacted to get the relevant
-// data.  `check_existence` checks for a malformed request by verifying that the
-// specified objects exist in the metadata.  Finally, `to_datum` will take the
-// `parsed_stats_t` obtained from the cross-cluster stats and format it into the
-// appropriate row format.
-// Each subclass of `stats_request_t` should correspond to a category within the
-// admin `stats` table.
+/* A `stats_request_t` encapsulates all the behavior that differentiates between
+different types of rows in the `stats` table. First, `get_filter` provides a set of
+regular expressions for which stats are needed by the request. Then, `get_peers` will
+tell us which peers should be contacted to get the relevant data. Finally, `to_datum`
+will take the `parsed_stats_t` obtained from the cross-cluster stats and format it into
+the appropriate row format. Each subclass of `stats_request_t` should correspond to a
+category within the admin `stats` table. */
 class stats_request_t {
 public:
     typedef cluster_semilattice_metadata_t metadata_t;
@@ -122,11 +119,6 @@ public:
     virtual std::vector<peer_id_t> get_peers(
         const std::map<peer_id_t, cluster_directory_metadata_t> &directory,
         server_config_client_t *server_config_client) const = 0;
-
-    // Checks that the requested entity exists in the metadata, so we can avoid
-    // a round-trip if the request is non-sensical.
-    virtual bool check_existence(const metadata_t &metadata,
-                                 table_meta_client_t *table_meta_client) const = 0;
 
     // Converts stats from the response into the row format for the stats table
     virtual bool to_datum(const parsed_stats_t &stats,

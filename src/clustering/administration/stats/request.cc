@@ -294,11 +294,6 @@ std::vector<peer_id_t> cluster_stats_request_t::get_peers(
     return all_peers(directory);
 }
 
-bool cluster_stats_request_t::check_existence(const metadata_t &,
-                                              table_meta_client_t *) const {
-    return true; // Cluster stats always exist
-}
-
 bool cluster_stats_request_t::to_datum(const parsed_stats_t &stats,
                                        const metadata_t &,
                                        server_config_client_t *,
@@ -356,12 +351,6 @@ std::vector<peer_id_t> table_stats_request_t::get_peers(
         const std::map<peer_id_t, cluster_directory_metadata_t> &directory,
         server_config_client_t *) const {
     return all_peers(directory);
-}
-
-bool table_stats_request_t::check_existence(
-        const metadata_t &,
-        table_meta_client_t *table_meta_client) const {
-    return table_meta_client->exists(table_id);
 }
 
 bool table_stats_request_t::to_datum(const parsed_stats_t &stats,
@@ -424,16 +413,11 @@ std::vector<peer_id_t> server_stats_request_t::get_peers(
         const std::map<peer_id_t, cluster_directory_metadata_t> &,
         server_config_client_t *server_config_client) const {
     boost::optional<peer_id_t> peer =
-        server_config_client->get_peer_id_for_server_id(server_id);
+        server_config_client->get_server_to_peer_map()->get_key(server_id);
     if (!static_cast<bool>(peer)) {
         return std::vector<peer_id_t>();
     }
     return std::vector<peer_id_t>(1, peer.get());
-}
-
-bool server_stats_request_t::check_existence(const metadata_t &metadata,
-                                             table_meta_client_t *) const {
-    return metadata.servers.servers.count(server_id) == 1;
 }
 
 bool server_stats_request_t::to_datum(const parsed_stats_t &stats,
@@ -516,20 +500,11 @@ std::vector<peer_id_t> table_server_stats_request_t::get_peers(
         const std::map<peer_id_t, cluster_directory_metadata_t> &,
         server_config_client_t *server_config_client) const {
     boost::optional<peer_id_t> peer =
-        server_config_client->get_peer_id_for_server_id(server_id);
+        server_config_client->get_server_to_peer_map()->get_key(server_id);
     if (!static_cast<bool>(peer)) {
         return std::vector<peer_id_t>();
     }
     return std::vector<peer_id_t>(1, peer.get());
-}
-
-bool table_server_stats_request_t::check_existence(
-        const metadata_t &metadata,
-        table_meta_client_t *table_meta_client) const {
-    if (metadata.servers.servers.count(server_id) == 0) {
-        return false;
-    }
-    return table_meta_client->exists(table_id);
 }
 
 bool table_server_stats_request_t::to_datum(const parsed_stats_t &stats,

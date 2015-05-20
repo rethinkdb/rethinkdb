@@ -5,6 +5,7 @@
 #include <boost/bind.hpp>
 
 #include "arch/timing.hpp"
+#include "clustering/administration/servers/config_client.hpp"
 #include "concurrency/wait_any.hpp"
 
 auto_reconnector_t::auto_reconnector_t(
@@ -16,7 +17,7 @@ auto_reconnector_t::auto_reconnector_t(
     server_config_client(server_config_client_),
     server_id_subs(
         server_config_client->get_peer_to_server_map(),
-        std::bind(&auto_reconnecttor_t::on_connect_or_disconnect, this, ph::_1),
+        std::bind(&auto_reconnector_t::on_connect_or_disconnect, this, ph::_1),
         false),
     connection_subs(
         connectivity_cluster->get_connections(),

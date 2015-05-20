@@ -8,7 +8,7 @@ network_logger_t::network_logger_t(
         peer_id_t our_peer_id,
         watchable_map_t<peer_id_t, cluster_directory_metadata_t> *dv) :
     us(our_peer_id),
-    directory_view(dv)
+    directory_view(dv),
     directory_subscription(
         directory_view,
         std::bind(&network_logger_t::on_change, this, ph::_1, ph::_2),
@@ -20,7 +20,7 @@ void network_logger_t::on_change(
     if (value != nullptr) {
         switch (value->peer_type) {
             case SERVER_PEER: {
-                const name_string_t &name = value->server_config->name;
+                const name_string_t &name = value->server_config.config.name;
                 const server_id_t &server_id = value->server_id;
                 if (connected_servers.count(peer_id) == 0) {
                     logNTC("Connected to server \"%s\" %s",
@@ -32,7 +32,8 @@ void network_logger_t::on_change(
             }
             case PROXY_PEER: {
                 if (connected_proxies.count(peer_id) == 0) {
-                    logNTC("Connected to proxy %s", uuid_to_str(peer_id.uuid).c_str());
+                    logNTC("Connected to proxy %s",
+                        uuid_to_str(peer_id.get_uuid()).c_str());
                 }
                 connected_proxies.insert(peer_id);
                 break;
@@ -49,7 +50,8 @@ void network_logger_t::on_change(
         } else {
             auto jt = connected_proxies.find(peer_id);
             if (jt != connected_proxies.end()) {
-                logNTC("Disconnected from proxy %s", uuid_to_str(peer_id.uuid).c_str());
+                logNTC("Disconnected from proxy %s",
+                    uuid_to_str(peer_id.get_uuid()).c_str());
                 connected_proxies.erase(jt);
             }
         }

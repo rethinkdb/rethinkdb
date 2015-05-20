@@ -71,6 +71,8 @@ private:
 RDB_DECLARE_SERIALIZABLE(outdated_index_issue_t);
 RDB_DECLARE_EQUALITY_COMPARABLE(outdated_index_issue_t);
 
+/* RSI(raft): Remove this completely */
+#if 0
 class server_disconnected_issue_t : public local_issue_t {
 public:
     server_disconnected_issue_t();
@@ -125,12 +127,11 @@ private:
 
 RDB_DECLARE_SERIALIZABLE(server_ghost_issue_t);
 RDB_DECLARE_EQUALITY_COMPARABLE(server_ghost_issue_t);
+#endif
 
 class local_issues_t {
 public:
     std::vector<log_write_issue_t> log_write_issues;
-    std::vector<server_disconnected_issue_t> server_disconnected_issues;
-    std::vector<server_ghost_issue_t> server_ghost_issues;
     std::vector<outdated_index_issue_t> outdated_index_issues;
 };
 

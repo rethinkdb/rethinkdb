@@ -72,7 +72,7 @@ public:
             const jobs_manager_business_card_t& _jobs_mailbox,
             const get_stats_mailbox_address_t& _stats_mailbox,
             const log_server_business_card_t &lmb,
-            const boost::optional<server_config_versioned_t> &sc,
+            const server_config_versioned_t &sc,
             const boost::optional<server_config_business_card_t> &scbc,
             cluster_directory_peer_type_t _peer_type) :
         server_id(_server_id),
@@ -147,9 +147,14 @@ public:
     jobs_manager_business_card_t jobs_mailbox;
     get_stats_mailbox_address_t get_stats_mailbox_address;
     log_server_business_card_t log_mailbox;
-    boost::optional<server_config_versioned_t> server_config;
+
+    /* For proxies, `server_config` is meaningless and `server_config_business_card` is
+    empty. */
+    server_config_versioned_t server_config;
     boost::optional<server_config_business_card_t> server_config_business_card;
+
     local_issues_t local_issues;
+
     cluster_directory_peer_type_t peer_type;
 };
 

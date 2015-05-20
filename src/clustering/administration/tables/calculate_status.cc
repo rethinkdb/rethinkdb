@@ -30,7 +30,7 @@ bool get_contracts_and_acks(
     latest_timestamp.log_index = 0;
     for (const auto &peer : contracts_and_acks) {
         boost::optional<server_id_t> server_id =
-            server_config_client->get_server_id_for_peer_id(peer.first);
+            server_config_client->get_peer_to_server_map()->get_key(peer.first);
         if (static_cast<bool>(server_id)) {
             auto pair = contracts_and_acks_out->insert(
                 std::make_pair(server_id.get(), std::move(peer.second)));

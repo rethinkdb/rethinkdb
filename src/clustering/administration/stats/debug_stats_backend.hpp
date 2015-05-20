@@ -39,6 +39,7 @@ private:
             server_id_t const & server_id,
             peer_id_t const & peer_id,
             cluster_directory_metadata_t const & metadata,
+            signal_t *interruptor,
             ql::datum_t *row_out,
             std::string *error_out);
 

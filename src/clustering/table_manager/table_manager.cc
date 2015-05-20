@@ -178,10 +178,10 @@ void table_manager_t::on_get_status(
 
         contracts_and_contract_acks.timestamp.epoch = epoch;
         raft.get_raft()->get_committed_state()->apply_read(
-        [&](const raft_member_t<table_raft_state_t>::config_and_state_t *cs) {
-            contracts_and_contract_acks.timestamp.log_index = cs->log_index;
-            contracts_and_contract_acks.contracts = cs->state.contracts;
-            contracts_and_contract_acks.server_names = cs->state.server_names;
+        [&](const raft_member_t<table_raft_state_t>::state_and_config_t *s) {
+            contracts_and_contract_acks.timestamp.log_index = s->log_index;
+            contracts_and_contract_acks.contracts = s->state.contracts;
+            contracts_and_contract_acks.server_names = s->state.server_names;
         });
         for (const auto &contract_ack : contract_executor.get_acks()->get_all()) {
             contracts_and_contract_acks.contract_acks.insert(

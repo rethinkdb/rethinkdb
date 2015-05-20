@@ -39,7 +39,7 @@ void table_raft_state_t::apply_change(const table_raft_state_t::change_t &change
             state->branch_history.branches.insert(
                 new_contracts_change.add_branches.branches.begin(),
                 new_contracts_change.add_branches.branches.end());
-            for (const server_id_t &sid : new_contracts_change.remove_server_ids) {
+            for (const server_id_t &sid : new_contracts_change.remove_server_names) {
                 state->server_names.erase(sid);
             }
             state->server_names.insert(

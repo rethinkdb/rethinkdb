@@ -44,6 +44,7 @@ protected:
             server_id_t const & server_id,
             peer_id_t const & peer_id,
             cluster_directory_metadata_t const & directory_entry,
+            signal_t *interruptor,
             ql::datum_t *row_out,
             std::string *error_out) = 0;
 
@@ -51,7 +52,7 @@ protected:
     `primary_key` and `false` if it does not find a row. It never produces an error. It
     should only be called on the home thread. */
     bool lookup(
-            ql::datum_t primary_key,
+            const ql::datum_t &primary_key,
             server_id_t *server_id_out,
             peer_id_t *peer_id_out,
             cluster_directory_metadata_t *metadata_out);

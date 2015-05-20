@@ -260,7 +260,7 @@ ql::datum_t convert_debug_contracts_and_contrack_acks_to_datum(
     ql::datum_array_builder_t builder(ql::configured_limits_t::unlimited);
     for (const auto &peer : contracts_and_acks) {
         boost::optional<server_id_t> server_id =
-            server_config_client->get_server_id_for_peer_id(peer.first);
+            server_config_client->get_peer_to_server_map()->get_key(peer.first);
 
         ql::datum_object_builder_t peer_builder;
         peer_builder.overwrite("peer", convert_uuid_to_datum(peer.first.get_uuid()));
@@ -313,7 +313,7 @@ void debug_table_status_artificial_table_backend_t::format_row(
             db_name_or_uuid,
             config_and_shards.config,
             admin_identifier_format_t::uuid,
-            server_config_client));
+            config_and_shards.server_names));
     builder.overwrite(
         "shard_scheme",
         convert_debug_table_shard_scheme_to_datum(config_and_shards.shard_scheme));

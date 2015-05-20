@@ -19,7 +19,7 @@ ql::datum_t convert_host_and_port_to_datum(const host_and_port_t &x) {
 server_status_artificial_table_backend_t::server_status_artificial_table_backend_t(
         watchable_map_t<peer_id_t, cluster_directory_metadata_t> *_directory,
         server_config_client_t *_server_config_client) :
-    common_server_artificial_table_backend_t(_directory, _server_config_client),
+    common_server_artificial_table_backend_t(_server_config_client, _directory),
     directory_subs(_directory,
         [&](const peer_id_t &peer, const cluster_directory_metadata_t *metadata) {
             if (metadata == nullptr) {
@@ -40,11 +40,12 @@ bool server_status_artificial_table_backend_t::format_row(
         server_id_t const & server_id,
         peer_id_t const & peer_id,
         cluster_directory_metadata_t const & metadata,
+        UNUSED signal_t *interruptor,
         ql::datum_t *row_out,
-        std::string *error_out) {
+        UNUSED std::string *error_out) {
     ql::datum_object_builder_t builder;
     builder.overwrite("name",
-        convert_name_to_datum(metadata.server_config->config.name));
+        convert_name_to_datum(metadata.server_config.config.name));
     builder.overwrite("id", convert_uuid_to_datum(server_id));
 
     ql::datum_object_builder_t proc_builder;

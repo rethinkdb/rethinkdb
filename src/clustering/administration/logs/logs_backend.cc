@@ -101,7 +101,7 @@ bool logs_artificial_table_backend_t::read_row(
     }
 
     boost::optional<peer_id_t> peer_id =
-        server_config_client->get_peer_id_for_server_id(server_id);
+        server_config_client->get_server_to_peer_map()->get_key(server_id);
     if (!static_cast<bool>(peer_id)) {
         /* Disconnected or nonexistent server, so log entries shouldn't be present in the
         table */
@@ -199,13 +199,6 @@ void logs_artificial_table_backend_t::cfeed_machinery_t::on_change(
         const peer_id_t &peer,
         const cluster_directory_metadata_t *dir) {
     if (dir == nullptr || peers_handled.count(peer) != 0) {
-        return;
-    }
-    server_id_t server_id = dir->server_id;
-    if (!static_cast<bool>(parent->server_config_client->
-            get_name_for_server_id(server_id))) {
-        /* The server was permanently removed. Don't bother retrieving its log messages.
-        */
         return;
     }
     peers_handled.insert(peer);
@@ -418,25 +411,26 @@ bool logs_artificial_table_backend_t::read_all_rows_raw(
     std::map<server_id_t, std::pair<name_string_t, log_server_business_card_t> > servers;
     directory->read_all(
         [&](const peer_id_t &, const cluster_directory_metadata_t *value) {
-            if (value->peer_type == server_peer_t::SERVER) {
+            if (value->peer_type == SERVER_PEER) {
                 servers.insert(std::make_pair(value->server_id,
-                    std::make_pair(value->server_config->name, value->log_mailbox)));
+                    std::make_pair(value->server_config.config.name,
+                                   value->log_mailbox)));
             }
         });
 
     boost::optional<std::string> error;
     pmap(servers.begin(), servers.end(),
-        [&](const std::pair<server_id_t, log_server_business_card_t> &server) {
-            name_string_t server_name = server.at(server_id).first;
+        [&](const std::pair<server_id_t,
+                std::pair<name_string_t, log_server_business_card_t> > &pair) {
             ql::datum_t server_datum = convert_name_or_uuid_to_datum(
-                server_name, server_id, identifier_format);
+                pair.second.first, pair.first, identifier_format);
             std::vector<log_message_t> messages;
             try {
                 struct timespec min_time = { 0, 0 };
                 struct timespec max_time = { std::numeric_limits<time_t>::max(), 0 };
                 messages = fetch_log_file(
                     mailbox_manager,
-                    server.second,
+                    pair.second.second,
                     entries_per_server,
                     min_time,
                     max_time,
@@ -450,11 +444,11 @@ bool logs_artificial_table_backend_t::read_all_rows_raw(
             } catch (const log_read_exc_t &e) {
                 /* We'll deal with it outside the `pmap()` */
                 error = strprintf("Problem with reading log file on server `%s`: %s",
-                    server_name.c_str(), e.what());
+                    pair.second.first.c_str(), e.what());
                 return;
             }
             for (const log_message_t &m : messages) {
-                callback(m, server.first, server_datum);
+                callback(m, pair.first, server_datum);
             }
         });
 

@@ -76,6 +76,30 @@ ql::datum_t convert_name_or_uuid_to_datum(
     }
 }
 
+bool convert_connected_server_id_to_datum(
+        const server_id_t &server_id,
+        admin_identifier_format_t identifier_format,
+        server_config_client_t *server_config_client,
+        ql::datum_t *server_name_or_uuid_out,
+        name_string_t *server_name_out) {
+    boost::optional<name_string_t> name;
+    server_config_client->get_server_config_map()->read_key(server_id,
+        [&](const server_config_versioned_t *config) {
+            if (config != nullptr) {
+                name = boost::make_optional(config->config.name);
+            }
+        });
+    if (!static_cast<bool>(name)) {
+        return false;
+    }
+    if (server_name_or_uuid_out != nullptr) {
+        *server_name_or_uuid_out =
+            convert_name_or_uuid_to_datum(*name, server_id, identifier_format);
+    }
+    if (server_name_out != nullptr) *server_name_out = *name;
+    return true;
+}
+
 bool convert_table_id_to_datums(
         const namespace_id_t &table_id,
         admin_identifier_format_t identifier_format,
