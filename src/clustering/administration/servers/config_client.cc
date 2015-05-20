@@ -22,15 +22,20 @@ server_config_client_t::server_config_client_t(
 
 bool server_config_client_t::set_config(const server_id_t &server_id,
         const server_config_t &new_config, signal_t *interruptor) {
-    bool name_collision = false;
+    bool name_collision = false, is_noop = false;
     server_config_map.read_all(
     [&](const server_id_t &sid, const server_config_versioned_t *conf) {
         if (sid != server_id && conf->config.name == new_config.name) {
             name_collision = true;
+        } else if (sid == server_id && conf->config == new_config) {
+            is_noop = true;
         }
     });
     if (name_collision) {
         return false;
+    }
+    if (is_noop) {
+        return true;
     }
 
     boost::optional<peer_id_t> peer = server_to_peer_map.get_key(server_id);
