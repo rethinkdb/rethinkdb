@@ -292,13 +292,13 @@ void table_config_artificial_table_backend_t::format_row(
         const namespace_id_t &table_id,
         const table_basic_config_t &,
         const ql::datum_t &db_name_or_uuid,
-        signal_t *interruptor,
+        signal_t *interruptor_on_home,
         ql::datum_t *row_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,
             admin_op_exc_t) {
     assert_thread();
     table_config_and_shards_t config_and_shards;
-    table_meta_client->get_config(table_id, interruptor, &config_and_shards);
+    table_meta_client->get_config(table_id, interruptor_on_home, &config_and_shards);
     *row_out = convert_table_config_to_datum(table_id, db_name_or_uuid,
         config_and_shards.config, identifier_format, config_and_shards.server_names);
 }
@@ -529,7 +529,7 @@ bool table_config_artificial_table_backend_t::write_row(
         table_id = nil_uuid();
     }
 
-    cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
+    cross_thread_signal_t interruptor_on_home(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
     cluster_semilattice_metadata_t metadata = semilattice_view->get();
 
@@ -547,7 +547,8 @@ bool table_config_artificial_table_backend_t::write_row(
 
             if (new_value_inout->has()) {
                 table_config_and_shards_t old_config;
-                table_meta_client->get_config(table_id, &interruptor, &old_config);
+                table_meta_client->get_config(
+                    table_id, &interruptor_on_home, &old_config);
 
                 table_config_t new_config;
                 std::map<server_id_t, std::pair<uint64_t, name_string_t> >
@@ -556,7 +557,7 @@ bool table_config_artificial_table_backend_t::write_row(
                 name_string_t new_db_name;
                 if (!convert_table_config_and_name_from_datum(*new_value_inout, true,
                         metadata, identifier_format, server_config_client,
-                        old_config.server_names, table_meta_client, &interruptor,
+                        old_config.server_names, table_meta_client, &interruptor_on_home,
                         &new_table_id, &new_config, &new_server_names, &new_db_name,
                         error_out)) {
                     *error_out = "The change you're trying to make to "
@@ -568,14 +569,14 @@ bool table_config_artificial_table_backend_t::write_row(
                 try {
                     do_modify(table_id, std::move(old_config), std::move(new_config),
                         std::move(new_server_names), old_db_name, new_db_name,
-                        &interruptor);
+                        &interruptor_on_home);
                     return true;
                 } CATCH_OP_ERRORS(old_db_name, old_basic_config.name, error_out,
                     "The table's configuration was not changed.",
                     "The table's configuration may or may not have been changed.")
             } else {
                 try {
-                    table_meta_client->drop(table_id, &interruptor);
+                    table_meta_client->drop(table_id, &interruptor_on_home);
                     return true;
                 } CATCH_OP_ERRORS(old_db_name, old_basic_config.name, error_out,
                     "The table was not dropped.",
@@ -599,7 +600,7 @@ bool table_config_artificial_table_backend_t::write_row(
             if (!convert_table_config_and_name_from_datum(*new_value_inout, false,
                     metadata, identifier_format, server_config_client,
                     std::map<server_id_t, std::pair<uint64_t, name_string_t> >(),
-                    table_meta_client, &interruptor, &new_table_id, &new_config,
+                    table_meta_client, &interruptor_on_home, &new_table_id, &new_config,
                     &new_server_names, &new_db_name, error_out)) {
                 *error_out = "The change you're trying to make to "
                     "`rethinkdb.table_config` has the wrong format. " + *error_out;
@@ -617,7 +618,7 @@ bool table_config_artificial_table_backend_t::write_row(
 
             try {
                 do_create(table_id, std::move(new_config), std::move(new_server_names),
-                    new_db_name, &interruptor);
+                    new_db_name, &interruptor_on_home);
                 return true;
             } CATCH_OP_ERRORS(new_db_name, new_config.basic.name, error_out,
                 "The table was not created.",

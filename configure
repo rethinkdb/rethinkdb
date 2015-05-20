@@ -105,7 +105,6 @@ configure () {
         fi
     fi
     boolvar USE_PRECOMPILED_WEB_ASSETS $enable_precompiled_web
-    check_admin_deps
     for bin in $required_bin_deps; do
         require_dep $bin
         check_bin $bin
@@ -118,6 +117,7 @@ configure () {
         fi
         check_bin $bin
     done
+    check_admin_deps
     for bin in $optional_bin_deps; do
         optional_dep $bin
         check_bin $bin

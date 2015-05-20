@@ -258,11 +258,13 @@ bool primary_execution_t::on_write(
     public:
         write_callback_t(write_response_t *_r_out, std::string *_e_out,
                 counted_t<contract_info_t> contract_info) :
-            ack_counter(contract_info->contract),
+            success(false), ack_counter(contract_info->contract),
             default_write_durability(contract_info->default_write_durability),
             write_ack_config(contract_info->write_ack_config),
-            response_out(_r_out),
-            error_out(_e_out) { }
+            response_out(_r_out), error_out(_e_out) { }
+        bool success;
+        cond_t done;
+    private:
         write_durability_t get_default_write_durability() {
             /* This only applies to writes that don't specify the durability */
             return default_write_durability;
@@ -281,6 +283,7 @@ bool primary_execution_t::on_write(
                         break;
                 }
                 *response_out = std::move(resp);
+                success = true;
                 done.pulse();
             }
         }
@@ -294,7 +297,6 @@ bool primary_execution_t::on_write(
         ack_counter_t ack_counter;
         write_durability_t default_write_durability;
         write_ack_config_t write_ack_config;
-        cond_t done;
         write_response_t *response_out;
         std::string *error_out;
     } write_callback(response_out, error_out, contract_snapshot);
@@ -310,7 +312,7 @@ bool primary_execution_t::on_write(
     exiter->end();
 
     wait_interruptible(&write_callback.done, interruptor);
-    return write_callback.ack_counter.is_safe();
+    return write_callback.success;
 }
 
 bool primary_execution_t::on_read(

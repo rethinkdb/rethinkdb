@@ -328,28 +328,30 @@ bool do_serve(io_backender_t *io_backender,
             watchable_variable_t<cluster_directory_metadata_t>
                 our_root_directory_variable(initial_directory);
 
-            field_copier_t<local_issues_t, cluster_directory_metadata_t>
+            watchable_field_copier_t<local_issues_t, cluster_directory_metadata_t>
                 copy_local_issues_to_cluster(
                     &cluster_directory_metadata_t::local_issues,
                     local_issue_aggregator.get_issues_watchable(),
                     &our_root_directory_variable);
 
-            /* This will take care of updating the directory every time our cache size
-            or server config changes. It also fills in the initial value. */
-            scoped_ptr_t<field_copier_t<uint64_t, cluster_directory_metadata_t> >
+            /* These will take care of updating the directory every time our cache size
+            or server config changes. They also fill in the initial values. */
+            scoped_ptr_t<watchable_field_copier_t<
+                    uint64_t, cluster_directory_metadata_t> >
                 actual_cache_size_directory_copier;
-            scoped_ptr_t<field_copier_t<
+            scoped_ptr_t<watchable_field_copier_t<
                     server_config_versioned_t, cluster_directory_metadata_t> >
                 server_config_directory_copier;
             if (i_am_a_server) {
                 actual_cache_size_directory_copier.init(
-                    new field_copier_t<uint64_t, cluster_directory_metadata_t>(
+                    new watchable_field_copier_t<
+                            uint64_t, cluster_directory_metadata_t>(
                         &cluster_directory_metadata_t::actual_cache_size_bytes,
                         server_config_server->get_actual_cache_size_bytes(),
                         &our_root_directory_variable));
                 server_config_directory_copier.init(
-                    new field_copier_t<server_config_versioned_t,
-                                       cluster_directory_metadata_t>(
+                    new watchable_field_copier_t<
+                            server_config_versioned_t, cluster_directory_metadata_t>(
                         &cluster_directory_metadata_t::server_config,
                         server_config_server->get_config(),
                         &our_root_directory_variable));

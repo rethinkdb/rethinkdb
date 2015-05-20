@@ -15,6 +15,8 @@
 #include "errors.hpp"
 #include <boost/optional.hpp>
 
+#include "concurrency/coro_pool.hpp"
+#include "concurrency/queue/unlimited_fifo.hpp"
 #include "containers/counted.hpp"
 #include "containers/scoped.hpp"
 #include "rdb_protocol/changefeed.hpp"
@@ -301,6 +303,18 @@ private:
 
     bool sent_init;
     size_t ready_needed;
+
+    // A coro pool for launching reads on the individual coro_streams.
+    // If the union is not a changefeed, coro_stream_t::maybe_launch_read() is going
+    // to put reads into `read_queue` which will then be processed by `read_coro_pool`.
+    // This is to limit the degree of parallelism if a union stream is created
+    // over a large number of substreams (like in a getAll with many arguments).
+    // If the union is a changefeed, we must launch parallel reads on all streams,
+    // and this is not used (instead coro_stream_t::maybe_launch_read() will launch
+    // a coroutine directly).
+    unlimited_fifo_queue_t<std::function<void()> > read_queue;
+    calling_callback_t read_coro_callback;
+    coro_pool_t<std::function<void()> > read_coro_pool;
 
     size_t active;
     // We recompute this only when `next_batch_impl` returns to retain the

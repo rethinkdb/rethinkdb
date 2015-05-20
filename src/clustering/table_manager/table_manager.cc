@@ -32,6 +32,8 @@ table_manager_t::table_manager_t(
     raft(raft_member_id, _mailbox_manager, raft_directory.get_values(), this,
         initial_state, "Table " + uuid_to_str(table_id)),
     table_manager_bcard(table_manager_bcard_t()),   /* we'll set this later */
+    raft_bcard_copier(&table_manager_bcard_t::raft_business_card,
+        raft.get_business_card(), &table_manager_bcard),
     execution_bcard_read_manager(_mailbox_manager),
     contract_executor(
         _server_id, mailbox_manager,
@@ -78,7 +80,7 @@ table_manager_t::table_manager_t(
                 bcard.timestamp.log_index = sc->log_index;
             });
         bcard.raft_member_id = raft_member_id;
-        bcard.raft_business_card = raft.get_business_card();
+        bcard.raft_business_card = raft.get_business_card()->get();
         bcard.execution_bcard_minidir_bcard = execution_bcard_read_manager.get_bcard();
         bcard.get_status_mailbox = get_status_mailbox.get_address();
         bcard.server_id = _server_id;

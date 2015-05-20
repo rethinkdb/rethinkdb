@@ -28,7 +28,8 @@ remote_issue_tracker_t::remote_issue_tracker_t(
     issues_view(_issues_view),
     server_id_translation_table(_server_id_translation_table) { }
 
-std::vector<scoped_ptr_t<issue_t> > remote_issue_tracker_t::get_issues() const {
+std::vector<scoped_ptr_t<issue_t> > remote_issue_tracker_t::get_issues(
+        UNUSED signal_t *interruptor) const {
     std::map<peer_id_t, local_issues_t> issues_by_peer =
         issues_view->get().get_inner();
     std::map<peer_id_t, server_id_t> translation_table =

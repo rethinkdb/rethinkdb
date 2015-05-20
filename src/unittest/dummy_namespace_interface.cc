@@ -179,7 +179,7 @@ dummy_namespace_interface_t(std::vector<region_t> shards,
 
             rassert(metainfo.get_domain() == shards[i]);
             metainfo.visit(shards[i], [&](const region_t &, const binary_blob_t &b) {
-                rassert(b.size() == 0);
+                guarantee(b.size() == 0);
             });
 
             write_token_t write_token;

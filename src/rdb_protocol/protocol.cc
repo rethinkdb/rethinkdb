@@ -878,7 +878,7 @@ bool read_t::use_snapshot() const THROWS_NOTHING {
 
 struct route_to_primary_visitor_t : public boost::static_visitor<bool> {
     bool operator()(const rget_read_t &rget) const {
-        return rget.stamp;
+        return static_cast<bool>(rget.stamp);
     }
     bool operator()(const point_read_t &) const {                 return false; }
     bool operator()(const dummy_read_t &) const {                 return false; }

@@ -132,4 +132,10 @@ region_t quick_region(const char *bounds) {
     return region_t(quick_range(bounds));
 }
 
+state_timestamp_t make_state_timestamp(int n) {
+    state_timestamp_t t;
+    t.num = n;
+    return t;
+}
+
 }  // namespace unittest

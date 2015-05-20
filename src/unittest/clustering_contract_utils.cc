@@ -19,7 +19,7 @@ region_map_t<version_t> quick_cpu_version_map(
         } else {
             version = version_t(
                 qvm.branch->branch_ids[which_cpu_subspace],
-                state_timestamp_t::from_num(qvm.timestamp));
+                make_state_timestamp(qvm.timestamp));
         }
         region_vector.push_back(region);
         version_vector.push_back(version);

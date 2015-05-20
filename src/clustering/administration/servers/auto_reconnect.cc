@@ -6,6 +6,7 @@
 
 #include "arch/timing.hpp"
 #include "clustering/administration/servers/config_client.hpp"
+#include "concurrency/exponential_backoff.hpp"
 #include "concurrency/wait_any.hpp"
 
 auto_reconnector_t::auto_reconnector_t(
@@ -43,10 +44,6 @@ void auto_reconnector_t::on_connect_or_disconnect(const peer_id_t &peer_id) {
     }
 }
 
-static const int initial_backoff_ms = 50;
-static const int max_backoff_ms = 1000 * 15;
-static const double backoff_growth_rate = 1.5;
-
 void auto_reconnector_t::try_reconnect(const server_id_t &server,
                                        auto_drainer_t::lock_t keepalive) {
     peer_address_t last_known_address;
@@ -67,15 +64,11 @@ void auto_reconnector_t::try_reconnect(const server_id_t &server,
 
     wait_any_t interruptor(&reconnected, keepalive.get_drain_signal());
 
-    int backoff_ms = initial_backoff_ms;
+    exponential_backoff_t backoff(50, 15 * 1000);
     try {
-        while (true) {
+        while (!interruptor.is_pulsed()) {
             connectivity_cluster_run->join(last_known_address);
-            signal_timer_t timer;
-            timer.start(backoff_ms);
-            wait_interruptible(&timer, &interruptor);
-            guarantee(backoff_ms * backoff_growth_rate > backoff_ms, "rounding screwed it up");
-            backoff_ms = std::min(static_cast<int>(backoff_ms * backoff_growth_rate), max_backoff_ms);
+            backoff.failure(&interruptor);
         }
     } catch (const interrupted_exc_t &) {
         /* ignore; this is how we escape the loop */

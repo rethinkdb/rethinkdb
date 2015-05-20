@@ -99,7 +99,7 @@ public:
     /* `list_names()` determines the IDs, names, databases, and primary keys of every
     table. It will not block. */
     void list_names(
-        std::map<namespace_id_t, table_basic_config_t> *names_out);
+        std::map<namespace_id_t, table_basic_config_t> *names_out) const;
 
     /* `get_config()` fetches the configuration of the table with the given ID. It may
     block and it may fail. */

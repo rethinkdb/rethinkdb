@@ -30,9 +30,10 @@ std::string common_server_artificial_table_backend_t::get_primary_key_name() {
 }
 
 bool common_server_artificial_table_backend_t::read_all_rows_as_vector(
-        signal_t *interruptor,
+        signal_t *interruptor_on_caller,
         std::vector<ql::datum_t> *rows_out,
         std::string *error_out) {
+    cross_thread_signal_t interruptor_on_home(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
     rows_out->clear();
     std::map<peer_id_t, cluster_directory_metadata_t> metadata = directory->get_all();
@@ -42,7 +43,7 @@ bool common_server_artificial_table_backend_t::read_all_rows_as_vector(
         }
         ql::datum_t row;
         if (!format_row(pair.second.server_id, pair.first, pair.second,
-                interruptor, &row, error_out)) {
+                &interruptor_on_home, &row, error_out)) {
             return false;
         }
         rows_out->push_back(row);
@@ -52,9 +53,10 @@ bool common_server_artificial_table_backend_t::read_all_rows_as_vector(
 
 bool common_server_artificial_table_backend_t::read_row(
         ql::datum_t primary_key,
-        signal_t *interruptor,
+        signal_t *interruptor_on_caller,
         ql::datum_t *row_out,
         std::string *error_out) {
+    cross_thread_signal_t interruptor_on_home(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
     server_id_t server_id;
     peer_id_t peer_id;
@@ -63,7 +65,8 @@ bool common_server_artificial_table_backend_t::read_row(
         *row_out = ql::datum_t();
         return true;
     } else {
-        return format_row(server_id, peer_id, metadata, interruptor, row_out, error_out);
+        return format_row(server_id, peer_id, metadata,
+            &interruptor_on_home, row_out, error_out);
     }
 }
 

@@ -26,7 +26,10 @@
 Search of an Understandable Consensus Algorithm (Extended Version)" (2014) by Diego
 Ongaro and John Ousterhout. Because of the complexity and subtlety of the Raft algorithm,
 we follow the paper closely and refer back to it regularly. You are advised to have a
-copy of the paper on hand when reading or modifying this file.
+copy of the paper on hand when reading or modifying this file. The comments also
+occasionally refer to Diego Ongaro's dissertation, "Consensus: Bridging Theory and
+Practice" (2014), as the dissertation addresses a few subtle points that the paper does
+not.
 
 This file only contains the basic Raft algorithm itself; it doesn't contain any
 networking or storage logic. Instead, it uses abstract interfaces to send and receive
@@ -34,7 +37,15 @@ network messages and write data to persistent storage. This both keeps this file
 as simple as possible and makes it easy to test the Raft algorithm using mocked-up
 network and storage systems.
 
-We support both log compaction and configuration changes.
+We support both log compaction and configuration changes. Configuration changes use the
+joint-configuration mechanism described in the original paper, rather than the
+one-server-at-a-time mechanism described in the dissertation.
+
+This implementation deviates significantly from the Raft paper in that we don't actually
+send a continuous stream of heartbeats from the leader to the followers. Instead, we send
+a "virtual heartbeat stream"; we send a message when a server becomes leader and another
+when it ceases to be leader, and we rely on the underlying networking layer to detect if
+the connection has failed.
 
 The classes in this file are templatized on a types called `state_t`, which represents
 the state machine that the Raft cluster manages. Operations on the state machine are
@@ -452,10 +463,20 @@ public:
         signal_t *interruptor,
         raft_rpc_reply_t *reply_out) = 0;
 
-    /* `get_connected_members()` returns the set of all Raft members for which an RPC is
-    likely to succeed. The values in the map should always be `nullptr`; the only reason
-    it's a map at all is that we don't have a `watchable_set_t` type. */
-    virtual watchable_map_t<raft_member_id_t, empty_value_t>
+    /* `send_virtual_heartbeats()` sends a virtual continuous stream of heartbeat
+    messages to all other members. The stream is "virtual" in that it actually consists
+    of a single start message and a single stop message rather than repeated actual
+    messages. The other members can receive it by looking in `get_connected_members()`.
+    Calling `send_virtual_heartbeats()` with an empty `boost::optional` stops the stream.
+    */
+    virtual void send_virtual_heartbeats(
+        const boost::optional<raft_term_t> &term) = 0;
+
+    /* `get_connected_members()` has an entry for every Raft member that we think we're
+    currently connected to. If the member is sending virtual heartbeats, the values will
+    be the term it is sending heartbeats for; otherwise, the values will be empty
+    `boost::optional`s. */
+    virtual watchable_map_t<raft_member_id_t, boost::optional<raft_term_t> >
         *get_connected_members() = 0;
 
 protected:
@@ -479,11 +500,11 @@ public:
 
     ~raft_member_t();
 
-    /* Note that if a method on `raft_member_t` is interrupted, the `raft_member_t` will
-    be left in an undefined internal state. Therefore, the destructor should be called
-    after the interruptor has been pulsed. (However, even though the internal state
-    is undefined, the interrupted method call will not make invalid RPC calls or write
-    invalid data to persistent storage.) */
+    /* Note that if any public method on `raft_member_t` is interrupted, the
+    `raft_member_t` will be left in an undefined internal state. Therefore, the
+    destructor should be called after the interruptor has been pulsed. (However, even
+    though the internal state is undefined, the interrupted method call will not make
+    invalid RPC calls or write invalid data to persistent storage.) */
 
     /* `state_and_config_t` describes the Raft cluster's current state, configuration,
     and log index all in the same struct. The reason for putting them in the same struct
@@ -609,12 +630,14 @@ public:
         signal_t *interruptor,
         raft_rpc_reply_t *reply_out);
 
+#ifndef NDEBUG
     /* `check_invariants()` asserts that the given collection of Raft cluster members are
     in a valid, consistent state. This may block, because it needs to acquire each
     member's mutex, but it will not modify anything. Since this requires direct access to
     each member of the Raft cluster, it's only useful for testing. */
     static void check_invariants(
         const std::set<raft_member_t<state_t> *> &members);
+#endif
 
 private:
     enum class mode_t {
@@ -629,16 +652,6 @@ private:
     periods of unavailability when a master dies. */
     static const int32_t election_timeout_min_ms = 1000,
                          election_timeout_max_ms = 2000;
-
-    /* TODO: We should probably deviate from the Raft paper by using the network layer's
-    disconnect detection instead of timeouts to detect a dead leader. This will make
-    elections much faster and also make us less sensitive to timing. However, this will
-    involve adding a new RPC, for a master to inform followers that it is stepping down.
-    */
-
-    /* This is the amount of time the server waits between sending heartbeats. It should
-    be much shorter than the election timeout. */
-    static const int32_t heartbeat_interval_ms = 500;
 
     /* Note: Methods prefixed with `follower_`, `candidate_`, or `leader_` are methods
     that are only used when in that state. This convention will hopefully make the code
@@ -659,12 +672,30 @@ private:
         signal_t *interruptor,
         raft_rpc_reply_t::append_entries_t *reply_out);
 
+#ifndef NDEBUG
     /* Asserts that all of the invariants that can be checked locally hold true. This
     doesn't block or modify anything. It should be safe to call it at any time (except
     when in between modifying two variables that should remain consistent with each
     other, of course). In general we call it whenever we acquire or release the mutex,
     because we know that the variables should be consistent at those times. */
     void check_invariants(const new_mutex_acq_t *mutex_acq);
+#endif
+
+    /* `on_connected_members_change()` is called whenever the contents of
+    `network->get_connected_members()` changes. If we're a leader, we use it to run
+    `update_readiness_for_change()`. We also use it to check for higher terms in virtual
+    heartbeats. */
+    void on_connected_members_change(
+        const raft_member_id_t &member_id,
+        const boost::optional<raft_term_t> *value);
+
+    /* `on_rpc_from_leader()` is a helper function that we call in response to
+    AppendEntries RPCs, InstallSnapshot RPCs, and virtual heartbeats. It returns `true`
+    if the RPC is valid, and `false` if we should reject the RPC. */
+    bool on_rpc_from_leader(
+        const raft_member_id_t &request_leader_id,
+        raft_term_t request_term,
+        const new_mutex_acq_t *mutex_acq);
 
     /* `on_watchdog_timer()` is called periodically. If we're a follower and we haven't
     heard from a leader within the election timeout, it starts a new election by spawning
@@ -704,6 +735,10 @@ private:
     that are used to compute `readiness_for_change` or `readiness_for_config_change` are
     modified. */
     void update_readiness_for_change();
+
+    /* `effective_last_heard_from_leader()` returns the current time if we are receiving
+    valid virtual heartbeats from a leader, or `last_heard_from_leader` otherwise. */
+    microtime_t effective_last_heard_from_leader();
 
     /* `candidate_or_leader_become_follower()` moves us from the `candidate` or `leader`
     state to `follower` state. It kills `candidate_and_leader_coro()` and blocks until it
@@ -825,11 +860,21 @@ private:
     raft_member_id_t current_term_leader_id;
 
     /* `last_heard_from_candidate` and `last_heard_from_leader` are the times we last
-    received a message from a candidate or leader. When `on_watchdog_timer()` is deciding
-    whether or not to start a new election, it uses the later of the two. The reason they
-    are separate is because `on_request_vote_rpc()` should only disregard RPCs if it
-    hasn't heard from a leader recently, even if it has heard from a candidate. */
+    received a message from a candidate or leader, not counting virtual heartbeats.
+    `virtual_heartbeat_sender` is the member (if any) that is sending us valid virtual
+    heartbeats for `ps.current_term`. If we stop receiving valid virtual heartbeats we'll
+    update `last_heard_from_leader` to the time when they stopped.
+
+    When `on_watchdog_timer()` is deciding whether or not to start a new election, it
+    uses the latest of the `last_heard_*` or the current time if we are receiving valid
+    virtual heartbeats. The reason the `last_heard_*`s are separate is because
+    `on_request_vote_rpc()` should only disregard RPCs if it hasn't heard from a leader
+    recently, even if it has heard from a candidate.
+
+    `virtual_heartbeat_sender` will typically be the same as `current_term_leader_id`
+    unless `current_term_leader_id` is disconnected. */
     microtime_t last_heard_from_candidate, last_heard_from_leader;
+    raft_member_id_t virtual_heartbeat_sender;
 
     /* `match_indexes` corresponds to the `matchIndex` array described in Figure 2 of the
     Raft paper. Note that it is only used if we are the leader; if we are not the leader,
@@ -884,8 +929,8 @@ private:
 
     /* This calls `update_readiness_for_change()` whenever a peer connects or
     disconnects. */
-    scoped_ptr_t<watchable_map_t<raft_member_id_t, empty_value_t>::all_subs_t>
-        connected_members_subs;
+    scoped_ptr_t<watchable_map_t<raft_member_id_t, boost::optional<raft_term_t> >
+        ::all_subs_t> connected_members_subs;
 };
 
 #endif /* CLUSTERING_GENERIC_RAFT_CORE_HPP_ */

@@ -5,8 +5,8 @@
 #include <vector>
 
 #include "clustering/administration/issues/local.hpp"
-#include "clustering/administration/main/watchable_fields.hpp"
 #include "concurrency/watchable.hpp"
+#include "concurrency/watchable_transform.hpp"
 #include "containers/clone_ptr.hpp"
 #include "rpc/semilattice/joins/macros.hpp"
 #include "rpc/serialize_macros.hpp"
@@ -152,7 +152,7 @@ public:
                        std::vector<local_t> local_issues_t::*field) :
             copier(field, source, &parent->issues_watchable) { }
     private:
-        field_copier_t<std::vector<local_t>, local_issues_t> copier;
+        watchable_field_copier_t<std::vector<local_t>, local_issues_t> copier;
     };
 
 private:
