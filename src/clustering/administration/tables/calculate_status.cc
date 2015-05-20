@@ -217,6 +217,9 @@ void calculate_status(
     server_id_t latest_contracts_server_id;
     try {
         table_meta_client->get_config(table_id, interruptor, &config_and_shards);
+        server_names_out->names.insert(
+            config_and_shards.server_names.names.begin(),
+            config_and_shards.server_names.names.end());
         get_contracts_and_acks(
             table_id,
             interruptor,
