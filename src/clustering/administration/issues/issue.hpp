@@ -2,9 +2,10 @@
 #ifndef CLUSTERING_ADMINISTRATION_ISSUES_ISSUE_HPP_
 #define CLUSTERING_ADMINISTRATION_ISSUES_ISSUE_HPP_
 
-#include <vector>
+#include <numeric>
 #include <set>
 #include <string>
+#include <vector>
 
 #include "containers/scoped.hpp"
 #include "rpc/semilattice/view.hpp"

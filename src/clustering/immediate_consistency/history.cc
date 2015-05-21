@@ -131,7 +131,11 @@ region_map_t<version_t> version_find_common(
     std::stack<fragment_t> stack;
     std::vector<region_t> result_regions;
     std::vector<version_t> result_versions;
-    stack.push({initial_region, initial_v1, initial_v2, {}, {}});
+    fragment_t initial_fragment;
+    initial_fragment.r = initial_region;
+    initial_fragment.v1 = initial_v1;
+    initial_fragment.v2 = initial_v2;
+    stack.push(initial_fragment);
     while (!stack.empty()) {
         fragment_t x = stack.top();
         stack.pop();
