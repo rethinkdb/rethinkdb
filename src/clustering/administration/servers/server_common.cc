@@ -19,7 +19,7 @@ common_server_artificial_table_backend_t::common_server_artificial_table_backend
                 needs to be recomputed */
                 notify_row(convert_uuid_to_datum(md->server_id));
             }
-        }, false)
+        }, initial_call_t::NO)
 {
     directory->assert_thread();
     server_config_client->assert_thread();

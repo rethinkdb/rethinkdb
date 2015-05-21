@@ -30,12 +30,12 @@ directory_map_write_manager_t<key_t, value_t>::directory_map_write_manager_t(
             }
         },
         /* `on_connections_change()` will take care of sending initial messages */
-        false),
+        initial_call_t::NO),
     connections_subs(
         connectivity_cluster->get_connections(),
         std::bind(&directory_map_write_manager_t::on_connection_change,
             this, ph::_1, ph::_2),
-        true)
+        initial_call_t::YES)
 {
 }
 

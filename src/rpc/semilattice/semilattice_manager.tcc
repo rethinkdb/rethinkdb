@@ -32,7 +32,7 @@ semilattice_manager_t<metadata_t>::semilattice_manager_t(
     connection_change_subscription(
         get_connectivity_cluster()->get_connections(),
         std::bind(&semilattice_manager_t::on_connection_change, this, ph::_1, ph::_2),
-        false)
+        initial_call_t::NO)
 {
     guarantee(get_connectivity_cluster()->get_connections()->get_all().empty());
 }

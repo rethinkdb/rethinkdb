@@ -8,11 +8,11 @@ template<class key_t, class value_t>
 watchable_map_t<key_t, value_t>::all_subs_t::all_subs_t(
         watchable_map_t<key_t, value_t> *map,
         const std::function<void(const key_t &key, const value_t *maybe_value)> &cb,
-        bool initial_call) :
+        initial_call_t initial_call) :
         subscription(cb) {
     rwi_lock_assertion_t::read_acq_t acq(map->get_rwi_lock());
     subscription.reset(map->all_subs_publisher.get_publisher());
-    if (initial_call) {
+    if (initial_call == initial_call_t::YES) {
         map->read_all(cb);
     }
 }
@@ -22,9 +22,9 @@ watchable_map_t<key_t, value_t>::key_subs_t::key_subs_t(
         watchable_map_t<key_t, value_t> *map,
         const key_t &key,
         const std::function<void(const value_t *maybe_value)> &cb,
-        bool initial_call) :
+        initial_call_t initial_call) :
         sentry(&map->key_subs_map, key, cb) {
-    if (initial_call) {
+    if (initial_call == initial_call_t::YES) {
         map->read_key(key, cb);
     }
 }
@@ -42,7 +42,7 @@ void watchable_map_t<key_t, value_t>::run_key_until_satisfied(
             if (fun(new_value)) {
                 ok.pulse_if_not_already_pulsed();
             }
-        }, true);
+        }, initial_call_t::YES);
     wait_interruptible(&ok, interruptor);
 }
 
@@ -59,7 +59,7 @@ void watchable_map_t<key_t, value_t>::run_all_until_satisfied(
                 notify->pulse_if_not_already_pulsed();
             }
         },
-        false);
+        initial_call_t::NO);
     while (true) {
         cond_t cond;
         assignment_sentry_t<cond_t *> sentry(&notify, &cond);

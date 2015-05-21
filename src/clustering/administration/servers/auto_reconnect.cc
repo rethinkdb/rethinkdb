@@ -19,11 +19,11 @@ auto_reconnector_t::auto_reconnector_t(
     server_id_subs(
         server_config_client->get_peer_to_server_map(),
         std::bind(&auto_reconnector_t::on_connect_or_disconnect, this, ph::_1),
-        false),
+        initial_call_t::NO),
     connection_subs(
         connectivity_cluster->get_connections(),
         std::bind(&auto_reconnector_t::on_connect_or_disconnect, this, ph::_1),
-        true)
+        initial_call_t::YES)
     { }
 
 void auto_reconnector_t::on_connect_or_disconnect(const peer_id_t &peer_id) {
@@ -60,7 +60,7 @@ void auto_reconnector_t::try_reconnect(const server_id_t &server,
                 reconnected.pulse_if_not_already_pulsed();
             }
         },
-        true);
+        initial_call_t::YES);
 
     wait_any_t interruptor(&reconnected, keepalive.get_drain_signal());
 

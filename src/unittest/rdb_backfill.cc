@@ -90,13 +90,13 @@ private:
                 std::string(value_padding_length, 'a'))));
             write = write_t(
                     point_write_t(store_key_t(key), std::move(doc).to_datum(), true),
-                    DURABILITY_REQUIREMENT_DEFAULT,
+                    DURABILITY_REQUIREMENT_SOFT,
                     profile_bool_t::PROFILE,
                     ql::configured_limits_t());
         } else {
             write = write_t(
                     point_delete_t(store_key_t(key)),
-                    DURABILITY_REQUIREMENT_DEFAULT,
+                    DURABILITY_REQUIREMENT_SOFT,
                     profile_bool_t::PROFILE,
                     ql::configured_limits_t());
         }

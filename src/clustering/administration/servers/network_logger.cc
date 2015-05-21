@@ -12,7 +12,7 @@ network_logger_t::network_logger_t(
     directory_subscription(
         directory_view,
         std::bind(&network_logger_t::on_change, this, ph::_1, ph::_2),
-        true)
+        initial_call_t::YES)
     { }
 
 void network_logger_t::on_change(

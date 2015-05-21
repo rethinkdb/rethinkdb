@@ -25,7 +25,7 @@ directory_write_manager_t<metadata_t>::directory_write_manager_t(
     connections_change_subscription(connectivity_cluster->get_connections(),
         std::bind(&directory_write_manager_t::on_connection_change,
             this, ph::_1, ph::_2),
-        true)
+        initial_call_t::YES)
 {
     typename watchable_t<metadata_t>::freeze_t value_freeze(value);
     value_change_subscription.reset(value, &value_freeze);

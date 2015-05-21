@@ -12,12 +12,12 @@ server_config_client_t::server_config_client_t(
     directory_subs(
         directory_view,
         std::bind(&server_config_client_t::on_directory_change, this, ph::_1, ph::_2),
-        true),
+        initial_call_t::YES),
     peer_connections_map_subs(
         peer_connections_map,
         std::bind(&server_config_client_t::on_peer_connections_map_change,
             this, ph::_1, ph::_2),
-        true)
+        initial_call_t::YES)
     { }
 
 bool server_config_client_t::set_config(

@@ -29,7 +29,7 @@ server_status_artificial_table_backend_t::server_status_artificial_table_backend
                     connect_times.insert(std::make_pair(peer, current_microtime()));
                 }
             }
-        }, true)
+        }, initial_call_t::YES)
     { }
 
 server_status_artificial_table_backend_t::~server_status_artificial_table_backend_t() {
