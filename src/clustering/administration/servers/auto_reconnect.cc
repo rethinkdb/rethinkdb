@@ -21,7 +21,7 @@ auto_reconnector_t::auto_reconnector_t(
     connection_subs(
         connectivity_cluster->get_connections(),
         std::bind(&auto_reconnector_t::on_connect_or_disconnect, this),
-        false)
+        initial_call_t::NO)
 {
     watchable_t<change_tracking_map_t<peer_id_t, server_id_t> >::freeze_t freeze(
         server_id_translation_table);

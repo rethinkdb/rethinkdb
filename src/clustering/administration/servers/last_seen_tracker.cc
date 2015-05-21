@@ -9,7 +9,7 @@ last_seen_tracker_t::last_seen_tracker_t(
     servers_view_subs(std::bind(
         &last_seen_tracker_t::update, this, false), servers_view),
     directory_subs(directory, std::bind(
-        &last_seen_tracker_t::update, this, false), false) {
+        &last_seen_tracker_t::update, this, false), initial_call_t::NO) {
     update(true);
 }
 

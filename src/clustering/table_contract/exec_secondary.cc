@@ -132,7 +132,7 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
                             primary_no_more_bcard.pulse();
                         }
                     }
-                }, true);
+                }, initial_call_t::YES);
 
             /* Wait until we see a primary */
             wait_interruptible(

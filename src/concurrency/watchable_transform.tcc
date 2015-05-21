@@ -21,7 +21,7 @@ watchable_map_transform_t<key1_t, value1_t, key2_t, value2_t>::watchable_map_tra
                     this->do_notify_change(key2, nullptr, &write_acq);
                 }
             }
-        }, false)
+        }, initial_call_t::NO)
     { }
 
 template<class key1_t, class value1_t, class key2_t, class value2_t>
@@ -109,7 +109,7 @@ clone_ptr_t<watchable_t<boost::optional<value_t> > > get_watchable_for_key(
                      rwi_lock_assertion_t::write_acq_t acq(&(this->rwi_lock));
                     publisher.publish([](const std::function<void()> &f) { f(); });
                 },
-                false)
+                initial_call_t::NO)
             { }
         w_t *clone() const {
             return new w_t(map, key);
@@ -168,7 +168,9 @@ watchable_map_combiner_t<tag_t, key_t, value_t>::source_t::source_t(
         watchable_map_t<key_t, value_t> *inner) :
     parent(_parent),
     sentry(&parent->map, tag, inner),
-    subs(inner, std::bind(&source_t::on_change, this, ph::_1, ph::_2), true)
+    subs(inner,
+        std::bind(&source_t::on_change, this, ph::_1, ph::_2),
+        initial_call_t::YES)
     { }
 
 template<class tag_t, class key_t, class value_t>

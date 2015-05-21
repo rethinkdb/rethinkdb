@@ -11,7 +11,7 @@ network_logger_t::network_logger_t(
     us(our_peer_id),
     directory_view(dv), semilattice_view(sv),
     directory_subscription(directory_view,
-        std::bind(&network_logger_t::on_change, this), false),
+        std::bind(&network_logger_t::on_change, this), initial_call_t::NO),
     semilattice_subscription(
         std::bind(&network_logger_t::on_change, this), semilattice_view)
 {

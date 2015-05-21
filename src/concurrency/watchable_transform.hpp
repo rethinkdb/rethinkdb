@@ -138,7 +138,7 @@ public:
                 });
             },
             inner,
-            true)
+            initial_call_t::YES)
         { }
 
 private:

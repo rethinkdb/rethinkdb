@@ -20,7 +20,7 @@ table_query_client_t::table_query_client_t(
       subs(directory,
         std::bind(&table_query_client_t::update_registrant,
             this, ph::_1, ph::_2),
-        true) {
+        initial_call_t::YES) {
     rassert(ctx != NULL);
     starting_up = false;
     if (start_count == 0) {
