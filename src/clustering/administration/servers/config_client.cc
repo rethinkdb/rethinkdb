@@ -151,6 +151,7 @@ void server_config_client_t::on_directory_change(
             }
         }
         peer_to_server_map.delete_key(peer_id);
+        server_to_peer_map.delete_key(*server_id);
         peer_connections_map->read_all(
             [&](const std::pair<peer_id_t, server_id_t> &pair, const empty_value_t *) {
                 if (pair.first == peer_id) {
