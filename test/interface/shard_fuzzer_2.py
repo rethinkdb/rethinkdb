@@ -60,13 +60,13 @@ with driver.Cluster(initial_servers=server_names, output_folder='.', command_pre
         shards = make_config_shards(phase)
         res = r.table("test").config().update({"shards": shards}).run(conn)
         assert res["replaced"] == 1 or res["unchanged"] == 1, res
+        time.sleep(1)   # work around issue #4265
         print("Waiting for table to become ready (%.2fs)" % (time.time() - startTime))
-        res = r.table("test").wait(wait_for = "all_replicas_ready").run(conn)
+        res = r.table("test").wait(wait_for = "all_replicas_ready", timeout = 600).run(conn)
         assert res["ready"] == 1, res
-        print(r.table("test").config().run(conn))
         for config_shard, status_shard in \
                 zip(shards, res["status_changes"][0]["new_val"]["shards"]):
-            print(config_shard, status_shard)
+            # make sure issue #4265 didn't happen
             assert status_shard["primary_replicas"] == [config_shard["primary_replica"]]
 
     print("Cleaning up (%.2fs)" % (time.time() - startTime))
