@@ -3,6 +3,7 @@ table_variable_name: tbl
 tests:
     - cd: tbl.index_create('a')
       ot: partial({'created':1})
+    - cd: tbl.index_wait('a')
 
     - py: feed = tbl.order_by(index='a').limit(10).changes(squash=2).limit(9)
       rb: feed = tbl.orderby(index:'a').limit(10).changes(squash:2).limit(9)
