@@ -686,7 +686,7 @@ void raft_member_t<state_t>::check_invariants(
             "There shouldn't be any log entries in term 0.");
         guarantee(ps.log.get_entry_ref(i).term >= latest_term_in_log,
             "Terms of log entries should monotonically increase");
-        raft_log_entry_t<state_t> entry = ps.log.get_entry_ref(i);
+        const raft_log_entry_t<state_t> &entry = ps.log.get_entry_ref(i);
         latest_term_in_log = entry.term;
 
         switch (entry.type) {
@@ -718,7 +718,7 @@ void raft_member_t<state_t>::check_invariants(
     /* Checks related to reconfigurations */
     size_t uncommitted_config_1s = 0, uncommitted_config_2s = 0;
     for (raft_log_index_t i = commit_index + 1; i <= ps.log.get_latest_index(); ++i) {
-        raft_log_entry_t<state_t> entry = ps.log.get_entry_ref(i);
+        const raft_log_entry_t<state_t> &entry = ps.log.get_entry_ref(i);
         if (entry.type == raft_log_entry_type_t::config) {
             if (entry.config->is_joint_consensus()) {
                 ++uncommitted_config_1s;
@@ -744,6 +744,8 @@ void raft_member_t<state_t>::check_invariants(
         "snapshot should be committed.");
     guarantee(commit_index <= ps.log.get_latest_index(), "We shouldn't have committed "
         "any entries that aren't in the log yet.");
+#ifdef ENABLE_RAFT_DEBUG
+    /* This is potentially really slow, so we normally disable it. */
     {
         state_and_config_t s(ps.log.prev_index, ps.snapshot_state, ps.snapshot_config);
         apply_log_entries(&s, ps.log, ps.log.prev_index + 1, commit_index);
@@ -759,6 +761,7 @@ void raft_member_t<state_t>::check_invariants(
         guarantee(s.config == latest_state.get_ref().config);
         guarantee(s.log_index == latest_state.get_ref().log_index);
     }
+#endif /* ENABLE_RAFT_DEBUG */
     /* This is a properties that this implementation follows, but it isn't essential
     to Raft, and it would be totally reasonable to change it for performance reasons or
     something. */
