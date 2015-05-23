@@ -49,8 +49,14 @@ with driver.Cluster(initial_servers=server_names, output_folder='.', command_pre
     print("Setting up table (%.2fs)" % (time.time() - startTime))
     res = r.db_create("test").run(conn)
     assert res["dbs_created"] == 1, res
-    res = r.table_create("test").run(conn)
-    assert res["tables_created"] == 1, res
+    res = r.db("rethinkdb").table("table_config").insert({
+        "name": "test",
+        "db": "test",
+        "shards": [{"primary_replica": "a", "replicas": ["a"]}]
+        }).run(conn)
+    assert res["inserted"] == 1, res
+    res = r.table("test").wait().run(conn)
+    assert res["ready"] == 1, res
     res = r.table("test").insert(
         r.range(0, parsed_opts["num-rows"]).map({"x": r.row})).run(conn)
     assert res["inserted"] == parsed_opts["num-rows"], res
