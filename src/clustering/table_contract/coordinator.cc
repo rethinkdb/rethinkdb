@@ -414,6 +414,16 @@ void calculate_all_contracts(
 
     ASSERT_FINITE_CORO_WAITING;
 
+    /* Construct an index of `acks` by contract ID to improve performance. This relies on
+    `acks` not changing, which is a safe assumption because we don't block. */
+    std::multimap<contract_id_t,
+        std::pair<server_id_t, const contract_ack_t *>> acks_by_contract;
+    acks->read_all(
+    [&](const std::pair<server_id_t, contract_id_t> &key, const contract_ack_t *ack) {
+        acks_by_contract.insert(
+            std::make_pair(key.second, std::make_pair(key.first, ack)));
+    });
+
     std::vector<region_t> new_contract_region_vector;
     std::vector<contract_t> new_contract_vector;
 
@@ -437,25 +447,22 @@ void calculate_all_contracts(
             */
             region_map_t<std::map<server_id_t, contract_ack_frag_t> > frags_by_server(
                 region);
-            acks->read_all([&](
-                    const std::pair<server_id_t, contract_id_t> &key,
-                    const contract_ack_t *value) {
-                if (key.second != cpair.first) {
-                    return;
-                }
+            auto end = acks_by_contract.upper_bound(cpair.first);
+            for (auto it = acks_by_contract.lower_bound(cpair.first); it != end; ++it) {
                 region_map_t<contract_ack_frag_t> frags = break_ack_into_fragments(
-                    region, *value, cpair.second.second.branch,
+                    region, *it->second.second, cpair.second.second.branch,
                     &old_state.branch_history);
                 frags.visit(region,
                 [&](const region_t &reg, const contract_ack_frag_t &frag) {
                     frags_by_server.visit_mutable(reg,
                     [&](const region_t &,
                             std::map<server_id_t, contract_ack_frag_t> *acks_map) {
-                        auto res = acks_map->insert(std::make_pair(key.first, frag));
+                        auto res = acks_map->insert(
+                            std::make_pair(it->second.first, frag));
                         guarantee(res.second);
                     });
                 });
-            });
+            }
             size_t subshard_index = 0;
             frags_by_server.visit(region,
             [&](const region_t &reg,

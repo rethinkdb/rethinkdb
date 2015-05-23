@@ -173,7 +173,7 @@ bool table_status_artificial_table_backend_t::write_row(
 
 // These numbers are equal to those in `index_wait`.
 uint32_t initial_poll_ms = 50;
-uint32_t max_poll_ms = 10000;
+uint32_t max_poll_ms = 3000;   // RSI(raft): Change this back to 10000
 
 table_wait_result_t wait_for_table_readiness(
         const namespace_id_t &table_id,
