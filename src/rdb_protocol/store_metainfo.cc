@@ -46,13 +46,6 @@ void store_metainfo_manager_t::update(
         const region_map_t<binary_blob_t> &new_values) {
     cache.update(new_values);
 
-    // Clear the existing metainfo. This makes sure that we completely rewrite
-    // the metainfo. That avoids two issues:
-    // - `set_superblock_metainfo()` wouldn't remove any deleted keys
-    // - `set_superblock_metainfo()` is more efficient if we don't do any
-    //   in-place updates in its current implementation.
-    clear_superblock_metainfo(superblock);
-
     std::vector<std::vector<char> > keys;
     std::vector<binary_blob_t> values;
     cache.visit(region_t::universe(),
