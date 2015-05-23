@@ -69,15 +69,15 @@ public:
         store_view->new_write_token(token_out);
     }
 
-    void do_get_metainfo(order_token_t order_token,
-                         read_token_t *token,
-                         signal_t *interruptor,
-                         region_map_t<binary_blob_t> *out)
+    region_map_t<binary_blob_t> get_metainfo(
+            order_token_t order_token,
+            read_token_t *token,
+            const region_t &region,
+            signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
-        region_map_t<binary_blob_t> tmp;
-        store_view->do_get_metainfo(order_token, token, interruptor, &tmp);
-        *out = tmp.mask(get_region());
+        rassert(region_is_superset(get_region(), region));
+        return store_view->get_metainfo(order_token, token, region, interruptor);
     }
 
     void set_metainfo(const region_map_t<binary_blob_t> &new_metainfo,
@@ -99,7 +99,7 @@ public:
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
-        rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
+        rassert(region_is_superset(get_region(), metainfo_checker.region));
 
         store_view->read(DEBUG_ONLY(metainfo_checker, ) read, response, token,
             interruptor);
@@ -117,7 +117,7 @@ public:
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
-        rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
+        rassert(region_is_superset(get_region(), metainfo_checker.region));
         rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 
         store_view->write(DEBUG_ONLY(metainfo_checker, ) new_metainfo, write, response,

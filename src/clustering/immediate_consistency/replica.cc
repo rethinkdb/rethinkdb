@@ -3,27 +3,6 @@
 
 #include "store_view.hpp"
 
-#ifndef NDEBUG
-struct version_leq_metainfo_checker_callback_t : public metainfo_checker_callback_t {
-public:
-    explicit version_leq_metainfo_checker_callback_t(const state_timestamp_t& tstamp) :
-        tstamp_(tstamp) { }
-
-    void check_metainfo(
-            const region_map_t<binary_blob_t> &metainfo, 
-            const region_t& region) const {
-        metainfo.visit(region, [&](const region_t &, const binary_blob_t &b) { 
-            guarantee(binary_blob_t::get<version_t>(b).timestamp <= tstamp_);
-        });
-    }
-
-private:
-    state_timestamp_t tstamp_;
-
-    DISABLE_COPYING(version_leq_metainfo_checker_callback_t);
-};
-#endif // NDEBUG
-
 replica_t::replica_t(
         mailbox_manager_t *_mailbox_manager,
         store_view_t *_store,
@@ -56,9 +35,8 @@ void replica_t::do_read(
     read_token_t read_token;
 
 #ifndef NDEBUG
-    trivial_metainfo_checker_callback_t metainfo_checker_callback;
-    metainfo_checker_t metainfo_checker(
-        &metainfo_checker_callback, store->get_region());
+    metainfo_checker_t metainfo_checker(store->get_region(),
+        [](const region_t &, const binary_blob_t &) { });
 #endif
 
     // Perform the operation
@@ -96,8 +74,10 @@ void replica_t::do_write(
     }
 
 #ifndef NDEBUG
-    version_leq_metainfo_checker_callback_t metainfo_checker_callback(timestamp.pred());
-    metainfo_checker_t metainfo_checker(&metainfo_checker_callback, store->get_region());
+    metainfo_checker_t metainfo_checker(store->get_region(),
+        [&](const region_t &, const binary_blob_t &bb) {
+            rassert(binary_blob_t::get<version_t>(bb).timestamp <= timestamp.pred());
+        });
 #endif
 
     // Perform the operation

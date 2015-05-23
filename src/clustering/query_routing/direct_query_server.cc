@@ -27,8 +27,8 @@ void direct_query_server_t::on_read(
         read_token_t token;
 
 #ifndef NDEBUG
-        trivial_metainfo_checker_callback_t metainfo_checker_callback;
-        metainfo_checker_t metainfo_checker(&metainfo_checker_callback, svs->get_region());
+        metainfo_checker_t metainfo_checker(svs->get_region(),
+            [](const region_t &, const binary_blob_t &) { });
 #endif
 
         read_response_t response;

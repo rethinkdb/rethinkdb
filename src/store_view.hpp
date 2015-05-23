@@ -9,63 +9,14 @@ class backfill_pre_item_t;
 
 #ifndef NDEBUG
 // Checks that the metainfo has a certain value, or certain kind of value.
-class metainfo_checker_callback_t {
-public:
-    virtual void check_metainfo(const region_map_t<binary_blob_t>& metainfo,
-                                const region_t& domain) const = 0;
-protected:
-    metainfo_checker_callback_t() { }
-    virtual ~metainfo_checker_callback_t() { }
-private:
-    DISABLE_COPYING(metainfo_checker_callback_t);
-};
-
-struct trivial_metainfo_checker_callback_t : public metainfo_checker_callback_t {
-
-    trivial_metainfo_checker_callback_t() { }
-    void check_metainfo(UNUSED const region_map_t<binary_blob_t>& metainfo, UNUSED const region_t& region) const {
-        /* do nothing */
-    }
-
-private:
-    DISABLE_COPYING(trivial_metainfo_checker_callback_t);
-};
-
-struct equality_metainfo_checker_callback_t : public metainfo_checker_callback_t {
-    explicit equality_metainfo_checker_callback_t(const binary_blob_t& expected_value)
-        : value_(expected_value) { }
-
-    void check_metainfo(const region_map_t<binary_blob_t>& metainfo, const region_t& region) const {
-        metainfo.visit(region, [&](const region_t &, const binary_blob_t &actual) {
-            rassert(actual == value_);
-        });
-    }
-
-private:
-    const binary_blob_t value_;
-
-    DISABLE_COPYING(equality_metainfo_checker_callback_t);
-};
-
 class metainfo_checker_t {
 public:
-    metainfo_checker_t(const metainfo_checker_callback_t *callback,
-                       const region_t& region) : callback_(callback), region_(region) { }
-
-    void check_metainfo(const region_map_t<binary_blob_t>& metainfo) const {
-        callback_->check_metainfo(metainfo, region_);
-    }
-    const region_t& get_domain() const { return region_; }
-    const metainfo_checker_t mask(const region_t& region) const {
-        return metainfo_checker_t(callback_, region_intersection(region, region_));
-    }
-
-private:
-    const metainfo_checker_callback_t *const callback_;
-    const region_t region_;
-
-    // This _is_ copyable because of mask, but all copies' lifetimes
-    // are limited by that of callback_.
+    metainfo_checker_t(
+            const region_t &r,
+            const std::function<void(const region_t &, const binary_blob_t &)> &cb) :
+        region(r), callback(cb) { }
+    region_t region;
+    std::function<void(const region_t &, const binary_blob_t &)> callback;
 };
 
 #endif  // NDEBUG
@@ -104,20 +55,21 @@ public:
     virtual void new_read_token(read_token_t *token_out) = 0;
     virtual void new_write_token(write_token_t *token_out) = 0;
 
-    /* Gets the metainfo. The return value will cover the same region as `get_region()`.
-    */
-    virtual void do_get_metainfo(order_token_t order_token,
-                                 read_token_t *token,
-                                 signal_t *interruptor,
-                                 region_map_t<binary_blob_t> *out)
+    /* Gets the metainfo. */
+    virtual region_map_t<binary_blob_t> get_metainfo(
+            order_token_t order_token,
+            read_token_t *token,
+            const region_t &region,
+            signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) = 0;
 
-    /* Replaces the metainfo over the view's entire range with the given metainfo. */
-    virtual void set_metainfo(const region_map_t<binary_blob_t> &new_metainfo,
-                              order_token_t order_token,
-                              write_token_t *token,
-                              write_durability_t durability,
-                              signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
+    /* Replaces the metainfo in `new_metainfo`'s domain with `new_metainfo`. */
+    virtual void set_metainfo(
+            const region_map_t<binary_blob_t> &new_metainfo,
+            order_token_t order_token,
+            write_token_t *token,
+            write_durability_t durability,
+            signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
 
     /* Performs a read. The read's region must be a subset of the store's region. */
     virtual void read(
@@ -127,7 +79,6 @@ public:
             read_token_t *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
-
 
     /* Performs a write. `new_metainfo`'s region must be a subset of the store's region,
     and the write's region must be a subset of `new_metainfo`'s region. */

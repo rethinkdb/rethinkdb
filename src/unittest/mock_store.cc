@@ -37,8 +37,8 @@ std::string mock_parse_read_response(const read_response_t &rr) {
 
 std::string mock_lookup(store_view_t *store, std::string key) {
 #ifndef NDEBUG
-    trivial_metainfo_checker_callback_t checker_cb;
-    metainfo_checker_t checker(&checker_cb, store->get_region());
+    metainfo_checker_t checker(store->get_region(),
+        [](const region_t &, const binary_blob_t &) { });
 #endif
     read_token_t token;
     store->new_read_token(&token);
@@ -72,10 +72,11 @@ void mock_store_t::new_write_token(write_token_t *token_out) {
     token_out->main_write_token.create(&token_sink_, token);
 }
 
-void mock_store_t::do_get_metainfo(order_token_t order_token,
-                                   read_token_t *token,
-                                   signal_t *interruptor,
-                                   region_map_t<binary_blob_t> *out)
+region_map_t<binary_blob_t> mock_store_t::get_metainfo(
+        order_token_t order_token,
+        read_token_t *token,
+        const region_t &region,
+        signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(&token->main_read_token);
@@ -87,8 +88,7 @@ void mock_store_t::do_get_metainfo(order_token_t order_token,
     if (rng_.randint(2) == 0) {
         nap(rng_.randint(10), interruptor);
     }
-    region_map_t<binary_blob_t> res = metainfo_.mask(get_region());
-    *out = res;
+    return metainfo_.mask(region);
 }
 
 void mock_store_t::set_metainfo(const region_map_t<binary_blob_t> &new_metainfo,
@@ -121,7 +121,7 @@ void mock_store_t::read(
         read_token_t *token,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
-    rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
+    rassert(region_is_superset(get_region(), metainfo_checker.region));
     rassert(region_is_superset(get_region(), read.get_region()));
 
     {
@@ -133,7 +133,7 @@ void mock_store_t::read(
         }
 
 #ifndef NDEBUG
-        metainfo_checker.check_metainfo(metainfo_.mask(metainfo_checker.get_domain()));
+        metainfo_.visit(metainfo_checker.region, metainfo_checker.callback);
 #endif
 
         if (rng_.randint(2) == 0) {
@@ -170,7 +170,7 @@ void mock_store_t::write(
         write_token_t *token,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
-    rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
+    rassert(region_is_superset(get_region(), metainfo_checker.region));
     rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
     rassert(region_is_superset(get_region(), write.get_region()));
 
@@ -181,9 +181,8 @@ void mock_store_t::write(
 
         order_sink_.check_out(order_token);
 
-        rassert(metainfo_checker.get_domain() == metainfo_.mask(metainfo_checker.get_domain()).get_domain());
 #ifndef NDEBUG
-        metainfo_checker.check_metainfo(metainfo_.mask(metainfo_checker.get_domain()));
+        metainfo_.visit(metainfo_checker.region, metainfo_checker.callback);
 #endif
 
         if (rng_.randint(2) == 0) {

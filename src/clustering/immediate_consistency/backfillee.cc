@@ -334,12 +334,11 @@ backfillee_t::backfillee_t(
     /* Fetch the `initial_version` and `initial_version_history` fields for the
     `intro_1_t` that we'll send to the backfiller */
     {
-        region_map_t<binary_blob_t> initial_state_blob;
         read_token_t read_token;
         store->new_read_token(&read_token);
-        store->do_get_metainfo(order_token_t::ignore.with_read_mode(), &read_token,
-            interruptor, &initial_state_blob);
-        our_intro.initial_version = to_version_map(initial_state_blob);
+        our_intro.initial_version = to_version_map(store->get_metainfo(
+            order_token_t::ignore.with_read_mode(), &read_token, store->get_region(),
+            interruptor));
     }
     {
         on_thread_t thread_switcher(branch_history_manager->home_thread());

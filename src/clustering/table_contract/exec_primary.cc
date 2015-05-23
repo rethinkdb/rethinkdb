@@ -93,16 +93,13 @@ void primary_execution_t::run(auto_drainer_t::lock_t keepalive) {
         /* Create the `primary_dispatcher_t`, establishing our branch in the process. */
         on_thread_t thread_switcher_1(store->home_thread());
 
-        region_map_t<binary_blob_t> blobs;
         read_token_t token;
         store->new_read_token(&token);
-        store->do_get_metainfo(
-            order_source.check_in("primary_t").with_read_mode(), &token,
-            &interruptor_store_thread, &blobs);
+        region_map_t<version_t> initial_version = to_version_map(store->get_metainfo(
+            order_source.check_in("primary_t").with_read_mode(),
+            &token, region, &interruptor_store_thread));
 
-        primary_dispatcher_t primary_dispatcher(
-            perfmon_collection,
-            to_version_map(blobs));
+        primary_dispatcher_t primary_dispatcher(perfmon_collection, initial_version);
 
         on_thread_t thread_switcher_2(home_thread());
 
