@@ -486,7 +486,7 @@ module 'DataExplorerView', ->
 
             parents = {}
             returns = []
-            for pair in command.io
+            for pair in command.io ? []
                 parent_values = if (pair[0] == null) then '' else pair[0]
                 return_values = pair[1]
 
