@@ -140,10 +140,6 @@ tests:
     - cd: r.expr('foo').do(r.js('(function(x) { return x + "bar"; })'))
       ot: "'foobar'"
 
-    # should accept function argument in JS driver
-    - js: r.expr('foo').do(r.js(function(x) { return x + "bar"; }))
-      ot: "'foobar'"
-
     # js timeout optarg shouldn't be triggered
     - py: r.js('1 + 2', timeout=1.2)
       js: r.js('1 + 2', {timeout:1.2})
