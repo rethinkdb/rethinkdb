@@ -279,10 +279,9 @@ class Driver
                                     primary_state: shard('replicas').filter(
                                         server: primary_name,
                                         {default: r.error()}
-                                    )('state')(0).default('missing')
+                                    )('state')(0).default('disconnected')
                             ).filter((shard) ->
-                                r.expr(['ready', 'looking_for_primary_replica'])
-                                    .contains(shard('primary_state')).not()
+                                shard('primary_state').ne('ready')
                             ).coerceTo('array')
                         ).filter((table) -> table('shards').isEmpty().not())
                         .coerceTo('array')
@@ -318,7 +317,7 @@ class Driver
 
         num_connected_primaries: (table_status=driver.admin().table_status) ->
             table_status.map((table) ->
-                table('shards')('primary_replica').count((primary) -> primary.ne(null))
+                table('shards')('primary_replicas').count((arr) -> arr.isEmpty().not())
             ).sum()
 
         num_replicas: (table_config_id=driver.admin().table_config_id) ->
@@ -348,7 +347,7 @@ class Driver
 
         num_disconnected_tables: (table_status=driver.admin().table_status) ->
             table_status.count((table) ->
-                shard_is_down = (shard) -> shard('primary_replica').eq(null)
+                shard_is_down = (shard) -> shard('primary_replicas').isEmpty().not()
                 table('shards').map(shard_is_down).contains(true)
             )
 
