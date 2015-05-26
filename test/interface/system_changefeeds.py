@@ -97,7 +97,7 @@ with driver.Metacluster() as metacluster:
     assert res["tables_created"] == 1, res
     res = r.table_create("test2", replicas={"b_tag": 1}, primary_replica_tag="b_tag").run(conn)
     assert res["tables_created"] == 1, res
-    check(["table_config", "table_status"], 1.0)
+    check(["table_config", "table_status", "logs"], 1.0)
 
     feeds["test_config"] = AsyncChangefeed(proc1.host, proc1.driver_port,
         "r.table('test').config()")
