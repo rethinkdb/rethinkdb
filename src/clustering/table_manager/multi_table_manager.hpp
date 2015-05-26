@@ -114,7 +114,34 @@ public:
         return &table_basic_configs;
     }
 
-private:
+    table_persistence_interface_t *get_persistence_interface() const {
+        return persistence_interface;
+    }
+
+    /* Calls `callable` for each table, it must have a signature of:
+           void(const namespace_id_t &table_id, const table_t &table)
+     */
+    template <typename F>
+    void visit_tables(signal_t *interruptor, const F &callable) {
+        /* Fetch information for all tables that we know about. First we get in line for
+        each mutex, then we release the global mutex assertion, then we wait for each
+        mutex to be ready and copy out its data. */
+        mutex_assertion_t::acq_t global_mutex_acq(&mutex);
+        std::map<namespace_id_t, scoped_ptr_t<new_mutex_in_line_t> >
+            table_mutex_in_lines;
+        for (const auto &pair : tables) {
+            table_mutex_in_lines[pair.first] =
+                make_scoped<new_mutex_in_line_t>(&pair.second->mutex);
+        }
+        global_mutex_acq.reset();
+        for (const auto &pair : table_mutex_in_lines) {
+            wait_interruptible(pair.second->acq_signal(), interruptor);
+            auto it = tables.find(pair.first);
+            guarantee(it != tables.end());
+            callable(pair.first, *(it->second));
+        }
+    }
+
     /* The `multi_table_manager_t` has four possible states with respect to a table:
 
     1. We've never heard of the table. In this case, we don't have any records for the
@@ -229,6 +256,7 @@ private:
         `basic_configs_entry` through a `table_t *`. */
     };
 
+private:
     void on_table_manager_directory_change(
         const std::pair<peer_id_t, namespace_id_t> &key,
         const table_manager_bcard_t &value);

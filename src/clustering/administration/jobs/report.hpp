@@ -110,7 +110,8 @@ public:
             namespace_id_t const &table,
             std::string const &index,
             bool is_ready,
-            double progress);
+            double progress_numerator,
+            double progress_denominator);
 
     void merge_derived(index_construction_job_report_t const &job_report);
 

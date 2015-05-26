@@ -8,6 +8,7 @@
 class cache_balancer_t;
 class metadata_file_t;
 class outdated_index_issue_tracker_t;
+class real_multistore_ptr_t;
 
 class real_table_persistence_interface_t :
     public table_persistence_interface_t {
@@ -56,6 +57,8 @@ public:
         scoped_ptr_t<multistore_ptr_t> *multistore_ptr_in,
         signal_t *interruptor);
 
+    bool is_gc_active() const;
+
 private:
     serializer_filepath_t file_name_for(const namespace_id_t &table_id);
     threadnum_t pick_thread();
@@ -66,6 +69,10 @@ private:
     outdated_index_issue_tracker_t * const outdated_index_issue_tracker;
     rdb_context_t * const rdb_context;
     metadata_file_t * const metadata_file;
+
+    std::map<
+        namespace_id_t, std::pair<real_multistore_ptr_t *, auto_drainer_t::lock_t>
+    > real_multistores;
 
     /* `pick_thread()` uses this to distribute objects evenly over threads */
     int thread_counter;

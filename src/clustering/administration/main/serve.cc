@@ -150,9 +150,6 @@ bool do_serve(io_backender_t *io_backender,
             directory_read_manager.get_root_map_view(),
             server_connection_read_manager.get_root_view());
 
-        jobs_manager_t jobs_manager(&mailbox_manager, server_id, &server_config_client);
-        stat_manager_t stat_manager(&mailbox_manager, server_id);
-
         network_logger_t network_logger(
             connectivity_cluster.get_me(),
             directory_read_manager.get_root_map_view());
@@ -204,8 +201,6 @@ bool do_serve(io_backender_t *io_backender,
                               semilattice_manager_auth.get_root_view(),
                               &get_global_perfmon_collection(),
                               serve_info.reql_http_proxy);
-        jobs_manager.set_rdb_context(&rdb_ctx);
-
         {
             /* Extract a subview of the directory with all the table meta manager
             business cards. */
@@ -278,6 +273,13 @@ bool do_serve(io_backender_t *io_backender,
                 &table_meta_client,
                 &server_config_client,
                 &mailbox_manager);
+
+            jobs_manager_t jobs_manager(
+                &mailbox_manager,
+                server_id,
+                &rdb_ctx,
+                multi_table_manager.get());
+            stat_manager_t stat_manager(&mailbox_manager, server_id);
 
             /* `real_reql_cluster_interface_t` needs access to the admin tables so that
             it can return rows from the `table_status` and `table_config` artificial
@@ -500,9 +502,6 @@ bool do_serve(io_backender_t *io_backender,
                 logNTC("Shutting down client connections...\n");
             }
             logNTC("All client connections closed.\n");
-
-            jobs_manager.unset_rdb_context_and_reactor_driver();
-
             logNTC("Shutting down storage engine... (This may take a while if you had a lot of unflushed data in the writeback cache.)\n");
         }
         logNTC("Storage engine shut down.\n");

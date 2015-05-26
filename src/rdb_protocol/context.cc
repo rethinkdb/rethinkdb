@@ -29,6 +29,7 @@ void sindex_status_t::accum(const sindex_status_t &other) {
     blocks_processed += other.blocks_processed;
     blocks_total += other.blocks_total;
     ready &= other.ready;
+    start_time = std::min(start_time, other.start_time);
     rassert(outdated == other.outdated);
 }
 

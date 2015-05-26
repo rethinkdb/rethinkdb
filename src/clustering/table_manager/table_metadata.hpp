@@ -310,6 +310,8 @@ public:
         scoped_ptr_t<multistore_ptr_t> *multistore_ptr_in,
         signal_t *interruptor) = 0;
 
+    virtual bool is_gc_active() const = 0;
+
 protected:
     virtual ~table_persistence_interface_t() { }
 };

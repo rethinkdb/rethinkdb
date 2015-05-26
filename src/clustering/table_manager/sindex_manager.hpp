@@ -21,7 +21,7 @@ public:
         const clone_ptr_t<watchable_t<table_config_t> > &table_config);
 
     std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
-    get_status(signal_t *interruptor);
+    get_status(signal_t *interruptor) const;
 
 private:
     void update_blocking(signal_t *interruptor);

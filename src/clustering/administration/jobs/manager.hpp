@@ -7,6 +7,7 @@
 #include <set>
 
 #include "clustering/administration/jobs/report.hpp"
+#include "clustering/table_manager/multi_table_manager.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/one_per_thread.hpp"
 #include "containers/archive/stl_types.hpp"
@@ -35,23 +36,11 @@ class jobs_manager_t {
 public:
     explicit jobs_manager_t(mailbox_manager_t *mailbox_manager,
                             server_id_t const &server_id,
-                            server_config_client_t *server_config_client);
+                            rdb_context_t *rdb_context,
+                            multi_table_manager_t *multi_table_manager);
 
     typedef jobs_manager_business_card_t business_card_t;
     jobs_manager_business_card_t get_business_card();
-
-    // The `jobs_manager_t` object is constructed before either the `rdb_context_t` or
-    // `reactor_driver_t` is constructed in `main/serve.cc`, thus the pointers to the
-    // respective objects are set once they are constructed.
-    void set_rdb_context(rdb_context_t *);
-
-    // RSI(raft): Reimplement this once Raft supports table IO
-#if 0
-    void set_reactor_driver(reactor_driver_t *);
-#endif
-
-    // Similarly we must unset them as they'll be destructed before we will be.
-    void unset_rdb_context_and_reactor_driver();
 
 private:
     static const size_t printed_query_columns;
@@ -68,14 +57,9 @@ private:
 
     mailbox_manager_t *mailbox_manager;
     server_id_t server_id;
-    server_config_client_t *server_config_client;
 
     rdb_context_t *rdb_context;
-
-    // RSI(raft): Reimplement this once Raft supports table IO
-#if 0
-    reactor_driver_t *reactor_driver;
-#endif
+    multi_table_manager_t *multi_table_manager;
 
     auto_drainer_t drainer;
 
