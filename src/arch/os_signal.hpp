@@ -2,6 +2,8 @@
 #ifndef ARCH_OS_SIGNAL_HPP_
 #define ARCH_OS_SIGNAL_HPP_
 
+#ifndef _WIN32
+
 #include "concurrency/cond_var.hpp"
 #include "arch/runtime/runtime_utils.hpp"
 
@@ -30,5 +32,7 @@ private:
     uid_t source_uid;
     int source_signo;
 };
+
+#endif
 
 #endif  // ARCH_OS_SIGNAL_HPP_

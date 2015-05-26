@@ -1,8 +1,15 @@
 #pragma once
 
-// RSI
+// TODO ATN
 
-typedef struct { } pthread_t;
+#include "windows.hpp"
+
+struct pthread_attr_t { };
+
+typedef HANDLE pthread_t;
+
+int pthread_create(pthread_t *, const pthread_attr_t *, void *(*) (void *), void *);
+int pthread_join(pthread_t, void**);
 
 typedef struct { } pthread_spinlock_t;
 

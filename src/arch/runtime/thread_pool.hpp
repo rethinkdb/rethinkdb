@@ -162,7 +162,7 @@ public:
     linux_thread_t(linux_thread_pool_t *parent_pool, int thread_id);
     ~linux_thread_t();
 
-    linux_event_queue_t queue;
+    event_queue_t queue;
     linux_message_hub_t message_hub;
     timer_handler_t timer_handler;
 

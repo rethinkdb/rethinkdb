@@ -1,9 +1,10 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include <stdarg.h>
 
+#include <re2/re2.h>
+
 #include "arch/runtime/coroutines.hpp"
 #include "containers/scoped.hpp"
-#include "containers/scoped_regex.hpp"
 #include "logger.hpp"
 #include "perfmon/core.hpp"
 #include "utils.hpp"

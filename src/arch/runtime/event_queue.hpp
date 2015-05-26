@@ -30,9 +30,8 @@ struct pm_eventloop_singleton_t {
 /* Pick the queue now*/
 #if defined(_WIN32)
 
-// Use IO Completion Ports
-#include "arch/runtime/event_queue/iocp.hpp"
-typedef iocp_event_queue_t linux_event_queue_t;
+#include "arch/runtime/event_queue/windows.hpp"
+typedef windows_event_queue_t event_queue_t;
 
 #elif defined(__MACH__)
 
@@ -44,13 +43,13 @@ typedef kqueue_event_queue_t linux_event_queue_t;
 
 // Use poll instead of epoll
 #include "arch/runtime/event_queue/poll.hpp"
-typedef poll_event_queue_t linux_event_queue_t;
+typedef poll_event_queue_t event_queue_t;
 
 #else
 
 // Epoll to the rescue
 #include "arch/runtime/event_queue/epoll.hpp"
-typedef epoll_event_queue_t linux_event_queue_t;
+typedef epoll_event_queue_t event_queue_t;
 
 #endif
 

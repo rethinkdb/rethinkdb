@@ -5,7 +5,9 @@
 #include <signal.h>
 #include <string.h>
 #include <unistd.h>
+#ifndef _WIN32 // ATN TODO
 #include <sys/time.h>
+#endif
 
 #include "arch/barrier.hpp"
 #include "arch/os_signal.hpp"
@@ -17,12 +19,14 @@
 #include "utils.hpp"
 
 #ifndef VALGRIND
+#ifndef _WIN32
 const int SEGV_STACK_SIZE = SIGSTKSZ;
+#endif
 #endif  // VALGRIND
 
-__thread linux_thread_pool_t *linux_thread_pool_t::thread_pool;
-__thread int linux_thread_pool_t::thread_id;
-__thread linux_thread_t *linux_thread_pool_t::thread;
+DECL_THREAD_LOCAL linux_thread_pool_t *linux_thread_pool_t::thread_pool;
+DECL_THREAD_LOCAL int linux_thread_pool_t::thread_id;
+DECL_THREAD_LOCAL linux_thread_t *linux_thread_pool_t::thread;
 
 NOINLINE linux_thread_pool_t *linux_thread_pool_t::get_thread_pool() {
     return thread_pool;
@@ -84,6 +88,7 @@ struct thread_data_t {
 };
 
 void *linux_thread_pool_t::start_thread(void *arg) {
+#ifndef _WIN32
     // Block all signals but `SIGSEGV` (will be unblocked by the event queue in
     // case of poll).
     {
@@ -97,6 +102,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         res = pthread_sigmask(SIG_SETMASK, &sigmask, NULL);
         guarantee_xerr(res == 0, res, "Could not block signal");
     }
+#endif
 
     thread_data_t *tdata = reinterpret_cast<thread_data_t *>(arg);
 
@@ -116,6 +122,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         running under valgrind, we don't install this handler because Valgrind will print the
         backtrace for us. */
 #ifndef VALGRIND
+#ifndef _WIN32
         stack_t segv_stack;
         segv_stack.ss_sp = malloc_aligned(SEGV_STACK_SIZE, getpagesize());
         segv_stack.ss_flags = 0;
@@ -129,7 +136,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
             res = sigaction(SIGSEGV, &sa, NULL);
             guarantee_err(res == 0, "Could not install SEGV handler");
         }
-
+#endif
 #endif  // VALGRIND
 
         // First thread should initialize generic_blocker_pool before the start barrier
@@ -160,7 +167,9 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         tdata->barrier->wait();
 
 #ifndef VALGRIND
+#ifndef _WIN32
         free(segv_stack.ss_sp);
+#endif
 #endif
 
         // If this thread created the generic blocker pool, clean it up
@@ -228,6 +237,7 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
     // not really important.
 
     set_thread_pool(this);   // So signal handlers can find us
+#ifndef _WIN32
     {
         struct sigaction sa = make_sa_sigaction(SA_SIGINFO, &linux_thread_pool_t::interrupt_handler);
 
@@ -237,6 +247,7 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
         res = sigaction(SIGINT, &sa, NULL);
         guarantee_err(res == 0, "Could not install INT handler");
     }
+#endif
 
     // Wait for order to shut down
 
@@ -251,8 +262,8 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
     res = pthread_mutex_unlock(&shutdown_cond_mutex);
     guarantee_xerr(res == 0, res, "Could not unlock shutdown cond mutex");
 
+#ifndef _WIN32
     // Remove interrupt handlers
-
     {
         struct sigaction sa = make_sa_handler(0, SIG_IGN);
 
@@ -262,6 +273,7 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
         res = sigaction(SIGINT, &sa, NULL);
         guarantee_err(res == 0, "Could not remove INT handler");
     }
+#endif
     set_thread_pool(NULL);
 
 #ifndef NDEBUG
@@ -310,6 +322,7 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
 #endif  // NDEBUG
 }
 
+#ifndef _WIN32
 // Note: Maybe we should use a signalfd instead of a signal handler, and then
 // there would be no issues with potential race conditions because the signal
 // would just be pulled out in the main poll/epoll loop. But as long as this works,
@@ -346,6 +359,7 @@ void linux_thread_pool_t::sigsegv_handler(int signum, siginfo_t *info, UNUSED vo
         crash("Unexpected signal: %d\n", signum);
     }
 }
+#endif
 
 void linux_thread_pool_t::shutdown_thread_pool() {
     int res;

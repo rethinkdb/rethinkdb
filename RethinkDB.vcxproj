@@ -113,7 +113,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
       <ObjectFileName>$(IntDir)/%(RelativeDir)/</ObjectFileName>
-      <AdditionalIncludeDirectories>$(ProjectDir)\..\protobuf-2.5.0\vsprojects\include;$(ProjectDir)\..\boost_1_58_0;$(ProjectDir)\external\gtest_1.7.0\include;$(ProjectDir)\windows_stub</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\protobuf-2.5.0\vsprojects\include;$(ProjectDir)\..\boost_1_58_0;$(ProjectDir)\external\gtest_1.7.0\include;$(ProjectDir)\windows_stub;$(ProjectDir)\..\re2</AdditionalIncludeDirectories>
       <PreprocessToFile>false</PreprocessToFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <MultiProcessorCompilation>false</MultiProcessorCompilation>
@@ -158,7 +158,7 @@
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <ObjectFileName>$(IntDir)/%(RelativeDir)/</ObjectFileName>
-      <AdditionalIncludeDirectories>$(ProjectDir)\..\protobuf-2.5.0\vsprojects\include;$(ProjectDir)\..\boost_1_58_0;$(ProjectDir)\external\gtest_1.7.0\include;$(ProjectDir)\windows_stub</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\protobuf-2.5.0\vsprojects\include;$(ProjectDir)\..\boost_1_58_0;$(ProjectDir)\external\gtest_1.7.0\include;$(ProjectDir)\windows_stub;$(ProjectDir)\..\re2</AdditionalIncludeDirectories>
       <PreprocessToFile>false</PreprocessToFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <MultiProcessorCompilation>false</MultiProcessorCompilation>
@@ -203,9 +203,7 @@
     <ClInclude Include="src\arch\runtime\coroutines.hpp" />
     <ClInclude Include="src\arch\runtime\coro_profiler.hpp" />
     <ClInclude Include="src\arch\runtime\event_queue.hpp" />
-    <ClInclude Include="src\arch\runtime\event_queue\epoll.hpp" />
-    <ClInclude Include="src\arch\runtime\event_queue\kqueue.hpp" />
-    <ClInclude Include="src\arch\runtime\event_queue\poll.hpp" />
+    <ClInclude Include="src\arch\runtime\event_queue\windows.hpp" />
     <ClInclude Include="src\arch\runtime\event_queue_types.hpp" />
     <ClInclude Include="src\arch\runtime\message_hub.hpp" />
     <ClInclude Include="src\arch\runtime\runtime.hpp" />
@@ -412,7 +410,6 @@
     <ClInclude Include="src\containers\printf_buffer.hpp" />
     <ClInclude Include="src\containers\priority_queue.hpp" />
     <ClInclude Include="src\containers\scoped.hpp" />
-    <ClInclude Include="src\containers\scoped_regex.hpp" />
     <ClInclude Include="src\containers\segmented_vector.hpp" />
     <ClInclude Include="src\containers\shared_buffer.hpp" />
     <ClInclude Include="src\containers\two_level_array.hpp" />
@@ -648,7 +645,10 @@
   <ItemGroup>
     <ClCompile Include="src\arch\runtime\context_switching.cc" />
     <ClCompile Include="src\arch\runtime\coroutines.cc" />
+    <ClCompile Include="src\arch\runtime\message_hub.cc" />
+    <ClCompile Include="src\arch\runtime\runtime.cc" />
     <ClCompile Include="src\arch\runtime\runtime_utils.cc" />
+    <ClCompile Include="src\arch\runtime\thread_pool.cc" />
     <ClCompile Include="src\clustering\administration\logs\log_writer.cc" />
     <ClCompile Include="src\containers\printf_buffer.cc" />
     <ClCompile Include="src\debug.cc" />
@@ -656,7 +656,10 @@
     <ClCompile Include="src\http\json.cc" />
     <ClCompile Include="src\http\json\cJSON.cc" />
     <ClCompile Include="src\math.cc" />
+    <ClCompile Include="src\perfmon\core.cc" />
+    <ClCompile Include="src\perfmon\perfmon.cc" />
     <ClCompile Include="src\rdb_protocol\rdb_protocol_json.cc" />
+    <ClCompile Include="src\rethinkdb_backtrace.cc" />
     <ClCompile Include="src\threading.cc" />
     <ClCompile Include="src\time.cc" />
     <ClCompile Include="src\unittest\json.cc" />
@@ -664,6 +667,7 @@
     <ClCompile Include="src\unittest\printf_buffer_test.cc" />
     <ClCompile Include="src\unittest\unittest_utils.cc" />
     <ClCompile Include="src\utils.cc" />
+    <ClCompile Include="windows_stub\pthread.cc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
