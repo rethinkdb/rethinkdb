@@ -1197,7 +1197,10 @@ rethinkdb.expr = varar 1, 2, (val, nestingDepth=20) ->
     else
         new DatumTerm val
 
-rethinkdb.js = aropt (jssrc, opts) -> new JavaScript opts, jssrc
+rethinkdb.js = aropt (jssrc, opts) ->
+    if typeof jssrc is 'function'
+        jssrc = "(#{jssrc.toString()})"
+    new JavaScript opts, jssrc
 
 rethinkdb.http = aropt (url, opts) -> new Http opts, url
 
