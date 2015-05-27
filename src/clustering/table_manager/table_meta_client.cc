@@ -205,7 +205,6 @@ void table_meta_client_t::get_status(
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t) {
     typedef std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
         index_statuses_t;
-    typedef std::map<peer_id_t, contracts_and_contract_acks_t> contracts_and_acks_t;
 
     cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());

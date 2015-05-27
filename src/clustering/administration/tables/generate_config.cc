@@ -78,6 +78,14 @@ static void validate_params(
             "because you specified no replicas in server tag `%s`.",
             params.primary_replica_tag.c_str(), params.primary_replica_tag.c_str()));
     }
+    for (const name_string_t &nonvoting_tag : params.nonvoting_replica_tags) {
+        if (params.num_replicas.count(nonvoting_tag) == 0) {
+            throw admin_op_exc_t(strprintf("You specified that the replicas in server "
+                "tag `%s` should be non-voting, but you didn't specify a number of "
+                "replicas in server tag `%s`.",
+                nonvoting_tag.c_str(), nonvoting_tag.c_str()));
+        }
+    }
     std::map<server_id_t, name_string_t> servers_claimed;
     for (auto it = params.num_replicas.begin(); it != params.num_replicas.end(); ++it) {
         if (it->second == 0) {
@@ -361,7 +369,7 @@ void table_generate_config(
                 interruptor,
                 [&](size_t shard, const server_id_t &server) {
                     guarantee(config_shards_out->at(shard).primary_replica.is_unset());
-                    config_shards_out->at(shard).replicas.insert(server);
+                    config_shards_out->at(shard).all_replicas.insert(server);
                     config_shards_out->at(shard).primary_replica = server;
                     /* We have to update `pairings` as priamry replicas are selected so
                     that our second call to `pick_best_pairings()` will take into account
@@ -394,13 +402,16 @@ void table_generate_config(
             &yielder,
             interruptor,
             [&](size_t shard, const server_id_t &server) {
-                (*config_shards_out)[shard].replicas.insert(server);
+                (*config_shards_out)[shard].all_replicas.insert(server);
+                if (params.nonvoting_replica_tags.count(it->first) == 1) {
+                    (*config_shards_out)[shard].nonvoting_replicas.insert(server);
+                }
             });
     }
 
     for (size_t shard = 0; shard < params.num_shards; ++shard) {
         guarantee(!(*config_shards_out)[shard].primary_replica.is_unset());
-        guarantee((*config_shards_out)[shard].replicas.size() == total_replicas);
+        guarantee((*config_shards_out)[shard].all_replicas.size() == total_replicas);
     }
 }
 

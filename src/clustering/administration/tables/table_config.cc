@@ -119,7 +119,11 @@ ql::datum_t convert_table_config_shard_to_datum(
     ql::datum_object_builder_t builder;
 
     builder.overwrite("replicas",
-        convert_replica_list_to_datum(shard.replicas, identifier_format,
+        convert_replica_list_to_datum(shard.all_replicas, identifier_format,
+                                      server_config_client));
+
+    builder.overwrite("nonvoting_replicas",
+        convert_replica_list_to_datum(shard.nonvoting_replicas, identifier_format,
                                       server_config_client));
 
     ql::datum_t primary_replica;
@@ -146,18 +150,36 @@ bool convert_table_config_shard_from_datum(
         return false;
     }
 
-    ql::datum_t replicas_datum;
-    if (!converter.get("replicas", &replicas_datum, error_out)) {
+    ql::datum_t all_replicas_datum;
+    if (!converter.get("replicas", &all_replicas_datum, error_out)) {
         return false;
     }
-    if (!convert_replica_list_from_datum(replicas_datum, identifier_format,
-            server_config_client, &shard_out->replicas, error_out)) {
+    if (!convert_replica_list_from_datum(all_replicas_datum, identifier_format,
+            server_config_client, &shard_out->all_replicas, error_out)) {
         *error_out = "In `replicas`: " + *error_out;
         return false;
     }
-    if (shard_out->replicas.empty()) {
+    if (shard_out->all_replicas.empty()) {
         *error_out = "You must specify at least one replica for each shard.";
         return false;
+    }
+
+    ql::datum_t nonvoting_replicas_datum;
+    if (converter.get("nonvoting_replicas", &nonvoting_replicas_datum, error_out)) {
+        if (!convert_replica_list_from_datum(nonvoting_replicas_datum, identifier_format,
+                server_config_client, &shard_out->nonvoting_replicas, error_out)) {
+            *error_out = "In `nonvoting_replicas`: " + *error_out;
+            return false;
+        }
+        for (const server_id_t &server : shard_out->nonvoting_replicas) {
+            if (shard_out->all_replicas.count(server) != 1) {
+                *error_out = "Every server listed in the `nonvoting_replicas` field "
+                    "must also appear in `replicas`.";
+                return false;
+            }
+        }
+    } else {
+        shard_out->nonvoting_replicas.clear();
     }
 
     ql::datum_t primary_replica_datum;
@@ -179,7 +201,7 @@ bool convert_table_config_shard_from_datum(
             *error_out = "In `primary_replica`: " + *error_out;
             return false;
         }
-        if (shard_out->replicas.count(shard_out->primary_replica) != 1) {
+        if (shard_out->all_replicas.count(shard_out->primary_replica) != 1) {
             *error_out = strprintf("The server listed in the `primary_replica` field "
                                    "(`%s`) must also appear in `replicas`.",
                                    primary_replica_name.c_str());

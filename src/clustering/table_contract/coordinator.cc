@@ -96,14 +96,19 @@ contract_t calculate_contract(
 
     contract_t new_c = old_c;
 
-    /* If there are new servers in `config.replicas`, add them to `c.replicas` */
-    new_c.replicas.insert(config.replicas.begin(), config.replicas.end());
+    /* If there are new servers in `config.all_replicas`, add them to `c.replicas` */
+    new_c.replicas.insert(config.all_replicas.begin(), config.all_replicas.end());
 
-    /* If there is a mismatch between `config.replicas` and `c.voters`, then correct
-    it */
-    if (!static_cast<bool>(old_c.temp_voters) && old_c.voters != config.replicas) {
+    /* If there is a mismatch between `config.all_replicas - c.nonvoting_replicas` and
+    `c.voters`, then correct it */
+    std::set<server_id_t> config_voting_replicas = config.all_replicas;
+    for (const server_id_t &server : config.nonvoting_replicas) {
+        config_voting_replicas.erase(server);
+    }
+    if (!static_cast<bool>(old_c.temp_voters) &&
+            old_c.voters != config_voting_replicas) {
         size_t num_streaming = 0;
-        for (const server_id_t &server : config.replicas) {
+        for (const server_id_t &server : config_voting_replicas) {
             auto it = acks.find(server);
             if (it != acks.end() &&
                     (it->second.state == contract_ack_t::state_t::secondary_streaming ||
@@ -116,9 +121,9 @@ contract_t calculate_contract(
         /* We don't want to initiate the change until a majority of the new replicas are
         already streaming, or else we'll lose write availability as soon as we set
         `temp_voters`. */
-        if (num_streaming > config.replicas.size() / 2) {
+        if (num_streaming > config_voting_replicas.size() / 2) {
             /* OK, we're ready to go */
-            new_c.temp_voters = boost::make_optional(config.replicas);
+            new_c.temp_voters = boost::make_optional(config_voting_replicas);
             if (!log_prefix.empty()) {
                 logINF("%s: Beginning replica set change.", log_prefix.c_str());
             }
@@ -176,7 +181,7 @@ contract_t calculate_contract(
     `c.replicas`, then remove it. And if it's primary, then make it not be primary. */
     bool should_kill_primary = false;
     for (const server_id_t &server : old_c.replicas) {
-        if (config.replicas.count(server) == 0 &&
+        if (config.all_replicas.count(server) == 0 &&
                 new_c.voters.count(server) == 0 &&
                 (!static_cast<bool>(new_c.temp_voters) ||
                     new_c.temp_voters->count(server) == 0)) {
@@ -580,7 +585,7 @@ void calculate_member_ids_and_raft_config(
     /* Assemble a set of all of the servers that ought to be in `member_ids`. */
     std::set<server_id_t> members_goal;
     for (const table_config_t::shard_t &shard : sc.state.config.config.shards) {
-        members_goal.insert(shard.replicas.begin(), shard.replicas.end());
+        members_goal.insert(shard.all_replicas.begin(), shard.all_replicas.end());
     }
     for (const auto &pair : sc.state.contracts) {
         members_goal.insert(

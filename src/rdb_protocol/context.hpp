@@ -103,6 +103,7 @@ public:
     }
     size_t num_shards;
     std::map<name_string_t, size_t> num_replicas;
+    std::set<name_string_t> nonvoting_replica_tags;
     name_string_t primary_replica_tag;
 };
 
