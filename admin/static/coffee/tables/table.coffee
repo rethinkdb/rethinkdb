@@ -111,8 +111,9 @@ class TableContainer extends Backbone.View
                         num_servers: server_config.count()
                         num_default_servers: server_config.filter((server) ->
                             server('tags').contains('default')).count()
-                        num_available_shards: table_status("shards").count(
-                            (row) -> row('primary_replica').ne(null))
+                        num_primary_replicas:
+                            table_status("shards").count(
+                                (row) -> row('primary_replicas').isEmpty().not())
                         num_replicas: table_config("shards").concatMap(
                             (shard) -> shard('replicas')).count()
                         num_available_replicas: table_status("shards").concatMap(
@@ -626,7 +627,7 @@ class Profile extends Backbone.View
             status: @model.get 'status'
             total_keys: @model.get 'total_keys'
             num_shards: @model.get 'num_shards'
-            num_available_shards: @model.get 'num_available_shards'
+            num_primary_replicas: @model.get 'num_primary_replicas'
             num_replicas: @model.get 'num_replicas'
             num_available_replicas: @model.get 'num_available_replicas'
         }
