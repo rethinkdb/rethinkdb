@@ -161,6 +161,7 @@ std::vector<scoped_ptr_t<issue_t> > table_issue_tracker_t::get_issues(
     throttled_pmap(table_ids.size(), [&] (int64_t i) {
                        check_table(table_ids[i], &issues, interruptor);
                    }, 16);
+
     return issues;
 }
 
@@ -175,6 +176,8 @@ void table_issue_tracker_t::check_table(const namespace_id_t &table_id,
         calculate_status(table_id, interruptor, table_meta_client,
                          server_config_client, &readiness, &shard_statuses,
                          &server_names);
+    } catch (const interrupted_exc_t &) {
+        // Ignore interruption - can't be passed through pmap
     } catch (const no_such_table_exc_t &) {
         // Ignore any tables that have stopped existing
     }

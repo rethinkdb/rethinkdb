@@ -66,6 +66,10 @@ bool issues_artificial_table_backend_t::read_all_rows_as_vector(
         }
     }
 
+    if (ct_interruptor.is_pulsed()) {
+        throw interrupted_exc_t();
+    }
+
     return true;
 }
 
