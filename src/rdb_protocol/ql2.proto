@@ -512,10 +512,14 @@ message Term {
                        // Database -> OBJECT
         // Generates a new config for the given table, or all tables in the given database
         // The `shards` and `replicas` arguments are required
-        RECONFIGURE   = 176; // Database, {shards:NUMBER, replicas:NUMBER[, primary_replica_tag:STRING, dry_run:BOOLEAN]} -> OBJECT
-                             // Database, {shards:NUMBER, replicas:OBJECT[, primary_replica_tag:STRING, dry_run:BOOLEAN]} -> OBJECT
-                             // Table, {shards:NUMBER, replicas:NUMBER[, primary_replica_tag:STRING, dry_run:BOOLEAN]} -> OBJECT
-                             // Table, {shards:NUMBER, replicas:OBJECT[, primary_replica_tag:STRING, dry_run:BOOLEAN]} -> OBJECT
+        RECONFIGURE   = 176; // Database|Table, {shards:NUMBER, replicas:NUMBER [,
+                             //                  dry_run:BOOLEAN]
+                             //                 } -> OBJECT
+                             // Database|Table, {shards:NUMBER, replicas:OBJECT [,
+                             //                  primary_replica_tag:STRING,
+                             //                  nonvoting_replica_tags:ARRAY,
+                             //                  dry_run:BOOLEAN]
+                             //                 } -> OBJECT
         // Balances the table's shards but leaves everything else the same. Can also be
         // applied to an entire database at once.
         REBALANCE     = 179; // Table -> OBJECT
