@@ -5,12 +5,18 @@
 The MAKE file for the web interface is in `/mk/webui.mk`.
 
 The build dependencies are
-- `node.js` and `npm` to install the following dependencies:
-    - `coffee-script`: To convert the CoffeeScript code to JavaScript
-    - `lessc`: To convert the Less files to CSS
-    - `handlebars`: We build the templates during compilation
-    - `bluebird` and `browserify`: To build the JavaScript driver
+- `node.js` and `npm` are needed at the system level
+- `npm-install` will install dependencies listed in `npm-shrinkwrap.json`
 
+### Adding dependencies
+- Add the dependency to the `dependencies` object in `package.json`
+- Delete the file `npm-shrinkwrap.json`
+- Delete `node_modules` in this directory if it exists
+- `$ npm install` in this directory (admin)
+- `$ npm dedupe` this will flatten dependencies as much as possible
+- `$ npm shrinkwrap` this will generate a new `npm-shrinkwrap.json`
+- Bump the version in `mk/support/pkg/admin-deps.sh` (this ensures make will download new dependencies if necessary)
+- Check in the changes to `npm-shrinkwrap.json`, `package.json` and `admin-deps.sh`
 
 ## Organization
 - `favicon.ico`: The favicon...
@@ -81,7 +87,7 @@ The following has to be done to open a connection, run a query and close it:
 - send an HTTP request to `/ajax/reql/close-connection` to close a connection associated with a token
 
 If time allows, the HTTP server embedded in the server should support websocket, and the JS driver should
-use them instead. Another solution would be to have a more complicated HTTP server, see 
+use them instead. Another solution would be to have a more complicated HTTP server, see
 [#2878](https://github.com/rethinkdb/rethinkdb/issues/2878#issuecomment-53913077)
 
 If possible, only the main view should run queries, and a main view's `remove` method should call
@@ -341,4 +347,3 @@ So we still use d3.js.
 The performance graph relies on a fork of cubism. We should probably replace it at some
 point, but for now it still works. The main issues with other libraries is that they do
 not have a smooth sliding.
-
