@@ -84,13 +84,13 @@ timespec clock_realtime() {
     return ret;
 #elif defined(_MSC_VER)
 	FILETIME time;
-	GetSystemTimePreciseAsFileTime(&time);
+	GetSystemTimePreciseAsFileTime(&time); // ATN TODO times returned look wrong
 	ULARGE_INTEGER nanos100;
 	nanos100.LowPart = time.dwLowDateTime;
 	nanos100.HighPart = time.dwHighDateTime;
 	timespec ret;
-	ret.tv_sec = nanos100.QuadPart / (THOUSAND * 10);
-	ret.tv_nsec = (nanos100.QuadPart % (THOUSAND * 10)) * 100;
+	ret.tv_sec = nanos100.QuadPart / (MILLION * 10);
+	ret.tv_nsec = (nanos100.QuadPart % (MILLION * 10)) * 100;
 	return ret;
 #else
     timespec ret;

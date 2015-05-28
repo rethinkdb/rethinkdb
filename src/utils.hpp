@@ -169,7 +169,7 @@ static inline std::string time2str(const time_t &t) {
     char timebuf[TIMEBUF_SIZE];
 #ifdef _MSC_VER
 	errno_t ret = ctime_s(timebuf, sizeof timebuf, &t);
-	guarantee_err(ret != 0, "time2str: invalid time");
+	guarantee_err(ret == 0, "time2str: invalid time");
 	return timebuf;
 #else
     return ctime_r(&t, timebuf);

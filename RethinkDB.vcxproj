@@ -653,6 +653,7 @@
     <ClCompile Include="src\arch\runtime\system_event\windows_event.cc" />
     <ClCompile Include="src\arch\runtime\thread_pool.cc" />
     <ClCompile Include="src\arch\spinlock.cc" />
+    <ClCompile Include="src\backtrace.cc" />
     <ClCompile Include="src\clustering\administration\logs\log_writer.cc" />
     <ClCompile Include="src\concurrency\cross_thread_mutex.cc" />
     <ClCompile Include="src\containers\auth_key.cc" />
@@ -669,6 +670,7 @@
     <ClCompile Include="src\threading.cc" />
     <ClCompile Include="src\time.cc" />
     <ClCompile Include="src\unittest\auth_key_test.cc" />
+    <ClCompile Include="src\unittest\context_switching.cc" />
     <ClCompile Include="src\unittest\json.cc" />
     <ClCompile Include="src\unittest\main.cc" />
     <ClCompile Include="src\unittest\printf_buffer_test.cc" />

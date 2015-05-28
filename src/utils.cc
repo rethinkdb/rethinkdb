@@ -167,7 +167,7 @@ void format_time(struct timespec time, printf_buffer_t *buf, local_or_utc_time_t
         guarantee_err(res1 == &t, "localtime_r() failed.");
 #else
 		errno_t res = localtime_s(&t, &time.tv_sec);
-		guarantee(res == 0, "localtime_s() failed.");
+		guarantee_xerr(res == 0, res, "localtime_s() failed.");
 #endif
     }
     buf->appendf(

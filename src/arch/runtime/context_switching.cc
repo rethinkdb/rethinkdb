@@ -9,22 +9,47 @@
 #include "windows.hpp"
 #include "errors.hpp"
 #include "arch/runtime/context_switching.hpp"
+#include "arch/compiler.hpp"
+
+#include "debug.hpp" // ATN TODO
+
+fiber_context_ref_t::~fiber_context_ref_t() {
+	rassert(fiber == nullptr, "leaking a fiber"); // ATN TODO: why not destroy it here?
+}
+
+DECL_THREAD_LOCAL void* thread_initial_fiber = NULL;
+
+void coro_initialize_for_thread() {
+	if (thread_initial_fiber == NULL) {
+		thread_initial_fiber = ConvertThreadToFiber(nullptr);
+		guarantee_winerr(thread_initial_fiber != NULL, "ConvertThreadToFiber failed");
+		// ATN debugf("Converted thread to fiber %p\n", thread_initial_fiber);
+	}
+}
 
 fiber_stack_t::fiber_stack_t(void(*initial_fun)(void), size_t stack_size) {
-	context = CreateFiber(
-		stack_size,
+	context.fiber = CreateFiber(
+		stack_size, // ATN TODO: how to handle stack overflow?
 		[](void* data) { static_cast<void(*)(void)>(data)(); },
 		static_cast<void*>(initial_fun));
-	guarantee_winerr(context != NULL, "CreateFiber failed");
+	guarantee_winerr(context.fiber != nullptr, "CreateFiber failed");
+	// ATN debugf("Created fiber %p\n", context.fiber);
 }
 
 fiber_stack_t::~fiber_stack_t() {
-	rassert(GetCurrentFiber() == context, "destroying the wrong fiber");
-	DeleteFiber(context);
+	// ATN debugf("Deleting fiber %p\n", context.fiber);
+	DeleteFiber(context.fiber);
+	context.fiber = nullptr;
 }
 
-void context_switch(fiber_context_ref_t *, fiber_context_ref_t *dest_context_in) {
-	SwitchToFiber(dest_context_in);
+void context_switch(fiber_context_ref_t *curr_context_out, fiber_context_ref_t *dest_context_in) {
+	rassert(curr_context_out->fiber == nullptr, "switching from non-null context: %p", curr_context_out->fiber);
+	rassert(dest_context_in->fiber != nullptr);
+	curr_context_out->fiber = GetCurrentFiber();
+	// ATN debugf("Switching from fiber %p to %p\n", curr_context_out->fiber, dest_context_in->fiber);
+	void *dest_context = dest_context_in->fiber;
+	dest_context_in->fiber = nullptr;
+	SwitchToFiber(dest_context);
 }
 
 #else

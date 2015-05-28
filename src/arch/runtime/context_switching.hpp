@@ -4,7 +4,13 @@
 
 #ifdef _WIN32 // ATN TODO
 
-typedef void* fiber_context_ref_t;
+struct fiber_context_ref_t {
+	void* fiber = nullptr;
+	bool is_nil() { return fiber == nullptr; }
+	~fiber_context_ref_t();
+};
+
+void coro_initialize_for_thread();
 
 class fiber_stack_t {
 public:

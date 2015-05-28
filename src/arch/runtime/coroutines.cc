@@ -78,7 +78,9 @@ struct coro_globals_t {
         , assert_no_coro_waiting_counter(0)
         , assert_finite_coro_waiting_counter(0)
 #endif
-        { }
+        {
+			coro_initialize_for_thread();
+	}
 
     ~coro_globals_t() {
         /* We shouldn't be shutting down from within a coroutine */
