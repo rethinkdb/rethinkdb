@@ -327,16 +327,25 @@ void table_meta_client_t::create(
     timestamp.epoch.id = generate_uuid();
     timestamp.log_index = 0;
 
-    std::set<server_id_t> servers;
+    std::set<server_id_t> all_servers, voting_servers;
     for (const table_config_t::shard_t &shard : initial_config.config.shards) {
-        servers.insert(shard.replicas.begin(), shard.replicas.end());
+        all_servers.insert(shard.all_replicas.begin(), shard.all_replicas.end());
+        for (const server_id_t &server : shard.all_replicas) {
+            if (shard.nonvoting_replicas.count(server) == 0) {
+                voting_servers.insert(server);
+            }
+        }
     }
 
     table_raft_state_t raft_state = make_new_table_raft_state(initial_config);
 
     raft_config_t raft_config;
-    for (const server_id_t &server_id : servers) {
-        raft_config.voting_members.insert(raft_state.member_ids.at(server_id));
+    for (const server_id_t &server_id : all_servers) {
+        if (voting_servers.count(server_id) == 1) {
+            raft_config.voting_members.insert(raft_state.member_ids.at(server_id));
+        } else {
+            raft_config.non_voting_members.insert(raft_state.member_ids.at(server_id));
+        }
     }
     raft_persistent_state_t<table_raft_state_t> raft_ps =
         raft_persistent_state_t<table_raft_state_t>::make_initial(
@@ -346,7 +355,7 @@ void table_meta_client_t::create(
     std::map<server_id_t, multi_table_manager_bcard_t> bcards;
     multi_table_manager_directory->read_all(
         [&](const peer_id_t &, const multi_table_manager_bcard_t *bc) {
-            if (servers.count(bc->server_id) == 1) {
+            if (all_servers.count(bc->server_id) == 1) {
                 bcards[bc->server_id] = *bc;
             }
         });

@@ -73,7 +73,7 @@ public:
         key_range_t::right_bound_t prev_right(store_key_t::min());
         for (const quick_shard_args_t &qs : qss) {
             table_config_t::shard_t s;
-            s.replicas.insert(qs.replicas.begin(), qs.replicas.end());
+            s.all_replicas.insert(qs.replicas.begin(), qs.replicas.end());
             s.primary_replica = qs.primary;
             cs.config.shards.push_back(s);
 

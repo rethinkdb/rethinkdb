@@ -43,7 +43,7 @@ void calculate_server_usage(
         const table_config_t &config,
         std::map<server_id_t, int> *usage) {
     for (const table_config_t::shard_t &shard : config.shards) {
-        for (const server_id_t &server : shard.replicas) {
+        for (const server_id_t &server : shard.all_replicas) {
             (*usage)[server] += SECONDARY_USAGE_COST;
         }
         (*usage)[shard.primary_replica] += (PRIMARY_USAGE_COST - SECONDARY_USAGE_COST);
@@ -123,10 +123,14 @@ double estimate_backfill_cost(
             ++denominator;
             if (old_config.config.shards[i].primary_replica == server) {
                 numerator += 0.0;
-            } else if (old_config.config.shards[i].replicas.count(server)) {
-                numerator += 1.0;
+            } else if (old_config.config.shards[i].all_replicas.count(server)) {
+                if (old_config.config.shards[i].nonvoting_replicas.count(server) == 0) {
+                    numerator += 1.0;
+                } else {
+                    numerator += 2.0;
+                }
             } else {
-                numerator += 2.0;
+                numerator += 3.0;
             }
         }
     }

@@ -132,7 +132,7 @@ shard_status_t calculate_shard_status(
         std::set<server_id_t> replicas;
         replicas.insert(
             latest_contract.replicas.begin(), latest_contract.replicas.end());
-        replicas.insert(shard.replicas.begin(), shard.replicas.end());
+        replicas.insert(shard.all_replicas.begin(), shard.all_replicas.end());
         for (const auto &replica : replicas) {
             if (shard_status.replicas.find(replica) == shard_status.replicas.end()) {
                 has_unfinished = true;
