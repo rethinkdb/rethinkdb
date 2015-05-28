@@ -47,7 +47,7 @@ class ServerContainer extends Backbone.View
                                     shard.merge(
                                         index: index.add(1)
                                         num_shards: table('shards').count()
-                                        role: r.branch(server_status('name').eq(shard('primary_replica')),
+                                        role: r.branch(shard('primary_replicas').contains(server_status('name')),
                                             'primary', 'secondary')
                                         )
                                 ).filter((shard) ->
