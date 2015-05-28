@@ -6,7 +6,7 @@
 
 struct timer_provider_callback_t;
 
-struct timerfd_provider_t : public linux_event_callback_t {
+struct timerfd_provider_t : public event_callback_t {
 public:
     explicit timerfd_provider_t(event_queue_t *_queue);
     ~timerfd_provider_t();

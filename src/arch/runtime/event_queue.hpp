@@ -30,8 +30,8 @@ struct pm_eventloop_singleton_t {
 /* Pick the queue now*/
 #if defined(_WIN32)
 
-#include "arch/runtime/event_queue/windows.hpp"
-typedef windows_event_queue_t event_queue_t;
+#include "arch/runtime/event_queue/iocp.hpp"
+typedef iocp_event_queue_t event_queue_t;
 
 #elif defined(__MACH__)
 

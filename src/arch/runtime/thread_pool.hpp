@@ -156,8 +156,8 @@ void linux_thread_pool_t::run_in_blocker_pool(const Callable &fn)
 }
 
 class linux_thread_t :
-    public linux_event_callback_t,
-    public linux_queue_parent_t {
+    public event_callback_t,
+    public queue_parent_t {
 public:
     linux_thread_t(linux_thread_pool_t *parent_pool, int thread_id);
     ~linux_thread_t();

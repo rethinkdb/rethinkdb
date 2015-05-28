@@ -10,7 +10,7 @@
 #include "arch/io/concurrency.hpp"
 #include "arch/runtime/system_event.hpp"
 
-class blocker_pool_t : public linux_event_callback_t {
+class blocker_pool_t : public event_callback_t {
 public:
     blocker_pool_t(int nthreads, event_queue_t *queue);
     ~blocker_pool_t();
