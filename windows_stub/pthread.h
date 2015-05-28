@@ -5,6 +5,9 @@
 #include "windows.hpp"
 
 struct pthread_attr_t { };
+int pthread_attr_init(pthread_attr_t*);
+int pthread_attr_setstacksize(pthread_attr_t*, size_t);
+int pthread_attr_destroy(pthread_attr_t*);
 
 typedef HANDLE pthread_t;
 
@@ -13,7 +16,7 @@ int pthread_join(pthread_t, void**);
 
 typedef struct { } pthread_spinlock_t;
 
-typedef struct { } pthread_mutex_t;
+typedef CRITICAL_SECTION pthread_mutex_t;
 int pthread_mutex_init(pthread_mutex_t*, void*);
 int pthread_mutex_destroy(pthread_mutex_t*);
 int pthread_mutex_lock(pthread_mutex_t*);

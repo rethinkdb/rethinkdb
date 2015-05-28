@@ -641,13 +641,16 @@
     <ClInclude Include="windows_stub\pthread.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\arch\io\blocker_pool.cc" />
     <ClCompile Include="src\arch\runtime\context_switching.cc" />
     <ClCompile Include="src\arch\runtime\coroutines.cc" />
+    <ClCompile Include="src\arch\runtime\event_queue\iocp.cc" />
     <ClCompile Include="src\arch\runtime\message_hub.cc" />
     <ClCompile Include="src\arch\runtime\runtime.cc" />
     <ClCompile Include="src\arch\runtime\runtime_utils.cc" />
     <ClCompile Include="src\arch\runtime\system_event\windows_event.cc" />
     <ClCompile Include="src\arch\runtime\thread_pool.cc" />
+    <ClCompile Include="src\arch\spinlock.cc" />
     <ClCompile Include="src\clustering\administration\logs\log_writer.cc" />
     <ClCompile Include="src\containers\printf_buffer.cc" />
     <ClCompile Include="src\debug.cc" />

@@ -30,7 +30,7 @@ linux_message_hub_t::linux_message_hub_t(event_queue_t *queue,
     }
 #endif
 
-    queue_->watch_event(event_, poll_event_in, this);
+    queue_->watch_event(event_, this);
 }
 
 linux_message_hub_t::~linux_message_hub_t() {

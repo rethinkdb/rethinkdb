@@ -13,11 +13,11 @@
 // will just work) on Apple systems.  If it's ever useful, making our own
 // spinlock implementation could be an option.
 #if defined(__MACH__)
-#define PTHREAD_HAS_SPINLOCK 0
+#define SPINLOCK_PTHREAD_MUTEX
 #elif defined(_WIN32) // ATN TODO
-#define PTHREAD_HAS_SPINLOCK 0
+#define SPINLOCK_WINDOWS_CRITICAL_SECTION
 #else
-#define PTHREAD_HAS_SPINLOCK 1
+#define SPINLOCK_PTHREAD_SPINLOCK
 #endif
 
 // TODO: we should use regular mutexes on single core CPU
@@ -34,10 +34,12 @@ private:
     void lock();
     void unlock();
 
-#if PTHREAD_HAS_SPINLOCK
+#if defined(SPINLOCK_PTHREAD_SPINLOCK)
     pthread_spinlock_t l;
-#else
+#elif defined (SPINLOCK_PTHREAD_MUTEX)
     pthread_mutex_t l;
+#else
+	CRITICAL_SECTION l;
 #endif
 
     DISABLE_COPYING(spinlock_t);

@@ -38,3 +38,9 @@ int pthread_join(pthread_t other, void** retval) {
 		return 0;
 	}
 }
+
+int pthread_mutex_init(pthread_mutex_t *mutex, void* opts) {
+	rassert(opts == NULL, "this implementation of pthread_mutex_init does not support attributes");
+	// TODO ATN
+	return EINVAL;
+}

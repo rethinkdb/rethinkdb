@@ -403,7 +403,7 @@ linux_thread_t::linux_thread_t(linux_thread_pool_t *parent_pool, int thread_id)
     guarantee_xerr(res == 0, res, "could not initialize do_shutdown_mutex");
 
     // Watch an eventfd for shutdown notifications
-    queue.watch_event(shutdown_notify_event, poll_event_in, this);
+    queue.watch_event(shutdown_notify_event, this);
 }
 
 linux_thread_t::~linux_thread_t() {

@@ -15,6 +15,7 @@ public:
 	void consume_wakey_wakeys() { }
 
 private:
+	friend class iocp_event_queue_t;
 	// ATN TODO: a better way to generate unique ids
 	scoped_ptr_t<char> id;
 	HANDLE completion_port;
