@@ -6,6 +6,7 @@
 #include <memory>
 
 #include "errors.hpp"
+#include "stl_utils.hpp"
 #include <boost/optional.hpp>
 
 namespace pprint {

@@ -8,8 +8,10 @@
 
 struct iovec;
 
+#ifdef __linux
 // Thanks glibc for not providing a wrapper for this syscall :(
 int _gettid();
+#endif
 
 /* scoped_fd_t is like scoped_ptr_t, but for a file descriptor */
 class scoped_fd_t {

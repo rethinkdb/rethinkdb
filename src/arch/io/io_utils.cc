@@ -8,9 +8,11 @@
 
 #include "logger.hpp"
 
+#ifdef __linux__
 int _gettid() {
     return syscall(SYS_gettid);
 }
+#endif
 
 fd_t scoped_fd_t::reset(fd_t f2) {
     if (fd != INVALID_FD) {

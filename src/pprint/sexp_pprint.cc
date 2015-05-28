@@ -7,6 +7,7 @@
 
 #include "pprint/generic_term_walker.hpp"
 #include "rdb_protocol/ql2_extensions.pb.h"
+#include "stl_utils.hpp"
 
 namespace pprint {
 

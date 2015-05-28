@@ -77,10 +77,11 @@ directory_lock_t::directory_lock_t(const base_path_t &path, bool create, bool *c
     if (directory_fd.get() == INVALID_FD) {
         throw directory_open_failed_exc_t(get_errno(), directory_path);
     }
-
+#ifndef __sun
     if (flock(directory_fd.get(), LOCK_EX | LOCK_NB) != 0) {
         throw directory_locked_exc_t(directory_path);
     }
+#endif
 }
 
 directory_lock_t::~directory_lock_t() {

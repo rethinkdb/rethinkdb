@@ -47,7 +47,11 @@ artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t _stack_
     (except for the first page, which we are definitely going to need).
     This is an optimization to keep memory consumption in check. */
     guarantee(stack_size >= static_cast<size_t>(getpagesize()));
+#ifdef __sun
+    posix_madvise(stack, stack_size - getpagesize(), POSIX_MADV_DONTNEED);
+#else
     madvise(stack, stack_size - getpagesize(), MADV_DONTNEED);
+#endif
 
     /* Protect the end of the stack so that we crash when we get a stack
     overflow instead of corrupting memory. */
@@ -159,6 +163,8 @@ artificial_stack_t::~artificial_stack_t() {
     and we use MADV_DONTNEED instead. */
 #ifdef __MACH__
     madvise(stack, stack_size, MADV_FREE);
+#elif defined(__sun)
+    posix_madvise(stack, stack_size, POSIX_MADV_DONTNEED);
 #else
     madvise(stack, stack_size, MADV_DONTNEED);
 #endif
@@ -525,6 +531,16 @@ void threaded_stack_t::get_stack_addr_size(void **stackaddr_out,
     *stackaddr_out = reinterpret_cast<void *>(
         reinterpret_cast<uintptr_t>(pthread_get_stackaddr_np(thread))
         - static_cast<uintptr_t>(*stacksize_out));
+#elif defined(__sun)
+    pthread_attr_t attr;
+    int res = pthread_attr_init(&attr);
+    guarantee_xerr(res == 0, res, "Unable to get pthread attributes");
+    res = pthread_attr_getstackaddr(&attr, stackaddr_out);
+    guarantee_xerr(res == 0, res, "Unable to get pthread stack address attribute");
+    res = pthread_attr_getstacksize(&attr, stacksize_out);
+    guarantee_xerr(res == 0, res, "Unable to get pthread stack size attribute");
+    res = pthread_attr_destroy(&attr);
+    guarantee_xerr(res == 0, res, "Unable to destroy pthread attributes");
 #else
     // Implementation for Linux
     pthread_attr_t attr;

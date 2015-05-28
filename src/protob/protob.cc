@@ -555,13 +555,13 @@ void query_server_t::connection_loop(tcp_conn_t *conn,
     new_mutex_t send_mutex;
     scoped_perfmon_counter_t connection_counter(&rdb_ctx->stats.client_connections);
 
-#ifdef __linux
+#if defined(__linux) || defined(__sun)
     linux_event_watcher_t *ew = conn->get_event_watcher();
     linux_event_watcher_t::watch_t conn_interrupted(ew, poll_event_rdhup);
     wait_any_t interruptor(drain_signal, &abort, &conn_interrupted);
 #else
     wait_any_t interruptor(drain_signal, &abort);
-#endif  // __linux
+#endif  // __linux || __sun
 
     // query_info_t and the nascent_query_list_t exist to guarantee that ql::query_id_ts
     // (which are RAII) are allocated and destroyed properly.  When we read a query off

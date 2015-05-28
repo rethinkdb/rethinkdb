@@ -13,20 +13,24 @@
 #define RDB_TIMER_PROVIDER_TIMERFD 1
 #define RDB_TIMER_PROVIDER_KQUEUE 2
 #define RDB_TIMER_PROVIDER_SIGNAL 3
+#define RDB_TIMER_PROVIDER_EVPORT 4
 
 #ifdef LEGACY_LINUX
 #define RDB_TIMER_PROVIDER RDB_TIMER_PROVIDER_SIGNAL
-#else
-#ifdef __MACH__
+#elif defined(__sun)
+#define RDB_TIMER_PROVIDER RDB_TIMER_PROVIDER_EVPORT
+#elif defined(__MACH__)
 #define RDB_TIMER_PROVIDER RDB_TIMER_PROVIDER_KQUEUE
 #else
 #define RDB_TIMER_PROVIDER RDB_TIMER_PROVIDER_TIMERFD
-#endif  // __MACH__
 #endif  // LEGACY_LINUX
 
 #if RDB_TIMER_PROVIDER == RDB_TIMER_PROVIDER_SIGNAL
 #include "arch/io/timer/timer_signal_provider.hpp"
 typedef timer_signal_provider_t timer_provider_t;
+#elif RDB_TIMER_PROVIDER == RDB_TIMER_PROVIDER_EVPORT
+#include "arch/io/timer/timer_evport_provider.hpp"
+typedef timer_evport_provider_t timer_provider_t;
 #elif RDB_TIMER_PROVIDER == RDB_TIMER_PROVIDER_KQUEUE
 #include "arch/io/timer/timer_kqueue_provider.hpp"
 typedef timer_kqueue_provider_t timer_provider_t;

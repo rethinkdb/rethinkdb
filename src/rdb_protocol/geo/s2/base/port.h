@@ -115,6 +115,12 @@ typedef uint16_t u_int16_t;
 #define bswap_32(x) OSSwapInt32(x)
 #define bswap_64(x) OSSwapInt64(x)
 
+#elif defined(__sun)
+#include <sys/byteorder.h>
+#define bswap_16(x) BSWAP_16(x)
+#define bswap_32(x) BSWAP_32(x)
+#define bswap_64(x) BSWAP_64(x)
+
 #else
 #include <byteswap.h>
 #endif
@@ -130,6 +136,13 @@ typedef uint16_t u_int16_t;
 
 #if __BYTE_ORDER == __BIG_ENDIAN
 #define IS_BIG_ENDIAN
+#endif
+
+#elif defined(__sun)
+#ifdef _BIG_ENDIAN
+#define IS_BIG_ENDIAN
+#else
+#define IS_LITTLE_ENDIAN
 #endif
 
 #else

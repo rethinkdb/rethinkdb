@@ -351,10 +351,22 @@ void linux_file_t::writev_async(int64_t offset, size_t length,
 }
 
 bool linux_file_t::coop_lock_and_check() {
+#ifdef __sun
+    struct flock lock;
+    lock.l_start = 0;
+    lock.l_len = 0;
+    lock.l_whence = SEEK_SET;
+    lock.l_type = F_WRLCK;
+    if (fcntl(fd.get(), F_SETLK, &lock) != 0) {
+        rassert(get_errno() == EAGAIN);
+        return false;
+    }
+#else
     if (flock(fd.get(), LOCK_EX | LOCK_NB) != 0) {
         rassert(get_errno() == EWOULDBLOCK);
         return false;
     }
+#endif
     return true;
 }
 
@@ -476,6 +488,8 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
                                     static_cast<long>(flags | O_DIRECT));  // NOLINT(runtime/int)
 #elif defined(__APPLE__)
         const int fcntl_res = fcntl(fd.get(), F_NOCACHE, 1);
+#elif defined(__sun)
+        const int fcntl_res = directio(fd.get(), DIRECTIO_ON);
 #else
 #error "Figure out how to do direct I/O and fsync correctly (despite your operating system's lies) on your platform."
 #endif  // __linux__, defined(__APPLE__)
@@ -489,7 +503,7 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
         // Our access patterns are usually pretty random, and on startup we already
         // do read-ahead internally in our cache.
         int disable_readahead_res = -1;
-#ifdef __linux__
+#if defined(__linux__) || defined(__sun)
         // From the man-page:
         //  Under Linux, POSIX_FADV_NORMAL sets the readahead window to the
         //  default size for the backing device; POSIX_FADV_SEQUENTIAL doubles
