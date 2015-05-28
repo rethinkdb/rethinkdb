@@ -16,7 +16,7 @@ address_in_use_exc_t::address_in_use_exc_t(const char* hostname, int port) throw
     }
 }
 
-file_account_t::file_account_t(file_t *par, int pri, int outstanding_requests_limit) :
+file_account_t::file_account_t(rdb_file_t *par, int pri, int outstanding_requests_limit) :
     parent(par),
     account(parent->create_account(pri, outstanding_requests_limit)) { }
 

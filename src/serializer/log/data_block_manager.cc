@@ -424,7 +424,7 @@ void data_block_manager_t::end_reconstruct() {
     guarantee(state == state_unstarted);
 }
 
-void data_block_manager_t::start_existing(file_t *file,
+void data_block_manager_t::start_existing(rdb_file_t *file,
                                           data_block_manager::metablock_mixin_t *last_metablock) {
     guarantee(state == state_unstarted);
     dbfile = file;

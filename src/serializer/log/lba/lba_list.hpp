@@ -37,7 +37,7 @@ public:
         virtual void on_lba_ready() = 0;
         virtual ~ready_callback_t() {}
     };
-    bool start_existing(file_t *dbfile, metablock_mixin_t *last_metablock,
+    bool start_existing(rdb_file_t *dbfile, metablock_mixin_t *last_metablock,
                         ready_callback_t *cb);
 
     index_block_info_t get_block_info(block_id_t block);
@@ -102,7 +102,7 @@ private:
         state_shut_down
     } state;
 
-    file_t *dbfile;
+    rdb_file_t *dbfile;
     scoped_ptr_t<file_account_t> gc_io_account;
 
     in_memory_index_t in_memory_index;

@@ -96,7 +96,7 @@ public:
         int64_t padding;
     };
 
-    extent_manager_t(file_t *file,
+    extent_manager_t(rdb_file_t *file,
                      const log_serializer_on_disk_static_config_t *static_config,
                      log_serializer_stats_t *);
     ~extent_manager_t();

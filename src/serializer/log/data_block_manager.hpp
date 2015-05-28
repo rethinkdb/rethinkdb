@@ -43,7 +43,7 @@ public:
     metablock. */
 
     static void prepare_initial_metablock(data_block_manager::metablock_mixin_t *mb);
-    void start_existing(file_t *dbfile, data_block_manager::metablock_mixin_t *last_metablock);
+    void start_existing(rdb_file_t *dbfile, data_block_manager::metablock_mixin_t *last_metablock);
 
     buf_ptr_t read(int64_t off_in, block_size_t block_size,
                  file_account_t *io_account);
@@ -166,7 +166,7 @@ private:
     extent_manager_t *const extent_manager;
     log_serializer_t *const serializer;
 
-    file_t *dbfile;
+    rdb_file_t *dbfile;
     scoped_ptr_t<file_account_t> gc_io_account_nice;
     scoped_ptr_t<file_account_t> gc_io_account_high;
 

@@ -91,7 +91,7 @@ metablock_manager_t<metablock_t>::~metablock_manager_t() {
 }
 
 template<class metablock_t>
-void metablock_manager_t<metablock_t>::create(file_t *dbfile, int64_t extent_size, metablock_t *initial) {
+void metablock_manager_t<metablock_t>::create(rdb_file_t *dbfile, int64_t extent_size, metablock_t *initial) {
 
     std::vector<int64_t> metablock_offsets = initial_metablock_offsets(extent_size);
 
@@ -116,7 +116,7 @@ void metablock_manager_t<metablock_t>::create(file_t *dbfile, int64_t extent_siz
         // We don't datasync here -- we can datasync when we write the first real
         // metablock.
         dbfile->write_async(metablock_offsets[i], METABLOCK_SIZE, buffer.get(),
-                            DEFAULT_DISK_ACCOUNT, &callback, file_t::NO_DATASYNCS);
+                            DEFAULT_DISK_ACCOUNT, &callback, rdb_file_t::NO_DATASYNCS);
     }
     callback.wait();
 
@@ -126,7 +126,7 @@ void metablock_manager_t<metablock_t>::create(file_t *dbfile, int64_t extent_siz
     buffer->prepare(static_cast<uint32_t>(cluster_version_t::LATEST_DISK), initial,
                                           MB_START_VERSION);
     co_write(dbfile, metablock_offsets[0], METABLOCK_SIZE, buffer.get(),
-             DEFAULT_DISK_ACCOUNT, file_t::WRAP_IN_DATASYNCS);
+             DEFAULT_DISK_ACCOUNT, rdb_file_t::WRAP_IN_DATASYNCS);
 }
 
 bool disk_format_version_is_recognized(uint32_t disk_format_version) {
@@ -153,7 +153,7 @@ bool disk_format_version_is_recognized(uint32_t disk_format_version) {
 
 
 template<class metablock_t>
-void metablock_manager_t<metablock_t>::co_start_existing(file_t *file, bool *mb_found, metablock_t *mb_out) {
+void metablock_manager_t<metablock_t>::co_start_existing(rdb_file_t *file, bool *mb_found, metablock_t *mb_out) {
     rassert(state == state_unstarted);
     dbfile = file;
     rassert(dbfile != NULL);
@@ -262,13 +262,13 @@ void metablock_manager_t<metablock_t>::co_start_existing(file_t *file, bool *mb_
 
 //The following two functions will go away in favor of the preceding one
 template<class metablock_t>
-void metablock_manager_t<metablock_t>::start_existing_callback(file_t *file, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb) {
+void metablock_manager_t<metablock_t>::start_existing_callback(rdb_file_t *file, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb) {
     co_start_existing(file, mb_found, mb_out);
     cb->on_metablock_read();
 }
 
 template<class metablock_t>
-bool metablock_manager_t<metablock_t>::start_existing(file_t *file, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb) {
+bool metablock_manager_t<metablock_t>::start_existing(rdb_file_t *file, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb) {
     coro_t::spawn_later_ordered(boost::bind(&metablock_manager_t<metablock_t>::start_existing_callback, this, file, mb_found, mb_out, cb));
     return false;
 }
@@ -287,7 +287,7 @@ void metablock_manager_t<metablock_t>::co_write_metablock(metablock_t *mb, file_
 
     state = state_writing;
     co_write(dbfile, head.offset(), METABLOCK_SIZE, mb_buffer, io_account,
-             file_t::WRAP_IN_DATASYNCS);
+             rdb_file_t::WRAP_IN_DATASYNCS);
 
     ++head;
 

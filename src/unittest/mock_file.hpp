@@ -12,7 +12,7 @@
 
 namespace unittest {
 
-class mock_file_t : public file_t {
+class mock_file_t : public rdb_file_t {
 public:
     // That mode_rw == (mode_read | mode_write) is no accident.
     enum mode_t { mode_read = 1, mode_write = 2, mode_rw = 3 };
@@ -72,9 +72,9 @@ public:
     mock_file_opener_t() : file_existence_state_(no_file) { }
     std::string file_name() const;
 
-    void open_serializer_file_create_temporary(scoped_ptr_t<file_t> *file_out);
+    void open_serializer_file_create_temporary(scoped_ptr_t<rdb_file_t> *file_out);
     void move_serializer_file_to_permanent_location();
-    void open_serializer_file_existing(scoped_ptr_t<file_t> *file_out);
+    void open_serializer_file_existing(scoped_ptr_t<rdb_file_t> *file_out);
     void unlink_serializer_file();
 #ifdef SEMANTIC_SERIALIZER_CHECK
     void open_semantic_checking_file(scoped_ptr_t<semantic_checking_file_t> *file_out);

@@ -97,7 +97,7 @@ std::string mock_file_opener_t::file_name() const {
     return "<mock file>";
 }
 
-void mock_file_opener_t::open_serializer_file_create_temporary(scoped_ptr_t<file_t> *file_out) {
+void mock_file_opener_t::open_serializer_file_create_temporary(scoped_ptr_t<rdb_file_t> *file_out) {
     ASSERT_EQ(no_file, file_existence_state_);
     file_out->init(new mock_file_t(mock_file_t::mode_rw, &file_));
     file_existence_state_ = temporary_file;
@@ -108,7 +108,7 @@ void mock_file_opener_t::move_serializer_file_to_permanent_location() {
     file_existence_state_ = permanent_file;
 }
 
-void mock_file_opener_t::open_serializer_file_existing(scoped_ptr_t<file_t> *file_out) {
+void mock_file_opener_t::open_serializer_file_existing(scoped_ptr_t<rdb_file_t> *file_out) {
     ASSERT_TRUE(file_existence_state_ == temporary_file || file_existence_state_ == permanent_file);
     file_out->init(new mock_file_t(mock_file_t::mode_rw, &file_));
 }

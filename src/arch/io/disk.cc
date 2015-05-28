@@ -402,7 +402,7 @@ void verify_aligned_file_access(DEBUG_VAR int64_t file_size, DEBUG_VAR int64_t o
 }
 
 file_open_result_t open_file(const char *path, const int mode, io_backender_t *backender,
-                             scoped_ptr_t<file_t> *out) {
+                             scoped_ptr_t<rdb_file_t> *out) {
     // Construct file flags
 
     // Let's have a sanity check for our attempt to check whether O_DIRECT and O_NOATIME are
