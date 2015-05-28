@@ -112,10 +112,11 @@ with driver.Cluster(output_folder='.') as cluster:
 
     for num_shards in [1, 2, num_servers-1, num_servers, num_servers+1, num_servers*2]:
         for num_replicas in [1, 2, num_servers-1, num_servers]:
-            test_reconfigure(num_shards, {"default": num_replicas}, "default")
-    test_reconfigure(1, {"tag_1": 1, "tag_2": 1}, "tag_1")
-    test_reconfigure(1, {"tag_1": 1, "tag_2": 1}, "tag_2")
-    test_reconfigure(1, {"tag_1": 1}, "tag_1")
+            test_reconfigure(num_shards, {"default": num_replicas}, "default", [])
+    test_reconfigure(1, {"tag_1": 1, "tag_2": 1}, "tag_1", [])
+    test_reconfigure(1, {"tag_1": 1, "tag_2": 1}, "tag_2", [])
+    test_reconfigure(1, {"tag_1": 1, "tag_2": 1}, "tag_1", ["tag_2"])
+    test_reconfigure(1, {"tag_1": 1}, "tag_1", [])
     
     print("Test table_create dry_run (%.2fs)" % (time.time() - startTime))
     
@@ -168,7 +169,7 @@ with driver.Cluster(output_folder='.') as cluster:
                 break
         else:
             raise Exception("took too long to reconfigure")
-        new_config = test_reconfigure(2, {"default": 1}, "default")
+        new_config = test_reconfigure(2, {"default": 1}, "default", [])
         if (new_config["shards"][0]["primary_replica"] != server and
                 new_config["shards"][1]["primary_replica"] != server):
             raise Exception("expected to prefer %r, instead got %r" % (server, new_config))
@@ -189,7 +190,7 @@ with driver.Cluster(output_folder='.') as cluster:
             "replicas": [n for n in server_names if n != server],
             "primary_replica": [n for n in server_names if n != server][0]
             }]}).run(conn)
-        assert res["errors"] == 0
+        assert res["errors"] == 0, res
         for i in xrange(10):
             time.sleep(3)
             if r.db(dbName).table("blocker").status() \
