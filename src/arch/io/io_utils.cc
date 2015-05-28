@@ -1,16 +1,24 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "arch/io/io_utils.hpp"
 
+#ifndef _WIN32 // TODO ATN
 #include <sys/syscall.h>
+#else
+#include "windows.hpp"
+#endif
 #include <sys/uio.h>
 #include <unistd.h>
 #include <string.h>
 
+#include <algorithm>
+
 #include "logger.hpp"
 
+#ifndef _WIN32 // TODO ATN
 int _gettid() {
     return syscall(SYS_gettid);
 }
+#endif
 
 fd_t scoped_fd_t::reset(fd_t f2) {
     if (fd != INVALID_FD) {

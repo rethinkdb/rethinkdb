@@ -2,6 +2,8 @@
 #ifndef ARCH_SPINLOCK_HPP_
 #define ARCH_SPINLOCK_HPP_
 
+// TODO ATN: in the codebase, what is the difference in usage between a spinlock and a mutex?
+
 #include <pthread.h>
 
 #include <string.h>

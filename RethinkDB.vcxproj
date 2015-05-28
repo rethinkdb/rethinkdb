@@ -637,11 +637,13 @@
     <ClInclude Include="src\valgrind.hpp" />
     <ClInclude Include="src\version.hpp" />
     <ClInclude Include="src\windows.hpp" />
+    <ClInclude Include="windows_stub\sys\uio.h" />
     <ClInclude Include="windows_stub\unistd.h" />
     <ClInclude Include="windows_stub\pthread.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\arch\io\blocker_pool.cc" />
+    <ClCompile Include="src\arch\io\io_utils.cc" />
     <ClCompile Include="src\arch\runtime\context_switching.cc" />
     <ClCompile Include="src\arch\runtime\coroutines.cc" />
     <ClCompile Include="src\arch\runtime\event_queue\iocp.cc" />
@@ -652,6 +654,7 @@
     <ClCompile Include="src\arch\runtime\thread_pool.cc" />
     <ClCompile Include="src\arch\spinlock.cc" />
     <ClCompile Include="src\clustering\administration\logs\log_writer.cc" />
+    <ClCompile Include="src\concurrency\cross_thread_mutex.cc" />
     <ClCompile Include="src\containers\printf_buffer.cc" />
     <ClCompile Include="src\debug.cc" />
     <ClCompile Include="src\errors.cc" />

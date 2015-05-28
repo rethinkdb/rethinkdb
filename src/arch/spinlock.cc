@@ -9,7 +9,7 @@ spinlock_t::spinlock_t() {
 #endif
 	guarantee_xerr(res == 0, res, "could not initialize spinlock");
 #else
-	InitializeCriticalSection(&l);
+	InitializeCriticalSection(&l); // ATN TODO: set spin count?
 #endif
 }
 

@@ -29,7 +29,7 @@ int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_
 int pthread_join(pthread_t other, void** retval) {
 	DWORD res = WaitForSingleObject(other, INFINITE);
 	if (res != WAIT_OBJECT_0) {
-		return EINVAL; // TODO: decode res, see docs for WaitForSingleObject
+		return EINVAL; // ATN TODO: decode res, see docs for WaitForSingleObject
 	}
 	else {
 		if (retval != nullptr) {
@@ -39,8 +39,54 @@ int pthread_join(pthread_t other, void** retval) {
 	}
 }
 
-int pthread_mutex_init(pthread_mutex_t *mutex, void* opts) {
+int pthread_mutex_init(pthread_mutex_t *mutex, void *opts) {
 	rassert(opts == NULL, "this implementation of pthread_mutex_init does not support attributes");
-	// TODO ATN
-	return EINVAL;
+	InitializeCriticalSection(mutex); // TODO: spin count?
+	return 0;
+}
+
+int pthread_mutex_destroy(pthread_mutex_t* mutex) {
+	return 0;
+}
+
+int pthread_mutex_lock(pthread_mutex_t* mutex) {
+	EnterCriticalSection(mutex);
+	return 0;
+}
+
+int pthread_mutex_unlock(pthread_mutex_t* mutex) {
+	LeaveCriticalSection(mutex);
+	return 0;
+}
+
+int pthread_attr_init(pthread_attr_t*) { return 0;  }
+int pthread_attr_setstacksize(pthread_attr_t*, size_t) { return 0; }
+int pthread_attr_destroy(pthread_attr_t*) { return 0; }
+
+int pthread_cond_init(pthread_cond_t* cond, void*) {
+	InitializeConditionVariable(cond);
+	return 0;
+}
+
+int pthread_cond_destroy(pthread_cond_t* cond) {
+	return 0;
+}
+
+int pthread_cond_wait(pthread_cond_t* cond, pthread_mutex_t* mutex) {
+	BOOL res = SleepConditionVariableCS(cond, mutex, INFINITE);
+	if (res) {
+		return 0;
+	} else {
+		return EINVAL; // TODO;
+	}
+}
+
+int pthread_cond_signal(pthread_cond_t* cond) {
+	WakeConditionVariable(cond);
+	return 0;
+}
+
+int pthread_cond_broadcast(pthread_cond_t* cond) {
+	WakeAllConditionVariable(cond);
+	return 0;
 }
