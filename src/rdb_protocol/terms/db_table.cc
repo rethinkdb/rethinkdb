@@ -144,7 +144,8 @@ public:
     table_create_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : meta_op_term_t(env, term, argspec_t(1, 2),
             optargspec_t({"primary_key", "shards", "replicas",
-                          "primary_replica_tag", "durability"})) { }
+                          "nonvoting_replica_tags", "primary_replica_tag",
+                          "durability"})) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
             scope_env_t *env, args_t *args, eval_flags_t) const {
@@ -475,7 +476,8 @@ class reconfigure_term_t : public table_or_db_meta_term_t {
 public:
     reconfigure_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : table_or_db_meta_term_t(env, term,
-            optargspec_t({"primary_replica_tag", "dry_run", "replicas", "shards"})) { }
+            optargspec_t({"nonvoting_replica_tags", "primary_replica_tag", "dry_run",
+                          "replicas", "shards"})) { }
 private:
     scoped_ptr_t<val_t> required_optarg(scope_env_t *env,
                                         args_t *args,

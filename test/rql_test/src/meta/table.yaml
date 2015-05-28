@@ -78,6 +78,14 @@ tests:
     - cd: db.table_drop('ab')
       ot: partial({'tables_dropped':1})
 
+    - py: db.table_create('ab', nonvoting_replica_tags=['default'])
+      js: db.tableCreate('ab', {nonvotingReplicaTags:['default']})
+      rb: db.table_create('ab', {:nonvoting_replica_tags => ['default']})
+      ot: partial({'tables_created':1})
+
+    - cd: db.table_drop('ab')
+      ot: partial({'tables_dropped':1})
+
     # Table reconfigure
     - cd: db.table_create('a')
       ot: partial({'tables_created':1})
@@ -87,9 +95,9 @@ tests:
       rb: db.table('a').reconfigure(:shards => 1, :replicas => 1)
       ot: partial({'reconfigured':1})
 
-    - py: db.table('a').reconfigure(shards=1, replicas={"default":1}, primary_replica_tag='default')
-      js: db.table('a').reconfigure({shards:1, replicas:{default:1}, primary_replica_tag:'default'})
-      rb: db.table('a').reconfigure(:shards => 1, :replicas => {:default => 1}, :primary_replica_tag => 'default')
+    - py: db.table('a').reconfigure(shards=1, replicas={"default":1}, nonvoting_replica_tags=['default'], primary_replica_tag='default')
+      js: db.table('a').reconfigure({shards:1, replicas:{default:1}, nonvoting_replica_tags:['default'], primary_replica_tag:'default'})
+      rb: db.table('a').reconfigure(:shards => 1, :replicas => {:default => 1}, :nonvoting_replica_tags => ['default'], :primary_replica_tag => 'default')
       ot: partial({'reconfigured':1})
 
     - py: db.table('a').reconfigure(shards=1, replicas=1, dry_run=True)
@@ -142,6 +150,14 @@ tests:
           err('RqlRuntimeError', 'Can\'t use server tag `foo` for primary replicas because
           you specified no replicas in server tag `foo`.', [])
 
+    - py: db.table('a').reconfigure(shards=1, replicas={"default":1}, primary_replica_tag="default", nonvoting_replica_tags=["foo"])
+      js: db.table('a').reconfigure({shards:1, replicas:{"default":1}, primary_replica_tag:"default", nonvoting_replica_tags:["foo"]})
+      rb: db.table('a').reconfigure(:shards => 1, :replicas => {:default => 1}, :primary_replica_tag => "default", :nonvoting_replica_tags => ["foo"])
+      ot: >
+          err('RqlRuntimeError', 'You specified that the replicas in server tag `foo`
+          should be non-voting, but you didn\'t specify a number of replicas in server
+          tag `foo`.', [])
+
     - py: db.table('a').reconfigure(shards=1, replicas={"foo":0}, primary_replica_tag="foo")
       js: db.table('a').reconfigure({shards:1, replicas:{foo:0}, primary_replica_tag:"foo"})
       rb: db.table('a').reconfigure(:shards => 1, :replicas => {:foo => 0}, :primary_replica_tag => "foo")
@@ -163,6 +179,13 @@ tests:
       js: db.table('a').reconfigure({shards:1, replicas:3, primary_replica_tag:'foo'})
       rb: db.table('a').reconfigure(:shards => 1, :replicas => 3, :primary_replica_tag => 'foo')
       ot: err('RqlRuntimeError', '`replicas` must be an OBJECT if `primary_replica_tag` is specified.', [])
+
+    - py: db.table('a').reconfigure(shards=1, replicas=3, nonvoting_replica_tags=['foo'])
+      js: db.table('a').reconfigure({shards:1, replicas:3, nonvoting_replica_tags:['foo']})
+      rb: db.table('a').reconfigure(:shards => 1, :replicas => 3, :nonvoting_replica_tags => ['foo'])
+      ot: >
+          err('RqlRuntimeError', '`replicas` must be an OBJECT if
+          `nonvoting_replica_tags` is specified.', [])
 
     # Test reconfigure auto-sharding without data
     - py: db.table('a').reconfigure(shards=2, replicas=1)

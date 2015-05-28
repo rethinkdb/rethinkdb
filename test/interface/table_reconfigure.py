@@ -65,11 +65,15 @@ with driver.Cluster(output_folder='.') as cluster:
     
     # Generate many configurations using `dry_run=True` and check to make sure they
     # satisfy the constraints
-    def test_reconfigure(num_shards, num_replicas, primary_replica_tag):
+    def test_reconfigure(num_shards, num_replicas, primary_replica_tag,
+                         nonvoting_replica_tags):
         
-        print("Making configuration num_shards=%d num_replicas=%r primary_replica_tag=%r (%.2fs)" % (num_shards, num_replicas, primary_replica_tag, time.time() - startTime))
+        print("Making configuration num_shards=%d num_replicas=%r primary_replica_tag=%r "
+              "nonvoting_replica_tags=%r (%.2fs)" % (num_shards, num_replicas,
+              primary_replica_tag, nonvoting_replica_tags, time.time() - startTime))
         res = r.db(dbName).table(tableName).reconfigure(shards=num_shards,
-            replicas=num_replicas, primary_replica_tag=primary_replica_tag, dry_run=True).run(conn)
+            replicas=num_replicas, primary_replica_tag=primary_replica_tag,
+            nonvoting_replica_tags=nonvoting_replica_tags, dry_run=True).run(conn)
         assert res["reconfigured"] == 0
         assert len(res["config_changes"]) == 1
         assert res["config_changes"][0]["old_val"] == \
@@ -84,6 +88,10 @@ with driver.Cluster(output_folder='.') as cluster:
             for tag, count in num_replicas.iteritems():
                 servers_in_tag = [s for s in shard["replicas"] if s in tag_table[tag]]
                 assert len(servers_in_tag) == count
+                if tag in nonvoting_replica_tags:
+                    for server in servers_in_tag:
+                        assert (server == shard["primary_replica"] or
+                            server in shard["nonvoting_replicas"])
             assert len(shard["replicas"]) == sum(num_replicas.values())
         primary_replicas = set(shard["primary_replica"] for shard in new_config["shards"])
 

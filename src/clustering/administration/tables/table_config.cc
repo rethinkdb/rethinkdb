@@ -207,6 +207,11 @@ bool convert_table_config_shard_from_datum(
                                    primary_replica_name.c_str());
             return false;
         }
+        if (shard_out->nonvoting_replicas.count(shard_out->primary_replica) == 1) {
+            *error_out = strprintf("The primary replica (`%s`) must not be a nonvoting "
+                "replica.", primary_replica_name.c_str());
+            return false;
+        }
     }
 
     if (!converter.check_no_extra_keys(error_out)) {
