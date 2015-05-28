@@ -7,6 +7,7 @@
 #include "arch/arch.hpp"
 #include "arch/runtime/coroutines.hpp"
 #include "config/args.hpp"
+#include <strings.h>
 
 bool static_header_check(rdb_file_t *file) {
     if (file->get_file_size() < DEVICE_BLOCK_SIZE) {

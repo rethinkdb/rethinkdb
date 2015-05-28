@@ -33,6 +33,7 @@ using std::endl;
 using std::map;
 using std::multimap;
 using std::set;
+using std::sqrt;
 using std::multiset;
 using std::vector;
 

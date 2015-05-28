@@ -3,6 +3,7 @@
 
 #include "containers/scoped.hpp"
 #include "math.hpp"
+#include <strings.h>
 
 lba_disk_structure_t::lba_disk_structure_t(extent_manager_t *_em, rdb_file_t *_file)
     : em(_em), file(_file), superblock_extent(NULL), last_extent(NULL)

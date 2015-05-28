@@ -10,6 +10,7 @@
 #include "rdb_protocol/geo/s2/util/math/vector2-inl.h"
 
 namespace geo {
+using std::sqrt;
 
 // Define storage for header file constants (the values are not needed
 // here for integral constants).

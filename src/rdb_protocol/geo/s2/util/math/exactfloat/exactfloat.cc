@@ -13,6 +13,8 @@
 #include "rdb_protocol/geo/s2/base/logging.h"
 
 namespace geo {
+using std::isinf;
+using std::isnan;
 using std::min;
 using std::max;
 using std::swap;
