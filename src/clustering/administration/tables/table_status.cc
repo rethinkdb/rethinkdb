@@ -34,6 +34,7 @@ const char *convert_status_to_string(server_status_t status) {
         case server_status_t::WAITING_FOR_QUORUM: return "waiting_for_quorum";
         case server_status_t::NOTHING: unreachable();
     }
+    unreachable();
 }
 
 ql::datum_t convert_shard_status_to_datum(

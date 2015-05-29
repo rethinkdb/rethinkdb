@@ -1,6 +1,8 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/administration/servers/server_metadata.hpp"
 
+#include "logger.hpp"
+
 // RSI(raft): Some of these should be `SINCE_v1_N`, where `N` is the version number at
 // which Raft is released.
 
