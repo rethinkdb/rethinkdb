@@ -245,7 +245,7 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
         table_generate_config(
             server_config_client, nil_uuid(), table_meta_client,
             config_params, config.shard_scheme, &interruptor_on_home,
-            &config.config.shards);
+            &config.config.shards, &config.server_names);
 
         config.config.write_ack_config = write_ack_config_t::MAJORITY;
         config.config.durability = durability;
@@ -255,7 +255,7 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
 
         new_config = convert_table_config_to_datum(table_id,
             convert_name_to_datum(db->name), config.config,
-            admin_identifier_format_t::name, server_config_client);
+            admin_identifier_format_t::name, config.server_names);
 
         table_status_artificial_table_backend_t *status_backend =
             admin_tables->table_status_backend[
@@ -326,7 +326,7 @@ bool real_reql_cluster_interface_t::table_drop(const name_string_t &name,
 
         old_config = convert_table_config_to_datum(table_id,
             convert_name_to_datum(db->name), config.config,
-            admin_identifier_format_t::name, server_config_client);
+            admin_identifier_format_t::name, config.server_names);
 
         table_meta_client->drop(table_id, &interruptor_on_home);
 
@@ -673,7 +673,7 @@ void real_reql_cluster_interface_t::reconfigure_internal(
     // Store the old value of the config and status
     ql::datum_t old_config_datum = convert_table_config_to_datum(
         table_id, convert_name_to_datum(db->name), old_config.config,
-        admin_identifier_format_t::name, server_config_client);
+        admin_identifier_format_t::name, old_config.server_names);
 
     table_status_artificial_table_backend_t *status_backend =
         admin_tables->table_status_backend[
@@ -699,7 +699,8 @@ void real_reql_cluster_interface_t::reconfigure_internal(
     /* `table_generate_config()` just generates the config; it doesn't apply it */
     table_generate_config(
         server_config_client, table_id, table_meta_client,
-        params, new_config.shard_scheme, interruptor_on_home, &new_config.config.shards);
+        params, new_config.shard_scheme, interruptor_on_home, &new_config.config.shards,
+        &new_config.server_names);
 
     new_config.config.write_ack_config = write_ack_config_t::MAJORITY;
     new_config.config.durability = write_durability_t::HARD;
@@ -711,7 +712,7 @@ void real_reql_cluster_interface_t::reconfigure_internal(
     // Compute the new value of the config and status
     ql::datum_t new_config_datum = convert_table_config_to_datum(
         table_id, convert_name_to_datum(db->name), new_config.config,
-        admin_identifier_format_t::name, server_config_client);
+        admin_identifier_format_t::name, new_config.server_names);
     ql::datum_t new_status;
     if (!status_backend->read_row(convert_uuid_to_datum(table_id), interruptor_on_home,
             &new_status, &error)) {

@@ -62,7 +62,7 @@ with driver.Process(console_output=True, output_folder='.', command_prefix=comma
 
     print("Filling table (%.2fs)" % (time.time() - startTime))
     doc_size = 10000
-    overfill_factor = 1.2
+    overfill_factor = 1.5
     num_docs = int(high_cache_mb * megabyte * overfill_factor / doc_size)
     res = r.table("test").insert(r.range(num_docs).map(
         lambda x: {"id":x, "payload":"a" * doc_size}

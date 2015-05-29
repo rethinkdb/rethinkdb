@@ -22,10 +22,8 @@ class debug_stats_artificial_table_backend_t :
 {
 public:
     debug_stats_artificial_table_backend_t(
-            boost::shared_ptr< semilattice_readwrite_view_t<
-                servers_semilattice_metadata_t> > _servers_sl_view,
+            watchable_map_t<peer_id_t, cluster_directory_metadata_t> *_directory,
             server_config_client_t *_server_config_client,
-            watchable_map_t<peer_id_t, cluster_directory_metadata_t> *_directory_view,
             mailbox_manager_t *_mailbox_manager);
     ~debug_stats_artificial_table_backend_t();
 
@@ -38,9 +36,9 @@ public:
 
 private:
     bool format_row(
-            name_string_t const & name,
             server_id_t const & server_id,
-            server_semilattice_metadata_t const & server,
+            peer_id_t const & peer_id,
+            cluster_directory_metadata_t const & metadata,
             signal_t *interruptor_on_home,
             ql::datum_t *row_out,
             std::string *error_out);

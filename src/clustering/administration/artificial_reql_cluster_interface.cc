@@ -387,17 +387,14 @@ admin_artificial_tables_t::admin_artificial_tables_t(
         std::make_pair(logs_backend[0].get(), logs_backend[1].get());
 
     server_config_backend.init(new server_config_artificial_table_backend_t(
-        metadata_field(&cluster_semilattice_metadata_t::servers,
-            _semilattice_view),
+        _directory_map_view,
         _server_config_client));
     backends[name_string_t::guarantee_valid("server_config")] =
         std::make_pair(server_config_backend.get(), server_config_backend.get());
 
     server_status_backend.init(new server_status_artificial_table_backend_t(
-        metadata_field(&cluster_semilattice_metadata_t::servers,
-            _semilattice_view),
-        _server_config_client,
-        _directory_map_view));
+        _directory_map_view,
+        _server_config_client));
     backends[name_string_t::guarantee_valid("server_status")] =
         std::make_pair(server_status_backend.get(), server_status_backend.get());
 
@@ -448,10 +445,8 @@ admin_artificial_tables_t::admin_artificial_tables_t(
         std::make_pair(debug_scratch_backend.get(), debug_scratch_backend.get());
 
     debug_stats_backend.init(new debug_stats_artificial_table_backend_t(
-        metadata_field(&cluster_semilattice_metadata_t::servers,
-            _semilattice_view),
-        _server_config_client,
         _directory_map_view,
+        _server_config_client,
         _mailbox_manager));
     backends[name_string_t::guarantee_valid("_debug_stats")] =
         std::make_pair(debug_stats_backend.get(), debug_stats_backend.get());

@@ -179,10 +179,12 @@ void table_manager_t::on_get_status(
         ASSERT_NO_CORO_WAITING;
 
         contracts_and_contract_acks.timestamp.epoch = epoch;
-        contracts_and_contract_acks.timestamp.log_index =
-            raft.get_raft()->get_committed_state()->get().log_index;
-        contracts_and_contract_acks.contracts =
-            raft.get_raft()->get_committed_state()->get().state.contracts;
+        raft.get_raft()->get_committed_state()->apply_read(
+        [&](const raft_member_t<table_raft_state_t>::state_and_config_t *s) {
+            contracts_and_contract_acks.timestamp.log_index = s->log_index;
+            contracts_and_contract_acks.contracts = s->state.contracts;
+            contracts_and_contract_acks.server_names = s->state.server_names;
+        });
         for (const auto &contract_ack : contract_executor.get_acks()->get_all()) {
             contracts_and_contract_acks.contract_acks.insert(
                 std::make_pair(contract_ack.first.second, contract_ack.second));

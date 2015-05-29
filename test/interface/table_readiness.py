@@ -100,7 +100,7 @@ def wait_for_transition(cluster):
     uuids = [proc.uuid for proc in running_procs]
 
     conn = r.connect('localhost', query_server.driver_port)
-    while not all(r.expr(uuids).map(r.db('rethinkdb').table('server_status').get(r.row)['status'].eq('connected')).run(conn)):
+    while not all(r.expr(uuids).map(r.db('rethinkdb').table('server_status').get(r.row).ne(None)).run(conn)):
         time.sleep(0.1)
 
 def test_wait(cluster, servers, files, states, expected_wait_result):

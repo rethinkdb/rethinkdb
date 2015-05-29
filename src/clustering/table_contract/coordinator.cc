@@ -558,6 +558,42 @@ void calculate_branch_history(
     });
 }
 
+/* `calculate_server_names()` figures out what changes need to be made to the server
+names stored in the Raft state. When a contract is added that refers to a new server, it
+will copy the server name from the table config; when the last contract that refers to a
+server is removed, it will delete hte server name. */
+void calculate_server_names(
+        const table_raft_state_t &old_state,
+        const std::set<contract_id_t> &remove_contracts,
+        const std::map<contract_id_t, std::pair<region_t, contract_t> > &add_contracts,
+        std::set<server_id_t> *remove_server_names_out,
+        server_name_map_t *add_server_names_out) {
+    std::set<server_id_t> all_replicas;
+    for (const auto &pair : old_state.contracts) {
+        if (remove_contracts.count(pair.first) == 0) {
+            all_replicas.insert(
+                pair.second.second.replicas.begin(),
+                pair.second.second.replicas.end());
+        }
+    }
+    for (const auto &pair : add_contracts) {
+        all_replicas.insert(
+            pair.second.second.replicas.begin(),
+            pair.second.second.replicas.end());
+        for (const server_id_t &server : pair.second.second.replicas) {
+            if (old_state.server_names.names.count(server) == 0) {
+                add_server_names_out->names.insert(std::make_pair(server,
+                    old_state.config.server_names.names.at(server)));
+            }
+        }
+    }
+    for (const auto &pair : old_state.server_names.names) {
+        if (all_replicas.count(pair.first) == 0) {
+            remove_server_names_out->insert(pair.first);
+        }
+    }
+}
+
 /* `calculate_member_ids_and_raft_config()` figures out when servers need to be added to
 or removed from the `table_raft_state_t::member_ids` map or the Raft configuration. The
 goals are as follows:
@@ -728,6 +764,9 @@ void contract_coordinator_t::pump_contracts(signal_t *interruptor) {
                 state->state, acks,
                 change.remove_contracts, change.add_contracts,
                 &change.remove_branches, &change.add_branches);
+            calculate_server_names(
+                state->state, change.remove_contracts, change.add_contracts,
+                &change.remove_server_names, &change.add_server_names);
         });
 
         /* Apply the change, unless it's a no-op */

@@ -152,7 +152,7 @@ def get_individual_stats(global_stats, conn):
 # This also assumes that the individual stats were collected after the global stats
 # The only thing we know about `per_sec` stats is that they are non-zero
 # For `total` stats, we can check that they only increase with time
-def compare_global_and_individual_stats(global_stats, individual_stats, expected_timeouts=[]):
+def compare_global_and_individual_stats(global_stats, individual_stats):
     assert len(global_stats) == len(individual_stats)
     for i in xrange(len(global_stats)):
         a = global_stats[i]
@@ -168,11 +168,6 @@ def compare_global_and_individual_stats(global_stats, individual_stats, expected
             assert a['query_engine']['client_connections'] == b['query_engine']['client_connections'] == len(table_names) + 1
         elif a['id'][0] == 'server':
             assert a['server'] == b['server']
-            if 'error' in a:
-                assert 'error' in b
-                assert a['error'] == b['error']
-                assert a['server'] in expected_timeouts
-                continue
             assert a['query_engine']['queries_per_sec'] >= 0
             assert b['query_engine']['queries_per_sec'] >= 0
             assert a['query_engine']['read_docs_per_sec'] > 0
@@ -193,11 +188,6 @@ def compare_global_and_individual_stats(global_stats, individual_stats, expected
             assert a['db'] == b['db']
             assert a['table'] == b['table']
             assert a['server'] == b['server']
-            if 'error' in a:
-                assert 'error' in b
-                assert a['error'] == b['error']
-                assert a['server'] in expected_timeouts
-                continue
             assert a['query_engine']['read_docs_per_sec'] > 0
             assert b['query_engine']['read_docs_per_sec'] > 0
             assert a['query_engine']['written_docs_per_sec'] > 0
@@ -281,10 +271,10 @@ with driver.Metacluster() as metacluster:
         servers[1]['process'].close()
         time.sleep(5)
 
-        # Perform table scan, observe timeouts
-        all_stats = get_and_check_global_stats(tables, servers, conn)
+        # Perform table scan, observe that server 1 is now gone
+        all_stats = get_and_check_global_stats(tables, [servers[0]], conn)
         also_stats = get_individual_stats(all_stats, conn)
-        compare_global_and_individual_stats(all_stats, also_stats, expected_timeouts=[servers[1]['name']])
+        compare_global_and_individual_stats(all_stats, also_stats)
 
         # Basic test of the `_debug_stats` table
         debug_stats_0 = r.db('rethinkdb').table('_debug_stats') \
@@ -292,7 +282,7 @@ with driver.Metacluster() as metacluster:
         debug_stats_1 = r.db('rethinkdb').table('_debug_stats') \
                          .get(servers[1]["id"]).run(conn)
         assert debug_stats_0["stats"]["eventloop"]["total"] > 0
-        assert "error" in debug_stats_1
+        assert debug_stats_1 is None
 
         # Restart server
         print("Restarting second server...")

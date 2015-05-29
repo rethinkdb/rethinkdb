@@ -30,10 +30,10 @@ RDB_IMPL_EQUALITY_COMPARABLE_5(table_config_t,
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_16(table_shard_scheme_t, split_points);
 RDB_IMPL_EQUALITY_COMPARABLE_1(table_shard_scheme_t, split_points);
 
-RDB_IMPL_SERIALIZABLE_2_SINCE_v1_16(table_config_and_shards_t,
-                                    config, shard_scheme);
-RDB_IMPL_EQUALITY_COMPARABLE_2(table_config_and_shards_t,
-                               config, shard_scheme);
+RDB_IMPL_SERIALIZABLE_3_SINCE_v1_16(table_config_and_shards_t,
+                                    config, shard_scheme, server_names);
+RDB_IMPL_EQUALITY_COMPARABLE_3(table_config_and_shards_t,
+                               config, shard_scheme, server_names);
 
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(database_semilattice_metadata_t, name);
 RDB_IMPL_SEMILATTICE_JOINABLE_1(database_semilattice_metadata_t, name);

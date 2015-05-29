@@ -229,6 +229,7 @@ public:
     multi_table_manager_bcard_t::timestamp_t timestamp;
     contracts_t contracts;
     contract_acks_t contract_acks;
+    server_name_map_t server_names;
 };
 RDB_DECLARE_SERIALIZABLE(contracts_and_contract_acks_t);
 

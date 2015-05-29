@@ -24,24 +24,29 @@ table_status_artificial_table_backend_t::~table_status_artificial_table_backend_
     begin_changefeed_destruction();
 }
 
+const char *convert_status_to_string(server_status_t status) {
+    switch (status) {
+        case server_status_t::BACKFILLING: return "backfilling";
+        case server_status_t::DISCONNECTED: return "disconnected";
+        case server_status_t::READY: return "ready";
+        case server_status_t::TRANSITIONING: return "transitioning";
+        case server_status_t::WAITING_FOR_PRIMARY: return "waiting_for_primary";
+        case server_status_t::WAITING_FOR_QUORUM: return "waiting_for_quorum";
+        case server_status_t::NOTHING: unreachable();
+    }
+}
+
 ql::datum_t convert_shard_status_to_datum(
         const shard_status_t &shard_status,
         admin_identifier_format_t identifier_format,
-        server_config_client_t *server_config_client) {
+        const server_name_map_t &server_names) {
     ql::datum_object_builder_t shard_builder;
 
     ql::datum_array_builder_t primary_replicas_builder(
         ql::configured_limits_t::unlimited);
-    for (const auto &primary_replica : shard_status.primary_replicas) {
-        ql::datum_t primary_replica_name_or_uuid;
-        if (convert_server_id_to_datum(
-                primary_replica,
-                identifier_format,
-                server_config_client,
-                &primary_replica_name_or_uuid,
-                nullptr)) {
-            primary_replicas_builder.add(std::move(primary_replica_name_or_uuid));
-        }
+    for (const auto &primary : shard_status.primary_replicas) {
+        primary_replicas_builder.add(convert_name_or_uuid_to_datum(
+            server_names.get(primary), primary, identifier_format));
     }
     shard_builder.overwrite(
         "primary_replicas", std::move(primary_replicas_builder).to_datum());
@@ -51,42 +56,12 @@ ql::datum_t convert_shard_status_to_datum(
         if (replica.second == server_status_t::NOTHING) {
             continue;
         }
-        ql::datum_t replica_name_or_uuid;
-        if (convert_server_id_to_datum(
-                replica.first,
-                identifier_format,
-                server_config_client,
-                &replica_name_or_uuid,
-                nullptr)) {
-            ql::datum_object_builder_t replica_builder;
-            replica_builder.overwrite("server", std::move(replica_name_or_uuid));
-            ql::datum_t replica_state;
-            switch (replica.second) {
-                case server_status_t::BACKFILLING:
-                    replica_builder.overwrite("state", ql::datum_t("backfilling"));
-                    break;
-                case server_status_t::DISCONNECTED:
-                    replica_builder.overwrite("state", ql::datum_t("disconnected"));
-                    break;
-                case server_status_t::READY:
-                    replica_builder.overwrite("state", ql::datum_t("ready"));
-                    break;
-                case server_status_t::TRANSITIONING:
-                    replica_builder.overwrite("state", ql::datum_t("transitioning"));
-                    break;
-                case server_status_t::WAITING_FOR_PRIMARY:
-                    replica_builder.overwrite(
-                        "state", ql::datum_t("waiting_for_primary_replica"));
-                    break;
-                case server_status_t::WAITING_FOR_QUORUM:
-                    replica_builder.overwrite(
-                        "state", ql::datum_t("waiting_for_quorum"));
-                    break;
-                case server_status_t::NOTHING:
-                    unreachable();
-            }
-            replicas_builder.add(std::move(replica_builder).to_datum());
-        }
+        ql::datum_object_builder_t replica_builder;
+        replica_builder.overwrite("server", convert_name_or_uuid_to_datum(
+            server_names.get(replica.first), replica.first, identifier_format));
+        replica_builder.overwrite("state",
+            ql::datum_t(convert_status_to_string(replica.second)));
+        replicas_builder.add(std::move(replica_builder).to_datum());
     }
     shard_builder.overwrite("replicas", std::move(replicas_builder).to_datum());
     return std::move(shard_builder).to_datum();
@@ -99,7 +74,7 @@ ql::datum_t convert_table_status_to_datum(
         table_readiness_t readiness,
         const std::vector<shard_status_t> &shard_statuses,
         admin_identifier_format_t identifier_format,
-        server_config_client_t *server_config_client) {
+        const server_name_map_t &server_names) {
     ql::datum_object_builder_t builder;
     builder.overwrite("id", convert_uuid_to_datum(table_id));
     builder.overwrite("db", db_name_or_uuid);
@@ -109,7 +84,7 @@ ql::datum_t convert_table_status_to_datum(
         ql::datum_array_builder_t shards_builder(ql::configured_limits_t::unlimited);
         for (const auto &shard_status : shard_statuses) {
             shards_builder.add(convert_shard_status_to_datum(
-                shard_status, identifier_format, server_config_client));
+                shard_status, identifier_format, server_names));
         }
         builder.overwrite("shards", std::move(shards_builder).to_datum());
     } else {
@@ -143,13 +118,15 @@ void table_status_artificial_table_backend_t::format_row(
 
     table_readiness_t readiness;
     std::vector<shard_status_t> shard_statuses;
+    server_name_map_t server_names;
     calculate_status(
         table_id,
         interruptor_on_home,
         table_meta_client,
         server_config_client,
         &readiness,
-        &shard_statuses);
+        &shard_statuses,
+        &server_names);
 
     *row_out = convert_table_status_to_datum(
         table_id,
@@ -158,7 +135,7 @@ void table_status_artificial_table_backend_t::format_row(
         readiness,
         shard_statuses,
         identifier_format,
-        server_config_client);
+        server_names);
 }
 
 bool table_status_artificial_table_backend_t::write_row(
@@ -208,13 +185,15 @@ table_wait_result_t wait_for_table_readiness(
 
             table_readiness_t readiness;
             std::vector<shard_status_t> shard_statuses;
+            server_name_map_t server_names;
             calculate_status(
                 table_id,
                 interruptor_on_home,
                 backend->table_meta_client,
                 backend->server_config_client,
                 &readiness,
-                &shard_statuses);
+                &shard_statuses,
+                &server_names);
 
             if (readiness >= wait_readiness) {
                 if (status_out != nullptr) {
@@ -225,7 +204,7 @@ table_wait_result_t wait_for_table_readiness(
                         readiness,
                         shard_statuses,
                         backend->identifier_format,
-                        backend->server_config_client);
+                        server_names);
                 }
                 return immediate
                     ? table_wait_result_t::IMMEDIATE
