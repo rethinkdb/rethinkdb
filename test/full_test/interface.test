@@ -12,6 +12,7 @@ for interface_test_name in [
         'metadata_persistence',
         'net_corruption',
         'progress',
+        'reconfigure_stress',
         'resources',
         'server_config',
         'server_status',

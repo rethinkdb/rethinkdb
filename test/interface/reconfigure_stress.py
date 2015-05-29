@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 # Copyright 2014 RethinkDB, all rights reserved.
 
-'''This test randomly rebalances tables and shards to probabilistically find bugs in the system.'''
+"""This test repeatedly reconfigures a table in a specific pattern to test the
+efficiency of the reconfiguration logic. It's sort of like `shard_fuzzer.py` but it
+produces a specific workload instead of a random one."""
 
 from __future__ import print_function
 
@@ -14,11 +16,11 @@ import driver, scenario_common, utils, vcoptparse
 
 opts = vcoptparse.OptParser()
 scenario_common.prepare_option_parser_mode_flags(opts)
-opts['num-servers'] = vcoptparse.IntFlag('--num-servers', 1)
+opts['num-servers'] = vcoptparse.IntFlag('--num-servers', 2)
 opts['num-rows'] = vcoptparse.IntFlag('--num-rows', 10)
-opts['num-shards'] = vcoptparse.IntFlag('--num-shards', 1)
+opts['num-shards'] = vcoptparse.IntFlag('--num-shards', 32)
 opts['num-replicas'] = vcoptparse.IntFlag('--num-replicas', 1)
-opts['num-phases'] = vcoptparse.IntFlag('--num-phases', 1)
+opts['num-phases'] = vcoptparse.IntFlag('--num-phases', 2)
 parsed_opts = opts.parse(sys.argv)
 _, command_prefix, serve_options = scenario_common.parse_mode_flags(parsed_opts)
 
