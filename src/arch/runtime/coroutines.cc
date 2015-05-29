@@ -439,6 +439,7 @@ void coro_t::grab_spawn_backtrace() {
     void *buffer[buffer_size];
     spawn_backtrace_size = rethinkdb_backtrace(buffer, buffer_size);
     if (spawn_backtrace_size < num_frames_to_skip) {
+#ifndef _WIN32 // TODO ATN
         // Something is fishy if this happens... Probably RethinkDB was compiled
         // with some optimizations enabled that inlined some functions or
         // optimized away some stack frames, or the value of
@@ -449,6 +450,7 @@ void coro_t::grab_spawn_backtrace() {
             "If you determine that this is acceptable in your specific case (e.g. "
             "you are just debugging something), feel free to temporarily comment "
             "this assertion.");
+#endif
         spawn_backtrace_size = num_frames_to_skip;
     }
     spawn_backtrace_size -= num_frames_to_skip;

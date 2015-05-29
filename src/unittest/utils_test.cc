@@ -61,11 +61,13 @@ TEST(UtilsTest, StrtofooStrict) {
 }
 
 TEST(UtilsTest, TimeLocal) {
+#ifndef _WIN32 // ATN TODO
     // Change the timezone for the duration of this test
     char *hastz = getenv("TZ");
     std::string oldtz(hastz ? hastz : "");
     setenv("TZ", "America/Los_Angeles", 1);
     tzset();
+#endif
 
     struct timespec time = {1335301122, 1234};
     std::string formatted = format_time(time, local_or_utc_time_t::local);
@@ -77,12 +79,14 @@ TEST(UtilsTest, TimeLocal) {
     EXPECT_EQ(time.tv_sec, parsed.tv_sec);
     EXPECT_EQ(time.tv_nsec, parsed.tv_nsec);
 
+#ifndef _WIN32 // ATN TODO
     if (hastz) {
       setenv("TZ", oldtz.c_str(), 1);
     } else {
       unsetenv("TZ");
     }
     tzset();
+#endif
 }
 
 TEST(UtilsTest, TimeUTC) {

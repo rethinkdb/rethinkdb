@@ -13,7 +13,7 @@ class linux_thread_t;
 
 class windows_event_t {
 public:
-	windows_event_t() : thread(nullptr) { }
+	windows_event_t() : thread(nullptr), callback(nullptr) { }
 	~windows_event_t() {
 		if (thread != nullptr) {
 			CloseHandle(thread);

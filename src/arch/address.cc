@@ -6,7 +6,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#ifdef _WIN32 // ATN TODO
+#include <ws2tcpip.h>
+#else
 #include <netinet/in.h>
+#endif
 
 #include <functional>
 
@@ -18,8 +22,11 @@ host_lookup_exc_t::host_lookup_exc_t(const std::string &_host,
     : host(_host),
       res(_res),
       errno_res(_errno_res) {
-    std::string info = (res == EAI_SYSTEM) ?
+    std::string info =
+#ifndef _WIN32
+		(res == EAI_SYSTEM) ?
         strprintf("%s (errno %d)", errno_string(errno_res).c_str(), errno_res) :
+#endif
         strprintf("%s (gai_errno %d)", gai_strerror(res), res);
     error_string = strprintf("getaddrinfo() failed for hostname '%s': %s",
                              host.c_str(), info.c_str());
@@ -27,7 +34,11 @@ host_lookup_exc_t::host_lookup_exc_t(const std::string &_host,
 
 /* Get our hostname as an std::string. */
 std::string str_gethostname() {
+#ifdef _WIN32
+	const int namelen = 256; // (cf. RFC 1035)
+#else
     const int namelen = _POSIX_HOST_NAME_MAX;
+#endif
 
     std::vector<char> bytes(namelen + 1);
     bytes[namelen] = '0';
@@ -52,10 +63,15 @@ void do_getaddrinfo(const char *node,
 
 /* Format an `in_addr` in dotted deciaml notation. */
 template <class addr_t>
-std::string ip_to_string(const addr_t &addr, int address_family) {
+std::string ip_to_string(addr_t &addr, int address_family) {
     char buffer[INET6_ADDRSTRLEN] = { 0 };
+#ifdef _WIN32
+	const char *result = inet_ntop(address_family, (void*)&addr,
+								   buffer, INET6_ADDRSTRLEN);
+#else
     const char *result = inet_ntop(address_family, &addr,
                                    buffer, INET6_ADDRSTRLEN);
+#endif
     guarantee(result == buffer, "Could not format IP address");
     return std::string(buffer);
 }
@@ -120,6 +136,7 @@ std::set<ip_address_t> get_local_ips(const std::set<ip_address_t> &filter,
         // Continue on, this probably means there's no DNS entry for this host
     }
 
+#ifndef _WIN32 // TODO ATN
     // Ignore loopback addresses - those will be returned by getifaddrs, and
     // getaddrinfo is not so trustworthy.
     // See https://github.com/rethinkdb/rethinkdb/issues/2405
@@ -146,6 +163,7 @@ std::set<ip_address_t> get_local_ips(const std::set<ip_address_t> &filter,
         }
     }
     freeifaddrs(addrs);
+#endif
 
     // Remove any addresses that don't fit the filter
     for (auto const &ip : all_ips) {
@@ -351,6 +369,9 @@ bool ip_address_t::operator < (const ip_address_t &x) const {
 }
 
 bool ip_address_t::is_loopback() const {
+#ifdef _WIN32 // TODO ATN
+#define IN_LOOPBACKNET 127 // from <netinet/in.h> on Linux
+#endif
     if (is_ipv4()) {
         return (ntohl(ipv4_addr.s_addr) >> 24) == IN_LOOPBACKNET;
     } else if (is_ipv6()) {

@@ -8,10 +8,10 @@
 
 class linux_event_watcher_t :
     public home_thread_mixin_debug_only_t,
-    private linux_event_callback_t
+    private event_callback_t
 {
 public:
-    linux_event_watcher_t(fd_t f, linux_event_callback_t *eh);
+    linux_event_watcher_t(fd_t f, event_callback_t *eh);
     ~linux_event_watcher_t();
 
     /* To monitor for a specific event happening, instantiate `watch_t`. It will
@@ -34,7 +34,7 @@ public:
 
 private:
     fd_t fd;
-    linux_event_callback_t *error_handler;
+    event_callback_t *error_handler;
 
     watch_t **get_watch_slot(int event);
     watch_t *in_watcher;

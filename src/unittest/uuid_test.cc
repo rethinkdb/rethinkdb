@@ -1,5 +1,8 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
+
+#ifndef _WIN32
 #include <arpa/inet.h>
+#endif
 
 #include "containers/uuid.hpp"
 #include "unittest/gtest.hpp"

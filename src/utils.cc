@@ -14,7 +14,8 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#ifdef _MSC_VER
+#ifdef _WIN32 // TODO ATN
+#include "windows.hpp"
 #include <io.h>
 #include <direct.h>
 #include <filesystem>
@@ -81,6 +82,11 @@ void run_generic_global_startup_behavior() {
     }
 #endif
 
+#ifdef _WIN32
+	// ATN TODO
+	WSADATA wsa_data;
+	WSAStartup(MAKEWORD(2, 2), &wsa_data);
+#endif
 }
 
 startup_shutdown_t::startup_shutdown_t() {

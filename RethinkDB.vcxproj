@@ -116,14 +116,16 @@
       <AdditionalIncludeDirectories>$(ProjectDir)\..\protobuf-2.5.0\vsprojects\include;$(ProjectDir)\..\boost_1_58_0;$(ProjectDir)\external\gtest_1.7.0\include;$(ProjectDir)\windows_stub;$(ProjectDir)\..\re2</AdditionalIncludeDirectories>
       <PreprocessToFile>false</PreprocessToFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <MultiProcessorCompilation>false</MultiProcessorCompilation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalOptions>/we4005</AdditionalOptions>
       <ShowIncludes>false</ShowIncludes>
+      <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
+      <MinimalRebuild>false</MinimalRebuild>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>gtest.lib;libprotobuf.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>gtest.lib;libprotobuf.lib;WS2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ForceFileOutput>UndefinedSymbolOnly</ForceFileOutput>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
     </Link>
@@ -161,8 +163,9 @@
       <AdditionalIncludeDirectories>$(ProjectDir)\..\protobuf-2.5.0\vsprojects\include;$(ProjectDir)\..\boost_1_58_0;$(ProjectDir)\external\gtest_1.7.0\include;$(ProjectDir)\windows_stub;$(ProjectDir)\..\re2</AdditionalIncludeDirectories>
       <PreprocessToFile>false</PreprocessToFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <MultiProcessorCompilation>false</MultiProcessorCompilation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalOptions>/we4005</AdditionalOptions>
+      <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -170,6 +173,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
+      <AdditionalDependencies>gtest.lib;libprotobuf.lib;WS2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -640,6 +644,7 @@
     <ClInclude Include="windows_stub\pthread.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\arch\address.cc" />
     <ClCompile Include="src\arch\barrier.cc" />
     <ClCompile Include="src\arch\io\blocker_pool.cc" />
     <ClCompile Include="src\arch\io\disk.cc" />
@@ -663,15 +668,22 @@
     <ClCompile Include="src\arch\timer.cc" />
     <ClCompile Include="src\arch\types.cc" />
     <ClCompile Include="src\backtrace.cc" />
+    <ClCompile Include="src\btree\keys.cc" />
+    <ClCompile Include="src\clustering\administration\issues\log_write.cc" />
     <ClCompile Include="src\clustering\administration\logs\log_writer.cc" />
     <ClCompile Include="src\clustering\administration\main\directory_lock.cc" />
     <ClCompile Include="src\concurrency\auto_drainer.cc" />
     <ClCompile Include="src\concurrency\cross_thread_mutex.cc" />
+    <ClCompile Include="src\concurrency\mutex.cc" />
     <ClCompile Include="src\concurrency\semaphore.cc" />
     <ClCompile Include="src\concurrency\signal.cc" />
     <ClCompile Include="src\containers\archive\archive.cc" />
+    <ClCompile Include="src\containers\archive\stl_types.cc" />
+    <ClCompile Include="src\containers\archive\varint.cc" />
     <ClCompile Include="src\containers\auth_key.cc" />
     <ClCompile Include="src\containers\printf_buffer.cc" />
+    <ClCompile Include="src\containers\shared_buffer.cc" />
+    <ClCompile Include="src\containers\uuid.cc" />
     <ClCompile Include="src\debug.cc" />
     <ClCompile Include="src\errors.cc" />
     <ClCompile Include="src\http\json.cc" />
@@ -679,8 +691,10 @@
     <ClCompile Include="src\math.cc" />
     <ClCompile Include="src\perfmon\core.cc" />
     <ClCompile Include="src\perfmon\perfmon.cc" />
+    <ClCompile Include="src\rdb_protocol\datum_string.cc" />
     <ClCompile Include="src\rdb_protocol\rdb_protocol_json.cc" />
     <ClCompile Include="src\rethinkdb_backtrace.cc" />
+    <ClCompile Include="src\stl_utils.cc" />
     <ClCompile Include="src\threading.cc" />
     <ClCompile Include="src\time.cc" />
     <ClCompile Include="src\unittest\auth_key_test.cc" />
@@ -690,6 +704,7 @@
     <ClCompile Include="src\unittest\main.cc" />
     <ClCompile Include="src\unittest\printf_buffer_test.cc" />
     <ClCompile Include="src\unittest\unittest_utils.cc" />
+    <ClCompile Include="src\unittest\utils_test.cc" />
     <ClCompile Include="src\utils.cc" />
     <ClCompile Include="windows_stub\pthread.cc" />
   </ItemGroup>

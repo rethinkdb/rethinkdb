@@ -5,9 +5,11 @@
 #include <stdarg.h>
 #include <unistd.h>
 #include <sys/types.h>
+#ifndef _WIN32
 #include <ifaddrs.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#endif
 
 #include <functional>
 #include <set>
@@ -30,12 +32,13 @@
 #include "concurrency/coro_pool.hpp"
 #include "containers/intrusive_list.hpp"
 #include "perfmon/types.hpp"
+#include "arch/compiler.hpp"
 
 /* linux_tcp_conn_t provides a disgusting wrapper around a TCP network connection. */
 
 class linux_tcp_conn_t :
     public home_thread_mixin_t,
-    private linux_event_callback_t {
+    private event_callback_t {
 public:
     friend class linux_tcp_conn_descriptor_t;
 
@@ -111,7 +114,7 @@ public:
     buffered writes; this may improve performance. */
     void write_buffered(const void *buf, size_t size, signal_t *closer) THROWS_ONLY(tcp_conn_write_closed_exc_t);
 
-    void writef(signal_t *closer, const char *format, ...) THROWS_ONLY(tcp_conn_write_closed_exc_t) __attribute__ ((format (printf, 3, 4)));
+    void writef(signal_t *closer, const char *format, ...) THROWS_ONLY(tcp_conn_write_closed_exc_t) ATTR_FORMAT(printf, 3, 4);
 
     void flush_buffer(signal_t *closer) THROWS_ONLY(tcp_conn_write_closed_exc_t);   // Blocks until flush is done
     void flush_buffer_eventually(signal_t *closer) THROWS_ONLY(tcp_conn_write_closed_exc_t);   // Blocks only if the queue is backed up
@@ -330,7 +333,7 @@ private:
 connections. Create a linux_nonthrowing_tcp_listener_t with some port and then call set_callback();
 the provided callback will be called in a new coroutine every time something connects. */
 
-class linux_nonthrowing_tcp_listener_t : private linux_event_callback_t {
+class linux_nonthrowing_tcp_listener_t : private event_callback_t {
 public:
     linux_nonthrowing_tcp_listener_t(const std::set<ip_address_t> &bind_addresses, int _port,
         const std::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t> &)> &callback);

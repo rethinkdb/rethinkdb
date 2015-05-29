@@ -2,7 +2,7 @@
 #ifndef ARCH_ADDRESS_HPP_
 #define ARCH_ADDRESS_HPP_
 
-#ifndef _WIN32
+#ifndef _WIN32 // ATN TODO
 #include <arpa/inet.h>   /* for `inet_ntop()` */
 #include <net/if.h>
 #include <netdb.h>
@@ -10,6 +10,7 @@
 #include <sys/ioctl.h>
 #else
 #include "windows.hpp"
+#include <inaddr.h>
 #endif
 
 #include <algorithm>
@@ -65,7 +66,7 @@ class ip_address_t {
 public:
     ip_address_t() : addr_type(RDB_UNSPEC_ADDR) { } // for deserialization
 
-    explicit ip_address_t(const sockaddr *sa);
+    explicit ip_address_t(const struct sockaddr *sa);
     explicit ip_address_t(const std::string &addr_str);
 
     static ip_address_t any(int address_family);
@@ -115,7 +116,7 @@ public:
     static constexpr int max_port = 65535;
 
     explicit port_t(int _port);
-    explicit port_t(sockaddr const *);
+    explicit port_t(struct sockaddr const *);
 
     int value() const;
 

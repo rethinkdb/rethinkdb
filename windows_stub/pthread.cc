@@ -17,7 +17,7 @@ int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_
 		return reinterpret_cast<DWORD>(res);
 	};
 	HANDLE handle = CreateThread(nullptr, 0, go, static_cast<void*>(data), 0, nullptr);
-	if (handle != NULL) {
+	if (handle == NULL) {
 		return EINVAL; // TODO: check GetLastError()
 	}
 	else {

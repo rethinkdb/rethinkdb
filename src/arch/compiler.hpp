@@ -9,7 +9,7 @@
 #define ATTR_PACKED(decl) __pragma(pack(push, 1)) decl __pragma(pack(pop))
 #define ATTR_FORMAT(x)
 #define ATTR_NORETURN __declspec(noreturn)
-#define DECL_THREAD_LOCAL thread_local // ATN __declspec(thread)
+#define DECL_THREAD_LOCAL thread_local // ATN TODO which is better, this or __declspec(thread)?
 #define NOINLINE __declspec(noinline)
 #define CURRENT_FUNCTION_PRETTY __FUNCSIG__
 

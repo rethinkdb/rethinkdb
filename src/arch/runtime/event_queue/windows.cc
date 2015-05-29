@@ -23,6 +23,7 @@ void windows_event_queue_t::forget_event(windows_event_t& event, event_callback_
 void windows_event_queue_t::run() {
 	while (!thread->should_shut_down()) {
 		SleepEx(INFINITE, true);
+		thread->pump();
 	}
 }
 
