@@ -144,9 +144,6 @@ public:
         const std::map<peer_id_t, cluster_directory_metadata_t> &directory,
         server_config_client_t *server_config_client) const;
 
-    bool check_existence(const metadata_t &metadata,
-                         table_meta_client_t *table_meta_client) const;
-
     virtual bool to_datum(const parsed_stats_t &stats,
                           const metadata_t &metadata,
                           server_config_client_t *server_config_client,
@@ -172,9 +169,6 @@ public:
         const std::map<peer_id_t, cluster_directory_metadata_t> &directory,
         server_config_client_t *server_config_client) const;
 
-    bool check_existence(const metadata_t &metadata,
-                         table_meta_client_t *table_meta_client) const;
-
     virtual bool to_datum(const parsed_stats_t &stats,
                           const metadata_t &metadata,
                           server_config_client_t *server_config_client,
@@ -198,9 +192,6 @@ public:
     std::vector<peer_id_t> get_peers(
         const std::map<peer_id_t, cluster_directory_metadata_t> &directory,
         server_config_client_t *server_config_client) const;
-
-    bool check_existence(const metadata_t &metadata,
-                         table_meta_client_t *table_meta_client) const;
 
     virtual bool to_datum(const parsed_stats_t &stats,
                           const metadata_t &metadata,
@@ -227,9 +218,6 @@ public:
     std::vector<peer_id_t> get_peers(
         const std::map<peer_id_t, cluster_directory_metadata_t> &directory,
         server_config_client_t *server_config_client) const;
-
-    bool check_existence(const metadata_t &metadata,
-                         table_meta_client_t *table_meta_client) const;
 
     virtual bool to_datum(const parsed_stats_t &stats,
                           const metadata_t &metadata,

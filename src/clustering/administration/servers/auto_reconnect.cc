@@ -51,6 +51,10 @@ void auto_reconnector_t::try_reconnect(const server_id_t &server,
     guarantee(it != addresses.end());
     last_known_address = it->second;
 
+    static const int give_up_ms = 24 * 60 * 60 * 1000;
+    signal_timer_t give_up_timer;
+    give_up_timer.start(give_up_ms);
+
     cond_t reconnected;
     watchable_map_t<server_id_t, peer_id_t>::key_subs_t subs(
         server_config_client->get_server_to_peer_map(),
@@ -62,7 +66,7 @@ void auto_reconnector_t::try_reconnect(const server_id_t &server,
         },
         initial_call_t::YES);
 
-    wait_any_t interruptor(&reconnected, keepalive.get_drain_signal());
+    wait_any_t interruptor(&reconnected, &give_up_timer, keepalive.get_drain_signal());
 
     exponential_backoff_t backoff(50, 15 * 1000);
     try {
