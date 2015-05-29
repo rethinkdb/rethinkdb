@@ -237,7 +237,7 @@ message Datum {
 // Some arguments must be provided as literal values (and not the results of sub
 // terms).  These are marked with a `!`.
 // Optional arguments are specified within curly braces as argname `:` value
-// type (e.x `{use_outdated:BOOL}`)
+// type (e.x `{noreply:BOOL}`)
 // Many RQL operations are polymorphic. For these, alterantive type signatures
 // are separated by `|`.
 //
@@ -313,8 +313,8 @@ message Term {
         // Returns a reference to a database.
         DB    = 14; // STRING -> Database
         // Returns a reference to a table.
-        TABLE = 15; // Database, STRING, {use_outdated:BOOL, identifier_format:STRING} -> Table
-                    // STRING, {use_outdated:BOOL, identifier_format:STRING} -> Table
+        TABLE = 15; // Database, STRING, {read_mode:BOOL, identifier_format:STRING} -> Table
+                    // STRING, {read_mode:STRING, identifier_format:STRING} -> Table
         // Gets a single element from a table by its primary or a secondary key.
         GET   = 16; // Table, STRING -> SingleSelection | Table, NUMBER -> SingleSelection |
                     // Table, STRING -> NULL            | Table, NUMBER -> NULL |
@@ -774,7 +774,7 @@ message Term {
 //                                  EXAMPLE                                   //
 ////////////////////////////////////////////////////////////////////////////////
 //   ```ruby
-//   r.table('tbl', {:use_outdated => true}).insert([{:id => 0}, {:id => 1}])
+//   r.table('tbl', {:read_mode => 'outdated'}).insert([{:id => 0}, {:id => 1}])
 //   ```
 // Would turn into:
 //   Term {
@@ -785,10 +785,10 @@ message Term {
 //                         type = DATUM;
 //                         datum = Datum { type = R_STR; r_str = "tbl"; };
 //                       }];
-//               optargs = [["use_outdated",
+//               optargs = [["read_mode",
 //                           Term {
 //                             type = DATUM;
-//                             datum = Datum { type = R_BOOL; r_bool = true; };
+//                             datum = Datum { type = R_STR; r_bool = "outdated"; };
 //                           }]];
 //             },
 //             Term {

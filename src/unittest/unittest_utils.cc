@@ -43,7 +43,8 @@ struct make_sindex_read_t {
                 boost::optional<ql::terminal_variant_t>(),
                 sindex_rangespec_t(id, boost::none, rng),
                 sorting_t::UNORDERED),
-            profile_bool_t::PROFILE);
+            profile_bool_t::PROFILE,
+            read_mode_t::SINGLE);
     }
 };
 

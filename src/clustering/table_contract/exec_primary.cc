@@ -386,7 +386,7 @@ bool primary_execution_t::on_read(
             interruptor,
             response_out);
         counted_t<contract_info_t> contract_snapshot = latest_contract_store_thread;
-        if (contract_snapshot->write_ack_config == write_ack_config_t::MAJORITY) {
+        if (request.read_mode == read_mode_t::MAJORITY) {
             return sync_committed_read(request, order_token, interruptor, error_out);
         }
         return true;

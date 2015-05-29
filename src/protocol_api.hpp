@@ -61,10 +61,6 @@ public:
                       order_token_t tok,
                       signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
-    virtual void read_outdated(const read_t &,
-                               read_response_t *response,
-                               signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
     virtual void write(const write_t &,
                        write_response_t *response,
                        order_token_t tok,
@@ -113,6 +109,13 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(durability_requirement_t,
                                       int8_t,
                                       DURABILITY_REQUIREMENT_DEFAULT,
                                       DURABILITY_REQUIREMENT_SOFT);
+
+enum class read_mode_t { MAJORITY, SINGLE, OUTDATED };
+
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(read_mode_t,
+                                      int8_t,
+                                      read_mode_t::MAJORITY,
+                                      read_mode_t::OUTDATED);
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         reql_version_t, int8_t,

@@ -223,6 +223,7 @@ static std::set<std::string> acceptable_keys = {
     "primary_key",
     "primary_replica_tag",
     "profile",
+    "read_mode",
     "redirects",
     "replicas",
     "result_format",
@@ -235,7 +236,6 @@ static std::set<std::string> acceptable_keys = {
     "time_format",
     "timeout",
     "unit",
-    "use_outdated",
     "verify",
     "wait_for",
 };

@@ -45,10 +45,6 @@ public:
               UNUSED order_token_t tok,
               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
 
-    void read_outdated(const read_t &query,
-                       read_response_t *response,
-                       signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
-
     void write(const write_t &query,
                write_response_t *response,
                UNUSED order_token_t tok,

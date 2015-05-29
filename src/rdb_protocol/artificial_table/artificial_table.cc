@@ -43,7 +43,7 @@ const std::string &artificial_table_t::get_pkey() const {
 }
 
 ql::datum_t artificial_table_t::read_row(ql::env_t *env,
-        ql::datum_t pval, UNUSED bool use_outdated) {
+        ql::datum_t pval, UNUSED read_mode_t read_mode) {
     ql::datum_t row;
     std::string error;
     if (!checked_read_row_from_backend(backend, pval, env->interruptor, &row, &error)) {
@@ -62,7 +62,7 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_all(
         const std::string &table_name,
         const ql::datum_range_t &range,
         sorting_t sorting,
-        UNUSED bool use_outdated) {
+        UNUSED read_mode_t read_mode) {
     if (get_all_sindex_id != primary_key) {
         rfail_datum(ql::base_exc_t::GENERIC, "%s",
             error_message_index_not_found(get_all_sindex_id, table_name).c_str());
@@ -108,7 +108,7 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_intersecting(
         const std::string &sindex,
         UNUSED ql::backtrace_id_t bt,
         const std::string &table_name,
-        UNUSED bool use_outdated,
+        UNUSED read_mode_t read_mode,
         UNUSED const ql::datum_t &query_geometry) {
     guarantee(sindex != primary_key, "read_intersecting() should never be called with "
         "the primary index");
@@ -120,7 +120,7 @@ ql::datum_t artificial_table_t::read_nearest(
         UNUSED ql::env_t *env,
         const std::string &sindex,
         const std::string &table_name,
-        UNUSED bool use_outdated,
+        UNUSED read_mode_t read_mode,
         UNUSED lon_lat_point_t center,
         UNUSED double max_dist,
         UNUSED uint64_t max_results,

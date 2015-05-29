@@ -33,7 +33,7 @@ class table_t : public single_threaded_countable_t<table_t>, public bt_rcheckabl
 public:
     table_t(counted_t<base_table_t> &&,
             counted_t<const db_t> db, const std::string &name,
-            bool use_outdated, backtrace_id_t src);
+            read_mode_t _read_mode, backtrace_id_t src);
     ql::datum_t get_id() const;
     const std::string &get_pkey() const;
     datum_t get_row(env_t *env, datum_t pval);
@@ -106,7 +106,7 @@ private:
     MUST_USE bool sync_depending_on_durability(
         env_t *env, durability_requirement_t durability_requirement);
 
-    bool use_outdated;
+    read_mode_t read_mode;
 };
 
 class table_slice_t
