@@ -642,6 +642,8 @@
   <ItemGroup>
     <ClCompile Include="src\arch\barrier.cc" />
     <ClCompile Include="src\arch\io\blocker_pool.cc" />
+    <ClCompile Include="src\arch\io\disk.cc" />
+    <ClCompile Include="src\arch\io\disk\filestat.cc" />
     <ClCompile Include="src\arch\io\io_utils.cc" />
     <ClCompile Include="src\arch\io\timer\timer_windows_provider.cc" />
     <ClCompile Include="src\arch\runtime\context_switching.cc" />
@@ -654,9 +656,13 @@
     <ClCompile Include="src\arch\runtime\thread_pool.cc" />
     <ClCompile Include="src\arch\spinlock.cc" />
     <ClCompile Include="src\arch\timer.cc" />
+    <ClCompile Include="src\arch\types.cc" />
     <ClCompile Include="src\backtrace.cc" />
     <ClCompile Include="src\clustering\administration\logs\log_writer.cc" />
+    <ClCompile Include="src\concurrency\auto_drainer.cc" />
     <ClCompile Include="src\concurrency\cross_thread_mutex.cc" />
+    <ClCompile Include="src\concurrency\signal.cc" />
+    <ClCompile Include="src\containers\archive\archive.cc" />
     <ClCompile Include="src\containers\auth_key.cc" />
     <ClCompile Include="src\containers\printf_buffer.cc" />
     <ClCompile Include="src\debug.cc" />
@@ -671,6 +677,7 @@
     <ClCompile Include="src\threading.cc" />
     <ClCompile Include="src\time.cc" />
     <ClCompile Include="src\unittest\auth_key_test.cc" />
+    <ClCompile Include="src\unittest\clone_ptr.cc" />
     <ClCompile Include="src\unittest\context_switching.cc" />
     <ClCompile Include="src\unittest\json.cc" />
     <ClCompile Include="src\unittest\main.cc" />

@@ -2,12 +2,14 @@
 #include "arch/io/disk.hpp"
 
 #include <fcntl.h>
+#ifndef _WIN32 // TODO ATN
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/file.h>
-#include <unistd.h>
 #include <libgen.h>
+#endif
+#include <unistd.h>
 #include <limits.h>
 
 #include <algorithm>
@@ -43,7 +45,7 @@ public:
     };
 
 
-    linux_disk_manager_t(linux_event_queue_t *queue,
+    linux_disk_manager_t(event_queue_t *queue,
                          int batch_factor,
                          int max_concurrent_io_requests,
                          perfmon_collection_t *stats) :
@@ -351,11 +353,16 @@ void linux_file_t::writev_async(int64_t offset, size_t length,
 }
 
 bool linux_file_t::coop_lock_and_check() {
+#ifdef _WIN32
+	// ATN TODO
+	return true;
+#else
     if (flock(fd.get(), LOCK_EX | LOCK_NB) != 0) {
         rassert(get_errno() == EWOULDBLOCK);
         return false;
     }
     return true;
+#endif
 }
 
 void *linux_file_t::create_account(int priority, int outstanding_requests_limit) {
@@ -425,7 +432,7 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
 
     // For now, we have a whitelist of kernels that don't support O_LARGEFILE.  Linux is
     // the only known kernel that has (or may need) the O_LARGEFILE flag.
-#ifndef __MACH__
+#ifdef __linux__ // TODO ATN
     flags |= O_LARGEFILE;
 #endif
 
@@ -476,6 +483,9 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
                                     static_cast<long>(flags | O_DIRECT));  // NOLINT(runtime/int)
 #elif defined(__APPLE__)
         const int fcntl_res = fcntl(fd.get(), F_NOCACHE, 1);
+#elif defined(_WIN32)
+		// ATN TODO
+		const int fcntl_res = -1;
 #else
 #error "Figure out how to do direct I/O and fsync correctly (despite your operating system's lies) on your platform."
 #endif  // __linux__, defined(__APPLE__)
@@ -532,9 +542,9 @@ void crash_due_to_inaccessible_database_file(const char *path, file_open_result_
         "Inaccessible database file: \"%s\": %s"
         "\nSome possible reasons:"
         "\n- the database file couldn't be created or opened for reading and writing"
-#ifdef O_NOATIME
+// #ifdef O_NOATIME // TODO ATN: fails to compile with: '#' invalid character
         "\n- the user which was used to start the database is not an owner of the file"
-#endif
+// #endif
         , path, errno_string(open_res.errsv).c_str());
 }
 
@@ -575,16 +585,27 @@ int perform_datasync(fd_t fd) {
 
     return fcntl_res == -1 ? get_errno() : 0;
 
-#else  // __MACH__
+#elif defined(_WIN32)
+
+	// ATN TODO
+	return 0;
+
+#elif defined(__linux__)
 
     int res = fdatasync(fd);
     return res == -1 ? get_errno() : 0;
 
+#else
+#error "perform_datasync not implemented"
 #endif  // __MACH__
 }
 
 MUST_USE int fsync_parent_directory(const char *path) {
     // Locate the parent directory
+#ifdef _WIN32
+	// ATN TODO
+	return 0;
+#else
     char absolute_path[PATH_MAX];
     char *abs_res = realpath(path, absolute_path);
     guarantee_err(abs_res != NULL, "Failed to determine absolute path for '%s'", path);
@@ -608,6 +629,7 @@ MUST_USE int fsync_parent_directory(const char *path) {
     }
 
     return 0;
+#endif
 }
 
 void warn_fsync_parent_directory(const char *path) {

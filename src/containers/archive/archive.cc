@@ -2,7 +2,9 @@
 #include "containers/archive/archive.hpp"
 
 #include <string.h>
+#ifndef _WIN32 // ATN TODO
 #include <netinet/in.h>
+#endif
 
 #include <algorithm>
 
