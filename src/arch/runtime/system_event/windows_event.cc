@@ -3,17 +3,17 @@
 // ATN TODO
 
 #include "arch/runtime/system_event/windows_event.hpp"
-#include "arch/runtime/event_queue/iocp.hpp"
+#include "arch/runtime/event_queue/windows.hpp"
+#include "arch/runtime/thread_pool.hpp"
 
+void CALLBACK on_event(ULONG_PTR cb) {
+	reinterpret_cast<event_callback_t*>(cb)->on_event(poll_event_in);
+}
 
-void iocp_event_t::wakey_wakey() {
-	if (completion_port != NULL) {
-		BOOL res = PostQueuedCompletionStatus(
-			completion_port,
-			0,
-			static_cast<ULONG_PTR>(iocp_event_queue_t::event_type_t::EVENT_WAKEY_WAKEY),
-			reinterpret_cast<OVERLAPPED*>(id.get()));
-		guarantee_winerr(res, "PostQueuedCompletionStatus failed");
+void windows_event_t::wakey_wakey() {
+	if (thread != nullptr) {
+		rassert(callback != nullptr);
+		QueueUserAPC(on_event, thread, reinterpret_cast<ULONG_PTR>(callback));
 	}
 }
 

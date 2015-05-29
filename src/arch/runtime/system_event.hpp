@@ -5,7 +5,7 @@
 #if defined(_WIN32)
 
 #include "arch/runtime/system_event/windows_event.hpp"
-typedef iocp_event_t system_event_t;
+typedef windows_event_t system_event_t;
 
 #elif defined(NO_EVENTFD) || !defined(__linux)
 

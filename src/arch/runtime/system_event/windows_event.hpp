@@ -5,21 +5,27 @@
 
 #include "windows.hpp"
 #include "containers/scoped.hpp"
+#include "arch/runtime/event_queue_types.hpp"
+
+class linux_thread_t;
 
 // ATN TODO: if the event is triggered before the wait, should the wait see it?
 
-class iocp_event_t {
+class windows_event_t {
 public:
-	iocp_event_t() : id(new char), completion_port(nullptr) { }
+	windows_event_t() : thread(nullptr) { }
+	~windows_event_t() {
+		if (thread != nullptr) {
+			CloseHandle(thread);
+		}
+	}
 	void wakey_wakey();
 	void consume_wakey_wakeys() { }
 
 private:
-	friend class iocp_event_queue_t;
-	// ATN TODO: a better way to generate unique ids
-	scoped_ptr_t<char> id;
-	HANDLE completion_port;
-
+	friend class windows_event_queue_t;
+	HANDLE thread;
+	event_callback_t *callback;
 };
 
 #endif

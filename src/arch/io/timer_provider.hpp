@@ -13,23 +13,26 @@
 #define RDB_TIMER_PROVIDER_TIMERFD 1
 #define RDB_TIMER_PROVIDER_KQUEUE 2
 #define RDB_TIMER_PROVIDER_SIGNAL 3
+#define RDB_TIMER_PROVIDER_WINDOWS 4
 
-#ifdef LEGACY_LINUX
+#if defined(LEGACY_LINUX)
 #define RDB_TIMER_PROVIDER RDB_TIMER_PROVIDER_SIGNAL
-#else
-#ifdef __MACH__
+#elif defined(_WIN32)
+#define RDB_TIMER_PROVIDER RDB_TIMER_PROVIDER_WINDOWS
+#elif defined(__MACH__)
 #define RDB_TIMER_PROVIDER RDB_TIMER_PROVIDER_KQUEUE
 #else
 #define RDB_TIMER_PROVIDER RDB_TIMER_PROVIDER_TIMERFD
-#endif  // __MACH__
-#endif  // LEGACY_LINUX
+#endif
 
 #if RDB_TIMER_PROVIDER == RDB_TIMER_PROVIDER_SIGNAL
 #include "arch/io/timer/timer_signal_provider.hpp"
 typedef timer_signal_provider_t timer_provider_t;
 #elif RDB_TIMER_PROVIDER == RDB_TIMER_PROVIDER_KQUEUE
 #include "arch/io/timer/timer_kqueue_provider.hpp"
-typedef timer_kqueue_provider_t timer_provider_t;
+#elif RDB_TIMER_PROVIDER == RDB_TIMER_PROVIDER_WINDOWS
+#include "arch/io/timer/timer_windows_provider.hpp"
+typedef timer_windows_provider_t timer_provider_t;
 #elif RDB_TIMER_PROVIDER == RDB_TIMER_PROVIDER_TIMERFD
 #include "arch/io/timer/timerfd_provider.hpp"
 typedef timerfd_provider_t timer_provider_t;

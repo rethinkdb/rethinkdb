@@ -193,9 +193,7 @@
     <ClInclude Include="src\arch\io\event_watcher.hpp" />
     <ClInclude Include="src\arch\io\io_utils.hpp" />
     <ClInclude Include="src\arch\io\network.hpp" />
-    <ClInclude Include="src\arch\io\timer\timerfd_provider.hpp" />
-    <ClInclude Include="src\arch\io\timer\timer_kqueue_provider.hpp" />
-    <ClInclude Include="src\arch\io\timer\timer_signal_provider.hpp" />
+    <ClInclude Include="src\arch\io\timer\timer_windows_provider.hpp" />
     <ClInclude Include="src\arch\io\timer_provider.hpp" />
     <ClInclude Include="src\arch\os_signal.hpp" />
     <ClInclude Include="src\arch\runtime\callable_action.hpp" />
@@ -203,7 +201,7 @@
     <ClInclude Include="src\arch\runtime\coroutines.hpp" />
     <ClInclude Include="src\arch\runtime\coro_profiler.hpp" />
     <ClInclude Include="src\arch\runtime\event_queue.hpp" />
-    <ClInclude Include="src\arch\runtime\event_queue\iocp.hpp" />
+    <ClInclude Include="src\arch\runtime\event_queue\windows.hpp" />
     <ClInclude Include="src\arch\runtime\event_queue_types.hpp" />
     <ClInclude Include="src\arch\runtime\message_hub.hpp" />
     <ClInclude Include="src\arch\runtime\runtime.hpp" />
@@ -642,17 +640,20 @@
     <ClInclude Include="windows_stub\pthread.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\arch\barrier.cc" />
     <ClCompile Include="src\arch\io\blocker_pool.cc" />
     <ClCompile Include="src\arch\io\io_utils.cc" />
+    <ClCompile Include="src\arch\io\timer\timer_windows_provider.cc" />
     <ClCompile Include="src\arch\runtime\context_switching.cc" />
     <ClCompile Include="src\arch\runtime\coroutines.cc" />
-    <ClCompile Include="src\arch\runtime\event_queue\iocp.cc" />
+    <ClCompile Include="src\arch\runtime\event_queue\windows.cc" />
     <ClCompile Include="src\arch\runtime\message_hub.cc" />
     <ClCompile Include="src\arch\runtime\runtime.cc" />
     <ClCompile Include="src\arch\runtime\runtime_utils.cc" />
     <ClCompile Include="src\arch\runtime\system_event\windows_event.cc" />
     <ClCompile Include="src\arch\runtime\thread_pool.cc" />
     <ClCompile Include="src\arch\spinlock.cc" />
+    <ClCompile Include="src\arch\timer.cc" />
     <ClCompile Include="src\backtrace.cc" />
     <ClCompile Include="src\clustering\administration\logs\log_writer.cc" />
     <ClCompile Include="src\concurrency\cross_thread_mutex.cc" />
