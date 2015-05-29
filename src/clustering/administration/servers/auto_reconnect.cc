@@ -5,92 +5,68 @@
 #include <boost/bind.hpp>
 
 #include "arch/timing.hpp"
+#include "clustering/administration/servers/config_client.hpp"
 #include "concurrency/exponential_backoff.hpp"
 #include "concurrency/wait_any.hpp"
 
 auto_reconnector_t::auto_reconnector_t(
         connectivity_cluster_t *connectivity_cluster_,
         connectivity_cluster_t::run_t *connectivity_cluster_run_,
-        const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, server_id_t> > > &server_id_translation_table_,
-        const boost::shared_ptr<semilattice_read_view_t<servers_semilattice_metadata_t> > &server_metadata_) :
+        server_config_client_t *server_config_client_) :
     connectivity_cluster(connectivity_cluster_),
     connectivity_cluster_run(connectivity_cluster_run_),
-    server_id_translation_table(server_id_translation_table_),
-    server_metadata(server_metadata_),
-    server_id_translation_table_subs(boost::bind(&auto_reconnector_t::on_connect_or_disconnect, this)),
+    server_config_client(server_config_client_),
+    server_id_subs(
+        server_config_client->get_peer_to_server_map(),
+        std::bind(&auto_reconnector_t::on_connect_or_disconnect, this, ph::_1),
+        initial_call_t::NO),
     connection_subs(
         connectivity_cluster->get_connections(),
-        std::bind(&auto_reconnector_t::on_connect_or_disconnect, this),
-        initial_call_t::NO)
-{
-    watchable_t<change_tracking_map_t<peer_id_t, server_id_t> >::freeze_t freeze(
-        server_id_translation_table);
-    server_id_translation_table_subs.reset(server_id_translation_table, &freeze);
-    on_connect_or_disconnect();
-}
+        std::bind(&auto_reconnector_t::on_connect_or_disconnect, this, ph::_1),
+        initial_call_t::YES)
+    { }
 
-void auto_reconnector_t::on_connect_or_disconnect() {
-    std::map<peer_id_t, server_id_t> map = server_id_translation_table->get().get_inner();
-    for (std::map<peer_id_t, server_id_t>::iterator it = map.begin(); it != map.end(); it++) {
-        if (server_ids.find(it->first) == server_ids.end()) {
-            auto_drainer_t::lock_t connection_keepalive;
-            connectivity_cluster_t::connection_t *connection =
-                connectivity_cluster->get_connection(it->first, &connection_keepalive);
-            if (connection == NULL) {
-                /* This can happen due to a race condition in `watchable_t`. Treat the
-                peer as if it's not actually connected yet, even though it has an entry
-                in the directory. */
-                continue;
-            }
-            server_ids.insert(std::make_pair(it->first, it->second));
-            addresses[it->second] = connection->get_peer_address();
-        }
-    }
-    for (auto it = server_ids.begin(); it != server_ids.end();) {
-        if (map.find(it->first) == map.end()) {
-            auto jt = it;
-            ++jt;
-            coro_t::spawn_sometime(boost::bind(
-                &auto_reconnector_t::try_reconnect, this, it->second,
-                auto_drainer_t::lock_t(&drainer)));
+void auto_reconnector_t::on_connect_or_disconnect(const peer_id_t &peer_id) {
+    boost::optional<server_id_t> server_id =
+        server_config_client->get_peer_to_server_map()->get_key(peer_id);
+    boost::optional<connectivity_cluster_t::connection_pair_t> conn =
+        connectivity_cluster->get_connections()->get_key(peer_id);
+    if (static_cast<bool>(server_id) && static_cast<bool>(conn)) {
+        addresses[*server_id] = conn->first->get_peer_address();
+        server_ids[peer_id] = *server_id;
+    } else if (!static_cast<bool>(server_id) && !static_cast<bool>(conn)) {
+        auto it = server_ids.find(peer_id);
+        if (it != server_ids.end()) {
+            coro_t::spawn_sometime(std::bind(&auto_reconnector_t::try_reconnect, this,
+                it->second, drainer.lock()));
             server_ids.erase(it);
-            it = jt;
-        } else {
-            it++;
         }
     }
 }
 
-void auto_reconnector_t::try_reconnect(server_id_t server,
+void auto_reconnector_t::try_reconnect(const server_id_t &server,
                                        auto_drainer_t::lock_t keepalive) {
     peer_address_t last_known_address;
     auto it = addresses.find(server);
-    if (it == addresses.end()) {
-        /* This can happen because of a race condition: the server was declared dead, so
-        its entry was removed from the map before we got to it. */
-        return;
-    }
+    guarantee(it != addresses.end());
     last_known_address = it->second;
 
-    cond_t declared_dead;
-    semilattice_read_view_t<servers_semilattice_metadata_t>::subscription_t subs(
-        boost::bind(&auto_reconnector_t::pulse_if_server_declared_dead,
-            this, server, &declared_dead),
-        server_metadata);
-    pulse_if_server_declared_dead(server, &declared_dead);
+    static const int give_up_ms = 24 * 60 * 60 * 1000;
+    signal_timer_t give_up_timer;
+    give_up_timer.start(give_up_ms);
 
     cond_t reconnected;
-    watchable_t<change_tracking_map_t<peer_id_t, server_id_t> >::subscription_t subs2(
-        boost::bind(&auto_reconnector_t::pulse_if_server_reconnected,
-            this, server, &reconnected));
-    {
-        watchable_t<change_tracking_map_t<peer_id_t, server_id_t> >::freeze_t freeze(
-            server_id_translation_table);
-        subs2.reset(server_id_translation_table, &freeze);
-        pulse_if_server_reconnected(server, &reconnected);
-    }
+    watchable_map_t<server_id_t, peer_id_t>::key_subs_t subs(
+        server_config_client->get_server_to_peer_map(),
+        server,
+        [&](const peer_id_t *pid) {
+            if (pid != nullptr) {
+                reconnected.pulse_if_not_already_pulsed();
+            }
+        },
+        initial_call_t::YES);
 
-    wait_any_t interruptor(&declared_dead, &reconnected, keepalive.get_drain_signal());
+    wait_any_t interruptor(&reconnected, &give_up_timer, keepalive.get_drain_signal());
 
     exponential_backoff_t backoff(50, 15 * 1000);
     try {
@@ -100,41 +76,6 @@ void auto_reconnector_t::try_reconnect(server_id_t server,
         }
     } catch (const interrupted_exc_t &) {
         /* ignore; this is how we escape the loop */
-    }
-
-    /* If the server was declared dead, clean up its entry in the `addresses` map */
-    if (declared_dead.is_pulsed()) {
-        addresses.erase(server);
-    }
-}
-
-void auto_reconnector_t::pulse_if_server_declared_dead(server_id_t server, cond_t *c) {
-    servers_semilattice_metadata_t mmd = server_metadata->get();
-    servers_semilattice_metadata_t::server_map_t::iterator it = mmd.servers.find(server);
-    if (it == mmd.servers.end()) {
-        /* The only way we could have gotten here is if a server connected
-        for the first time and then immediately disconnected, and its directory
-        got through but its semilattices didn't. Don't try to reconnect to it
-        because there's no way to declare it dead. */
-        if (!c->is_pulsed()) {
-            c->pulse();
-        }
-    } else if (it->second.is_deleted()) {
-        if (!c->is_pulsed()) {
-            c->pulse();
-        }
-    }
-}
-
-void auto_reconnector_t::pulse_if_server_reconnected(server_id_t server, cond_t *c) {
-    std::map<peer_id_t, server_id_t> map = server_id_translation_table->get().get_inner();
-    for (std::map<peer_id_t, server_id_t>::iterator it = map.begin(); it != map.end(); it++) {
-        if (it->second == server) {
-            if (!c->is_pulsed()) {
-                c->pulse();
-            }
-            break;
-        }
     }
 }
 

@@ -63,8 +63,10 @@ void pump_coro_t::flush(signal_t *interruptor) {
 
 void pump_coro_t::drain() {
     assert_thread();
-    mutex_assertion_t::acq_t acq(&mutex);
-    drained = true;
+    {
+        mutex_assertion_t::acq_t acq(&mutex);
+        drained = true;
+    }
     drainer.drain();
 }
 

@@ -52,11 +52,6 @@ with driver.Cluster(output_folder='.') as cluster:
     print("First server info (%.2fs)" % (time.time() - startTime))
     
     st = r.db("rethinkdb").table("server_status").filter({"name":process1.name}).nth(0).run(conn)
-    
-    #print("Status for a connected server:")
-    #pprint.pprint(st)
-    
-    assert st["status"] == "connected"
 
     assert isinstance(st["process"]["version"], basestring)
     assert st["process"]["version"].startswith("rethinkdb")
@@ -73,9 +68,8 @@ with driver.Cluster(output_folder='.') as cluster:
     now = datetime.datetime.now(st["process"]["time_started"].tzinfo)
     assert st["process"]["time_started"] <= now
     assert st["process"]["time_started"] > now - datetime.timedelta(minutes=1)
-    assert st["connection"]["time_connected"] <= now
-    assert st["connection"]["time_connected"] >= st["process"]["time_started"]
-    assert st["connection"]["time_disconnected"] is None
+    assert st["network"]["time_connected"] <= now
+    assert st["network"]["time_connected"] >= st["process"]["time_started"]
     
     # -- server b
     
@@ -83,7 +77,6 @@ with driver.Cluster(output_folder='.') as cluster:
     
     st2 = r.db("rethinkdb").table("server_status").filter({"name":process2.name}).nth(0).run(conn)
     assert st2["process"]["cache_size_mb"] == 123
-    assert st2["status"] == "connected"
     
     assert st2["id"] == process2.uuid
     assert st2["process"]["pid"] == process2.process.pid
@@ -101,19 +94,11 @@ with driver.Cluster(output_folder='.') as cluster:
     
     deadline = time.time() + 10
     while time.time() < deadline:
-        st2 = r.db("rethinkdb").table("server_status").filter({"name":process2.name}).nth(0).run(conn)
-        if st2["status"] == "disconnected":
+        st2 = list(r.db("rethinkdb").table("server_status").filter({"name":process2.name}).run(conn))
+        if st2 == []:
             break
     else:
         assert False, 'Server b did not become unavalible after 10 seconds'
-    
-    #print("Status for a disconnected server:")
-    #pprint.pprint(st2)
-
-    now = datetime.datetime.now(st2["connection"]["time_disconnected"].tzinfo)
-    assert st2["connection"]["time_connected"] is None
-    assert st2["connection"]["time_disconnected"] <= now
-    assert st2["connection"]["time_disconnected"] >= now - datetime.timedelta(minutes=1)
     
     print("Cleaning up (%.2fs)" % (time.time() - startTime))
 print("Done. (%.2fs)" % (time.time() - startTime))

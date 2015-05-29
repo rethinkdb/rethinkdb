@@ -116,8 +116,8 @@ public:
         std::map<namespace_id_t, table_config_and_shards_t> *configs_out)
         THROWS_ONLY(interrupted_exc_t, failed_table_op_exc_t);
 
-    /* `get_status()` returns the secondary index status of the table with the given ID.
-    It may block. */
+    /* `get_status()` returns the status of the table with the given ID, including
+    information about its secondary indexes. It may block. */
     void get_status(
         const namespace_id_t &table_id,
         signal_t *interruptor,

@@ -5,12 +5,10 @@
 #include "clustering/administration/servers/config_client.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 
-bool convert_server_config_and_name_from_datum(
+bool convert_server_config_from_datum(
         ql::datum_t datum,
-        name_string_t *name_out,
         server_id_t *server_id_out,
-        std::set<name_string_t> *tags_out,
-        boost::optional<uint64_t> *cache_size_bytes_out,
+        server_config_t *server_config_out,
         std::string *error_out) {
     converter_from_datum_object_t converter;
     if (!converter.init(datum, error_out)) {
@@ -21,7 +19,8 @@ bool convert_server_config_and_name_from_datum(
     if (!converter.get("name", &name_datum, error_out)) {
         return false;
     }
-    if (!convert_name_from_datum(name_datum, "server name", name_out, error_out)) {
+    if (!convert_name_from_datum(name_datum, "server name",
+            &server_config_out->name, error_out)) {
         *error_out = "In `name`: " + *error_out;
         return false;
     }
@@ -46,7 +45,7 @@ bool convert_server_config_and_name_from_datum(
                     error2_out);
             },
             true,   /* don't complain if a tag appears twice */
-            tags_datum, tags_out, error_out)) {
+            tags_datum, &server_config_out->tags, error_out)) {
         *error_out = "In `tags`: " + *error_out;
         return false;
     }
@@ -56,7 +55,7 @@ bool convert_server_config_and_name_from_datum(
         return false;
     }
     if (cache_size_datum == ql::datum_t("auto")) {
-        *cache_size_bytes_out = boost::optional<uint64_t>();
+        server_config_out->cache_size_bytes = boost::optional<uint64_t>();
     } else if (cache_size_datum.get_type() == ql::datum_t::R_NUM) {
         double cache_size_mb = cache_size_datum.as_num();
         if (cache_size_mb * MEGABYTE >
@@ -68,7 +67,8 @@ bool convert_server_config_and_name_from_datum(
             *error_out = "In `cache_size_mb`: Cache size cannot be negative.";
             return false;
         }
-        *cache_size_bytes_out = boost::optional<uint64_t>(cache_size_mb * MEGABYTE);
+        server_config_out->cache_size_bytes =
+            boost::optional<uint64_t>(cache_size_mb * MEGABYTE);
     } else {
         *error_out = "In `cache_size_mb`: Expected a number or 'auto', got " +
             cache_size_datum.print();
@@ -83,10 +83,9 @@ bool convert_server_config_and_name_from_datum(
 }
 
 server_config_artificial_table_backend_t::server_config_artificial_table_backend_t(
-        boost::shared_ptr< semilattice_readwrite_view_t<
-            servers_semilattice_metadata_t> > _servers_sl_view,
+        watchable_map_t<peer_id_t, cluster_directory_metadata_t> *_directory,
         server_config_client_t *_server_config_client) :
-    common_server_artificial_table_backend_t(_servers_sl_view, _server_config_client)
+    common_server_artificial_table_backend_t(_server_config_client, _directory)
     { }
 
 server_config_artificial_table_backend_t::~server_config_artificial_table_backend_t() {
@@ -94,20 +93,22 @@ server_config_artificial_table_backend_t::~server_config_artificial_table_backen
 }
 
 bool server_config_artificial_table_backend_t::format_row(
-        name_string_t const & server_name,
         server_id_t const & server_id,
-        server_semilattice_metadata_t const & server_sl,
+        UNUSED peer_id_t const & peer_id,
+        cluster_directory_metadata_t const & metadata,
         UNUSED signal_t *interruptor_on_home,
         ql::datum_t *row_out,
         UNUSED std::string *error_out) {
     ql::datum_object_builder_t builder;
 
-    builder.overwrite("name", convert_name_to_datum(server_name));
+    builder.overwrite("name",
+        convert_name_to_datum(metadata.server_config.config.name));
     builder.overwrite("id", convert_uuid_to_datum(server_id));
     builder.overwrite("tags", convert_set_to_datum<name_string_t>(
-            &convert_name_to_datum, server_sl.tags.get_ref()));
+            &convert_name_to_datum, metadata.server_config.config.tags));
 
-    boost::optional<uint64_t> cache_size_bytes = server_sl.cache_size_bytes.get_ref();
+    boost::optional<uint64_t> cache_size_bytes =
+        metadata.server_config.config.cache_size_bytes;
     if (static_cast<bool>(cache_size_bytes)) {
         builder.overwrite("cache_size_mb",
             ql::datum_t(static_cast<double>(*cache_size_bytes) / MEGABYTE));
@@ -130,59 +131,38 @@ bool server_config_artificial_table_backend_t::write_row(
     on_thread_t thread_switcher(home_thread());
     new_mutex_in_line_t write_mutex_in_line(&write_mutex);
     wait_interruptible(write_mutex_in_line.acq_signal(), &interruptor_on_home);
-    servers_semilattice_metadata_t servers_sl = servers_sl_view->get();
-    name_string_t server_name;
     server_id_t server_id;
-    server_semilattice_metadata_t *server_sl;
-    if (!lookup(primary_key, &servers_sl, &server_name, &server_id, &server_sl)) {
+    peer_id_t peer_id;
+    cluster_directory_metadata_t metadata;
+    if (!lookup(primary_key, &server_id, &peer_id, &metadata)) {
         if (new_value_inout->has()) {
             *error_out = "It's illegal to insert new rows into the "
-                "`rethinkdb.server_config` artificial table.";
+                "`rethinkdb.server_config` system table.";
             return false;
         } else {
             /* The user is re-deleting an already-absent row. OK. */
             return true;
         }
     }
-    if (new_value_inout->has()) {
-        name_string_t new_server_name;
-        server_id_t new_server_id;
-        std::set<name_string_t> new_tags;
-        boost::optional<uint64_t> new_cache_size_bytes;
-        if (!convert_server_config_and_name_from_datum(*new_value_inout,
-                &new_server_name, &new_server_id, &new_tags, &new_cache_size_bytes,
-                error_out)) {
-            *error_out = "The row you're trying to put into `rethinkdb.server_config` "
-                "has the wrong format. " + *error_out;
-            return false;
-        }
-        guarantee(server_id == new_server_id, "artificial_table_t should ensure that "
-            "primary key is unchanged.");
-        if (new_server_name != server_name) {
-            if (!server_config_client->change_server_name(
-                    server_id, server_name, new_server_name, &interruptor_on_home,
-                    error_out)) {
-                return false;
-            }
-        }
-        if (new_tags != server_sl->tags.get_ref()) {
-            if (!server_config_client->change_server_tags(
-                    server_id, server_name, new_tags, &interruptor_on_home, error_out)) {
-                return false;
-            }
-        }
-        if (new_cache_size_bytes != server_sl->cache_size_bytes.get_ref()) {
-            if (!server_config_client->change_server_cache_size(
-                    server_id, server_name, new_cache_size_bytes,
-                    &interruptor_on_home, error_out)) {
-                return false;
-            }
-        }
-        return true;
-    } else {
-        servers_sl.servers.at(server_id).mark_deleted();
-        servers_sl_view->join(servers_sl);
-        return true;
+    if (!new_value_inout->has()) {
+        *error_out = "It's illegal to delete rows from the `rethinkdb.server_config` "
+            "system table.";
+        return false;
     }
+    server_id_t new_server_id;
+    server_config_t new_server_config;
+    if (!convert_server_config_from_datum(*new_value_inout, &new_server_id,
+            &new_server_config, error_out)) {
+        *error_out = "The row you're trying to put into `rethinkdb.server_config` "
+            "has the wrong format. " + *error_out;
+        return false;
+    }
+    guarantee(server_id == new_server_id, "artificial_table_t should ensure that "
+        "primary key is unchanged.");
+    if (!server_config_client->set_config(server_id, metadata.server_config.config.name,
+            new_server_config, &interruptor_on_home, error_out)) {
+        return false;
+    }
+    return true;
 }
 

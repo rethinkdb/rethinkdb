@@ -67,6 +67,7 @@ end
 $statelog = []
 r.table_create('test').run rescue nil
 r.table('test').index_create('multi').run rescue nil
+r.table('test').index_wait().run
 ['multi'].each {|field|
   r.table('test').delete.run
   r.table('test').insert((0...100).map{|i| {field => [i, i, i], id: i, z: 9}}).run

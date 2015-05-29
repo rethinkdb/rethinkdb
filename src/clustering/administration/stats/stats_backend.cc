@@ -101,12 +101,11 @@ bool stats_artificial_table_backend_t::read_all_rows_as_vector(
     on_thread_t rethreader(home_thread());
     rows_out->clear();
 
+    cluster_semilattice_metadata_t metadata = cluster_sl_view->get();
+
     std::set<std::vector<std::string> > filter = stats_request_t::global_stats_filter();
     std::vector<peer_id_t> peers =
         stats_request_t::all_peers(directory_view->get().get_inner());
-
-    // Save the metadata from when we sent the requests to avoid race conditions
-    cluster_semilattice_metadata_t metadata = cluster_sl_view->get();
 
     std::vector<ql::datum_t> results;
     perform_stats_request(peers, filter, &results, &interruptor_on_home);
@@ -117,13 +116,11 @@ bool stats_artificial_table_backend_t::read_all_rows_as_vector(
     maybe_append_result(cluster_stats_request_t(), parsed_stats, metadata,
         server_config_client, table_meta_client, admin_format, rows_out);
 
-    for (auto const &server_pair : metadata.servers.servers) {
-        if (server_pair.second.is_deleted()) {
-            continue;
-        }
-        maybe_append_result(server_stats_request_t(server_pair.first), parsed_stats,
+    server_config_client->get_server_to_peer_map()->read_all(
+    [&](const server_id_t &server_id, const peer_id_t *) {
+        maybe_append_result(server_stats_request_t(server_id), parsed_stats,
             metadata, server_config_client, table_meta_client, admin_format, rows_out);
-    }
+    });
 
     std::map<namespace_id_t, table_basic_config_t> names;
     table_meta_client->list_names(&names);
@@ -191,27 +188,17 @@ bool stats_artificial_table_backend_t::read_row(
         return true;
     }
 
-    // Save the metadata from when we sent the request to avoid race conditions
-    cluster_semilattice_metadata_t metadata = cluster_sl_view->get();
+    std::vector<peer_id_t> peers = request->get_peers(
+        directory_view->get().get_inner(), server_config_client);
     std::vector<ql::datum_t> results_map;
-
-    if (!request.has() ||
-        !request->check_existence(metadata, table_meta_client)) {
+    perform_stats_request(
+        peers, request->get_filter(), &results_map, &interruptor_on_home);
+    parsed_stats_t parsed_stats(results_map);
+    if (!request->to_datum(parsed_stats, cluster_sl_view->get(), server_config_client,
+            table_meta_client, admin_format, row_out)) {
         *row_out = ql::datum_t();
-        return true;
     }
 
-    std::vector<peer_id_t> peers = request->get_peers(directory_view->get().get_inner(),
-                                                      server_config_client);
-    perform_stats_request(peers, request->get_filter(), &results_map,
-        &interruptor_on_home);
-
-    parsed_stats_t parsed_stats(results_map);
-    bool to_datum_res = request->to_datum(parsed_stats, metadata, server_config_client,
-        table_meta_client, admin_format, row_out);
-
-     // The stats request target should have been located earlier in `check_existence`
-    r_sanity_check(to_datum_res);
     return true;
 }
 

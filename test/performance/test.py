@@ -110,6 +110,7 @@ def init_tables(connection):
     for table in tables:
         r.db("test").table(table["name"]).index_create("field0").run(connection)
         r.db("test").table(table["name"]).index_create("field1").run(connection)
+        r.db("test").table(table["name"]).index_wait().run(connection)
 
     print(" Done.")
     sys.stdout.flush()

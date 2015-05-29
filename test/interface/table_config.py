@@ -67,7 +67,7 @@ with driver.Cluster(initial_servers=['a', 'b', 'never_used'], output_folder='.',
                 if set(doc["server"] for doc in s_shard["replicas"]) != \
                         set(c_shard["replicas"]):
                     return False
-                if s_shard["primary_replica"] != c_shard["primary_replica"]:
+                if s_shard["primary_replicas"] != [c_shard["primary_replica"]]:
                     return False
                 if any(doc["state"] != "ready" for doc in s_shard["replicas"]):
                     return False
@@ -280,13 +280,13 @@ with driver.Cluster(initial_servers=['a', 'b', 'never_used'], output_folder='.',
            .filter({"name": "idf_test"}).nth(0).run(conn)
     assert res["shards"] == [{
         "replicas": [{"server": a_uuid, "state": "ready"}],
-        "primary_replica": a_uuid
+        "primary_replicas": [a_uuid]
         }], repr(res)
     res = r.db("rethinkdb").table("table_status", identifier_format="name") \
            .filter({"name": "idf_test"}).nth(0).run(conn)
     assert res["shards"] == [{
         "replicas": [{"server": "a", "state": "ready"}],
-        "primary_replica": "a"
+        "primary_replicas": ["a"]
         }], repr(res)
 
     print("Cleaning up (%.2fs)" % (time.time() - startTime))

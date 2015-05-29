@@ -33,11 +33,10 @@ with driver.Metacluster() as metacluster:
     
     print("Checking that both servers see each other (%.2fs)" % (time.time() - startTime))
     
-    serverAOutput = list(r.db('rethinkdb').table('server_status').pluck('id', 'status', 'name').run(connA))
-    serverBOutput = list(r.db('rethinkdb').table('server_status').pluck('id', 'status', 'name').run(connB))
+    serverAOutput = list(r.db('rethinkdb').table('server_status').pluck('id', 'name').run(connA))
+    serverBOutput = list(r.db('rethinkdb').table('server_status').pluck('id', 'name').run(connB))
 
     assert serverAOutput == serverBOutput, 'Output did not match:\n%s\n\tvs.\n%s' % (repr(serverAOutput), repr(serverBOutput))
-    assert all([x['status'] == 'connected' for x in serverAOutput]), 'One of the servers was not online: %s' % repr(serverAOutput)
     assert sorted([serverA.uuid, serverB.uuid]) == sorted([x['id'] for x in serverAOutput])
     
     print("Splitting cluster (%.2fs)" % (time.time() - startTime))
@@ -48,7 +47,7 @@ with driver.Metacluster() as metacluster:
     print("Watching up to 20 seconds to see that they detected the netsplit (%.2fs)" % (time.time() - startTime))
     
     deadline = time.time() + 20
-    query = r.db('rethinkdb').table('server_status')['status'].count('disconnected').eq(1)
+    query = r.db('rethinkdb').table('server_status').count().eq(1)
     while time.time() < deadline:
         if all([query.run(connA), query.run(connB)]):
             break
@@ -59,25 +58,6 @@ with driver.Metacluster() as metacluster:
     cluster1.check()
     cluster2.check()
     
-    print("Checking that both servers see appropriate issues (%.2fs)" % (time.time() - startTime))
-    
-    for conn, name, me, him in [(connA, 'A', serverA, serverB), (connB, 'B', serverB, serverA)]:
-        deadline = time.time() + 5
-        lastAssertion = None
-        while time.time() < deadline: # sometimes rethinkdb.current_issues takes a moment to get in sync
-            try:
-                issues = list(r.db('rethinkdb').table('current_issues').run(conn))
-                assert len(issues) == 1, 'There was not exactly one issue visible to server%s: %s' % (name, repr(issues))
-                assert issues[0]['type'] == 'server_disconnected', 'The issue for server%s did not have type "server_disconnected": %s' % (name, repr(issues))
-                assert issues[0]['info']['disconnected_server'] == him.name, 'The issue for server%s had the wrong info in "info.disconnected_server": %s' % (name, repr(issues))
-                assert issues[0]['info']['reporting_servers'] == [me.name], 'The issue for server%s had the wrong info in "info.reporting_servers": %s' % (name, repr(issues))
-                break
-            except AssertionError as e:
-                lastAssertion = e
-                time.sleep(.1)
-        else:
-            raise lastAssertion
-    
     print("Joining cluster (%.2fs)" % (time.time() - startTime))
     
     metacluster.move_processes(cluster2, cluster1, [serverB])
@@ -85,7 +65,7 @@ with driver.Metacluster() as metacluster:
     print("Watching up to 10 seconds to see that they detected the resolution (%.2fs)" % (time.time() - startTime))
     
     deadline = time.time() + 10
-    query = r.db('rethinkdb').table('server_status')['status'].count('connected').eq(2)
+    query = r.db('rethinkdb').table('server_status').count().eq(2)
     while time.time() < deadline:
         if all([query.run(connA), query.run(connB)]):
             break

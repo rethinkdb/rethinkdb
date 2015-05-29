@@ -18,7 +18,8 @@ bool get_contracts_and_acks(
                 contract_id_t,
                 std::reference_wrapper<const std::pair<region_t, contract_t> >
             > *contracts_out,
-        server_id_t *latest_contracts_server_id_out)
+        server_id_t *latest_contracts_server_id_out,
+        server_name_map_t *server_names_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t) {
     std::map<peer_id_t, contracts_and_contract_acks_t> contracts_and_acks;
     table_meta_client->get_status(table_id, interruptor, nullptr, &contracts_and_acks);
@@ -28,18 +29,44 @@ bool get_contracts_and_acks(
     latest_timestamp.epoch.id = nil_uuid();
     latest_timestamp.log_index = 0;
     for (const auto &peer : contracts_and_acks) {
+        /* Determine the server ID that goes with this peer */
         boost::optional<server_id_t> server_id =
-            server_config_client->get_server_id_for_peer_id(peer.first);
-        if (static_cast<bool>(server_id)) {
-            auto pair = contracts_and_acks_out->insert(
-                std::make_pair(server_id.get(), std::move(peer.second)));
-            contracts_out->insert(
-                pair.first->second.contracts.begin(),
-                pair.first->second.contracts.end());
-            if (pair.first->second.timestamp.supersedes(latest_timestamp)) {
-                *latest_contracts_server_id_out = pair.first->first;
-                latest_timestamp = pair.first->second.timestamp;
-            }
+            server_config_client->get_peer_to_server_map()->get_key(peer.first);
+        if (!static_cast<bool>(server_id)) {
+            /* This can only happen because of a race condition. */
+            continue;
+        }
+
+        /* Look up the name of the server in question. We need to do this separately
+        because it's hypothetically possible for us to get contract acks from a server
+        that doesn't appear in any contract, and we need to make sure that every server
+        ID that appears in `contracts_and_acks_out` also appears in `server_names_out`.
+        */
+        bool found_name = false;
+        server_config_client->get_server_config_map()->read_key(*server_id,
+            [&](const server_config_versioned_t *config) {
+                if (config != nullptr) {
+                    server_names_out->names.insert(std::make_pair(*server_id,
+                        std::make_pair(config->version, config->config.name)));
+                    found_name = true;
+                }
+            });
+        if (!found_name) {
+            /* This can only happen because of a race condition. */
+            continue;
+        }
+
+        auto pair = contracts_and_acks_out->insert(
+            std::make_pair(server_id.get(), std::move(peer.second)));
+        contracts_out->insert(
+            pair.first->second.contracts.begin(),
+            pair.first->second.contracts.end());
+        server_names_out->names.insert(
+            pair.first->second.server_names.names.begin(),
+            pair.first->second.server_names.names.end());
+        if (pair.first->second.timestamp.supersedes(latest_timestamp)) {
+            *latest_contracts_server_id_out = pair.first->first;
+            latest_timestamp = pair.first->second.timestamp;
         }
     }
 
@@ -175,9 +202,9 @@ void calculate_status(
         table_meta_client_t *table_meta_client,
         server_config_client_t *server_config_client,
         table_readiness_t *readiness_out,
-        std::vector<shard_status_t> *shard_statuses_out)
+        std::vector<shard_status_t> *shard_statuses_out,
+        server_name_map_t *server_names_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t) {
-
 
     /* Note that `contracts` and `latest_contracts` will contain references into
        `contracts_and_acks`, thus this must remain in scope for them to be valid! */
@@ -190,6 +217,9 @@ void calculate_status(
     server_id_t latest_contracts_server_id;
     try {
         table_meta_client->get_config(table_id, interruptor, &config_and_shards);
+        server_names_out->names.insert(
+            config_and_shards.server_names.names.begin(),
+            config_and_shards.server_names.names.end());
         get_contracts_and_acks(
             table_id,
             interruptor,
@@ -197,7 +227,8 @@ void calculate_status(
             server_config_client,
             &contracts_and_acks,
             &contracts,
-            &latest_contracts_server_id);
+            &latest_contracts_server_id,
+            server_names_out);
     } catch (const failed_table_op_exc_t &) {
         if (readiness_out != nullptr) {
             *readiness_out = table_readiness_t::unavailable;

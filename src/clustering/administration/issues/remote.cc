@@ -3,7 +3,6 @@
 #include "clustering/administration/issues/local_issue_aggregator.hpp"
 #include "clustering/administration/issues/outdated_index.hpp"
 #include "clustering/administration/issues/log_write.hpp"
-#include "clustering/administration/issues/server.hpp"
 
 template <typename T>
 void add_issues_from_server(const std::vector<T> &source,
@@ -49,14 +48,6 @@ std::vector<scoped_ptr_t<issue_t> > remote_issue_tracker_t::get_issues(
                                &local_issues.log_write_issues,
                                server_id_it->second);
 
-        add_issues_from_server(peer_it.second.server_disconnected_issues,
-                               &local_issues.server_disconnected_issues,
-                               server_id_it->second);
-
-        add_issues_from_server(peer_it.second.server_ghost_issues,
-                               &local_issues.server_ghost_issues,
-                               server_id_it->second);
-
         add_issues_from_server(peer_it.second.outdated_index_issues,
                                &local_issues.outdated_index_issues,
                                server_id_it->second);
@@ -64,7 +55,6 @@ std::vector<scoped_ptr_t<issue_t> > remote_issue_tracker_t::get_issues(
 
     // Combine related issues from multiple servers
     std::vector<scoped_ptr_t<issue_t> > res;
-    server_issue_tracker_t::combine(&local_issues, &res);
     log_write_issue_tracker_t::combine(&local_issues, &res);
     outdated_index_issue_tracker_t::combine(&local_issues, &res);
     return res;

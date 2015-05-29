@@ -8,6 +8,7 @@
 class auth_semilattice_metadata_t;
 class branch_birth_certificate_t;
 class cluster_semilattice_metadata_t;
+class server_config_versioned_t;
 class table_persistent_state_t;
 
 /* This file defines the keys that are used to index the `metadata_file_t`. Changing
@@ -19,6 +20,8 @@ metadata_file_t::key_t<auth_semilattice_metadata_t>
     mdkey_auth_semilattices();
 metadata_file_t::key_t<server_id_t>
     mdkey_server_id();
+metadata_file_t::key_t<server_config_versioned_t>
+    mdkey_server_config();
 
 /* This prefix should be followed by the table's UUID as formatted by `uuid_to_str()`. */
 metadata_file_t::key_t<table_persistent_state_t>

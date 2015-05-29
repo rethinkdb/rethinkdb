@@ -11,7 +11,6 @@
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/servers/server_common.hpp"
 #include "clustering/administration/servers/server_metadata.hpp"
-#include "clustering/administration/servers/last_seen_tracker.hpp"
 #include "rdb_protocol/artificial_table/backend.hpp"
 #include "rpc/semilattice/view.hpp"
 
@@ -22,10 +21,8 @@ class server_status_artificial_table_backend_t :
 {
 public:
     server_status_artificial_table_backend_t(
-            boost::shared_ptr< semilattice_readwrite_view_t<
-                servers_semilattice_metadata_t> > _servers_sl_view,
-            server_config_client_t *_server_config_client,
-            watchable_map_t<peer_id_t, cluster_directory_metadata_t> *_directory_view);
+            watchable_map_t<peer_id_t, cluster_directory_metadata_t> *_directory,
+            server_config_client_t *_server_config_client);
     ~server_status_artificial_table_backend_t();
 
     bool write_row(
@@ -37,16 +34,16 @@ public:
 
 private:
     bool format_row(
-            name_string_t const & name,
             server_id_t const & server_id,
-            server_semilattice_metadata_t const & server,
+            peer_id_t const & peer_id,
+            cluster_directory_metadata_t const & metadata,
             signal_t *interruptor_on_home,
             ql::datum_t *row_out,
             std::string *error_out);
 
-    watchable_map_t<peer_id_t, cluster_directory_metadata_t> *directory_view;
-    last_seen_tracker_t last_seen_tracker;
+    std::map<peer_id_t, microtime_t> connect_times;
 
+    /* We use `directory_subs` to note when a server first connects. */
     watchable_map_t<peer_id_t, cluster_directory_metadata_t>::all_subs_t directory_subs;
 };
 

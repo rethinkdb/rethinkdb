@@ -41,6 +41,7 @@
 #include "clustering/administration/persist/file.hpp"
 #include "clustering/administration/persist/file_keys.hpp"
 #include "clustering/administration/persist/migrate_v1_16.hpp"
+#include "clustering/administration/servers/server_metadata.hpp"
 #include "logger.hpp"
 
 #define RETHINKDB_EXPORT_SCRIPT "rethinkdb-export"
@@ -661,15 +662,11 @@ void run_rethinkdb_create(const base_path_t &base_path,
     cluster_semilattice_metadata_t cluster_metadata;
     auth_semilattice_metadata_t auth_metadata;
 
-    server_semilattice_metadata_t server_semilattice_metadata;
-    server_semilattice_metadata.name =
-        versioned_t<name_string_t>(server_name);
-    server_semilattice_metadata.tags =
-        versioned_t<std::set<name_string_t> >(server_tags);
-    server_semilattice_metadata.cache_size_bytes =
-        versioned_t<boost::optional<uint64_t> >(total_cache_size);
-    cluster_metadata.servers.servers.insert(
-        std::make_pair(our_server_id, make_deletable(server_semilattice_metadata)));
+    server_config_versioned_t server_config;
+    server_config.config.name = server_name;
+    server_config.config.tags = server_tags;
+    server_config.config.cache_size_bytes = total_cache_size;
+    server_config.version = 1;
 
     io_backender_t io_backender(direct_io_mode, max_concurrent_io_requests);
 
@@ -685,6 +682,8 @@ void run_rethinkdb_create(const base_path_t &base_path,
             [&](metadata_file_t::write_txn_t *write_txn, signal_t *interruptor) {
                 write_txn->write(mdkey_server_id(),
                     our_server_id, interruptor);
+                write_txn->write(mdkey_server_config(),
+                    server_config, interruptor);
                 write_txn->write(mdkey_cluster_semilattices(),
                     cluster_metadata, interruptor);
                 write_txn->write(mdkey_auth_semilattices(),
@@ -726,6 +725,7 @@ void run_rethinkdb_serve(const base_path_t &base_path,
                          const boost::optional<boost::optional<uint64_t> >
                             &total_cache_size,
                          const server_id_t *our_server_id,
+                         const server_config_versioned_t *server_config,
                          const cluster_semilattice_metadata_t *cluster_metadata,
                          directory_lock_t *data_directory_lock,
                          bool *const result_out) {
@@ -751,6 +751,8 @@ void run_rethinkdb_serve(const base_path_t &base_path,
                 [&](metadata_file_t::write_txn_t *write_txn, signal_t *interruptor) {
                     write_txn->write(mdkey_server_id(),
                         *our_server_id, interruptor);
+                    write_txn->write(mdkey_server_config(), 
+                        *server_config, interruptor);
                     write_txn->write(mdkey_cluster_semilattices(),
                         *cluster_metadata, interruptor);
                     write_txn->write(mdkey_auth_semilattices(),
@@ -781,13 +783,12 @@ void run_rethinkdb_serve(const base_path_t &base_path,
             if (static_cast<bool>(total_cache_size)) {
                 /* Apply change to cache size */
                 metadata_file_t::write_txn_t txn(metadata_file.get(), &non_interruptor);
-                cluster_semilattice_metadata_t md =
-                    txn.read(mdkey_cluster_semilattices(), &non_interruptor);
-                server_id_t server_id = txn.read(mdkey_server_id(), &non_interruptor);
-                auto it = md.servers.servers.find(server_id);
-                if (it != md.servers.servers.end() && !it->second.is_deleted()) {
-                    it->second.get_mutable()->cache_size_bytes.set(*total_cache_size);
-                    txn.write(mdkey_cluster_semilattices(), md, &non_interruptor);
+                server_config_versioned_t config =
+                    txn.read(mdkey_server_config(), &non_interruptor);
+                if (config.config.cache_size_bytes != *total_cache_size) {
+                    config.config.cache_size_bytes = *total_cache_size;
+                    ++config.version;
+                    txn.write(mdkey_server_config(), config, &non_interruptor);
                 }
             }
         }
@@ -826,7 +827,7 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
     if (!new_directory) {
         run_rethinkdb_serve(base_path, serve_info, direct_io_mode,
                             max_concurrent_io_requests, total_cache_size,
-                            NULL, NULL, data_directory_lock,
+                            NULL, NULL, NULL, data_directory_lock,
                             result_out);
     } else {
         logNTC("Initializing directory %s\n", base_path.path().c_str());
@@ -834,20 +835,6 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
         server_id_t our_server_id = generate_uuid();
 
         cluster_semilattice_metadata_t cluster_metadata;
-
-        server_semilattice_metadata_t our_server_metadata;
-        our_server_metadata.name =
-            versioned_t<name_string_t>(server_name);
-        our_server_metadata.tags =
-            versioned_t<std::set<name_string_t> >(server_tag_names);
-        our_server_metadata.cache_size_bytes =
-            versioned_t<boost::optional<uint64_t> >(
-                static_cast<bool>(total_cache_size)
-                    ? *total_cache_size
-                    : boost::optional<uint64_t>()   /* default to 'auto' */);
-        cluster_metadata.servers.servers.insert(
-            std::make_pair(our_server_id, make_deletable(our_server_metadata)));
-
         if (serve_info->joins.empty()) {
             logINF("Creating a default database for your convenience. (This is because you ran 'rethinkdb' "
                    "without 'create', 'serve', or '--join', and the directory '%s' did not already exist or is empty.)\n",
@@ -866,10 +853,18 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
                 deletable_t<database_semilattice_metadata_t>(database_metadata)));
         }
 
+        server_config_versioned_t server_config;
+        server_config.config.name = server_name;
+        server_config.config.tags = server_tag_names;
+        server_config.config.cache_size_bytes = static_cast<bool>(total_cache_size)
+            ? *total_cache_size
+            : boost::optional<uint64_t>();   /* default to 'auto' */
+        server_config.version = 1;
+
         run_rethinkdb_serve(base_path, serve_info, direct_io_mode,
                             max_concurrent_io_requests,
                             boost::optional<boost::optional<uint64_t> >(),
-                            &our_server_id, &cluster_metadata,
+                            &our_server_id, &server_config, &cluster_metadata,
                             data_directory_lock, result_out);
     }
 }
@@ -1482,6 +1477,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
                                      max_concurrent_io_requests,
                                      total_cache_size,
                                      static_cast<server_id_t*>(NULL),
+                                     static_cast<server_config_versioned_t *>(NULL),
                                      static_cast<cluster_semilattice_metadata_t*>(NULL),
                                      &data_directory_lock,
                                      &result),
