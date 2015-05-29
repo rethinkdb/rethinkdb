@@ -1,9 +1,14 @@
 #include "clustering/administration/main/directory_lock.hpp"
 
+#ifndef _WIN32 // ATN TODO
 #include <dirent.h>
+#include <sys/file.h>
+#else
+#include <filesystem>
+#include <direct.h>
+#endif
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <sys/file.h>
 #include <unistd.h>
 #include <fcntl.h>
 
@@ -16,6 +21,12 @@ bool check_existence(const base_path_t& base_path) {
 }
 
 bool check_dir_emptiness(const base_path_t& base_path) {
+#ifdef _WIN32 // TODO ATN
+	for (auto it : std::tr2::sys::directory_iterator(base_path.path())) {
+		return false;
+	}
+	return true;
+#else
     DIR *dp;
     struct dirent *ep;
 
@@ -41,6 +52,7 @@ bool check_dir_emptiness(const base_path_t& base_path) {
 
     closedir(dp);
     return true;
+#endif
 }
 
 directory_lock_t::directory_lock_t(const base_path_t &path, bool create, bool *created_out) :
@@ -57,7 +69,11 @@ directory_lock_t::directory_lock_t(const base_path_t &path, bool create, bool *c
         }
         int mkdir_res;
         do {
+#ifdef _WIN32
+			mkdir_res = _mkdir(directory_path.path().c_str());
+#else
             mkdir_res = mkdir(directory_path.path().c_str(), 0755);
+#endif
         } while (mkdir_res == -1 && get_errno() == EINTR);
         if (mkdir_res != 0) {
             throw directory_create_failed_exc_t(get_errno(), directory_path);
@@ -78,9 +94,11 @@ directory_lock_t::directory_lock_t(const base_path_t &path, bool create, bool *c
         throw directory_open_failed_exc_t(get_errno(), directory_path);
     }
 
+#ifndef _WIN32 // TODO ATN
     if (flock(directory_fd.get(), LOCK_EX | LOCK_NB) != 0) {
         throw directory_locked_exc_t(directory_path);
     }
+#endif
 }
 
 directory_lock_t::~directory_lock_t() {
@@ -98,6 +116,7 @@ void directory_lock_t::directory_initialized() {
 void directory_lock_t::change_ownership(gid_t group_id, const std::string &group_name,
                                         uid_t user_id, const std::string &user_name) {
     if (group_id != INVALID_GID || user_id != INVALID_UID) {
+#ifndef _WIN32 // TODO ATN
         if (fchown(directory_fd.get(), user_id, group_id) != 0) {
             throw std::runtime_error(strprintf("Failed to change ownership of data "
                                                "directory '%s' to '%s:%s': %s",
@@ -106,5 +125,6 @@ void directory_lock_t::change_ownership(gid_t group_id, const std::string &group
                                                group_name.c_str(),
                                                errno_string(get_errno()).c_str()));
         }
-    }
+#endif
+	}
 }

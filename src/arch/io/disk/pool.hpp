@@ -12,7 +12,7 @@
 #include "concurrency/queue/passive_producer.hpp"
 #include "containers/scoped.hpp"
 
-#ifdef __MACH__
+#ifndef __linux__ // TODO ATN
 #define USE_WRITEV 0
 #else
 #define USE_WRITEV 1

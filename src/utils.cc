@@ -23,7 +23,6 @@
 #include <ftw.h>
 #include <sys/time.h>
 #include <sys/resource.h>
-#include <unistd.h>
 #endif
 
 #include <google/protobuf/stubs/common.h>
@@ -585,7 +584,7 @@ void remove_directory_recursive(const char *dirpath) {
     logNTC("Recursively removing directory %s\n", dirpath);
     int res = nftw(dirpath, remove_directory_helper, max_openfd, FTW_PHYS | FTW_MOUNT | FTW_DEPTH);
     guarantee_err(res == 0 || get_errno() == ENOENT, "Trouble while traversing and destroying temporary directory %s.", dirpath);
-#else
+#else // ATN TODO
 	using namespace std::tr2;
 	auto go = [](sys::path dir){
 		for (auto it : sys::directory_iterator(dir)) {

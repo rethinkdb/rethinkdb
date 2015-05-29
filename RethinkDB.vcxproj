@@ -643,7 +643,12 @@
     <ClCompile Include="src\arch\barrier.cc" />
     <ClCompile Include="src\arch\io\blocker_pool.cc" />
     <ClCompile Include="src\arch\io\disk.cc" />
+    <ClCompile Include="src\arch\io\disk\accounting.cc" />
+    <ClCompile Include="src\arch\io\disk\conflict_resolving.cc" />
     <ClCompile Include="src\arch\io\disk\filestat.cc" />
+    <ClCompile Include="src\arch\io\disk\pool.cc" />
+    <ClCompile Include="src\arch\io\disk\stats.cc" />
+    <ClCompile Include="src\arch\io\disk\stats_2.cc" />
     <ClCompile Include="src\arch\io\io_utils.cc" />
     <ClCompile Include="src\arch\io\timer\timer_windows_provider.cc" />
     <ClCompile Include="src\arch\runtime\context_switching.cc" />
@@ -659,8 +664,10 @@
     <ClCompile Include="src\arch\types.cc" />
     <ClCompile Include="src\backtrace.cc" />
     <ClCompile Include="src\clustering\administration\logs\log_writer.cc" />
+    <ClCompile Include="src\clustering\administration\main\directory_lock.cc" />
     <ClCompile Include="src\concurrency\auto_drainer.cc" />
     <ClCompile Include="src\concurrency\cross_thread_mutex.cc" />
+    <ClCompile Include="src\concurrency\semaphore.cc" />
     <ClCompile Include="src\concurrency\signal.cc" />
     <ClCompile Include="src\containers\archive\archive.cc" />
     <ClCompile Include="src\containers\auth_key.cc" />

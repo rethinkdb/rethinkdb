@@ -6,6 +6,7 @@
 #include <utility>
 
 #include "errors.hpp"
+#include "arch/compiler.hpp"
 
 // Caveat: do not use this template with an object that has a blocking destructor, if
 //  you are going to allocate multiple times using a single object_buffer_t.  This object

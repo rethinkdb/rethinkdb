@@ -188,14 +188,6 @@ void throw_unless(bool condition, const std::string &where) {
     }
 }
 
-#ifdef _WIN32
-ssize_t pread(long fd, void* buf, size_t count, off_t offset) {
-	int res = _lseek(fd, offset, SEEK_SET);
-	if (res < 0) return res;
-	return _read(fd, buf, count);
-}
-#endif
-
 file_reverse_reader_t::file_reverse_reader_t(scoped_fd_t &&_fd) :
         fd(std::move(_fd)),
         current_chunk(chunk_size) {
