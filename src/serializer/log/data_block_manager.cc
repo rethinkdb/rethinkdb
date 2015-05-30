@@ -39,12 +39,12 @@ const int GC_IO_PRIORITY_NICE = 8;
 const int GC_IO_PRIORITY_HIGH = 4 * MERGER_BLOCK_WRITE_IO_PRIORITY;
 
 // The ratio at which we start GCing.
-const double GC_START_RATIO = 0.15;
+constexpr double GC_START_RATIO = 0.15;
 // The ratio at which we don't want to keep GC'ing.
-const double GC_STOP_RATIO = 0.1;
+constexpr double GC_STOP_RATIO = 0.1;
 // The ratio at which we start taking more serious measures to get the garbage
 // rate down.
-const double GC_HIGH_RATIO = 0.5;
+constexpr double GC_HIGH_RATIO = 0.5;
 
 // What's the maximum number of "young" extents we can have?
 const size_t GC_YOUNG_EXTENT_MAX_SIZE = 50;

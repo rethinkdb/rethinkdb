@@ -2249,7 +2249,7 @@ void debug_print(printf_buffer_t *buf, const datum_t &d) {
         buf->appendf("d/buf_r_object(...)");
         break;
     default:
-        buf->appendf("datum/garbage{internal_type=%d}", d.data.get_internal_type());
+        buf->appendf("datum/garbage{internal_type=%d}", static_cast<int>(d.data.get_internal_type()));
         break;
     }
 }
