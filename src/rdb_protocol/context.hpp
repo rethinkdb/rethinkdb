@@ -269,6 +269,15 @@ public:
             ql::datum_t *result_out,
             std::string *error_out) = 0;
 
+    virtual bool table_emergency_repair(
+            counted_t<const ql::db_t> db,
+            const name_string_t &name,
+            bool allow_data_loss,
+            bool dry_run,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
+            std::string *error_out) = 0;
+
     virtual bool table_rebalance(
             counted_t<const ql::db_t> db,
             const name_string_t &name,

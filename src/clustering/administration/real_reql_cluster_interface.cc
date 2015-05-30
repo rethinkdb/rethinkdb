@@ -805,6 +805,33 @@ bool real_reql_cluster_interface_t::db_reconfigure(
     return true;
 }
 
+bool real_reql_cluster_interface_t::table_emergency_repair(
+        counted_t<const ql::db_t> db,
+        const name_string_t &name,
+        bool allow_data_loss,
+        bool dry_run,
+        signal_t *interruptor,
+        ql::datum_t *result_out,
+        std::string *error_out) {
+    guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
+        "real_reql_cluster_interface_t should never get queries for system tables");
+    cross_thread_signal_t interruptor_on_home(interruptor_on_caller, home_thread());
+    try {
+        on_thread_t thread_switcher(home_thread());
+        namespace_id_t table_id;
+        table_meta_client->find(db->id, name, &table_id);
+        reconfigure_internal(db, table_id, params, dry_run, &interruptor_on_home,
+            result_out);
+        return true;
+    } catch (const admin_op_exc_t &msg) {
+        *error_out = msg.what();
+        return false;
+    } CATCH_NAME_ERRORS(db->name, name, error_out)
+      CATCH_OP_ERRORS(db->name, name, error_out,
+        "The table was not reconfigured.",
+        "The table may or may not have been reconfigured.")
+}
+
 void real_reql_cluster_interface_t::rebalance_internal(
         const namespace_id_t &table_id,
         signal_t *interruptor_on_home,
