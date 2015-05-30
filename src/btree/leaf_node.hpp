@@ -6,7 +6,7 @@
 #include <utility>
 #include <vector>
 
-#include "arch/comiler.hpp"
+#include "arch/compiler.hpp"
 #include "buffer_cache/types.hpp"
 #include "errors.hpp"
 

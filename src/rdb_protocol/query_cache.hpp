@@ -20,7 +20,7 @@
 #include "containers/intrusive_list.hpp"
 #include "containers/object_buffer.hpp"
 #include "rdb_protocol/datum_stream.hpp"
-#include "rdb_protocol/backtrace.hpp"
+#include "rdb_protocol/rdb_backtrace.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/ql2.pb.h"
 #include "rdb_protocol/term.hpp"

@@ -16,6 +16,8 @@
 // defined by both Windows and RethinkDB
 #undef DELETE
 
+typedef SSIZE_T ssize_t;
+
 #endif /* _WIN32 */
 
 #endif

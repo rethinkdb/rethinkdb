@@ -105,6 +105,7 @@ private:
     mailbox_write_callback_t *subwriter;
 };
 
+/* ATN RSI */
 void send(mailbox_manager_t *src, raw_mailbox_t::address_t dest,
         mailbox_write_callback_t *callback) {
     guarantee(src);
@@ -120,7 +121,7 @@ void send(mailbox_manager_t *src, raw_mailbox_t::address_t dest,
     raw_mailbox_writer_t writer(dest.thread, dest.mailbox_id, callback);
     src->get_connectivity_cluster()->send_message(connection, connection_keepalive,
         src->get_message_tag(), &writer);
-}
+} //*/
 
 static const int MAX_OUTSTANDING_MAILBOX_WRITES_PER_THREAD = 4;
 

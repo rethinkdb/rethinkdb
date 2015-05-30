@@ -1,7 +1,9 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rpc/connectivity/cluster.hpp"
 
+#ifndef _WIN32
 #include <netinet/in.h>
+#endif
 
 #include <algorithm>
 #include <functional>
@@ -97,9 +99,9 @@ static bool resolve_protocol_version(const std::string &remote_version_string,
     return false;
 }
 
-#if defined (__x86_64__)
+#if defined (__x86_64__) || defined (_WIN64)
 const std::string connectivity_cluster_t::cluster_arch_bitsize("64bit");
-#elif defined (__i386__) || defined(__arm__)
+#elif defined (__i386__) || defined(__arm__) || defined(_WIN32)
 const std::string connectivity_cluster_t::cluster_arch_bitsize("32bit");
 #else
 #error "Could not determine architecture"

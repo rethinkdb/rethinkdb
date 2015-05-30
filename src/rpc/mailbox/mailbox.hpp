@@ -67,6 +67,7 @@ private:
 
 public:
     struct address_t {
+	public: // ATN RSI
         bool operator<(const address_t &other) const {
             return peer != other.peer
                 ? peer < other.peer
@@ -94,7 +95,7 @@ public:
 
         RDB_MAKE_ME_SERIALIZABLE_3(address_t, peer, thread, mailbox_id);
 
-    private:
+    //private: // ATN RSI
         friend void send(mailbox_manager_t *, raw_mailbox_t::address_t, mailbox_write_callback_t *callback);
         friend struct raw_mailbox_t;
         friend class mailbox_manager_t;

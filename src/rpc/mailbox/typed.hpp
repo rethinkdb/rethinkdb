@@ -29,7 +29,7 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_1(mailbox_addr_t, addr);
     RDB_MAKE_ME_EQUALITY_COMPARABLE_1(mailbox_addr_t<T>, addr);
 
-private:
+// private: // ATN RSI
     friend void send(mailbox_manager_t *, mailbox_addr_t<void()>);
     template <class a0_t>
     friend void send(mailbox_manager_t *,
@@ -344,6 +344,7 @@ void send(mailbox_manager_t *src,
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t>
 class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > {
+public: // ATN RSI
     class write_impl_t : public mailbox_write_callback_t {
     private:
         const arg0_t &arg0;

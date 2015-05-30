@@ -3,7 +3,13 @@
 
 #include <fcntl.h>
 #include <sys/types.h>
+#ifdef _WIN32
+// ATN TODO
+#define SHUT_RD SD_RECEIVE
+#define SHUT_WR SD_SEND
+#else
 #include <sys/socket.h>
+#endif
 #include <unistd.h>
 
 #include <cstring>
@@ -46,7 +52,7 @@ bool blocking_fd_watcher_t::wait_for_write(signal_t *interruptor) {
     return true;
 }
 
-void blocking_fd_watcher_t::init_callback(UNUSED linux_event_callback_t *cb) {}
+void blocking_fd_watcher_t::init_callback(UNUSED event_callback_t *cb) {}
 
 
 // -------------------- linux_event_fd_watcher_t --------------------
@@ -55,11 +61,15 @@ linux_event_fd_watcher_t::linux_event_fd_watcher_t(fd_t fd)
       event_callback_(NULL),
       event_watcher_(fd, this)
 {
+#ifdef _WIN32
+	rassert(false, "ATN TODO");
+#else
     int res = fcntl(fd, F_SETFL, O_NONBLOCK);
     guarantee_err(res == 0, "Could not make fd non-blocking.");
+#endif
 }
 
-void linux_event_fd_watcher_t::init_callback(linux_event_callback_t *cb) {
+void linux_event_fd_watcher_t::init_callback(event_callback_t *cb) {
     guarantee(!event_callback_);
     guarantee(cb);
     event_callback_ = cb;
