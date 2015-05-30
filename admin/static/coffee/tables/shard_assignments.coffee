@@ -28,7 +28,7 @@ class ShardAssignmentsView extends Backbone.View
     remove: =>
         @stopListening()
 
-render_assignments = (model, collection) =>
+render_assignments = (model, shard_assignments) =>
     if model.info_unavailable
         warning = h "div.unavailable-error", [
             h "p", ["""Document estimates cannot be updated while not \
@@ -41,7 +41,7 @@ render_assignments = (model, collection) =>
         warning
         h "ul.assignments_list", [
             h "li.tree-line"
-            collection?.map(render_assignment)
+            shard_assignments?.map(render_shard)
         ]
     ]
 
@@ -49,39 +49,56 @@ render_assignments = (model, collection) =>
 highlight = (value) =>
     h "span.highlight", [value]
 
-render_assignment = (assignment) =>
-    pclass = if assignment.primary then "primary" else "secondary"
+render_shard = (shard, index) =>
     h "div.assignment_container", [
-        h("li.datacenter.parent", [
+        h "li.datacenter.parent", [
             h "div.datacenter-info.parent-info", [
                 h "p.name", [
                     h "span.num-keys", [
-                        highlight([
+                        highlight [
                             "~"
-                            util.approximate_count(assignment.num_keys)
-                        ])
+                            util.approximate_count(shard.num_keys)
+                        ]
                         " "
-                        util.pluralize_noun "document", assignment.num_keys
+                        util.pluralize_noun "document", shard.num_keys
                     ]
-                    h "span", ["Shard ", String(assignment.shard_id)]
+                    h "span", ["Shard ", String(index + 1)]
                 ]
             ]
-        ]) if assignment.start_shard
-        h("li.server.child", [
-            h "div.tree-node"
-            h "div.server-info.child-info", [
-                h "p.name", [
-                    h "a", {href: "/#servers/"+assignment.data.id}, [
-                        assignment.data.name
-                    ]
-                ]
-                h "p."+pclass, [
-                    highlight("Primary replica") if assignment.primary
-                    "Secondary replica" if assignment.replica
-                ]
-            ]
-        ]) if assignment.primary or assignment.replica
+        ]
+        shard.replicas.map(render_replica)
     ]
+
+render_replica = (replica) =>
+    role = replica_role(replica.configured_primary, replica.currently_primary)
+    h("li.server.child", [
+        h "div.tree-node"
+        h "div.server-info.child-info", [
+            h "p.name", [
+                h "a", {href: "/#servers/"+replica.id}, [
+                    replica.server
+                ]
+            ]
+            h "p."+role, [
+                highlight("Primary replica") if role == 'primary'
+                "Configured primary replica" if role == 'configured.primary'
+                highlight("Elected primary replica") if role == 'elected.primary'
+                "Secondary replica" if role == 'secondary'
+            ]
+        ]
+    ])
+
+replica_role = (configured_primary, currently_primary) ->
+    if configured_primary
+        if currently_primary
+            "primary"
+        else
+            "configured.primary"
+    else
+        if currently_primary
+            "elected.primary"
+        else
+            "secondary"
 
 
 exports.ShardAssignmentsView = ShardAssignmentsView
