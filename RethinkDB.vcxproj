@@ -730,6 +730,11 @@
     <ClCompile Include="src\rdb_protocol\artificial_table\cfeed_backend.cc" />
     <ClCompile Include="src\rdb_protocol\batching.cc" />
     <ClCompile Include="src\rdb_protocol\blob_wrapper.cc" />
+    <ClCompile Include="src\rdb_protocol\btree.cc" />
+    <ClCompile Include="src\rdb_protocol\btree_store.cc" />
+    <ClCompile Include="src\rdb_protocol\changefeed.cc" />
+    <ClCompile Include="src\rdb_protocol\configured_limits.cc" />
+    <ClCompile Include="src\rdb_protocol\context.cc" />
     <ClCompile Include="src\rdb_protocol\datum.cc" />
     <ClCompile Include="src\rdb_protocol\datum_string.cc" />
     <ClCompile Include="src\rdb_protocol\pseudo_binary.cc" />

@@ -98,7 +98,7 @@ ATTR_PACKED(struct lba_entry_t {
     static lba_entry_t make_padding_entry() {
         return make(PADDING_BLOCK_ID, repli_timestamp_t::invalid, flagged_off64_t::padding(), 0);
     }
-}):
+});
 
 
 struct lba_shard_metablock_t {

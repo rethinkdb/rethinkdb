@@ -2299,24 +2299,13 @@ void feed_t::each_sub_in_vec(
         }
     }
     pmap(subscription_threads.size(),
-         std::bind(&feed_t::each_sub_in_vec_cb<Sub>,
-                   this,
-                   std::cref(f),
-                   std::cref(vec),
-                   std::cref(subscription_threads),
-                   ph::_1));
-}
-
-template<class Sub>
-void feed_t::each_sub_in_vec_cb(const std::function<void(Sub *)> &f,
-                                const std::vector<std::set<Sub *> > &vec,
-                                const std::vector<int> &subscription_threads,
-                                int i) {
-    guarantee(vec[subscription_threads[i]].size() != 0);
-    on_thread_t th((threadnum_t(subscription_threads[i])));
-    for (Sub *sub : vec[subscription_threads[i]]) {
-        f(sub);
-    }
+		[&f, &vec, &subscription_threads](int i) {
+		guarantee(vec[subscription_threads[i]].size() != 0);
+		on_thread_t th((threadnum_t(subscription_threads[i])));
+		for (Sub *sub : vec[subscription_threads[i]]) {
+			f(sub);
+		}
+	});
 }
 
 void feed_t::each_range_sub(
@@ -2341,40 +2330,28 @@ void feed_t::each_point_sub(
     const std::function<void(point_sub_t *)> &f) THROWS_NOTHING {
     assert_thread();
     rwlock_in_line_t spot(&point_subs_lock, access_t::read);
-    pmap(get_num_threads(),
-         std::bind(&feed_t::each_point_sub_cb,
-                   this,
-                   std::cref(f),
-                   ph::_1));
-}
-
-void feed_t::each_point_sub_cb(const std::function<void(point_sub_t *)> &f, int i) {
-    on_thread_t th((threadnum_t(i)));
-    for (auto const &pair : point_subs) {
-        for (point_sub_t *sub : pair.second[i]) {
-            f(sub);
-        }
-    }
+	pmap(get_num_threads(), [&f, this](int i) {
+		on_thread_t th((threadnum_t(i)));
+		for (auto const &pair : this->point_subs) {
+			for (point_sub_t *sub : pair.second[i]) {
+				f(sub);
+			}
+		}
+	});
 }
 
 void feed_t::each_limit_sub(
     const std::function<void(limit_sub_t *)> &f) THROWS_NOTHING {
     assert_thread();
     rwlock_in_line_t spot(&limit_subs_lock, access_t::read);
-    pmap(get_num_threads(),
-         std::bind(&feed_t::each_limit_sub_cb,
-                   this,
-                   std::cref(f),
-                   ph::_1));
-}
-
-void feed_t::each_limit_sub_cb(const std::function<void(limit_sub_t *)> &f, int i) {
-    on_thread_t th((threadnum_t(i)));
-    for (auto const &pair : limit_subs) {
-        for (limit_sub_t *sub : pair.second[i]) {
-            f(sub);
-        }
-    }
+    pmap(get_num_threads(), [this, &f](int i) {
+		on_thread_t th((threadnum_t(i)));
+		for (auto const &pair : limit_subs) {
+			for (limit_sub_t *sub : pair.second[i]) {
+				f(sub);
+			}
+		}
+	});
 }
 
 void feed_t::each_sub(const auto_drainer_t::lock_t &lock,

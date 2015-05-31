@@ -48,3 +48,30 @@ The dependency on Protobuf will hopefully go away soon.
 * Press F7 to build
 * Press F5 to run
 * Some unit tests should run.
+
+## To do
+
+* Compile with and fix all warnings
+* Support mingw64
+* Clean up the ifdefs, and use feature macros
+* Command line build using msbuild
+* Consider not using the pthread API on windows
+* Backtraces on crash, with addr2line
+* Clean up the arch hierachy
+* Check for misnamed linux_ prefixess
+* Thouroughly test clock time and ticks
+* Test the timers
+* sizeof int and sizeof long differences
+* Generate web assets
+* Generate protobuf
+* Pass all unit tests
+* death tests with exceptions seem to fail
+* web assets literal size > 65535
+* Check all RSI ATN TODO _MSC_VER and _WIN32 tags
+* re-implement sockets.cc
+* Handle ^C
+* no more named VA_ARGS
+* test blocker pool, maybe use windowswindows-specific pool
+* make sure it still builds on linux
+* keep up-to-date with next/raft/sunos
+* build without /force:unresolved LDFLAG

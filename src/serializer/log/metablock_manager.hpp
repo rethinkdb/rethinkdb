@@ -21,6 +21,7 @@
 #include <boost/crc.hpp>
 
 #include "arch/types.hpp"
+#include "arch/compiler.hpp"
 #include "concurrency/mutex.hpp"
 #include "serializer/log/extent_manager.hpp"
 #include "serializer/log/static_header.hpp"
@@ -46,7 +47,7 @@ public:
     typedef int64_t metablock_version_t;
 
     // This is stored directly to disk.  Changing it will change the disk format.
-    struct crc_metablock_t {
+    ATTR_PACKED(struct crc_metablock_t {
         char magic_marker[sizeof(MB_MARKER_MAGIC)];
         // The version that differs only when the software is upgraded to a newer
         // version.  This field might allow for in-place upgrading of the cluster.
@@ -76,7 +77,7 @@ public:
             crc_computer.process_bytes(&metablock, sizeof(metablock));
             return crc_computer.checksum();
         }
-    } __attribute__((packed));
+    });
 
     explicit metablock_manager_t(extent_manager_t *em);
     ~metablock_manager_t();
