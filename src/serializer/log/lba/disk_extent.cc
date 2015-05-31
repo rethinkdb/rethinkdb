@@ -47,14 +47,14 @@ void lba_disk_extent_t::sync(file_account_t *io_account, extent_t::sync_callback
 
 void lba_disk_extent_t::read_step_1(read_info_t *info_out, extent_t::read_callback_t *cb) {
     em->assert_thread();
-    info_out->buffer = malloc_aligned(em->extent_size, DEVICE_BLOCK_SIZE);
+    info_out->buffer = device_block_aligned_ptr_t<void>(em->extent_size);
     info_out->count = count;
-    data->read(0, sizeof(lba_extent_t) + sizeof(lba_entry_t) * count, info_out->buffer, cb);
+    data->read(0, sizeof(lba_extent_t) + sizeof(lba_entry_t) * count, info_out->buffer.get(), cb);
 }
 
 void lba_disk_extent_t::read_step_2(read_info_t *info, in_memory_index_t *index) {
     em->assert_thread();
-    lba_extent_t *extent = reinterpret_cast<lba_extent_t *>(info->buffer);
+    lba_extent_t *extent = reinterpret_cast<lba_extent_t *>(info->buffer.get());
     guarantee(memcmp(extent->header.magic, lba_magic, LBA_MAGIC_SIZE) == 0);
 
     for (int i = 0; i < info->count; i++) {
@@ -69,6 +69,6 @@ void lba_disk_extent_t::read_step_2(read_info_t *info, in_memory_index_t *index)
         }
     }
 
-    free(info->buffer);
+    free(info->buffer.get());
 }
 

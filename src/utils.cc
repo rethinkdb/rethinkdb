@@ -221,7 +221,7 @@ with_priority_t::~with_priority_t() {
     coro_t::self()->set_priority(previous_priority);
 }
 
-void *malloc_aligned(size_t size, size_t alignment) {
+void *raw_malloc_aligned(size_t size, size_t alignment) {
     void *ptr = NULL;
     int res = posix_memalign(&ptr, alignment, size);  // NOLINT(runtime/rethinkdb_fn)
     if (res != 0) {
@@ -234,6 +234,14 @@ void *malloc_aligned(size_t size, size_t alignment) {
         }
     }
     return ptr;
+}
+
+void *raw_malloc_page_aligned(size_t size) {
+    return raw_malloc_aligned(size, getpagesize());
+}
+
+void raw_free_aligned(void *ptr) {
+    free(ptr);
 }
 
 void *rmalloc(size_t size) {

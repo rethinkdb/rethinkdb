@@ -373,7 +373,7 @@ public:
 private:
     friend class page_read_ahead_cb_t;
     void add_read_ahead_buf(block_id_t block_id,
-                            ser_buffer_t *buf,
+                            device_block_aligned_ptr_t<ser_buffer_t> ptr,
                             const counted_t<standard_block_token_t> &token);
 
     void read_ahead_cb_is_destroyed();

@@ -6,6 +6,7 @@
 
 #include <utility>
 
+#include "config/args.hpp"
 #include "errors.hpp"
 #include "utils.hpp"
 
@@ -222,75 +223,101 @@ private:
     DISABLE_COPYING(scoped_array_t);
 };
 
-// For dumb structs that get rmalloc/free for allocation.
-
-template <class T>
-class scoped_malloc_t {
+/*
+ * For pointers with custom allocators and deallocators
+ */
+template <class T, void*(*alloc)(size_t), void(*dealloc)(void*)>
+class scoped_alloc_t {
 
     static_assert(std::is_pod<T>::value || std::is_same<T, void>::value,
                   "refusing to malloc non-POD, non-void type");
 
 public:
-    template <class U>
-    friend class scoped_malloc_t;
+    template <class U, void*(*alloc_)(size_t), void(*dealloc_)(void*)>
+    friend class scoped_alloc_t;
 
-    scoped_malloc_t() : ptr_(NULL) { }
-    explicit scoped_malloc_t(void *ptr) : ptr_(static_cast<T *>(ptr)) { }
-    explicit scoped_malloc_t(size_t n) : ptr_(static_cast<T *>(rmalloc(n))) { }
-    scoped_malloc_t(const char *beg, const char *end) {
+    scoped_alloc_t() : ptr_(NULL) { }
+    explicit scoped_alloc_t(size_t n) : ptr_(static_cast<T *>(alloc(n))) { }
+    scoped_alloc_t(const char *beg, const char *end) {
         rassert(beg <= end);
         size_t n = end - beg;
-        ptr_ = static_cast<T *>(rmalloc(n));
+        ptr_ = static_cast<T *>(alloc(n));
         memcpy(ptr_, beg, n);
     }
     // (These noexcepts don't actually do anything w.r.t. STL containers, since the
     // type's not copyable.  There is no specific reason why these are many other
     // functions need be marked noexcept with any degree of urgency.)
-    scoped_malloc_t(scoped_malloc_t &&movee) noexcept
+    scoped_alloc_t(scoped_alloc_t &&movee) noexcept
         : ptr_(movee.ptr_) {
         movee.ptr_ = NULL;
     }
 
     template <class U>
-    scoped_malloc_t(scoped_malloc_t<U> &&movee) noexcept
+    scoped_alloc_t(scoped_alloc_t<U, alloc, dealloc> &&movee) noexcept
         : ptr_(movee.ptr_) {
         movee.ptr_ = NULL;
     }
 
-    ~scoped_malloc_t() {
-        free(ptr_);
+    ~scoped_alloc_t() {
+        dealloc(ptr_);
     }
 
-    void operator=(scoped_malloc_t &&movee) noexcept {
-        scoped_malloc_t tmp(std::move(movee));
+    void operator=(scoped_alloc_t &&movee) noexcept {
+        scoped_alloc_t tmp(std::move(movee));
         swap(tmp);
-    }
-
-    void init(void *ptr) {
-        guarantee(ptr_ == NULL);
-        ptr_ = static_cast<T *>(ptr);
     }
 
     T *get() const { return ptr_; }
     T *operator->() const { return ptr_; }
 
-    T *release() {
-        T *tmp = ptr_;
+    // This class has move semantics in its copy constructor
+    // It allows passing scoped_alloc_t through things like std::bind
+    class released_t {
+    public:
+        ~released_t() {
+            dealloc(ptr_);
+        }
+        released_t(const released_t &other) {
+            ptr_ = other.ptr_;
+            other.ptr_ = nullptr;
+        }
+        const released_t &operator=(const released_t &other) {
+            ptr_ = other.ptr_;
+            other.ptr_ = nullptr;
+        }
+    private:
+        friend class scoped_alloc_t;
+        released_t(T* ptr) : ptr_(ptr) { }
+        mutable T* ptr_;
+    };
+
+    // Does not return a raw pointer to ensure that the pointer gets deallocated correctly
+    released_t release() {
+        released_t released(ptr_);
         ptr_ = NULL;
-        return tmp;
+        return released;
     }
 
-    void reset() {
-        scoped_malloc_t tmp;
-        swap(tmp);
+    scoped_alloc_t(released_t released) {
+        ptr_ = released.ptr_;
+        released.ptr_ = nullptr;
     }
 
     bool has() const {
         return ptr_ != NULL;
     }
 
+    void reset() {
+        scoped_alloc_t tmp;
+        swap(tmp);
+    }
+
 private:
-    void swap(scoped_malloc_t &other) noexcept {
+    friend class released_t;
+
+    scoped_alloc_t(void*) = delete;
+
+    void swap(scoped_alloc_t &other) noexcept {
         T *tmp = ptr_;
         ptr_ = other.ptr_;
         other.ptr_ = tmp;
@@ -298,7 +325,46 @@ private:
 
     T *ptr_;
 
-    DISABLE_COPYING(scoped_malloc_t);
+    DISABLE_COPYING(scoped_alloc_t);
 };
+
+template <int alignment>
+void *raw_malloc_aligned(size_t size) {
+    return raw_malloc_aligned(size, alignment);
+}
+
+#if __GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 7)
+
+// GCC 4.6 doesn't support template aliases
+
+#define TEMPLATE_ALIAS(type_t, ...)                                     \
+    struct type_t : public __VA_ARGS__ {                                \
+        template <class ... arg_ts>                                     \
+        type_t(arg_ts&&... args) :                                      \
+            __VA_ARGS__(std::forward<arg_ts>(args)...) { }              \
+    }
+
+#else
+
+#define TEMPLATE_ALIAS(type_t, ...) using type_t = __VA_ARGS__;
+
+#endif
+
+// A type for pointers using rmalloc/free
+template <class T>
+TEMPLATE_ALIAS(scoped_malloc_t, scoped_alloc_t<T, rmalloc, free>);
+
+// A type for aligned pointers
+// Needed because, on Windows, raw_free_aligned doesn't call free
+template <class T, int alignment>
+TEMPLATE_ALIAS(aligned_ptr_t, scoped_alloc_t<T, raw_malloc_aligned<alignment>, raw_free_aligned>);
+
+// A type for page-aligned pointers
+template <class T>
+TEMPLATE_ALIAS(page_aligned_ptr_t, scoped_alloc_t<T, raw_malloc_page_aligned, raw_free_aligned>);
+
+// A type for device-block-aligned pointers
+template <class T>
+TEMPLATE_ALIAS(device_block_aligned_ptr_t, scoped_alloc_t<T, raw_malloc_aligned<DEVICE_BLOCK_SIZE>, raw_free_aligned>);
 
 #endif  // CONTAINERS_SCOPED_HPP_
