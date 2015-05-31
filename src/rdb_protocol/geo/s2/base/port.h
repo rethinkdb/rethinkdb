@@ -475,11 +475,11 @@ inline void* memrchr(const void* bytes, int find_char, size_t len) {
 #define FSEEKO fseeko
 
 inline void *aligned_malloc(size_t size, int minimum_alignment) {
-  return malloc_aligned(size, static_cast<size_t>(minimum_alignment));
+  return raw_malloc_aligned(size, static_cast<size_t>(minimum_alignment));
 }
 
 inline void aligned_free(void *aligned_memory) {
-  free(aligned_memory);
+  raw_free_aligned(aligned_memory);
 }
 
 #else   // not GCC
