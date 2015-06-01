@@ -36,7 +36,9 @@ def create_tables(conn):
 
 def make_expected(default=False, **kwargs):
     expected = {'ready_for_outdated_reads': default,
-                'ready_for_reads': default,
+                # RSI(raft): Currently we don't check `ready_for_reads` because it's sort
+                # of ill-defined. See GitHub issue #4320.
+                # 'ready_for_reads': default,
                 'ready_for_writes': default,
                 'all_replicas_ready': default}
     for key,value in kwargs.items():
