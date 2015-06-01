@@ -158,18 +158,37 @@ public:
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,
             maybe_failed_table_op_exc_t);
 
-    /* `override_state()` is used for emergency repair actions. It creates a new table
-    epoch with the given Raft state. */
-    void override_state(
+    /* `emergency_repair()` performs an emergency repair operation on the given table,
+    creating a new table epoch. If all of the replicas for a given shard are missing, it
+    will leave the shard alone if `allow_data_loss` is `true`, or replace the shard with
+    a new empty shard if `allow_data_loss` is `false`. If `dry_run` is `true` it will
+    compute the repair operation but not actually apply it. `simple_errors_found_out`
+    and `data_loss_found_out` will indicate whether the two types of errors were
+    detected. */
+    void emergency_repair(
         const namespace_id_t &table_id,
-        const table_raft_state_t &new_state,
-        signal_t *interruptor)
+        bool allow_data_loss,
+        bool dry_run,
+        signal_t *interruptor,
+        table_config_and_shards_t *new_config_out,
+        bool *quorum_loss_found_out,
+        bool *data_loss_found_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,
             maybe_failed_table_op_exc_t);
 
 private:
     typedef std::pair<table_basic_config_t, multi_table_manager_bcard_t::timestamp_t>
         timestamped_basic_config_t;
+
+    /* `create_or_emergency_repair()` factors out the common parts of `create()` and
+    `emergency_repair()`. */
+    void create_or_emergency_repair(
+        const namespace_id_t &table_id,
+        const table_raft_state_t &raft_state,
+        microtime_t epoch_timestamp,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t, failed_table_op_exc_t,
+            maybe_failed_table_op_exc_t);
 
     /* `retry()` calls `fun()` repeatedly. If `fun()` fails with a
     `failed_table_op_exc_t` or `maybe_failed_table_op_exc_t`, then `retry()` catches the

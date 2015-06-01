@@ -816,16 +816,13 @@ void real_reql_cluster_interface_t::emergency_repair_internal(
                 failed_table_op_exc_t, maybe_failed_table_op_exc_t, admin_op_exc_t) {
     assert_thread();
 
-    /* Fetch the table's current state */
-    std::map<server_id_t, contracts_and_contract_acks_t> old_contracts;
-    server_id_t latest_server;
-    table_meta_client->get_status(
-        table_id, interruptor_on_home, nullptr, &old_contracts, &latest_server);
+    /* Fetch the table's current configuration */
+    table_config_and_shards_t old_config;
+    table_meta_client->get_config(table_id, interruptor_on_home, &old_config);
 
     // Store the old value of the config and status
     ql::datum_t old_config_datum = convert_table_config_to_datum(
-        table_id, convert_name_to_datum(db->name),
-        old_contracts.at(latest_server).state.config.config,
+        table_id, convert_name_to_datum(db->name), old_config.config,
         admin_identifier_format_t::name, server_config_client);
 
     table_status_artificial_table_backend_t *status_backend =
@@ -838,41 +835,31 @@ void real_reql_cluster_interface_t::emergency_repair_internal(
         throw admin_op_exc_t(error);
     }
 
-    std::set<server_id_t> dead_servers;
-    for (const auto &pair : old_contracts.at(latest_server).state.member_ids) {
-        if (old_contracts.count(pair.first) == 0) {
-            dead_servers.insert(pair.first);
-        }
-    }
-
-    table_raft_state_t new_state;
-    bool recoverable_errors_found;
+    table_config_and_shards_t new_config;
+    bool quorum_loss_found;
     bool data_loss_found;
-    emergency_repair(
-        old_contracts.at(latest_server).state,
-        dead_servers,
+    table_meta_client->emergency_repair(
+        table_id,
         allow_data_loss,
-        &new_state,
+        dry_run,
+        interruptor,
+        &new_config,
         &recoverable_errors_found,
         &data_loss_found);
 
-    if (!recoverable_errors_found) {
+    if (!quorum_loss_found) {
         if (!data_loss_found) {
             throw admin_op_exc_t("This table doesn't need to be repaired.");
         } else if (data_loss_found && !allow_data_loss) {
-            throw admin_op_exc_t("One or more shards of this table are unavailable "
-                "because none of their replicas are available. Since there are no "
-                "available copies of the data that was stored in those shards, those "
-                "shards cannot be repaired. If you run the emergency repair command "
-                "again with the `allow_data_loss` optarg, those shards will be reset to "
-                "an empty, but writeable state; but if the missing replicas later "
-                "reconnect, the original data that was stored on them will be lost.");
+            throw admin_op_exc_t("One or more shards of this table have no available "
+                "replicas. Since there are no available copies of the data that was "
+                "stored in those shards, those shards cannot be repaired. If you run "
+                "the command again with `emergency_repair` set to `catastrophic`, those "
+                "shards will be reset to an empty, but writeable state; but if the "
+                "missing replicas later reconnect, the original data that was stored on "
+                "them will be lost permanently.");
         }
-    }
-
-    if (!dry_run) {
-        table_meta_client->override_state(table_id, new_state, interruptor);
-    }
+    }    
 
     // Compute the new value of the config and status
     ql::datum_t new_config_datum = convert_table_config_to_datum(
