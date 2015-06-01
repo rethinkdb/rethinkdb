@@ -131,7 +131,7 @@ def test_wait(cluster, servers, files, states, expected_wait_result):
         assert False, 'Wait failed, table statuses: %s' % str(statuses)
 
 print("Spinning up seven servers (%.2fs)" % (time.time() - startTime))
-with driver.Cluster(initial_servers=['query', 'foo', 'bar', 'baz', 'nv1', 'nv2', 'nv3'],
+with driver.Cluster(initial_servers=['query', 'primary', 'r1', 'r2', 'nv1', 'nv2', 'nv3'],
                     output_folder='.', command_prefix=command_prefix,
                     extra_options=serve_options) as cluster:
     cluster.check()

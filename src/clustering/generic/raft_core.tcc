@@ -1177,7 +1177,7 @@ void raft_member_t<state_t>::update_readiness_for_change() {
 
 template<class state_t>
 microtime_t raft_member_t<state_t>::effective_last_heard_from_leader() {
-    if (!virtual_heartbeat_sender.is_nil()) {
+    if (mode == mode_t::leader || !virtual_heartbeat_sender.is_nil()) {
         return current_microtime();
     } else {
         return last_heard_from_leader;
@@ -1385,6 +1385,11 @@ void raft_member_t<state_t>::candidate_and_leader_coro(
 
     /* Stop sending heartbeats now that we're no longer the leader. */
     network->send_virtual_heartbeats(boost::none);
+
+    /* This will prevent us from starting a new election too soon. This is important in
+    the case where we have just stepped down after committing a configuration in which
+    we were no longer leader; otherwise we would almost always win the next election. */
+    last_heard_from_leader = current_microtime();
 
     mode = mode_t::follower;
 
@@ -1894,7 +1899,7 @@ bool raft_member_t<state_t>::candidate_or_leader_note_term(
                 `candidate_or_leader_note_term()` was called and when this coroutine ran.
                 */
                 if (ps.current_term == local_current_term) {
-                    RAFT_DEBUG_THIS("got rpc reply with term " PRIu64 "\n", term);
+                    RAFT_DEBUG_THIS("got rpc reply with term %" PRIu64 "\n", term);
                     this->update_term(term, &mutex_acq_2);
                     this->candidate_or_leader_become_follower(&mutex_acq_2);
                     storage->write_persistent_state(ps, keepalive.get_drain_signal());

@@ -83,6 +83,7 @@ shard_status_t calculate_shard_status(
             server_status_t ack_server_status = server_status_t::DISCONNECTED;
             switch (ack.second.second.state) {
                 case contract_ack_t::state_t::primary_need_branch:
+                    region_has_outdated_reader = true;
                     has_unfinished = true;
                     ack_server_status = server_status_t::WAITING_FOR_QUORUM;
                     break;
