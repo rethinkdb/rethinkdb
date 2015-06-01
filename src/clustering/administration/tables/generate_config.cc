@@ -113,8 +113,9 @@ double estimate_backfill_cost(
         const table_config_and_shards_t &old_config,
         const server_id_t &server) {
     /* If `range` aligns perfectly to an existing shard, the cost is 0.0 if `server` is
-    already primary for that shard; 1.0 if it's already secondary; and 2.0 otherwise. If
-    `range` overlaps multiple existing shards' ranges, we average over all of them. */
+    already primary for that shard; 1.0 if it's a voting non-primary replica; 2.0 if it's
+    a non-voting replica; and 3.0 otherwise. If `range` overlaps multiple existing
+    shards' ranges, we average over all of them. */
     guarantee(!range.is_empty());
     double numerator = 0;
     int denominator = 0;

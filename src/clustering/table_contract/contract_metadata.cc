@@ -79,10 +79,8 @@ table_raft_state_t make_new_table_raft_state(
     for (size_t i = 0; i < config.shard_scheme.num_shards(); ++i) {
         const table_config_t::shard_t &shard_conf = config.config.shards[i];
         contract_t contract;
-        contract.replicas = contract.voters = shard_conf.all_replicas;
-        for (const server_id_t &server : shard_conf.nonvoting_replicas) {
-            contract.voters.erase(server);
-        }
+        contract.replicas = shard_conf.all_replicas;
+        contract.voters = shard_conf.voting_replicas();
         if (!shard_conf.primary_replica.is_nil()) {
             contract.primary = boost::make_optional(
                 contract_t::primary_t { shard_conf.primary_replica, boost::none });

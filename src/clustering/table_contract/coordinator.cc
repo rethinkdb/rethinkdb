@@ -99,12 +99,9 @@ contract_t calculate_contract(
     /* If there are new servers in `config.all_replicas`, add them to `c.replicas` */
     new_c.replicas.insert(config.all_replicas.begin(), config.all_replicas.end());
 
-    /* If there is a mismatch between `config.all_replicas - c.nonvoting_replicas` and
-    `c.voters`, then correct it */
-    std::set<server_id_t> config_voting_replicas = config.all_replicas;
-    for (const server_id_t &server : config.nonvoting_replicas) {
-        config_voting_replicas.erase(server);
-    }
+    /* If there is a mismatch between `config.voting_replicas()` and `c.voters`, then
+    correct it */
+    std::set<server_id_t> config_voting_replicas = config.voting_replicas();
     if (!static_cast<bool>(old_c.temp_voters) &&
             old_c.voters != config_voting_replicas) {
         size_t num_streaming = 0;

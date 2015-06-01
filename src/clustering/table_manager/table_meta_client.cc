@@ -330,11 +330,8 @@ void table_meta_client_t::create(
     std::set<server_id_t> all_servers, voting_servers;
     for (const table_config_t::shard_t &shard : initial_config.config.shards) {
         all_servers.insert(shard.all_replicas.begin(), shard.all_replicas.end());
-        for (const server_id_t &server : shard.all_replicas) {
-            if (shard.nonvoting_replicas.count(server) == 0) {
-                voting_servers.insert(server);
-            }
-        }
+        std::set<server_id_t> voters = shard.voting_replicas();
+        voting_servers.insert(voters.begin(), voters.end());
     }
 
     table_raft_state_t raft_state = make_new_table_raft_state(initial_config);
