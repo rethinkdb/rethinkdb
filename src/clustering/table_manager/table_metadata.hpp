@@ -20,6 +20,13 @@ public:
     public:
         class epoch_t {
         public:
+            static epoch_t min() {
+                epoch_t e;
+                e.id = nil_uuid();
+                e.timestamp = 0;
+                return e;
+            }
+
             static epoch_t deletion() {
                 epoch_t e;
                 e.id = nil_uuid();
@@ -61,6 +68,13 @@ public:
             microtime_t timestamp;
             uuid_u id;
         };
+
+        static timestamp_t min() {
+            timestamp_t ts;
+            ts.epoch = epoch_t::min();
+            ts.log_index = 0;
+            return ts;
+        }
 
         static timestamp_t deletion() {
             timestamp_t ts;
@@ -223,12 +237,9 @@ RDB_DECLARE_SERIALIZABLE(table_manager_bcard_t);
 
 class contracts_and_contract_acks_t {
 public:
-    typedef std::map<contract_id_t, contract_ack_t> contract_acks_t;
-    typedef std::map<contract_id_t, std::pair<region_t, contract_t> > contracts_t;
-
     multi_table_manager_bcard_t::timestamp_t timestamp;
-    contracts_t contracts;
-    contract_acks_t contract_acks;
+    table_raft_state_t state;
+    std::map<contract_id_t, contract_ack_t> contract_acks;
 };
 RDB_DECLARE_SERIALIZABLE(contracts_and_contract_acks_t);
 

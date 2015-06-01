@@ -116,14 +116,18 @@ public:
         std::map<namespace_id_t, table_config_and_shards_t> *configs_out)
         THROWS_ONLY(interrupted_exc_t, failed_table_op_exc_t);
 
-    /* `get_status()` returns the secondary index status of the table with the given ID.
+    /* `get_status()` returns detailed information about the table with the given ID:
+      - A list of the secondary indexes on the table and the status of each one.
+      - For each server, the server's Raft state and contract acks.
+      - Which server has the most up-to-date Raft state.
     It may block. */
     void get_status(
         const namespace_id_t &table_id,
         signal_t *interruptor,
         std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
             *index_statuses_out,
-        std::map<peer_id_t, contracts_and_contract_acks_t> *contracts_and_acks_out)
+        std::map<server_id_t, contracts_and_contract_acks_t> *contracts_and_acks_out,
+        server_id_t *latest_server_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t);
 
     /* `create()` creates a table with the given configuration. It sets `*table_id_out`
@@ -150,6 +154,15 @@ public:
     void set_config(
         const namespace_id_t &table_id,
         const table_config_and_shards_t &new_config,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,
+            maybe_failed_table_op_exc_t);
+
+    /* `override_state()` is used for emergency repair actions. It creates a new table
+    epoch with the given Raft state. */
+    void override_state(
+        const namespace_id_t &table_id,
+        const table_raft_state_t &new_state,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,
             maybe_failed_table_op_exc_t);

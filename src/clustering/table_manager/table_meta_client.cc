@@ -201,7 +201,8 @@ void table_meta_client_t::get_status(
         signal_t *interruptor_on_caller,
         std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
             *sindex_statuses_out,
-        std::map<peer_id_t, contracts_and_contract_acks_t> *contracts_and_acks_out)
+        std::map<server_id_t, contracts_and_contract_acks_t> *contracts_and_acks_out,
+        server_id_t *latest_server_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t) {
     typedef std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
         index_statuses_t;
@@ -224,34 +225,36 @@ void table_meta_client_t::get_status(
 
     /* Collect status mailbox addresses for every single server we can see that's hosting
     data for this table. */
-    std::vector<table_manager_bcard_t::get_status_mailbox_t::address_t> addresses;
+    std::vector<table_manager_bcard_t> bcards;
     table_manager_directory->read_all(
     [&](const std::pair<peer_id_t, namespace_id_t> &key,
             const table_manager_bcard_t *server_bcard) {
         if (key.second == table_id) {
-            addresses.push_back(server_bcard->get_status_mailbox);
+            bcards.push_back(*server_bcard);
         }
     });
 
     /* Send a message to every server and collect all of the results in
        `sindex_statuses_out`, `contract_acks_t`, and `contracts_t`. */
     bool at_least_one_reply = false;
-    pmap(addresses.begin(), addresses.end(),
-    [&](const table_manager_bcard_t::get_status_mailbox_t::address_t &addr) {
+    pmap(bcards.begin(), bcards.end(), [&](const table_manager_bcard_t &bcard) {
         /* There are two things that can go wrong. One is that we'll lose contact with
         the other server; in this case `server_disconnected` will be pulsed. The other is
         that the server will stop hosting the given table; in this case `server_stopped`
         will be pulsed. */
-        disconnect_watcher_t server_disconnected(mailbox_manager, addr.get_peer());
+        disconnect_watcher_t server_disconnected(
+            mailbox_manager, bcard.get_status_mailbox.get_peer());
         cond_t server_stopped;
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
                 ::key_subs_t bcard_subs(
-            table_manager_directory, std::make_pair(addr.get_peer(), table_id),
-            [&](const table_manager_bcard_t *bcard) {
+            table_manager_directory,
+            std::make_pair(bcard.get_status_mailbox.get_peer(), table_id),
+            [&](const table_manager_bcard_t *bcard2) {
                 /* We check equality of `bcard->get_config_mailbox` because if the other
                 server stops hosting the table and then immediately starts again, any
                 messages we send will be dropped. */
-                if (bcard == nullptr || !(bcard->get_status_mailbox == addr)) {
+                if (bcard2 == nullptr ||
+                        !(bcard2->get_status_mailbox == bcard.get_status_mailbox)) {
                     server_stopped.pulse_if_not_already_pulsed();
                 }
             }, initial_call_t::YES);
@@ -281,13 +284,13 @@ void table_meta_client_t::get_status(
 
                 if (contracts_and_acks_out != nullptr) {
                     contracts_and_acks_out->insert(
-                        std::make_pair(addr.get_peer(), contracts_and_acks));
+                        std::make_pair(bcard.server_id, contracts_and_acks));
                 }
 
                 got_reply.pulse();
             });
 
-        send(mailbox_manager, addr, ack_mailbox.get_address());
+        send(mailbox_manager, bcard.get_status_mailbox, ack_mailbox.get_address());
         wait_any_t done_cond(
             &server_disconnected, &server_stopped, &got_reply, &interruptor);
         done_cond.wait_lazily_unordered();
@@ -303,6 +306,18 @@ void table_meta_client_t::get_status(
 
     if (!at_least_one_reply) {
         throw_appropriate_exception(table_id);
+    }
+
+    /* Determine the most up-to-date server */
+    if (contracts_and_acks_out != nullptr && latest_server_out != nullptr) {
+        *latest_server_out = nil_uuid();
+        for (const auto &pair : *contracts_and_acks_out) {
+            if (*latest_server_out == nil_uuid() || pair.second.timestamp.supersedes(
+                    contracts_and_acks_out->at(*latest_server_out).timestamp)) {
+                *latest_server_out = pair.first;
+            }
+        }
+        guarantee(!latest_server_out->is_nil());
     }
 }
 

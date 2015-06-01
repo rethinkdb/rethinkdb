@@ -230,6 +230,16 @@ private:
             THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t,
                 failed_table_op_exc_t, maybe_failed_table_op_exc_t, admin_op_exc_t);
 
+    void emergency_repair_internal(
+            const counted_t<const ql::db_t> &db,
+            const namespace_id_t &table_id,
+            bool allow_data_loss,
+            bool dry_run,
+            signal_t *interruptor,
+            ql::datum_t *result_out)
+            THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t,
+                failed_table_op_exc_t, maybe_failed_table_op_exc_t, admin_op_exc_t);
+
     void rebalance_internal(
             const namespace_id_t &table_id,
             signal_t *interruptor,

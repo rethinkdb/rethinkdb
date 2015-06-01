@@ -805,6 +805,100 @@ bool real_reql_cluster_interface_t::db_reconfigure(
     return true;
 }
 
+void real_reql_cluster_interface_t::emergency_repair_internal(
+            const counted_t<const ql::db_t> &db,
+            const namespace_id_t &table_id,
+            bool allow_data_loss,
+            bool dry_run,
+            signal_t *interruptor,
+            ql::datum_t *result_out)
+            THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t,
+                failed_table_op_exc_t, maybe_failed_table_op_exc_t, admin_op_exc_t) {
+    assert_thread();
+
+    /* Fetch the table's current state */
+    std::map<server_id_t, contracts_and_contract_acks_t> old_contracts;
+    server_id_t latest_server;
+    table_meta_client->get_status(
+        table_id, interruptor_on_home, nullptr, &old_contracts, &latest_server);
+
+    // Store the old value of the config and status
+    ql::datum_t old_config_datum = convert_table_config_to_datum(
+        table_id, convert_name_to_datum(db->name),
+        old_contracts.at(latest_server).state.config.config,
+        admin_identifier_format_t::name, server_config_client);
+
+    table_status_artificial_table_backend_t *status_backend =
+        admin_tables->table_status_backend[
+            static_cast<int>(admin_identifier_format_t::name)].get();
+    ql::datum_t old_status;
+    std::string error;
+    if (!status_backend->read_row(convert_uuid_to_datum(table_id), interruptor_on_home,
+            &old_status, &error)) {
+        throw admin_op_exc_t(error);
+    }
+
+    std::set<server_id_t> dead_servers;
+    for (const auto &pair : old_contracts.at(latest_server).state.member_ids) {
+        if (old_contracts.count(pair.first) == 0) {
+            dead_servers.insert(pair.first);
+        }
+    }
+
+    table_raft_state_t new_state;
+    bool recoverable_errors_found;
+    bool data_loss_found;
+    emergency_repair(
+        old_contracts.at(latest_server).state,
+        dead_servers,
+        allow_data_loss,
+        &new_state,
+        &recoverable_errors_found,
+        &data_loss_found);
+
+    if (!recoverable_errors_found) {
+        if (!data_loss_found) {
+            throw admin_op_exc_t("This table doesn't need to be repaired.");
+        } else if (data_loss_found && !allow_data_loss) {
+            throw admin_op_exc_t("One or more shards of this table are unavailable "
+                "because none of their replicas are available. Since there are no "
+                "available copies of the data that was stored in those shards, those "
+                "shards cannot be repaired. If you run the emergency repair command "
+                "again with the `allow_data_loss` optarg, those shards will be reset to "
+                "an empty, but writeable state; but if the missing replicas later "
+                "reconnect, the original data that was stored on them will be lost.");
+        }
+    }
+
+    if (!dry_run) {
+        table_meta_client->override_state(table_id, new_state, interruptor);
+    }
+
+    // Compute the new value of the config and status
+    ql::datum_t new_config_datum = convert_table_config_to_datum(
+        table_id, convert_name_to_datum(db->name), new_config.config,
+        admin_identifier_format_t::name, server_config_client);
+    ql::datum_t new_status;
+    if (!status_backend->read_row(convert_uuid_to_datum(table_id), interruptor_on_home,
+            &new_status, &error)) {
+        throw admin_op_exc_t(error);
+    }
+
+    ql::datum_object_builder_t result_builder;
+    if (!dry_run) {
+        result_builder.overwrite("repaired", ql::datum_t(1.0));
+        result_builder.overwrite("config_changes",
+            make_replacement_pair(old_config_datum, new_config_datum));
+        result_builder.overwrite("status_changes",
+            make_replacement_pair(old_status, new_status));
+    } else {
+        result_builder.overwrite("repaired", ql::datum_t(0.0));
+        result_builder.overwrite("config_changes",
+            make_replacement_pair(old_config_datum, new_config_datum));
+    }
+    *result_out = std::move(result_builder).to_datum();
+}
+
 bool real_reql_cluster_interface_t::table_emergency_repair(
         counted_t<const ql::db_t> db,
         const name_string_t &name,
@@ -820,16 +914,17 @@ bool real_reql_cluster_interface_t::table_emergency_repair(
         on_thread_t thread_switcher(home_thread());
         namespace_id_t table_id;
         table_meta_client->find(db->id, name, &table_id);
-        reconfigure_internal(db, table_id, params, dry_run, &interruptor_on_home,
-            result_out);
+        emergency_repair_internal(db, table_id, allow_data_loss, dry_run,
+            &interruptor_on_home, result_out);
         return true;
     } catch (const admin_op_exc_t &msg) {
         *error_out = msg.what();
         return false;
     } CATCH_NAME_ERRORS(db->name, name, error_out)
       CATCH_OP_ERRORS(db->name, name, error_out,
-        "The table was not reconfigured.",
-        "The table may or may not have been reconfigured.")
+        "The table was not repaired. At least one of a table's replicas must be "
+            "accessible in order to repair it.",
+        "The table may or may not have been repaired.")
 }
 
 void real_reql_cluster_interface_t::rebalance_internal(

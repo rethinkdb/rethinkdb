@@ -8,44 +8,6 @@
 #include "clustering/table_contract/exec_primary.hpp"
 #include "clustering/table_manager/table_meta_client.hpp"
 
-bool get_contracts_and_acks(
-        namespace_id_t const &table_id,
-        signal_t *interruptor,
-        table_meta_client_t *table_meta_client,
-        server_config_client_t *server_config_client,
-        std::map<server_id_t, contracts_and_contract_acks_t> *contracts_and_acks_out,
-        std::map<
-                contract_id_t,
-                std::reference_wrapper<const std::pair<region_t, contract_t> >
-            > *contracts_out,
-        server_id_t *latest_contracts_server_id_out)
-        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t) {
-    std::map<peer_id_t, contracts_and_contract_acks_t> contracts_and_acks;
-    table_meta_client->get_status(table_id, interruptor, nullptr, &contracts_and_acks);
-
-    multi_table_manager_bcard_t::timestamp_t latest_timestamp;
-    latest_timestamp.epoch.timestamp = 0;
-    latest_timestamp.epoch.id = nil_uuid();
-    latest_timestamp.log_index = 0;
-    for (const auto &peer : contracts_and_acks) {
-        boost::optional<server_id_t> server_id =
-            server_config_client->get_server_id_for_peer_id(peer.first);
-        if (static_cast<bool>(server_id)) {
-            auto pair = contracts_and_acks_out->insert(
-                std::make_pair(server_id.get(), std::move(peer.second)));
-            contracts_out->insert(
-                pair.first->second.contracts.begin(),
-                pair.first->second.contracts.end());
-            if (pair.first->second.timestamp.supersedes(latest_timestamp)) {
-                *latest_contracts_server_id_out = pair.first->first;
-                latest_timestamp = pair.first->second.timestamp;
-            }
-        }
-    }
-
-    return !contracts_and_acks_out->empty();
-}
-
 struct region_acks_t {
     bool operator==(const region_acks_t &other) const {
         return latest_contract_id == other.latest_contract_id && acks == other.acks;
@@ -178,26 +140,11 @@ void calculate_status(
         std::vector<shard_status_t> *shard_statuses_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t) {
 
-
-    /* Note that `contracts` and `latest_contracts` will contain references into
-       `contracts_and_acks`, thus this must remain in scope for them to be valid! */
-    table_config_and_shards_t config_and_shards;
     std::map<server_id_t, contracts_and_contract_acks_t> contracts_and_acks;
-    std::map<
-            contract_id_t,
-            std::reference_wrapper<const std::pair<region_t, contract_t> >
-        > contracts;
     server_id_t latest_contracts_server_id;
     try {
-        table_meta_client->get_config(table_id, interruptor, &config_and_shards);
-        get_contracts_and_acks(
-            table_id,
-            interruptor,
-            table_meta_client,
-            server_config_client,
-            &contracts_and_acks,
-            &contracts,
-            &latest_contracts_server_id);
+        table_meta_client->get_status(table_id, interruptor,
+            nullptr, &contracts_and_acks, &latest_contracts_server_id);
     } catch (const failed_table_op_exc_t &) {
         if (readiness_out != nullptr) {
             *readiness_out = table_readiness_t::unavailable;
@@ -207,8 +154,22 @@ void calculate_status(
         }
         return;
     }
+
+    /* Note that `config_and_shards`, `latest_contracts`, and `contracts` all refer to
+    `contracts_and_acks`, so it must remain in scope for them to be valid. */
+    const table_config_and_shards_t &config_and_shards =
+        contracts_and_acks.at(latest_contracts_server_id).state.config;
     const std::map<contract_id_t, std::pair<region_t, contract_t> > &latest_contracts =
-        contracts_and_acks.at(latest_contracts_server_id).contracts;
+        contracts_and_acks.at(latest_contracts_server_id).state.contracts;
+    std::map<
+            contract_id_t,
+            std::reference_wrapper<const std::pair<region_t, contract_t> >
+        > contracts;
+    for (const auto &pair : contracts_and_acks) {
+        contracts.insert(
+            pair.second.state.contracts.begin(),
+            pair.second.state.contracts.end());
+    }
 
     region_map_t<region_acks_t> regions;
     {

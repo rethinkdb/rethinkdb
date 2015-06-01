@@ -181,8 +181,8 @@ void table_manager_t::on_get_status(
         contracts_and_contract_acks.timestamp.epoch = epoch;
         contracts_and_contract_acks.timestamp.log_index =
             raft.get_raft()->get_committed_state()->get().log_index;
-        contracts_and_contract_acks.contracts =
-            raft.get_raft()->get_committed_state()->get().state.contracts;
+        contracts_and_contract_acks.state =
+            raft.get_raft()->get_committed_state()->get().state;
         for (const auto &contract_ack : contract_executor.get_acks()->get_all()) {
             contracts_and_contract_acks.contract_acks.insert(
                 std::make_pair(contract_ack.first.second, contract_ack.second));
