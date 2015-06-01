@@ -92,17 +92,36 @@ shard_status_t calculate_shard_status(
             > &contracts) {
     shard_status_t shard_status;
 
+    /* The status defaults to `table_readiness_t::unavailable`, these are the
+       requirements for the increasingly stronger statuses:
+
+       - `table_readiness_t::outdated_reads`, reported as "ready_for_outdated_reads"
+         requires that either a primary or secondary is ready.
+       - `table_readiness_t::reads`, reported as "ready_for_reads" requires that a
+         primary is ready.
+       - `table_readiness_t::writes`, reported as "ready_for_writes" requires that a
+         primary is ready and that there is a quorum to acknowledge the writes.
+       - `table_readiness_t::finished`, reported as "all_replicas_ready" requires a
+         primary to be ready, a quorum to acknowledge writes, and that the shard matches
+         the configuration with regard to the primary, the set of secondaries, and the
+         shard boundaries. */
+
+    bool as_configured = true;
+    std::set<server_id_t> replicas;
     bool has_quorum = true;
     bool has_primary_replica = true;
     bool has_outdated_reader = true;
-    bool has_unfinished = false;
 
     regions.visit(regions.get_domain(),
     [&](const region_t &, const region_acks_t &region_acks) {
-        const contract_t &latest_contract =
-            contracts.at(region_acks.latest_contract_id).get().second;
+        const std::pair<region_t, contract_t> &latest_contract =
+            contracts.at(region_acks.latest_contract_id).get();
 
-        ack_counter_t ack_counter(latest_contract);
+        /* Verify the shard boundaries match the configuration, important for
+           rebalancing. */
+        as_configured &= (latest_contract.first.inner == regions.get_domain().inner);
+
+        ack_counter_t ack_counter(latest_contract.second);
         bool region_has_primary_replica = false;
         bool region_has_outdated_reader = false;
 
@@ -111,37 +130,38 @@ shard_status_t calculate_shard_status(
             switch (ack.second.second.state) {
                 case contract_ack_t::state_t::primary_need_branch:
                     region_has_outdated_reader = true;
-                    has_unfinished = true;
                     ack_server_status = server_status_t::WAITING_FOR_QUORUM;
                     break;
                 case contract_ack_t::state_t::secondary_need_primary:
                     region_has_outdated_reader = true;
-                    has_unfinished = true;
                     ack_server_status = server_status_t::WAITING_FOR_PRIMARY;
                     break;
                 case contract_ack_t::state_t::primary_in_progress:
                 case contract_ack_t::state_t::primary_ready:
+                    as_configured &= (ack.first == shard.primary_replica);
+                    // The primary is part of the replicas in the contract
+                    replicas.insert(ack.first);
                     ack_counter.note_ack(ack.first);
                     region_has_primary_replica = true;
                     region_has_outdated_reader = true;
+
                     shard_status.primary_replicas.insert(ack.first);
                     ack_server_status = server_status_t::READY;
                     break;
                 case contract_ack_t::state_t::secondary_backfilling:
-                    has_unfinished = true;
                     ack_server_status = server_status_t::BACKFILLING;
                     break;
                 case contract_ack_t::state_t::secondary_streaming:
                     {
                         const boost::optional<contract_t::primary_t> &region_primary =
                             contracts.at(ack.second.first).get().second.primary;
-                        if (static_cast<bool>(latest_contract.primary) &&
-                                latest_contract.primary == region_primary) {
+                        if (static_cast<bool>(latest_contract.second.primary) &&
+                                latest_contract.second.primary == region_primary) {
+                            replicas.insert(ack.first);
                             ack_counter.note_ack(ack.first);
                             region_has_outdated_reader = true;
                             ack_server_status = server_status_t::READY;
                         } else {
-                            has_unfinished = true;
                             ack_server_status = server_status_t::TRANSITIONING;
                         }
                     }
@@ -157,13 +177,21 @@ shard_status_t calculate_shard_status(
                 shard_status.replicas[ack.first], ack_server_status);
         }
 
+<<<<<<< HEAD
         std::set<server_id_t> replicas;
         replicas.insert(
             latest_contract.replicas.begin(), latest_contract.replicas.end());
         replicas.insert(shard.all_replicas.begin(), shard.all_replicas.end());
         for (const auto &replica : replicas) {
+=======
+        std::set<server_id_t> contract_and_shard_replicas;
+        contract_and_shard_replicas.insert(
+            latest_contract.second.replicas.begin(),
+            latest_contract.second.replicas.end());
+        contract_and_shard_replicas.insert(shard.replicas.begin(), shard.replicas.end());
+        for (const auto &replica : contract_and_shard_replicas) {
+>>>>>>> Fixes `table_wait` to take the primary, secondaries, and shard boundries into account, as well as attempting to fetch the configuration from the leader first
             if (shard_status.replicas.find(replica) == shard_status.replicas.end()) {
-                has_unfinished = true;
                 shard_status.replicas[replica] =
                     contracts_and_acks.find(replica) == contracts_and_acks.end()
                         ? server_status_t::DISCONNECTED
@@ -176,9 +204,12 @@ shard_status_t calculate_shard_status(
         has_outdated_reader &= region_has_outdated_reader;
     });
 
+    // Verify the replicas that are ready exactly match the configuration.
+    as_configured &= (replicas == shard.replicas);
+
     if (has_primary_replica) {
         if (has_quorum) {
-            if (!has_unfinished) {
+            if (as_configured) {
                 shard_status.readiness = table_readiness_t::finished;
             } else {
                 shard_status.readiness = table_readiness_t::writes;
@@ -206,7 +237,10 @@ void calculate_status(
         std::vector<shard_status_t> *shard_statuses_out,
         server_name_map_t *server_names_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t) {
+<<<<<<< HEAD
 
+=======
+>>>>>>> Fixes `table_wait` to take the primary, secondaries, and shard boundries into account, as well as attempting to fetch the configuration from the leader first
     /* Note that `contracts` and `latest_contracts` will contain references into
        `contracts_and_acks`, thus this must remain in scope for them to be valid! */
     table_config_and_shards_t config_and_shards;
@@ -237,7 +271,6 @@ void calculate_status(
         if (shard_statuses_out != nullptr) {
             shard_statuses_out->clear();
         }
-        return;
     }
     const std::map<contract_id_t, std::pair<region_t, contract_t> > &latest_contracts =
         contracts_and_acks.at(latest_contracts_server_id).contracts;

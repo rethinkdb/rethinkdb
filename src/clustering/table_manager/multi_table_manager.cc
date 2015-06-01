@@ -439,10 +439,11 @@ void multi_table_manager_t::on_action(
 void multi_table_manager_t::on_get_config(
         signal_t *interruptor,
         const boost::optional<namespace_id_t> &table_id,
-        const mailbox_t<void(
-            std::map<namespace_id_t, table_config_and_shards_t>
-            )>::address_t &reply_addr) {
-    std::map<namespace_id_t, table_config_and_shards_t> result;
+        const mailbox_t<void(std::map<namespace_id_t, std::pair<
+                table_config_and_shards_t, multi_table_manager_bcard_t::timestamp_t>
+            >)>::address_t &reply_addr) {
+    std::map<namespace_id_t, std::pair<
+        table_config_and_shards_t, multi_table_manager_bcard_t::timestamp_t> > result;
     if (static_cast<bool>(table_id)) {
         /* Fetch information for a specific table. */
         mutex_assertion_t::acq_t global_mutex_acq(&mutex);
@@ -452,9 +453,12 @@ void multi_table_manager_t::on_get_config(
             global_mutex_acq.reset();
             wait_interruptible(table_mutex_in_line.acq_signal(), interruptor);
             if (it->second->status == table_t::status_t::ACTIVE) {
+                multi_table_manager_bcard_t::timestamp_t timestamp;
+                timestamp.epoch = it->second->active->manager.epoch;
                 it->second->active->get_raft()->get_committed_state()->apply_read(
                 [&](const raft_member_t<table_raft_state_t>::state_and_config_t *s) {
-                    result[*table_id] = s->state.config;
+                    timestamp.log_index = s->log_index;
+                    result[*table_id] = std::make_pair(s->state.config, timestamp);
                 });
             }
         }
@@ -475,9 +479,12 @@ void multi_table_manager_t::on_get_config(
             auto it = tables.find(pair.first);
             guarantee(it != tables.end());
             if (it->second->status == table_t::status_t::ACTIVE) {
+                multi_table_manager_bcard_t::timestamp_t timestamp;
+                timestamp.epoch = it->second->active->manager.epoch;
                 it->second->active->get_raft()->get_committed_state()->apply_read(
                 [&](const raft_member_t<table_raft_state_t>::state_and_config_t *s) {
-                    result[pair.first] = s->state.config;
+                    timestamp.log_index = s->log_index;
+                    result[pair.first] = std::make_pair(s->state.config, timestamp);
                 });
             }
         }

@@ -277,9 +277,9 @@ private:
     void on_get_config(
         signal_t *interruptor,
         const boost::optional<namespace_id_t> &table_id,
-        const mailbox_t<void(
-            std::map<namespace_id_t, table_config_and_shards_t>
-            )>::address_t &reply_addr);
+        const mailbox_t<void(std::map<namespace_id_t, std::pair<
+                table_config_and_shards_t, multi_table_manager_bcard_t::timestamp_t>
+            >)>::address_t &reply_addr);
 
     /* `do_sync()` checks if it is necessary to send an action message to the given
     server regarding the given table, and sends one if so. It is called in the following

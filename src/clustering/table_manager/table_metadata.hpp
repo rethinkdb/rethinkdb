@@ -132,8 +132,9 @@ public:
     reply with an entry for every table it is hosting. */
     typedef mailbox_t<void(
         boost::optional<namespace_id_t> table_id,
-        mailbox_t<void(std::map<namespace_id_t, table_config_and_shards_t>)>::
-            address_t reply_addr
+        mailbox_t<void(std::map<namespace_id_t, std::pair<
+                table_config_and_shards_t, multi_table_manager_bcard_t::timestamp_t>
+            >)>::address_t reply_addr
         )> get_config_mailbox_t;
     get_config_mailbox_t::address_t get_config_mailbox;
 

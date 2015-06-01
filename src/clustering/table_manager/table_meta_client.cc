@@ -93,54 +93,21 @@ void table_meta_client_t::get_config(
     cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
 
-    retry([&](signal_t *interruptor2) {
-        /* Find a mailbox of a server that claims to be hosting the given table */
-        multi_table_manager_bcard_t::get_config_mailbox_t::address_t best_mailbox;
-        multi_table_manager_bcard_t::timestamp_t best_timestamp;
-        table_manager_directory->read_all(
-        [&](const std::pair<peer_id_t, namespace_id_t> &key,
-                const table_manager_bcard_t *table_bcard) {
-            if (key.second == table_id) {
-                multi_table_manager_directory->read_key(key.first,
-                [&](const multi_table_manager_bcard_t *server_bcard) {
-                    if (server_bcard != nullptr) {
-                        if (best_mailbox.is_nil() ||
-                                table_bcard->timestamp.supersedes(best_timestamp)) {
-                            best_mailbox = server_bcard->get_config_mailbox;
-                            best_timestamp = table_bcard->timestamp;
-                        }
-                    }
-                });
-            }
-        });
-        if (best_mailbox.is_nil()) {
-            throw_appropriate_exception(table_id);
-        }
+    bool retry_from_member = false;
+    try {
+        /* First try to fetch the configuration from the leader. */
+        get_config_from(table_id, &interruptor, true, config_out);
+    } catch (const failed_table_op_exc_t &) {
+        retry_from_member = true;
+    }
 
-        /* Send a request to the server we found */
-        disconnect_watcher_t dw(mailbox_manager, best_mailbox.get_peer());
-        promise_t<std::map<namespace_id_t, table_config_and_shards_t> > promise;
-        mailbox_t<void(std::map<namespace_id_t, table_config_and_shards_t>)> ack_mailbox(
-            mailbox_manager,
-            [&](signal_t *,
-                    const std::map<namespace_id_t, table_config_and_shards_t> &configs) {
-                promise.pulse(configs);
-            });
-        send(mailbox_manager, best_mailbox,
-            boost::make_optional(table_id), ack_mailbox.get_address());
-        wait_any_t done_cond(promise.get_ready_signal(), &dw);
-        wait_interruptible(&done_cond, interruptor2);
-        if (!promise.is_pulsed()) {
-            throw_appropriate_exception(table_id);
-        }
-        std::map<namespace_id_t, table_config_and_shards_t> maybe_result =
-            promise.assert_get_value();
-        if (maybe_result.empty()) {
-            throw_appropriate_exception(table_id);
-        }
-        guarantee(maybe_result.size() == 1);
-        *config_out = maybe_result.at(table_id);
-    }, &interruptor);
+    if (retry_from_member) {
+        retry([&](signal_t *interruptor2) {
+            /* If that failed we try to fetch the configuration from any member hosting
+            the table. */
+            get_config_from(table_id, interruptor2, false, config_out);
+        }, &interruptor);
+    }
 }
 
 void table_meta_client_t::list_configs(
@@ -159,25 +126,46 @@ void table_meta_client_t::list_configs(
         addresses.push_back(server_bcard->get_config_mailbox);
     });
 
+    typedef std::pair<
+        table_config_and_shards_t,
+        multi_table_manager_bcard_t::timestamp_t> timestamped_config_and_shards_t;
+
+    std::map<namespace_id_t, multi_table_manager_bcard_t::timestamp_t> timestamps;
+
     /* Send a message to every server and collect all of the results */
     pmap(addresses.begin(), addresses.end(),
     [&](const multi_table_manager_bcard_t::get_config_mailbox_t::address_t &a) {
         disconnect_watcher_t dw(mailbox_manager, a.get_peer());
-        promise_t<std::map<namespace_id_t, table_config_and_shards_t> > promise;
-        mailbox_t<void(std::map<namespace_id_t, table_config_and_shards_t>)> ack_mailbox(
+        promise_t<std::map<namespace_id_t, timestamped_config_and_shards_t> > promise;
+        mailbox_t<void(std::map<namespace_id_t, timestamped_config_and_shards_t>
+            )> ack_mailbox(
         mailbox_manager,
         [&](signal_t *,
-                const std::map<namespace_id_t, table_config_and_shards_t> &configs) {
-            promise.pulse(configs);
+                const std::map<namespace_id_t, timestamped_config_and_shards_t>
+                    &results) {
+            promise.pulse(results);
         });
         send(mailbox_manager, a,
             boost::optional<namespace_id_t>(), ack_mailbox.get_address());
         wait_any_t done_cond(promise.get_ready_signal(), &dw, &interruptor);
         done_cond.wait_lazily_unordered();
         if (promise.get_ready_signal()->is_pulsed()) {
-            std::map<namespace_id_t, table_config_and_shards_t> maybe_result =
+            std::map<namespace_id_t, timestamped_config_and_shards_t> maybe_results =
                 promise.assert_get_value();
-            configs_out->insert(maybe_result.begin(), maybe_result.end());
+            for (const auto &result : maybe_results) {
+                /* Insert the result if it's new, or if it supersedes the result we
+                already have. */
+                auto configs_pair = configs_out->insert(
+                    std::make_pair(result.first, result.second.first));
+                auto timestamps_pair = timestamps.insert(
+                    std::make_pair(result.first, result.second.second));
+                guarantee(configs_pair.second == timestamps_pair.second);
+                if (timestamps_pair.second == false &&
+                        result.second.second.supersedes(timestamps_pair.first->second)) {
+                    configs_pair.first->second = std::move(result.second.first);
+                    timestamps_pair.first->second = std::move(result.second.second);
+                }
+            }
         }
     });
 
@@ -569,6 +557,66 @@ void table_meta_client_t::set_config(
                     value->first.database == new_config.config.basic.database);
         },
         &interruptor);
+}
+
+void table_meta_client_t::get_config_from(
+        const namespace_id_t &table_id,
+        signal_t *interruptor,
+        bool from_leader,
+        table_config_and_shards_t *config_out) {
+    /* Find a mailbox of a server that claims to be hosting the given table */
+    multi_table_manager_bcard_t::get_config_mailbox_t::address_t best_mailbox;
+    multi_table_manager_bcard_t::timestamp_t best_timestamp;
+    table_manager_directory->read_all(
+    [&](const std::pair<peer_id_t, namespace_id_t> &key,
+            const table_manager_bcard_t *table_bcard) {
+        if (key.second == table_id &&
+                (!from_leader || static_cast<bool>(table_bcard->leader))) {
+            multi_table_manager_directory->read_key(key.first,
+            [&](const multi_table_manager_bcard_t *server_bcard) {
+                if (server_bcard != nullptr) {
+                    if (best_mailbox.is_nil() ||
+                            table_bcard->timestamp.supersedes(best_timestamp)) {
+                        best_mailbox = server_bcard->get_config_mailbox;
+                        best_timestamp = table_bcard->timestamp;
+                    }
+                }
+            });
+        }
+    });
+    if (best_mailbox.is_nil()) {
+        throw_appropriate_exception(table_id);
+    }
+
+    typedef std::pair<
+        table_config_and_shards_t,
+        multi_table_manager_bcard_t::timestamp_t> timestamped_config_and_shards_t;
+
+    /* Send a request to the server we found */
+    disconnect_watcher_t dw(mailbox_manager, best_mailbox.get_peer());
+    promise_t<std::map<namespace_id_t, timestamped_config_and_shards_t> > promise;
+    mailbox_t<void(std::map<namespace_id_t, timestamped_config_and_shards_t>
+            )> ack_mailbox(
+        mailbox_manager,
+        [&](signal_t *,
+                const std::map<namespace_id_t, timestamped_config_and_shards_t>
+                    &configs) {
+            promise.pulse(configs);
+        });
+    send(mailbox_manager, best_mailbox,
+        boost::make_optional(table_id), ack_mailbox.get_address());
+    wait_any_t done_cond(promise.get_ready_signal(), &dw);
+    wait_interruptible(&done_cond, interruptor);
+    if (!promise.is_pulsed()) {
+        throw_appropriate_exception(table_id);
+    }
+    std::map<namespace_id_t, timestamped_config_and_shards_t> maybe_result =
+        promise.assert_get_value();
+    if (maybe_result.empty()) {
+        throw_appropriate_exception(table_id);
+    }
+    guarantee(maybe_result.size() == 1);
+    *config_out = maybe_result.at(table_id).first;
 }
 
 void table_meta_client_t::retry(
