@@ -24,8 +24,12 @@ query_server = None
 def create_tables(conn):
     r.db(db).table_create('single').run(conn)
     r.db(db).table_create('majority').run(conn)
-    r.db(db).reconfigure(replicas={'primary': 1, 'replica': 2},
-                         primary_replica_tag='primary', shards=1).run(conn)
+    r.db(db).reconfigure(
+        replicas={'primary': 1, 'replica': 2, 'nonvoting': 3},
+        primary_replica_tag='primary',
+        nonvoting_replica_tags=['nonvoting'],
+        shards=1
+        ).run(conn)
     r.db(db).table('single').config().update({'write_acks':'single'}).run(conn)
     r.db(db).table('majority').config().update({'write_acks':'majority'}).run(conn)
     r.db(db).wait(wait_for='all_replicas_ready').run(conn)
@@ -68,6 +72,8 @@ def transition_cluster(cluster, servers, files, state):
     assert all((x in servers and x in files and x in state) for x in ['primary', 'replicas'])
     assert len(servers['replicas']) == len(files['replicas'])
     assert len(servers['replicas']) == len(state['replicas'])
+    assert len(servers['nvrs']) == len(files['nvrs'])
+    assert len(servers['nvrs']) == len(state['nvrs'])
     assert all(x in ['up', 'down'] for x in state['replicas'])
 
     message_parts = []
@@ -76,6 +82,9 @@ def transition_cluster(cluster, servers, files, state):
     if 'up' in state['replicas']:
         count = state['replicas'].count('up')
         message_parts.append('%d replica' % count + ('s' if count > 1 else ''))
+    if 'up' in state['nvrs']:
+        count = state['nvrs'].count('up')
+        message_parts.append('%d nonvoting replica' % count + ('s' if count > 1 else ''))
     if len(message_parts) == 0:
         message_parts.append('no replicas')
     print("Transitioning to %s up (%.2fs)" % (' and '.join(message_parts), time.time() - startTime))
@@ -91,6 +100,8 @@ def transition_cluster(cluster, servers, files, state):
     servers['primary'] = up_down_server(servers['primary'], files['primary'], state['primary'])
     for i in xrange(len(servers['replicas'])):
         servers['replicas'][i] = up_down_server(servers['replicas'][i], files['replicas'][i], state['replicas'][i])
+    for i in xrange(len(servers['nvrs'])):
+        servers['nvrs'][i] = up_down_server(servers['nvrs'][i], files['nvrs'][i], state['nvrs'][i])
 
 # Waits for the query server to see the currently-running servers
 # This does not wait for disconnections or for reactors to reach a stable state
@@ -119,16 +130,22 @@ def test_wait(cluster, servers, files, states, expected_wait_result):
         statuses = list(r.db('rethinkdb').table('table_status').run(conn))
         assert False, 'Wait failed, table statuses: %s' % str(statuses)
 
-print("Spinning up four servers (%.2fs)" % (time.time() - startTime))
-with driver.Cluster(initial_servers=['query', 'foo', 'bar', 'baz'],
+print("Spinning up seven servers (%.2fs)" % (time.time() - startTime))
+with driver.Cluster(initial_servers=['query', 'foo', 'bar', 'baz', 'nv1', 'nv2', 'nv3'],
                     output_folder='.', command_prefix=command_prefix,
                     extra_options=serve_options) as cluster:
     cluster.check()
 
     query_server = cluster[0]
 
-    table_servers = {'primary': cluster[1], 'replicas': cluster[2:]}
-    table_files = {'primary': cluster[1].files, 'replicas': [x.files for x in cluster[2:]]}
+    table_servers = {
+        'primary': cluster[1],
+        'replicas': cluster[2:4],
+        'nvrs': cluster[4:] }
+    table_files = {
+        'primary': cluster[1].files,
+        'replicas': [x.files for x in cluster[2:4]],
+        'nvrs': [x.files for x in cluster[4:]] }
 
     print("Establishing ReQL connection (%.2fs)" % (time.time() - startTime))
 
@@ -140,6 +157,9 @@ with driver.Cluster(initial_servers=['query', 'foo', 'bar', 'baz'],
     for replica in table_servers['replicas']:
         r.db('rethinkdb').table('server_config').get(replica.uuid) \
                                                 .update({'tags':['replica']}).run(conn)
+    for nv in table_servers['nvrs']:
+        r.db('rethinkdb').table('server_config').get(nv.uuid) \
+                                                .update({'tags':['nonvoting']}).run(conn)
 
     if db not in r.db_list().run(conn):
         print("Creating db (%.2fs)" % (time.time() - startTime))
@@ -149,42 +169,57 @@ with driver.Cluster(initial_servers=['query', 'foo', 'bar', 'baz'],
     create_tables(conn)
 
     test_wait(cluster, table_servers, table_files,
-              [{'primary': 'down', 'replicas': ['down', 'down']},
-               {'primary': 'down', 'replicas': ['down', 'down']}],
+              [{'primary': 'down', 'replicas': ['down', 'down'], 'nvrs': ['down', 'down', 'down']},
+               {'primary': 'down', 'replicas': ['down', 'down'], 'nvrs': ['down', 'down', 'down']}],
               {'single': make_expected(default=False),
                'majority': make_expected(default=False)})
 
     test_wait(cluster, table_servers, table_files,
-              [{'primary': 'down', 'replicas': ['down', 'down']},
-               {'primary': 'down', 'replicas': ['up', 'down']}],
+              [{'primary': 'down', 'replicas': ['down', 'down'], 'nvrs': ['down', 'down', 'down']},
+               {'primary': 'down', 'replicas': ['up', 'down'], 'nvrs': ['down', 'down', 'down']}],
               {'single': make_expected(default=False, ready_for_outdated_reads=True),
                'majority': make_expected(default=False, ready_for_outdated_reads=True)})
 
-    # This scenario is currently broken (see github issue #3520)
-    #test_wait(cluster, table_servers, table_files,
-    #          [{'primary': 'down', 'replicas': ['down', 'down']},
-    #           {'primary': 'up', 'replicas': ['down', 'down']}],
-    #          {'single': make_expected(default=False, ready_for_outdated_reads=True),
-    #           'majority': make_expected(default=False, ready_for_outdated_reads=True)})
+    test_wait(cluster, table_servers, table_files,
+              [{'primary': 'down', 'replicas': ['down', 'down'], 'nvrs': ['down', 'down', 'down']},
+               {'primary': 'down', 'replicas': ['down', 'down'], 'nvrs': ['up', 'down', 'down']}],
+              {'single': make_expected(default=False, ready_for_outdated_reads=True),
+               'majority': make_expected(default=False, ready_for_outdated_reads=True)})
 
     test_wait(cluster, table_servers, table_files,
-              [{'primary': 'down', 'replicas': ['down', 'down']},
-               {'primary': 'up', 'replicas': ['up', 'up']}],
+              [{'primary': 'down', 'replicas': ['down', 'down'], 'nvrs': ['down', 'down', 'down']},
+               {'primary': 'up', 'replicas': ['down', 'down'], 'nvrs': ['down', 'down', 'down']}],
+              {'single': make_expected(default=False, ready_for_outdated_reads=True),
+               'majority': make_expected(default=False, ready_for_outdated_reads=True)})
+
+    test_wait(cluster, table_servers, table_files,
+              [{'primary': 'down', 'replicas': ['down', 'down'], 'nvrs': ['down', 'down', 'down']},
+               {'primary': 'up', 'replicas': ['up', 'up'], 'nvrs': ['up', 'up', 'up']}],
               {'single': make_expected(default=True),
                'majority': make_expected(default=True)})
 
     test_wait(cluster, table_servers, table_files,
-              [{'primary': 'up', 'replicas': ['up', 'up']}],
+              [{'primary': 'up', 'replicas': ['up', 'up'], 'nvrs': ['up', 'up', 'up']}],
               {'single': make_expected(default=True),
                'majority': make_expected(default=True)})
 
     test_wait(cluster, table_servers, table_files,
-              [{'primary': 'up', 'replicas': ['down', 'down']}],
+              [{'primary': 'up', 'replicas': ['up', 'up'], 'nvrs': ['down', 'down', 'down']}],
               {'single': make_expected(default=True, all_replicas_ready=False),
-               'majority': make_expected(default=True, ready_for_writes=False, all_replicas_ready=False)})
+               'majority': make_expected(default=True, all_replicas_ready=False)})
 
     test_wait(cluster, table_servers, table_files,
-              [{'primary': 'up', 'replicas': ['up', 'down']}],
+              [{'primary': 'up', 'replicas': ['down', 'down'], 'nvrs': ['down', 'down', 'down']}],
+              {'single': make_expected(default=False, ready_for_outdated_reads=True),
+               'majority': make_expected(default=False, ready_for_outdated_reads=True)})
+
+    test_wait(cluster, table_servers, table_files,
+              [{'primary': 'up', 'replicas': ['down', 'down'], 'nvrs': ['up', 'up', 'up']}],
+              {'single': make_expected(default=False, ready_for_outdated_reads=True),
+               'majority': make_expected(default=False, ready_for_outdated_reads=True)})
+
+    test_wait(cluster, table_servers, table_files,
+              [{'primary': 'up', 'replicas': ['up', 'down'], 'nvrs': ['down', 'down', 'down']}],
               {'single': make_expected(default=True, all_replicas_ready=False),
                'majority': make_expected(default=True, all_replicas_ready=False)})
 
