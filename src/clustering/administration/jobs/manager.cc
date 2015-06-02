@@ -27,10 +27,13 @@ const uuid_u jobs_manager_t::base_backfill_id =
 jobs_manager_t::jobs_manager_t(mailbox_manager_t *_mailbox_manager,
                                server_id_t const &_server_id,
                                rdb_context_t *_rdb_context,
+                               real_table_persistence_interface_t
+                                   *_table_persistence_interface,
                                multi_table_manager_t *_multi_table_manager) :
     mailbox_manager(_mailbox_manager),
     server_id(_server_id),
     rdb_context(_rdb_context),
+    table_persistence_interface(_table_persistence_interface),
     multi_table_manager(_multi_table_manager),
     get_job_reports_mailbox(_mailbox_manager,
                             std::bind(&jobs_manager_t::on_get_job_reports,
@@ -106,8 +109,8 @@ void jobs_manager_t::on_get_job_reports(
             std::make_move_iterator(query_job_reports_inner.end()));
     });
 
-    auto persistence_interface = multi_table_manager->get_persistence_interface();
-    if (persistence_interface != nullptr && persistence_interface->is_gc_active()) {
+    if (table_persistence_interface != nullptr &&
+            table_persistence_interface->is_gc_active()) {
         // Note that `"disk_compation"` jobs do not have a duration.
         disk_compaction_job_reports.emplace_back(
             uuid_u::from_hash(base_disk_compaction_id, uuid_to_str(server_id)),
@@ -116,10 +119,12 @@ void jobs_manager_t::on_get_job_reports(
     }
 
     multi_table_manager->visit_tables(interruptor,
-    [&](const namespace_id_t &table_id, const multi_table_manager_t::table_t &table) {
-        if (table.status == multi_table_manager_t::table_t::status_t::ACTIVE) {
+    [&](const namespace_id_t &table_id,
+            UNUSED multistore_ptr_t *multistore_ptr,
+            table_manager_t *table_manager) {
+        if (table_manager != nullptr) {
             std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > statuses =
-                table.active->manager.get_sindex_manager().get_status(interruptor);
+                table_manager->get_sindex_manager().get_status(interruptor);
             for (const auto &status : statuses) {
                 uuid_u id = uuid_u::from_hash(
                     base_sindex_id, uuid_to_str(table_id) + status.first);

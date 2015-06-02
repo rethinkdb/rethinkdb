@@ -7,6 +7,7 @@
 #include <set>
 
 #include "clustering/administration/jobs/report.hpp"
+#include "clustering/administration/persist/table_interface.hpp"
 #include "clustering/table_manager/multi_table_manager.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/one_per_thread.hpp"
@@ -37,6 +38,8 @@ public:
     explicit jobs_manager_t(mailbox_manager_t *mailbox_manager,
                             server_id_t const &server_id,
                             rdb_context_t *rdb_context,
+                            real_table_persistence_interface_t
+                                *table_persistence_interface,
                             multi_table_manager_t *multi_table_manager);
 
     typedef jobs_manager_business_card_t business_card_t;
@@ -59,6 +62,7 @@ private:
     server_id_t server_id;
 
     rdb_context_t *rdb_context;
+    real_table_persistence_interface_t *table_persistence_interface;
     multi_table_manager_t *multi_table_manager;
 
     auto_drainer_t drainer;

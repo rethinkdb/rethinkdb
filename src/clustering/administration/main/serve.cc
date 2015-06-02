@@ -278,6 +278,7 @@ bool do_serve(io_backender_t *io_backender,
                 &mailbox_manager,
                 server_id,
                 &rdb_ctx,
+                table_persistence_interface.get(),
                 multi_table_manager.get());
             stat_manager_t stat_manager(&mailbox_manager, server_id);
 

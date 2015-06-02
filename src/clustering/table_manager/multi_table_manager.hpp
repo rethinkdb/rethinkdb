@@ -114,12 +114,8 @@ public:
         return &table_basic_configs;
     }
 
-    table_persistence_interface_t *get_persistence_interface() const {
-        return persistence_interface;
-    }
-
     /* Calls `callable` for each table, it must have a signature of:
-           void(const namespace_id_t &table_id, const table_t &table)
+           void(const namespace_id_t &table_id, multistore_ptr_t *, table_manager_t *)
      */
     template <typename F>
     void visit_tables(signal_t *interruptor, const F &callable) {
@@ -138,10 +134,15 @@ public:
             wait_interruptible(pair.second->acq_signal(), interruptor);
             auto it = tables.find(pair.first);
             guarantee(it != tables.end());
-            callable(pair.first, *(it->second));
+            table_manager_t *table_manager = nullptr;
+            if (it->second->status == table_t::status_t::ACTIVE) {
+                table_manager = &(it->second->active->manager);
+            }
+            callable(pair.first, it->second->multistore_ptr.get(), table_manager);
         }
     }
 
+private:
     /* The `multi_table_manager_t` has four possible states with respect to a table:
 
     1. We've never heard of the table. In this case, we don't have any records for the
@@ -256,7 +257,6 @@ public:
         `basic_configs_entry` through a `table_t *`. */
     };
 
-private:
     void on_table_manager_directory_change(
         const std::pair<peer_id_t, namespace_id_t> &key,
         const table_manager_bcard_t &value);

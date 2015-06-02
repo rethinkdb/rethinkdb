@@ -33,8 +33,8 @@ void sindex_status_t::accum(const sindex_status_t &other) {
     rassert(outdated == other.outdated);
 }
 
-RDB_IMPL_SERIALIZABLE_4_SINCE_v1_16(sindex_status_t,
-    blocks_processed, blocks_total, ready, outdated);
+RDB_IMPL_SERIALIZABLE_5_SINCE_v1_16(sindex_status_t,
+    blocks_processed, blocks_total, ready, outdated, start_time);
 
 const char *rql_perfmon_name = "query_engine";
 
