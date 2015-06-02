@@ -217,7 +217,9 @@ public:
         if (size >= TOO_LARGE_QUERY_SIZE) {
             Response error_response;
             error_response.set_token(token);
-            ql::fill_error(&error_response, Response::CLIENT_ERROR,
+            ql::fill_error(&error_response,
+                           Response::CLIENT_ERROR,
+                           Response::RESOURCE,
                            too_large_query_message(size),
                            ql::backtrace_registry_t::EMPTY_BACKTRACE);
             send_response(error_response, handler, conn, interruptor);
@@ -232,7 +234,9 @@ public:
                                           data.data())) {
                 Response error_response;
                 error_response.set_token(token);
-                ql::fill_error(&error_response, Response::CLIENT_ERROR,
+                ql::fill_error(&error_response,
+                               Response::CLIENT_ERROR,
+                               Response::LOGIC,
                                unparseable_query_message,
                                ql::backtrace_registry_t::EMPTY_BACKTRACE);
                 send_response(error_response, handler, conn, interruptor);
@@ -260,7 +264,9 @@ public:
         if (str.GetSize() - prefix_size >= TOO_LARGE_RESPONSE_SIZE) {
             Response error_response;
             error_response.set_token(response.token());
-            ql::fill_error(&error_response, Response::RUNTIME_ERROR,
+            ql::fill_error(&error_response,
+                           Response::RUNTIME_ERROR,
+                           Response::RESOURCE,
                            too_large_response_message(str.GetSize() - prefix_size),
                            ql::backtrace_registry_t::EMPTY_BACKTRACE);
             send_response(error_response, handler, conn, interruptor);
@@ -294,7 +300,9 @@ public:
         if (size >= TOO_LARGE_QUERY_SIZE) {
             Response error_response;
             error_response.set_token(0); // We don't actually know the token
-            ql::fill_error(&error_response, Response::CLIENT_ERROR,
+            ql::fill_error(&error_response,
+                           Response::CLIENT_ERROR,
+                           Response::RESOURCE,
                            too_large_query_message(size),
                            ql::backtrace_registry_t::EMPTY_BACKTRACE);
             send_response(error_response, handler, conn, interruptor);
@@ -307,7 +315,9 @@ public:
                 Response error_response;
                 error_response.set_token(query_out->get()->has_token() ?
                                          query_out->get()->token() : 0);
-                ql::fill_error(&error_response, Response::CLIENT_ERROR,
+                ql::fill_error(&error_response,
+                               Response::CLIENT_ERROR,
+                               Response::LOGIC,
                                unparseable_query_message,
                                ql::backtrace_registry_t::EMPTY_BACKTRACE);
                 send_response(error_response, handler, conn, interruptor);
@@ -325,7 +335,9 @@ public:
         if (data_size >= TOO_LARGE_RESPONSE_SIZE) {
             Response error_response;
             error_response.set_token(response.token());
-            ql::fill_error(&error_response, Response::RUNTIME_ERROR,
+            ql::fill_error(&error_response,
+                           Response::RUNTIME_ERROR,
+                           Response::RESOURCE,
                            too_large_response_message(data_size),
                            ql::backtrace_registry_t::EMPTY_BACKTRACE);
             send_response(error_response, handler, conn, interruptor);
@@ -511,18 +523,24 @@ void query_server_t::make_error_response(bool is_draining,
 
     // Best guess at the error that occurred
     if (!conn.is_write_open()) {
-        // The other side closed it's socket - it won't get this message
-        ql::fill_error(response_out, Response::RUNTIME_ERROR,
+        // The other side closed it's socket - it won't get this message.
+        ql::fill_error(response_out,
+                       Response::RUNTIME_ERROR,
+                       Response::OP_INDETERMINATE,
                        "Client closed the connection.",
                        ql::backtrace_registry_t::EMPTY_BACKTRACE);
     } else if (is_draining) {
-        // The query_server_t is being destroyed so this won't actually be written
-        ql::fill_error(response_out, Response::RUNTIME_ERROR,
+        // The query_server_t is being destroyed so this won't actually be written.
+        ql::fill_error(response_out,
+                       Response::RUNTIME_ERROR,
+                       Response::OP_INDETERMINATE,
                        "Server is shutting down.",
                        ql::backtrace_registry_t::EMPTY_BACKTRACE);
     } else {
-        // Sort of a catch-all - there could be other reasons for this
-        ql::fill_error(response_out, Response::RUNTIME_ERROR,
+        // Sort of a catch-all - there could be other reasons for this.
+        ql::fill_error(response_out,
+                       Response::RUNTIME_ERROR,
+                       Response::OP_INDETERMINATE,
                        strprintf("Fatal error on another query: %s", err_str.c_str()),
                        ql::backtrace_registry_t::EMPTY_BACKTRACE);
     }
@@ -709,13 +727,17 @@ void query_server_t::handle(const http_req_t &req,
         json_shim::parse_json_pb(query.get(), token, data);
 
     if (!parse_succeeded) {
-        ql::fill_error(&response, Response::CLIENT_ERROR,
+        ql::fill_error(&response,
+                       Response::CLIENT_ERROR,
+                       Response::LOGIC,
                        unparseable_query_message,
                        ql::backtrace_registry_t::EMPTY_BACKTRACE);
     } else {
         counted_t<http_conn_cache_t::http_conn_t> conn = http_conn_cache.find(conn_id);
         if (!conn.has()) {
-            ql::fill_error(&response, Response::CLIENT_ERROR,
+            ql::fill_error(&response,
+                           Response::CLIENT_ERROR,
+                           Response::INTERNAL,
                            "This HTTP connection is not open.",
                            ql::backtrace_registry_t::EMPTY_BACKTRACE);
         } else {
@@ -738,19 +760,27 @@ void query_server_t::handle(const http_req_t &req,
                 if (http_conn_cache.is_expired(*conn)) {
                     // This will only be sent back if this was interrupted by a http conn
                     // cache timeout.
-                    ql::fill_error(&response, Response::RUNTIME_ERROR,
+                    ql::fill_error(&response,
+                                   Response::RUNTIME_ERROR,
+                                   Response::OP_INDETERMINATE,
                                    http_conn_cache.expired_error_message(),
                                    ql::backtrace_registry_t::EMPTY_BACKTRACE);
                 } else if (interruptor->is_pulsed()) {
-                    ql::fill_error(&response, Response::RUNTIME_ERROR,
+                    ql::fill_error(&response,
+                                   Response::RUNTIME_ERROR,
+                                   Response::OP_INDETERMINATE,
                                    "This ReQL connection has been terminated.",
                                    ql::backtrace_registry_t::EMPTY_BACKTRACE);
                 } else if (drainer.is_draining()) {
-                    ql::fill_error(&response, Response::RUNTIME_ERROR,
+                    ql::fill_error(&response,
+                                   Response::RUNTIME_ERROR,
+                                   Response::OP_INDETERMINATE,
                                    "Server is shutting down.",
                                    ql::backtrace_registry_t::EMPTY_BACKTRACE);
                 } else if (conn->get_interruptor()->is_pulsed()) {
-                    ql::fill_error(&response, Response::RUNTIME_ERROR,
+                    ql::fill_error(&response,
+                                   Response::RUNTIME_ERROR,
+                                   Response::OP_INDETERMINATE,
                                    "This ReQL connection has been terminated.",
                                    ql::backtrace_registry_t::EMPTY_BACKTRACE);
                 } else {
@@ -767,7 +797,9 @@ void query_server_t::handle(const http_req_t &req,
     if (str.GetSize() >= TOO_LARGE_RESPONSE_SIZE) {
         Response error_response;
         error_response.set_token(response.token());
-        ql::fill_error(&error_response, Response::RUNTIME_ERROR,
+        ql::fill_error(&error_response,
+                       Response::RUNTIME_ERROR,
+                       Response::RESOURCE,
                        too_large_response_message(str.GetSize()),
                        ql::backtrace_registry_t::EMPTY_BACKTRACE);
         str.Clear();

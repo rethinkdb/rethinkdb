@@ -163,7 +163,7 @@ ql::datum_t real_table_t::read_nearest(
                 read, &res, order_token_t::ignore, env->interruptor);
         }
     } catch (const cannot_perform_query_exc_t &ex) {
-        rfail_datum(ql::base_exc_t::GENERIC, "Cannot perform read: %s", ex.what());
+        rfail_datum(ql::base_exc_t::OP_FAILED, "Cannot perform read: %s", ex.what());
     }
 
     nearest_geo_read_response_t *g_res =
@@ -242,15 +242,30 @@ ql::datum_t real_table_t::write_batched_replace(
     ql::datum_t stats((std::map<datum_string_t, ql::datum_t>()));
     std::set<std::string> conditions;
     std::vector<std::vector<store_key_t> > batches = split(std::move(store_keys));
+    bool batch_succeeded = false;
     for (auto &&batch : batches) {
-        batched_replace_t write(
-            std::move(batch), pkey, func, env->get_all_optargs(), return_changes);
-        write_t w(std::move(write), durability, env->profile(), env->limits());
-        write_response_t response;
-        write_with_profile(env, &w, &response);
-        auto dp = boost::get<ql::datum_t>(&response.response);
-        r_sanity_check(dp != NULL);
-        stats = stats.merge(*dp, ql::stats_merge, env->limits(), &conditions);
+        try {
+            batched_replace_t write(
+                std::move(batch), pkey, func, env->get_all_optargs(), return_changes);
+            write_t w(std::move(write), durability, env->profile(), env->limits());
+            write_response_t response;
+            write_with_profile(env, &w, &response);
+            auto dp = boost::get<ql::datum_t>(&response.response);
+            r_sanity_check(dp != NULL);
+            stats = stats.merge(*dp, ql::stats_merge, env->limits(), &conditions);
+        } catch (const ql::datum_exc_t &e) {
+            throw batch_succeeded
+                ? ql::datum_exc_t(ql::base_exc_t::OP_INDETERMINATE, e.what())
+                : e;
+        } catch (const ql::exc_t &e) {
+            throw batch_succeeded
+                ? ql::exc_t(ql::base_exc_t::OP_INDETERMINATE,
+                            e.what(),
+                            e.backtrace(),
+                            e.dummy_frames())
+                : e;
+        }
+        batch_succeeded = true;
     }
     ql::datum_object_builder_t result(stats);
     result.add_warnings(conditions, env->limits());
@@ -397,7 +412,7 @@ void real_table_t::read_with_profile(ql::env_t *env, const read_t &read,
             namespace_access.get()->read_outdated(read, response, env->interruptor);
         }
     } catch (const cannot_perform_query_exc_t &e) {
-        rfail_datum(ql::base_exc_t::GENERIC, "Cannot perform read: %s", e.what());
+        rfail_datum(ql::base_exc_t::OP_FAILED, "Cannot perform read: %s", e.what());
     }
     /* Append the results of the profile to the current task */
     splitter.give_splits(response->n_shards, response->event_log);
@@ -414,7 +429,17 @@ void real_table_t::write_with_profile(ql::env_t *env, write_t *write,
         namespace_access.get()->write(*write, response, order_token_t::ignore,
             env->interruptor);
     } catch (const cannot_perform_query_exc_t &e) {
-        rfail_datum(ql::base_exc_t::GENERIC, "Cannot perform write: %s", e.what());
+        ql::base_exc_t::type_t type;
+        switch (e.get_query_state()) {
+        case query_state_t::FAILED:
+            type = ql::base_exc_t::OP_FAILED;
+            break;
+        case query_state_t::INDETERMINATE:
+            type = ql::base_exc_t::OP_INDETERMINATE;
+            break;
+        default: unreachable();
+        }
+        rfail_datum(type, "Cannot perform write: %s", e.what());
     }
     /* Append the results of the profile to the current task */
     splitter.give_splits(response->n_shards, response->event_log);

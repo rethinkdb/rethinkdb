@@ -122,8 +122,8 @@ done_traversing_t geo_intersecting_cb_t::on_candidate(scoped_key_value_t &&keyva
     waiter.wait_interruptible();
 
     // row.get() or waiter.wait_interruptible() might have blocked, and another
-    // coroutine could have found the document in the meantime. Re-check distinct_emitted,
-    // so we don't emit the same document twice.
+    // coroutine could have found the document in the meantime. Re-check
+    // distinct_emitted, so we don't emit the same document twice.
     if (distinct_emitted->count(primary_key) > 0) {
         return done_traversing_t::NO;
     }
@@ -144,17 +144,19 @@ done_traversing_t geo_intersecting_cb_t::on_candidate(scoped_key_value_t &&keyva
             guarantee(sindex_val.has());
         }
         // TODO (daniel): This is a little inefficient because we re-parse
-        //   the query_geometry for each test.
+        // the query_geometry for each test.
         if (geo_does_intersect(query_geometry, sindex_val)
             && post_filter(sindex_val, val)) {
             if (distinct_emitted->size() >= env->limits().array_size_limit()) {
-                emit_error(ql::exc_t(ql::base_exc_t::GENERIC,
+                emit_error(ql::exc_t(ql::base_exc_t::RESOURCE,
                     "Array size limit exceeded during geospatial index traversal.",
                     ql::backtrace_id_t::empty()));
                 return done_traversing_t::YES;
             }
             distinct_emitted->insert(primary_key);
-            return emit_result(std::move(sindex_val), std::move(store_key), std::move(val));
+            return emit_result(std::move(sindex_val),
+                               std::move(store_key),
+                               std::move(val));
         } else {
             // Mark the document as processed so we don't have to load it again.
             // This is relevant only for polygons and lines, since those can be
@@ -169,7 +171,7 @@ done_traversing_t geo_intersecting_cb_t::on_candidate(scoped_key_value_t &&keyva
         emit_error(e);
         return done_traversing_t::YES;
     } catch (const geo_exception_t &e) {
-        emit_error(ql::exc_t(ql::base_exc_t::GENERIC, e.what(),
+        emit_error(ql::exc_t(ql::base_exc_t::LOGIC, e.what(),
                              ql::backtrace_id_t::empty()));
         return done_traversing_t::YES;
     } catch (const ql::base_exc_t &e) {

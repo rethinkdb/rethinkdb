@@ -135,6 +135,19 @@ message Response {
     }
     optional ResponseType type = 1;
 
+    // If `ResponseType` is `RUNTIME_ERROR`, this may be filled in with more
+    // information about the error.
+    enum ErrorType {
+        INTERNAL = 1000000;
+        RESOURCE = 2000000;
+        LOGIC = 3000000;
+        NON_EXISTENCE = 3100000;
+        OP_FAILED = 4100000;
+        OP_INDETERMINATE = 4200000;
+        USER = 5000000;
+    }
+    optional ErrorType error_type = 7;
+
     // ResponseNotes are used to provide information about the query
     // response that may be useful for people writing drivers or ORMs.
     // Currently all the notes we send indicate that a stream has certain

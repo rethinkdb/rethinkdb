@@ -63,7 +63,7 @@ inline char base64_value(char c) {
     } else if (c == '/') {
         return 63;
     }
-    rfail_datum(ql::base_exc_t::GENERIC, "Invalid base64 character found: '%c'.", c);
+    rfail_datum(ql::base_exc_t::LOGIC, "Invalid base64 character found: '%c'.", c);
 }
 
 // Takes a chunk of four 6-bit values and converts it into 3 8-bit values
@@ -108,7 +108,7 @@ std::string decode_base64(const char *bdata, size_t bsize) {
         base64_chunk_to_binary(chunk_values, decoded_chunk);
 
         if (chars_filled == 1) {
-            rfail_datum(ql::base_exc_t::GENERIC,
+            rfail_datum(ql::base_exc_t::LOGIC,
                         "Invalid base64 length: 1 character remaining, "
                         "cannot decode a full byte.");
         } else if (chars_filled != 0) {
@@ -119,7 +119,7 @@ std::string decode_base64(const char *bdata, size_t bsize) {
     // Check if we stopped early (due to a stray padding character)
     for (const char *i = current_data; i != data_end; ++i) {
         if (*i != '=' && *i != '\r' && *i != '\n' && *i != ' ' && *i != '\t') {
-            rfail_datum(ql::base_exc_t::GENERIC,
+            rfail_datum(ql::base_exc_t::LOGIC,
                         "Invalid base64 format, data found after "
                         "padding character '='.");
         }

@@ -21,12 +21,13 @@ public:
     sindex_create_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2, 3), optargspec_t({"multi", "geo"})) { }
 
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(
+        scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<table_t> table = args->arg(env, 0)->as_table();
         datum_t name_datum = args->arg(env, 1)->as_datum();
         std::string name = name_datum.as_str().to_std();
         rcheck(name != table->get_pkey(),
-               base_exc_t::GENERIC,
+               base_exc_t::LOGIC,
                strprintf("Index name conflict: `%s` is the name of the primary key.",
                          name.c_str()));
 
@@ -47,7 +48,7 @@ public:
                         bad_prefix |= (data[i] != sindex_blob_prefix[i]);
                     }
                     rcheck(!bad_prefix,
-                           base_exc_t::GENERIC,
+                           base_exc_t::LOGIC,
                            "Cannot create an sindex except from a reql_index_function "
                            "returned from `index_status` in the field `function`.");
                     std::vector<char> vec(data + prefix_sz, data + sz);
@@ -57,7 +58,7 @@ public:
                         multi = sindex_info.multi;
                         geo = sindex_info.geo;
                     } catch (const archive_exc_t &e) {
-                        rfail(base_exc_t::GENERIC,
+                        rfail(base_exc_t::LOGIC,
                               "Binary blob passed to index create could not "
                               "be interpreted as a reql_index_function (%s).",
                               e.what());
@@ -107,7 +108,7 @@ public:
             UNUSED bool b = res.add("created", datum_t(1.0));
             return new_val(std::move(res).to_datum());
         } else {
-            rfail(base_exc_t::GENERIC, "Index `%s` already exists on table `%s`.",
+            rfail(base_exc_t::OP_FAILED, "Index `%s` already exists on table `%s`.",
                   name.c_str(), table->display_name().c_str());
         }
     }
@@ -129,7 +130,7 @@ public:
             UNUSED bool b = res.add("dropped", datum_t(1.0));
             return new_val(std::move(res).to_datum());
         } else {
-            rfail(base_exc_t::GENERIC, "Index `%s` does not exist on table `%s`.",
+            rfail(base_exc_t::OP_FAILED, "Index `%s` does not exist on table `%s`.",
                   name.c_str(), table->display_name().c_str());
         }
     }
@@ -215,18 +216,19 @@ public:
     sindex_rename_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(3, 3), optargspec_t({"overwrite"})) { }
 
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(
+        scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<table_t> table = args->arg(env, 0)->as_table();
         scoped_ptr_t<val_t> old_name_val = args->arg(env, 1);
         scoped_ptr_t<val_t> new_name_val = args->arg(env, 2);
         std::string old_name = old_name_val->as_str().to_std();
         std::string new_name = new_name_val->as_str().to_std();
         rcheck(old_name != table->get_pkey(),
-               base_exc_t::GENERIC,
+               base_exc_t::LOGIC,
                strprintf("Index name conflict: `%s` is the name of the primary key.",
                          old_name.c_str()));
         rcheck(new_name != table->get_pkey(),
-               base_exc_t::GENERIC,
+               base_exc_t::LOGIC,
                strprintf("Index name conflict: `%s` is the name of the primary key.",
                          new_name.c_str()));
 
@@ -245,11 +247,11 @@ public:
                 return new_val(std::move(retval).to_datum());
             }
         case sindex_rename_result_t::OLD_NAME_DOESNT_EXIST:
-            rfail_target(old_name_val, base_exc_t::GENERIC,
+            rfail_target(old_name_val, base_exc_t::OP_FAILED,
                          "Index `%s` does not exist on table `%s`.",
                          old_name.c_str(), table->display_name().c_str());
         case sindex_rename_result_t::NEW_NAME_EXISTS:
-            rfail_target(new_name_val, base_exc_t::GENERIC,
+            rfail_target(new_name_val, base_exc_t::OP_FAILED,
                          "Index `%s` already exists on table `%s`.",
                          new_name.c_str(), table->display_name().c_str());
         default:

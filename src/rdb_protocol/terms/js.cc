@@ -44,7 +44,7 @@ private:
                     boost::apply_visitor(js_result_visitor_t(source, timeout_ms, this),
                                          result));
         } catch (const extproc_worker_exc_t &e) {
-            rfail(base_exc_t::GENERIC,
+            rfail(base_exc_t::INTERNAL,
                   "Javascript query `%s` caused a crash in a worker process.",
                   source.c_str());
         }

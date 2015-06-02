@@ -19,7 +19,7 @@ name_string_t get_name(const scoped_ptr_t<val_t> &val, const char *type_str) {
     bool assignment_successful = name.assign_value(raw_name);
     rcheck_target(val.get(),
                   assignment_successful,
-                  base_exc_t::GENERIC,
+                  base_exc_t::LOGIC,
                   strprintf("%s name `%s` invalid (%s).",
                             type_str,
                             raw_name.to_std().c_str(),
@@ -34,33 +34,34 @@ void get_replicas_and_primary(const scoped_ptr_t<val_t> &replicas,
         params->num_replicas.clear();
         datum_t datum = replicas->as_datum();
         if (datum.get_type() == datum_t::R_OBJECT) {
-            rcheck_target(replicas.get(), primary_replica_tag.has(), base_exc_t::GENERIC,
+            rcheck_target(replicas.get(), primary_replica_tag.has(), base_exc_t::LOGIC,
                 "`primary_replica_tag` must be specified when `replicas` is an OBJECT.");
             for (size_t i = 0; i < datum.obj_size(); ++i) {
                 std::pair<datum_string_t, datum_t> pair = datum.get_pair(i);
                 name_string_t name;
                 bool assignment_successful = name.assign_value(pair.first);
-                rcheck_target(replicas, assignment_successful, base_exc_t::GENERIC,
+                rcheck_target(replicas, assignment_successful, base_exc_t::LOGIC,
                     strprintf("Server tag name `%s` invalid (%s).",
                               pair.first.to_std().c_str(),
                               name_string_t::valid_char_msg));
                 int64_t count = checked_convert_to_int(replicas.get(),
                                                        pair.second.as_num());
                 rcheck_target(replicas.get(), count >= 0,
-                    base_exc_t::GENERIC, "Can't have a negative number of replicas");
+                    base_exc_t::LOGIC, "Can't have a negative number of replicas");
                 size_t size_count = static_cast<size_t>(count);
                 rcheck_target(replicas.get(), static_cast<int64_t>(size_count) == count,
-                              base_exc_t::GENERIC,
+                              base_exc_t::LOGIC,
                               strprintf("Integer too large: %" PRIi64, count));
                 params->num_replicas.insert(std::make_pair(name, size_count));
             }
         } else if (datum.get_type() == datum_t::R_NUM) {
-            rcheck_target(replicas.get(), !primary_replica_tag.has(), base_exc_t::GENERIC,
+            rcheck_target(replicas.get(), !primary_replica_tag.has(), base_exc_t::LOGIC,
                 "`replicas` must be an OBJECT if `primary_replica_tag` is specified.");
             size_t count = replicas->as_int<size_t>();
-            params->num_replicas.insert(std::make_pair(params->primary_replica_tag, count));
+            params->num_replicas.insert(
+                std::make_pair(params->primary_replica_tag, count));
         } else {
-            rfail_target(replicas, base_exc_t::GENERIC,
+            rfail_target(replicas, base_exc_t::LOGIC,
                 "Expected type OBJECT or NUMBER but found %s:\n%s",
                 datum.get_type_name().c_str(), datum.print().c_str());
         }
@@ -93,7 +94,7 @@ private:
         std::string error;
         if (!env->env->reql_cluster_interface()->db_find(db_name, env->env->interruptor,
                 &db, &error)) {
-            rfail(base_exc_t::GENERIC, "%s", error.c_str());
+            rfail(base_exc_t::OP_FAILED, "%s", error.c_str());
         }
         return new_val(db);
     }
@@ -112,7 +113,7 @@ private:
         ql::datum_t result;
         if (!env->env->reql_cluster_interface()->db_create(db_name,
                 env->env->interruptor, &result, &error)) {
-            rfail(base_exc_t::GENERIC, "%s", error.c_str());
+            rfail(base_exc_t::OP_FAILED, "%s", error.c_str());
         }
         return new_val(result);
     }
@@ -134,7 +135,7 @@ private:
 
         // Parse the 'shards' optarg
         if (scoped_ptr_t<val_t> shards_optarg = args->optarg(env, "shards")) {
-            rcheck_target(shards_optarg, shards_optarg->as_int() > 0, base_exc_t::GENERIC,
+            rcheck_target(shards_optarg, shards_optarg->as_int() > 0, base_exc_t::LOGIC,
                           "Every table must have at least one shard.");
             config_params.num_shards = shards_optarg->as_int();
         }
@@ -172,7 +173,7 @@ private:
         if (!env->env->reql_cluster_interface()->table_create(tbl_name, db,
                 config_params, primary_key, durability,
                 env->env->interruptor, &result, &error)) {
-            rfail(base_exc_t::GENERIC, "%s", error.c_str());
+            rfail(base_exc_t::OP_FAILED, "%s", error.c_str());
         }
         return new_val(result);
     }
@@ -192,7 +193,7 @@ private:
         ql::datum_t result;
         if (!env->env->reql_cluster_interface()->db_drop(db_name,
                 env->env->interruptor, &result, &error)) {
-            rfail(base_exc_t::GENERIC, "%s", error.c_str());
+            rfail(base_exc_t::OP_FAILED, "%s", error.c_str());
         }
 
         return new_val(result);
@@ -223,7 +224,7 @@ private:
         ql::datum_t result;
         if (!env->env->reql_cluster_interface()->table_drop(tbl_name, db,
                 env->env->interruptor, &result, &error)) {
-            rfail(base_exc_t::GENERIC, "%s", error.c_str());
+            rfail(base_exc_t::OP_FAILED, "%s", error.c_str());
         }
 
         return new_val(result);
@@ -241,7 +242,7 @@ private:
         std::string error;
         if (!env->env->reql_cluster_interface()->db_list(
                 env->env->interruptor, &dbs, &error)) {
-            rfail(base_exc_t::GENERIC, "%s", error.c_str());
+            rfail(base_exc_t::OP_FAILED, "%s", error.c_str());
         }
 
         std::vector<datum_t> arr;
@@ -274,7 +275,7 @@ private:
         std::string error;
         if (!env->env->reql_cluster_interface()->table_list(db,
                 env->env->interruptor, &tables, &error)) {
-            rfail(base_exc_t::GENERIC, "%s", error.c_str());
+            rfail(base_exc_t::OP_FAILED, "%s", error.c_str());
         }
 
         std::vector<datum_t> arr;
@@ -311,7 +312,7 @@ private:
                     table->db, name, backtrace(), env->env, &selection, &error);
         }
         if (!success) {
-            rfail(base_exc_t::GENERIC, "%s", error.c_str());
+            rfail(base_exc_t::OP_FAILED, "%s", error.c_str());
         }
         return selection;
     }
@@ -330,7 +331,7 @@ private:
         scoped_ptr_t<val_t> selection;
         if (!env->env->reql_cluster_interface()->table_status(
                 table->db, name, backtrace(), env->env, &selection, &error)) {
-            rfail(base_exc_t::GENERIC, "%s", error.c_str());
+            rfail(base_exc_t::OP_FAILED, "%s", error.c_str());
         }
         return selection;
     }
@@ -401,7 +402,7 @@ private:
             } else if (wait_for->as_str() == wait_all_str) {
                 readiness = table_readiness_t::finished;
             } else {
-                rfail_target(wait_for, base_exc_t::GENERIC,
+                rfail_target(wait_for, base_exc_t::LOGIC,
                              "Unknown table readiness state: '%s', must be one of "
                              "'%s', '%s', '%s', or '%s'",
                              wait_for->as_str().to_std().c_str(),
@@ -434,11 +435,11 @@ private:
             if (!timeout_timer.is_pulsed()) {
                 throw;
             }
-            rfail(base_exc_t::GENERIC, "Timed out while waiting for tables.");
+            rfail(base_exc_t::OP_FAILED, "Timed out while waiting for tables.");
         }
 
         if (!success) {
-            rfail(base_exc_t::GENERIC, "%s", error.c_str());
+            rfail(base_exc_t::OP_FAILED, "%s", error.c_str());
         }
         return new_val(result);
     }
@@ -460,7 +461,7 @@ private:
                                         args_t *args,
                                         const char *name) const {
         scoped_ptr_t<val_t> result = args->optarg(env, name);
-        rcheck(result.has(), base_exc_t::GENERIC,
+        rcheck(result.has(), base_exc_t::LOGIC,
                strprintf("Missing required argument `%s`.", name));
         return result;
     }
@@ -475,7 +476,7 @@ private:
 
         // Parse the 'shards' optarg
         scoped_ptr_t<val_t> shards_optarg = required_optarg(env, args, "shards");
-        rcheck_target(shards_optarg, shards_optarg->as_int() > 0, base_exc_t::GENERIC,
+        rcheck_target(shards_optarg, shards_optarg->as_int() > 0, base_exc_t::LOGIC,
                       "Every table must have at least one shard.");
         config_params.num_shards = shards_optarg->as_int();
 
@@ -503,7 +504,7 @@ private:
                     db, config_params, dry_run, env->env->interruptor, &result, &error);
         }
         if (!success) {
-            rfail(base_exc_t::GENERIC, "%s", error.c_str());
+            rfail(base_exc_t::OP_FAILED, "%s", error.c_str());
         }
 
         return new_val(result);
@@ -531,7 +532,7 @@ private:
                 db, env->env->interruptor, &result, &error);
         }
         if (!success) {
-            rfail(base_exc_t::GENERIC, "%s", error.c_str());
+            rfail(base_exc_t::OP_FAILED, "%s", error.c_str());
         }
         return new_val(result);
     }
@@ -575,7 +576,7 @@ private:
             } else if (str == "uuid") {
                 identifier_format = admin_identifier_format_t::uuid;
             } else {
-                rfail(base_exc_t::GENERIC, "Identifier format `%s` unrecognized "
+                rfail(base_exc_t::LOGIC, "Identifier format `%s` unrecognized "
                     "(options are \"name\" and \"uuid\").", str.to_std().c_str());
             }
         }
@@ -597,7 +598,7 @@ private:
         counted_t<base_table_t> table;
         if (!env->env->reql_cluster_interface()->table_find(name, db,
                 identifier_format, env->env->interruptor, &table, &error)) {
-            rfail(base_exc_t::GENERIC, "%s", error.c_str());
+            rfail(base_exc_t::OP_FAILED, "%s", error.c_str());
         }
         return new_val(make_counted<table_t>(
             std::move(table), db, name.str(), use_outdated, backtrace()));
@@ -632,7 +633,7 @@ private:
 
         rcheck_target(arg,
                       !datum_arg.is_ptype(pseudo::geometry_string),
-                      base_exc_t::GENERIC,
+                      base_exc_t::LOGIC,
                       "Cannot use a geospatial index with `get_all`. "
                       "Use `get_intersecting` instead.");
         return datum_arg;

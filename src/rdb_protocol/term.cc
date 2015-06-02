@@ -225,7 +225,10 @@ void run(query_id_t &&query_id,
     try {
         validate_pb(*q);
     } catch (const base_exc_t &e) {
-        fill_error(res, Response::CLIENT_ERROR, e.what(),
+        fill_error(res,
+                   Response::CLIENT_ERROR,
+                   e.get_error_type(),
+                   e.what(),
                    backtrace_registry_t::EMPTY_BACKTRACE);
         return;
     }
@@ -233,7 +236,10 @@ void run(query_id_t &&query_id,
     try {
         validate_optargs(*q);
     } catch (const base_exc_t &e) {
-        fill_error(res, Response::COMPILE_ERROR, e.what(),
+        fill_error(res,
+                   Response::COMPILE_ERROR,
+                   e.get_error_type(),
+                   e.what(),
                    backtrace_registry_t::EMPTY_BACKTRACE);
         return;
     }
@@ -269,7 +275,7 @@ void run(query_id_t &&query_id,
         default: unreachable();
         }
     } catch (const bt_exc_t &ex) {
-        fill_error(res, ex.response_type, ex.message, ex.bt_datum);
+        fill_error(res, ex.response_type, ex.error_type, ex.message, ex.bt_datum);
     }
 }
 

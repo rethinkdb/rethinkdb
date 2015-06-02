@@ -62,7 +62,7 @@ public:
         : term_t(term) {
         // An F.Y.I. for driver developers.
         rcheck(term->args_size() == 0,
-               base_exc_t::GENERIC,
+               base_exc_t::LOGIC,
                "MAKE_OBJ term must not have any args.");
 
         for (int i = 0; i < term->optargs_size(); ++i) {
@@ -70,7 +70,7 @@ public:
             counted_t<const term_t> t = compile_term(env, term.make_child(&pair->val()));
             auto res = optargs.insert(std::make_pair(pair->key(), std::move(t)));
             rcheck(res.second,
-                   base_exc_t::GENERIC,
+                   base_exc_t::LOGIC,
                    strprintf("Duplicate object key: %s",
                              pair->key().c_str()));
         }
@@ -85,7 +85,7 @@ public:
             for (auto it = optargs.begin(); it != optargs.end(); ++it) {
                 bool dup = acc.add(datum_string_t(it->first),
                                    it->second->eval(env, new_flags)->as_datum());
-                rcheck(!dup, base_exc_t::GENERIC,
+                rcheck(!dup, base_exc_t::LOGIC,
                        strprintf("Duplicate object key: %s.", it->first.c_str()));
                 sampler.new_sample();
             }

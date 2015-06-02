@@ -179,12 +179,12 @@ scoped_ptr_t<sindex_superblock_t> acquire_sindex_for_read(
             &sindex_uuid);
         // TODO: consider adding some logic on the machine handling the
         // query to attach a real backtrace here.
-        rcheck_toplevel(found, ql::base_exc_t::GENERIC,
+        rcheck_toplevel(found, ql::base_exc_t::OP_FAILED,
                 strprintf("Index `%s` was not found on table `%s`.",
                           sindex_id.c_str(), table_name.c_str()));
     } catch (const sindex_not_ready_exc_t &e) {
         throw ql::exc_t(
-            ql::base_exc_t::GENERIC, e.what(), ql::backtrace_id_t::empty());
+            ql::base_exc_t::OP_FAILED, e.what(), ql::backtrace_id_t::empty());
     }
 
     try {
@@ -242,7 +242,7 @@ void do_read(ql::env_t *env,
 
         if (sindex_info.geo == sindex_geo_bool_t::GEO) {
             res->result = ql::exc_t(
-                ql::base_exc_t::GENERIC,
+                ql::base_exc_t::LOGIC,
                 strprintf(
                     "Index `%s` is a geospatial index.  Only get_nearest and "
                     "get_intersecting can use a geospatial index.",
@@ -414,7 +414,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
 
         if (sindex_info.geo != sindex_geo_bool_t::GEO) {
             res->result = ql::exc_t(
-                ql::base_exc_t::GENERIC,
+                ql::base_exc_t::LOGIC,
                 strprintf(
                     "Index `%s` is not a geospatial index.  get_intersecting can only "
                     "be used with a geospatial index.",
@@ -464,7 +464,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
 
         if (sindex_info.geo != sindex_geo_bool_t::GEO) {
             res->results_or_error = ql::exc_t(
-                ql::base_exc_t::GENERIC,
+                ql::base_exc_t::LOGIC,
                 strprintf(
                     "Index `%s` is not a geospatial index.  get_nearest can only be "
                     "used with a geospatial index.",
@@ -496,7 +496,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                 res->stamp_response = r;
             } else {
                 res->result = ql::exc_t(
-                    ql::base_exc_t::GENERIC,
+                    ql::base_exc_t::OP_FAILED,
                     "Feed aborted before initial values were read.",
                     ql::backtrace_id_t::empty());
                 return;

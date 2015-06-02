@@ -32,15 +32,16 @@ void master_t::client_t::perform_request(
 
         read->order_token.assert_read_mode();
 
-        boost::variant<read_response_t, std::string> reply;
+        boost::variant<read_response_t, cannot_perform_query_exc_t> reply;
         try {
             reply = read_response_t();
             read_response_t &resp = boost::get<read_response_t>(reply);
 
             fifo_enforcer_sink_t::exit_read_t exiter(&fifo_sink, read->fifo_token);
-            parent->broadcaster->read(read->read, &resp, &exiter, read->order_token, interruptor);
+            parent->broadcaster->read(
+                read->read, &resp, &exiter, read->order_token, interruptor);
         } catch (const cannot_perform_query_exc_t &e) {
-            reply = e.what();
+            reply = e;
         }
         send(parent->mailbox_manager, read->cont_addr, reply);
 
@@ -90,21 +91,26 @@ void master_t::client_t::perform_request(
         write_response_t write_response;
         if (write_callback.success_promise.try_get_value(&write_response)) {
             send(parent->mailbox_manager, write->cont_addr,
-                 boost::variant<write_response_t, std::string>(write_response));
+                 boost::variant<write_response_t, cannot_perform_query_exc_t>(
+                     write_response));
         } else {
             guarantee(write_callback.failure_promise.get_ready_signal()->is_pulsed());
             if (write_callback.failure_promise.wait()) {
                 send(parent->mailbox_manager, write->cont_addr,
-                     boost::variant<write_response_t, std::string>(
-                         "The number of replicas that responded to the write "
-                         "was fewer than the requested number. The write may "
-                         "or may not have been performed."));
+                     boost::variant<write_response_t, cannot_perform_query_exc_t>(
+                         cannot_perform_query_exc_t(
+                             "The number of replicas that responded to the write "
+                             "was fewer than the requested number. The write may "
+                             "or may not have been performed.",
+                             query_state_t::INDETERMINATE)));
             } else {
                 send(parent->mailbox_manager, write->cont_addr,
-                     boost::variant<write_response_t, std::string>(
-                         "The number of available replicas is smaller than the "
-                         "requested number of replicas to acknowledge a write. "
-                         "The write was not performed."));
+                     boost::variant<write_response_t, cannot_perform_query_exc_t>(
+                         cannot_perform_query_exc_t(
+                             "The number of available replicas is smaller than the "
+                             "requested number of replicas to acknowledge a write. "
+                             "The write was not performed.",
+                             query_state_t::FAILED)));
             }
         }
 

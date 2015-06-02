@@ -81,7 +81,7 @@ public:
         std::map<std::string, int>::const_iterator it = map.find(s);
         rcheck_target(caller,
                       it != map.end(),
-                      base_exc_t::GENERIC,
+                      base_exc_t::LOGIC,
                       strprintf("Unknown Type: %s", s.c_str()));
         return it->second;
     }
@@ -225,7 +225,7 @@ private:
                     if (sscanf(s.to_std().c_str(), "%lf%c", &dbl, &end) == 1) {
                         return new_val(datum_t(dbl));
                     } else {
-                        rfail(base_exc_t::GENERIC, "Could not coerce `%s` to NUMBER.",
+                        rfail(base_exc_t::LOGIC, "Could not coerce `%s` to NUMBER.",
                               s.to_std().c_str());
                     }
                 }
@@ -240,7 +240,7 @@ private:
             try {
                 ds = val->as_seq(env->env);
             } catch (const base_exc_t &e) {
-                rfail(base_exc_t::GENERIC,
+                rfail(base_exc_t::LOGIC,
                       "Cannot coerce %s to %s (failed to produce intermediate stream).",
                       get_name(start_type).c_str(), get_name(end_type).c_str());
             }
@@ -262,7 +262,7 @@ private:
                         datum_string_t key = pair.get(0).as_str();
                         datum_t keyval = pair.get(1);
                         bool b = obj.add(key, keyval);
-                        rcheck(!b, base_exc_t::GENERIC,
+                        rcheck(!b, base_exc_t::LOGIC,
                                strprintf("Duplicate key `%s` in coerced object.  "
                                          "(got `%s` and `%s` as values)",
                                          key.to_std().c_str(),
@@ -380,7 +380,7 @@ private:
                 std::vector<int64_t> doc_counts;
                 if (!env->env->reql_cluster_interface()->table_estimate_doc_counts(
                         table->db, name, env->env, &doc_counts, &error)) {
-                    rfail(base_exc_t::GENERIC, "%s", error.c_str());
+                    rfail(base_exc_t::LOGIC, "%s", error.c_str());
                 }
                 datum_array_builder_t arr(configured_limits_t::unlimited);
                 for (int64_t i : doc_counts) {

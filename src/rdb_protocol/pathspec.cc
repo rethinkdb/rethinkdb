@@ -96,7 +96,7 @@ pathspec_t::pathspec_t(datum_t datum, const term_t *_creator)
             }
         }
     } else {
-        rfail_target(creator, base_exc_t::GENERIC, "Invalid path argument `%s`.",
+        rfail_target(creator, base_exc_t::LOGIC, "Invalid path argument `%s`.",
                 datum.print().c_str());
     }
 

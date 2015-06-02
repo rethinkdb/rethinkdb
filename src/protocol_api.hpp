@@ -32,16 +32,28 @@ class traversal_progress_combiner_t;
 struct write_t;
 struct write_response_t;
 
+enum class query_state_t { FAILED, INDETERMINATE };
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
+        query_state_t, int8_t, query_state_t::FAILED, query_state_t::INDETERMINATE);
 class cannot_perform_query_exc_t : public std::exception {
 public:
-    explicit cannot_perform_query_exc_t(const std::string &s) : message(s) { }
+    // SHOULD ONLY BE USED FOR SERIALIZATION
+    cannot_perform_query_exc_t()
+        : message("UNINITIALIZED"), query_state(query_state_t::FAILED) { }
+    explicit cannot_perform_query_exc_t(
+        const std::string &s, query_state_t _query_state)
+        : message(s), query_state(_query_state) { }
     ~cannot_perform_query_exc_t() throw () { }
     const char *what() const throw () {
         return message.c_str();
     }
+    query_state_t get_query_state() const throw () { return query_state; }
 private:
+    RDB_DECLARE_ME_SERIALIZABLE(cannot_perform_query_exc_t);
     std::string message;
+    query_state_t query_state;
 };
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(cannot_perform_query_exc_t);
 
 enum class table_readiness_t {
     unavailable,

@@ -109,9 +109,9 @@ private:
             void (master_access_t::*how_to_run_query)(const op_type &, op_response_type *, order_token_t, fifo_enforcer_token_type *, signal_t *) /* THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t, cannot_perform_query_exc_t) */,
             std::vector<scoped_ptr_t<immediate_op_info_t<op_type, fifo_enforcer_token_type> > > *masters_to_contact,
             std::vector<op_response_type> *results,
-            std::vector<std::string> *failures,
+            std::vector<boost::optional<cannot_perform_query_exc_t> > *failures,
             order_token_t order_token,
-            int i,
+            size_t i,
             signal_t *interruptor)
         THROWS_NOTHING;
 
@@ -125,7 +125,7 @@ private:
             std::vector<scoped_ptr_t<outdated_read_info_t> > *direct_readers_to_contact,
             std::vector<read_response_t> *results,
             std::vector<std::string> *failures,
-            int i,
+            size_t i,
             signal_t *interruptor)
         THROWS_NOTHING;
 
@@ -136,12 +136,12 @@ private:
     extract_master_business_card(
         const boost::optional<namespace_directory_metadata_t> &bcard,
         const reactor_activity_id_t &activity_id);
-    static boost::optional<boost::optional<direct_reader_business_card_t> > 
+    static boost::optional<boost::optional<direct_reader_business_card_t> >
     extract_direct_reader_business_card_from_primary(
         const boost::optional<namespace_directory_metadata_t> &bcard,
         const reactor_activity_id_t &activity_id);
 
-    static boost::optional<boost::optional<direct_reader_business_card_t> > 
+    static boost::optional<boost::optional<direct_reader_business_card_t> >
     extract_direct_reader_business_card_from_secondary(
         const boost::optional<namespace_directory_metadata_t> &bcard,
         const reactor_activity_id_t &activity_id);

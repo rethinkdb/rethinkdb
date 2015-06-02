@@ -103,10 +103,10 @@ double version_checker_t::cook(double n) {
 }
 
 void version_checker_t::process_result(const http_result_t &result) {
-    rcheck_datum(result.error.empty(), ql::base_exc_t::GENERIC,
-        strprintf("protocol error: %s", result.error.c_str()));
-    rcheck_datum(result.body.has(), ql::base_exc_t::GENERIC,
-        "no body returned");
+    rcheck_datum(result.error.empty(), ql::base_exc_t::LOGIC,
+                 strprintf("protocol error: %s", result.error.c_str()));
+    rcheck_datum(result.body.has(), ql::base_exc_t::LOGIC,
+                 "no body returned");
 
     ql::datum_t status = result.body.get_field("status", ql::THROW);
     const datum_string_t &str = status.as_str();
@@ -115,8 +115,8 @@ void version_checker_t::process_result(const http_result_t &result) {
             "running the most up-to-date version.");
     } else if (str == "error") {
         ql::datum_t reason = result.body.get_field("error", ql::THROW);
-        rfail_datum(ql::base_exc_t::GENERIC,
-            "update server reports error: %s", reason.as_str().to_std().c_str());
+        rfail_datum(ql::base_exc_t::LOGIC,
+                    "update server reports error: %s", reason.as_str().to_std().c_str());
     } else if (str == "need_update") {
         ql::datum_t new_version_datum = result.body.get_field("last_version", ql::THROW);
         datum_string_t new_version = new_version_datum.as_str();
@@ -137,6 +137,6 @@ void version_checker_t::process_result(const http_result_t &result) {
                 "are available since we last checked.");
         }
     } else {
-        rfail_datum(ql::base_exc_t::GENERIC, "unexpected status code");
+        rfail_datum(ql::base_exc_t::LOGIC, "unexpected status code");
     }
 }

@@ -106,19 +106,25 @@ void cluster_namespace_interface_t::write(const write_t &w,
 }
 
 std::set<region_t>
-cluster_namespace_interface_t::get_sharding_scheme() THROWS_ONLY(cannot_perform_query_exc_t) {
+cluster_namespace_interface_t::get_sharding_scheme()
+    THROWS_ONLY(cannot_perform_query_exc_t) {
     std::vector<region_t> s;
-    for (region_map_t<std::set<relationship_t *> >::iterator it = relationships.begin(); it != relationships.end(); it++) {
-        for (std::set<relationship_t *>::iterator jt = it->second.begin(); jt != it->second.end(); jt++) {
+    for (region_map_t<std::set<relationship_t *> >::iterator it = relationships.begin();
+         it != relationships.end();
+         it++) {
+        for (std::set<relationship_t *>::iterator jt = it->second.begin();
+             jt != it->second.end();
+             jt++) {
             s.push_back((*jt)->region);
         }
     }
     region_t whole;
     region_join_result_t res = region_join(s, &whole);
     if (res != REGION_JOIN_OK || whole != region_t::universe()) {
-        throw cannot_perform_query_exc_t("cannot compute sharding scheme "
-                                         "because primary replicas are "
-                                         "unavailable or duplicated");
+        throw cannot_perform_query_exc_t(
+            "cannot compute sharding scheme because primary replicas are "
+            "unavailable or duplicated",
+            query_state_t::FAILED);
     }
     return std::set<region_t>(s.begin(), s.end());
 }
@@ -158,7 +164,8 @@ void cluster_namespace_interface_t::dispatch_immediate_op(
                 if ((*jt)->master_access) {
                     if (chosen_relationship) {
                         throw cannot_perform_query_exc_t(
-                            "Too many primary replicas available");
+                            "Too many primary replicas available",
+                            query_state_t::FAILED);
                     }
                     chosen_relationship = *jt;
                 }
@@ -174,12 +181,14 @@ void cluster_namespace_interface_t::dispatch_immediate_op(
                             strprintf("Primary replica for shard %s not available "
                                       "(server %s is not ready)",
                                       key_range_to_string(it->first.inner).c_str(),
-                                      mid.c_str()));
+                                      mid.c_str()),
+                            query_state_t::FAILED);
                     }
                 }
                 throw cannot_perform_query_exc_t(
                     strprintf("Primary replica for shard %s not available",
-                              key_range_to_string(it->first.inner).c_str()));
+                              key_range_to_string(it->first.inner).c_str()),
+                    query_state_t::FAILED);
             }
             new_op_info->master_access = chosen_relationship->master_access;
             (new_op_info->master_access->*how_to_make_token)(
@@ -193,7 +202,8 @@ void cluster_namespace_interface_t::dispatch_immediate_op(
     }
 
     std::vector<op_response_type> results(masters_to_contact.size());
-    std::vector<std::string> failures(masters_to_contact.size());
+    std::vector<boost::optional<cannot_perform_query_exc_t> >
+        failures(masters_to_contact.size());
     pmap(masters_to_contact.size(), std::bind(
              &cluster_namespace_interface_t::template perform_immediate_op<
                  op_type, fifo_enforcer_token_type, op_response_type>,
@@ -208,9 +218,35 @@ void cluster_namespace_interface_t::dispatch_immediate_op(
 
     if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
+    bool seen_valid = false;
+    boost::optional<cannot_perform_query_exc_t> last_failed_exc;
     for (size_t i = 0; i < masters_to_contact.size(); ++i) {
-        if (!failures[i].empty()) {
-            throw cannot_perform_query_exc_t(failures[i]);
+        if (!failures[i]) {
+            seen_valid = true;
+            if (last_failed_exc) break;
+        } else {
+            switch (failures[i]->get_query_state()) {
+            case query_state_t::FAILED:
+                last_failed_exc = failures[i];
+                break;
+            case query_state_t::INDETERMINATE:
+                // We can throw right away here because we already know whether
+                // or not we're indeterminate.
+                throw *failures[i];
+                break;
+            default: unreachable();
+            }
+            if (seen_valid) break;
+        }
+    }
+    if (last_failed_exc) {
+        // If we failed on one master and succeeded on others the operation is
+        // indeterminate.
+        if (seen_valid) {
+            throw cannot_perform_query_exc_t(last_failed_exc->what(),
+                                             query_state_t::INDETERMINATE);
+        } else {
+            throw *last_failed_exc;
         }
     }
 
@@ -225,16 +261,18 @@ void cluster_namespace_interface_t::perform_immediate_op(
         order_token_t,
         fifo_enforcer_token_type *,
         signal_t *)
-    /* THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t, cannot_perform_query_exc_t) */,
+    /* THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t,
+       cannot_perform_query_exc_t) */,
     std::vector<scoped_ptr_t<immediate_op_info_t<op_type, fifo_enforcer_token_type> > > *
         masters_to_contact,
     std::vector<op_response_type> *results,
-    std::vector<std::string> *failures,
+    std::vector<boost::optional<cannot_perform_query_exc_t> > *failures,
     order_token_t order_token,
-    int i,
+    size_t i,
     signal_t *interruptor)
     THROWS_NOTHING
 {
+    guarantee(i <= failures->size());
     immediate_op_info_t<op_type, fifo_enforcer_token_type> *master_to_contact
         = (*masters_to_contact)[i].get();
 
@@ -246,9 +284,11 @@ void cluster_namespace_interface_t::perform_immediate_op(
             &master_to_contact->enforcement_token,
             interruptor);
     } catch (const resource_lost_exc_t&) {
-        failures->at(i).assign("lost contact with primary replica");
+        (*failures)[i] = cannot_perform_query_exc_t(
+            "lost contact with primary replica",
+            query_state_t::INDETERMINATE);
     } catch (const cannot_perform_query_exc_t& e) {
-        failures->at(i).assign("primary replica error: " + std::string(e.what()));
+        (*failures)[i] = e;
     } catch (const interrupted_exc_t&) {
         guarantee(interruptor->is_pulsed());
         /* Ignore `interrupted_exc_t` and just return immediately.
@@ -295,7 +335,9 @@ cluster_namespace_interface_t::dispatch_outdated_read(
             if (!chosen_relationship) {
                 /* Don't bother looking for masters; if there are no direct
                    readers, there won't be any masters either. */
-                throw cannot_perform_query_exc_t("No direct reader available");
+                throw cannot_perform_query_exc_t(
+                    "No direct reader available",
+                    query_state_t::FAILED);
             }
             new_op_info->direct_reader_access
                 = chosen_relationship->direct_reader_access;
@@ -308,14 +350,16 @@ cluster_namespace_interface_t::dispatch_outdated_read(
 
     std::vector<read_response_t> results(direct_readers_to_contact.size());
     std::vector<std::string> failures(direct_readers_to_contact.size());
-    pmap(direct_readers_to_contact.size(), std::bind(&cluster_namespace_interface_t::perform_outdated_read, this,
-                                                     &direct_readers_to_contact, &results, &failures, ph::_1, interruptor));
+    pmap(direct_readers_to_contact.size(),
+         std::bind(
+             &cluster_namespace_interface_t::perform_outdated_read, this,
+             &direct_readers_to_contact, &results, &failures, ph::_1, interruptor));
 
     if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
     for (size_t i = 0; i < direct_readers_to_contact.size(); ++i) {
         if (!failures[i].empty()) {
-            throw cannot_perform_query_exc_t(failures[i]);
+            throw cannot_perform_query_exc_t(failures[i], query_state_t::FAILED);
         }
     }
 
@@ -326,7 +370,7 @@ void cluster_namespace_interface_t::perform_outdated_read(
         std::vector<scoped_ptr_t<outdated_read_info_t> > *direct_readers_to_contact,
         std::vector<read_response_t> *results,
         std::vector<std::string> *failures,
-        int i,
+        size_t i,
         signal_t *interruptor) THROWS_NOTHING {
     outdated_read_info_t *direct_reader_to_contact = (*direct_readers_to_contact)[i].get();
 
@@ -341,7 +385,7 @@ void cluster_namespace_interface_t::perform_outdated_read(
         send(mailbox_manager, direct_reader_to_contact->direct_reader_access->access().read_mailbox, direct_reader_to_contact->sharded_op, cont.get_address());
         wait_any_t waiter(direct_reader_to_contact->direct_reader_access->get_failed_signal(), &done);
         wait_interruptible(&waiter, interruptor);
-        direct_reader_to_contact->direct_reader_access->access();   /* throws if `get_failed_signal()->is_pulsed()` */
+        direct_reader_to_contact->direct_reader_access->access(); /* throws if `get_failed_signal()->is_pulsed()` */
     } catch (const resource_lost_exc_t &) {
         failures->at(i).assign("lost contact with direct reader");
     } catch (const interrupted_exc_t &) {

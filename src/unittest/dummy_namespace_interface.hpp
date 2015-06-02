@@ -100,7 +100,7 @@ public:
     std::set<region_t> get_sharding_scheme() THROWS_ONLY(cannot_perform_query_exc_t);
 
     bool check_readiness(table_readiness_t, signal_t *) {
-        throw cannot_perform_query_exc_t("unimplemented");
+        throw cannot_perform_query_exc_t("unimplemented", query_state_t::FAILED);
     }
 
 private:

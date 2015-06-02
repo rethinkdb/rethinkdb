@@ -81,7 +81,7 @@ public:
             batchspec_t batchspec = batchspec_t::all().with_at_most(1);
             row = slice->as_seq(env, bt)->next(env, batchspec);
             if (!row.has()) {
-                rfail_src(bt, base_exc_t::GENERIC, "%s", err.c_str());
+                rfail_src(bt, base_exc_t::LOGIC, "%s", err.c_str());
             }
         }
         return row;
@@ -169,11 +169,11 @@ counted_t<datum_stream_t> table_slice_t::as_seq(
 
 counted_t<table_slice_t>
 table_slice_t::with_sorting(std::string _idx, sorting_t _sorting) {
-    rcheck(sorting == sorting_t::UNORDERED, base_exc_t::GENERIC,
+    rcheck(sorting == sorting_t::UNORDERED, base_exc_t::LOGIC,
            "Cannot perform multiple indexed ORDER_BYs on the same table.");
     bool idx_legal = idx ? (*idx == _idx) : true;
     r_sanity_check(idx_legal || !bounds.is_universe());
-    rcheck(idx_legal, base_exc_t::GENERIC,
+    rcheck(idx_legal, base_exc_t::LOGIC,
            strprintf("Cannot order by index `%s` after calling BETWEEN on index `%s`.",
                      _idx.c_str(), (*idx).c_str()));
     return make_counted<table_slice_t>(tbl, std::move(_idx), _sorting, bounds);
@@ -181,11 +181,11 @@ table_slice_t::with_sorting(std::string _idx, sorting_t _sorting) {
 
 counted_t<table_slice_t>
 table_slice_t::with_bounds(std::string _idx, datum_range_t _bounds) {
-    rcheck(bounds.is_universe(), base_exc_t::GENERIC,
+    rcheck(bounds.is_universe(), base_exc_t::LOGIC,
            "Cannot perform multiple BETWEENs on the same table.");
     bool idx_legal = idx ? (*idx == _idx) : true;
     r_sanity_check(idx_legal || sorting != sorting_t::UNORDERED);
-    rcheck(idx_legal, base_exc_t::GENERIC,
+    rcheck(idx_legal, base_exc_t::LOGIC,
            strprintf("Cannot call BETWEEN on index `%s` after ordering on index `%s`.",
                      _idx.c_str(), (*idx).c_str()));
     return make_counted<table_slice_t>(
@@ -360,7 +360,7 @@ datum_t table_t::sindex_status(env_t *env,
         status.overwrite("index", datum_t(std::move(index_name)));
         array.push_back(std::move(status).to_datum());
     }
-    rcheck(sindexes.empty(), base_exc_t::GENERIC,
+    rcheck(sindexes.empty(), base_exc_t::OP_FAILED,
            strprintf("Index `%s` was not found on table `%s`.",
                      sindexes.begin()->c_str(),
                      display_name().c_str()));

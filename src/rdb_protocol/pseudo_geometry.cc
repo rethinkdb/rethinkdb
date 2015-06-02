@@ -23,7 +23,7 @@ void sanitize_geometry(datum_t *geo) {
         } else if (pair.first == "crs") {
         } else if (pair.first == datum_t::reql_type_string) {
         } else {
-            rfail_target(&pair.second, base_exc_t::GENERIC,
+            rfail_target(&pair.second, base_exc_t::LOGIC,
                          "Unrecognized field `%s` found in geometry object.",
                          pair.first.to_std().c_str());
         }

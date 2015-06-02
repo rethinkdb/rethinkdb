@@ -106,7 +106,7 @@ std::vector<datum_t> rget_response_reader_t::next_batch(env_t *env,
                 res.push_back(std::move(items[items_index].data));
 
                 rcheck_datum(
-                    res.size() <= env->limits().array_size_limit(), base_exc_t::GENERIC,
+                    res.size() <= env->limits().array_size_limit(), base_exc_t::RESOURCE,
                     strprintf("Too many rows (> %zu) with the same value "
                               "for index `%s`:\n%s",
                               env->limits().array_size_limit(),
@@ -272,7 +272,7 @@ bool rget_reader_t::load_items(env_t *env, const batchspec_t &batchspec) {
 
             rcheck_datum(
                 (items.size() + new_items.size()) <= env->limits().array_size_limit(),
-                base_exc_t::GENERIC,
+                base_exc_t::RESOURCE,
                 strprintf("Too many rows (> %zu) with the same "
                           "truncated key for index `%s`.  "
                           "Example value:\n%s\n"
@@ -331,7 +331,7 @@ bool intersecting_reader_t::load_items(env_t *env, const batchspec_t &batchspec)
                 if (processed_pkeys.count(pkey) == 0) {
                     rcheck_toplevel(
                         processed_pkeys.size() < env->limits().array_size_limit(),
-                        ql::base_exc_t::GENERIC,
+                        ql::base_exc_t::RESOURCE,
                         "Array size limit exceeded during geospatial index traversal.");
                     processed_pkeys.insert(pkey);
                     items.push_back(std::move(unfiltered_items[i]));
@@ -817,7 +817,7 @@ void datum_stream_t::add_grouping(transform_variant_t &&tv,
     add_transformation(std::move(tv), bt);
 }
 void datum_stream_t::check_not_grouped(const char *msg) {
-    rcheck(!is_grouped(), base_exc_t::GENERIC, msg);
+    rcheck(!is_grouped(), base_exc_t::LOGIC, msg);
 }
 
 std::vector<datum_t>
@@ -1113,7 +1113,7 @@ slice_datum_stream_t::slice_datum_stream_t(
 std::vector<changespec_t> slice_datum_stream_t::get_changespecs() {
     if (left == 0) {
         auto subspecs = source->get_changespecs();
-        rcheck(subspecs.size() == 1, base_exc_t::GENERIC,
+        rcheck(subspecs.size() == 1, base_exc_t::LOGIC,
                "Cannot call `changes` on a slice of a union.");
         auto subspec = subspecs[0];
         auto *rspec = boost::get<changefeed::keyspec_t::range_t>(&subspec.keyspec.spec);
@@ -1121,7 +1121,7 @@ std::vector<changespec_t> slice_datum_stream_t::get_changespecs() {
             std::copy(transforms.begin(), transforms.end(),
                       std::back_inserter(rspec->transforms));
             rcheck(right <= static_cast<uint64_t>(std::numeric_limits<size_t>::max()),
-                   base_exc_t::GENERIC,
+                   base_exc_t::LOGIC,
                    strprintf("Cannot call `changes` on a slice "
                              "with size > %zu (got %" PRIu64 ").",
                              std::numeric_limits<size_t>::max(),
@@ -1381,7 +1381,7 @@ union_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) 
                         ready_needed -= 1;
                         if (ready_needed != 0) continue;
                     } else {
-                        rfail(base_exc_t::GENERIC,
+                        rfail(base_exc_t::INTERNAL,
                               "Internal Error: Unrecognized state string `%s`.",
                               state.as_str().to_std().c_str());
                     }
@@ -1489,8 +1489,9 @@ range_datum_stream_t::next_raw_batch(env_t *, const batchspec_t &batchspec) {
     rcheck(!is_infinite_range
            || batchspec.get_batch_type() == batch_type_t::NORMAL
            || batchspec.get_batch_type() == batch_type_t::NORMAL_FIRST,
-           base_exc_t::GENERIC,
-           "Cannot use an infinite stream with an aggregation function (`reduce`, `count`, etc.) or coerce it to an array.");
+           base_exc_t::LOGIC,
+           "Cannot use an infinite stream with an aggregation function "
+           "(`reduce`, `count`, etc.) or coerce it to an array.");
 
     std::vector<datum_t> batch;
     // 500 is picked out of a hat for latency, primarily in the Data Explorer. If you
@@ -1505,7 +1506,7 @@ range_datum_stream_t::next_raw_batch(env_t *, const batchspec_t &batchspec) {
         // than 2^53 indicating we've reached the end of our infinite stream. This must
         // be checked before creating a `datum_t` as that does a similar check on
         // construction.
-        rcheck(risfinite(next), base_exc_t::GENERIC,
+        rcheck(risfinite(next), base_exc_t::LOGIC,
                "`range` out of safe double bounds.");
 
         batch.emplace_back(next);
@@ -1541,8 +1542,9 @@ map_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
     rcheck(!is_infinite_map
            || batchspec.get_batch_type() == batch_type_t::NORMAL
            || batchspec.get_batch_type() == batch_type_t::NORMAL_FIRST,
-           base_exc_t::GENERIC,
-           "Cannot use an infinite stream with an aggregation function (`reduce`, `count`, etc.) or coerce it to an array.");
+           base_exc_t::LOGIC,
+           "Cannot use an infinite stream with an aggregation function "
+           "(`reduce`, `count`, etc.) or coerce it to an array.");
 
     std::vector<datum_t> batch;
     batcher_t batcher = batchspec.to_batcher();
@@ -1649,7 +1651,7 @@ std::vector<changespec_t> vector_datum_stream_t::get_changespecs() {
         return std::vector<changespec_t>{
             changespec_t(*changespec, counted_from_this())};
     } else {
-        rfail(base_exc_t::GENERIC, "%s", "Cannot call `changes` on this stream.");
+        rfail(base_exc_t::LOGIC, "%s", "Cannot call `changes` on this stream.");
     }
 }
 

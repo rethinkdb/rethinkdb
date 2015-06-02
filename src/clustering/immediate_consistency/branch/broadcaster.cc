@@ -538,8 +538,10 @@ void broadcaster_t::pick_a_readable_dispatchee(
     proof->assert_is_holding(&mutex);
 
     if (readable_dispatchees.empty()) {
-        throw cannot_perform_query_exc_t("No mirrors readable. this is strange because "
-            "the primary replica mirror should be always readable.");
+        throw cannot_perform_query_exc_t(
+            "No mirrors readable. this is strange because "
+            "the primary replica mirror should be always readable.",
+            query_state_t::FAILED);
     }
 
     if (read.route_to_primary()) {
@@ -585,8 +587,10 @@ void broadcaster_t::get_all_readable_dispatchees(
     ASSERT_FINITE_CORO_WAITING;
     proof->assert_is_holding(&mutex);
     if (readable_dispatchees.empty()) {
-        throw cannot_perform_query_exc_t("No mirrors readable. this is strange because "
-            "the primary replica mirror should be always readable.");
+        throw cannot_perform_query_exc_t(
+            "No mirrors readable. this is strange because "
+            "the primary replica mirror should be always readable.",
+            query_state_t::FAILED);
     }
 
     dispatchee_t *dispatchee = readable_dispatchees.head();
@@ -740,7 +744,9 @@ void broadcaster_t::single_read(
         if (interruptor->is_pulsed()) {
             throw;
         } else {
-            throw cannot_perform_query_exc_t("lost contact with mirror during read");
+            throw cannot_perform_query_exc_t(
+                "lost contact with mirror during read",
+                query_state_t::FAILED);
         }
     }
 }
@@ -790,7 +796,9 @@ void broadcaster_t::all_read(
         if (interruptor->is_pulsed()) {
             throw;
         } else {
-            throw cannot_perform_query_exc_t("lost contact with mirror during read");
+            throw cannot_perform_query_exc_t(
+                "lost contact with mirror during read",
+                query_state_t::FAILED);
         }
     }
 

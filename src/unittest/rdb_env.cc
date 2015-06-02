@@ -62,7 +62,7 @@ std::set<region_t> mock_namespace_interface_t::get_sharding_scheme()
 }
 
 bool mock_namespace_interface_t::check_readiness(table_readiness_t, signal_t *) {
-    throw cannot_perform_query_exc_t("unimplemented");
+    throw cannot_perform_query_exc_t("unimplemented", query_state_t::FAILED);
 }
 
 void mock_namespace_interface_t::read_visitor_t::operator()(const point_read_t &get) {
@@ -83,52 +83,52 @@ void mock_namespace_interface_t::read_visitor_t::operator()(const dummy_read_t &
 
 void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
         const changefeed_subscribe_t &) {
-    throw cannot_perform_query_exc_t("unimplemented");
+    throw cannot_perform_query_exc_t("unimplemented", query_state_t::FAILED);
 }
 
 void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
         const changefeed_limit_subscribe_t &) {
-    throw cannot_perform_query_exc_t("unimplemented");
+    throw cannot_perform_query_exc_t("unimplemented", query_state_t::FAILED);
 }
 
 void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
         const changefeed_stamp_t &) {
-    throw cannot_perform_query_exc_t("unimplemented");
+    throw cannot_perform_query_exc_t("unimplemented", query_state_t::FAILED);
 }
 
 void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
         UNUSED const rget_read_t &rget) {
-    throw cannot_perform_query_exc_t("unimplemented");
+    throw cannot_perform_query_exc_t("unimplemented", query_state_t::FAILED);
 }
 
 void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
         const changefeed_point_stamp_t &) {
-    throw cannot_perform_query_exc_t("unimplemented");
+    throw cannot_perform_query_exc_t("unimplemented", query_state_t::FAILED);
 }
 
 void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
         UNUSED const intersecting_geo_read_t &gr) {
-    throw cannot_perform_query_exc_t("unimplemented");
+    throw cannot_perform_query_exc_t("unimplemented", query_state_t::FAILED);
 }
 
 void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
         UNUSED const nearest_geo_read_t &gr) {
-    throw cannot_perform_query_exc_t("unimplemented");
+    throw cannot_perform_query_exc_t("unimplemented", query_state_t::FAILED);
 }
 
 void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
         UNUSED const distribution_read_t &dg) {
-    throw cannot_perform_query_exc_t("unimplemented");
+    throw cannot_perform_query_exc_t("unimplemented", query_state_t::FAILED);
 }
 
 void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
         UNUSED const sindex_list_t &sinner) {
-    throw cannot_perform_query_exc_t("unimplemented");
+    throw cannot_perform_query_exc_t("unimplemented", query_state_t::FAILED);
 }
 
 void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
         UNUSED const sindex_status_t &ss) {
-    throw cannot_perform_query_exc_t("unimplemented");
+    throw cannot_perform_query_exc_t("unimplemented", query_state_t::FAILED);
 }
 
 mock_namespace_interface_t::read_visitor_t::read_visitor_t(
@@ -176,7 +176,8 @@ void mock_namespace_interface_t::write_visitor_t::operator()(
             }
         } else {
             throw cannot_perform_query_exc_t(
-                "value being inserted is neither an object nor an empty value");
+                "value being inserted is neither an object nor an empty value",
+                query_state_t::FAILED);
         }
         guarantee(!err);
         stats = stats.merge(std::move(resp).to_datum(), ql::stats_merge,
@@ -225,7 +226,8 @@ void mock_namespace_interface_t::write_visitor_t::operator()(
             }
         } else {
             throw cannot_perform_query_exc_t(
-                "value being inserted is neither an object nor an empty value");
+                "value being inserted is neither an object nor an empty value",
+                query_state_t::FAILED);
         }
         guarantee(!err);
         stats = stats.merge(std::move(resp).to_datum(), ql::stats_merge, limits, &conditions);
@@ -240,27 +242,27 @@ void mock_namespace_interface_t::write_visitor_t::operator()(const dummy_write_t
 }
 
 void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const point_write_t &) {
-    throw cannot_perform_query_exc_t("unimplemented");
+    throw cannot_perform_query_exc_t("unimplemented", query_state_t::FAILED);
 }
 
 void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const point_delete_t &) {
-    throw cannot_perform_query_exc_t("unimplemented");
+    throw cannot_perform_query_exc_t("unimplemented", query_state_t::FAILED);
 }
 
 void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const sindex_create_t &) {
-    throw cannot_perform_query_exc_t("unimplemented");
+    throw cannot_perform_query_exc_t("unimplemented", query_state_t::FAILED);
 }
 
 void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const sindex_drop_t &) {
-    throw cannot_perform_query_exc_t("unimplemented");
+    throw cannot_perform_query_exc_t("unimplemented", query_state_t::FAILED);
 }
 
 void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const sindex_rename_t &) {
-    throw cannot_perform_query_exc_t("unimplemented");
+    throw cannot_perform_query_exc_t("unimplemented", query_state_t::FAILED);
 }
 
 void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const sync_t &) {
-    throw cannot_perform_query_exc_t("unimplemented");
+    throw cannot_perform_query_exc_t("unimplemented", query_state_t::FAILED);
 }
 
 mock_namespace_interface_t::write_visitor_t::write_visitor_t(
