@@ -670,6 +670,8 @@
     <ClCompile Include="src\arch\types.cc" />
     <ClCompile Include="src\backtrace.cc" />
     <ClCompile Include="src\btree\keys.cc" />
+    <ClCompile Include="src\clustering\administration\artificial_reql_cluster_interface.cc" />
+    <ClCompile Include="src\clustering\administration\cluster_config.cc" />
     <ClCompile Include="src\clustering\administration\datum_adapter.cc" />
     <ClCompile Include="src\clustering\administration\issues\invalid_config.cc" />
     <ClCompile Include="src\clustering\administration\issues\issue.cc" />
@@ -688,6 +690,12 @@
     <ClCompile Include="src\clustering\administration\logs\log_writer.cc" />
     <ClCompile Include="src\clustering\administration\main\directory_lock.cc" />
     <ClCompile Include="src\clustering\administration\metadata.cc" />
+    <ClCompile Include="src\clustering\administration\namespace_interface_repository.cc" />
+    <ClCompile Include="src\clustering\administration\perfmon_collection_repo.cc" />
+    <ClCompile Include="src\clustering\administration\persist.cc" />
+    <ClCompile Include="src\clustering\administration\pre_v1_16_metadata.cc" />
+    <ClCompile Include="src\clustering\administration\reactor_driver.cc" />
+    <ClCompile Include="src\clustering\administration\real_reql_cluster_interface.cc" />
     <ClCompile Include="src\clustering\administration\tables\db_config.cc" />
     <ClCompile Include="src\clustering\administration\tables\debug_table_status.cc" />
     <ClCompile Include="src\clustering\administration\tables\generate_config.cc" />
@@ -697,11 +705,19 @@
     <ClCompile Include="src\clustering\administration\tables\table_metadata.cc" />
     <ClCompile Include="src\clustering\administration\tables\table_status.cc" />
     <ClCompile Include="src\concurrency\auto_drainer.cc" />
+    <ClCompile Include="src\concurrency\cond_var.cc" />
     <ClCompile Include="src\concurrency\cross_thread_mutex.cc" />
+    <ClCompile Include="src\concurrency\cross_thread_signal.cc" />
+    <ClCompile Include="src\concurrency\fifo_checker.cc" />
+    <ClCompile Include="src\concurrency\fifo_enforcer.cc" />
     <ClCompile Include="src\concurrency\interruptor.cc" />
+    <ClCompile Include="src\concurrency\min_timestamp_enforcer.cc" />
     <ClCompile Include="src\concurrency\mutex.cc" />
+    <ClCompile Include="src\concurrency\new_semaphore.cc" />
+    <ClCompile Include="src\concurrency\rwlock.cc" />
     <ClCompile Include="src\concurrency\semaphore.cc" />
     <ClCompile Include="src\concurrency\signal.cc" />
+    <ClCompile Include="src\concurrency\throttled_committer.cc" />
     <ClCompile Include="src\concurrency\wait_any.cc" />
     <ClCompile Include="src\containers\archive\archive.cc" />
     <ClCompile Include="src\containers\archive\buffer_group_stream.cc" />
@@ -766,10 +782,14 @@
     <None Include="src\clustering\administration\jobs\report.tcc">
       <FileType>CppHeader</FileType>
     </None>
+    <None Include="src\concurrency\cross_thread_watchable.tcc" />
+    <None Include="src\concurrency\fifo_enforcer_queue.tcc" />
     <None Include="src\concurrency\watchable.tcc" />
     <ClInclude Include="src\rpc\semilattice\joins\deletable.tcc">
       <FileType>Document</FileType>
     </ClInclude>
+    <None Include="src\concurrency\watchable_map.tcc" />
+    <None Include="src\concurrency\watchable_transform.tcc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

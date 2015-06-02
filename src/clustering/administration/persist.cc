@@ -174,6 +174,34 @@ cluster_version_t cluster_superblock_version(const cluster_metadata_superblock_t
     }
 }
 
+template<class value_t>
+struct version_deserializer_t {
+	version_deserializer_t(cluster_version_t version, value_t *out)
+		: version_(version), out_(out) { }
+
+	archive_result_t operator()(read_stream_t *s) {
+		switch (version_) {
+		case cluster_version_t::v1_13:
+			return deserialize<cluster_version_t::v1_13>(s, out_);
+		case cluster_version_t::v1_13_2:
+			return deserialize<cluster_version_t::v1_13_2>(s, out_);
+		case cluster_version_t::v1_14:
+			return deserialize<cluster_version_t::v1_14>(s, out_);
+		case cluster_version_t::v1_15:
+			return deserialize<cluster_version_t::v1_15>(s, out_);
+		case cluster_version_t::v1_16:
+			return deserialize<cluster_version_t::v1_16>(s, out_);
+		case cluster_version_t::v2_0_is_latest:
+			return deserialize<cluster_version_t::v2_0_is_latest>(s, out_);
+		default:
+			unreachable();
+		}	
+	}
+
+	cluster_version_t version_;
+	value_t* out_;
+};
+
 void read_metadata_blob(buf_parent_t sb_buf,
                         const cluster_metadata_superblock_t *sb,
                         cluster_semilattice_metadata_t *out,
@@ -181,50 +209,24 @@ void read_metadata_blob(buf_parent_t sb_buf,
     cluster_version_t v = cluster_superblock_version(sb);
     if (v == cluster_version_t::v1_13 || v == cluster_version_t::v1_13_2 ||
             v == cluster_version_t::v1_14 || v == cluster_version_t::v1_15) {
-        pre_v1_16::cluster_semilattice_metadata_t old_metadata;
+		pre_v1_16::cluster_semilattice_metadata_t old_metadata;
+		version_deserializer_t<pre_v1_16::cluster_semilattice_metadata_t> reader(v, &old_metadata);
         read_blob(
             sb_buf,
             sb->metadata_blob,
             cluster_metadata_superblock_t::METADATA_BLOB_MAXREFLEN,
-            [&](read_stream_t *s) -> archive_result_t {
-                switch (v) {
-                    case cluster_version_t::v1_13:
-                        return deserialize<cluster_version_t::v1_13>(s, &old_metadata);
-                    case cluster_version_t::v1_13_2:
-                        return deserialize<cluster_version_t::v1_13_2>(s, &old_metadata);
-                    case cluster_version_t::v1_14:
-                        return deserialize<cluster_version_t::v1_14>(s, &old_metadata);
-                    case cluster_version_t::v1_15:
-                        return deserialize<cluster_version_t::v1_15>(s, &old_metadata);
-                    case cluster_version_t::v1_16:
-                    case cluster_version_t::v2_0_is_latest:
-                    default:
-                        unreachable();
-                }
-            });
+			reader);
         if (log_migrate) {
             logNTC("Migrating existing cluster metadata to the new RethinkDB 1.16 format...");
         }
         *out = migrate_cluster_metadata_to_v1_16(old_metadata);
     } else {
+		version_deserializer_t<cluster_semilattice_metadata_t> reader(v, out);
         read_blob(
             sb_buf,
             sb->metadata_blob,
             cluster_metadata_superblock_t::METADATA_BLOB_MAXREFLEN,
-            [&](read_stream_t *s) -> archive_result_t {
-                switch (v) {
-                    case cluster_version_t::v2_0_is_latest:
-                        return deserialize<cluster_version_t::v2_0_is_latest>(s, out);
-                    case cluster_version_t::v1_16:
-                        return deserialize<cluster_version_t::v1_16>(s, out);
-                    case cluster_version_t::v1_13:
-                    case cluster_version_t::v1_13_2:
-                    case cluster_version_t::v1_14:
-                    case cluster_version_t::v1_15:
-                    default:
-                        unreachable();
-                }
-            });
+            reader);
     }
 }
 
@@ -419,51 +421,24 @@ auth_semilattice_metadata_t auth_persistent_file_t::read_metadata() {
     if (v == cluster_version_t::v1_13 || v == cluster_version_t::v1_13_2 ||
             v == cluster_version_t::v1_14 || v == cluster_version_t::v1_15) {
         pre_v1_16::auth_semilattice_metadata_t old_metadata;
+		version_deserializer_t<pre_v1_16::auth_semilattice_metadata_t> reader(v, &old_metadata);
         read_blob(
             buf_parent_t(&superblock),
             sb->metadata_blob,
             auth_metadata_superblock_t::METADATA_BLOB_MAXREFLEN,
-            [&](read_stream_t *s) -> archive_result_t {
-                switch (v) {
-                    case cluster_version_t::v1_13:
-                        return deserialize<cluster_version_t::v1_13>(s, &old_metadata);
-                    case cluster_version_t::v1_13_2:
-                        return deserialize<cluster_version_t::v1_13_2>(s, &old_metadata);
-                    case cluster_version_t::v1_14:
-                        return deserialize<cluster_version_t::v1_14>(s, &old_metadata);
-                    case cluster_version_t::v1_15:
-                        return deserialize<cluster_version_t::v1_15>(s, &old_metadata);
-                    case cluster_version_t::v1_16:
-                    case cluster_version_t::v2_0_is_latest:
-                    default:
-                        unreachable();
-                }
-            });
+            reader);
         if (log_migrate) {
             logNTC("Migrating existing auth metadata to the new RethinkDB 1.16 format...");
             log_migrate = false;
         }
         metadata = migrate_auth_metadata_to_v1_16(old_metadata);
     } else {
+		version_deserializer_t<auth_semilattice_metadata_t> reader(v, &metadata);
         read_blob(
             buf_parent_t(&superblock),
             sb->metadata_blob,
             auth_metadata_superblock_t::METADATA_BLOB_MAXREFLEN,
-            [&](read_stream_t *s) -> archive_result_t {
-                switch (v) {
-                    case cluster_version_t::v2_0_is_latest:
-                        return deserialize<cluster_version_t::v2_0_is_latest>(
-                            s, &metadata);
-                    case cluster_version_t::v1_16:
-                        return deserialize<cluster_version_t::v1_16>(s, &metadata);
-                    case cluster_version_t::v1_13:
-                    case cluster_version_t::v1_13_2:
-                    case cluster_version_t::v1_14:
-                    case cluster_version_t::v1_15:
-                    default:
-                        unreachable();
-                }
-            });
+            reader);
     }
     return metadata;
 }
