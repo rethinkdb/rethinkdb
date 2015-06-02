@@ -90,3 +90,11 @@ int pthread_cond_broadcast(pthread_cond_t* cond) {
 	WakeAllConditionVariable(cond);
 	return 0;
 }
+
+int pthread_once(bool *complete, void(*init)(void)) {
+	if (*complete == PTHREAD_ONCE_INIT) {
+		*complete = PTHREAD_ONCE_COMPLETED;
+		init();
+	}
+	return 0;
+}

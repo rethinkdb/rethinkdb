@@ -27,3 +27,8 @@ int pthread_cond_destroy(pthread_cond_t*);
 int pthread_cond_wait(pthread_cond_t*, pthread_mutex_t*);
 int pthread_cond_signal(pthread_cond_t*);
 int pthread_cond_broadcast(pthread_cond_t*);
+
+#define pthread_once_t thread_local bool
+const bool PTHREAD_ONCE_INIT = false;
+const bool PTHREAD_ONCE_COMPLETED = true;
+int pthread_once(bool *, void(*)(void));

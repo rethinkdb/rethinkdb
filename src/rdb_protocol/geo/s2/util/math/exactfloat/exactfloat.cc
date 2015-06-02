@@ -18,6 +18,11 @@ using std::max;
 using std::swap;
 using std::reverse;
 using std::numeric_limits;
+using std::frexp;
+using std::fabs;
+using std::ldexp;
+using std::copysign;
+using std::ceil;
 
 #ifndef __APPLE__
 using std::signbit;

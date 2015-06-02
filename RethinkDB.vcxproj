@@ -107,13 +107,13 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <PreprocessorDefinitions>WIN32;NOMINMAX;_SCL_SECURE_NO_WARNINGS;NOGDI;NOUSER;RETHINKDB_VERSION="2.0.1-dev-windows";WIN32_LEAN_AND_MEAN</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NOMINMAX;_SCL_SECURE_NO_WARNINGS;NOGDI;NOUSER;RETHINKDB_VERSION="2.0.1-dev-windows";WIN32_LEAN_AND_MEAN;_USE_MATH_DEFINES;COMPILER_MSVC</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
       <ObjectFileName>$(IntDir)/%(RelativeDir)/</ObjectFileName>
-      <AdditionalIncludeDirectories>$(ProjectDir)\..\protobuf-2.5.0\vsprojects\include;$(ProjectDir)\..\boost_1_58_0;$(ProjectDir)\external\gtest_1.7.0\include;$(ProjectDir)\windows_stub;$(ProjectDir)\..\re2</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\protobuf-2.5.0\vsprojects\include;$(ProjectDir)\..\boost_1_58_0;$(ProjectDir)\external\gtest_1.7.0\include;$(ProjectDir)\windows_stub;$(ProjectDir)\..\re2;$(ProjectDir)\..\openssl-1.0.2a\include</AdditionalIncludeDirectories>
       <PreprocessToFile>false</PreprocessToFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -155,12 +155,12 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <PreprocessorDefinitions>WIN32;NOMINMAX;_SCL_SECURE_NO_WARNINGS;NOGDI;NOUSER;RETHINKDB_VERSION="2.0.1-dev-windows";WIN32_LEAN_AND_MEAN</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NOMINMAX;_SCL_SECURE_NO_WARNINGS;NOGDI;NOUSER;RETHINKDB_VERSION="2.0.1-dev-windows";WIN32_LEAN_AND_MEAN;_USE_MATH_DEFINES;COMPILER_MSVC</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <ObjectFileName>$(IntDir)/%(RelativeDir)/</ObjectFileName>
-      <AdditionalIncludeDirectories>$(ProjectDir)\..\protobuf-2.5.0\vsprojects\include;$(ProjectDir)\..\boost_1_58_0;$(ProjectDir)\external\gtest_1.7.0\include;$(ProjectDir)\windows_stub;$(ProjectDir)\..\re2</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\protobuf-2.5.0\vsprojects\include;$(ProjectDir)\..\boost_1_58_0;$(ProjectDir)\external\gtest_1.7.0\include;$(ProjectDir)\windows_stub;$(ProjectDir)\..\re2;$(ProjectDir)\..\openssl-1.0.2a\include</AdditionalIncludeDirectories>
       <PreprocessToFile>false</PreprocessToFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -734,6 +734,7 @@
     <ClCompile Include="src\containers\shared_buffer.cc" />
     <ClCompile Include="src\containers\uuid.cc" />
     <ClCompile Include="src\debug.cc" />
+    <ClCompile Include="src\delete_me.cc" />
     <ClCompile Include="src\errors.cc" />
     <ClCompile Include="src\http\json.cc" />
     <ClCompile Include="src\http\json\cJSON.cc" />
@@ -753,6 +754,41 @@
     <ClCompile Include="src\rdb_protocol\context.cc" />
     <ClCompile Include="src\rdb_protocol\datum.cc" />
     <ClCompile Include="src\rdb_protocol\datum_string.cc" />
+    <ClCompile Include="src\rdb_protocol\geo\karney\geodesic.cc" />
+    <ClCompile Include="src\rdb_protocol\geo\s2\base\int128.cc" />
+    <ClCompile Include="src\rdb_protocol\geo\s2\base\logging.cc" />
+    <ClCompile Include="src\rdb_protocol\geo\s2\base\stringprintf.cc" />
+    <ClCompile Include="src\rdb_protocol\geo\s2\base\strtoint.cc" />
+    <ClCompile Include="src\rdb_protocol\geo\s2\s1angle.cc" />
+    <ClCompile Include="src\rdb_protocol\geo\s2\s1interval.cc" />
+    <ClCompile Include="src\rdb_protocol\geo\s2\s2.cc" />
+    <ClCompile Include="src\rdb_protocol\geo\s2\s2cap.cc" />
+    <ClCompile Include="src\rdb_protocol\geo\s2\s2cell.cc" />
+    <ClCompile Include="src\rdb_protocol\geo\s2\s2cellid.cc" />
+    <ClCompile Include="src\rdb_protocol\geo\s2\s2cellunion.cc" />
+    <ClCompile Include="src\rdb_protocol\geo\s2\s2edgeindex.cc" />
+    <ClCompile Include="src\rdb_protocol\geo\s2\s2edgeutil.cc" />
+    <ClCompile Include="src\rdb_protocol\geo\s2\s2latlng.cc" />
+    <ClCompile Include="src\rdb_protocol\geo\s2\s2latlngrect.cc" />
+    <ClCompile Include="src\rdb_protocol\geo\s2\s2loop.cc" />
+    <ClCompile Include="src\rdb_protocol\geo\s2\s2pointregion.cc" />
+    <ClCompile Include="src\rdb_protocol\geo\s2\s2polygon.cc" />
+    <ClCompile Include="src\rdb_protocol\geo\s2\s2polygonbuilder.cc" />
+    <ClCompile Include="src\rdb_protocol\geo\s2\s2polyline.cc" />
+    <ClCompile Include="src\rdb_protocol\geo\s2\s2r2rect.cc" />
+    <ClCompile Include="src\rdb_protocol\geo\s2\s2region.cc" />
+    <ClCompile Include="src\rdb_protocol\geo\s2\s2regioncoverer.cc" />
+    <ClCompile Include="src\rdb_protocol\geo\s2\s2regionintersection.cc" />
+    <ClCompile Include="src\rdb_protocol\geo\s2\s2regionunion.cc" />
+    <ClCompile Include="src\rdb_protocol\geo\s2\strings\ascii_ctype.cc" />
+    <ClCompile Include="src\rdb_protocol\geo\s2\strings\split.cc" />
+    <ClCompile Include="src\rdb_protocol\geo\s2\strings\stringprintf.cc" />
+    <ClCompile Include="src\rdb_protocol\geo\s2\strings\strutil.cc" />
+    <ClCompile Include="src\rdb_protocol\geo\s2\util\coding\coder.cc" />
+    <ClCompile Include="src\rdb_protocol\geo\s2\util\coding\varint.cc" />
+    <ClCompile Include="src\rdb_protocol\geo\s2\util\math\exactfloat\exactfloat.cc" />
+    <ClCompile Include="src\rdb_protocol\geo\s2\util\math\mathlimits.cc" />
+    <ClCompile Include="src\rdb_protocol\geo\s2\util\math\mathutil.cc" />
     <ClCompile Include="src\rdb_protocol\pseudo_binary.cc" />
     <ClCompile Include="src\rdb_protocol\pseudo_geometry.cc" />
     <ClCompile Include="src\rdb_protocol\pseudo_literal.cc" />

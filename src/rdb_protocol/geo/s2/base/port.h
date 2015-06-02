@@ -164,6 +164,8 @@ const char PATH_SEPARATOR = '/';
 
 // va_copy portability definitions
 #ifdef COMPILER_MSVC
+
+#if _MSC_VER < 14
 // MSVC doesn't have va_copy yet.
 // This is believed to work for 32-bit msvc.  This may not work at all for
 // other platforms.
@@ -174,6 +176,7 @@ const char PATH_SEPARATOR = '/';
 inline void va_copy(va_list& a, va_list& b) {
   a = b;
 }
+#endif
 
 // Nor does it have uid_t
 typedef int uid_t;

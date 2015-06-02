@@ -41,6 +41,13 @@ The dependency on Protobuf will hopefully go away soon.
   - Open Properties -> C/C++ -> All Options
   - Set Runtime Library to `/MTd`
 
+## OpenSSL
+
+* Download `openssl-1.0.2a.tar.gz` from https://www.openssl.org/source/
+* Extract it to `../openssl-1.0.2a`
+* Extracting the tar file may have created symlinks that don't work in VC++. They can be converted by doing ```for x in `find . -type l`; do mv -f `readlink $x` $x; done```
+* TODO: build
+
 ## RethinkDB
 
 * Open `RethinkDB.sln`
@@ -49,7 +56,7 @@ The dependency on Protobuf will hopefully go away soon.
 * Press F5 to run
 * Some unit tests should run.
 
-## To do
+# TODO
 
 * Compile with and fix all warnings
 * Support mingw64
@@ -75,3 +82,6 @@ The dependency on Protobuf will hopefully go away soon.
 * make sure it still builds on linux
 * keep up-to-date with next/raft/sunos
 * build without /force:unresolved LDFLAG
+* rebuild with MSC and examine all the int32 -> int64 warnings.
+* restore the msvc-specific s2 code
+* ensure that aligned pointers are freed correctly
