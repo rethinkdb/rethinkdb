@@ -90,19 +90,19 @@ bool supersedes_with_leader(
         bool lhs_leader,
         const multi_table_manager_bcard_t::timestamp_t &rhs_timestamp,
         bool rhs_leader) {
-    /* This returns true if `rhs.supersedes(lhs)`, lexically ordering by
+    /* This returns true if `lhs.supersedes(rhs)`, lexically ordering by
     `(timestamp.epoch, leader, timestamp.log_index)`. */
-    if (rhs_timestamp.epoch.supersedes(lhs_timestamp.epoch)) {
+    if (lhs_timestamp.epoch.supersedes(rhs_timestamp.epoch)) {
         return true;
-    } else if (lhs_timestamp.epoch.supersedes(rhs_timestamp.epoch)) {
+    } else if (rhs_timestamp.epoch.supersedes(lhs_timestamp.epoch)) {
         return false;
     } else {
-        if (rhs_leader > lhs_leader) {
+        if (lhs_leader > rhs_leader) {
             return true;
-        } else if (lhs_leader > rhs_leader) {
+        } else if (rhs_leader > lhs_leader) {
             return false;
         } else {
-            return rhs_timestamp.log_index > lhs_timestamp.log_index;
+            return lhs_timestamp.log_index > rhs_timestamp.log_index;
         }
     }
 }
@@ -129,10 +129,10 @@ void table_meta_client_t::get_config(
                     if (server_bcard != nullptr) {
                         if (best_mailbox.is_nil() ||
                                 supersedes_with_leader(
-                                    best_timestamp,
-                                    best_leader,
                                     table_bcard->timestamp,
-                                    static_cast<bool>(table_bcard->leader))) {
+                                    static_cast<bool>(table_bcard->leader),
+                                    best_timestamp,
+                                    best_leader)) {
                             best_mailbox = server_bcard->get_config_mailbox;
                             best_timestamp = table_bcard->timestamp;
                             best_leader = static_cast<bool>(table_bcard->leader);
