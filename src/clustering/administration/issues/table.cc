@@ -17,7 +17,7 @@ public:
         server_name_map_t _server_names);
     ~table_availability_issue_t();
 
-    bool is_critical() const { return readiness < table_readiness_t::writes; };
+    bool is_critical() const { return readiness < table_readiness_t::writes; }
     const datum_string_t &get_name() const { return table_availability_issue_type; }
 
 private:

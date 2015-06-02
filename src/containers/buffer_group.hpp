@@ -6,8 +6,6 @@
 #include <unistd.h>
 #include <vector>
 
-#include <vector>
-
 #include "errors.hpp"
 
 class const_buffer_group_t {
