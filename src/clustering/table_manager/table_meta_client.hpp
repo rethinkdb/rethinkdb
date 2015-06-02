@@ -158,18 +158,6 @@ private:
     typedef std::pair<table_basic_config_t, multi_table_manager_bcard_t::timestamp_t>
         timestamped_basic_config_t;
 
-    /* `get_config_from` fetches the configuration of the table with the given ID
-    either from the leader when `from_leader` is true, or from any member hosting the
-    table. Note that if `from_leader` is false it may fetch a version that is out of
-    date compared to that committed on the leader. Furthermore it assumes the
-    interruptor is already on the home thread. */
-    void get_config_from(
-        const namespace_id_t &table_id,
-        signal_t *interruptor,
-        bool from_leader,
-        table_config_and_shards_t *config_out)
-        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t);
-
     /* `retry()` calls `fun()` repeatedly. If `fun()` fails with a
     `failed_table_op_exc_t` or `maybe_failed_table_op_exc_t`, then `retry()` catches the
     exception, waits for some time, and calls `fun()` again. After some number of tries

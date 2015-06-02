@@ -107,7 +107,6 @@ shard_status_t calculate_shard_status(
          shard boundaries. */
 
     bool as_configured = true;
-    std::set<server_id_t> replicas;
     bool has_quorum = true;
     bool has_primary_replica = true;
     bool has_outdated_reader = true;
@@ -121,6 +120,7 @@ shard_status_t calculate_shard_status(
            rebalancing. */
         as_configured &= (latest_contract.first.inner == regions.get_domain().inner);
 
+        std::set<server_id_t> region_replicas;
         ack_counter_t ack_counter(latest_contract.second);
         bool region_has_primary_replica = false;
         bool region_has_outdated_reader = false;
@@ -140,7 +140,7 @@ shard_status_t calculate_shard_status(
                 case contract_ack_t::state_t::primary_ready:
                     as_configured &= (ack.first == shard.primary_replica);
                     // The primary is part of the replicas in the contract
-                    replicas.insert(ack.first);
+                    region_replicas.insert(ack.first);
                     ack_counter.note_ack(ack.first);
                     region_has_primary_replica = true;
                     region_has_outdated_reader = true;
@@ -157,7 +157,7 @@ shard_status_t calculate_shard_status(
                             contracts.at(ack.second.first).get().second.primary;
                         if (static_cast<bool>(latest_contract.second.primary) &&
                                 latest_contract.second.primary == region_primary) {
-                            replicas.insert(ack.first);
+                            region_replicas.insert(ack.first);
                             ack_counter.note_ack(ack.first);
                             region_has_outdated_reader = true;
                             ack_server_status = server_status_t::READY;
@@ -199,13 +199,12 @@ shard_status_t calculate_shard_status(
             }
         }
 
+        // Verify the replicas that are ready exactly match the configuration.
+        as_configured &= (region_replicas == shard.replicas);
         has_quorum &= ack_counter.is_safe();
         has_primary_replica &= region_has_primary_replica;
         has_outdated_reader &= region_has_outdated_reader;
     });
-
-    // Verify the replicas that are ready exactly match the configuration.
-    as_configured &= (replicas == shard.replicas);
 
     if (has_primary_replica) {
         if (has_quorum) {
@@ -271,6 +270,7 @@ void calculate_status(
         if (shard_statuses_out != nullptr) {
             shard_statuses_out->clear();
         }
+        return;
     }
     const std::map<contract_id_t, std::pair<region_t, contract_t> > &latest_contracts =
         contracts_and_acks.at(latest_contracts_server_id).contracts;

@@ -453,10 +453,10 @@ void multi_table_manager_t::on_get_config(
             global_mutex_acq.reset();
             wait_interruptible(table_mutex_in_line.acq_signal(), interruptor);
             if (it->second->status == table_t::status_t::ACTIVE) {
-                multi_table_manager_bcard_t::timestamp_t timestamp;
-                timestamp.epoch = it->second->active->manager.epoch;
                 it->second->active->get_raft()->get_committed_state()->apply_read(
                 [&](const raft_member_t<table_raft_state_t>::state_and_config_t *s) {
+                    multi_table_manager_bcard_t::timestamp_t timestamp;
+                    timestamp.epoch = it->second->active->manager.epoch;
                     timestamp.log_index = s->log_index;
                     result[*table_id] = std::make_pair(s->state.config, timestamp);
                 });
@@ -479,10 +479,10 @@ void multi_table_manager_t::on_get_config(
             auto it = tables.find(pair.first);
             guarantee(it != tables.end());
             if (it->second->status == table_t::status_t::ACTIVE) {
-                multi_table_manager_bcard_t::timestamp_t timestamp;
-                timestamp.epoch = it->second->active->manager.epoch;
                 it->second->active->get_raft()->get_committed_state()->apply_read(
                 [&](const raft_member_t<table_raft_state_t>::state_and_config_t *s) {
+                    multi_table_manager_bcard_t::timestamp_t timestamp;
+                    timestamp.epoch = it->second->active->manager.epoch;
                     timestamp.log_index = s->log_index;
                     result[pair.first] = std::make_pair(s->state.config, timestamp);
                 });
