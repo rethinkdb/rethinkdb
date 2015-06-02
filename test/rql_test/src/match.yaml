@@ -8,9 +8,15 @@ tests:
     - cd: r.expr("abcdefg").match("(?i)a(b.e)|B(c.e)")
       ot: ({'str':'bcde','groups':[null,{'start':2,'str':'cde','end':5}],'start':1,'end':5})
 
-    # should accept native RegExp object in JS driver
+    # Accept native regular expressions (JS driver only for now)
     - js: r.expr("abcdefg").match(/a(b.e)|B(c.e)/i)
       ot: ({'str':'bcde','groups':[null,{'start':2,'str':'cde','end':5}],'start':1,'end':5})
+
+    # Translate \c and \u escape sequences
+    - js: r.expr("\u000D").match(/\cM/)
+      ot: ({'str':'\u000D',groups:[],'start':0,'end':1})
+    - js: r.expr("\u000D").match(/\u000D/)
+      ot: ({'str':'\u000D',groups:[],'start':0,'end':1})
 
     - cd: r.expr(["aba", "aca", "ada", "aea"]).filter{|row| row.match("a(.)a")[:groups][0][:str].match("[cd]")}
       py: r.expr(["aba", "aca", "ada", "aea"]).filter(lambda row:row.match("a(.)a")['groups'][0]['str'].match("[cd]"))
