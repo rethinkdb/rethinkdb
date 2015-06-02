@@ -10,12 +10,14 @@
 
 class table_availability_issue_t : public issue_t {
 public:
-    table_availability_issue_t(const namespace_id_t &_table_id,
-                               table_readiness_t _readiness,
-                               std::vector<shard_status_t> _shard_statuses);
+    table_availability_issue_t(
+        const namespace_id_t &_table_id,
+        table_readiness_t _readiness,
+        std::vector<shard_status_t> _shard_statuses,
+        server_name_map_t _server_names);
     ~table_availability_issue_t();
 
-    bool is_critical() const { return readiness < table_readiness_t::writes; };
+    bool is_critical() const { return readiness < table_readiness_t::writes; }
     const datum_string_t &get_name() const { return table_availability_issue_type; }
 
 private:
@@ -33,22 +35,25 @@ private:
     const namespace_id_t table_id;
     const table_readiness_t readiness;
     const std::vector<shard_status_t> shard_statuses;
+    const server_name_map_t server_names;
 };
 
 table_availability_issue_t::table_availability_issue_t(
         const namespace_id_t &_table_id,
         table_readiness_t _readiness,
-        std::vector<shard_status_t> _shard_statuses) :
+        std::vector<shard_status_t> _shard_statuses,
+        server_name_map_t _server_names) :
     issue_t(from_hash(base_issue_id, _table_id)),
     table_id(_table_id),
     readiness(_readiness),
-    shard_statuses(std::move(_shard_statuses)) { }
+    shard_statuses(std::move(_shard_statuses)),
+    server_names(std::move(_server_names)) { }
 
 table_availability_issue_t::~table_availability_issue_t() { }
 
 bool table_availability_issue_t::build_info_and_description(
         const metadata_t &metadata,
-        server_config_client_t *server_config_client,
+        UNUSED server_config_client_t *server_config_client,
         table_meta_client_t *table_meta_client,
         admin_identifier_format_t identifier_format,
         ql::datum_t *info_out,
@@ -66,7 +71,7 @@ bool table_availability_issue_t::build_info_and_description(
     ql::datum_t table_status_datum =
         convert_table_status_to_datum(table_id, table_name, db_id_datum,
                                       readiness, shard_statuses,
-                                      identifier_format, server_config_client);
+                                      identifier_format, server_names);
 
     // Convert table id/name into the requested identifier format
     ql::datum_object_builder_t builder(table_status_datum);
@@ -118,13 +123,8 @@ bool table_availability_issue_t::build_info_and_description(
     if (servers.size() > 0) {
         text += "\nThe servers that are not ready are:";
         for (auto const &pair : servers) {
-            name_string_t server_name;
-            if (!convert_server_id_to_datum(pair.first, identifier_format,
-                                            server_config_client, nullptr, &server_name)) {
-                continue;
-            }
             text += strprintf("\n %s (%s replica)",
-                              server_name.c_str(),
+                              server_names.get(pair.first).c_str(),
                               pair.second ? "primary" : "secondary");
         }
     }
@@ -161,6 +161,7 @@ std::vector<scoped_ptr_t<issue_t> > table_issue_tracker_t::get_issues(
     throttled_pmap(table_ids.size(), [&] (int64_t i) {
                        check_table(table_ids[i], &issues, interruptor);
                    }, 16);
+
     return issues;
 }
 
@@ -169,16 +170,20 @@ void table_issue_tracker_t::check_table(const namespace_id_t &table_id,
                                         signal_t *interruptor) const {
     table_readiness_t readiness = table_readiness_t::finished;
     std::vector<shard_status_t> shard_statuses;
+    server_name_map_t server_names;
 
     try {
         calculate_status(table_id, interruptor, table_meta_client,
-                         server_config_client, &readiness, &shard_statuses);
+                         server_config_client, &readiness, &shard_statuses,
+                         &server_names);
+    } catch (const interrupted_exc_t &) {
+        // Ignore interruption - can't be passed through pmap
     } catch (const no_such_table_exc_t &) {
         // Ignore any tables that have stopped existing
     }
 
     if (readiness != table_readiness_t::finished) {
         issues_out->emplace_back(make_scoped<table_availability_issue_t>(
-            table_id, readiness, std::move(shard_statuses)));
+            table_id, readiness, std::move(shard_statuses), std::move(server_names)));
     }
 }

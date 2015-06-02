@@ -1,6 +1,8 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/administration/issues/name_collision.hpp"
+
 #include "clustering/administration/datum_adapter.hpp"
+#include "clustering/administration/servers/config_client.hpp"
 #include "clustering/table_manager/table_meta_client.hpp"
 #include "rdb_protocol/configured_limits.hpp"
 
@@ -206,19 +208,37 @@ bool table_name_collision_issue_t::build_info_and_description(
 }
 
 name_collision_issue_tracker_t::name_collision_issue_tracker_t(
+            server_config_client_t *_server_config_client,
             boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
                 _cluster_sl_view,
             table_meta_client_t *_table_meta_client) :
+    server_config_client(_server_config_client),
     cluster_sl_view(_cluster_sl_view),
     table_meta_client(_table_meta_client) { }
 
 name_collision_issue_tracker_t::~name_collision_issue_tracker_t() { }
 
-template <typename issue_type, typename map_t>
-void find_duplicates(const map_t &data,
-                     std::vector<scoped_ptr_t<issue_t> > *issues_out) {
-    std::map<name_string_t, std::vector<uuid_u> > name_counts;
-    for (auto const &it : data) {
+void find_server_duplicates(
+        watchable_map_t<server_id_t, server_config_versioned_t> *servers,
+        std::vector<scoped_ptr_t<issue_t> > *issues_out) {
+    std::map<name_string_t, std::vector<server_id_t> > name_counts;
+    servers->read_all(
+    [&](const server_id_t &sid, const server_config_versioned_t *config) {
+        name_counts[config->config.name].push_back(sid);
+    });
+    for (auto const &it : name_counts) {
+        if (it.second.size() > 1) {
+            issues_out->push_back(scoped_ptr_t<issue_t>(
+                new server_name_collision_issue_t(it.first, it.second)));
+        }
+    }
+}
+
+void find_db_duplicates(
+        const databases_semilattice_metadata_t &dbs,
+        std::vector<scoped_ptr_t<issue_t> > *issues_out) {
+    std::map<name_string_t, std::vector<database_id_t> > name_counts;
+    for (auto const &it : dbs.databases) {
         if (!it.second.is_deleted()) {
             name_string_t name = it.second.get_ref().name.get_ref();
             name_counts[name].push_back(it.first);
@@ -228,7 +248,7 @@ void find_duplicates(const map_t &data,
     for (auto const &it : name_counts) {
         if (it.second.size() > 1) {
             issues_out->push_back(scoped_ptr_t<issue_t>(
-                new issue_type(it.first, it.second)));
+                new db_name_collision_issue_t(it.first, it.second)));
         }
     }
 }
@@ -261,8 +281,8 @@ std::vector<scoped_ptr_t<issue_t> > name_collision_issue_tracker_t::get_issues(
     cluster_semilattice_metadata_t metadata = cluster_sl_view->get();
     std::vector<scoped_ptr_t<issue_t> > issues;
 
-    find_duplicates<server_name_collision_issue_t>(metadata.servers.servers, &issues);
-    find_duplicates<db_name_collision_issue_t>(metadata.databases.databases, &issues);
+    find_server_duplicates(server_config_client->get_server_config_map(), &issues);
+    find_db_duplicates(metadata.databases, &issues);
     find_table_duplicates(table_meta_client, &issues);
 
     return issues;

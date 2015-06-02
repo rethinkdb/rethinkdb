@@ -17,7 +17,7 @@ sindex_manager_t::sindex_manager_t(
 }
 
 std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
-sindex_manager_t::get_status(signal_t *interruptor) {
+sindex_manager_t::get_status(signal_t *interruptor) const {
     /* First, we make a list of all the sindexes in the config. Then, we iterate over
     the actual sindexes in the stores and try to match them to the sindexes in the
     config. If we find a match, we accumulate the `sindex_status_t`s. If there's a sindex

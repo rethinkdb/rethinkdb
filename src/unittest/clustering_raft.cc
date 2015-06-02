@@ -517,6 +517,35 @@ TPTEST(ClusteringRaft, MemberChange) {
     traffic_generator.check_changes_present();
 }
 
+TPTEST(ClusteringRaft, NonVoting) {
+    dummy_raft_cluster_t cluster(1, dummy_raft_state_t(), nullptr);
+    dummy_raft_traffic_generator_t traffic_generator(&cluster, 3);
+    do_writes(&cluster, 10, 60000);
+
+    raft_config_t new_config;
+    new_config.voting_members.insert(cluster.find_leader(1000));
+    new_config.voting_members.insert(cluster.join());
+    new_config.voting_members.insert(cluster.join());
+    new_config.non_voting_members.insert(cluster.join());
+    new_config.non_voting_members.insert(cluster.join());
+    new_config.non_voting_members.insert(cluster.join());
+
+    signal_timer_t timeout;
+    timeout.start(10000);
+    raft_member_id_t leader = cluster.find_leader(&timeout);
+    cluster.try_config_change(leader, new_config, &timeout);
+
+    do_writes(&cluster, 10, 60000);
+
+    for (const raft_member_id_t &member : new_config.non_voting_members) {
+        cluster.set_live(member, dummy_raft_cluster_t::live_t::dead);
+    }
+
+    do_writes(&cluster, 10, 60000);
+
+    traffic_generator.check_changes_present();
+}
+
 TPTEST(ClusteringRaft, Regression4234) {
     cond_t non_interruptor;
     std::vector<raft_member_id_t> member_ids;

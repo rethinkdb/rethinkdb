@@ -101,7 +101,7 @@ bool backfill_job_report_t::info_derived(
     info_builder_out->overwrite("db", db_name_or_uuid);
 
     ql::datum_t source_server_name_or_uuid;
-    if (convert_server_id_to_datum(
+    if (convert_connected_server_id_to_datum(
             source_server,
             identifier_format,
             server_config_client,
@@ -113,7 +113,7 @@ bool backfill_job_report_t::info_derived(
     }
 
     ql::datum_t destination_server_name_or_uuid;
-    if (convert_server_id_to_datum(
+    if (convert_connected_server_id_to_datum(
             destination_server,
             identifier_format,
             server_config_client,
@@ -154,14 +154,15 @@ index_construction_job_report_t::index_construction_job_report_t(
         namespace_id_t const &_table,
         std::string const &_index,
         bool _is_ready,
-        double _progress)
+        double _progress_numerator,
+        double _progress_denominator)
     : job_report_base_t<index_construction_job_report_t>(
         "index_construction", _id, _duration, _server_id),
       table(_table),
       index(_index),
       is_ready(_is_ready),
-      progress_numerator(_progress),
-      progress_denominator(1.0) { }
+      progress_numerator(_progress_numerator),
+      progress_denominator(_progress_denominator) { }
 
 void index_construction_job_report_t::merge_derived(
        index_construction_job_report_t const &job_report) {
@@ -198,7 +199,9 @@ bool index_construction_job_report_t::info_derived(
 
     info_builder_out->overwrite("index", convert_string_to_datum(index));
     info_builder_out->overwrite("progress",
-        ql::datum_t(progress_numerator / progress_denominator));
+        ql::datum_t(progress_denominator == 0
+            ? 0
+            : progress_numerator / progress_denominator));
 
     return true;
 }

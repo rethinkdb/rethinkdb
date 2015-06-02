@@ -50,6 +50,10 @@ public:
         return contract_executor.get_local_table_query_bcards();
     }
 
+    const sindex_manager_t &get_sindex_manager() const {
+        return sindex_manager;
+    }
+
 private:
     /* `leader_t` hosts the `contract_coordinator_t`. */
     class leader_t {

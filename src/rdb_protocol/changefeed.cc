@@ -33,7 +33,7 @@ struct indexed_datum_t {
 };
 
 struct stamped_range_t {
-    stamped_range_t(uint64_t _next_expected_stamp)
+    explicit stamped_range_t(uint64_t _next_expected_stamp)
         : next_expected_stamp(_next_expected_stamp),
           left_fencepost(store_key_t::min()) { }
     const store_key_t &get_right_fencepost() {
@@ -1383,7 +1383,7 @@ private:
     std::vector<scoped_ptr_t<disconnect_watcher_t> > disconnect_watchers;
 
     struct queue_t {
-        queue_t(uint64_t _next) : next(_next) { }
+        explicit queue_t(uint64_t _next) : next(_next) { }
         rwlock_t lock;
         uint64_t next;
         struct lt_t {
@@ -1559,7 +1559,7 @@ public:
             || (include_initial_vals && state != state_t::READY)
             || has_change_val();
     }
-    virtual counted_t<datum_stream_t> to_stream(
+    counted_t<datum_stream_t> to_stream(
         env_t *env,
         std::string,
         namespace_interface_t *nif,
@@ -1753,7 +1753,7 @@ public:
             || has_change_val();
     }
 
-    virtual counted_t<datum_stream_t> to_stream(
+    counted_t<datum_stream_t> to_stream(
         env_t *outer_env,
         std::string,
         namespace_interface_t *nif,
@@ -2085,7 +2085,7 @@ public:
         return ret;
     }
 
-    virtual counted_t<datum_stream_t> to_stream(
+    counted_t<datum_stream_t> to_stream(
         env_t *env,
         std::string table,
         namespace_interface_t *nif,

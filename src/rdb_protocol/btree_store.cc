@@ -326,6 +326,7 @@ std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > store_t::sin
         if (pair.second.is_ready()) {
             res->second.ready = true;
             res->second.blocks_processed = res->second.blocks_total = 0;
+            res->second.start_time = -1;
         } else {
             res->second.ready = false;
             progress_completion_fraction_t frac = get_sindex_progress(pair.second.id);
@@ -335,6 +336,7 @@ std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > store_t::sin
                 res->second.blocks_processed = frac.estimate_of_released_nodes;
                 res->second.blocks_total = frac.estimate_of_total_nodes;
             }
+            res->second.start_time = get_sindex_start_time(pair.second.id);
         }
     }
 

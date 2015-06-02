@@ -54,7 +54,7 @@ void calculate_server_usage(
 static void validate_params(
         const table_generate_config_params_t &params,
         const std::map<name_string_t, std::set<server_id_t> > &servers_with_tags,
-        const std::map<server_id_t, name_string_t> &server_names)
+        const server_name_map_t &server_names)
         THROWS_ONLY(admin_op_exc_t) {
     if (params.num_shards <= 0) {
         throw admin_op_exc_t("Every table must have at least one shard.");
@@ -99,7 +99,7 @@ static void validate_params(
                     "server `%s` has both tags. The server tags used for replication "
                     "settings for a given table must be non-overlapping.",
                     it->first.c_str(), servers_claimed.at(server).c_str(),
-                    server_names.at(server).c_str()));
+                    server_names.get(server).c_str()));
             }
         }
     }
@@ -113,8 +113,9 @@ double estimate_backfill_cost(
         const table_config_and_shards_t &old_config,
         const server_id_t &server) {
     /* If `range` aligns perfectly to an existing shard, the cost is 0.0 if `server` is
-    already primary for that shard; 1.0 if it's already secondary; and 2.0 otherwise. If
-    `range` overlaps multiple existing shards' ranges, we average over all of them. */
+    already primary for that shard; 1.0 if it's a voting non-primary replica; 2.0 if it's
+    a non-voting replica; and 3.0 otherwise. If `range` overlaps multiple existing
+    shards' ranges, we average over all of them. */
     guarantee(!range.is_empty());
     double numerator = 0;
     int denominator = 0;
@@ -231,7 +232,8 @@ void table_generate_config(
         const table_generate_config_params_t &params,
         const table_shard_scheme_t &shard_scheme,
         signal_t *interruptor,
-        std::vector<table_config_t::shard_t> *config_shards_out)
+        std::vector<table_config_t::shard_t> *config_shards_out,
+        server_name_map_t *server_names_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,
             admin_op_exc_t) {
     long_calculation_yielder_t yielder;
@@ -240,23 +242,22 @@ void table_generate_config(
     tag. We have to make local copies because the values returned by
     `server_config_client` could change at any time, but we need the values to be
     consistent. */
-    std::map<server_id_t, name_string_t> server_names =
-        server_config_client->get_server_id_to_name_map()->get();
+    server_name_map_t server_names;
     std::map<name_string_t, std::set<server_id_t> > servers_with_tags;
-    for (auto it = params.num_replicas.begin(); it != params.num_replicas.end(); ++it) {
-        std::set<server_id_t> servers =
-            server_config_client->get_servers_with_tag(it->first);
-        auto pair = servers_with_tags.insert(
-            std::make_pair(it->first, std::set<server_id_t>()));
-        for (const server_id_t &server : servers) {
-            /* It's possible that due to a race condition, a server might appear in
-            `servers_with_tags` but not `server_names`. We filter such servers out so
-            that the code below us sees consistent data. */
-            if (server_names.count(server) == 1) {
-                pair.first->second.insert(server);
+    server_config_client->get_server_config_map()->read_all(
+    [&](const server_id_t &sid, const server_config_versioned_t *config) {
+        bool any = false;
+        for (const name_string_t &tag : config->config.tags) {
+            if (params.num_replicas.count(tag) != 0) {
+                servers_with_tags[tag].insert(sid);
+                any = true;
             }
         }
-    }
+        if (any) {
+            server_names.names.insert(std::make_pair(
+                sid, std::make_pair(config->version, config->config.name)));
+        }
+    });
 
     validate_params(params, servers_with_tags, server_names);
 
@@ -413,9 +414,13 @@ void table_generate_config(
             });
     }
 
-    for (size_t shard = 0; shard < params.num_shards; ++shard) {
-        guarantee(!(*config_shards_out)[shard].primary_replica.is_unset());
-        guarantee((*config_shards_out)[shard].all_replicas.size() == total_replicas);
+    for (size_t shard_ix = 0; shard_ix < params.num_shards; ++shard_ix) {
+        const table_config_t::shard_t &shard = (*config_shards_out)[shard_ix];
+        guarantee(!shard.primary_replica.is_unset());
+        guarantee(shard.all_replicas.size() == total_replicas);
+        for (const server_id_t &replica : shard.all_replicas) {
+            server_names_out->names[replica] = server_names.names.at(replica);
+        }
     }
 }
 

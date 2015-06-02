@@ -70,7 +70,8 @@ public:
         watchable_map_t<peer_id_t, multi_table_manager_bcard_t>
             *_multi_table_manager_directory,
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
-            *_table_manager_directory);
+            *_table_manager_directory,
+        server_config_client_t *_server_config_client);
 
     /* All of these functions can be called from any thread. */
 
@@ -119,6 +120,7 @@ public:
     /* `get_status()` returns detailed information about the table with the given ID:
       - A list of the secondary indexes on the table and the status of each one.
       - For each server, the server's Raft state and contract acks.
+      - The name of each server in `contracts_and_acks_out`.
       - Which server has the most up-to-date Raft state.
     It may block. */
     void get_status(
@@ -127,6 +129,7 @@ public:
         std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
             *index_statuses_out,
         std::map<server_id_t, contracts_and_contract_acks_t> *contracts_and_acks_out,
+        std::map<server_id_t, name_string_t> *server_names_out,
         server_id_t *latest_server_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t);
 
@@ -211,6 +214,7 @@ private:
         *const multi_table_manager_directory;
     watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
         *const table_manager_directory;
+    server_config_client_t *const server_config_client;
 
     /* `table_basic_configs` distributes the `table_basic_config_t`s from the
     `multi_table_manager_t` to each thread, so that `find()`, `get_name()`, and

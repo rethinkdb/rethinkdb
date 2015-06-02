@@ -29,11 +29,12 @@ void sindex_status_t::accum(const sindex_status_t &other) {
     blocks_processed += other.blocks_processed;
     blocks_total += other.blocks_total;
     ready &= other.ready;
+    start_time = std::min(start_time, other.start_time);
     rassert(outdated == other.outdated);
 }
 
-RDB_IMPL_SERIALIZABLE_4_SINCE_v1_16(sindex_status_t,
-    blocks_processed, blocks_total, ready, outdated);
+RDB_IMPL_SERIALIZABLE_5_SINCE_v1_16(sindex_status_t,
+    blocks_processed, blocks_total, ready, outdated, start_time);
 
 const char *rql_perfmon_name = "query_engine";
 

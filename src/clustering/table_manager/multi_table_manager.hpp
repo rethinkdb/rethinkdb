@@ -114,6 +114,34 @@ public:
         return &table_basic_configs;
     }
 
+    /* Calls `callable` for each table, it must have a signature of:
+           void(const namespace_id_t &table_id, multistore_ptr_t *, table_manager_t *)
+     */
+    template <typename F>
+    void visit_tables(signal_t *interruptor, const F &callable) {
+        /* Fetch information for all tables that we know about. First we get in line for
+        each mutex, then we release the global mutex assertion, then we wait for each
+        mutex to be ready and copy out its data. */
+        mutex_assertion_t::acq_t global_mutex_acq(&mutex);
+        std::map<namespace_id_t, scoped_ptr_t<new_mutex_in_line_t> >
+            table_mutex_in_lines;
+        for (const auto &pair : tables) {
+            table_mutex_in_lines[pair.first] =
+                make_scoped<new_mutex_in_line_t>(&pair.second->mutex);
+        }
+        global_mutex_acq.reset();
+        for (const auto &pair : table_mutex_in_lines) {
+            wait_interruptible(pair.second->acq_signal(), interruptor);
+            auto it = tables.find(pair.first);
+            guarantee(it != tables.end());
+            if (it->second->status == table_t::status_t::ACTIVE) {
+                callable(pair.first,
+                         it->second->multistore_ptr.get(),
+                         &(it->second->active->manager));
+            }
+        }
+    }
+
 private:
     /* The `multi_table_manager_t` has four possible states with respect to a table:
 
@@ -249,9 +277,9 @@ private:
     void on_get_config(
         signal_t *interruptor,
         const boost::optional<namespace_id_t> &table_id,
-        const mailbox_t<void(
-            std::map<namespace_id_t, table_config_and_shards_t>
-            )>::address_t &reply_addr);
+        const mailbox_t<void(std::map<namespace_id_t, std::pair<
+                table_config_and_shards_t, multi_table_manager_bcard_t::timestamp_t>
+            >)>::address_t &reply_addr);
 
     /* `do_sync()` checks if it is necessary to send an action message to the given
     server regarding the given table, and sends one if so. It is called in the following

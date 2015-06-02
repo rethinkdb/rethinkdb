@@ -85,6 +85,28 @@ void table_meta_client_t::list_names(
         });
 }
 
+bool supersedes_with_leader(
+        const multi_table_manager_bcard_t::timestamp_t &lhs_timestamp,
+        bool lhs_leader,
+        const multi_table_manager_bcard_t::timestamp_t &rhs_timestamp,
+        bool rhs_leader) {
+    /* This returns true if `lhs.supersedes(rhs)`, lexically ordering by
+    `(timestamp.epoch, leader, timestamp.log_index)`. */
+    if (lhs_timestamp.epoch.supersedes(rhs_timestamp.epoch)) {
+        return true;
+    } else if (rhs_timestamp.epoch.supersedes(lhs_timestamp.epoch)) {
+        return false;
+    } else {
+        if (lhs_leader > rhs_leader) {
+            return true;
+        } else if (rhs_leader > lhs_leader) {
+            return false;
+        } else {
+            return lhs_timestamp.log_index > rhs_timestamp.log_index;
+        }
+    }
+}
+
 void table_meta_client_t::get_config(
         const namespace_id_t &table_id,
         signal_t *interruptor_on_caller,
@@ -97,6 +119,7 @@ void table_meta_client_t::get_config(
         /* Find a mailbox of a server that claims to be hosting the given table */
         multi_table_manager_bcard_t::get_config_mailbox_t::address_t best_mailbox;
         multi_table_manager_bcard_t::timestamp_t best_timestamp;
+        bool best_leader = false;
         table_manager_directory->read_all(
         [&](const std::pair<peer_id_t, namespace_id_t> &key,
                 const table_manager_bcard_t *table_bcard) {
@@ -105,9 +128,14 @@ void table_meta_client_t::get_config(
                 [&](const multi_table_manager_bcard_t *server_bcard) {
                     if (server_bcard != nullptr) {
                         if (best_mailbox.is_nil() ||
-                                table_bcard->timestamp.supersedes(best_timestamp)) {
+                                supersedes_with_leader(
+                                    table_bcard->timestamp,
+                                    static_cast<bool>(table_bcard->leader),
+                                    best_timestamp,
+                                    best_leader)) {
                             best_mailbox = server_bcard->get_config_mailbox;
                             best_timestamp = table_bcard->timestamp;
+                            best_leader = static_cast<bool>(table_bcard->leader);
                         }
                     }
                 });
@@ -117,13 +145,19 @@ void table_meta_client_t::get_config(
             throw_appropriate_exception(table_id);
         }
 
+        typedef std::pair<
+            table_config_and_shards_t,
+            multi_table_manager_bcard_t::timestamp_t> timestamped_config_and_shards_t;
+
         /* Send a request to the server we found */
         disconnect_watcher_t dw(mailbox_manager, best_mailbox.get_peer());
-        promise_t<std::map<namespace_id_t, table_config_and_shards_t> > promise;
-        mailbox_t<void(std::map<namespace_id_t, table_config_and_shards_t>)> ack_mailbox(
+        promise_t<std::map<namespace_id_t, timestamped_config_and_shards_t> > promise;
+        mailbox_t<void(std::map<namespace_id_t, timestamped_config_and_shards_t>
+                )> ack_mailbox(
             mailbox_manager,
             [&](signal_t *,
-                    const std::map<namespace_id_t, table_config_and_shards_t> &configs) {
+                    const std::map<namespace_id_t, timestamped_config_and_shards_t>
+                        &configs) {
                 promise.pulse(configs);
             });
         send(mailbox_manager, best_mailbox,
@@ -133,13 +167,13 @@ void table_meta_client_t::get_config(
         if (!promise.is_pulsed()) {
             throw_appropriate_exception(table_id);
         }
-        std::map<namespace_id_t, table_config_and_shards_t> maybe_result =
+        std::map<namespace_id_t, timestamped_config_and_shards_t> maybe_result =
             promise.assert_get_value();
         if (maybe_result.empty()) {
             throw_appropriate_exception(table_id);
         }
         guarantee(maybe_result.size() == 1);
-        *config_out = maybe_result.at(table_id);
+        *config_out = maybe_result.at(table_id).first;
     }, &interruptor);
 }
 
@@ -159,25 +193,42 @@ void table_meta_client_t::list_configs(
         addresses.push_back(server_bcard->get_config_mailbox);
     });
 
+    typedef std::pair<
+        table_config_and_shards_t,
+        multi_table_manager_bcard_t::timestamp_t> timestamped_config_and_shards_t;
+
+    std::map<namespace_id_t, multi_table_manager_bcard_t::timestamp_t> timestamps;
+
     /* Send a message to every server and collect all of the results */
     pmap(addresses.begin(), addresses.end(),
     [&](const multi_table_manager_bcard_t::get_config_mailbox_t::address_t &a) {
         disconnect_watcher_t dw(mailbox_manager, a.get_peer());
-        promise_t<std::map<namespace_id_t, table_config_and_shards_t> > promise;
-        mailbox_t<void(std::map<namespace_id_t, table_config_and_shards_t>)> ack_mailbox(
+        promise_t<std::map<namespace_id_t, timestamped_config_and_shards_t> > promise;
+        mailbox_t<void(std::map<namespace_id_t, timestamped_config_and_shards_t>
+            )> ack_mailbox(
         mailbox_manager,
         [&](signal_t *,
-                const std::map<namespace_id_t, table_config_and_shards_t> &configs) {
-            promise.pulse(configs);
+                const std::map<namespace_id_t, timestamped_config_and_shards_t>
+                    &results) {
+            promise.pulse(results);
         });
         send(mailbox_manager, a,
             boost::optional<namespace_id_t>(), ack_mailbox.get_address());
         wait_any_t done_cond(promise.get_ready_signal(), &dw, &interruptor);
         done_cond.wait_lazily_unordered();
         if (promise.get_ready_signal()->is_pulsed()) {
-            std::map<namespace_id_t, table_config_and_shards_t> maybe_result =
+            std::map<namespace_id_t, timestamped_config_and_shards_t> maybe_results =
                 promise.assert_get_value();
-            configs_out->insert(maybe_result.begin(), maybe_result.end());
+            for (const auto &result : maybe_results) {
+                /* Insert the result if it's new, or if its timestamp supersedes the
+                result we already have. */
+                auto timestamp_it = timestamps.find(result.first);
+                if (timestamp_it == timestamps.end() ||
+                        result.second.second.supersedes(timestamp_it->second)) {
+                    (*configs_out)[result.first] = std::move(result.second.first);
+                    timestamps[result.first] = std::move(result.second.second);
+                }
+            }
         }
     });
 
@@ -202,6 +253,7 @@ void table_meta_client_t::get_status(
         std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
             *sindex_statuses_out,
         std::map<server_id_t, contracts_and_contract_acks_t> *contracts_and_acks_out,
+        std::map<server_id_t, name_string_t> *server_names_out,
         server_id_t *latest_server_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t) {
     typedef std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
@@ -265,6 +317,23 @@ void table_meta_client_t::get_status(
             [&](signal_t *,
                     const index_statuses_t &statuses,
                     const contracts_and_contract_acks_t &contracts_and_acks) {
+
+                /* Fetch the server's name. The reason we fetch the server's name here is
+                so that we want to put the name in `server_names_out` iff we put an entry
+                in `contracts_and_acks_out`. */
+                boost::optional<server_config_versioned_t> config =
+                    server_config_client->get_server_config_map()
+                        ->get_key(bcard.server_id);
+                if (!static_cast<bool>(config)) {
+                    /* The server disconnected. */
+                    server_stopped.pulse_if_not_already_pulsed();
+                    return;
+                }
+                if (server_names_out != nullptr) {
+                    server_names_out->insert(
+                        std::make_pair(bcard.server_id, config->config.name));
+                }
+
                 /* Make sure every sindex in the config is present in the reply from this
                 server. If a sindex isn't present on this server, we set its `ready`
                 field to false. */
@@ -592,11 +661,8 @@ void table_meta_client_t::create_or_emergency_repair(
     std::set<server_id_t> all_servers, voting_servers;
     for (const table_config_t::shard_t &shard : raft_state.state.config.config.shards) {
         all_servers.insert(shard.all_replicas.begin(), shard.all_replicas.end());
-        for (const server_id_t &server : shard.all_replicas) {
-            if (shard.nonvoting_replicas.count(server) == 0) {
-                voting_servers.insert(server);
-            }
-        }
+        std::set<server_id_t> voters = shard.voting_replicas();
+        voting_servers.insert(voters.begin(), voters.end());
     }
 
     raft_config_t raft_config;

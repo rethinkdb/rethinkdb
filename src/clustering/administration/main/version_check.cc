@@ -64,12 +64,12 @@ void version_checker_t::do_check(bool is_initial, auto_drainer_t::lock_t keepali
         opts.url = "http://update.rethinkdb.com/checkin";
         opts.header.push_back("Content-Type: application/x-www-form-urlencoded");
         opts.form_data["Version"] = RETHINKDB_VERSION;
-        opts.form_data["Number-Of-Servers"]
-            = strprintf("%zu", count_non_deleted(snapshot.servers.servers));
         opts.form_data["Uname"] = uname;
-        // RSI(raft): Reimplement this once table meta operations work
+        // RSI(raft): Reimplement this
         return;
 #if 0
+        opts.form_data["Number-Of-Servers"]
+            = strprintf("%zu", count_non_deleted(snapshot.servers.servers));
         opts.form_data["Cooked-Number-Of-Tables"]
             = strprintf("%" PR_RECONSTRUCTABLE_DOUBLE,
                         cook(count_non_deleted(snapshot.rdb_namespaces->namespaces));

@@ -72,11 +72,21 @@ RDB_DECLARE_SERIALIZABLE(sindex_config_t);
 class sindex_status_t {
 public:
     sindex_status_t() :
-        blocks_processed(0), blocks_total(0), ready(true), outdated(false) { }
+        blocks_processed(0),
+        blocks_total(0),
+        ready(true),
+        outdated(false),
+        start_time(-1) { }
     void accum(const sindex_status_t &other);
     size_t blocks_processed, blocks_total;
     bool ready;
     bool outdated;
+    /* Note that `start_time` is only valid when `ready` is false, and while we
+    serialize it it's relative to the local clock. If this becomes a problem in the
+    future you can apply the same solution as in
+        `void serialize(write_message_t *wm, const batchspec_t &batchspec)`,
+    but that's relatively expensive. */
+    microtime_t start_time;
 };
 RDB_DECLARE_SERIALIZABLE(sindex_status_t);
 

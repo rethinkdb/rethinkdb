@@ -49,7 +49,8 @@ void calculate_status(
         table_meta_client_t *table_meta_client,
         server_config_client_t *server_config_client,
         table_readiness_t *readiness_out,
-        std::vector<shard_status_t> *shard_statuses_out)
+        std::vector<shard_status_t> *shard_statuses_out,
+        server_name_map_t *server_names_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t);
 
 #endif /* CLUSTERING_ADMINISTRATION_TABLES_CALCULATE_STATUS_HPP_ */
