@@ -119,7 +119,8 @@ table_raft_state_t make_new_table_raft_state(
     for (size_t i = 0; i < config.shard_scheme.num_shards(); ++i) {
         const table_config_t::shard_t &shard_conf = config.config.shards[i];
         contract_t contract;
-        contract.replicas = contract.voters = shard_conf.replicas;
+        contract.replicas = shard_conf.all_replicas;
+        contract.voters = shard_conf.voting_replicas();
         if (!shard_conf.primary_replica.is_nil()) {
             contract.primary = boost::make_optional(
                 contract_t::primary_t { shard_conf.primary_replica, boost::none });
@@ -132,7 +133,7 @@ table_raft_state_t make_new_table_raft_state(
             state.contracts.insert(std::make_pair(generate_uuid(),
                 std::make_pair(region, contract)));
         }
-        for (const server_id_t &server_id : shard_conf.replicas) {
+        for (const server_id_t &server_id : shard_conf.all_replicas) {
             if (state.member_ids.count(server_id) == 0) {
                 state.member_ids[server_id] = raft_member_id_t(generate_uuid());
             }

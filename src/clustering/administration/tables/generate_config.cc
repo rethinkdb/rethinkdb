@@ -43,7 +43,7 @@ void calculate_server_usage(
         const table_config_t &config,
         std::map<server_id_t, int> *usage) {
     for (const table_config_t::shard_t &shard : config.shards) {
-        for (const server_id_t &server : shard.replicas) {
+        for (const server_id_t &server : shard.all_replicas) {
             (*usage)[server] += SECONDARY_USAGE_COST;
         }
         (*usage)[shard.primary_replica] += (PRIMARY_USAGE_COST - SECONDARY_USAGE_COST);
@@ -78,6 +78,14 @@ static void validate_params(
             "because you specified no replicas in server tag `%s`.",
             params.primary_replica_tag.c_str(), params.primary_replica_tag.c_str()));
     }
+    for (const name_string_t &nonvoting_tag : params.nonvoting_replica_tags) {
+        if (params.num_replicas.count(nonvoting_tag) == 0) {
+            throw admin_op_exc_t(strprintf("You specified that the replicas in server "
+                "tag `%s` should be non-voting, but you didn't specify a number of "
+                "replicas in server tag `%s`.",
+                nonvoting_tag.c_str(), nonvoting_tag.c_str()));
+        }
+    }
     std::map<server_id_t, name_string_t> servers_claimed;
     for (auto it = params.num_replicas.begin(); it != params.num_replicas.end(); ++it) {
         if (it->second == 0) {
@@ -105,8 +113,9 @@ double estimate_backfill_cost(
         const table_config_and_shards_t &old_config,
         const server_id_t &server) {
     /* If `range` aligns perfectly to an existing shard, the cost is 0.0 if `server` is
-    already primary for that shard; 1.0 if it's already secondary; and 2.0 otherwise. If
-    `range` overlaps multiple existing shards' ranges, we average over all of them. */
+    already primary for that shard; 1.0 if it's a voting non-primary replica; 2.0 if it's
+    a non-voting replica; and 3.0 otherwise. If `range` overlaps multiple existing
+    shards' ranges, we average over all of them. */
     guarantee(!range.is_empty());
     double numerator = 0;
     int denominator = 0;
@@ -115,10 +124,14 @@ double estimate_backfill_cost(
             ++denominator;
             if (old_config.config.shards[i].primary_replica == server) {
                 numerator += 0.0;
-            } else if (old_config.config.shards[i].replicas.count(server)) {
-                numerator += 1.0;
+            } else if (old_config.config.shards[i].all_replicas.count(server)) {
+                if (old_config.config.shards[i].nonvoting_replicas.count(server) == 0) {
+                    numerator += 1.0;
+                } else {
+                    numerator += 2.0;
+                }
             } else {
-                numerator += 2.0;
+                numerator += 3.0;
             }
         }
     }
@@ -361,7 +374,7 @@ void table_generate_config(
                 interruptor,
                 [&](size_t shard, const server_id_t &server) {
                     guarantee(config_shards_out->at(shard).primary_replica.is_unset());
-                    config_shards_out->at(shard).replicas.insert(server);
+                    config_shards_out->at(shard).all_replicas.insert(server);
                     config_shards_out->at(shard).primary_replica = server;
                     /* We have to update `pairings` as priamry replicas are selected so
                     that our second call to `pick_best_pairings()` will take into account
@@ -394,15 +407,18 @@ void table_generate_config(
             &yielder,
             interruptor,
             [&](size_t shard, const server_id_t &server) {
-                (*config_shards_out)[shard].replicas.insert(server);
+                (*config_shards_out)[shard].all_replicas.insert(server);
+                if (params.nonvoting_replica_tags.count(it->first) == 1) {
+                    (*config_shards_out)[shard].nonvoting_replicas.insert(server);
+                }
             });
     }
 
     for (size_t shard_ix = 0; shard_ix < params.num_shards; ++shard_ix) {
         const table_config_t::shard_t &shard = (*config_shards_out)[shard_ix];
         guarantee(!shard.primary_replica.is_unset());
-        guarantee(shard.replicas.size() == total_replicas);
-        for (const server_id_t &replica : shard.replicas) {
+        guarantee(shard.all_replicas.size() == total_replicas);
+        for (const server_id_t &replica : shard.all_replicas) {
             server_names_out->names[replica] = server_names.names.at(replica);
         }
     }

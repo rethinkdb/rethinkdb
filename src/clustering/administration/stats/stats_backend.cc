@@ -139,7 +139,7 @@ bool stats_artificial_table_backend_t::read_all_rows_as_vector(
     for (const auto &table_pair : configs) {
         std::set<namespace_id_t> servers;
         for (const auto &shard : table_pair.second.config.shards) {
-            servers.insert(shard.replicas.begin(), shard.replicas.end());
+            servers.insert(shard.all_replicas.begin(), shard.all_replicas.end());
         }
         for (const auto &server : servers) {
             maybe_append_result(

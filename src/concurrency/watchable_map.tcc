@@ -159,7 +159,7 @@ void watchable_map_var_t<key_t, value_t>::entry_t::set_no_equals(
     guarantee(parent != nullptr);
     rwi_lock_assertion_t::write_acq_t write_acq(&parent->rwi_lock);
     iterator->second = new_value;
-    parent->notify_change(iterator->first, iterator->second, &write_acq);
+    parent->notify_change(iterator->first, &iterator->second, &write_acq);
 }
 
 template<class key_t, class value_t>

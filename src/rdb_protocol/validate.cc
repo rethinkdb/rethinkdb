@@ -212,6 +212,7 @@ static std::set<std::string> acceptable_keys = {
     "min_batch_rows",
     "multi",
     "non_atomic",
+    "nonvoting_replica_tags",
     "noreply",
     "num_vertices",
     "overwrite",

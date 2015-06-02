@@ -12,22 +12,23 @@
 
 namespace ql {
 
-name_string_t get_name(const scoped_ptr_t<val_t> &val, const char *type_str) {
-    r_sanity_check(val.has());
-    const datum_string_t &raw_name = val->as_str();
+name_string_t get_name(bt_rcheckable_t *target, const datum_string_t &raw_name,
+                       const char *type_str) {
     name_string_t name;
     bool assignment_successful = name.assign_value(raw_name);
-    rcheck_target(val.get(),
-                  assignment_successful,
-                  base_exc_t::GENERIC,
-                  strprintf("%s name `%s` invalid (%s).",
-                            type_str,
-                            raw_name.to_std().c_str(),
-                            name_string_t::valid_char_msg));
+    rcheck_target(target, assignment_successful, base_exc_t::GENERIC,
+        strprintf("%s name `%s` invalid (%s).",
+            type_str, raw_name.to_std().c_str(), name_string_t::valid_char_msg));
     return name;
 }
 
+name_string_t get_name(const scoped_ptr_t<val_t> &name, const char *type_str) {
+    r_sanity_check(name.has());
+    return get_name(name.get(), name->as_str(), type_str);
+}
+
 void get_replicas_and_primary(const scoped_ptr_t<val_t> &replicas,
+                              const scoped_ptr_t<val_t> &nonvoting_replica_tags,
                               const scoped_ptr_t<val_t> &primary_replica_tag,
                               table_generate_config_params_t *params) {
     if (replicas.has()) {
@@ -38,12 +39,7 @@ void get_replicas_and_primary(const scoped_ptr_t<val_t> &replicas,
                 "`primary_replica_tag` must be specified when `replicas` is an OBJECT.");
             for (size_t i = 0; i < datum.obj_size(); ++i) {
                 std::pair<datum_string_t, datum_t> pair = datum.get_pair(i);
-                name_string_t name;
-                bool assignment_successful = name.assign_value(pair.first);
-                rcheck_target(replicas, assignment_successful, base_exc_t::GENERIC,
-                    strprintf("Server tag name `%s` invalid (%s).",
-                              pair.first.to_std().c_str(),
-                              name_string_t::valid_char_msg));
+                name_string_t name = get_name(replicas.get(), pair.first, "Server tag");
                 int64_t count = checked_convert_to_int(replicas.get(),
                                                        pair.second.as_num());
                 rcheck_target(replicas.get(), count >= 0,
@@ -55,10 +51,16 @@ void get_replicas_and_primary(const scoped_ptr_t<val_t> &replicas,
                 params->num_replicas.insert(std::make_pair(name, size_count));
             }
         } else if (datum.get_type() == datum_t::R_NUM) {
-            rcheck_target(replicas.get(), !primary_replica_tag.has(), base_exc_t::GENERIC,
+            rcheck_target(
+                replicas.get(), !primary_replica_tag.has(), base_exc_t::GENERIC,
                 "`replicas` must be an OBJECT if `primary_replica_tag` is specified.");
+            rcheck_target(
+                replicas.get(), !nonvoting_replica_tags.has(), base_exc_t::GENERIC,
+                "`replicas` must be an OBJECT if `nonvoting_replica_tags` is "
+                "specified.");
             size_t count = replicas->as_int<size_t>();
-            params->num_replicas.insert(std::make_pair(params->primary_replica_tag, count));
+            params->num_replicas.insert(
+                std::make_pair(params->primary_replica_tag, count));
         } else {
             rfail_target(replicas, base_exc_t::GENERIC,
                 "Expected type OBJECT or NUMBER but found %s:\n%s",
@@ -66,8 +68,26 @@ void get_replicas_and_primary(const scoped_ptr_t<val_t> &replicas,
         }
     }
 
+    if (nonvoting_replica_tags.has()) {
+        params->nonvoting_replica_tags.clear();
+        datum_t datum = nonvoting_replica_tags->as_datum();
+        rcheck_target(nonvoting_replica_tags.get(), datum.get_type() == datum_t::R_ARRAY,
+            base_exc_t::GENERIC, strprintf("Expected type ARRAY but found %s:\n%s",
+            datum.get_type_name().c_str(), datum.print().c_str()));
+        for (size_t i = 0; i < datum.arr_size(); ++i) {
+            datum_t tag = datum.get(i);
+            rcheck_target(
+                nonvoting_replica_tags.get(), tag.get_type() == datum_t::R_STR,
+                base_exc_t::GENERIC, strprintf("Expected type STRING but found %s:\n%s",
+                tag.get_type_name().c_str(), tag.print().c_str()));
+            params->nonvoting_replica_tags.insert(get_name(
+                nonvoting_replica_tags.get(), tag.as_str(), "Server tag"));
+        }
+    }
+
     if (primary_replica_tag.has()) {
-        params->primary_replica_tag = get_name(primary_replica_tag, "Server tag");
+        params->primary_replica_tag = get_name(
+            primary_replica_tag.get(), primary_replica_tag->as_str(), "Server tag");
     }
 }
 
@@ -124,7 +144,8 @@ public:
     table_create_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : meta_op_term_t(env, term, argspec_t(1, 2),
             optargspec_t({"primary_key", "shards", "replicas",
-                          "primary_replica_tag", "durability"})) { }
+                          "nonvoting_replica_tags", "primary_replica_tag",
+                          "durability"})) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
             scope_env_t *env, args_t *args, eval_flags_t) const {
@@ -139,8 +160,9 @@ private:
             config_params.num_shards = shards_optarg->as_int();
         }
 
-        // Parse the 'replicas' and 'primary_replica_tag' optargs
+        // Parse the 'replicas', 'nonvoting_replica_tags', and 'primary_replica_tag' optargs
         get_replicas_and_primary(args->optarg(env, "replicas"),
+                                 args->optarg(env, "nonvoting_replica_tags"),
                                  args->optarg(env, "primary_replica_tag"),
                                  &config_params);
 
@@ -454,7 +476,8 @@ class reconfigure_term_t : public table_or_db_meta_term_t {
 public:
     reconfigure_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : table_or_db_meta_term_t(env, term,
-            optargspec_t({"primary_replica_tag", "dry_run", "replicas", "shards"})) { }
+            optargspec_t({"nonvoting_replica_tags", "primary_replica_tag", "dry_run",
+                          "replicas", "shards"})) { }
 private:
     scoped_ptr_t<val_t> required_optarg(scope_env_t *env,
                                         args_t *args,
@@ -479,8 +502,9 @@ private:
                       "Every table must have at least one shard.");
         config_params.num_shards = shards_optarg->as_int();
 
-        // Parse the 'replicas' and 'primary_replica_tag' optargs
+        // Parse the 'replicas', 'nonvoting_replica_tags', and 'primary_replica_tag' optargs
         get_replicas_and_primary(required_optarg(env, args, "replicas"),
+                                 args->optarg(env, "nonvoting_replica_tags"),
                                  args->optarg(env, "primary_replica_tag"),
                                  &config_params);
 

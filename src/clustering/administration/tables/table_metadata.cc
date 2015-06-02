@@ -17,10 +17,10 @@ RDB_IMPL_SERIALIZABLE_3_SINCE_v1_16(table_basic_config_t,
 RDB_IMPL_EQUALITY_COMPARABLE_3(table_basic_config_t,
     name, database, primary_key);
 
-RDB_IMPL_SERIALIZABLE_2_SINCE_v1_16(table_config_t::shard_t,
-                                    replicas, primary_replica);
-RDB_IMPL_EQUALITY_COMPARABLE_2(table_config_t::shard_t,
-                               replicas, primary_replica);
+RDB_IMPL_SERIALIZABLE_3_SINCE_v1_16(table_config_t::shard_t,
+    all_replicas, nonvoting_replicas, primary_replica);
+RDB_IMPL_EQUALITY_COMPARABLE_3(table_config_t::shard_t,
+    all_replicas, nonvoting_replicas, primary_replica);
 
 RDB_IMPL_SERIALIZABLE_5_SINCE_v1_16(table_config_t,
     basic, shards, sindexes, write_ack_config, durability);

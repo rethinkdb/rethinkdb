@@ -205,7 +205,6 @@ void table_meta_client_t::get_status(
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t) {
     typedef std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
         index_statuses_t;
-    typedef std::map<peer_id_t, contracts_and_contract_acks_t> contracts_and_acks_t;
 
     cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
@@ -328,16 +327,22 @@ void table_meta_client_t::create(
     timestamp.epoch.id = generate_uuid();
     timestamp.log_index = 0;
 
-    std::set<server_id_t> servers;
+    std::set<server_id_t> all_servers, voting_servers;
     for (const table_config_t::shard_t &shard : initial_config.config.shards) {
-        servers.insert(shard.replicas.begin(), shard.replicas.end());
+        all_servers.insert(shard.all_replicas.begin(), shard.all_replicas.end());
+        std::set<server_id_t> voters = shard.voting_replicas();
+        voting_servers.insert(voters.begin(), voters.end());
     }
 
     table_raft_state_t raft_state = make_new_table_raft_state(initial_config);
 
     raft_config_t raft_config;
-    for (const server_id_t &server_id : servers) {
-        raft_config.voting_members.insert(raft_state.member_ids.at(server_id));
+    for (const server_id_t &server_id : all_servers) {
+        if (voting_servers.count(server_id) == 1) {
+            raft_config.voting_members.insert(raft_state.member_ids.at(server_id));
+        } else {
+            raft_config.non_voting_members.insert(raft_state.member_ids.at(server_id));
+        }
     }
     raft_persistent_state_t<table_raft_state_t> raft_ps =
         raft_persistent_state_t<table_raft_state_t>::make_initial(
@@ -347,7 +352,7 @@ void table_meta_client_t::create(
     std::map<server_id_t, multi_table_manager_bcard_t> bcards;
     multi_table_manager_directory->read_all(
         [&](const peer_id_t &, const multi_table_manager_bcard_t *bc) {
-            if (servers.count(bc->server_id) == 1) {
+            if (all_servers.count(bc->server_id) == 1) {
                 bcards[bc->server_id] = *bc;
             }
         });
