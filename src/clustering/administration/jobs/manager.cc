@@ -122,29 +122,27 @@ void jobs_manager_t::on_get_job_reports(
     [&](const namespace_id_t &table_id,
             UNUSED multistore_ptr_t *multistore_ptr,
             table_manager_t *table_manager) {
-        if (table_manager != nullptr) {
-            std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > statuses =
-                table_manager->get_sindex_manager().get_status(interruptor);
-            for (const auto &status : statuses) {
-                uuid_u id = uuid_u::from_hash(
-                    base_sindex_id, uuid_to_str(table_id) + status.first);
+        std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > statuses =
+            table_manager->get_sindex_manager().get_status(interruptor);
+        for (const auto &status : statuses) {
+            uuid_u id = uuid_u::from_hash(
+                base_sindex_id, uuid_to_str(table_id) + status.first);
 
-                /* Note that we only calculate the duration if the index construction is
-                   still in progress. */
-                double duration = status.second.second.ready
-                    ? 0
-                    : time - std::min(status.second.second.start_time, time);
+            /* Note that we only calculate the duration if the index construction is
+               still in progress. */
+            double duration = status.second.second.ready
+                ? 0
+                : time - std::min(status.second.second.start_time, time);
 
-                index_construction_job_reports.emplace_back(
-                    id,
-                    duration,
-                    server_id,
-                    table_id,
-                    status.first,
-                    status.second.second.ready,
-                    status.second.second.blocks_processed,
-                    status.second.second.blocks_total);
-            }
+            index_construction_job_reports.emplace_back(
+                id,
+                duration,
+                server_id,
+                table_id,
+                status.first,
+                status.second.second.ready,
+                status.second.second.blocks_processed,
+                status.second.second.blocks_total);
         }
     });
 

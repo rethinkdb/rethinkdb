@@ -134,11 +134,11 @@ public:
             wait_interruptible(pair.second->acq_signal(), interruptor);
             auto it = tables.find(pair.first);
             guarantee(it != tables.end());
-            table_manager_t *table_manager = nullptr;
             if (it->second->status == table_t::status_t::ACTIVE) {
-                table_manager = &(it->second->active->manager);
+                callable(pair.first,
+                         it->second->multistore_ptr.get(),
+                         &(it->second->active->manager));
             }
-            callable(pair.first, it->second->multistore_ptr.get(), table_manager);
         }
     }
 
