@@ -146,7 +146,7 @@ public:
 
     template <class... T>
     void add_args(T &&... args) {
-        UNUSED int _[] = { (add_arg(std::forward<T>(args)), 1)... };
+        UNUSED int _[] = { 1, (add_arg(std::forward<T>(args)), 1)... };
     }
 
     template<class T>

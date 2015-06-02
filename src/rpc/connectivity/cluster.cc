@@ -357,7 +357,7 @@ void connectivity_cluster_t::run_t::join_blocking(
     static_semaphore_t rate_control(peer.ips().size()); // Mutex to control the rate that connection attempts are made
     rate_control.co_lock(peer.ips().size() - 1); // Start with only one coroutine able to run
 
-    pmap(peer.ips().size(),
+    pmap(peer.ips().size(), /* TODO ATN casting from int64_t to int */
          std::bind(&connectivity_cluster_t::run_t::connect_to_peer,
                    this,
                    &peer,

@@ -48,6 +48,10 @@ The dependency on Protobuf will hopefully go away soon.
 * Extracting the tar file may have created symlinks that don't work in VC++. They can be converted by doing ```for x in `find . -type l`; do mv -f `readlink $x` $x; done```
 * TODO: build
 
+## ICU
+
+* 
+
 ## RethinkDB
 
 * Open `RethinkDB.sln`
@@ -81,7 +85,7 @@ The dependency on Protobuf will hopefully go away soon.
 * test blocker pool, maybe use windowswindows-specific pool
 * make sure it still builds on linux
 * keep up-to-date with next/raft/sunos
-* build without /force:unresolved LDFLAG
+* build without /force:unresolved LDFLAG 
 * rebuild with MSC and examine all the int32 -> int64 warnings.
 * restore the msvc-specific s2 code
 * ensure that aligned pointers are freed correctly

@@ -113,7 +113,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
       <ObjectFileName>$(IntDir)/%(RelativeDir)/</ObjectFileName>
-      <AdditionalIncludeDirectories>$(ProjectDir)\..\protobuf-2.5.0\vsprojects\include;$(ProjectDir)\..\boost_1_58_0;$(ProjectDir)\external\gtest_1.7.0\include;$(ProjectDir)\windows_stub;$(ProjectDir)\..\re2;$(ProjectDir)\..\openssl-1.0.2a\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\protobuf-2.5.0\vsprojects\include;$(ProjectDir)\..\boost_1_58_0;$(ProjectDir)\external\gtest_1.7.0\include;$(ProjectDir)\windows_stub;$(ProjectDir)\..\re2;$(ProjectDir)\..\openssl-1.0.2a\include;$(ProjectDir)\external\icu_54.1\source\common</AdditionalIncludeDirectories>
       <PreprocessToFile>false</PreprocessToFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -160,7 +160,7 @@
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <ObjectFileName>$(IntDir)/%(RelativeDir)/</ObjectFileName>
-      <AdditionalIncludeDirectories>$(ProjectDir)\..\protobuf-2.5.0\vsprojects\include;$(ProjectDir)\..\boost_1_58_0;$(ProjectDir)\external\gtest_1.7.0\include;$(ProjectDir)\windows_stub;$(ProjectDir)\..\re2;$(ProjectDir)\..\openssl-1.0.2a\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\protobuf-2.5.0\vsprojects\include;$(ProjectDir)\..\boost_1_58_0;$(ProjectDir)\external\gtest_1.7.0\include;$(ProjectDir)\windows_stub;$(ProjectDir)\..\re2;$(ProjectDir)\..\openssl-1.0.2a\include;$(ProjectDir)\external\icu_54.1\source\common</AdditionalIncludeDirectories>
       <PreprocessToFile>false</PreprocessToFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -754,7 +754,14 @@
     <ClCompile Include="src\rdb_protocol\context.cc" />
     <ClCompile Include="src\rdb_protocol\datum.cc" />
     <ClCompile Include="src\rdb_protocol\datum_string.cc" />
+    <ClCompile Include="src\rdb_protocol\geo\distances.cc" />
+    <ClCompile Include="src\rdb_protocol\geo\ellipsoid.cc" />
+    <ClCompile Include="src\rdb_protocol\geo\geojson.cc" />
+    <ClCompile Include="src\rdb_protocol\geo\inclusion.cc" />
+    <ClCompile Include="src\rdb_protocol\geo\indexing.cc" />
+    <ClCompile Include="src\rdb_protocol\geo\intersection.cc" />
     <ClCompile Include="src\rdb_protocol\geo\karney\geodesic.cc" />
+    <ClCompile Include="src\rdb_protocol\geo\primitives.cc" />
     <ClCompile Include="src\rdb_protocol\geo\s2\base\int128.cc" />
     <ClCompile Include="src\rdb_protocol\geo\s2\base\logging.cc" />
     <ClCompile Include="src\rdb_protocol\geo\s2\base\stringprintf.cc" />
@@ -794,6 +801,31 @@
     <ClCompile Include="src\rdb_protocol\pseudo_literal.cc" />
     <ClCompile Include="src\rdb_protocol\pseudo_time.cc" />
     <ClCompile Include="src\rdb_protocol\rdb_protocol_json.cc" />
+    <ClCompile Include="src\rdb_protocol\terms\arith.cc" />
+    <ClCompile Include="src\rdb_protocol\terms\arr.cc" />
+    <ClCompile Include="src\rdb_protocol\terms\case.cc" />
+    <ClCompile Include="src\rdb_protocol\terms\control.cc" />
+    <ClCompile Include="src\rdb_protocol\terms\datum_terms.cc" />
+    <ClCompile Include="src\rdb_protocol\terms\db_table.cc" />
+    <ClCompile Include="src\rdb_protocol\terms\error.cc" />
+    <ClCompile Include="src\rdb_protocol\terms\geo.cc" />
+    <ClCompile Include="src\rdb_protocol\terms\http.cc" />
+    <ClCompile Include="src\rdb_protocol\terms\js.cc" />
+    <ClCompile Include="src\rdb_protocol\terms\json.cc" />
+    <ClCompile Include="src\rdb_protocol\terms\obj.cc" />
+    <ClCompile Include="src\rdb_protocol\terms\obj_or_seq.cc" />
+    <ClCompile Include="src\rdb_protocol\terms\pred.cc" />
+    <ClCompile Include="src\rdb_protocol\terms\random.cc" />
+    <ClCompile Include="src\rdb_protocol\terms\rewrites.cc" />
+    <ClCompile Include="src\rdb_protocol\terms\seq.cc" />
+    <ClCompile Include="src\rdb_protocol\terms\sindex.cc" />
+    <ClCompile Include="src\rdb_protocol\terms\sort.cc" />
+    <ClCompile Include="src\rdb_protocol\terms\string.cc" />
+    <ClCompile Include="src\rdb_protocol\terms\time.cc" />
+    <ClCompile Include="src\rdb_protocol\terms\type_manip.cc" />
+    <ClCompile Include="src\rdb_protocol\terms\uuid.cc" />
+    <ClCompile Include="src\rdb_protocol\terms\var.cc" />
+    <ClCompile Include="src\rdb_protocol\terms\writes.cc" />
     <ClCompile Include="src\rethinkdb_backtrace.cc" />
     <ClCompile Include="src\rpc\connectivity\cluster.cc" />
     <ClCompile Include="src\rpc\connectivity\peer_id.cc" />

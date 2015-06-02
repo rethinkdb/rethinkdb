@@ -70,11 +70,11 @@ private:
         function_shortcut_t shortcut = CONSTANT_SHORTCUT;
         eval_flags_t flags = NO_FLAGS;
         if (scoped_ptr_t<val_t> v = args->optarg(env, "_SHORTCUT_")) {
-            shortcut = static_cast<function_shortcut_t>(v->as_num());
+            shortcut = static_cast<function_shortcut_t>(static_cast<int>(v->as_num()));
         }
 
         if (scoped_ptr_t<val_t> v = args->optarg(env, "_EVAL_FLAGS_")) {
-            flags = static_cast<eval_flags_t>(v->as_num());
+            flags = static_cast<eval_flags_t>(static_cast<int>(v->as_num()));
         }
 
         /* This switch exists just to make sure that we don't get a bogus value
