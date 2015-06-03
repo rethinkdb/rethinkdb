@@ -105,6 +105,26 @@ tests:
       rb: db.table('a').reconfigure(:shards => 1, :replicas => 1, :dry_run => true)
       ot: partial({'reconfigured':0})
 
+    - py: db.table('a').reconfigure(emergency_repair="unsafe_rollback")
+      js: db.table('a').reconfigure({emergency_repair:"unsafe_rollback"})
+      rb: db.table('a').reconfigure(:emergency_repair => "unsafe_rollback")
+      ot: err('RqlRuntimeError', 'This table doesn\'t need to be repaired.', [])
+
+    - py: db.table('a').reconfigure(emergency_repair="unsafe_rollback", dry_run=True)
+      js: db.table('a').reconfigure({emergency_repair:"unsafe_rollback", dry_run:true})
+      rb: db.table('a').reconfigure(:emergency_repair => "unsafe_rollback", :dry_run => true)
+      ot: err('RqlRuntimeError', 'This table doesn\'t need to be repaired.', [])
+
+    - py: db.table('a').reconfigure(emergency_repair="unsafe_rollback_or_erase")
+      js: db.table('a').reconfigure({emergency_repair:"unsafe_rollback_or_erase"})
+      rb: db.table('a').reconfigure(:emergency_repair => "unsafe_rollback_or_erase")
+      ot: err('RqlRuntimeError', 'This table doesn\'t need to be repaired.', [])
+
+    - py: db.table('a').reconfigure(emergency_repair=None, shards=1, replicas=1, dry_run=True)
+      js: db.table('a').reconfigure({emergency_repair:null, shards:1, replicas:1, dry_run:true})
+      rb: db.table('a').reconfigure(:emergency_repair => null, :shards => 1, :replicas => 1, :dry_run => true)
+      ot: partial({'reconfigured':0})
+
     - cd: db.table_drop('a')
       ot: partial({'tables_dropped':1})
 
@@ -186,6 +206,23 @@ tests:
       ot: >
           err('RqlRuntimeError', '`replicas` must be an OBJECT if
           `nonvoting_replica_tags` is specified.', [])
+
+    - py: db.reconfigure(emergency_repair="unsafe_rollback")
+      js: db.reconfigure({emergency_repair:"unsafe_rollback"})
+      rb: db.reconfigure(:emergency_repair => "unsafe_rollback")
+      ot: >
+          err('RqlRuntimeError', 'Can\'t emergency repair an entire database at once;
+          instead you should run `reconfigure()` on each table individually.')
+
+    - py: db.table('a').reconfigure(emergency_repair="foo")
+      js: db.table('a').reconfigure({emergency_repair:"foo"})
+      rb: db.table('a').reconfigure(:emergency_repair => "foo")
+      ot: err('RqlRuntimeError', '`emergency_repair` should be "unsafe_rollback" or "unsafe_rollback_or_erase"', [])
+
+    - py: db.table('a').reconfigure(emergency_repair="unsafe_rollback", shards=1, replicas=1)
+      js: db.table('a').reconfigure({emergency_repair:"unsafe_rollback", shards:1, replicas:1})
+      rb: db.table('a').reconfigure(:emergency_repair => "unsafe_rollback", :shards => 1, :replicas => 1)
+      ot: err('RqlRuntimeError', 'In emergency repair mode, you can\'t specify shards, replicas, etc.')
 
     # Test reconfigure auto-sharding without data
     - py: db.table('a').reconfigure(shards=2, replicas=1)

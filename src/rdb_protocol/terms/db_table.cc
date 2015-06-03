@@ -552,8 +552,8 @@ private:
                     args->optarg(env, "primary_replica_tag").has() ||
                     args->optarg(env, "replicas").has() ||
                     args->optarg(env, "shards").has()) {
-                rfail(base_exc_t::GENERIC, "If `emergency_repair` is specified then no "
-                    "other optargs except `dry_run` should be specified.");
+                rfail(base_exc_t::GENERIC, "In emergency repair mode, you can't "
+                    "specify shards, replicas, etc.");
             }
 
             if (!static_cast<bool>(name_if_table)) {

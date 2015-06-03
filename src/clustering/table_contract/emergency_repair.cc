@@ -98,7 +98,10 @@ void calculate_emergency_repair(
 
         /* We first calculate all the voting and nonvoting replicas for each range in a
         `range_map_t`. */
-        range_map_t<key_range_t::right_bound_t, table_config_t::shard_t> config;
+        range_map_t<key_range_t::right_bound_t, table_config_t::shard_t> config(
+            key_range_t::right_bound_t(store_key_t::min()),
+            key_range_t::right_bound_t::make_unbounded(),
+            table_config_t::shard_t());
         for (const auto &pair : new_state_out->contracts) {
             config.visit_mutable(
                 key_range_t::right_bound_t(pair.second.first.inner.left),
