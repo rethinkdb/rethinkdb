@@ -437,10 +437,7 @@ continue_bool_t store_t::receive_backfill(
             metainfo_threshold = progress;
 
             /* Actually apply the metainfo */
-            region_map_t<binary_blob_t> old_metainfo;
-            get_metainfo_internal(superblock, &old_metainfo);
-            update_metainfo(
-                old_metainfo, item_producer->get_metainfo()->mask(mask), superblock);
+            metainfo->update(superblock, item_producer->get_metainfo()->mask(mask));
         };
 
         /* The `apply_*()` functions will call back to `commit_cb` when they're done

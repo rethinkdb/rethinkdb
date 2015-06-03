@@ -157,10 +157,6 @@ private:
 
 
 // Metainfo functions
-bool get_superblock_metainfo(real_superblock_t *superblock,
-                             const std::vector<char> &key,
-                             std::vector<char> *value_out);
-
 void get_superblock_metainfo(
     real_superblock_t *superblock,
     std::vector< std::pair<std::vector<char>, std::vector<char> > > *kv_pairs_out);
@@ -172,10 +168,6 @@ void set_superblock_metainfo(real_superblock_t *superblock,
 void set_superblock_metainfo(real_superblock_t *superblock,
                              const std::vector<std::vector<char> > &keys,
                              const std::vector<binary_blob_t> &values);
-
-void delete_superblock_metainfo(real_superblock_t *superblock,
-                                const std::vector<char> &key);
-void clear_superblock_metainfo(real_superblock_t *superblock);
 
 // Convenience functions for accessing the superblock
 void get_btree_superblock(

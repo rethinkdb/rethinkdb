@@ -70,13 +70,12 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
             on_thread_t thread_switcher_1(store->home_thread());
 
             contract_ack_t initial_ack(contract_ack_t::state_t::secondary_need_primary);
-            region_map_t<binary_blob_t> blobs;
             read_token_t token;
             store->new_read_token(&token);
-            store->do_get_metainfo(
-                order_source.check_in("secondary_execution_t").with_read_mode(),
-                &token, &interruptor_on_store_thread, &blobs);
-            initial_ack.version = boost::make_optional(to_version_map(blobs));
+            initial_ack.version = boost::make_optional(to_version_map(
+                store->get_metainfo(
+                    order_source.check_in("secondary_execution_t").with_read_mode(),
+                    &token, region, &interruptor_on_store_thread)));
 
             direct_query_server_t direct_query_server(context->mailbox_manager, store);
 

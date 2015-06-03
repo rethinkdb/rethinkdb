@@ -114,12 +114,11 @@ private:
 };
 
 region_map_t<version_t> get_store_version_map(store_view_t *store) {
-    region_map_t<binary_blob_t> binary;
     read_token_t token;
     store->new_read_token(&token);
     cond_t non_interruptor;
-    store->do_get_metainfo(order_token_t::ignore, &token, &non_interruptor, &binary);
-    return to_version_map(binary);
+    return to_version_map(store->get_metainfo(
+        order_token_t::ignore, &token, store->get_region(), &non_interruptor));
 }
 
 backfill_config_t unlimited_queues_config() {

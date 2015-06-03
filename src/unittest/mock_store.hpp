@@ -34,10 +34,12 @@ public:
     void new_read_token(read_token_t *token_out);
     void new_write_token(write_token_t *token_out);
 
-    void do_get_metainfo(order_token_t order_token,
-                         read_token_t *token,
-                         signal_t *interruptor,
-                         region_map_t<binary_blob_t> *out) THROWS_ONLY(interrupted_exc_t);
+    region_map_t<binary_blob_t> get_metainfo(
+            order_token_t order_token,
+            read_token_t *token,
+            const region_t &region,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
 
     void set_metainfo(const region_map_t<binary_blob_t> &new_metainfo,
                       order_token_t order_token,

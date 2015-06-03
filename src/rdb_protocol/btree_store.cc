@@ -128,7 +128,7 @@ store_t::store_t(const region_t &region,
                                  "primary",
                                  index_type_t::PRIMARY));
 
-    // Initialize sindex slices
+    // Initialize sindex slices and metainfo
     {
         // Since this is the btree constructor, nothing else should be locking these
         // things yet, so this should work fairly quickly and does not need a real
@@ -144,6 +144,8 @@ store_t::store_t(const region_t &region,
                                      &txn,
                                      &superblock,
                                      &dummy_interruptor);
+
+        metainfo.init(new store_metainfo_manager_t(superblock.get()));
 
         buf_lock_t sindex_block(superblock->expose_buf(),
                                 superblock->get_sindex_block_id(),
@@ -191,9 +193,8 @@ void store_t::read(
     acquire_superblock_for_read(token, &txn, &superblock,
                                 interruptor,
                                 read.use_snapshot());
-
-    DEBUG_ONLY(check_metainfo(DEBUG_ONLY(metainfo_checker, ) superblock.get());)
-
+    DEBUG_ONLY_CODE(metainfo->visit(
+        superblock.get(), metainfo_checker.region, metainfo_checker.callback));
     protocol_read(read, response, superblock.get(), interruptor);
 }
 
@@ -215,11 +216,10 @@ void store_t::write(
     const int expected_change_count = 2; // FIXME: this is incorrect, but will do for now
     acquire_superblock_for_write(expected_change_count, durability, token,
                                  &txn, &real_superblock, interruptor);
-
-    check_and_update_metainfo(DEBUG_ONLY(metainfo_checker, ) new_metainfo,
-                              real_superblock.get());
-    scoped_ptr_t<real_superblock_t> superblock(real_superblock.release());
-    protocol_write(write, response, timestamp, &superblock, interruptor);
+    DEBUG_ONLY_CODE(metainfo->visit(
+        real_superblock.get(), metainfo_checker.region, metainfo_checker.callback));
+    metainfo->update(real_superblock.get(), new_metainfo);
+    protocol_write(write, response, timestamp, &real_superblock, interruptor);
 }
 
 void store_t::reset_data(
@@ -271,12 +271,9 @@ void store_t::reset_data(
                                              &mod_reports,
                                              &deleted_range);
 
-        region_map_t<binary_blob_t> old_metainfo;
-        get_metainfo_internal(superblock.get(), &old_metainfo);
-        region_map_t<binary_blob_t> new_metainfo = old_metainfo;
         region_t deleted_region(subregion.beg, subregion.end, deleted_range);
-        new_metainfo.update(deleted_region, zero_metainfo);
-        update_metainfo(old_metainfo, new_metainfo, superblock.get());
+        metainfo->update(superblock.get(),
+                         region_map_t<binary_blob_t>(deleted_region, zero_metainfo));
 
         superblock.reset();
         if (!mod_reports.empty()) {
@@ -1150,70 +1147,11 @@ bool store_t::acquire_sindex_superblocks_for_write(
     return sindex_sbs_out->size() == sindexes_to_acquire->size();
 }
 
-void store_t::check_and_update_metainfo(
-        DEBUG_ONLY(const metainfo_checker_t& metainfo_checker, )
-        const region_map_t<binary_blob_t> &new_metainfo,
-        real_superblock_t *superblock) const
-        THROWS_NOTHING {
-    assert_thread();
-    region_map_t<binary_blob_t> old_metainfo
-        = check_metainfo(DEBUG_ONLY(metainfo_checker, ) superblock);
-    update_metainfo(old_metainfo, new_metainfo, superblock);
-}
-
-region_map_t<binary_blob_t>
-store_t::check_metainfo(
-        DEBUG_ONLY(const metainfo_checker_t& metainfo_checker, )
-        real_superblock_t *superblock) const
-        THROWS_NOTHING {
-    assert_thread();
-    region_map_t<binary_blob_t> old_metainfo;
-    get_metainfo_internal(superblock, &old_metainfo);
-#ifndef NDEBUG
-    metainfo_checker.check_metainfo(old_metainfo.mask(metainfo_checker.get_domain()));
-#endif
-    return old_metainfo;
-}
-
-void store_t::update_metainfo(const region_map_t<binary_blob_t> &old_metainfo,
-                              const region_map_t<binary_blob_t> &new_metainfo,
-                              real_superblock_t *superblock)
-    const THROWS_NOTHING {
-    assert_thread();
-    region_map_t<binary_blob_t> updated_metadata = old_metainfo;
-    updated_metadata.update(new_metainfo);
-
-    rassert(updated_metadata.get_domain() == region_t::universe());
-
-    // Clear the existing metainfo. This makes sure that we completely rewrite
-    // the metainfo. That avoids two issues:
-    // - `set_superblock_metainfo()` wouldn't remove any deleted keys
-    // - `set_superblock_metainfo()` is more efficient if we don't do any
-    //   in-place updates in its current implementation.
-    clear_superblock_metainfo(superblock);
-
-    std::vector<std::vector<char> > keys;
-    std::vector<binary_blob_t> values;
-    updated_metadata.visit(region_t::universe(),
-        [&](const region_t &region, const binary_blob_t &value) {
-            vector_stream_t key;
-            write_message_t wm;
-            serialize_for_metainfo(&wm, region);
-            key.reserve(wm.size());
-            DEBUG_VAR int res = send_write_message(&key, &wm);
-            rassert(!res);
-
-            keys.push_back(std::move(key.vector()));
-            values.push_back(value);
-        });
-
-    set_superblock_metainfo(superblock, keys, values);
-}
-
-void store_t::do_get_metainfo(UNUSED order_token_t order_token,  // TODO
-                              read_token_t *token,
-                              signal_t *interruptor,
-                              region_map_t<binary_blob_t> *out)
+region_map_t<binary_blob_t> store_t::get_metainfo(
+        UNUSED order_token_t order_token,  // TODO
+        read_token_t *token,
+        const region_t &region,
+        signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
     scoped_ptr_t<txn_t> txn;
@@ -1222,36 +1160,7 @@ void store_t::do_get_metainfo(UNUSED order_token_t order_token,  // TODO
                                 &txn, &superblock,
                                 interruptor,
                                 false /* KSI: christ */);
-
-    get_metainfo_internal(superblock.get(), out);
-}
-
-void store_t::
-get_metainfo_internal(real_superblock_t *superblock,
-                      region_map_t<binary_blob_t> *out)
-    const THROWS_NOTHING {
-    assert_thread();
-    std::vector<std::pair<std::vector<char>, std::vector<char> > > kv_pairs;
-    // TODO: this is inefficient, cut out the middleman (vector)
-    get_superblock_metainfo(superblock, &kv_pairs);
-
-    std::vector<region_t> regions;
-    std::vector<binary_blob_t> values;
-    for (auto &pair : kv_pairs) {
-        region_t region;
-        {
-            buffer_read_stream_t key(pair.first.data(), pair.first.size());
-            archive_result_t res = deserialize_for_metainfo(&key, &region);
-            guarantee_deserialization(res, "region");
-        }
-        regions.push_back(region);
-        values.push_back(binary_blob_t(pair.second.begin(), pair.second.end()));
-    }
-    region_map_t<binary_blob_t> res =
-        region_map_t<binary_blob_t>::from_unordered_fragments(
-            std::move(regions), std::move(values));;
-    rassert(res.get_domain() == region_t::universe());
-    *out = res;
+    return metainfo->get(superblock.get(), region);
 }
 
 void store_t::set_metainfo(const region_map_t<binary_blob_t> &new_metainfo,
@@ -1269,10 +1178,7 @@ void store_t::set_metainfo(const region_map_t<binary_blob_t> &new_metainfo,
                                  &txn,
                                  &superblock,
                                  interruptor);
-
-    region_map_t<binary_blob_t> old_metainfo;
-    get_metainfo_internal(superblock.get(), &old_metainfo);
-    update_metainfo(old_metainfo, new_metainfo, superblock.get());
+    metainfo->update(superblock.get(), new_metainfo);
 }
 
 void store_t::acquire_superblock_for_read(

@@ -25,16 +25,11 @@ local_replicator_t::local_replicator_t(
     certificate (just as a sanity check) */
     read_token_t read_token;
     store->new_read_token(&read_token);
-    region_map_t<binary_blob_t> origin_blob;
-    store->do_get_metainfo(
+    region_map_t<version_t> origin = to_version_map(store->get_metainfo(
         order_source.check_in("local_replica_t(read)").with_read_mode(),
-        &read_token,
-        interruptor,
-        &origin_blob);
-    guarantee(to_version_map(origin_blob) ==
-        primary->get_branch_birth_certificate().origin);
-    guarantee(store->get_region() ==
-        primary->get_branch_birth_certificate().region);
+        &read_token, store->get_region(), interruptor));
+    guarantee(origin == primary->get_branch_birth_certificate().origin);
+    guarantee(store->get_region() == primary->get_branch_birth_certificate().region);
 #endif
 
     /* Store the new branch in the branch history manager. We have to do this before we

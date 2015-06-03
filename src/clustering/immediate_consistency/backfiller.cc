@@ -38,12 +38,11 @@ backfiller_t::client_t::client_t(
     /* Fetch our current state from the superblock metainfo */
     region_map_t<version_t> our_version;
     {
-        region_map_t<binary_blob_t> our_version_blob;
         read_token_t read_token;
         parent->store->new_read_token(&read_token);
-        parent->store->do_get_metainfo(order_token_t::ignore.with_read_mode(),
-            &read_token, interruptor, &our_version_blob);
-        our_version = to_version_map(our_version_blob);
+        our_version = to_version_map(parent->store->get_metainfo(
+            order_token_t::ignore.with_read_mode(), &read_token,
+            parent->store->get_region(), interruptor));
     }
 
     /* Compute the common ancestor of `intro.initial_version` and `our_version`, storing

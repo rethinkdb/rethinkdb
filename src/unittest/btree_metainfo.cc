@@ -16,13 +16,6 @@ static const bool print_log_messages = false;
 #pragma clang diagnostic ignored "-Wunreachable-code"
 #endif
 
-std::string random_existing_key(const std::map<std::string, std::string> &map) {
-    int i = random() % map.size();
-    std::map<std::string, std::string>::const_iterator it = map.begin();
-    while (i-- > 0) it++;
-    return it->first;
-}
-
 std::string random_string() {
     std::string s;
     int length = random() % 10;
@@ -72,121 +65,41 @@ TPTEST(BtreeMetainfo, MetainfoTest) {
                                             std::vector<char>(), binary_blob_t());
     }
 
-    std::map<std::string, std::string> mirror;
-    mirror[""] = "";
-
-    order_source_t order_source;
-
-
-    for (int i = 0; i < 1000; i++) {
-        scoped_ptr_t<txn_t> txn;
-        scoped_ptr_t<real_superblock_t> superblock;
-        get_btree_superblock_and_txn_for_writing(&cache_conn, nullptr,
-                                                 write_access_t::write, 1,
-                                                 write_durability_t::SOFT,
-                                                 &superblock, &txn);
-
-        int op = random() % 100;
-        if (op == 0) {
-            clear_superblock_metainfo(superblock.get());
-            mirror.clear();
-            if (print_log_messages) {
-                puts("clear");
+    for (int i = 0; i < 3; ++i) {
+        std::map<std::string, std::string> metainfo;
+        for (int j = 0; j < 100; ++j) {
+            metainfo[random_string()] = random_string();
+        }
+        {
+            scoped_ptr_t<txn_t> txn;
+            scoped_ptr_t<real_superblock_t> superblock;
+            get_btree_superblock_and_txn_for_writing(
+                &cache_conn, nullptr, write_access_t::write, 1,
+                write_durability_t::SOFT, &superblock, &txn);
+            std::vector<std::vector<char> > keys;
+            std::vector<binary_blob_t> values;
+            for (const auto &pair : metainfo) {
+                keys.push_back(string_to_vector(pair.first));
+                values.push_back(string_to_blob(pair.second));
             }
-        } else if (op <= 30) {
-            if (mirror.empty()) {
-                continue;
+            set_superblock_metainfo(superblock.get(), keys, values);
+        }
+        {
+            scoped_ptr_t<txn_t> txn;
+            scoped_ptr_t<real_superblock_t> superblock;
+            get_btree_superblock_and_txn_for_reading(
+                &cache_conn, CACHE_SNAPSHOTTED_NO, &superblock, &txn);
+            std::vector<std::pair<std::vector<char>, std::vector<char> > > read_back;
+            get_superblock_metainfo(superblock.get(), &read_back);
+            std::set<std::string> seen;
+            for (const auto &pair : read_back) {
+                std::string key = vector_to_string(pair.first);
+                std::string value = vector_to_string(pair.second);
+                ASSERT_EQ(0, seen.count(key));
+                seen.insert(key);
+                ASSERT_EQ(metainfo[key], value);
             }
-            std::string key = random_existing_key(mirror);
-            std::vector<char> value_out;
-            bool found = get_superblock_metainfo(
-                superblock.get(), string_to_vector(key), &value_out);
-            EXPECT_TRUE(found);
-            if (found) {
-                EXPECT_EQ(mirror[key], vector_to_string(value_out));
-            }
-            if (print_log_messages) {
-                std::string repr = found ? "'" + vector_to_string(value_out) + "'" : "<not found>";
-                printf("get '%s' -> %s (expected '%s')\n", key.c_str(), repr.c_str(), mirror[key].c_str());
-            }
-        } else if (op <= 40) {
-            std::string key = random_string();
-            if (mirror.count(key) > 0) {
-                continue;
-            }
-            std::vector<char> value_out;
-            const bool found = get_superblock_metainfo(
-                superblock.get(), string_to_vector(key), &value_out);
-            EXPECT_FALSE(found);
-            if (found) {
-                EXPECT_EQ(mirror[key], vector_to_string(value_out));
-            }
-            if (print_log_messages) {
-                std::string repr = found ? "'" + vector_to_string(value_out) + "'" : "<not found>";
-                printf("get '%s' -> %s (Expected <not found>)\n", key.c_str(), repr.c_str());
-            }
-        } else if (op <= 60) {
-            if (mirror.empty()) {
-                continue;
-            }
-            std::string key = random_existing_key(mirror);
-            std::string value = random_string();
-            set_superblock_metainfo(superblock.get(), string_to_vector(key),
-                                    string_to_blob(value));
-            mirror[key] = value;
-            if (print_log_messages) {
-                printf("update '%s' = '%s'\n", key.c_str(), value.c_str());
-            }
-        } else if (op <= 80) {
-            std::string key = random_string();
-            if (mirror.count(key) > 0) {
-                continue;
-            }
-            std::string value = random_string();
-            set_superblock_metainfo(superblock.get(), string_to_vector(key),
-                                    string_to_blob(value));
-            mirror[key] = value;
-            if (print_log_messages) {
-                printf("insert '%s' = '%s'\n", key.c_str(), value.c_str());
-            }
-        } else if (op <= 90) {
-            if (mirror.empty()) {
-                continue;
-            }
-            std::string key = random_existing_key(mirror);
-            delete_superblock_metainfo(superblock.get(), string_to_vector(key));
-            mirror.erase(key);
-            if (print_log_messages) {
-                printf("delete '%s'\n", key.c_str());
-            }
-        } else {
-            std::vector<std::pair<std::vector<char>, std::vector<char> > > pairs;
-            get_superblock_metainfo(superblock.get(), &pairs);
-            std::map<std::string, std::string> mirror_copy = mirror;
-            if (print_log_messages) {
-                puts("scan...");
-            }
-            for (size_t j = 0; j < pairs.size(); ++j) {
-                std::map<std::string, std::string>::iterator it = mirror_copy.find(vector_to_string(pairs[j].first));
-                if (it == mirror_copy.end()) {
-                    if (print_log_messages) {
-                        printf("    '%s' = '%s' (expected <not found>)\n", vector_to_string(pairs[j].first).c_str(), vector_to_string(pairs[j].second).c_str());
-                    }
-                    ADD_FAILURE() << "extra key";
-                } else {
-                    if (print_log_messages) {
-                        printf("    '%s' = '%s' (expected '%s')\n", vector_to_string(pairs[j].first).c_str(), vector_to_string(pairs[j].second).c_str(), it->second.c_str());
-                    }
-                    EXPECT_EQ(it->second, vector_to_string(pairs[j].second));
-                    mirror_copy.erase(it);
-                }
-            }
-            if (print_log_messages) {
-                for (std::map<std::string, std::string>::iterator it = mirror_copy.begin(); it != mirror_copy.end(); it++) {
-                    printf("    '%s' = <not found> (expected '%s')\n", it->first.c_str(), it->second.c_str());
-                }
-            }
-            EXPECT_EQ(0u, mirror_copy.size()) << "missing key(s)";
+            ASSERT_EQ(metainfo.size(), seen.size());
         }
     }
 }
