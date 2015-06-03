@@ -11,7 +11,7 @@ class real_superblock_t;
 
 class store_metainfo_manager_t {
 public:
-    store_metainfo_manager_t(real_superblock_t *superblock);
+    explicit store_metainfo_manager_t(real_superblock_t *superblock);
     region_map_t<binary_blob_t> get(
         real_superblock_t *superblock,
         const region_t &region);
