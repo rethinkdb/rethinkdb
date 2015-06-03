@@ -285,16 +285,12 @@ ql::datum_t convert_debug_contracts_and_contrack_acks_to_datum(
 
 void debug_table_status_artificial_table_backend_t::format_row(
         const namespace_id_t &table_id,
-        const table_basic_config_t &,
+        const table_config_and_shards_t &config_and_shards,
         const ql::datum_t &db_name_or_uuid,
         signal_t *interruptor_on_home,
         ql::datum_t *row_out)
-        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,
-            admin_op_exc_t) {
+        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t) {
     assert_thread();
-
-    table_config_and_shards_t config_and_shards;
-    table_meta_client->get_config(table_id, interruptor_on_home, &config_and_shards);
 
     std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > sindex_statuses;
     std::map<peer_id_t, contracts_and_contract_acks_t> contracts_and_acks;

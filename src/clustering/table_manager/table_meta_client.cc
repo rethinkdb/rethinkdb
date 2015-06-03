@@ -179,8 +179,9 @@ void table_meta_client_t::get_config(
 
 void table_meta_client_t::list_configs(
         signal_t *interruptor_on_caller,
-        std::map<namespace_id_t, table_config_and_shards_t> *configs_out)
-        THROWS_ONLY(interrupted_exc_t, failed_table_op_exc_t) {
+        std::map<namespace_id_t, table_config_and_shards_t> *configs_out,
+        std::map<namespace_id_t, table_basic_config_t> *disconnected_configs_out)
+        THROWS_ONLY(interrupted_exc_t) {
     cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
     configs_out->clear();
@@ -240,9 +241,10 @@ void table_meta_client_t::list_configs(
 
     /* Make sure we contacted at least one server for every table */
     multi_table_manager->get_table_basic_configs()->read_all(
-        [&](const namespace_id_t &table_id, const timestamped_basic_config_t *) {
+        [&](const namespace_id_t &table_id, const timestamped_basic_config_t *config) {
             if (configs_out->count(table_id) == 0) {
-                throw failed_table_op_exc_t();
+                disconnected_configs_out->insert(
+                    std::make_pair(table_id, config->first));
             }
         });
 }
