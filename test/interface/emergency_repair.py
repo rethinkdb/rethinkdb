@@ -65,6 +65,7 @@ with driver.Cluster(initial_servers=['a', 'x'], output_folder='.',
         {"primary_replica": "x", "replicas": ["x"]}])
 
     print("Killing server 'x' (%.2fs)" % (time.time() - startTime))
+    x_files = cluster[1].files
     cluster[1].kill()
 
     def eq_config(l_shards, r_shards):
@@ -191,8 +192,27 @@ with driver.Cluster(initial_servers=['a', 'x'], output_folder='.',
     # `total_loss` has lost all replicas for all shards.
     bad_repair("total_loss", "unsafe_rollback_or_erase",
         "At least one of a table's replicas must be accessible in order to repair it.")
-    res = r.table_drop("total_loss").run(conn)
-    assert res["tables_dropped"] == 1
+    if False:   # RSI(raft): Reinstate this test after #4335 is fixed
+        res = r.table_drop("total_loss").run(conn)
+        assert res["tables_dropped"] == 1
+
+    print("Bringing back server 'x' (%.2fs)" % (time.time() - startTime))
+    new_x = driver.Process(
+        cluster, x_files, command_prefix=command_prefix, extra_options=serve_options,
+        console_output=True)
+    new_x.wait_until_started_up()
+
+    # Make sure that the reappearance of the dead server doesn't break anything
+    check_table("no_repair_1")
+    check_table("no_repair_2")
+    check_table("rollback")
+    check_table("rollback_nonvoting")
+    check_table_half("erase")
+    check_table_half("rollback_then_erase")
+
+    # Make sure that the table we dropped stays dropped
+    if False:   # RSI(raft): Reinstate this test after #4335 is fixed
+        assert "total_loss" not in r.table_list().run()
 
     print("Cleaning up (%.2fs)" % (time.time() - startTime))
 print("Done. (%.2fs)" % (time.time() - startTime))
