@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2014 RethinkDB, all rights reserved.
+# Copyright 2010-2015 RethinkDB, all rights reserved.
 
 """This test repeatedly reconfigures a table in a specific pattern to test the
 efficiency of the reconfiguration logic. It's sort of like `shard_fuzzer.py` but it
@@ -68,7 +68,6 @@ with driver.Cluster(initial_servers=server_names, output_folder='.', command_pre
         shards = make_config_shards(phase)
         res = r.table("test").config().update({"shards": shards}).run(conn)
         assert res["replaced"] == 1 or res["unchanged"] == 1, res
-        time.sleep(1)   # work around issue #4265
         print("Waiting for table to become ready (%.2fs)" % (time.time() - startTime))
         res = r.table("test").wait(wait_for = "all_replicas_ready", timeout = 600).run(conn)
         assert res["ready"] == 1, res
