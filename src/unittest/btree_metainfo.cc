@@ -11,7 +11,6 @@
 
 namespace unittest {
 
-static const bool print_log_messages = false;
 #ifdef __clang__
 #pragma clang diagnostic ignored "-Wunreachable-code"
 #endif
