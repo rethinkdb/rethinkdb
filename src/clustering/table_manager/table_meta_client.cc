@@ -627,6 +627,12 @@ void table_meta_client_t::emergency_repair(
     *new_config_out = new_state.config;
 
     if ((*rollback_found_out || *erase_found_out) && !dry_run) {
+        /* In theory, we don't always have to start a new epoch. Sometimes we run an
+        emergency repair where we've lost a quorum of one shard, but still have a quorum
+        of the Raft cluster as a whole. In that case we could run a regular Raft
+        transaction, which could be made slightly safer. But it's simpler to do
+        everything through the same code path. */
+
         /* Fetch the table's current epoch's timestamp to make sure that the new epoch
         has a higher timestamp, even if the server's clock is wrong. */
         microtime_t old_epoch_timestamp;

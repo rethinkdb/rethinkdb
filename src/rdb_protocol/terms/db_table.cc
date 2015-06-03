@@ -499,9 +499,13 @@ private:
             dry_run = v->as_bool();
         }
 
+        /* Figure out whether we're doing a regular reconfiguration or an emergency
+        repair. */
         scoped_ptr_t<val_t> emergency_repair = args->optarg(env, "emergency_repair");
         if (!emergency_repair.has() ||
                 emergency_repair->as_datum() == ql::datum_t::null()) {
+            /* We're doing a regular reconfiguration. */
+
             // Use the default primary_replica_tag, unless the optarg overwrites it
             table_generate_config_params_t config_params =
                 table_generate_config_params_t::make_default();
@@ -536,6 +540,9 @@ private:
             return new_val(result);
 
         } else {
+            /* We're doing an emergency repair */
+
+            /* Parse `emergency_repair` to figure out which kind we're doing. */
             datum_string_t emergency_repair_str = emergency_repair->as_str();
             bool allow_erase;
             if (emergency_repair_str == "unsafe_rollback") {
@@ -548,6 +555,8 @@ private:
                     "\"unsafe_rollback_or_erase\"");
             }
 
+            /* Make sure none of the optargs that are used with regular reconfigurations
+            are present, to avoid user confusion. */
             if (args->optarg(env, "nonvoting_replica_tags").has() ||
                     args->optarg(env, "primary_replica_tag").has() ||
                     args->optarg(env, "replicas").has() ||

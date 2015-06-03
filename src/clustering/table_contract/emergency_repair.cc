@@ -1,6 +1,7 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/table_contract/emergency_repair.hpp"
 
+/* Returns `true` if `servers` is a subset of `dead`. */
 bool all_dead(
         const std::set<server_id_t> &servers, const std::set<server_id_t> &dead) {
     for (const server_id_t &server : servers) {
@@ -11,6 +12,7 @@ bool all_dead(
     return true;
 }
 
+/* Returns `true` if half or more of the servers in `servers` are also in `dead`. */
 bool quorum_dead(
         const std::set<server_id_t> &servers, const std::set<server_id_t> &dead) {
     size_t alive = 0;
@@ -50,6 +52,8 @@ void calculate_emergency_repair(
         if (all_dead(contract.replicas, dead_servers)) {
             *erase_found_out = true;
             if (allow_erase) {
+                /* Discard all previous replicas, and set up a new empty replica on
+                `erase_replacement`. */
                 contract = contract_t();
                 contract.replicas.insert(erase_replacement);
                 contract.voters.insert(erase_replacement);
@@ -81,6 +85,9 @@ void calculate_emergency_repair(
                 }
             }
         }
+        /* We generate a new contract ID for the new contract, whether or not it's
+        identical to the old contract. In practice this doesn't matter since contract IDs
+        from the old epoch will never be compared to contract IDs from the new epoch. */
         new_state_out->contracts.insert(std::make_pair(
             generate_uuid(),
             std::make_pair(pair.second.first, contract)));
@@ -168,22 +175,34 @@ void calculate_emergency_repair(
         for (const table_config_t::shard_t &shard :
                 new_state_out->config.config.shards) {
             for (const server_id_t &server : shard.all_replicas) {
+                /* Since the new config is derived from the new contracts which are
+                derived from the old contracts, every server present in the new config
+                must appear in `old_state.server_names`. */
                 new_state_out->config.server_names.names.insert(
                     std::make_pair(server, old_state.server_names.names.at(server)));
             }
         }
     }
 
-    /* Copy over the branch history without modification */
+    /* Copy over the branch history without modification. In theory we could do some
+    pruning here, but there's not much that we could prune and so it's easier to just let
+    the branch history GC do it. */
     new_state_out->branch_history = old_state.branch_history;
 
-    /* Find all the servers that appear in any contract, and put entries for those
+    /* Find all the servers that appear in the new contracts, and put entries for those
     servers in `member_ids` and `server_names` */
     for (const auto &pair : new_state_out->contracts) {
         for (const server_id_t &server : pair.second.second.replicas) {
             if (new_state_out->member_ids.count(server) == 0) {
+                /* We generate a new member ID for every server. This shouldn't matter
+                because member IDs from the new epoch should never be compared to member
+                IDs from the old epoch, but it slightly reduces the risk of bugs. */
                 new_state_out->member_ids.insert(
                     std::make_pair(server, raft_member_id_t(generate_uuid())));
+
+                /* Since the new contracts are derived from the old contracts, every
+                server present in the new contracts must appear in
+                `old_state.server_names`. */
                 new_state_out->server_names.names.insert(
                     std::make_pair(server, old_state.server_names.names.at(server)));
             }

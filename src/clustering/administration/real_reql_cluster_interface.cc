@@ -910,6 +910,8 @@ bool real_reql_cluster_interface_t::table_emergency_repair(
         return false;
     } CATCH_NAME_ERRORS(db->name, name, error_out)
       CATCH_OP_ERRORS(db->name, name, error_out,
+        /* Note the non-standard error message here, to clarify if the user tries to
+        repair a table that's completely inaccessible. */
         "The table was not repaired. At least one of a table's replicas must be "
             "accessible in order to repair it.",
         "The table may or may not have been repaired.")
