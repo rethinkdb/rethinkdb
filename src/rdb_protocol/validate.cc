@@ -192,6 +192,7 @@ static std::set<std::string> acceptable_keys = {
     "default_timezone",
     "dry_run",
     "durability",
+    "emergency_repair",
     "fill",
     "first_batch_scaledown_factor",
     "float",
