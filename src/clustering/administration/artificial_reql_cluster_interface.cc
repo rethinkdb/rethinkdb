@@ -439,8 +439,7 @@ admin_artificial_tables_t::admin_artificial_tables_t(
         table_status_backend[i].init(new table_status_artificial_table_backend_t(
             _semilattice_view,
             _table_meta_client,
-            static_cast<admin_identifier_format_t>(i),
-            _server_config_client));
+            static_cast<admin_identifier_format_t>(i)));
     }
     backends[name_string_t::guarantee_valid("table_status")] =
         std::make_pair(table_status_backend[0].get(), table_status_backend[1].get());
@@ -470,8 +469,7 @@ admin_artificial_tables_t::admin_artificial_tables_t(
 
     debug_table_status_backend.init(new debug_table_status_artificial_table_backend_t(
         _semilattice_view,
-        _table_meta_client,
-        _server_config_client));
+        _table_meta_client));
     backends[name_string_t::guarantee_valid("_debug_table_status")] =
         std::make_pair(debug_table_status_backend.get(),
                        debug_table_status_backend.get());

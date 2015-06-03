@@ -254,7 +254,8 @@ bool do_serve(io_backender_t *io_backender,
                 &mailbox_manager,
                 multi_table_manager.get(),
                 &multi_table_manager_directory,
-                table_directory_read_manager.get_root_view());
+                table_directory_read_manager.get_root_view(),
+                &server_config_client);
 
             real_reql_cluster_interface_t real_reql_cluster_interface(
                 &mailbox_manager,

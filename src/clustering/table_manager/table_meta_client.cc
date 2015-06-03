@@ -1,7 +1,9 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/table_manager/table_meta_client.hpp"
 
+#include "clustering/administration/servers/config_client.hpp"
 #include "clustering/generic/raft_core.tcc"
+#include "clustering/table_contract/emergency_repair.hpp"
 #include "clustering/table_manager/multi_table_manager.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 
@@ -11,11 +13,13 @@ table_meta_client_t::table_meta_client_t(
         watchable_map_t<peer_id_t, multi_table_manager_bcard_t>
             *_multi_table_manager_directory,
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
-            *_table_manager_directory) :
+            *_table_manager_directory,
+        server_config_client_t *_server_config_client) :
     mailbox_manager(_mailbox_manager),
     multi_table_manager(_multi_table_manager),
     multi_table_manager_directory(_multi_table_manager_directory),
     table_manager_directory(_table_manager_directory),
+    server_config_client(_server_config_client),
     table_basic_configs(multi_table_manager->get_table_basic_configs())
     { }
 
@@ -253,7 +257,7 @@ void table_meta_client_t::get_status(
         std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
             *sindex_statuses_out,
         std::map<server_id_t, contracts_and_contract_acks_t> *contracts_and_acks_out,
-        std::map<server_id_t, name_string_t> *server_names_out,
+        server_name_map_t *server_names_out,
         server_id_t *latest_server_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t) {
     typedef std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
@@ -330,8 +334,8 @@ void table_meta_client_t::get_status(
                     return;
                 }
                 if (server_names_out != nullptr) {
-                    server_names_out->insert(
-                        std::make_pair(bcard.server_id, config->config.name));
+                    server_names_out->names.insert(std::make_pair(bcard.server_id,
+                        std::make_pair(config->version, config->config.name)));
                 }
 
                 /* Make sure every sindex in the config is present in the reply from this
@@ -602,7 +606,7 @@ void table_meta_client_t::emergency_repair(
 
     std::map<server_id_t, contracts_and_contract_acks_t> old_contracts;
     server_id_t latest_server;
-    get_status(table_id, &interruptor, nullptr, &old_contracts, &latest_server);
+    get_status(table_id, &interruptor, nullptr, &old_contracts, nullptr, &latest_server);
 
     std::set<server_id_t> dead_servers;
     for (const auto &pair : old_contracts.at(latest_server).state.member_ids) {
@@ -622,7 +626,7 @@ void table_meta_client_t::emergency_repair(
 
     *new_config_out = new_state.config;
 
-    if ((*quorum_loss_found_out || *data_loss_found_out) && !dry_run) {
+    if ((*rollback_found_out || *erase_found_out) && !dry_run) {
         /* Fetch the table's current epoch's timestamp to make sure that the new epoch
         has a higher timestamp, even if the server's clock is wrong. */
         microtime_t old_epoch_timestamp;
@@ -659,7 +663,7 @@ void table_meta_client_t::create_or_emergency_repair(
     timestamp.log_index = 0;
 
     std::set<server_id_t> all_servers, voting_servers;
-    for (const table_config_t::shard_t &shard : raft_state.state.config.config.shards) {
+    for (const table_config_t::shard_t &shard : raft_state.config.config.shards) {
         all_servers.insert(shard.all_replicas.begin(), shard.all_replicas.end());
         std::set<server_id_t> voters = shard.voting_replicas();
         voting_servers.insert(voters.begin(), voters.end());
@@ -709,7 +713,7 @@ void table_meta_client_t::create_or_emergency_repair(
                 boost::optional<raft_member_id_t>(raft_state.member_ids.at(pair.first)),
                 boost::optional<raft_persistent_state_t<table_raft_state_t> >(raft_ps),
                 ack_mailbox.get_address());
-            wait_any_t interruptor_combined(&dw, &interruptor);
+            wait_any_t interruptor_combined(&dw, interruptor);
             wait_interruptible(&got_ack, &interruptor_combined);
 
             ++num_acked;
@@ -717,7 +721,7 @@ void table_meta_client_t::create_or_emergency_repair(
             /* do nothing */
         }
     });
-    if (interruptor.is_pulsed()) {
+    if (interruptor->is_pulsed()) {
         throw interrupted_exc_t();
     }
 

@@ -160,7 +160,6 @@ void calculate_status(
         const namespace_id_t &table_id,
         signal_t *interruptor,
         table_meta_client_t *table_meta_client,
-        server_config_client_t *server_config_client,
         table_readiness_t *readiness_out,
         std::vector<shard_status_t> *shard_statuses_out,
         server_name_map_t *server_names_out)
@@ -184,9 +183,6 @@ void calculate_status(
     `contracts_and_acks`, so it must remain in scope for them to be valid. */
     const table_config_and_shards_t &config_and_shards =
         contracts_and_acks.at(latest_contracts_server_id).state.config;
-    server_names_out->insert(
-        config_and_shards.server_names.begin(),
-        config_and_shards.server_names.end());
     const std::map<contract_id_t, std::pair<region_t, contract_t> > &latest_contracts =
         contracts_and_acks.at(latest_contracts_server_id).state.contracts;
     std::map<

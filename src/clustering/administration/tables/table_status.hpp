@@ -48,8 +48,7 @@ public:
             boost::shared_ptr<semilattice_readwrite_view_t<
                 cluster_semilattice_metadata_t> > _semilattice_view,
             table_meta_client_t *_table_meta_client,
-            admin_identifier_format_t _identifier_format,
-            server_config_client_t *_server_config_client);
+            admin_identifier_format_t _identifier_format);
     ~table_status_artificial_table_backend_t();
 
     bool write_row(
@@ -76,8 +75,6 @@ private:
         signal_t *,
         ql::datum_t *)
         THROWS_ONLY(interrupted_exc_t);
-
-    server_config_client_t *server_config_client;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_TABLES_TABLE_STATUS_HPP_ */

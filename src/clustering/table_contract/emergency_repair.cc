@@ -3,7 +3,7 @@
 
 bool all_dead(
         const std::set<server_id_t> &servers, const std::set<server_id_t> &dead) {
-    for (const server_id_t &server) {
+    for (const server_id_t &server : servers) {
         if (dead.count(server) == 0) {
             return false;
         }
@@ -13,8 +13,8 @@ bool all_dead(
 
 bool quorum_dead(
         const std::set<server_id_t> &servers, const std::set<server_id_t> &dead) {
-    int alive = 0;
-    for (const server_id_t &server) {
+    size_t alive = 0;
+    for (const server_id_t &server : servers) {
         if (dead.count(server) == 0) {
             ++alive;
         }
@@ -98,14 +98,14 @@ void calculate_emergency_repair(
 
         /* We first calculate all the voting and nonvoting replicas for each range in a
         `range_map_t`. */
-        range_map_t<key_range_t::right_bound_t, table_contract_t::shard_t> config;
+        range_map_t<key_range_t::right_bound_t, table_config_t::shard_t> config;
         for (const auto &pair : new_state_out->contracts) {
             config.visit_mutable(
                 key_range_t::right_bound_t(pair.second.first.inner.left),
                 pair.second.first.inner.right,
                 [&](const key_range_t::right_bound_t &,
                         const key_range_t::right_bound_t &,
-                        table_contract_t::shard_t *shard) {
+                        table_config_t::shard_t *shard) {
                     for (const server_id_t &server : pair.second.second.replicas) {
                         if (pair.second.second.voters.count(server) == 1) {
                             shard->all_replicas.insert(server);
@@ -130,7 +130,7 @@ void calculate_emergency_repair(
                 shard_range.right,
                 [&](const key_range_t::right_bound_t &,
                         const key_range_t::right_bound_t &,
-                        table_contract_t::shard_t *shard) {
+                        table_config_t::shard_t *shard) {
                     /* Check if `old_shard.primary_replica` is eligible to be a primary
                     under the new config */
                     if (shard->voting_replicas().count(old_shard.primary_replica) == 1) {
@@ -171,7 +171,7 @@ void calculate_emergency_repair(
                 new_state_out->member_ids.insert(
                     std::make_pair(server, raft_member_id_t(generate_uuid())));
                 new_state_out->server_names.names.insert(
-                    std::make_pair(server, old_state.server_names.get(server)));
+                    std::make_pair(server, old_state.server_names.names.at(server)));
             }
         }
     }

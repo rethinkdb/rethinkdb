@@ -10,15 +10,13 @@
 #include "clustering/table_manager/table_meta_client.hpp"
 
 table_status_artificial_table_backend_t::table_status_artificial_table_backend_t(
-            boost::shared_ptr<semilattice_readwrite_view_t<
-                cluster_semilattice_metadata_t> > _semilattice_view,
-            table_meta_client_t *_table_meta_client,
-            admin_identifier_format_t _identifier_format,
-            server_config_client_t *_server_config_client) :
-        common_table_artificial_table_backend_t(
-            _semilattice_view, _table_meta_client, _identifier_format),
-        server_config_client(_server_config_client) {
-}
+        boost::shared_ptr<semilattice_readwrite_view_t<
+            cluster_semilattice_metadata_t> > _semilattice_view,
+        table_meta_client_t *_table_meta_client,
+        admin_identifier_format_t _identifier_format) :
+    common_table_artificial_table_backend_t(
+        _semilattice_view, _table_meta_client, _identifier_format)
+    { }
 
 table_status_artificial_table_backend_t::~table_status_artificial_table_backend_t() {
     begin_changefeed_destruction();
@@ -124,7 +122,6 @@ void table_status_artificial_table_backend_t::format_row(
         table_id,
         interruptor_on_home,
         table_meta_client,
-        server_config_client,
         &readiness,
         &shard_statuses,
         &server_names);
@@ -191,7 +188,6 @@ table_wait_result_t wait_for_table_readiness(
                 table_id,
                 interruptor_on_home,
                 backend->table_meta_client,
-                backend->server_config_client,
                 &readiness,
                 &shard_statuses,
                 &server_names);

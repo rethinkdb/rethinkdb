@@ -807,14 +807,14 @@ bool real_reql_cluster_interface_t::db_reconfigure(
 }
 
 void real_reql_cluster_interface_t::emergency_repair_internal(
-            const counted_t<const ql::db_t> &db,
-            const namespace_id_t &table_id,
-            bool allow_erase,
-            bool dry_run,
-            signal_t *interruptor,
-            ql::datum_t *result_out)
-            THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t,
-                failed_table_op_exc_t, maybe_failed_table_op_exc_t, admin_op_exc_t) {
+        const counted_t<const ql::db_t> &db,
+        const namespace_id_t &table_id,
+        bool allow_erase,
+        bool dry_run,
+        signal_t *interruptor_on_home,
+        ql::datum_t *result_out)
+        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t,
+            failed_table_op_exc_t, maybe_failed_table_op_exc_t, admin_op_exc_t) {
     assert_thread();
 
     /* Fetch the table's current configuration */
@@ -824,7 +824,7 @@ void real_reql_cluster_interface_t::emergency_repair_internal(
     // Store the old value of the config and status
     ql::datum_t old_config_datum = convert_table_config_to_datum(
         table_id, convert_name_to_datum(db->name), old_config.config,
-        admin_identifier_format_t::name, server_config_client);
+        admin_identifier_format_t::name, old_config.server_names);
 
     table_status_artificial_table_backend_t *status_backend =
         admin_tables->table_status_backend[
@@ -843,7 +843,7 @@ void real_reql_cluster_interface_t::emergency_repair_internal(
         table_id,
         allow_erase,
         dry_run,
-        interruptor,
+        interruptor_on_home,
         &new_config,
         &rollback_found,
         &erase_found);
@@ -865,7 +865,7 @@ void real_reql_cluster_interface_t::emergency_repair_internal(
     // Compute the new value of the config and status
     ql::datum_t new_config_datum = convert_table_config_to_datum(
         table_id, convert_name_to_datum(db->name), new_config.config,
-        admin_identifier_format_t::name, server_config_client);
+        admin_identifier_format_t::name, new_config.server_names);
     ql::datum_t new_status;
     if (!status_backend->read_row(convert_uuid_to_datum(table_id), interruptor_on_home,
             &new_status, &error)) {
@@ -892,7 +892,7 @@ bool real_reql_cluster_interface_t::table_emergency_repair(
         const name_string_t &name,
         bool allow_erase,
         bool dry_run,
-        signal_t *interruptor,
+        signal_t *interruptor_on_caller,
         ql::datum_t *result_out,
         std::string *error_out) {
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
@@ -1158,7 +1158,8 @@ bool real_reql_cluster_interface_t::sindex_list(
         namespace_id_t table_id;
         table_meta_client->find(db->id, table_name, &table_id);
         table_meta_client->get_status(
-            table_id, &interruptor_on_home, configs_and_statuses_out, nullptr);
+            table_id, &interruptor_on_home,
+            configs_and_statuses_out, nullptr, nullptr, nullptr);
         return true;
     } CATCH_NAME_ERRORS(db->name, table_name, error_out)
       CATCH_OP_ERRORS(db->name, table_name, error_out, "", "")

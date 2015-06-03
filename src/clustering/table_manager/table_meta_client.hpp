@@ -7,6 +7,7 @@
 #include "concurrency/watchable_map.hpp"
 
 class multi_table_manager_t;
+class server_config_client_t;
 
 /* These four exception classes are all thrown by `table_meta_client_t` to describe
 different error conditions. There are several reasons why this is better than having
@@ -129,7 +130,7 @@ public:
         std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
             *index_statuses_out,
         std::map<server_id_t, contracts_and_contract_acks_t> *contracts_and_acks_out,
-        std::map<server_id_t, name_string_t> *server_names_out,
+        server_name_map_t *server_names_out,
         server_id_t *latest_server_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t);
 
