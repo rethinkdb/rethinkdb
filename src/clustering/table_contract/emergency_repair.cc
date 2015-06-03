@@ -160,8 +160,20 @@ void calculate_emergency_repair(
             new_state_out->config.shard_scheme.num_shards());
     }
 
-    /* Copy over the branch history and `member_ids` without modification */
+    /* Copy over the branch history without modification */
     new_state_out->branch_history = old_state.branch_history;
-    new_state_out->member_ids = old_state.member_ids;
+
+    /* Find all the servers that appear in any contract, and put entries for those
+    servers in `member_ids` and `server_names` */
+    for (const auto &pair : new_state_out->contracts) {
+        for (const server_id_t &server : pair.second.second.replicas) {
+            if (new_state_out->member_ids.count(server) == 0) {
+                new_state_out->member_ids.insert(
+                    std::make_pair(server, raft_member_id_t(generate_uuid())));
+                new_state_out->server_names.names.insert(
+                    std::make_pair(server, old_state.server_names.get(server)));
+            }
+        }
+    }
 }
 

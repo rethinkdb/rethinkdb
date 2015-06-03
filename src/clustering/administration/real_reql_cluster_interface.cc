@@ -809,7 +809,7 @@ bool real_reql_cluster_interface_t::db_reconfigure(
 void real_reql_cluster_interface_t::emergency_repair_internal(
             const counted_t<const ql::db_t> &db,
             const namespace_id_t &table_id,
-            bool allow_data_loss,
+            bool allow_erase,
             bool dry_run,
             signal_t *interruptor,
             ql::datum_t *result_out)
@@ -837,28 +837,28 @@ void real_reql_cluster_interface_t::emergency_repair_internal(
     }
 
     table_config_and_shards_t new_config;
-    bool quorum_loss_found;
-    bool data_loss_found;
+    bool rollback_found;
+    bool erase_found;
     table_meta_client->emergency_repair(
         table_id,
-        allow_data_loss,
+        allow_erase,
         dry_run,
         interruptor,
         &new_config,
-        &recoverable_errors_found,
-        &data_loss_found);
+        &rollback_found,
+        &erase_found);
 
-    if (!quorum_loss_found) {
-        if (!data_loss_found) {
+    if (!rollback_found) {
+        if (!erase_found) {
             throw admin_op_exc_t("This table doesn't need to be repaired.");
-        } else if (data_loss_found && !allow_data_loss) {
+        } else if (erase_found && !allow_erase) {
             throw admin_op_exc_t("One or more shards of this table have no available "
                 "replicas. Since there are no available copies of the data that was "
                 "stored in those shards, those shards cannot be repaired. If you run "
-                "the command again with `emergency_repair` set to `catastrophic`, those "
-                "shards will be reset to an empty, but writeable state; but if the "
-                "missing replicas later reconnect, the original data that was stored on "
-                "them will be lost permanently.");
+                "the command again with `emergency_repair` set to "
+                "`unsafe_rollback_or_erase`, those shards will be reset to an empty, "
+                "but writeable state; but if the missing replicas later reconnect, the "
+                "original data that was stored on them will be lost permanently.");
         }
     }    
 
@@ -890,7 +890,7 @@ void real_reql_cluster_interface_t::emergency_repair_internal(
 bool real_reql_cluster_interface_t::table_emergency_repair(
         counted_t<const ql::db_t> db,
         const name_string_t &name,
-        bool allow_data_loss,
+        bool allow_erase,
         bool dry_run,
         signal_t *interruptor,
         ql::datum_t *result_out,
@@ -902,7 +902,7 @@ bool real_reql_cluster_interface_t::table_emergency_repair(
         on_thread_t thread_switcher(home_thread());
         namespace_id_t table_id;
         table_meta_client->find(db->id, name, &table_id);
-        emergency_repair_internal(db, table_id, allow_data_loss, dry_run,
+        emergency_repair_internal(db, table_id, allow_erase, dry_run,
             &interruptor_on_home, result_out);
         return true;
     } catch (const admin_op_exc_t &msg) {

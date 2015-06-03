@@ -170,12 +170,12 @@ public:
     detected. */
     void emergency_repair(
         const namespace_id_t &table_id,
-        bool allow_data_loss,
+        bool allow_erase,
         bool dry_run,
         signal_t *interruptor,
         table_config_and_shards_t *new_config_out,
-        bool *quorum_loss_found_out,
-        bool *data_loss_found_out)
+        bool *erase_found_out,
+        bool *rollback_found_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,
             maybe_failed_table_op_exc_t);
 

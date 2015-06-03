@@ -589,12 +589,12 @@ void table_meta_client_t::set_config(
 
 void table_meta_client_t::emergency_repair(
         const namespace_id_t &table_id,
-        bool allow_data_loss,
+        bool allow_erase,
         bool dry_run,
         signal_t *interruptor_on_caller,
         table_config_and_shards_t *new_config_out,
-        bool *quorum_loss_found_out,
-        bool *data_loss_found_out)
+        bool *rollback_found_out,
+        bool *erase_found_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,
             maybe_failed_table_op_exc_t) {
     cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
@@ -615,10 +615,10 @@ void table_meta_client_t::emergency_repair(
     calculate_emergency_repair(
         old_contracts.at(latest_server).state,
         dead_servers,
-        allow_data_loss,
+        allow_erase,
         &new_state,
-        quorum_loss_found_out,
-        data_loss_found_out);
+        rollback_found_out,
+        erase_found_out);
 
     *new_config_out = new_state.config;
 

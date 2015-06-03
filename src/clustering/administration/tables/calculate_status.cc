@@ -202,12 +202,12 @@ void calculate_status(
     /* `server_names_out` already contains the name of every server that responded; now
     we also add the names of servers mentioned in the configs or contracts */
     for (const auto &pair : contracts_and_acks) {
-        server_names_out->insert(
-            pair.second.state.config.server_names.begin(),
-            pair.second.state.config.server_names.end());
-        server_names_out->insert(
-            pair.second.state.server_names.begin(),
-            pair.second.state.server_names.end());
+        server_names_out->names.insert(
+            pair.second.state.config.server_names.names.begin(),
+            pair.second.state.config.server_names.names.end());
+        server_names_out->names.insert(
+            pair.second.state.server_names.names.begin(),
+            pair.second.state.server_names.names.end());
     }
 
     region_map_t<region_acks_t> regions;

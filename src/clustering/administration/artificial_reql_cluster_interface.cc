@@ -254,7 +254,7 @@ bool artificial_reql_cluster_interface_t::db_reconfigure(
 bool artificial_reql_cluster_interface_t::table_emergency_repair(
         counted_t<const ql::db_t> db,
         const name_string_t &name,
-        bool allow_data_loss,
+        bool allow_erase,
         bool dry_run,
         signal_t *interruptor,
         ql::datum_t *result_out,
@@ -264,7 +264,7 @@ bool artificial_reql_cluster_interface_t::table_emergency_repair(
             "tables in it.", database.c_str());
         return false;
     }
-    return next->table_emergency_repair(db, name, allow_data_loss, dry_run, interruptor,
+    return next->table_emergency_repair(db, name, allow_erase, dry_run, interruptor,
         result_out, error_out);
 }
 
