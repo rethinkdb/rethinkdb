@@ -60,11 +60,12 @@ class Changefeeds_Master(rdb_unittest.RdbTestCase):
         self.table.get(sampleA_ID).update({'update':'a'}).run(self.conn)
         self.table.get(sampleB_ID).update({'update':'a'}).run(self.conn)
         
-        next(feedA1)
-        next(feedA2)
         
-        next(feedB)
-        next(pointFeed)
+        feedA1.next(wait=.2)
+        feedA2.next(wait=.2)
+        
+        feedB.next(wait=.2)
+        pointFeed.next(wait=.2)
         
         print("Reverse the server assignments (%.2fs)" % (time.time() - startTime))
         
@@ -79,15 +80,15 @@ class Changefeeds_Master(rdb_unittest.RdbTestCase):
         
         self.table.get(sampleA_ID).update({'update':'b'}).run(self.conn)
         
-        self.assertRaises(self.r.RqlRuntimeError, next, feedA1)
-        self.assertRaises(self.r.RqlRuntimeError, next, feedA2)
+        self.assertRaises(self.r.RqlRuntimeError, feedA1.next, wait=.2)
+        self.assertRaises(self.r.RqlRuntimeError, feedA2.next, wait=.2)
         
         print("Check that feeds are also disconnected on an unchanged shard (%.2fs)" % (time.time() - startTime))
         
         self.table.get(sampleB_ID).update({'update':'b'}).run(self.conn)
         
-        self.assertRaises(self.r.RqlRuntimeError, next, feedB)
-        self.assertRaises(self.r.RqlRuntimeError, next, pointFeed)
+        self.assertRaises(self.r.RqlRuntimeError, feedB.next, wait=.2)
+        self.assertRaises(self.r.RqlRuntimeError, pointFeed.next, wait=.2)
 
 # ===== main
 
