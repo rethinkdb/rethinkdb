@@ -190,18 +190,30 @@ for feed in [
             
             runningFeed = feed['feed'](self)
             
+            # empty the feed of any inital values
+            
+            try:
+                while True:
+                    runningFeed.next(wait=.1)
+            except self.r.RqlTimeoutError: pass
+            
             # drop the table
             
             self.r.db(self.dbName).table_drop(self.tableName).run(self.conn)
             
             # check the feed errors
             
+            result = None
             try:
-                self.assertRaises(self.r.RqlRuntimeError, runningFeed.next, wait=.2)
-            except AssertionError as e:
-                # include the correct feed name
-                e.args += ('%s feed' % feed['name'], )
-                raise e
+                result = runningFeed.next(wait=.2)
+            except self.r.RqlRuntimeError:
+                pass # expected result
+            except self.r.RqlTimeoutError:
+                raise AssertionError('%s feed timed out rather than getting a RqlRuntimeError error' % feed['name'])
+            except Exception as e:
+                raise AssertionError('expected RqlRuntimeError, but raised: %r' % e)
+            else:
+                raise AssertionError('expected RqlRuntimeError, but got value: %r' % result)
         return test
     testName = 'test_table_drop_%s_feed' % feed['name']
     setattr(Changefeeds_Basic, testName, test_table_drop_test_generator(feed))
