@@ -13,7 +13,7 @@ class RdbTestCase(unittest.TestCase):
     shards = 1
     replicas = 1
     fieldName = 'id'
-    recordsToGenerate = 100
+    recordsToGenerate = 0
     
     samplesPerShard = 5 # when making changes the number of changes to make per shard
     
@@ -47,6 +47,8 @@ class RdbTestCase(unittest.TestCase):
                 self.__class__.dbName = defaultDb
             if self.tableName is None:
                 self.__class__.tableName = defaultTable
+        
+        self.__class__.table = self.r.db(self.dbName).table(self.tableName)
         
         # Allow detecting test failure in tearDown
         self.__currentResult = result or self.defaultTestResult()

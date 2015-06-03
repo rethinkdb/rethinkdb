@@ -94,9 +94,6 @@ void caching_cfeed_artificial_table_backend_t::caching_machinery_t::run(
     parent->set_notifications(true);
     try {
         while (true) {
-            guarantee(dirtiness != dirtiness_t::none_or_some || !dirty_keys.empty(),
-                "If nothing is dirty, we shouldn't have gotten here");
-
             bool success;
             {
                 new_mutex_acq_t mutex_acq(&mutex);

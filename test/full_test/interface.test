@@ -13,6 +13,7 @@ for interface_test_name in [
         'net_corruption',
         'progress',
         'resources',
+        'rethinkdb_jobs',
         'server_config',
         'server_status',
         'shard_balancing',

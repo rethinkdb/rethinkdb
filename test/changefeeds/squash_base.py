@@ -15,10 +15,7 @@ import rdb_unittest, utils
 
 class SquashBase(rdb_unittest.RdbTestCase):
     '''Squash tests'''
-
-    # `rdb_unittest.RdbTestCase` variables
-    recordsToGenerate = 0
-
+    
     # Local variables
     squash = True
     field = "id"
