@@ -107,17 +107,63 @@ tests:
     - cd: tbl.count()
       ot: 100
 
-    # Access a table using the `use_outdated` flag
+    # Access a table using different read modes
     - py:
-        - r.table('test2', use_outdated=True).count()
-        - r.db('test').table('test2', use_outdated=True).count()
+        - r.table('test2', read_mode='outdated').count()
+        - r.table('test2', read_mode='single').count()
+        - r.table('test2', read_mode='majority').count()
+        - r.db('test').table('test2', read_mode='outdated').count()
+        - r.db('test').table('test2', read_mode='single').count()
+        - r.db('test').table('test2', read_mode='majority').count()
       js:
-        - r.table('test2', {useOutdated:true}).count()
-        - r.db('test').table('test2', {useOutdated:true}).count()
+        - r.table('test2', {readMode:'outdated'}).count()
+        - r.table('test2', {readMode:'single'}).count()
+        - r.table('test2', {readMode:'majority'}).count()
+        - r.db('test').table('test2', {readMode:'outdated'}).count()
+        - r.db('test').table('test2', {readMode:'single'}).count()
+        - r.db('test').table('test2', {readMode:'majority'}).count()
       rb:
-        - r.table('test2', {:use_outdated => true}).count()
-        - r.db('test').table('test2', {:use_outdated => true}).count()
+        - r.table('test2', {:read_mode => 'outdated'}).count()
+        - r.table('test2', {:read_mode => 'single'}).count()
+        - r.table('test2', {:read_mode => 'majority'}).count()
+        - r.db('test').table('test2', {:read_mode => 'outdated'}).count()
+        - r.db('test').table('test2', {:read_mode => 'single'}).count()
+        - r.db('test').table('test2', {:read_mode => 'majority'}).count()
       ot: 100
+
+    # Access a table with an invalid read mode
+    - py:
+        - r.table('test2', read_mode=null).count()
+        - r.db('test').table('test2', read_mode=null).count()
+      js:
+        - r.table('test2', {readMode:null}).count()
+        - r.db('test').table('test2', {readMode:null}).count()
+      rb:
+        - r.table('test2', {:read_mode => null}).count()
+        - r.db('test').table('test2', {:read_mode => null}).count()
+      ot: err("RqlRuntimeError", 'Expected type STRING but found NULL.')
+
+    - py:
+        - r.table('test2', read_mode=false).count()
+        - r.db('test').table('test2', read_mode=true).count()
+      js:
+        - r.table('test2', {readMode:true}).count()
+        - r.db('test').table('test2', {readMode:false}).count()
+      rb:
+        - r.table('test2', {:read_mode => false}).count()
+        - r.db('test').table('test2', {:read_mode => true}).count()
+      ot: err("RqlRuntimeError", 'Expected type STRING but found BOOL.')
+
+    - py:
+        - r.table('test2', read_mode='fake').count()
+        - r.db('test').table('test2', read_mode='fake').count()
+      js:
+        - r.table('test2', {readMode:'fake'}).count()
+        - r.db('test').table('test2', {readMode:'fake'}).count()
+      rb:
+        - r.table('test2', {:read_mode => 'fake'}).count()
+        - r.db('test').table('test2', {:read_mode => 'fake'}).count()
+      ot: err("RqlRuntimeError", 'Read mode `fake` unrecognized (options are "majority", "single", and "outdated").')
 
     - cd: tbl.get(20).count()
       py: [] # Handled by native Python error

@@ -313,7 +313,7 @@ message Term {
         // Returns a reference to a database.
         DB    = 14; // STRING -> Database
         // Returns a reference to a table.
-        TABLE = 15; // Database, STRING, {read_mode:BOOL, identifier_format:STRING} -> Table
+        TABLE = 15; // Database, STRING, {read_mode:STRING, identifier_format:STRING} -> Table
                     // STRING, {read_mode:STRING, identifier_format:STRING} -> Table
         // Gets a single element from a table by its primary or a secondary key.
         GET   = 16; // Table, STRING -> SingleSelection | Table, NUMBER -> SingleSelection |
