@@ -100,8 +100,6 @@ class Changefeeds_Basic(rdb_unittest.RdbTestCase):
         
         primary.kill()
         self.table.wait(wait_for='ready_for_writes', timeout=10)
-        from pprint import pprint
-        pprint(list(self.r.db('rethinkdb').table('server_status').run()))
         
         # the changefeed should have closed
         
