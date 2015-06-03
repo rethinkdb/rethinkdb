@@ -11,6 +11,7 @@ import utils, rdb_unittest
 class Changefeeds_Basic(rdb_unittest.RdbTestCase):
     '''Basic tests'''
     
+    recordsToGenerate = 100
     shards = 2
     
     def test_simple(self):
@@ -44,6 +45,7 @@ class Changefeeds_Basic(rdb_unittest.RdbTestCase):
 class Changefeeds_Destructive(rdb_unittest.RdbTestCase):
     '''Tests that mess with the servers'''
     
+    recordsToGenerate = 100
     shards = 2
     replicas = 2
     
