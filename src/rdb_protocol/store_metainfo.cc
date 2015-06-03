@@ -30,6 +30,7 @@ region_map_t<binary_blob_t> store_metainfo_manager_t::get(
         real_superblock_t *superblock,
         const region_t &region) {
     guarantee(superblock != nullptr);
+    superblock->get()->read_acq_signal()->wait_lazily_unordered();
     return cache.mask(region);
 }
 
@@ -38,12 +39,16 @@ void store_metainfo_manager_t::visit(
         const region_t &region,
         const std::function<void(const region_t &, const binary_blob_t &)> &cb) {
     guarantee(superblock != nullptr);
+    superblock->get()->read_acq_signal()->wait_lazily_unordered();
     cache.visit(region, cb);
 }
 
 void store_metainfo_manager_t::update(
         real_superblock_t *superblock,
         const region_map_t<binary_blob_t> &new_values) {
+    guarantee(superblock != nullptr);
+    superblock->get()->write_acq_signal()->wait_lazily_unordered();
+
     cache.update(new_values);
 
     std::vector<std::vector<char> > keys;
