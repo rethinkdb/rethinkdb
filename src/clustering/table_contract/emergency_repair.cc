@@ -161,6 +161,17 @@ void calculate_emergency_repair(
             });
         guarantee(new_state_out->config.config.shards.size() ==
             new_state_out->config.shard_scheme.num_shards());
+
+        /* Copy over server names for all servers that are in the new config, into the
+        server names map for the config. (Note that there are two separate server name
+        maps, one for the config and one for the contracts.) */
+        for (const table_config_t::shard_t &shard :
+                new_state_out->config.config.shards) {
+            for (const server_id_t &server : shard.all_replicas) {
+                new_state_out->config.server_names.names.insert(
+                    std::make_pair(server, old_state.server_names.names.at(server)));
+            }
+        }
     }
 
     /* Copy over the branch history without modification */

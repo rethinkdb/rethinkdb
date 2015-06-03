@@ -165,13 +165,24 @@ template<class tag_t, class key_t, class value_t>
 watchable_map_combiner_t<tag_t, key_t, value_t>::source_t::source_t(
         watchable_map_combiner_t *_parent,
         const tag_t &tag,
-        watchable_map_t<key_t, value_t> *inner) :
+        watchable_map_t<key_t, value_t> *_inner) :
     parent(_parent),
+    inner(_inner),
     sentry(&parent->map, tag, inner),
     subs(inner,
         std::bind(&source_t::on_change, this, ph::_1, ph::_2),
         initial_call_t::YES)
     { }
+
+template<class tag_t, class key_t, class value_t>
+watchable_map_combiner_t<tag_t, key_t, value_t>::source_t::~source_t() {
+    tag_t tag = sentry.get_key();
+    sentry.reset();
+    rwi_lock_assertion_t::write_acq_t write_acq(&parent->rwi_lock);
+    inner->read_all([&](const key_t &key, const value_t *) {
+        parent->notify_change(std::make_pair(tag, key), nullptr, &write_acq);
+    });
+}
 
 template<class tag_t, class key_t, class value_t>
 void watchable_map_combiner_t<tag_t, key_t, value_t>::source_t::on_change(
