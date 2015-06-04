@@ -20,11 +20,9 @@ debug_table_status_artificial_table_backend_t::
                 debug_table_status_artificial_table_backend_t(
             boost::shared_ptr<semilattice_readwrite_view_t<
                 cluster_semilattice_metadata_t> > _semilattice_view,
-            table_meta_client_t *_table_meta_client,
-            server_config_client_t *_server_config_client) :
+            table_meta_client_t *_table_meta_client) :
         common_table_artificial_table_backend_t(
-            _semilattice_view, _table_meta_client, admin_identifier_format_t::uuid),
-        server_config_client(_server_config_client) {
+            _semilattice_view, _table_meta_client, admin_identifier_format_t::uuid) {
 }
 
 debug_table_status_artificial_table_backend_t::
@@ -97,7 +95,7 @@ ql::datum_t convert_debug_contract_primary_to_datum(
 }
 
 ql::datum_t convert_debug_contracts_to_datum(
-        const contracts_and_contract_acks_t::contracts_t &contracts) {
+        const std::map<contract_id_t, std::pair<region_t, contract_t> > &contracts) {
     ql::datum_array_builder_t builder(ql::configured_limits_t::unlimited);
     for (const auto &contract : contracts) {
         ql::datum_object_builder_t contract_builder;
@@ -224,7 +222,7 @@ ql::datum_t convert_debug_branch_history_to_datum(
 }
 
 ql::datum_t convert_debug_contract_acks_to_datum(
-        const contracts_and_contract_acks_t::contract_acks_t &contract_acks) {
+        const std::map<contract_id_t, contract_ack_t> &contract_acks) {
     ql::datum_array_builder_t builder(ql::configured_limits_t::unlimited);
     for (const auto &contract_ack : contract_acks) {
         ql::datum_object_builder_t contract_builder;
@@ -254,27 +252,18 @@ ql::datum_t convert_debug_contract_acks_to_datum(
     return std::move(builder).to_datum();
 }
 
-ql::datum_t convert_debug_contracts_and_contrack_acks_to_datum(
-        const std::map<peer_id_t, contracts_and_contract_acks_t> &contracts_and_acks,
-        server_config_client_t *server_config_client) {
+ql::datum_t convert_debug_table_server_statuses_to_datum(
+        const std::map<server_id_t, table_server_status_t> &server_statuses) {
     ql::datum_array_builder_t builder(ql::configured_limits_t::unlimited);
-    for (const auto &peer : contracts_and_acks) {
-        boost::optional<server_id_t> server_id =
-            server_config_client->get_peer_to_server_map()->get_key(peer.first);
-
+    for (const auto &peer : server_statuses) {
         ql::datum_object_builder_t peer_builder;
-        peer_builder.overwrite("peer", convert_uuid_to_datum(peer.first.get_uuid()));
-        peer_builder.overwrite(
-            "server",
-            static_cast<bool>(server_id)
-                ? convert_uuid_to_datum(server_id.get())
-                : ql::datum_t::null());
+        peer_builder.overwrite("server", convert_uuid_to_datum(peer.first));
         peer_builder.overwrite(
             "timestamp",
             convert_debug_multi_table_manager_bcard_timestamp_to_datum(
                 peer.second.timestamp));
         peer_builder.overwrite(
-            "contracts", convert_debug_contracts_to_datum(peer.second.contracts));
+            "contracts", convert_debug_contracts_to_datum(peer.second.state.contracts));
         peer_builder.overwrite(
             "contract_acks",
             convert_debug_contract_acks_to_datum(peer.second.contract_acks));
@@ -285,21 +274,18 @@ ql::datum_t convert_debug_contracts_and_contrack_acks_to_datum(
 
 void debug_table_status_artificial_table_backend_t::format_row(
         const namespace_id_t &table_id,
-        const table_basic_config_t &,
+        const table_config_and_shards_t &config_and_shards,
         const ql::datum_t &db_name_or_uuid,
         signal_t *interruptor_on_home,
         ql::datum_t *row_out)
-        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,
-            admin_op_exc_t) {
+        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t) {
     assert_thread();
 
-    table_config_and_shards_t config_and_shards;
-    table_meta_client->get_config(table_id, interruptor_on_home, &config_and_shards);
-
     std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > sindex_statuses;
-    std::map<peer_id_t, contracts_and_contract_acks_t> contracts_and_acks;
-    table_meta_client->get_status(
-        table_id, interruptor_on_home, &sindex_statuses, &contracts_and_acks);
+    std::map<server_id_t, table_server_status_t> server_statuses;
+    server_id_t latest_server;
+    table_meta_client->get_status(table_id, interruptor_on_home,
+        &sindex_statuses, &server_statuses, nullptr, &latest_server);
 
     ql::datum_object_builder_t builder;
     builder.overwrite("id", convert_uuid_to_datum(table_id));
@@ -311,17 +297,17 @@ void debug_table_status_artificial_table_backend_t::format_row(
         convert_table_config_to_datum(
             table_id,
             db_name_or_uuid,
-            config_and_shards.config,
+            server_statuses.at(latest_server).state.config.config,
             admin_identifier_format_t::uuid,
-            config_and_shards.server_names));
+            server_statuses.at(latest_server).state.config.server_names));
     builder.overwrite(
         "shard_scheme",
-        convert_debug_table_shard_scheme_to_datum(config_and_shards.shard_scheme));
+        convert_debug_table_shard_scheme_to_datum(
+            server_statuses.at(latest_server).state.config.shard_scheme));
     builder.overwrite(
         "sindexes", convert_debug_sindex_statuses_to_datum(sindex_statuses));
     builder.overwrite(
-        "contracts_and_contract_acks",
-        convert_debug_contracts_and_contrack_acks_to_datum(
-            contracts_and_acks, server_config_client));
+        "table_server_status",
+        convert_debug_table_server_statuses_to_datum(server_statuses));
     *row_out = std::move(builder).to_datum();
 }

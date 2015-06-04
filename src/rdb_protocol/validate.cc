@@ -192,6 +192,7 @@ static std::set<std::string> acceptable_keys = {
     "default_timezone",
     "dry_run",
     "durability",
+    "emergency_repair",
     "fill",
     "first_batch_scaledown_factor",
     "float",
@@ -222,6 +223,7 @@ static std::set<std::string> acceptable_keys = {
     "primary_key",
     "primary_replica_tag",
     "profile",
+    "read_mode",
     "redirects",
     "replicas",
     "result_format",
@@ -234,7 +236,6 @@ static std::set<std::string> acceptable_keys = {
     "time_format",
     "timeout",
     "unit",
-    "use_outdated",
     "verify",
     "wait_for",
 };

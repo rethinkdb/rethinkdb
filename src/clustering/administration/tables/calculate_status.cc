@@ -8,71 +8,6 @@
 #include "clustering/table_contract/exec_primary.hpp"
 #include "clustering/table_manager/table_meta_client.hpp"
 
-bool get_contracts_and_acks(
-        namespace_id_t const &table_id,
-        signal_t *interruptor,
-        table_meta_client_t *table_meta_client,
-        server_config_client_t *server_config_client,
-        std::map<server_id_t, contracts_and_contract_acks_t> *contracts_and_acks_out,
-        std::map<
-                contract_id_t,
-                std::reference_wrapper<const std::pair<region_t, contract_t> >
-            > *contracts_out,
-        server_id_t *latest_contracts_server_id_out,
-        server_name_map_t *server_names_out)
-        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t) {
-    std::map<peer_id_t, contracts_and_contract_acks_t> contracts_and_acks;
-    table_meta_client->get_status(table_id, interruptor, nullptr, &contracts_and_acks);
-
-    multi_table_manager_bcard_t::timestamp_t latest_timestamp;
-    latest_timestamp.epoch.timestamp = 0;
-    latest_timestamp.epoch.id = nil_uuid();
-    latest_timestamp.log_index = 0;
-    for (const auto &peer : contracts_and_acks) {
-        /* Determine the server ID that goes with this peer */
-        boost::optional<server_id_t> server_id =
-            server_config_client->get_peer_to_server_map()->get_key(peer.first);
-        if (!static_cast<bool>(server_id)) {
-            /* This can only happen because of a race condition. */
-            continue;
-        }
-
-        /* Look up the name of the server in question. We need to do this separately
-        because it's hypothetically possible for us to get contract acks from a server
-        that doesn't appear in any contract, and we need to make sure that every server
-        ID that appears in `contracts_and_acks_out` also appears in `server_names_out`.
-        */
-        bool found_name = false;
-        server_config_client->get_server_config_map()->read_key(*server_id,
-            [&](const server_config_versioned_t *config) {
-                if (config != nullptr) {
-                    server_names_out->names.insert(std::make_pair(*server_id,
-                        std::make_pair(config->version, config->config.name)));
-                    found_name = true;
-                }
-            });
-        if (!found_name) {
-            /* This can only happen because of a race condition. */
-            continue;
-        }
-
-        auto pair = contracts_and_acks_out->insert(
-            std::make_pair(server_id.get(), std::move(peer.second)));
-        contracts_out->insert(
-            pair.first->second.contracts.begin(),
-            pair.first->second.contracts.end());
-        server_names_out->names.insert(
-            pair.first->second.server_names.names.begin(),
-            pair.first->second.server_names.names.end());
-        if (pair.first->second.timestamp.supersedes(latest_timestamp)) {
-            *latest_contracts_server_id_out = pair.first->first;
-            latest_timestamp = pair.first->second.timestamp;
-        }
-    }
-
-    return !contracts_and_acks_out->empty();
-}
-
 struct region_acks_t {
     bool operator==(const region_acks_t &other) const {
         return latest_contract_id == other.latest_contract_id && acks == other.acks;
@@ -85,7 +20,7 @@ struct region_acks_t {
 shard_status_t calculate_shard_status(
         const table_config_t::shard_t &shard,
         const region_map_t<region_acks_t> &regions,
-        const std::map<server_id_t, contracts_and_contract_acks_t> &contracts_and_acks,
+        const std::map<server_id_t, table_server_status_t> &server_statuses,
         const std::map<
                 contract_id_t,
                 std::reference_wrapper<const std::pair<region_t, contract_t> >
@@ -187,7 +122,7 @@ shard_status_t calculate_shard_status(
         for (const auto &replica : contract_and_shard_replicas) {
             if (shard_status.replicas.find(replica) == shard_status.replicas.end()) {
                 shard_status.replicas[replica] =
-                    contracts_and_acks.find(replica) == contracts_and_acks.end()
+                    server_statuses.find(replica) == server_statuses.end()
                         ? server_status_t::DISCONNECTED
                         : server_status_t::TRANSITIONING;
             }
@@ -225,34 +160,15 @@ void calculate_status(
         const namespace_id_t &table_id,
         signal_t *interruptor,
         table_meta_client_t *table_meta_client,
-        server_config_client_t *server_config_client,
         table_readiness_t *readiness_out,
         std::vector<shard_status_t> *shard_statuses_out,
         server_name_map_t *server_names_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t) {
-    /* Note that `contracts` and `latest_contracts` will contain references into
-       `contracts_and_acks`, thus this must remain in scope for them to be valid! */
-    table_config_and_shards_t config_and_shards;
-    std::map<server_id_t, contracts_and_contract_acks_t> contracts_and_acks;
-    std::map<
-            contract_id_t,
-            std::reference_wrapper<const std::pair<region_t, contract_t> >
-        > contracts;
+    std::map<server_id_t, table_server_status_t> server_statuses;
     server_id_t latest_contracts_server_id;
     try {
-        table_meta_client->get_config(table_id, interruptor, &config_and_shards);
-        server_names_out->names.insert(
-            config_and_shards.server_names.names.begin(),
-            config_and_shards.server_names.names.end());
-        get_contracts_and_acks(
-            table_id,
-            interruptor,
-            table_meta_client,
-            server_config_client,
-            &contracts_and_acks,
-            &contracts,
-            &latest_contracts_server_id,
-            server_names_out);
+        table_meta_client->get_status(table_id, interruptor,
+            nullptr, &server_statuses, server_names_out, &latest_contracts_server_id);
     } catch (const failed_table_op_exc_t &) {
         if (readiness_out != nullptr) {
             *readiness_out = table_readiness_t::unavailable;
@@ -262,8 +178,33 @@ void calculate_status(
         }
         return;
     }
+
+    /* Note that `config_and_shards`, `latest_contracts`, and `contracts` all refer to
+    `server_statusess`, so it must remain in scope for them to be valid. */
+    const table_config_and_shards_t &config_and_shards =
+        server_statuses.at(latest_contracts_server_id).state.config;
     const std::map<contract_id_t, std::pair<region_t, contract_t> > &latest_contracts =
-        contracts_and_acks.at(latest_contracts_server_id).contracts;
+        server_statuses.at(latest_contracts_server_id).state.contracts;
+    std::map<
+            contract_id_t,
+            std::reference_wrapper<const std::pair<region_t, contract_t> >
+        > contracts;
+    for (const auto &pair : server_statuses) {
+        contracts.insert(
+            pair.second.state.contracts.begin(),
+            pair.second.state.contracts.end());
+    }
+
+    /* `server_names_out` already contains the name of every server that responded; now
+    we also add the names of servers mentioned in the configs or contracts */
+    for (const auto &pair : server_statuses) {
+        server_names_out->names.insert(
+            pair.second.state.config.server_names.names.begin(),
+            pair.second.state.config.server_names.names.end());
+        server_names_out->names.insert(
+            pair.second.state.server_names.names.begin(),
+            pair.second.state.server_names.names.end());
+    }
 
     region_map_t<region_acks_t> regions;
     {
@@ -284,7 +225,7 @@ void calculate_status(
             std::move(regions_vec), std::move(acks_vec));
     }
 
-    for (const auto &server : contracts_and_acks) {
+    for (const auto &server : server_statuses) {
         for (const auto &contract_ack : server.second.contract_acks) {
             auto contract_it = contracts.find(contract_ack.first);
             if (contract_it == contracts.end()) {
@@ -311,7 +252,7 @@ void calculate_status(
         shard_status_t shard_status = calculate_shard_status(
             config_and_shards.config.shards.at(i),
             regions.mask(shard_region),
-            contracts_and_acks,
+            server_statuses,
             contracts);
 
         if (readiness_out != nullptr) {

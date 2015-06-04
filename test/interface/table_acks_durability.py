@@ -135,7 +135,7 @@ with driver.Cluster(output_folder='.') as cluster:
             assert res == 1000
             tested_readiness += "r"
         try:
-            res = r.db(dbName).table(name).count().run(conn, use_outdated = True)
+            res = r.db(dbName).table(name).count().run(conn, read_mode="outdated")
         except r.RqlRuntimeError, e:
             pass
         else:

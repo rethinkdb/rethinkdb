@@ -32,7 +32,8 @@ std::string read_from_dispatcher(
         const std::string &key,
         order_token_t otok,
         signal_t *interruptor) {
-    read_t read(point_read_t(store_key_t(key)), profile_bool_t::PROFILE);
+    read_t read(point_read_t(store_key_t(key)),
+                profile_bool_t::PROFILE, read_mode_t::SINGLE);
     fifo_enforcer_source_t fifo_source;
     fifo_enforcer_sink_t fifo_sink;
     fifo_enforcer_sink_t::exit_read_t exiter(&fifo_sink, fifo_source.enter_read());

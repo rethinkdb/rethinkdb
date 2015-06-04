@@ -37,14 +37,16 @@ bool table_query_client_t::check_readiness(table_readiness_t readiness,
         case table_readiness_t::outdated_reads:
             {
                 read_response_t res;
-                read_t r(dummy_read_t(), profile_bool_t::DONT_PROFILE);
-                read_outdated(r, &res, interruptor);
+                read_t r(dummy_read_t(), profile_bool_t::DONT_PROFILE,
+                         read_mode_t::OUTDATED);
+                read(r, &res, order_token_t::ignore, interruptor);
             }
             break;
         case table_readiness_t::reads:
             {
                 read_response_t res;
-                read_t r(dummy_read_t(), profile_bool_t::DONT_PROFILE);
+                read_t r(dummy_read_t(), profile_bool_t::DONT_PROFILE,
+                         read_mode_t::SINGLE);
                 read(r, &res, order_token_t::ignore, interruptor);
             }
             break;
@@ -76,22 +78,18 @@ void table_query_client_t::read(
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
     order_token.assert_read_mode();
-    dispatch_immediate_op<read_t, fifo_enforcer_sink_t::exit_read_t, read_response_t>(
-            &primary_query_client_t::new_read_token,
-            &primary_query_client_t::read,
-            r, response, order_token, interruptor);
-}
-
-void table_query_client_t::read_outdated(
-        const read_t &r,
-        read_response_t *response,
-        signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
-    guarantee(!r.route_to_primary());
-    /* This seems kind of silly. We do it this way because
-       `dispatch_outdated_read` needs to be able to see `outdated_read_info_t`,
-       which is defined in the `private` section. */
-    dispatch_outdated_read(r, response, interruptor);
+    if (r.read_mode == read_mode_t::OUTDATED) {
+        guarantee(!r.route_to_primary());
+        /* This seems kind of silly. We do it this way because
+           `dispatch_outdated_read` needs to be able to see `outdated_read_info_t`,
+           which is defined in the `private` section. */
+        dispatch_outdated_read(r, response, interruptor);
+    } else {
+        dispatch_immediate_op<read_t, fifo_enforcer_sink_t::exit_read_t, read_response_t>(
+                &primary_query_client_t::new_read_token,
+                &primary_query_client_t::read,
+                r, response, order_token, interruptor);
+    }
 }
 
 void table_query_client_t::write(

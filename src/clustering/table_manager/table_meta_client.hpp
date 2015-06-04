@@ -7,6 +7,7 @@
 #include "concurrency/watchable_map.hpp"
 
 class multi_table_manager_t;
+class server_config_client_t;
 
 /* These four exception classes are all thrown by `table_meta_client_t` to describe
 different error conditions. There are several reasons why this is better than having
@@ -70,7 +71,8 @@ public:
         watchable_map_t<peer_id_t, multi_table_manager_bcard_t>
             *_multi_table_manager_directory,
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
-            *_table_manager_directory);
+            *_table_manager_directory,
+        server_config_client_t *_server_config_client);
 
     /* All of these functions can be called from any thread. */
 
@@ -110,20 +112,28 @@ public:
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t);
 
     /* `list_configs()` fetches the configurations of every table at once. It may block.
-    */
+    If it can't find a config for a certain table, then it puts the table's name and info
+    into `disconnected_configs_out` instead. */
     void list_configs(
         signal_t *interruptor,
-        std::map<namespace_id_t, table_config_and_shards_t> *configs_out)
-        THROWS_ONLY(interrupted_exc_t, failed_table_op_exc_t);
+        std::map<namespace_id_t, table_config_and_shards_t> *configs_out,
+        std::map<namespace_id_t, table_basic_config_t> *disconnected_configs_out)
+        THROWS_ONLY(interrupted_exc_t);
 
-    /* `get_status()` returns the status of the table with the given ID, including
-    information about its secondary indexes. It may block. */
+    /* `get_status()` returns detailed information about the table with the given ID:
+      - A list of the secondary indexes on the table and the status of each one.
+      - For each server, the server's Raft state and contract acks.
+      - The name of each server in `server_statuses_out`.
+      - Which server has the most up-to-date Raft state.
+    It may block. */
     void get_status(
         const namespace_id_t &table_id,
         signal_t *interruptor,
         std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
             *index_statuses_out,
-        std::map<peer_id_t, contracts_and_contract_acks_t> *contracts_and_acks_out)
+        std::map<server_id_t, table_server_status_t> *server_statuses_out,
+        server_name_map_t *server_names_out,
+        server_id_t *latest_server_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t);
 
     /* `create()` creates a table with the given configuration. It sets `*table_id_out`
@@ -154,9 +164,37 @@ public:
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,
             maybe_failed_table_op_exc_t);
 
+    /* `emergency_repair()` performs an emergency repair operation on the given table,
+    creating a new table epoch. If all of the replicas for a given shard are missing, it
+    will leave the shard alone if `allow_data_loss` is `true`, or replace the shard with
+    a new empty shard if `allow_data_loss` is `false`. If `dry_run` is `true` it will
+    compute the repair operation but not actually apply it. `simple_errors_found_out`
+    and `data_loss_found_out` will indicate whether the two types of errors were
+    detected. */
+    void emergency_repair(
+        const namespace_id_t &table_id,
+        bool allow_erase,
+        bool dry_run,
+        signal_t *interruptor,
+        table_config_and_shards_t *new_config_out,
+        bool *erase_found_out,
+        bool *rollback_found_out)
+        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,
+            maybe_failed_table_op_exc_t);
+
 private:
     typedef std::pair<table_basic_config_t, multi_table_manager_bcard_t::timestamp_t>
         timestamped_basic_config_t;
+
+    /* `create_or_emergency_repair()` factors out the common parts of `create()` and
+    `emergency_repair()`. */
+    void create_or_emergency_repair(
+        const namespace_id_t &table_id,
+        const table_raft_state_t &raft_state,
+        microtime_t epoch_timestamp,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t, failed_table_op_exc_t,
+            maybe_failed_table_op_exc_t);
 
     /* `retry()` calls `fun()` repeatedly. If `fun()` fails with a
     `failed_table_op_exc_t` or `maybe_failed_table_op_exc_t`, then `retry()` catches the
@@ -179,6 +217,7 @@ private:
         *const multi_table_manager_directory;
     watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
         *const table_manager_directory;
+    server_config_client_t *const server_config_client;
 
     /* `table_basic_configs` distributes the `table_basic_config_t`s from the
     `multi_table_manager_t` to each thread, so that `find()`, `get_name()`, and

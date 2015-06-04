@@ -6,6 +6,7 @@
 #include "clustering/immediate_consistency/remote_replicator_server.hpp"
 #include "clustering/query_routing/direct_query_server.hpp"
 #include "concurrency/cross_thread_signal.hpp"
+#include "concurrency/promise.hpp"
 #include "store_view.hpp"
 
 primary_execution_t::primary_execution_t(
@@ -217,6 +218,52 @@ void primary_execution_t::run(auto_drainer_t::lock_t keepalive) {
     }
 }
 
+/* `write_callback_t` waits until the query is safe to ack, then pulses `done`. */
+class primary_execution_t::write_callback_t : public primary_dispatcher_t::write_callback_t {
+public:
+    write_callback_t(write_response_t *_r_out,
+                     write_durability_t _default_write_durability,
+                     write_ack_config_t _write_ack_config,
+                     contract_t *contract) :
+        ack_counter(*contract),
+        default_write_durability(_default_write_durability),
+        write_ack_config(_write_ack_config),
+        response_out(_r_out) { }
+
+    promise_t<bool> result;
+private:
+    write_durability_t get_default_write_durability() {
+        /* This only applies to writes that don't specify the durability */
+        return default_write_durability;
+    }
+    void on_ack(const server_id_t &server, write_response_t &&resp) {
+        if (!result.is_pulsed()) {
+            switch (write_ack_config) {
+                case write_ack_config_t::SINGLE:
+                    break;
+                case write_ack_config_t::MAJORITY:
+                    ack_counter.note_ack(server);
+                    if (!ack_counter.is_safe()) {
+                        // We're not ready to safely ack the query yet.
+                        return;
+                    }
+                    break;
+            }
+            *response_out = std::move(resp);
+            result.pulse(true);
+        }
+    }
+    void on_end() {
+        if (!result.is_pulsed()) {
+            result.pulse(false);
+        }
+    }
+    ack_counter_t ack_counter;
+    write_durability_t default_write_durability;
+    write_ack_config_t write_ack_config;
+    write_response_t *response_out;
+};
+
 bool primary_execution_t::on_write(
         const write_t &request,
         fifo_enforcer_sink_t::exit_write_t *exiter,
@@ -262,54 +309,10 @@ bool primary_execution_t::on_write(
         }
     }
 
-    /* `write_callback_t` waits until the query is safe to ack, then pulses `done`. */
-    class write_callback_t : public primary_dispatcher_t::write_callback_t {
-    public:
-        write_callback_t(write_response_t *_r_out, std::string *_e_out,
-                counted_t<contract_info_t> contract_info) :
-            success(false), ack_counter(contract_info->contract),
-            default_write_durability(contract_info->default_write_durability),
-            write_ack_config(contract_info->write_ack_config),
-            response_out(_r_out), error_out(_e_out) { }
-        bool success;
-        cond_t done;
-    private:
-        write_durability_t get_default_write_durability() {
-            /* This only applies to writes that don't specify the durability */
-            return default_write_durability;
-        }
-        void on_ack(const server_id_t &server, write_response_t &&resp) {
-            if (!done.is_pulsed()) {
-                switch (write_ack_config) {
-                    case write_ack_config_t::SINGLE:
-                        break;
-                    case write_ack_config_t::MAJORITY:
-                        ack_counter.note_ack(server);
-                        if (!ack_counter.is_safe()) {
-                            // We're not ready to safely ack the query yet.
-                            return;
-                        }
-                        break;
-                }
-                *response_out = std::move(resp);
-                success = true;
-                done.pulse();
-            }
-        }
-        void on_end() {
-            if (!done.is_pulsed()) {
-                *error_out = "The primary replica lost contact with the secondary "
-                    "replicas. The write may or may not have been performed.";
-                done.pulse();
-            }
-        }
-        ack_counter_t ack_counter;
-        write_durability_t default_write_durability;
-        write_ack_config_t write_ack_config;
-        write_response_t *response_out;
-        std::string *error_out;
-    } write_callback(response_out, error_out, contract_snapshot);
-
+    write_callback_t write_callback(response_out,
+                                    contract_snapshot->default_write_durability,
+                                    contract_snapshot->write_ack_config,
+                                    &contract_snapshot->contract);
     our_dispatcher->spawn_write(request, order_token, &write_callback);
 
     /* Now that we've called `spawn_write()`, our write is in the queue. So it's safe to
@@ -320,8 +323,43 @@ bool primary_execution_t::on_write(
     /* This will allow other calls to `on_write()` to happen. */
     exiter->end();
 
-    wait_interruptible(&write_callback.done, interruptor);
-    return write_callback.success;
+    wait_interruptible(write_callback.result.get_ready_signal(), interruptor);
+
+    bool res = write_callback.result.assert_get_value();
+    if (!res) {
+        *error_out = "The primary replica lost contact with the secondary "
+            "replicas. The write may or may not have been performed.";
+    }
+    return res;
+}
+
+bool primary_execution_t::sync_committed_read(const read_t &read_request,
+                                              order_token_t order_token,
+                                              signal_t *interruptor,
+                                              std::string *error_out) {
+    write_response_t response;
+    write_t request = write_t::make_sync(read_request.get_region(),
+                                         read_request.profile);
+
+    mutex_assertion_t::acq_t begin_write_mutex_acq(&begin_write_mutex);
+    counted_t<contract_info_t> contract_snapshot = latest_contract_store_thread;
+
+    write_callback_t write_callback(&response,
+                                    write_durability_t::HARD,
+                                    write_ack_config_t::MAJORITY,
+                                    &contract_snapshot->contract);
+    our_dispatcher->spawn_write(request, order_token, &write_callback);
+
+    begin_write_mutex_acq.reset();
+
+    wait_interruptible(write_callback.result.get_ready_signal(), interruptor);
+
+    bool res = write_callback.result.assert_get_value();
+    if (!res) {
+        *error_out = "The primary replica lost contact with the secondary "
+            "replicas. The read could not be guaranteed as committed.";
+    }
+    return res;
 }
 
 bool primary_execution_t::on_read(
@@ -340,7 +378,16 @@ bool primary_execution_t::on_read(
             order_token,
             interruptor,
             response_out);
-        return true;
+
+        switch (request.read_mode) {
+        case read_mode_t::SINGLE:
+            return true;
+        case read_mode_t::MAJORITY:
+            return sync_committed_read(request, order_token, interruptor, error_out);
+        case read_mode_t::OUTDATED: // Fallthrough intentional
+        default:
+            unreachable();
+        }
     } catch (const cannot_perform_query_exc_t &e) {
         *error_out = e.what();
         return false;
@@ -452,7 +499,8 @@ void primary_execution_t::sync_contract_with_replicas(
             cond_t done;
         } write_callback;
         write_callback.contract = contract;
-        our_dispatcher->spawn_write(write_t::make_sync(region),
+        our_dispatcher->spawn_write(
+            write_t::make_sync(region, profile_bool_t::DONT_PROFILE),
             order_token_t::ignore, &write_callback);
         wait_interruptible(&write_callback.done, interruptor);
         if (is_contract_ackable(contract, write_callback.servers)) {

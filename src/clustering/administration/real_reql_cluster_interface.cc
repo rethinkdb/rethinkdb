@@ -806,6 +806,117 @@ bool real_reql_cluster_interface_t::db_reconfigure(
     return true;
 }
 
+void real_reql_cluster_interface_t::emergency_repair_internal(
+        const counted_t<const ql::db_t> &db,
+        const namespace_id_t &table_id,
+        bool allow_erase,
+        bool dry_run,
+        signal_t *interruptor_on_home,
+        ql::datum_t *result_out)
+        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t,
+            failed_table_op_exc_t, maybe_failed_table_op_exc_t, admin_op_exc_t) {
+    assert_thread();
+
+    /* Fetch the table's current configuration */
+    table_config_and_shards_t old_config;
+    table_meta_client->get_config(table_id, interruptor_on_home, &old_config);
+
+    // Store the old value of the config and status
+    ql::datum_t old_config_datum = convert_table_config_to_datum(
+        table_id, convert_name_to_datum(db->name), old_config.config,
+        admin_identifier_format_t::name, old_config.server_names);
+
+    table_status_artificial_table_backend_t *status_backend =
+        admin_tables->table_status_backend[
+            static_cast<int>(admin_identifier_format_t::name)].get();
+    ql::datum_t old_status;
+    std::string error;
+    if (!status_backend->read_row(convert_uuid_to_datum(table_id), interruptor_on_home,
+            &old_status, &error)) {
+        throw admin_op_exc_t(error);
+    }
+
+    table_config_and_shards_t new_config;
+    bool rollback_found;
+    bool erase_found;
+    table_meta_client->emergency_repair(
+        table_id,
+        allow_erase,
+        dry_run,
+        interruptor_on_home,
+        &new_config,
+        &rollback_found,
+        &erase_found);
+
+    if (!rollback_found) {
+        if (!erase_found) {
+            throw admin_op_exc_t("This table doesn't need to be repaired.");
+        } else if (erase_found && !allow_erase) {
+            throw admin_op_exc_t("One or more shards of this table have no available "
+                "replicas. Since there are no available copies of the data that was "
+                "stored in those shards, those shards cannot be repaired. If you run "
+                "the command again with `emergency_repair` set to "
+                "`unsafe_rollback_or_erase`, those shards will be reset to an empty, "
+                "but writeable state; but if the missing replicas later reconnect, the "
+                "original data that was stored on them will be lost permanently.");
+        }
+    }    
+
+    // Compute the new value of the config and status
+    ql::datum_t new_config_datum = convert_table_config_to_datum(
+        table_id, convert_name_to_datum(db->name), new_config.config,
+        admin_identifier_format_t::name, new_config.server_names);
+    ql::datum_t new_status;
+    if (!status_backend->read_row(convert_uuid_to_datum(table_id), interruptor_on_home,
+            &new_status, &error)) {
+        throw admin_op_exc_t(error);
+    }
+
+    ql::datum_object_builder_t result_builder;
+    if (!dry_run) {
+        result_builder.overwrite("repaired", ql::datum_t(1.0));
+        result_builder.overwrite("config_changes",
+            make_replacement_pair(old_config_datum, new_config_datum));
+        result_builder.overwrite("status_changes",
+            make_replacement_pair(old_status, new_status));
+    } else {
+        result_builder.overwrite("repaired", ql::datum_t(0.0));
+        result_builder.overwrite("config_changes",
+            make_replacement_pair(old_config_datum, new_config_datum));
+    }
+    *result_out = std::move(result_builder).to_datum();
+}
+
+bool real_reql_cluster_interface_t::table_emergency_repair(
+        counted_t<const ql::db_t> db,
+        const name_string_t &name,
+        bool allow_erase,
+        bool dry_run,
+        signal_t *interruptor_on_caller,
+        ql::datum_t *result_out,
+        std::string *error_out) {
+    guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
+        "real_reql_cluster_interface_t should never get queries for system tables");
+    cross_thread_signal_t interruptor_on_home(interruptor_on_caller, home_thread());
+    try {
+        on_thread_t thread_switcher(home_thread());
+        namespace_id_t table_id;
+        table_meta_client->find(db->id, name, &table_id);
+        emergency_repair_internal(db, table_id, allow_erase, dry_run,
+            &interruptor_on_home, result_out);
+        return true;
+    } catch (const admin_op_exc_t &msg) {
+        *error_out = msg.what();
+        return false;
+    } CATCH_NAME_ERRORS(db->name, name, error_out)
+      CATCH_OP_ERRORS(db->name, name, error_out,
+        /* Note the non-standard error message here, to clarify if the user tries to
+        repair a table that's completely inaccessible. */
+        "The table was not repaired. At least one of a table's replicas must be "
+            "accessible in order to repair it.",
+        "The table may or may not have been repaired.")
+}
+
 void real_reql_cluster_interface_t::rebalance_internal(
         const namespace_id_t &table_id,
         signal_t *interruptor_on_home,
@@ -1049,7 +1160,8 @@ bool real_reql_cluster_interface_t::sindex_list(
         namespace_id_t table_id;
         table_meta_client->find(db->id, table_name, &table_id);
         table_meta_client->get_status(
-            table_id, &interruptor_on_home, configs_and_statuses_out, nullptr);
+            table_id, &interruptor_on_home,
+            configs_and_statuses_out, nullptr, nullptr, nullptr);
         return true;
     } CATCH_NAME_ERRORS(db->name, table_name, error_out)
       CATCH_OP_ERRORS(db->name, table_name, error_out, "", "")
@@ -1113,7 +1225,7 @@ void real_reql_cluster_interface_t::make_single_selection(
         counted_t<base_table_t>(new artificial_table_t(table_backend)),
         make_counted<const ql::db_t>(
             nil_uuid(), name_string_t::guarantee_valid("rethinkdb")),
-        table_name.str(), false, bt);
+        table_name.str(), read_mode_t::SINGLE, bt);
     *selection_out = make_scoped<ql::val_t>(
         ql::single_selection_t::from_row(env, bt, table, row),
         bt);

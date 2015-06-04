@@ -251,6 +251,23 @@ bool artificial_reql_cluster_interface_t::db_reconfigure(
         result_out, error_out);
 }
 
+bool artificial_reql_cluster_interface_t::table_emergency_repair(
+        counted_t<const ql::db_t> db,
+        const name_string_t &name,
+        bool allow_erase,
+        bool dry_run,
+        signal_t *interruptor,
+        ql::datum_t *result_out,
+        std::string *error_out) {
+    if (db->name == database) {
+        *error_out = strprintf("Database `%s` is special; you can't configure the "
+            "tables in it.", database.c_str());
+        return false;
+    }
+    return next->table_emergency_repair(db, name, allow_erase, dry_run, interruptor,
+        result_out, error_out);
+}
+
 bool artificial_reql_cluster_interface_t::table_rebalance(
         counted_t<const ql::db_t> db,
         const name_string_t &name,
@@ -422,8 +439,7 @@ admin_artificial_tables_t::admin_artificial_tables_t(
         table_status_backend[i].init(new table_status_artificial_table_backend_t(
             _semilattice_view,
             _table_meta_client,
-            static_cast<admin_identifier_format_t>(i),
-            _server_config_client));
+            static_cast<admin_identifier_format_t>(i)));
     }
     backends[name_string_t::guarantee_valid("table_status")] =
         std::make_pair(table_status_backend[0].get(), table_status_backend[1].get());
@@ -453,8 +469,7 @@ admin_artificial_tables_t::admin_artificial_tables_t(
 
     debug_table_status_backend.init(new debug_table_status_artificial_table_backend_t(
         _semilattice_view,
-        _table_meta_client,
-        _server_config_client));
+        _table_meta_client));
     backends[name_string_t::guarantee_valid("_debug_table_status")] =
         std::make_pair(debug_table_status_backend.get(),
                        debug_table_status_backend.get());

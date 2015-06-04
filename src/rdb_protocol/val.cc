@@ -206,17 +206,17 @@ counted_t<datum_stream_t> table_t::as_seq(
     backtrace_id_t bt,
     const datum_range_t &bounds,
     sorting_t sorting) {
-    return tbl->read_all(env, idx, bt, display_name(), bounds, sorting, use_outdated);
+    return tbl->read_all(env, idx, bt, display_name(), bounds, sorting, read_mode);
 }
 
 table_t::table_t(counted_t<base_table_t> &&_tbl,
                  counted_t<const db_t> _db, const std::string &_name,
-                 bool _use_outdated, backtrace_id_t backtrace)
+                 read_mode_t _read_mode, backtrace_id_t backtrace)
     : bt_rcheckable_t(backtrace),
       db(_db),
       name(_name),
       tbl(std::move(_tbl)),
-      use_outdated(_use_outdated)
+      read_mode(_read_mode)
 { }
 
 datum_t table_t::make_error_datum(const base_exc_t &exception) {
@@ -338,7 +338,7 @@ const std::string &table_t::get_pkey() const {
 }
 
 datum_t table_t::get_row(env_t *env, datum_t pval) {
-    return tbl->read_row(env, pval, use_outdated);
+    return tbl->read_row(env, pval, read_mode);
 }
 
 counted_t<datum_stream_t> table_t::get_all(
@@ -353,7 +353,7 @@ counted_t<datum_stream_t> table_t::get_all(
         display_name(),
         datum_range_t(value),
         sorting_t::UNORDERED,
-        use_outdated);
+        read_mode);
 }
 
 counted_t<datum_stream_t> table_t::get_intersecting(
@@ -366,7 +366,7 @@ counted_t<datum_stream_t> table_t::get_intersecting(
         new_sindex_id,
         parent->backtrace(),
         display_name(),
-        use_outdated,
+        read_mode,
         query_geometry);
 }
 
@@ -383,7 +383,7 @@ datum_t table_t::get_nearest(
         env,
         new_sindex_id,
         display_name(),
-        use_outdated,
+        read_mode,
         center,
         max_dist,
         max_results,

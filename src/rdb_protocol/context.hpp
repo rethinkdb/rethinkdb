@@ -130,7 +130,7 @@ public:
     virtual const std::string &get_pkey() const = 0;
 
     virtual ql::datum_t read_row(ql::env_t *env,
-        ql::datum_t pval, bool use_outdated) = 0;
+        ql::datum_t pval, read_mode_t read_mode) = 0;
     virtual counted_t<ql::datum_stream_t> read_all(
         ql::env_t *env,
         const std::string &sindex,
@@ -138,7 +138,7 @@ public:
         const std::string &table_name,   /* the table's own name, for display purposes */
         const ql::datum_range_t &range,
         sorting_t sorting,
-        bool use_outdated) = 0;
+        read_mode_t read_mode) = 0;
     virtual counted_t<ql::datum_stream_t> read_changes(
         ql::env_t *env,
         counted_t<ql::datum_stream_t> maybe_src,
@@ -152,13 +152,13 @@ public:
         const std::string &sindex,
         ql::backtrace_id_t bt,
         const std::string &table_name,
-        bool use_outdated,
+        read_mode_t read_mode,
         const ql::datum_t &query_geometry) = 0;
     virtual ql::datum_t read_nearest(
         ql::env_t *env,
         const std::string &sindex,
         const std::string &table_name,
-        bool use_outdated,
+        read_mode_t read_mode,
         lon_lat_point_t center,
         double max_dist,
         uint64_t max_results,
@@ -274,6 +274,15 @@ public:
     virtual bool db_reconfigure(
             counted_t<const ql::db_t> db,
             const table_generate_config_params_t &params,
+            bool dry_run,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
+            std::string *error_out) = 0;
+
+    virtual bool table_emergency_repair(
+            counted_t<const ql::db_t> db,
+            const name_string_t &name,
+            bool allow_data_loss,
             bool dry_run,
             signal_t *interruptor,
             ql::datum_t *result_out,

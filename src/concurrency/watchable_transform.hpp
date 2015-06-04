@@ -195,9 +195,11 @@ public:
             watchable_map_combiner_t *parent,
             const tag_t &tag,
             watchable_map_t<key_t, value_t> *inner);
+        ~source_t();
     private:
         void on_change(const key_t &key, const value_t *value);
         watchable_map_combiner_t *parent;
+        watchable_map_t<key_t, value_t> *inner;
         map_insertion_sentry_t<tag_t, watchable_map_t<key_t, value_t> *> sentry;
         typename watchable_map_t<key_t, value_t>::all_subs_t subs;
     };
