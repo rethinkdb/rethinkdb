@@ -369,9 +369,9 @@ coro_stack_t* coro_t::get_stack() {
     return &stack;
 }
 
-/* Called by SIGSEGV handler to identify segfaults that come from overflowing a coroutine's
-stack. Could also in theory be used by a function to check if it's about to overflow
-the stack. */
+/* Called by SIGSEGV/SIGBUS handler to identify segfaults that come from overflowing
+a coroutine's stack. Could also in theory be used by a function to check if it's
+about to overflow the stack. */
 
 bool is_coroutine_stack_overflow(void *addr) {
     return TLS_get_cglobals()->current_coro && TLS_get_cglobals()->current_coro->stack.address_is_stack_overflow(addr);
