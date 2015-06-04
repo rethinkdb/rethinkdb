@@ -102,27 +102,11 @@ void dummy_sharder_t::read(const read_t &read, read_response_t *response, order_
         read_t subread;
         if (read.shard(it->region, &subread)) {
             responses.push_back(read_response_t());
-            it->timestamper->read(subread, &responses.back(), tok, interruptor);
-            if (interruptor->is_pulsed()) {
-                throw interrupted_exc_t();
+            if (read.read_mode == read_mode_t::OUTDATED) {
+                it->performer->read_outdated(subread, &responses.back(), interruptor);
+            } else {
+                it->timestamper->read(subread, &responses.back(), tok, interruptor);
             }
-        }
-    }
-
-    read.unshard(responses.data(), responses.size(), response, ctx, interruptor);
-}
-
-void dummy_sharder_t::read_outdated(const read_t &read, read_response_t *response, signal_t *interruptor) {
-    if (interruptor->is_pulsed()) { throw interrupted_exc_t(); }
-
-    std::vector<read_response_t> responses;
-    responses.reserve(shards.size());
-
-    for (auto it = shards.begin(); it != shards.end(); ++it) {
-        read_t subread;
-        if (read.shard(it->region, &subread)) {
-            responses.push_back(read_response_t());
-            it->performer->read_outdated(subread, &responses.back(), interruptor);
             if (interruptor->is_pulsed()) {
                 throw interrupted_exc_t();
             }

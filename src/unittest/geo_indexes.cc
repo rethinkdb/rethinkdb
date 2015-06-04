@@ -191,7 +191,8 @@ std::vector<nearest_geo_read_response_t::dist_pair_t> perform_get_nearest(
     read_t read(nearest_geo_read_t(region_t::universe(), center, max_distance,
                                    max_results, WGS84_ELLIPSOID, table_name, idx_name,
                                    std::map<std::string, ql::wire_func_t>()),
-                profile_bool_t::PROFILE);
+                profile_bool_t::PROFILE,
+                read_mode_t::SINGLE);
     read_response_t response;
 
     cond_t interruptor;
@@ -320,7 +321,8 @@ std::vector<datum_t> perform_get_intersecting(
                                             region_t::universe(),
                                             ql::datum_range_t::universe()),
                                         query_geometry),
-                profile_bool_t::PROFILE);
+                profile_bool_t::PROFILE,
+                read_mode_t::SINGLE);
     read_response_t response;
 
     cond_t interruptor;

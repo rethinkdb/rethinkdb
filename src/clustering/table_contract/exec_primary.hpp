@@ -57,6 +57,7 @@ public:
         const table_raft_state_t &raft_state);
 
 private:
+    class write_callback_t;
     /* `contract_info_t` stores a contract, its ack callback, and a condition variable
     indicating if it's obsolete. The reason this is in a struct is because we sometimes
     need to reason about old contracts, so we may keep multiple versions around. */
@@ -98,6 +99,14 @@ private:
         signal_t *interruptor,
         read_response_t *response_out,
         std::string *error_out);
+
+    /* `sync_majority()` is used after a read in 'majority' mode, and will perform a
+    `sync` operation across a majority of replicas to make sure what has just been read
+    has been committed to disk on a majority of replicas for each shard. */
+    bool sync_committed_read(const read_t &read_request,
+                             order_token_t order_token,
+                             signal_t *interruptor,
+                             std::string *error_out);
 
     /* `update_contract()` spawns `update_contract_on_store_thread()` to deliver the new
     contract to `store->home_thread()`. Its has two jobs:

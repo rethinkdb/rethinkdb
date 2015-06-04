@@ -634,11 +634,24 @@ class table_term_t : public op_term_t {
 public:
     table_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1, 2),
-          optargspec_t({ "use_outdated", "identifier_format" })) { }
+          optargspec_t({ "read_mode", "identifier_format" })) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        scoped_ptr_t<val_t> t = args->optarg(env, "use_outdated");
-        bool use_outdated = t ? t->as_bool() : false;
+        read_mode_t read_mode = read_mode_t::SINGLE;
+        if (scoped_ptr_t<val_t> v = args->optarg(env, "read_mode")) {
+            const datum_string_t &str = v->as_str();
+            if (str == "majority") {
+                read_mode = read_mode_t::MAJORITY;
+            } else if (str == "single") {
+                read_mode = read_mode_t::SINGLE;
+            } else if (str == "outdated") {
+                read_mode = read_mode_t::OUTDATED;
+            } else {
+                rfail(base_exc_t::GENERIC, "Read mode `%s` unrecognized (options "
+                      "are \"majority\", \"single\", and \"outdated\").",
+                      str.to_std().c_str());
+            }
+        }
 
         auto identifier_format =
             boost::make_optional<admin_identifier_format_t>(false, admin_identifier_format_t());
@@ -674,7 +687,7 @@ private:
             rfail(base_exc_t::GENERIC, "%s", error.c_str());
         }
         return new_val(make_counted<table_t>(
-            std::move(table), db, name.str(), use_outdated, backtrace()));
+            std::move(table), db, name.str(), read_mode, backtrace()));
     }
     virtual bool is_deterministic() const { return false; }
     virtual const char *name() const { return "table"; }

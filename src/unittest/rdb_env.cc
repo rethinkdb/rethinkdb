@@ -22,12 +22,6 @@ void mock_namespace_interface_t::read(const read_t &query,
                                       read_response_t *response,
                                       UNUSED order_token_t tok,
                                       signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
-    read_outdated(query, response, interruptor);
-}
-
-void mock_namespace_interface_t::read_outdated(const read_t &query,
-                                               read_response_t *response,
-                                               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
     if (interruptor->is_pulsed()) {
         throw interrupted_exc_t();
     }

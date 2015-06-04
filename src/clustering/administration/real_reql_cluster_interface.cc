@@ -1225,7 +1225,7 @@ void real_reql_cluster_interface_t::make_single_selection(
         counted_t<base_table_t>(new artificial_table_t(table_backend)),
         make_counted<const ql::db_t>(
             nil_uuid(), name_string_t::guarantee_valid("rethinkdb")),
-        table_name.str(), false, bt);
+        table_name.str(), read_mode_t::SINGLE, bt);
     *selection_out = make_scoped<ql::val_t>(
         ql::single_selection_t::from_row(env, bt, table, row),
         bt);

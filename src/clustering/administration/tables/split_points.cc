@@ -97,10 +97,10 @@ void fetch_distribution(
     static const int depth = 2;
     static const int limit = 128;
     distribution_read_t inner_read(depth, limit);
-    read_t read(inner_read, profile_bool_t::DONT_PROFILE);
+    read_t read(inner_read, profile_bool_t::DONT_PROFILE, read_mode_t::OUTDATED);
     read_response_t resp;
     try {
-        ns_if_access.get()->read_outdated(read, &resp, interruptor);
+        ns_if_access.get()->read(read, &resp, order_token_t::ignore, interruptor);
     } catch (const cannot_perform_query_exc_t &) {
         /* If the table was deleted, this will throw `no_such_table_exc_t` */
         table_basic_config_t dummy;

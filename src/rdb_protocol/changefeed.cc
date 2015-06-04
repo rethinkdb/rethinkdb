@@ -1415,7 +1415,7 @@ real_feed_t::real_feed_t(auto_drainer_t::lock_t _client_lock,
       mailbox(manager, std::bind(&real_feed_t::mailbox_cb, this, ph::_1, ph::_2)) {
     try {
         read_t read(changefeed_subscribe_t(mailbox.get_address()),
-                    profile_bool_t::DONT_PROFILE);
+                    profile_bool_t::DONT_PROFILE, read_mode_t::SINGLE);
         read_response_t read_resp;
         ns_if->read(read, &read_resp, order_token_t::ignore, interruptor);
         auto resp = boost::get<changefeed_subscribe_response_t>(&read_resp.response);
@@ -1578,7 +1578,7 @@ public:
         read_response_t read_resp;
         nif->read(
             read_t(changefeed_point_stamp_t{addr, store_key_t(pkey.print_primary())},
-                   profile_bool_t::DONT_PROFILE),
+                   profile_bool_t::DONT_PROFILE, read_mode_t::SINGLE),
             &read_resp,
             order_token_t::ignore,
             env->interruptor);
@@ -1767,7 +1767,9 @@ public:
         read_response_t read_resp;
         // Note that we use the `outer_env`'s interruptor for the read.
         nif->read(
-            read_t(changefeed_stamp_t(addr), profile_bool_t::DONT_PROFILE),
+            read_t(changefeed_stamp_t(addr),
+                   profile_bool_t::DONT_PROFILE,
+                   read_mode_t::SINGLE),
             &read_resp, order_token_t::ignore, outer_env->interruptor);
         auto resp = boost::get<changefeed_stamp_response_t>(&read_resp.response);
         guarantee(resp != NULL);
@@ -2107,7 +2109,8 @@ public:
                        spec.range.sindex
                        ? region_t::universe()
                        : region_t(spec.range.range.to_primary_keyrange())),
-                   profile_bool_t::DONT_PROFILE),
+                   profile_bool_t::DONT_PROFILE,
+                   read_mode_t::SINGLE),
             &read_resp,
             order_token_t::ignore,
             env->interruptor);

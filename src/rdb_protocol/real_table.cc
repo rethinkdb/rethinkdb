@@ -73,10 +73,10 @@ const std::string &real_table_t::get_pkey() const {
 }
 
 ql::datum_t real_table_t::read_row(ql::env_t *env,
-        ql::datum_t pval, bool use_outdated) {
-    read_t read(point_read_t(store_key_t(pval.print_primary())), env->profile());
+        ql::datum_t pval, read_mode_t read_mode) {
+    read_t read(point_read_t(store_key_t(pval.print_primary())), env->profile(), read_mode);
     read_response_t res;
-    read_with_profile(env, read, &res, use_outdated);
+    read_with_profile(env, read, &res);
     point_read_response_t *p_res = boost::get<point_read_response_t>(&res.response);
     r_sanity_check(p_res);
     return p_res->data;
@@ -89,21 +89,19 @@ counted_t<ql::datum_stream_t> real_table_t::read_all(
         const std::string &table_name,
         const ql::datum_range_t &range,
         sorting_t sorting,
-        bool use_outdated) {
+        read_mode_t read_mode) {
     if (sindex == get_pkey()) {
         return make_counted<ql::lazy_datum_stream_t>(
             make_scoped<ql::rget_reader_t>(
                 counted_t<real_table_t>(this),
-                use_outdated,
-                ql::primary_readgen_t::make(env, table_name, range, sorting)),
+                ql::primary_readgen_t::make(env, table_name, read_mode, range, sorting)),
             bt);
     } else {
         return make_counted<ql::lazy_datum_stream_t>(
             make_scoped<ql::rget_reader_t>(
                 counted_t<real_table_t>(this),
-                use_outdated,
                 ql::sindex_readgen_t::make(
-                    env, table_name, sindex, range, sorting)),
+                    env, table_name, read_mode, sindex, range, sorting)),
             bt);
     }
 }
@@ -125,15 +123,14 @@ counted_t<ql::datum_stream_t> real_table_t::read_intersecting(
         const std::string &sindex,
         ql::backtrace_id_t bt,
         const std::string &table_name,
-        bool use_outdated,
+        read_mode_t read_mode,
         const ql::datum_t &query_geometry) {
 
     return make_counted<ql::lazy_datum_stream_t>(
         make_scoped<ql::intersecting_reader_t>(
             counted_t<real_table_t>(this),
-            use_outdated,
             ql::intersecting_readgen_t::make(
-                env, table_name, sindex, query_geometry)),
+                env, table_name, read_mode, sindex, query_geometry)),
         bt);
 }
 
@@ -141,7 +138,7 @@ ql::datum_t real_table_t::read_nearest(
         ql::env_t *env,
         const std::string &sindex,
         const std::string &table_name,
-        bool use_outdated,
+        read_mode_t read_mode,
         lon_lat_point_t center,
         double max_dist,
         uint64_t max_results,
@@ -153,15 +150,11 @@ ql::datum_t real_table_t::read_nearest(
         region_t::universe(),
         center, max_dist, max_results, geo_system, table_name, sindex,
         env->get_all_optargs());
-    read_t read(geo_read, env->profile());
+    read_t read(geo_read, env->profile(), read_mode);
     read_response_t res;
     try {
-        if (use_outdated) {
-            namespace_access.get()->read_outdated(read, &res, env->interruptor);
-        } else {
-            namespace_access.get()->read(
-                read, &res, order_token_t::ignore, env->interruptor);
-        }
+        namespace_access.get()->read(read, &res, order_token_t::ignore,
+                                     env->interruptor);
     } catch (const cannot_perform_query_exc_t &ex) {
         rfail_datum(ql::base_exc_t::GENERIC, "Cannot perform read: %s", ex.what());
     }
@@ -294,21 +287,19 @@ bool real_table_t::write_sync_depending_on_durability(ql::env_t *env,
 }
 
 void real_table_t::read_with_profile(ql::env_t *env, const read_t &read,
-        read_response_t *response, bool outdated) {
+        read_response_t *response) {
     profile::starter_t starter(
-        (outdated ? "Perform outdated read." : "Perform read."),
+        (read.read_mode == read_mode_t::OUTDATED ? "Perform outdated read." :
+         (read.read_mode == read_mode_t::SINGLE ? "Perform read." :
+                                                  "Perform majority read.")),
         env->trace);
     profile::splitter_t splitter(env->trace);
     /* propagate whether or not we're doing profiles */
     r_sanity_check(read.profile == env->profile());
     /* Do the actual read. */
     try {
-        if (!outdated) {
-            namespace_access.get()->read(read, response, order_token_t::ignore,
-                env->interruptor);
-        } else {
-            namespace_access.get()->read_outdated(read, response, env->interruptor);
-        }
+        namespace_access.get()->read(read, response, order_token_t::ignore,
+                                     env->interruptor);
     } catch (const cannot_perform_query_exc_t &e) {
         rfail_datum(ql::base_exc_t::GENERIC, "Cannot perform read: %s", e.what());
     }

@@ -396,7 +396,7 @@ class TestConnection(TestWithConnection):
         c = r.connect(host=sharedServerHost, port=sharedServerDriverPort)
         r.table('t2').run(c, db='db2')
 
-    def test_use_outdated(self):
+    def test_outdated_read(self):
         c = r.connect(host=sharedServerHost, port=sharedServerDriverPort)
 
         if 't1' in r.db('test').table_list().run(c):
@@ -406,8 +406,8 @@ class TestConnection(TestWithConnection):
         # Use outdated is an option that can be passed to db.table or `run`
         # We're just testing here if the server actually accepts the option.
 
-        r.table('t1', use_outdated=True).run(c)
-        r.table('t1').run(c, use_outdated=True)
+        r.table('t1', read_mode='outdated').run(c)
+        r.table('t1').run(c, read_mode='outdated')
 
     def test_repl(self):
 
