@@ -4,102 +4,96 @@
 from __future__ import print_function
 
 import os, sys, time
-
-startTime = time.time()
+from pprint import pformat
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import driver, workload_runner, scenario_common, utils, vcoptparse
+import driver, workload_runner, rdb_unittest, scenario_common, utils, vcoptparse
 
 op = vcoptparse.OptParser()
 workload_runner.prepare_option_parser_for_split_or_continuous_workload(op)
 scenario_common.prepare_option_parser_mode_flags(op)
 opts = op.parse(sys.argv)
-_, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
+_, command_prefix, server_options = scenario_common.parse_mode_flags(opts)
 
-r = utils.import_python_driver()
 dbName, tableName = utils.get_test_db_table()
 
-numNodes = 2
+numNodes = 3
 
-print("Starting cluster of %d servers (%.2fs)" % (numNodes, time.time() - startTime))
-with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_ready=True, command_prefix=command_prefix, extra_options=serve_options) as cluster:
-    
-    print('Establishing ReQL connection (%.2fs)' % (time.time() - startTime))
-    
-    primary = cluster[0]
-    secondary = cluster[1]
-    conn1 = r.connect(host=primary.host, port=primary.driver_port)
-    conn2 = r.connect(host=secondary.host, port=secondary.driver_port)
-    
-    workload_ports = workload_runner.RDBPorts(host=secondary.host, http_port=secondary.http_port, rdb_port=secondary.driver_port, db_name=dbName, table_name=tableName)
-    
-    print("Creating db/table %s/%s (%.2fs)" % (dbName, tableName, time.time() - startTime))
-    
-    if dbName not in r.db_list().run(conn1):
-        r.db_create(dbName).run(conn1)
-    
-    if tableName in r.db(dbName).table_list().run(conn1):
-        r.db(dbName).table_drop(tableName).run(conn1)
-    r.db(dbName).table_create(tableName).run(conn1)
-    
-    print("Pinning table to first server (%.2fs)" % (time.time() - startTime))
-    
-    assert r.db(dbName).table(tableName).config() \
-        .update({'shards':[
-            {'primary_replica':primary.name, 'replicas':[primary.name, secondary.name]}
-        ]}).run(conn1)['errors'] == 0
-    r.db(dbName).wait().run(conn1)
-    
-    print("Starting workload before (%.2fs)" % (time.time() - startTime))
-    
-    with workload_runner.SplitOrContinuousWorkload(opts, workload_ports) as workload:
-        workload.run_before()
-        cluster.check()
-        issues = list(r.db('rethinkdb').table('current_issues').run(conn1))
-        assert len(issues) == 0, 'The server recorded the following issues: %s' % str(issues)
-        
-        print("Killing the primary (%.2fs)" % (time.time() - startTime))
-        primary.close()
-        
-        print("Checking for the issue (%.2fs)" % (time.time() - startTime))
-        
-        deadline = time.time() + 5
-        last_error = None
-        while time.time() < deadline:
-            try:
-                issues = list(r.db('rethinkdb').table('current_issues').run(conn2))
-                assert len(issues) > 0, 'The server did not record the issue for the killed server'
-                assert len(issues) == 1, 'The server recorded more issues than the single one expected: %s' % str(issues)
-                break
-            except Exception as e:
-                last_error = e
-                time.sleep(.2)
-        else:
-            raise last_error
-        
-        print("Deleting the dead server (%.2fs)" % (time.time() - startTime))
-        
-        result = r.db('rethinkdb').table('server_config').get(primary.uuid).delete().run(conn2)
-        assert result['errors'] == 0, 'Error deleting server: %s' % repr(result)
-        
-        print("Moving the shard to the secondary (%.2fs)" % (time.time() - startTime))
-        
-        assert r.db(dbName).table(tableName).config() \
-            .update({'shards':[
-                {'primary_replica':secondary.name, 'replicas':[secondary.name]}
-            ]}).run(conn2)['errors'] == 0
-        r.db(dbName).wait(timeout=20).run(conn2)
-        cluster.check()
-        
-        print("Running workload after (%.2fs)" % (time.time() - startTime))
-        workload.run_after()
-        
-        print("Declaring the primary dead (%.2fs)" % (time.time() - startTime))
-        
-        assert r.db('rethinkdb').table('server_config').get(primary.uuid).delete().run(conn2)['errors'] == 0
-        time.sleep(.1)
-        issues = list(r.db('rethinkdb').table('current_issues').run(conn2))
-        assert [] == issues, 'The issues list was not empty: %s' % repr(issues)
+startTime = time.time()
+def print(*args, **kwargs): # add timing information to all print statements
+    args += ('(T+ %.2fs)' % (time.time() - startTime), )
+    __builtins__.print(*args, **kwargs)
 
-    print("Cleaning up (%.2fs)" % (time.time() - startTime))
-print("Done. (%.2fs)" % (time.time() - startTime))
+print("Starting cluster of %d servers" % numNodes)
+class FailoverToSecondary(rdb_unittest.RdbTestCase):
+    
+    shards = 1
+    replicas = numNodes
+    
+    server_command_prefix = command_prefix
+    server_extra_options = server_options
+    
+    def test_failover(self):
+        '''Run a workload while killing a server to cause a failover to a secondary'''
+        
+        # - setup
+        
+        primary = self.getPrimaryForShard(0)
+        stable = self.getReplicaForShard(0)
+        
+        stableConn = self.r.connect(host=stable.host, port=stable.driver_port)
+        
+        workload_ports = workload_runner.RDBPorts(host=stable.host, http_port=stable.http_port, rdb_port=stable.driver_port, db_name=dbName, table_name=tableName)
+        
+        # - run test
+        
+        with workload_runner.SplitOrContinuousWorkload(opts, workload_ports) as workload:
+            
+            print("Starting workload before")
+            workload.run_before()
+            self.cluster.check()
+            issues = list(self.r.db('rethinkdb').table('current_issues').run(stableConn))
+            self.assertEqual(issues, [], 'The server recorded the following issues after the run_before:\n%s' % pformat(issues))
+            
+            print("Killing the primary")
+            primary.kill()
+            
+            print("Checking that the table_availability issue shows up")
+            deadline = time.time() + 5
+            last_error = None
+            while time.time() < deadline:
+                try:
+                    issues = list(self.r.db('rethinkdb').table('current_issues').filter({'type':'table_availability', 'info':{'db':dbName, 'table':tableName}}).run(stableConn))
+                    self.assertEqual(len(issues), 1, 'The server did not record the single issue for the killed server:\n%s' % pformat(issues))
+                    break
+                except Exception as e:
+                    last_error = e
+                    time.sleep(.2)
+            else:
+                raise last_error
+            
+            print("Watch for the table to become available again")
+            deadline = time.time() + 30
+            last_error = None
+            while time.time() < deadline:
+                try:
+                    status = self.table.status().run(stableConn)
+                    self.assertEqual(status['status']['ready_for_reads'], True, 'The table never became ready_for_reads:\n%s' % pformat(status))
+                    self.assertEqual(status['status']['ready_for_writes'], True, 'The table never became ready_for_writes:\n%s' % pformat(status))
+                    break
+                except Exception as e:
+                    last_error = e
+                    time.sleep(.2)
+            else:
+                raise last_error
+        
+            print("Running workload after")
+            workload.run_after()
+            
+        print("Cleaning up")
+
+# ==== main
+
+if __name__ == '__main__':
+    import unittest
+    unittest.main(argv=[sys.argv[0]])
