@@ -13,7 +13,7 @@ class table_basic_config_t;
 
 class table_issue_tracker_t : public issue_tracker_t {
 public:
-    table_issue_tracker_t(table_meta_client_t *_table_meta_client);
+    explicit table_issue_tracker_t(table_meta_client_t *_table_meta_client);
     ~table_issue_tracker_t();
 
     std::vector<scoped_ptr_t<issue_t> > get_issues(signal_t *interruptor) const;

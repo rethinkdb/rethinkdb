@@ -279,8 +279,8 @@ void table_meta_client_t::get_status(
         }
     }
 
-    /* Collect status mailbox addresses for every single server we can see that's hosting
-    data for this table. */
+    /* Collect business cards for every single server we can see that's hosting data for
+    this table. */
     std::vector<table_manager_bcard_t> bcards;
     table_manager_directory->read_all(
     [&](const std::pair<peer_id_t, namespace_id_t> &key,
