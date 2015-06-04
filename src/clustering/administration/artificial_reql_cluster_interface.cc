@@ -438,6 +438,7 @@ admin_artificial_tables_t::admin_artificial_tables_t(
     for (int i = 0; i < 2; ++i) {
         table_status_backend[i].init(new table_status_artificial_table_backend_t(
             _semilattice_view,
+            _server_config_client,
             _table_meta_client,
             static_cast<admin_identifier_format_t>(i)));
     }

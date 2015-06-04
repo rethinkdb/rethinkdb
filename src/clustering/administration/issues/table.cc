@@ -138,7 +138,9 @@ const uuid_u table_availability_issue_t::base_issue_id =
     str_to_uuid("4ae8c575-b103-3335-a79a-121089e34339");
 
 table_issue_tracker_t::table_issue_tracker_t(
+        server_config_client_t *_server_config_client,
         table_meta_client_t *_table_meta_client) :
+    server_config_client(_server_config_client),
     table_meta_client(_table_meta_client) { }
 
 table_issue_tracker_t::~table_issue_tracker_t() { }
@@ -171,7 +173,7 @@ void table_issue_tracker_t::check_table(const namespace_id_t &table_id,
     server_name_map_t server_names;
 
     try {
-        calculate_status(table_id, interruptor, table_meta_client,
+        calculate_status(table_id, interruptor, server_config_client, table_meta_client,
                          &readiness, &shard_statuses, &server_names);
     } catch (const interrupted_exc_t &) {
         // Ignore interruption - can't be passed through pmap

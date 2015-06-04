@@ -18,9 +18,9 @@ struct region_acks_t {
 };
 
 shard_status_t calculate_shard_status(
+        server_config_client_t *server_config_client,
         const table_config_t::shard_t &shard,
         const region_map_t<region_acks_t> &regions,
-        const std::map<server_id_t, table_server_status_t> &server_statuses,
         const std::map<
                 contract_id_t,
                 std::reference_wrapper<const std::pair<region_t, contract_t> >
@@ -121,10 +121,11 @@ shard_status_t calculate_shard_status(
             shard.all_replicas.end());
         for (const auto &replica : contract_and_shard_replicas) {
             if (shard_status.replicas.find(replica) == shard_status.replicas.end()) {
-                shard_status.replicas[replica] =
-                    server_statuses.find(replica) == server_statuses.end()
-                        ? server_status_t::DISCONNECTED
-                        : server_status_t::TRANSITIONING;
+                boost::optional<peer_id_t> peer_id =
+                    server_config_client->get_server_to_peer_map()->get_key(replica);
+                shard_status.replicas[replica] = static_cast<bool>(peer_id)
+                    ? server_status_t::TRANSITIONING
+                    : server_status_t::DISCONNECTED;
             }
         }
 
@@ -159,6 +160,7 @@ shard_status_t calculate_shard_status(
 void calculate_status(
         const namespace_id_t &table_id,
         signal_t *interruptor,
+        server_config_client_t *server_config_client,
         table_meta_client_t *table_meta_client,
         table_readiness_t *readiness_out,
         std::vector<shard_status_t> *shard_statuses_out,
@@ -250,9 +252,9 @@ void calculate_status(
         region_t shard_region(config_and_shards.shard_scheme.get_shard_range(i));
 
         shard_status_t shard_status = calculate_shard_status(
+            server_config_client,
             config_and_shards.config.shards.at(i),
             regions.mask(shard_region),
-            server_statuses,
             contracts);
 
         if (readiness_out != nullptr) {

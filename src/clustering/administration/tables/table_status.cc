@@ -12,11 +12,12 @@
 table_status_artificial_table_backend_t::table_status_artificial_table_backend_t(
         boost::shared_ptr<semilattice_readwrite_view_t<
             cluster_semilattice_metadata_t> > _semilattice_view,
+        server_config_client_t *_server_config_client,
         table_meta_client_t *_table_meta_client,
         admin_identifier_format_t _identifier_format) :
     common_table_artificial_table_backend_t(
-        _semilattice_view, _table_meta_client, _identifier_format)
-    { }
+        _semilattice_view, _table_meta_client, _identifier_format),
+    server_config_client(_server_config_client) { }
 
 table_status_artificial_table_backend_t::~table_status_artificial_table_backend_t() {
     begin_changefeed_destruction();
@@ -120,6 +121,7 @@ void table_status_artificial_table_backend_t::format_row(
     calculate_status(
         table_id,
         interruptor_on_home,
+        server_config_client,
         table_meta_client,
         &readiness,
         &shard_statuses,
@@ -186,6 +188,7 @@ table_wait_result_t wait_for_table_readiness(
             calculate_status(
                 table_id,
                 interruptor_on_home,
+                backend->server_config_client,
                 backend->table_meta_client,
                 &readiness,
                 &shard_statuses,

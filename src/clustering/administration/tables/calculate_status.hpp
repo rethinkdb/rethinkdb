@@ -46,6 +46,7 @@ supposed to be hosting it or how many shards it has. */
 void calculate_status(
         const namespace_id_t &table_id,
         signal_t *interruptor,
+        server_config_client_t *server_config_client,
         table_meta_client_t *table_meta_client,
         table_readiness_t *readiness_out,
         std::vector<shard_status_t> *shard_statuses_out,
