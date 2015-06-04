@@ -252,10 +252,10 @@ ql::datum_t convert_debug_contract_acks_to_datum(
     return std::move(builder).to_datum();
 }
 
-ql::datum_t convert_debug_contracts_and_contrack_acks_to_datum(
-        const std::map<server_id_t, contracts_and_contract_acks_t> &contracts_and_acks) {
+ql::datum_t convert_debug_table_server_statuses_to_datum(
+        const std::map<server_id_t, table_server_status_t> &server_statuses) {
     ql::datum_array_builder_t builder(ql::configured_limits_t::unlimited);
-    for (const auto &peer : contracts_and_acks) {
+    for (const auto &peer : server_statuses) {
         ql::datum_object_builder_t peer_builder;
         peer_builder.overwrite("server", convert_uuid_to_datum(peer.first));
         peer_builder.overwrite(
@@ -283,10 +283,10 @@ void debug_table_status_artificial_table_backend_t::format_row(
     assert_thread();
 
     std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > sindex_statuses;
-    std::map<server_id_t, contracts_and_contract_acks_t> contracts_and_acks;
+    std::map<server_id_t, table_server_status_t> server_statuses;
     server_id_t latest_server;
     table_meta_client->get_status(table_id, interruptor_on_home,
-        &sindex_statuses, &contracts_and_acks, nullptr, &latest_server);
+        &sindex_statuses, &server_statuses, nullptr, &latest_server);
 
     ql::datum_object_builder_t builder;
     builder.overwrite("id", convert_uuid_to_datum(table_id));
@@ -298,17 +298,17 @@ void debug_table_status_artificial_table_backend_t::format_row(
         convert_table_config_to_datum(
             table_id,
             db_name_or_uuid,
-            contracts_and_acks.at(latest_server).state.config.config,
+            server_statuses.at(latest_server).state.config.config,
             admin_identifier_format_t::uuid,
-            contracts_and_acks.at(latest_server).state.config.server_names));
+            server_statuses.at(latest_server).state.config.server_names));
     builder.overwrite(
         "shard_scheme",
         convert_debug_table_shard_scheme_to_datum(
-            contracts_and_acks.at(latest_server).state.config.shard_scheme));
+            server_statuses.at(latest_server).state.config.shard_scheme));
     builder.overwrite(
         "sindexes", convert_debug_sindex_statuses_to_datum(sindex_statuses));
     builder.overwrite(
-        "contracts_and_contract_acks",
-        convert_debug_contracts_and_contrack_acks_to_datum(contracts_and_acks));
+        "table_server_status",
+        convert_debug_table_server_statuses_to_datum(server_statuses));
     *row_out = std::move(builder).to_datum();
 }

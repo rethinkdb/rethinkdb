@@ -121,7 +121,7 @@ public:
     /* `get_status()` returns detailed information about the table with the given ID:
       - A list of the secondary indexes on the table and the status of each one.
       - For each server, the server's Raft state and contract acks.
-      - The name of each server in `contracts_and_acks_out`.
+      - The name of each server in `server_statuses_out`.
       - Which server has the most up-to-date Raft state.
     It may block. */
     void get_status(
@@ -129,7 +129,7 @@ public:
         signal_t *interruptor,
         std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
             *index_statuses_out,
-        std::map<server_id_t, contracts_and_contract_acks_t> *contracts_and_acks_out,
+        std::map<server_id_t, table_server_status_t> *server_statuses_out,
         server_name_map_t *server_names_out,
         server_id_t *latest_server_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t);

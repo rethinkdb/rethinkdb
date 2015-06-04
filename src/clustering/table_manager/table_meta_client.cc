@@ -256,7 +256,7 @@ void table_meta_client_t::get_status(
         signal_t *interruptor_on_caller,
         std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
             *sindex_statuses_out,
-        std::map<server_id_t, contracts_and_contract_acks_t> *contracts_and_acks_out,
+        std::map<server_id_t, table_server_status_t> *server_statuses_out,
         server_name_map_t *server_names_out,
         server_id_t *latest_server_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t) {
@@ -316,15 +316,15 @@ void table_meta_client_t::get_status(
             }, initial_call_t::YES);
 
         cond_t got_reply;
-        mailbox_t<void(index_statuses_t, contracts_and_contract_acks_t)> ack_mailbox(
+        mailbox_t<void(index_statuses_t, table_server_status_t)> ack_mailbox(
             mailbox_manager,
             [&](signal_t *,
                     const index_statuses_t &statuses,
-                    const contracts_and_contract_acks_t &contracts_and_acks) {
+                    const table_server_status_t &server_statuses) {
 
                 /* Fetch the server's name. The reason we fetch the server's name here is
                 so that we want to put the name in `server_names_out` iff we put an entry
-                in `contracts_and_acks_out`. */
+                in `server_statuses_out`. */
                 boost::optional<server_config_versioned_t> config =
                     server_config_client->get_server_config_map()
                         ->get_key(bcard.server_id);
@@ -355,9 +355,9 @@ void table_meta_client_t::get_status(
                     }
                 }
 
-                if (contracts_and_acks_out != nullptr) {
-                    contracts_and_acks_out->insert(
-                        std::make_pair(bcard.server_id, contracts_and_acks));
+                if (server_statuses_out != nullptr) {
+                    server_statuses_out->insert(
+                        std::make_pair(bcard.server_id, server_statuses));
                 }
 
                 got_reply.pulse();
@@ -382,11 +382,11 @@ void table_meta_client_t::get_status(
     }
 
     /* Determine the most up-to-date server */
-    if (contracts_and_acks_out != nullptr && latest_server_out != nullptr) {
+    if (server_statuses_out != nullptr && latest_server_out != nullptr) {
         *latest_server_out = nil_uuid();
-        for (const auto &pair : *contracts_and_acks_out) {
+        for (const auto &pair : *server_statuses_out) {
             if (*latest_server_out == nil_uuid() || pair.second.timestamp.supersedes(
-                    contracts_and_acks_out->at(*latest_server_out).timestamp)) {
+                    server_statuses_out->at(*latest_server_out).timestamp)) {
                 *latest_server_out = pair.first;
             }
         }
@@ -604,7 +604,7 @@ void table_meta_client_t::emergency_repair(
     cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
 
-    std::map<server_id_t, contracts_and_contract_acks_t> old_contracts;
+    std::map<server_id_t, table_server_status_t> old_contracts;
     server_id_t latest_server;
     get_status(table_id, &interruptor, nullptr, &old_contracts, nullptr, &latest_server);
 

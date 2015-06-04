@@ -10,7 +10,7 @@
 #include "clustering/table_contract/exec.hpp"
 #include "rpc/mailbox/typed.hpp"
 
-class contracts_and_contract_acks_t;
+class table_server_status_t;
 
 class multi_table_manager_bcard_t {
 public:
@@ -224,7 +224,7 @@ public:
     typedef mailbox_t<void(
         mailbox_t<void(
             std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >,
-            contracts_and_contract_acks_t
+            table_server_status_t
             )>::address_t
         )> get_status_mailbox_t;
     get_status_mailbox_t::address_t get_status_mailbox;
@@ -236,13 +236,13 @@ public:
 RDB_DECLARE_SERIALIZABLE(table_manager_bcard_t::leader_bcard_t);
 RDB_DECLARE_SERIALIZABLE(table_manager_bcard_t);
 
-class contracts_and_contract_acks_t {
+class table_server_status_t {
 public:
     multi_table_manager_bcard_t::timestamp_t timestamp;
     table_raft_state_t state;
     std::map<contract_id_t, contract_ack_t> contract_acks;
 };
-RDB_DECLARE_SERIALIZABLE(contracts_and_contract_acks_t);
+RDB_DECLARE_SERIALIZABLE(table_server_status_t);
 
 /* `table_persistent_state_t` is the type of the records we store on disk for each table.
 If we're an active member for the table, we'll store an `active_t`; if we're not an

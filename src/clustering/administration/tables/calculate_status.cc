@@ -20,7 +20,7 @@ struct region_acks_t {
 shard_status_t calculate_shard_status(
         const table_config_t::shard_t &shard,
         const region_map_t<region_acks_t> &regions,
-        const std::map<server_id_t, contracts_and_contract_acks_t> &contracts_and_acks,
+        const std::map<server_id_t, table_server_status_t> &server_statuses,
         const std::map<
                 contract_id_t,
                 std::reference_wrapper<const std::pair<region_t, contract_t> >
@@ -122,7 +122,7 @@ shard_status_t calculate_shard_status(
         for (const auto &replica : contract_and_shard_replicas) {
             if (shard_status.replicas.find(replica) == shard_status.replicas.end()) {
                 shard_status.replicas[replica] =
-                    contracts_and_acks.find(replica) == contracts_and_acks.end()
+                    server_statuses.find(replica) == server_statuses.end()
                         ? server_status_t::DISCONNECTED
                         : server_status_t::TRANSITIONING;
             }
@@ -164,11 +164,11 @@ void calculate_status(
         std::vector<shard_status_t> *shard_statuses_out,
         server_name_map_t *server_names_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t) {
-    std::map<server_id_t, contracts_and_contract_acks_t> contracts_and_acks;
+    std::map<server_id_t, table_server_status_t> server_statuses;
     server_id_t latest_contracts_server_id;
     try {
         table_meta_client->get_status(table_id, interruptor,
-            nullptr, &contracts_and_acks, server_names_out, &latest_contracts_server_id);
+            nullptr, &server_statuses, server_names_out, &latest_contracts_server_id);
     } catch (const failed_table_op_exc_t &) {
         if (readiness_out != nullptr) {
             *readiness_out = table_readiness_t::unavailable;
@@ -180,16 +180,16 @@ void calculate_status(
     }
 
     /* Note that `config_and_shards`, `latest_contracts`, and `contracts` all refer to
-    `contracts_and_acks`, so it must remain in scope for them to be valid. */
+    `server_statusess`, so it must remain in scope for them to be valid. */
     const table_config_and_shards_t &config_and_shards =
-        contracts_and_acks.at(latest_contracts_server_id).state.config;
+        server_statuses.at(latest_contracts_server_id).state.config;
     const std::map<contract_id_t, std::pair<region_t, contract_t> > &latest_contracts =
-        contracts_and_acks.at(latest_contracts_server_id).state.contracts;
+        server_statuses.at(latest_contracts_server_id).state.contracts;
     std::map<
             contract_id_t,
             std::reference_wrapper<const std::pair<region_t, contract_t> >
         > contracts;
-    for (const auto &pair : contracts_and_acks) {
+    for (const auto &pair : server_statuses) {
         contracts.insert(
             pair.second.state.contracts.begin(),
             pair.second.state.contracts.end());
@@ -197,7 +197,7 @@ void calculate_status(
 
     /* `server_names_out` already contains the name of every server that responded; now
     we also add the names of servers mentioned in the configs or contracts */
-    for (const auto &pair : contracts_and_acks) {
+    for (const auto &pair : server_statuses) {
         server_names_out->names.insert(
             pair.second.state.config.server_names.names.begin(),
             pair.second.state.config.server_names.names.end());
@@ -225,7 +225,7 @@ void calculate_status(
             std::move(regions_vec), std::move(acks_vec));
     }
 
-    for (const auto &server : contracts_and_acks) {
+    for (const auto &server : server_statuses) {
         for (const auto &contract_ack : server.second.contract_acks) {
             auto contract_it = contracts.find(contract_ack.first);
             if (contract_it == contracts.end()) {
@@ -252,7 +252,7 @@ void calculate_status(
         shard_status_t shard_status = calculate_shard_status(
             config_and_shards.config.shards.at(i),
             regions.mask(shard_region),
-            contracts_and_acks,
+            server_statuses,
             contracts);
 
         if (readiness_out != nullptr) {
