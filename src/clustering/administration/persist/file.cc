@@ -7,7 +7,11 @@
 #include "buffer_cache/cache_balancer.hpp"
 #include "buffer_cache/serialize_onto_blob.hpp"
 #include "clustering/administration/persist/migrate_v1_16.hpp"
+#include "config/args.hpp"
 #include "serializer/log/log_serializer.hpp"
+#include "serializer/merger.hpp"
+
+const uint64_t METADATA_CACHE_SIZE = 32 * MEGABYTE;
 
 struct metadata_disk_superblock_t {
     block_magic_t magic;
@@ -145,8 +149,8 @@ metadata_file_t::read_txn_t::read_txn_t(
         metadata_file_t *f,
         signal_t *interruptor) :
     file(f),
-    rwlock_acq(&file->rwlock, access_t::read, interruptor),
-    txn(file->cache_conn.get(), read_access_t::read)
+    txn(file->cache_conn.get(), read_access_t::read),
+    rwlock_acq(&file->rwlock, access_t::read, interruptor)
     { }
 
 metadata_file_t::read_txn_t::read_txn_t(
@@ -154,8 +158,8 @@ metadata_file_t::read_txn_t::read_txn_t(
         write_access_t,
         signal_t *interruptor) :
     file(f),
-    rwlock_acq(&file->rwlock, access_t::write, interruptor),
-    txn(file->cache_conn.get(), write_durability_t::HARD, 1)
+    txn(file->cache_conn.get(), write_durability_t::HARD, 1),
+    rwlock_acq(&file->rwlock, access_t::write, interruptor)
     { }
 
 void metadata_file_t::read_txn_t::blob_to_stream(
@@ -286,14 +290,8 @@ metadata_file_t::metadata_file_t(
     btree_stats(perfmon_parent, "metadata")
 {
     filepath_file_opener_t file_opener(filename, io_backender);
-    serializer.init(new standard_serializer_t(
-        standard_serializer_t::dynamic_config_t(),
-        &file_opener,
-        perfmon_parent));
-    if (!serializer->coop_lock_and_check()) {
-        throw file_in_use_exc_t();
-    }
-    balancer.init(new dummy_cache_balancer_t(MEGABYTE));
+    init_serializer(&file_opener, perfmon_parent);
+    balancer.init(new dummy_cache_balancer_t(METADATA_CACHE_SIZE));
     cache.init(new cache_t(serializer.get(), balancer.get(), perfmon_parent));
     cache_conn.init(new cache_conn_t(cache.get()));
 
@@ -342,14 +340,8 @@ metadata_file_t::metadata_file_t(
     standard_serializer_t::create(
         &file_opener,
         standard_serializer_t::static_config_t());
-    serializer.init(new standard_serializer_t(
-        standard_serializer_t::dynamic_config_t(),
-        &file_opener,
-        perfmon_parent));
-    if (!serializer->coop_lock_and_check()) {
-        throw file_in_use_exc_t();
-    }
-    balancer.init(new dummy_cache_balancer_t(MEGABYTE));
+    init_serializer(&file_opener, perfmon_parent);
+    balancer.init(new dummy_cache_balancer_t(METADATA_CACHE_SIZE));
     cache.init(new cache_t(serializer.get(), balancer.get(), perfmon_parent));
     cache_conn.init(new cache_conn_t(cache.get()));
 
@@ -365,6 +357,22 @@ metadata_file_t::metadata_file_t(
     }
 
     file_opener.move_serializer_file_to_permanent_location();
+}
+
+void metadata_file_t::init_serializer(
+        filepath_file_opener_t *file_opener,
+        perfmon_collection_t *perfmon_parent) {
+    scoped_ptr_t<standard_serializer_t> standard_ser(
+        new standard_serializer_t(
+            standard_serializer_t::dynamic_config_t(),
+            file_opener,
+            perfmon_parent));
+    if (!standard_ser->coop_lock_and_check()) {
+        throw file_in_use_exc_t();
+    }
+    serializer.init(new merger_serializer_t(
+        std::move(standard_ser),
+        MERGER_SERIALIZER_MAX_ACTIVE_WRITES));
 }
 
 metadata_file_t::~metadata_file_t() {
