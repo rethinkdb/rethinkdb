@@ -663,13 +663,13 @@ struct write_t {
     durability_requirement_t durability() const { return durability_requirement; }
 
     /* The clustering layer calls this. */
-    static write_t make_sync(const region_t &region) {
+    static write_t make_sync(const region_t &region, profile_bool_t profile) {
         sync_t sync;
         sync.region = region;
         return write_t(
             sync,
             DURABILITY_REQUIREMENT_HARD,
-            profile_bool_t::DONT_PROFILE,
+            profile,
             ql::configured_limits_t());
     }
 
