@@ -7,7 +7,7 @@ produces a specific workload instead of a random one."""
 
 from __future__ import print_function
 
-import pprint, os, sys, time, random, threading
+import os, pprint, random, string, sys, threading, time
 
 startTime = time.time()
 
@@ -24,7 +24,11 @@ opts['num-phases'] = vcoptparse.IntFlag('--num-phases', 2)
 parsed_opts = opts.parse(sys.argv)
 _, command_prefix, serve_options = scenario_common.parse_mode_flags(parsed_opts)
 
-server_names = list("abcdefghijklmnopqrstuvwxyz"[:parsed_opts["num-servers"]])
+possible_server_names = \
+    list(string.ascii_lowercase) + \
+    [x + y for x in string.ascii_lowercase for y in string.ascii_lowercase]
+assert parsed_opts["num_servers"] <= len(possible_server_names)
+server_names = possible_server_names[:parsed_opts["num-servers"]]
 
 def make_config_shards(phase):
     shards = []
