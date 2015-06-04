@@ -263,34 +263,34 @@ void table_generate_config(
 
     yielder.maybe_yield(interruptor);
 
-    /* If `table_id` is not nil, fetch the current config for this table. */
-    table_config_and_shards_t old_config;
+    /* Fetch the current configurations for all tables */
+    std::map<namespace_id_t, table_config_and_shards_t> old_table_configs;
+    std::map<namespace_id_t, table_basic_config_t> disconnected_tables;
+    table_meta_client->list_configs(
+        interruptor, &old_table_configs, &disconnected_tables);
+
+    /* Find the config for the specific table we're reconfiguring, if any */
+    const table_config_and_shards_t *old_config = nullptr;
     if (!table_id.is_nil()) {
-        table_meta_client->get_config(table_id, interruptor, &old_config);
+        auto it = old_table_configs.find(table_id);
+        if (it == old_table_configs.end()) {
+            if (disconnected_tables.count(table_id) == 1) {
+                throw failed_table_op_exc_t();
+            } else {
+                throw no_such_table_exc_t();
+            }
+        }
+        old_config = &it->second;
     }
 
-    /* Fetch the current configurations for all other tables, and calculate the current
-    load on each server. */
+    /* Calculate the current load on each server */
     std::map<server_id_t, int> server_usage;
-    std::map<namespace_id_t, table_basic_config_t> all_tables;
-    table_meta_client->list_names(&all_tables);
-    for (const auto &pair : all_tables) {
+    for (const auto &pair : old_table_configs) {
         if (pair.first == table_id) {
             /* Don't count the table being reconfigured in the load calculation */
             continue;
         }
-        table_config_and_shards_t config;
-        try {
-            table_meta_client->get_config(pair.first, interruptor, &config);
-        } catch (const no_such_table_exc_t &) {
-            /* The table was just deleted; ignore it. */
-            continue;
-        } catch (const failed_table_op_exc_t &) {
-            /* This can only happen if the table is located entirely on unavailable
-            servers, but we won't be using unavailable servers anyway, so ignore it. */
-            continue;
-        }
-        calculate_server_usage(config.config, &server_usage);
+        calculate_server_usage(pair.second.config, &server_usage);
     }
 
     config_shards_out->resize(params.num_shards);
@@ -326,7 +326,7 @@ void table_generate_config(
                 p.shard = shard;
                 if (!table_id.is_nil()) {
                     p.backfill_cost = estimate_backfill_cost(
-                        shard_scheme.get_shard_range(shard), old_config, server);
+                        shard_scheme.get_shard_range(shard), *old_config, server);
                 } else {
                     /* We're creating a new table, so we won't have to backfill no matter
                     which servers we choose. */

@@ -112,11 +112,13 @@ public:
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t);
 
     /* `list_configs()` fetches the configurations of every table at once. It may block.
-    */
+    If it can't find a config for a certain table, then it puts the table's name and info
+    into `disconnected_configs_out` instead. */
     void list_configs(
         signal_t *interruptor,
-        std::map<namespace_id_t, table_config_and_shards_t> *configs_out)
-        THROWS_ONLY(interrupted_exc_t, failed_table_op_exc_t);
+        std::map<namespace_id_t, table_config_and_shards_t> *configs_out,
+        std::map<namespace_id_t, table_basic_config_t> *disconnected_configs_out)
+        THROWS_ONLY(interrupted_exc_t);
 
     /* `get_status()` returns detailed information about the table with the given ID:
       - A list of the secondary indexes on the table and the status of each one.

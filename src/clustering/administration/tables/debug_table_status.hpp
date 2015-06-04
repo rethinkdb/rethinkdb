@@ -31,12 +31,11 @@ public:
 private:
     void format_row(
             const namespace_id_t &table_id,
-            const table_basic_config_t &basic_config,
+            const table_config_and_shards_t &config,
             const ql::datum_t &db_name_or_uuid,
             signal_t *interruptor_on_home,
             ql::datum_t *row_out)
-            THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,
-                admin_op_exc_t);
+            THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t);
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_TABLES_DEBUG_TABLE_STATUS_HPP_ */
