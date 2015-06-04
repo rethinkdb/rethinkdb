@@ -1,7 +1,7 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "containers/buffer_group.hpp"
 #include <string.h>
-
+#include <algorithm>
 void buffer_group_copy_data(const buffer_group_t *dest, const const_buffer_group_t *source) {
 
     // TODO: Is a buffer group size an int?

@@ -15,8 +15,11 @@
 
 // defined by both Windows and RethinkDB
 #undef DELETE
+#undef OPTIONAL
 
+// Windows uses different names for things
 typedef SSIZE_T ssize_t;
+const int PATH_MAX = MAX_PATH;
 
 #endif /* _WIN32 */
 

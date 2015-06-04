@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include "arch/io/io_utils.hpp"
 #include "arch/types.hpp"
+#include "arch/process.hpp"
 #include "containers/archive/socket_stream.hpp"
 #include "containers/object_buffer.hpp"
 
@@ -22,7 +23,7 @@ public:
 
     // Spawns a new worker, and returns the socket file descriptor for communication
     //  with the worker process
-    fd_t spawn(object_buffer_t<socket_stream_t> *stream_out, pid_t *pid_out);
+    fd_t spawn(object_buffer_t<socket_stream_t> *stream_out, process_id_t *pid_out);
 
     static extproc_spawner_t *get_instance();
 
@@ -31,7 +32,7 @@ private:
 
     static extproc_spawner_t *instance;
 
-    pid_t spawner_pid;
+    process_id_t spawner_pid;
     scoped_fd_t spawner_socket;
 };
 

@@ -50,7 +50,15 @@ The dependency on Protobuf will hopefully go away soon.
 
 ## ICU
 
-* 
+* cd to the RethinkDB folder from the cygwin shell
+* Convert endings of sh files to unix-style. Use dos2unix or ```perl -pi -e chomp `find . -name \*.sh` ````
+* `./configure --continue --fetch all`
+* `make fetch-icu`
+* ...
+
+## RE2
+
+* ...
 
 ## RethinkDB
 
@@ -89,3 +97,5 @@ The dependency on Protobuf will hopefully go away soon.
 * rebuild with MSC and examine all the int32 -> int64 warnings.
 * restore the msvc-specific s2 code
 * ensure that aligned pointers are freed correctly
+* install as service
+* ensure windows paths are parsed and generated correctly where needed

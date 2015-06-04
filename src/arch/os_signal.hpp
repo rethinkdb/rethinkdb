@@ -2,7 +2,11 @@
 #ifndef ARCH_OS_SIGNAL_HPP_
 #define ARCH_OS_SIGNAL_HPP_
 
-#ifndef _WIN32
+#ifdef _WIN32
+
+struct os_signal_cond_t { };
+
+#else
 
 #include "concurrency/cond_var.hpp"
 #include "arch/runtime/runtime_utils.hpp"

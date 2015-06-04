@@ -5,7 +5,7 @@
 #include "clustering/administration/jobs/report.hpp"
 #include "containers/cow_ptr.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
-#include "rdb_protocol/backtrace.hpp"
+#include "rdb_protocol/rdb_backtrace.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
@@ -298,7 +298,7 @@ TLS_with_init(int, DBG_depth, 0);
 #define INC_DEPTH do { TLS_set_DBG_depth(TLS_get_DBG_depth()+1); } while (0)
 #define DEC_DEPTH do { TLS_set_DBG_depth(TLS_get_DBG_depth()-1); } while (0)
 #else // INSTRUMENT
-#define DBG(s, args...)
+#define DBG(s, ...)
 #define INC_DEPTH
 #define DEC_DEPTH
 #endif // INSTRUMENT

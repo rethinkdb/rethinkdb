@@ -5,10 +5,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <libgen.h>
 #include <limits.h>
+#ifndef _WIN32 // TODO ATN
 #include <pwd.h>
 #include <grp.h>
+#endif
 #include <sys/stat.h>
 #include <sys/types.h>
 
@@ -27,6 +28,7 @@
 #include "arch/io/disk.hpp"
 #include "arch/os_signal.hpp"
 #include "arch/runtime/starter.hpp"
+#include "arch/filesystem.hpp"
 #include "extproc/extproc_spawner.hpp"
 #include "clustering/administration/main/cache_size.hpp"
 #include "clustering/administration/main/names.hpp"
@@ -75,10 +77,7 @@ int check_pid_file(const std::string &pid_filepath) {
         return EXIT_FAILURE;
     }
 
-    // Make a copy of the filename since `dirname` may modify it
-    char pid_dir[PATH_MAX];
-    strncpy(pid_dir, pid_filepath.c_str(), PATH_MAX);
-    if (access(dirname(pid_dir), W_OK) == -1) {
+    if (access(fs::dirname(pid_filepath).c_str(), W_OK) == -1) {
         logERR("Cannot access the pid-file directory.");
         return EXIT_FAILURE;
     }
@@ -141,6 +140,7 @@ boost::optional<std::string> get_optional_option(const std::map<std::string, opt
     return get_optional_option(opts, name, &source);
 }
 
+#ifndef _WIN32 // ATN TODO
 // Returns false if the group was not found.  This function replaces a call to
 // getgrnam(3).  That's right, getgrnam_r's interface is such that you have to
 // go through these shenanigans.
@@ -305,6 +305,7 @@ void get_and_set_user_group_and_directory(
     directory_lock->change_ownership(group_id, group_name, user_id, user_name);
     set_user_group(group_id, group_name, user_id, user_name);
 }
+#endif // !_WIN32
 
 int check_pid_file(const std::map<std::string, options::values_t> &opts) {
     boost::optional<std::string> pid_filepath = get_optional_option(opts, "--pid-file");
@@ -703,6 +704,9 @@ void run_rethinkdb_create(const base_path_t &base_path,
 // WARNING WARNING WARNING blocking
 // if in doubt, DO NOT USE.
 std::string run_uname(const std::string &flags) {
+#ifdef _WIN32
+	return "Some Windows version"; // ATN TODO
+#else
     char buf[1024];
     static const std::string unknown = "unknown operating system\n";
     const std::string combined = "uname -" + flags;
@@ -714,6 +718,7 @@ std::string run_uname(const std::string &flags) {
     }
     pclose(out);
     return buf;
+#endif
 }
 
 std::string uname_msr() {
@@ -1322,7 +1327,9 @@ int main_rethinkdb_create(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
+#ifndef _WIN32 // ATN TODO
         get_and_set_user_group_and_directory(opts, &data_directory_lock);
+#endif
 
         initialize_logfile(opts, base_path);
 
@@ -1360,6 +1367,10 @@ int main_rethinkdb_create(int argc, char *argv[]) {
 
 bool maybe_daemonize(const std::map<std::string, options::values_t> &opts) {
     if (exists_option(opts, "--daemon")) {
+#ifdef _WIN32
+		//ATN TODO
+		not_implemented();
+#else
         pid_t pid = fork();
         if (pid < 0) {
             throw std::runtime_error(strprintf("Failed to fork daemon: %s\n", errno_string(get_errno()).c_str()).c_str());
@@ -1389,7 +1400,8 @@ bool maybe_daemonize(const std::map<std::string, options::values_t> &opts) {
         if (freopen("/dev/null", "w", stderr) == NULL) {
             throw std::runtime_error(strprintf("Failed to redirect stderr for daemon: %s\n", errno_string(get_errno()).c_str()).c_str());
         }
-    }
+#endif
+	}
     return true;
 }
 
@@ -1407,7 +1419,9 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 
         options::verify_option_counts(options, opts);
 
-        get_and_set_user_group(opts);
+#ifndef _WIN32
+		get_and_set_user_group(opts);
+#endif
 
         base_path_t base_path(get_single_option(opts, "--directory"));
 
@@ -1516,7 +1530,9 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
+#ifndef _WIN32
         get_and_set_user_group(opts);
+#endif
 
         // Default to putting the log file in the current working directory
         base_path_t base_path(".");
@@ -1665,11 +1681,13 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         bool is_new_directory = false;
         directory_lock_t data_directory_lock(base_path, true, &is_new_directory);
 
+#ifndef _WIN32
         if (is_new_directory) {
             get_and_set_user_group_and_directory(opts, &data_directory_lock);
         } else {
             get_and_set_user_group(opts);
         }
+#endif
 
         base_path.make_absolute();
         initialize_logfile(opts, base_path);

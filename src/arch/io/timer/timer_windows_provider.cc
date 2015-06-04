@@ -1,10 +1,12 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "arch/io/timer_provider.hpp"
 
-#if RDB_TIMER_PROVIDER == RDB_TIMER_PROVIDER
+#if RDB_TIMER_PROVIDER == RDB_TIMER_PROVIDER_WINDOWS
 
 #include "logger.hpp"
 #include "time.hpp"
+
+// TODO ATN
 
 timer_windows_provider_t::timer_windows_provider_t(UNUSED event_queue_t *) {
 	timer = CreateWaitableTimer(nullptr, false, nullptr);
@@ -31,4 +33,4 @@ void timer_windows_provider_t::unschedule_oneshot() {
 	guarantee_winerr(res, "CancelWaitableTimer failed");
 }
 
-#endif  // RDB_TIMER_PROVIDER == RDB_TIMER_PROVIDER_TIMERFD
+#endif  // RDB_TIMER_PROVIDER == RDB_TIMER_PROVIDER_WINDOWS

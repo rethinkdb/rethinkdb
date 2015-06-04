@@ -409,7 +409,7 @@ val_t *js_result_visitor_t::operator()(
     return new val_t(datum, parent->backtrace());
 }
 // This JS evaluation resulted in an id for a js function
-val_t *js_result_visitor_t::operator()(UNUSED const id_t id_val) const {
+val_t *js_result_visitor_t::operator()(UNUSED const js_id_t id_val) const {
     counted_t<const func_t> func = make_counted<js_func_t>(code,
                                                            timeout_ms,
                                                            parent->backtrace());

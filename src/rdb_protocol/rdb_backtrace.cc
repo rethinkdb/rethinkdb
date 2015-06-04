@@ -1,4 +1,4 @@
-#include "rdb_protocol/backtrace.hpp"
+#include "rdb_protocol/rdb_backtrace.hpp"
 
 #include <algorithm>
 
