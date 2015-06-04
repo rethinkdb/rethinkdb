@@ -532,7 +532,8 @@ void table_meta_client_t::set_config(
         but it stops being leader for that table. We detect the first with a
         `disconnect_watcher_t`. We detect the second by setting up a `key_subs_t` that
         pulses `leader_stopped` if the other server is no longer leader or if its leader
-        UUID changes. */
+        UUID changes. (The `key_subs_t` alone is not enough because it might fail to
+        detect a transient connection failure.) */
         disconnect_watcher_t leader_disconnected(
             mailbox_manager, best_mailbox.get_peer());
         cond_t leader_stopped;
@@ -541,7 +542,7 @@ void table_meta_client_t::set_config(
                 table_manager_directory,
                 std::make_pair(best_mailbox.get_peer(), table_id),
                 [&](const table_manager_bcard_t *bcard) {
-                    if (!static_cast<bool>(bcard->leader) ||
+                    if (bcard == nullptr || !static_cast<bool>(bcard->leader) ||
                             bcard->leader->uuid != best_leader_uuid) {
                         leader_stopped.pulse_if_not_already_pulsed();
                     }
