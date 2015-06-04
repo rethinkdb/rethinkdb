@@ -6,7 +6,7 @@ The MAKE file for the web interface is in `/mk/webui.mk`.
 
 The build dependencies are
 - `node.js` and `npm` are needed at the system level
-- `npm-install` will install dependencies listed in `npm-shrinkwrap.json`
+- `npm install` will install dependencies listed in `npm-shrinkwrap.json`
 
 ### Adding dependencies
 - Add the dependency to the `dependencies` object in `package.json`

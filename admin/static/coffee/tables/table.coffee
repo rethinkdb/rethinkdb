@@ -137,7 +137,7 @@ class TableContainer extends Backbone.View
             r.db(system_db).table('table_config').get(@id)
             (table_config) ->
                 r.db(table_config("db"))
-                .table(table_config("name"), {useOutdated: true})
+                .table(table_config("name"), read_mode: "single")
                 .indexStatus()
                 .pluck('index', 'ready', 'blocks_processed', 'blocks_total')
                 .merge( (index) -> {
@@ -163,29 +163,29 @@ class TableContainer extends Backbone.View
             (table_status, table_config, server_name_to_id) ->
                 table_status.merge({
                     distribution: r.db(table_status('db'))
-                        .table(table_status('name'), {useOutdated: true})
+                        .table(table_status('name'), read_mode: "single")
                         .info()('doc_count_estimates')
                         .map(r.range(), (num_keys, position) ->
                             num_keys: num_keys
                             id: position)
                         .coerceTo('array')
                     total_keys: r.db(table_status('db'))
-                        .table(table_status('name'), {useOutdated: true})
+                        .table(table_status('name'), read_mode: "single")
                         .info()('doc_count_estimates')
                         .sum()
                     shard_assignments: table_status.merge((table_status) ->
                         table_status('shards').map(
                             table_config('shards'),
                             r.db(table_status('db'))
-                                .table(table_status('name'))
+                                .table(table_status('name'), read_mode: "single")
                                 .info()('doc_count_estimates'),
                             (status, config, estimate) ->
                                 num_keys: estimate,
                                 replicas: status('replicas').merge((replica) ->
-                                    id: server_name_to_id(replica('server')),
+                                    id: server_name_to_id(replica('server')).default(null),
                                     configured_primary: config('primary_replica').eq(replica('server'))
                                     currently_primary: status('primary_replicas').contains(replica('server'))
-                                )
+                                ).orderBy(r.desc('currently_primary'), r.desc('configured_primary'))
                         )
                     )
                 })
