@@ -27,38 +27,7 @@ multi_table_manager_t::multi_table_manager_t(
     persistence_interface(_persistence_interface),
     base_path(_base_path),
     io_backender(_io_backender),
-    perfmon_collection_repo(_perfmon_collection_repo),
-    /* Whenever a server connects, we need to sync all of our tables to it. */
-    multi_table_manager_directory_subs(
-        multi_table_manager_directory,
-        [this](const peer_id_t &peer, const multi_table_manager_bcard_t *bcard) {
-            if (peer != mailbox_manager->get_me() && bcard != nullptr) {
-                mutex_assertion_t::acq_t mutex_acq(&mutex);
-                for (const auto &pair : tables) {
-                    schedule_sync(pair.first, pair.second.get(), peer);
-                }
-            }
-        }, initial_call_t::NO),
-    /* Whenever a server changes its entry for a table in the directory, we need to
-    re-sync that table to that server. */
-    table_manager_directory_subs(
-        table_manager_directory,
-        [this](const std::pair<peer_id_t, namespace_id_t> &key,
-                const table_manager_bcard_t *) {
-            if (key.first != mailbox_manager->get_me()) {
-                mutex_assertion_t::acq_t mutex_acq(&mutex);
-                auto it = tables.find(key.second);
-                if (it != tables.end()) {
-                    schedule_sync(key.second, it->second.get(), key.first);
-                }
-            }
-        }, initial_call_t::NO),
-    action_mailbox(mailbox_manager,
-        std::bind(&multi_table_manager_t::on_action, this,
-            ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6, ph::_7, ph::_8)),
-    get_config_mailbox(mailbox_manager,
-        std::bind(&multi_table_manager_t::on_get_config, this,
-            ph::_1, ph::_2, ph::_3)) {
+    perfmon_collection_repo(_perfmon_collection_repo) {
 
     /* Resurrect any tables that were sitting on disk from when we last shut down */
     cond_t non_interruptor;
@@ -102,6 +71,8 @@ multi_table_manager_t::multi_table_manager_t(
                 });
         },
         &non_interruptor);
+
+    help_construct();
 }
 
 /* This constructor is used for proxy servers. */
@@ -120,38 +91,33 @@ multi_table_manager_t::multi_table_manager_t(
     persistence_interface(nullptr),
     base_path(boost::none),
     io_backender(nullptr),
-    perfmon_collection_repo(nullptr),
-    /* Whenever a server connects, we need to sync all of our tables to it. */
-    multi_table_manager_directory_subs(
-        multi_table_manager_directory,
-        [this](const peer_id_t &peer, const multi_table_manager_bcard_t *bcard) {
-            if (peer != mailbox_manager->get_me() && bcard != nullptr) {
-                mutex_assertion_t::acq_t mutex_acq(&mutex);
-                for (const auto &pair : tables) {
-                    schedule_sync(pair.first, pair.second.get(), peer);
-                }
-            }
-        }, initial_call_t::NO),
-    /* Whenever a server changes its entry for a table in the directory, we need to
-    re-sync that table to that server. */
-    table_manager_directory_subs(
-        table_manager_directory,
-        [this](const std::pair<peer_id_t, namespace_id_t> &key,
-                const table_manager_bcard_t *) {
-            if (key.first != mailbox_manager->get_me()) {
-                mutex_assertion_t::acq_t mutex_acq(&mutex);
-                auto it = tables.find(key.second);
-                if (it != tables.end()) {
-                    schedule_sync(key.second, it->second.get(), key.first);
-                }
-            }
-        }, initial_call_t::NO),
-    action_mailbox(mailbox_manager,
-        std::bind(&multi_table_manager_t::on_action, this,
-            ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6, ph::_7, ph::_8)),
-    get_config_mailbox(mailbox_manager,
-        std::bind(&multi_table_manager_t::on_get_config, this,
-            ph::_1, ph::_2, ph::_3)) { }
+    perfmon_collection_repo(nullptr)
+{
+    help_construct();
+}
+
+multi_table_manager_t::~multi_table_manager_t() {
+    /* First, shut out further mailbox events or watchable callbacks. This ensures that
+    tables are not created or destroyed, nor are their states changed (active vs.
+    inactive vs. deleted). */
+    get_config_mailbox.reset();
+    action_mailbox.reset();
+    table_manager_directory_subs.reset();
+    multi_table_manager_directory_subs.reset();
+
+    /* Next, destroy all of the `active_table_t`s. This is important because otherwise
+    `active_table_t` can call `schedule_sync()`. */
+    for (auto &&pair : tables) {
+        new_mutex_acq_t mutex_acq(&pair.second->mutex);
+        pair.second->status = table_t::status_t::SHUTTING_DOWN;
+        pair.second->active.reset();
+        pair.second->multistore_ptr.reset();
+        pair.second->basic_configs_entry.reset();
+    }
+
+    /* Drain any running coroutines */
+    drainer.drain();
+}
 
 multi_table_manager_t::active_table_t::active_table_t(
         multi_table_manager_t *_parent,
@@ -220,6 +186,48 @@ void multi_table_manager_t::active_table_t::update_basic_configs_entry() {
         });
 }
 
+void multi_table_manager_t::help_construct() {
+    /* Whenever a server connects, we need to sync all of our tables to it. */
+    multi_table_manager_directory_subs.init(
+        new watchable_map_t<peer_id_t, multi_table_manager_bcard_t>::all_subs_t(
+            multi_table_manager_directory,
+            [this](const peer_id_t &peer, const multi_table_manager_bcard_t *bcard) {
+                if (peer != mailbox_manager->get_me() && bcard != nullptr) {
+                    mutex_assertion_t::acq_t mutex_acq(&mutex);
+                    for (const auto &pair : tables) {
+                        schedule_sync(pair.first, pair.second.get(), peer);
+                    }
+                }
+            }, initial_call_t::NO));
+
+    /* Whenever a server changes its entry for a table in the directory, we need to
+    re-sync that table to that server. */
+    table_manager_directory_subs.init(
+        new watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
+                ::all_subs_t(
+            table_manager_directory,
+            [this](const std::pair<peer_id_t, namespace_id_t> &key,
+                    const table_manager_bcard_t *) {
+                if (key.first != mailbox_manager->get_me()) {
+                    mutex_assertion_t::acq_t mutex_acq(&mutex);
+                    auto it = tables.find(key.second);
+                    if (it != tables.end()) {
+                        schedule_sync(key.second, it->second.get(), key.first);
+                    }
+                }
+            }, initial_call_t::NO));
+
+    action_mailbox.init(new multi_table_manager_bcard_t::action_mailbox_t(
+        mailbox_manager,
+        std::bind(&multi_table_manager_t::on_action, this,
+            ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6, ph::_7, ph::_8)));
+
+    get_config_mailbox.init(new multi_table_manager_bcard_t::get_config_mailbox_t(
+        mailbox_manager,
+        std::bind(&multi_table_manager_t::on_get_config, this,
+            ph::_1, ph::_2, ph::_3)));
+}
+
 void multi_table_manager_t::on_action(
         signal_t *interruptor,
         const namespace_id_t &table_id,
@@ -282,6 +290,7 @@ void multi_table_manager_t::on_action(
             case table_t::status_t::DELETED:
                 current_timestamp = multi_table_manager_bcard_t::timestamp_t::deletion();
                 break;
+            case table_t::status_t::SHUTTING_DOWN:   /* fall through */
             default: unreachable();
         }
         if (!timestamp.supersedes(current_timestamp)) {
@@ -604,6 +613,9 @@ void multi_table_manager_t::schedule_sync(
                 global_mutex_acq.reset();
                 wait_interruptible(table_mutex_in_line.acq_signal(),
                     keepalive.get_drain_signal());
+                if (table->status == table_t::status_t::SHUTTING_DOWN) {
+                    return;
+                }
                 for (const peer_id_t &peer : to_sync_set) {
                     guarantee(peer != mailbox_manager->get_me());
                     /* Removing `peer` from `table->to_sync_set` isn't strictly

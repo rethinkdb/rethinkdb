@@ -90,10 +90,12 @@ public:
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
             *_table_manager_directory);
 
+    ~multi_table_manager_t();
+
     multi_table_manager_bcard_t get_multi_table_manager_bcard() {
         multi_table_manager_bcard_t bcard;
-        bcard.action_mailbox = action_mailbox.get_address();
-        bcard.get_config_mailbox = get_config_mailbox.get_address();
+        bcard.action_mailbox = action_mailbox->get_address();
+        bcard.get_config_mailbox = get_config_mailbox->get_address();
         bcard.server_id = server_id;
         return bcard;
     }
@@ -217,7 +219,7 @@ private:
     replica for this table. */
     class table_t {
     public:
-        enum class status_t { ACTIVE, INACTIVE, DELETED };
+        enum class status_t { ACTIVE, INACTIVE, DELETED, SHUTTING_DOWN };
 
         table_t() : sync_coro_running(false) { }
 
@@ -251,15 +253,14 @@ private:
         scoped_ptr_t<multistore_ptr_t> multistore_ptr;
         scoped_ptr_t<active_table_t> active;
 
-        /* Destructor order matters here. We must destroy `active` before
-        `multistore_ptr` because `active` uses the multistore. We must destroy `active`
-        before `basic_configs_entry` because `active` sometimes manipulates
-        `basic_configs_entry` through a `table_t *`. */
+        /* We must destroy `active` before `multistore_ptr` because `active` uses the
+        multistore. We must destroy `active` before `basic_configs_entry` because
+        `active` sometimes manipulates `basic_configs_entry` through a `table_t *`. */
     };
 
-    void on_table_manager_directory_change(
-        const std::pair<peer_id_t, namespace_id_t> &key,
-        const table_manager_bcard_t &value);
+    /* `help_construct()` initializes `multi_table_manager_directory_subs`,
+    `table_manager_directory_subs`, `action_mailbox`, and `get_config_mailbox`. */
+    void help_construct();
 
     /* `on_action()` and `on_get_config()` are mailbox callbacks */
 
@@ -364,13 +365,14 @@ private:
 
     auto_drainer_t drainer;
 
-    watchable_map_t<peer_id_t, multi_table_manager_bcard_t>::all_subs_t
+    scoped_ptr_t<watchable_map_t<peer_id_t, multi_table_manager_bcard_t>::all_subs_t>
         multi_table_manager_directory_subs;
-    watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
-        ::all_subs_t table_manager_directory_subs;
+    scoped_ptr_t<watchable_map_t<
+        std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>::all_subs_t>
+            table_manager_directory_subs;
 
-    multi_table_manager_bcard_t::action_mailbox_t action_mailbox;
-    multi_table_manager_bcard_t::get_config_mailbox_t get_config_mailbox;
+    scoped_ptr_t<multi_table_manager_bcard_t::action_mailbox_t> action_mailbox;
+    scoped_ptr_t<multi_table_manager_bcard_t::get_config_mailbox_t> get_config_mailbox;
 };
 
 #endif /* CLUSTERING_TABLE_MANAGER_MULTI_TABLE_MANAGER_HPP_ */
