@@ -96,6 +96,7 @@ The dependency on Protobuf will hopefully go away soon.
 * build without /force:unresolved LDFLAG 
 * rebuild with MSC and examine all the int32 -> int64 warnings.
 * restore the msvc-specific s2 code
-* ensure that aligned pointers are freed correctly
+* ensure that aligned pointers are freed and allocated correctly
 * install as service
 * ensure windows paths are parsed and generated correctly where needed
+* memset 0 / bzero

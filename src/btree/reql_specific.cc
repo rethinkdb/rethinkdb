@@ -9,16 +9,14 @@
 sindex B-tree. Both of them use the exact same format, but the sindex B-trees don't make
 use of the `sindex_block` or `metainfo_blob` fields. */
 ATTR_PACKED(struct reql_btree_superblock_t {
-    block_magic_t magic;
-    block_id_t root_block;
-    block_id_t stat_block;
-    block_id_t sindex_block;
+	block_magic_t magic;
+	block_id_t root_block;
+	block_id_t stat_block;
+	block_id_t sindex_block;
 
-    static const int METAINFO_BLOB_MAXREFLEN
-        = from_ser_block_size_t<DEVICE_BLOCK_SIZE>::cache_size - sizeof(magic)
-                                                               - sizeof(root_block)
-                                                               - sizeof(stat_block)
-                                                               - sizeof(sindex_block);
+	static const int METAINFO_BLOB_MAXREFLEN
+		= from_ser_block_size_t<DEVICE_BLOCK_SIZE>::cache_size - sizeof(block_magic_t)
+															   - sizeof(block_id_t) * 3;
 
     char metainfo_blob[METAINFO_BLOB_MAXREFLEN];
 

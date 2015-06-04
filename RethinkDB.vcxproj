@@ -121,6 +121,7 @@
       <ShowIncludes>false</ShowIncludes>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
       <MinimalRebuild>false</MinimalRebuild>
+      <DisableSpecificWarnings>4244;4101</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -166,6 +167,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalOptions>/we4005</AdditionalOptions>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
+      <DisableSpecificWarnings>4244;4101</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -645,6 +647,7 @@
     <ClInclude Include="windows_stub\pthread.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\activity_logger.cc" />
     <ClCompile Include="src\arch\address.cc" />
     <ClCompile Include="src\arch\barrier.cc" />
     <ClCompile Include="src\arch\io\blocker_pool.cc" />
@@ -669,8 +672,20 @@
     <ClCompile Include="src\arch\timer.cc" />
     <ClCompile Include="src\arch\timing.cc" />
     <ClCompile Include="src\arch\types.cc" />
+    <ClCompile Include="src\backfill_progress.cc" />
     <ClCompile Include="src\backtrace.cc" />
+    <ClCompile Include="src\btree\backfill.cc" />
+    <ClCompile Include="src\btree\concurrent_traversal.cc" />
+    <ClCompile Include="src\btree\depth_first_traversal.cc" />
+    <ClCompile Include="src\btree\get_distribution.cc" />
+    <ClCompile Include="src\btree\internal_node.cc" />
     <ClCompile Include="src\btree\keys.cc" />
+    <ClCompile Include="src\btree\leaf_node.cc" />
+    <ClCompile Include="src\btree\node.cc" />
+    <ClCompile Include="src\btree\operations.cc" />
+    <ClCompile Include="src\btree\parallel_traversal.cc" />
+    <ClCompile Include="src\btree\reql_specific.cc" />
+    <ClCompile Include="src\btree\secondary_operations.cc" />
     <ClCompile Include="src\buffer_cache\alt.cc" />
     <ClCompile Include="src\buffer_cache\blob.cc" />
     <ClCompile Include="src\buffer_cache\cache_account.cc" />
@@ -710,6 +725,8 @@
     <ClCompile Include="src\clustering\administration\main\initial_join.cc" />
     <ClCompile Include="src\clustering\administration\main\names.cc" />
     <ClCompile Include="src\clustering\administration\main\options.cc" />
+    <ClCompile Include="src\clustering\administration\main\path.cc" />
+    <ClCompile Include="src\clustering\administration\main\serve.cc" />
     <ClCompile Include="src\clustering\administration\metadata.cc" />
     <ClCompile Include="src\clustering\administration\namespace_interface_repository.cc" />
     <ClCompile Include="src\clustering\administration\perfmon_collection_repo.cc" />
@@ -737,6 +754,15 @@
     <ClCompile Include="src\clustering\administration\tables\table_config.cc" />
     <ClCompile Include="src\clustering\administration\tables\table_metadata.cc" />
     <ClCompile Include="src\clustering\administration\tables\table_status.cc" />
+    <ClCompile Include="src\clustering\immediate_consistency\branch\backfillee.cc" />
+    <ClCompile Include="src\clustering\immediate_consistency\branch\backfiller.cc" />
+    <ClCompile Include="src\clustering\immediate_consistency\branch\backfill_throttler.cc" />
+    <ClCompile Include="src\clustering\immediate_consistency\branch\broadcaster.cc" />
+    <ClCompile Include="src\clustering\immediate_consistency\branch\history.cc" />
+    <ClCompile Include="src\clustering\immediate_consistency\branch\listener.cc" />
+    <ClCompile Include="src\clustering\immediate_consistency\branch\metadata.cc" />
+    <ClCompile Include="src\clustering\immediate_consistency\branch\multistore.cc" />
+    <ClCompile Include="src\clustering\immediate_consistency\branch\replier.cc" />
     <ClCompile Include="src\clustering\reactor\blueprint.cc" />
     <ClCompile Include="src\clustering\reactor\directory_echo.cc" />
     <ClCompile Include="src\clustering\reactor\namespace_interface.cc" />
@@ -783,6 +809,7 @@
     <ClCompile Include="src\math.cc" />
     <ClCompile Include="src\perfmon\core.cc" />
     <ClCompile Include="src\perfmon\perfmon.cc" />
+    <ClCompile Include="src\protocol_api.cc" />
     <ClCompile Include="src\rdb_protocol\artificial_table\artificial_table.cc" />
     <ClCompile Include="src\rdb_protocol\artificial_table\backend.cc" />
     <ClCompile Include="src\rdb_protocol\artificial_table\caching_cfeed_backend.cc" />
@@ -899,13 +926,30 @@
     <ClCompile Include="src\rdb_protocol\wire_func.cc" />
     <ClCompile Include="src\region\hash_region.cc" />
     <ClCompile Include="src\region\region.cc" />
+    <ClCompile Include="src\repli_timestamp.cc" />
     <ClCompile Include="src\rethinkdb_backtrace.cc" />
     <ClCompile Include="src\rpc\connectivity\cluster.cc" />
     <ClCompile Include="src\rpc\connectivity\peer_id.cc" />
     <ClCompile Include="src\rpc\mailbox\mailbox.cc" />
+    <ClCompile Include="src\serializer\buf_ptr.cc" />
+    <ClCompile Include="src\serializer\log\data_block_manager.cc" />
+    <ClCompile Include="src\serializer\log\extent_manager.cc" />
+    <ClCompile Include="src\serializer\log\lba\disk_extent.cc" />
+    <ClCompile Include="src\serializer\log\lba\disk_structure.cc" />
+    <ClCompile Include="src\serializer\log\lba\extent.cc" />
+    <ClCompile Include="src\serializer\log\lba\in_memory_index.cc" />
+    <ClCompile Include="src\serializer\log\lba\lba_list.cc" />
+    <ClCompile Include="src\serializer\log\log_serializer.cc" />
+    <ClCompile Include="src\serializer\log\metablock_manager.cc" />
+    <ClCompile Include="src\serializer\log\static_header.cc" />
+    <ClCompile Include="src\serializer\merger.cc" />
+    <ClCompile Include="src\serializer\semantic_checking.cc" />
+    <ClCompile Include="src\serializer\serializer.cc" />
+    <ClCompile Include="src\serializer\translator.cc" />
     <ClCompile Include="src\stl_utils.cc" />
     <ClCompile Include="src\threading.cc" />
     <ClCompile Include="src\time.cc" />
+    <ClCompile Include="src\timestamps.cc" />
     <ClCompile Include="src\unittest\auth_key_test.cc" />
     <ClCompile Include="src\unittest\clone_ptr.cc" />
     <ClCompile Include="src\unittest\context_switching.cc" />
@@ -938,6 +982,8 @@
     </ClInclude>
     <None Include="src\rdb_protocol\ql2.proto" />
     <None Include="src\rdb_protocol\ql2_extensions.proto" />
+    <None Include="src\serializer\semantic_checking.tcc" />
+    <None Include="src\stl_utils.tcc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

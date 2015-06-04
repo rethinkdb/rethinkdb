@@ -375,7 +375,7 @@ void backfillee(
         }
 
         /* All went well, so don't send a cancel message to the backfiller */
-        backfiller_notifier.fun = 0;
+        backfiller_notifier.fun = nullptr;
     }
 
     /* Update the metadata to indicate that the backfill occurred */

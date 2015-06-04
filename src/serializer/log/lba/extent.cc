@@ -12,7 +12,7 @@ struct extent_block_t :
     public extent_t::sync_callback_t,
     public iocallback_t
 {
-    char *data;
+    scoped_aligned_malloc_t<char> data;
     extent_t *parent;
     size_t offset;
     std::vector< extent_t::sync_callback_t* > sync_cbs;
@@ -20,10 +20,10 @@ struct extent_block_t :
 
     extent_block_t(extent_t *_parent, size_t _offset)
         : parent(_parent), offset(_offset) {
-        data = reinterpret_cast<char *>(malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE));
+        data = malloc_aligned<char>(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
     }
     ~extent_block_t() {
-        free(data);
+		data.reset();
     }
 
     void write(file_account_t *io_account) {
@@ -37,7 +37,7 @@ struct extent_block_t :
         is_last_block = true;
 
         parent->file->write_async(parent->extent_ref.offset() + offset, DEVICE_BLOCK_SIZE,
-                                  data, io_account, this, file_t::NO_DATASYNCS);
+                                  data.get(), io_account, this, file_t::NO_DATASYNCS);
     }
 
     void on_extent_sync() {
@@ -120,7 +120,7 @@ void extent_t::append(void *buffer, size_t length, file_account_t *io_account) {
         }
 
         size_t chunk = std::min(length, room_in_block);
-        memcpy(current_block->data + (amount_filled % DEVICE_BLOCK_SIZE), buffer, chunk);
+        memcpy(current_block->data.get() + (amount_filled % DEVICE_BLOCK_SIZE), buffer, chunk);
         amount_filled += chunk;
 
         if (amount_filled % DEVICE_BLOCK_SIZE == 0) {

@@ -38,8 +38,8 @@ public:
     in_memory_index_t to be filled with data. */
 
     struct read_info_t {
-        void *buffer;
-        int count;
+		scoped_aligned_malloc_t<lba_disk_extent_t> buffer;
+		int count;
     };
 
     void read_step_1(read_info_t *info_out, extent_t::read_callback_t *cb);

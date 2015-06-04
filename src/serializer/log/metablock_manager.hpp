@@ -141,7 +141,7 @@ private:
 
     metablock_version_t next_version_number;
 
-    crc_metablock_t *const mb_buffer;
+    const scoped_aligned_malloc_t<crc_metablock_t> mb_buffer;
     // true: we're using the buffer, no one else can
     bool mb_buffer_in_use;
 

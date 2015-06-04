@@ -302,7 +302,7 @@ using scoped_aligned_malloc_t = scoped_malloc_t<T, raw_free_aligned>;
 
 template <class T>
 scoped_aligned_malloc_t<T> malloc_aligned(size_t size, size_t alignment) {
-	return raw_malloc_aligned(size, alignment);
+	return scoped_malloc_t<T>(raw_malloc_aligned(size, alignment));
 }
 
 #endif  // CONTAINERS_SCOPED_HPP_

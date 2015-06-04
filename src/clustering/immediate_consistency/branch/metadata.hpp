@@ -17,6 +17,7 @@
 #include "rpc/semilattice/joins/macros.hpp"
 #include "rpc/semilattice/joins/map.hpp"
 #include "timestamps.hpp"
+#include "rdb_protocol/protocol.hpp" // ATN TODO why is this header needed?
 
 class listener_intro_t;
 

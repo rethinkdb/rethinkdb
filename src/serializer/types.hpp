@@ -135,7 +135,7 @@ private:
                              block_size_t initial_ser_block_size);
 
     log_serializer_t *serializer_;
-    intptr_t ref_count_;
+    std::atomic<intptr_t> ref_count_;
 
     // The block's size.
     block_size_t block_size_;
