@@ -9,6 +9,8 @@
 #include "serializer/types.hpp"
 
 class io_backender_t;
+class merger_serializer_t;
+class filepath_file_opener_t;
 
 class file_in_use_exc_t : public std::exception {
 public:
@@ -109,8 +111,8 @@ public:
             signal_t *interruptor);
 
         metadata_file_t *file;
-        rwlock_acq_t rwlock_acq;
         txn_t txn;
+        rwlock_acq_t rwlock_acq;
     };
 
     class write_txn_t : public read_txn_t {
@@ -155,7 +157,11 @@ public:
     ~metadata_file_t();
 
 private:
-    scoped_ptr_t<standard_serializer_t> serializer;
+    void init_serializer(
+        filepath_file_opener_t *file_opener,
+        perfmon_collection_t *perfmon_parent);
+
+    scoped_ptr_t<merger_serializer_t> serializer;
     scoped_ptr_t<cache_balancer_t> balancer;
     scoped_ptr_t<cache_t> cache;
     scoped_ptr_t<cache_conn_t> cache_conn;

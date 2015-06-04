@@ -40,7 +40,7 @@ real_branch_history_manager_t::real_branch_history_manager_t(
         interruptor);
 }
 
-branch_birth_certificate_t 
+branch_birth_certificate_t
 real_branch_history_manager_t::get_branch(const branch_id_t &branch)
         const THROWS_NOTHING {
     assert_thread();
