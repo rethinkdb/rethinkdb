@@ -55,8 +55,8 @@ class FailoverToSecondary(rdb_unittest.RdbTestCase):
             issues = list(self.r.db('rethinkdb').table('current_issues').run(stableConn))
             self.assertEqual(issues, [], 'The server recorded the following issues after the run_before:\n%s' % pformat(issues))
             
-            print("Killing the primary")
-            primary.kill()
+            print("Shutting down the primary")
+            primary.close()
             
             print("Checking that the table_availability issue shows up")
             deadline = time.time() + 5
@@ -72,21 +72,13 @@ class FailoverToSecondary(rdb_unittest.RdbTestCase):
             else:
                 raise last_error
             
-            print("Watch for the table to become available again")
-            deadline = time.time() + 30
-            last_error = None
-            while time.time() < deadline:
-                try:
-                    status = self.table.status().run(stableConn)
-                    self.assertEqual(status['status']['ready_for_reads'], True, 'The table never became ready_for_reads:\n%s' % pformat(status))
-                    self.assertEqual(status['status']['ready_for_writes'], True, 'The table never became ready_for_writes:\n%s' % pformat(status))
-                    break
-                except Exception as e:
-                    last_error = e
-                    time.sleep(.2)
-            else:
-                raise last_error
-        
+            print("Waiting for the table to become available again")
+            timeout = 30
+            try:
+                self.table.wait(wait_for='ready_for_writes', timeout=timeout).run(stableConn)
+            except self.r.RqlRuntimeError as e:
+                raise AssertionError('Table did not become available after %d seconds.' % timeout)
+            
             print("Running workload after")
             workload.run_after()
             
