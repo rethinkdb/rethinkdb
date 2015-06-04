@@ -414,12 +414,6 @@ void table_meta_client_t::create(
         make_new_table_raft_state(initial_config),
         current_microtime(),
         &interruptor);
-
-    /* Wait until the table appears in the directory. */
-    wait_until_change_visible(
-        table_id,
-        [](const timestamped_basic_config_t *value) { return value != nullptr; },
-        &interruptor);
 }
 
 void table_meta_client_t::drop(
@@ -734,6 +728,16 @@ void table_meta_client_t::create_or_emergency_repair(
     if (num_acked == 0) {
         throw maybe_failed_table_op_exc_t();
     }
+
+    /* Wait until the table appears in the directory. */
+    wait_until_change_visible(
+        table_id,
+        [&](const timestamped_basic_config_t *value) {
+            return value != nullptr &&
+                (value->second.epoch == timestamp.epoch ||
+                    value->second.epoch.supersedes(timestamp.epoch));
+        },
+        interruptor);
 }
 
 void table_meta_client_t::retry(
