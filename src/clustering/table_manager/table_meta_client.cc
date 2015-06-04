@@ -1,7 +1,9 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/table_manager/table_meta_client.hpp"
 
+#include "clustering/administration/servers/config_client.hpp"
 #include "clustering/generic/raft_core.tcc"
+#include "clustering/table_contract/emergency_repair.hpp"
 #include "clustering/table_manager/multi_table_manager.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 
@@ -11,11 +13,13 @@ table_meta_client_t::table_meta_client_t(
         watchable_map_t<peer_id_t, multi_table_manager_bcard_t>
             *_multi_table_manager_directory,
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
-            *_table_manager_directory) :
+            *_table_manager_directory,
+        server_config_client_t *_server_config_client) :
     mailbox_manager(_mailbox_manager),
     multi_table_manager(_multi_table_manager),
     multi_table_manager_directory(_multi_table_manager_directory),
     table_manager_directory(_table_manager_directory),
+    server_config_client(_server_config_client),
     table_basic_configs(multi_table_manager->get_table_basic_configs())
     { }
 
@@ -252,7 +256,9 @@ void table_meta_client_t::get_status(
         signal_t *interruptor_on_caller,
         std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
             *sindex_statuses_out,
-        std::map<peer_id_t, contracts_and_contract_acks_t> *contracts_and_acks_out)
+        std::map<server_id_t, table_server_status_t> *server_statuses_out,
+        server_name_map_t *server_names_out,
+        server_id_t *latest_server_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t) {
     typedef std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
         index_statuses_t;
@@ -273,46 +279,65 @@ void table_meta_client_t::get_status(
         }
     }
 
-    /* Collect status mailbox addresses for every single server we can see that's hosting
-    data for this table. */
-    std::vector<table_manager_bcard_t::get_status_mailbox_t::address_t> addresses;
+    /* Collect business cards for every single server we can see that's hosting data for
+    this table. */
+    std::vector<table_manager_bcard_t> bcards;
     table_manager_directory->read_all(
     [&](const std::pair<peer_id_t, namespace_id_t> &key,
             const table_manager_bcard_t *server_bcard) {
         if (key.second == table_id) {
-            addresses.push_back(server_bcard->get_status_mailbox);
+            bcards.push_back(*server_bcard);
         }
     });
 
     /* Send a message to every server and collect all of the results in
        `sindex_statuses_out`, `contract_acks_t`, and `contracts_t`. */
     bool at_least_one_reply = false;
-    pmap(addresses.begin(), addresses.end(),
-    [&](const table_manager_bcard_t::get_status_mailbox_t::address_t &addr) {
+    pmap(bcards.begin(), bcards.end(), [&](const table_manager_bcard_t &bcard) {
         /* There are two things that can go wrong. One is that we'll lose contact with
         the other server; in this case `server_disconnected` will be pulsed. The other is
         that the server will stop hosting the given table; in this case `server_stopped`
         will be pulsed. */
-        disconnect_watcher_t server_disconnected(mailbox_manager, addr.get_peer());
+        disconnect_watcher_t server_disconnected(
+            mailbox_manager, bcard.get_status_mailbox.get_peer());
         cond_t server_stopped;
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
                 ::key_subs_t bcard_subs(
-            table_manager_directory, std::make_pair(addr.get_peer(), table_id),
-            [&](const table_manager_bcard_t *bcard) {
+            table_manager_directory,
+            std::make_pair(bcard.get_status_mailbox.get_peer(), table_id),
+            [&](const table_manager_bcard_t *bcard2) {
                 /* We check equality of `bcard->get_config_mailbox` because if the other
                 server stops hosting the table and then immediately starts again, any
                 messages we send will be dropped. */
-                if (bcard == nullptr || !(bcard->get_status_mailbox == addr)) {
+                if (bcard2 == nullptr ||
+                        !(bcard2->get_status_mailbox == bcard.get_status_mailbox)) {
                     server_stopped.pulse_if_not_already_pulsed();
                 }
             }, initial_call_t::YES);
 
         cond_t got_reply;
-        mailbox_t<void(index_statuses_t, contracts_and_contract_acks_t)> ack_mailbox(
+        mailbox_t<void(index_statuses_t, table_server_status_t)> ack_mailbox(
             mailbox_manager,
             [&](signal_t *,
                     const index_statuses_t &statuses,
-                    const contracts_and_contract_acks_t &contracts_and_acks) {
+                    const table_server_status_t &server_statuses) {
+
+                /* Fetch the server's name. The reason we fetch the server's name here is
+                so that we want to put the name in `server_names_out` iff we put an entry
+                in `server_statuses_out`. */
+                boost::optional<server_config_versioned_t> config =
+                    server_config_client->get_server_config_map()
+                        ->get_key(bcard.server_id);
+                if (!static_cast<bool>(config)) {
+                    /* The server disconnected. */
+                    server_stopped.pulse_if_not_already_pulsed();
+                    return;
+                }
+                if (server_names_out != nullptr) {
+                    server_names_out->names.insert(std::make_pair(bcard.server_id,
+                        std::make_pair(config->version, config->config.name)));
+                }
+
                 /* Make sure every sindex in the config is present in the reply from this
                 server. If a sindex isn't present on this server, we set its `ready`
                 field to false. */
@@ -330,15 +355,15 @@ void table_meta_client_t::get_status(
                     }
                 }
 
-                if (contracts_and_acks_out != nullptr) {
-                    contracts_and_acks_out->insert(
-                        std::make_pair(addr.get_peer(), contracts_and_acks));
+                if (server_statuses_out != nullptr) {
+                    server_statuses_out->insert(
+                        std::make_pair(bcard.server_id, server_statuses));
                 }
 
                 got_reply.pulse();
             });
 
-        send(mailbox_manager, addr, ack_mailbox.get_address());
+        send(mailbox_manager, bcard.get_status_mailbox, ack_mailbox.get_address());
         wait_any_t done_cond(
             &server_disconnected, &server_stopped, &got_reply, &interruptor);
         done_cond.wait_lazily_unordered();
@@ -354,6 +379,18 @@ void table_meta_client_t::get_status(
 
     if (!at_least_one_reply) {
         throw_appropriate_exception(table_id);
+    }
+
+    /* Determine the most up-to-date server */
+    if (server_statuses_out != nullptr && latest_server_out != nullptr) {
+        *latest_server_out = nil_uuid();
+        for (const auto &pair : *server_statuses_out) {
+            if (*latest_server_out == nil_uuid() || pair.second.timestamp.supersedes(
+                    server_statuses_out->at(*latest_server_out).timestamp)) {
+                *latest_server_out = pair.first;
+            }
+        }
+        guarantee(!latest_server_out->is_nil());
     }
 }
 
@@ -372,84 +409,10 @@ void table_meta_client_t::create(
             guarantee(value == nullptr);
         });
 
-    /* Prepare the message that we'll be sending to each server */
-    multi_table_manager_bcard_t::timestamp_t timestamp;
-    timestamp.epoch.timestamp = current_microtime();
-    timestamp.epoch.id = generate_uuid();
-    timestamp.log_index = 0;
-
-    std::set<server_id_t> all_servers, voting_servers;
-    for (const table_config_t::shard_t &shard : initial_config.config.shards) {
-        all_servers.insert(shard.all_replicas.begin(), shard.all_replicas.end());
-        std::set<server_id_t> voters = shard.voting_replicas();
-        voting_servers.insert(voters.begin(), voters.end());
-    }
-
-    table_raft_state_t raft_state = make_new_table_raft_state(initial_config);
-
-    raft_config_t raft_config;
-    for (const server_id_t &server_id : all_servers) {
-        if (voting_servers.count(server_id) == 1) {
-            raft_config.voting_members.insert(raft_state.member_ids.at(server_id));
-        } else {
-            raft_config.non_voting_members.insert(raft_state.member_ids.at(server_id));
-        }
-    }
-    raft_persistent_state_t<table_raft_state_t> raft_ps =
-        raft_persistent_state_t<table_raft_state_t>::make_initial(
-            raft_state, raft_config);
-
-    /* Find the business cards of the servers we'll be sending to */
-    std::map<server_id_t, multi_table_manager_bcard_t> bcards;
-    multi_table_manager_directory->read_all(
-        [&](const peer_id_t &, const multi_table_manager_bcard_t *bc) {
-            if (all_servers.count(bc->server_id) == 1) {
-                bcards[bc->server_id] = *bc;
-            }
-        });
-
-    if (bcards.empty()) {
-        throw failed_table_op_exc_t();
-    }
-
-    size_t num_acked = 0;
-    pmap(bcards.begin(), bcards.end(),
-    [&](const std::pair<server_id_t, multi_table_manager_bcard_t> &pair) {
-        try {
-            /* Send the message for the server and wait for a reply */
-            disconnect_watcher_t dw(mailbox_manager,
-                pair.second.action_mailbox.get_peer());
-            cond_t got_ack;
-            mailbox_t<void()> ack_mailbox(mailbox_manager,
-                [&](signal_t *) { got_ack.pulse(); });
-            send(mailbox_manager, pair.second.action_mailbox,
-                table_id,
-                timestamp,
-                multi_table_manager_bcard_t::status_t::ACTIVE,
-                boost::optional<table_basic_config_t>(),
-                boost::optional<raft_member_id_t>(raft_state.member_ids.at(pair.first)),
-                boost::optional<raft_persistent_state_t<table_raft_state_t> >(raft_ps),
-                ack_mailbox.get_address());
-            wait_any_t interruptor_combined(&dw, &interruptor);
-            wait_interruptible(&got_ack, &interruptor_combined);
-
-            ++num_acked;
-        } catch (const interrupted_exc_t &) {
-            /* do nothing */
-        }
-    });
-    if (interruptor.is_pulsed()) {
-        throw interrupted_exc_t();
-    }
-
-    if (num_acked == 0) {
-        throw maybe_failed_table_op_exc_t();
-    }
-
-    /* Wait until the table appears in the directory. */
-    wait_until_change_visible(
+    create_or_emergency_repair(
         table_id,
-        [](const timestamped_basic_config_t *value) { return value != nullptr; },
+        make_new_table_raft_state(initial_config),
+        current_microtime(),
         &interruptor);
 }
 
@@ -620,6 +583,161 @@ void table_meta_client_t::set_config(
                     value->first.database == new_config.config.basic.database);
         },
         &interruptor);
+}
+
+void table_meta_client_t::emergency_repair(
+        const namespace_id_t &table_id,
+        bool allow_erase,
+        bool dry_run,
+        signal_t *interruptor_on_caller,
+        table_config_and_shards_t *new_config_out,
+        bool *rollback_found_out,
+        bool *erase_found_out)
+        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,
+            maybe_failed_table_op_exc_t) {
+    cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
+    on_thread_t thread_switcher(home_thread());
+
+    std::map<server_id_t, table_server_status_t> old_contracts;
+    server_id_t latest_server;
+    get_status(table_id, &interruptor, nullptr, &old_contracts, nullptr, &latest_server);
+
+    std::set<server_id_t> dead_servers;
+    for (const auto &pair : old_contracts.at(latest_server).state.member_ids) {
+        if (old_contracts.count(pair.first) == 0) {
+            dead_servers.insert(pair.first);
+        }
+    }
+
+    table_raft_state_t new_state;
+    calculate_emergency_repair(
+        old_contracts.at(latest_server).state,
+        dead_servers,
+        allow_erase,
+        &new_state,
+        rollback_found_out,
+        erase_found_out);
+
+    *new_config_out = new_state.config;
+
+    if ((*rollback_found_out || *erase_found_out) && !dry_run) {
+        /* In theory, we don't always have to start a new epoch. Sometimes we run an
+        emergency repair where we've lost a quorum of one shard, but still have a quorum
+        of the Raft cluster as a whole. In that case we could run a regular Raft
+        transaction, which could be made slightly safer. But it's simpler to do
+        everything through the same code path. */
+
+        /* Fetch the table's current epoch's timestamp to make sure that the new epoch
+        has a higher timestamp, even if the server's clock is wrong. */
+        microtime_t old_epoch_timestamp;
+        multi_table_manager->get_table_basic_configs()->read_key(table_id,
+            [&](const std::pair<table_basic_config_t,
+                    multi_table_manager_bcard_t::timestamp_t> *pair) {
+                if (pair == nullptr) {
+                    throw no_such_table_exc_t();
+                }
+                old_epoch_timestamp = pair->second.epoch.timestamp;
+            });
+
+        create_or_emergency_repair(
+            table_id,
+            new_state,
+            std::max(current_microtime(), old_epoch_timestamp + 1),
+            &interruptor);
+    }
+}
+
+void table_meta_client_t::create_or_emergency_repair(
+        const namespace_id_t &table_id,
+        const table_raft_state_t &raft_state,
+        microtime_t epoch_timestamp,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t, failed_table_op_exc_t,
+            maybe_failed_table_op_exc_t) {
+    assert_thread();
+
+    /* Prepare the message that we'll be sending to each server */
+    multi_table_manager_bcard_t::timestamp_t timestamp;
+    timestamp.epoch.timestamp = epoch_timestamp;
+    timestamp.epoch.id = generate_uuid();
+    timestamp.log_index = 0;
+
+    std::set<server_id_t> all_servers, voting_servers;
+    for (const table_config_t::shard_t &shard : raft_state.config.config.shards) {
+        all_servers.insert(shard.all_replicas.begin(), shard.all_replicas.end());
+        std::set<server_id_t> voters = shard.voting_replicas();
+        voting_servers.insert(voters.begin(), voters.end());
+    }
+
+    raft_config_t raft_config;
+    for (const server_id_t &server_id : all_servers) {
+        if (voting_servers.count(server_id) == 1) {
+            raft_config.voting_members.insert(raft_state.member_ids.at(server_id));
+        } else {
+            raft_config.non_voting_members.insert(raft_state.member_ids.at(server_id));
+        }
+    }
+
+    raft_persistent_state_t<table_raft_state_t> raft_ps =
+        raft_persistent_state_t<table_raft_state_t>::make_initial(
+            raft_state, raft_config);
+
+    /* Find the business cards of the servers we'll be sending to */
+    std::map<server_id_t, multi_table_manager_bcard_t> bcards;
+    multi_table_manager_directory->read_all(
+        [&](const peer_id_t &, const multi_table_manager_bcard_t *bc) {
+            if (all_servers.count(bc->server_id) == 1) {
+                bcards[bc->server_id] = *bc;
+            }
+        });
+
+    if (bcards.empty()) {
+        throw failed_table_op_exc_t();
+    }
+
+    size_t num_acked = 0;
+    pmap(bcards.begin(), bcards.end(),
+    [&](const std::pair<server_id_t, multi_table_manager_bcard_t> &pair) {
+        try {
+            /* Send the message for the server and wait for a reply */
+            disconnect_watcher_t dw(mailbox_manager,
+                pair.second.action_mailbox.get_peer());
+            cond_t got_ack;
+            mailbox_t<void()> ack_mailbox(mailbox_manager,
+                [&](signal_t *) { got_ack.pulse(); });
+            send(mailbox_manager, pair.second.action_mailbox,
+                table_id,
+                timestamp,
+                multi_table_manager_bcard_t::status_t::ACTIVE,
+                boost::optional<table_basic_config_t>(),
+                boost::optional<raft_member_id_t>(raft_state.member_ids.at(pair.first)),
+                boost::optional<raft_persistent_state_t<table_raft_state_t> >(raft_ps),
+                ack_mailbox.get_address());
+            wait_any_t interruptor_combined(&dw, interruptor);
+            wait_interruptible(&got_ack, &interruptor_combined);
+
+            ++num_acked;
+        } catch (const interrupted_exc_t &) {
+            /* do nothing */
+        }
+    });
+    if (interruptor->is_pulsed()) {
+        throw interrupted_exc_t();
+    }
+
+    if (num_acked == 0) {
+        throw maybe_failed_table_op_exc_t();
+    }
+
+    /* Wait until the table appears in the directory. */
+    wait_until_change_visible(
+        table_id,
+        [&](const timestamped_basic_config_t *value) {
+            return value != nullptr &&
+                (value->second.epoch == timestamp.epoch ||
+                    value->second.epoch.supersedes(timestamp.epoch));
+        },
+        interruptor);
 }
 
 void table_meta_client_t::retry(

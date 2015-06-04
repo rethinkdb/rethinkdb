@@ -511,7 +511,9 @@ message Term {
         WAIT    = 177; // Table -> OBJECT
                        // Database -> OBJECT
         // Generates a new config for the given table, or all tables in the given database
-        // The `shards` and `replicas` arguments are required
+        // The `shards` and `replicas` arguments are required. If `emergency_repair` is
+        // specified, it will enter a completely different mode of repairing a table
+        // which has lost half or more of its replicas.
         RECONFIGURE   = 176; // Database|Table, {shards:NUMBER, replicas:NUMBER [,
                              //                  dry_run:BOOLEAN]
                              //                 } -> OBJECT
@@ -520,6 +522,7 @@ message Term {
                              //                  nonvoting_replica_tags:ARRAY,
                              //                  dry_run:BOOLEAN]
                              //                 } -> OBJECT
+                             // Table, {emergency_repair:STRING, dry_run:BOOLEAN} -> OBJECT
         // Balances the table's shards but leaves everything else the same. Can also be
         // applied to an entire database at once.
         REBALANCE     = 179; // Table -> OBJECT

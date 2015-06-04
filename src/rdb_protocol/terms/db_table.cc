@@ -476,8 +476,8 @@ class reconfigure_term_t : public table_or_db_meta_term_t {
 public:
     reconfigure_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : table_or_db_meta_term_t(env, term,
-            optargspec_t({"nonvoting_replica_tags", "primary_replica_tag", "dry_run",
-                          "replicas", "shards"})) { }
+            optargspec_t({"dry_run", "emergency_repair", "nonvoting_replica_tags",
+                "primary_replica_tag", "replicas", "shards"})) { }
 private:
     scoped_ptr_t<val_t> required_optarg(scope_env_t *env,
                                         args_t *args,
@@ -492,21 +492,6 @@ private:
             scope_env_t *env, args_t *args, eval_flags_t,
             const counted_t<const ql::db_t> &db,
             const boost::optional<name_string_t> &name_if_table) const {
-        // Use the default primary_replica_tag, unless the optarg overwrites it
-        table_generate_config_params_t config_params =
-            table_generate_config_params_t::make_default();
-
-        // Parse the 'shards' optarg
-        scoped_ptr_t<val_t> shards_optarg = required_optarg(env, args, "shards");
-        rcheck_target(shards_optarg, shards_optarg->as_int() > 0, base_exc_t::GENERIC,
-                      "Every table must have at least one shard.");
-        config_params.num_shards = shards_optarg->as_int();
-
-        // Parse the 'replicas', 'nonvoting_replica_tags', and 'primary_replica_tag' optargs
-        get_replicas_and_primary(required_optarg(env, args, "replicas"),
-                                 args->optarg(env, "nonvoting_replica_tags"),
-                                 args->optarg(env, "primary_replica_tag"),
-                                 &config_params);
 
         // Parse the 'dry_run' optarg
         bool dry_run = false;
@@ -514,23 +499,88 @@ private:
             dry_run = v->as_bool();
         }
 
-        bool success;
-        datum_t result;
-        std::string error;
-        /* Perform the operation */
-        if (static_cast<bool>(name_if_table)) {
-            success = env->env->reql_cluster_interface()->table_reconfigure(
-                    db, *name_if_table, config_params, dry_run,
-                    env->env->interruptor, &result, &error);
-        } else {
-            success = env->env->reql_cluster_interface()->db_reconfigure(
-                    db, config_params, dry_run, env->env->interruptor, &result, &error);
-        }
-        if (!success) {
-            rfail(base_exc_t::GENERIC, "%s", error.c_str());
-        }
+        /* Figure out whether we're doing a regular reconfiguration or an emergency
+        repair. */
+        scoped_ptr_t<val_t> emergency_repair = args->optarg(env, "emergency_repair");
+        if (!emergency_repair.has() ||
+                emergency_repair->as_datum() == ql::datum_t::null()) {
+            /* We're doing a regular reconfiguration. */
 
-        return new_val(result);
+            // Use the default primary_replica_tag, unless the optarg overwrites it
+            table_generate_config_params_t config_params =
+                table_generate_config_params_t::make_default();
+
+            // Parse the 'shards' optarg
+            scoped_ptr_t<val_t> shards_optarg = required_optarg(env, args, "shards");
+            rcheck_target(shards_optarg, shards_optarg->as_int() > 0, base_exc_t::GENERIC,
+                          "Every table must have at least one shard.");
+            config_params.num_shards = shards_optarg->as_int();
+
+            // Parse the 'replicas', 'nonvoting_replica_tags', and 'primary_replica_tag' optargs
+            get_replicas_and_primary(required_optarg(env, args, "replicas"),
+                                     args->optarg(env, "nonvoting_replica_tags"),
+                                     args->optarg(env, "primary_replica_tag"),
+                                     &config_params);
+
+            bool success;
+            datum_t result;
+            std::string error;
+            /* Perform the operation */
+            if (static_cast<bool>(name_if_table)) {
+                success = env->env->reql_cluster_interface()->table_reconfigure(
+                        db, *name_if_table, config_params, dry_run,
+                        env->env->interruptor, &result, &error);
+            } else {
+                success = env->env->reql_cluster_interface()->db_reconfigure(
+                        db, config_params, dry_run, env->env->interruptor, &result, &error);
+            }
+            if (!success) {
+                rfail(base_exc_t::GENERIC, "%s", error.c_str());
+            }
+            return new_val(result);
+
+        } else {
+            /* We're doing an emergency repair */
+
+            /* Parse `emergency_repair` to figure out which kind we're doing. */
+            datum_string_t emergency_repair_str = emergency_repair->as_str();
+            bool allow_erase;
+            if (emergency_repair_str == "unsafe_rollback") {
+                allow_erase = false;
+            } else if (emergency_repair_str == "unsafe_rollback_or_erase") {
+                allow_erase = true;
+            } else {
+                rfail_target(emergency_repair.get(), base_exc_t::GENERIC,
+                    "`emergency_repair` should be \"unsafe_rollback\" or "
+                    "\"unsafe_rollback_or_erase\"");
+            }
+
+            /* Make sure none of the optargs that are used with regular reconfigurations
+            are present, to avoid user confusion. */
+            if (args->optarg(env, "nonvoting_replica_tags").has() ||
+                    args->optarg(env, "primary_replica_tag").has() ||
+                    args->optarg(env, "replicas").has() ||
+                    args->optarg(env, "shards").has()) {
+                rfail(base_exc_t::GENERIC, "In emergency repair mode, you can't "
+                    "specify shards, replicas, etc.");
+            }
+
+            if (!static_cast<bool>(name_if_table)) {
+                rfail(base_exc_t::GENERIC, "Can't emergency repair an entire database "
+                    "at once; instead you should run `reconfigure()` on each table "
+                    "individually.");
+            }
+
+            datum_t result;
+            std::string error;
+            bool success = env->env->reql_cluster_interface()->table_emergency_repair(
+                db, *name_if_table, allow_erase, dry_run,
+                env->env->interruptor, &result, &error);
+            if (!success) {
+                rfail(base_exc_t::GENERIC, "%s", error.c_str());
+            }
+            return new_val(result);
+        }
     }
     virtual const char *name() const { return "reconfigure"; }
 };

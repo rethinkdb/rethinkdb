@@ -525,6 +525,18 @@ bool test_rdb_env_t::instance_t::db_reconfigure(
     return false;
 }
 
+bool test_rdb_env_t::instance_t::table_emergency_repair(
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED const name_string_t &name,
+        UNUSED bool allow_erase,
+        UNUSED bool dry_run,
+        UNUSED signal_t *local_interruptor,
+        UNUSED ql::datum_t *result_out,
+        std::string *error_out) {
+    *error_out = "test_rdb_env_t::instance_t doesn't support reconfigure()";
+    return false;
+}
+
 bool test_rdb_env_t::instance_t::table_rebalance(
         UNUSED counted_t<const ql::db_t> db,
         UNUSED const name_string_t &name,

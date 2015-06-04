@@ -18,8 +18,7 @@ public:
     debug_table_status_artificial_table_backend_t(
             boost::shared_ptr<semilattice_readwrite_view_t<
                 cluster_semilattice_metadata_t> > _semilattice_view,
-            table_meta_client_t *_table_meta_client,
-            server_config_client_t *_server_config_client);
+            table_meta_client_t *_table_meta_client);
     ~debug_table_status_artificial_table_backend_t();
 
     bool write_row(
@@ -38,8 +37,6 @@ private:
             ql::datum_t *row_out)
             THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,
                 admin_op_exc_t);
-
-    server_config_client_t *server_config_client;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_TABLES_DEBUG_TABLE_STATUS_HPP_ */

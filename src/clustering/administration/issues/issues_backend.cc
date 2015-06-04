@@ -29,7 +29,7 @@ issues_artificial_table_backend_t::issues_artificial_table_backend_t(
                 &cluster_directory_metadata_t::server_id))),
     name_collision_issue_tracker(
         server_config_client, cluster_sl_view, table_meta_client),
-    table_issue_tracker(server_config_client, table_meta_client)
+    table_issue_tracker(table_meta_client)
 {
     trackers.insert(&remote_issue_tracker);
     trackers.insert(&name_collision_issue_tracker);
