@@ -42,7 +42,9 @@ void insert_rows(int start, int finish, store_t *store) {
         store->acquire_superblock_for_write(
             1, write_durability_t::SOFT,
             &token, &txn, &superblock, &dummy_interruptor);
-        block_id_t sindex_block_id = superblock->get_sindex_block_id();
+        buf_lock_t sindex_block(superblock->expose_buf(),
+                                superblock->get_sindex_block_id(),
+                                access_t::write);
 
         std::string data = strprintf("{\"id\" : %d, \"sid\" : %d}", i, i * i);
         point_write_response_t response;
@@ -58,26 +60,21 @@ void insert_rows(int start, int finish, store_t *store) {
                 superblock.get(), &deletion_context, &response, &mod_report.info,
                 static_cast<profile::trace_t *>(NULL));
 
-        {
-            buf_lock_t sindex_block(superblock->expose_buf(),
-                                    sindex_block_id,
-                                    access_t::write);
-            store_t::sindex_access_vector_t sindexes;
-            store->acquire_post_constructed_sindex_superblocks_for_write(
-                     &sindex_block,
-                     &sindexes);
-            rdb_update_sindexes(store,
-                                sindexes,
-                                &mod_report,
-                                txn.get(),
-                                &deletion_context,
-                                NULL,
-                                NULL,
-                                NULL);
+        store_t::sindex_access_vector_t sindexes;
+        store->acquire_post_constructed_sindex_superblocks_for_write(
+                 &sindex_block,
+                 &sindexes);
+        rdb_update_sindexes(store,
+                            sindexes,
+                            &mod_report,
+                            txn.get(),
+                            &deletion_context,
+                            NULL,
+                            NULL,
+                            NULL);
 
-            new_mutex_in_line_t acq = store->get_in_line_for_sindex_queue(&sindex_block);
-            store->sindex_queue_push(mod_report, &acq);
-        }
+        new_mutex_in_line_t acq = store->get_in_line_for_sindex_queue(&sindex_block);
+        store->sindex_queue_push(mod_report, &acq);
     }
 }
 
@@ -103,54 +100,10 @@ sindex_name_t create_sindex(store_t *store) {
     return sindex_name_t(name);
 }
 
-void bring_sindexes_up_to_date(
-        store_t *store, sindex_name_t sindex_name) {
-    cond_t dummy_interruptor;
-    write_token_t token;
-    store->new_write_token(&token);
-
-    scoped_ptr_t<txn_t> txn;
-    scoped_ptr_t<real_superblock_t> super_block;
-    store->acquire_superblock_for_write(1, write_durability_t::SOFT,
-                                        &token, &txn, &super_block, &dummy_interruptor);
-
-    buf_lock_t sindex_block(super_block->expose_buf(),
-                            super_block->get_sindex_block_id(),
-                            access_t::write);
-
-    std::set<sindex_name_t> created_sindexes;
-    created_sindexes.insert(sindex_name);
-
-    rdb_protocol::bring_sindexes_up_to_date(created_sindexes, store,
-                                                    &sindex_block);
-    nap(1000);
-}
-
-void spawn_writes_and_bring_sindexes_up_to_date(store_t *store,
-        sindex_name_t sindex_name, cond_t *background_inserts_done) {
-    cond_t dummy_interruptor;
-    write_token_t token;
-    store->new_write_token(&token);
-
-    scoped_ptr_t<txn_t> txn;
-    scoped_ptr_t<real_superblock_t> super_block;
-    store->acquire_superblock_for_write(
-        1, write_durability_t::SOFT,
-        &token, &txn, &super_block, &dummy_interruptor);
-
-    buf_lock_t sindex_block(super_block->expose_buf(),
-                            super_block->get_sindex_block_id(),
-                            access_t::write);
-
+void spawn_writes(store_t *store, cond_t *background_inserts_done) {
     coro_t::spawn_sometime(std::bind(&insert_rows_and_pulse_when_done,
                 (TOTAL_KEYS_TO_INSERT * 9) / 10, TOTAL_KEYS_TO_INSERT,
                 store, background_inserts_done));
-
-    std::set<sindex_name_t> created_sindexes;
-    created_sindexes.insert(sindex_name);
-
-    rdb_protocol::bring_sindexes_up_to_date(created_sindexes, store,
-                                                    &sindex_block);
 }
 
 void _check_keys_are_present(store_t *store,
@@ -343,8 +296,7 @@ TPTEST(RDBBtree, SindexPostConstruct) {
     sindex_name_t sindex_name = create_sindex(&store);
 
     cond_t background_inserts_done;
-    spawn_writes_and_bring_sindexes_up_to_date(&store, sindex_name,
-            &background_inserts_done);
+    spawn_writes(&store, &background_inserts_done);
     background_inserts_done.wait();
 
     check_keys_are_present(&store, sindex_name);
@@ -387,8 +339,7 @@ TPTEST(RDBBtree, SindexEraseRange) {
     sindex_name_t sindex_name = create_sindex(&store);
 
     cond_t background_inserts_done;
-    spawn_writes_and_bring_sindexes_up_to_date(&store, sindex_name,
-            &background_inserts_done);
+    spawn_writes(&store, &background_inserts_done);
     background_inserts_done.wait();
 
     check_keys_are_present(&store, sindex_name);
@@ -467,8 +418,7 @@ TPTEST(RDBBtree, SindexInterruptionViaDrop) {
     sindex_name_t sindex_name = create_sindex(&store);
 
     cond_t background_inserts_done;
-    spawn_writes_and_bring_sindexes_up_to_date(&store, sindex_name,
-            &background_inserts_done);
+    spawn_writes(&store, &background_inserts_done);
 
     store.sindex_drop(sindex_name.name, &dummy_interruptor);
     background_inserts_done.wait();
@@ -506,10 +456,8 @@ TPTEST(RDBBtree, SindexInterruptionViaStoreDelete) {
 
     insert_rows(0, (TOTAL_KEYS_TO_INSERT * 9) / 10, store.get());
 
-    sindex_name_t sindex_name = create_sindex(store.get());
-
-    bring_sindexes_up_to_date(store.get(), sindex_name);
-
+    create_sindex(store.get());
+    nap(1000);
     store.reset();
 }
 
