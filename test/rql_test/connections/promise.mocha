@@ -102,7 +102,7 @@ describe('JavaScript Promise style', function() {
     
     describe('connect', function() {
         
-        it('normally', function() {
+        it('works normally', function() {
             return r.connect({host:serverHost, port:driverPort})
             .then(function(conn) {
                 assert(conn);
@@ -192,7 +192,7 @@ describe('JavaScript Promise style', function() {
                 })
             });
                         
-            it("when none needed", function(){
+            it("fails when no authorization key is needed", function(){
                 return r.connect({host:serverHost, port:driverPort, authKey: "hunter2"})
                 .then(function() {
                     throw new Error('No error was thrown when connecting with an authKey when none needed.')
@@ -291,50 +291,54 @@ describe('JavaScript Promise style', function() {
         // ensure reqlConn is valid before each test
         beforeEach(function() { return withConnection() });
         
-        it("close", function() {
-            return reqlConn.close()
+        describe('close', function(){
+            it("can be called", function() {
+                return reqlConn.close()
+            });
+            
+            it("makes subsequent queries fail", function() {
+                return reqlConn.close()
+                .then(function() {
+                    return r.expr(1).run(reqlConn);
+                })
+                .then(function() {
+                    throw new Error('Expected error on closed connection');
+                })
+                .catch(r.Error.RqlDriverError, function() {})
+            })
+            
+            it("waits for noreply by default", function() {
+                var minTime = Date.now() + 500;
+                // set looping query
+                r.js('while(true);', {timeout: 0.5}).run(reqlConn, {noreply: true})
+                .catch(function(err) {})
+                // ensure we took longer than minTime
+                return reqlConn.close()
+                .then(function() {
+                    assert(Date.now() > minTime);
+                })
+            });
         });
         
-        it("fails queries after close", function() {
-            return reqlConn.close()
-            .then(function() {
-                return r.expr(1).run(reqlConn);
-            })
-            .then(function() {
-                throw new Error('Expected error on closed connection');
-            })
-            .catch(r.Error.RqlDriverError, function() {})
-        })
-        
-        it("close waits for noreply by default", function() {
-            var minTime = Date.now() + 500;
-            // set looping query
-            r.js('while(true);', {timeout: 0.5}).run(reqlConn, {noreply: true})
-            .catch(function(err) {})
-            // ensure we took longer than minTime
-            return reqlConn.close()
-            .then(function() {
-                assert(Date.now() > minTime);
-            })
-        });
-        
-        it("reconnect", function() {
-            return reqlConn.close()
-            .then(function() {
-                return reqlConn.reconnect();
-            })
-        });
-        
-        it("reconnect waits for noreply by default", function() {
-            var minTime = Date.now() + 500;
-            // set looping query
-            r.js('while(true);', {timeout: 0.5}).run(reqlConn, {noreply: true})
-            .catch(function(err) {})
-            // ensure we took longer than minTime
-            return reqlConn.reconnect()
-            .then(function() {
-                assert(Date.now() > minTime);
-            })
+        describe('reconnect', function() {
+            it("can be called", function() {
+                return reqlConn.close()
+                .then(function() {
+                    return reqlConn.reconnect();
+                })
+            });
+            
+            it("waits for noreply by default", function() {
+                var minTime = Date.now() + 500;
+                // set looping query
+                r.js('while(true);', {timeout: 0.5}).run(reqlConn, {noreply: true})
+                .catch(function(err) {})
+                // ensure we took longer than minTime
+                return reqlConn.reconnect()
+                .then(function() {
+                    assert(Date.now() > minTime);
+                })
+            });
         });
         
         it("noreplyWait", function() {
@@ -352,7 +356,7 @@ describe('JavaScript Promise style', function() {
         describe('close twice and reconnect', function() {
             var simpleQuery = function(c) { return r(1).run(reqlConn); };
             
-            it("synchronously", function() {
+            it("works if done synchronously", function() {
                 return simpleQuery()
                 .then(function() {
                     return reqlConn.close();
@@ -368,7 +372,7 @@ describe('JavaScript Promise style', function() {
                 })
             });
             
-            it("with noreplyWait=false", function() {
+            it("works with noreplyWait=false", function() {
                 return simpleQuery()
                 .then(function() {
                     return reqlConn.close({noreplyWait: false});
@@ -400,14 +404,14 @@ describe('JavaScript Promise style', function() {
             })
         });
         
-        it("simple value", function() {
+        it("works for simple values", function() {
             return r.expr(1).run(reqlConn)
             .then(function(result) {
                 assert.equal(result, 1, 'Did not get the expected value (1), imtead got: ' + result)
             });
         });
         
-        it("large array", function() {
+        it("works for a large array", function() {
             var limit = 10000 // large number to try hitting `maximum call stack exceed`
             return r.range(0, limit).run(reqlConn)
             .then(function(resCursor) {
@@ -423,8 +427,10 @@ describe('JavaScript Promise style', function() {
                 );
             });
         });
-        
-        it("toArray on an array", function() {
+    });
+    
+    describe('toArray', function() {
+        it("returns a given array without copying", function() {
             var cursorA = null;
             return r.expr([1,2,3]).run(reqlConn)
             .then(function(cur) {
@@ -463,11 +469,11 @@ describe('JavaScript Promise style', function() {
         // ensure reqlConn is valid before each test
         beforeEach(function() { return withConnection() });
         
-        it("cursor next", function() {
+        it("allows cursor next to be called", function() {
             return tbl.run(reqlConn).then(function(cur) { return cur.next(); });
         });
         
-        it("cursor toArray", function() {
+        it("allows cursor toArray to be called", function() {
             return tbl.run(reqlConn).then(function(cur) { return cur.toArray(); }).then(function(result) {
                 assert.strictEqual(result.length, numRows);
             });
