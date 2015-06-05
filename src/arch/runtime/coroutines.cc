@@ -384,7 +384,7 @@ bool has_n_bytes_free_stack_space(size_t n) {
     char tester;
     const coro_t *current_coro = TLS_get_cglobals()->current_coro;
     guarantee(current_coro != nullptr);
-    return TLS_get_cglobals()->current_coro->stack.free_space_below(&tester) >= n;
+    return current_coro->stack.free_space_below(&tester) >= n;
 }
 
 bool coroutines_have_been_initialized() {
