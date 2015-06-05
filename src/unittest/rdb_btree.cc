@@ -106,62 +106,79 @@ void spawn_writes(store_t *store, cond_t *background_inserts_done) {
                 store, background_inserts_done));
 }
 
+ql::grouped_t<ql::stream_t> read_row_via_sindex(
+        store_t *store,
+        const sindex_name_t &sindex_name,
+        int sindex_value) {
+    cond_t dummy_interruptor;
+    read_token_t token;
+    store->new_read_token(&token);
+
+    scoped_ptr_t<txn_t> txn;
+    scoped_ptr_t<real_superblock_t> super_block;
+
+    store->acquire_superblock_for_read(
+            &token, &txn, &super_block,
+            &dummy_interruptor, true);
+
+    scoped_ptr_t<sindex_superblock_t> sindex_sb;
+    uuid_u sindex_uuid;
+
+    std::vector<char> opaque_definition;
+    bool sindex_exists = store->acquire_sindex_superblock_for_read(
+            sindex_name,
+            "",
+            super_block.get(),
+            &sindex_sb,
+            &opaque_definition,
+            &sindex_uuid);
+    guarantee(sindex_exists);
+
+    sindex_disk_info_t sindex_info;
+    try {
+        deserialize_sindex_info(opaque_definition, &sindex_info);
+    } catch (const archive_exc_t &e) {
+        crash("%s", e.what());
+    }
+
+    rget_read_response_t res;
+    ql::datum_range_t datum_range(ql::datum_t(static_cast<double>(sindex_value)));
+    /* The only thing this does is have a NULL `profile::trace_t *` in it which
+     * prevents to profiling code from crashing. */
+    ql::env_t dummy_env(&dummy_interruptor,
+                        ql::return_empty_normal_batches_t::NO,
+                        reql_version_t::LATEST);
+
+    rdb_rget_secondary_slice(
+        store->get_sindex_slice(sindex_uuid),
+        datum_range,
+        region_t(datum_range.to_sindex_keyrange(ql::skey_version_t::post_1_16)),
+        sindex_sb.get(),
+        &dummy_env, // env_t
+        ql::batchspec_t::default_for(ql::batch_type_t::NORMAL),
+        std::vector<ql::transform_variant_t>(),
+        boost::optional<ql::terminal_variant_t>(),
+        key_range_t::universe(),
+        sorting_t::ASCENDING,
+        sindex_info,
+        &res,
+        release_superblock_t::RELEASE);
+
+    ql::grouped_t<ql::stream_t> *groups =
+        boost::get<ql::grouped_t<ql::stream_t> >(&res.result);
+    guarantee(groups != NULL);
+    return *groups;
+}
+
 void _check_keys_are_present(store_t *store,
         sindex_name_t sindex_name) {
-    cond_t dummy_interruptor;
     ql::configured_limits_t limits;
     for (int i = 0; i < TOTAL_KEYS_TO_INSERT; ++i) {
-        read_token_t token;
-        store->new_read_token(&token);
-
-        scoped_ptr_t<txn_t> txn;
-        scoped_ptr_t<real_superblock_t> super_block;
-
-        store->acquire_superblock_for_read(
-                &token, &txn, &super_block,
-                &dummy_interruptor, true);
-
-        scoped_ptr_t<sindex_superblock_t> sindex_sb;
-        uuid_u sindex_uuid;
-
-        {
-            std::vector<char> opaque_definition;
-            bool sindex_exists = store->acquire_sindex_superblock_for_read(
-                    sindex_name,
-                    "",
-                    super_block.get(),
-                    &sindex_sb,
-                    &opaque_definition,
-                    &sindex_uuid);
-            ASSERT_TRUE(sindex_exists);
-        }
-
-        rget_read_response_t res;
-        double ii = i * i;
-        /* The only thing this does is have a NULL `profile::trace_t *` in it which
-         * prevents to profiling code from crashing. */
-        ql::env_t dummy_env(&dummy_interruptor,
-                            ql::return_empty_normal_batches_t::NO,
-                            reql_version_t::LATEST);
-        rdb_rget_slice(
-            store->get_sindex_slice(sindex_uuid),
-            rdb_protocol::sindex_key_range(
-                store_key_t(ql::datum_t(ii).print_primary()),
-                store_key_t(ql::datum_t(ii).print_primary())),
-            sindex_sb.get(),
-            &dummy_env, // env_t
-            ql::batchspec_t::default_for(ql::batch_type_t::NORMAL),
-            std::vector<ql::transform_variant_t>(),
-            boost::optional<ql::terminal_variant_t>(),
-            sorting_t::ASCENDING,
-            &res,
-            release_superblock_t::RELEASE);
-
-        auto groups = boost::get<ql::grouped_t<ql::stream_t> >(&res.result);
-        ASSERT_TRUE(groups != NULL);
-        ASSERT_EQ(1, groups->size());
+        ql::grouped_t<ql::stream_t> groups =
+            read_row_via_sindex(store, sindex_name, i * i);
+        ASSERT_EQ(1, groups.size());
         // The order of `groups` doesn't matter because this is a small unit test.
-        ql::stream_t *stream = &groups->begin()->second;
+        ql::stream_t *stream = &groups.begin()->second;
         ASSERT_TRUE(stream != NULL);
         ASSERT_EQ(1ul, stream->size());
 
@@ -178,71 +195,26 @@ void check_keys_are_present(store_t *store,
     for (int i = 0; i < MAX_RETRIES_FOR_SINDEX_POSTCONSTRUCT; ++i) {
         try {
             _check_keys_are_present(store, sindex_name);
+            return;
         } catch (const sindex_not_ready_exc_t&) { }
         /* Unfortunately we don't have an easy way right now to tell if the
          * sindex has actually been postconstructed so we just need to
          * check by polling. */
         nap(100);
     }
+    ADD_FAILURE() << "Sindex still not available after many tries.";
 }
 
 void _check_keys_are_NOT_present(store_t *store,
         sindex_name_t sindex_name) {
     /* Check that we don't have any of the keys (we just deleted them all) */
-    cond_t dummy_interruptor;
     for (int i = 0; i < TOTAL_KEYS_TO_INSERT; ++i) {
-        read_token_t token;
-        store->new_read_token(&token);
-
-        scoped_ptr_t<txn_t> txn;
-        scoped_ptr_t<real_superblock_t> super_block;
-
-        store->acquire_superblock_for_read(
-                &token, &txn, &super_block,
-                &dummy_interruptor, true);
-
-        scoped_ptr_t<sindex_superblock_t> sindex_sb;
-        uuid_u sindex_uuid;
-
-        {
-            std::vector<char> opaque_definition;
-            bool sindex_exists = store->acquire_sindex_superblock_for_read(
-                    sindex_name,
-                    "",
-                    super_block.get(),
-                    &sindex_sb,
-                    &opaque_definition,
-                    &sindex_uuid);
-            ASSERT_TRUE(sindex_exists);
+        ql::grouped_t<ql::stream_t> groups =
+            read_row_via_sindex(store, sindex_name, i * i);
+        if (groups.size() != 0) {
+            debugf_print("groups is non-empty", groups);
         }
-
-        rget_read_response_t res;
-        double ii = i * i;
-        /* The only thing this does is have a NULL profile::trace_t in it
-           which prevents the profiling code from crashing. */
-        ql::env_t dummy_env(&dummy_interruptor,
-                            ql::return_empty_normal_batches_t::NO,
-                            reql_version_t::LATEST);
-        rdb_rget_slice(
-            store->get_sindex_slice(sindex_uuid),
-            rdb_protocol::sindex_key_range(
-                store_key_t(ql::datum_t(ii).print_primary()),
-                store_key_t(ql::datum_t(ii).print_primary())),
-            sindex_sb.get(),
-            &dummy_env, // env_t
-            ql::batchspec_t::default_for(ql::batch_type_t::NORMAL),
-            std::vector<ql::transform_variant_t>(),
-            boost::optional<ql::terminal_variant_t>(),
-            sorting_t::ASCENDING,
-            &res,
-            release_superblock_t::RELEASE);
-
-        auto groups = boost::get<ql::grouped_t<ql::stream_t> >(&res.result);
-        ASSERT_TRUE(groups != NULL);
-        if (groups->size() != 0) {
-            debugf_print("groups is non-empty", *groups);
-        }
-        ASSERT_EQ(0, groups->size());
+        ASSERT_EQ(0, groups.size());
     }
 }
 
@@ -251,12 +223,14 @@ void check_keys_are_NOT_present(store_t *store,
     for (int i = 0; i < MAX_RETRIES_FOR_SINDEX_POSTCONSTRUCT; ++i) {
         try {
             _check_keys_are_NOT_present(store, sindex_name);
+            return;
         } catch (const sindex_not_ready_exc_t&) { }
         /* Unfortunately we don't have an easy way right now to tell if the
          * sindex has actually been postconstructed so we just need to
          * check by polling. */
         nap(100);
     }
+    ADD_FAILURE() << "Sindex still not available after many tries.";
 }
 
 TPTEST(RDBBtree, SindexPostConstruct) {
@@ -376,6 +350,8 @@ TPTEST(RDBBtree, SindexEraseRange) {
                               0,
                               &mod_reports,
                               &deleted_range);
+
+        store.update_sindexes(txn.get(), &sindex_block, mod_reports, true);
     }
 
     check_keys_are_NOT_present(&store, sindex_name);
