@@ -18,7 +18,18 @@
 
 namespace ql {
 
+// The minimum amount of stack space we require to be available on a coroutine
+// before attempting to compile or evaluate a term.
+const size_t MIN_EVAL_STACK_SPACE = 4 * KILOBYTE;
+
 counted_t<const term_t> compile_term(compile_env_t *env, const protob_t<const Term> t) {
+    // Check that we have enough stack space available to evaluate the term
+    rcheck_toplevel(
+        has_n_bytes_free_stack_space(MIN_EVAL_STACK_SPACE),
+        base_exc_t::GENERIC,
+        "Insufficient stack space available to compile query.  This is usually "
+        "caused by having too deeply nested terms.");
+
     // HACK: per @srh, use unlimited array size at compile time
     ql::configured_limits_t limits = ql::configured_limits_t::unlimited;
     switch (t->type()) {
@@ -321,6 +332,15 @@ scoped_ptr_t<val_t> runtime_term_t::eval(scope_env_t *env, eval_flags_t eval_fla
 #ifdef INSTRUMENT
     try {
 #endif // INSTRUMENT
+        // Check that we have enough stack space available to evaluate the term
+        rcheck(
+            has_n_bytes_free_stack_space(MIN_EVAL_STACK_SPACE),
+            base_exc_t::GENERIC,
+            strprintf(
+                "Insufficient stack space available to evaluate `%s`.  This is usually "
+                "caused by having too deeply nested terms in the query.",
+                name()));
+
         try {
             scoped_ptr_t<val_t> ret = term_eval(env, eval_flags);
             DEC_DEPTH;

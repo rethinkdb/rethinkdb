@@ -377,6 +377,16 @@ bool is_coroutine_stack_overflow(void *addr) {
     return TLS_get_cglobals()->current_coro && TLS_get_cglobals()->current_coro->stack.address_is_stack_overflow(addr);
 }
 
+bool has_n_bytes_free_stack_space(size_t n) {
+    // We assume that `tester` is going to be allocated on the stack.
+    // Theoretically this is not guaranteed by the C++ standard, but in practice
+    // it should work.
+    char tester;
+    const coro_t *current_coro = TLS_get_cglobals()->current_coro;
+    guarantee(current_coro != nullptr);
+    return TLS_get_cglobals()->current_coro->stack.free_space_below(&tester) >= n;
+}
+
 bool coroutines_have_been_initialized() {
     return TLS_get_cglobals() != NULL;
 }
