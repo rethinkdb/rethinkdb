@@ -182,7 +182,7 @@ bool artificial_stack_t::address_is_stack_overflow(const void *addr) const {
 }
 
 size_t artificial_stack_t::free_space_below(const void *addr) const {
-    guarantee(address_in_stack(addr));
+    guarantee(address_in_stack(addr) && !address_is_stack_overflow(addr));
     // The bottom page is protected and used to detect stack overflows. Everything
     // above that is usable space.
     return reinterpret_cast<uintptr_t>(addr)
@@ -526,7 +526,7 @@ void *threaded_stack_t::get_stack_bound() const {
 }
 
 size_t threaded_stack_t::free_space_below(const void *addr) const {
-    guarantee(address_in_stack(addr));
+    guarantee(address_in_stack(addr) && !address_is_stack_overflow(addr));
     // The bottom page is protected and used to detect stack overflows. Everything
     // above that is usable space.
     return reinterpret_cast<uintptr_t>(addr)

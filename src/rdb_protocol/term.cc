@@ -28,7 +28,7 @@ counted_t<const term_t> compile_term(compile_env_t *env, const protob_t<const Te
         has_n_bytes_free_stack_space(MIN_EVAL_STACK_SPACE),
         base_exc_t::GENERIC,
         "Insufficient stack space available to compile query.  This is usually "
-        "caused by having too deeply nested terms.");
+        "caused by running a very deeply-nested query.");
 
     // HACK: per @srh, use unlimited array size at compile time
     ql::configured_limits_t limits = ql::configured_limits_t::unlimited;
@@ -338,7 +338,7 @@ scoped_ptr_t<val_t> runtime_term_t::eval(scope_env_t *env, eval_flags_t eval_fla
             base_exc_t::GENERIC,
             strprintf(
                 "Insufficient stack space available to evaluate `%s`.  This is usually "
-                "caused by having too deeply nested terms in the query.",
+                "caused by running a very deeply-nested query.",
                 name()));
 
         try {
