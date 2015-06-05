@@ -48,12 +48,11 @@ class Changefeeds_Master(rdb_unittest.RdbTestCase):
         sampleA_ID = self.table.between(rangeA[0], rangeA[1]).sample(1).nth(0)['id'].run(connA1)
         sampleB_ID = self.table.between(rangeB[0], rangeB[1]).sample(1).nth(0)['id'].run(connB1)
         
-        feedA1 = self.table.between(rangeA[0], rangeA[1]).changes().run(connA1)
-        feedA2 = self.table.between(rangeA[0], rangeA[1]).changes().run(connA2)
+        feedA1 = self.table.between(rangeA[0], rangeA[1]).changes(include_initial_vals=False).run(connA1)
+        feedA2 = self.table.between(rangeA[0], rangeA[1]).changes(include_initial_vals=False).run(connA2)
         
-        feedB = self.table.between(rangeB[0], rangeB[1]).changes().run(connB1)
-        pointFeed = self.table.get(sampleB_ID).changes().run(connB1)
-        next(pointFeed) # eat the initial value
+        feedB = self.table.between(rangeB[0], rangeB[1]).changes(include_initial_vals=False).run(connB1)
+        pointFeed = self.table.get(sampleB_ID).changes(include_initial_vals=False).run(connB1)
         
         print("Check that the changefeeds work (%.2fs)" % (time.time() - startTime))
         
@@ -79,7 +78,7 @@ class Changefeeds_Master(rdb_unittest.RdbTestCase):
         print("Check that feeds are indeed disconnected on a changed shard (%.2fs)" % (time.time() - startTime))
         
         self.table.get(sampleA_ID).update({'update':'b'}).run(self.conn)
-        
+
         self.assertRaises(self.r.RqlRuntimeError, feedA1.next, wait=.2)
         self.assertRaises(self.r.RqlRuntimeError, feedA2.next, wait=.2)
         

@@ -27,6 +27,9 @@ public:
         branch_history_manager_t *bhm,
         signal_t *interruptor);
 
+    /* This destructor can block */
+    ~local_replicator_t();
+
     replica_bcard_t get_replica_bcard() {
         return replica.get_replica_bcard();
     }
