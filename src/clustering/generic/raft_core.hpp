@@ -32,11 +32,11 @@ this file. The comments also occasionally refer to Diego Ongaro's dissertation,
 "Consensus: Bridging Theory and Practice" (2014), as the dissertation addresses a few
 subtle points that the paper does not.
 
-These files only contains the basic Raft algorithm itself; they doesn't contain any
+These files only contains the basic Raft algorithm itself; they don't contain any
 networking or storage logic. Instead, the algorithm uses abstract interfaces to send and
 receive network messages and write data to persistent storage. This both keeps these
-files as as simple as possible and makes it easy to test the Raft algorithm using
-mocked-up network and storage systems.
+files as simple as possible and makes it easy to test the Raft algorithm using mocked-up
+network and storage systems.
 
 We support both log compaction and configuration changes. Configuration changes use the
 joint-configuration mechanism described in the original paper, rather than the

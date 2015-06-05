@@ -22,7 +22,7 @@ public:
     `blocker_t` is destroyed. */
     class blocker_t {
     public:
-        blocker_t(watchdog_timer_t *parent);
+        explicit blocker_t(watchdog_timer_t *parent);
         ~blocker_t();
     private:
         watchdog_timer_t *parent;
