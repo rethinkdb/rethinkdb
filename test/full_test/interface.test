@@ -7,11 +7,12 @@ for interface_test_name in [
         'cluster_config',
         'db_config',
         'detect_netsplit',
+        'emergency_repair',
         'log',
         'log_write_issue',
         'metadata_persistence',
         'net_corruption',
-        'progress',
+        'precise_stats',
         'reconfigure_stress',
         'resources',
         'rethinkdb_jobs',
@@ -24,9 +25,9 @@ for interface_test_name in [
         'table_acks_durability',
         'table_config',
         'table_doc_count_estimates',
-        'table_wait',
         'table_readiness',
         'table_reconfigure',
+        'table_wait',
         'unsatisfiable_goals_issue']:
     generate_test("$RETHINKDB/test/interface/%s.py" % interface_test_name, name=interface_test_name)
 
