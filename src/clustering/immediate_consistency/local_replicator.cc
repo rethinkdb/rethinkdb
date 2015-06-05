@@ -67,6 +67,13 @@ local_replicator_t::local_replicator_t(
     registration->mark_ready();
 }
 
+local_replicator_t::~local_replicator_t() {
+    /* Since `local_replicator_t` is the primary dispatchee, changefeeds are always
+    routed here. But when the primary changes we need to shut off the changefeed. This
+    destructor is a good place to do it. */
+    store->note_reshard();
+}
+
 void local_replicator_t::do_read(
         const read_t &read,
         state_timestamp_t min_timestamp,
