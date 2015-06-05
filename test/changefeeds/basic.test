@@ -99,12 +99,12 @@ class Changefeeds_Basic(rdb_unittest.RdbTestCase):
         # kill the primary
         
         primary.kill()
-        self.table.wait(wait_for='ready_for_writes', timeout=10)
+        self.table.wait(wait_for='ready_for_writes', timeout=10).run(conn)
         
         # the changefeed should have closed
         
         self.table.get(updateItemId).update({'update':1}).run(conn)
-        self.assertRaises(self.r.RqlDriverError, feed.next, wait=.2)
+        self.assertRaises(self.r.RqlRuntimeError, changefeed.next, wait=.2)
 
     def test_secondary_failure(self):
         '''Test when a secondary shardholder fails for a range'''
@@ -140,7 +140,7 @@ class Changefeeds_Basic(rdb_unittest.RdbTestCase):
         # kill a secondary server
         
         replica.kill()
-        self.table.wait(wait_for='ready_for_writes', timeout=10)
+        self.table.wait(wait_for='ready_for_writes', timeout=10).run(conn)
         
         # add another change and retrieve it
         
