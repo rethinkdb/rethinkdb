@@ -74,23 +74,22 @@ raft_member_t<state_t>::raft_member_t(
     latest_state(committed_state.get_ref()),
     /* Raft paper, Section 5.2: "When servers start up, they begin as followers." */
     mode(mode_t::follower),
-    /* `last_heard_from_candidate` is set so that we start a new election if we don't
-    hear from a candidate or leader within an election timeout of when the constructor is
-    called. `last_heard_from_leader` is set so that we don't reject RequestVote RPCs
-    because of thinking we have a leader. */
-    last_heard_from_candidate(current_microtime()),
-    last_heard_from_leader(0),
     /* These must be false initially because we're a follower. */
     readiness_for_change(false),
     readiness_for_config_change(false),
     drainer(new auto_drainer_t),
-    /* Setting the `watchdog_timer` to ring every `election_timeout_min_ms` means that
-    we'll start a new election after between 1 and 2 election timeouts have passed. This
-    is OK. */
-    watchdog_timer(new repeating_timer_t(
-        election_timeout_min_ms,
-        [this]() { this->on_watchdog_timer(); }
-        )),
+    /* Initialize `watchdog` in the `NOT_TRIGGERED` state, so that it will wait for an
+    election timeout to elapse before starting a new election. */
+    watchdog(new watchdog_timer_t(
+        election_timeout_min_ms, election_timeout_max_ms,
+        [this]() { this->on_watchdog(); } )),
+    /* Initialize `watchdog_leader_only` in the `TRIGGERED` state, so that we will accept
+    valid RequestVote RPCs. */
+    watchdog_leader_only(new watchdog_timer_t(
+        /* Note that we wait exactly `election_timeout_min_ms`. See the note in
+        `on_request_vote_rpc()` for an explanation of why this is. */
+        election_timeout_min_ms, election_timeout_min_ms,
+        nullptr, watchdog_timer_t::state_t::TRIGGERED)),
     connected_members_subs(
         new watchable_map_t<raft_member_id_t, boost::optional<raft_term_t> >::all_subs_t(
             network->get_connected_members(),
@@ -114,18 +113,25 @@ raft_member_t<state_t>::~raft_member_t() {
     new_mutex_acq_t mutex_acq(&mutex);
     DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
 
-    /* Destroy `watchdog_timer` so that it doesn't start any new actions while we're
-    cleaning up. */
-    watchdog_timer.reset();
+    /* Kill `candidate_and_leader_coro()`, if it's running. We have to destroy this
+    before destroying the watchdogs because it may hold `watchdog_timer_t::blocker_t`s
+    that point to the watchdogs. */
+    if (mode != mode_t::follower) {
+        candidate_or_leader_become_follower(&mutex_acq);
+    }
+
+    /* Destroy the watchdogs so that they don't start any new actions while we're
+    cleaning up. We have to do this before destroying `drainer` because they might
+    otherwise try to lock `drainer`. We have to destroy the blockers before destroying
+    the watchdogs because they hold pointers to the watchdogs. */
+    virtual_heartbeat_watchdog_blockers[0].reset();
+    virtual_heartbeat_watchdog_blockers[1].reset();
+    watchdog.reset();
+    watchdog_leader_only.reset();
 
     /* Destroy `drainer` to kill any miscellaneous coroutines that aren't related to
     `candidate_and_leader_coro()`. */
     drainer.reset();
-
-    /* Now kill `candidate_and_leader_coro()`, if it's running */
-    if (mode != mode_t::follower) {
-        candidate_or_leader_become_follower(&mutex_acq);
-    }
 
     /* All the coroutines have stopped, so we can start calling member destructors. */
 }
@@ -368,6 +374,12 @@ void raft_member_t<state_t>::on_request_vote_rpc(
     the minimum election timeout of hearing from a current leader, it does not update its
     term or grant its vote."
 
+    We detect whether we've heard from a leader or not by checking if
+    `watchdog_leader_only` is triggered or not. This is the purpose of
+    `watchdog_leader_only`. This is also the reason why `watchdog_leader_only` is set to
+    wait exactly `election_timeout_min_ms` instead of a random period between
+    `election_timeout_min_ms` and `election_timeout_max_ms`.
+
     This implementation deviates from the Raft paper in that a leader will accept a
     RequestVote RPC from the candidate as long as the candidate is in the latest config.
     Normally this should be redundant, because if the candidate is in the latest config
@@ -379,8 +391,8 @@ void raft_member_t<state_t>::on_request_vote_rpc(
     RPCs for that. */
     if ((mode == mode_t::leader &&
                 !latest_state.get_ref().config.is_member(request.candidate_id))
-            || (mode == mode_t::follower && current_microtime() <
-                effective_last_heard_from_leader() + election_timeout_min_ms * 1000)) {
+            || (mode == mode_t::follower && watchdog_leader_only->get_state() ==
+                watchdog_timer_t::state_t::NOT_TRIGGERED)) {
         RAFT_DEBUG_THIS("RequestVote from %s for %" PRIu64 " ignored (leader exists)\n",
             show_member_id(request.candidate_id).c_str(), request.term);
         reply_out->term = ps.current_term;
@@ -457,7 +469,7 @@ void raft_member_t<state_t>::on_request_vote_rpc(
     that is sufficiently up-to-date to be elected leader, but it never stands for
     election because it keeps hearing from other candidates. This is why this line is
     below the `if (!candidate_is_at_least_as_up_to_date)` instead of above it. */
-    last_heard_from_candidate = current_microtime();
+    watchdog->notify();
 
     /* Raft paper, Figure 2: "Persistent state [is] updated on stable storage before
     responding to RPCs" */
@@ -853,6 +865,13 @@ void raft_member_t<state_t>::on_connected_members_change(
                 if (network->get_connected_members()->get_key(member_id)
                         == boost::make_optional(boost::make_optional(term))) {
                     virtual_heartbeat_sender = member_id;
+
+                    /* As long as we're receiving valid virtual heartbeats, we won't
+                    start a new election */
+                    virtual_heartbeat_watchdog_blockers[0].init(
+                        new watchdog_timer_t::blocker_t(watchdog.get()));
+                    virtual_heartbeat_watchdog_blockers[1].init(
+                        new watchdog_timer_t::blocker_t(watchdog_leader_only.get()));
                 }
 
                 DEBUG_ONLY_CODE(this->check_invariants(&mutex_acq));
@@ -864,7 +883,11 @@ void raft_member_t<state_t>::on_connected_members_change(
         /* We've received a "stop virtual heartbeats" message, or lost contact with the
         member that was sending virtual heartbeats. */
         virtual_heartbeat_sender = raft_member_id_t();
-        last_heard_from_leader = current_microtime();
+
+        /* Now that we're no longer receiving virtual heartbeats, unblock the watchdogs.
+        */
+        virtual_heartbeat_watchdog_blockers[0].reset();
+        virtual_heartbeat_watchdog_blockers[1].reset();
     }
 }
 
@@ -922,7 +945,8 @@ bool raft_member_t<state_t>::on_rpc_from_leader(
     /* Raft paper, Section 5.2: "A server remains in follower state as long as it
     receives valid RPCs from a leader or candidate."
     So we should make a note that we received an RPC. */
-    last_heard_from_leader = current_microtime();
+    watchdog->notify();
+    watchdog_leader_only->notify();
 
     /* Recall that `current_term_leader_id` is set to `nil_uuid()` if we haven't seen a
     leader yet this term. */
@@ -938,66 +962,45 @@ bool raft_member_t<state_t>::on_rpc_from_leader(
 }
 
 template<class state_t>
-void raft_member_t<state_t>::on_watchdog_timer() {
+void raft_member_t<state_t>::on_watchdog() {
     if (mode != mode_t::follower) {
         /* If we're already a candidate or leader, there's no need for this. Candidates
         have their own mechanism for retrying stuck elections. */
         return;
     }
-    microtime_t now = current_microtime();
-    if (last_heard_from_leader > now || last_heard_from_candidate > now) {
-        /* System clock went in reverse. This is possible because `current_microtime()`
-        estimates wall-clock time, not real time. Reset `last_heard_from_*` to ensure
-        that we'll still start an election in a reasonable amount of time if we don't
-        hear from a leader. */
-        last_heard_from_leader = last_heard_from_candidate = now;
-        return;
-    }
-    microtime_t last_heard = std::max(
-        effective_last_heard_from_leader(), last_heard_from_candidate);
 
-    /* Raft paper, Section 5.2: "If a follower receives no communication over a period of
-    time called the election timeout, then it assumes there is no viable leader and
-    begins an election to choose a new leader."
-
-    Note that we may begin an election even if we are not a voter in our own latest
+    /* Note that we may begin an election even if we are not a voter in our own latest
     configuration. This is necessary to prevent deadlock in some configuration change
     scenarios. This corner case is explicitly addressed in the Raft dissertation, section
     4.2.2: "A server that is not part of its own latest configuration should still start
     new elections, as it might still be needed until the C_new entry is committed." */
 
-    if (last_heard < now - election_timeout_min_ms * 1000) {
-        /* We shouldn't block in this callback, so we immediately spawn a coroutine */
-        auto_drainer_t::lock_t keepalive(drainer.get());
-        coro_t::spawn_sometime([this, now, keepalive /* important to capture */]() {
-            try {
-                scoped_ptr_t<new_mutex_acq_t> mutex_acq(
-                    new new_mutex_acq_t(&mutex, keepalive.get_drain_signal()));
-                DEBUG_ONLY_CODE(this->check_invariants(mutex_acq.get()));
-                /* Double-check that nothing has changed while the coroutine was
-                spawning. */
-                if (mode != mode_t::follower) {
-                    return;
-                }
-                microtime_t last_heard_2 = std::max(
-                    this->effective_last_heard_from_leader(), last_heard_from_candidate);
-                if (last_heard_2 >= now - election_timeout_min_ms * 1000) {
-                    return;
-                }
-                /* Begin an election */
-                guarantee(!leader_drainer.has());
-                leader_drainer.init(new auto_drainer_t);
-                coro_t::spawn_sometime(std::bind(
-                    &raft_member_t<state_t>::candidate_and_leader_coro,
-                    this,
-                    mutex_acq.release(),
-                    auto_drainer_t::lock_t(leader_drainer.get())));
-            } catch (const interrupted_exc_t &) {
-                /* If `keepalive.get_drain_signal()` fires, the `raft_member_t` is being
-                destroyed, so don't start an election. */
+    /* We shouldn't block in this callback, so we immediately spawn a coroutine */
+    auto_drainer_t::lock_t keepalive(drainer.get());
+    coro_t::spawn_sometime([this, keepalive /* important to capture */]() {
+        try {
+            scoped_ptr_t<new_mutex_acq_t> mutex_acq(
+                new new_mutex_acq_t(&mutex, keepalive.get_drain_signal()));
+            DEBUG_ONLY_CODE(this->check_invariants(mutex_acq.get()));
+            /* Double-check that nothing has changed while the coroutine was
+            spawning. */
+            if (mode != mode_t::follower ||
+                    watchdog->get_state() == watchdog_timer_t::state_t::NOT_TRIGGERED) {
+                return;
             }
-        });
-    }
+            /* Begin an election */
+            guarantee(!leader_drainer.has());
+            leader_drainer.init(new auto_drainer_t);
+            coro_t::spawn_sometime(std::bind(
+                &raft_member_t<state_t>::candidate_and_leader_coro,
+                this,
+                mutex_acq.release(),
+                auto_drainer_t::lock_t(leader_drainer.get())));
+        } catch (const interrupted_exc_t &) {
+            /* If `keepalive.get_drain_signal()` fires, the `raft_member_t` is being
+            destroyed, so don't start an election. */
+        }
+    });
 }
 
 template<class state_t>
@@ -1176,15 +1179,6 @@ void raft_member_t<state_t>::update_readiness_for_change() {
 }
 
 template<class state_t>
-microtime_t raft_member_t<state_t>::effective_last_heard_from_leader() {
-    if (mode == mode_t::leader || !virtual_heartbeat_sender.is_nil()) {
-        return current_microtime();
-    } else {
-        return last_heard_from_leader;
-    }
-}
-
-template<class state_t>
 void raft_member_t<state_t>::candidate_or_leader_become_follower(
         const new_mutex_acq_t *mutex_acq) {
     mutex_acq->guarantee_is_holding(&mutex);
@@ -1312,6 +1306,12 @@ void raft_member_t<state_t>::candidate_and_leader_coro(
         `raft_network_interface_t` will interrupt the virtual heartbeat stream. */
         network->send_virtual_heartbeats(boost::make_optional(ps.current_term));
 
+        /* Prevent the watchdog timers from being triggered until we are no longer
+        leader. */
+        watchdog_timer_t::blocker_t watchdog_blocker(watchdog.get());
+        watchdog_timer_t::blocker_t watchdog_leader_only_blocker(
+            watchdog_leader_only.get());
+
         /* `update_drainers` contains an `auto_drainer_t` for each running instance of
         `leader_send_updates()`. */
         std::map<raft_member_id_t, scoped_ptr_t<auto_drainer_t> > update_drainers;
@@ -1385,11 +1385,6 @@ void raft_member_t<state_t>::candidate_and_leader_coro(
 
     /* Stop sending heartbeats now that we're no longer the leader. */
     network->send_virtual_heartbeats(boost::none);
-
-    /* This will prevent us from starting a new election too soon. This is important in
-    the case where we have just stepped down after committing a configuration in which
-    we were no longer leader; otherwise we would almost always win the next election. */
-    last_heard_from_leader = current_microtime();
 
     mode = mode_t::follower;
 

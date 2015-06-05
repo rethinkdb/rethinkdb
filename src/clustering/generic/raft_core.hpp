@@ -16,25 +16,26 @@
 #include "concurrency/signal.hpp"
 #include "concurrency/watchable.hpp"
 #include "concurrency/watchable_map.hpp"
+#include "concurrency/watchdog_timer.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "containers/empty_value.hpp"
 #include "containers/uuid.hpp"
 #include "time.hpp"
 
-/* This file implements the Raft consensus algorithm, as described in the paper "In
-Search of an Understandable Consensus Algorithm (Extended Version)" (2014) by Diego
-Ongaro and John Ousterhout. Because of the complexity and subtlety of the Raft algorithm,
-we follow the paper closely and refer back to it regularly. You are advised to have a
-copy of the paper on hand when reading or modifying this file. The comments also
-occasionally refer to Diego Ongaro's dissertation, "Consensus: Bridging Theory and
-Practice" (2014), as the dissertation addresses a few subtle points that the paper does
-not.
+/* This file and the corresponding `raft_core.tcc` implement the Raft consensus
+algorithm, as described in the paper "In Search of an Understandable Consensus Algorithm
+(Extended Version)" (2014) by Diego Ongaro and John Ousterhout. Because of the complexity
+and subtlety of the Raft algorithm, we follow the paper closely and refer back to it
+regularly. You are advised to have a copy of the paper on hand when reading or modifying
+this file. The comments also occasionally refer to Diego Ongaro's dissertation,
+"Consensus: Bridging Theory and Practice" (2014), as the dissertation addresses a few
+subtle points that the paper does not.
 
-This file only contains the basic Raft algorithm itself; it doesn't contain any
-networking or storage logic. Instead, it uses abstract interfaces to send and receive
-network messages and write data to persistent storage. This both keeps this file as
-as simple as possible and makes it easy to test the Raft algorithm using mocked-up
+These files only contains the basic Raft algorithm itself; they don't contain any
+networking or storage logic. Instead, the algorithm uses abstract interfaces to send and
+receive network messages and write data to persistent storage. This both keeps these
+files as simple as possible and makes it easy to test the Raft algorithm using mocked-up
 network and storage systems.
 
 We support both log compaction and configuration changes. Configuration changes use the
@@ -698,10 +699,9 @@ private:
         raft_term_t request_term,
         const new_mutex_acq_t *mutex_acq);
 
-    /* `on_watchdog_timer()` is called periodically. If we're a follower and we haven't
-    heard from a leader within the election timeout, it starts a new election by spawning
-    `candidate_and_leader_coro()`. */
-    void on_watchdog_timer();
+    /* `on_watchdog()` is called if we haven't heard from the leader within an election
+    timeout. it starts a new election by spawning `candidate_and_leader_coro()`. */
+    void on_watchdog();
 
     /* `apply_log_entries()` updates `state_and_config` with the entries from `log` with
     indexes `first <= index <= last`. */
@@ -737,18 +737,10 @@ private:
     modified. */
     void update_readiness_for_change();
 
-    /* `effective_last_heard_from_leader()` returns the current time if we are receiving
-    valid virtual heartbeats from a leader, or `last_heard_from_leader` otherwise. */
-    microtime_t effective_last_heard_from_leader();
-
     /* `candidate_or_leader_become_follower()` moves us from the `candidate` or `leader`
     state to `follower` state. It kills `candidate_and_leader_coro()` and blocks until it
     exits. */
     void candidate_or_leader_become_follower(const new_mutex_acq_t *mutex_acq);
-
-    /* `follower_become_candidate()` moves us from the `follower` state to the
-    `candidate` state. It spawns `candidate_and_leader_coro()`.*/
-    void follower_become_candidate(const new_mutex_acq_t *mutex_acq);
 
     /* `candidate_and_leader_coro()` contains most of the candidate- and leader-specific
     logic. It runs in a separate coroutine for as long as we are a candidate or leader.
@@ -860,22 +852,14 @@ private:
     to redirect clients as described in Figure 2 and Section 8. */
     raft_member_id_t current_term_leader_id;
 
-    /* `last_heard_from_candidate` and `last_heard_from_leader` are the times we last
-    received a message from a candidate or leader, not counting virtual heartbeats.
-    `virtual_heartbeat_sender` is the member (if any) that is sending us valid virtual
-    heartbeats for `ps.current_term`. If we stop receiving valid virtual heartbeats we'll
-    update `last_heard_from_leader` to the time when they stopped.
-
-    When `on_watchdog_timer()` is deciding whether or not to start a new election, it
-    uses the latest of the `last_heard_*` or the current time if we are receiving valid
-    virtual heartbeats. The reason the `last_heard_*`s are separate is because
-    `on_request_vote_rpc()` should only disregard RPCs if it hasn't heard from a leader
-    recently, even if it has heard from a candidate.
-
-    `virtual_heartbeat_sender` will typically be the same as `current_term_leader_id`
-    unless `current_term_leader_id` is disconnected. */
-    microtime_t last_heard_from_candidate, last_heard_from_leader;
+    /* If any member is sending us valid virtual heartbeats for `ps.current_term`, then
+    `virtual_heartbeat_sender` will be set to that member; otherwise it will be nil. */
     raft_member_id_t virtual_heartbeat_sender;
+
+    /* If `virtual_heartbeat_sender` is non-empty, we'll set
+    `virtual_heartbeat_watchdog_blockers` to make sure that neither `watchdog` nor
+    `watchdog_leader` gets triggered while we're receiving virtual heartbeats. */
+    scoped_ptr_t<watchdog_timer_t::blocker_t> virtual_heartbeat_watchdog_blockers[2];
 
     /* `match_indexes` corresponds to the `matchIndex` array described in Figure 2 of the
     Raft paper. Note that it is only used if we are the leader; if we are not the leader,
@@ -924,9 +908,12 @@ private:
     that the destructor can destroy it early. */
     scoped_ptr_t<auto_drainer_t> drainer;
 
-    /* This periodically calls `on_watchdog_timer()` to check if we need to start a new
-    election. It's in a `scoped_ptr_t` so that the destructor can destroy it early. */
-    scoped_ptr_t<repeating_timer_t> watchdog_timer;
+    /* Whenever we get a valid RPC from a candidate, we notify `watchdog`. Whenever we
+    get a valid RPC from a leader, we notify both watchdogs. If `watchdog` is triggered,
+    we start a new election. The purpose of `watchdog_leader_only` is that to keep track
+    of whether we have seen a valid leader recently, so that we know whether or not to
+    accept RequestVote RPCs. */
+    scoped_ptr_t<watchdog_timer_t> watchdog, watchdog_leader_only;
 
     /* This calls `update_readiness_for_change()` whenever a peer connects or
     disconnects. */
