@@ -2,6 +2,13 @@
 #ifndef CLUSTERING_TABLE_CONTRACT_CONTRACT_METADATA_HPP_
 #define CLUSTERING_TABLE_CONTRACT_CONTRACT_METADATA_HPP_
 
+#include <map>
+#include <set>
+#include <utility>
+
+#include "errors.hpp"
+#include <boost/optional.hpp>
+
 #include "clustering/administration/tables/table_metadata.hpp"
 #include "clustering/generic/raft_core.hpp"
 #include "clustering/immediate_consistency/history.hpp"
@@ -42,6 +49,7 @@ overlaps R. Then the following are always true unless the user issues a manual o
     descends from V (or is V) in the intersection of R and R'.
 3. The latest version on `c.branch` descends from V (or is V) in the intersection of R
     and R'.
+// TODO! Update
 */
 
 class contract_t {
@@ -70,9 +78,6 @@ public:
     /* `primary` contains the server that's supposed to be primary. If we're in the
     middle of a transition between two primaries, then `primary` will be empty. */
     boost::optional<primary_t> primary;
-
-    /* `branch` tracks what's the "canonical" version of the data. */
-    branch_id_t branch;
 };
 
 RDB_DECLARE_EQUALITY_COMPARABLE(contract_t::primary_t);
@@ -129,6 +134,7 @@ public:
     boost::optional<region_map_t<version_t> > version;
 
     /* This is non-empty if `state` is `primary_need_branch` */
+    // TODO! Explain better
     boost::optional<branch_id_t> branch;
 
     /* This contains information about all branches mentioned in `version` or `branch` */
@@ -169,6 +175,7 @@ public:
             std::map<contract_id_t, std::pair<region_t, contract_t> > add_contracts;
             std::set<branch_id_t> remove_branches;
             branch_history_t add_branches;
+            std::map<region_t, branch_id_t> register_current_branches;
             std::set<server_id_t> remove_server_names;
             server_name_map_t add_server_names;
         };
@@ -184,6 +191,9 @@ public:
 
         boost::variant<set_table_config_t, new_contracts_t, new_member_ids_t> v;
     };
+
+    table_raft_state_t()
+        : current_branches(region_t::universe(), nil_uuid()) { }
 
     void apply_change(const change_t &c);
 
@@ -204,6 +214,9 @@ public:
     in the `branch` field of any contract in `contracts`.
     RSI(raft): We should prune branches if they no longer meet this condition. */
     branch_history_t branch_history;
+
+    /* TODO! */
+    region_map_t<branch_id_t> current_branches;
 
     /* `member_ids` assigns a Raft member ID to each server that's supposed to be part of
     the Raft cluster for this table. `contract_coordinator_t` writes it;

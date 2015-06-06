@@ -64,7 +64,8 @@ contract_executor_t::~contract_executor_t() {
 }
 
 contract_executor_t::execution_key_t contract_executor_t::get_contract_key(
-        const std::pair<region_t, contract_t> &pair) {
+        const std::pair<region_t, contract_t> &pair,
+        const branch_id_t &branch) {
     execution_key_t key;
     key.region = pair.first;
     if (static_cast<bool>(pair.second.primary) &&
@@ -79,7 +80,7 @@ contract_executor_t::execution_key_t contract_executor_t::get_contract_key(
         } else {
             key.primary = nil_uuid();
         }
-        key.branch = pair.second.branch;
+        key.branch = branch;
     } else {
         key.role = execution_key_t::role_t::erase;
         key.primary = nil_uuid();
@@ -122,17 +123,31 @@ void contract_executor_t::update(const table_raft_state_t &new_state,
     /* Go through the new contracts and try to match them to existing executions */
     std::set<execution_key_t> dont_delete;
     for (const auto &new_pair : new_state.contracts) {
-        execution_key_t key = get_contract_key(new_pair.second);
+        /* Extract the current branch ID for the region covered by this contract.
+        If there are multiple branches for different subregions, we consider
+        the branch as incoherent and don't set a branch ID. */
+        branch_id_t branch = nil_uuid();
+        new_state.current_branches.visit(new_pair.second.first,
+        [&](const region_t &r, const branch_id_t &b) {
+            if (r == new_pair.second.first) {
+                rassert(branch.is_nil());
+                branch = b;
+            }
+        });
+
+        execution_key_t key = get_contract_key(new_pair.second, branch);
         dont_delete.insert(key);
         auto it = executions.find(key);
         if (it != executions.end()) {
             /* Update the existing execution */
             contract_id_t old_contract_id = it->second->contract_id;
             it->second->contract_id = new_pair.first;
-            /* Note that `update_contract()` will never block. Also note that we call it
-            even if the contract ID has not actually changed, because it might care about
-            the changes to the parts of the Raft state other than the contract. */
-            it->second->execution->update_contract(new_pair.first, new_state);
+            /* Note that `update_contract_or_raft_state()` will never block.
+            Also note that we call it even if the contract ID has not actually changed,
+            because it might care about the changes to the parts of the Raft state
+            other than the contract. */
+            it->second->execution->update_contract_or_raft_state(
+                new_pair.first, new_state);
             if (old_contract_id != new_pair.first) {
                 /* Delete the old contract ack, if there was one */
                 ack_map.delete_key(std::make_pair(server_id, old_contract_id));
@@ -177,7 +192,7 @@ void contract_executor_t::update(const table_raft_state_t &new_state,
                     data->execution.init(new secondary_execution_t(
                         &execution_context, data->store_subview.get(),
                         &data->perfmon_collection, acker,
-                        new_pair.first, new_state));
+                        new_pair.first, new_state, branch));
                     break;
                 case execution_key_t::role_t::erase:
                     data->execution.init(new erase_execution_t(

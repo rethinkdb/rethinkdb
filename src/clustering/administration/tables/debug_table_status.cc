@@ -122,8 +122,6 @@ ql::datum_t convert_debug_contracts_to_datum(
                 ? convert_debug_contract_primary_to_datum(
                     contract.second.second.primary.get())
                 : ql::datum_t::null());
-        contract_builder.overwrite(
-            "branch", convert_uuid_to_datum(contract.second.second.branch));
         builder.add(std::move(contract_builder).to_datum());
     }
     return std::move(builder).to_datum();
@@ -247,6 +245,7 @@ ql::datum_t convert_debug_contract_acks_to_datum(
             "branch_history",
             ql::datum_t(static_cast<double>(
                 contract_ack.second.branch_history.branches.size())));
+        // TODO! Print current branches
         builder.add(std::move(contract_builder).to_datum());
     }
     return std::move(builder).to_datum();

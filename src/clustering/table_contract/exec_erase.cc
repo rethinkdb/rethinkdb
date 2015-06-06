@@ -13,11 +13,11 @@ erase_execution_t::erase_execution_t(
         const table_raft_state_t &raft_state) :
     execution_t(_context, _store, _perfmon_collection, _ack_cb)
 {
-    update_contract(cid, raft_state);
+    update_contract_or_raft_state(cid, raft_state);
     coro_t::spawn_sometime(std::bind(&erase_execution_t::run, this, drainer.lock()));
 }
 
-void erase_execution_t::update_contract(
+void erase_execution_t::update_contract_or_raft_state(
         const contract_id_t &cid,
         const table_raft_state_t &raft_state) {
     assert_thread();

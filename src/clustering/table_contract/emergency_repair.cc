@@ -57,7 +57,6 @@ void calculate_emergency_repair(
                 contract = contract_t();
                 contract.replicas.insert(erase_replacement);
                 contract.voters.insert(erase_replacement);
-                contract.branch = nil_uuid();
             }
         } else if (quorum_dead(contract.voters, dead_servers) ||
                 (static_cast<bool>(contract.temp_voters) &&
@@ -188,6 +187,11 @@ void calculate_emergency_repair(
     pruning here, but there's not much that we could prune and so it's easier to just let
     the branch history GC do it. */
     new_state_out->branch_history = old_state.branch_history;
+
+    /* Copy over the current branch map as well. Where the new contracts specify
+    a primary that doesn't have the current branch due to the hard override, the
+    current branch will be reset for its range once it registers its new branch. */
+    new_state_out->current_branches = old_state.current_branches;
 
     /* Find all the servers that appear in the new contracts, and put entries for those
     servers in `member_ids` and `server_names` */

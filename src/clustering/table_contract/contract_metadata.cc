@@ -21,20 +21,20 @@ void contract_t::sanity_check() const {
 
 RDB_IMPL_EQUALITY_COMPARABLE_2(
     contract_t::primary_t, server, hand_over);
-RDB_IMPL_EQUALITY_COMPARABLE_5(
-    contract_t, replicas, voters, temp_voters, primary, branch);
+RDB_IMPL_EQUALITY_COMPARABLE_4(
+    contract_t, replicas, voters, temp_voters, primary);
 
 /* RSI(raft): This should be `SINCE_v2_N`, where `N` is the version number at which Raft
 is released */
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_16(
     contract_t::primary_t, server, hand_over);
-RDB_IMPL_SERIALIZABLE_5_SINCE_v1_16(
-    contract_t, replicas, voters, temp_voters, primary, branch);
+RDB_IMPL_SERIALIZABLE_4_SINCE_v1_16(
+    contract_t, replicas, voters, temp_voters, primary);
 
 RDB_IMPL_SERIALIZABLE_4_FOR_CLUSTER(
     contract_ack_t, state, version, branch, branch_history);
 RDB_IMPL_EQUALITY_COMPARABLE_4(
-    contract_ack_t, state, version, branch, branch_history);    
+    contract_ack_t, state, version, branch, branch_history);
 
 void table_raft_state_t::apply_change(const table_raft_state_t::change_t &change) {
     class visitor_t : public boost::static_visitor<void> {
@@ -55,6 +55,10 @@ void table_raft_state_t::apply_change(const table_raft_state_t::change_t &change
             state->branch_history.branches.insert(
                 new_contracts_change.add_branches.branches.begin(),
                 new_contracts_change.add_branches.branches.end());
+            for (const auto &region_branch :
+                new_contracts_change.register_current_branches) {
+                state->current_branches.update(region_branch.first, region_branch.second);
+            }
             for (const server_id_t &sid : new_contracts_change.remove_server_names) {
                 state->server_names.names.erase(sid);
             }
@@ -93,24 +97,26 @@ void table_raft_state_t::sanity_check() const {
 }
 #endif /* NDEBUG */
 
-RDB_IMPL_EQUALITY_COMPARABLE_5(
-    table_raft_state_t, config, contracts, branch_history, member_ids, server_names);
+RDB_IMPL_EQUALITY_COMPARABLE_6(
+    table_raft_state_t, config, contracts, branch_history, current_branches,
+    member_ids, server_names);
 
 /* RSI(raft): This should be `SINCE_v1_N`, where `N` is the version number at which Raft
 is released */
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_16(
     table_raft_state_t::change_t::set_table_config_t, new_config);
-RDB_IMPL_SERIALIZABLE_6_SINCE_v1_16(
+RDB_IMPL_SERIALIZABLE_7_SINCE_v1_16(
     table_raft_state_t::change_t::new_contracts_t,
     remove_contracts, add_contracts, remove_branches, add_branches,
-    remove_server_names, add_server_names);
+    register_current_branches, remove_server_names, add_server_names);
 RDB_IMPL_SERIALIZABLE_2_SINCE_v1_16(
     table_raft_state_t::change_t::new_member_ids_t,
     remove_member_ids, add_member_ids);
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_16(
     table_raft_state_t::change_t, v);
-RDB_IMPL_SERIALIZABLE_5_SINCE_v1_16(
-    table_raft_state_t, config, contracts, branch_history, member_ids, server_names);
+RDB_IMPL_SERIALIZABLE_6_SINCE_v1_16(
+    table_raft_state_t, config, contracts, branch_history, current_branches,
+    member_ids, server_names);
 
 table_raft_state_t make_new_table_raft_state(
         const table_config_and_shards_t &config) {
@@ -125,7 +131,6 @@ table_raft_state_t make_new_table_raft_state(
             contract.primary = boost::make_optional(
                 contract_t::primary_t { shard_conf.primary_replica, boost::none });
         }
-        contract.branch = nil_uuid();
         for (size_t j = 0; j < CPU_SHARDING_FACTOR; ++j) {
             region_t region = region_intersection(
                 region_t(config.shard_scheme.get_shard_range(i)),
@@ -161,8 +166,6 @@ void debug_print(printf_buffer_t *buf, const contract_t &contract) {
     debug_print(buf, contract.temp_voters);
     buf->appendf(" primary = ");
     debug_print(buf, contract.primary);
-    buf->appendf(" branch = ");
-    debug_print(buf, contract.branch);
     buf->appendf(" }");
 }
 
@@ -198,6 +201,8 @@ void debug_print(printf_buffer_t *buf, const table_raft_state_t &state) {
     debug_print(buf, state.contracts);
     buf->appendf(" branch_history.size = ");
     debug_print(buf, state.branch_history.branches.size());
+    buf->appendf(" current_branches = ");
+    debug_print(buf, state.current_branches);
     buf->appendf(" member_ids = ");
     debug_print(buf, state.member_ids);
     buf->appendf(" server_names = ");
