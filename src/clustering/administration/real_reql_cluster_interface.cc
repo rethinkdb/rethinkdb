@@ -312,7 +312,6 @@ bool real_reql_cluster_interface_t::table_drop(const name_string_t &name,
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
     cluster_semilattice_metadata_t metadata;
-    ql::datum_t old_config;
     try {
         cross_thread_signal_t interruptor_on_home(interruptor_on_caller, home_thread());
         on_thread_t thread_switcher(home_thread());
@@ -321,12 +320,19 @@ bool real_reql_cluster_interface_t::table_drop(const name_string_t &name,
         namespace_id_t table_id;
         table_meta_client->find(db->id, name, &table_id);
 
-        table_config_and_shards_t config;
-        table_meta_client->get_config(table_id, &interruptor_on_home, &config);
-
-        old_config = convert_table_config_to_datum(table_id,
-            convert_name_to_datum(db->name), config.config,
-            admin_identifier_format_t::name, config.server_names);
+        /* Fetch the old config via the `table_config_backend` rather than via
+        `table_meta_client_t` because this will return an error document instead of
+        crashing if the table is not reachable. */
+        ql::datum_t old_config;
+        artificial_table_backend_t *config_backend = admin_tables->table_config_backend[
+            static_cast<int>(admin_identifier_format_t::name)].get();
+        if (!config_backend->read_row(convert_uuid_to_datum(table_id),
+                &interruptor_on_home, &old_config, error_out)) {
+            return false;
+        }
+        if (old_config == ql::datum_t::null()) {
+            throw no_such_table_exc_t();
+        }
 
         table_meta_client->drop(table_id, &interruptor_on_home);
 
@@ -339,9 +345,6 @@ bool real_reql_cluster_interface_t::table_drop(const name_string_t &name,
         return true;
 
     } CATCH_NAME_ERRORS(db->name, name, error_out)
-      CATCH_OP_ERRORS(db->name, name, error_out,
-        "The table was not dropped.",
-        "The table may or may not have been dropped.")
 }
 
 bool real_reql_cluster_interface_t::table_list(counted_t<const ql::db_t> db,

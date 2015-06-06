@@ -192,9 +192,8 @@ with driver.Cluster(initial_servers=['a', 'x'], output_folder='.',
     # `total_loss` has lost all replicas for all shards.
     bad_repair("total_loss", "unsafe_rollback_or_erase",
         "At least one of a table's replicas must be accessible in order to repair it.")
-    if False:   # RSI(raft): Reinstate this test after #4335 is fixed
-        res = r.table_drop("total_loss").run(conn)
-        assert res["tables_dropped"] == 1
+    res = r.table_drop("total_loss").run(conn)
+    assert res["tables_dropped"] == 1
 
     print("Bringing back server 'x' (%.2fs)" % (time.time() - startTime))
     new_x = driver.Process(
@@ -211,8 +210,7 @@ with driver.Cluster(initial_servers=['a', 'x'], output_folder='.',
     check_table_half("rollback_then_erase")
 
     # Make sure that the table we dropped stays dropped
-    if False:   # RSI(raft): Reinstate this test after #4335 is fixed
-        assert "total_loss" not in r.table_list().run()
+    assert "total_loss" not in r.table_list().run(conn)
 
     print("Cleaning up (%.2fs)" % (time.time() - startTime))
 print("Done. (%.2fs)" % (time.time() - startTime))
