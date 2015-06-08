@@ -192,6 +192,7 @@ with driver.Cluster(initial_servers=['a', 'x'], output_folder='.',
     # `total_loss` has lost all replicas for all shards.
     bad_repair("total_loss", "unsafe_rollback_or_erase",
         "At least one of a table's replicas must be accessible in order to repair it.")
+    print("Dropping table 'total_loss' (%.2fs)" % (time.time() - startTime))
     res = r.table_drop("total_loss").run(conn)
     assert res["tables_dropped"] == 1
 
@@ -209,8 +210,12 @@ with driver.Cluster(initial_servers=['a', 'x'], output_folder='.',
     check_table_half("erase")
     check_table_half("rollback_then_erase")
 
-    # Make sure that the table we dropped stays dropped
+    # Make sure that the table we dropped stays dropped, and the drop propagates to the
+    # other server in the cluster.
+    print("Confirming that table 'total_loss' is dropped (%.2fs)" % (time.time() - startTime))
+    conn2 = r.connect("localhost", new_x.driver_port)
     assert "total_loss" not in r.table_list().run(conn)
+    assert "total_loss" not in r.table_list().run(conn2)
 
     print("Cleaning up (%.2fs)" % (time.time() - startTime))
 print("Done. (%.2fs)" % (time.time() - startTime))

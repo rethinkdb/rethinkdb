@@ -429,12 +429,6 @@ void table_meta_client_t::drop(
         throw no_such_table_exc_t();
     }
 
-    /* Construct a special timestamp that supersedes all regular timestamps */
-    multi_table_manager_bcard_t::timestamp_t drop_timestamp;
-    drop_timestamp.epoch.timestamp = std::numeric_limits<microtime_t>::max();
-    drop_timestamp.epoch.id = nil_uuid();
-    drop_timestamp.log_index = std::numeric_limits<raft_log_index_t>::max();
-
     /* Find business cards for all servers, not just the ones that are hosting the table.
     This is because sometimes it makes sense to drop a table even if the table is
     completely unreachable. */
