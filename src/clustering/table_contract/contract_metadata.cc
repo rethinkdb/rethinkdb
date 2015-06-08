@@ -24,11 +24,9 @@ RDB_IMPL_EQUALITY_COMPARABLE_2(
 RDB_IMPL_EQUALITY_COMPARABLE_5(
     contract_t, replicas, voters, temp_voters, primary, branch);
 
-/* RSI(raft): This should be `SINCE_v2_N`, where `N` is the version number at which Raft
-is released */
-RDB_IMPL_SERIALIZABLE_2_SINCE_v1_16(
+RDB_IMPL_SERIALIZABLE_2_SINCE_v2_1(
     contract_t::primary_t, server, hand_over);
-RDB_IMPL_SERIALIZABLE_5_SINCE_v1_16(
+RDB_IMPL_SERIALIZABLE_5_SINCE_v2_1(
     contract_t, replicas, voters, temp_voters, primary, branch);
 
 RDB_IMPL_SERIALIZABLE_4_FOR_CLUSTER(
@@ -96,20 +94,18 @@ void table_raft_state_t::sanity_check() const {
 RDB_IMPL_EQUALITY_COMPARABLE_5(
     table_raft_state_t, config, contracts, branch_history, member_ids, server_names);
 
-/* RSI(raft): This should be `SINCE_v1_N`, where `N` is the version number at which Raft
-is released */
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_16(
+RDB_IMPL_SERIALIZABLE_1_SINCE_v2_1(
     table_raft_state_t::change_t::set_table_config_t, new_config);
-RDB_IMPL_SERIALIZABLE_6_SINCE_v1_16(
+RDB_IMPL_SERIALIZABLE_6_SINCE_v2_1(
     table_raft_state_t::change_t::new_contracts_t,
     remove_contracts, add_contracts, remove_branches, add_branches,
     remove_server_names, add_server_names);
-RDB_IMPL_SERIALIZABLE_2_SINCE_v1_16(
+RDB_IMPL_SERIALIZABLE_2_SINCE_v2_1(
     table_raft_state_t::change_t::new_member_ids_t,
     remove_member_ids, add_member_ids);
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_16(
+RDB_IMPL_SERIALIZABLE_1_SINCE_v2_1(
     table_raft_state_t::change_t, v);
-RDB_IMPL_SERIALIZABLE_5_SINCE_v1_16(
+RDB_IMPL_SERIALIZABLE_5_SINCE_v2_1(
     table_raft_state_t, config, contracts, branch_history, member_ids, server_names);
 
 table_raft_state_t make_new_table_raft_state(

@@ -10,10 +10,7 @@
 #include "rdb_protocol/protocol.hpp"
 #include "stl_utils.hpp"
 
-// RSI(raft): Some of these should be `SINCE_v1_N`, where `N` is the version number at
-// which Raft is released.
-
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_16(cluster_semilattice_metadata_t, databases);
+RDB_IMPL_SERIALIZABLE_1_SINCE_v2_1(cluster_semilattice_metadata_t, databases);
 RDB_IMPL_SEMILATTICE_JOINABLE_1(cluster_semilattice_metadata_t, databases);
 RDB_IMPL_EQUALITY_COMPARABLE_1(cluster_semilattice_metadata_t, databases);
 
