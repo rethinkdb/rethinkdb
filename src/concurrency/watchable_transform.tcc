@@ -142,9 +142,8 @@ template<class key_t, class value_t>
 watchable_map_entry_copier_t<key_t, value_t>::watchable_map_entry_copier_t(
         watchable_map_var_t<key_t, value_t> *_map,
         const key_t &_key,
-        clone_ptr_t<watchable_t<value_t> > _value,
-        bool _remove_when_done) :
-    map(_map), key(_key), value(_value), remove_when_done(_remove_when_done),
+        clone_ptr_t<watchable_t<value_t> > _value) :
+    map(_map), key(_key), value(_value),
     subs([this]() {
         map->set_key_no_equals(key, value->get());
     })
@@ -156,9 +155,7 @@ watchable_map_entry_copier_t<key_t, value_t>::watchable_map_entry_copier_t(
 
 template<class key_t, class value_t>
 watchable_map_entry_copier_t<key_t, value_t>::~watchable_map_entry_copier_t() {
-    if (remove_when_done) {
-        map->delete_key(key);
-    }
+    map->delete_key(key);
 }
 
 template<class tag_t, class key_t, class value_t>
