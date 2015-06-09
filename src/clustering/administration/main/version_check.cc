@@ -6,6 +6,8 @@
 #include <map>
 
 #include "clustering/administration/metadata.hpp"
+#include "clustering/administration/servers/config_client.hpp"
+#include "clustering/table_manager/table_meta_client.hpp"
 #include "extproc/http_runner.hpp"
 #include "logger.hpp"
 #include "rdb_protocol/env.hpp"
@@ -20,34 +22,22 @@ void dispatch_http(ql::env_t *env,
 
 static const int64_t day_in_ms = 24 * 60 * 60 * 1000;
 
-version_checker_t::version_checker_t(rdb_context_t *_rdb_ctx,
-                                     version_checker_t::metadata_ptr_t _metadata,
-                                     const std::string &_uname) :
+version_checker_t::version_checker_t(
+        rdb_context_t *_rdb_ctx,
+        const std::string &_uname,
+        table_meta_client_t *_table_meta_client,
+        server_config_client_t *_server_config_client) :
     rdb_ctx(_rdb_ctx),
-    seen_version(),
-    metadata(_metadata),
     uname(_uname),
+    table_meta_client(_table_meta_client),
+    server_config_client(_server_config_client),
     timer(day_in_ms, this) {
     rassert(rdb_ctx != NULL);
     coro_t::spawn_sometime(std::bind(&version_checker_t::do_check,
                                      this, true, drainer.lock()));
 }
 
-template <typename K, typename V>
-size_t count_non_deleted(std::map<K, deletable_t<V> > const &map) {
-    size_t count = 0;
-
-    for (const auto &pair : map) {
-        if (!pair.second.is_deleted()) {
-            count++;
-        }
-    }
-
-    return count;
-}
-
 void version_checker_t::do_check(bool is_initial, auto_drainer_t::lock_t keepalive) {
-    const cluster_semilattice_metadata_t snapshot = metadata->get();
     ql::env_t env(rdb_ctx,
                   ql::return_empty_normal_batches_t::NO,
                   keepalive.get_drain_signal(),
@@ -65,15 +55,9 @@ void version_checker_t::do_check(bool is_initial, auto_drainer_t::lock_t keepali
         opts.header.push_back("Content-Type: application/x-www-form-urlencoded");
         opts.form_data["Version"] = RETHINKDB_VERSION;
         opts.form_data["Uname"] = uname;
-        // RSI(raft): Reimplement this
-        return;
-#if 0
-        opts.form_data["Number-Of-Servers"]
-            = strprintf("%zu", count_non_deleted(snapshot.servers.servers));
-        opts.form_data["Cooked-Number-Of-Tables"]
-            = strprintf("%" PR_RECONSTRUCTABLE_DOUBLE,
-                        cook(count_non_deleted(snapshot.rdb_namespaces->namespaces));
-#endif
+        opts.form_data["Number-Of-Servers"] = strprintf("%zu", count_servers());
+        opts.form_data["Cooked-Number-Of-Tables"] =
+            strprintf("%d", cook(count_tables()));
         //opts.form_data["Cooked-Size-Of-Shards"]
         //    = strprintf("%" PR_RECONSTRUCTABLE_DOUBLE, cook(0.0)); // XXX
     }
@@ -102,8 +86,27 @@ void version_checker_t::do_check(bool is_initial, auto_drainer_t::lock_t keepali
 }
 
 // sort of anonymize the input; specifically we want $2^(round(log_2(n)))$
-double version_checker_t::cook(double n) {
-    return exp2(round(log2(n)));
+int version_checker_t::cook(int n) {
+    if (n < 1) {
+        return 0;
+    }
+    int p = static_cast<int>(round(log2(n)));
+    return (1 << p);
+}
+
+size_t version_checker_t::count_servers() {
+    size_t count = 0;
+    server_config_client->get_server_config_map()->read_all(
+    [&](const server_id_t &, const server_config_versioned_t *) {
+        ++count;
+    });
+    return count;
+}
+
+size_t version_checker_t::count_tables() {
+    std::map<namespace_id_t, table_basic_config_t> names;
+    table_meta_client->list_names(&names);
+    return names.size();
 }
 
 void version_checker_t::process_result(const http_result_t &result) {

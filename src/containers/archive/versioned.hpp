@@ -164,6 +164,14 @@ size_t serialized_size_for_version(cluster_version_t version,
     INSTANTIATE_SERIALIZE_FOR_CLUSTER_AND_DISK(typ);     \
     INSTANTIATE_DESERIALIZE_SINCE_v1_16(typ)
 
+#define INSTANTIATE_DESERIALIZE_SINCE_v2_1(typ)                                  \
+    template archive_result_t deserialize<cluster_version_t::v2_1_is_latest>(    \
+            read_stream_t *, typ *)
+
+#define INSTANTIATE_SERIALIZABLE_SINCE_v2_1(typ)         \
+    INSTANTIATE_SERIALIZE_FOR_CLUSTER_AND_DISK(typ);     \
+    INSTANTIATE_DESERIALIZE_SINCE_v2_1(typ)
+
 #define INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(typ)                      \
     INSTANTIATE_SERIALIZE_FOR_CLUSTER(typ);                            \
     template archive_result_t deserialize<cluster_version_t::CLUSTER>( \

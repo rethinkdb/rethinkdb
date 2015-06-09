@@ -104,19 +104,13 @@ public:
     watchable_map_entry_copier_t(
         watchable_map_var_t<key_t, value_t> *map,
         const key_t &key,
-        clone_ptr_t<watchable_t<value_t> > value,
-        /* If `remove_when_done` is `true`, the `watchable_map_entry_copier_t` will
-        remove the entry in its destructor. */
-        // RSI(raft): Get rid of this parameter. Any code that sets it to `false` is
-        // probably badly designed.
-        bool remove_when_done = true);
+        clone_ptr_t<watchable_t<value_t> > value);
     ~watchable_map_entry_copier_t();
 
 private:
     watchable_map_var_t<key_t, value_t> *map;
     key_t key;
     clone_ptr_t<watchable_t<value_t> > value;
-    bool remove_when_done;
     typename watchable_t<value_t>::subscription_t subs;
 };
 

@@ -18,8 +18,7 @@ region_map_t<binary_blob_t> from_version_map(const region_map_t<version_t> &vers
     return vers_map.map(vers_map.get_domain(), &binary_blob_t::make<version_t>);
 }
 
-/* RSI(raft): This should be SINCE_N, where N is the version when Raft is released */
-RDB_IMPL_SERIALIZABLE_3_SINCE_v1_16(branch_birth_certificate_t,
+RDB_IMPL_SERIALIZABLE_3_SINCE_v2_1(branch_birth_certificate_t,
                         region, initial_timestamp, origin);
 RDB_IMPL_EQUALITY_COMPARABLE_3(branch_birth_certificate_t,
                                region, initial_timestamp, origin);
@@ -66,8 +65,7 @@ bool branch_history_t::is_branch_known(const branch_id_t &branch) const THROWS_N
     return branches.count(branch) != 0;
 }
 
-/* RSI(raft): This should be SINCE_N, where N is the version when Raft is released */
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_16(branch_history_t, branches);
+RDB_IMPL_SERIALIZABLE_1_SINCE_v2_1(branch_history_t, branches);
 RDB_IMPL_EQUALITY_COMPARABLE_1(branch_history_t, branches);
 
 bool version_is_ancestor(
