@@ -4,8 +4,8 @@ Released on 2015-06-10
 
 Bug fix release
 
-* Fixed a bug that broke autocompletion in the Data Explorer (№4261)
-* No longer crash when overflowing the stack in a query (#2639)
+* Fixed a bug that broke autocompletion in the Data Explorer (#4261)
+* No longer crash for certain types of stack overflows during query execution (#2639)
 * No longer crash when returning a function from `r.js` (#4190)
 * Fixed a race condition when closing cursors in the JavaScript driver (#4240)
 * Fixed a race condition when closing connections in the JavaScript driver (#4250)
