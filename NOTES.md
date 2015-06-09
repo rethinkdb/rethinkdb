@@ -8,7 +8,7 @@ Bug fix release
 * No longer crash when overflowing the stack in a query (#2639)
 * No longer crash when returning a function from `r.js` (#4190)
 * Fixed a race condition when closing cursors in the JavaScript driver (#4240)
-* Fixed a race condition when closing connections in the JavaSCript driver (#4250)
+* Fixed a race condition when closing connections in the JavaScript driver (#4250)
 * Added support for building with GCC 5.1 (#4264)
 * Improved handling of coroutine stack overflows on OS X (#4299)
 * Removed an invalid assertion in the server (#4313)
