@@ -42,14 +42,14 @@ and writes are not acked to the client until a majority of voters have replied.)
 
 To provide this guarantee, we maintain a bunch of invariants. Let V be the `version_t`
 which W creates. Let `c` be the `contract_t` in the Raft state for some region R' which
-overlaps R. Then the following are always true unless the user issues a manual override:
+overlaps R, and let `b` be the value of `current_branches` in the Raft state for some
+region R'' that overlaps R. Then the following are always true unless the user issues
+a manual override:
 1. A majority of `c.voters` have versions on disk which descend from V (or are V) in the
     intersection of R and R'.
 2. If `c.primary` is present, then `c.primary->server` has a version on disk which
     descends from V (or is V) in the intersection of R and R'.
-3. The latest version on `c.branch` descends from V (or is V) in the intersection of R
-    and R'.
-// TODO! Update
+3. The latest version on `b` descends from V (or is V) in the intersection of R and R''.
 */
 
 class contract_t {
@@ -133,8 +133,11 @@ public:
     /* This is non-empty if `state` is `secondary_need_primary`. */
     boost::optional<region_map_t<version_t> > version;
 
-    /* This is non-empty if `state` is `primary_need_branch` */
-    // TODO! Explain better
+    /* This is non-empty if `state` is `primary_need_branch`.
+    When a new primary is first instantiated in response to a new contract_t, it
+    generates a new branch ID and sends it to the coordinator through this field.
+    The coordinator will then registers the branch and update the `current_branches`
+    field of the Raft state. */
     boost::optional<branch_id_t> branch;
 
     /* This contains information about all branches mentioned in `version` or `branch` */
@@ -215,7 +218,12 @@ public:
     RSI(raft): We should prune branches if they no longer meet this condition. */
     branch_history_t branch_history;
 
-    /* TODO! */
+    /* `current_branches` contains the most recently acked branch IDs for a given
+    region. It gets updated by the coordinator when a new primary registers its
+    branch with the coordinator through a `contract_ack_t`.
+    The coordinator uses this to find out which replica has the most up to date
+    data version for a given range (see `break_ack_into_fragments()` in
+    coordinator.cc). */
     region_map_t<branch_id_t> current_branches;
 
     /* `member_ids` assigns a Raft member ID to each server that's supposed to be part of
