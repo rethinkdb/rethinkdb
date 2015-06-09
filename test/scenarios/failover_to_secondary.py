@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 # Copyright 2010-2015 RethinkDB, all rights reserved.
 
-from __future__ import print_function
-
 import os, sys, time
 from pprint import pformat
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, workload_runner, rdb_unittest, scenario_common, utils, vcoptparse
+from utils import print_with_time
 
 op = vcoptparse.OptParser()
 workload_runner.prepare_option_parser_for_split_or_continuous_workload(op)
@@ -19,12 +18,7 @@ dbName, tableName = utils.get_test_db_table()
 
 numNodes = 3
 
-startTime = time.time()
-def print(*args, **kwargs): # add timing information to all print statements
-    args += ('(T+ %.2fs)' % (time.time() - startTime), )
-    __builtins__.print(*args, **kwargs)
-
-print("Starting cluster of %d servers" % numNodes)
+print_with_time("Starting cluster of %d servers" % numNodes)
 class FailoverToSecondary(rdb_unittest.RdbTestCase):
     
     shards = 1
@@ -49,16 +43,16 @@ class FailoverToSecondary(rdb_unittest.RdbTestCase):
         
         with workload_runner.SplitOrContinuousWorkload(opts, workload_ports) as workload:
             
-            print("Starting workload before")
+            print_with_time("Starting workload before")
             workload.run_before()
             self.cluster.check()
             issues = list(self.r.db('rethinkdb').table('current_issues').run(stableConn))
             self.assertEqual(issues, [], 'The server recorded the following issues after the run_before:\n%s' % pformat(issues))
             
-            print("Shutting down the primary")
+            print_with_time("Shutting down the primary")
             primary.close()
             
-            print("Checking that the table_availability issue shows up")
+            print_with_time("Checking that the table_availability issue shows up")
             deadline = time.time() + 5
             last_error = None
             while time.time() < deadline:
@@ -72,17 +66,17 @@ class FailoverToSecondary(rdb_unittest.RdbTestCase):
             else:
                 raise last_error
             
-            print("Waiting for the table to become available again")
+            print_with_time("Waiting for the table to become available again")
             timeout = 30
             try:
                 self.table.wait(wait_for='ready_for_writes', timeout=timeout).run(stableConn)
             except self.r.RqlRuntimeError as e:
                 raise AssertionError('Table did not become available after %d seconds.' % timeout)
             
-            print("Running workload after")
+            print_with_time("Running workload after")
             workload.run_after()
             
-        print("Cleaning up")
+        print_with_time("Cleaning up")
 
 # ==== main
 
