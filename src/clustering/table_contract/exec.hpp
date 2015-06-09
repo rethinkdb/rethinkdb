@@ -49,7 +49,8 @@ public:
         and a `std::function<void(const contract_ack_t &)>`. The constructor cannot throw
         exceptions or block.
     - A destructor which may block
-    - A method `update_contract` that takes a new `contract_t` and callback.
+    - A method `update_contract_or_raft_state` that takes a `contract_id_t` and
+        raft state, at least one of which have been changed.
     */
     execution_t(
             const context_t *_context,
@@ -61,7 +62,7 @@ public:
         perfmon_collection(_perfmon_collection), ack_cb(_ack_cb)
         { }
     virtual ~execution_t() { }
-    virtual void update_contract(
+    virtual void update_contract_or_raft_state(
         const contract_id_t &cid,
         const table_raft_state_t &raft_state) = 0;
 

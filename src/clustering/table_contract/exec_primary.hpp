@@ -52,7 +52,7 @@ public:
         const contract_id_t &cid,
         const table_raft_state_t &raft_state);
     ~primary_execution_t();
-    void update_contract(
+    void update_contract_or_raft_state(
         const contract_id_t &cid,
         const table_raft_state_t &raft_state);
 
@@ -116,8 +116,8 @@ private:
                              signal_t *interruptor,
                              std::string *error_out);
 
-    /* `update_contract()` spawns `update_contract_on_store_thread()` to deliver the new
-    contract to `store->home_thread()`. Its has two jobs:
+    /* `update_contract_or_raft_state()` spawns `update_contract_on_store_thread()`
+    to deliver the new contract to `store->home_thread()`. It has two jobs:
     1. It sets `latest_contract_store_thread` to the new contract
     2. If the broadcaster has been created, it waits until it's safe to ack
         `primary_ready`, and then does so. */

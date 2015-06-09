@@ -81,7 +81,7 @@ bool version_is_ancestor(
         stack.pop();
         if (vers.branch == ancestor.branch && vers.timestamp >= ancestor.timestamp) {
             /* OK, this part matches; we don't need to do any further checking here */
-        } else if (vers.timestamp <= ancestor.timestamp) {
+        } else if (vers.timestamp < ancestor.timestamp) {
             /* This part definitely doesn't match */
             return false;
         } else {

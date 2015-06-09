@@ -17,7 +17,7 @@
 #include "utils.hpp"
 
 #ifndef VALGRIND
-const int SEGV_STACK_SIZE = SIGSTKSZ;
+const int SIGNAL_HANDLER_STACK_SIZE = SIGSTKSZ;
 #endif  // VALGRIND
 
 __thread linux_thread_pool_t *linux_thread_pool_t::thread_pool;
@@ -84,8 +84,8 @@ struct thread_data_t {
 };
 
 void *linux_thread_pool_t::start_thread(void *arg) {
-    // Block all signals but `SIGSEGV` (will be unblocked by the event queue in
-    // case of poll).
+    // Block all signals but `SIGSEGV` and `SIGBUS` (will be unblocked by the event
+    // queue in case of poll).
     {
         sigset_t sigmask;
         int res = sigfillset(&sigmask);
@@ -93,6 +93,8 @@ void *linux_thread_pool_t::start_thread(void *arg) {
 
         res = sigdelset(&sigmask, SIGSEGV);
         guarantee_err(res == 0, "Could not remove SIGSEGV from sigmask");
+        res = sigdelset(&sigmask, SIGBUS);
+        guarantee_err(res == 0, "Could not remove SIGBUS from sigmask");
 
         res = pthread_sigmask(SIG_SETMASK, &sigmask, NULL);
         guarantee_xerr(res == 0, res, "Could not block signal");
@@ -116,18 +118,22 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         running under valgrind, we don't install this handler because Valgrind will print the
         backtrace for us. */
 #ifndef VALGRIND
-        stack_t segv_stack;
-        segv_stack.ss_sp = malloc_aligned(SEGV_STACK_SIZE, getpagesize());
-        segv_stack.ss_flags = 0;
-        segv_stack.ss_size = SEGV_STACK_SIZE;
-        int res = sigaltstack(&segv_stack, NULL);
+        stack_t signal_stack;
+        signal_stack.ss_sp = malloc_aligned(SIGNAL_HANDLER_STACK_SIZE, getpagesize());
+        signal_stack.ss_flags = 0;
+        signal_stack.ss_size = SIGNAL_HANDLER_STACK_SIZE;
+        int res = sigaltstack(&signal_stack, NULL);
         guarantee_err(res == 0, "sigaltstack failed");
 
         {
-            struct sigaction sa = make_sa_sigaction(SA_SIGINFO | SA_ONSTACK, &linux_thread_pool_t::sigsegv_handler);
+            struct sigaction sa = make_sa_sigaction(
+                SA_SIGINFO | SA_ONSTACK,
+                &linux_thread_pool_t::fatal_signal_handler);
 
             res = sigaction(SIGSEGV, &sa, NULL);
-            guarantee_err(res == 0, "Could not install SEGV handler");
+            guarantee_err(res == 0, "Could not install SEGV signal handler");
+            res = sigaction(SIGBUS, &sa, NULL);
+            guarantee_err(res == 0, "Could not install BUS signal handler");
         }
 
 #endif  // VALGRIND
@@ -160,7 +166,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         tdata->barrier->wait();
 
 #ifndef VALGRIND
-        free(segv_stack.ss_sp);
+        free(signal_stack.ss_sp);
 #endif
 
         // If this thread created the generic blocker pool, clean it up
@@ -335,13 +341,19 @@ void linux_thread_pool_t::interrupt_handler(int signo, siginfo_t *siginfo, void 
     }
 }
 
-void linux_thread_pool_t::sigsegv_handler(int signum, siginfo_t *info, UNUSED void *data) {
-    if (signum == SIGSEGV) {
-        if (is_coroutine_stack_overflow(info->si_addr)) {
-            crash("Callstack overflow in a coroutine");
-        } else {
-            crash("Segmentation fault from reading the address %p.", info->si_addr);
-        }
+void linux_thread_pool_t::fatal_signal_handler(
+        int signum,
+        siginfo_t *info,
+        UNUSED void *data) {
+    // Linux generates a SIGSEGV when accessing a protected page, OS X generates
+    // SIGBUS.
+    if ((signum == SIGSEGV || signum == SIGBUS)
+        && is_coroutine_stack_overflow(info->si_addr)) {
+        crash("Callstack overflow in a coroutine");
+    } else if (signum == SIGSEGV) {
+        crash("Segmentation fault from reading the address %p.", info->si_addr);
+    } else if (signum == SIGBUS) {
+        crash("Bus error from accessing the address %p.", info->si_addr);
     } else {
         crash("Unexpected signal: %d\n", signum);
     }

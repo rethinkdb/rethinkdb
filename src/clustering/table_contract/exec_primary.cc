@@ -37,7 +37,7 @@ primary_execution_t::~primary_execution_t() {
     begin_write_mutex.rethread(home_thread());
 }
 
-void primary_execution_t::update_contract(
+void primary_execution_t::update_contract_or_raft_state(
         const contract_id_t &contract_id,
         const table_raft_state_t &raft_state) {
     assert_thread();
@@ -65,14 +65,23 @@ void primary_execution_t::update_contract(
     latest_contract_home_thread = new_contract;
 
     /* Has our branch ID been registered yet? */
-    if (!branch_registered.is_pulsed() &&
-            boost::make_optional(contract.branch) == our_branch_id) {
-        /* This contract just issued us our initial branch ID */
-        branch_registered.pulse();
-        /* Change `latest_ack` immediately so we don't keep sending the branch
-        registration request */
-        latest_ack = boost::make_optional(contract_ack_t(
-            contract_ack_t::state_t::primary_in_progress));
+    if (!branch_registered.is_pulsed()) {
+        bool branch_matches = true;
+        raft_state.current_branches.visit(region,
+        [&](const region_t &, const branch_id_t &b) {
+            if (boost::make_optional(b) != our_branch_id) {
+                branch_matches = false;
+            }
+        });
+        if (branch_matches) {
+            rassert(!branch_registered.is_pulsed());
+            /* This raft state update just confirmed our branch ID */
+            branch_registered.pulse();
+            /* Change `latest_ack` immediately so we don't keep sending the branch
+            registration request */
+            latest_ack = boost::make_optional(contract_ack_t(
+                contract_ack_t::state_t::primary_in_progress));
+        }
     }
 
     /* If we were acking `primary_ready`, go back to acking `primary_in_progress` until

@@ -31,7 +31,7 @@ public:
 region_map_t<contract_ack_frag_t> break_ack_into_fragments(
         const region_t &region,
         const contract_ack_t &ack,
-        const branch_id_t &branch,
+        const region_map_t<branch_id_t> &current_branches,
         const branch_history_reader_t *raft_branch_history) {
     contract_ack_frag_t base_frag;
     base_frag.state = ack.state;
@@ -41,15 +41,19 @@ region_map_t<contract_ack_frag_t> break_ack_into_fragments(
     } else {
         branch_history_combiner_t combined_branch_history(
             raft_branch_history, &ack.branch_history);
-        return ack.version->map_multi(region,
-            [&](const region_t &reg, const version_t &vers) {
-                region_map_t<version_t> points_on_canonical_branch =
-                    version_find_branch_common(&combined_branch_history,
-                        vers, branch, reg);
-                return points_on_canonical_branch.map(reg,
-                    [&](const version_t &common_vers) {
-                        base_frag.version = boost::make_optional(common_vers.timestamp);
-                        return base_frag;
+        /* Fragment over branches and then over versions within each branch. */
+        return current_branches.map_multi(region,
+            [&](const region_t &branch_reg, const branch_id_t &branch) {
+                return ack.version->map_multi(branch_reg,
+                    [&](const region_t &reg, const version_t &vers) {
+                        region_map_t<version_t> points_on_canonical_branch =
+                            version_find_branch_common(&combined_branch_history,
+                                vers, branch, reg);
+                        return points_on_canonical_branch.map(reg,
+                            [&](const version_t &common_vers) {
+                                base_frag.version = boost::make_optional(common_vers.timestamp);
+                                return base_frag;
+                            });
                     });
             });
     }
@@ -70,7 +74,7 @@ bool invisible_to_majority_of_set(
             ++count;
         }
     }
-    return !(count > judges.size() / 2); 
+    return !(count > judges.size() / 2);
 }
 
 /* `calculate_contract()` calculates a new contract for a region. Whenever any of the
@@ -382,16 +386,6 @@ contract_t calculate_contract(
         }
     }
 
-    /* Register a branch if a primary is asking us to */
-    if (static_cast<bool>(old_c.primary) &&
-            static_cast<bool>(new_c.primary) &&
-            old_c.primary->server == new_c.primary->server &&
-            acks.count(old_c.primary->server) == 1 &&
-            acks.at(old_c.primary->server).state ==
-                contract_ack_t::state_t::primary_need_branch) {
-        new_c.branch = *acks.at(old_c.primary->server).branch;
-    }
-
     return new_c;
 }
 
@@ -412,7 +406,8 @@ void calculate_all_contracts(
             *connections_map,
         const std::string &log_prefix,
         std::set<contract_id_t> *remove_contracts_out,
-        std::map<contract_id_t, std::pair<region_t, contract_t> > *add_contracts_out) {
+        std::map<contract_id_t, std::pair<region_t, contract_t> > *add_contracts_out,
+        std::map<region_t, branch_id_t> *register_current_branches_out) {
 
     ASSERT_FINITE_CORO_WAITING;
 
@@ -446,7 +441,7 @@ void calculate_all_contracts(
                     return;
                 }
                 region_map_t<contract_ack_frag_t> frags = break_ack_into_fragments(
-                    region, *value, cpair.second.second.branch,
+                    region, *value, old_state.current_branches,
                     &old_state.branch_history);
                 frags.visit(region,
                 [&](const region_t &reg, const contract_ack_frag_t &frag) {
@@ -481,12 +476,30 @@ void calculate_all_contracts(
                     }
                 }
 
+                const contract_t &old_contract = cpair.second.second;
+
                 contract_t new_contract = calculate_contract(
-                    cpair.second.second,
+                    old_contract,
                     old_state.config.config.shards[shard_index],
                     acks_map,
                     connections_map,
                     log_subprefix);
+
+                /* Register a branch if a primary is asking us to */
+                if (static_cast<bool>(old_contract.primary) &&
+                        static_cast<bool>(new_contract.primary) &&
+                        old_contract.primary->server ==
+                            new_contract.primary->server &&
+                        acks_map.count(old_contract.primary->server) == 1 &&
+                        acks_map.at(old_contract.primary->server).state ==
+                            contract_ack_t::state_t::primary_need_branch) {
+                    auto res = register_current_branches_out->insert(
+                        std::make_pair(
+                            reg,
+                            *acks_map.at(old_contract.primary->server).branch));
+                    guarantee(res.second);
+                }
+
                 new_contract_region_vector.push_back(reg);
                 new_contract_vector.push_back(new_contract);
             });
@@ -543,6 +556,7 @@ void calculate_branch_history(
         watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> *acks,
         const std::set<contract_id_t> &remove_contracts,
         const std::map<contract_id_t, std::pair<region_t, contract_t> > &add_contracts,
+        const std::map<region_t, branch_id_t> &register_current_branches,
         std::set<branch_id_t> *remove_branches_out,
         branch_history_t *add_branches_out) {
     /* RSI(raft): This is a totally naive implementation that never prunes branches and
@@ -550,6 +564,7 @@ void calculate_branch_history(
     (void)old_state;
     (void)remove_contracts;
     (void)add_contracts;
+    (void)register_current_branches;
     (void)remove_branches_out;
     acks->read_all([&](
             const std::pair<server_id_t, contract_id_t> &,
@@ -684,7 +699,7 @@ contract_coordinator_t::contract_coordinator_t(
     contract_pumper.notify();
     config_pumper.notify();
 }
-        
+
 
 boost::optional<raft_log_index_t> contract_coordinator_t::change_config(
         const std::function<void(table_config_and_shards_t *)> &changer,
@@ -761,10 +776,12 @@ void contract_coordinator_t::pump_contracts(signal_t *interruptor) {
         [&](const raft_member_t<table_raft_state_t>::state_and_config_t *state) {
             calculate_all_contracts(
                 state->state, acks, connections_map, log_prefix,
-                &change.remove_contracts, &change.add_contracts);
+                &change.remove_contracts, &change.add_contracts,
+                &change.register_current_branches);
             calculate_branch_history(
                 state->state, acks,
                 change.remove_contracts, change.add_contracts,
+                change.register_current_branches,
                 &change.remove_branches, &change.add_branches);
             calculate_server_names(
                 state->state, change.remove_contracts, change.add_contracts,
@@ -776,7 +793,8 @@ void contract_coordinator_t::pump_contracts(signal_t *interruptor) {
         if (!change.remove_contracts.empty() ||
                 !change.add_contracts.empty() ||
                 !change.remove_branches.empty() ||
-                !change.add_branches.branches.empty()) {
+                !change.add_branches.branches.empty() ||
+                !change.register_current_branches.empty()) {
             cond_t non_interruptor;
             scoped_ptr_t<raft_member_t<table_raft_state_t>::change_token_t>
                 change_token = raft->propose_change(
