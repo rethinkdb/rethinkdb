@@ -504,12 +504,13 @@ interpreters = {
     'py3.3': [PyLang('3.3')],
     'py3.4': [PyLang('3.4')],
     
-    'rb1.9': [RbLang('1.9')],
     'rb1': [RbLang('1.9')],
+    'rb1.9': [RbLang('1.9')],
     
-    'rb2': [RbLang('2.0'), RbLang('2.1')],
+    'rb2': [RbLang('2.0'), RbLang('2.1'), RbLang('2.2')],
     'rb2.0': [RbLang('2.0')],
-    'rb2.1': [RbLang('2.1')]
+    'rb2.1': [RbLang('2.1')],
+    'rb2.2': [RbLang('2.2')]
 }
 
 # Abstracts a set of tests given in a single file

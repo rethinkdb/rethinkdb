@@ -195,7 +195,7 @@ private:
         }
         return res;
     }
-    std::vector<datum_t> &&old_split(const std::string &s,
+    std::vector<datum_t> old_split(const std::string &s,
                                     const boost::optional<std::string> &delim,
                                     size_t maxnum) const {
         const char *const splitchars = " \t\n\r\x0B\x0C";
@@ -223,7 +223,7 @@ private:
                 ? std::string::npos
                 : next + (delim ? delim->size() : 1);
         }
-        return std::move(res);
+        return res;
     }
     virtual scoped_ptr_t<val_t> eval_impl(
         scope_env_t *env, args_t *args, eval_flags_t) const {

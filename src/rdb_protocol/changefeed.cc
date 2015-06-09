@@ -92,7 +92,7 @@ std::string print(const std::string &s) {
     return "str(" + s + ")";
 }
 std::string print(uint64_t i) {
-    return strprintf("%zu", i);
+    return strprintf("%" PRIu64, i);
 }
 std::string print(const key_range_t &rng) {
     return rng.print();
@@ -127,7 +127,7 @@ std::string print(const store_key_t &key) {
     return strprintf("store_key_t(%s)", buf.c_str());
 }
 std::string print(const stamped_range_t &srng) {
-    return strprintf("stamped_range_t(%zu, %s, %s)",
+    return strprintf("stamped_range_t(%" PRIu64 ", %s, %s)",
                      srng.next_expected_stamp,
                      key_to_debug_str(srng.left_fencepost).c_str(),
                      print(srng.ranges).c_str());
@@ -2412,7 +2412,7 @@ private:
         // back empty batches, but that's OK and should be rare in practice.  In
         // the future we should consider either sleeping for 100ms in that case
         // or hooking into the waiting logic to block until we're ready.
-        return std::move(ret);
+        return ret;
     }
 
     bool discard(const store_key_t &pkey,

@@ -257,7 +257,7 @@ std::vector<counted_t<const func_t> > group_wire_func_t::compile_funcs() const {
     for (size_t i = 0; i < funcs.size(); ++i) {
         ret.push_back(funcs[i].compile_wire_func());
     }
-    return std::move(ret);
+    return ret;
 }
 
 bool group_wire_func_t::should_append_index() const {

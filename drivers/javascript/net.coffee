@@ -781,10 +781,10 @@ class Connection extends events.EventEmitter
             query.global_optargs[util.fromCamelCase(key)] = r.expr(value).build()
 
         # If the user has specified the `db` on the connection (either
-        # in the constructor, or with the `.use` method, we add that
-        # db to the optargs for the query.
-        if @db?
-            query.global_optargs['db'] = r.db(@db).build()
+        # in the constructor, as an optarg to .run(), or with the `.use` method)
+        # we add that db to the optargs for the query.
+        if opts.db? or @db?
+            query.global_optargs.db = r.db(opts.db or @db).build()
 
         # Next, ensure that the `useOutdated`, `noreply`, and
         # `profile` options (if present) are actual booleans using the
@@ -1133,7 +1133,7 @@ class TcpConnection extends Connection
                         # called in response to the rawSocket 'close'
                         # event, we need to additionally clean up the
                         # rawSocket.
-                        @rawSocket.removeAllListeners()
+                        @rawSocket?.removeAllListeners()
                         @rawSocket = null
                     )
                     @rawSocket.end()
@@ -1265,11 +1265,15 @@ class HttpConnection extends Connection
         #The request is a `POST` to ensure the response isn't cached
         # by the browser (which has caused bugs in the past). The
         # `true` argument is setting the request to be asynchronous.
-        xhr.open("POST", url+"open-new-connection", true)
+        # Some browsers cache this request no matter what cache
+        # control headers are set on the request or the server's
+        # response. So the `cacheBuster` argument ensures every time
+        # we create a connection it's a unique url, and we really do
+        # create a new connection on the server.
+        xhr.open("POST", url+"open-new-connection?cacheBuster=#{Math.random()}", true)
 
-        # We also want the response to come back as a buffer, to
-        # minimize the code that has to be HttpConnection specific
-        xhr.responseType = "arraybuffer"
+        # We response will be a connection ID, which we receive as text.
+        xhr.responseType = "text"
 
         # Next, set up the callback to process the response from the
         # server when the new connection is established.
@@ -1283,14 +1287,8 @@ class HttpConnection extends Connection
                     # since the url doesn't change.
                     @_url = url
 
-                    # We create a
-                    # [DataView](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/DataView)
-                    # for reading the data as an array of bytes. We
-                    # grab the value passed back and interpret it as a
-                    # signed 32 bit little-endian integer. (The `true`
-                    # argument causes it to be interpreted as
-                    # little-endian).
-                    @_connId = (new DataView xhr.response).getInt32(0, true)
+                    # Keep the connection ID we received.
+                    @_connId = xhr.response
 
                     # Emit the `"connect"` event. The `Connection`
                     # superclass's constructor listens for this event

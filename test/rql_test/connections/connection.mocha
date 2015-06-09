@@ -335,6 +335,10 @@ describe("JavaScript Callback style", function() {
         it("errors with a non-function callback", function(done){
             r.expr(1).run(reqlConn, {}, "not_a_function").error(givesError("RqlDriverError", "If provided, the callback must be a function. Please use `run(connection[, options][, callback])", done))
         });
+
+        it("handles the db optarg", function(done){
+            r.tableCreate('dbOptarg').run(reqlConn, {db:'dbOptarg'}).error(givesError('RqlRuntimeError', 'Database `dbOptarg` does not exist', done))
+        });
         
         describe('with a table', function() {
             // remove the table to ensure clean settings

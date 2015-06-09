@@ -19,6 +19,7 @@ import utils, rdb_unittest
 
 class Changefeeds_Master(rdb_unittest.RdbTestCase):
     
+    recordsToGenerate = 100
     shards = 2
     replicas = 2
     destructiveTest = True
