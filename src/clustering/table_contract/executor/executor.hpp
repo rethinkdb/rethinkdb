@@ -1,12 +1,12 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_TABLE_CONTRACT_EXECUTOR_HPP_
-#define CLUSTERING_TABLE_CONTRACT_EXECUTOR_HPP_
+#ifndef CLUSTERING_TABLE_CONTRACT_EXECUTOR_EXECUTOR_HPP_
+#define CLUSTERING_TABLE_CONTRACT_EXECUTOR_EXECUTOR_HPP_
 
 #include "clustering/generic/raft_core.hpp"
 #include "clustering/immediate_consistency/history.hpp"
 #include "clustering/table_contract/contract_metadata.hpp"
 #include "clustering/table_contract/cpu_sharding.hpp"
-#include "clustering/table_contract/exec.hpp"
+#include "clustering/table_contract/executor/exec.hpp"
 #include "concurrency/pump_coro.hpp"
 #include "store_subview.hpp"
 
@@ -169,5 +169,5 @@ private:
     watchable_t<table_raft_state_t>::subscription_t raft_state_subs;
 };
 
-#endif /* CLUSTERING_TABLE_CONTRACT_EXECUTOR_HPP_ */
+#endif /* CLUSTERING_TABLE_CONTRACT_EXECUTOR_EXECUTOR_HPP_ */
 

@@ -1,5 +1,5 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
-#include "clustering/table_contract/exec_secondary.hpp"
+#include "clustering/table_contract/executor/exec_secondary.hpp"
 
 #include <utility>
 

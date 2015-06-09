@@ -2,8 +2,8 @@
 #ifndef CLUSTERING_TABLE_MANAGER_TABLE_MANAGER_HPP_
 #define CLUSTERING_TABLE_MANAGER_TABLE_MANAGER_HPP_
 
-#include "clustering/table_contract/coordinator.hpp"
-#include "clustering/table_contract/executor.hpp"
+#include "clustering/table_contract/coordinator/coordinator.hpp"
+#include "clustering/table_contract/executor/executor.hpp"
 #include "clustering/table_manager/sindex_manager.hpp"
 #include "clustering/table_manager/table_metadata.hpp"
 

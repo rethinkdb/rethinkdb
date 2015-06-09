@@ -7,7 +7,7 @@
 #include "clustering/generic/raft_network.hpp"
 #include "clustering/table_contract/contract_metadata.hpp"
 #include "clustering/table_contract/cpu_sharding.hpp"
-#include "clustering/table_contract/exec.hpp"
+#include "clustering/table_contract/executor/exec.hpp"
 #include "rpc/mailbox/typed.hpp"
 
 class table_server_status_t;

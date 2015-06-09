@@ -1,9 +1,9 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_TABLE_CONTRACT_EXEC_ERASE_HPP_
-#define CLUSTERING_TABLE_CONTRACT_EXEC_ERASE_HPP_
+#ifndef CLUSTERING_TABLE_CONTRACT_EXECUTOR_EXEC_ERASE_HPP_
+#define CLUSTERING_TABLE_CONTRACT_EXECUTOR_EXEC_ERASE_HPP_
 
 #include "clustering/table_contract/contract_metadata.hpp"
-#include "clustering/table_contract/exec.hpp"
+#include "clustering/table_contract/executor/exec.hpp"
 #include "store_view.hpp"
 
 class erase_execution_t : public execution_t, public home_thread_mixin_t {
@@ -29,5 +29,5 @@ private:
     auto_drainer_t drainer;
 };
 
-#endif /* CLUSTERING_TABLE_CONTRACT_EXEC_ERASE_HPP_ */
+#endif /* CLUSTERING_TABLE_CONTRACT_EXECUTOR_EXEC_ERASE_HPP_ */
 

@@ -1,9 +1,9 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_TABLE_CONTRACT_EXEC_SECONDARY_HPP_
-#define CLUSTERING_TABLE_CONTRACT_EXEC_SECONDARY_HPP_
+#ifndef CLUSTERING_TABLE_CONTRACT_EXECUTOR_EXEC_SECONDARY_HPP_
+#define CLUSTERING_TABLE_CONTRACT_EXECUTOR_EXEC_SECONDARY_HPP_
 
 #include "clustering/table_contract/contract_metadata.hpp"
-#include "clustering/table_contract/exec.hpp"
+#include "clustering/table_contract/executor/exec.hpp"
 #include "store_view.hpp"
 
 class backfill_throttler_t;
@@ -48,5 +48,5 @@ private:
     auto_drainer_t drainer;
 };
 
-#endif /* CLUSTERING_TABLE_CONTRACT_EXEC_SECONDARY_HPP_ */
+#endif /* CLUSTERING_TABLE_CONTRACT_EXECUTOR_EXEC_SECONDARY_HPP_ */
 

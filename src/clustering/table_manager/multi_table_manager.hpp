@@ -4,9 +4,7 @@
 
 #include "clustering/administration/perfmon_collection_repo.hpp"
 #include "clustering/immediate_consistency/backfill_throttler.hpp"
-#include "clustering/table_contract/coordinator.hpp"
 #include "clustering/table_contract/cpu_sharding.hpp"
-#include "clustering/table_contract/executor.hpp"
 #include "clustering/table_manager/table_manager.hpp"
 #include "clustering/table_manager/table_metadata.hpp"
 

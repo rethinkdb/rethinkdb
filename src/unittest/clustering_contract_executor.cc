@@ -2,7 +2,7 @@
 #include "unittest/gtest.hpp"
 
 #include "clustering/immediate_consistency/backfill_throttler.hpp"
-#include "clustering/table_contract/executor.hpp"
+#include "clustering/table_contract/executor/executor.hpp"
 #include "unittest/branch_history_manager.hpp"
 #include "unittest/clustering_contract_utils.hpp"
 #include "unittest/clustering_utils.hpp"

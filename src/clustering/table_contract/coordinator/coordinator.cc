@@ -1,5 +1,5 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
-#include "clustering/table_contract/coordinator.hpp"
+#include "clustering/table_contract/coordinator/coordinator.hpp"
 
 #include "clustering/generic/raft_core.tcc"
 #include "clustering/table_contract/cpu_sharding.hpp"

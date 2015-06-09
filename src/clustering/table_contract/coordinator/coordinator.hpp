@@ -1,6 +1,6 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_TABLE_CONTRACT_COORDINATOR_HPP_
-#define CLUSTERING_TABLE_CONTRACT_COORDINATOR_HPP_
+#ifndef CLUSTERING_TABLE_CONTRACT_COORDINATOR_COORDINATOR_HPP_
+#define CLUSTERING_TABLE_CONTRACT_COORDINATOR_COORDINATOR_HPP_
 
 #include "clustering/generic/raft_core.hpp"
 #include "clustering/table_contract/contract_metadata.hpp"
@@ -73,5 +73,5 @@ private:
         connections_map_subs;
 };
 
-#endif /* CLUSTERING_TABLE_CONTRACT_COORDINATOR_HPP_ */
+#endif /* CLUSTERING_TABLE_CONTRACT_COORDINATOR_COORDINATOR_HPP_ */
 

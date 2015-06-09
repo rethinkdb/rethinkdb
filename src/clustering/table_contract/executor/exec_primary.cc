@@ -1,5 +1,5 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
-#include "clustering/table_contract/exec_primary.hpp"
+#include "clustering/table_contract/executor/exec_primary.hpp"
 
 #include "clustering/immediate_consistency/local_replicator.hpp"
 #include "clustering/immediate_consistency/primary_dispatcher.hpp"

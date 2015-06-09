@@ -1,7 +1,7 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
 
-#include "clustering/table_contract/coordinator.hpp"
+#include "clustering/table_contract/coordinator/coordinator.hpp"
 #include "unittest/clustering_contract_utils.hpp"
 
 /* This file is for unit testing the `contract_coordinator_t`. This is tricky to unit

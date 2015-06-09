@@ -1,9 +1,9 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_TABLE_CONTRACT_EXEC_PRIMARY_HPP_
-#define CLUSTERING_TABLE_CONTRACT_EXEC_PRIMARY_HPP_
+#ifndef CLUSTERING_TABLE_CONTRACT_EXECUTOR_EXEC_PRIMARY_HPP_
+#define CLUSTERING_TABLE_CONTRACT_EXECUTOR_EXEC_PRIMARY_HPP_
 
 #include "clustering/query_routing/primary_query_server.hpp"
-#include "clustering/table_contract/exec.hpp"
+#include "clustering/table_contract/executor/exec.hpp"
 #include "containers/counted.hpp"
 
 class io_backender_t;
@@ -174,5 +174,5 @@ private:
     auto_drainer_t drainer;
 };
 
-#endif /* CLUSTERING_TABLE_CONTRACT_EXEC_PRIMARY_HPP_ */
+#endif /* CLUSTERING_TABLE_CONTRACT_EXECUTOR_EXEC_PRIMARY_HPP_ */
 

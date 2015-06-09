@@ -1,6 +1,6 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_TABLE_CONTRACT_EXEC_HPP_
-#define CLUSTERING_TABLE_CONTRACT_EXEC_HPP_
+#ifndef CLUSTERING_TABLE_CONTRACT_EXECUTOR_EXEC_HPP_
+#define CLUSTERING_TABLE_CONTRACT_EXECUTOR_EXEC_HPP_
 
 #include "clustering/immediate_consistency/backfill_metadata.hpp"
 #include "clustering/immediate_consistency/remote_replicator_metadata.hpp"
@@ -74,5 +74,5 @@ protected:
     std::function<void(const contract_id_t &, const contract_ack_t &)> ack_cb;
 };
 
-#endif /* CLUSTERING_TABLE_CONTRACT_EXEC_HPP_ */
+#endif /* CLUSTERING_TABLE_CONTRACT_EXECUTOR_EXEC_HPP_ */
 
