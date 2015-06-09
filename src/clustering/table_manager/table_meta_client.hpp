@@ -146,14 +146,12 @@ public:
         THROWS_ONLY(interrupted_exc_t, failed_table_op_exc_t,
             maybe_failed_table_op_exc_t);
 
-    /* `drop()` drops the table with the given ID. It may block. If it returns `false`,
-    the change may or may not have succeeded. If it returns successfully, the change will
-    be visible in `find()`, etc. */
+    /* `drop()` drops the table with the given ID. It may block. As long as the table
+    exists it will always succeed, even if the other servers are not accessible. */
     void drop(
         const namespace_id_t &table_id,
         signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,
-            maybe_failed_table_op_exc_t);
+        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t);
 
     /* `set_config()` changes the configuration of the table with the given ID. It may
     block. If it returns successfully, the change will be visible in `find()`, etc. */
