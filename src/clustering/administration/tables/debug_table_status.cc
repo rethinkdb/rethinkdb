@@ -194,6 +194,22 @@ ql::datum_t convert_debug_version_map_to_datum(
     return std::move(builder).to_datum();
 }
 
+ql::datum_t convert_debug_current_branches_to_datum(
+        const region_map_t<branch_id_t> &map) {
+    ql::datum_array_builder_t builder(ql::configured_limits_t::unlimited);
+    map.visit(
+        map.get_domain(),
+        [&](const region_t &region, const branch_id_t &branch) {
+            ql::datum_object_builder_t pair_builder;
+            pair_builder.overwrite("region",
+                convert_debug_region_to_datum(region));
+            pair_builder.overwrite("branch",
+                convert_uuid_to_datum(branch));
+            builder.add(std::move(pair_builder).to_datum());
+        });
+    return std::move(builder).to_datum();
+}
+
 ql::datum_t convert_debug_branch_birth_certificate_to_datum(
         const branch_birth_certificate_t &birth_certificate) {
     ql::datum_object_builder_t builder;
@@ -245,7 +261,6 @@ ql::datum_t convert_debug_contract_acks_to_datum(
             "branch_history",
             ql::datum_t(static_cast<double>(
                 contract_ack.second.branch_history.branches.size())));
-        // TODO! Print current branches
         builder.add(std::move(contract_builder).to_datum());
     }
     return std::move(builder).to_datum();
@@ -266,6 +281,10 @@ ql::datum_t convert_debug_table_server_statuses_to_datum(
         peer_builder.overwrite(
             "contract_acks",
             convert_debug_contract_acks_to_datum(peer.second.contract_acks));
+        peer_builder.overwrite(
+            "current_branches",
+             convert_debug_current_branches_to_datum(
+                peer.second.state.current_branches));
         builder.add(std::move(peer_builder).to_datum());
     }
     return std::move(builder).to_datum();
