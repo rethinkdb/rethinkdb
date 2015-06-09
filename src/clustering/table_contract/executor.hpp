@@ -80,10 +80,11 @@ private:
     - This server's role in the contract (primary, secondary, or neither) changes
     - This server's role is a secondary but the primary or branch has changed
 
-    We implement this by computing an `execution_key_t` based on each contract, using the
-    `get_contract_key()` function. If the old and new contracts have the same
-    `execution_key_t`, then we update the corresponding execution. But if they differ,
-    then we delete the old execution and create a new one. */
+    We implement this by computing an `execution_key_t` based on each contract
+    and the `current_branches` field of the Raft state, using the `get_contract_key()`
+    function. If the old and new contracts have the same `execution_key_t`, then we
+    update the corresponding execution. But if they differ, then we delete the old
+    execution and create a new one. */
     class execution_key_t {
     public:
         enum class role_t { primary, secondary, erase };
@@ -107,7 +108,9 @@ private:
         branch_id_t branch;
     };
 
-    execution_key_t get_contract_key(const std::pair<region_t, contract_t> &pair);
+    execution_key_t get_contract_key(
+        const std::pair<region_t, contract_t> &pair,
+        const branch_id_t &branch);
 
     /* In response to Raft state changes, we want to delete existing executions and spawn
     new ones. However, deleting executions may block. So `raft_state_subs` notifies

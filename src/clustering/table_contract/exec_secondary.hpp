@@ -18,8 +18,9 @@ public:
         const std::function<void(
             const contract_id_t &, const contract_ack_t &)> &ack_cb,
         const contract_id_t &cid,
-        const table_raft_state_t &raft_state);
-    void update_contract(
+        const table_raft_state_t &raft_state,
+        const branch_id_t &_branch);
+    void update_contract_or_raft_state(
         const contract_id_t &cid,
         const table_raft_state_t &raft_state);
 

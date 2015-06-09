@@ -14,7 +14,8 @@ secondary_execution_t::secondary_execution_t(
         const std::function<void(
             const contract_id_t &, const contract_ack_t &)> &_ack_cb,
         const contract_id_t &cid,
-        const table_raft_state_t &raft_state) :
+        const table_raft_state_t &raft_state,
+        const branch_id_t &_branch) :
     execution_t(_context, _store, _perfmon_collection, _ack_cb)
 {
     const contract_t &c = raft_state.contracts.at(cid).second;
@@ -22,14 +23,15 @@ secondary_execution_t::secondary_execution_t(
     guarantee(raft_state.contracts.at(cid).first == region);
 
     /* If the current contract doesn't have a primary, we won't attempt to connect to the
-    primary. Also, if the current contract's region doesn't match the branch's region, we
-    won't attempt to connect. This is because the only way that can happen is if the
-    table was just resharded, so the primary is about to stop and restart with a
-    different branch ID, and there's no point in trying to connect to the existing
-    primary. In fact, we can't connect to the existing primary, since it's impossible to
-    subscribe to a primary with a different region. */
-    if (static_cast<bool>(c.primary) && !c.branch.is_nil() &&
-            raft_state.branch_history.branches.at(c.branch).region == region) {
+    primary. Also, if we don't have a branch ID yet or the current contract's region
+    doesn't match the branch's region, we won't attempt to connect. This is because
+    the only way that can happen is if the table was just resharded, so the primary
+    is about to stop and restart with a different branch ID, and there's no point in
+    trying to connect to the existing primary. In fact, we can't connect to the
+    existing primary, since it's impossible to subscribe to a primary with a different
+    region. */
+    if (static_cast<bool>(c.primary) && !_branch.is_nil() &&
+            raft_state.branch_history.branches.at(_branch).region == region) {
         connect_to_primary = true;
         primary = c.primary->server;
     } else {
@@ -37,12 +39,12 @@ secondary_execution_t::secondary_execution_t(
         primary = nil_uuid();
     }
 
-    branch = c.branch;
+    branch = _branch;
     contract_id = cid;
     coro_t::spawn_sometime(std::bind(&secondary_execution_t::run, this, drainer.lock()));
 }
 
-void secondary_execution_t::update_contract(
+void secondary_execution_t::update_contract_or_raft_state(
         const contract_id_t &cid,
         const table_raft_state_t &raft_state) {
     assert_thread();
@@ -50,7 +52,6 @@ void secondary_execution_t::update_contract(
     guarantee(raft_state.contracts.at(cid).first == region);
     guarantee(c.replicas.count(context->server_id) == 1);
     guarantee(primary.is_nil() || primary == c.primary->server);
-    guarantee(branch == c.branch);
     contract_id = cid;
     if (static_cast<bool>(last_ack)) {
         ack_cb(contract_id, *last_ack);

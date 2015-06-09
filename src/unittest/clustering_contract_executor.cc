@@ -59,6 +59,13 @@ public:
             state.contracts.erase(ids.contract_ids[i]);
         }
     }
+    void set_current_branches(const cpu_branch_ids_t &branches) {
+        for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
+            region_t reg = cpu_sharding_subspace(i);
+            reg.inner = branches.range;
+            state.current_branches.update(reg, branches.branch_ids[i]);
+        }
+    }
     void publish() {
         published_state.set_value_no_equals(state);
     }
@@ -413,7 +420,7 @@ TPTEST(ClusteringContractExecutor, SimpleTests) {
 
     executor_tester_context_t context;
     cpu_contract_ids_t cid1 = context.add_contract("*-*",
-        quick_contract_simple({alice}, alice, nullptr));
+        quick_contract_simple({alice}, alice));
     context.publish();
 
     executor_tester_files_t alice_files(alice);
@@ -425,7 +432,8 @@ TPTEST(ClusteringContractExecutor, SimpleTests) {
 
     context.remove_contract(cid1);
     cpu_contract_ids_t cid2 = context.add_contract("*-*",
-        quick_contract_simple({alice}, alice, &branch1));
+        quick_contract_simple({alice}, alice));
+    context.set_current_branches(branch1);
     context.publish();
 
     alice_exec.check_acks(cid2, contract_ack_t::state_t::primary_ready);
@@ -439,7 +447,8 @@ TPTEST(ClusteringContractExecutor, SimpleTests) {
 
     context.remove_contract(cid2);
     cpu_contract_ids_t cid3 = context.add_contract("*-*",
-        quick_contract_extra_replicas({alice}, {billy}, alice, &branch1));
+        quick_contract_extra_replicas({alice}, {billy}, alice));
+    context.set_current_branches(branch1);
     context.publish();
 
     alice_exec.check_acks(cid3, contract_ack_t::state_t::primary_ready);
@@ -450,7 +459,8 @@ TPTEST(ClusteringContractExecutor, SimpleTests) {
 
     context.remove_contract(cid3);
     cpu_contract_ids_t cid4 = context.add_contract("*-*",
-        quick_contract_temp_voters({alice}, {alice, billy}, alice, &branch1));
+        quick_contract_temp_voters({alice}, {alice, billy}, alice));
+    context.set_current_branches(branch1);
     context.publish();
 
     alice_exec.check_acks(cid4, contract_ack_t::state_t::primary_ready);
@@ -459,7 +469,8 @@ TPTEST(ClusteringContractExecutor, SimpleTests) {
 
     context.remove_contract(cid4);
     cpu_contract_ids_t cid5 = context.add_contract("*-*",
-        quick_contract_simple({alice, billy}, alice, &branch1));
+        quick_contract_simple({alice, billy}, alice));
+    context.set_current_branches(branch1);
     context.publish();
 
     alice_exec.check_acks(cid5, contract_ack_t::state_t::primary_ready);
@@ -470,7 +481,8 @@ TPTEST(ClusteringContractExecutor, SimpleTests) {
 
     context.remove_contract(cid5);
     cpu_contract_ids_t cid6 = context.add_contract("*-*",
-        quick_contract_hand_over({alice, billy}, alice, billy, &branch1));
+        quick_contract_hand_over({alice, billy}, alice, billy));
+    context.set_current_branches(branch1);
     context.publish();
 
     alice_exec.check_acks(cid6, contract_ack_t::state_t::primary_ready);
@@ -478,7 +490,8 @@ TPTEST(ClusteringContractExecutor, SimpleTests) {
 
     context.remove_contract(cid6);
     cpu_contract_ids_t cid7 = context.add_contract("*-*",
-        quick_contract_no_primary({alice, billy}, &branch1));
+        quick_contract_no_primary({alice, billy}));
+    context.set_current_branches(branch1);
     context.publish();
     write_generator.change_target(&billy_exec);
 
@@ -489,7 +502,8 @@ TPTEST(ClusteringContractExecutor, SimpleTests) {
 
     context.remove_contract(cid7);
     cpu_contract_ids_t cid8 = context.add_contract("*-*",
-        quick_contract_simple({alice, billy}, billy, &branch1));
+        quick_contract_simple({alice, billy}, billy));
+    context.set_current_branches(branch1);
     context.publish();
 
     alice_exec.check_acks(cid8, contract_ack_t::state_t::secondary_need_primary);
@@ -499,7 +513,8 @@ TPTEST(ClusteringContractExecutor, SimpleTests) {
 
     context.remove_contract(cid8);
     cpu_contract_ids_t cid9 = context.add_contract("*-*",
-        quick_contract_simple({alice, billy}, billy, &branch2));
+        quick_contract_simple({alice, billy}, billy));
+    context.set_current_branches(branch2);
     context.publish();
 
     alice_exec.check_acks(cid9, contract_ack_t::state_t::secondary_streaming);
@@ -508,7 +523,8 @@ TPTEST(ClusteringContractExecutor, SimpleTests) {
 
     context.remove_contract(cid9);
     cpu_contract_ids_t cid10 = context.add_contract("*-*",
-        quick_contract_temp_voters({alice, billy}, {billy}, billy, &branch2));
+        quick_contract_temp_voters({alice, billy}, {billy}, billy));
+    context.set_current_branches(branch2);
     context.publish();
 
     alice_exec.check_acks(cid10, contract_ack_t::state_t::secondary_streaming);
@@ -521,7 +537,8 @@ TPTEST(ClusteringContractExecutor, SimpleTests) {
 
     context.remove_contract(cid10);
     cpu_contract_ids_t cid11 = context.add_contract("*-*",
-        quick_contract_simple({billy}, billy, &branch2));
+        quick_contract_simple({billy}, billy));
+    context.set_current_branches(branch2);
     context.publish();
 
     alice_exec.check_acks(cid11, contract_ack_t::state_t::nothing);
@@ -544,7 +561,7 @@ TPTEST(ClusteringContractExecutor, HandOverSafety) {
 
     executor_tester_context_t context;
     cpu_contract_ids_t cid1 = context.add_contract("*-*",
-        quick_contract_simple({alice, billy, carol}, alice, nullptr));
+        quick_contract_simple({alice, billy, carol}, alice));
     context.publish();
 
     executor_tester_files_t alice_files(alice);
@@ -562,7 +579,8 @@ TPTEST(ClusteringContractExecutor, HandOverSafety) {
 
     context.remove_contract(cid1);
     cpu_contract_ids_t cid2 = context.add_contract("*-*",
-        quick_contract_simple({alice, billy, carol}, alice, &branch1));
+        quick_contract_simple({alice, billy, carol}, alice));
+    context.set_current_branches(branch1);
     context.publish();
 
     alice_exec.check_acks(cid2, contract_ack_t::state_t::primary_ready);
@@ -580,7 +598,8 @@ TPTEST(ClusteringContractExecutor, HandOverSafety) {
     /* Next, tell `alice` to hand the primary over to `billy` */
     context.remove_contract(cid2);
     cpu_contract_ids_t cid3 = context.add_contract("*-*",
-        quick_contract_hand_over({alice, billy, carol}, alice, billy, &branch1));
+        quick_contract_hand_over({alice, billy, carol}, alice, billy));
+    context.set_current_branches(branch1);
     context.publish();
 
     /* Wait until `alice` reports `primary_ready` */

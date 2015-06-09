@@ -2,6 +2,13 @@
 #ifndef CLUSTERING_TABLE_CONTRACT_CONTRACT_METADATA_HPP_
 #define CLUSTERING_TABLE_CONTRACT_CONTRACT_METADATA_HPP_
 
+#include <map>
+#include <set>
+#include <utility>
+
+#include "errors.hpp"
+#include <boost/optional.hpp>
+
 #include "clustering/administration/tables/table_metadata.hpp"
 #include "clustering/generic/raft_core.hpp"
 #include "clustering/immediate_consistency/history.hpp"
@@ -35,13 +42,14 @@ and writes are not acked to the client until a majority of voters have replied.)
 
 To provide this guarantee, we maintain a bunch of invariants. Let V be the `version_t`
 which W creates. Let `c` be the `contract_t` in the Raft state for some region R' which
-overlaps R. Then the following are always true unless the user issues a manual override:
+overlaps R, and let `b` be the value of `current_branches` in the Raft state for some
+region R'' that overlaps R. Then the following are always true unless the user issues
+a manual override:
 1. A majority of `c.voters` have versions on disk which descend from V (or are V) in the
     intersection of R and R'.
 2. If `c.primary` is present, then `c.primary->server` has a version on disk which
     descends from V (or is V) in the intersection of R and R'.
-3. The latest version on `c.branch` descends from V (or is V) in the intersection of R
-    and R'.
+3. The latest version on `b` descends from V (or is V) in the intersection of R and R''.
 */
 
 class contract_t {
@@ -70,9 +78,6 @@ public:
     /* `primary` contains the server that's supposed to be primary. If we're in the
     middle of a transition between two primaries, then `primary` will be empty. */
     boost::optional<primary_t> primary;
-
-    /* `branch` tracks what's the "canonical" version of the data. */
-    branch_id_t branch;
 };
 
 RDB_DECLARE_EQUALITY_COMPARABLE(contract_t::primary_t);
@@ -128,7 +133,11 @@ public:
     /* This is non-empty if `state` is `secondary_need_primary`. */
     boost::optional<region_map_t<version_t> > version;
 
-    /* This is non-empty if `state` is `primary_need_branch` */
+    /* This is non-empty if `state` is `primary_need_branch`.
+    When a new primary is first instantiated in response to a new contract_t, it
+    generates a new branch ID and sends it to the coordinator through this field.
+    The coordinator will then registers the branch and update the `current_branches`
+    field of the Raft state. */
     boost::optional<branch_id_t> branch;
 
     /* This contains information about all branches mentioned in `version` or `branch` */
@@ -169,6 +178,7 @@ public:
             std::map<contract_id_t, std::pair<region_t, contract_t> > add_contracts;
             std::set<branch_id_t> remove_branches;
             branch_history_t add_branches;
+            std::map<region_t, branch_id_t> register_current_branches;
             std::set<server_id_t> remove_server_names;
             server_name_map_t add_server_names;
         };
@@ -184,6 +194,9 @@ public:
 
         boost::variant<set_table_config_t, new_contracts_t, new_member_ids_t> v;
     };
+
+    table_raft_state_t()
+        : current_branches(region_t::universe(), nil_uuid()) { }
 
     void apply_change(const change_t &c);
 
@@ -204,6 +217,14 @@ public:
     in the `branch` field of any contract in `contracts`.
     RSI(raft): We should prune branches if they no longer meet this condition. */
     branch_history_t branch_history;
+
+    /* `current_branches` contains the most recently acked branch IDs for a given
+    region. It gets updated by the coordinator when a new primary registers its
+    branch with the coordinator through a `contract_ack_t`.
+    The coordinator uses this to find out which replica has the most up to date
+    data version for a given range (see `break_ack_into_fragments()` in
+    coordinator.cc). */
+    region_map_t<branch_id_t> current_branches;
 
     /* `member_ids` assigns a Raft member ID to each server that's supposed to be part of
     the Raft cluster for this table. `contract_coordinator_t` writes it;
