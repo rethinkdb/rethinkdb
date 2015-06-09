@@ -25,7 +25,8 @@ primary_execution_t::primary_execution_t(
     guarantee(contract.primary->server == context->server_id);
     guarantee(raft_state.contracts.at(contract_id).first == region);
     latest_contract_home_thread = make_counted<contract_info_t>(
-        contract_id, contract, raft_state.config.config);
+        contract_id, contract, raft_state.config.config.durability,
+        raft_state.config.config.write_ack_config);
     latest_contract_store_thread = latest_contract_home_thread;
     begin_write_mutex.rethread(store->home_thread());
     coro_t::spawn_sometime(std::bind(&primary_execution_t::run, this, drainer.lock()));
@@ -47,10 +48,21 @@ void primary_execution_t::update_contract_or_raft_state(
     guarantee(contract.primary->server == context->server_id);
     guarantee(raft_state.contracts.at(contract_id).first == region);
 
+    counted_t<contract_info_t> new_contract = make_counted<contract_info_t>(
+        contract_id,
+        contract,
+        raft_state.config.config.durability,
+        raft_state.config.config.write_ack_config);
+
+    /* Exit early if there aren't actually any changes. This is for performance reasons.
+    */
+    if (new_contract->equivalent(*latest_contract_home_thread)) {
+        return;
+    }
+
     /* Mark the old contract as obsolete, and record the new one */
     latest_contract_home_thread->obsolete.pulse();
-    latest_contract_home_thread = make_counted<contract_info_t>(
-        contract_id, contract, raft_state.config.config);
+    latest_contract_home_thread = new_contract;
 
     /* Has our branch ID been registered yet? */
     if (!branch_registered.is_pulsed()) {

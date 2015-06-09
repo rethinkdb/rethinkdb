@@ -65,11 +65,19 @@ private:
     public:
         contract_info_t(const contract_id_t &_contract_id,
                         const contract_t &_contract,
-                        const table_config_t &config) :
+                        write_durability_t _default_write_durability,
+                        write_ack_config_t _write_ack_config) :
                 contract_id(_contract_id),
                 contract(_contract),
-                default_write_durability(config.durability),
-                write_ack_config(config.write_ack_config) {
+                default_write_durability(_default_write_durability),
+                write_ack_config(_write_ack_config) {
+        }
+        bool equivalent(const contract_info_t &other) const {
+            /* This method is called `equivalent` rather than `operator==` to avoid
+            confusion, because it doesn't actually compare every member */
+            return contract_id == other.contract_id &&
+                default_write_durability == other.default_write_durability &&
+                write_ack_config == other.write_ack_config;
         }
         contract_id_t contract_id;
         contract_t contract;
