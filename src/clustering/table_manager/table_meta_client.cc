@@ -421,72 +421,49 @@ void table_meta_client_t::create(
 void table_meta_client_t::drop(
         const namespace_id_t &table_id,
         signal_t *interruptor_on_caller)
-        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,
-            maybe_failed_table_op_exc_t) {
+        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t) {
     cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
 
-    /* Construct a special timestamp that supersedes all regular timestamps */
-    multi_table_manager_bcard_t::timestamp_t drop_timestamp;
-    drop_timestamp.epoch.timestamp = std::numeric_limits<microtime_t>::max();
-    drop_timestamp.epoch.id = nil_uuid();
-    drop_timestamp.log_index = std::numeric_limits<raft_log_index_t>::max();
+    if (!exists(table_id)) {
+        throw no_such_table_exc_t();
+    }
 
-    retry([&](signal_t *interruptor2) {
-        /* Find all servers that are hosting the table */
-        std::map<server_id_t, multi_table_manager_bcard_t> bcards;
-        table_manager_directory->read_all(
-        [&](const std::pair<peer_id_t, namespace_id_t> &key,
-                const table_manager_bcard_t *) {
-            if (key.second == table_id) {
-                multi_table_manager_directory->read_key(key.first,
-                [&](const multi_table_manager_bcard_t *bc) {
-                    if (bc != nullptr) {
-                        bcards[bc->server_id] = *bc;
-                    }
-                });
-            }
-        });
+    /* Find business cards for all servers, not just the ones that are hosting the table.
+    This is because sometimes it makes sense to drop a table even if the table is
+    completely unreachable. */
+    std::map<peer_id_t, multi_table_manager_bcard_t> bcards =
+        multi_table_manager_directory->get_all();
+    guarantee(!bcards.empty(), "We should be connected to ourself");
 
-        if (bcards.empty()) {
-            throw_appropriate_exception(table_id);
+    /* Send a message to each server. */
+    size_t num_acked = 0;
+    pmap(bcards.begin(), bcards.end(),
+    [&](const std::pair<peer_id_t, multi_table_manager_bcard_t> &pair) {
+        try {
+            disconnect_watcher_t dw(mailbox_manager, pair.first);
+            cond_t got_ack;
+            mailbox_t<void()> ack_mailbox(mailbox_manager,
+                [&](signal_t *) { got_ack.pulse(); });
+            send(mailbox_manager, pair.second.action_mailbox,
+                table_id,
+                multi_table_manager_bcard_t::timestamp_t::deletion(),
+                multi_table_manager_bcard_t::status_t::DELETED,
+                boost::optional<table_basic_config_t>(),
+                boost::optional<raft_member_id_t>(),
+                boost::optional<raft_persistent_state_t<table_raft_state_t> >(),
+                ack_mailbox.get_address());
+            wait_any_t interruptor_combined(&dw, &interruptor);
+            wait_interruptible(&got_ack, &interruptor_combined);
+            ++num_acked;
+        } catch (const interrupted_exc_t &) {
+            /* do nothing */
         }
-
-        /* Send a message to each server. It's possible that the table will move to other
-        servers while the messages are in-flight; but this is OK, since the servers will
-        pass the deletion message on. */
-        size_t num_acked = 0;
-        pmap(bcards.begin(), bcards.end(),
-        [&](const std::pair<server_id_t, multi_table_manager_bcard_t> &pair) {
-            try {
-                disconnect_watcher_t dw(mailbox_manager,
-                    pair.second.action_mailbox.get_peer());
-                cond_t got_ack;
-                mailbox_t<void()> ack_mailbox(mailbox_manager,
-                    [&](signal_t *) { got_ack.pulse(); });
-                send(mailbox_manager, pair.second.action_mailbox,
-                    table_id,
-                    multi_table_manager_bcard_t::timestamp_t::deletion(),
-                    multi_table_manager_bcard_t::status_t::DELETED,
-                    boost::optional<table_basic_config_t>(),
-                    boost::optional<raft_member_id_t>(),
-                    boost::optional<raft_persistent_state_t<table_raft_state_t> >(),
-                    ack_mailbox.get_address());
-                wait_any_t interruptor_combined(&dw, interruptor2);
-                wait_interruptible(&got_ack, &interruptor_combined);
-                ++num_acked;
-            } catch (const interrupted_exc_t &) {
-                /* do nothing */
-            }
-        });
-        if (interruptor2->is_pulsed()) {
-            throw interrupted_exc_t();
-        }
-
-        if (num_acked == 0) {
-            throw maybe_failed_table_op_exc_t();
-        }
-    }, &interruptor);
+    });
+    if (interruptor.is_pulsed()) {
+        throw interrupted_exc_t();
+    }
+    guarantee(num_acked != 0, "We should at least have an ack from ourself");
 
     /* Wait until the table disappears from the directory. */
     wait_until_change_visible(
