@@ -1130,7 +1130,7 @@ class TcpConnection extends Connection
                         # called in response to the rawSocket 'close'
                         # event, we need to additionally clean up the
                         # rawSocket.
-                        @rawSocket.removeAllListeners()
+                        @rawSocket?.removeAllListeners()
                         @rawSocket = null
                     )
                     @rawSocket.end()
