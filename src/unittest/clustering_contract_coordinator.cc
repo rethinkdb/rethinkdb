@@ -1,7 +1,8 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
 
-#include "clustering/table_contract/coordinator/coordinator.hpp"
+#include "clustering/table_contract/coordinator/calculate_contracts.hpp"
+#include "clustering/table_contract/coordinator/calculate_misc.hpp"
 #include "unittest/clustering_contract_utils.hpp"
 
 /* This file is for unit testing the `contract_coordinator_t`. This is tricky to unit
@@ -13,27 +14,6 @@ The general outline of a test is as follows: Construct a `coordinator_tester_t`.
 `set_config()`, `add_contract()`, and `add_ack()` methods to set up the scenario. Call
 `coordinate()` and then use `check_contract()` to make sure the newly-created contracts
 make sense. If desired, adjust the inputs and repeat. */
-
-/* These functions and constants are defined internally in
-`clustering/table_contract/coordinator.cc`, and not declared in the header, so we have to
-declare them here. */
-void calculate_all_contracts(
-        const table_raft_state_t &old_state,
-        watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> *acks,
-        watchable_map_t<std::pair<server_id_t, server_id_t>, empty_value_t>
-            *connections_map,
-        const std::string &log_prefix,
-        std::set<contract_id_t> *remove_contracts_out,
-        std::map<contract_id_t, std::pair<region_t, contract_t> > *add_contracts_out,
-        std::map<region_t, branch_id_t> *register_current_branches_out);
-void calculate_branch_history(
-        const table_raft_state_t &old_state,
-        watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> *acks,
-        const std::set<contract_id_t> &remove_contracts,
-        const std::map<contract_id_t, std::pair<region_t, contract_t> > &add_contracts,
-        const std::map<region_t, branch_id_t> &register_current_branches,
-        std::set<branch_id_t> *remove_branches_out,
-        branch_history_t *add_branches_out);
 
 namespace unittest {
 
