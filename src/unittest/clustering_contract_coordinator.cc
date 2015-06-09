@@ -279,36 +279,24 @@ public:
     void check_current_branches(const cpu_branch_ids_t &branches) {
         SCOPED_TRACE("checking branches");
 
-        bool found[CPU_SHARDING_FACTOR];
+        bool mismatched[CPU_SHARDING_FACTOR];
         for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
-            found[i] = false;
+            mismatched[i] = false;
         }
         state.current_branches.visit(
-            region_t::universe(),
+            region_t(branches.range),
             [&](const region_t &reg, const branch_id_t &branch) {
                 int cs = get_cpu_shard_approx_number(reg);
-                /* Make sure the CPU shard matches exactly and ignore the entry
-                otherwise. */
-                if (cpu_sharding_subspace(cs).beg != reg.beg ||
-                        cpu_sharding_subspace(cs).end != reg.end) {
-                    return;
-                }
-                /* Note that `range_map_t` will not merge two key ranges if their
-                branch IDs differ in at least one of the hash shards. So this
-                comparison will sometimes return `false` even if the branch IDs
-                are actually correct for the hash range that we're currently
-                considering but are inconsistent for another hash range.
-                In this specific case that is fine, since we don't really care on
-                which hash range we fail. */
-                if (reg.inner.is_superset(branches.range) &&
-                        branch == branches.branch_ids[cs]) {
-                    EXPECT_FALSE(found[cs]);
-                    found[cs] = true;
+                /* Make sure the CPU shard matches exactly and fail otherwise. */
+                EXPECT_TRUE(cpu_sharding_subspace(cs).beg == reg.beg &&
+                    cpu_sharding_subspace(cs).end == reg.end);
+                if (branch != branches.branch_ids[cs]) {
+                    mismatched[cs] = true;
                 }
             });
 
         for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
-            EXPECT_TRUE(found[i]);
+            EXPECT_FALSE(mismatched[i]);
         }
     }
 

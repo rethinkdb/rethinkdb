@@ -54,25 +54,22 @@ void primary_execution_t::update_contract_or_raft_state(
 
     /* Has our branch ID been registered yet? */
     if (!branch_registered.is_pulsed()) {
-        /* Mask the current_branches to our region so that if we have a consistent
-        branch for the whole region, we will get a region_map_t with only a single
-        merged entry. `raft_state.current_branches` cannot merge contiguous key
-        ranges with the same branch ID if the branch ID differs on a different
-        hash range, so we cannot use it directly. */
-        region_map_t<branch_id_t> branch_intersection =
-            raft_state.current_branches.mask(region);
-        branch_intersection.visit(region,
-        [&](const region_t &r, const branch_id_t &b) {
-            if (r == region && boost::make_optional(b) == our_branch_id) {
-                rassert(!branch_registered.is_pulsed());
-                /* This raft state update just confirmed our branch ID */
-                branch_registered.pulse();
-                /* Change `latest_ack` immediately so we don't keep sending the branch
-                registration request */
-                latest_ack = boost::make_optional(contract_ack_t(
-                    contract_ack_t::state_t::primary_in_progress));
+        bool branch_matches = true;
+        raft_state.current_branches.visit(region,
+        [&](const region_t &, const branch_id_t &b) {
+            if (boost::make_optional(b) != our_branch_id) {
+                branch_matches = false;
             }
         });
+        if (branch_matches) {
+            rassert(!branch_registered.is_pulsed());
+            /* This raft state update just confirmed our branch ID */
+            branch_registered.pulse();
+            /* Change `latest_ack` immediately so we don't keep sending the branch
+            registration request */
+            latest_ack = boost::make_optional(contract_ack_t(
+                contract_ack_t::state_t::primary_in_progress));
+        }
     }
 
     /* If we were acking `primary_ready`, go back to acking `primary_in_progress` until
