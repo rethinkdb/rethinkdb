@@ -12,10 +12,6 @@ templates =
         require('../handlebars/issue-log_write_error.hbs')
     outdated_index:
         require('../handlebars/issue-outdated_index.hbs')
-    server_disconnected:
-        require('../handlebars/issue-server_disconnected.hbs')
-    server_ghost:
-        require('../handlebars/issue-server_ghost.hbs')
     # name collision issues: name_collision.hpp
     server_name_collision:
         require('../handlebars/issue-name-collision.hbs')
@@ -23,14 +19,6 @@ templates =
         require('../handlebars/issue-name-collision.hbs')
     table_name_collision:
         require('../handlebars/issue-name-collision.hbs')
-
-    # invalid config issues: invalid_config.hpp
-    table_needs_primary:
-        require('../handlebars/issue-table_needs_primary.hbs')
-    data_lost:
-        require('../handlebars/issue-data_lost.hbs')
-    write_acks:
-        require('../handlebars/issue-write-acks.hbs')
     # catchall
     unknown:
         require('../handlebars/issue-unknown.hbs')

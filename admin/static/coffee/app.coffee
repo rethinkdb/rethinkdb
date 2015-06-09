@@ -217,16 +217,6 @@ class Driver
             current_issues_id = driver.admin().current_issues_id
             current_issues.merge((issue) ->
                 issue_id = current_issues_id.get(issue('id'))
-                server_disconnected =
-                    disconnected_server_id:
-                        issue_id('info')('disconnected_server')
-                    reporting_servers:
-                        issue('info')('reporting_servers')
-                            .map(issue_id('info')('reporting_servers'),
-                                (server, server_id) ->
-                                    server: server,
-                                    server_id: server_id
-                                )
                 log_write_error =
                     servers: issue('info')('servers').map(
                         issue_id('info')('servers'),
@@ -244,16 +234,9 @@ class Driver
                             table: table('table')
                             indexes: table('indexes')
                     )
-                invalid_config =
-                    table_id: issue_id('info')('table')
-                    db_id: issue_id('info')('db')
                 info: driver.helpers.match(issue('type'),
-                    ['server_disconnected', server_disconnected],
                     ['log_write_error', log_write_error],
                     ['outdated_index', outdated_index],
-                    ['table_needs_primary', invalid_config],
-                    ['data_lost', invalid_config],
-                    ['write_acks', invalid_config],
                     [issue('type'), issue('info')], # default
                 )
             ).coerceTo('array')
