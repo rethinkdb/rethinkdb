@@ -127,7 +127,14 @@ void contract_executor_t::update(const table_raft_state_t &new_state,
         If there are multiple branches for different subregions, we consider
         the branch as incoherent and don't set a branch ID. */
         branch_id_t branch = nil_uuid();
-        new_state.current_branches.visit(new_pair.second.first,
+        /* Mask the current_branches to our region so that if we have a consistent
+        branch for the whole region, we will get a region_map_t with only a single
+        merged entry. `new_state.current_branches` cannot merge contiguous key
+        ranges with the same branch ID if the branch ID differs on a different
+        hash range, so we cannot use it directly. */
+        region_map_t<branch_id_t> branch_intersection =
+            new_state.current_branches.mask(new_pair.second.first);
+        branch_intersection.visit(new_pair.second.first,
         [&](const region_t &r, const branch_id_t &b) {
             if (r == new_pair.second.first) {
                 rassert(branch.is_nil());

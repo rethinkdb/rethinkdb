@@ -31,6 +31,7 @@ void calculate_branch_history(
         watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> *acks,
         const std::set<contract_id_t> &remove_contracts,
         const std::map<contract_id_t, std::pair<region_t, contract_t> > &add_contracts,
+        const std::map<region_t, branch_id_t> &register_current_branches,
         std::set<branch_id_t> *remove_branches_out,
         branch_history_t *add_branches_out);
 
@@ -107,6 +108,17 @@ public:
         return res;
     }
 
+    /* `set_current_branches()` sets the current branches. Normally this happens when
+    the coordinator receives an ack with that branch in it from the primary for a given
+    range during the initial branch registration of a new primary. */
+    void set_current_branches(const cpu_branch_ids_t &branches) {
+        for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
+            region_t reg = cpu_sharding_subspace(i);
+            reg.inner = branches.range;
+            state.current_branches.update(reg, branches.branch_ids[i]);
+        }
+    }
+
     /* `add_ack()` creates one ack for each contract in the CPU-sharded contract set.
     There are special variations for acks that need to attach a version or branch ID. */
     void add_ack(
@@ -162,17 +174,6 @@ public:
         }
     }
 
-    /* `set_current_branches()` sets the current branches. Normally this happens when
-    the coordinator receives an ack with that branch in it from the primary for a given
-    range during the initial branch registration of a new primary. */
-    void set_current_branches(const cpu_branch_ids_t &branches) {
-        for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
-            region_t reg = cpu_sharding_subspace(i);
-            reg.inner = branches.range;
-            state.current_branches.update(reg, branches.branch_ids[i]);
-        }
-    }
-
     /* `set_visibility()` adds or removes entries in the `connections` map. The first form
     sets bidirectional visibility between one server and all other servers; the second
     form sets unidirectional visibility from one specific server to one specific other
@@ -207,7 +208,7 @@ public:
         std::set<branch_id_t> remove_branches;
         branch_history_t add_branches;
         calculate_branch_history(state, &acks, remove_contracts, add_contracts,
-            &remove_branches, &add_branches);
+            register_current_branches, &remove_branches, &add_branches);
         for (const contract_id_t &id : remove_contracts) {
             state.contracts.erase(id);
             /* Clean out acks for obsolete contract */
@@ -285,12 +286,22 @@ public:
         state.current_branches.visit(
             region_t::universe(),
             [&](const region_t &reg, const branch_id_t &branch) {
-                if (reg == region_t::universe()) {
-                    // Bail out because get_cpu_shard_number() would crash otherwise.
+                int cs = get_cpu_shard_approx_number(reg);
+                /* Make sure the CPU shard matches exactly and ignore the entry
+                otherwise. */
+                if (cpu_sharding_subspace(cs).beg != reg.beg ||
+                        cpu_sharding_subspace(cs).end != reg.end) {
                     return;
                 }
-                size_t cs = get_cpu_shard_number(reg);
-                if (reg.inner == branches.range && branch == branches.branch_ids[cs]) {
+                /* Note that `range_map_t` will not merge two key ranges if their
+                branch IDs differ in at least one of the hash shards. So this
+                comparison will sometimes return `false` even if the branch IDs
+                are actually correct for the hash range that we're currently
+                considering but are inconsistent for another hash range.
+                In this specific case that is fine, since we don't really care on
+                which hash range we fail. */
+                if (reg.inner.is_superset(branches.range) &&
+                        branch == branches.branch_ids[cs]) {
                     EXPECT_FALSE(found[cs]);
                     found[cs] = true;
                 }

@@ -96,9 +96,7 @@ contract_t calculate_contract(
             connections_map,
         /* We'll print log messages of the form `<log prefix>: <message>`, unless
         `log_prefix` is empty, in which case we won't print anything. */
-        const std::string &log_prefix,
-        /* If a primary asks us to register a new branch, we'll return it here. */
-        branch_id_t *register_branch_out) {
+        const std::string &log_prefix) {
 
     contract_t new_c = old_c;
 
@@ -388,16 +386,6 @@ contract_t calculate_contract(
         }
     }
 
-    /* Register a branch if a primary is asking us to */
-    if (static_cast<bool>(old_c.primary) &&
-            static_cast<bool>(new_c.primary) &&
-            old_c.primary->server == new_c.primary->server &&
-            acks.count(old_c.primary->server) == 1 &&
-            acks.at(old_c.primary->server).state ==
-                contract_ack_t::state_t::primary_need_branch) {
-        *register_branch_out = *acks.at(old_c.primary->server).branch;
-    }
-
     return new_c;
 }
 
@@ -488,19 +476,30 @@ void calculate_all_contracts(
                     }
                 }
 
-                branch_id_t register_branch;
+                const contract_t &old_contract = cpair.second.second;
+
                 contract_t new_contract = calculate_contract(
-                    cpair.second.second,
+                    old_contract,
                     old_state.config.config.shards[shard_index],
                     acks_map,
                     connections_map,
-                    log_subprefix,
-                    &register_branch);
-                if (!register_branch.is_unset()) {
+                    log_subprefix);
+
+                /* Register a branch if a primary is asking us to */
+                if (static_cast<bool>(old_contract.primary) &&
+                        static_cast<bool>(new_contract.primary) &&
+                        old_contract.primary->server ==
+                            new_contract.primary->server &&
+                        acks_map.count(old_contract.primary->server) == 1 &&
+                        acks_map.at(old_contract.primary->server).state ==
+                            contract_ack_t::state_t::primary_need_branch) {
                     auto res = register_current_branches_out->insert(
-                        std::make_pair(reg, register_branch));
+                        std::make_pair(
+                            reg,
+                            *acks_map.at(old_contract.primary->server).branch));
                     guarantee(res.second);
                 }
+
                 new_contract_region_vector.push_back(reg);
                 new_contract_vector.push_back(new_contract);
             });
@@ -557,6 +556,7 @@ void calculate_branch_history(
         watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> *acks,
         const std::set<contract_id_t> &remove_contracts,
         const std::map<contract_id_t, std::pair<region_t, contract_t> > &add_contracts,
+        const std::map<region_t, branch_id_t> &register_current_branches,
         std::set<branch_id_t> *remove_branches_out,
         branch_history_t *add_branches_out) {
     /* RSI(raft): This is a totally naive implementation that never prunes branches and
@@ -564,6 +564,7 @@ void calculate_branch_history(
     (void)old_state;
     (void)remove_contracts;
     (void)add_contracts;
+    (void)register_current_branches;
     (void)remove_branches_out;
     acks->read_all([&](
             const std::pair<server_id_t, contract_id_t> &,
@@ -780,6 +781,7 @@ void contract_coordinator_t::pump_contracts(signal_t *interruptor) {
             calculate_branch_history(
                 state->state, acks,
                 change.remove_contracts, change.add_contracts,
+                change.register_current_branches,
                 &change.remove_branches, &change.add_branches);
             calculate_server_names(
                 state->state, change.remove_contracts, change.add_contracts,

@@ -54,7 +54,14 @@ void primary_execution_t::update_contract_or_raft_state(
 
     /* Has our branch ID been registered yet? */
     if (!branch_registered.is_pulsed()) {
-        raft_state.current_branches.visit(region,
+        /* Mask the current_branches to our region so that if we have a consistent
+        branch for the whole region, we will get a region_map_t with only a single
+        merged entry. `raft_state.current_branches` cannot merge contiguous key
+        ranges with the same branch ID if the branch ID differs on a different
+        hash range, so we cannot use it directly. */
+        region_map_t<branch_id_t> branch_intersection =
+            raft_state.current_branches.mask(region);
+        branch_intersection.visit(region,
         [&](const region_t &r, const branch_id_t &b) {
             if (r == region && boost::make_optional(b) == our_branch_id) {
                 rassert(!branch_registered.is_pulsed());
