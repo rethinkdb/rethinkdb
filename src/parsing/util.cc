@@ -1,7 +1,9 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "parsing/util.hpp"
 
+#ifndef _WIN32
 #include <alloca.h>
+#endif
 
 #include "arch/io/network.hpp"
 

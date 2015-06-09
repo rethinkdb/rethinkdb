@@ -28,7 +28,7 @@ typename std::enable_if<(std::is_enum<T>::value || std::is_fundamental<T>::value
                         && !std::is_same<T, bool>::value>::type
 extract(cJSON *field, T *dest) {
     if (field->type != cJSON_Number) throw exc_t();
-    T t = static_cast<T>(field->valuedouble);
+    T t = static_cast<T>(static_cast<int>(field->valuedouble));
     if (static_cast<double>(t) != field->valuedouble) throw exc_t();
     *dest = t;
 }

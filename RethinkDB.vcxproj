@@ -113,7 +113,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
       <ObjectFileName>$(IntDir)/%(RelativeDir)/</ObjectFileName>
-      <AdditionalIncludeDirectories>$(ProjectDir)\..\protobuf-2.5.0\vsprojects\include;$(ProjectDir)\..\boost_1_58_0;$(ProjectDir)\external\gtest_1.7.0\include;$(ProjectDir)\windows_stub;$(ProjectDir)\..\re2;$(ProjectDir)\..\openssl-1.0.2a\include;$(ProjectDir)\external\icu_54.1\source\common;$(ProjectDir)\external\re2_20140111</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\protobuf-2.5.0\vsprojects\include;$(ProjectDir)\..\boost_1_58_0;$(ProjectDir)\external\gtest_1.7.0\include;$(ProjectDir)\windows_stub;$(ProjectDir)\..\re2;$(ProjectDir)\..\openssl-1.0.2a\include;$(ProjectDir)\external\icu_54.1\source\common;$(ProjectDir)\external\re2_20140111;$(ProjectDir)\external\curl_7.40.0\include;$(ProjectDir)\external\zlib_1.2.8</AdditionalIncludeDirectories>
       <PreprocessToFile>false</PreprocessToFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -121,12 +121,12 @@
       <ShowIncludes>false</ShowIncludes>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
       <MinimalRebuild>false</MinimalRebuild>
-      <DisableSpecificWarnings>4244;4101</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4244;4101;4267</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>gtest.lib;libprotobuf.lib;WS2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>gtest.lib;libprotobuf.lib;WS2_32.lib;$(ProjectDir)\..\re2\x64\Debug\re2.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ForceFileOutput>UndefinedSymbolOnly</ForceFileOutput>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
     </Link>
@@ -161,13 +161,13 @@
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <ObjectFileName>$(IntDir)/%(RelativeDir)/</ObjectFileName>
-      <AdditionalIncludeDirectories>$(ProjectDir)\..\protobuf-2.5.0\vsprojects\include;$(ProjectDir)\..\boost_1_58_0;$(ProjectDir)\external\gtest_1.7.0\include;$(ProjectDir)\windows_stub;$(ProjectDir)\..\re2;$(ProjectDir)\..\openssl-1.0.2a\include;$(ProjectDir)\external\icu_54.1\source\common;$(ProjectDir)\external\re2_20140111</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\protobuf-2.5.0\vsprojects\include;$(ProjectDir)\..\boost_1_58_0;$(ProjectDir)\external\gtest_1.7.0\include;$(ProjectDir)\windows_stub;$(ProjectDir)\..\re2;$(ProjectDir)\..\openssl-1.0.2a\include;$(ProjectDir)\external\icu_54.1\source\common;$(ProjectDir)\external\re2_20140111;$(ProjectDir)\external\curl_7.40.0\include;$(ProjectDir)\external\zlib_1.2.8</AdditionalIncludeDirectories>
       <PreprocessToFile>false</PreprocessToFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalOptions>/we4005</AdditionalOptions>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
-      <DisableSpecificWarnings>4244;4101</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4244;4101;4267</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -175,7 +175,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
-      <AdditionalDependencies>gtest.lib;libprotobuf.lib;WS2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>gtest.lib;libprotobuf.lib;WS2_32.lib;$(ProjectDir)\..\re2\x64\Debug\re2.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -647,6 +647,8 @@
     <ClInclude Include="windows_stub\pthread.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="build\release\proto\rdb_protocol\ql2.pb.cc" />
+    <ClCompile Include="build\release\proto\rdb_protocol\ql2_extensions.pb.cc" />
     <ClCompile Include="src\activity_logger.cc" />
     <ClCompile Include="src\arch\address.cc" />
     <ClCompile Include="src\arch\barrier.cc" />
@@ -754,6 +756,8 @@
     <ClCompile Include="src\clustering\administration\tables\table_config.cc" />
     <ClCompile Include="src\clustering\administration\tables\table_metadata.cc" />
     <ClCompile Include="src\clustering\administration\tables\table_status.cc" />
+    <ClCompile Include="src\clustering\generic\multi_client_client.cc" />
+    <ClCompile Include="src\clustering\generic\nonoverlapping_regions.cc" />
     <ClCompile Include="src\clustering\immediate_consistency\branch\backfillee.cc" />
     <ClCompile Include="src\clustering\immediate_consistency\branch\backfiller.cc" />
     <ClCompile Include="src\clustering\immediate_consistency\branch\backfill_throttler.cc" />
@@ -763,6 +767,10 @@
     <ClCompile Include="src\clustering\immediate_consistency\branch\metadata.cc" />
     <ClCompile Include="src\clustering\immediate_consistency\branch\multistore.cc" />
     <ClCompile Include="src\clustering\immediate_consistency\branch\replier.cc" />
+    <ClCompile Include="src\clustering\immediate_consistency\query\direct_reader.cc" />
+    <ClCompile Include="src\clustering\immediate_consistency\query\master.cc" />
+    <ClCompile Include="src\clustering\immediate_consistency\query\master_access.cc" />
+    <ClCompile Include="src\clustering\immediate_consistency\query\metadata.cc" />
     <ClCompile Include="src\clustering\reactor\blueprint.cc" />
     <ClCompile Include="src\clustering\reactor\directory_echo.cc" />
     <ClCompile Include="src\clustering\reactor\namespace_interface.cc" />
@@ -804,11 +812,30 @@
     <ClCompile Include="src\containers\uuid.cc" />
     <ClCompile Include="src\debug.cc" />
     <ClCompile Include="src\errors.cc" />
+    <ClCompile Include="src\extproc\extproc_job.cc" />
+    <ClCompile Include="src\extproc\extproc_pool.cc" />
+    <ClCompile Include="src\extproc\extproc_spawner.cc" />
+    <ClCompile Include="src\extproc\extproc_worker.cc" />
+    <ClCompile Include="src\extproc\http_job.cc" />
+    <ClCompile Include="src\extproc\http_runner.cc" />
+    <ClCompile Include="src\http\file_app.cc" />
+    <ClCompile Include="src\http\http.cc" />
+    <ClCompile Include="src\http\http_parser.cc" />
     <ClCompile Include="src\http\json.cc" />
     <ClCompile Include="src\http\json\cJSON.cc" />
+    <ClCompile Include="src\http\routing_app.cc" />
     <ClCompile Include="src\math.cc" />
+    <ClCompile Include="src\parsing\utf8.cc" />
+    <ClCompile Include="src\parsing\util.cc" />
+    <ClCompile Include="src\perfmon\collect.cc" />
     <ClCompile Include="src\perfmon\core.cc" />
+    <ClCompile Include="src\perfmon\filter.cc" />
     <ClCompile Include="src\perfmon\perfmon.cc" />
+    <ClCompile Include="src\pprint\js_pprint.cc" />
+    <ClCompile Include="src\pprint\pprint.cc" />
+    <ClCompile Include="src\pprint\sexp_pprint.cc" />
+    <ClCompile Include="src\protob\json_shim.cc" />
+    <ClCompile Include="src\protob\protob.cc" />
     <ClCompile Include="src\protocol_api.cc" />
     <ClCompile Include="src\rdb_protocol\artificial_table\artificial_table.cc" />
     <ClCompile Include="src\rdb_protocol\artificial_table\backend.cc" />
@@ -930,7 +957,12 @@
     <ClCompile Include="src\rethinkdb_backtrace.cc" />
     <ClCompile Include="src\rpc\connectivity\cluster.cc" />
     <ClCompile Include="src\rpc\connectivity\peer_id.cc" />
+    <ClCompile Include="src\rpc\directory\map_read_manager.cc" />
+    <ClCompile Include="src\rpc\directory\map_write_manager.cc" />
+    <ClCompile Include="src\rpc\directory\read_manager.cc" />
+    <ClCompile Include="src\rpc\directory\write_manager.cc" />
     <ClCompile Include="src\rpc\mailbox\mailbox.cc" />
+    <ClCompile Include="src\rpc\semilattice\semilattice_manager.cc" />
     <ClCompile Include="src\serializer\buf_ptr.cc" />
     <ClCompile Include="src\serializer\log\data_block_manager.cc" />
     <ClCompile Include="src\serializer\log\extent_manager.cc" />
@@ -964,9 +996,15 @@
     <ClCompile Include="windows_stub\pthread.cc" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="src\clustering\administration\jobs\report.tcc" />
-    <None Include="src\concurrency\cross_thread_watchable.tcc" />
-    <None Include="src\concurrency\fifo_enforcer_queue.tcc" />
+    <ClInclude Include="src\clustering\administration\jobs\report.tcc">
+      <FileType>Document</FileType>
+    </ClInclude>
+    <ClInclude Include="src\concurrency\cross_thread_watchable.tcc">
+      <FileType>Document</FileType>
+    </ClInclude>
+    <ClInclude Include="src\concurrency\fifo_enforcer_queue.tcc">
+      <FileType>Document</FileType>
+    </ClInclude>
     <None Include="src\concurrency\watchable.tcc" />
     <ClInclude Include="src\rpc\semilattice\joins\deletable.tcc">
       <FileType>Document</FileType>
@@ -976,12 +1014,22 @@
     <ClInclude Include="src\containers\clone_ptr.tcc">
       <FileType>Document</FileType>
     </ClInclude>
-    <None Include="src\containers\cow_ptr.tcc" />
+    <ClInclude Include="src\containers\cow_ptr.tcc">
+      <FileType>Document</FileType>
+    </ClInclude>
     <ClInclude Include="src\containers\priority_queue.tcc">
       <FileType>Document</FileType>
     </ClInclude>
     <None Include="src\rdb_protocol\ql2.proto" />
     <None Include="src\rdb_protocol\ql2_extensions.proto" />
+    <None Include="src\rpc\directory\map_read_manager.tcc" />
+    <None Include="src\rpc\directory\map_write_manager.tcc" />
+    <None Include="src\rpc\directory\read_manager.tcc" />
+    <None Include="src\rpc\directory\write_manager.tcc" />
+    <None Include="src\rpc\semilattice\semilattice_manager.tcc" />
+    <None Include="src\rpc\semilattice\view\field.tcc" />
+    <None Include="src\rpc\semilattice\view\function.tcc" />
+    <None Include="src\rpc\semilattice\view\member.tcc" />
     <None Include="src\serializer\semantic_checking.tcc" />
     <None Include="src\stl_utils.tcc" />
   </ItemGroup>

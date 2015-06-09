@@ -1,8 +1,10 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
+#ifndef _WIN32 // TODO ATN
 #include <sys/wait.h>
 #include <sys/time.h>
-#include <sys/types.h>
 #include <sys/socket.h>
+#endif
+#include <sys/types.h>
 #include <signal.h>
 #include <unistd.h>
 
@@ -20,6 +22,7 @@ public:
         guarantee(spawner_pid == -1);
         spawner_pid = _spawner_pid;
 
+#ifndef _WIN32 // ATN TODO
         // Set ourselves to get interrupted when our parent dies
         struct sigaction sa = make_sa_handler(0, check_ppid_for_death);
         const int sigaction_res = sigaction(SIGALRM, &sa, NULL);
@@ -34,7 +37,7 @@ public:
         guarantee_err(itimer_res == 0, "worker: setitimer failed");
         guarantee(old_timerval.it_value.tv_sec == 0 && old_timerval.it_value.tv_usec == 0,
                   "worker: setitimer saw that we already had an itimer!");
-
+#endif
         // Send our pid over to the main process (because it didn't fork us directly)
         write_message_t wm;
         serialize<cluster_version_t::LATEST_OVERALL>(&wm, getpid());
@@ -87,12 +90,14 @@ public:
 private:
     static pid_t spawner_pid;
 
+#ifndef _WIN32 // TODO ATN
     static void check_ppid_for_death(int) {
         pid_t ppid = getppid();
         if (spawner_pid != -1 && spawner_pid != ppid) {
             ::_exit(EXIT_FAILURE);
         }
     }
+#endif
 
     scoped_fd_t socket;
     blocking_fd_watcher_t blocking_watcher;
@@ -105,6 +110,7 @@ class spawner_run_t {
 public:
     explicit spawner_run_t(fd_t _socket) :
         socket(_socket) {
+#ifndef _WIN32 // ATN TODO
         // We set our PGID to our own PID (rather than inheriting our parent's PGID)
         // so that a signal (eg. SIGINT) sent to the parent's PGID (by eg. hitting
         // Ctrl-C at a terminal) will not propagate to us or our children.
@@ -123,10 +129,11 @@ public:
             const int res = sigaction(SIGCHLD, &sa, NULL);
             guarantee_err(res == 0, "spawner: Could not ignore SIGCHLD");
         }
-    }
+#endif
+	}
 
     void main_loop() {
-        pid_t spawner_pid = getpid();
+        process_ref_t spawner_pid = current_process();
 
         while(true) {
             fd_t worker_socket;
@@ -134,7 +141,19 @@ public:
             if (recv_res != FD_RECV_OK) {
                 break;
             }
-
+#ifdef _WIN32 // ATN TODO: test this
+			char path[MAX_PATH];
+			DWORD res = GetModuleFileName(NULL, path, sizeof(path));
+			guarantee_winerr(res != 0 && res != sizeof(path), "GetModuleFileName failed");
+			std::string command_line = strprintf("rethinkdb start-worker " /* ATN */);
+			std::vector<char> mutable_command_line(command_line.begin(), command_line.end());
+			mutable_command_line.push_back('\0');
+			PROCESS_INFORMATION process_info;
+			CreateProcess(path, &mutable_command_line[0], nullptr, nullptr, true, 0,
+						  nullptr, nullptr, nullptr, &process_info);
+			CloseHandle(process_info.hProcess);
+			CloseHandle(process_info.hThread);
+#else
             pid_t res = ::fork();
             if (res == 0) {
                 // Worker process here
@@ -143,8 +162,8 @@ public:
                 worker_runner.main_loop();
                 ::_exit(EXIT_FAILURE);
             }
-
-            guarantee_err(res != -1, "could not fork worker process");
+			guarantee_err(res != -1, "could not fork worker process");
+#endif
             scoped_fd_t closer(worker_socket);
         }
     }
@@ -154,7 +173,7 @@ private:
 };
 
 extproc_spawner_t::extproc_spawner_t() :
-    spawner_pid(-1)
+    spawner_pid(process_ref_t::invalid)
 {
     // TODO: guarantee we aren't in a thread pool
     guarantee(instance == NULL);
@@ -172,9 +191,13 @@ extproc_spawner_t::~extproc_spawner_t() {
     spawner_socket.reset();
 
     // Wait on the spawner's return value to clean up the process
+#ifdef _WIN32
+	WaitForSingleObject(spawner_pid, INFINITE);
+#else
     int status;
     int res = waitpid(spawner_pid, &status, 0);
     guarantee_err(res == spawner_pid, "failed to wait for extproc spawner process to exit");
+#endif
 }
 
 extproc_spawner_t *extproc_spawner_t::get_instance() {
@@ -183,7 +206,9 @@ extproc_spawner_t *extproc_spawner_t::get_instance() {
 
 void extproc_spawner_t::fork_spawner() {
     guarantee(spawner_socket.get() == INVALID_FD);
-
+#ifdef _WIN32
+	rassert(false, "ATN TODO");
+#else
     fd_t fds[2];
     int res = socketpair(AF_UNIX, SOCK_STREAM, 0, fds);
     guarantee_err(res == 0, "could not create socket pair for spawner process");
@@ -205,10 +230,15 @@ void extproc_spawner_t::fork_spawner() {
 
     scoped_fd_t closer(fds[1]);
     spawner_socket.reset(fds[0]);
+#endif
 }
 
 // Spawns a new worker process and returns the fd of the socket used to communicate with it
-fd_t extproc_spawner_t::spawn(object_buffer_t<socket_stream_t> *stream_out, pid_t *pid_out) {
+fd_t extproc_spawner_t::spawn(object_buffer_t<socket_stream_t> *stream_out, process_ref_t *pid_out) {
+#ifdef _WIN32
+	rassert(false, "ATN TODO");
+	return fd_t();
+#else
     guarantee(spawner_socket.get() != INVALID_FD);
 
     fd_t fds[2];
@@ -229,4 +259,5 @@ fd_t extproc_spawner_t::spawn(object_buffer_t<socket_stream_t> *stream_out, pid_
 
     scoped_fd_t closer(fds[1]);
     return fds[0];
+#endif
 }

@@ -24,11 +24,11 @@ NORETURN bool worker_exit_fn(read_stream_t *stream_in, write_stream_t *) {
 
 extproc_worker_t::extproc_worker_t(extproc_spawner_t *_spawner) :
     spawner(_spawner),
-    worker_pid(-1),
+    worker_pid(process_ref_t::invalid),
     interruptor(NULL) { }
 
 extproc_worker_t::~extproc_worker_t() {
-    if (worker_pid != -1) {
+    if (worker_pid != process_ref_t::invalid) {
         socket_stream.create(socket.get(), reinterpret_cast<fd_watcher_t*>(NULL));
 
         try {
@@ -58,7 +58,7 @@ void extproc_worker_t::acquired(signal_t *_interruptor) {
     // This will also repair a killed worker
 
     // We create the streams here, since they are thread-dependant
-    if (worker_pid == -1) {
+    if (worker_pid == process_ref_t::invalid) {
         socket.reset(spawner->spawn(&socket_stream, &worker_pid));
     } else {
         socket_stream.create(socket.get(), reinterpret_cast<fd_watcher_t*>(NULL));
@@ -123,18 +123,22 @@ void extproc_worker_t::released(bool user_error, signal_t *user_interruptor) {
 }
 
 void extproc_worker_t::kill_process() {
-    guarantee(worker_pid != -1);
+    guarantee(worker_pid != process_ref_t::invalid);
 
+#ifdef _WIN32
+	rassert(false, "ATN TODO");
+#else
     ::kill(worker_pid, SIGKILL);
     worker_pid = -1;
 
     // Clean up our socket fd
     socket.reset();
+#endif
 }
 
 bool extproc_worker_t::is_process_alive()
 {
-    return (worker_pid != -1);
+    return (worker_pid != process_ref_t::invalid);
 }
 
 void extproc_worker_t::run_job(bool (*fn) (read_stream_t *, write_stream_t *)) {

@@ -2,11 +2,10 @@
 #include "http/http.hpp"
 
 #include <math.h>
-// ATN TODO #include <zlib.h>
+#include <zlib.h>
 
 #include <exception>
-
-// ATN TODO #include <re2/re2.h>
+#include <re2/re2.h>
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
@@ -645,8 +644,13 @@ bool percent_unescape_string(const std::string &s, std::string *out) {
 
 std::string http_format_date(const time_t date) {
     struct tm t;
+#ifndef _WIN32
     struct tm *res1 = gmtime_r(&date, &t);
     guarantee_err(res1 == &t, "gmtime_r() failed.");
+#else
+	errno_t err = gmtime_s(&t, &date);
+	guarantee_xerr(err == 0, err, "gmtime_s failed");
+#endif
 
     static const char *weekday[] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
     static const char *month[] =  { "Jan", "Feb", "Mar", "Apr", "May", "Jun",

@@ -50,15 +50,28 @@ The dependency on Protobuf will hopefully go away soon.
 
 ## ICU
 
-* cd to the RethinkDB folder from the cygwin shell
+* cd to the RethinkDB folder from the cygwin shell (use 8.3 path names if there are spaces in your path)
 * Convert endings of sh files to unix-style. Use dos2unix or ```perl -pi -e chomp `find . -name \*.sh` ````
 * `./configure --continue --fetch all`
 * `make fetch-icu`
-* ...
+* ... TODO build
 
 ## RE2
 
-* ...
+* ... TODO build
+
+## Curl
+
+* `make fetch-curl`
+* ... TODO build
+
+## V8
+
+* ... TODO build
+
+## ZLib
+
+* `make fetch-zlib`
 
 ## RethinkDB
 
