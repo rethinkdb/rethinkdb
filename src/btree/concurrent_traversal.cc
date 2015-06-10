@@ -31,6 +31,7 @@ namespace concurrent_traversal {
 static const int initial_semaphore_capacity = 3;
 static const int min_semaphore_capacity = 2;
 static const int max_semaphore_capacity = 30;
+static const int yield_interval = 100;
 }  // namespace concurrent_traversal
 
 class concurrent_traversal_adapter_t : public depth_first_traversal_callback_t {
@@ -41,7 +42,8 @@ public:
         : semaphore_(concurrent_traversal::initial_semaphore_capacity, 0.5),
           sink_waiters_(0),
           cb_(cb),
-          failure_cond_(failure_cond) { }
+          failure_cond_(failure_cond),
+          yield_counter(0) { }
 
     continue_bool_t filter_range(
             const btree_key_t *left_excl_or_null,
@@ -86,6 +88,15 @@ public:
         // values at once.
         semaphore_acq_t acq(&semaphore_);
 
+        // Yield occasionally so we don't hog the thread if everything is in
+        // memory and `cb->handle_pair()` doesn't block.
+        if (yield_counter == concurrent_traversal::yield_interval) {
+            coro_t::yield();
+            yield_counter = 0;
+        } else {
+            ++yield_counter;
+        }
+
         coro_t::spawn_now_dangerously(
             std::bind(&concurrent_traversal_adapter_t::handle_pair_coro,
                       this, &keyvalue, &acq, token, auto_drainer_t::lock_t(&drainer_)));
@@ -115,6 +126,9 @@ private:
     // Signals when the query has failed, when we should give up all hope in executing
     // the query.
     cond_t *failure_cond_;
+
+    // Counted up every time handle_pair() runs so we can yield occasionally.
+    int yield_counter;
 
     // We don't use the drainer's drain signal, we use failure_cond_
     auto_drainer_t drainer_;
