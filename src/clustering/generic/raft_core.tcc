@@ -837,14 +837,14 @@ void raft_member_t<state_t>::on_connected_members_change(
         const raft_member_id_t &member_id,
         const boost::optional<raft_term_t> *value) {
     assert_thread();
-    auto_drainer_t::lock_t keepalive(drainer.get());
-
+    ASSERT_NO_CORO_WAITING;
     update_readiness_for_change();
     if (value != nullptr && static_cast<bool>(*value) && member_id != this_member_id) {
         /* We've received a "start virtual heartbeats" message. We process the term just
         like for an AppendEntries or InstallSnapshot RPC, but we don't actually append
         any entries or install any snapshots. */
         raft_term_t term = **value;
+        auto_drainer_t::lock_t keepalive(drainer.get());
         coro_t::spawn_sometime(
         [this, term, member_id, keepalive /* important to capture */]() {
             try {
