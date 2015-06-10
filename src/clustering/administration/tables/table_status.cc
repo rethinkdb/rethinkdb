@@ -6,7 +6,7 @@
 #include "clustering/administration/datum_adapter.hpp"
 #include "clustering/administration/servers/config_client.hpp"
 #include "clustering/administration/tables/calculate_status.hpp"
-#include "clustering/table_contract/exec_primary.hpp"
+#include "clustering/table_contract/executor/exec_primary.hpp"
 #include "clustering/table_manager/table_meta_client.hpp"
 
 table_status_artificial_table_backend_t::table_status_artificial_table_backend_t(

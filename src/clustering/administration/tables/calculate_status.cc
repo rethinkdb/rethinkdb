@@ -5,7 +5,7 @@
 
 #include "clustering/administration/datum_adapter.hpp"
 #include "clustering/administration/servers/config_client.hpp"
-#include "clustering/table_contract/exec_primary.hpp"
+#include "clustering/table_contract/executor/exec_primary.hpp"
 #include "clustering/table_manager/table_meta_client.hpp"
 
 struct region_acks_t {
