@@ -57,15 +57,6 @@ public:
 
         fifo_enforcer_sink_t::exit_write_t exit_write(&sink_, token);
 
-        // Yield occasionally so we don't hog the thread if everything is in
-        // memory and `cb->handle_pair()` doesn't block.
-        if (yield_counter == concurrent_traversal::yield_interval) {
-            coro_t::yield();
-            yield_counter = 0;
-        } else {
-            ++yield_counter;
-        }
-
         done_traversing_t done;
         try {
             done = cb_->handle_pair(
@@ -87,6 +78,15 @@ public:
         // ... and wait for the semaphore, we don't want too many things loading
         // values at once.
         semaphore_acq_t acq(&semaphore_);
+
+        // Yield occasionally so we don't hog the thread if everything is in
+        // memory and `cb->handle_pair()` doesn't block.
+        if (yield_counter == concurrent_traversal::yield_interval) {
+            coro_t::yield();
+            yield_counter = 0;
+        } else {
+            ++yield_counter;
+        }
 
         coro_t::spawn_now_dangerously(
             std::bind(&concurrent_traversal_adapter_t::handle_pair_coro,
@@ -122,7 +122,7 @@ private:
     // the query.
     cond_t *failure_cond_;
 
-    // Counted up every time handle_pair_coro() runs so we can yield occasionally.
+    // Counted up every time handle_pair() runs so we can yield occasionally.
     int yield_counter;
 
     // We don't use the drainer's drain signal, we use failure_cond_
