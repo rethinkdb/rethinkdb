@@ -111,7 +111,7 @@ void jobs_manager_t::on_get_job_reports(
 
     if (table_persistence_interface != nullptr &&
             table_persistence_interface->is_gc_active()) {
-        // Note that `"disk_compation"` jobs do not have a duration.
+        // Note that "disk_compaction" jobs do not have a duration.
         disk_compaction_job_reports.emplace_back(
             uuid_u::from_hash(base_disk_compaction_id, uuid_to_str(server_id)),
             -1,

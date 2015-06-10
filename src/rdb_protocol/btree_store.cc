@@ -328,7 +328,8 @@ std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > store_t::sin
             res->second.ready = false;
             progress_completion_fraction_t frac = get_sindex_progress(pair.second.id);
             if (frac.estimate_of_total_nodes == -1) {
-                res->second.blocks_processed = res->second.blocks_total = 0;
+                res->second.blocks_processed = 0;
+                res->second.blocks_total = 1;
             } else {
                 res->second.blocks_processed = frac.estimate_of_released_nodes;
                 res->second.blocks_total = frac.estimate_of_total_nodes;
