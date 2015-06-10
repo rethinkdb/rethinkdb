@@ -75,7 +75,7 @@ public:
     // ratio of garbage to blocks in the system
     double garbage_ratio() const;
 
-    std::vector<counted_t<ls_block_token_pointee_t> >
+    std::vector<counted_t<block_token_t> >
     many_writes(const std::vector<buf_write_info_t> &writes,
                 file_account_t *io_account,
                 iocallback_t *cb);

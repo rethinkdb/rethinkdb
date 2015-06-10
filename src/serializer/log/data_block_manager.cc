@@ -648,7 +648,7 @@ public:
                     = parent->serializer->generate_block_token(current_offset,
                                                                block_size);
 
-                counted_t<standard_block_token_t> token
+                counted_t<block_token_t> token
                     = to_standard_block_token(block_id, std::move(ls_token));
 
                 parent->serializer->offer_buf_to_read_ahead_callbacks(
@@ -674,7 +674,7 @@ bool data_block_manager_t::should_perform_read_ahead(int64_t offset) {
 }
 
 buf_ptr_t data_block_manager_t::read(int64_t off_in, block_size_t block_size,
-                                   file_account_t *io_account) {
+                                     file_account_t *io_account) {
     guarantee(state == state_ready);
     if (should_perform_read_ahead(off_in)) {
         buf_ptr_t ret = buf_ptr_t::alloc_uninitialized(block_size);
@@ -714,7 +714,7 @@ buf_ptr_t data_block_manager_t::read(int64_t off_in, block_size_t block_size,
     }
 }
 
-std::vector<counted_t<ls_block_token_pointee_t> >
+std::vector<counted_t<block_token_t> >
 data_block_manager_t::many_writes(const std::vector<buf_write_info_t> &writes,
                                   file_account_t *io_account,
                                   iocallback_t *cb) {
@@ -793,7 +793,7 @@ data_block_manager_t::many_writes(const std::vector<buf_write_info_t> &writes,
     // earlier).
     intermediate_cb->on_io_complete();
 
-    std::vector<counted_t<ls_block_token_pointee_t> > ret;
+    std::vector<counted_t<block_token_t> > ret;
     ret.reserve(writes.size());
     for (auto it = token_groups.begin(); it != token_groups.end(); ++it) {
         for (auto jt = it->begin(); jt != it->end(); ++jt) {
@@ -1193,7 +1193,7 @@ void data_block_manager_t::write_gcs(const std::vector<gc_write_t> &writes,
     // New block tokens, to hold the return value of
     // data_block_manager_t::write() instead of immediately discarding the
     // created token and causing the extent or block to be collected.
-    std::vector<counted_t<ls_block_token_pointee_t> > new_block_tokens;
+    std::vector<counted_t<block_token_t> > new_block_tokens;
 
     {
         // Step 1: Write buffers to disk and assemble index operations
@@ -1240,9 +1240,7 @@ void data_block_manager_t::write_gcs(const std::vector<gc_write_t> &writes,
 
                 index_write_ops.push_back(
                         index_write_op_t(block_id,
-                                         to_standard_block_token(
-                                                 block_id,
-                                                 new_block_tokens[i])));
+                                         new_block_tokens[i]));
             }
 
             // (If we don't have an i_array entry, the block is referenced
@@ -1259,8 +1257,10 @@ void data_block_manager_t::write_gcs(const std::vector<gc_write_t> &writes,
         // that point to the current entry.  This should empty out
         // all the t_array bits.
         for (size_t i = 0; i < writes.size(); ++i) {
+            const ls_block_token_pointee_t *ls_token
+                = static_cast<const ls_block_token_pointee_t *>(new_block_tokens[i].get());
             serializer->remap_block_to_new_offset(writes[i].old_offset,
-                                                  new_block_tokens[i]->offset());
+                                                  ls_token->offset());
         }
 
         // Step 4A-2: Now that the block tokens have been remapped

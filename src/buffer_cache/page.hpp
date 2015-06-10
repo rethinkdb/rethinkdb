@@ -32,7 +32,7 @@ public:
 
     page_t(block_id_t block_id, buf_ptr_t buf, page_cache_t *page_cache);
     page_t(block_id_t block_id, buf_ptr_t buf,
-           const counted_t<standard_block_token_t> &token,
+           const counted_t<block_token_t> &token,
            page_cache_t *page_cache);
     page_t(page_t *copyee, page_cache_t *page_cache, cache_account_t *account);
     ~page_t();
@@ -72,12 +72,12 @@ public:
 
     bool page_ptr_count() const { return snapshot_refcount_; }
 
-    const counted_t<standard_block_token_t> &block_token() const {
+    const counted_t<block_token_t> &block_token() const {
         return block_token_;
     }
 
     ser_buffer_t *get_loaded_ser_buffer();
-    void init_block_token(counted_t<standard_block_token_t> token,
+    void init_block_token(counted_t<block_token_t> token,
                           page_cache_t *page_cache);
 
 private:
@@ -93,7 +93,7 @@ private:
 
 
     static void finish_load_with_block_id(page_t *page, page_cache_t *page_cache,
-                                          counted_t<standard_block_token_t> block_token,
+                                          counted_t<block_token_t> block_token,
                                           buf_ptr_t buf);
 
     static void catch_up_with_deferred_load(
@@ -128,7 +128,7 @@ private:
     page_loader_t *loader_;
 
     buf_ptr_t buf_;
-    counted_t<standard_block_token_t> block_token_;
+    counted_t<block_token_t> block_token_;
 
     uint64_t access_time_;
 

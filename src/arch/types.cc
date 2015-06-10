@@ -18,10 +18,14 @@ address_in_use_exc_t::address_in_use_exc_t(const char* hostname, int port) throw
 
 file_account_t::file_account_t(file_t *par, int pri, int outstanding_requests_limit) :
     parent(par),
-    account(parent->create_account(pri, outstanding_requests_limit)) { }
+    account(par == nullptr
+            ? nullptr
+            : parent->create_account(pri, outstanding_requests_limit)) { }
 
 file_account_t::~file_account_t() {
-    parent->destroy_account(account);
+    if (parent != nullptr) {
+        parent->destroy_account(account);
+    }
 }
 
 void linux_iocallback_t::on_io_failure(int errsv, int64_t offset, int64_t count) {

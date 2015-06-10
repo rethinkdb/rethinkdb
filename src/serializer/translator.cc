@@ -29,13 +29,13 @@ int compute_mod_count(int32_t file_number, int32_t n_files, int32_t n_slices) {
     return n_slices / n_files + (n_slices % n_files > file_number);
 }
 
-counted_t<standard_block_token_t> serializer_block_write(serializer_t *ser, const buf_ptr_t &buf,
+counted_t<block_token_t> serializer_block_write(serializer_t *ser, const buf_ptr_t &buf,
                                                          block_id_t block_id, file_account_t *io_account) {
     struct : public cond_t, public iocallback_t {
         void on_io_complete() { pulse(); }
     } cb;
 
-    std::vector<counted_t<standard_block_token_t> > tokens
+    std::vector<counted_t<block_token_t> > tokens
         = ser->block_writes({ buf_write_info_t(buf.ser_buffer(), buf.block_size(),
                                                block_id) },
                             io_account, &cb);
@@ -234,7 +234,7 @@ void translator_serializer_t::index_write(
     inner->index_write(mutex_acq, translated_ops);
 }
 
-std::vector<counted_t<standard_block_token_t> >
+std::vector<counted_t<block_token_t> >
 translator_serializer_t::block_writes(const std::vector<buf_write_info_t> &write_infos,
                                       file_account_t *io_account, iocallback_t *cb) {
     std::vector<buf_write_info_t> tmp;
@@ -249,12 +249,12 @@ translator_serializer_t::block_writes(const std::vector<buf_write_info_t> &write
 }
 
 
-buf_ptr_t translator_serializer_t::block_read(const counted_t<standard_block_token_t> &token,
+buf_ptr_t translator_serializer_t::block_read(const counted_t<block_token_t> &token,
                                             file_account_t *io_account) {
     return inner->block_read(token, io_account);
 }
 
-counted_t<standard_block_token_t> translator_serializer_t::index_read(block_id_t block_id) {
+counted_t<block_token_t> translator_serializer_t::index_read(block_id_t block_id) {
     return inner->index_read(translate_block_id(block_id));
 }
 
@@ -303,7 +303,7 @@ bool translator_serializer_t::get_delete_bit(block_id_t id) {
 void translator_serializer_t::offer_read_ahead_buf(
         block_id_t block_id,
         buf_ptr_t *buf,
-        const counted_t<standard_block_token_t> &token) {
+        const counted_t<block_token_t> &token) {
     inner->assert_thread();
 
     if (block_id <= CONFIG_BLOCK_ID.ser_id) {

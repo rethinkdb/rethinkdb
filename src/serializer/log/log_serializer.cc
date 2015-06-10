@@ -434,28 +434,9 @@ file_account_t *log_serializer_t::make_io_account(int priority, int outstanding_
     return new file_account_t(dbfile, priority, outstanding_requests_limit);
 }
 
-buf_ptr_t log_serializer_t::block_read(const counted_t<ls_block_token_pointee_t> &token,
-                                     file_account_t *io_account) {
-    assert_thread();
-    guarantee(token.has());
-    guarantee(state == state_ready);
-
-    ticks_t pm_time;
-    stats->pm_serializer_block_reads.begin(&pm_time);
-
-    buf_ptr_t ret = data_block_manager->read(token->offset_, token->block_size(),
-                                           io_account);
-
-    stats->pm_serializer_block_reads.end(&pm_time);
-    return ret;
-}
-
 // God this is such a hack.
 #ifndef SEMANTIC_SERIALIZER_CHECK
-counted_t<ls_block_token_pointee_t>
-get_ls_block_token(const counted_t<ls_block_token_pointee_t> &tok) {
-    return tok;
-}
+// TODO: Fix this
 #else
 counted_t<ls_block_token_pointee_t>
 get_ls_block_token(const counted_t<scs_block_token_t<log_serializer_t> > &tok) {
@@ -467,6 +448,23 @@ get_ls_block_token(const counted_t<scs_block_token_t<log_serializer_t> > &tok) {
 }
 #endif  // SEMANTIC_SERIALIZER_CHECK
 
+buf_ptr_t log_serializer_t::block_read(const counted_t<block_token_t> &token,
+                                     file_account_t *io_account) {
+    assert_thread();
+    guarantee(token.has());
+    guarantee(state == state_ready);
+
+    ticks_t pm_time;
+    stats->pm_serializer_block_reads.begin(&pm_time);
+
+    const ls_block_token_pointee_t *ls_token
+        = static_cast<const ls_block_token_pointee_t *>(token.get());
+    buf_ptr_t ret = data_block_manager->read(ls_token->offset_, ls_token->block_size(),
+                                             io_account);
+
+    stats->pm_serializer_block_reads.end(&pm_time);
+    return ret;
+}
 
 void log_serializer_t::index_write(new_mutex_in_line_t *mutex_acq,
                                    const std::vector<index_write_op_t> &write_ops) {
@@ -493,8 +491,6 @@ void log_serializer_t::index_write(new_mutex_in_line_t *mutex_acq,
 
             if (op.token) {
                 // Update the offset pointed to, and mark garbage/liveness as necessary.
-                counted_t<ls_block_token_pointee_t> token
-                    = get_ls_block_token(op.token.get());
 
                 // Mark old offset as garbage
                 if (offset.has_value()) {
@@ -502,12 +498,15 @@ void log_serializer_t::index_write(new_mutex_in_line_t *mutex_acq,
                 }
 
                 // Write new token to index, or remove from index as appropriate.
-                if (token.has()) {
-                    offset = flagged_off64_t::make(token->offset_);
-                    ser_block_size = token->block_size().ser_value();
+                if (op.token->has()) {
+                    const ls_block_token_pointee_t *ls_token
+                        = static_cast<const ls_block_token_pointee_t *>(op.token->get());
+
+                    offset = flagged_off64_t::make(ls_token->offset_);
+                    ser_block_size = ls_token->block_size().ser_value();
 
                     /* mark the life */
-                    data_block_manager->mark_live(offset.get_value(), token->block_size());
+                    data_block_manager->mark_live(offset.get_value(), ls_token->block_size());
                 } else {
                     offset = flagged_off64_t::unused();
                     ser_block_size = 0;
@@ -632,13 +631,13 @@ log_serializer_t::generate_block_token(int64_t offset, block_size_t block_size) 
     return ret;
 }
 
-std::vector<counted_t<ls_block_token_pointee_t> >
+std::vector<counted_t<block_token_t> >
 log_serializer_t::block_writes(const std::vector<buf_write_info_t> &write_infos,
                                file_account_t *io_account, iocallback_t *cb) {
     assert_thread();
     stats->pm_serializer_block_writes += write_infos.size();
 
-    std::vector<counted_t<ls_block_token_pointee_t> > result
+    std::vector<counted_t<block_token_t> > result
         = data_block_manager->many_writes(write_infos, io_account, cb);
     guarantee(result.size() == write_infos.size());
     return result;
@@ -753,7 +752,7 @@ block_id_t log_serializer_t::max_block_id() {
     return lba_index->end_block_id();
 }
 
-counted_t<ls_block_token_pointee_t> log_serializer_t::index_read(block_id_t block_id) {
+counted_t<block_token_t> log_serializer_t::index_read(block_id_t block_id) {
     assert_thread();
     ++stats->pm_serializer_index_reads;
 
@@ -925,7 +924,7 @@ void log_serializer_t::unregister_read_ahead_cb(serializer_read_ahead_callback_t
 void log_serializer_t::offer_buf_to_read_ahead_callbacks(
         block_id_t block_id,
         buf_ptr_t &&buf,
-        const counted_t<standard_block_token_t> &token) {
+        const counted_t<block_token_t> &token) {
     assert_thread();
 
     buf_ptr_t local_buf = std::move(buf);
@@ -944,7 +943,7 @@ bool log_serializer_t::should_perform_read_ahead() {
 ls_block_token_pointee_t::ls_block_token_pointee_t(log_serializer_t *serializer,
                                                    int64_t initial_offset,
                                                    block_size_t initial_block_size)
-    : serializer_(serializer), ref_count_(0),
+    : block_token_t(serializer->home_thread()), serializer_(serializer),
       block_size_(initial_block_size), offset_(initial_offset) {
     serializer_->assert_thread();
     serializer_->register_block_token(this, initial_offset);
@@ -952,7 +951,6 @@ ls_block_token_pointee_t::ls_block_token_pointee_t(log_serializer_t *serializer,
 
 void ls_block_token_pointee_t::do_destroy() {
     serializer_->assert_thread();
-    rassert(ref_count_ == 0);
     serializer_->unregister_block_token(this);
     delete this;
 }
@@ -967,32 +965,8 @@ void debug_print(printf_buffer_t *buf,
     }
 }
 
-void counted_add_ref(ls_block_token_pointee_t *p) {
-    DEBUG_VAR intptr_t res = __sync_add_and_fetch(&p->ref_count_, 1);
-    rassert(res > 0);
-}
-
-void counted_release(ls_block_token_pointee_t *p) {
-    struct destroyer_t : public linux_thread_message_t {
-        void on_thread_switch() {
-            rassert(p->ref_count_ == 0);
-            p->do_destroy();
-            delete this;
-        }
-        ls_block_token_pointee_t *p;
-    };
-
-    intptr_t res = __sync_sub_and_fetch(&p->ref_count_, 1);
-    rassert(res >= 0);
-    if (res == 0) {
-        if (get_thread_id() == p->serializer_->home_thread()) {
-            p->do_destroy();
-        } else {
-            destroyer_t *destroyer = new destroyer_t;
-            destroyer->p = p;
-            DEBUG_VAR bool cont = continue_on_thread(p->serializer_->home_thread(),
-                                                     destroyer);
-            rassert(!cont);
-        }
-    }
+counted_t<block_token_t>
+to_standard_block_token(UNUSED block_id_t block_id,
+                        counted_t<ls_block_token_pointee_t> tok) {
+    return tok;
 }
