@@ -279,7 +279,9 @@ bool do_serve(io_backender_t *io_backender,
                 &mailbox_manager,
                 server_id,
                 &rdb_ctx,
-                table_persistence_interface.get(),
+                /* A `table_persistence_interface` is only instantiated when
+                `i_am_a_server` is true, and a `nullptr` otherwise. */
+                table_persistence_interface.get_or_null(),
                 multi_table_manager.get());
             stat_manager_t stat_manager(&mailbox_manager, server_id);
 

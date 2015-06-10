@@ -304,12 +304,13 @@ void multi_table_manager_t::on_action(
     guarantee(is_new || table->status != table_t::status_t::DELETED,
         "It shouldn't be possible to undelete a table.");
 
-    perfmon_collection_repo_t::collections_t *perfmon_collections =
-        perfmon_collection_repo->get_perfmon_collections_for_namespace(table_id);
-
     /* Bring record up to date */
     if (action_status == action_status_t::ACTIVE) {
         guarantee(!is_proxy_server, "proxy server shouldn't be hosting data");
+
+        perfmon_collection_repo_t::collections_t *perfmon_collections =
+            perfmon_collection_repo->get_perfmon_collections_for_namespace(table_id);
+
         if (is_new || table->status != table_t::status_t::ACTIVE) {
             /* The table is being created, or we are joining it */
             table->status = table_t::status_t::ACTIVE;
