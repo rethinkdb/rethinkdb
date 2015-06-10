@@ -438,7 +438,7 @@ void calculate_all_contracts(
             if (this_contract_acks != acks.end()) {
                 for (const auto &pair : this_contract_acks->second) {
                     region_map_t<contract_ack_frag_t> frags = break_ack_into_fragments(
-                        region, pair.seecond, old_state.current_branches,
+                        region, pair.second, old_state.current_branches,
                         &old_state.branch_history);
                     frags.visit(region,
                     [&](const region_t &reg, const contract_ack_frag_t &frag) {

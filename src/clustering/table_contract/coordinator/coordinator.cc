@@ -130,7 +130,7 @@ void contract_coordinator_t::pump_contracts(signal_t *interruptor) {
                 &change.remove_contracts, &change.add_contracts,
                 &change.register_current_branches);
             calculate_branch_history(
-                state->state, acks,
+                state->state, acks_by_contract,
                 change.remove_contracts, change.add_contracts,
                 change.register_current_branches,
                 &change.remove_branches, &change.add_branches);

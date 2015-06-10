@@ -136,7 +136,7 @@ public:
             contract_ack_t ack(st);
             ack.branch = boost::make_optional(branch->branch_ids[i]);
             ack.branch_history = branch_history;
-            ack[contracts.contract_ids[i]][server] = ack;
+            acks[contracts.contract_ids[i]][server] = ack;
         }
     }
 
@@ -184,21 +184,11 @@ public:
             &remove_contracts, &add_contracts, &register_current_branches);
         std::set<branch_id_t> remove_branches;
         branch_history_t add_branches;
-        calculate_branch_history(state, &acks, remove_contracts, add_contracts,
+        calculate_branch_history(state, acks, remove_contracts, add_contracts,
             register_current_branches, &remove_branches, &add_branches);
         for (const contract_id_t &id : remove_contracts) {
             state.contracts.erase(id);
-            /* Clean out acks for obsolete contract */
-            std::set<server_id_t> servers;
-            acks.read_all(
-            [&](const std::pair<server_id_t, contract_id_t> &k, const contract_ack_t *) {
-                if (k.second == id) {
-                    servers.insert(k.first);
-                }
-            });
-            for (const server_id_t &s : servers) {
-                acks.delete_key(std::make_pair(s, id));
-            }
+            acks.erase(id);
         }
         state.contracts.insert(add_contracts.begin(), add_contracts.end());
         for (const auto &region_branch : register_current_branches) {
