@@ -107,8 +107,13 @@ raft_member_t<state_t>::raft_member_t(
 
 template<class state_t>
 raft_member_t<state_t>::~raft_member_t() {
+    assert_thread();
     /* Now that the destructor has been called, we can safely assume that our public
     methods will not be called. */
+
+    /* In addition unsubscribe from member change events, so we're sure to not get
+    those either while destructing. */
+    connected_members_subs.reset();
 
     new_mutex_acq_t mutex_acq(&mutex);
     DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
@@ -160,7 +165,7 @@ raft_member_t<state_t>::change_token_t::change_token_t(
         raft_member_t *_parent,
         raft_log_index_t _index,
         bool _is_config) :
-    is_config(_is_config), sentry(&_parent->change_tokens, _index, this) { } 
+    is_config(_is_config), sentry(&_parent->change_tokens, _index, this) { }
 
 template<class state_t>
 scoped_ptr_t<typename raft_member_t<state_t>::change_token_t>
@@ -832,13 +837,14 @@ void raft_member_t<state_t>::on_connected_members_change(
         const raft_member_id_t &member_id,
         const boost::optional<raft_term_t> *value) {
     assert_thread();
+    auto_drainer_t::lock_t keepalive(drainer.get());
+
     update_readiness_for_change();
     if (value != nullptr && static_cast<bool>(*value) && member_id != this_member_id) {
         /* We've received a "start virtual heartbeats" message. We process the term just
         like for an AppendEntries or InstallSnapshot RPC, but we don't actually append
         any entries or install any snapshots. */
         raft_term_t term = **value;
-        auto_drainer_t::lock_t keepalive(drainer.get());
         coro_t::spawn_sometime(
         [this, term, member_id, keepalive /* important to capture */]() {
             try {
@@ -864,6 +870,7 @@ void raft_member_t<state_t>::on_connected_members_change(
                 heartbeats. */
                 if (network->get_connected_members()->get_key(member_id)
                         == boost::make_optional(boost::make_optional(term))) {
+                    guarantee(virtual_heartbeat_sender.is_nil());
                     virtual_heartbeat_sender = member_id;
 
                     /* As long as we're receiving valid virtual heartbeats, we won't
@@ -1045,6 +1052,8 @@ void raft_member_t<state_t>::update_term(
     `virtual_heartbeat_sender`. */
     current_term_leader_id = raft_member_id_t();
     virtual_heartbeat_sender = raft_member_id_t();
+    virtual_heartbeat_watchdog_blockers[0].reset();
+    virtual_heartbeat_watchdog_blockers[1].reset();
 }
 
 template<class state_t>
@@ -1868,7 +1877,7 @@ void raft_member_t<state_t>::leader_continue_reconfiguration(
         new_entry.term = ps.current_term;
 
         leader_append_log_entry(new_entry, mutex_acq, interruptor);
-    } 
+    }
 }
 
 template<class state_t>
