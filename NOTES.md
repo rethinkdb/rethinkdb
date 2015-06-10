@@ -1,3 +1,20 @@
+# Release 2.0.3 (Yojimbo)
+
+Released on 2015-06-10
+
+Bug fix release
+
+* Fixed a bug that broke autocompletion in the Data Explorer (#4261)
+* No longer crash for certain types of stack overflows during query execution (#2639)
+* No longer crash when returning a function from `r.js` (#4190)
+* Fixed a race condition when closing cursors in the JavaScript driver (#4240)
+* Fixed a race condition when closing connections in the JavaScript driver (#4250)
+* Added support for building with GCC 5.1 (#4264)
+* Improved handling of coroutine stack overflows on OS X (#4299)
+* Removed an invalid assertion in the server (#4313)
+
+--
+
 # Release 2.0.2 (Yojimbo)
 
 Released on 2015-05-22
