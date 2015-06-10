@@ -108,9 +108,7 @@ public:
         guarantee(st != contract_ack_t::state_t::secondary_need_primary &&
             st != contract_ack_t::state_t::primary_need_branch);
         for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
-            acks.set_key_no_equals(
-                std::make_pair(server, contracts.contract_ids[i]),
-                contract_ack_t(st));
+            acks[contracts.contract_ids[i]][server] = contract_ack_t(st);
         }
     }
     void add_ack(
@@ -124,9 +122,7 @@ public:
             contract_ack_t ack(st);
             ack.version = boost::make_optional(quick_cpu_version_map(i, version));
             ack.branch_history = branch_history;
-            acks.set_key_no_equals(
-                std::make_pair(server, contracts.contract_ids[i]),
-                ack);
+            acks[contracts.contract_ids[i]][server] = ack;
         }
     }
     void add_ack(
@@ -140,9 +136,7 @@ public:
             contract_ack_t ack(st);
             ack.branch = boost::make_optional(branch->branch_ids[i]);
             ack.branch_history = branch_history;
-            acks.set_key_no_equals(
-                std::make_pair(server, contracts.contract_ids[i]),
-                ack);
+            ack[contracts.contract_ids[i]][server] = ack;
         }
     }
 
@@ -150,7 +144,10 @@ public:
     This can be used to simulate e.g. server failures. */
     void remove_ack(const server_id_t &server, const cpu_contract_ids_t &contracts) {
         for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
-            acks.delete_key(std::make_pair(server, contracts.contract_ids[i]));
+            acks[contracts.contract_ids[i]].erase(server);
+            if (acks[contracts.contract_ids[i]].empty()) {
+                acks.erase(contracts.contract_ids[i]);
+            }
         }
     }
 
@@ -183,7 +180,7 @@ public:
         std::set<contract_id_t> remove_contracts;
         std::map<contract_id_t, std::pair<region_t, contract_t> > add_contracts;
         std::map<region_t, branch_id_t> register_current_branches;
-        calculate_all_contracts(state, &acks, &connections, "",
+        calculate_all_contracts(state, acks, &connections, "",
             &remove_contracts, &add_contracts, &register_current_branches);
         std::set<branch_id_t> remove_branches;
         branch_history_t add_branches;
@@ -290,7 +287,7 @@ public:
 
     table_raft_state_t state;
     std::set<server_id_t> all_servers;
-    watchable_map_var_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> acks;
+    std::map<contract_id_t, std::map<server_id_t, contract_ack_t> > acks;
     watchable_map_var_t<std::pair<server_id_t, server_id_t>, empty_value_t> connections;
 };
 

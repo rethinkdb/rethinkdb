@@ -18,8 +18,9 @@ contract_coordinator_t::contract_coordinator_t(
     log_prefix(_log_prefix),
     config_pumper(std::bind(&contract_coordinator_t::pump_configs, this, ph::_1)),
     contract_pumper(std::bind(&contract_coordinator_t::pump_contracts, this, ph::_1)),
-    ack_subs(
-        acks, std::bind(&pump_coro_t::notify, &contract_pumper), initial_call_t::NO),
+    ack_subs(acks,
+             std::bind(&contract_coordinator_t::on_ack_change, this, ph::_1, ph::_2),
+             initial_call_t::YES),
     connections_map_subs(connections_map,
         std::bind(&pump_coro_t::notify, &contract_pumper), initial_call_t::NO)
 {
@@ -76,6 +77,27 @@ boost::optional<raft_log_index_t> contract_coordinator_t::change_config(
     return boost::make_optional(log_index);
 }
 
+void contract_coordinator_t::on_ack_change(
+        const std::pair<server_id_t, contract_id_t> &key,
+        const contract_ack_t *ack) {
+    if (ack != nullptr) {
+        acks_by_contract[key.second][key.first] = *ack;
+    } else {
+        auto it = acks_by_contract.find(key.second);
+        if (it != acks_by_contract.end()) {
+            auto jt = it->second.find(key.first);
+            if (jt != it->second.end()) {
+                it->second.erase(jt);
+                if (it->second.empty()) {
+                    acks_by_contract.erase(it);
+                }
+            }
+        }
+    }
+
+    contract_pumper.notify();
+}
+
 void contract_coordinator_t::pump_contracts(signal_t *interruptor) {
     assert_thread();
 
@@ -104,7 +126,7 @@ void contract_coordinator_t::pump_contracts(signal_t *interruptor) {
         raft->get_latest_state()->apply_read(
         [&](const raft_member_t<table_raft_state_t>::state_and_config_t *state) {
             calculate_all_contracts(
-                state->state, acks, connections_map, log_prefix,
+                state->state, acks_by_contract, connections_map, log_prefix,
                 &change.remove_contracts, &change.add_contracts,
                 &change.register_current_branches);
             calculate_branch_history(

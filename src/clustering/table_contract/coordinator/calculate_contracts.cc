@@ -400,7 +400,7 @@ diff anyway in order to reuse contract IDs for contracts that haven't changed, s
 makes sense to combine those two diff processes. */
 void calculate_all_contracts(
         const table_raft_state_t &old_state,
-        watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> *acks,
+        const std::map<contract_id_t, std::map<server_id_t, contract_ack_t> > &acks,
         watchable_map_t<std::pair<server_id_t, server_id_t>, empty_value_t>
             *connections_map,
         const std::string &log_prefix,
@@ -428,30 +428,31 @@ void calculate_all_contracts(
             if (region_is_empty(region)) {
                 continue;
             }
+
             /* Now collect the acks for this contract into `ack_frags`. `ack_frags` is
             homogeneous at first and then it gets fragmented as we iterate over `acks`.
             */
             region_map_t<std::map<server_id_t, contract_ack_frag_t> > frags_by_server(
                 region);
-            acks->read_all([&](
-                    const std::pair<server_id_t, contract_id_t> &key,
-                    const contract_ack_t *value) {
-                if (key.second != cpair.first) {
-                    return;
-                }
-                region_map_t<contract_ack_frag_t> frags = break_ack_into_fragments(
-                    region, *value, old_state.current_branches,
-                    &old_state.branch_history);
-                frags.visit(region,
-                [&](const region_t &reg, const contract_ack_frag_t &frag) {
-                    frags_by_server.visit_mutable(reg,
-                    [&](const region_t &,
-                            std::map<server_id_t, contract_ack_frag_t> *acks_map) {
-                        auto res = acks_map->insert(std::make_pair(key.first, frag));
-                        guarantee(res.second);
+            auto this_contract_acks = acks.find(cpair.first);
+            if (this_contract_acks != acks.end()) {
+                for (const auto &pair : this_contract_acks->second) {
+                    region_map_t<contract_ack_frag_t> frags = break_ack_into_fragments(
+                        region, pair.seecond, old_state.current_branches,
+                        &old_state.branch_history);
+                    frags.visit(region,
+                    [&](const region_t &reg, const contract_ack_frag_t &frag) {
+                        frags_by_server.visit_mutable(reg,
+                        [&](const region_t &,
+                                std::map<server_id_t, contract_ack_frag_t> *acks_map) {
+                            auto res = acks_map->insert(
+                                std::make_pair(pair.first, frag));
+                            guarantee(res.second);
+                        });
                     });
-                });
-            });
+                }
+            }
+
             size_t subshard_index = 0;
             frags_by_server.visit(region,
             [&](const region_t &reg,

@@ -42,6 +42,9 @@ public:
         signal_t *interruptor);
 
 private:
+    void on_ack_change(
+        const std::pair<server_id_t, contract_id_t> &key, const contract_ack_t *ack);
+
     /* `pump_contracts()` is what actually issues the new contracts. It eventually gets
     run after every change. */
     void pump_contracts(signal_t *interruptor);
@@ -58,6 +61,9 @@ private:
     watchable_map_t<std::pair<server_id_t, server_id_t>, empty_value_t>
         *const connections_map;
     const std::string log_prefix;
+
+    /* This is the same as `acks` but indexed by contract. */
+    std::map<contract_id_t, std::map<server_id_t, contract_ack_t> > acks_by_contract;
 
     /* These `pump_coro_t`s are responsible for calling `pump_contracts()` and
     `pump_configs()`. Destructor order matters here. We have to destroy `ack_subs` first,

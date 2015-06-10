@@ -7,7 +7,7 @@
 
 void calculate_all_contracts(
         const table_raft_state_t &old_state,
-        watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> *acks,
+        const std::map<contract_id_t, std::map<server_id_t, contract_ack_t> > &acks,
         watchable_map_t<std::pair<server_id_t, server_id_t>, empty_value_t>
             *connections_map,
         const std::string &log_prefix,
