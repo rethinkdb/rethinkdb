@@ -118,10 +118,16 @@ class TableContainer extends Backbone.View
                             (shard) -> shard('replicas')).count()
                         num_available_replicas: table_status("shards").concatMap(
                             (shard) ->
-                                shard('replicas').filter({state: "ready"})).count()
-                        num_replicas_per_shard: table_config("shards").map(
-                            (shard) -> shard('replicas').count()).max()
-                        status: table_status('status')
+                                shard('replicas').filter({state: "ready"}))
+                                .count().default(0)
+                        num_replicas_per_shard: table_config("shards").default([]).map(
+                            (shard) -> shard('replicas').count()).max().default(0)
+                        status: table_status('status').default(
+                            all_replicas_ready: false
+                            ready_for_reads: false
+                            ready_for_writes: false
+                            ready_for_outdated_reads: false
+                        )
                         id: table_status("id")
                         # These are updated below if the table is ready
                     ).without('shards')

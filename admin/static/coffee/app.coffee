@@ -234,9 +234,18 @@ class Driver
                             table: table('table')
                             indexes: table('indexes')
                     )
+                table_avail = issue('info').merge(
+                    table_id: issue_id('info')('table')
+                    shards: issue('info')('shards').default([])
+                    missing_servers: issue('info')('shards').default([])('replicas')
+                        .concatMap((x) -> x)
+                        .filter(state: 'disconnected')('server')
+                        .distinct()
+                )
                 info: driver.helpers.match(issue('type'),
                     ['log_write_error', log_write_error],
                     ['outdated_index', outdated_index],
+                    ['table_availability', table_avail],
                     [issue('type'), issue('info')], # default
                 )
             ).coerceTo('array')
