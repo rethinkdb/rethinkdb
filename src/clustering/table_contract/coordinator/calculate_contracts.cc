@@ -511,16 +511,19 @@ void calculate_all_contracts(
         region_map_t<contract_t>::from_unordered_fragments(
             std::move(new_contract_region_vector), std::move(new_contract_vector));
 
-    /* Slice the new contracts by CPU shard, so that no contract spans more than one CPU
-    shard */
+    /* Slice the new contracts by CPU shard and by user shard, so that no contract spans
+    more than one CPU shard or user shard. */
     std::map<region_t, contract_t> new_contract_map;
     for (size_t cpu = 0; cpu < CPU_SHARDING_FACTOR; ++cpu) {
-        region_t cpu_region = cpu_sharding_subspace(cpu);
-        new_contract_region_map.visit(cpu_region,
-        [&](const region_t &reg, const contract_t &contract) {
-            guarantee(reg.beg == cpu_region.beg && reg.end == cpu_region.end);
-            new_contract_map.insert(std::make_pair(reg, contract));
-        });
+        region_t region = cpu_sharding_subspace(cpu);
+        for (size_t shard = 0; shard < old_state.config.config.shards.size(); ++shard) {
+            region.inner = old_state.config.shard_scheme.get_shard_range(shard);
+            new_contract_region_map.visit(region,
+            [&](const region_t &reg, const contract_t &contract) {
+                guarantee(reg.beg == region.beg && reg.end == region.end);
+                new_contract_map.insert(std::make_pair(reg, contract));
+            });
+        }
     }
 
     /* Diff the new contracts against the old contracts */
