@@ -43,6 +43,27 @@ void primary_execution_t::update_contract_or_raft_state(
     assert_thread();
     ASSERT_NO_CORO_WAITING;
 
+    /* Has our branch ID been registered yet? */
+    if (!branch_registered.is_pulsed()) {
+        bool branch_matches = true;
+        raft_state.current_branches.visit(region,
+        [&](const region_t &, const branch_id_t &b) {
+            if (boost::make_optional(b) != our_branch_id) {
+                branch_matches = false;
+            }
+        });
+        if (branch_matches) {
+            rassert(!branch_registered.is_pulsed());
+            /* This raft state update just confirmed our branch ID */
+            branch_registered.pulse();
+            /* Change `latest_ack` immediately so we don't keep sending the branch
+            registration request */
+            latest_ack = boost::make_optional(contract_ack_t(
+                contract_ack_t::state_t::primary_in_progress));
+            ack_cb(contract_id, *latest_ack);
+        }
+    }
+
     const contract_t &contract = raft_state.contracts.at(contract_id).second;
     guarantee(static_cast<bool>(contract.primary));
     guarantee(contract.primary->server == context->server_id);
@@ -64,26 +85,6 @@ void primary_execution_t::update_contract_or_raft_state(
     latest_contract_home_thread->obsolete.pulse();
     latest_contract_home_thread = new_contract;
 
-    /* Has our branch ID been registered yet? */
-    if (!branch_registered.is_pulsed()) {
-        bool branch_matches = true;
-        raft_state.current_branches.visit(region,
-        [&](const region_t &, const branch_id_t &b) {
-            if (boost::make_optional(b) != our_branch_id) {
-                branch_matches = false;
-            }
-        });
-        if (branch_matches) {
-            rassert(!branch_registered.is_pulsed());
-            /* This raft state update just confirmed our branch ID */
-            branch_registered.pulse();
-            /* Change `latest_ack` immediately so we don't keep sending the branch
-            registration request */
-            latest_ack = boost::make_optional(contract_ack_t(
-                contract_ack_t::state_t::primary_in_progress));
-        }
-    }
-
     /* If we were acking `primary_ready`, go back to acking `primary_in_progress` until
     we sync with the replicas according to the new contract. */
     if (static_cast<bool>(latest_ack) &&
@@ -100,6 +101,7 @@ void primary_execution_t::update_contract_or_raft_state(
         drainer.lock(),
         new new_mutex_in_line_t(&update_contract_mutex)));
 
+    /* Send an ack for the new contract */
     if (static_cast<bool>(latest_ack)) {
         ack_cb(contract_id, *latest_ack);
     }
