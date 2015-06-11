@@ -13,23 +13,21 @@ tests:
       ot: partial({'errors':0, 'inserted':6})
     
     - cd: tbl.count()
-      ot: 6
+      ot: (6)
     
     # == tests
     
-#    # - two streams
-#    
-#    - cd: tbl.union(tbl)
-#      ot:
-#        cd: bag(data * 2)
-#        js: bag(data.concat(data))
-    
-    # - top level object
+    # - two streams    
+    - cd: tbl.union(tbl)
       ot:
         cd: bag(data * 2)
         js: bag(data.concat(data))
-        
+    
+    # - top level object
     - cd: r.union(tbl, tbl)
+      ot:
+        cd: bag(data * 2)
+        js: bag(data.concat(data))
     
 #    # - two changefeeds
 #    
