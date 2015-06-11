@@ -6,7 +6,7 @@
 
 void calculate_branch_history(
         const table_raft_state_t &old_state,
-        watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> *acks,
+        const std::map<contract_id_t, std::map<server_id_t, contract_ack_t> > &acks,
         const std::set<contract_id_t> &remove_contracts,
         const std::map<contract_id_t, std::pair<region_t, contract_t> > &add_contracts,
         const std::map<region_t, branch_id_t> &register_current_branches,

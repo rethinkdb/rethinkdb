@@ -10,7 +10,7 @@ history stored in the Raft state. In practice this means two things:
 */
 void calculate_branch_history(
         const table_raft_state_t &old_state,
-        watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> *acks,
+        const std::map<contract_id_t, std::map<server_id_t, contract_ack_t> > &acks,
         const std::set<contract_id_t> &remove_contracts,
         const std::map<contract_id_t, std::pair<region_t, contract_t> > &add_contracts,
         const std::map<region_t, branch_id_t> &register_current_branches,
@@ -23,13 +23,14 @@ void calculate_branch_history(
     (void)add_contracts;
     (void)register_current_branches;
     (void)remove_branches_out;
-    acks->read_all([&](
-            const std::pair<server_id_t, contract_id_t> &,
-            const contract_ack_t *ack) {
-        if (static_cast<bool>(ack->branch)) {
-            ack->branch_history.export_branch_history(*ack->branch, add_branches_out);
+    for (const auto &pair : acks) {
+        for (const auto &pair2 : pair.second) {
+            if (static_cast<bool>(pair2.second.branch)) {
+                pair2.second.branch_history.export_branch_history(
+                    *pair2.second.branch, add_branches_out);
+            }
         }
-    });
+    }
 }
 
 /* `calculate_server_names()` figures out what changes need to be made to the server
