@@ -26,7 +26,8 @@ coro_profiler_t &coro_profiler_t::get_global_profiler() {
 coro_profiler_t::coro_profiler_t() : reql_output_file(nullptr) {
     logINF("Coro profiler activated.");
 
-    const std::string reql_output_filename = "coro_profiler_out.py";
+    const std::string reql_output_filename =
+        strprintf("coro_profiler_out_%d.py", static_cast<int>(getpid()));
     reql_output_file = fopen(reql_output_filename.c_str(), "w");
     if (reql_output_file != nullptr) {
         logINF("Writing profiler reports to '%s'", reql_output_filename.c_str());

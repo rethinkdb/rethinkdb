@@ -369,13 +369,10 @@ private:
             b |= info.add("name", datum_t(datum_string_t(table->name)));
             b |= info.add("primary_key",
                           datum_t(datum_string_t(table->get_pkey())));
-            b |= info.add("indexes", table->sindex_list(env->env));
             b |= info.add("db", val_info(env, new_val(table->db)));
             b |= info.add("id", table->get_id());
+            name_string_t name = name_string_t::guarantee_valid(table->name.c_str());
             {
-                name_string_t name;
-                bool ok = name.assign_value(table->name);
-                guarantee(ok, "table->name should have been a valid name");
                 std::string error;
                 std::vector<int64_t> doc_counts;
                 if (!env->env->reql_cluster_interface()->table_estimate_doc_counts(
@@ -387,6 +384,21 @@ private:
                     arr.add(datum_t(static_cast<double>(i)));
                 }
                 b |= info.add("doc_count_estimates", std::move(arr).to_datum());
+            }
+            {
+                std::string error;
+                std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
+                    configs_and_statuses;
+                if (!env->env->reql_cluster_interface()->sindex_list(
+                        table->db, name, env->env->interruptor,
+                        &error, &configs_and_statuses)) {
+                    rfail(base_exc_t::GENERIC, "%s", error.c_str());
+                }
+                ql::datum_array_builder_t res(ql::configured_limits_t::unlimited);
+                for (const auto &pair : configs_and_statuses) {
+                    res.add(ql::datum_t(datum_string_t(pair.first)));
+                }
+                b |= info.add("indexes", std::move(res).to_datum());
             }
         } break;
         case SELECTION_TYPE: {

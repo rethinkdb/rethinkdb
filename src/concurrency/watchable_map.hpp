@@ -10,6 +10,7 @@
 
 #include "concurrency/signal.hpp"
 #include "concurrency/pubsub.hpp"
+#include "concurrency/watchable.hpp"
 #include "containers/map_sentries.hpp"
 #include "utils.hpp"
 
@@ -34,12 +35,12 @@ public:
     public:
         /* Starts watching for changes to the given map. When a change occurs to a key,
         `cb` will be called with the key and a pointer to the new value, or `nullptr` if
-        the key was deleted. If `initial_call` is `true`, then `cb` will be called once
+        the key was deleted. If `initial_call` is `YES`, then `cb` will be called once
         for each key-value pair in the map at the time the `all_subs_t` is created. */
         all_subs_t(
             watchable_map_t<key_t, value_t> *map,
             const std::function<void(const key_t &, const value_t *)> &cb,
-            bool initial_call = true);
+            initial_call_t initial_call = initial_call_t::YES);
 
     private:
         typename publisher_t<std::function<void(const key_t &, const value_t *)> >
@@ -53,13 +54,13 @@ public:
     public:
         /* Starts watching for changes to the given key in the given map. When `key` is
         inserted, changed, or deleted in `map`, `cb` will be called with a pointer to the
-        new value, or `nullptr` if `key` was deleted. If `initial_call` is `true`, then
+        new value, or `nullptr` if `key` was deleted. If `initial_call` is `YES`, then
         the constructor will call `cb` once with the initial value of `key`. */
         key_subs_t(
             watchable_map_t<key_t, value_t> *map,
             const key_t &key,
             const std::function<void(const value_t *maybe_value)> &cb,
-            bool initial_call = true);
+            initial_call_t initial_call = initial_call_t::YES);
 
     private:
         multimap_insertion_sentry_t<key_t, std::function<void(const value_t *)> > sentry;
@@ -131,6 +132,31 @@ private:
 template<class key_t, class value_t>
 class watchable_map_var_t : public watchable_map_t<key_t, value_t> {
 public:
+    /* `entry_t` creates a map entry in its constructor and removes it in the destructor.
+    It is an alternative to `set_key()` and `delete_key()`. It crashes if an entry with
+    that key already exists. Don't call `delete_key()` on the entry that this creates,
+    and don't call `set_all()` while this exists. */
+    class entry_t {
+    public:
+        entry_t() : parent(nullptr) { }
+        entry_t(watchable_map_var_t *parent, const key_t &key, const value_t &value);
+        entry_t(const entry_t &) = delete;
+        entry_t(entry_t &&);
+        ~entry_t();
+        entry_t &operator=(const entry_t &) = delete;
+        entry_t &operator=(entry_t &&);
+
+        key_t get_key() const;
+        value_t get_value() const;
+        void set(const value_t &new_value);
+        void set_no_equals(const value_t &new_value);
+        void change(const std::function<bool(value_t *value)> &callback);
+
+    private:
+        watchable_map_var_t *parent;
+        typename std::map<key_t, value_t>::iterator iterator;
+    };
+
     watchable_map_var_t() { }
     explicit watchable_map_var_t(std::map<key_t, value_t> &&source);
 
@@ -153,6 +179,17 @@ public:
 
     /* `delete_key()` removes `key` from the map if it was present before. */
     void delete_key(const key_t &key);
+
+    /* `change_key()` atomically modifies the value of `key`. It calls the callback
+    exactly once, with two parameters `exists` and `value`. If the key is present,
+    `*exists` will be `true` and `*value` will be its value; if the key is absent, then
+    `*exists` will be `false` and `*value` will be a valid buffer but with undefined
+    contents. The callback can modify `*exists` and/or `*value`. It must return `true` if
+    it makes any changes. these changes will be reflected in the `watchable_map_t`. The
+    callback must not block or call any other methods of the `watchable_map_var_t`. */
+    void change_key(
+        const key_t &key,
+        const std::function<bool(bool *exists, value_t *value)> &callback);
 
     void rethread(threadnum_t new_thread) {
         watchable_map_t<key_t, value_t>::rethread(new_thread);

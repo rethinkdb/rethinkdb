@@ -37,6 +37,7 @@ public:
     bool to_datum(
             admin_identifier_format_t identifier_format,
             server_config_client_t *server_config_client,
+            table_meta_client_t *table_meta_client,
             cluster_semilattice_metadata_t const &metadata,
             ql::datum_t *row_out) const;
 
@@ -65,6 +66,7 @@ public:
     bool info_derived(
             admin_identifier_format_t identifier_format,
             server_config_client_t *server_config_client,
+            table_meta_client_t *table_meta_client,
             cluster_semilattice_metadata_t const &metadata,
             ql::datum_object_builder_t *info_builder_out) const;
 
@@ -91,6 +93,7 @@ public:
     bool info_derived(
             admin_identifier_format_t identifier_format,
             server_config_client_t *server_config_client,
+            table_meta_client_t *table_meta_client,
             cluster_semilattice_metadata_t const &metadata,
             ql::datum_object_builder_t *info_builder_out) const;
 };
@@ -107,13 +110,15 @@ public:
             namespace_id_t const &table,
             std::string const &index,
             bool is_ready,
-            double progress);
+            double progress_numerator,
+            double progress_denominator);
 
     void merge_derived(index_construction_job_report_t const &job_report);
 
     bool info_derived(
             admin_identifier_format_t identifier_format,
             server_config_client_t *server_config_client,
+            table_meta_client_t *table_meta_client,
             cluster_semilattice_metadata_t const &metadata,
             ql::datum_object_builder_t *info_builder_out) const;
 
@@ -140,6 +145,7 @@ public:
     bool info_derived(
             admin_identifier_format_t identifier_format,
             server_config_client_t *server_config_client,
+            table_meta_client_t *table_meta_client,
             cluster_semilattice_metadata_t const &metadata,
             ql::datum_object_builder_t *info_builder_out) const;
 

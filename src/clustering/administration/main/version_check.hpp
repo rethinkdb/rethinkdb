@@ -13,8 +13,8 @@
 #include "rdb_protocol/context.hpp"
 
 struct http_result_t;
-
-class cluster_semilattice_metadata_t;
+class server_config_client_t;
+class table_meta_client_t;
 
 enum class update_check_t {
     do_not_perform,
@@ -23,23 +23,28 @@ enum class update_check_t {
 
 class version_checker_t : private repeating_timer_callback_t {
 public:
-    typedef boost::shared_ptr<semilattice_readwrite_view_t
-                              <cluster_semilattice_metadata_t> > metadata_ptr_t;
-    version_checker_t(rdb_context_t *, version_checker_t::metadata_ptr_t,
-                      const std::string &);
+    version_checker_t(
+        rdb_context_t *_rdb_ctx,
+        const std::string &_uname,
+        table_meta_client_t *_table_meta_client,
+        server_config_client_t *_server_config_client);
 private:
     void do_check(bool is_initial, auto_drainer_t::lock_t keepalive);
     virtual void on_ring() {
         coro_t::spawn_sometime(std::bind(&version_checker_t::do_check,
                                          this, false, drainer.lock()));
     }
+    int cook(int);
+    size_t count_servers();
+    size_t count_tables();
     void process_result(const http_result_t &);
-    double cook(double);
 
-    rdb_context_t *rdb_ctx;
+    rdb_context_t *const rdb_ctx;
+    std::string const uname;
+    table_meta_client_t *const table_meta_client;
+    server_config_client_t *const server_config_client;
+
     datum_string_t seen_version;
-    version_checker_t::metadata_ptr_t metadata;
-    std::string uname;
     auto_drainer_t drainer;
     repeating_timer_t timer;
 };

@@ -131,7 +131,7 @@ connectivity_cluster_t::connection_t::connection_t(run_t *p,
                                                    const peer_address_t &a) THROWS_NOTHING :
     conn(c),
     peer_address(a),
-    flusher([&]() {
+    flusher([&](signal_t *) {
         guarantee(this->conn != nullptr);
         // We need to acquire the send_mutex because flushing the buffer
         // must not interleave with other writes (restriction of linux_tcp_conn_t).
@@ -1286,7 +1286,9 @@ void connectivity_cluster_t::send_message(connection_t *connection,
             }
         } /* Releases the send_mutex */
 
-        connection->flusher.sync();
+        connection->flusher.notify();
+        cond_t dummy_interruptor;
+        connection->flusher.flush(&dummy_interruptor);
         if (!connection->conn->is_write_open()) {
             if (connection->conn->is_read_open()) {
                 connection->conn->shutdown_read();

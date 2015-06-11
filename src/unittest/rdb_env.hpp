@@ -24,7 +24,6 @@
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/watchable.hpp"
 #include "unittest/dummy_metadata_controller.hpp"
-#include "unittest/test_cluster_group.hpp"
 #include "unittest/unittest_utils.hpp"
 
 namespace unittest {
@@ -45,10 +44,6 @@ public:
               read_response_t *response,
               UNUSED order_token_t tok,
               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
-
-    void read_outdated(const read_t &query,
-                       read_response_t *response,
-                       signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
 
     void write(const write_t &query,
                write_response_t *response,
@@ -80,8 +75,6 @@ private:
         void NORETURN operator()(UNUSED const intersecting_geo_read_t &gr);
         void NORETURN operator()(UNUSED const nearest_geo_read_t &gr);
         void NORETURN operator()(UNUSED const distribution_read_t &dg);
-        void NORETURN operator()(UNUSED const sindex_list_t &sl);
-        void NORETURN operator()(UNUSED const sindex_status_t &ss);
 
         read_visitor_t(mock_namespace_interface_t *parent, read_response_t *_response);
 
@@ -95,9 +88,6 @@ private:
         void operator()(const dummy_write_t &d);
         void NORETURN operator()(UNUSED const point_write_t &w);
         void NORETURN operator()(UNUSED const point_delete_t &d);
-        void NORETURN operator()(UNUSED const sindex_create_t &s);
-        void NORETURN operator()(UNUSED const sindex_drop_t &s);
-        void NORETURN operator()(UNUSED const sindex_rename_t &s);
         void NORETURN operator()(UNUSED const sync_t &s);
 
         write_visitor_t(mock_namespace_interface_t *parent, write_response_t *_response);
@@ -240,6 +230,15 @@ public:
                 ql::datum_t *result_out,
                 std::string *error_out);
 
+        bool table_emergency_repair(
+                counted_t<const ql::db_t> db,
+                const name_string_t &name,
+                bool allow_erase,
+                bool dry_run,
+                signal_t *interruptor,
+                ql::datum_t *result_out,
+                std::string *error_out);
+
         bool table_rebalance(
                 counted_t<const ql::db_t> db,
                 const name_string_t &name,
@@ -251,6 +250,35 @@ public:
                 signal_t *interruptor,
                 ql::datum_t *result_out,
                 std::string *error_out);
+
+        bool sindex_create(
+                counted_t<const ql::db_t> db,
+                const name_string_t &table,
+                const std::string &name,
+                const sindex_config_t &config,
+                signal_t *interruptor,
+                std::string *error_out);
+        bool sindex_drop(
+                counted_t<const ql::db_t> db,
+                const name_string_t &table,
+                const std::string &name,
+                signal_t *interruptor,
+                std::string *error_out);
+        bool sindex_rename(
+                counted_t<const ql::db_t> db,
+                const name_string_t &table,
+                const std::string &name,
+                const std::string &new_name,
+                bool overwrite,
+                signal_t *interruptor,
+                std::string *error_out);
+        bool sindex_list(
+                counted_t<const ql::db_t> db,
+                const name_string_t &table,
+                signal_t *interruptor,
+                std::string *error_out,
+                std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
+                    *configs_and_statuses_out);
 
     private:
         extproc_pool_t extproc_pool;

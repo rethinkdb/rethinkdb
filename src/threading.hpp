@@ -9,6 +9,7 @@ public:
     explicit threadnum_t(int32_t _threadnum) : threadnum(_threadnum) { }
 
     bool operator==(threadnum_t other) const { return threadnum == other.threadnum; }
+    bool operator!=(threadnum_t other) const { return !(*this == other); }
 
     int32_t threadnum;
 };

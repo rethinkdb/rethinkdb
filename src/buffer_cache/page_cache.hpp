@@ -226,6 +226,10 @@ private:
 
     // Returns true if the page has been created, edited, or deleted.
     bool dirtied_page() const;
+
+    // Returns true if the page's recency has been modified.
+    bool touched_page() const;
+
     // Declares ourself readonly.  Only page_txn_t::remove_acquirer can do this!
     void declare_readonly();
 
@@ -255,7 +259,7 @@ private:
     // cache bookkeeping only.
     block_version_t block_version_;
 
-    bool dirtied_page_;
+    bool dirtied_page_, touched_page_;
 
     DISABLE_COPYING(current_page_acq_t);
 };

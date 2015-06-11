@@ -5,8 +5,8 @@
 #include <vector>
 
 #include "clustering/administration/issues/local.hpp"
-#include "clustering/administration/main/watchable_fields.hpp"
 #include "concurrency/watchable.hpp"
+#include "concurrency/watchable_transform.hpp"
 #include "containers/clone_ptr.hpp"
 #include "rpc/semilattice/joins/macros.hpp"
 #include "rpc/serialize_macros.hpp"
@@ -33,6 +33,7 @@ private:
     bool build_info_and_description(
         const metadata_t &metadata,
         server_config_client_t *server_config_client,
+        table_meta_client_t *table_meta_client,
         admin_identifier_format_t identifier_format,
         ql::datum_t *info_out,
         datum_string_t *description_out) const;
@@ -58,6 +59,7 @@ private:
     bool build_info_and_description(
         const metadata_t &metadata,
         server_config_client_t *server_config_client,
+        table_meta_client_t *table_meta_client,
         admin_identifier_format_t identifier_format,
         ql::datum_t *info_out,
         datum_string_t *description_out) const;
@@ -69,64 +71,9 @@ private:
 RDB_DECLARE_SERIALIZABLE(outdated_index_issue_t);
 RDB_DECLARE_EQUALITY_COMPARABLE(outdated_index_issue_t);
 
-class server_disconnected_issue_t : public local_issue_t {
-public:
-    server_disconnected_issue_t();
-    explicit server_disconnected_issue_t(const server_id_t &_disconnected_server_id);
-
-    const datum_string_t &get_name() const { return server_disconnected_issue_type; }
-    bool is_critical() const { return true; }
-
-    server_id_t disconnected_server_id;
-private:
-    bool build_info_and_description(
-        const metadata_t &metadata,
-        server_config_client_t *server_config_client,
-        admin_identifier_format_t identifier_format,
-        ql::datum_t *info_out,
-        datum_string_t *description_out) const;
-
-    static const datum_string_t server_disconnected_issue_type;
-    static const issue_id_t base_issue_id;
-};
-
-RDB_DECLARE_SERIALIZABLE(server_disconnected_issue_t);
-RDB_DECLARE_EQUALITY_COMPARABLE(server_disconnected_issue_t);
-
-class server_ghost_issue_t : public local_issue_t {
-public:
-    server_ghost_issue_t();
-    server_ghost_issue_t(const server_id_t &_ghost_server_id,
-                         const std::string &_hostname,
-                         int64_t _pid);
-
-    const datum_string_t &get_name() const { return server_ghost_issue_type; }
-    bool is_critical() const { return false; }
-
-    server_id_t ghost_server_id;
-    std::string hostname;
-    int64_t pid;
-
-private:
-    bool build_info_and_description(
-        const metadata_t &metadata,
-        server_config_client_t *server_config_client,
-        admin_identifier_format_t identifier_format,
-        ql::datum_t *info_out,
-        datum_string_t *description_out) const;
-
-    static const datum_string_t server_ghost_issue_type;
-    static const issue_id_t base_issue_id;
-};
-
-RDB_DECLARE_SERIALIZABLE(server_ghost_issue_t);
-RDB_DECLARE_EQUALITY_COMPARABLE(server_ghost_issue_t);
-
 class local_issues_t {
 public:
     std::vector<log_write_issue_t> log_write_issues;
-    std::vector<server_disconnected_issue_t> server_disconnected_issues;
-    std::vector<server_ghost_issue_t> server_ghost_issues;
     std::vector<outdated_index_issue_t> outdated_index_issues;
 };
 
@@ -147,7 +94,7 @@ public:
                        std::vector<local_t> local_issues_t::*field) :
             copier(field, source, &parent->issues_watchable) { }
     private:
-        field_copier_t<std::vector<local_t>, local_issues_t> copier;
+        watchable_field_copier_t<std::vector<local_t>, local_issues_t> copier;
     };
 
 private:

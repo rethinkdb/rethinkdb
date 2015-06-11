@@ -8,7 +8,7 @@
 
 #include "buffer_cache/types.hpp"
 #include "concurrency/new_mutex.hpp"
-#include "concurrency/throttled_committer.hpp"
+#include "concurrency/pump_coro.hpp"
 #include "containers/scoped.hpp"
 #include "serializer/buf_ptr.hpp"
 #include "serializer/serializer.hpp"
@@ -134,7 +134,7 @@ private:
     // A map of outstanding index write operations, indexed by block id
     std::map<block_id_t, index_write_op_t> outstanding_index_write_ops;
 
-    throttled_committer_t write_committer;
+    pump_coro_t write_committer;
 
     DISABLE_COPYING(merger_serializer_t);
 };

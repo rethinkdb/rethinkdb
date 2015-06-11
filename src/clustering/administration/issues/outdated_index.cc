@@ -33,6 +33,7 @@ outdated_index_issue_t::outdated_index_issue_t(
 bool outdated_index_issue_t::build_info_and_description(
         const metadata_t &metadata,
         UNUSED server_config_client_t *server_config_client,
+        table_meta_client_t *table_meta_client,
         admin_identifier_format_t identifier_format,
         ql::datum_t *info_out,
         datum_string_t *description_out) const {
@@ -45,7 +46,8 @@ bool outdated_index_issue_t::build_info_and_description(
         ql::datum_t db_name_or_uuid;
         name_string_t db_name;
         if (!convert_table_id_to_datums(pair.first, identifier_format, metadata,
-                &table_name_or_uuid, &table_name, &db_name_or_uuid, &db_name)) {
+                table_meta_client, &table_name_or_uuid, &table_name, &db_name_or_uuid,
+                &db_name)) {
             /* No point in showing an outdated_index issue for a deleted table. */
             continue;
         }
@@ -110,14 +112,14 @@ public:
         parent->recompute();
     }
 
-    void index_renamed(const std::string &old_name,
-                       const std::string &new_name) {
+    void indexes_renamed(const std::map<std::string, std::string> &name_changes) {
         assert_thread();
         std::set<std::string> &ns_set = (*parent->outdated_indexes.get())[ns_id];
-
-        if (ns_set.find(old_name) != ns_set.end()) {
-            ns_set.erase(old_name);
-            ns_set.insert(new_name);
+        for (const auto &pair : name_changes) {
+            ns_set.erase(pair.first);
+        }
+        for (const auto &pair : name_changes) {
+            ns_set.insert(pair.second);
         }
         parent->recompute();
     }
@@ -134,7 +136,8 @@ outdated_index_issue_tracker_t::outdated_index_issue_tracker_t(
         local_issue_aggregator_t *parent) :
     issues(std::vector<outdated_index_issue_t>()),
     subs(parent, issues.get_watchable(), &local_issues_t::outdated_index_issues),
-    update_pool(1, &update_queue, this) { }
+    update_pumper(std::bind(&outdated_index_issue_tracker_t::update, this, ph::_1))
+    { }
 
 scoped_ptr_t<outdated_index_report_t> outdated_index_issue_tracker_t::create_report(
         const namespace_id_t &ns_id) {
@@ -157,7 +160,7 @@ void copy_thread_map(
 
 void outdated_index_issue_tracker_t::recompute() {
     on_thread_t rethreader((threadnum_t(home_thread())));
-    update_queue.give_value(outdated_index_dummy_value_t());
+    update_pumper.notify();
 }
 
 outdated_index_issue_tracker_t::~outdated_index_issue_tracker_t() {
@@ -168,9 +171,7 @@ outdated_index_issue_tracker_t::~outdated_index_issue_tracker_t() {
         });
 }
 
-void outdated_index_issue_tracker_t::coro_pool_callback(
-        UNUSED outdated_index_dummy_value_t dummy,
-        UNUSED signal_t *interruptor) {
+void outdated_index_issue_tracker_t::update(UNUSED signal_t *interruptor) {
     // Collect outdated indexes by table id from all threads
     std::vector<outdated_index_issue_t::index_map_t> all_maps(get_num_threads());
 

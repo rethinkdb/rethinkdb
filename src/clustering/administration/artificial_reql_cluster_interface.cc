@@ -251,6 +251,23 @@ bool artificial_reql_cluster_interface_t::db_reconfigure(
         result_out, error_out);
 }
 
+bool artificial_reql_cluster_interface_t::table_emergency_repair(
+        counted_t<const ql::db_t> db,
+        const name_string_t &name,
+        bool allow_erase,
+        bool dry_run,
+        signal_t *interruptor,
+        ql::datum_t *result_out,
+        std::string *error_out) {
+    if (db->name == database) {
+        *error_out = strprintf("Database `%s` is special; you can't configure the "
+            "tables in it.", database.c_str());
+        return false;
+    }
+    return next->table_emergency_repair(db, name, allow_erase, dry_run, interruptor,
+        result_out, error_out);
+}
+
 bool artificial_reql_cluster_interface_t::table_rebalance(
         counted_t<const ql::db_t> db,
         const name_string_t &name,
@@ -278,6 +295,67 @@ bool artificial_reql_cluster_interface_t::db_rebalance(
     return next->db_rebalance(db, interruptor, result_out, error_out);
 }
 
+bool artificial_reql_cluster_interface_t::sindex_create(
+        counted_t<const ql::db_t> db,
+        const name_string_t &table,
+        const std::string &name,
+        const sindex_config_t &config,
+        signal_t *interruptor,
+        std::string *error_out) {
+    if (db->name == database) {
+        *error_out = strprintf("Database `%s` is special; you can't create secondary "
+            "indexes on the tables in it.", database.c_str());
+        return false;
+    }
+    return next->sindex_create(db, table, name, config, interruptor, error_out);
+}
+
+bool artificial_reql_cluster_interface_t::sindex_drop(
+        counted_t<const ql::db_t> db,
+        const name_string_t &table,
+        const std::string &name,
+        signal_t *interruptor,
+        std::string *error_out) {
+    if (db->name == database) {
+        *error_out = strprintf("Index `%s` does not exist on table `%s.%s`.",
+            name.c_str(), db->name.c_str(), table.c_str());
+        return false;
+    }
+    return next->sindex_drop(db, table, name, interruptor, error_out);
+}
+
+bool artificial_reql_cluster_interface_t::sindex_rename(
+        counted_t<const ql::db_t> db,
+        const name_string_t &table,
+        const std::string &name,
+        const std::string &new_name,
+        bool overwrite,
+        signal_t *interruptor,
+        std::string *error_out) {
+    if (db->name == database) {
+        *error_out = strprintf("Index `%s` does not exist on table `%s.%s`.",
+            name.c_str(), db->name.c_str(), table.c_str());
+        return false;
+    }
+    return next->sindex_rename(
+        db, table, name, new_name, overwrite, interruptor, error_out);
+}
+
+bool artificial_reql_cluster_interface_t::sindex_list(
+        counted_t<const ql::db_t> db,
+        const name_string_t &table,
+        signal_t *interruptor,
+        std::string *error_out,
+        std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
+            *configs_and_statuses_out) {
+    if (db->name == database) {
+        configs_and_statuses_out->clear();
+        return true;
+    }
+    return next->sindex_list(
+        db, table, interruptor, error_out, configs_and_statuses_out);
+}
+
 admin_artificial_tables_t::admin_artificial_tables_t(
         real_reql_cluster_interface_t *_next_reql_cluster_interface,
         boost::shared_ptr< semilattice_readwrite_view_t<
@@ -287,8 +365,7 @@ admin_artificial_tables_t::admin_artificial_tables_t(
         clone_ptr_t< watchable_t< change_tracking_map_t<peer_id_t,
             cluster_directory_metadata_t> > > _directory_view,
         watchable_map_t<peer_id_t, cluster_directory_metadata_t> *_directory_map_view,
-        watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
-                            namespace_directory_metadata_t> *_reactor_directory_view,
+        table_meta_client_t *_table_meta_client,
         server_config_client_t *_server_config_client,
         mailbox_manager_t *_mailbox_manager) {
     std::map<name_string_t,
@@ -310,6 +387,7 @@ admin_artificial_tables_t::admin_artificial_tables_t(
             _semilattice_view,
             _directory_view,
             _server_config_client,
+            _table_meta_client,
             static_cast<admin_identifier_format_t>(i)));
     }
     backends[name_string_t::guarantee_valid("current_issues")] =
@@ -326,23 +404,21 @@ admin_artificial_tables_t::admin_artificial_tables_t(
         std::make_pair(logs_backend[0].get(), logs_backend[1].get());
 
     server_config_backend.init(new server_config_artificial_table_backend_t(
-        metadata_field(&cluster_semilattice_metadata_t::servers,
-            _semilattice_view),
+        _directory_map_view,
         _server_config_client));
     backends[name_string_t::guarantee_valid("server_config")] =
         std::make_pair(server_config_backend.get(), server_config_backend.get());
 
     server_status_backend.init(new server_status_artificial_table_backend_t(
-        metadata_field(&cluster_semilattice_metadata_t::servers,
-            _semilattice_view),
-        _server_config_client,
-        _directory_map_view));
+        _directory_map_view,
+        _server_config_client));
     backends[name_string_t::guarantee_valid("server_status")] =
         std::make_pair(server_status_backend.get(), server_status_backend.get());
 
     for (int i = 0; i < 2; ++i) {
         stats_backend[i].init(new stats_artificial_table_backend_t(
-            _directory_view, _semilattice_view, _server_config_client, _mailbox_manager,
+            _directory_view, _semilattice_view, _server_config_client,
+            _table_meta_client, _mailbox_manager,
             static_cast<admin_identifier_format_t>(i)));
     }
     backends[name_string_t::guarantee_valid("stats")] =
@@ -353,7 +429,8 @@ admin_artificial_tables_t::admin_artificial_tables_t(
             _semilattice_view,
             _next_reql_cluster_interface,
             static_cast<admin_identifier_format_t>(i),
-            _server_config_client));
+            _server_config_client,
+            _table_meta_client));
     }
     backends[name_string_t::guarantee_valid("table_config")] =
         std::make_pair(table_config_backend[0].get(), table_config_backend[1].get());
@@ -361,9 +438,9 @@ admin_artificial_tables_t::admin_artificial_tables_t(
     for (int i = 0; i < 2; ++i) {
         table_status_backend[i].init(new table_status_artificial_table_backend_t(
             _semilattice_view,
-            _reactor_directory_view,
-            static_cast<admin_identifier_format_t>(i),
-            _server_config_client));
+            _server_config_client,
+            _table_meta_client,
+            static_cast<admin_identifier_format_t>(i)));
     }
     backends[name_string_t::guarantee_valid("table_status")] =
         std::make_pair(table_status_backend[0].get(), table_status_backend[1].get());
@@ -374,6 +451,7 @@ admin_artificial_tables_t::admin_artificial_tables_t(
             _semilattice_view,
             _directory_view,
             _server_config_client,
+            _table_meta_client,
             static_cast<admin_identifier_format_t>(i)));
     }
     backends[name_string_t::guarantee_valid("jobs")] =
@@ -384,18 +462,15 @@ admin_artificial_tables_t::admin_artificial_tables_t(
         std::make_pair(debug_scratch_backend.get(), debug_scratch_backend.get());
 
     debug_stats_backend.init(new debug_stats_artificial_table_backend_t(
-        metadata_field(&cluster_semilattice_metadata_t::servers,
-            _semilattice_view),
-        _server_config_client,
         _directory_map_view,
+        _server_config_client,
         _mailbox_manager));
     backends[name_string_t::guarantee_valid("_debug_stats")] =
         std::make_pair(debug_stats_backend.get(), debug_stats_backend.get());
 
     debug_table_status_backend.init(new debug_table_status_artificial_table_backend_t(
         _semilattice_view,
-        _reactor_directory_view,
-        _server_config_client));
+        _table_meta_client));
     backends[name_string_t::guarantee_valid("_debug_table_status")] =
         std::make_pair(debug_table_status_backend.get(),
                        debug_table_status_backend.get());

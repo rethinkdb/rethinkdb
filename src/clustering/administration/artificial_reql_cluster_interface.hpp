@@ -26,6 +26,7 @@
 
 class real_reql_cluster_interface_t;
 class server_config_client_t;
+class table_meta_client_t;
 
 /* The `artificial_reql_cluster_interface_t` is responsible for handling queries to the
 `rethinkdb` database. It's implemented as a proxy over the
@@ -130,6 +131,15 @@ public:
             ql::datum_t *result_out,
             std::string *error_out);
 
+    bool table_emergency_repair(
+            counted_t<const ql::db_t> db,
+            const name_string_t &name,
+            bool allow_erase,
+            bool dry_run,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
+            std::string *error_out);
+
     bool table_rebalance(
             counted_t<const ql::db_t> db,
             const name_string_t &name,
@@ -141,6 +151,35 @@ public:
             signal_t *interruptor,
             ql::datum_t *result_out,
             std::string *error_out);
+
+    bool sindex_create(
+            counted_t<const ql::db_t> db,
+            const name_string_t &table,
+            const std::string &name,
+            const sindex_config_t &config,
+            signal_t *interruptor,
+            std::string *error_out);
+    bool sindex_drop(
+            counted_t<const ql::db_t> db,
+            const name_string_t &table,
+            const std::string &name,
+            signal_t *interruptor,
+            std::string *error_out);
+    bool sindex_rename(
+            counted_t<const ql::db_t> db,
+            const name_string_t &table,
+            const std::string &name,
+            const std::string &new_name,
+            bool overwrite,
+            signal_t *interruptor,
+            std::string *error_out);
+    bool sindex_list(
+            counted_t<const ql::db_t> db,
+            const name_string_t &table,
+            signal_t *interruptor,
+            std::string *error_out,
+            std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
+                *configs_and_statuses_out);
 
 private:
     name_string_t database;
@@ -164,8 +203,7 @@ public:
                 cluster_directory_metadata_t> > > _directory_view,
             watchable_map_t<peer_id_t, cluster_directory_metadata_t>
                 *_directory_map_view,
-            watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
-                            namespace_directory_metadata_t> *_reactor_directory_view,
+            table_meta_client_t *_table_meta_client,
             server_config_client_t *_server_config_client,
             mailbox_manager_t *_mailbox_manager);
     reql_cluster_interface_t *get_reql_cluster_interface() {

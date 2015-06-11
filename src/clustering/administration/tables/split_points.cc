@@ -85,37 +85,37 @@ static void ensure_distinct(std::vector<store_key_t> *split_points) {
     }
 }
 
-bool fetch_distribution(
+void fetch_distribution(
         const namespace_id_t &table_id,
         real_reql_cluster_interface_t *reql_cluster_interface,
         signal_t *interruptor,
-        std::map<store_key_t, int64_t> *counts_out,
-        std::string *error_out) {
+        std::map<store_key_t, int64_t> *counts_out)
+        THROWS_ONLY(interrupted_exc_t, failed_table_op_exc_t, no_such_table_exc_t) {
     namespace_interface_access_t ns_if_access =
         reql_cluster_interface->get_namespace_repo()->get_namespace_interface(
             table_id, interruptor);
     static const int depth = 2;
     static const int limit = 128;
     distribution_read_t inner_read(depth, limit);
-    read_t read(inner_read, profile_bool_t::DONT_PROFILE);
+    read_t read(inner_read, profile_bool_t::DONT_PROFILE, read_mode_t::OUTDATED);
     read_response_t resp;
     try {
-        ns_if_access.get()->read_outdated(read, &resp, interruptor);
-    } catch (cannot_perform_query_exc_t) {
-        *error_out = "Cannot calculate balanced shards because the table isn't "
-            "currently available for reading.";
-        return false;
+        ns_if_access.get()->read(read, &resp, order_token_t::ignore, interruptor);
+    } catch (const cannot_perform_query_exc_t &) {
+        /* If the table was deleted, this will throw `no_such_table_exc_t` */
+        table_basic_config_t dummy;
+        reql_cluster_interface->get_table_meta_client()->get_name(table_id, &dummy);
+        /* If `get_name()` didn't throw, the table exists but is inaccessible */
+        throw failed_table_op_exc_t();
     }
     *counts_out = std::move(
         boost::get<distribution_read_response_t>(resp.response).key_counts);
-    return true;
 }
 
 bool calculate_split_points_with_distribution(
         const std::map<store_key_t, int64_t> &counts,
         size_t num_shards,
-        table_shard_scheme_t *split_points_out,
-        std::string *error_out) {
+        table_shard_scheme_t *split_points_out) {
     std::vector<std::pair<int64_t, store_key_t> > pairs;
     int64_t total_count = 0;
     for (auto const &pair : counts) {
@@ -125,8 +125,6 @@ bool calculate_split_points_with_distribution(
         total_count += pair.second;
     }
     if (pairs.size() < static_cast<size_t>(num_shards)) {
-        *error_out = strprintf("There isn't enough data in the table to create %zu "
-            "balanced shards.", num_shards);
         return false;
     }
 
@@ -212,23 +210,19 @@ void calculate_split_points_by_interpolation(
     ensure_distinct(&split_points_out->split_points);
 }
 
-bool calculate_split_points_intelligently(
+void calculate_split_points_intelligently(
         namespace_id_t table_id,
         real_reql_cluster_interface_t *reql_cluster_interface,
         size_t num_shards,
         const table_shard_scheme_t &old_split_points,
         signal_t *interruptor,
-        table_shard_scheme_t *split_points_out,
-        std::string *error_out) {
+        table_shard_scheme_t *split_points_out)
+        THROWS_ONLY(interrupted_exc_t, failed_table_op_exc_t, no_such_table_exc_t) {
     if (num_shards > old_split_points.num_shards()) {
         std::map<store_key_t, int64_t> counts;
-        if (!fetch_distribution(table_id, reql_cluster_interface,
-                interruptor, &counts, error_out)) {
-            return false;
-        }
-        std::string dummy_error;
+        fetch_distribution(table_id, reql_cluster_interface, interruptor, &counts);
         if (!calculate_split_points_with_distribution(
-                counts, num_shards, split_points_out, &dummy_error)) {
+                counts, num_shards, split_points_out)) {
             /* There aren't enough documents to calculate distribution. We'll just assume
             the user is going to use UUID primary keys. If we got it wrong, they will end
             up with horribly unbalanced data, but it's the best we can do. */
@@ -240,6 +234,5 @@ bool calculate_split_points_intelligently(
         calculate_split_points_by_interpolation(
             num_shards, old_split_points, split_points_out);
     }
-    return true;
 }
 

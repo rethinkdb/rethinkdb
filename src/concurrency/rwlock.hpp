@@ -68,8 +68,16 @@ public:
     // Acquires the lock.  The constructor blocks the coroutine, it doesn't return
     // until the lock is acquired.
     rwlock_acq_t(rwlock_t *lock, access_t access);
-    void reset() { rwlock_in_line_t::reset(); }
+    rwlock_acq_t(rwlock_t *lock, access_t access, signal_t *interruptor);
     ~rwlock_acq_t();
+
+    void reset() {
+        rwlock_in_line_t::reset();
+    }
+
+    void guarantee_is_holding(rwlock_t *lock) {
+        rwlock_in_line_t::guarantee_is_for_lock(lock);
+    }
 
 private:
     DISABLE_COPYING(rwlock_acq_t);

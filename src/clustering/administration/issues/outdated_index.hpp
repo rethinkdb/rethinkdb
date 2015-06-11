@@ -8,19 +8,16 @@
 
 #include "clustering/administration/issues/local_issue_aggregator.hpp"
 #include "clustering/administration/issues/local.hpp"
-#include "concurrency/queue/single_value_producer.hpp"
-#include "concurrency/coro_pool.hpp"
 #include "concurrency/one_per_thread.hpp"
+#include "concurrency/pump_coro.hpp"
 #include "containers/scoped.hpp"
 #include "rdb_protocol/store.hpp"
 
 template <class> class semilattice_read_view_t;
 
 class outdated_index_report_impl_t;
-class outdated_index_dummy_value_t { };
 
 class outdated_index_issue_tracker_t :
-    public coro_pool_callback_t<outdated_index_dummy_value_t>,
     public home_thread_mixin_t {
 public:
     explicit outdated_index_issue_tracker_t(local_issue_aggregator_t *parent);
@@ -51,12 +48,12 @@ private:
     one_per_thread_t<outdated_index_issue_t::index_map_t> outdated_indexes;
     one_per_thread_t<std::set<outdated_index_report_t *> > index_reports;
 
-    // Coro pool to handle updates of the local issue
-    void coro_pool_callback(UNUSED outdated_index_dummy_value_t dummy,
-                            UNUSED signal_t *interruptor);
+    void update(UNUSED signal_t *interruptor);
 
-    single_value_producer_t<outdated_index_dummy_value_t> update_queue;
-    coro_pool_t<outdated_index_dummy_value_t> update_pool;
+    /* Destructor order matters: `update_pumper` must be destroyed before the other
+    member variables, because it spawns `update()` which accesses the variables. */
+    pump_coro_t update_pumper;
+
     DISABLE_COPYING(outdated_index_issue_tracker_t);
 };
 

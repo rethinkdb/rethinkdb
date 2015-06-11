@@ -21,7 +21,7 @@ public:
             change_tracking_map_t<peer_id_t, server_id_t> > >
                 &_server_id_translation_table);
 
-    std::vector<scoped_ptr_t<issue_t> > get_issues() const;
+    std::vector<scoped_ptr_t<issue_t> > get_issues(signal_t *interruptor) const;
 
 private:
     clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, local_issues_t> > >

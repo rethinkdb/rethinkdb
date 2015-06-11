@@ -43,7 +43,7 @@ const std::string &artificial_table_t::get_pkey() const {
 }
 
 ql::datum_t artificial_table_t::read_row(ql::env_t *env,
-        ql::datum_t pval, UNUSED bool use_outdated) {
+        ql::datum_t pval, UNUSED read_mode_t read_mode) {
     ql::datum_t row;
     std::string error;
     if (!checked_read_row_from_backend(backend, pval, env->interruptor, &row, &error)) {
@@ -62,7 +62,7 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_all(
         const std::string &table_name,
         const ql::datum_range_t &range,
         sorting_t sorting,
-        UNUSED bool use_outdated) {
+        UNUSED read_mode_t read_mode) {
     if (get_all_sindex_id != primary_key) {
         rfail_datum(ql::base_exc_t::GENERIC, "%s",
             error_message_index_not_found(get_all_sindex_id, table_name).c_str());
@@ -108,7 +108,7 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_intersecting(
         const std::string &sindex,
         UNUSED ql::backtrace_id_t bt,
         const std::string &table_name,
-        UNUSED bool use_outdated,
+        UNUSED read_mode_t read_mode,
         UNUSED const ql::datum_t &query_geometry) {
     guarantee(sindex != primary_key, "read_intersecting() should never be called with "
         "the primary index");
@@ -120,7 +120,7 @@ ql::datum_t artificial_table_t::read_nearest(
         UNUSED ql::env_t *env,
         const std::string &sindex,
         const std::string &table_name,
-        UNUSED bool use_outdated,
+        UNUSED read_mode_t read_mode,
         UNUSED lon_lat_point_t center,
         UNUSED double max_dist,
         UNUSED uint64_t max_results,
@@ -212,39 +212,6 @@ bool artificial_table_t::write_sync_depending_on_durability(
     practice, so we don't. */
     rfail_datum(ql::base_exc_t::GENERIC,
         "Artificial tables don't support `sync()`.");
-}
-
-bool artificial_table_t::sindex_create(
-        UNUSED ql::env_t *env, UNUSED const std::string &id,
-        UNUSED counted_t<const ql::func_t> index_func, UNUSED sindex_multi_bool_t multi,
-        UNUSED sindex_geo_bool_t geo) {
-    rfail_datum(ql::base_exc_t::GENERIC,
-        "Can't create a secondary index on an artificial table.");
-}
-
-bool artificial_table_t::sindex_drop(UNUSED ql::env_t *env,
-        UNUSED const std::string &id) {
-    rfail_datum(ql::base_exc_t::GENERIC,
-        "Can't drop a secondary index on an artificial table.");
-}
-
-sindex_rename_result_t artificial_table_t::sindex_rename(
-        UNUSED ql::env_t *env,
-        UNUSED const std::string &old_name,
-        UNUSED const std::string &new_name,
-        UNUSED bool overwrite) {
-    rfail_datum(ql::base_exc_t::GENERIC,
-        "Can't rename a secondary index on an artificial table.");
-}
-
-std::vector<std::string> artificial_table_t::sindex_list(
-        UNUSED ql::env_t *env, UNUSED bool use_outdated) {
-    return std::vector<std::string>();
-}
-
-std::map<std::string, ql::datum_t> artificial_table_t::sindex_status(
-        UNUSED ql::env_t *env, UNUSED const std::set<std::string> &sindexes) {
-    return std::map<std::string, ql::datum_t>();
 }
 
 void artificial_table_t::do_single_update(

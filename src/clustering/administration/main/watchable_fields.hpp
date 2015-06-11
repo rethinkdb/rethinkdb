@@ -9,33 +9,6 @@
 #include "rpc/connectivity/peer_id.hpp"
 
 template<class inner_t, class outer_t>
-class field_copier_t {
-public:
-    field_copier_t(inner_t outer_t::*_field, const clone_ptr_t<watchable_t<inner_t> > &_inner, watchable_variable_t<outer_t> *_outer) :
-        field(_field), inner(_inner), outer(_outer),
-        subscription(std::bind(&field_copier_t<inner_t, outer_t>::on_change, this)) {
-        typename watchable_t<inner_t>::freeze_t freeze(inner);
-        subscription.reset(inner, &freeze);
-        on_change();
-    }
-
-private:
-    void on_change() {
-        outer->apply_atomic_op([this](outer_t *value) {
-            value->*field = inner->get();
-            return true;
-        });
-    }
-
-    inner_t outer_t::*field;
-    clone_ptr_t<watchable_t<inner_t> > inner;
-    watchable_variable_t<outer_t> *outer;
-    typename watchable_t<inner_t>::subscription_t subscription;
-
-    DISABLE_COPYING(field_copier_t);
-};
-
-template<class inner_t, class outer_t>
 class field_getter_t {
 public:
     explicit field_getter_t(inner_t outer_t::*f) : field(f) { }

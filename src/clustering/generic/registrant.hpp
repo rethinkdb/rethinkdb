@@ -8,7 +8,6 @@
 #include <utility>
 
 #include "clustering/generic/registration_metadata.hpp"
-#include "clustering/generic/resource.hpp"
 #include "containers/clone_ptr.hpp"
 #include "containers/death_runner.hpp"
 #include "containers/uuid.hpp"
@@ -19,26 +18,24 @@ template<class business_card_t>
 class registrant_t {
 
 public:
-    /* This constructor registers with the given registrant. If the registrant
-    is already unavailable, it throws an exception. Otherwise, it returns immediately.
-    */
+    /* This constructor registers with the given registrant. It may block for a short
+    time. */
     registrant_t(
             mailbox_manager_t *mm,
-            clone_ptr_t<watchable_t<boost::optional<boost::optional<registrar_business_card_t<business_card_t> > > > > registrar_md,
-            business_card_t initial_value)
-            THROWS_ONLY(resource_lost_exc_t) :
+            const registrar_business_card_t<business_card_t> &rmd,
+            business_card_t initial_value) :
         mailbox_manager(mm),
-        registrar(registrar_md),
+        registrar_md(rmd),
         registration_id(generate_uuid())
     {
         /* This will make it so that we get deregistered in our destructor. */
         deregisterer.fun = std::bind(&registrant_t::send_deregister_message,
             mailbox_manager,
-            registrar.access().delete_mailbox,
+            registrar_md.delete_mailbox,
             registration_id);
 
         /* Send a message to register us */
-        send(mailbox_manager, registrar.access().create_mailbox,
+        send(mailbox_manager, registrar_md.create_mailbox,
             registration_id,
             mailbox_manager->get_connectivity_cluster()->get_me(),
             initial_value);
@@ -49,15 +46,6 @@ public:
     ~registrant_t() THROWS_NOTHING {
 
         /* Most of the work is done by the destructor for `deregisterer` */
-    }
-
-    signal_t *get_failed_signal() THROWS_NOTHING {
-        return registrar.get_failed_signal();
-    }
-
-    std::string get_failed_reason() THROWS_NOTHING {
-        guarantee(get_failed_signal()->is_pulsed());
-        return registrar.get_failed_reason();
     }
 
 private:
@@ -77,7 +65,7 @@ private:
     death_runner_t deregisterer;
 
     mailbox_manager_t *mailbox_manager;
-    resource_access_t<registrar_business_card_t<business_card_t> > registrar;
+    registrar_business_card_t<business_card_t> registrar_md;
 
     registration_id_t registration_id;
 

@@ -31,6 +31,7 @@ def populate_table(conn):
 
 def add_index(conn):
     r.db(dbName).table(tableName).index_create('data').run(conn)
+    r.db(dbName).table(tableName).index_wait('data').run(conn)
 
 def replace_rows(host, port, ready_event, start_event):
     conn = r.connect(host, port, db=dbName)

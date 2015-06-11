@@ -15,7 +15,7 @@
 #include "concurrency/watchable_map.hpp"
 #include "containers/archive/tcp_conn_stream.hpp"
 #include "containers/map_sentries.hpp"
-#include "concurrency/throttled_committer.hpp"
+#include "concurrency/pump_coro.hpp"
 #include "perfmon/perfmon.hpp"
 #include "rpc/connectivity/peer_id.hpp"
 #include "utils.hpp"
@@ -130,7 +130,7 @@ public:
 
         /* Calls `conn->flush_buffer()`. Can be used for making sure that a
         buffered write makes it to the TCP stack. */
-        throttled_committer_t flusher;
+        pump_coro_t flusher;
 
         perfmon_collection_t pm_collection;
         perfmon_sampler_t pm_bytes_sent;
@@ -334,6 +334,10 @@ public:
         return connectivity_cluster;
     }
     connectivity_cluster_t::message_tag_t get_message_tag() { return tag; }
+
+    peer_id_t get_me() {
+        return connectivity_cluster->get_me();
+    }
 
 protected:
     /* Registers the message handler with the cluster */

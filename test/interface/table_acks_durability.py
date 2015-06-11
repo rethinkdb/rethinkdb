@@ -59,13 +59,6 @@ with driver.Cluster(output_folder='.') as cluster:
         assert (primary_replica == "l" and nl > 0) or (primary_replica == "d" and nd > 0)
         replicas = live_names[:nl] + dead_names[:nd]
         return {"replicas": replicas, "primary_replica": "%s1" % primary_replica}
-    def mkr(nl, nd, mode):
-        """Helper function for constructing lists for `table_config.write_acks`. Returns
-        an ack requirement with "nl" live replicas and "nd" dead ones, and the given mode
-        for "single" or "majority"."""
-        assert nl <= num_live and nd <= num_dead
-        replicas = live_names[:nl] + dead_names[:nd]
-        return {"replicas": replicas, "acks": mode}
 
     # Each test is a tuple with four parts:
     #  1. A list of shards, in the same format as `table_config.shards`.
@@ -86,13 +79,7 @@ with driver.Cluster(output_folder='.') as cluster:
         ([mks(2, 1, "d")], "majority", "o", "o"),
         ([mks(1, 2)], "majority", "ro", "awro"),
         ([mks(2, 2)], "majority", "ro", "awro"),
-        ([mks(2, 2, "d")], "majority", "o", "o"),
-        ([mks(2, 2)], [mkr(1, 1, "single")], "wro", "awro"),
-        ([mks(2, 2)], [mkr(1, 1, "single"), mkr(2, 0, "majority")], "wro", "awro"),
-        ([mks(3, 3)], [mkr(3, 0, "majority"), mkr(0, 3, "majority")], "ro", "ro"),
-        ([mks(3, 3)], [mkr(3, 0, "majority"), mkr(0, 1, "single")], "ro", "ro"),
-        ([mks(2, 2), mks(2, 2, "d")], [mkr(2, 0, "majority"), mkr(0, 2, "majority")],
-            "o", "o"),
+        ([mks(2, 2, "d")], "majority", "o", "o")
         ]
 
     print("Creating tables for tests (%.2fs)" % (time.time() - startTime))
@@ -135,7 +122,7 @@ with driver.Cluster(output_folder='.') as cluster:
             assert res == 1000
             tested_readiness += "r"
         try:
-            res = r.db(dbName).table(name).count().run(conn, use_outdated = True)
+            res = r.db(dbName).table(name).count().run(conn, read_mode="outdated")
         except r.RqlRuntimeError, e:
             pass
         else:
@@ -143,14 +130,15 @@ with driver.Cluster(output_folder='.') as cluster:
             tested_readiness += "o"
         res = r.db(dbName).table(name).status().run(conn)
         reported_readiness = ""
-        if res["status"]["all_replicas_ready"]:
-            reported_readiness += "a"
-        if res["status"]["ready_for_writes"]:
-            reported_readiness += "w"
-        if res["status"]["ready_for_reads"]:
-            reported_readiness += "r"
-        if res["status"]["ready_for_outdated_reads"]:
-            reported_readiness += "o"
+        if not (res.has_key("error") and res["error"] == 'None of the replicas for this table are accessible.'):
+            if res["status"]["all_replicas_ready"]:
+                reported_readiness += "a"
+            if res["status"]["ready_for_writes"]:
+                reported_readiness += "w"
+            if res["status"]["ready_for_reads"]:
+                reported_readiness += "r"
+            if res["status"]["ready_for_outdated_reads"]:
+                reported_readiness += "o"
         print("%s expect=%r test=%r report=%r" % (name, expected_readiness, tested_readiness, reported_readiness))
         assert expected_readiness.replace("a", "") == tested_readiness
         assert expected_readiness == reported_readiness
@@ -206,7 +194,9 @@ with driver.Cluster(output_folder='.') as cluster:
     test_ok({"durability": "soft"})
     test_ok({"durability": "hard"})
     test_fail({"durability": "the consistency of toothpaste"})
-    test_ok({"write_acks": [{"replicas": ["l1"], "acks": "single"}]})
+    test_ok({"write_acks": "single"})
+    test_ok({"write_acks": "majority"})
+    test_fail({"write_acks": [{"replicas": ["l1"], "acks": "single"}]}) # This used to be ok before 2.1
     test_fail({"write_acks": "this is a string"})
     test_fail({"write_acks": [{"replicas": ["not_a_server"], "acks": "single"}]})
     test_fail({"write_acks": [{"replicas": 1, "acks": "single"}]})

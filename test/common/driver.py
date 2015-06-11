@@ -133,7 +133,7 @@ class Metacluster(object):
             raise
         for process in processes:
             process.cluster = dest
-            dest.processes.add(process)
+            dest.processes.append(process)
 
 class Cluster(object):
     """A `Cluster` represents a group of `Processes` that are all connected to each other (ideally, anyway; see the note in `move_processes`). """
@@ -176,12 +176,14 @@ class Cluster(object):
         
         self.metacluster = metacluster
         self.metacluster.clusters.add(self)
-        self.processes = set()
+        self.processes = []
         
         # -- start servers
         
         for nameOrFiles in initial_servers:
-            self.processes.add(Process(cluster=self, files=nameOrFiles, console_output=console_output, executable_path=executable_path, command_prefix=command_prefix, extra_options=extra_options))
+            # The constructor will insert itself into `self.processes`
+            p = Process(cluster=self, files=nameOrFiles, console_output=console_output, executable_path=executable_path, command_prefix=command_prefix, extra_options=extra_options)
+            assert p in self.processes
         
         # -- wait for servers
         
@@ -211,10 +213,10 @@ class Cluster(object):
         nonzero exit code. Also makes the cluster object invalid """
         try:
             while self.processes:
-                iter(self.processes).next().check_and_stop()
+                self.processes[0].check_and_stop()
         finally:
             while self.processes:
-                iter(self.processes).next().close()
+                self.processes[0].close()
             if self.metacluster is not None:
                 self.metacluster.clusters.remove(self)
                 self.metacluster = None
@@ -237,12 +239,11 @@ class Cluster(object):
     
     def __getitem__(self, pos):
         if isinstance(pos, slice):
-            items = list(self.processes)
-            return [items[x] for x in xrange(*pos.indices(len(items)))]
+            return [self.processes[x] for x in xrange(*pos.indices(len(self.processes)))]
         elif isinstance(pos, int):
             if not (-1 * len(self.processes) <= pos < len(self.processes) ):
                 raise IndexError('This cluster only has %d servers, so index %s is invalid' % (len(self.processes), str(pos)))
-            return list(self.processes)[pos]
+            return self.processes[pos]
         else:
             raise TypeError("Invalid argument type: %s" % repr(pos))
     
@@ -398,7 +399,7 @@ class _Process(object):
         # - add to the cluster
         
         self.cluster = cluster
-        self.cluster.processes.add(self)
+        self.cluster.processes.append(self)
         
         # - set defaults
         
@@ -458,6 +459,7 @@ class _Process(object):
                     other_cluster._unblock_process(self)
             if self.cluster and self in self.cluster.processes:
                 self.cluster.processes.remove(self)
+                assert self not in self.cluster.processes
             raise
     
     def __enter__(self):
@@ -639,6 +641,7 @@ class _Process(object):
                     other_cluster._unblock_process(self)
 
             self.cluster.processes.remove(self)
+            assert self not in self.cluster.processes, "we are in the list twice"
             self.cluster = None
     
 class Process(_Process):

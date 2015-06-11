@@ -1,14 +1,14 @@
 #ifndef CONCURRENCY_NEW_MUTEX_HPP_
 #define CONCURRENCY_NEW_MUTEX_HPP_
 
-#include "concurrency/rwlock.hpp"
 #include "concurrency/interruptor.hpp"
+#include "concurrency/rwlock.hpp"
 
 // This is a mutex, following the usual semantics (seen in rwlock_t,
 // fifo_enforcer_sink_t, buf_lock_t) where construction puts you in the queue, a
 // signal is pulsed when you have exclusive access, and acquirers gain exclusive
 // access in the same order as construction.  You should favor this instead of
-// mutex_t (you might want to make a mutex_acq_t type first).
+// mutex_t.
 
 class new_mutex_t {
 public:
@@ -52,6 +52,7 @@ public:
     // is acquired or the interruptor is pulsed.
     new_mutex_acq_t(new_mutex_t *lock, signal_t *interruptor) : in_line(lock) {
         wait_interruptible(in_line.acq_signal(), interruptor);
+
     }
 
     void guarantee_is_holding(const new_mutex_t *new_mutex) const {
