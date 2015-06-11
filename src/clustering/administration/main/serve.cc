@@ -452,7 +452,7 @@ bool do_serve(io_backender_t *io_backender,
                     }
 
                     stop_cond->wait_lazily_unordered();
-
+#ifndef _WIN32 // TODO
                     if (stop_cond->get_source_signo() == SIGINT) {
                         logNTC("Server got SIGINT from pid %d, uid %d; shutting down...\n",
                                stop_cond->get_source_pid(), stop_cond->get_source_uid());
@@ -465,7 +465,8 @@ bool do_serve(io_backender_t *io_backender,
                                stop_cond->get_source_signo(),
                                stop_cond->get_source_pid(), stop_cond->get_source_uid());
                     }
-                }
+#endif
+				}
 
                 cond_t non_interruptor;
                 if (i_am_a_server) {

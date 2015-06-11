@@ -729,6 +729,7 @@
     <ClCompile Include="src\clustering\administration\main\options.cc" />
     <ClCompile Include="src\clustering\administration\main\path.cc" />
     <ClCompile Include="src\clustering\administration\main\serve.cc" />
+    <ClCompile Include="src\clustering\administration\main\version_check.cc" />
     <ClCompile Include="src\clustering\administration\metadata.cc" />
     <ClCompile Include="src\clustering\administration\namespace_interface_repository.cc" />
     <ClCompile Include="src\clustering\administration\perfmon_collection_repo.cc" />
