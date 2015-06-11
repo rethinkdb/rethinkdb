@@ -152,25 +152,24 @@ multi_table_manager_t::active_table_t::active_table_t(
 void multi_table_manager_t::active_table_t::on_raft_commit() {
     /* If the Raft transaction changed the table's name, database, or primary key, push
     the changes out to the `table_meta_client_t`. */
-    update_basic_configs_entry();
+    bool basic_config_changed = update_basic_configs_entry();
 
-    /* Every time the Raft cluster commits a transaction, we re-sync to every other
-    server in the cluster. This is because the transaction might consist of adding or
-    removing a server, in which case we need to notify that server.
-
-    This is likely to cause performance issues. We could reduce the number of syncs by
-    not resyncing to a given peer unless the peer is mentioned in the Raft state; the
-    peer has a `table_manager_bcard_t` for this table; or the table's name or database
-    has changed. */
+    /* Maybe re-sync to other servers in the cluster in reaction to this change */
     parent->multi_table_manager_directory->read_all(
-    [&](const peer_id_t &peer, const multi_table_manager_bcard_t *) {
+    [&](const peer_id_t &peer, const multi_table_manager_bcard_t *multi_bcard) {
         if (peer != parent->mailbox_manager->get_me()) {
-            parent->schedule_sync(manager.table_id, table, peer);
+            /* We don't re-sync to every server all the time, for performance
+            reasons. Instead, we try to determine whether it's actually necessary to
+            sync or not, and if we're sure it's unnecessary we don't sync. */
+            if (basic_config_changed || should_sync(peer, multi_bcard->server_id)) {
+                parent->schedule_sync(manager.table_id, table, peer);
+            }
         }
     });
 }
 
-void multi_table_manager_t::active_table_t::update_basic_configs_entry() {
+bool multi_table_manager_t::active_table_t::update_basic_configs_entry() {
+    bool changed;
     manager.get_raft()->get_committed_state()->apply_read(
         [&](const raft_member_t<table_raft_state_t>::state_and_config_t *sc) {
             std::pair<table_basic_config_t, multi_table_manager_bcard_t::timestamp_t> p;
@@ -178,12 +177,50 @@ void multi_table_manager_t::active_table_t::update_basic_configs_entry() {
             p.second.epoch = manager.epoch;
             p.second.log_index = sc->log_index;
             if (table->basic_configs_entry.has()) {
-                table->basic_configs_entry->set(p);
+                table->basic_configs_entry->change(
+                    [&](std::pair<table_basic_config_t,
+                                  multi_table_manager_bcard_t::timestamp_t> *value
+                            ) -> bool {
+                        changed = !(value->first == p.first);
+                        *value = p;
+                        return true;
+                    });
             } else {
                 table->basic_configs_entry.create(
                     &parent->table_basic_configs, table_id, p);
+                changed = true;
             }
         });
+    return changed;
+}
+
+bool multi_table_manager_t::active_table_t::should_sync(
+        const peer_id_t &peer_id, const server_id_t &other_server_id) {
+    guarantee(peer_id != parent->mailbox_manager->get_me());
+    bool should_sync = false;
+    manager.get_raft()->get_committed_state()->apply_read(
+    [&](const raft_member_t<table_raft_state_t>::state_and_config_t *sc) {
+        parent->table_manager_directory->read_key(std::make_pair(peer_id, table_id),
+        [&](const table_manager_bcard_t *table_bcard) {
+            if (table_bcard == nullptr) {
+                /* Sync if the other server is supposed to be involved in
+                this table. */
+                should_sync = (sc->state.member_ids.count(other_server_id) == 1);
+            } else {
+                /* Sync if:
+                - The other server shouldn't be involved in this table (in
+                    which case `expected_member_id` will be nil)
+                - The other server has the wrong raft member ID
+                - The other server has an epoch that is too old */
+                should_sync =
+                    sc->state.member_ids.count(other_server_id) == 0 ||
+                    sc->state.member_ids.at(other_server_id) !=
+                        table_bcard->raft_member_id ||
+                    manager.epoch.supersedes(table_bcard->timestamp.epoch);
+            }
+        });
+    });
+    return should_sync;
 }
 
 void multi_table_manager_t::help_construct() {
@@ -363,6 +400,21 @@ void multi_table_manager_t::on_action(
                 uuid_to_str(table_id).c_str());
         }
 
+        /* Forward the update to other servers if they appear to need it. Normally this
+        is a no-op, but it can sometimes prevent problems in the case of non-transitive
+        connectivity. For example, suppose that server A creates a new table, which is
+        hosted on B, C, and D; but the messages from A to C and D are lost. This code
+        path will cause B to forward the messages to C and D instead of being stuck in a
+        limbo state. */
+        multi_table_manager_directory->read_all(
+        [&](const peer_id_t &peer, const multi_table_manager_bcard_t *multi_bcard) {
+            if (peer != mailbox_manager->get_me()) {
+                if (table->active->should_sync(peer, multi_bcard->server_id)) {
+                    schedule_sync(table_id, table, peer);
+                }
+            }
+        });
+
     } else if (action_status == action_status_t::INACTIVE ||
             (action_status == action_status_t::MAYBE_ACTIVE &&
                 (is_new || table->status != table_t::status_t::ACTIVE))) {
@@ -423,15 +475,9 @@ void multi_table_manager_t::on_action(
         if (!is_proxy_server) {
             persistence_interface->delete_metadata(table_id, interruptor);
         }
-    }
 
-    /* If we're in the `ACTIVE` or `DELETED` state, sync this table to all other peers.
-    This is usually redundant, but if we encounter non-transitive connectivity it can
-    prevent a stall. For example, suppose that server A creates a new table, which is
-    hosted on B, C, and D; but the messages from A to C and D are lost. This code path
-    will cause B to forward the messages to C and D instead of being stuck in a limbo
-    state. */
-    if (table->status != table_t::status_t::INACTIVE) {
+        /* Forward the deletion command to all other peers. Usually this is a no-op, but
+        it can be useful in the case of non-transitive connectivity. */
         multi_table_manager_directory->read_all(
         [&](const peer_id_t &peer, const multi_table_manager_bcard_t *) {
             if (peer != mailbox_manager->get_me()) {

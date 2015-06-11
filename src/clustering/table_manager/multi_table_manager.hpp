@@ -184,7 +184,14 @@ private:
         }
 
         void on_raft_commit();
-        void update_basic_configs_entry();
+
+        /* Updates `table->basic_configs_entry` to reflect any changes in the table's
+        basic config. Returns `true` if there was a change and `false` if it's the same.
+        */
+        bool update_basic_configs_entry();
+
+        /* Checks if we need to sync to the given peer. */
+        bool should_sync(const peer_id_t &peer_id, const server_id_t &server_id);
 
         multi_table_manager_t *const parent;
         table_t *const table;
