@@ -403,22 +403,6 @@ void multi_table_manager_t::on_action(
                 uuid_to_str(table_id).c_str());
         }
 
-        /* Forward the update to other servers if they appear to need it. Normally this
-        is a no-op, but it can sometimes prevent problems in the case of non-transitive
-        connectivity. For example, suppose that server A creates a new table, which is
-        hosted on B, C, and D; but the messages from A to C and D are lost. This code
-        path will cause B to forward the messages to C and D instead of being stuck in a
-        limbo state. */
-        multi_table_manager_directory->read_all(
-        [&](const peer_id_t &peer, const multi_table_manager_bcard_t *multi_bcard) {
-            if (peer != mailbox_manager->get_me()) {
-                if (table->active->should_sync_assuming_no_name_change(
-                        peer, multi_bcard->server_id)) {
-                    schedule_sync(table_id, table, peer);
-                }
-            }
-        });
-
     } else if (action_status == action_status_t::INACTIVE ||
             (action_status == action_status_t::MAYBE_ACTIVE &&
                 (is_new || table->status != table_t::status_t::ACTIVE))) {
@@ -479,15 +463,6 @@ void multi_table_manager_t::on_action(
         if (!is_proxy_server) {
             persistence_interface->delete_metadata(table_id, interruptor);
         }
-
-        /* Forward the deletion command to all other peers. Usually this is a no-op, but
-        it can be useful in the case of non-transitive connectivity. */
-        multi_table_manager_directory->read_all(
-        [&](const peer_id_t &peer, const multi_table_manager_bcard_t *) {
-            if (peer != mailbox_manager->get_me()) {
-                schedule_sync(table_id, table, peer);
-            }
-        });
     }
 
     if (!ack_addr.is_nil()) {
