@@ -190,8 +190,13 @@ private:
         */
         bool update_basic_configs_entry();
 
-        /* Checks if we need to sync to the given peer. */
-        bool should_sync(const peer_id_t &peer_id, const server_id_t &server_id);
+        /* Checks if there is a discrepancy between the table bcard we're getting from
+        the other peer and our local knowledge about the table. The reason for the
+        `_assuming_no_name_change` part of the name is that if the table's name has
+        changed, we need to sync to every server, but this function will still return
+        `false`. */
+        bool should_sync_assuming_no_name_change(
+            const peer_id_t &peer_id, const server_id_t &server_id);
 
         multi_table_manager_t *const parent;
         table_t *const table;

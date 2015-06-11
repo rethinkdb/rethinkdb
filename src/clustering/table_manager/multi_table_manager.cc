@@ -161,7 +161,8 @@ void multi_table_manager_t::active_table_t::on_raft_commit() {
             /* We don't re-sync to every server all the time, for performance
             reasons. Instead, we try to determine whether it's actually necessary to
             sync or not, and if we're sure it's unnecessary we don't sync. */
-            if (basic_config_changed || should_sync(peer, multi_bcard->server_id)) {
+            if (basic_config_changed ||
+                    should_sync_assuming_no_name_change(peer, multi_bcard->server_id)) {
                 parent->schedule_sync(manager.table_id, table, peer);
             }
         }
@@ -194,13 +195,14 @@ bool multi_table_manager_t::active_table_t::update_basic_configs_entry() {
     return changed;
 }
 
-bool multi_table_manager_t::active_table_t::should_sync(
-        const peer_id_t &peer_id, const server_id_t &other_server_id) {
-    guarantee(peer_id != parent->mailbox_manager->get_me());
+bool multi_table_manager_t::active_table_t::should_sync_assuming_no_name_change(
+        const peer_id_t &other_peer_id, const server_id_t &other_server_id) {
+    guarantee(other_peer_id != parent->mailbox_manager->get_me());
     bool should_sync = false;
     manager.get_raft()->get_committed_state()->apply_read(
     [&](const raft_member_t<table_raft_state_t>::state_and_config_t *sc) {
-        parent->table_manager_directory->read_key(std::make_pair(peer_id, table_id),
+        parent->table_manager_directory->read_key(
+        std::make_pair(other_peer_id, table_id),
         [&](const table_manager_bcard_t *table_bcard) {
             if (table_bcard == nullptr) {
                 /* Sync if the other server is supposed to be involved in
@@ -409,7 +411,8 @@ void multi_table_manager_t::on_action(
         multi_table_manager_directory->read_all(
         [&](const peer_id_t &peer, const multi_table_manager_bcard_t *multi_bcard) {
             if (peer != mailbox_manager->get_me()) {
-                if (table->active->should_sync(peer, multi_bcard->server_id)) {
+                if (table->active->should_sync_assuming_no_name_change(
+                        peer, multi_bcard->server_id)) {
                     schedule_sync(table_id, table, peer);
                 }
             }
