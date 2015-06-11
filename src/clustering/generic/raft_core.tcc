@@ -870,15 +870,18 @@ void raft_member_t<state_t>::on_connected_members_change(
                 heartbeats. */
                 if (network->get_connected_members()->get_key(member_id)
                         == boost::make_optional(boost::make_optional(term))) {
-                    guarantee(virtual_heartbeat_sender.is_nil());
-                    virtual_heartbeat_sender = member_id;
+                    /* Sometimes we are called twice within the same term. */
+                    if (member_id != virtual_heartbeat_sender) {
+                        guarantee(virtual_heartbeat_sender.is_nil());
+                        virtual_heartbeat_sender = member_id;
 
-                    /* As long as we're receiving valid virtual heartbeats, we won't
-                    start a new election */
-                    virtual_heartbeat_watchdog_blockers[0].init(
-                        new watchdog_timer_t::blocker_t(watchdog.get()));
-                    virtual_heartbeat_watchdog_blockers[1].init(
-                        new watchdog_timer_t::blocker_t(watchdog_leader_only.get()));
+                        /* As long as we're receiving valid virtual heartbeats, we won't
+                        start a new election */
+                        virtual_heartbeat_watchdog_blockers[0].init(
+                            new watchdog_timer_t::blocker_t(watchdog.get()));
+                        virtual_heartbeat_watchdog_blockers[1].init(
+                            new watchdog_timer_t::blocker_t(watchdog_leader_only.get()));
+                    }
                 }
 
                 DEBUG_ONLY_CODE(this->check_invariants(&mutex_acq));
