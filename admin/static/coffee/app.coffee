@@ -260,12 +260,13 @@ class Driver
                             id: status('id')
                             name: status('name')
                             db: status('db')
-                            shards: status('shards').map(
-                                r.range(), config('shards'), (shard, pos, conf_shard) ->
+                            shards: status('shards').default([]).map(
+                                r.range(), config('shards').default([]),
+                                (shard, pos, conf_shard) ->
                                     primary_id = conf_shard('primary_replica')
                                     primary_name = server_names(primary_id)
                                     position: pos.add(1)
-                                    num_shards: status('shards').count()
+                                    num_shards: status('shards').count().default(0)
                                     primary_id: primary_id
                                     primary_name: primary_name.default('-')
                                     primary_state: shard('replicas').filter(
@@ -286,10 +287,11 @@ class Driver
                     id: status('id')
                     name: status('name')
                     db: status('db')
-                    shards: status('shards').map(
-                        r.range(), config('shards'), (shard, pos, conf_shard) ->
+                    shards: status('shards').default([]).map(
+                        r.range(), config('shards').default([]),
+                        (shard, pos, conf_shard) ->
                             position: pos.add(1)
-                            num_shards: status('shards').count(),
+                            num_shards: status('shards').count().default(0),
                             replicas: shard('replicas')
                                 .filter((replica) ->
                                     r.expr(['ready',
@@ -304,16 +306,16 @@ class Driver
                 ).filter((table) -> table('shards')(0)('replicas').isEmpty().not())
                 .coerceTo('array')
         num_primaries: (table_config_id=driver.admin().table_config_id) ->
-            table_config_id('shards')
+            table_config_id('shards').default([])
                 .map((x) -> x.count()).sum()
 
         num_connected_primaries: (table_status=driver.admin().table_status) ->
             table_status.map((table) ->
-                table('shards')('primary_replicas').count((arr) -> arr.isEmpty().not())
+                table('shards').default([])('primary_replicas').count((arr) -> arr.isEmpty().not())
             ).sum()
 
         num_replicas: (table_config_id=driver.admin().table_config_id) ->
-            table_config_id('shards')
+            table_config_id('shards').default([])
                 .map((shards) ->
                     shards.map((shard) ->
                         shard("replicas").count()
@@ -321,7 +323,7 @@ class Driver
                 ).sum()
 
         num_connected_replicas: (table_status=driver.admin().table_status) ->
-            table_status('shards')
+            table_status('shards').default([])
                 .map((shards) ->
                     shards('replicas').map((replica) ->
                         replica('state').count((replica) ->
@@ -340,7 +342,7 @@ class Driver
         num_disconnected_tables: (table_status=driver.admin().table_status) ->
             table_status.count((table) ->
                 shard_is_down = (shard) -> shard('primary_replicas').isEmpty().not()
-                table('shards').map(shard_is_down).contains(true)
+                table('shards').default([]).map(shard_is_down).contains(true)
             )
 
         num_tables_w_missing_replicas: (table_status=driver.admin().table_status) ->
