@@ -22,7 +22,7 @@
 #define BREAKPOINT
 #endif /* DISABLE_BREAKPOINTS */
 
-#define CT_ASSERT(e) do { enum { compile_time_assert_error = 1/(!!(e)) }; } while (0)
+#define CT_ASSERT(e) static_assert(e, #e)
 
 #ifndef NDEBUG
 #define DEBUG_ONLY(...) __VA_ARGS__

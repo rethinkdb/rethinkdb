@@ -64,9 +64,7 @@ with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_read
         access_server.kill()
 
         issues = list(r.db('rethinkdb').table('current_issues').run(conn))
-        time.sleep(.5)
-        assert len(issues) > 0, 'Issue was not raised when the server stopped'
-        assert len(issues) == 1, 'There were extra cluster issues when server stopped: %s' % repr(issues)
+        assert len(issues) == 0, 'Issues were raised when server stopped: %s' % repr(issues)
 
         # Don't bother stopping the workload, just exit and it will get killed
 

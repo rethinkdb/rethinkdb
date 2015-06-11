@@ -107,8 +107,13 @@ raft_member_t<state_t>::raft_member_t(
 
 template<class state_t>
 raft_member_t<state_t>::~raft_member_t() {
+    assert_thread();
     /* Now that the destructor has been called, we can safely assume that our public
     methods will not be called. */
+
+    /* In addition unsubscribe from member change events, so we're sure to not get
+    those either while destructing. */
+    connected_members_subs.reset();
 
     new_mutex_acq_t mutex_acq(&mutex);
     DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
@@ -160,7 +165,7 @@ raft_member_t<state_t>::change_token_t::change_token_t(
         raft_member_t *_parent,
         raft_log_index_t _index,
         bool _is_config) :
-    is_config(_is_config), sentry(&_parent->change_tokens, _index, this) { } 
+    is_config(_is_config), sentry(&_parent->change_tokens, _index, this) { }
 
 template<class state_t>
 scoped_ptr_t<typename raft_member_t<state_t>::change_token_t>
@@ -832,6 +837,7 @@ void raft_member_t<state_t>::on_connected_members_change(
         const raft_member_id_t &member_id,
         const boost::optional<raft_term_t> *value) {
     assert_thread();
+    ASSERT_NO_CORO_WAITING;
     update_readiness_for_change();
     if (value != nullptr && static_cast<bool>(*value) && member_id != this_member_id) {
         /* We've received a "start virtual heartbeats" message. We process the term just
@@ -864,14 +870,18 @@ void raft_member_t<state_t>::on_connected_members_change(
                 heartbeats. */
                 if (network->get_connected_members()->get_key(member_id)
                         == boost::make_optional(boost::make_optional(term))) {
-                    virtual_heartbeat_sender = member_id;
+                    /* Sometimes we are called twice within the same term. */
+                    if (member_id != virtual_heartbeat_sender) {
+                        guarantee(virtual_heartbeat_sender.is_nil());
+                        virtual_heartbeat_sender = member_id;
 
-                    /* As long as we're receiving valid virtual heartbeats, we won't
-                    start a new election */
-                    virtual_heartbeat_watchdog_blockers[0].init(
-                        new watchdog_timer_t::blocker_t(watchdog.get()));
-                    virtual_heartbeat_watchdog_blockers[1].init(
-                        new watchdog_timer_t::blocker_t(watchdog_leader_only.get()));
+                        /* As long as we're receiving valid virtual heartbeats, we won't
+                        start a new election */
+                        virtual_heartbeat_watchdog_blockers[0].init(
+                            new watchdog_timer_t::blocker_t(watchdog.get()));
+                        virtual_heartbeat_watchdog_blockers[1].init(
+                            new watchdog_timer_t::blocker_t(watchdog_leader_only.get()));
+                    }
                 }
 
                 DEBUG_ONLY_CODE(this->check_invariants(&mutex_acq));
@@ -1045,6 +1055,8 @@ void raft_member_t<state_t>::update_term(
     `virtual_heartbeat_sender`. */
     current_term_leader_id = raft_member_id_t();
     virtual_heartbeat_sender = raft_member_id_t();
+    virtual_heartbeat_watchdog_blockers[0].reset();
+    virtual_heartbeat_watchdog_blockers[1].reset();
 }
 
 template<class state_t>
@@ -1868,7 +1880,7 @@ void raft_member_t<state_t>::leader_continue_reconfiguration(
         new_entry.term = ps.current_term;
 
         leader_append_log_entry(new_entry, mutex_acq, interruptor);
-    } 
+    }
 }
 
 template<class state_t>

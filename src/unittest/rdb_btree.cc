@@ -25,7 +25,7 @@
 #include "unittest/unittest_utils.hpp"
 
 #define TOTAL_KEYS_TO_INSERT 1000
-#define MAX_RETRIES_FOR_SINDEX_POSTCONSTRUCT 20
+#define MAX_RETRIES_FOR_SINDEX_POSTCONSTRUCT 50
 
 namespace unittest {
 
@@ -96,7 +96,7 @@ sindex_name_t create_sindex(store_t *store) {
 
     cond_t non_interruptor;
     store->sindex_create(name, config, &non_interruptor);
-        
+
     return sindex_name_t(name);
 }
 
@@ -200,7 +200,7 @@ void check_keys_are_present(store_t *store,
         /* Unfortunately we don't have an easy way right now to tell if the
          * sindex has actually been postconstructed so we just need to
          * check by polling. */
-        nap(100);
+        nap(200);
     }
     ADD_FAILURE() << "Sindex still not available after many tries.";
 }
