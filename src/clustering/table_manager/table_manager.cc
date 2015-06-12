@@ -61,7 +61,7 @@ table_manager_t::table_manager_t(
             })),
     get_status_mailbox(
         mailbox_manager,
-        std::bind(&table_manager_t::on_get_status, this, ph::_1, ph::_2)),
+        std::bind(&table_manager_t::on_get_status, this, ph::_1, ph::_2, ph::_3)),
     table_directory_subs(
         _table_manager_directory,
         std::bind(&table_manager_t::on_table_directory_change, this, ph::_1, ph::_2),
@@ -160,12 +160,15 @@ void table_manager_t::write_persistent_state(
 
 void table_manager_t::on_get_status(
         signal_t *interruptor,
+        bool should_get_sindex_status,
         const mailbox_t<void(
             std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >,
             table_server_status_t
             )>::address_t &reply_addr) {
-    std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > sindex_status =
-        sindex_manager.get_status(interruptor);
+    std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > sindex_status;
+    if (should_get_sindex_status) {
+        sindex_status = sindex_manager.get_status(interruptor);
+    }
 
     table_server_status_t reply;
     {

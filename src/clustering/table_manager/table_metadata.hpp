@@ -222,6 +222,7 @@ public:
 
     /* This is used for status queries. */
     typedef mailbox_t<void(
+        bool, /* should_get_sindex_status, */
         mailbox_t<void(
             std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >,
             table_server_status_t

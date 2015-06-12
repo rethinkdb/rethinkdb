@@ -365,7 +365,8 @@ void table_meta_client_t::get_status(
                 got_reply.pulse();
             });
 
-        send(mailbox_manager, bcard.get_status_mailbox, ack_mailbox.get_address());
+        send(mailbox_manager, bcard.get_status_mailbox, sindex_statuses_out != nullptr,
+             ack_mailbox.get_address());
         wait_any_t done_cond(
             &server_disconnected, &server_stopped, &got_reply, &interruptor);
         done_cond.wait_lazily_unordered();
