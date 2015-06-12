@@ -339,19 +339,31 @@ public:
 
     /* These methods perform various combinations of changes on the stored state. The
     changes will always be visible in the pointer returned by `get()` and also stored
-    safely on disk by the time the method call returns. */
+    safely on disk by the time the method call returns. The changes will always be
+    atomic. */
+
+    /* Set `current_term` and `voted_for`, leaving everything else alone. */
     virtual void write_current_term_and_voted_for(
         raft_term_t current_term,
         raft_member_id_t voted_for,
         signal_t *interruptor) = 0;
+
+    /* Delete any existing log entries in the stored log after `first_replaced`, and then
+    copy any log entries in `source` after `first_replaced` into the stored log. */
     virtual void write_log_replace_tail(
         const raft_log_t<state_t> &source,
         raft_log_index_t first_replaced,
         signal_t *interruptor) = 0;
-    virtual void write_log_append(
+
+    /* Append a single entry to the log. */
+    virtual void write_log_append_one(
         const raft_log_entry_t<state_t> &entry,
         signal_t *interruptor) = 0;
-    virtual void write_snapshot_and_log_delete_entries_to(
+
+    /* Overwrite `snapshot_state` and `snapshot_config`. Delete any log entries with
+    terms less than or equal to `log_prev_index`. Set `log.prev_index` and
+    `log.prev_term` to `log_prev_index` and `log_prev_index_term`. */
+    virtual void write_snapshot(
         const state_t &snapshot_state,
         const raft_complex_config_t &snapshot_config,
         raft_log_index_t log_prev_index,

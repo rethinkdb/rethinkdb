@@ -305,11 +305,50 @@ private:
         member_info_t(member_info_t &&) = default;
         member_info_t &operator=(member_info_t &&) = default;
 
-        void write_persistent_state(
-                const raft_persistent_state_t<dummy_raft_state_t> &persistent_state,
+        const raft_persistent_state_t<dummy_raft_state_t> *get() {
+            return &stored_state;
+        }
+        void write_current_term_and_voted_for(
+                raft_term_t current_term,
+                raft_member_id_t voted_for,
                 signal_t *interruptor) {
             block(interruptor);
-            stored_state = persistent_state;
+            stored_state.current_term = current_term;
+            stored_state.voted_for = voted_for;
+            block(interruptor);
+        }
+        void write_log_replace_tail(
+                const raft_log_t<dummy_raft_state_t> &log,
+                raft_log_index_t first_replaced,
+                signal_t *interruptor) {
+            block(interruptor);
+            guarantee(first_replaced > stored_state.log.prev_index);
+            guarantee(first_replaced <= stored_state.log.get_latest_index() + 1);
+            if (first_replaced != stored_state.log.get_latest_index() + 1) {
+                stored_state.log.delete_entries_from(first_replaced);
+            }
+            for (raft_log_index_t i = first_replaced; i <= log.get_latest_index(); ++i) {
+                stored_state.log.append(log.get_entry(i));
+            }
+            block(interruptor);
+        }
+        void write_log_append_one(
+                const raft_log_entry_t<dummy_raft_state_t> &entry,
+                signal_t *interruptor) {
+            block(interruptor);
+            stored_state.log.append(entry);
+            block(interruptor);
+        }
+        void write_snapshot(
+                const state_t &snapshot_state,
+                const raft_complex_config_t &snapshot_config,
+                raft_log_index_t log_prev_index,
+                raft_term_t log_prev_index_term,
+                signal_t *interruptor) {
+            block(interruptor);
+            stored_state.snapshot_state = snapshot_state;
+            stored_state.snapshot_config = snapshot_config;
+            stored_state.log.delete_entries_to(log_prev_index, log_prev_index_term);
             block(interruptor);
         }
         void block(signal_t *interruptor) {

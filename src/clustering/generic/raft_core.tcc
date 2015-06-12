@@ -539,7 +539,7 @@ void raft_member_t<state_t>::on_install_snapshot_rpc(
         valid and must be retained.
         Raft paper, Figure 13: "Save snapshot file"
         (We're going slightly out of order, as described above) */
-        storage->write_snapshot_and_log_delete_entries_to(
+        storage->write_snapshot(
             request.snapshot_state,
             request.snapshot_config,
             request.last_included_index,
@@ -556,7 +556,7 @@ void raft_member_t<state_t>::on_install_snapshot_rpc(
         /* Raft paper, Figure 13: "Discard the entire log"
         Raft paper, Figure 13: "Save snapshot file"
         (We're going slightly out of order, as described above) */
-        storage->write_snapshot_and_log_delete_entries_to(
+        storage->write_snapshot(
             request.snapshot_state,
             request.snapshot_config,
             request.last_included_index,
@@ -1114,7 +1114,7 @@ void raft_member_t<state_t>::update_commit_index(
     This automatically updates `ps().log.prev_index` and `ps().log.prev_term`, which are
     equivalent to the "last included index" and "last included term" described in Section
     7 of the Raft paper.*/
-    storage->write_snapshot_and_log_delete_entries_to(
+    storage->write_snapshot(
         committed_state.get_ref().state,
         committed_state.get_ref().config,
         committed_state.get_ref().log_index,
@@ -1937,7 +1937,7 @@ void raft_member_t<state_t>::leader_append_log_entry(
     This will block until the log entry is safely on disk. This might be important for
     correctness; it might be dangerous for us to send an AppendEntries RPC for log
     entries that are not safely on disk yet. I'm not sure. */
-    storage->write_log_append(log_entry, interruptor);
+    storage->write_log_append_one(log_entry, interruptor);
 
     /* Raft paper, Section 5.3: "...then issues AppendEntries RPCs in parallel to each of
     the other servers to replicate the entry."
