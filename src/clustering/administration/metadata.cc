@@ -38,9 +38,9 @@ RDB_IMPL_SERIALIZABLE_12_FOR_CLUSTER(cluster_directory_metadata_t,
      jobs_mailbox,
      get_stats_mailbox_address,
      log_mailbox,
+     local_issue_bcard,
      server_config,
      server_config_business_card,
-     local_issues,
      peer_type);
 
 bool search_db_metadata_by_name(

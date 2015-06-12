@@ -11,9 +11,9 @@
 #include "rdb_protocol/artificial_table/caching_cfeed_backend.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "concurrency/watchable.hpp"
+#include "clustering/administration/issues/local.hpp"
 #include "clustering/administration/issues/name_collision.hpp"
 #include "clustering/administration/issues/table.hpp"
-#include "clustering/administration/issues/remote.hpp"
 
 
 class issues_artificial_table_backend_t :
@@ -21,11 +21,10 @@ class issues_artificial_table_backend_t :
 {
 public:
     issues_artificial_table_backend_t(
+        mailbox_manager_t *mailbox_manager,
         boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
             _cluster_sl_view,
-        const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
-            cluster_directory_metadata_t> > >
-                &directory_view,
+        watchable_map_t<peer_id_t, cluster_directory_metadata_t> *directory_view,
         server_config_client_t *server_config_client,
         table_meta_client_t *table_meta_client,
         admin_identifier_format_t identifier_format);
@@ -61,9 +60,9 @@ private:
 
     std::set<issue_tracker_t *> trackers;
 
-    // Global issues are tracked here, local issues are collected by
-    // the remote_issue_tracker out of the directory metadata
-    remote_issue_tracker_t remote_issue_tracker;
+    // Global issues are tracked here, local issues are collected from other servers by
+    // the local_issue_client_t.
+    local_issue_client_t local_issue_client;
     name_collision_issue_tracker_t name_collision_issue_tracker;
     table_issue_tracker_t table_issue_tracker;
 };

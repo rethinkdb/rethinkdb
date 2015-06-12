@@ -24,6 +24,9 @@ public:
     explicit outdated_index_issue_t(const index_map_t &indexes);
     const datum_string_t &get_name() const { return outdated_index_issue_type; }
     bool is_critical() const { return false; }
+    void add_server(const server_id_t &server) {
+        reporting_server_ids.insert(server);
+    }
 
     index_map_t indexes;
     std::set<server_id_t> reporting_server_ids;
@@ -47,39 +50,26 @@ RDB_DECLARE_EQUALITY_COMPARABLE(outdated_index_issue_t);
 class outdated_index_issue_tracker_t :
     public home_thread_mixin_t {
 public:
-    explicit outdated_index_issue_tracker_t(local_issue_aggregator_t *parent);
-    ~outdated_index_issue_tracker_t();
-
-    // Returns the set of strings for a given namespace that may be filled
-    // by the store_t when it scans its secondary indexes
-    std::set<std::string> *get_index_set(const namespace_id_t &ns_id);
+    outdated_index_issue_tracker_t() { }
 
     scoped_ptr_t<outdated_index_report_t> create_report(const namespace_id_t &ns_id);
 
-    static void combine(local_issues_t *local_issues,
+    std::vector<outdated_index_issue_t> get_issues();
+
+    static void combine(std::vector<outdated_index_issue_t> &&issues,
                         std::vector<scoped_ptr_t<issue_t> > *issues_out);
 
 private:
     friend class outdated_index_report_impl_t;
-    void recompute();
     void remove_report(outdated_index_report_impl_t *report);
 
     void log_outdated_indexes(namespace_id_t ns_id,
                               std::set<std::string> indexes,
                               auto_drainer_t::lock_t keepalive);
 
-    watchable_variable_t<std::vector<outdated_index_issue_t> > issues;
-    local_issue_aggregator_t::subscription_t<outdated_index_issue_t> subs;
-
     std::set<namespace_id_t> logged_namespaces;
     one_per_thread_t<outdated_index_issue_t::index_map_t> outdated_indexes;
     one_per_thread_t<std::set<outdated_index_report_t *> > index_reports;
-
-    void update(UNUSED signal_t *interruptor);
-
-    /* Destructor order matters: `update_pumper` must be destroyed before the other
-    member variables, because it spawns `update()` which accesses the variables. */
-    pump_coro_t update_pumper;
 
     DISABLE_COPYING(outdated_index_issue_tracker_t);
 };

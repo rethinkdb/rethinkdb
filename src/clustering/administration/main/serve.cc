@@ -94,9 +94,7 @@ bool do_serve(io_backender_t *io_backender,
     try {
         extproc_pool_t extproc_pool(get_num_threads());
 
-        local_issue_server_t local_issue_server;
-
-        thread_pool_log_writer_t log_writer(&local_issue_server);
+        thread_pool_log_writer_t log_writer;
 
         cluster_semilattice_metadata_t cluster_metadata;
         auth_semilattice_metadata_t auth_metadata;
@@ -220,8 +218,7 @@ bool do_serve(io_backender_t *io_backender,
             if (i_am_a_server) {
                 cache_balancer.init(new alt_cache_balancer_t(
                     server_config_server->get_actual_cache_size_bytes()));
-                outdated_index_issue_tracker.init(new outdated_index_issue_tracker_t(
-                    &local_issue_aggregator));
+                outdated_index_issue_tracker.init(new outdated_index_issue_tracker_t);
                 table_persistence_interface.init(
                     new real_table_persistence_interface_t(
                         io_backender,
@@ -301,6 +298,14 @@ bool do_serve(io_backender_t *io_backender,
             circular reference. */
             rdb_ctx.cluster_interface = admin_tables.get_reql_cluster_interface();
 
+            scoped_ptr_t<local_issue_server_t> local_issue_server;
+            if (i_am_a_server) {
+                local_issue_server.init(new local_issue_server_t(
+                    &mailbox_manager,
+                    log_writer.get_log_write_issue_tracker(),
+                    outdated_index_issue_tracker.get()));
+            }
+
             proc_directory_metadata_t initial_proc_directory {
                 RETHINKDB_VERSION_STR,
                 current_microtime(),
@@ -325,6 +330,9 @@ bool do_serve(io_backender_t *io_backender,
                 stat_manager.get_address(),
                 log_server.get_business_card(),
                 i_am_a_server
+                    ? local_issue_server->get_bcard()
+                    : local_issue_bcard_t(),
+                i_am_a_server
                     ? server_config_server->get_config()->get()
                     : server_config_versioned_t(),
                 i_am_a_server
@@ -334,12 +342,6 @@ bool do_serve(io_backender_t *io_backender,
 
             watchable_variable_t<cluster_directory_metadata_t>
                 our_root_directory_variable(initial_directory);
-
-            /* watchable_field_copier_t<local_issues_t, cluster_directory_metadata_t>
-                copy_local_issues_to_cluster(
-                    &cluster_directory_metadata_t::local_issues,
-                    local_issue_aggregator.get_issues_watchable(),
-                    &our_root_directory_variable); */
 
             /* These will take care of updating the directory every time our cache size
             or server config changes. They also fill in the initial values. */

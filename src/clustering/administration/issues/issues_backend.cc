@@ -6,11 +6,10 @@
 #include "concurrency/cross_thread_signal.hpp"
 
 issues_artificial_table_backend_t::issues_artificial_table_backend_t(
+        mailbox_manager_t *mailbox_manager,
         boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> >
             _cluster_sl_view,
-        const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t,
-            cluster_directory_metadata_t> > >
-                &directory_view,
+        watchable_map_t<peer_id_t, cluster_directory_metadata_t> *directory_view,
         server_config_client_t *_server_config_client,
         table_meta_client_t *_table_meta_client,
         admin_identifier_format_t _identifier_format) :
@@ -18,20 +17,12 @@ issues_artificial_table_backend_t::issues_artificial_table_backend_t(
     cluster_sl_view(_cluster_sl_view),
     server_config_client(_server_config_client),
     table_meta_client(_table_meta_client),
-    remote_issue_tracker(
-        directory_view->incremental_subview(
-            incremental_field_getter_t<local_issues_t,
-                                       cluster_directory_metadata_t>(
-                &cluster_directory_metadata_t::local_issues)),
-        directory_view->incremental_subview(
-            incremental_field_getter_t<server_id_t,
-                                       cluster_directory_metadata_t>(
-                &cluster_directory_metadata_t::server_id))),
+    local_issue_client(mailbox_manager, directory_view),
     name_collision_issue_tracker(
         server_config_client, cluster_sl_view, table_meta_client),
     table_issue_tracker(server_config_client, table_meta_client)
 {
-    trackers.insert(&remote_issue_tracker);
+    trackers.insert(&local_issue_client);
     trackers.insert(&name_collision_issue_tracker);
     trackers.insert(&table_issue_tracker);
 }

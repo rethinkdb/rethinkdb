@@ -5,11 +5,18 @@
 #include <string>
 #include <vector>
 
-#include "clustering/administration/issues/issue.hpp"
+#include "clustering/administration/issues/log_write.hpp"
+#include "clustering/administration/issues/outdated_index.hpp"
 #include "concurrency/watchable.hpp"
 #include "containers/clone_ptr.hpp"
 #include "rpc/semilattice/joins/macros.hpp"
 #include "rpc/serialize_macros.hpp"
+
+class cluster_directory_metadata_t;
+
+/* "Local issues" are issues that originate on a particular server. When the user queries
+the `rethinkdb.current_issues` system table, each server polls the other servers to
+retrieve their local issues. */
 
 class local_issues_t {
 public:
@@ -29,33 +36,26 @@ RDB_DECLARE_SERIALIZABLE(local_issue_bcard_t);
 
 class local_issue_server_t : public home_thread_mixin_t {
 public:
-    local_issue_server_t(mailbox_manager_t *mm);
+    local_issue_server_t(
+        mailbox_manager_t *mm,
+        log_write_issue_tracker_t *log_write_issue_tracker,
+        outdated_index_issue_tracker_t *outdated_index_issue_tracker);
 
     local_issue_bcard_t get_bcard() {
         return local_issue_bcard_t { get_mailbox.get_address() };
     }
 
-    template <typename local_t>
-    class subscription_t {
-    public:
-        subscription_t(local_issue_aggregator_t *parent,
-                       const clone_ptr_t<watchable_t<std::vector<local_t> > > &source,
-                       std::vector<local_t> local_issues_t::*field) :
-            copier(field, source, &parent->issues_watchable) { }
-    private:
-        watchable_field_copier_t<std::vector<local_t>, local_issues_t> copier;
-    };
-
 private:
     void on_get(signal_t *, const mailbox_t<void(local_issues_t)>::address_t &reply);
 
     mailbox_manager_t *const mailbox_manager;
-    watchable_variable_t<local_issues_t> issues_watchable;
+    log_write_issue_tracker_t *const log_write_issue_tracker;
+    outdated_index_issue_tracker_t *const outdated_index_issue_tracker;
     local_issue_bcard_t::get_mailbox_t get_mailbox;
-    DISABLE_COPYING(local_issue_aggregator_t);
+    DISABLE_COPYING(local_issue_server_t);
 };
 
-class local_issue_client_t {
+class local_issue_client_t : public issue_tracker_t {
 public:
     local_issue_client_t(
         mailbox_manager_t *_mailbox_manager,

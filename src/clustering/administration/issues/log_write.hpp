@@ -20,7 +20,7 @@ public:
     bool is_critical() const { return false; }
 
     void add_server(const server_id_t &server) {
-        reporting_servers.insert(server);
+        reporting_server_ids.insert(server);
     }
 
     std::string message;
@@ -45,14 +45,14 @@ RDB_DECLARE_EQUALITY_COMPARABLE(log_write_issue_t);
 class log_write_issue_tracker_t :
     public home_thread_mixin_t {
 public:
-    ~log_write_issue_tracker_t();
+    log_write_issue_tracker_t() { }
 
-    std::vector<log_write_issue_t> get_issues() { return issues.get(); }
+    std::vector<log_write_issue_t> get_issues();
 
     void report_success();
     void report_error(const std::string &message);
 
-    static void combine(local_issues_t *issues,
+    static void combine(std::vector<log_write_issue_t> &&issues,
                         std::vector<scoped_ptr_t<issue_t> > *issues_out);
 
 private:
@@ -60,7 +60,6 @@ private:
 
     boost::optional<std::string> error_message;
 
-    watchable_variable_t<std::vector<log_write_issue_t> > issues;
     DISABLE_COPYING(log_write_issue_tracker_t);
 };
 
