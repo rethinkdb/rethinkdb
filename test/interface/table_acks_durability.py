@@ -130,14 +130,15 @@ with driver.Cluster(output_folder='.') as cluster:
             tested_readiness += "o"
         res = r.db(dbName).table(name).status().run(conn)
         reported_readiness = ""
-        if res["status"]["all_replicas_ready"]:
-            reported_readiness += "a"
-        if res["status"]["ready_for_writes"]:
-            reported_readiness += "w"
-        if res["status"]["ready_for_reads"]:
-            reported_readiness += "r"
-        if res["status"]["ready_for_outdated_reads"]:
-            reported_readiness += "o"
+        if not (res.has_key("error") and res["error"] == 'None of the replicas for this table are accessible.'):
+            if res["status"]["all_replicas_ready"]:
+                reported_readiness += "a"
+            if res["status"]["ready_for_writes"]:
+                reported_readiness += "w"
+            if res["status"]["ready_for_reads"]:
+                reported_readiness += "r"
+            if res["status"]["ready_for_outdated_reads"]:
+                reported_readiness += "o"
         print("%s expect=%r test=%r report=%r" % (name, expected_readiness, tested_readiness, reported_readiness))
         assert expected_readiness.replace("a", "") == tested_readiness
         assert expected_readiness == reported_readiness
@@ -193,8 +194,8 @@ with driver.Cluster(output_folder='.') as cluster:
     test_ok({"durability": "soft"})
     test_ok({"durability": "hard"})
     test_fail({"durability": "the consistency of toothpaste"})
-    test_ok({"write_acks": "single"]})
-    test_ok({"write_acks": "majority"]})
+    test_ok({"write_acks": "single"})
+    test_ok({"write_acks": "majority"})
     test_fail({"write_acks": [{"replicas": ["l1"], "acks": "single"}]}) # This used to be ok before 2.1
     test_fail({"write_acks": "this is a string"})
     test_fail({"write_acks": [{"replicas": ["not_a_server"], "acks": "single"}]})

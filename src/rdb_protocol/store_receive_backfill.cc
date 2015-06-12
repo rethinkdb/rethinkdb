@@ -169,6 +169,7 @@ void apply_empty_range(
         /* Notify that we're done */
         fifo_enforcer_sink_t::exit_write_t exiter(
             &tokens.info->commit_fifo_sink, tokens.write_token);
+        exiter.wait_lazily_unordered();
         tokens.commit_cb(empty_range, std::move(txn), buf_lock_t(),
             std::vector<rdb_modification_report_t>());
 
@@ -212,7 +213,7 @@ and which has a `backfill_item_t::pair_t` for that key. This eliminates the need
 the previous contents of the range.
 
 Note that multiple calls to `apply_single_key_item()` can be pipelined efficiently,
-because it releases the superblock as soon as it acquires the next node in the B-tree. */ 
+because it releases the superblock as soon as it acquires the next node in the B-tree. */
 void apply_single_key_item(
         const receive_backfill_tokens_t &tokens,
         /* `item` is conceptually passed by move, but `std::bind()` isn't smart enough to
@@ -253,6 +254,9 @@ void apply_single_key_item(
         /* Notify that we're done and update the sindexes */
         fifo_enforcer_sink_t::exit_write_t exiter(
             &tokens.info->commit_fifo_sink, tokens.write_token);
+        /* Note: This must not be interruptible, or we might miss updating secondary
+        indexes. */
+        exiter.wait_lazily_unordered();
         tokens.commit_cb(item.range.right, std::move(txn), std::move(sindex_block),
             std::move(mod_reports));
 

@@ -1,7 +1,7 @@
 # Copyright 2010-2014 RethinkDB, all rights reserved.
 
 __all__ = [
-    'js', 'http', 'json', 'args', 'error', 'random', 'do', 'row', 'branch',
+    'js', 'http', 'json', 'args', 'error', 'random', 'do', 'row', 'branch', 'union',
     'map', 'object', 'binary', 'uuid', 'type_of', 'info', 'range', 'literal',
     'asc', 'desc',
     'db', 'db_create', 'db_drop', 'db_list',
@@ -109,6 +109,10 @@ def rebalance(*args, **kwargs):
 
 def branch(*args):
     return ast.Branch(*args)
+
+
+def union(*args):
+    return ast.Union(*args)
 
 
 def map(*args):

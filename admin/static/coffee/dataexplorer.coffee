@@ -158,6 +158,11 @@ class QueryResult
         else
             return @results[from ..]
 
+    at_beginning: =>
+        if @results_offset?
+            return @results_offset == 0
+        else
+            return true
 
 class Container extends Backbone.View
     id: 'dataexplorer'
@@ -3064,14 +3069,21 @@ class ResultView extends Backbone.View
 
 class TreeView extends ResultView
     className: 'results tree_view_container'
-    template: require('../handlebars/dataexplorer_result_tree.hbs')
+    templates:
+        wrapper: require('../handlebars/dataexplorer_result_tree.hbs')
+        no_result: require('../handlebars/dataexplorer_result_empty.hbs')
 
     render: =>
+        if @query_result.results?.length == 0
+            @$el.html @templates.wrapper tree: @templates.no_result
+                ended: @query_result.ended
+                at_beginning: @query_result.at_beginning()
+            return @
         switch @query_result.type
             when 'value'
-                @$el.html @template tree: @json_to_tree @query_result.value
+                @$el.html @templates.wrapper tree: @json_to_tree @query_result.value
             when 'cursor'
-                @$el.html @template tree: []
+                @$el.html @templates.wrapper tree: []
                 tree_container = @$('.json_tree_container')
                 for row in @current_batch()
                     tree_container.append @json_to_tree row
@@ -3387,6 +3399,7 @@ class TableView extends ResultView
             if results.length is 0
                 @$el.html @templates.wrapper content: @templates.no_result
                     ended: @query_result.ended
+                    at_beginning: @query_result.at_beginning()
             else
                 @$el.html @templates.wrapper content: @json_to_table results
         else

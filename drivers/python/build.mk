@@ -21,7 +21,7 @@ $(PY_BUILD_DIR)/rethinkdb/%: $(PY_SRC_DIR)/rethinkdb/% py_build_files
 	cp $< $@
 
 .INTERMEDIATE: py_build_files
-py_build_files: | $(PY_BUILD_DIR)/rethinkdb/.
+py_build_files:
 	$P CP $(PY_BUILD_DIR)/rethinkdb/
 
 $(PY_PROTO_DEV_FILE) $(PY_PROTO_BUILD_FILE): $(PROTO_FILE_SRC)
