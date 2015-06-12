@@ -8,7 +8,7 @@
 #include <utility>
 
 // TODO: Probably some of these headers could be moved to the .cc.
-#include "clustering/administration/issues/local_issue_aggregator.hpp"
+#include "clustering/administration/issues/local.hpp"
 #include "clustering/administration/jobs/manager.hpp"
 #include "clustering/administration/logs/log_transfer.hpp"
 #include "clustering/administration/servers/server_metadata.hpp"
@@ -81,6 +81,7 @@ public:
             const jobs_manager_business_card_t& _jobs_mailbox,
             const get_stats_mailbox_address_t& _stats_mailbox,
             const log_server_business_card_t &lmb,
+            const local_issues_business_card_t &lib,
             const server_config_versioned_t &sc,
             const boost::optional<server_config_business_card_t> &scbc,
             cluster_directory_peer_type_t _peer_type) :
@@ -92,6 +93,7 @@ public:
         jobs_mailbox(_jobs_mailbox),
         get_stats_mailbox_address(_stats_mailbox),
         log_mailbox(lmb),
+        local_issues_bcard(lib),
         server_config(sc),
         server_config_business_card(scbc),
         peer_type(_peer_type) { }
@@ -99,26 +101,6 @@ public:
     cluster_directory_metadata_t(const cluster_directory_metadata_t &) = default;
     cluster_directory_metadata_t &operator=(const cluster_directory_metadata_t &)
         = default;
-    cluster_directory_metadata_t(cluster_directory_metadata_t &&other) {
-        *this = std::move(other);
-    }
-    cluster_directory_metadata_t &operator=(cluster_directory_metadata_t &&other) {
-        /* We have to define this manually instead of using `= default` because older
-        versions of `boost::optional` don't support moving */
-        server_id = other.server_id;
-        peer_id = other.peer_id;
-        proc = other.proc;
-        actual_cache_size_bytes = other.actual_cache_size_bytes;
-        multi_table_manager_bcard = other.multi_table_manager_bcard;
-        jobs_mailbox = other.jobs_mailbox;
-        get_stats_mailbox_address = other.get_stats_mailbox_address;
-        log_mailbox = other.log_mailbox;
-        server_config = other.server_config;
-        server_config_business_card = other.server_config_business_card;
-        local_issues = std::move(other.local_issues);
-        peer_type = other.peer_type;
-        return *this;
-    }
 
     server_id_t server_id;
 
@@ -133,13 +115,12 @@ public:
     jobs_manager_business_card_t jobs_mailbox;
     get_stats_mailbox_address_t get_stats_mailbox_address;
     log_server_business_card_t log_mailbox;
+    local_issues_business_card_t local_issues_bcard;
 
     /* For proxies, `server_config` is meaningless and `server_config_business_card` is
     empty. */
     server_config_versioned_t server_config;
     boost::optional<server_config_business_card_t> server_config_business_card;
-
-    local_issues_t local_issues;
 
     cluster_directory_peer_type_t peer_type;
 };

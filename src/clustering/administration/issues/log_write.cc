@@ -51,15 +51,6 @@ bool log_write_issue_t::build_info_and_description(
     return true;
 }
 
-log_write_issue_tracker_t::log_write_issue_tracker_t(local_issue_aggregator_t *parent) :
-    issues(std::vector<log_write_issue_t>()),
-    subs(parent, issues.get_watchable(), &local_issues_t::log_write_issues) { }
-
-log_write_issue_tracker_t::~log_write_issue_tracker_t() {
-    // Clear any log write issue
-    report_success();
-}
-
 void log_write_issue_tracker_t::do_update() {
     issues.apply_atomic_op(
         [&](std::vector<log_write_issue_t> *local_issues) -> bool {

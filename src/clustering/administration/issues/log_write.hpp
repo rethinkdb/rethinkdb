@@ -4,16 +4,50 @@
 
 #include <string>
 
-#include "clustering/administration/issues/local_issue_aggregator.hpp"
+#include "clustering/administration/issues/issue.hpp"
 #include "containers/incremental_lenses.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "rdb_protocol/store.hpp"
 
+class local_issue_server_t;
+
+class log_write_issue_t : public issue_t {
+public:
+    log_write_issue_t();
+    explicit log_write_issue_t(const std::string &_message);
+
+    const datum_string_t &get_name() const { return log_write_issue_type; }
+    bool is_critical() const { return false; }
+
+    void add_server(const server_id_t &server) {
+        reporting_servers.insert(server);
+    }
+
+    std::string message;
+    std::set<server_id_t> reporting_server_ids;
+
+private:
+    bool build_info_and_description(
+        const metadata_t &metadata,
+        server_config_client_t *server_config_client,
+        table_meta_client_t *table_meta_client,
+        admin_identifier_format_t identifier_format,
+        ql::datum_t *info_out,
+        datum_string_t *description_out) const;
+
+    static const datum_string_t log_write_issue_type;
+    static const uuid_u base_issue_id;
+};
+
+RDB_DECLARE_SERIALIZABLE(log_write_issue_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(log_write_issue_t);
+
 class log_write_issue_tracker_t :
     public home_thread_mixin_t {
 public:
-    explicit log_write_issue_tracker_t(local_issue_aggregator_t *parent);
     ~log_write_issue_tracker_t();
+
+    std::vector<log_write_issue_t> get_issues() { return issues.get(); }
 
     void report_success();
     void report_error(const std::string &message);
@@ -27,7 +61,6 @@ private:
     boost::optional<std::string> error_message;
 
     watchable_variable_t<std::vector<log_write_issue_t> > issues;
-    local_issue_aggregator_t::subscription_t<log_write_issue_t> subs;
     DISABLE_COPYING(log_write_issue_tracker_t);
 };
 

@@ -66,6 +66,7 @@ multi_table_manager_t::multi_table_manager_t(
             multi_table_manager_directory->read_all(
                 [&](const peer_id_t &peer, const multi_table_manager_bcard_t *) {
                     if (peer != mailbox_manager->get_me()) {
+                        logINF("schedule_sync() initial");
                         schedule_sync(table_id, table, peer);
                     }
                 });
@@ -163,6 +164,7 @@ void multi_table_manager_t::active_table_t::on_raft_commit() {
             sync or not, and if we're sure it's unnecessary we don't sync. */
             if (basic_config_changed ||
                     should_sync_assuming_no_name_change(peer, multi_bcard->server_id)) {
+                logINF("schedule_sync() raft");
                 parent->schedule_sync(manager.table_id, table, peer);
             }
         }
@@ -234,6 +236,7 @@ void multi_table_manager_t::help_construct() {
                 if (peer != mailbox_manager->get_me() && bcard != nullptr) {
                     mutex_assertion_t::acq_t mutex_acq(&mutex);
                     for (const auto &pair : tables) {
+                        logINF("schedule_sync() multibcard");
                         schedule_sync(pair.first, pair.second.get(), peer);
                     }
                 }
@@ -251,6 +254,7 @@ void multi_table_manager_t::help_construct() {
                     mutex_assertion_t::acq_t mutex_acq(&mutex);
                     auto it = tables.find(key.second);
                     if (it != tables.end()) {
+                        logINF("schedule_sync() tablebcard");
                         schedule_sync(key.second, it->second.get(), key.first);
                     }
                 }
@@ -563,10 +567,12 @@ void multi_table_manager_t::do_sync(
             if (action_status == action_status_t::ACTIVE
                     && !timestamp.epoch.supersedes(table_bcard->timestamp.epoch)
                     && *raft_member_id == table_bcard->raft_member_id) {
+                logINF("do_sync() noop\n");
                 return;
             }
         }
 
+        logINF("do_sync() active\n");
         send(mailbox_manager, table_manager_bcard.action_mailbox,
             table_id,
             timestamp,
@@ -583,6 +589,7 @@ void multi_table_manager_t::do_sync(
             return;
         }
 
+        logINF("do_sync() inactive\n");
         send(mailbox_manager, table_manager_bcard.action_mailbox,
             table_id,
             table.basic_configs_entry->get_value().second,
@@ -594,6 +601,7 @@ void multi_table_manager_t::do_sync(
             mailbox_t<void()>::address_t());
 
     } else if (table.status == table_t::status_t::DELETED) {
+        logINF("do_sync() deleted\n");
         send(mailbox_manager, table_manager_bcard.action_mailbox,
             table_id,
             multi_table_manager_bcard_t::timestamp_t::deletion(),

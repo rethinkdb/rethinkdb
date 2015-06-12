@@ -94,9 +94,9 @@ bool do_serve(io_backender_t *io_backender,
     try {
         extproc_pool_t extproc_pool(get_num_threads());
 
-        local_issue_aggregator_t local_issue_aggregator;
+        local_issue_server_t local_issue_server;
 
-        thread_pool_log_writer_t log_writer(&local_issue_aggregator);
+        thread_pool_log_writer_t log_writer(&local_issue_server);
 
         cluster_semilattice_metadata_t cluster_metadata;
         auth_semilattice_metadata_t auth_metadata;
@@ -335,11 +335,11 @@ bool do_serve(io_backender_t *io_backender,
             watchable_variable_t<cluster_directory_metadata_t>
                 our_root_directory_variable(initial_directory);
 
-            watchable_field_copier_t<local_issues_t, cluster_directory_metadata_t>
+            /* watchable_field_copier_t<local_issues_t, cluster_directory_metadata_t>
                 copy_local_issues_to_cluster(
                     &cluster_directory_metadata_t::local_issues,
                     local_issue_aggregator.get_issues_watchable(),
-                    &our_root_directory_variable);
+                    &our_root_directory_variable); */
 
             /* These will take care of updating the directory every time our cache size
             or server config changes. They also fill in the initial values. */
