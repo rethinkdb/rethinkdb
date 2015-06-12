@@ -342,12 +342,12 @@ private:
                 const dummy_raft_state_t &snapshot_state,
                 const raft_complex_config_t &snapshot_config,
                 raft_log_index_t log_prev_index,
-                raft_term_t log_prev_index_term,
+                raft_term_t log_prev_term,
                 signal_t *interruptor) {
             block(interruptor);
             stored_state.snapshot_state = snapshot_state;
             stored_state.snapshot_config = snapshot_config;
-            stored_state.log.delete_entries_to(log_prev_index, log_prev_index_term);
+            stored_state.log.delete_entries_to(log_prev_index, log_prev_term);
             block(interruptor);
         }
         void block(signal_t *interruptor) {

@@ -362,13 +362,13 @@ public:
         signal_t *interruptor) = 0;
 
     /* Overwrite `snapshot_state` and `snapshot_config`. Delete any log entries with
-    terms less than or equal to `log_prev_index`. Set `log.prev_index` and
-    `log.prev_term` to `log_prev_index` and `log_prev_index_term`. */
+    indexes less than or equal to `log_prev_index`. Set `log.prev_index` and
+    `log.prev_term` to `log_prev_index` and `log_prev_term`. */
     virtual void write_snapshot(
         const state_t &snapshot_state,
         const raft_complex_config_t &snapshot_config,
         raft_log_index_t log_prev_index,
-        raft_term_t log_prev_index_term,
+        raft_term_t log_prev_term,
         signal_t *interruptor) = 0;
 
 protected:
