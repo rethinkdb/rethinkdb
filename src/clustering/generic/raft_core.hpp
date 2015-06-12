@@ -267,12 +267,16 @@ public:
         entries.erase(entries.begin() + (index - prev_index - 1), entries.end());
     }
 
-    /* Deletes the log entry at the given index and all entries before it. */
-    void delete_entries_to(raft_log_index_t index) {
+    /* Deletes the log entry at the given index and all entries before it. Note that
+    `index` may be after the last log entry. */
+    void delete_entries_to(raft_log_index_t index, raft_log_term_t index_term) {
         guarantee(index > prev_index, "the log doesn't go back this far");
-        guarantee(index <= get_latest_index(), "the log doesn't go forward this far");
-        raft_term_t index_term = get_entry_term(index);
-        entries.erase(entries.begin(), entries.begin() + (index - prev_index));
+        if (index <= get_latest_index()) {
+            guarantee(index_term == get_entry_term(index));
+            entries.erase(entries.begin(), entries.begin() + (index - prev_index));
+        } else {
+            entries.clear();
+        }
         prev_index = index;
         prev_term = index_term;
     }
@@ -328,57 +332,33 @@ data on disk. */
 template<class state_t>
 class raft_storage_interface_t {
 public:
-    /* All modifications to the stored state must be wrapped in a `txn_t`. This acts as a
-    check to make sure we don't forget to flush the state after making a change. */
-    class txn_t {
-    public:
-        explicit txn_t(raft_storage_interface_t *_parent) :
-                parent(_parent), dirty(false) {
-            guarantee(parent != nullptr);
-        }
-        ~txn_t() {
-            guarantee(!dirty);
-        }
-        void flush(signal_t *interruptor) {
-            if (dirty) {
-                parent->flush(interruptor);
-                dirty = false;
-            }
-        }
-    private:
-        friend class raft_storage_interface_t;
-        raft_storage_interface_t *parent;
-        bool dirty;
-    };
-
     /* `get()` returns a stable pointer to the current state. The `raft_member_t` will
     take this pointer once and then hold it. It's a const pointer; the `raft_member_t`
     must use the other methods in order to change the state. */
     virtual const raft_persistent_state_t<state_t> *get() = 0;
 
     /* These methods perform various combinations of changes on the stored state. The
-    changes will always be visible in the pointer returned by `get()` by the time the
-    method returns. However, they will not be flushed to disk until `txn->flush()` is
-    called. */
-    virtual void write_current_term(txn_t *txn, raft_term_t current_term) = 0;
-    virtual void write_voted_for(txn_t *txn, raft_member_id_t voted_for) = 0;
-    virtual void write_log_append(txn_t *txn, const raft_log_entry_t &latest_entry) = 0;
-    virtual void write_log_delete_entries_from(txn_t *txn, raft_log_index_t index) = 0;
+    changes will always be visible in the pointer returned by `get()` and also stored
+    safely on disk by the time the method call returns. */
+    virtual void write_current_term_and_voted_for(
+        raft_term_t current_term,
+        raft_member_id_t voted_for,
+        signal_t *interruptor) = 0;
+    virtual void write_log_replace_tail(
+        const raft_log_t<state_t> &source,
+        raft_log_index_t first_replaced,
+        signal_t *interruptor) = 0;
+    virtual void write_log_append(
+        const raft_log_entry_t<state_t> &entry,
+        signal_t *interruptor) = 0;
     virtual void write_snapshot_and_log_delete_entries_to(
-        txn_t *txn,
         const state_t &snapshot_state,
         const raft_complex_config_t &snapshot_config,
-        const raft_log_index_t &log_prev_index) = 0;
+        raft_log_index_t log_prev_index,
+        raft_term_t log_prev_index_term,
+        signal_t *interruptor) = 0;
 
 protected:
-    virtual void flush(signal_t *interruptor) = 0;
-
-    /* The subclass should call this in every `write_*()` method. */
-    void note_txn(txn_t *txn) {
-        guarantee(txn->parent == this);
-        txn->dirty = true;
-    }
-
     virtual ~raft_storage_interface_t() { }
 };
 
@@ -749,17 +729,19 @@ private:
         raft_log_index_t first,
         raft_log_index_t last);
 
-    /* `update_term()` sets the term to `new_term` and resets all per-term variables. It
-    assumes that its caller will flush persistent state to stable storage eventually
-    after it returns. */
+    /* `update_term()` sets the term to `new_term` and resets all per-term variables.
+    Since we often want to set `ps().voted_for` to something immediately after starting a
+    new term, it allows setting that to avoid an extra storage write operation. */
     void update_term(raft_term_t new_term,
-                     const new_mutex_acq_t *mutex_acq);
+                     raft_member_id_t new_voted_for,
+                     const new_mutex_acq_t *mutex_acq,
+                     signal_t *interruptor);
 
     /* When we change the commit index we have to also apply changes to the state
-    machine. `update_commit_index()` handles that automatically. It assumes that its
-    caller will flush persistent state to stable storage eventually after it returns. */
+    machine. `update_commit_index()` handles that automatically. */
     void update_commit_index(raft_log_index_t new_commit_index,
-                             const new_mutex_acq_t *mutex_acq);
+                             const new_mutex_acq_t *mutex_acq,
+                             signal_t *Interruptor);
 
     /* When we change `match_index` we might have to update `commit_index` as well.
     `leader_update_match_index()` handles that automatically. It may flush persistent
