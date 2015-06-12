@@ -244,64 +244,68 @@ public:
 };
 RDB_DECLARE_SERIALIZABLE(table_server_status_t);
 
-/* `table_persistent_state_t` is the type of the records we store on disk for each table.
-If we're an active member for the table, we'll store an `active_t`; if we're not an
-active member, we'll store an `inactive_t`. */
-class table_persistent_state_t {
+/* If we are an active member for a given table, we'll store a
+`table_active_persistent_state_t` plus a `raft_persistent_state_t<table_raft_state_t>`;
+the latter will be stored as individual components for better efficiency. If we are not
+an active member, we'll store a `table_inactive_persistent_state_t`. If the table is
+deleted we won't store anything. */
+
+class table_active_persistent_state_t {
 public:
-    class active_t {
-    public:
-        multi_table_manager_bcard_t::timestamp_t::epoch_t epoch;
-        raft_member_id_t raft_member_id;
-        raft_persistent_state_t<table_raft_state_t> raft_state;
-    };
-
-    class inactive_t {
-    public:
-        table_basic_config_t second_hand_config;
-
-        /* `timestamp` records a time at which `second_hand_config` is known to have been
-        correct. */
-        multi_table_manager_bcard_t::timestamp_t timestamp;
-    };
-
-    static table_persistent_state_t active(
-            const multi_table_manager_bcard_t::timestamp_t::epoch_t &epoch,
-            const raft_member_id_t &raft_member_id,
-            const raft_persistent_state_t<table_raft_state_t> &raft_state) {
-        active_t a { epoch, raft_member_id, raft_state };
-        table_persistent_state_t s { a };
-        return s;
-    }
-
-    static table_persistent_state_t inactive(
-            const table_basic_config_t &second_hand_config,
-            const multi_table_manager_bcard_t::timestamp_t &timestamp) {
-        inactive_t i { second_hand_config, timestamp };
-        table_persistent_state_t s { i };
-        return s;
-    }
-
-    /* Note that there's no `deleted_t`. This is because we don't record anything on disk
-    for tables that have been deleted. */
-
-    boost::variant<active_t, inactive_t> value;
+    multi_table_manager_bcard_t::timestamp_t::epoch_t epoch;
+    raft_member_id_t raft_member_id;
 };
-RDB_DECLARE_SERIALIZABLE(table_persistent_state_t::active_t);
-RDB_DECLARE_SERIALIZABLE(table_persistent_state_t::inactive_t);
-RDB_DECLARE_SERIALIZABLE(table_persistent_state_t);
+
+RDB_DECLARE_SERIALIZABLE(table_active_persistent_state_t);
+
+class table_inactive_persistent_state_t {
+public:
+    table_basic_config_t second_hand_config;
+
+    /* `timestamp` records a time at which `second_hand_config` is known to have been
+    correct. */
+    multi_table_manager_bcard_t::timestamp_t timestamp;
+};
+
+RDB_DECLARE_SERIALIZABLE(table_inactive_persistent_state_t);
 
 class table_persistence_interface_t {
 public:
+    /* Some of these methods return a `raft_storage_interface_t *`. This returned pointer
+    will remain valid until the next call to `read_all_metadata()`, `write_metadata_*()`
+    or `delete_metadata()` affecting that table. */
+
+    /* Finds all tables stored in the metadata and calls the appropriate callback. Note
+    that this invalidates any existing `raft_storage_interface_t`s! */
     virtual void read_all_metadata(
         const std::function<void(
             const namespace_id_t &table_id,
-            const table_persistent_state_t &state)> &callback,
+            const table_active_persistent_state_t &state,
+            raft_storage_interface_t<table_raft_state_t> *raft_storage)> &active_cb,
+        const std::function<void(
+            const namespace_id_t &table_id,
+            const table_inactive_persistent_state_t &state)> &inactive_cb,
         signal_t *interruptor) = 0;
-    virtual void write_metadata(
+
+    /* `write_metadata_active()` sets the stored metadata for the table to be the given
+    `state` and `raft_state`. It then returns a `raft_storage_interface_t *` that can be
+    used to make incremental updates to the Raft state. Any previously existing
+    `raft_storage_interface_t *` for this table will be invalidated. */
+    virtual void write_metadata_active(
         const namespace_id_t &table_id,
-        const table_persistent_state_t &state,
+        const table_active_persistent_state_t &state,
+        const raft_persistent_state_t<table_raft_state_t> &raft_state,
+        signal_t *interruptor,
+        raft_storage_interface_t<table_raft_state_t> **raft_storage_out) = 0;
+
+    /* `write_metadata_inactive()` sets the stored metadata for the table to be the given
+    `state`, which is inactive. */
+    virtual void write_metadata_inactive(
+        const namespace_id_t &table_id,
+        const table_inactive_persistent_state_t &state,
         signal_t *interruptor) = 0;
+
+    /* `delete_metadata()` deletes all metadata for the table. */
     virtual void delete_metadata(
         const namespace_id_t &table_id,
         signal_t *interruptor) = 0;

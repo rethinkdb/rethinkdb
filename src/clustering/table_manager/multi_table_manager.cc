@@ -32,43 +32,34 @@ multi_table_manager_t::multi_table_manager_t(
     /* Resurrect any tables that were sitting on disk from when we last shut down */
     cond_t non_interruptor;
     persistence_interface->read_all_metadata(
-        [&](const namespace_id_t &table_id, const table_persistent_state_t &state) {
-            mutex_assertion_t::acq_t global_mutex_acq(&mutex);
+        [&](const namespace_id_t &table_id,
+                const table_active_persistent_state_t &state,
+                raft_storage_interface_t<table_raft_state_t> *raft_storage) {
             guarantee(tables.count(table_id) == 0);
             table_t *table;
             tables[table_id].init(table = new table_t);
             new_mutex_acq_t table_mutex_acq(&table->mutex);
-            global_mutex_acq.reset();
-
-            if (const table_persistent_state_t::active_t *active =
-                    boost::get<table_persistent_state_t::active_t>(&state.value)) {
-                perfmon_collection_repo_t::collections_t *perfmon_collections =
-                    perfmon_collection_repo->get_perfmon_collections_for_namespace(table_id);
-                table->status = table_t::status_t::ACTIVE;
-                persistence_interface->load_multistore(
-                    table_id, &table->multistore_ptr, &non_interruptor,
-                    &perfmon_collections->serializers_collection);
-                table->active = make_scoped<active_table_t>(
-                    this, table, table_id,
-                    active->epoch, active->raft_member_id, active->raft_state,
-                    table->multistore_ptr.get(),
-                    &perfmon_collections->namespace_collection);
-            } else if (const table_persistent_state_t::inactive_t *inactive =
-                    boost::get<table_persistent_state_t::inactive_t>(&state.value)) {
-                table->status = table_t::status_t::INACTIVE;
-                table->basic_configs_entry.create(&table_basic_configs, table_id,
-                    std::make_pair(inactive->second_hand_config, inactive->timestamp));
-            }
-
-            /* This probably won't do anything, since we probably won't be connected to
-            any other servers when `multi_table_manager_t` is created; but just in case,
-            sync to any other servers that are connected. */
-            multi_table_manager_directory->read_all(
-                [&](const peer_id_t &peer, const multi_table_manager_bcard_t *) {
-                    if (peer != mailbox_manager->get_me()) {
-                        schedule_sync(table_id, table, peer);
-                    }
-                });
+            perfmon_collection_repo_t::collections_t *perfmon_collections =
+                perfmon_collection_repo->get_perfmon_collections_for_namespace(table_id);
+            table->status = table_t::status_t::ACTIVE;
+            persistence_interface->load_multistore(
+                table_id, &table->multistore_ptr, &non_interruptor,
+                &perfmon_collections->serializers_collection);
+            table->active = make_scoped<active_table_t>(
+                this, table, table_id,
+                active->epoch, active->raft_member_id, active->raft_state,
+                table->multistore_ptr.get(),
+                &perfmon_collections->namespace_collection);
+        },
+        [&](const namespace_id_t &table_id,
+                const table_inactive_persistent_state_t &state) {
+            guarantee(tables.count(table_id) == 0);
+            table_t *table;
+            tables[table_id].init(table = new table_t);
+            new_mutex_acq_t table_mutex_acq(&table->mutex);
+            table->status = table_t::status_t::INACTIVE;
+            table->basic_configs_entry.create(&table_basic_configs, table_id,
+                std::make_pair(inactive->second_hand_config, inactive->timestamp));
         },
         &non_interruptor);
 
@@ -125,16 +116,16 @@ multi_table_manager_t::active_table_t::active_table_t(
         const namespace_id_t &_table_id,
         const multi_table_manager_bcard_t::timestamp_t::epoch_t &epoch,
         const raft_member_id_t &member_id,
-        const raft_persistent_state_t<table_raft_state_t> &initial_state,
+        raft_storage_interface_t<table_raft_state_t> *raft_storage,
         multistore_ptr_t *multistore_ptr,
         perfmon_collection_t *perfmon_collection_namespace) :
     parent(_parent),
     table(_table),
     table_id(_table_id),
     manager(parent->server_id, parent->mailbox_manager, parent->table_manager_directory,
-        &parent->backfill_throttler, parent->persistence_interface,
-        parent->connections_map, *parent->base_path, parent->io_backender, table_id,
-        epoch, member_id, initial_state, multistore_ptr, perfmon_collection_namespace),
+        &parent->backfill_throttler, parent->connections_map, *parent->base_path,
+        parent->io_backender, table_id, epoch, member_id, raft_storage, multistore_ptr,
+        perfmon_collection_namespace),
     table_manager_bcard_copier(
         &parent->table_manager_bcards, table_id, manager.get_table_manager_bcard()),
     table_query_bcard_source(
@@ -355,11 +346,13 @@ void multi_table_manager_t::on_action(
             table->status = table_t::status_t::ACTIVE;
 
             /* Write a record to disk for the new table */
-            persistence_interface->write_metadata(
+            raft_storage_interface_t<table_raft_state_t> *raft_storage;
+            persistence_interface->write_metadata_active(
                 table_id,
-                table_persistent_state_t::active(
-                    timestamp.epoch, *raft_member_id, *initial_raft_state),
-                interruptor);
+                table_active_persistent_state_t { timestamp.epoch, *raft_member_id },
+                *initial_raft_state,
+                interruptor,
+                &raft_storage);
 
             /* Open files for the new table. We do this after writing the record, because
             this way if we crash we won't leak the file. */
@@ -373,7 +366,7 @@ void multi_table_manager_t::on_action(
             all of the important work of actually handing queries */
             table->active = make_scoped<active_table_t>(
                 this, table, table_id, timestamp.epoch, *raft_member_id,
-                *initial_raft_state, table->multistore_ptr.get(),
+                raft_storage, table->multistore_ptr.get(),
                 &perfmon_collections->namespace_collection);
 
             logINF("Table %s: Added replica on this server.",
@@ -388,15 +381,17 @@ void multi_table_manager_t::on_action(
             table->active.reset();
 
             /* Update the record on disk */
+            raft_storage_interface_t<table_raft_state_t> *raft_storage;
             persistence_interface->write_metadata(
                 table_id,
-                table_persistent_state_t::active(
-                    timestamp.epoch, *raft_member_id, *initial_raft_state),
-                interruptor);
+                table_active_persistent_state_t { timestamp.epoch, *raft_member_id },
+                *initial_raft_state,
+                interruptor,
+                &raft_storage);
 
             table->active = make_scoped<active_table_t>(
                 this, table, table_id, timestamp.epoch, *raft_member_id,
-                *initial_raft_state, table->multistore_ptr.get(),
+                raft_storage, table->multistore_ptr.get(),
                 &perfmon_collections->namespace_collection);
 
             logINF("Table %s: Reset replica on this server.",
@@ -435,9 +430,9 @@ void multi_table_manager_t::on_action(
 
         /* Update the record on disk */
         if (!is_proxy_server) {
-            persistence_interface->write_metadata(
+            persistence_interface->write_metadata_inactive(
                 table_id,
-                table_persistent_state_t::inactive(*basic_config, timestamp),
+                table_inactive_persistent_state_t { *basic_config, timestamp },
                 interruptor);
         }
 

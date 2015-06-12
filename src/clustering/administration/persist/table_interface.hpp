@@ -9,6 +9,7 @@ class cache_balancer_t;
 class metadata_file_t;
 class outdated_index_issue_tracker_t;
 class real_multistore_ptr_t;
+class table_raft_storage_interface_t;
 
 class real_table_persistence_interface_t :
     public table_persistence_interface_t {
@@ -32,11 +33,21 @@ public:
     void read_all_metadata(
         const std::function<void(
             const namespace_id_t &table_id,
-            const table_persistent_state_t &state)> &callback,
+            const table_active_persistent_state_t &state,
+            raft_storage_interface_t<table_raft_state_t> *raft_storage)> &active_cb,
+        const std::function<void(
+            const namespace_id_t &table_id,
+            const table_inactive_persistent_state_t &state)> &inactive_cb,
         signal_t *interruptor);
-    void write_metadata(
+    void write_metadata_active(
         const namespace_id_t &table_id,
-        const table_persistent_state_t &state,
+        const table_active_persistent_state_t &state,
+        const raft_persistent_state_t<table_raft_state_t> &raft_state,
+        signal_t *interruptor,
+        raft_storage_interface_t<table_raft_state_t> **raft_storage_out);
+    void write_metadata_inactive(
+        const namespace_id_t &table_id,
+        const table_inactive_persistent_state_t &state,
         signal_t *interruptor);
     void delete_metadata(
         const namespace_id_t &table_id,
@@ -73,6 +84,9 @@ private:
     std::map<
         namespace_id_t, std::pair<real_multistore_ptr_t *, auto_drainer_t::lock_t>
     > real_multistores;
+
+    std::map<namespace_id_t, scoped_ptr_t<table_raft_storage_interface_t> >
+        storage_interfaces;
 
     /* `pick_thread()` uses this to distribute objects evenly over threads */
     int thread_counter;

@@ -175,7 +175,7 @@ private:
             const namespace_id_t &table_id,
             const multi_table_manager_bcard_t::timestamp_t::epoch_t &epoch,
             const raft_member_id_t &member_id,
-            const raft_persistent_state_t<table_raft_state_t> &initial_state,
+            raft_storage_interface_t<table_raft_state_t> *raft_storage,
             multistore_ptr_t *multistore_ptr,
             perfmon_collection_t *perfmon_collection_namespace);
 
