@@ -328,19 +328,57 @@ data on disk. */
 template<class state_t>
 class raft_storage_interface_t {
 public:
-    /* `write_persistent_state()` writes the state of the Raft member to stable storage.
-    It does not return until the state is safely stored. The values stored with
-    `write_state()` will be passed to the `raft_member_t` constructor when the Raft
-    member is restarted. */
-    virtual void write_persistent_state(
-        const raft_persistent_state_t<state_t> &persistent_state,
-        signal_t *interruptor) = 0;
+    /* All modifications to the stored state must be wrapped in a `txn_t`. This acts as a
+    check to make sure we don't forget to flush the state after making a change. */
+    class txn_t {
+    public:
+        explicit txn_t(raft_storage_interface_t *_parent) :
+                parent(_parent), dirty(false) {
+            guarantee(parent != nullptr);
+        }
+        ~txn_t() {
+            guarantee(!dirty);
+        }
+        void flush(signal_t *interruptor) {
+            if (dirty) {
+                parent->flush(interruptor);
+                dirty = false;
+            }
+        }
+    private:
+        friend class raft_storage_interface_t;
+        raft_storage_interface_t *parent;
+        bool dirty;
+    };
 
-    /* If writing the state becomes a performance bottleneck, we could implement a
-    variant that only rewrites part of the state. In particular, we often need to append
-    a few entries to the log but don't need to make any other changes. */
+    /* `get()` returns a stable pointer to the current state. The `raft_member_t` will
+    take this pointer once and then hold it. It's a const pointer; the `raft_member_t`
+    must use the other methods in order to change the state. */
+    virtual const raft_persistent_state_t<state_t> *get() = 0;
+
+    /* These methods perform various combinations of changes on the stored state. The
+    changes will always be visible in the pointer returned by `get()` by the time the
+    method returns. However, they will not be flushed to disk until `txn->flush()` is
+    called. */
+    virtual void write_current_term(txn_t *txn, raft_term_t current_term) = 0;
+    virtual void write_voted_for(txn_t *txn, raft_member_id_t voted_for) = 0;
+    virtual void write_log_append(txn_t *txn, const raft_log_entry_t &latest_entry) = 0;
+    virtual void write_log_delete_entries_from(txn_t *txn, raft_log_index_t index) = 0;
+    virtual void write_snapshot_and_log_delete_entries_to(
+        txn_t *txn,
+        const state_t &snapshot_state,
+        const raft_complex_config_t &snapshot_config,
+        const raft_log_index_t &log_prev_index) = 0;
 
 protected:
+    virtual void flush(signal_t *interruptor) = 0;
+
+    /* The subclass should call this in every `write_*()` method. */
+    void note_txn(txn_t *txn) {
+        guarantee(txn->parent == this);
+        txn->dirty = true;
+    }
+
     virtual ~raft_storage_interface_t() { }
 };
 
@@ -493,9 +531,9 @@ class raft_member_t : public home_thread_mixin_debug_only_t
 public:
     raft_member_t(
         const raft_member_id_t &this_member_id,
+        /* The state in `storage` must already be initialized */
         raft_storage_interface_t<state_t> *storage,
         raft_network_interface_t<state_t> *network,
-        const raft_persistent_state_t<state_t> &persistent_state,
         /* We'll print log messages of the form `<log_prefix>: <message>`. If
         `log_prefix` is empty, we won't print any messages. */
         const std::string &log_prefix);
@@ -813,6 +851,12 @@ private:
         const new_mutex_acq_t *mutex_acq,
         signal_t *interruptor);
 
+    /* This is because we end up needing to access the persistent state very frequently,
+    and `storage->get()` is too verbose. */
+    raft_persistent_state_t<state_t> const &ps() {
+        return *storage->get();
+    }
+
     /* The member ID of the member of the Raft cluster represented by this
     `raft_member_t`. */
     const raft_member_id_t this_member_id;
@@ -821,11 +865,6 @@ private:
     raft_network_interface_t<state_t> *const network;
 
     const std::string log_prefix;
-
-    /* This stores all of the state variables of the Raft member that need to be written
-    to stable storage when they change. We end up writing `ps.*` a lot, which is why the
-    name is so abbreviated. */
-    raft_persistent_state_t<state_t> ps;
 
     /* `committed_state` describes the state after all committed log entries have been
     applied. The `state` field of `committed_state` is equivalent to the "state machine"

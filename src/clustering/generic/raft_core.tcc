@@ -58,18 +58,16 @@ raft_member_t<state_t>::raft_member_t(
         const raft_member_id_t &_this_member_id,
         raft_storage_interface_t<state_t> *_storage,
         raft_network_interface_t<state_t> *_network,
-        const raft_persistent_state_t<state_t> &_persistent_state,
         const std::string &_log_prefix) :
     this_member_id(_this_member_id),
     storage(_storage),
     network(_network),
     log_prefix(_log_prefix),
-    ps(_persistent_state),
     /* Restore state machine from snapshot. */
     committed_state(state_and_config_t(
-        ps.log.prev_index,
-        ps.snapshot_state,
-        ps.snapshot_config)),
+        ps().log.prev_index,
+        ps().snapshot_state,
+        ps().snapshot_config)),
     /* We'll update `latest_state` with the contents of the log shortly */
     latest_state(committed_state.get_ref()),
     /* Raft paper, Section 5.2: "When servers start up, they begin as followers." */
@@ -99,8 +97,9 @@ raft_member_t<state_t>::raft_member_t(
     new_mutex_acq_t mutex_acq(&mutex);
     /* Finish initializing `latest_state` */
     latest_state.apply_atomic_op([&](state_and_config_t *s) -> bool {
-        this->apply_log_entries(s, ps.log, s->log_index + 1, ps.log.get_latest_index());
-        return !ps.log.entries.empty();
+        this->apply_log_entries(
+            s, ps().log, s->log_index + 1, ps().log.get_latest_index());
+        return !ps().log.entries.empty();
     });
     DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
 }
@@ -185,17 +184,17 @@ raft_member_t<state_t>::propose_change(
     the only member of the cluster, then `leader_append_log_entry()` will commit the
     entry as well as create it; by creating the change token first, we ensure that it
     will get notified if this happens. */
-    raft_log_index_t log_index = ps.log.get_latest_index() + 1;
+    raft_log_index_t log_index = ps().log.get_latest_index() + 1;
     scoped_ptr_t<change_token_t> change_token(
         new change_token_t(this, log_index, false));
 
     raft_log_entry_t<state_t> new_entry;
     new_entry.type = raft_log_entry_type_t::regular;
     new_entry.change = boost::optional<typename state_t::change_t>(change);
-    new_entry.term = ps.current_term;
+    new_entry.term = ps().current_term;
 
     leader_append_log_entry(new_entry, &change_lock->mutex_acq, interruptor);
-    guarantee(ps.log.get_latest_index() == log_index);
+    guarantee(ps().log.get_latest_index() == log_index);
 
     DEBUG_ONLY_CODE(check_invariants(&change_lock->mutex_acq));
     return change_token;
@@ -217,7 +216,7 @@ raft_member_t<state_t>::propose_config_change(
     guarantee(!committed_state.get_ref().config.is_joint_consensus());
     guarantee(!latest_state.get_ref().config.is_joint_consensus());
 
-    raft_log_index_t log_index = ps.log.get_latest_index() + 1;
+    raft_log_index_t log_index = ps().log.get_latest_index() + 1;
     scoped_ptr_t<change_token_t> change_token(
         new change_token_t(this, log_index, true));
 
@@ -230,10 +229,10 @@ raft_member_t<state_t>::propose_config_change(
     raft_log_entry_t<state_t> new_entry;
     new_entry.type = raft_log_entry_type_t::config;
     new_entry.config = boost::optional<raft_complex_config_t>(new_complex_config);
-    new_entry.term = ps.current_term;
+    new_entry.term = ps().current_term;
 
     leader_append_log_entry(new_entry, &change_lock->mutex_acq, interruptor);
-    guarantee(ps.log.get_latest_index() == log_index);
+    guarantee(ps().log.get_latest_index() == log_index);
 
     /* Now that we've put a config entry into the log, we'll have to flip
     `readiness_for_config_change` */
@@ -299,7 +298,7 @@ void raft_member_t<state_t>::check_invariants(
         std::set<raft_term_t> claimed;
         for (raft_member_t<state_t> *member : members) {
             if (member->mode == mode_t::leader) {
-                auto pair = claimed.insert(member->ps.current_term);
+                auto pair = claimed.insert(member->ps().current_term);
                 guarantee(pair.second, "At most one leader can be elected in a given "
                     "term");
             }
@@ -317,13 +316,13 @@ void raft_member_t<state_t>::check_invariants(
         for (raft_member_t<state_t> *m1 : members) {
             for (raft_member_t<state_t> *m2 : members) {
                 bool match_so_far = true;
-                for (raft_log_index_t i = std::max(m1->ps.log.prev_index + 1,
-                                                   m2->ps.log.prev_index + 1);
-                        i <= std::min(m1->ps.log.get_latest_index(),
-                                      m2->ps.log.get_latest_index());
+                for (raft_log_index_t i = std::max(m1->ps().log.prev_index + 1,
+                                                   m2->ps().log.prev_index + 1);
+                        i <= std::min(m1->ps().log.get_latest_index(),
+                                      m2->ps().log.get_latest_index());
                         ++i) {
-                    raft_log_entry_t<state_t> e1 = m1->ps.log.get_entry_ref(i);
-                    raft_log_entry_t<state_t> e2 = m2->ps.log.get_entry_ref(i);
+                    raft_log_entry_t<state_t> e1 = m1->ps().log.get_entry_ref(i);
+                    raft_log_entry_t<state_t> e2 = m2->ps().log.get_entry_ref(i);
                     if (e1.term == e2.term) {
                         guarantee(e1.type == e2.type,
                             "Log matching property violated");
@@ -356,9 +355,9 @@ void raft_member_t<state_t>::check_invariants(
                 /* Don't make unnecessary checks */
                 continue;
             }
-            if (m1->ps.log.prev_index == m2->ps.log.prev_index) {
-                guarantee(m1->ps.snapshot_state == m2->ps.snapshot_state);
-                guarantee(m1->ps.snapshot_config == m2->ps.snapshot_config);
+            if (m1->ps().log.prev_index == m2->ps().log.prev_index) {
+                guarantee(m1->ps().snapshot_state == m2->ps().snapshot_state);
+                guarantee(m1->ps().snapshot_config == m2->ps().snapshot_config);
             }
         }
     }
@@ -373,6 +372,8 @@ void raft_member_t<state_t>::on_request_vote_rpc(
     assert_thread();
     new_mutex_acq_t mutex_acq(&mutex, interruptor);
     DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
+
+    typename raft_storage_interface_t<state_t>::txn_t ps_txn(storage);
 
     /* Raft paper, Section 6: "Servers disregard RequestVote RPCs when they believe a
     current leader exists... Specifically, if a server receives a RequestVote RPC within
@@ -400,15 +401,15 @@ void raft_member_t<state_t>::on_request_vote_rpc(
                 watchdog_timer_t::state_t::NOT_TRIGGERED)) {
         RAFT_DEBUG_THIS("RequestVote from %s for %" PRIu64 " ignored (leader exists)\n",
             show_member_id(request.candidate_id).c_str(), request.term);
-        reply_out->term = ps.current_term;
+        reply_out->term = ps().current_term;
         reply_out->vote_granted = false;
         return;
     }
 
     /* Raft paper, Figure 2: If RPC request or response contains term T > currentTerm:
     set currentTerm = T, convert to follower */
-    if (request.term > ps.current_term) {
-        update_term(request.term, &mutex_acq);
+    if (request.term > ps().current_term) {
+        update_term(request.term, &mutex_acq, &ps_txn);
         if (mode != mode_t::follower) {
             candidate_or_leader_become_follower(&mutex_acq);
         }
@@ -416,8 +417,8 @@ void raft_member_t<state_t>::on_request_vote_rpc(
     }
 
     /* Raft paper, Figure 2: "Reply false if term < currentTerm" */
-    if (request.term < ps.current_term) {
-        reply_out->term = ps.current_term;
+    if (request.term < ps().current_term) {
+        reply_out->term = ps().current_term;
         reply_out->vote_granted = false;
         DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
         return;
@@ -427,7 +428,7 @@ void raft_member_t<state_t>::on_request_vote_rpc(
     guarantee(request.candidate_id != this_member_id, "We shouldn't be requesting a "
         "vote from ourself.");
     if (mode != mode_t::follower) {
-        guarantee(ps.voted_for == this_member_id, "We should have voted for ourself "
+        guarantee(ps().voted_for == this_member_id, "We should have voted for ourself "
             "already.");
     }
 
@@ -436,8 +437,8 @@ void raft_member_t<state_t>::on_request_vote_rpc(
 
     /* So if `voted_for` is neither `nil_uuid()` nor `candidate_id`, we don't grant the
     vote */
-    if (!ps.voted_for.is_nil() && ps.voted_for != request.candidate_id) {
-        reply_out->term = ps.current_term;
+    if (!ps().voted_for.is_nil() && ps().voted_for != request.candidate_id) {
+        reply_out->term = ps().current_term;
         reply_out->vote_granted = false;
         DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
         return;
@@ -449,13 +450,13 @@ void raft_member_t<state_t>::on_request_vote_rpc(
     up-to-date. If the logs end with the same term, then whichever log is longer is more
     up-to-date." */
     bool candidate_is_at_least_as_up_to_date =
-        request.last_log_term > ps.log.get_entry_term(ps.log.get_latest_index()) ||
-            (request.last_log_term == ps.log.get_entry_term(ps.log.get_latest_index()) &&
-                request.last_log_index >= ps.log.get_latest_index());
+        request.last_log_term > ps().log.get_entry_term(ps().log.get_latest_index()) ||
+        (request.last_log_term == ps().log.get_entry_term(ps().log.get_latest_index()) &&
+            request.last_log_index >= ps().log.get_latest_index());
     if (!candidate_is_at_least_as_up_to_date) {
         RAFT_DEBUG_THIS("RequestVote from %s for %" PRIu64 " ignored (not up-to-date)\n",
             show_member_id(request.candidate_id).c_str(), request.term);
-        reply_out->term = ps.current_term;
+        reply_out->term = ps().current_term;
         reply_out->vote_granted = false;
         DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
         return;
@@ -464,7 +465,7 @@ void raft_member_t<state_t>::on_request_vote_rpc(
     RAFT_DEBUG_THIS("RequestVote from %s for %" PRIu64 " granted\n",
             show_member_id(request.candidate_id).c_str(), request.term);
 
-    ps.voted_for = request.candidate_id;
+    storage->write_voted_for(&ps_txn, request.candidate_id);
 
     /* Raft paper, Section 5.2: "A server remains in follower state as long as it
     receives valid RPCs from a leader or candidate."
@@ -478,9 +479,9 @@ void raft_member_t<state_t>::on_request_vote_rpc(
 
     /* Raft paper, Figure 2: "Persistent state [is] updated on stable storage before
     responding to RPCs" */
-    storage->write_persistent_state(ps, interruptor);
+    ps_txn.flush(interruptor);
 
-    reply_out->term = ps.current_term;
+    reply_out->term = ps().current_term;
     reply_out->vote_granted = true;
 
     DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
@@ -494,11 +495,12 @@ void raft_member_t<state_t>::on_install_snapshot_rpc(
     assert_thread();
     new_mutex_acq_t mutex_acq(&mutex, interruptor);
     DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
+    typename raft_storage_interface_t<state_t>::txn_t ps_txn(storage);
 
-    if (!on_rpc_from_leader(request.leader_id, request.term, &mutex_acq)) {
+    if (!on_rpc_from_leader(request.leader_id, request.term, &mutex_acq, &ps_txn)) {
         /* Raft paper, Figure 2: term should be set to "currentTerm, for leader to update
         itself" */
-        reply_out->term = ps.current_term;
+        reply_out->term = ps().current_term;
         DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
         return;
     }
@@ -507,41 +509,41 @@ void raft_member_t<state_t>::on_install_snapshot_rpc(
 
     /* This implementation deviates from the Raft paper in the order it does things. The
     Raft paper says that the first step should be to save the snapshot, which for us
-    would correspond to setting `ps.snapshot_state` and `ps.snapshot_config`. But because
-    we only store one snapshot at a time and require that snapshot to be right before the
-    start of the log, that doesn't make sense for us. Instead, we save the snapshot if
-    and when we update the log. */
+    would correspond to setting `ps().snapshot_state` and `ps().snapshot_config`. But
+    because we only store one snapshot at a time and require that snapshot to be right
+    before the start of the log, that doesn't make sense for us. Instead, we save the
+    snapshot if and when we update the log. */
 
     /* Raft paper, Figure 13: "If existing log entry has same index and term as
     snapshot's last included entry, retain log entries following it and reply" */
-    if (request.last_included_index <= ps.log.prev_index) {
+    if (request.last_included_index <= ps().log.prev_index) {
         /* The proposed snapshot starts at or before our current snapshot. It's
         impossible to check if an existing log entry has the same index and term because
         the snapshot's last included entry is before our most recent entry. But if that's
         the case, we don't need this snapshot, so we can safely ignore it. */
-        if (request.last_included_index == ps.log.prev_index) {
-            guarantee(request.last_included_term == ps.log.prev_term, "The entry we "
+        if (request.last_included_index == ps().log.prev_index) {
+            guarantee(request.last_included_term == ps().log.prev_term, "The entry we "
                 "shapshotted at was committed, so we shouldn't be receiving a different "
                 "committed entry at the same index.");
         }
-        reply_out->term = ps.current_term;
+        reply_out->term = ps().current_term;
         DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
         return;
-    } else if (request.last_included_index <= ps.log.get_latest_index() &&
-            ps.log.get_entry_term(request.last_included_index) ==
+    } else if (request.last_included_index <= ps().log.get_latest_index() &&
+            ps().log.get_entry_term(request.last_included_index) ==
                 request.last_included_term) {
         /* Raft paper, Section 7: "If ... the follower receives a snapshot that describes
         a prefix of its log (due to retransmission or by mistake), then log entries
         covered by the snapshot are deleted but entries following the snapshot are still
         valid and must be retained. */
-        ps.log.delete_entries_to(request.last_included_index);
+        ps().log.delete_entries_to(request.last_included_index);
 
         /* Raft paper, Figure 13: "Save snapshot file"
         (We're going slightly out of order, as described above) */
-        ps.snapshot_state = request.snapshot_state;
-        ps.snapshot_config = request.snapshot_config;
-        guarantee(ps.log.prev_index == request.last_included_index);
-        guarantee(ps.log.prev_term == request.last_included_term);
+        ps().snapshot_state = request.snapshot_state;
+        ps().snapshot_config = request.snapshot_config;
+        guarantee(ps().log.prev_index == request.last_included_index);
+        guarantee(ps().log.prev_term == request.last_included_term);
 
         /* This implementation deviates from the Raft paper in that we may update the
         state machine in this situation. The paper implies that we should reply without
@@ -549,18 +551,18 @@ void raft_member_t<state_t>::on_install_snapshot_rpc(
         committed index in this case, so we do that. */
     } else {
         /* Raft paper, Figure 13: "Discard the entire log" */
-        ps.log.entries.clear();
+        ps().log.entries.clear();
 
         /* Raft paper, Figure 13: "Save snapshot file"
         (We're going slightly out of order, as described above) */
-        ps.snapshot_state = request.snapshot_state;
-        ps.snapshot_config = request.snapshot_config;
-        ps.log.prev_index = request.last_included_index;
-        ps.log.prev_term = request.last_included_term;
+        ps().snapshot_state = request.snapshot_state;
+        ps().snapshot_config = request.snapshot_config;
+        ps().log.prev_index = request.last_included_index;
+        ps().log.prev_term = request.last_included_term;
 
-        /* Because we modified `ps.log`, we need to update `latest_state` */
+        /* Because we modified `ps().log`, we need to update `latest_state` */
         latest_state.set_value_no_equals(state_and_config_t(
-            ps.log.prev_index, ps.snapshot_state, ps.snapshot_config));
+            ps().log.prev_index, ps().snapshot_state, ps().snapshot_config));
     }
 
     /* Raft paper, Figure 13: "Reset state machine using snapshot contents" */
@@ -570,8 +572,8 @@ void raft_member_t<state_t>::on_install_snapshot_rpc(
         part of the log, which is why this implementation needs it. */
         if (request.last_included_index > state_and_config->log_index) {
             state_and_config->log_index = request.last_included_index;
-            state_and_config->state = ps.snapshot_state;
-            state_and_config->config = ps.snapshot_config;
+            state_and_config->state = ps().snapshot_state;
+            state_and_config->config = ps().snapshot_config;
             return true;
         } else {
             return false;
@@ -580,9 +582,10 @@ void raft_member_t<state_t>::on_install_snapshot_rpc(
 
     /* Raft paper, Figure 2: "Persistent state [is] updated on stable storage before
     responding to RPCs" */
+    debugf("flush in on_install_snapshot_rpc()\n");
     storage->write_persistent_state(ps, interruptor);
 
-    reply_out->term = ps.current_term;
+    reply_out->term = ps().current_term;
 
     DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
 }
@@ -599,7 +602,7 @@ void raft_member_t<state_t>::on_append_entries_rpc(
     if (!on_rpc_from_leader(request.leader_id, request.term, &mutex_acq)) {
         /* Raft paper, Figure 2: term should be set to "currentTerm, for leader to update
         itself" */
-        reply_out->term = ps.current_term;
+        reply_out->term = ps().current_term;
         reply_out->success = false;
         DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
         return;
@@ -609,10 +612,10 @@ void raft_member_t<state_t>::on_append_entries_rpc(
 
     /* Raft paper, Figure 2: "Reply false if log doesn't contain an entry at prevLogIndex
     whose term matches prevLogTerm" */
-    if (request.entries.prev_index > ps.log.get_latest_index() ||
-            ps.log.get_entry_term(request.entries.prev_index) !=
+    if (request.entries.prev_index > ps().log.get_latest_index() ||
+            ps().log.get_entry_term(request.entries.prev_index) !=
                 request.entries.prev_term) {
-        reply_out->term = ps.current_term;
+        reply_out->term = ps().current_term;
         reply_out->success = false;
         DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
         return;
@@ -622,23 +625,24 @@ void raft_member_t<state_t>::on_append_entries_rpc(
     but different terms), delete the existing entry and all that follow it" */
     bool conflict = false;
     for (raft_log_index_t i = request.entries.prev_index + 1;
-            i <= std::min(ps.log.get_latest_index(), request.entries.get_latest_index());
+            i <= std::min(ps().log.get_latest_index(),
+                          request.entries.get_latest_index());
             ++i) {
-        if (ps.log.get_entry_term(i) != request.entries.get_entry_term(i)) {
-            ps.log.delete_entries_from(i);
+        if (ps().log.get_entry_term(i) != request.entries.get_entry_term(i)) {
+            ps().log.delete_entries_from(i);
             conflict = true;
             break;
         }
     }
 
     /* Raft paper, Figure 2: "Append any new entries not already in the log" */
-    for (raft_log_index_t i = ps.log.get_latest_index() + 1;
+    for (raft_log_index_t i = ps().log.get_latest_index() + 1;
             i <= request.entries.get_latest_index();
             ++i) {
-        ps.log.append(request.entries.get_entry_ref(i));
+        ps().log.append(request.entries.get_entry_ref(i));
     }
 
-    /* Because we modified `ps.log`, we need to update `latest_state`. */
+    /* Because we modified `ps().log`, we need to update `latest_state`. */
     latest_state.apply_atomic_op([&](state_and_config_t *s) -> bool {
         if (conflict) {
             /* We deleted some log entries and then appended some. Since we have no way
@@ -646,7 +650,8 @@ void raft_member_t<state_t>::on_append_entries_rpc(
             last committed state and then apply log entries from there. */
             *s = committed_state.get_ref();
         }
-        this->apply_log_entries(s, ps.log, s->log_index + 1, ps.log.get_latest_index());
+        this->apply_log_entries(
+            s, ps().log, s->log_index + 1, ps().log.get_latest_index());
         return true;
     });
 
@@ -660,9 +665,10 @@ void raft_member_t<state_t>::on_append_entries_rpc(
 
     /* Raft paper, Figure 2: "Persistent state [is] updated on stable storage before
     responding to RPCs" */
+    debugf("flush in on_append_entries_rpc()\n");
     storage->write_persistent_state(ps, interruptor);
 
-    reply_out->term = ps.current_term;
+    reply_out->term = ps().current_term;
     reply_out->success = true;
 
     DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
@@ -680,30 +686,30 @@ void raft_member_t<state_t>::check_invariants(
     /* Some of these checks are copied directly from LogCabin's list of invariants. */
 
     /* Checks related to newly-initialized states */
-    if (ps.current_term == 0) {
-        guarantee(ps.voted_for.is_nil(), "If we're still in term 0, nobody has started "
-            "an election, so we shouldn't have voted for anybody.");
-        guarantee(ps.log.entries.empty(), "If we're still in term 0, we shouldn't have "
-            "any real log entries.");
-        guarantee(ps.log.get_latest_index() == 0, "If we're still in term 0, the log "
+    if (ps().current_term == 0) {
+        guarantee(ps().voted_for.is_nil(), "If we're still in term 0, nobody has "
+            "started an election, so we shouldn't have voted for anybody.");
+        guarantee(ps().log.entries.empty(), "If we're still in term 0, we shouldn't "
+            "have any real log entries.");
+        guarantee(ps().log.get_latest_index() == 0, "If we're still in term 0, the log "
             "should be empty");
         guarantee(mode == mode_t::follower, "If we're still in term 0, there shouldn't "
             "have been an election, so we should be follower.");
         guarantee(current_term_leader_id.is_nil(), "Term 0 shouldn't have a leader.");
     }
-    guarantee((ps.log.prev_index == 0) == (ps.log.prev_term == 0), "There shouldn't be "
-        "any log entries in term 0.");
+    guarantee((ps().log.prev_index == 0) == (ps().log.prev_term == 0), "There shouldn't "
+        "be any log entries in term 0.");
 
     /* Checks related to the log */
-    raft_term_t latest_term_in_log = ps.log.get_entry_term(ps.log.prev_index);
-    for (raft_log_index_t i = ps.log.prev_index + 1;
-            i <= ps.log.get_latest_index();
+    raft_term_t latest_term_in_log = ps().log.get_entry_term(ps().log.prev_index);
+    for (raft_log_index_t i = ps().log.prev_index + 1;
+            i <= ps().log.get_latest_index();
             ++i) {
-        guarantee(ps.log.get_entry_ref(i).term != 0,
+        guarantee(ps().log.get_entry_ref(i).term != 0,
             "There shouldn't be any log entries in term 0.");
-        guarantee(ps.log.get_entry_ref(i).term >= latest_term_in_log,
+        guarantee(ps().log.get_entry_ref(i).term >= latest_term_in_log,
             "Terms of log entries should monotonically increase");
-        const raft_log_entry_t<state_t> &entry = ps.log.get_entry_ref(i);
+        const raft_log_entry_t<state_t> &entry = ps().log.get_entry_ref(i);
         latest_term_in_log = entry.term;
 
         switch (entry.type) {
@@ -729,13 +735,13 @@ void raft_member_t<state_t>::check_invariants(
             unreachable();
         }
     }
-    guarantee(latest_term_in_log <= ps.current_term, "There shouldn't be any log "
+    guarantee(latest_term_in_log <= ps().current_term, "There shouldn't be any log "
         "entries with terms greater than current_term");
 
     /* Checks related to reconfigurations */
     size_t uncommitted_config_1s = 0, uncommitted_config_2s = 0;
-    for (raft_log_index_t i = commit_index + 1; i <= ps.log.get_latest_index(); ++i) {
-        const raft_log_entry_t<state_t> &entry = ps.log.get_entry_ref(i);
+    for (raft_log_index_t i = commit_index + 1; i <= ps().log.get_latest_index(); ++i) {
+        const raft_log_entry_t<state_t> &entry = ps().log.get_entry_ref(i);
         if (entry.type == raft_log_entry_type_t::config) {
             if (entry.config->is_joint_consensus()) {
                 ++uncommitted_config_1s;
@@ -757,15 +763,16 @@ void raft_member_t<state_t>::check_invariants(
     }
 
     /* Checks related to the state machine and commits */
-    guarantee(commit_index >= ps.log.prev_index, "All of the log entries in the "
+    guarantee(commit_index >= ps().log.prev_index, "All of the log entries in the "
         "snapshot should be committed.");
-    guarantee(commit_index <= ps.log.get_latest_index(), "We shouldn't have committed "
+    guarantee(commit_index <= ps().log.get_latest_index(), "We shouldn't have committed "
         "any entries that aren't in the log yet.");
 #ifdef ENABLE_RAFT_DEBUG
     /* This is potentially really slow, so we normally disable it. */
     {
-        state_and_config_t s(ps.log.prev_index, ps.snapshot_state, ps.snapshot_config);
-        apply_log_entries(&s, ps.log, ps.log.prev_index + 1, commit_index);
+        state_and_config_t s(
+            ps().log.prev_index, ps().snapshot_state, ps().snapshot_config);
+        apply_log_entries(&s, ps().log, ps().log.prev_index + 1, commit_index);
         guarantee(s.state == committed_state.get_ref().state, "State machine should be "
             "equal to snapshot with log entries applied.");
         guarantee(s.config == committed_state.get_ref().config, "Config stored with "
@@ -773,7 +780,7 @@ void raft_member_t<state_t>::check_invariants(
         guarantee(s.log_index == committed_state.get_ref().log_index, "Applying the log "
             "entries up to commit_index to the snapshot should cause its log_index to "
             "be equal to commit_index.");
-        apply_log_entries(&s, ps.log, commit_index + 1, ps.log.get_latest_index());
+        apply_log_entries(&s, ps().log, commit_index + 1, ps().log.get_latest_index());
         guarantee(s.state == latest_state.get_ref().state);
         guarantee(s.config == latest_state.get_ref().config);
         guarantee(s.log_index == latest_state.get_ref().log_index);
@@ -782,7 +789,7 @@ void raft_member_t<state_t>::check_invariants(
     /* This is a properties that this implementation follows, but it isn't essential
     to Raft, and it would be totally reasonable to change it for performance reasons or
     something. */
-    guarantee(ps.log.prev_index == commit_index, "This implementation is supposed to "
+    guarantee(ps().log.prev_index == commit_index, "This implementation is supposed to "
         "snapshot changes as soon as they're applied");
 
     /* Checks related to the follower/candidate/leader roles */
@@ -808,17 +815,17 @@ void raft_member_t<state_t>::check_invariants(
     case mode_t::candidate:
         guarantee(current_term_leader_id.is_nil(), "if we have a leader we shouldn't be "
             "having an election");
-        guarantee(ps.voted_for == this_member_id, "if we're a candidate we should have "
-            "voted for ourself");
+        guarantee(ps().voted_for == this_member_id, "if we're a candidate we should "
+            "have voted for ourself");
         guarantee(match_indexes.empty(), "If we're a candidate, `match_indexes` should "
             "be empty.");
         break;
     case mode_t::leader:
-        guarantee(ps.voted_for == this_member_id, "if we're a leader we should have "
+        guarantee(ps().voted_for == this_member_id, "if we're a leader we should have "
             "voted for ourself");
-        guarantee(latest_term_in_log == ps.current_term, "if we're a leader we should "
+        guarantee(latest_term_in_log == ps().current_term, "if we're a leader we should "
             "have put at least the initial noop entry in the log");
-        guarantee(match_indexes.at(this_member_id) == ps.log.get_latest_index(),
+        guarantee(match_indexes.at(this_member_id) == ps().log.get_latest_index(),
             "If we're a leader, `match_indexes` should contain an up-to-date entry for "
             "ourselves.");
         break;
@@ -913,7 +920,7 @@ bool raft_member_t<state_t>::on_rpc_from_leader(
 
     /* Raft paper, Figure 2: "If RPC request or response contains term T > currentTerm:
     set currentTerm = T, convert to follower" */
-    if (request_term > ps.current_term) {
+    if (request_term > ps().current_term) {
         RAFT_DEBUG_THIS("Install/Append from %s for %" PRIu64 "\n",
             show_member_id(request_leader_id).c_str(), request_term);
         update_term(request_term, mutex_acq);
@@ -926,11 +933,11 @@ bool raft_member_t<state_t>::on_rpc_from_leader(
     /* Raft paper, Figure 2: "Reply false if term < currentTerm (SE 5.1)"
     Raft paper, Section 5.1: "If a server receives a request with a stale term number, it
     rejects the request" */
-    if (request_term < ps.current_term) {
+    if (request_term < ps().current_term) {
         return false;
     }
 
-    guarantee(request_term == ps.current_term);   /* sanity check */
+    guarantee(request_term == ps().current_term);   /* sanity check */
 
     /* Raft paper, Section 5.2: "While waiting for votes, a candidate may receive an
     AppendEntries RPC from another server claiming to be leader. If the leader's term
@@ -1043,13 +1050,13 @@ void raft_member_t<state_t>::update_term(
         const new_mutex_acq_t *mutex_acq) {
     mutex_acq->guarantee_is_holding(&mutex);
 
-    guarantee(new_term > ps.current_term);
-    ps.current_term = new_term;
+    guarantee(new_term > ps().current_term);
+    ps().current_term = new_term;
 
     /* In Figure 2, `votedFor` is defined as "candidateId that received vote in
     current term (or null if none)". So when the current term changes, we have to
     update `voted_for`. */
-    ps.voted_for = raft_member_id_t();
+    ps().voted_for = raft_member_id_t();
 
     /* The same logic applies to `current_term_leader_id` and
     `virtual_heartbeat_sender`. */
@@ -1077,7 +1084,7 @@ void raft_member_t<state_t>::update_commit_index(
         `candidate_and_leader_coro()` to start the second phase of the reconfiguration.
     */
     committed_state.apply_atomic_op([&](state_and_config_t *state_and_config) -> bool {
-        this->apply_log_entries(state_and_config, ps.log,
+        this->apply_log_entries(state_and_config, ps().log,
             state_and_config->log_index + 1, new_commit_index);
         return true;
     });
@@ -1106,12 +1113,12 @@ void raft_member_t<state_t>::update_commit_index(
     many changes have accumulated. (We'd also have to add a mechanism to add entries to
     the log on disk without rewriting the whole on-disk persistent state, or there
     wouldn't be any performance benefits.) */
-    ps.snapshot_state = committed_state.get_ref().state;
-    ps.snapshot_config = committed_state.get_ref().config;
-    /* This automatically updates `ps.log.prev_index` and `ps.log.prev_term`,
+    ps().snapshot_state = committed_state.get_ref().state;
+    ps().snapshot_config = committed_state.get_ref().config;
+    /* This automatically updates `ps().log.prev_index` and `ps().log.prev_term`,
     which are equivalent to the "last included index" and "last included term"
     described in Section 7 of the Raft paper. */
-    ps.log.delete_entries_to(committed_state.get_ref().log_index);
+    ps().log.delete_entries_to(committed_state.get_ref().log_index);
 
     /* If we just committed the second step of a config change, then we might need to
     flip `readiness_for_config_change` */
@@ -1137,8 +1144,8 @@ void raft_member_t<state_t>::leader_update_match_index(
     raft_log_index_t old_commit_index = committed_state.get_ref().log_index;
     raft_log_index_t new_commit_index = old_commit_index;
     for (raft_log_index_t n = old_commit_index + 1;
-            n <= ps.log.get_latest_index(); ++n) {
-        if (ps.log.get_entry_term(n) != ps.current_term) {
+            n <= ps().log.get_latest_index(); ++n) {
+        if (ps().log.get_entry_term(n) != ps().current_term) {
             continue;
         }
         std::set<raft_member_id_t> approving_members;
@@ -1157,6 +1164,7 @@ void raft_member_t<state_t>::leader_update_match_index(
     }
     if (new_commit_index != old_commit_index) {
         update_commit_index(new_commit_index, mutex_acq);
+        debugf("flush leader_update_match_index()\n");
         storage->write_persistent_state(ps, interruptor);
     }
 }
@@ -1215,15 +1223,15 @@ void raft_member_t<state_t>::candidate_and_leader_coro(
 
     /* Raft paper, Section 5.2: "To begin an election, a follower increments its current
     term and transitions to candidate state." */
-    update_term(ps.current_term + 1, mutex_acq.get());
+    update_term(ps().current_term + 1, mutex_acq.get());
     /* `update_term()` changed `ps`, but we don't need to flush to stable storage
     immediately, because `candidate_run_election()` will do it. */
 
     if (!log_prefix.empty()) {
         logINF("%s: Starting a new Raft election for term %" PRIu64 ".",
-            log_prefix.c_str(), ps.current_term);
+            log_prefix.c_str(), ps().current_term);
     }
-    RAFT_DEBUG_THIS("election begun for %" PRIu64 "\n", ps.current_term);
+    RAFT_DEBUG_THIS("election begun for %" PRIu64 "\n", ps().current_term);
 
     mode = mode_t::candidate;
 
@@ -1254,13 +1262,14 @@ void raft_member_t<state_t>::candidate_and_leader_coro(
                 majority. When this happens, each candidate will time out and start a new
                 election by incrementing its term and initiating another round of
                 RequestVote RPCs." */
-                update_term(ps.current_term + 1, mutex_acq.get());
+                update_term(ps().current_term + 1, mutex_acq.get());
 
                 if (!log_prefix.empty()) {
                     logINF("%s: Raft election timed out. Starting a new election for "
-                        "term %" PRIu64 ".", log_prefix.c_str(), ps.current_term);
+                        "term %" PRIu64 ".", log_prefix.c_str(), ps().current_term);
                 }
-                RAFT_DEBUG_THIS("election restarted for %" PRIu64 "\n", ps.current_term);
+                RAFT_DEBUG_THIS("election restarted for %" PRIu64 "\n",
+                    ps().current_term);
 
                 /* Go around the `while`-loop again. */
             }
@@ -1270,10 +1279,11 @@ void raft_member_t<state_t>::candidate_and_leader_coro(
         guarantee(mode == mode_t::leader);
 
         if (!log_prefix.empty()) {
-            logINF("%s: This server is Raft leader for term %" PRIu64 ". Latest log index is "
-                "%" PRIu64 ".", log_prefix.c_str(), ps.current_term, ps.log.get_latest_index());
+            logINF("%s: This server is Raft leader for term %" PRIu64 ". Latest log "
+                "index is %" PRIu64 ".",
+                log_prefix.c_str(), ps().current_term, ps().log.get_latest_index());
         }
-        RAFT_DEBUG_THIS("won election for %" PRIu64 "\n", ps.current_term);
+        RAFT_DEBUG_THIS("won election for %" PRIu64 "\n", ps().current_term);
 
         guarantee(current_term_leader_id.is_nil());
         current_term_leader_id = this_member_id;
@@ -1286,14 +1296,14 @@ void raft_member_t<state_t>::candidate_and_leader_coro(
         all nextIndex values to the index just after the last one in its log"
         It's important to do this before we append the no-op to the log, so that we
         replicate the no-op on the first try instead of having to try twice. */
-        raft_log_index_t initial_next_index = ps.log.get_latest_index() + 1;
+        raft_log_index_t initial_next_index = ps().log.get_latest_index() + 1;
 
         /* Now that we are leader, initialize `match_indexes`. For now we just fill in
         the entry for ourselves; `leader_spawn_update_coros()` will handle filling in the
         entries for the other members of the cluster. */
         guarantee(match_indexes.empty(), "When we were not leader, `match_indexes` "
             "should have been empty.");
-        match_indexes[this_member_id] = ps.log.get_latest_index();
+        match_indexes[this_member_id] = ps().log.get_latest_index();
 
         /* Raft paper, Section 8: "[Raft has] each leader commit a blank no-op entry into
         the log at the start of its term."
@@ -1303,7 +1313,7 @@ void raft_member_t<state_t>::candidate_and_leader_coro(
         {
             raft_log_entry_t<state_t> new_entry;
             new_entry.type = raft_log_entry_type_t::noop;
-            new_entry.term = ps.current_term;
+            new_entry.term = ps().current_term;
             leader_append_log_entry(new_entry, mutex_acq.get(),
                 leader_keepalive.get_drain_signal());
         }
@@ -1316,7 +1326,7 @@ void raft_member_t<state_t>::candidate_and_leader_coro(
         repeated AppendEntries RPCs. If the network connection is lost, then the
         `connectivity_cluster_t` will detect it using its own heartbeats and then the
         `raft_network_interface_t` will interrupt the virtual heartbeat stream. */
-        network->send_virtual_heartbeats(boost::make_optional(ps.current_term));
+        network->send_virtual_heartbeats(boost::make_optional(ps().current_term));
 
         /* Prevent the watchdog timers from being triggered until we are no longer
         leader. */
@@ -1421,7 +1431,7 @@ bool raft_member_t<state_t>::candidate_run_election(
     cond_t we_won_the_election;
 
     /* Raft paper, Section 5.2: "It then votes for itself." */
-    ps.voted_for = this_member_id;
+    ps().voted_for = this_member_id;
     votes_for_us.insert(this_member_id);
     if (latest_state.get_ref().config.is_quorum(votes_for_us)) {
         /* In some degenerate cases, like if the cluster has only one node, then
@@ -1431,6 +1441,7 @@ bool raft_member_t<state_t>::candidate_run_election(
 
     /* Flush to stable storage so we don't forget we voted for ourself. I'm not sure if
     this is strictly necessary. */
+    debugf("flush in candidate_run_election()\n");
     storage->write_persistent_state(ps, interruptor);
 
     /* Raft paper, Section 5.2: "[The candidate] issues RequestVote RPCs in parallel to
@@ -1461,11 +1472,11 @@ bool raft_member_t<state_t>::candidate_run_election(
                     member variables because they can't change while we're in candidate
                     state. */
                     typename raft_rpc_request_t<state_t>::request_vote_t request;
-                    request.term = ps.current_term;
+                    request.term = ps().current_term;
                     request.candidate_id = this_member_id;
-                    request.last_log_index = ps.log.get_latest_index();
+                    request.last_log_index = ps().log.get_latest_index();
                     request.last_log_term =
-                        ps.log.get_entry_term(ps.log.get_latest_index());
+                        ps().log.get_entry_term(ps().log.get_latest_index());
                     raft_rpc_request_t<state_t> request_wrapper;
                     request_wrapper.request = request;
 
@@ -1676,21 +1687,21 @@ void raft_member_t<state_t>::leader_send_updates(
                 new new_mutex_acq_t(&mutex, update_keepalive.get_drain_signal()));
             DEBUG_ONLY_CODE(check_invariants(mutex_acq.get()));
 
-            if (next_index <= ps.log.prev_index) {
+            if (next_index <= ps().log.prev_index) {
                 /* The peer's log ends before our log begins. So we have to send an
                 install-snapshot RPC instead of an append-entries RPC. */
 
                 typename raft_rpc_request_t<state_t>::install_snapshot_t request;
-                request.term = ps.current_term;
+                request.term = ps().current_term;
                 request.leader_id = this_member_id;
-                request.last_included_index = ps.log.prev_index;
-                request.last_included_term = ps.log.prev_term;
+                request.last_included_index = ps().log.prev_index;
+                request.last_included_term = ps().log.prev_term;
                 /* TODO: Maybe we should send `committed_state` instead of the snapshot.
                 Under the current implementation, they will always be the same; but if we
                 were to allow the snapshot to lag behind the committed state, sending
                 `committed_state` would help the follower catch up faster. */
-                request.snapshot_state = ps.snapshot_state;
-                request.snapshot_config = ps.snapshot_config;
+                request.snapshot_state = ps().snapshot_state;
+                request.snapshot_config = ps().snapshot_config;
                 raft_rpc_request_t<state_t> request_wrapper;
                 request_wrapper.request = request;
 
@@ -1740,17 +1751,17 @@ void raft_member_t<state_t>::leader_send_updates(
                     update_keepalive.get_drain_signal());
                 send_even_if_empty = false;
 
-            } else if (next_index <= ps.log.get_latest_index() ||
+            } else if (next_index <= ps().log.get_latest_index() ||
                     member_commit_index < committed_state.get_ref().log_index ||
                     send_even_if_empty) {
                 /* The peer's log ends right where our log begins, or in the middle of
                 our log. Send an append-entries RPC. */
 
                 typename raft_rpc_request_t<state_t>::append_entries_t request;
-                request.term = ps.current_term;
+                request.term = ps().current_term;
                 request.leader_id = this_member_id;
-                request.entries = ps.log;
-                if (next_index > ps.log.prev_index + 1) {
+                request.entries = ps().log;
+                if (next_index > ps().log.prev_index + 1) {
                     request.entries.delete_entries_to(next_index - 1);
                 }
                 request.leader_commit = committed_state.get_ref().log_index;
@@ -1817,7 +1828,7 @@ void raft_member_t<state_t>::leader_send_updates(
                 send_even_if_empty = false;
 
             } else {
-                guarantee(next_index == ps.log.get_latest_index() + 1);
+                guarantee(next_index == ps().log.get_latest_index() + 1);
                 guarantee(member_commit_index == committed_state.get_ref().log_index);
                 /* OK, the peer is completely up-to-date. Wait until either an entry is
                 appended to the log or our commit index advances, and then go around the
@@ -1861,7 +1872,7 @@ void raft_member_t<state_t>::leader_continue_reconfiguration(
         `candidate_or_leader_note_term()` isn't designed for the purpose of making us
         intentionally step down, but it contains all the right logic. This has a side
         effect of incrementing `current_term`, but I don't think that's a problem. */
-        candidate_or_leader_note_term(ps.current_term + 1, mutex_acq);
+        candidate_or_leader_note_term(ps().current_term + 1, mutex_acq);
     } else if (committed_state.get_ref().config.is_joint_consensus() &&
             latest_state.get_ref().config.is_joint_consensus()) {
         /* OK, we recently committed a joint consensus configuration, but we haven't yet
@@ -1877,7 +1888,7 @@ void raft_member_t<state_t>::leader_continue_reconfiguration(
         raft_log_entry_t<state_t> new_entry;
         new_entry.type = raft_log_entry_type_t::config;
         new_entry.config = boost::optional<raft_complex_config_t>(new_config);
-        new_entry.term = ps.current_term;
+        new_entry.term = ps().current_term;
 
         leader_append_log_entry(new_entry, mutex_acq, interruptor);
     }
@@ -1890,8 +1901,8 @@ bool raft_member_t<state_t>::candidate_or_leader_note_term(
     guarantee(mode != mode_t::follower);
     /* Raft paper, Figure 2: If RPC request or response contains term T > currentTerm:
     set currentTerm = T, convert to follower */
-    if (term > ps.current_term) {
-        raft_term_t local_current_term = ps.current_term;
+    if (term > ps().current_term) {
+        raft_term_t local_current_term = ps().current_term;
         /* We have to spawn this in a separate coroutine because
         `candidate_or_leader_become_follower()` blocks until
         `candidate_and_leader_coro()` exits, so calling
@@ -1905,10 +1916,11 @@ bool raft_member_t<state_t>::candidate_or_leader_note_term(
                 /* Check that term hasn't already been updated between when
                 `candidate_or_leader_note_term()` was called and when this coroutine ran.
                 */
-                if (ps.current_term == local_current_term) {
+                if (ps().current_term == local_current_term) {
                     RAFT_DEBUG_THIS("got rpc reply with term %" PRIu64 "\n", term);
                     this->update_term(term, &mutex_acq_2);
                     this->candidate_or_leader_become_follower(&mutex_acq_2);
+                    debugf("flush in candidate_or_leader_note_term()\n");
                     storage->write_persistent_state(ps, keepalive.get_drain_signal());
                 }
                 DEBUG_ONLY_CODE(this->check_invariants(&mutex_acq_2));
@@ -1931,21 +1943,21 @@ void raft_member_t<state_t>::leader_append_log_entry(
         signal_t *interruptor) {
     mutex_acq->guarantee_is_holding(&mutex);
     guarantee(mode == mode_t::leader);
-    guarantee(log_entry.term == ps.current_term);
+    guarantee(log_entry.term == ps().current_term);
 
     /* Raft paper, Section 5.3: "The leader appends the command to its log as a new
     entry..." */
-    ps.log.append(log_entry);
+    ps().log.append(log_entry);
 
     /* Raft paper, Section 5.3: "...then issues AppendEntries RPCs in parallel to each of
     the other servers to replicate the entry."
-    Because we modified `ps.log`, we have to update `latest_state`. But this will also
+    Because we modified `ps().log`, we have to update `latest_state`. But this will also
     have the side-effect of notifying anything that's waiting on `latest_state`; in
     particular, instances of `leader_send_updates()` will wait on `latest_state` so they
     can be notified when there are new log entries to send to the followers. */
     latest_state.apply_atomic_op([&](state_and_config_t *s) -> bool {
-        guarantee(s->log_index + 1 == ps.log.get_latest_index());
-        this->apply_log_entries(s, ps.log, s->log_index + 1, s->log_index + 1);
+        guarantee(s->log_index + 1 == ps().log.get_latest_index());
+        this->apply_log_entries(s, ps().log, s->log_index + 1, s->log_index + 1);
         return true;
     });
 
@@ -1953,8 +1965,8 @@ void raft_member_t<state_t>::leader_append_log_entry(
     entry known to be replicated on each server". Although it's not explicitly stated
     anywhere, this means the leader needs to increment its entry in `match_indexes`
     whenever it appends to its own log. */
-    guarantee(match_indexes.at(this_member_id) + 1 == ps.log.get_latest_index());
-    leader_update_match_index(this_member_id, ps.log.get_latest_index(), mutex_acq,
+    guarantee(match_indexes.at(this_member_id) + 1 == ps().log.get_latest_index());
+    leader_update_match_index(this_member_id, ps().log.get_latest_index(), mutex_acq,
         interruptor);
 
     /* Note that we are holding the lock while we write the persistent state to disk.
@@ -1962,6 +1974,7 @@ void raft_member_t<state_t>::leader_append_log_entry(
     correctness; if we released the lock before we finished writing the persistent state,
     it's possible that we could send an AppendEntries RPC for log entries that were not
     on our disk yet, and it's not obvious whether that is safe. */
+    debugf("flush in leader_append_log_entry()\n");
     storage->write_persistent_state(ps, interruptor);
 }
 
