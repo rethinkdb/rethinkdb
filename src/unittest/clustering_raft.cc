@@ -327,7 +327,7 @@ private:
                 stored_state.log.delete_entries_from(first_replaced);
             }
             for (raft_log_index_t i = first_replaced; i <= log.get_latest_index(); ++i) {
-                stored_state.log.append(log.get_entry(i));
+                stored_state.log.append(log.get_entry_ref(i));
             }
             block(interruptor);
         }
@@ -339,7 +339,7 @@ private:
             block(interruptor);
         }
         void write_snapshot(
-                const state_t &snapshot_state,
+                const dummy_raft_state_t &snapshot_state,
                 const raft_complex_config_t &snapshot_config,
                 raft_log_index_t log_prev_index,
                 raft_term_t log_prev_index_term,

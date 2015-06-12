@@ -145,7 +145,7 @@ raft_persistent_state_t<state_t> raft_member_t<state_t>::get_state_for_init() {
     /* This implementation deviates from the Raft paper in that we initialize new peers
     joining the cluster by copying the log, snapshot, etc. from an existing peer, instead
     of starting the new peer with a blank state. */
-    raft_persistent_state_t<state_t> ps_copy = ps;
+    raft_persistent_state_t<state_t> ps_copy = ps();
     /* Clear `voted_for` since the newly-joining peer will not have voted for anything */
     ps_copy.voted_for = raft_member_id_t();
     return ps_copy;
@@ -373,8 +373,6 @@ void raft_member_t<state_t>::on_request_vote_rpc(
     new_mutex_acq_t mutex_acq(&mutex, interruptor);
     DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
 
-    typename raft_storage_interface_t<state_t>::txn_t ps_txn(storage);
-
     /* Raft paper, Section 6: "Servers disregard RequestVote RPCs when they believe a
     current leader exists... Specifically, if a server receives a RequestVote RPC within
     the minimum election timeout of hearing from a current leader, it does not update its
@@ -478,10 +476,6 @@ void raft_member_t<state_t>::on_request_vote_rpc(
     below the `if (!candidate_is_at_least_as_up_to_date)` instead of above it. */
     watchdog->notify();
 
-    /* Raft paper, Figure 2: "Persistent state [is] updated on stable storage before
-    responding to RPCs" */
-    ps_txn.flush(interruptor);
-
     reply_out->term = ps().current_term;
     reply_out->vote_granted = true;
 
@@ -496,9 +490,8 @@ void raft_member_t<state_t>::on_install_snapshot_rpc(
     assert_thread();
     new_mutex_acq_t mutex_acq(&mutex, interruptor);
     DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
-    typename raft_storage_interface_t<state_t>::txn_t ps_txn(storage);
 
-    if (!on_rpc_from_leader(request.leader_id, request.term, &mutex_acq, &ps_txn)) {
+    if (!on_rpc_from_leader(request.leader_id, request.term, &mutex_acq, interruptor)) {
         /* Raft paper, Figure 2: term should be set to "currentTerm, for leader to update
         itself" */
         reply_out->term = ps().current_term;
@@ -599,7 +592,7 @@ void raft_member_t<state_t>::on_append_entries_rpc(
     new_mutex_acq_t mutex_acq(&mutex, interruptor);
     DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
 
-    if (!on_rpc_from_leader(request.leader_id, request.term, &mutex_acq)) {
+    if (!on_rpc_from_leader(request.leader_id, request.term, &mutex_acq, interruptor)) {
         /* Raft paper, Figure 2: term should be set to "currentTerm, for leader to update
         itself" */
         reply_out->term = ps().current_term;
@@ -854,7 +847,8 @@ void raft_member_t<state_t>::on_connected_members_change(
                 new_mutex_acq_t mutex_acq(&mutex, keepalive.get_drain_signal());
                 DEBUG_ONLY_CODE(this->check_invariants(&mutex_acq));
 
-                if (!this->on_rpc_from_leader(member_id, term, &mutex_acq)) {
+                if (!this->on_rpc_from_leader(member_id, term, &mutex_acq,
+                        keepalive.get_drain_signal())) {
                     /* If this were a real AppendEntries or InstallSnapshot RPC, we would
                     send an RPC reply to the leader informing it that our term is higher
                     than its term. However, there's no way to send an RPC reply to a
@@ -908,7 +902,8 @@ template<class state_t>
 bool raft_member_t<state_t>::on_rpc_from_leader(
         const raft_member_id_t &request_leader_id,
         raft_term_t request_term,
-        const new_mutex_acq_t *mutex_acq) {
+        const new_mutex_acq_t *mutex_acq,
+        signal_t *interruptor) {
     assert_thread();
     mutex_acq->guarantee_is_holding(&mutex);
 
@@ -1748,10 +1743,15 @@ void raft_member_t<state_t>::leader_send_updates(
                 typename raft_rpc_request_t<state_t>::append_entries_t request;
                 request.term = ps().current_term;
                 request.leader_id = this_member_id;
-                request.entries = ps().log;
-                if (next_index > ps().log.prev_index + 1) {
-                    request.entries.delete_entries_to(next_index - 1);
+                request.entries.prev_index = next_index - 1;
+                request.entries.prev_term =
+                    ps().log.get_entry_term(request.entries.prev_index);
+                for (raft_log_index_t i = next_index;
+                        i <= ps().log.get_latest_index(); ++i) {
+                    request.entries.append(ps().log.get_entry_ref(i));
                 }
+                guarantee(request.entries.get_latest_index()
+                    == ps().log.get_latest_index());
                 request.leader_commit = committed_state.get_ref().log_index;
                 raft_rpc_request_t<state_t> request_wrapper;
                 request_wrapper.request = request;

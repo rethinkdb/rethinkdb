@@ -27,7 +27,7 @@ table_manager_t::table_manager_t(
     mailbox_manager(_mailbox_manager),
     connections_map(_connections_map),
     perfmon_membership(perfmon_collection_namespace, &perfmon_collection, "regions"),
-    raft(raft_member_id, _mailbox_manager, raft_directory.get_values(), raft_stoage,
+    raft(raft_member_id, _mailbox_manager, raft_directory.get_values(), raft_storage,
         "Table " + uuid_to_str(table_id)),
     table_manager_bcard(table_manager_bcard_t()),   /* we'll set this later */
     raft_bcard_copier(&table_manager_bcard_t::raft_business_card,

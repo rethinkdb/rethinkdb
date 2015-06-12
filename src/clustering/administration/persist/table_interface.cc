@@ -198,14 +198,14 @@ void real_table_persistence_interface_t::read_all_metadata(
     storage_interfaces.clear();
     for (const auto &pair : active_tables) {
         storage_interfaces[pair.first].init(new table_raft_storage_interface_t(
-            metadata_file, &read_txn, pair.first));
+            metadata_file, &read_txn, pair.first, interruptor));
         active_cb(pair.first, pair.second, storage_interfaces[pair.first].get());
     }
 
     read_txn.read_many<table_inactive_persistent_state_t>(
         mdprefix_table_inactive(),
         [&](const std::string &uuid_str, const table_inactive_persistent_state_t &s) {
-            inactive_cb(uuid_to_str(uuid_str), s);
+            inactive_cb(str_to_uuid(uuid_str), s);
         },
         interruptor);
 }
@@ -219,7 +219,7 @@ void real_table_persistence_interface_t::write_metadata_active(
     storage_interfaces.erase(table_id);
     metadata_file_t::write_txn_t write_txn(metadata_file, interruptor);
     write_txn.erase(
-        mdprefix_table_inactive().suffix(uuid_to_str(table_id));
+        mdprefix_table_inactive().suffix(uuid_to_str(table_id)),
         interruptor);
     table_raft_storage_interface_t::erase(&write_txn, table_id, interruptor);
     write_txn.write(
@@ -238,11 +238,11 @@ void real_table_persistence_interface_t::write_metadata_inactive(
     storage_interfaces.erase(table_id);
     metadata_file_t::write_txn_t write_txn(metadata_file, interruptor);
     write_txn.erase(
-        mdprefix_table_active().suffix(uuid_to_str(table_id));
+        mdprefix_table_active().suffix(uuid_to_str(table_id)),
         interruptor);
     table_raft_storage_interface_t::erase(&write_txn, table_id, interruptor);
     write_txn.write(
-        mdprefix_table_inactive().suffix(uuid_to_str(table_id));
+        mdprefix_table_inactive().suffix(uuid_to_str(table_id)),
         state,
         interruptor);
 }
@@ -253,10 +253,10 @@ void real_table_persistence_interface_t::delete_metadata(
     storage_interfaces.erase(table_id);
     metadata_file_t::write_txn_t write_txn(metadata_file, interruptor);
     write_txn.erase(
-        mdprefix_table_active().suffix(uuid_to_str(table_id));
+        mdprefix_table_active().suffix(uuid_to_str(table_id)),
         interruptor);
     write_txn.erase(
-        mdprefix_table_inactive().suffix(uuid_to_str(table_id));
+        mdprefix_table_inactive().suffix(uuid_to_str(table_id)),
         interruptor);
     table_raft_storage_interface_t::erase(&write_txn, table_id, interruptor);
 }

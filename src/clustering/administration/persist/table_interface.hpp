@@ -3,6 +3,7 @@
 #define CLUSTERING_ADMINISTRATION_PERSIST_TABLE_INTERFACE_HPP_
 
 #include "clustering/administration/perfmon_collection_repo.hpp"
+#include "clustering/administration/persist/raft_storage_interface.hpp"
 #include "clustering/table_manager/table_metadata.hpp"
 
 class cache_balancer_t;

@@ -269,7 +269,7 @@ public:
 
     /* Deletes the log entry at the given index and all entries before it. Note that
     `index` may be after the last log entry. */
-    void delete_entries_to(raft_log_index_t index, raft_log_term_t index_term) {
+    void delete_entries_to(raft_log_index_t index, raft_term_t index_term) {
         guarantee(index > prev_index, "the log doesn't go back this far");
         if (index <= get_latest_index()) {
             guarantee(index_term == get_entry_term(index));
@@ -302,8 +302,9 @@ public:
         const state_t &initial_state,
         const raft_config_t &initial_config);
 
-private:
-    template<class state2_t> friend class raft_member_t;
+    /* The remaining members are public so that `raft_member_t` and implementations of
+    `raft_storage_interface_t` can access them. In general nothing else besides those two
+    should have to access these. */
 
     /* `current_term` and `voted_for` correspond to the variables with the same names in
     Figure 2 of the Raft paper. */
@@ -727,7 +728,8 @@ private:
     bool on_rpc_from_leader(
         const raft_member_id_t &request_leader_id,
         raft_term_t request_term,
-        const new_mutex_acq_t *mutex_acq);
+        const new_mutex_acq_t *mutex_acq,
+        signal_t *interruptor);
 
     /* `on_watchdog()` is called if we haven't heard from the leader within an election
     timeout. it starts a new election by spawning `candidate_and_leader_coro()`. */

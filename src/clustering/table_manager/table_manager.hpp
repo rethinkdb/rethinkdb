@@ -9,9 +9,7 @@
 
 /* `table_manager_t` hosts the `raft_member_t` and the `contract_executor_t`. It also
 hosts the `contract_coordinator_t` if we are the Raft leader. */
-class table_manager_t :
-    private raft_storage_interface_t<table_raft_state_t>
-{
+class table_manager_t {
 public:
     table_manager_t(
         const server_id_t &_server_id,

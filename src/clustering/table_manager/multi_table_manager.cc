@@ -46,10 +46,8 @@ multi_table_manager_t::multi_table_manager_t(
                 table_id, &table->multistore_ptr, &non_interruptor,
                 &perfmon_collections->serializers_collection);
             table->active = make_scoped<active_table_t>(
-                this, table, table_id,
-                active->epoch, active->raft_member_id, active->raft_state,
-                table->multistore_ptr.get(),
-                &perfmon_collections->namespace_collection);
+                this, table, table_id, state.epoch, state.raft_member_id, raft_storage,
+                table->multistore_ptr.get(), &perfmon_collections->namespace_collection);
         },
         [&](const namespace_id_t &table_id,
                 const table_inactive_persistent_state_t &state) {
@@ -59,7 +57,7 @@ multi_table_manager_t::multi_table_manager_t(
             new_mutex_acq_t table_mutex_acq(&table->mutex);
             table->status = table_t::status_t::INACTIVE;
             table->basic_configs_entry.create(&table_basic_configs, table_id,
-                std::make_pair(inactive->second_hand_config, inactive->timestamp));
+                std::make_pair(state.second_hand_config, state.timestamp));
         },
         &non_interruptor);
 
@@ -382,7 +380,7 @@ void multi_table_manager_t::on_action(
 
             /* Update the record on disk */
             raft_storage_interface_t<table_raft_state_t> *raft_storage;
-            persistence_interface->write_metadata(
+            persistence_interface->write_metadata_active(
                 table_id,
                 table_active_persistent_state_t { timestamp.epoch, *raft_member_id },
                 *initial_raft_state,

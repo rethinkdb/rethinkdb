@@ -2,7 +2,9 @@
 #ifndef CLUSTERING_ADMINISTRATION_PERSIST_RAFT_STORAGE_INTERFACE_HPP_
 #define CLUSTERING_ADMINISTRATION_PERSIST_RAFT_STORAGE_INTERFACE_HPP_
 
+#include "clustering/administration/persist/file.hpp"
 #include "clustering/generic/raft_core.hpp"
+#include "clustering/table_contract/contract_metadata.hpp"
 
 class metadata_file_t;
 
@@ -31,20 +33,20 @@ public:
         signal_t *interruptor);
 
     /* `raft_storage_interface_t` methods */
-    const raft_persistent_state_t<state_t> *get();
+    const raft_persistent_state_t<table_raft_state_t> *get();
     void write_current_term_and_voted_for(
         raft_term_t current_term,
         raft_member_id_t voted_for,
         signal_t *interruptor);
     void write_log_replace_tail(
-        const raft_log_t<state_t> &source,
+        const raft_log_t<table_raft_state_t> &source,
         raft_log_index_t first_replaced,
         signal_t *interruptor);
     void write_log_append_one(
-        const raft_log_entry_t<state_t> &entry,
+        const raft_log_entry_t<table_raft_state_t> &entry,
         signal_t *interruptor);
     void write_snapshot(
-        const state_t &snapshot_state,
+        const table_raft_state_t &snapshot_state,
         const raft_complex_config_t &snapshot_config,
         raft_log_index_t log_prev_index,
         raft_term_t log_prev_index_term,
