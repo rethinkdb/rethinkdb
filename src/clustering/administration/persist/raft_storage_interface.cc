@@ -154,23 +154,23 @@ table_raft_storage_interface_t::get() {
 
 void table_raft_storage_interface_t::write_current_term_and_voted_for(
         raft_term_t current_term,
-        raft_member_id_t voted_for,
-        signal_t *interruptor) {
-    metadata_file_t::write_txn_t txn(file, interruptor);
+        raft_member_id_t voted_for) {
+    cond_t non_interruptor;
+    metadata_file_t::write_txn_t txn(file, &non_interruptor);
     table_raft_stored_header_t header;
     header.current_term = state.current_term = current_term;
     header.voted_for = state.voted_for = voted_for;
     txn.write(
         mdprefix_table_raft_header().suffix(uuid_to_str(table_id)),
         header,
-        interruptor);
+        &non_interruptor);
 }
 
 void table_raft_storage_interface_t::write_log_replace_tail(
         const raft_log_t<table_raft_state_t> &source,
-        raft_log_index_t first_replaced,
-        signal_t *interruptor) {
-    metadata_file_t::write_txn_t txn(file, interruptor);
+        raft_log_index_t first_replaced) {
+    cond_t non_interruptor;
+    metadata_file_t::write_txn_t txn(file, &non_interruptor);
     guarantee(first_replaced > state.log.prev_index);
     guarantee(first_replaced <= state.log.get_latest_index() + 1);
     for (raft_log_index_t i = first_replaced;
@@ -179,9 +179,9 @@ void table_raft_storage_interface_t::write_log_replace_tail(
             mdprefix_table_raft_log().suffix(
                 uuid_to_str(table_id) + "/" + log_index_to_str(i));
         if (i <= source.get_latest_index()) {
-            txn.write(key, source.get_entry_ref(i), interruptor);
+            txn.write(key, source.get_entry_ref(i), &non_interruptor);
         } else {
-            txn.erase(key, interruptor);
+            txn.erase(key, &non_interruptor);
         }
     }
     if (first_replaced != state.log.get_latest_index() + 1) {
@@ -193,15 +193,15 @@ void table_raft_storage_interface_t::write_log_replace_tail(
 }
 
 void table_raft_storage_interface_t::write_log_append_one(
-        const raft_log_entry_t<table_raft_state_t> &entry,
-        signal_t *interruptor) {
-    metadata_file_t::write_txn_t txn(file, interruptor);
+        const raft_log_entry_t<table_raft_state_t> &entry) {
+    cond_t non_interruptor;
+    metadata_file_t::write_txn_t txn(file, &non_interruptor);
     raft_log_index_t index = state.log.get_latest_index() + 1;
     txn.write(
         mdprefix_table_raft_log().suffix(
             uuid_to_str(table_id) + "/" + log_index_to_str(index)),
         entry,
-        interruptor);
+        &non_interruptor);
     state.log.append(entry);
 }
 
@@ -209,9 +209,9 @@ void table_raft_storage_interface_t::write_snapshot(
         const table_raft_state_t &snapshot_state,
         const raft_complex_config_t &snapshot_config,
         raft_log_index_t log_prev_index,
-        raft_term_t log_prev_term,
-        signal_t *interruptor) {
-    metadata_file_t::write_txn_t txn(file, interruptor);
+        raft_term_t log_prev_term) {
+    cond_t non_interruptor;
+    metadata_file_t::write_txn_t txn(file, &non_interruptor);
     table_raft_stored_snapshot_t snapshot;
     snapshot.snapshot_state = snapshot_state;
     snapshot.snapshot_config = snapshot_config;
@@ -220,12 +220,12 @@ void table_raft_storage_interface_t::write_snapshot(
     txn.write(
         mdprefix_table_raft_snapshot().suffix(uuid_to_str(table_id)),
         snapshot,
-        interruptor);
+        &non_interruptor);
     for (raft_log_index_t i = state.log.prev_index + 1; i <= log_prev_index; ++i) {
         txn.erase(
             mdprefix_table_raft_log().suffix(
                 uuid_to_str(table_id) + "/" + log_index_to_str(i)),
-            interruptor);
+            &non_interruptor);
     }
     state.snapshot_state = std::move(snapshot.snapshot_state);
     state.snapshot_config = std::move(snapshot.snapshot_config);

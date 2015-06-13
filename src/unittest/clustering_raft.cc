@@ -209,7 +209,7 @@ public:
                     {
                         raft_member_t<dummy_raft_state_t>::change_lock_t change_lock(
                             member, interruptor);
-                        tok = member->propose_change(&change_lock, change, interruptor2);
+                        tok = member->propose_change(&change_lock, change);
                     }
                     if (!tok.has()) {
                         return;
@@ -243,8 +243,7 @@ public:
                     {
                         raft_member_t<dummy_raft_state_t>::change_lock_t change_lock(
                             member, interruptor);
-                        tok = member->propose_config_change(
-                            &change_lock, new_config, interruptor2);
+                        tok = member->propose_config_change(&change_lock, new_config);
                     }
                     if (!tok.has()) {
                         return;
@@ -309,18 +308,16 @@ private:
         }
         void write_current_term_and_voted_for(
                 raft_term_t current_term,
-                raft_member_id_t voted_for,
-                signal_t *interruptor) {
-            block(interruptor);
+                raft_member_id_t voted_for) {
+            block();
             stored_state.current_term = current_term;
             stored_state.voted_for = voted_for;
-            block(interruptor);
+            block();
         }
         void write_log_replace_tail(
                 const raft_log_t<dummy_raft_state_t> &log,
-                raft_log_index_t first_replaced,
-                signal_t *interruptor) {
-            block(interruptor);
+                raft_log_index_t first_replaced) {
+            block();
             guarantee(first_replaced > stored_state.log.prev_index);
             guarantee(first_replaced <= stored_state.log.get_latest_index() + 1);
             if (first_replaced != stored_state.log.get_latest_index() + 1) {
@@ -329,35 +326,33 @@ private:
             for (raft_log_index_t i = first_replaced; i <= log.get_latest_index(); ++i) {
                 stored_state.log.append(log.get_entry_ref(i));
             }
-            block(interruptor);
+            block();
         }
         void write_log_append_one(
-                const raft_log_entry_t<dummy_raft_state_t> &entry,
-                signal_t *interruptor) {
-            block(interruptor);
+                const raft_log_entry_t<dummy_raft_state_t> &entry) {
+            block();
             stored_state.log.append(entry);
-            block(interruptor);
+            block();
         }
         void write_snapshot(
                 const dummy_raft_state_t &snapshot_state,
                 const raft_complex_config_t &snapshot_config,
                 raft_log_index_t log_prev_index,
-                raft_term_t log_prev_term,
-                signal_t *interruptor) {
-            block(interruptor);
+                raft_term_t log_prev_term) {
+            block();
             stored_state.snapshot_state = snapshot_state;
             stored_state.snapshot_config = snapshot_config;
             stored_state.log.delete_entries_to(log_prev_index, log_prev_term);
-            block(interruptor);
+            block();
         }
-        void block(signal_t *interruptor) {
+        void block() {
             if (randint(10) != 0) {
                 coro_t::yield();
             }
             if (randint(10) == 0) {
                 signal_timer_t timer;
                 timer.start(randint(30));
-                wait_interruptible(&timer, interruptor);
+                timer.wait_lazily_unordered();
             }
         }
 
@@ -600,12 +595,11 @@ TPTEST(ClusteringRaft, Regression4234) {
     }
 
     cluster.run_on_member(leader,
-    [&](dummy_raft_member_t *member, signal_t *interruptor2) {
+    [&](dummy_raft_member_t *member, signal_t *) {
         guarantee(member != nullptr);
         raft_member_t<dummy_raft_state_t>::change_lock_t change_lock(
             member, &non_interruptor);
-        auto tok = member->propose_config_change(
-            &change_lock, new_config, interruptor2);
+        auto tok = member->propose_config_change(&change_lock, new_config);
         guarantee(tok.has());
     });
 

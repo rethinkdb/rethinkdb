@@ -346,20 +346,17 @@ public:
     /* Set `current_term` and `voted_for`, leaving everything else alone. */
     virtual void write_current_term_and_voted_for(
         raft_term_t current_term,
-        raft_member_id_t voted_for,
-        signal_t *interruptor) = 0;
+        raft_member_id_t voted_for) = 0;
 
     /* Delete any existing log entries in the stored log after `first_replaced`, and then
     copy any log entries in `source` after `first_replaced` into the stored log. */
     virtual void write_log_replace_tail(
         const raft_log_t<state_t> &source,
-        raft_log_index_t first_replaced,
-        signal_t *interruptor) = 0;
+        raft_log_index_t first_replaced) = 0;
 
     /* Append a single entry to the log. */
     virtual void write_log_append_one(
-        const raft_log_entry_t<state_t> &entry,
-        signal_t *interruptor) = 0;
+        const raft_log_entry_t<state_t> &entry) = 0;
 
     /* Overwrite `snapshot_state` and `snapshot_config`. Delete any log entries with
     indexes less than or equal to `log_prev_index`. Set `log.prev_index` and
@@ -368,8 +365,7 @@ public:
         const state_t &snapshot_state,
         const raft_complex_config_t &snapshot_config,
         raft_log_index_t log_prev_index,
-        raft_term_t log_prev_term,
-        signal_t *interruptor) = 0;
+        raft_term_t log_prev_term) = 0;
 
 protected:
     virtual ~raft_storage_interface_t() { }
@@ -533,12 +529,6 @@ public:
 
     ~raft_member_t();
 
-    /* Note that if any public method on `raft_member_t` is interrupted, the
-    `raft_member_t` will be left in an undefined internal state. Therefore, the
-    destructor should be called after the interruptor has been pulsed. (However, even
-    though the internal state is undefined, the interrupted method call will not make
-    invalid RPC calls or write invalid data to persistent storage.) */
-
     /* `state_and_config_t` describes the Raft cluster's current state, configuration,
     and log index all in the same struct. The reason for putting them in the same struct
     is so that they can be stored in a `watchable_t` and kept in sync. */
@@ -640,8 +630,7 @@ public:
     `propose_config_change()` tries to change the cluster's configuration. 
 
     `propose_[config_]change()` will block while the change is being initiated; this
-    should be a relatively quick process. If you pulse the interruptor, the
-    `raft_member_t` may be left in an undefined internal state.
+    should be a relatively quick process.
 
     If the change is successfully initiated, `propose_[config_]change()` will return a
     `change_token_t` that you can use to monitor the progress of the change. If it is not
@@ -649,18 +638,15 @@ public:
     an explanation of when and why it will return `nullptr`. */
     scoped_ptr_t<change_token_t> propose_change(
         change_lock_t *change_lock,
-        const typename state_t::change_t &change,
-        signal_t *interruptor);
+        const typename state_t::change_t &change);
     scoped_ptr_t<change_token_t> propose_config_change(
         change_lock_t *change_lock,
-        const raft_config_t &new_config,
-        signal_t *interruptor);
+        const raft_config_t &new_config);
 
     /* When a Raft member calls `send_rpc()` on its `raft_network_interface_t`, the RPC
     is sent across the network and delivered by calling `on_rpc()` at its destination. */
     void on_rpc(
         const raft_rpc_request_t<state_t> &request,
-        signal_t *interruptor,
         raft_rpc_reply_t *reply_out);
 
 #ifndef NDEBUG
@@ -694,15 +680,12 @@ private:
     received. */
     void on_request_vote_rpc(
         const typename raft_rpc_request_t<state_t>::request_vote_t &rpc,
-        signal_t *interruptor,
         raft_rpc_reply_t::request_vote_t *reply_out);
     void on_install_snapshot_rpc(
         const typename raft_rpc_request_t<state_t>::install_snapshot_t &rpc,
-        signal_t *interruptor,
         raft_rpc_reply_t::install_snapshot_t *reply_out);
     void on_append_entries_rpc(
         const typename raft_rpc_request_t<state_t>::append_entries_t &rpc,
-        signal_t *interruptor,
         raft_rpc_reply_t::append_entries_t *reply_out);
 
 #ifndef NDEBUG
@@ -728,8 +711,7 @@ private:
     bool on_rpc_from_leader(
         const raft_member_id_t &request_leader_id,
         raft_term_t request_term,
-        const new_mutex_acq_t *mutex_acq,
-        signal_t *interruptor);
+        const new_mutex_acq_t *mutex_acq);
 
     /* `on_watchdog()` is called if we haven't heard from the leader within an election
     timeout. it starts a new election by spawning `candidate_and_leader_coro()`. */
@@ -748,23 +730,19 @@ private:
     new term, it allows setting that to avoid an extra storage write operation. */
     void update_term(raft_term_t new_term,
                      raft_member_id_t new_voted_for,
-                     const new_mutex_acq_t *mutex_acq,
-                     signal_t *interruptor);
+                     const new_mutex_acq_t *mutex_acq);
 
     /* When we change the commit index we have to also apply changes to the state
     machine. `update_commit_index()` handles that automatically. */
     void update_commit_index(raft_log_index_t new_commit_index,
-                             const new_mutex_acq_t *mutex_acq,
-                             signal_t *Interruptor);
+                             const new_mutex_acq_t *mutex_acq);
 
     /* When we change `match_index` we might have to update `commit_index` as well.
-    `leader_update_match_index()` handles that automatically. It may flush persistent
-    state to stable storage before it returns. */
+    `leader_update_match_index()` handles that automatically. */
     void leader_update_match_index(
         raft_member_id_t key,
         raft_log_index_t new_value,
-        const new_mutex_acq_t *mutex_acq,
-        signal_t *interruptor);
+        const new_mutex_acq_t *mutex_acq);
 
     /* `update_readiness_for_change()` should be called whenever any of the variables
     that are used to compute `readiness_for_change` or `readiness_for_config_change` are
@@ -828,8 +806,7 @@ private:
     the second phase by committing the new configuration. It also checks if we have
     completed the second phase and if so, it makes us step down. */
     void leader_continue_reconfiguration(
-        const new_mutex_acq_t *mutex_acq,
-        signal_t *interruptor);
+        const new_mutex_acq_t *mutex_acq);
 
     /* `candidate_or_leader_note_term()` is a helper function for
     `candidate_run_election()` and `leader_send_updates()`. If the given term is greater
@@ -841,11 +818,10 @@ private:
 
     /* `leader_append_log_entry()` is a helper for `propose_change_if_leader()` and
     `propose_config_change_if_leader()`. It adds an entry to the log but doesn't wait for
-    the entry to be committed. It flushes persistent state to stable storage. */
+    the entry to be committed. */
     void leader_append_log_entry(
         const raft_log_entry_t<state_t> &log_entry,
-        const new_mutex_acq_t *mutex_acq,
-        signal_t *interruptor);
+        const new_mutex_acq_t *mutex_acq);
 
     /* This is because we end up needing to access the persistent state very frequently,
     and `storage->get()` is too verbose. */
