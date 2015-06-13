@@ -719,27 +719,16 @@ void raft_member_t<state_t>::check_invariants(
         "entries with terms greater than current_term");
 
     /* Checks related to reconfigurations */
-    size_t uncommitted_config_1s = 0, uncommitted_config_2s = 0;
-    for (raft_log_index_t i = commit_index + 1; i <= ps().log.get_latest_index(); ++i) {
+    bool last_is_joint_consensus = ps().snapshot_config.is_joint_consensus();
+    for (raft_log_index_t i = ps().log.prev_index + 1;
+            i <= ps().log.get_latest_index(); ++i) {
         const raft_log_entry_t<state_t> &entry = ps().log.get_entry_ref(i);
         if (entry.type == raft_log_entry_type_t::config) {
-            if (entry.config->is_joint_consensus()) {
-                ++uncommitted_config_1s;
-            } else {
-                ++uncommitted_config_2s;
-            }
+            guarantee(entry.config->is_joint_consensus() != last_is_joint_consensus,
+                "Joint consensus configurations should alternate with "
+                "non-joint-consensus configurations in the log.");
+            last_is_joint_consensus = entry.config->is_joint_consensus();
         }
-    }
-    if (committed_state.get_ref().config.is_joint_consensus()) {
-        guarantee(uncommitted_config_1s == 0, "We shouldn't have two overlapping "
-            "reconfigurations going on at once");
-        guarantee(uncommitted_config_2s <= 1, "We shouldn't have two overlapping "
-            "reconfigurations going on at once");
-    } else {
-        guarantee(uncommitted_config_1s <= 1, "We shouldn't have two overlapping "
-            "reconfigurations going on at once");
-        guarantee(uncommitted_config_2s == 0, "It's unsafe to go directly from a "
-            "non-joint-consensus configuration to a non-joint-consensus configuration");
     }
 
     /* Checks related to the state machine and commits */
@@ -766,11 +755,6 @@ void raft_member_t<state_t>::check_invariants(
         guarantee(s.log_index == latest_state.get_ref().log_index);
     }
 #endif /* ENABLE_RAFT_DEBUG */
-    /* This is a properties that this implementation follows, but it isn't essential
-    to Raft, and it would be totally reasonable to change it for performance reasons or
-    something. */
-    guarantee(ps().log.prev_index == commit_index, "This implementation is supposed to "
-        "snapshot changes as soon as they're applied");
 
     /* Checks related to the follower/candidate/leader roles */
 
@@ -785,7 +769,6 @@ void raft_member_t<state_t>::check_invariants(
         "we shouldn't be accepting changes if we're not leader");
     guarantee(readiness_for_change.get() || !readiness_for_change.get(),
         "we shouldn't be accepting config changes but not regular changes");
-
 
     switch (mode) {
     case mode_t::follower:
@@ -1071,6 +1054,7 @@ void raft_member_t<state_t>::update_commit_index(
             state_and_config->log_index + 1, new_commit_index);
         return true;
     });
+    guarantee(committed_state.get_ref().log_index == new_commit_index);
 
     /* Notify any change tokens that were waiting on this commit */
     for (auto it = change_tokens.begin();
@@ -1090,18 +1074,27 @@ void raft_member_t<state_t>::update_commit_index(
         token->sentry.reset();
     }
 
-    /* Take a snapshot as described in Section 7. We can snapshot any time we like; this
-    implementation currently snapshots after every change. We should instead delay
-    snapshotting until many changes have accumulated.
+#ifndef NDEBUG
+    /* In debug mode, snapshot randomly with 1/3 probability after each change. This is
+    so that the tests will exercise many different code paths. */
+    bool should_take_snapshot = (randint(3) == 0);
+#else
+    /* In release mode, snapshot when the log grows beyond a certain margin. */
+    size_t num_committed_entries = new_commit_index - ps().log.prev_index;
+    bool should_take_snapshot = (num_committed_entries > snapshot_threshold);
+#endif /* NDEBUG */
+    if (should_take_snapshot) {
+        /* Take a snapshot as described in Section 7.
 
-    This automatically updates `ps().log.prev_index` and `ps().log.prev_term`, which are
-    equivalent to the "last included index" and "last included term" described in Section
-    7 of the Raft paper.*/
-    storage->write_snapshot(
-        committed_state.get_ref().state,
-        committed_state.get_ref().config,
-        committed_state.get_ref().log_index,
-        ps().log.get_entry_term(committed_state.get_ref().log_index));
+        This automatically updates `ps().log.prev_index` and `ps().log.prev_term`, which
+        are equivalent to the "last included index" and "last included term" described in
+        Section 7 of the Raft paper.*/
+        storage->write_snapshot(
+            committed_state.get_ref().state,
+            committed_state.get_ref().config,
+            new_commit_index,
+            ps().log.get_entry_term(new_commit_index));
+    }
 
     /* If we just committed the second step of a config change, then we might need to
     flip `readiness_for_config_change` */

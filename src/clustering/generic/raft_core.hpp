@@ -672,6 +672,10 @@ private:
     static const int32_t election_timeout_min_ms = 1000,
                          election_timeout_max_ms = 2000;
 
+    /* When the number of committed entries in the log exceeds this number, we will take
+    a snapshot to compress them. */
+    static const size_t snapshot_threshold = 20;
+
     /* Note: Methods prefixed with `follower_`, `candidate_`, or `leader_` are methods
     that are only used when in that state. This convention will hopefully make the code
     slightly clearer. */
@@ -900,9 +904,9 @@ private:
     new_mutex_t mutex;
 
     /* This mutex assertion controls writes to the Raft log and associated state.
-    Specifically, anything writing to `ps.log`, `ps.snapshot`, `committed_state`,
-    `committed_config`, `commit_index`, or `last_applied` should hold this mutex
-    assertion.
+    Specifically, anything writing to `ps().log`, `ps().snapshot_*`, `committed_state`,
+    or `latest_state` should hold this mutex assertion.
+
     If we are follower, `on_append_entries_rpc()` and `on_install_snapshot_rpc()` acquire
     this temporarily; if we are candidate or leader, `candidate_and_leader_coro()` holds
     this at all times. */
