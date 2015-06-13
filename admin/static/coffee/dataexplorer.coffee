@@ -3721,9 +3721,10 @@ module 'DataExplorerView', ->
             if @query_result?.ready
                 @view_object?.$el.detach()
                 has_more_data = not @query_result.ended and @query_result.position + @container.state.options.query_limit <= @query_result.size()
+                batch_size = @view_object?.current_batch_size()
                 @$el.html @template
-                    limit_value: @view_object?.current_batch_size()
-                    skip_value: @query_result.position
+                    range_begin: @query_result.position + 1
+                    range_end: batch_size and @query_result.position + batch_size
                     query_has_changed: args?.query_has_changed
                     show_more_data: has_more_data and not @container.state.cursor_timed_out
                     cursor_timed_out_template: (
