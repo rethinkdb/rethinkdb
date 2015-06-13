@@ -596,10 +596,14 @@ void raft_member_t<state_t>::on_append_entries_rpc(
     mutex_assertion_t::acq_t log_mutex_acq(&log_mutex);
 
     /* Raft paper, Figure 2: "Reply false if log doesn't contain an entry at prevLogIndex
-    whose term matches prevLogTerm" */
+    whose term matches prevLogTerm"
+    The Raft paper doesn't explicitly say what to do if our snapshot is later than
+    `prevLogIndex`. But by the Leader Completeness Property, we know that the log entry
+    would have matched if it had not been snapshotted. */
     if (request.entries.prev_index > ps().log.get_latest_index() ||
-            ps().log.get_entry_term(request.entries.prev_index) !=
-                request.entries.prev_term) {
+            (request.entries.prev_index >= ps().log.prev_index &&
+                ps().log.get_entry_term(request.entries.prev_index) !=
+                    request.entries.prev_term)) {
         reply_out->term = ps().current_term;
         reply_out->success = false;
         DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
@@ -610,7 +614,8 @@ void raft_member_t<state_t>::on_append_entries_rpc(
     but different terms), delete the existing entry and all that follow it" */
     bool conflict = false;
     raft_log_index_t first_nonmatching_index;
-    for (first_nonmatching_index = request.entries.prev_index + 1;
+    for (first_nonmatching_index =
+                std::max(request.entries.prev_index, ps().log.prev_index) + 1;
             first_nonmatching_index <= std::min(
                 ps().log.get_latest_index(), request.entries.get_latest_index());
             ++first_nonmatching_index) {
