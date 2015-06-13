@@ -250,8 +250,8 @@ public:
         // I don't understand why, but there's probably some obscure C++ reason
         // for it (or it's a Clang bug)...
         selection_bitmap =
-            sindex_status ? SINDEX_STATUS_BIT : 0 |
-            server_status ? SERVER_STATUS_BIT : 0;
+            (sindex_status ? SINDEX_STATUS_BIT : 0) |
+            (server_status ? SERVER_STATUS_BIT : 0);
     }
     bool has_sindex_status() const { return selection_bitmap & SINDEX_STATUS_BIT; }
     bool has_server_status() const { return selection_bitmap & SERVER_STATUS_BIT; }
