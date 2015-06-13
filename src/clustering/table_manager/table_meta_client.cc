@@ -268,10 +268,15 @@ void table_meta_client_t::get_status(
     cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
 
+    /* Figure out which status we need to fetch. */
+    get_status_selection_t status_selection(
+            sindex_statuses_out != nullptr,
+            server_statuses_out != nullptr);
+
     /* Initialize the sindex map. We fill in the `sindex_config_t`s at this stage, but we
     set the `sindex_status_t`s to empty. The rest of this function is concerned with
     filling in the `sindex_status_t`s. */
-    if (sindex_statuses_out != nullptr) {
+    if (status_selection.has_sindex_status()) {
         sindex_statuses_out->clear();
         table_config_and_shards_t config;
         get_config(table_id, &interruptor, &config);
@@ -318,11 +323,15 @@ void table_meta_client_t::get_status(
             }, initial_call_t::YES);
 
         cond_t got_reply;
-        mailbox_t<void(index_statuses_t, table_server_status_t)> ack_mailbox(
+        mailbox_t<void(index_statuses_t, boost::optional<table_server_status_t>)>
+        ack_mailbox(
             mailbox_manager,
             [&](signal_t *,
                     const index_statuses_t &statuses,
-                    const table_server_status_t &server_statuses) {
+                    const boost::optional<table_server_status_t> &server_statuses) {
+
+                guarantee(!status_selection.has_server_status() ||
+                          static_cast<bool>(server_statuses));
 
                 /* Fetch the server's name. The reason we fetch the server's name here is
                 so that we want to put the name in `server_names_out` iff we put an entry
@@ -343,7 +352,7 @@ void table_meta_client_t::get_status(
                 /* Make sure every sindex in the config is present in the reply from this
                 server. If a sindex isn't present on this server, we set its `ready`
                 field to false. */
-                if (sindex_statuses_out != nullptr) {
+                if (status_selection.has_sindex_status()) {
                     for (auto &&pair : *sindex_statuses_out) {
                         auto it = statuses.find(pair.first);
                         /* Note that we treat an index with the wrong definition like a
@@ -357,15 +366,15 @@ void table_meta_client_t::get_status(
                     }
                 }
 
-                if (server_statuses_out != nullptr) {
+                if (status_selection.has_server_status()) {
                     server_statuses_out->insert(
-                        std::make_pair(bcard.server_id, server_statuses));
+                        std::make_pair(bcard.server_id, *server_statuses));
                 }
 
                 got_reply.pulse();
             });
 
-        send(mailbox_manager, bcard.get_status_mailbox, sindex_statuses_out != nullptr,
+        send(mailbox_manager, bcard.get_status_mailbox, status_selection,
              ack_mailbox.get_address());
         wait_any_t done_cond(
             &server_disconnected, &server_stopped, &got_reply, &interruptor);
@@ -385,7 +394,7 @@ void table_meta_client_t::get_status(
     }
 
     /* Determine the most up-to-date server */
-    if (server_statuses_out != nullptr && latest_server_out != nullptr) {
+    if (status_selection.has_server_status() && latest_server_out != nullptr) {
         *latest_server_out = nil_uuid();
         for (const auto &pair : *server_statuses_out) {
             if (*latest_server_out == nil_uuid() || pair.second.timestamp.supersedes(

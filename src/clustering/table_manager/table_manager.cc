@@ -160,18 +160,21 @@ void table_manager_t::write_persistent_state(
 
 void table_manager_t::on_get_status(
         signal_t *interruptor,
-        bool should_get_sindex_status,
+        const get_status_selection_t &status_selection,
         const mailbox_t<void(
             std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >,
-            table_server_status_t
+            boost::optional<table_server_status_t>
             )>::address_t &reply_addr) {
+
     std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > sindex_status;
-    if (should_get_sindex_status) {
+    if (status_selection.has_sindex_status()) {
         sindex_status = sindex_manager.get_status(interruptor);
     }
 
-    table_server_status_t reply;
-    {
+    boost::optional<table_server_status_t> server_status;
+    if (status_selection.has_server_status()) {
+        server_status = table_server_status_t();
+
         /* Note that despite the `ASSERT_NO_CORO_WAITING` there may be contract
            acknowledgements in `contract_acks` that refer to a contract that is not in
            `contracts`.
@@ -181,19 +184,19 @@ void table_manager_t::on_get_status(
            only then removes the acknowledgement from the `ack_map`. */
         ASSERT_NO_CORO_WAITING;
 
-        reply.timestamp.epoch = epoch;
+        server_status->timestamp.epoch = epoch;
         raft.get_raft()->get_committed_state()->apply_read(
         [&](const raft_member_t<table_raft_state_t>::state_and_config_t *s) {
-            reply.timestamp.log_index = s->log_index;
-            reply.state = s->state;
+            server_status->timestamp.log_index = s->log_index;
+            server_status->state = s->state;
         });
         for (const auto &contract_ack : contract_executor.get_acks()->get_all()) {
-            reply.contract_acks.insert(
+            server_status->contract_acks.insert(
                 std::make_pair(contract_ack.first.second, contract_ack.second));
         }
     }
 
-    send(mailbox_manager, reply_addr, sindex_status, reply);
+    send(mailbox_manager, reply_addr, sindex_status, server_status);
 }
 
 void table_manager_t::on_table_directory_change(
