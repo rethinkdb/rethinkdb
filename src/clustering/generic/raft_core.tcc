@@ -98,8 +98,8 @@ raft_member_t<state_t>::raft_member_t(
     /* Finish initializing `latest_state` */
     latest_state.apply_atomic_op([&](state_and_config_t *s) -> bool {
         this->apply_log_entries(
-            s, ps().log, s->log_index + 1, ps().log.get_latest_index());
-        return !ps().log.entries.empty();
+            s, this->ps().log, s->log_index + 1, this->ps().log.get_latest_index());
+        return !this->ps().log.entries.empty();
     });
     DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
 }
@@ -563,8 +563,8 @@ void raft_member_t<state_t>::on_install_snapshot_rpc(
         part of the log, which is why this implementation needs it. */
         if (request.last_included_index > state_and_config->log_index) {
             state_and_config->log_index = request.last_included_index;
-            state_and_config->state = ps().snapshot_state;
-            state_and_config->config = ps().snapshot_config;
+            state_and_config->state = this->ps().snapshot_state;
+            state_and_config->config = this->ps().snapshot_config;
             return true;
         } else {
             return false;
@@ -641,7 +641,7 @@ void raft_member_t<state_t>::on_append_entries_rpc(
             *s = committed_state.get_ref();
         }
         this->apply_log_entries(
-            s, ps().log, s->log_index + 1, ps().log.get_latest_index());
+            s, this->ps().log, s->log_index + 1, this->ps().log.get_latest_index());
         return true;
     });
 
@@ -1055,7 +1055,7 @@ void raft_member_t<state_t>::update_commit_index(
         `candidate_and_leader_coro()` to start the second phase of the reconfiguration.
     */
     committed_state.apply_atomic_op([&](state_and_config_t *state_and_config) -> bool {
-        this->apply_log_entries(state_and_config, ps().log,
+        this->apply_log_entries(state_and_config, this->ps().log,
             state_and_config->log_index + 1, new_commit_index);
         return true;
     });
@@ -1439,11 +1439,11 @@ bool raft_member_t<state_t>::candidate_run_election(
                     member variables because they can't change while we're in candidate
                     state. */
                     typename raft_rpc_request_t<state_t>::request_vote_t request;
-                    request.term = ps().current_term;
+                    request.term = this->ps().current_term;
                     request.candidate_id = this_member_id;
-                    request.last_log_index = ps().log.get_latest_index();
+                    request.last_log_index = this->ps().log.get_latest_index();
                     request.last_log_term =
-                        ps().log.get_entry_term(ps().log.get_latest_index());
+                        this->ps().log.get_entry_term(this->ps().log.get_latest_index());
                     raft_rpc_request_t<state_t> request_wrapper;
                     request_wrapper.request = request;
 
@@ -1885,7 +1885,7 @@ bool raft_member_t<state_t>::candidate_or_leader_note_term(
                 /* Check that term hasn't already been updated between when
                 `candidate_or_leader_note_term()` was called and when this coroutine ran.
                 */
-                if (ps().current_term == local_current_term) {
+                if (this->ps().current_term == local_current_term) {
                     RAFT_DEBUG_THIS("got rpc reply with term %" PRIu64 "\n", term);
                     this->update_term(term, raft_member_id_t(), &mutex_acq_2);
                     this->candidate_or_leader_become_follower(&mutex_acq_2);
@@ -1925,8 +1925,8 @@ void raft_member_t<state_t>::leader_append_log_entry(
     particular, instances of `leader_send_updates()` will wait on `latest_state` so they
     can be notified when there are new log entries to send to the followers. */
     latest_state.apply_atomic_op([&](state_and_config_t *s) -> bool {
-        guarantee(s->log_index + 1 == ps().log.get_latest_index());
-        this->apply_log_entries(s, ps().log, s->log_index + 1, s->log_index + 1);
+        guarantee(s->log_index + 1 == this->ps().log.get_latest_index());
+        this->apply_log_entries(s, this->ps().log, s->log_index + 1, s->log_index + 1);
         return true;
     });
 
