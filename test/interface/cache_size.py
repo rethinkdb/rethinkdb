@@ -69,7 +69,21 @@ with driver.Process(console_output=True, output_folder='.', command_prefix=comma
     ), durability="soft").run(conn)
     assert res["inserted"] == num_docs and res["errors"] == 0, res
 
-    check_cache_usage(high_cache_mb)
+    # We might have to run a read or two to make sure the cache is actually scaled
+    # up to its configured maximum size. This is because cache allocation to a table
+    # might lack behind a little.
+    last_error = None
+    for i in range(0, 2):
+        try:
+            res = r.table("test").map(r.row).count().run(conn)
+            assert res == num_docs, res
+
+            check_cache_usage(high_cache_mb)
+            break
+        except AssertionError as e:
+            last_error = e
+    else:
+        raise last_error
 
     low_cache_mb = 10
     set_cache_size(low_cache_mb)
