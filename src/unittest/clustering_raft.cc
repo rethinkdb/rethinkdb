@@ -43,8 +43,7 @@ public:
     any other members. A `dead` member is just a stored `raft_persistent_state_t`. */
     enum class live_t { alive, isolated, dead };
 
-#ifdef ENABLE_RAFT_DEBUG
-    const char *show_live(live_t l) {
+    static const char *show_live(live_t l) {
         switch (l) {
             case live_t::alive: return "ALIVE";
             case live_t::isolated: return "ISOLATED";
@@ -52,7 +51,6 @@ public:
             default: unreachable();
         }
     }
-#endif /* ENABLE_RAFT_DEBUG */
 
     /* The constructor starts a cluster of `num` alive members with the given initial
     state. */
@@ -113,6 +111,10 @@ public:
         raft_member_id_t member_id(generate_uuid());
         add_member(member_id, init_state);
         return member_id;
+    }
+
+    live_t get_live(const raft_member_id_t &member_id) const {
+        return members.at(member_id)->live;
     }
 
     /* `set_live()` puts the given member into the given state. */
@@ -625,6 +627,135 @@ TPTEST(ClusteringRaft, Regression4234) {
 
     do_writes(&cluster, 10, 60000);
     traffic_generator.check_changes_present();
+}
+
+class raft_fuzzer_t {
+public:
+    raft_fuzzer_t(size_t initial_member_count) :
+        cluster(initial_member_count, dummy_raft_state_t(), &member_ids) { }
+
+    void run(uint64_t timeout_ms) {
+        signal_timer_t interruptor;
+        interruptor.start(timeout_ms);
+
+        cond_t states_done, config_done, writes_done;
+        coro_t::spawn_sometime(std::bind(&raft_fuzzer_t::fuzz_states,
+                                         this, &states_done, &interruptor));
+        coro_t::spawn_sometime(std::bind(&raft_fuzzer_t::fuzz_config,
+                                         this, &config_done, &interruptor));
+        coro_t::spawn_sometime(std::bind(&raft_fuzzer_t::fuzz_writes,
+                                         this, &writes_done, &interruptor));
+        states_done.wait();
+        config_done.wait();
+        writes_done.wait();
+    }
+
+private:
+    void fuzz_states(cond_t *done, signal_t *interruptor) {
+        try {
+            while (true) {
+                signal_timer_t timeout;
+                timeout.start(rng.randint(800));
+                wait_interruptible(&timeout, interruptor);
+
+                raft_member_id_t id = member_ids[rng.randint(member_ids.size())];
+                dummy_raft_cluster_t::live_t new_state =
+                    static_cast<dummy_raft_cluster_t::live_t>(rng.randint(3));
+                cluster.set_live(id, new_state);
+            }
+        } catch (const interrupted_exc_t &) { /* pass */ }
+        done->pulse();
+    }
+
+    void fuzz_config(cond_t *done, signal_t *interruptor) {
+        enum class task_t { ADD, REMOVE, SHUFFLE, NUM_TASKS };
+        raft_config_t config;
+        for (auto &&id : member_ids) {
+            config.voting_members.insert(id);
+        }
+        try {
+            while (true) {
+                signal_timer_t timeout;
+                timeout.start(rng.randint(100));
+                wait_interruptible(&timeout, interruptor);
+                task_t task =
+                    static_cast<task_t>(rng.randint(static_cast<int>(task_t::NUM_TASKS)));
+
+                bool valid = false;
+                for (auto &&id : member_ids) {
+                    if (cluster.get_live(id) == dummy_raft_cluster_t::live_t::alive) {
+                        valid = true;
+                        break;
+                    }
+                }
+
+                switch (task) {
+                case task_t::ADD:
+                    if (valid) {
+                        raft_member_id_t id = cluster.join();
+                        member_ids.push_back(id);
+                        config.non_voting_members.insert(id);
+                    }
+                    break;
+                case task_t::REMOVE:
+                    if (member_ids.size() > 1) {
+                        raft_member_id_t id = member_ids[rng.randint(member_ids.size())];
+                        config.voting_members.erase(id);
+                        config.non_voting_members.erase(id);
+                    }
+                    break;
+                case task_t::SHUFFLE:
+                    for (auto &&id : member_ids) {
+                        bool voting = (rng.randint(2) == 1);
+                        config.voting_members.erase(id);
+                        config.non_voting_members.erase(id);
+                        if (voting) {
+                            config.voting_members.insert(id);
+                        } else {
+                            config.non_voting_members.insert(id);
+                        }
+                    }
+                    break;
+                case task_t::NUM_TASKS: // Fallthrough intentional
+                default:
+                    unreachable();
+                }
+
+                if (rng.randint(3) == 0 && config.voting_members.size() > 0) {
+                    raft_member_id_t leader = cluster.find_leader(interruptor);
+                    bool res = cluster.try_config_change(leader, config, interruptor);
+                }
+            }
+        } catch (const interrupted_exc_t &) { /* pass */ }
+        done->pulse();
+    }
+
+    void fuzz_writes(cond_t *done, signal_t *interruptor) {
+        try {
+            while (true) {
+                signal_timer_t timeout;
+                timeout.start(rng.randint(100));
+                wait_interruptible(&timeout, interruptor);
+
+                raft_member_id_t leader = cluster.find_leader(interruptor);
+                bool res = cluster.try_change(leader, generate_uuid(), interruptor);
+            }
+        } catch (const interrupted_exc_t &) { /* pass */ }
+        done->pulse();
+    }
+
+    rng_t rng;
+    std::vector<raft_member_id_t> member_ids;
+    dummy_raft_cluster_t cluster;
+};
+
+void run_fuzzer(int64_t initial_size) {
+    raft_fuzzer_t fuzzer(initial_size + 1);
+    fuzzer.run(10000);
+}
+
+TPTEST(ClusteringRaft, Fuzzer) {
+    pmap(20, std::bind(&run_fuzzer, ph::_1));
 }
 
 }   /* namespace unittest */
