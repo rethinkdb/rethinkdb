@@ -92,10 +92,7 @@ contract_t calculate_contract(
         /* This `watchable_map_t` will have an entry for (X, Y) if we can see server X
         and server X can see server Y. */
         watchable_map_t<std::pair<server_id_t, server_id_t>, empty_value_t> *
-            connections_map,
-        /* We'll print log messages of the form `<log prefix>: <message>`, unless
-        `log_prefix` is empty, in which case we won't print anything. */
-        const std::string &log_prefix) {
+            connections_map) {
 
     contract_t new_c = old_c;
 
@@ -124,9 +121,6 @@ contract_t calculate_contract(
         if (num_streaming > config_voting_replicas.size() / 2) {
             /* OK, we're ready to go */
             new_c.temp_voters = boost::make_optional(config_voting_replicas);
-            if (!log_prefix.empty()) {
-                logINF("%s: Beginning replica set change.", log_prefix.c_str());
-            }
         }
     }
 
@@ -147,9 +141,6 @@ contract_t calculate_contract(
             /* OK, it's safe to commit. */
             new_c.voters = *new_c.temp_voters;
             new_c.temp_voters = boost::none;
-            if (!log_prefix.empty()) {
-                logINF("%s: Committed replica set change.", log_prefix.c_str());
-            }
         }
     }
 
@@ -189,10 +180,6 @@ contract_t calculate_contract(
             if (static_cast<bool>(old_c.primary) && old_c.primary->server == server) {
                 /* Actual killing happens further down */
                 should_kill_primary = true;
-                if (!log_prefix.empty()) {
-                    logINF("%s: Stopping server %s as primary because it's no longer a "
-                        "voter.", log_prefix.c_str(), uuid_to_str(server).c_str());
-                }
             }
         }
     }
@@ -284,13 +271,6 @@ contract_t calculate_contract(
                 new_c.primary = boost::make_optional(p);
             }
         }
-
-        if (static_cast<bool>(new_c.primary)) {
-            if (!log_prefix.empty()) {
-                logINF("%s: Selected server %s as primary.", log_prefix.c_str(),
-                    uuid_to_str(new_c.primary->server).c_str());
-            }
-        }
     }
 
     /* Sometimes we already have a primary, but we need to pick a different one. There
@@ -318,11 +298,6 @@ contract_t calculate_contract(
         the worst that will happen is we'll lose availability. */
         if (!should_kill_primary && visible_voters.count(old_c.primary->server) == 0) {
             should_kill_primary = true;
-            if (!log_prefix.empty()) {
-                logINF("%s: Stopping server %s as primary because a majority of voters "
-                    "cannot reach it.", log_prefix.c_str(),
-                    uuid_to_str(old_c.primary->server).c_str());
-            }
         }
 
         if (should_kill_primary) {
@@ -343,12 +318,6 @@ contract_t calculate_contract(
                     /* The new primary is ready, so begin the hand-over. */
                     new_c.primary->hand_over =
                         boost::make_optional(config.primary_replica);
-                    if (!log_prefix.empty()) {
-                        logINF("%s: Handing over primary from %s to %s to match table "
-                            "config.", log_prefix.c_str(),
-                            uuid_to_str(old_c.primary->server).c_str(),
-                            uuid_to_str(config.primary_replica).c_str());
-                    }
                 } else {
                     /* We're not ready to switch to the new primary yet. */
                     if (static_cast<bool>(old_c.primary->hand_over)) {
@@ -403,7 +372,6 @@ void calculate_all_contracts(
         const std::map<contract_id_t, std::map<server_id_t, contract_ack_t> > &acks,
         watchable_map_t<std::pair<server_id_t, server_id_t>, empty_value_t>
             *connections_map,
-        const std::string &log_prefix,
         std::set<contract_id_t> *remove_contracts_out,
         std::map<contract_id_t, std::pair<region_t, contract_t> > *add_contracts_out,
         std::map<region_t, branch_id_t> *register_current_branches_out) {
@@ -453,7 +421,6 @@ void calculate_all_contracts(
                 }
             }
 
-            size_t subshard_index = 0;
             frags_by_server.visit(region,
             [&](const region_t &reg,
                     const std::map<server_id_t, contract_ack_frag_t> &acks_map) {
@@ -461,29 +428,13 @@ void calculate_all_contracts(
                 broken the key space into regions across which the inputs are
                 homogeneous. So now we can actually call it. */
 
-                /* Compute a shard identifier for logging, of the form:
-                    "shard <user shard>.<subshard>.<hash shard>"
-                This relies on the fact that `visit()` goes first in subshard order and
-                then in hash shard order; it increments `subshard_index` whenever it
-                finds a region with `reg.beg` equal to zero. */
-                std::string log_subprefix;
-                if (!log_prefix.empty()) {
-                    log_subprefix = strprintf("%s: shard %zu.%zu.%d",
-                        log_prefix.c_str(),
-                        shard_index, subshard_index, get_cpu_shard_approx_number(reg));
-                    if (reg.end == HASH_REGION_HASH_SIZE) {
-                        ++subshard_index;
-                    }
-                }
-
                 const contract_t &old_contract = cpair.second.second;
 
                 contract_t new_contract = calculate_contract(
                     old_contract,
                     old_state.config.config.shards[shard_index],
                     acks_map,
-                    connections_map,
-                    log_subprefix);
+                    connections_map);
 
                 /* Register a branch if a primary is asking us to */
                 if (static_cast<bool>(old_contract.primary) &&

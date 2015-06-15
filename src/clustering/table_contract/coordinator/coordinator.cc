@@ -10,12 +10,10 @@ contract_coordinator_t::contract_coordinator_t(
         raft_member_t<table_raft_state_t> *_raft,
         watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> *_acks,
         watchable_map_t<std::pair<server_id_t, server_id_t>, empty_value_t>
-            *_connections_map,
-        const std::string &_log_prefix) :
+            *_connections_map) :
     raft(_raft),
     acks(_acks),
     connections_map(_connections_map),
-    log_prefix(_log_prefix),
     config_pumper(std::bind(&contract_coordinator_t::pump_configs, this, ph::_1)),
     contract_pumper(std::bind(&contract_coordinator_t::pump_contracts, this, ph::_1)),
     ack_subs(acks,
@@ -35,9 +33,6 @@ boost::optional<raft_log_index_t> contract_coordinator_t::change_config(
         const std::function<void(table_config_and_shards_t *)> &changer,
         signal_t *interruptor) {
     assert_thread();
-    if (!log_prefix.empty()) {
-        logINF("%s: Changing table's configuration.", log_prefix.c_str());
-    }
     scoped_ptr_t<raft_member_t<table_raft_state_t>::change_token_t> change_token;
     raft_log_index_t log_index;
     {
@@ -119,7 +114,7 @@ void contract_coordinator_t::pump_contracts(signal_t *interruptor) {
         raft->get_latest_state()->apply_read(
         [&](const raft_member_t<table_raft_state_t>::state_and_config_t *state) {
             calculate_all_contracts(
-                state->state, acks_by_contract, connections_map, log_prefix,
+                state->state, acks_by_contract, connections_map,
                 &change.remove_contracts, &change.add_contracts,
                 &change.register_current_branches);
             calculate_branch_history(

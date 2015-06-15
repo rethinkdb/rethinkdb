@@ -33,8 +33,7 @@ public:
         raft_member_t<table_raft_state_t> *raft,
         watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> *acks,
         watchable_map_t<std::pair<server_id_t, server_id_t>, empty_value_t>
-            *connections_map,
-        const std::string &log_prefix);
+            *connections_map);
 
     /* `table_meta_client_t` calls `change_config()` to change the cluster config. */
     boost::optional<raft_log_index_t> change_config(
@@ -60,7 +59,6 @@ private:
     watchable_map_t<std::pair<server_id_t, contract_id_t>, contract_ack_t> *const acks;
     watchable_map_t<std::pair<server_id_t, server_id_t>, empty_value_t>
         *const connections_map;
-    const std::string log_prefix;
 
     /* This is the same as `acks` but indexed by contract. */
     std::map<contract_id_t, std::map<server_id_t, contract_ack_t> > acks_by_contract;

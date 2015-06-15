@@ -102,7 +102,7 @@ table_manager_t::leader_t::leader_t(table_manager_t *_parent) :
     parent(_parent),
     contract_ack_read_manager(parent->mailbox_manager),
     coordinator(parent->get_raft(), contract_ack_read_manager.get_values(),
-        parent->connections_map, "Table " + uuid_to_str(parent->table_id)),
+        parent->connections_map),
     set_config_mailbox(parent->mailbox_manager,
         std::bind(&leader_t::on_set_config, this, ph::_1, ph::_2, ph::_3))
 {
@@ -129,6 +129,8 @@ void table_manager_t::leader_t::on_set_config(
         const mailbox_t<void(
             boost::optional<multi_table_manager_bcard_t::timestamp_t>
             )>::address_t &reply_addr) {
+    logINF("Table %s: Configuration is changing.",
+        uuid_to_str(parent->table_id).c_str());
     boost::optional<raft_log_index_t> result = coordinator.change_config(
         [&](table_config_and_shards_t *config) { *config = new_config; },
         interruptor);

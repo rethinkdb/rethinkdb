@@ -180,7 +180,7 @@ public:
         std::set<contract_id_t> remove_contracts;
         std::map<contract_id_t, std::pair<region_t, contract_t> > add_contracts;
         std::map<region_t, branch_id_t> register_current_branches;
-        calculate_all_contracts(state, acks, &connections, "",
+        calculate_all_contracts(state, acks, &connections,
             &remove_contracts, &add_contracts, &register_current_branches);
         std::set<branch_id_t> remove_branches;
         branch_history_t add_branches;
