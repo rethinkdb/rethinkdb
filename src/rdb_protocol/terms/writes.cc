@@ -342,7 +342,7 @@ private:
                 } catch (const exc_t &e) {
                     throw exc_t(e.get_type(), fail_msg, e.backtrace(), e.dummy_frames());
                 } catch (const datum_exc_t &de) {
-                    rfail_target(v, base_exc_t::LOGIC, "%s  %s", fail_msg, de.what());
+                    rfail_target(v, de.get_type(), "%s  %s", fail_msg, de.what());
                 }
                 sampler.new_sample();
             }
