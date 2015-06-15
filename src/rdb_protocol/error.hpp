@@ -37,7 +37,7 @@ public:
     enum type_t {
         LOGIC, // An error in ReQL logic.
         INTERNAL, // An internal error.
-        RESOURCE, // Exceeded array size limit.
+        RESOURCE, // Exceeded a resource limit (e.g. the array size limit).
         OP_FAILED, // An operation is known to have failed.
         OP_INDETERMINATE, // An operation is known to be indeterminate.
         USER, // An error caused by `r.error` with arguments.
