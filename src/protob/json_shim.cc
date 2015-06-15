@@ -299,6 +299,8 @@ void write_json_pb(const Response &r, StringBuffer *s) THROWS_NOTHING {
         writer.StartObject();
         writer.Key("t", 1);
         writer.Int(Response::RUNTIME_ERROR);
+        writer.Key("e", 1);
+        writer.Int(Response::INTERNAL);
         writer.Key("r", 1);
         writer.StartArray();
         writer.String("Internal error in `write_json_pb`, please report this.");
