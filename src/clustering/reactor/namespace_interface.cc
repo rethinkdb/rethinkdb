@@ -269,10 +269,8 @@ void cluster_namespace_interface_t::perform_immediate_op(
     std::vector<boost::optional<cannot_perform_query_exc_t> > *failures,
     order_token_t order_token,
     size_t i,
-    signal_t *interruptor)
-    THROWS_NOTHING
-{
-    guarantee(i <= failures->size());
+    signal_t *interruptor) THROWS_NOTHING {
+    guarantee(i < failures->size());
     immediate_op_info_t<op_type, fifo_enforcer_token_type> *master_to_contact
         = (*masters_to_contact)[i].get();
 
