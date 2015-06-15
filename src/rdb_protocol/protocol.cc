@@ -758,7 +758,7 @@ void rdb_r_unshard_visitor_t::unshard_range_batch(const query_t &q, sorting_t so
             if (out->skey_version != resp->skey_version) {
                 out->result = ql::exc_t(
                     ql::base_exc_t::INTERNAL,
-                    strprintf("INTERNAL ERROR: mismatched skey versions %d and %d.",
+                    strprintf("Mismatched skey versions %d and %d.",
                               out->skey_version,
                               resp->skey_version),
                     ql::backtrace_id_t::empty());
