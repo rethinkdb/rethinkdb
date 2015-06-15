@@ -2636,7 +2636,7 @@ void subscription_t::maybe_signal_cond() THROWS_NOTHING {
 void subscription_t::destructor_cleanup(std::function<void()> del_sub) THROWS_NOTHING {
     // This error is only sent if we're getting destroyed while blocking.
     stop(std::make_exception_ptr(
-             datum_exc_t(base_exc_t::LOGIC,
+             datum_exc_t(base_exc_t::OP_FAILED,
                          "Subscription destroyed (shutting down?).")),
          detach_t::NO);
     if (feed != NULL) {
