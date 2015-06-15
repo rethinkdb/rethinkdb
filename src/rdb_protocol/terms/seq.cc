@@ -365,7 +365,7 @@ struct rcheck_spec_visitor_t : public bt_rcheckable_t,
     }
     void operator()(const changefeed::keyspec_t::limit_t &spec) const {
         (*this)(spec.range);
-        rcheck(spec.limit <= env->limits().array_size_limit(), base_exc_t::LOGIC,
+        rcheck(spec.limit <= env->limits().array_size_limit(), base_exc_t::RESOURCE,
                strprintf(
                    "Array size limit `%zu` exceeded.  (`.limit(X).changes()` is illegal "
                    "if X is larger than the array size limit.)",
