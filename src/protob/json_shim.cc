@@ -236,8 +236,10 @@ void write_json_pb(const Response &r, StringBuffer *s) THROWS_NOTHING {
         writer.StartObject();
         writer.Key("t", 1);
         writer.Int(r.type());
-        writer.Key("e", 1);
-        writer.Int(r.error_type());
+        if (r.type() == Response::RUNTIME_ERROR && r.has_error_type()) {
+            writer.Key("e", 1);
+            writer.Int(r.error_type());
+        }
         writer.Key("r", 1);
         writer.StartArray();
         for (int i = 0; i < r.response_size(); ++i) {
