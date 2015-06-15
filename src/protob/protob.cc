@@ -521,7 +521,7 @@ void query_server_t::make_error_response(bool is_draining,
                                          Response *response_out) {
     response_out->Clear();
 
-    // Best guess at the error that occurred
+    // Best guess at the error that occurred.
     if (!conn.is_write_open()) {
         // The other side closed it's socket - it won't get this message.
         ql::fill_error(response_out,

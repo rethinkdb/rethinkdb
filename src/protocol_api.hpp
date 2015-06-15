@@ -40,8 +40,7 @@ public:
     // SHOULD ONLY BE USED FOR SERIALIZATION
     cannot_perform_query_exc_t()
         : message("UNINITIALIZED"), query_state(query_state_t::FAILED) { }
-    explicit cannot_perform_query_exc_t(
-        const std::string &s, query_state_t _query_state)
+    cannot_perform_query_exc_t(const std::string &s, query_state_t _query_state)
         : message(s), query_state(_query_state) { }
     ~cannot_perform_query_exc_t() throw () { }
     const char *what() const throw () {
