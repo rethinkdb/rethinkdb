@@ -39,7 +39,7 @@ public:
         INTERNAL, // An internal error.
         RESOURCE, // Exceeded a resource limit (e.g. the array size limit).
         OP_FAILED, // An operation is known to have failed.
-        OP_INDETERMINATE, // An operation is known to be indeterminate.
+        OP_INDETERMINATE, // It is unknown whether an operation failed or not.
         USER, // An error caused by `r.error` with arguments.
         EMPTY_USER, // An error caused by `r.error` with no arguments.
         NON_EXISTENCE // An error related to the absence of an expected value.
