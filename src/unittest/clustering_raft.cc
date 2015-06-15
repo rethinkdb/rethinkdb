@@ -337,12 +337,19 @@ private:
         void write_snapshot(
                 const dummy_raft_state_t &snapshot_state,
                 const raft_complex_config_t &snapshot_config,
+                bool clear_log,
                 raft_log_index_t log_prev_index,
                 raft_term_t log_prev_term) {
             block();
             stored_state.snapshot_state = snapshot_state;
             stored_state.snapshot_config = snapshot_config;
-            stored_state.log.delete_entries_to(log_prev_index, log_prev_term);
+            if (clear_log) {
+                stored_state.log.entries.clear();
+                stored_state.log.prev_index = log_prev_index;
+                stored_state.log.prev_term = log_prev_term;
+            } else {
+                stored_state.log.delete_entries_to(log_prev_index, log_prev_term);
+            }
             block();
         }
         void block() {

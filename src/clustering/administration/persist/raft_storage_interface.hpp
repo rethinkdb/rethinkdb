@@ -45,6 +45,7 @@ public:
     void write_snapshot(
         const table_raft_state_t &snapshot_state,
         const raft_complex_config_t &snapshot_config,
+        bool clear_log,
         raft_log_index_t log_prev_index,
         raft_term_t log_prev_index_term);
 

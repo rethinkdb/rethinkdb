@@ -208,6 +208,7 @@ void table_raft_storage_interface_t::write_log_append_one(
 void table_raft_storage_interface_t::write_snapshot(
         const table_raft_state_t &snapshot_state,
         const raft_complex_config_t &snapshot_config,
+        bool clear_log,
         raft_log_index_t log_prev_index,
         raft_term_t log_prev_term) {
     cond_t non_interruptor;
@@ -221,7 +222,8 @@ void table_raft_storage_interface_t::write_snapshot(
         mdprefix_table_raft_snapshot().suffix(uuid_to_str(table_id)),
         snapshot,
         &non_interruptor);
-    for (raft_log_index_t i = state.log.prev_index + 1; i <= log_prev_index; ++i) {
+    for (raft_log_index_t i = state.log.prev_index + 1;
+            i <= (clear_log ? state.log.get_latest_index() : log_prev_index); ++i) {
         txn.erase(
             mdprefix_table_raft_log().suffix(
                 uuid_to_str(table_id) + "/" + log_index_to_str(i)),
@@ -229,6 +231,12 @@ void table_raft_storage_interface_t::write_snapshot(
     }
     state.snapshot_state = std::move(snapshot.snapshot_state);
     state.snapshot_config = std::move(snapshot.snapshot_config);
-    state.log.delete_entries_to(log_prev_index, log_prev_term);
+    if (clear_log) {
+        state.log.entries.clear();
+        state.log.prev_index = log_prev_index;
+        state.log.prev_term = log_prev_term;
+    } else {
+        state.log.delete_entries_to(log_prev_index, log_prev_term);
+    }
 }
 

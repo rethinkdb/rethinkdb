@@ -358,12 +358,14 @@ public:
     virtual void write_log_append_one(
         const raft_log_entry_t<state_t> &entry) = 0;
 
-    /* Overwrite `snapshot_state` and `snapshot_config`. Delete any log entries with
-    indexes less than or equal to `log_prev_index`. Set `log.prev_index` and
-    `log.prev_term` to `log_prev_index` and `log_prev_term`. */
+    /* Overwrite `snapshot_state` and `snapshot_config`. If `erase_log` is `true`, it
+    erase the entire log; otherwise, only erase log entries with indexes less than or
+    equal to `log_prev_index`. Set `log.prev_index` and `log.prev_term` to
+    `log_prev_index` and `log_prev_term`. */
     virtual void write_snapshot(
         const state_t &snapshot_state,
         const raft_complex_config_t &snapshot_config,
+        bool clear_log,
         raft_log_index_t log_prev_index,
         raft_term_t log_prev_term) = 0;
 

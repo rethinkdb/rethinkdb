@@ -530,6 +530,7 @@ void raft_member_t<state_t>::on_install_snapshot_rpc(
         storage->write_snapshot(
             request.snapshot_state,
             request.snapshot_config,
+            false,
             request.last_included_index,
             request.last_included_term);
         guarantee(ps().log.prev_index == request.last_included_index);
@@ -546,6 +547,7 @@ void raft_member_t<state_t>::on_install_snapshot_rpc(
         storage->write_snapshot(
             request.snapshot_state,
             request.snapshot_config,
+            true,
             request.last_included_index,
             request.last_included_term);
         guarantee(ps().log.prev_index == request.last_included_index);
@@ -1097,6 +1099,7 @@ void raft_member_t<state_t>::update_commit_index(
         storage->write_snapshot(
             committed_state.get_ref().state,
             committed_state.get_ref().config,
+            false,
             new_commit_index,
             ps().log.get_entry_term(new_commit_index));
     }
