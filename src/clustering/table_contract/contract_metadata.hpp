@@ -110,7 +110,8 @@ Otherwise, if `server_id` is in `contract.replicas`:
     `secondary_streaming`.
 
 If `server_id` is not in `contract.replicas`:
-- Delete all data and ack `nothing`.
+- Delete all data.
+- Don't send an ack.
 */
 
 class contract_ack_t {
@@ -121,8 +122,7 @@ public:
         primary_ready,
         secondary_need_primary,
         secondary_backfilling,
-        secondary_streaming,
-        nothing
+        secondary_streaming
     };
 
     contract_ack_t() { }
@@ -145,7 +145,8 @@ public:
 };
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
     contract_ack_t::state_t, int8_t,
-    contract_ack_t::state_t::primary_need_branch, contract_ack_t::state_t::nothing);
+    contract_ack_t::state_t::primary_need_branch,
+    contract_ack_t::state_t::secondary_streaming);
 RDB_DECLARE_SERIALIZABLE(contract_ack_t);
 RDB_DECLARE_EQUALITY_COMPARABLE(contract_ack_t);
 

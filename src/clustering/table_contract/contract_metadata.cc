@@ -174,7 +174,6 @@ const char *contract_ack_state_to_string(contract_ack_t::state_t state) {
         case state_t::secondary_need_primary: return "secondary_need_primary";
         case state_t::secondary_backfilling: return "secondary_backfilling";
         case state_t::secondary_streaming: return "secondary_streaming";
-        case state_t::nothing: return "nothing";
         default: unreachable();
     }
 }

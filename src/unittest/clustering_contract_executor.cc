@@ -541,7 +541,6 @@ TPTEST(ClusteringContractExecutor, SimpleTests) {
     context.set_current_branches(branch2);
     context.publish();
 
-    alice_exec.check_acks(cid11, contract_ack_t::state_t::nothing);
     billy_exec.check_acks(cid11, contract_ack_t::state_t::primary_ready);
     write_generator.check_writes_work();
     write_generator.verify(&billy_exec);

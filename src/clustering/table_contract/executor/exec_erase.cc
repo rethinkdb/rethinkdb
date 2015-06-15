@@ -18,13 +18,11 @@ erase_execution_t::erase_execution_t(
 }
 
 void erase_execution_t::update_contract_or_raft_state(
-        const contract_id_t &cid,
-        const table_raft_state_t &raft_state) {
+        DEBUG_VAR const contract_id_t &cid,
+        DEBUG_VAR const table_raft_state_t &raft_state) {
     assert_thread();
-    const contract_t &c = raft_state.contracts.at(cid).second;
-    guarantee(c.replicas.count(context->server_id) == 0);
-    guarantee(raft_state.contracts.at(cid).first == region);
-    ack_cb(cid, contract_ack_t(contract_ack_t::state_t::nothing));
+    rassert(raft_state.contracts.at(cid).second.replicas.count(context->server_id) == 0);
+    rassert(raft_state.contracts.at(cid).first == region);
 }
 
 void erase_execution_t::run(auto_drainer_t::lock_t keepalive) {

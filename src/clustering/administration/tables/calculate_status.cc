@@ -101,9 +101,6 @@ shard_status_t calculate_shard_status(
                         }
                     }
                     break;
-                case contract_ack_t::state_t::nothing:
-                    ack_server_status = server_status_t::NOTHING;
-                    break;
             }
             /* The replica's `server_status_t` is initialised to `DISCONNECTED` upon
                construction, taking the maximum of the current and new status to

@@ -163,8 +163,6 @@ ql::datum_t convert_debug_contract_ack_state_to_datum(
             return convert_string_to_datum("secondary_backfilling");
         case contract_ack_t::state_t::secondary_streaming:
             return convert_string_to_datum("secondary_streaming");
-        case contract_ack_t::state_t::nothing:
-            return convert_string_to_datum("nothing");
         default:
             unreachable();
     }
