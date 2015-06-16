@@ -12,7 +12,6 @@ table_manager_t::table_manager_t(
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
             *_table_manager_directory,
         backfill_throttler_t *_backfill_throttler,
-        table_persistence_interface_t *_persistence_interface,
         watchable_map_t<std::pair<server_id_t, server_id_t>, empty_value_t>
             *_connections_map,
         const base_path_t &_base_path,
@@ -20,7 +19,7 @@ table_manager_t::table_manager_t(
         const namespace_id_t &_table_id,
         const multi_table_manager_bcard_t::timestamp_t::epoch_t &_epoch,
         const raft_member_id_t &_raft_member_id,
-        const raft_persistent_state_t<table_raft_state_t> &initial_state,
+        raft_storage_interface_t<table_raft_state_t> *raft_storage,
         multistore_ptr_t *multistore_ptr,
         perfmon_collection_t *perfmon_collection_namespace) :
     table_id(_table_id),
@@ -28,11 +27,10 @@ table_manager_t::table_manager_t(
     raft_member_id(_raft_member_id),
     mailbox_manager(_mailbox_manager),
     server_config_client(_server_config_client),
-    persistence_interface(_persistence_interface),
     connections_map(_connections_map),
     perfmon_membership(perfmon_collection_namespace, &perfmon_collection, "regions"),
-    raft(raft_member_id, _mailbox_manager, raft_directory.get_values(), this,
-        initial_state, "Table " + uuid_to_str(table_id)),
+    raft(raft_member_id, _mailbox_manager, raft_directory.get_values(), raft_storage,
+        "Table " + uuid_to_str(table_id)),
     table_manager_bcard(table_manager_bcard_t()),   /* we'll set this later */
     raft_bcard_copier(&table_manager_bcard_t::raft_business_card,
         raft.get_business_card(), &table_manager_bcard),
@@ -147,18 +145,6 @@ void table_manager_t::leader_t::on_set_config(
         send(parent->mailbox_manager, reply_addr,
             boost::optional<multi_table_manager_bcard_t::timestamp_t>());
     }
-}
-
-void table_manager_t::write_persistent_state(
-        const raft_persistent_state_t<table_raft_state_t> &inner_ps,
-        signal_t *interruptor) {
-    table_persistent_state_t::active_t active;
-    active.epoch = epoch;
-    active.raft_member_id = raft_member_id;
-    active.raft_state = inner_ps;
-    table_persistent_state_t outer_ps;
-    outer_ps.value = active;
-    persistence_interface->write_metadata(table_id, outer_ps, interruptor);
 }
 
 void table_manager_t::on_get_status(

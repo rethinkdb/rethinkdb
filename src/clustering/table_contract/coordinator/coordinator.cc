@@ -54,15 +54,8 @@ boost::optional<raft_log_index_t> contract_coordinator_t::change_config(
         if (is_noop) {
             return boost::make_optional(log_index);
         }
-        /* We don't want to actually interrupt `propose_change()` unless the
-        `raft_member_t` is about to be destroyed, because doing so will leave the
-        `raft_member_t` in a bad state. If our `auto_drainer_t` is destroyed, that could
-        be because we're shutting down or it could be because we're just changing state;
-        we can't tell the difference. So to be on the safe side, we never interrupt
-        `propose_change()`. */
-        cond_t non_interruptor;
         change_token = raft->propose_change(
-            &change_lock, table_raft_state_t::change_t(change), &non_interruptor);
+            &change_lock, table_raft_state_t::change_t(change));
         log_index += 1;
     }
     if (!change_token.has()) {
@@ -146,11 +139,9 @@ void contract_coordinator_t::pump_contracts(signal_t *interruptor) {
                 !change.remove_branches.empty() ||
                 !change.add_branches.branches.empty() ||
                 !change.register_current_branches.empty()) {
-            cond_t non_interruptor;
             scoped_ptr_t<raft_member_t<table_raft_state_t>::change_token_t>
                 change_token = raft->propose_change(
-                    &change_lock, table_raft_state_t::change_t(change),
-                    &non_interruptor);
+                    &change_lock, table_raft_state_t::change_t(change));
 
             /* `pump_configs()` sometimes makes changes in reaction to changes in
             contracts, so wake it up. */
@@ -222,12 +213,10 @@ void contract_coordinator_t::pump_configs(signal_t *interruptor) {
         if (!member_ids_change.remove_member_ids.empty() ||
                 !member_ids_change.add_member_ids.empty()) {
             /* Apply the `member_ids` change */
-            cond_t non_interruptor;
             scoped_ptr_t<raft_member_t<table_raft_state_t>::change_token_t>
                 change_token = raft->propose_change(
                     &change_lock,
-                    table_raft_state_t::change_t(member_ids_change),
-                    &non_interruptor);
+                    table_raft_state_t::change_t(member_ids_change));
             member_ids_ok = change_token.has();
         } else {
             /* The change is a no-op, so don't bother applying it */
@@ -243,10 +232,8 @@ void contract_coordinator_t::pump_configs(signal_t *interruptor) {
             config_ok = false;
         } else if (static_cast<bool>(config_change)) {
             /* Apply the config change */
-            cond_t non_interruptor;
             scoped_ptr_t<raft_member_t<table_raft_state_t>::change_token_t>
-                change_token = raft->propose_config_change(
-                    &change_lock, *config_change, &non_interruptor);
+                change_token = raft->propose_config_change(&change_lock, *config_change);
             config_ok = change_token.has();
         } else {
             /* The config change is a no-op */

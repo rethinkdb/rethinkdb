@@ -10,7 +10,6 @@ raft_networked_member_t<state_t>::raft_networked_member_t(
         mailbox_manager_t *_mailbox_manager,
         watchable_map_t<raft_member_id_t, raft_business_card_t<state_t> > *_peers,
         raft_storage_interface_t<state_t> *storage,
-        const raft_persistent_state_t<state_t> &persistent_state,
         const std::string &log_prefix) :
     mailbox_manager(_mailbox_manager),
     peers(_peers),
@@ -18,7 +17,7 @@ raft_networked_member_t<state_t>::raft_networked_member_t(
         [](const raft_business_card_t<state_t> *value1) {
             return &value1->virtual_heartbeats;
         }),
-    member(this_member_id, storage, this, persistent_state, log_prefix),
+    member(this_member_id, storage, this, log_prefix),
     rpc_mailbox(mailbox_manager,
         std::bind(&raft_networked_member_t::on_rpc, this, ph::_1, ph::_2, ph::_3)),
     business_card(raft_business_card_t<state_t> {
@@ -74,11 +73,11 @@ watchable_map_t<raft_member_id_t, boost::optional<raft_term_t> > *
 
 template<class state_t>
 void raft_networked_member_t<state_t>::on_rpc(
-        signal_t *interruptor,
+        UNUSED signal_t *interruptor,
         const raft_rpc_request_t<state_t> &request,
         const mailbox_t<void(raft_rpc_reply_t)>::address_t &reply_addr) {
     raft_rpc_reply_t reply;
-    member.on_rpc(request, interruptor, &reply);
+    member.on_rpc(request, &reply);
     send(mailbox_manager, reply_addr, reply);
 }
 
