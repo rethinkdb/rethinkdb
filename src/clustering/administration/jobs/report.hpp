@@ -154,6 +154,20 @@ public:
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(query_job_report_t);
 
+class jobs_manager_business_card_t {
+public:
+    typedef mailbox_t<void(std::vector<query_job_report_t>,
+                           std::vector<disk_compaction_job_report_t>,
+                           std::vector<index_construction_job_report_t>,
+                           std::vector<backfill_job_report_t>)> return_mailbox_t;
+    typedef mailbox_t<void(return_mailbox_t::address_t)> get_job_reports_mailbox_t;
+    typedef mailbox_t<void(uuid_u)> job_interrupt_mailbox_t;
+
+    get_job_reports_mailbox_t::address_t get_job_reports_mailbox_address;
+    job_interrupt_mailbox_t::address_t job_interrupt_mailbox_address;
+};
+RDB_DECLARE_SERIALIZABLE(jobs_manager_business_card_t);
+
 #include "clustering/administration/jobs/report.tcc"
 
 #endif /* CLUSTERING_ADMINISTRATION_JOBS_REPORT_HPP_ */

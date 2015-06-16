@@ -189,10 +189,20 @@ public:
             std::map<server_id_t, raft_member_id_t> add_member_ids;
         };
 
+        class new_server_names_t {
+        public:
+            server_name_map_t config_and_shards;
+            server_name_map_t raft_state;
+        };
+
         change_t() { }
         template<class T> change_t(T &&t) : v(std::move(t)) { }
 
-        boost::variant<set_table_config_t, new_contracts_t, new_member_ids_t> v;
+        boost::variant<
+            set_table_config_t,
+            new_contracts_t,
+            new_member_ids_t,
+            new_server_names_t> v;
     };
 
     table_raft_state_t()
@@ -241,6 +251,7 @@ RDB_DECLARE_EQUALITY_COMPARABLE(table_raft_state_t);
 RDB_DECLARE_SERIALIZABLE(table_raft_state_t::change_t::set_table_config_t);
 RDB_DECLARE_SERIALIZABLE(table_raft_state_t::change_t::new_contracts_t);
 RDB_DECLARE_SERIALIZABLE(table_raft_state_t::change_t::new_member_ids_t);
+RDB_DECLARE_SERIALIZABLE(table_raft_state_t::change_t::new_server_names_t);
 RDB_DECLARE_SERIALIZABLE(table_raft_state_t::change_t);
 RDB_DECLARE_SERIALIZABLE(table_raft_state_t);
 

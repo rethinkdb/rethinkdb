@@ -4,6 +4,7 @@
 
 #include "clustering/table_contract/coordinator/coordinator.hpp"
 #include "clustering/table_contract/executor/executor.hpp"
+#include "clustering/table_manager/server_name_cache_updater.hpp"
 #include "clustering/table_manager/sindex_manager.hpp"
 #include "clustering/table_manager/table_metadata.hpp"
 
@@ -16,6 +17,7 @@ public:
     table_manager_t(
         const server_id_t &_server_id,
         mailbox_manager_t *_mailbox_manager,
+        server_config_client_t *server_config_client,
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
             *_table_manager_directory,
         backfill_throttler_t *_backfill_throttler,
@@ -73,6 +75,7 @@ private:
         minidir_read_manager_t<std::pair<server_id_t, contract_id_t>, contract_ack_t>
             contract_ack_read_manager;
         contract_coordinator_t coordinator;
+        server_name_cache_updater_t server_name_cache_updater;
         table_manager_bcard_t::leader_bcard_t::set_config_mailbox_t set_config_mailbox;
     };
 
@@ -102,6 +105,7 @@ private:
     void on_raft_readiness_change();
 
     mailbox_manager_t * const mailbox_manager;
+    server_config_client_t *server_config_client;
     table_persistence_interface_t * const persistence_interface;
     watchable_map_t<std::pair<server_id_t, server_id_t>, empty_value_t>
         * const connections_map;

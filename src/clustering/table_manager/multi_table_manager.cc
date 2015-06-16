@@ -8,6 +8,7 @@
 multi_table_manager_t::multi_table_manager_t(
         const server_id_t &_server_id,
         mailbox_manager_t *_mailbox_manager,
+        server_config_client_t *_server_config_client,
         watchable_map_t<peer_id_t, multi_table_manager_bcard_t>
             *_multi_table_manager_directory,
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
@@ -21,6 +22,7 @@ multi_table_manager_t::multi_table_manager_t(
     is_proxy_server(false),
     server_id(_server_id),
     mailbox_manager(_mailbox_manager),
+    server_config_client(_server_config_client),
     multi_table_manager_directory(_multi_table_manager_directory),
     table_manager_directory(_table_manager_directory),
     connections_map(_connections_map),
@@ -85,6 +87,7 @@ multi_table_manager_t::multi_table_manager_t(
     is_proxy_server(true),
     server_id(nil_uuid()),
     mailbox_manager(_mailbox_manager),
+    server_config_client(nullptr),
     multi_table_manager_directory(_multi_table_manager_directory),
     table_manager_directory(_table_manager_directory),
     connections_map(nullptr),
@@ -131,10 +134,11 @@ multi_table_manager_t::active_table_t::active_table_t(
     parent(_parent),
     table(_table),
     table_id(_table_id),
-    manager(parent->server_id, parent->mailbox_manager, parent->table_manager_directory,
-        &parent->backfill_throttler, parent->persistence_interface,
-        parent->connections_map, *parent->base_path, parent->io_backender, table_id,
-        epoch, member_id, initial_state, multistore_ptr, perfmon_collection_namespace),
+    manager(parent->server_id, parent->mailbox_manager, parent->server_config_client,
+        parent->table_manager_directory, &parent->backfill_throttler,
+        parent->persistence_interface, parent->connections_map, *parent->base_path,
+        parent->io_backender, table_id, epoch, member_id, initial_state, multistore_ptr,
+        perfmon_collection_namespace),
     table_manager_bcard_copier(
         &parent->table_manager_bcards, table_id, manager.get_table_manager_bcard()),
     table_query_bcard_source(
