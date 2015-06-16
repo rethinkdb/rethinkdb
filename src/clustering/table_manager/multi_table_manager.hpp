@@ -355,7 +355,7 @@ private:
     watchable_map_var_t<namespace_id_t, table_manager_bcard_t>
         table_manager_bcards;
 
-    /* This collects `table_query_bcards_t`s from all of the tables on this server into
+    /* This collects `table_query_bcard_t`s from all of the tables on this server into
     a single `watchable_map_t`. */
     watchable_map_combiner_t<namespace_id_t, uuid_u, table_query_bcard_t>
         table_query_bcard_combiner;
