@@ -191,7 +191,8 @@ public:
 
         class new_server_names_t {
         public:
-            server_name_map_t new_server_names;
+            server_name_map_t config_and_shards;
+            server_name_map_t raft_state;
         };
 
         change_t() { }

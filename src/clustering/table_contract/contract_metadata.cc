@@ -73,9 +73,15 @@ void table_raft_state_t::apply_change(const table_raft_state_t::change_t &change
                 new_member_ids_change.add_member_ids.end());
         }
         void operator()(const change_t::new_server_names_t &new_server_names) {
-            for (const auto &new_server_name : new_server_names.new_server_names.names) {
-                state->server_names.names[new_server_name.first] =
-                    new_server_name.second;
+            for (const auto &pair : new_server_names.config_and_shards.names) {
+                auto name_it = state->config.server_names.names.find(pair.first);
+                guarantee(name_it != state->config.server_names.names.end());
+                name_it->second = pair.second;
+            }
+            for (const auto &pair : new_server_names.raft_state.names) {
+                auto name_it = state->server_names.names.find(pair.first);
+                guarantee(name_it != state->server_names.names.end());
+                name_it->second = pair.second;
             }
         }
         table_raft_state_t *state;
@@ -114,8 +120,8 @@ RDB_IMPL_SERIALIZABLE_7_SINCE_v2_1(
 RDB_IMPL_SERIALIZABLE_2_SINCE_v2_1(
     table_raft_state_t::change_t::new_member_ids_t,
     remove_member_ids, add_member_ids);
-RDB_IMPL_SERIALIZABLE_1_SINCE_v2_1(
-    table_raft_state_t::change_t::new_server_names_t, new_server_names);
+RDB_IMPL_SERIALIZABLE_2_SINCE_v2_1(
+    table_raft_state_t::change_t::new_server_names_t, raft_state, config_and_shards);
 RDB_IMPL_SERIALIZABLE_1_SINCE_v2_1(
     table_raft_state_t::change_t, v);
 RDB_IMPL_SERIALIZABLE_6_SINCE_v2_1(

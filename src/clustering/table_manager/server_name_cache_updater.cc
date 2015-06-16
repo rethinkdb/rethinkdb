@@ -15,35 +15,30 @@ server_name_cache_updater_t::server_name_cache_updater_t(
             dirty_server_ids.insert(server_id);
             update_pumper.notify();
         },
-        initial_call_t::NO) {
+        initial_call_t::YES) {
 }
 
 void calculate_new_server_names(
-        const table_raft_state_t &old_state,
+        const server_name_map_t &old_server_names,
         watchable_map_t<server_id_t, server_config_versioned_t> *server_config_map,
         std::set<server_id_t> dirty_server_ids,
         server_name_map_t *new_server_names_out) {
     for (const auto &server_id : dirty_server_ids) {
         server_config_map->read_key(server_id,
         [&](const server_config_versioned_t *server_config) {
-            auto old_name_it = old_state.server_names.names.find(server_id);
-            if (old_name_it != old_state.server_names.names.end() && (
-                    old_name_it->second.first >= server_config->version ||
-                    old_name_it->second.second == server_config->config.name)) {
-                /* Either Raft contains a server name that's newer than that in the
-                configuration, or the server name hasn't changed. */
+            if (server_config == nullptr) {
+                /* The server config could not be read, we'll get a new notification
+                when it reconnects. */
                 return;
             }
 
-            bool is_shard = false;
-            for (const auto &shard : old_state.config.config.shards) {
-                if (shard.all_replicas.count(server_id) == 1) {
-                    is_shard = true;
-                    break;
-                }
-            }
-            if (!is_shard) {
-                /* The server is not involved in this table. */
+            auto old_name_it = old_server_names.names.find(server_id);
+            if (old_name_it == old_server_names.names.end() ||
+                    old_name_it->second.first >= server_config->version ||
+                    old_name_it->second.second == server_config->config.name) {
+                /* Either the server is not involved in this table, the server name
+                that's already stored has a never version that the server configuration,
+                or the server name hasn't changed, thus we skip this server. */
                 return;
             }
 
@@ -78,15 +73,21 @@ void server_name_cache_updater_t::update_blocking(signal_t *interruptor) {
         raft->get_latest_state()->apply_read(
         [&](const raft_member_t<table_raft_state_t>::state_and_config_t *state) {
             calculate_new_server_names(
-                state->state,
+                state->state.config.server_names,
                 server_config_map,
                 local_dirty_server_ids,
-                &change.new_server_names);
+                &change.config_and_shards);
+            calculate_new_server_names(
+                state->state.server_names,
+                server_config_map,
+                local_dirty_server_ids,
+                &change.raft_state);
         });
 
         /* Apply the change, unless it's a no-op */
         bool change_ok;
-        if (!change.new_server_names.names.empty()) {
+        if (!change.config_and_shards.names.empty() ||
+                !change.raft_state.names.empty()) {
             cond_t non_interruptor;
             scoped_ptr_t<raft_member_t<table_raft_state_t>::change_token_t>
                 change_token = raft->propose_change(
