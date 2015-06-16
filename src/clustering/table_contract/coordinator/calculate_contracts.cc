@@ -444,11 +444,20 @@ void calculate_all_contracts(
                         acks_map.count(old_contract.primary->server) == 1 &&
                         acks_map.at(old_contract.primary->server).state ==
                             contract_ack_t::state_t::primary_need_branch) {
-                    auto res = register_current_branches_out->insert(
-                        std::make_pair(
-                            reg,
-                            *acks_map.at(old_contract.primary->server).branch));
-                    guarantee(res.second);
+                    branch_id_t to_register =
+                        *acks_map.at(old_contract.primary->server).branch;
+                    bool already_registered = true;
+                    old_state.current_branches.visit(reg,
+                    [&](const region_t &, const branch_id_t &cur_branch) {
+                        already_registered &= (cur_branch == to_register);
+                    });
+                    if (!already_registered) {
+                        auto res = register_current_branches_out->insert(
+                            std::make_pair(
+                                reg,
+                                *acks_map.at(old_contract.primary->server).branch));
+                        guarantee(res.second);
+                    }
                 }
 
                 new_contract_region_vector.push_back(reg);
