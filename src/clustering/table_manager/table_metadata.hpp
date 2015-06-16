@@ -258,8 +258,8 @@ public:
     RDB_DECLARE_ME_SERIALIZABLE(get_status_selection_t);
 private:
     uint8_t selection_bitmap;
-    const uint8_t SINDEX_STATUS_BIT = 1;
-    const uint8_t SERVER_STATUS_BIT = 2;
+    static const uint8_t SINDEX_STATUS_BIT = 1;
+    static const uint8_t SERVER_STATUS_BIT = 2;
 };
 
 class table_server_status_t {
