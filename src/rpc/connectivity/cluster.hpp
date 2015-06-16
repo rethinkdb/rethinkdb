@@ -28,12 +28,29 @@ class co_semaphore_t;
 
 class cluster_message_handler_t;
 
+/* Uncomment this to enable message profiling. Message profiling will keep track of how
+many messages of each type are sent over the network; it will dump the results to a file
+named `msg_profiler_out_PID.txt` on shutdown. Each line of that file will be of the
+following form:
+    <# messages> <# bytes> <source>
+where `<# messages>` is the total number of messages sent by that source, `<# bytes>` is
+the combined size of all of those messages in bytes, and `<source>` is a string
+describing the type of message. */
+// #define ENABLE_MESSAGE_PROFILER
+
 class cluster_send_message_write_callback_t {
 public:
     virtual ~cluster_send_message_write_callback_t() { }
     // write() doesn't take a version argument because the version is always
     // cluster_version_t::CLUSTER for cluster messages.
     virtual void write(write_stream_t *stream) = 0;
+
+#ifdef ENABLE_MESSAGE_PROFILER
+    /* This should return a string that describes the type of message being sent for
+    profiling purposes. The returned string must be statically allocated (i.e. valid
+    indefinitely). */
+    virtual const char *message_profiler_tag() const = 0;
+#endif
 };
 
 /* `connectivity_cluster_t` is responsible for establishing connections with other
@@ -314,6 +331,13 @@ private:
 
 #ifndef NDEBUG
     rng_t debug_rng;
+#endif
+
+#ifdef ENABLE_MESSAGE_PROFILER
+    /* The key is the string passed to `send_message()`. The value is a pair of (number
+    of individual messages, total number of bytes). */
+    one_per_thread_t<std::map<std::string, std::pair<uint64_t, uint64_t> > >
+        message_profiler_counts;
 #endif
 
     run_t *current_run;

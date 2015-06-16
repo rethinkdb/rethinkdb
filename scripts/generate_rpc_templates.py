@@ -51,6 +51,17 @@ def generate_async_message_template(nargs):
     for i in xrange(nargs):
         print "            serialize<cluster_version_t::CLUSTER>(wm, arg%d);" % i
     print "        }"
+    print "#ifdef ENABLE_MESSAGE_PROFILER"
+    print "    virtual const char *message_profiler_tag() const {"
+    if nargs == 0:
+        print "        return \"mailbox<>\";"
+    else:
+        print "        static const std::string tag = "
+        print "            strprintf(\"mailbox<%s>\", %s);" % \
+            (csep("%s"), csep("typeid(arg#_t).name()"))
+        print "        return tag.c_str();"
+    print "        }"
+    print "#endif"
     print "    };"
     print
     print "    class read_impl_t : public mailbox_read_callback_t {"
