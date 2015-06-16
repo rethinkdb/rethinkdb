@@ -44,7 +44,7 @@ with driver.Process(console_output=True, output_folder='.', command_prefix=comma
                 # Read from the table to make sure that the cache gets filled up.
                 res = r.table("test").map(r.row).count().run(conn)
                 assert res == num_docs, res
-            
+
                 actual_mb = r.db("rethinkdb") \
                              .table("stats") \
                              ["storage_engine"]["cache"]["in_use_bytes"] \
