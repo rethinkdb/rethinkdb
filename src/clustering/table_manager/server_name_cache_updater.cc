@@ -2,6 +2,8 @@
 
 #include "clustering/table_manager/server_name_cache_updater.hpp"
 
+#include "clustering/generic/raft_core.tcc"
+
 server_name_cache_updater_t::server_name_cache_updater_t(
         raft_member_t<table_raft_state_t> *_raft,
         server_config_client_t *server_config_client)
