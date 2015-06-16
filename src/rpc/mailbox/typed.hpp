@@ -85,8 +85,8 @@ class mailbox_t< void() > {
             rassert(cluster_version == cluster_version_t::CLUSTER);
         }
 #ifdef ENABLE_MESSAGE_PROFILER
-    virtual const char *message_profiler_tag() const {
-        return "mailbox<>";
+        const char *message_profiler_tag() const {
+            return "mailbox<>";
         }
 #endif
     };
@@ -150,10 +150,10 @@ class mailbox_t< void(arg0_t) > {
             serialize<cluster_version_t::CLUSTER>(wm, arg0);
         }
 #ifdef ENABLE_MESSAGE_PROFILER
-    virtual const char *message_profiler_tag() const {
-        static const std::string tag = 
-            strprintf("mailbox<%s>", typeid(arg0_t).name());
-        return tag.c_str();
+        const char *message_profiler_tag() const {
+            static const std::string tag = 
+                strprintf("mailbox<%s>", typeid(arg0_t).name());
+            return tag.c_str();
         }
 #endif
     };
@@ -224,10 +224,10 @@ class mailbox_t< void(arg0_t, arg1_t) > {
             serialize<cluster_version_t::CLUSTER>(wm, arg1);
         }
 #ifdef ENABLE_MESSAGE_PROFILER
-    virtual const char *message_profiler_tag() const {
-        static const std::string tag = 
-            strprintf("mailbox<%s, %s>", typeid(arg0_t).name(), typeid(arg1_t).name());
-        return tag.c_str();
+        const char *message_profiler_tag() const {
+            static const std::string tag = 
+                strprintf("mailbox<%s, %s>", typeid(arg0_t).name(), typeid(arg1_t).name());
+            return tag.c_str();
         }
 #endif
     };
@@ -303,10 +303,10 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t) > {
             serialize<cluster_version_t::CLUSTER>(wm, arg2);
         }
 #ifdef ENABLE_MESSAGE_PROFILER
-    virtual const char *message_profiler_tag() const {
-        static const std::string tag = 
-            strprintf("mailbox<%s, %s, %s>", typeid(arg0_t).name(), typeid(arg1_t).name(), typeid(arg2_t).name());
-        return tag.c_str();
+        const char *message_profiler_tag() const {
+            static const std::string tag = 
+                strprintf("mailbox<%s, %s, %s>", typeid(arg0_t).name(), typeid(arg1_t).name(), typeid(arg2_t).name());
+            return tag.c_str();
         }
 #endif
     };
@@ -387,10 +387,10 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > {
             serialize<cluster_version_t::CLUSTER>(wm, arg3);
         }
 #ifdef ENABLE_MESSAGE_PROFILER
-    virtual const char *message_profiler_tag() const {
-        static const std::string tag = 
-            strprintf("mailbox<%s, %s, %s, %s>", typeid(arg0_t).name(), typeid(arg1_t).name(), typeid(arg2_t).name(), typeid(arg3_t).name());
-        return tag.c_str();
+        const char *message_profiler_tag() const {
+            static const std::string tag = 
+                strprintf("mailbox<%s, %s, %s, %s>", typeid(arg0_t).name(), typeid(arg1_t).name(), typeid(arg2_t).name(), typeid(arg3_t).name());
+            return tag.c_str();
         }
 #endif
     };
@@ -476,10 +476,10 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > {
             serialize<cluster_version_t::CLUSTER>(wm, arg4);
         }
 #ifdef ENABLE_MESSAGE_PROFILER
-    virtual const char *message_profiler_tag() const {
-        static const std::string tag = 
-            strprintf("mailbox<%s, %s, %s, %s, %s>", typeid(arg0_t).name(), typeid(arg1_t).name(), typeid(arg2_t).name(), typeid(arg3_t).name(), typeid(arg4_t).name());
-        return tag.c_str();
+        const char *message_profiler_tag() const {
+            static const std::string tag = 
+                strprintf("mailbox<%s, %s, %s, %s, %s>", typeid(arg0_t).name(), typeid(arg1_t).name(), typeid(arg2_t).name(), typeid(arg3_t).name(), typeid(arg4_t).name());
+            return tag.c_str();
         }
 #endif
     };
@@ -570,10 +570,10 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > {
             serialize<cluster_version_t::CLUSTER>(wm, arg5);
         }
 #ifdef ENABLE_MESSAGE_PROFILER
-    virtual const char *message_profiler_tag() const {
-        static const std::string tag = 
-            strprintf("mailbox<%s, %s, %s, %s, %s, %s>", typeid(arg0_t).name(), typeid(arg1_t).name(), typeid(arg2_t).name(), typeid(arg3_t).name(), typeid(arg4_t).name(), typeid(arg5_t).name());
-        return tag.c_str();
+        const char *message_profiler_tag() const {
+            static const std::string tag = 
+                strprintf("mailbox<%s, %s, %s, %s, %s, %s>", typeid(arg0_t).name(), typeid(arg1_t).name(), typeid(arg2_t).name(), typeid(arg3_t).name(), typeid(arg4_t).name(), typeid(arg5_t).name());
+            return tag.c_str();
         }
 #endif
     };
@@ -669,10 +669,10 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > 
             serialize<cluster_version_t::CLUSTER>(wm, arg6);
         }
 #ifdef ENABLE_MESSAGE_PROFILER
-    virtual const char *message_profiler_tag() const {
-        static const std::string tag = 
-            strprintf("mailbox<%s, %s, %s, %s, %s, %s, %s>", typeid(arg0_t).name(), typeid(arg1_t).name(), typeid(arg2_t).name(), typeid(arg3_t).name(), typeid(arg4_t).name(), typeid(arg5_t).name(), typeid(arg6_t).name());
-        return tag.c_str();
+        const char *message_profiler_tag() const {
+            static const std::string tag = 
+                strprintf("mailbox<%s, %s, %s, %s, %s, %s, %s>", typeid(arg0_t).name(), typeid(arg1_t).name(), typeid(arg2_t).name(), typeid(arg3_t).name(), typeid(arg4_t).name(), typeid(arg5_t).name(), typeid(arg6_t).name());
+            return tag.c_str();
         }
 #endif
     };
@@ -773,10 +773,10 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
             serialize<cluster_version_t::CLUSTER>(wm, arg7);
         }
 #ifdef ENABLE_MESSAGE_PROFILER
-    virtual const char *message_profiler_tag() const {
-        static const std::string tag = 
-            strprintf("mailbox<%s, %s, %s, %s, %s, %s, %s, %s>", typeid(arg0_t).name(), typeid(arg1_t).name(), typeid(arg2_t).name(), typeid(arg3_t).name(), typeid(arg4_t).name(), typeid(arg5_t).name(), typeid(arg6_t).name(), typeid(arg7_t).name());
-        return tag.c_str();
+        const char *message_profiler_tag() const {
+            static const std::string tag = 
+                strprintf("mailbox<%s, %s, %s, %s, %s, %s, %s, %s>", typeid(arg0_t).name(), typeid(arg1_t).name(), typeid(arg2_t).name(), typeid(arg3_t).name(), typeid(arg4_t).name(), typeid(arg5_t).name(), typeid(arg6_t).name(), typeid(arg7_t).name());
+            return tag.c_str();
         }
 #endif
     };
@@ -882,10 +882,10 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
             serialize<cluster_version_t::CLUSTER>(wm, arg8);
         }
 #ifdef ENABLE_MESSAGE_PROFILER
-    virtual const char *message_profiler_tag() const {
-        static const std::string tag = 
-            strprintf("mailbox<%s, %s, %s, %s, %s, %s, %s, %s, %s>", typeid(arg0_t).name(), typeid(arg1_t).name(), typeid(arg2_t).name(), typeid(arg3_t).name(), typeid(arg4_t).name(), typeid(arg5_t).name(), typeid(arg6_t).name(), typeid(arg7_t).name(), typeid(arg8_t).name());
-        return tag.c_str();
+        const char *message_profiler_tag() const {
+            static const std::string tag = 
+                strprintf("mailbox<%s, %s, %s, %s, %s, %s, %s, %s, %s>", typeid(arg0_t).name(), typeid(arg1_t).name(), typeid(arg2_t).name(), typeid(arg3_t).name(), typeid(arg4_t).name(), typeid(arg5_t).name(), typeid(arg6_t).name(), typeid(arg7_t).name(), typeid(arg8_t).name());
+            return tag.c_str();
         }
 #endif
     };
@@ -996,10 +996,10 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
             serialize<cluster_version_t::CLUSTER>(wm, arg9);
         }
 #ifdef ENABLE_MESSAGE_PROFILER
-    virtual const char *message_profiler_tag() const {
-        static const std::string tag = 
-            strprintf("mailbox<%s, %s, %s, %s, %s, %s, %s, %s, %s, %s>", typeid(arg0_t).name(), typeid(arg1_t).name(), typeid(arg2_t).name(), typeid(arg3_t).name(), typeid(arg4_t).name(), typeid(arg5_t).name(), typeid(arg6_t).name(), typeid(arg7_t).name(), typeid(arg8_t).name(), typeid(arg9_t).name());
-        return tag.c_str();
+        const char *message_profiler_tag() const {
+            static const std::string tag = 
+                strprintf("mailbox<%s, %s, %s, %s, %s, %s, %s, %s, %s, %s>", typeid(arg0_t).name(), typeid(arg1_t).name(), typeid(arg2_t).name(), typeid(arg3_t).name(), typeid(arg4_t).name(), typeid(arg5_t).name(), typeid(arg6_t).name(), typeid(arg7_t).name(), typeid(arg8_t).name(), typeid(arg9_t).name());
+            return tag.c_str();
         }
 #endif
     };
@@ -1115,10 +1115,10 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
             serialize<cluster_version_t::CLUSTER>(wm, arg10);
         }
 #ifdef ENABLE_MESSAGE_PROFILER
-    virtual const char *message_profiler_tag() const {
-        static const std::string tag = 
-            strprintf("mailbox<%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s>", typeid(arg0_t).name(), typeid(arg1_t).name(), typeid(arg2_t).name(), typeid(arg3_t).name(), typeid(arg4_t).name(), typeid(arg5_t).name(), typeid(arg6_t).name(), typeid(arg7_t).name(), typeid(arg8_t).name(), typeid(arg9_t).name(), typeid(arg10_t).name());
-        return tag.c_str();
+        const char *message_profiler_tag() const {
+            static const std::string tag = 
+                strprintf("mailbox<%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s>", typeid(arg0_t).name(), typeid(arg1_t).name(), typeid(arg2_t).name(), typeid(arg3_t).name(), typeid(arg4_t).name(), typeid(arg5_t).name(), typeid(arg6_t).name(), typeid(arg7_t).name(), typeid(arg8_t).name(), typeid(arg9_t).name(), typeid(arg10_t).name());
+            return tag.c_str();
         }
 #endif
     };
@@ -1239,10 +1239,10 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
             serialize<cluster_version_t::CLUSTER>(wm, arg11);
         }
 #ifdef ENABLE_MESSAGE_PROFILER
-    virtual const char *message_profiler_tag() const {
-        static const std::string tag = 
-            strprintf("mailbox<%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s>", typeid(arg0_t).name(), typeid(arg1_t).name(), typeid(arg2_t).name(), typeid(arg3_t).name(), typeid(arg4_t).name(), typeid(arg5_t).name(), typeid(arg6_t).name(), typeid(arg7_t).name(), typeid(arg8_t).name(), typeid(arg9_t).name(), typeid(arg10_t).name(), typeid(arg11_t).name());
-        return tag.c_str();
+        const char *message_profiler_tag() const {
+            static const std::string tag = 
+                strprintf("mailbox<%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s>", typeid(arg0_t).name(), typeid(arg1_t).name(), typeid(arg2_t).name(), typeid(arg3_t).name(), typeid(arg4_t).name(), typeid(arg5_t).name(), typeid(arg6_t).name(), typeid(arg7_t).name(), typeid(arg8_t).name(), typeid(arg9_t).name(), typeid(arg10_t).name(), typeid(arg11_t).name());
+            return tag.c_str();
         }
 #endif
     };
@@ -1368,10 +1368,10 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
             serialize<cluster_version_t::CLUSTER>(wm, arg12);
         }
 #ifdef ENABLE_MESSAGE_PROFILER
-    virtual const char *message_profiler_tag() const {
-        static const std::string tag = 
-            strprintf("mailbox<%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s>", typeid(arg0_t).name(), typeid(arg1_t).name(), typeid(arg2_t).name(), typeid(arg3_t).name(), typeid(arg4_t).name(), typeid(arg5_t).name(), typeid(arg6_t).name(), typeid(arg7_t).name(), typeid(arg8_t).name(), typeid(arg9_t).name(), typeid(arg10_t).name(), typeid(arg11_t).name(), typeid(arg12_t).name());
-        return tag.c_str();
+        const char *message_profiler_tag() const {
+            static const std::string tag = 
+                strprintf("mailbox<%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s>", typeid(arg0_t).name(), typeid(arg1_t).name(), typeid(arg2_t).name(), typeid(arg3_t).name(), typeid(arg4_t).name(), typeid(arg5_t).name(), typeid(arg6_t).name(), typeid(arg7_t).name(), typeid(arg8_t).name(), typeid(arg9_t).name(), typeid(arg10_t).name(), typeid(arg11_t).name(), typeid(arg12_t).name());
+            return tag.c_str();
         }
 #endif
     };
@@ -1502,10 +1502,10 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
             serialize<cluster_version_t::CLUSTER>(wm, arg13);
         }
 #ifdef ENABLE_MESSAGE_PROFILER
-    virtual const char *message_profiler_tag() const {
-        static const std::string tag = 
-            strprintf("mailbox<%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s>", typeid(arg0_t).name(), typeid(arg1_t).name(), typeid(arg2_t).name(), typeid(arg3_t).name(), typeid(arg4_t).name(), typeid(arg5_t).name(), typeid(arg6_t).name(), typeid(arg7_t).name(), typeid(arg8_t).name(), typeid(arg9_t).name(), typeid(arg10_t).name(), typeid(arg11_t).name(), typeid(arg12_t).name(), typeid(arg13_t).name());
-        return tag.c_str();
+        const char *message_profiler_tag() const {
+            static const std::string tag = 
+                strprintf("mailbox<%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s>", typeid(arg0_t).name(), typeid(arg1_t).name(), typeid(arg2_t).name(), typeid(arg3_t).name(), typeid(arg4_t).name(), typeid(arg5_t).name(), typeid(arg6_t).name(), typeid(arg7_t).name(), typeid(arg8_t).name(), typeid(arg9_t).name(), typeid(arg10_t).name(), typeid(arg11_t).name(), typeid(arg12_t).name(), typeid(arg13_t).name());
+            return tag.c_str();
         }
 #endif
     };
