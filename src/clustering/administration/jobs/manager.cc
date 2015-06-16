@@ -9,10 +9,6 @@
 #include "rdb_protocol/context.hpp"
 #include "rdb_protocol/query_cache.hpp"
 
-RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(jobs_manager_business_card_t,
-                                    get_job_reports_mailbox_address,
-                                    job_interrupt_mailbox_address);
-
 const size_t jobs_manager_t::printed_query_columns = 89;
 
 const uuid_u jobs_manager_t::base_sindex_id =

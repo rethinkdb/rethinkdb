@@ -7,20 +7,24 @@
 #include <vector>
 #include <utility>
 
-// TODO: Probably some of these headers could be moved to the .cc.
+#include "errors.hpp"
+#include <boost/optional.hpp>
+
 #include "clustering/administration/issues/local.hpp"
-#include "clustering/administration/jobs/manager.hpp"
+#include "clustering/administration/jobs/report.hpp"
 #include "clustering/administration/logs/log_transfer.hpp"
 #include "clustering/administration/servers/server_metadata.hpp"
 #include "clustering/administration/stats/stat_manager.hpp"
 #include "clustering/administration/tables/database_metadata.hpp"
 #include "clustering/table_manager/table_metadata.hpp"
+#include "arch/address.hpp"
 #include "containers/cow_ptr.hpp"
 #include "containers/auth_key.hpp"
+#include "rpc/connectivity/peer_id.hpp"
 #include "rpc/semilattice/joins/cow_ptr.hpp"
 #include "rpc/semilattice/joins/macros.hpp"
+#include "rpc/semilattice/joins/versioned.hpp"
 #include "rpc/serialize_macros.hpp"
-
 
 class cluster_semilattice_metadata_t {
 public:
