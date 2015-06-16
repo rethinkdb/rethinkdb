@@ -2,6 +2,9 @@
 #ifndef CLUSTERING_TABLE_MANAGER_TABLE_METADATA_HPP_
 #define CLUSTERING_TABLE_MANAGER_TABLE_METADATA_HPP_
 
+#include "errors.hpp"
+#include <boost/optional.hpp>
+
 #include "clustering/generic/minidir.hpp"
 #include "clustering/generic/raft_core.hpp"
 #include "clustering/generic/raft_network.hpp"
@@ -11,6 +14,7 @@
 #include "rpc/mailbox/typed.hpp"
 
 class table_server_status_t;
+class get_status_selection_t;
 
 class multi_table_manager_bcard_t {
 public:
@@ -222,9 +226,10 @@ public:
 
     /* This is used for status queries. */
     typedef mailbox_t<void(
+        get_status_selection_t,
         mailbox_t<void(
             std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >,
-            table_server_status_t
+            boost::optional<table_server_status_t>
             )>::address_t
         )> get_status_mailbox_t;
     get_status_mailbox_t::address_t get_status_mailbox;
@@ -235,6 +240,27 @@ public:
 };
 RDB_DECLARE_SERIALIZABLE(table_manager_bcard_t::leader_bcard_t);
 RDB_DECLARE_SERIALIZABLE(table_manager_bcard_t);
+
+class get_status_selection_t {
+public:
+    get_status_selection_t() : selection_bitmap(0) { }
+    get_status_selection_t(bool sindex_status, bool server_status) {
+        // For some reason this initialization of selection_bitmap doesn't work
+        // if it's in the initializer list. So don't move it there.
+        // I don't understand why, but there's probably some obscure C++ reason
+        // for it (or it's a Clang bug)...
+        selection_bitmap =
+            (sindex_status ? SINDEX_STATUS_BIT : 0) |
+            (server_status ? SERVER_STATUS_BIT : 0);
+    }
+    bool has_sindex_status() const { return selection_bitmap & SINDEX_STATUS_BIT; }
+    bool has_server_status() const { return selection_bitmap & SERVER_STATUS_BIT; }
+    RDB_DECLARE_ME_SERIALIZABLE(get_status_selection_t);
+private:
+    uint8_t selection_bitmap;
+    static const uint8_t SINDEX_STATUS_BIT = 1;
+    static const uint8_t SERVER_STATUS_BIT = 2;
+};
 
 class table_server_status_t {
 public:

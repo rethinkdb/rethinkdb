@@ -250,3 +250,7 @@ bool query_job_report_t::info_derived(
 
 RDB_IMPL_SERIALIZABLE_6_FOR_CLUSTER(
     query_job_report_t, type, id, duration, servers, client_addr_port, query);
+
+RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(jobs_manager_business_card_t,
+                                    get_job_reports_mailbox_address,
+                                    job_interrupt_mailbox_address);

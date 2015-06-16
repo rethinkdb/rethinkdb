@@ -24,6 +24,9 @@ public:
     virtual ~mailbox_write_callback_t() { }
     virtual void write(cluster_version_t cluster_version,
                        write_message_t *wm) = 0;
+#ifdef ENABLE_MESSAGE_PROFILER
+    virtual const char *message_profiler_tag() const = 0;
+#endif
 };
 
 class mailbox_read_callback_t {

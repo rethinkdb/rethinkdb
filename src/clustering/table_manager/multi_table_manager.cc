@@ -8,6 +8,7 @@
 multi_table_manager_t::multi_table_manager_t(
         const server_id_t &_server_id,
         mailbox_manager_t *_mailbox_manager,
+        server_config_client_t *_server_config_client,
         watchable_map_t<peer_id_t, multi_table_manager_bcard_t>
             *_multi_table_manager_directory,
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
@@ -21,6 +22,7 @@ multi_table_manager_t::multi_table_manager_t(
     is_proxy_server(false),
     server_id(_server_id),
     mailbox_manager(_mailbox_manager),
+    server_config_client(_server_config_client),
     multi_table_manager_directory(_multi_table_manager_directory),
     table_manager_directory(_table_manager_directory),
     connections_map(_connections_map),
@@ -74,6 +76,7 @@ multi_table_manager_t::multi_table_manager_t(
     is_proxy_server(true),
     server_id(nil_uuid()),
     mailbox_manager(_mailbox_manager),
+    server_config_client(nullptr),
     multi_table_manager_directory(_multi_table_manager_directory),
     table_manager_directory(_table_manager_directory),
     connections_map(nullptr),
@@ -120,10 +123,10 @@ multi_table_manager_t::active_table_t::active_table_t(
     parent(_parent),
     table(_table),
     table_id(_table_id),
-    manager(parent->server_id, parent->mailbox_manager, parent->table_manager_directory,
-        &parent->backfill_throttler, parent->connections_map, *parent->base_path,
-        parent->io_backender, table_id, epoch, member_id, raft_storage, multistore_ptr,
-        perfmon_collection_namespace),
+    manager(parent->server_id, parent->mailbox_manager, parent->server_config_client,
+        parent->table_manager_directory, &parent->backfill_throttler,
+        parent->connections_map, *parent->base_path, parent->io_backender, table_id,
+        epoch, member_id, raft_storage, multistore_ptr, perfmon_collection_namespace),
     table_manager_bcard_copier(
         &parent->table_manager_bcards, table_id, manager.get_table_manager_bcard()),
     table_query_bcard_source(
@@ -332,6 +335,8 @@ void multi_table_manager_t::on_action(
     guarantee(is_new || table->status != table_t::status_t::DELETED,
         "It shouldn't be possible to undelete a table.");
 
+    bool should_resync = false;
+
     /* Bring record up to date */
     if (action_status == action_status_t::ACTIVE) {
         guarantee(!is_proxy_server, "proxy server shouldn't be hosting data");
@@ -396,6 +401,8 @@ void multi_table_manager_t::on_action(
                 uuid_to_str(table_id).c_str());
         }
 
+        should_resync = true;
+
     } else if (action_status == action_status_t::INACTIVE ||
             (action_status == action_status_t::MAYBE_ACTIVE &&
                 (is_new || table->status != table_t::status_t::ACTIVE))) {
@@ -456,10 +463,28 @@ void multi_table_manager_t::on_action(
         if (!is_proxy_server) {
             persistence_interface->delete_metadata(table_id, interruptor);
         }
+
+        should_resync = true;
     }
 
     if (!ack_addr.is_nil()) {
         send(mailbox_manager, ack_addr);
+    }
+
+    /* If we just became active for the table or we just found out that the table was
+    deleted, resync to every other server. This serves two purposes:
+    - When a table is first created, the creating server sends the creation action to the
+        active servers, which then send the table's name and other information to all the
+        other servers via this resync.
+    - Resyncing makes us more resilient to non-transitive connectivity.
+    However, it might become a performance problem at some point. */
+    if (should_resync) {
+        multi_table_manager_directory->read_all(
+        [&](const peer_id_t &peer, const multi_table_manager_bcard_t *) {
+            if (peer != mailbox_manager->get_me()) {
+                schedule_sync(table_id, table, peer);
+            }
+        });
     }
 }
 
