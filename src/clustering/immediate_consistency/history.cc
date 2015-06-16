@@ -18,10 +18,10 @@ region_map_t<binary_blob_t> from_version_map(const region_map_t<version_t> &vers
     return vers_map.map(vers_map.get_domain(), &binary_blob_t::make<version_t>);
 }
 
-RDB_IMPL_SERIALIZABLE_3_SINCE_v2_1(branch_birth_certificate_t,
-                        region, initial_timestamp, origin);
-RDB_IMPL_EQUALITY_COMPARABLE_3(branch_birth_certificate_t,
-                               region, initial_timestamp, origin);
+RDB_IMPL_SERIALIZABLE_2_SINCE_v2_1(branch_birth_certificate_t,
+    initial_timestamp, origin);
+RDB_IMPL_EQUALITY_COMPARABLE_2(branch_birth_certificate_t,
+    initial_timestamp, origin);
 
 void branch_history_reader_t::export_branch_history(
         const branch_id_t &branch, branch_history_t *out) const THROWS_NOTHING {
@@ -34,7 +34,7 @@ void branch_history_reader_t::export_branch_history(
         to_process.erase(to_process.begin());
         auto res = out->branches.insert(std::make_pair(next, get_branch(next)));
         guarantee(res.second);
-        res.first->second.origin.visit(res.first->second.region,
+        res.first->second.origin.visit(res.first->second.origin.get_domain(),
         [&](const region_t &, const version_t &vers) {
             if (!vers.branch.is_nil() && out->branches.count(vers.branch) == 0) {
                 to_process.insert(vers.branch);

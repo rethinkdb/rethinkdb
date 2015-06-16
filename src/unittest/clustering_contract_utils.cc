@@ -49,11 +49,11 @@ cpu_branch_ids_t quick_cpu_branch(
     "branch" */
     branch_birth_certificate_t bcs[CPU_SHARDING_FACTOR];
     for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
-        bcs[i].region = region_intersection(
+        region_t region = region_intersection(
             region_t(res.range), cpu_sharding_subspace(i));
         bcs[i].initial_timestamp = state_timestamp_t::zero();
         bcs[i].origin = quick_cpu_version_map(i, origin);
-        bcs[i].origin.visit(bcs[i].region, [&](const region_t &, const version_t &v) {
+        bcs[i].origin.visit(region, [&](const region_t &, const version_t &v) {
             bcs[i].initial_timestamp = std::max(bcs[i].initial_timestamp, v.timestamp);
         });
 

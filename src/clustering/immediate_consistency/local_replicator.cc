@@ -29,7 +29,8 @@ local_replicator_t::local_replicator_t(
         order_source.check_in("local_replica_t(read)").with_read_mode(),
         &read_token, store->get_region(), interruptor));
     guarantee(origin == primary->get_branch_birth_certificate().origin);
-    guarantee(store->get_region() == primary->get_branch_birth_certificate().region);
+    guarantee(store->get_region() ==
+        primary->get_branch_birth_certificate().get_region());
 #endif
 
     /* Store the new branch in the branch history manager. We have to do this before we

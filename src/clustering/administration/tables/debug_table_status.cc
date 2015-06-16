@@ -211,7 +211,6 @@ ql::datum_t convert_debug_current_branches_to_datum(
 ql::datum_t convert_debug_branch_birth_certificate_to_datum(
         const branch_birth_certificate_t &birth_certificate) {
     ql::datum_object_builder_t builder;
-    builder.overwrite("region", convert_debug_region_to_datum(birth_certificate.region));
     builder.overwrite("initial_timestamp", ql::datum_t(static_cast<double>(
         birth_certificate.initial_timestamp.to_repli_timestamp().longtime)));
     builder.overwrite(

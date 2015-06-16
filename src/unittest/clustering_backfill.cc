@@ -26,7 +26,6 @@ TPTEST(ClusteringBackfill, BackfillTest) {
     branch_id_t dummy_branch_id = generate_uuid();
     {
         branch_birth_certificate_t dummy_branch;
-        dummy_branch.region = region;
         dummy_branch.initial_timestamp = state_timestamp_t::zero();
         dummy_branch.origin = region_map_t<version_t>(region, version_t::zero());
         branch_history_manager.create_branch(dummy_branch_id, dummy_branch, &non_interruptor);

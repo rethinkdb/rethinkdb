@@ -31,7 +31,7 @@ secondary_execution_t::secondary_execution_t(
     existing primary, since it's impossible to subscribe to a primary with a different
     region. */
     if (static_cast<bool>(c.primary) && !_branch.is_nil() &&
-            raft_state.branch_history.branches.at(_branch).region == region) {
+            raft_state.branch_history.branches.at(_branch).get_region() == region) {
         connect_to_primary = true;
         primary = c.primary->server;
     } else {

@@ -36,9 +36,8 @@ branch_id_t quick_branch(
         std::initializer_list<quick_version_map_args_t> origin) {
     branch_birth_certificate_t bc;
     bc.origin = quick_version_map(origin);
-    bc.region = bc.origin.get_domain();
     bc.initial_timestamp = state_timestamp_t::zero();
-    bc.origin.visit(bc.region, [&](const region_t &, const version_t &version) {
+    bc.origin.visit(bc.get_region(), [&](const region_t &, const version_t &version) {
         bc.initial_timestamp = std::max(bc.initial_timestamp, version.timestamp);
     });
     branch_id_t bid = generate_uuid();
