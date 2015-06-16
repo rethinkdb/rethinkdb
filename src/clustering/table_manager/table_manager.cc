@@ -8,6 +8,7 @@
 table_manager_t::table_manager_t(
         const server_id_t &_server_id,
         mailbox_manager_t *_mailbox_manager,
+        server_config_client_t *_server_config_client,
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
             *_table_manager_directory,
         backfill_throttler_t *_backfill_throttler,
@@ -25,6 +26,7 @@ table_manager_t::table_manager_t(
     epoch(_epoch),
     raft_member_id(_raft_member_id),
     mailbox_manager(_mailbox_manager),
+    server_config_client(_server_config_client),
     connections_map(_connections_map),
     perfmon_membership(perfmon_collection_namespace, &perfmon_collection, "regions"),
     raft(raft_member_id, _mailbox_manager, raft_directory.get_values(), raft_storage,
@@ -59,7 +61,7 @@ table_manager_t::table_manager_t(
             })),
     get_status_mailbox(
         mailbox_manager,
-        std::bind(&table_manager_t::on_get_status, this, ph::_1, ph::_2)),
+        std::bind(&table_manager_t::on_get_status, this, ph::_1, ph::_2, ph::_3)),
     table_directory_subs(
         _table_manager_directory,
         std::bind(&table_manager_t::on_table_directory_change, this, ph::_1, ph::_2),
@@ -103,6 +105,7 @@ table_manager_t::leader_t::leader_t(table_manager_t *_parent) :
     contract_ack_read_manager(parent->mailbox_manager),
     coordinator(parent->get_raft(), contract_ack_read_manager.get_values(),
         parent->connections_map),
+    server_name_cache_updater(parent->get_raft(), parent->server_config_client),
     set_config_mailbox(parent->mailbox_manager,
         std::bind(&leader_t::on_set_config, this, ph::_1, ph::_2, ph::_3))
 {
@@ -148,15 +151,21 @@ void table_manager_t::leader_t::on_set_config(
 
 void table_manager_t::on_get_status(
         signal_t *interruptor,
+        const get_status_selection_t &status_selection,
         const mailbox_t<void(
             std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >,
-            table_server_status_t
+            boost::optional<table_server_status_t>
             )>::address_t &reply_addr) {
-    std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > sindex_status =
-        sindex_manager.get_status(interruptor);
 
-    table_server_status_t reply;
-    {
+    std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > sindex_status;
+    if (status_selection.has_sindex_status()) {
+        sindex_status = sindex_manager.get_status(interruptor);
+    }
+
+    boost::optional<table_server_status_t> server_status;
+    if (status_selection.has_server_status()) {
+        server_status = table_server_status_t();
+
         /* Note that despite the `ASSERT_NO_CORO_WAITING` there may be contract
            acknowledgements in `contract_acks` that refer to a contract that is not in
            `contracts`.
@@ -166,19 +175,19 @@ void table_manager_t::on_get_status(
            only then removes the acknowledgement from the `ack_map`. */
         ASSERT_NO_CORO_WAITING;
 
-        reply.timestamp.epoch = epoch;
+        server_status->timestamp.epoch = epoch;
         raft.get_raft()->get_committed_state()->apply_read(
         [&](const raft_member_t<table_raft_state_t>::state_and_config_t *s) {
-            reply.timestamp.log_index = s->log_index;
-            reply.state = s->state;
+            server_status->timestamp.log_index = s->log_index;
+            server_status->state = s->state;
         });
         for (const auto &contract_ack : contract_executor.get_acks()->get_all()) {
-            reply.contract_acks.insert(
+            server_status->contract_acks.insert(
                 std::make_pair(contract_ack.first.second, contract_ack.second));
         }
     }
 
-    send(mailbox_manager, reply_addr, sindex_status, reply);
+    send(mailbox_manager, reply_addr, sindex_status, server_status);
 }
 
 void table_manager_t::on_table_directory_change(

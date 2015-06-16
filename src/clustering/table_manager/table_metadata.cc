@@ -17,6 +17,8 @@ RDB_IMPL_SERIALIZABLE_7_FOR_CLUSTER(
     execution_bcard_minidir_bcard, get_status_mailbox, server_id);
 RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(
     table_server_status_t, timestamp, state, contract_acks);
+RDB_IMPL_SERIALIZABLE_1(get_status_selection_t, selection_bitmap);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(get_status_selection_t);
 
 RDB_IMPL_SERIALIZABLE_2_SINCE_v2_1(table_active_persistent_state_t,
     epoch, raft_member_id);

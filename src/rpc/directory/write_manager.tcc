@@ -101,6 +101,15 @@ public:
             throw fake_archive_exc_t();
         }
     }
+
+#ifdef ENABLE_MESSAGE_PROFILER
+    const char *message_profiler_tag() const {
+        static const std::string tag =
+            strprintf("directory<%s>.init", typeid(metadata_t).name());
+        return tag.c_str();
+    }
+#endif
+
 private:
     const metadata_t &initial_value;
     fifo_enforcer_state_t metadata_fifo_state;
@@ -128,6 +137,15 @@ public:
             throw fake_archive_exc_t();
         }
     }
+
+#ifdef ENABLE_MESSAGE_PROFILER
+    const char *message_profiler_tag() const {
+        static const std::string tag =
+            strprintf("directory<%s>.update", typeid(metadata_t).name());
+        return tag.c_str();
+    }
+#endif
+
 private:
     const metadata_t &new_value;
     fifo_enforcer_write_token_t metadata_fifo_token;
