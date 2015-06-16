@@ -343,6 +343,8 @@ void multi_table_manager_t::on_action(
     guarantee(is_new || table->status != table_t::status_t::DELETED,
         "It shouldn't be possible to undelete a table.");
 
+    bool should_resync = false;
+
     /* Bring record up to date */
     if (action_status == action_status_t::ACTIVE) {
         guarantee(!is_proxy_server, "proxy server shouldn't be hosting data");
@@ -402,6 +404,8 @@ void multi_table_manager_t::on_action(
             logINF("Table %s: Reset replica on this server.",
                 uuid_to_str(table_id).c_str());
         }
+
+        should_resync = true;
 
     } else if (action_status == action_status_t::INACTIVE ||
             (action_status == action_status_t::MAYBE_ACTIVE &&
@@ -463,10 +467,28 @@ void multi_table_manager_t::on_action(
         if (!is_proxy_server) {
             persistence_interface->delete_metadata(table_id, interruptor);
         }
+
+        should_resync = true;
     }
 
     if (!ack_addr.is_nil()) {
         send(mailbox_manager, ack_addr);
+    }
+
+    /* If we just became active for the table or we just found out that the table was
+    deleted, resync to every other server. This serves two purposes:
+    - When a table is first created, the creating server sends the creation action to the
+        active servers, which then send the table's name and other information to all the
+        other servers via this resync.
+    - Resyncing makes us more resilient to non-transitive connectivity.
+    However, it might become a performance problem at some point. */
+    if (should_resync) {
+        multi_table_manager_directory->read_all(
+        [&](const peer_id_t &peer, const multi_table_manager_bcard_t *) {
+            if (peer != mailbox_manager->get_me()) {
+                schedule_sync(table_id, table, peer);
+            }
+        });
     }
 }
 

@@ -32,14 +32,16 @@ NORETURN void migrate_cluster_metadata (
         UNUSED const void *old_superblock,
         UNUSED metadata_file_t::write_txn_t *new_output) {
     /* RSI(raft): Support migration. */
-    crash("Migration from v1.16 is not implemented.");
+    fail_due_to_user_error("Migration from older versions is not implemented in "
+                           "this preview. Please create a new data directory.");
 }
 
 NORETURN void migrate_auth_file(
         UNUSED const serializer_filepath_t &path,
         UNUSED metadata_file_t::write_txn_t *destination) {
     /* RSI(raft): Support migration. */
-    crash("Migration from v1.16 is not implemented.");
+    fail_due_to_user_error("Migration from older versions is not implemented in "
+                           "this preview. Please create a new data directory.");
 }
 
 }  // namespace migrate_v1_16
