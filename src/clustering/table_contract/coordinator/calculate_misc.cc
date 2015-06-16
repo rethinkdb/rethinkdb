@@ -1,6 +1,31 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/table_contract/coordinator/calculate_misc.hpp"
 
+void copy_branch_and_ancestors(
+        const branch_id_t &root,
+        const branch_history_t &source,
+        const branch_history_t &existing,
+        branch_history_t *add_out) {
+    std::set<branch_id_t> todo;
+    if (existing.branches.count(root) == 0 && add_out->branches.count(root) == 0) {
+        todo.insert(root);
+    }
+    while (!todo.empty()) {
+        branch_id_t b = *todo.begin();
+        todo.erase(todo.begin());
+        const branch_birth_certificate_t &bc = source.branches.at(b);
+        add_out->branches.insert(std::make_pair(b, bc));
+        bc.origin.visit(bc.origin.get_domain(),
+        [&](const region_t &, const version_t &version) {
+            if (version != version_t::zero() &&
+                    existing.branches.count(version.branch) == 0 &&
+                    add_out->branches.count(version.branch) == 0) {
+                todo.insert(version.branch);
+            }
+        });
+    }
+}
+
 /* `calculate_branch_history()` figures out what changes need to be made to the branch
 history stored in the Raft state. In practice this means two things:
   - When a new primary asks us to register a branch, we copy it and relevant ancestors
@@ -16,9 +41,8 @@ void calculate_branch_history(
         const std::map<region_t, branch_id_t> &register_current_branches,
         std::set<branch_id_t> *remove_branches_out,
         branch_history_t *add_branches_out) {
-    /* RSI(raft): This is a totally naive implementation that never prunes branches and
-    sometimes adds unnecessary branches. */
-    (void)old_state;
+    /* RSI(raft): This is a naive implementation that never prunes branches and sometimes
+    adds unnecessary branches. */
     (void)remove_contracts;
     (void)add_contracts;
     (void)register_current_branches;
@@ -26,8 +50,11 @@ void calculate_branch_history(
     for (const auto &pair : acks) {
         for (const auto &pair2 : pair.second) {
             if (static_cast<bool>(pair2.second.branch)) {
-                pair2.second.branch_history.export_branch_history(
-                    *pair2.second.branch, add_branches_out);
+                copy_branch_and_ancestors(
+                    *pair2.second.branch,
+                    pair2.second.branch_history,
+                    old_state.branch_history,
+                    add_branches_out);
             }
         }
     }
