@@ -31,7 +31,6 @@ const char *convert_status_to_string(server_status_t status) {
         case server_status_t::TRANSITIONING: return "transitioning";
         case server_status_t::WAITING_FOR_PRIMARY: return "waiting_for_primary";
         case server_status_t::WAITING_FOR_QUORUM: return "waiting_for_quorum";
-        case server_status_t::NOTHING: unreachable();
     }
     unreachable();
 }
@@ -53,9 +52,6 @@ ql::datum_t convert_shard_status_to_datum(
 
     ql::datum_array_builder_t replicas_builder(ql::configured_limits_t::unlimited);
     for (const auto &replica : shard_status.replicas) {
-        if (replica.second == server_status_t::NOTHING) {
-            continue;
-        }
         ql::datum_object_builder_t replica_builder;
         replica_builder.overwrite("server", convert_name_or_uuid_to_datum(
             server_names.get(replica.first), replica.first, identifier_format));
