@@ -22,9 +22,11 @@ inline std::string show_member_id(const raft_member_id_t &mid) {
 #define RAFT_DEBUG_THIS(...) debugf("%s: %s", \
     show_member_id(this_member_id).c_str(), \
     strprintf(__VA_ARGS__).c_str())
+#define RAFT_DEBUG_VAR
 #else
 #define RAFT_DEBUG(...) ((void)0)
 #define RAFT_DEBUG_THIS(...) ((void)0)
+#define RAFT_DEBUG_VAR __attribute__((unused))
 #endif /* ENABLE_RAFT_DEBUG */
 
 template<class state_t>

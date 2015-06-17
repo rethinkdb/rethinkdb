@@ -53,9 +53,9 @@ public:
     }
 
     void print_state() {
-        debugf("dummy_raft_cluster_t state:\n");
-        for (auto const &pair : members) {
-            debugf("  member %s: %s\n", uuid_to_str(pair.second->member_id.uuid).c_str(), show_live(pair.second->live));
+        RAFT_DEBUG("dummy_raft_cluster_t state:\n");
+        for (RAFT_DEBUG_VAR auto const &pair : members) {
+            RAFT_DEBUG("  member %s: %s\n", uuid_to_str(pair.second->member_id.uuid).c_str(), show_live(pair.second->live));
         }
     }
 
@@ -636,13 +636,21 @@ TPTEST(ClusteringRaft, Regression4234) {
     traffic_generator.check_changes_present();
 }
 
-void print_config(const raft_config_t &config) {
-    debugf("raft_config_t state:\n");
-    for (auto const &id : config.voting_members) {
-        debugf("  member %s: voting\n", uuid_to_str(id.uuid).c_str());
+void print_config(RAFT_DEBUG_VAR const raft_config_t &config) {
+    for (RAFT_DEBUG_VAR auto const &id : config.voting_members) {
+        RAFT_DEBUG("  member %s: voting\n", uuid_to_str(id.uuid).c_str());
     }
-    for (auto const &id : config.non_voting_members) {
-        debugf("  member %s: non-voting\n", uuid_to_str(id.uuid).c_str());
+    for (RAFT_DEBUG_VAR auto const &id : config.non_voting_members) {
+        RAFT_DEBUG("  member %s: non-voting\n", uuid_to_str(id.uuid).c_str());
+    }
+}
+
+void print_config(RAFT_DEBUG_VAR const raft_complex_config_t &config) {
+    RAFT_DEBUG("raft_complex_config_t state (%s):\n", config.is_joint_consensus() ? "joint consensus" : "normal");
+    print_config(config.config);
+    if (config.is_joint_consensus()) {
+        RAFT_DEBUG(" new config:\n");
+        print_config(config.new_config.get());
     }
 }
 
@@ -655,8 +663,8 @@ public:
         signal_timer_t interruptor;
         interruptor.start(timeout_ms);
 
-        for (auto const &id : member_ids) {
-            debugf("initial member: %s\n", uuid_to_str(id.uuid).c_str());
+        for (RAFT_DEBUG_VAR auto const &id : member_ids) {
+            RAFT_DEBUG("initial member: %s\n", uuid_to_str(id.uuid).c_str());
         }
 
         cond_t states_done, config_done, writes_done;
@@ -674,9 +682,15 @@ public:
         cluster.print_state();
 
         // Put the cluster in a good state and check that writes work
+        std::set<raft_member_id_t> possible_quorum_members = active_config.config.voting_members;
+        if (active_config.is_joint_consensus()) {
+            possible_quorum_members.insert(active_config.new_config->voting_members.begin(),
+                                           active_config.new_config->voting_members.end());
+        }
+
         std::set<raft_member_id_t> non_alive_voting_members;
         std::set<raft_member_id_t> alive_voting_members;
-        for (auto const &id : active_config.voting_members) {
+        for (auto const &id : possible_quorum_members) {
             if (cluster.get_live(id) == dummy_raft_cluster_t::live_t::alive) {
                 alive_voting_members.insert(id);
             } else {
@@ -685,8 +699,8 @@ public:
         }
 
         while (!active_config.is_quorum(alive_voting_members)) {
-            assert(!non_alive_voting_members.empty());
-            debugf("reviving member for quorum %s\n", uuid_to_str(non_alive_voting_members.begin()->uuid).c_str());
+            guarantee(!non_alive_voting_members.empty());
+            RAFT_DEBUG("reviving member for quorum %s\n", uuid_to_str(non_alive_voting_members.begin()->uuid).c_str());
             cluster.set_live(*non_alive_voting_members.begin(), dummy_raft_cluster_t::live_t::alive);
             alive_voting_members.insert(*non_alive_voting_members.begin());
             non_alive_voting_members.erase(non_alive_voting_members.begin());
@@ -698,12 +712,26 @@ public:
         final_interruptor.start(20000); // Allow up to 10 seconds to finish the final verification
         raft_member_id_t leader = cluster.find_leader(&final_interruptor);
         bool res;
+
+        cluster.run_on_member(leader, [&](dummy_raft_member_t *m, signal_t *) {
+                m->get_readiness_for_change()->run_until_satisfied([&](bool v) {
+                    return v;
+                }, &final_interruptor);
+            });
+
         res = cluster.try_change(leader, generate_uuid(), &final_interruptor);
-        assert(res);
+        guarantee(res);
         raft_config_t final_config;
         final_config.voting_members.insert(leader);
+
+        cluster.run_on_member(leader, [&](dummy_raft_member_t *m, signal_t *) {
+                m->get_readiness_for_config_change()->run_until_satisfied([&](bool v) {
+                    return v;
+                }, &final_interruptor);
+            });
+
         res = cluster.try_config_change(leader, final_config, &final_interruptor);
-        assert(res);
+        guarantee(res);
     }
 
 private:
@@ -729,7 +757,7 @@ private:
         for (auto &&id : member_ids) {
             config.voting_members.insert(id);
         }
-        active_config = config;
+        active_config.config = config;
         try {
             while (true) {
                 signal_timer_t timeout;
@@ -750,7 +778,6 @@ private:
                 case task_t::ADD:
                     if (valid) {
                         raft_member_id_t id = cluster.join();
-                        debugf("added member %s\n", uuid_to_str(id.uuid).c_str());
                         member_ids.push_back(id);
                         config.non_voting_members.insert(id);
                     }
@@ -758,7 +785,6 @@ private:
                 case task_t::REMOVE:
                     if (member_ids.size() > 1) {
                         raft_member_id_t id = member_ids[rng.randint(member_ids.size())];
-                        debugf("removing member %s\n", uuid_to_str(id.uuid).c_str());
                         config.voting_members.erase(id);
                         config.non_voting_members.erase(id);
                     }
@@ -782,10 +808,42 @@ private:
 
                 if (rng.randint(3) == 0 && config.voting_members.size() > 0) {
                     raft_member_id_t leader = cluster.find_leader(interruptor);
+                    // Check if we're in the middle of a joint consensus
+                    bool is_joint = false;
+                    cluster.run_on_member(leader, [&](dummy_raft_member_t *m, signal_t *) {
+                            is_joint = (m->get_committed_state()->get().config !=
+                                        m->get_latest_state()->get().config);
+                            if (!is_joint) {
+                                RAFT_DEBUG("Pre-config change, not in joint consensus\n");
+                                guarantee(!m->get_committed_state()->get().config.is_joint_consensus());
+                                raft_config_t committed = m->get_committed_state()->get().config.config;
+                                if (active_config.is_joint_consensus()) {
+                                    guarantee(committed == active_config.config ||
+                                              committed == active_config.new_config.get());
+                                } else {
+                                    guarantee(committed == active_config.config);
+                                }
+                                active_config.config = m->get_committed_state()->get().config.config;
+                                active_config.new_config.reset();
+                            }
+                        });
+
+                    RAFT_DEBUG("Performing config change to:\n");
+                    print_config(config);
+
                     bool res = cluster.try_config_change(leader, config, interruptor);
-                    if (res) {
-                        active_config = config;
+                    if (is_joint) {
+                        guarantee(!res);
+                        RAFT_DEBUG("Config change failed - in joint consensus mode\n");
+                    } else if (res) {
+                        active_config.config = config;
+                        active_config.new_config.reset();
+                        RAFT_DEBUG("Config change succeeded\n");
+                    } else {
+                        active_config.new_config = config;
+                        RAFT_DEBUG("Config change indeterminate\n");
                     }
+                    print_config(active_config);
                 }
             }
         } catch (const interrupted_exc_t &) { /* pass */ }
@@ -809,12 +867,12 @@ private:
     rng_t rng;
     std::vector<raft_member_id_t> member_ids;
     dummy_raft_cluster_t cluster;
-    raft_config_t active_config;
+    raft_complex_config_t active_config;
 };
 
 void run_fuzzer(int64_t initial_size) {
     raft_fuzzer_t fuzzer(initial_size + 1);
-    fuzzer.run(10000);
+    fuzzer.run(20000);
 }
 
 TPTEST(ClusteringRaft, Fuzzer) {
