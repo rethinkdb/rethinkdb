@@ -84,7 +84,9 @@ var argErrorTest = function(expectedMsg) {
 // -- tests
 
 describe('JavaScript Cursor', function() {
-    
+    this.timeout(5000); // Bump timeout from the default 2000ms because some operations
+                        // (like table creation) may take a moment
+
     // setup
     before(function() {
         this.timeout(10000)

@@ -99,7 +99,9 @@ var withConnection = function(fnct) {
 // -- tests
 
 describe('JavaScript Promise style', function() {
-    
+    this.timeout(5000); // Bump timeout from the default 2000ms because some operations
+                        // (like table creation) may take a moment
+
     describe('connect', function() {
         
         it('works normally', function() {
