@@ -11,8 +11,9 @@ import utils, rdb_unittest
 class Changefeeds_Basic(rdb_unittest.RdbTestCase):
     '''Basic tests'''
     
-    recordsToGenerate = 100
-    shards = 2
+    shards = 1
+    replicas = 3
+    recordsToGenerate = 10
     
     def test_simple(self):
         '''Make simple changes and ensure a single changefeed sees them'''
@@ -38,93 +39,120 @@ class Changefeeds_Basic(rdb_unittest.RdbTestCase):
         
         # verify that all of the feeds got the expected results
         
-        for i in range(len(changefeeds)):
-            feedResults = sorted([x['new_val']['id'] for x in changefeeds[i]])
+        for feed in changefeeds:
+            feedResults = sorted([x['new_val']['id'] for x in feed])
             self.assertEqual(feedResults, expectedResults)
-
-class Changefeeds_Destructive(rdb_unittest.RdbTestCase):
-    '''Tests that mess with the servers'''
     
-    recordsToGenerate = 100
-    shards = 2
-    replicas = 2
-    
-    destructiveTest = True
+    def test_same_change(self):
+        '''The same change made repeatedly should only appear once in a changefeed'''
+        
+        feed = self.table.changes().run(self.conn)
+        updateItemId = self.table.nth(0)['id'].run(self.conn)
+        
+        # update the item
+        
+        self.table.get(updateItemId).update({'update':1}).run(self.conn)
+        feed.next(wait=.2)
+        
+        # make the same update multiple times showing there are no further entries
+        
+        for _ in range(30):
+            self.table.get(updateItemId).update({'update':1}).run(self.conn)
+            self.assertRaises(self.r.RqlTimeoutError, feed.next, wait=.2)
+        
+        # other changes should work
+        
+        self.table.get(updateItemId).update({'update':2}).run(self.conn)
+        feed.next(wait=.2)
     
     def test_primary_falure(self):
-        '''Test that we get the expected error when the primary replica for a shard fails for a range'''
+        '''Test that a changefeed is closed at the death of the primary replica for a shard'''
+        self.destructiveTest = True
         
-        stable = self.getPrimaryForShard(0)
-        sacrifice = self.getPrimaryForShard(1)
-        self.assertTrue(stable != sacrifice, msg='There were not enough primary servers')
+        primary = self.getPrimaryForShard(0)
+        replica = self.getReplicaForShard(0)
         
-        conn = self.r.connect(host=stable.host, port=stable.driver_port)
+        conn = self.r.connect(host=replica.host, port=replica.driver_port)
+        shardInfo = self.table.config()['shards'][0].run(conn)
+        
+        self.assertTrue(primary is not None)
+        self.assertTrue(primary.name in shardInfo['primary_replica'], msg='Primary is not a primary')
+        
+        self.assertTrue(replica is not None)
+        self.assertTrue(replica.name not in shardInfo['primary_replica'], msg='Replica is a primary')
+        self.assertTrue(replica.name in shardInfo['replicas'], msg='Replica is not in replicas')
+        
+        # get the id of something in that range
+        
+        shardRange = utils.getShardRanges(conn, table=self.tableName, db=self.dbName)[0]
+        updateItemId = self.table.between(shardRange[0], shardRange[1]).nth(0)['id'].run(conn)
         
         # start the changefeed
         
         changefeed = self.table.changes().run(conn)
         
-        # add a change and retrieve it
+        # make a change and retrieve it
                     
-        self.table.insert({}).run(self.conn)
-        next(changefeed)
+        self.table.get(updateItemId).update({'update':1}).run(conn)
+        changefeed.next(wait=.2)
         
-        # kill the sacrifice server
+        # kill the primary
         
-        sacrifice.kill()
+        primary.kill()
+        self.table.wait(wait_for='ready_for_writes', timeout=10).run(conn)
         
-        # check that we error
+        # the changefeed should have closed
         
-        self.assertRaises(self.r.RqlRuntimeError, next, changefeed)
+        self.table.get(updateItemId).update({'update':1}).run(conn)
+        self.assertRaises(self.r.RqlRuntimeError, changefeed.next, wait=.2)
 
     def test_secondary_failure(self):
         '''Test when a secondary shardholder fails for a range'''
+        self.destructiveTest = True
         
         primary = self.getPrimaryForShard(0)
         replica = self.getReplicaForShard(0)
         
         conn = self.r.connect(host=primary.host, port=primary.driver_port)
-        changesConn = self.r.connect(host=primary.host, port=primary.driver_port)
+        shardInfo = self.table.config()['shards'][0].run(conn)
         
-        # ensure that the replica is not also a primary
+        self.assertTrue(primary is not None)
+        self.assertTrue(primary.name in shardInfo['primary_replica'], msg='Primary is not a primary')
         
-        self.assertTrue(replica.name not in self.table.config()['shards']['primary_replica'].run(conn), msg='Replica is also a primary')
+        self.assertTrue(replica is not None)
+        self.assertTrue(replica.name not in shardInfo['primary_replica'], msg='Replica is a primary')
+        self.assertTrue(replica.name in shardInfo['replicas'], msg='Replica is not in replicas')
         
         # start the changefeed
         
-        with utils.NextWithTimeout(self.table.changes().run(changesConn)) as changefeed:
+        changefeed = self.table.changes().run(conn)
         
-            # add a change and retrieve it
-            
-            self.table.insert({}).run(self.conn)
-            next(changefeed)
-            
-            # kill a secondary server
-            
-            replica.kill()
-            
-            # - add another item inside that range and make sure we still work
-            
-            targetRange = utils.getShardRanges(conn, table=self.tableName, db=self.dbName)[0]
-            updateItem = self.table.between(targetRange[0], targetRange[1]).nth(0).run(conn)
-            
-            # with write_acks = majority
-            
-            self.assertTrue((self.table.config().update({'write_acks':'majority'}).run(conn))['errors'] == 0)
-            self.assertRaises(self.r.RqlRuntimeError, self.table.get(updateItem['id']).update({'updated':True}).run, conn)
-            
-            # with write_acks = single
-            
-            self.assertTrue((self.table.config().update({'write_acks':'single'}).run(conn))['errors'] == 0)
-            time.sleep(.1) # newton is a little slow to get this done
-            self.table.get(updateItem['id']).update({'updated':True}).run(conn)
-            next(changefeed)
-
+        # locate an item inside the range
+        
+        targetRange = utils.getShardRanges(conn, table=self.tableName, db=self.dbName)[0]
+        updateItemId = self.table.between(targetRange[0], targetRange[1]).nth(0).run(conn)['id']
+        
+        # add a change and retrieve it
+        
+        self.table.get(updateItemId).update({'update':1}).run(conn)
+        changefeed.next(wait=.2)
+        
+        # kill a secondary server
+        
+        replica.kill()
+        self.table.wait(wait_for='ready_for_writes', timeout=10).run(conn)
+        
+        # add another change and retrieve it
+        
+        self.table.get(updateItemId).update({'update':2}).run(conn)
+        changefeed.next(wait=.2)
+    
     def test_connection_death(self):
         '''Test that the client handles the death of the server at the other end of the connection correctly'''
+        self.destructiveTest = True
         
         stable = self.getPrimaryForShard(0)
-        sacrifice = self.getPrimaryForShard(1)
+        sacrifice = self.getReplicaForShard(0)
         
         stable_conn = self.r.connect(host=stable.host, port=stable.driver_port)
         sacrifice_conn = self.r.connect(host=sacrifice.host, port=sacrifice.driver_port)
@@ -142,17 +170,55 @@ class Changefeeds_Destructive(rdb_unittest.RdbTestCase):
         
         sacrifice.kill()
         
-        # change an item in the stable range
-        
-        stableRange = utils.getShardRanges(stable_conn, table=self.tableName, db=self.dbName)[0]
-        updateItem = self.table.between(stableRange[0], stableRange[1]).nth(0).run(stable_conn)
-        self.table.get(updateItem['id']).update({'updated':True}).run(stable_conn)
-        
         # check that we error
         
+        self.table.insert({}).run(stable_conn)
         self.assertRaises(self.r.RqlDriverError, next, changefeed)
 
-# ===== main
+# - generate the table drop tests
+
+for feed in [
+    { 'name':'table',   'feed':lambda self: self.table.changes().run(self.conn) },
+    { 'name':'point',   'feed':lambda self: self.table.get(self.table.nth(1)['id']).changes().run(self.conn) },
+    { 'name':'between', 'feed':lambda self: self.table.between(self.r.minval, self.r.maxval).changes().run(self.conn) }
+]:
+    def test_table_drop_test_generator(feed):
+        def test(self):
+            '''Test that a %s changefeed is closed when the table it references is dropped''' % feed['name']
+            
+            # start the feed
+            
+            runningFeed = feed['feed'](self)
+            
+            # empty the feed of any inital values
+            
+            try:
+                while True:
+                    runningFeed.next(wait=.1)
+            except self.r.RqlTimeoutError: pass
+            
+            # drop the table
+            
+            self.r.db(self.dbName).table_drop(self.tableName).run(self.conn)
+            
+            # check the feed errors
+            
+            result = None
+            try:
+                result = runningFeed.next(wait=.2)
+            except self.r.RqlRuntimeError:
+                pass # expected result
+            except self.r.RqlTimeoutError:
+                raise AssertionError('%s feed timed out rather than getting a RqlRuntimeError error' % feed['name'])
+            except Exception as e:
+                raise AssertionError('expected RqlRuntimeError, but raised: %r' % e)
+            else:
+                raise AssertionError('expected RqlRuntimeError, but got value: %r' % result)
+        return test
+    testName = 'test_table_drop_%s_feed' % feed['name']
+    setattr(Changefeeds_Basic, testName, test_table_drop_test_generator(feed))
+
+# ==== main
 
 if __name__ == '__main__':
     import unittest

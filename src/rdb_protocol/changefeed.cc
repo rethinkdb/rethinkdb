@@ -33,11 +33,11 @@ struct indexed_datum_t {
 };
 
 struct stamped_range_t {
-    stamped_range_t(uint64_t _next_expected_stamp)
+    explicit stamped_range_t(uint64_t _next_expected_stamp)
         : next_expected_stamp(_next_expected_stamp),
           left_fencepost(store_key_t::min()) { }
     const store_key_t &get_right_fencepost() {
-        return ranges.size() == 0 ? left_fencepost : ranges.back().first.right.key;
+        return ranges.size() == 0 ? left_fencepost : ranges.back().first.right.key();
     }
     uint64_t next_expected_stamp;
     store_key_t left_fencepost;
@@ -1383,7 +1383,7 @@ private:
     std::vector<scoped_ptr_t<disconnect_watcher_t> > disconnect_watchers;
 
     struct queue_t {
-        queue_t(uint64_t _next) : next(_next) { }
+        explicit queue_t(uint64_t _next) : next(_next) { }
         rwlock_t lock;
         uint64_t next;
         struct lt_t {
@@ -1415,7 +1415,7 @@ real_feed_t::real_feed_t(auto_drainer_t::lock_t _client_lock,
       mailbox(manager, std::bind(&real_feed_t::mailbox_cb, this, ph::_1, ph::_2)) {
     try {
         read_t read(changefeed_subscribe_t(mailbox.get_address()),
-                    profile_bool_t::DONT_PROFILE);
+                    profile_bool_t::DONT_PROFILE, read_mode_t::SINGLE);
         read_response_t read_resp;
         ns_if->read(read, &read_resp, order_token_t::ignore, interruptor);
         auto resp = boost::get<changefeed_subscribe_response_t>(&read_resp.response);
@@ -1559,7 +1559,7 @@ public:
             || (include_initial_vals && state != state_t::READY)
             || has_change_val();
     }
-    virtual counted_t<datum_stream_t> to_stream(
+    counted_t<datum_stream_t> to_stream(
         env_t *env,
         std::string,
         namespace_interface_t *nif,
@@ -1578,7 +1578,7 @@ public:
         read_response_t read_resp;
         nif->read(
             read_t(changefeed_point_stamp_t{addr, store_key_t(pkey.print_primary())},
-                   profile_bool_t::DONT_PROFILE),
+                   profile_bool_t::DONT_PROFILE, read_mode_t::SINGLE),
             &read_resp,
             order_token_t::ignore,
             env->interruptor);
@@ -1753,7 +1753,7 @@ public:
             || has_change_val();
     }
 
-    virtual counted_t<datum_stream_t> to_stream(
+    counted_t<datum_stream_t> to_stream(
         env_t *outer_env,
         std::string,
         namespace_interface_t *nif,
@@ -1767,7 +1767,9 @@ public:
         read_response_t read_resp;
         // Note that we use the `outer_env`'s interruptor for the read.
         nif->read(
-            read_t(changefeed_stamp_t(addr), profile_bool_t::DONT_PROFILE),
+            read_t(changefeed_stamp_t(addr),
+                   profile_bool_t::DONT_PROFILE,
+                   read_mode_t::SINGLE),
             &read_resp, order_token_t::ignore, outer_env->interruptor);
         auto resp = boost::get<changefeed_stamp_response_t>(&read_resp.response);
         guarantee(resp != NULL);
@@ -2085,7 +2087,7 @@ public:
         return ret;
     }
 
-    virtual counted_t<datum_stream_t> to_stream(
+    counted_t<datum_stream_t> to_stream(
         env_t *env,
         std::string table,
         namespace_interface_t *nif,
@@ -2107,7 +2109,8 @@ public:
                        spec.range.sindex
                        ? region_t::universe()
                        : region_t(spec.range.range.to_primary_keyrange())),
-                   profile_bool_t::DONT_PROFILE),
+                   profile_bool_t::DONT_PROFILE,
+                   read_mode_t::SINGLE),
             &read_resp,
             order_token_t::ignore,
             env->interruptor);
@@ -2445,7 +2448,7 @@ private:
         // Safe because we never generate `store_key_t::max()`.
         if (range.right.unbounded) {
             range.right.unbounded = false;
-            range.right.key = store_key_t::max();
+            range.right.internal_key = store_key_t::max();
         }
         auto it = stamped_ranges.find(uuid);
         r_sanity_check(it != stamped_ranges.end());
@@ -2471,7 +2474,7 @@ private:
             while (ranges->size() > 0) {
                 uint64_t read_stamp = ranges->front().second;
                 if (pair.second.next_expected_stamp >= read_stamp) {
-                    pair.second.left_fencepost = ranges->front().first.right.key;
+                    pair.second.left_fencepost = ranges->front().first.right.key();
                     ranges->pop_front();
                 } else {
                     break;

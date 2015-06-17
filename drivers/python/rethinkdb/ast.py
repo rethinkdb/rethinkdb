@@ -1171,6 +1171,7 @@ class Table(RqlQuery):
         return UUID(self, *args, **kwargs)
 
     def compose(self, args, optargs):
+        args.extend([T(k, '=', v) for k, v in dict_items(optargs)])
         if isinstance(self.args[0], DB):
             return T(args[0], '.table(', T(*(args[1:]), intsp=', '), ')')
         else:

@@ -38,7 +38,9 @@ void merger_serializer_t::index_write(new_mutex_in_line_t *mutex_acq,
     mutex_acq->reset();
 
     // Wait for the write to complete
-    write_committer.sync();
+    write_committer.notify();
+    cond_t non_interruptor;
+    write_committer.flush(&non_interruptor);
 }
 
 void merger_serializer_t::do_index_write() {

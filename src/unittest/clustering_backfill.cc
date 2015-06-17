@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "clustering/immediate_consistency/branch/backfiller.hpp"
-#include "clustering/immediate_consistency/branch/backfillee.hpp"
+#include "clustering/immediate_consistency/backfiller.hpp"
+#include "clustering/immediate_consistency/backfillee.hpp"
 #include "containers/uuid.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "unittest/branch_history_manager.hpp"
@@ -11,17 +11,9 @@
 
 namespace unittest {
 
-namespace {
-
-boost::optional<boost::optional<backfiller_business_card_t> > wrap_in_optional(
-        const boost::optional<backfiller_business_card_t> &inner) {
-    return boost::optional<boost::optional<backfiller_business_card_t> >(inner);
-}
-
-}   /* anonymous namespace */
-
 TPTEST(ClusteringBackfill, BackfillTest) {
     order_source_t order_source;
+    cond_t non_interruptor;
 
     /* Set up two stores */
 
@@ -36,9 +28,7 @@ TPTEST(ClusteringBackfill, BackfillTest) {
         branch_birth_certificate_t dummy_branch;
         dummy_branch.region = region;
         dummy_branch.initial_timestamp = state_timestamp_t::zero();
-        dummy_branch.origin = region_map_t<version_range_t>(
-            region, version_range_t(version_t(nil_uuid(), state_timestamp_t::zero())));
-        cond_t non_interruptor;
+        dummy_branch.origin = region_map_t<version_t>(region, version_t::zero());
         branch_history_manager.create_branch(dummy_branch_id, dummy_branch, &non_interruptor);
     }
 
@@ -47,14 +37,15 @@ TPTEST(ClusteringBackfill, BackfillTest) {
     // initialize the metainfo in a store
     store_view_t *stores[] = { &backfiller_store, &backfillee_store };
     for (size_t i = 0; i < sizeof(stores) / sizeof(stores[0]); i++) {
-        cond_t non_interruptor;
         write_token_t token;
         stores[i]->new_write_token(&token);
         stores[i]->set_metainfo(
-            region_map_t<binary_blob_t>(region,
-                                                        binary_blob_t(version_range_t(version_t(dummy_branch_id, timestamp)))),
+            region_map_t<binary_blob_t>(
+                region,
+                binary_blob_t(version_t(dummy_branch_id, timestamp))),
             order_source.check_in(strprintf("set_metainfo(i=%zu)", i)),
             &token,
+            write_durability_t::HARD,
             &non_interruptor);
     }
 
@@ -67,21 +58,22 @@ TPTEST(ClusteringBackfill, BackfillTest) {
         for (int j = 0; j < (i < 10 ? 2 : 1); j++) {
             timestamp = timestamp.next();
 
-            cond_t non_interruptor;
             write_token_t token;
             backfiller_store.new_write_token(&token);
 
 #ifndef NDEBUG
-            equality_metainfo_checker_callback_t
-                metainfo_checker_callback(binary_blob_t(version_range_t(version_t(dummy_branch_id, timestamp.pred()))));
-            metainfo_checker_t metainfo_checker(&metainfo_checker_callback, region);
+            metainfo_checker_t metainfo_checker(region,
+                [&](const region_t &, const binary_blob_t &bb) {
+                    rassert(bb == binary_blob_t(version_t(
+                        dummy_branch_id, timestamp.pred())));
+                });
 #endif
 
             backfiller_store.write(
                 DEBUG_ONLY(metainfo_checker, )
                 region_map_t<binary_blob_t>(
                     region,
-                    binary_blob_t(version_range_t(version_t(dummy_branch_id, timestamp)))
+                    binary_blob_t(version_t(dummy_branch_id, timestamp))
                 ),
                 w,
                 &response, write_durability_t::SOFT,
@@ -103,20 +95,27 @@ TPTEST(ClusteringBackfill, BackfillTest) {
         &branch_history_manager,
         &backfiller_store);
 
-    watchable_variable_t<boost::optional<backfiller_business_card_t> > pseudo_directory(
-        boost::optional<backfiller_business_card_t>(backfiller.get_business_card()));
-
     /* Run a backfill */
 
-    cond_t interruptor;
-    backfillee(
-        cluster.get_mailbox_manager(),
-        &branch_history_manager,
-        &backfillee_store,
-        backfillee_store.get_region(),
-        pseudo_directory.get_watchable()->subview(&wrap_in_optional),
-        &interruptor,
-        nullptr);
+    {
+        backfillee_t backfillee(
+            cluster.get_mailbox_manager(),
+            &branch_history_manager,
+            &backfillee_store,
+            backfiller.get_business_card(),
+            backfill_config_t(),
+            &non_interruptor);
+        class callback_t : public backfillee_t::callback_t {
+        public:
+            bool on_progress(const region_map_t<version_t> &) THROWS_NOTHING {
+                return true;
+            }
+        } callback;
+        backfillee.go(
+            &callback,
+            key_range_t::right_bound_t(backfillee_store.get_region().inner.left),
+            &non_interruptor);
+    }
 
     /* Make sure everything got transferred properly */
 
@@ -129,30 +128,23 @@ TPTEST(ClusteringBackfill, BackfillTest) {
     read_token_t token1;
     backfillee_store.new_read_token(&token1);
 
-    region_map_t<binary_blob_t> untransformed_backfillee_metadata;
-    backfillee_store.do_get_metainfo(order_source.check_in("backfillee_store.do_get_metainfo").with_read_mode(),
-                                     &token1, &interruptor, &untransformed_backfillee_metadata);
-
-    region_map_t<version_range_t> backfillee_metadata =
-        region_map_transform<binary_blob_t, version_range_t>(
-            untransformed_backfillee_metadata,
-            &binary_blob_t::get<version_range_t>);
+    region_map_t<version_t> backfillee_metadata =
+        to_version_map(backfillee_store.get_metainfo(
+            order_source.check_in("backfillee_store.get_metainfo").with_read_mode(),
+            &token1, backfillee_store.get_region(), &non_interruptor));
 
     read_token_t token2;
     backfiller_store.new_read_token(&token2);
 
-    region_map_t<binary_blob_t> untransformed_backfiller_metadata;
-    backfiller_store.do_get_metainfo(order_source.check_in("backfiller_store.do_get_metainfo").with_read_mode(),
-                                     &token2, &interruptor, &untransformed_backfiller_metadata);
-
-    region_map_t<version_range_t> backfiller_metadata =
-        region_map_transform<binary_blob_t, version_range_t>(untransformed_backfiller_metadata, &binary_blob_t::get<version_range_t>);
+    region_map_t<version_t> backfiller_metadata =
+        to_version_map(backfiller_store.get_metainfo(
+            order_source.check_in("backfiller_store.get_metainfo").with_read_mode(),
+            &token2, backfiller_store.get_region(), &non_interruptor));
 
     EXPECT_TRUE(backfillee_metadata == backfiller_metadata);
 
     //EXPECT_EQ(1, backfillee_metadata.size());
-    //EXPECT_TRUE(backfillee_metadata[0].second.is_coherent());
-    //EXPECT_EQ(timestamp, backfillee_metadata[0].second.earliest.timestamp);
+    //EXPECT_EQ(timestamp, backfillee_metadata[0].second.timestamp);
 }
 
 }   /* namespace unittest */

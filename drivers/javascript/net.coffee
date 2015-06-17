@@ -781,20 +781,17 @@ class Connection extends events.EventEmitter
             query.global_optargs[util.fromCamelCase(key)] = r.expr(value).build()
 
         # If the user has specified the `db` on the connection (either
-        # in the constructor, or with the `.use` method, we add that
-        # db to the optargs for the query.
-        if @db?
-            query.global_optargs['db'] = r.db(@db).build()
+        # in the constructor, as an optarg to .run(), or with the `.use` method)
+        # we add that db to the optargs for the query.
+        if opts.db? or @db?
+            query.global_optargs.db = r.db(opts.db or @db).build()
 
-        # Next, ensure that the `useOutdated`, `noreply`, and
-        # `profile` options (if present) are actual booleans using the
-        # `!!` trick. Note that `r.expr(false).build() == false` and
+        # Next, ensure that the `noreply` and `profile` options
+        # (if present) are actual booleans using the `!!` trick.
+        # Note that `r.expr(false).build() == false` and
         # `r.expr(null).build() == null`, so the conversion in the
         # loop above won't affect the boolean value the user intended
         # to pass.
-        if opts.useOutdated?
-            query.global_optargs['use_outdated'] = r.expr(!!opts.useOutdated).build()
-
         if opts.noreply?
             query.global_optargs['noreply'] = r.expr(!!opts.noreply).build()
 
@@ -1133,7 +1130,7 @@ class TcpConnection extends Connection
                         # called in response to the rawSocket 'close'
                         # event, we need to additionally clean up the
                         # rawSocket.
-                        @rawSocket.removeAllListeners()
+                        @rawSocket?.removeAllListeners()
                         @rawSocket = null
                     )
                     @rawSocket.end()

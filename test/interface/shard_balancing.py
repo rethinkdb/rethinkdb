@@ -77,7 +77,7 @@ with driver.Cluster(initial_servers=['a', 'b'], output_folder='.', command_prefi
     assert res[0] > 500
     assert res[1] < 100
 
-    # RSI(reql_admin): Once #2896 is implemented, make sure the server has an issue now
+    # If we ever implement #2896, we should make sure the server has an issue now
 
     print("Fixing the unbalanced table (%.2fs)" % (time.time() - startTime))
     status_before = r.db(dbName).table("unbalanced").status().run(conn)

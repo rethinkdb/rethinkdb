@@ -1,6 +1,7 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/artificial_table/artificial_table.hpp"
 
+#include "clustering/administration/admin_op_exc.hpp"
 #include "rdb_protocol/artificial_table/backend.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
@@ -16,7 +17,7 @@ bool checked_read_row_from_backend(
         const ql::datum_t &pval,
         signal_t *interruptor,
         ql::datum_t *row_out,
-        std::string *error_out) {
+        admin_err_t *error_out) {
     if (!backend->read_row(pval, interruptor, row_out, error_out)) {
         return false;
     }
@@ -43,11 +44,11 @@ const std::string &artificial_table_t::get_pkey() const {
 }
 
 ql::datum_t artificial_table_t::read_row(ql::env_t *env,
-        ql::datum_t pval, UNUSED bool use_outdated) {
+        ql::datum_t pval, UNUSED read_mode_t read_mode) {
     ql::datum_t row;
-    std::string error;
+    admin_err_t error;
     if (!checked_read_row_from_backend(backend, pval, env->interruptor, &row, &error)) {
-        throw ql::datum_exc_t(ql::base_exc_t::OP_FAILED, error);
+        REQL_RETHROW_DATUM(error);
     }
     if (!row.has()) {
         row = ql::datum_t::null();
@@ -62,18 +63,17 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_all(
         const std::string &table_name,
         const ql::datum_range_t &range,
         sorting_t sorting,
-        UNUSED bool use_outdated) {
+        UNUSED read_mode_t read_mode) {
     if (get_all_sindex_id != primary_key) {
         rfail_datum(ql::base_exc_t::OP_FAILED, "%s",
             error_message_index_not_found(get_all_sindex_id, table_name).c_str());
     }
 
     counted_t<ql::datum_stream_t> stream;
-    std::string error;
+    admin_err_t error;
     if (!backend->read_all_rows_as_stream(
-            bt, range, sorting, env->interruptor, &stream, &error))
-    {
-        rfail_datum(ql::base_exc_t::OP_FAILED, "%s", error.c_str());
+            bt, range, sorting, env->interruptor, &stream, &error)) {
+        REQL_RETHROW_DATUM(error);
     }
     return stream;
 }
@@ -88,7 +88,7 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_changes(
     UNUSED const std::string &table_name) {
 
     counted_t<ql::datum_stream_t> stream;
-    std::string error;
+    admin_err_t error;
     if (!backend->read_changes(
             env,
             maybe_src.has(),
@@ -98,7 +98,7 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_changes(
             env->interruptor,
             &stream,
             &error)) {
-        rfail_datum(ql::base_exc_t::OP_FAILED, "%s", error.c_str());
+        REQL_RETHROW_DATUM(error);
     }
     return stream;
 }
@@ -108,7 +108,7 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_intersecting(
         const std::string &sindex,
         UNUSED ql::backtrace_id_t bt,
         const std::string &table_name,
-        UNUSED bool use_outdated,
+        UNUSED read_mode_t read_mode,
         UNUSED const ql::datum_t &query_geometry) {
     guarantee(sindex != primary_key, "read_intersecting() should never be called with "
         "the primary index");
@@ -120,7 +120,7 @@ ql::datum_t artificial_table_t::read_nearest(
         UNUSED ql::env_t *env,
         const std::string &sindex,
         const std::string &table_name,
-        UNUSED bool use_outdated,
+        UNUSED read_mode_t read_mode,
         UNUSED lon_lat_point_t center,
         UNUSED double max_dist,
         UNUSED uint64_t max_results,
@@ -214,39 +214,6 @@ bool artificial_table_t::write_sync_depending_on_durability(
         "Artificial tables don't support `sync()`.");
 }
 
-bool artificial_table_t::sindex_create(
-        UNUSED ql::env_t *env, UNUSED const std::string &id,
-        UNUSED counted_t<const ql::func_t> index_func, UNUSED sindex_multi_bool_t multi,
-        UNUSED sindex_geo_bool_t geo) {
-    rfail_datum(ql::base_exc_t::OP_FAILED,
-        "Can't create a secondary index on an artificial table.");
-}
-
-bool artificial_table_t::sindex_drop(UNUSED ql::env_t *env,
-        UNUSED const std::string &id) {
-    rfail_datum(ql::base_exc_t::OP_FAILED,
-        "Can't drop a secondary index on an artificial table.");
-}
-
-sindex_rename_result_t artificial_table_t::sindex_rename(
-        UNUSED ql::env_t *env,
-        UNUSED const std::string &old_name,
-        UNUSED const std::string &new_name,
-        UNUSED bool overwrite) {
-    rfail_datum(ql::base_exc_t::OP_FAILED,
-        "Can't rename a secondary index on an artificial table.");
-}
-
-std::vector<std::string> artificial_table_t::sindex_list(
-        UNUSED ql::env_t *env, UNUSED bool use_outdated) {
-    return std::vector<std::string>();
-}
-
-std::map<std::string, ql::datum_t> artificial_table_t::sindex_status(
-        UNUSED ql::env_t *env, UNUSED const std::set<std::string> &sindexes) {
-    return std::map<std::string, ql::datum_t>();
-}
-
 void artificial_table_t::do_single_update(
         ql::env_t *env,
         ql::datum_t pval,
@@ -257,11 +224,11 @@ void artificial_table_t::do_single_update(
         signal_t *interruptor,
         ql::datum_t *stats_inout,
         std::set<std::string> *conditions_inout) {
-    std::string error;
+    admin_err_t error;
     ql::datum_t old_row;
     if (!checked_read_row_from_backend(backend, pval, interruptor, &old_row, &error)) {
         ql::datum_object_builder_t builder;
-        builder.add_error(error.c_str());
+        builder.add_error(error.msg.c_str());
         *stats_inout = (*stats_inout).merge(
             std::move(builder).to_datum(), ql::stats_merge, env->limits(),
             conditions_inout);
@@ -281,7 +248,7 @@ void artificial_table_t::do_single_update(
         }
         if (!backend->write_row(pval, pkey_was_autogenerated, &new_row,
                 interruptor, &error)) {
-            rfail_datum(ql::base_exc_t::OP_FAILED, "%s", error.c_str());
+            rfail_datum(ql::base_exc_t::OP_FAILED, "%s", error.msg.c_str());
         }
         if (!new_row.has()) {
             new_row = ql::datum_t::null();

@@ -3,7 +3,13 @@
 
 template class directory_map_write_manager_t<int, int>;
 
-#include "clustering/administration/tables/table_metadata.hpp"
-#include "containers/archive/cow_ptr_type.hpp"
+#include "clustering/table_manager/table_metadata.hpp"
 template class directory_map_write_manager_t<
-    namespace_id_t, namespace_directory_metadata_t>;
+    namespace_id_t, table_manager_bcard_t>;
+
+#include "clustering/query_routing/metadata.hpp"
+template class directory_map_write_manager_t<
+    std::pair<namespace_id_t, uuid_u>, table_query_bcard_t>;
+
+template class directory_map_write_manager_t<
+    server_id_t, empty_value_t>;

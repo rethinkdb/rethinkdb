@@ -1,6 +1,12 @@
-#!/usr/local/bin/ruby
+#!/usr/bin/env ruby
 
-require 'test/unit'
+begin
+  require 'minitest/autorun'
+  UNIT_TEST_CLASS = MiniTest::Test
+rescue
+  require 'test/unit'
+  UNIT_TEST_CLASS = Test::Unit::TestCase
+end
 require 'pp'
 
 # -- import the rethinkdb driver
@@ -52,7 +58,7 @@ $slow = nil
 $gmrdata = [{"a"=>0, "arr"=>[0, 0], "id"=>0}, {"a"=>1, "arr"=>[1, 1], "b"=>1, "id"=>1}, {"a"=>2, "arr"=>[0, 2], "b"=>2, "id"=>2}, {"a"=>0, "arr"=>[1, 3], "id"=>3}, {"a"=>1, "arr"=>[0, 4], "id"=>4}, {"a"=>2, "arr"=>[1, 0], "b"=>2, "id"=>5}, {"a"=>0, "arr"=>[0, 1], "id"=>6}, {"a"=>1, "arr"=>[1, 2], "b"=>1, "id"=>7}, {"a"=>2, "arr"=>[0, 3], "b"=>2, "id"=>8}, {"a"=>0, "arr"=>[1, 4], "id"=>9}]
 $tbl = r.db('test').table('gmrdata')
 
-class ClientTest < Test::Unit::TestCase
+class ClientTest < UNIT_TEST_CLASS
   def setup
     r.db_create('test').run rescue nil
     r.db('test').table_create('test').run rescue nil
@@ -115,11 +121,11 @@ Query: #{PP.pp(query, "")}\nBatch Conf: #{bc}
     end
 
     begin
-      assert_raise(RethinkDB::RqlDriverError) {
+      assert_raises(RethinkDB::RqlDriverError) {
         $dispatch_hook = lambda {|x| x.gsub('[', '{')}
         eq(r(1), 1)
       }
-      assert_raise(RethinkDB::RqlDriverError) {
+      assert_raises(RethinkDB::RqlDriverError) {
         $dispatch_hook = lambda {|x| x.gsub('1', '\u0000')}
         eq(r(1), 1)
       }
@@ -127,13 +133,13 @@ Query: #{PP.pp(query, "")}\nBatch Conf: #{bc}
       $dispatch_hook = nil
     end
     $c.register_query(1337, {})
-    assert_equal({ "t"=>16, "n"=>[], "b"=>[], "e"=>3000000, "r"=>["Client is buggy (failed to deserialize query)."] },
+    assert_equal({ "t"=>16, "n"=>[], "b"=>[], "r"=>["Client is buggy (failed to deserialize query)."] },
                  $c.wait($c.dispatch([1, 1337, 1, {}], 1337), nil))
     $c.register_query(-1, {})
-    assert_equal({ "t"=>16, "n"=>[], "b"=>[], "e"=>3000000, "r"=>["Client is buggy (failed to deserialize query)."] },
+    assert_equal({ "t"=>16, "n"=>[], "b"=>[], "r"=>["Client is buggy (failed to deserialize query)."] },
                  $c.wait($c.dispatch(["a", 1337, 1, {}], -1), nil))
     $c.register_query(16, {})
-    assert_equal({ "t"=>16, "n"=>[], "b"=>[], "e"=>3000000, "r"=>["Client is buggy (failed to deserialize query)."] },
+    assert_equal({ "t"=>16, "n"=>[], "b"=>[], "r"=>["Client is buggy (failed to deserialize query)."] },
                  $c.wait($c.dispatch([1, 1337, 1, 1], 16), nil))
   end
 

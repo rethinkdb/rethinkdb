@@ -4,7 +4,6 @@
 
 #include <stdlib.h>
 #include <unistd.h>
-
 #include <vector>
 
 #include "errors.hpp"

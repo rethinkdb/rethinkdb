@@ -5,6 +5,7 @@ tests:
     runopts:
       array_limit: "6"
     ot: ({'created':1})
+  - py: tbl.index_wait()
   - py: tbl.insert({'id':1,'a':[1,2,3,4,5]})
     runopts:
       array_limit: "6"

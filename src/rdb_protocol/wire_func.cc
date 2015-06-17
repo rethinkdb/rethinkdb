@@ -91,6 +91,7 @@ void serialize(write_message_t *wm, const wire_func_t &wf) {
 
 INSTANTIATE_SERIALIZE_FOR_CLUSTER_AND_DISK(wire_func_t);
 
+// deserialize function for 2.0 and before
 template <cluster_version_t W>
 archive_result_t deserialize(read_stream_t *s, wire_func_t *wf) {
     archive_result_t res;
@@ -155,6 +156,7 @@ template archive_result_t deserialize<cluster_version_t::v1_16>(
 template archive_result_t deserialize<cluster_version_t::v2_0>(
         read_stream_t *, wire_func_t *);
 
+// deserialize function for 2.1 and above
 template <>
 archive_result_t deserialize<cluster_version_t::v2_1_is_latest>(
     read_stream_t *s, wire_func_t *wf) {

@@ -9,7 +9,10 @@ namespace unittest {
 void assert_equal(const key_range_t& expected, const key_range_t& value) {
     ASSERT_EQ(key_to_unescaped_str(expected.left), key_to_unescaped_str(value.left));
     ASSERT_EQ(expected.right.unbounded, value.right.unbounded);
-    ASSERT_EQ(key_to_unescaped_str(expected.right.key), key_to_unescaped_str(value.right.key));
+    if (!expected.right.unbounded) {
+        ASSERT_EQ(key_to_unescaped_str(expected.right.key()),
+            key_to_unescaped_str(value.right.key()));
+    }
 }
 
 void assert_empty(const hash_region_t<key_range_t>& r) {

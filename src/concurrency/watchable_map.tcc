@@ -8,11 +8,11 @@ template<class key_t, class value_t>
 watchable_map_t<key_t, value_t>::all_subs_t::all_subs_t(
         watchable_map_t<key_t, value_t> *map,
         const std::function<void(const key_t &key, const value_t *maybe_value)> &cb,
-        bool initial_call) :
+        initial_call_t initial_call) :
         subscription(cb) {
     rwi_lock_assertion_t::read_acq_t acq(map->get_rwi_lock());
     subscription.reset(map->all_subs_publisher.get_publisher());
-    if (initial_call) {
+    if (initial_call == initial_call_t::YES) {
         map->read_all(cb);
     }
 }
@@ -22,9 +22,9 @@ watchable_map_t<key_t, value_t>::key_subs_t::key_subs_t(
         watchable_map_t<key_t, value_t> *map,
         const key_t &key,
         const std::function<void(const value_t *maybe_value)> &cb,
-        bool initial_call) :
+        initial_call_t initial_call) :
         sentry(&map->key_subs_map, key, cb) {
-    if (initial_call) {
+    if (initial_call == initial_call_t::YES) {
         map->read_key(key, cb);
     }
 }
@@ -40,9 +40,9 @@ void watchable_map_t<key_t, value_t>::run_key_until_satisfied(
     key_subs_t subs(this, key,
         [&](const value_t *new_value) {
             if (fun(new_value)) {
-                ok.pulse();
+                ok.pulse_if_not_already_pulsed();
             }
-        }, true);
+        }, initial_call_t::YES);
     wait_interruptible(&ok, interruptor);
 }
 
@@ -59,7 +59,7 @@ void watchable_map_t<key_t, value_t>::run_all_until_satisfied(
                 notify->pulse_if_not_already_pulsed();
             }
         },
-        false);
+        initial_call_t::NO);
     while (true) {
         cond_t cond;
         assignment_sentry_t<cond_t *> sentry(&notify, &cond);
@@ -88,7 +88,93 @@ void watchable_map_t<key_t, value_t>::notify_change(
     }
 }
 
-template <class key_t, class value_t>
+template<class key_t, class value_t>
+watchable_map_var_t<key_t, value_t>::entry_t::entry_t(
+        watchable_map_var_t *p, const key_t &key, const value_t &value) :
+    parent(p)
+{
+    rwi_lock_assertion_t::write_acq_t write_acq(&parent->rwi_lock);
+    auto pair = parent->map.insert(std::make_pair(key, value));
+    guarantee(pair.second, "key for entry_t already exists");
+    iterator = pair.first;
+    parent->notify_change(iterator->first, &iterator->second, &write_acq);
+}
+
+template<class key_t, class value_t>
+watchable_map_var_t<key_t, value_t>::entry_t::entry_t(entry_t &&other) :
+    parent(other.parent), iterator(other.iterator)
+{
+    other.parent = nullptr;
+}
+
+template<class key_t, class value_t>
+watchable_map_var_t<key_t, value_t>::entry_t::~entry_t() {
+    if (parent != nullptr) {
+        *this = entry_t();
+    }
+}
+
+template<class key_t, class value_t>
+typename watchable_map_var_t<key_t, value_t>::entry_t &
+watchable_map_var_t<key_t, value_t>::entry_t::operator=(entry_t &&other) {
+    if (this != &other) {
+        if (parent != nullptr) {
+            rwi_lock_assertion_t::write_acq_t write_acq(&parent->rwi_lock);
+            key_t key = iterator->first;
+            parent->map.erase(iterator);
+            parent->notify_change(key, nullptr, &write_acq);
+        }
+        parent = other.parent;
+        iterator = other.iterator;
+        other.parent = nullptr;
+    }
+    return *this;
+}
+
+template<class key_t, class value_t>
+key_t watchable_map_var_t<key_t, value_t>::entry_t::get_key() const {
+    guarantee(parent != nullptr);
+    return iterator->first;
+}
+
+template<class key_t, class value_t>
+value_t watchable_map_var_t<key_t, value_t>::entry_t::get_value() const {
+    guarantee(parent != nullptr);
+    return iterator->second;
+}
+
+template<class key_t, class value_t>
+void watchable_map_var_t<key_t, value_t>::entry_t::set(const value_t &new_value) {
+    guarantee(parent != nullptr);
+    rwi_lock_assertion_t::write_acq_t write_acq(&parent->rwi_lock);
+    if (iterator->second != new_value) {
+        iterator->second = new_value;
+        parent->notify_change(iterator->first, &iterator->second, &write_acq);
+    }
+}
+
+template<class key_t, class value_t>
+void watchable_map_var_t<key_t, value_t>::entry_t::set_no_equals(
+        const value_t &new_value) {
+    guarantee(parent != nullptr);
+    rwi_lock_assertion_t::write_acq_t write_acq(&parent->rwi_lock);
+    iterator->second = new_value;
+    parent->notify_change(iterator->first, &iterator->second, &write_acq);
+}
+
+template<class key_t, class value_t>
+void watchable_map_var_t<key_t, value_t>::entry_t::change(
+        const std::function<bool(value_t *value)> &callback) {
+    guarantee(parent != nullptr);
+    ASSERT_NO_CORO_WAITING;
+    rwi_lock_assertion_t::write_acq_t write_acq(&parent->rwi_lock);
+    bool changed = callback(&iterator->second);
+    if (changed) {
+        parent->notify_change(iterator->first, &iterator->second, &write_acq);
+    }
+}
+
+template<class key_t, class value_t>
 watchable_map_var_t<key_t, value_t>::watchable_map_var_t(
         std::map<key_t, value_t> &&source) :
     map(std::move(source)) { }
@@ -175,5 +261,40 @@ void watchable_map_var_t<key_t, value_t>::delete_key(const key_t &key) {
     rwi_lock_assertion_t::write_acq_t write_acq(&rwi_lock);
     map.erase(key);
     watchable_map_t<key_t, value_t>::notify_change(key, nullptr, &write_acq);
+}
+
+template<class key_t, class value_t>
+void watchable_map_var_t<key_t, value_t>::change_key(
+        const key_t &key,
+        const std::function<bool(bool *exists, value_t *value)> &callback) {
+    ASSERT_NO_CORO_WAITING;
+    rwi_lock_assertion_t::write_acq_t write_acq(&rwi_lock);
+    auto it = map.find(key);
+    if (it != map.end()) {
+        bool exists = true;
+        if (!callback(&exists, &it->second)) {
+            guarantee(exists);
+            return;
+        }
+        if (exists) {
+            watchable_map_t<key_t, value_t>::notify_change(
+                key, &it->second, &write_acq);
+        } else {
+            map.erase(it);
+            watchable_map_t<key_t, value_t>::notify_change(key, nullptr, &write_acq);
+        }
+    } else {
+        bool exists = false;
+        value_t value_buffer;
+        if (!callback(&exists, &value_buffer)) {
+            guarantee(!exists);
+            return;
+        }
+        if (exists) {
+            auto pair = map.insert(std::make_pair(key, std::move(value_buffer)));
+            watchable_map_t<key_t, value_t>::notify_change(
+                key, &pair.first->second, &write_acq);
+        }
+    }
 }
 

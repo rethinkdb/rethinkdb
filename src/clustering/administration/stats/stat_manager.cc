@@ -42,7 +42,7 @@ bool fetch_stats_from_server(
         const std::set<std::vector<stat_manager_t::stat_id_t> > &filter,
         signal_t *interruptor,
         ql::datum_t *stats_out,
-        std::string *error_out) {
+        admin_err_t *error_out) {
     cond_t done;
     mailbox_t<void(ql::datum_t)> return_mailbox(mailbox_manager,
         [&](signal_t *, ql::datum_t s) {
@@ -61,12 +61,12 @@ bool fetch_stats_from_server(
     wait_interruptible(&waiter, interruptor);
 
     if (disconnect_watcher.is_pulsed()) {
-        *error_out = "Server disconnected.";
+        *error_out = admin_err_t{"Server disconnected.", query_state_t::FAILED};
         return false;
     }
 
     if (timeout.is_pulsed()) {
-        *error_out = "Stats request timed out.";
+        *error_out = admin_err_t{"Stats request timed out.", query_state_t::FAILED};
         return false;
     }
 

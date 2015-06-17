@@ -61,7 +61,7 @@ protected:
         : default_val(std::move(_default_val)) { }
     virtual ~grouped_acc_t() { }
 private:
-    virtual done_traversing_t operator()(env_t *env,
+    virtual continue_bool_t operator()(env_t *env,
                                          groups_t *groups,
                                          const store_key_t &key,
                                          const datum_t &sindex_val) {
@@ -76,7 +76,7 @@ private:
                 acc.erase(t_it);
             }
         }
-        return should_send_batch() ? done_traversing_t::YES : done_traversing_t::NO;
+        return should_send_batch() ? continue_bool_t::ABORT : continue_bool_t::CONTINUE;
     }
     virtual bool accumulate(env_t *env,
                             const datum_t &el,

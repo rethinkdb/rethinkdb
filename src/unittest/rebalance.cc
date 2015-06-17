@@ -12,11 +12,8 @@ namespace unittest {
 table_shard_scheme_t do_rebalance(const std::map<store_key_t, int64_t> &distribution,
                                   size_t num_shards) {
     table_shard_scheme_t split_points_out;
-    std::string error_out;
-    bool res = calculate_split_points_with_distribution(distribution, num_shards,
-                                                        &split_points_out, &error_out);
-
-    EXPECT_TRUE(res) << ("rebalance failed: " + error_out);
+    calculate_split_points_with_distribution(
+        distribution, num_shards, &split_points_out);
     return split_points_out;
 }
 

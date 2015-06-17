@@ -66,7 +66,7 @@ initial_joiner_t::initial_joiner_t(
     peers_not_heard_from(peers),
     subs(cluster->get_connections(),
         std::bind(&initial_joiner_t::on_connection_change, this, ph::_1, ph::_2),
-        true),
+        initial_call_t::YES),
     successful_connection(false) {
     guarantee(!peers.empty());
 

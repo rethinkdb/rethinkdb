@@ -24,6 +24,7 @@
 #include "protocol_api.hpp"
 #include "rdb_protocol/changefeed.hpp"
 #include "rdb_protocol/protocol.hpp"
+#include "rdb_protocol/store_metainfo.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "store_view.hpp"
 #include "utils.hpp"
@@ -78,15 +79,16 @@ public:
 
     // Called when indexes change during store_t lifetime
     virtual void index_dropped(const std::string &index_name) = 0;
-    virtual void index_renamed(const std::string &old_name,
-                               const std::string &new_name) = 0;
+    virtual void indexes_renamed(
+        const std::map<std::string, std::string> &name_changes) = 0;
 };
 
 class store_t final : public store_view_t {
 public:
     using home_thread_mixin_t::assert_thread;
 
-    store_t(serializer_t *serializer,
+    store_t(const region_t &region,
+            serializer_t *serializer,
             cache_balancer_t *balancer,
             const std::string &perfmon_name,
             bool create,
@@ -101,20 +103,22 @@ public:
     void note_reshard();
 
     /* store_view_t interface */
+
     void new_read_token(read_token_t *token_out);
     void new_write_token(write_token_t *token_out);
 
-    void do_get_metainfo(
+    region_map_t<binary_blob_t> get_metainfo(
             order_token_t order_token,
             read_token_t *token,
-            signal_t *interruptor,
-            region_map_t<binary_blob_t> *out)
+            const region_t &region,
+            signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
     void set_metainfo(
             const region_map_t<binary_blob_t> &new_metainfo,
             order_token_t order_token,
             write_token_t *token,
+            write_durability_t durability,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -138,22 +142,24 @@ public:
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
-    bool send_backfill(
+    continue_bool_t send_backfill_pre(
             const region_map_t<state_timestamp_t> &start_point,
-            send_backfill_callback_t *send_backfill_cb,
-            traversal_progress_combiner_t *progress,
-            read_token_t *token,
+            backfill_pre_item_consumer_t *pre_item_consumer,
+            signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t);
+    continue_bool_t send_backfill(
+            const region_map_t<state_timestamp_t> &start_point,
+            backfill_pre_item_producer_t *pre_item_producer,
+            backfill_item_consumer_t *item_consumer,
+            signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t);
+    continue_bool_t receive_backfill(
+            const region_t &region,
+            backfill_item_producer_t *item_producer,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
-    void receive_backfill(
-            const backfill_chunk_t &chunk,
-            write_token_t *token,
-            signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t);
-
-    // Preserves ordering
-    void throttle_backfill_chunk(signal_t *interruptor)
+    void wait_until_ok_to_receive_backfill(signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
     void reset_data(
@@ -162,6 +168,28 @@ public:
             write_durability_t durability,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
+
+    /* End of `store_view_t` interface */
+
+    std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > sindex_list(
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
+
+    void sindex_create(
+            const std::string &name,
+            const sindex_config_t &config,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
+
+    void sindex_rename_multi(
+            const std::map<std::string, std::string> &name_changes,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
+
+    void sindex_drop(
+            const std::string &id,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
 
     new_mutex_in_line_t get_in_line_for_sindex_queue(buf_lock_t *sindex_block);
 
@@ -191,18 +219,12 @@ public:
             const std::vector<rdb_modification_report_t> &mod_reports,
             const new_mutex_in_line_t *acq);
 
-    MUST_USE bool add_sindex(
+    MUST_USE bool add_sindex_internal(
         const sindex_name_t &name,
         const std::vector<char> &opaque_definition,
         buf_lock_t *sindex_block);
 
     std::map<sindex_name_t, secondary_index_t> get_sindexes() const;
-
-    void set_sindexes(
-        const std::map<sindex_name_t, secondary_index_t> &sindexes,
-        buf_lock_t *sindex_block,
-        std::set<sindex_name_t> *created_sindexes_out)
-    THROWS_ONLY(interrupted_exc_t);
 
     bool mark_index_up_to_date(
         const sindex_name_t &name,
@@ -213,17 +235,6 @@ public:
         uuid_u id,
         buf_lock_t *sindex_block)
     THROWS_NOTHING;
-
-    bool drop_sindex(
-        const sindex_name_t &name,
-        buf_lock_t *sindex_block)
-    THROWS_ONLY(interrupted_exc_t);
-
-    void rename_sindex(
-        const sindex_name_t &old_name,
-        const sindex_name_t &new_name,
-        buf_lock_t *sindex_block)
-    THROWS_ONLY(interrupted_exc_t);
 
     void update_outdated_sindex_list(buf_lock_t *sindex_block);
 
@@ -302,35 +313,12 @@ public:
                         scoped_ptr_t<real_superblock_t> *superblock,
                         signal_t *interruptor);
 
-    void protocol_send_backfill(const region_map_t<state_timestamp_t> &start_point,
-                                chunk_fun_callback_t *chunk_fun_cb,
-                                real_superblock_t *superblock,
-                                buf_lock_t *sindex_block,
-                                traversal_progress_combiner_t *progress,
-                                signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t);
-
-    void protocol_receive_backfill(scoped_ptr_t<real_superblock_t> &&superblock,
-                                   signal_t *interruptor,
-                                   const backfill_chunk_t &chunk);
-
-    void get_metainfo_internal(real_superblock_t *superblock,
-                               region_map_t<binary_blob_t> *out)
-        const THROWS_NOTHING;
-
     void acquire_superblock_for_read(
             read_token_t *token,
             scoped_ptr_t<txn_t> *txn_out,
             scoped_ptr_t<real_superblock_t> *sb_out,
             signal_t *interruptor,
             bool use_snapshot)
-            THROWS_ONLY(interrupted_exc_t);
-
-    void acquire_superblock_for_backfill(
-            read_token_t *token,
-            scoped_ptr_t<txn_t> *txn_out,
-            scoped_ptr_t<real_superblock_t> *sb_out,
-            signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
 
     void acquire_superblock_for_write(
@@ -343,11 +331,6 @@ public:
             THROWS_ONLY(interrupted_exc_t);
 
 private:
-    // Drops all sindexes if this store is not responsible for any data
-    void maybe_drop_all_sindexes(const binary_blob_t &zero_metainfo,
-                                 const write_durability_t durability,
-                                 signal_t *interruptor);
-
     // Helper function to clear out a secondary index that has been
     // marked as deleted. To be run in a coroutine.
     void delayed_clear_sindex(
@@ -369,21 +352,6 @@ private:
             const sindex_name_t &name);
 
 public:
-    void check_and_update_metainfo(
-        DEBUG_ONLY(const metainfo_checker_t &metainfo_checker, )
-        const region_map_t<binary_blob_t> &new_metainfo,
-        real_superblock_t *superblock) const
-        THROWS_NOTHING;
-
-    region_map_t<binary_blob_t> check_metainfo(
-        DEBUG_ONLY(const metainfo_checker_t &metainfo_checker, )
-        real_superblock_t *superblock) const
-        THROWS_NOTHING;
-
-    void update_metainfo(const region_map_t<binary_blob_t> &old_metainfo,
-                         const region_map_t<binary_blob_t> &new_metainfo,
-                         real_superblock_t *superblock) const THROWS_NOTHING;
-
     namespace_id_t const &get_table_id() const;
 
     typedef std::map<
@@ -406,6 +374,7 @@ public:
     io_backender_t *io_backender_;
     base_path_t base_path_;
     perfmon_membership_t perfmon_collection_membership;
+    scoped_ptr_t<store_metainfo_manager_t> metainfo;
 
     std::map<uuid_u, scoped_ptr_t<btree_slice_t> > secondary_index_slices;
 
