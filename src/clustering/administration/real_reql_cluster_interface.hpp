@@ -24,7 +24,9 @@ actions on the semilattices. By performing these actions through the abstract
 `reql_cluster_interface_t`, we can keep the ReQL code separate from the semilattice code.
 */
 
-class real_reql_cluster_interface_t : public reql_cluster_interface_t {
+class real_reql_cluster_interface_t :
+    public reql_cluster_interface_t,
+    public home_thread_mixin_t {
 public:
     real_reql_cluster_interface_t(
             mailbox_manager_t *mailbox_manager,
@@ -114,6 +116,15 @@ public:
     bool db_reconfigure(
             counted_t<const ql::db_t> db,
             const table_generate_config_params_t &params,
+            bool dry_run,
+            signal_t *interruptor,
+            ql::datum_t *result_out,
+            std::string *error_out);
+
+    bool table_emergency_repair(
+            counted_t<const ql::db_t> db,
+            const name_string_t &name,
+            bool allow_erase,
             bool dry_run,
             signal_t *interruptor,
             ql::datum_t *result_out,
@@ -219,6 +230,16 @@ private:
             THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t,
                 failed_table_op_exc_t, maybe_failed_table_op_exc_t, admin_op_exc_t);
 
+    void emergency_repair_internal(
+            const counted_t<const ql::db_t> &db,
+            const namespace_id_t &table_id,
+            bool allow_erase,
+            bool dry_run,
+            signal_t *interruptor,
+            ql::datum_t *result_out)
+            THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t,
+                failed_table_op_exc_t, maybe_failed_table_op_exc_t, admin_op_exc_t);
+
     void rebalance_internal(
             const namespace_id_t &table_id,
             signal_t *interruptor,
@@ -232,7 +253,7 @@ private:
             const std::function<void(std::map<std::string, sindex_config_t> *)> &cb,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t,
-                failed_table_op_exc_t, maybe_failed_table_op_exc_t);
+                failed_table_op_exc_t, maybe_failed_table_op_exc_t, admin_op_exc_t);
 
     DISABLE_COPYING(real_reql_cluster_interface_t);
 };

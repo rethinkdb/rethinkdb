@@ -82,7 +82,9 @@ public:
     /* The region that the branch applies to. This is the same as the region of the
     `broadcaster_t` that corresponds to the branch. Every write to the branch must affect
     only some (non-proper) subset of this region. */
-    region_t region;
+    region_t get_region() const {
+        return origin.get_domain();
+    }
 
     /* The timestamp of the first state on the branch. `version_t(branch_id,
     initial_timestamp)` describes the same B-tree state as `origin`. `initial_timestamp`
@@ -90,7 +92,7 @@ public:
     state_timestamp_t initial_timestamp;
 
     /* The state of the meta-info of the B-tree when the `broadcaster_t` was
-    constructed. `origin.get_region()` will be the same as `region`. */
+    constructed. */
     region_map_t<version_t> origin;
 };
 

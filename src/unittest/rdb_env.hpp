@@ -45,10 +45,6 @@ public:
               UNUSED order_token_t tok,
               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
 
-    void read_outdated(const read_t &query,
-                       read_response_t *response,
-                       signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
-
     void write(const write_t &query,
                write_response_t *response,
                UNUSED order_token_t tok,
@@ -229,6 +225,15 @@ public:
         bool db_reconfigure(
                 counted_t<const ql::db_t> db,
                 const table_generate_config_params_t &params,
+                bool dry_run,
+                signal_t *interruptor,
+                ql::datum_t *result_out,
+                std::string *error_out);
+
+        bool table_emergency_repair(
+                counted_t<const ql::db_t> db,
+                const name_string_t &name,
+                bool allow_erase,
                 bool dry_run,
                 signal_t *interruptor,
                 ql::datum_t *result_out,

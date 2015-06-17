@@ -1,11 +1,13 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/administration/persist/table_interface.hpp"
 
+#include <algorithm>
 #include <array>
 
 #include "clustering/administration/issues/outdated_index.hpp"
 #include "clustering/administration/persist/branch_history_manager.hpp"
 #include "clustering/administration/persist/file_keys.hpp"
+#include "clustering/administration/persist/raft_storage_interface.hpp"
 #include "clustering/administration/perfmon_collection_repo.hpp"
 #include "logger.hpp"
 #include "serializer/log/log_serializer.hpp"
@@ -26,8 +28,13 @@ public:
             outdated_index_issue_tracker_t *outdated_index_issue_tracker,
             perfmon_collection_t *perfmon_collection_serializers,
             threadnum_t serializer_thread,
-            const std::vector<threadnum_t> &store_threads) :
-        branch_history_manager(std::move(bhm))
+            const std::vector<threadnum_t> &store_threads,
+            std::map<
+                namespace_id_t, std::pair<real_multistore_ptr_t *, auto_drainer_t::lock_t>
+            > *real_multistores) :
+        branch_history_manager(std::move(bhm)),
+        map_insertion_sentry(
+            real_multistores, table_id, std::make_pair(this, drainer.lock()))
     {
         // TODO: If the server gets killed when starting up, we can
         // get a database in an invalid startup state.
@@ -136,6 +143,10 @@ public:
         return branch_history_manager.get();
     }
 
+    serializer_t *get_serializer() {
+        return serializer.get();
+    }
+
     store_view_t *get_cpu_sharded_store(size_t i) {
         return stores[i].get();
     }
@@ -144,34 +155,94 @@ public:
         return stores[i].get();
     }
 
+    bool is_gc_active() {
+        if (serializer.has()) {
+            return serializer->is_gc_active();
+        } else {
+            return false;
+        }
+    }
+
 private:
     scoped_ptr_t<real_branch_history_manager_t> branch_history_manager;
     scoped_ptr_t<serializer_t> serializer;
     scoped_ptr_t<serializer_multiplexer_t> multiplexer;
     scoped_ptr_t<store_t> stores[CPU_SHARDING_FACTOR];
+
+    auto_drainer_t drainer;
+    map_insertion_sentry_t<
+        namespace_id_t, std::pair<real_multistore_ptr_t *, auto_drainer_t::lock_t>
+    > map_insertion_sentry;
+
+    DISABLE_COPYING(real_multistore_ptr_t);
 };
 
 void real_table_persistence_interface_t::read_all_metadata(
         const std::function<void(
             const namespace_id_t &table_id,
-            const table_persistent_state_t &state)> &callback,
+            const table_active_persistent_state_t &state,
+            raft_storage_interface_t<table_raft_state_t> *raft_storage)> &active_cb,
+        const std::function<void(
+            const namespace_id_t &table_id,
+            const table_inactive_persistent_state_t &state)> &inactive_cb,
         signal_t *interruptor) {
     metadata_file_t::read_txn_t read_txn(metadata_file, interruptor);
-    read_txn.read_many<table_persistent_state_t>(
-        mdprefix_table_persistent_state(),
-        [&](const std::string &uuid_str, const table_persistent_state_t &state) {
-            callback(str_to_uuid(uuid_str), state);
+
+    std::map<namespace_id_t, table_active_persistent_state_t> active_tables;
+    read_txn.read_many<table_active_persistent_state_t>(
+        mdprefix_table_active(),
+        [&](const std::string &uuid_str, const table_active_persistent_state_t &state) {
+            active_tables[str_to_uuid(uuid_str)] = state;
+        },
+        interruptor);
+    storage_interfaces.clear();
+    for (const auto &pair : active_tables) {
+        storage_interfaces[pair.first].init(new table_raft_storage_interface_t(
+            metadata_file, &read_txn, pair.first, interruptor));
+        active_cb(pair.first, pair.second, storage_interfaces[pair.first].get());
+    }
+
+    read_txn.read_many<table_inactive_persistent_state_t>(
+        mdprefix_table_inactive(),
+        [&](const std::string &uuid_str, const table_inactive_persistent_state_t &s) {
+            inactive_cb(str_to_uuid(uuid_str), s);
         },
         interruptor);
 }
 
-void real_table_persistence_interface_t::write_metadata(
+void real_table_persistence_interface_t::write_metadata_active(
         const namespace_id_t &table_id,
-        const table_persistent_state_t &state,
-        signal_t *interruptor) {
+        const table_active_persistent_state_t &state,
+        const raft_persistent_state_t<table_raft_state_t> &raft_state,
+        signal_t *interruptor,
+        raft_storage_interface_t<table_raft_state_t> **raft_storage_out) {
+    storage_interfaces.erase(table_id);
     metadata_file_t::write_txn_t write_txn(metadata_file, interruptor);
+    write_txn.erase(
+        mdprefix_table_inactive().suffix(uuid_to_str(table_id)),
+        interruptor);
+    table_raft_storage_interface_t::erase(&write_txn, table_id, interruptor);
     write_txn.write(
-        mdprefix_table_persistent_state().suffix(uuid_to_str(table_id)),
+        mdprefix_table_active().suffix(uuid_to_str(table_id)),
+        state,
+        interruptor);
+    storage_interfaces[table_id].init(new table_raft_storage_interface_t(
+        metadata_file, &write_txn, table_id, raft_state, interruptor));
+    *raft_storage_out = storage_interfaces[table_id].get();
+}
+
+void real_table_persistence_interface_t::write_metadata_inactive(
+        const namespace_id_t &table_id,
+        const table_inactive_persistent_state_t &state,
+        signal_t *interruptor) {
+    storage_interfaces.erase(table_id);
+    metadata_file_t::write_txn_t write_txn(metadata_file, interruptor);
+    write_txn.erase(
+        mdprefix_table_active().suffix(uuid_to_str(table_id)),
+        interruptor);
+    table_raft_storage_interface_t::erase(&write_txn, table_id, interruptor);
+    write_txn.write(
+        mdprefix_table_inactive().suffix(uuid_to_str(table_id)),
         state,
         interruptor);
 }
@@ -179,10 +250,15 @@ void real_table_persistence_interface_t::write_metadata(
 void real_table_persistence_interface_t::delete_metadata(
         const namespace_id_t &table_id,
         signal_t *interruptor) {
+    storage_interfaces.erase(table_id);
     metadata_file_t::write_txn_t write_txn(metadata_file, interruptor);
     write_txn.erase(
-        mdprefix_table_persistent_state().suffix(uuid_to_str(table_id)),
+        mdprefix_table_active().suffix(uuid_to_str(table_id)),
         interruptor);
+    write_txn.erase(
+        mdprefix_table_inactive().suffix(uuid_to_str(table_id)),
+        interruptor);
+    table_raft_storage_interface_t::erase(&write_txn, table_id, interruptor);
 }
 
 void real_table_persistence_interface_t::load_multistore(
@@ -210,7 +286,8 @@ void real_table_persistence_interface_t::load_multistore(
         outdated_index_issue_tracker,
         perfmon_collection_serializers,
         serializer_thread,
-        store_threads));
+        store_threads,
+        &real_multistores));
 }
 
 void real_table_persistence_interface_t::create_multistore(
@@ -248,4 +325,32 @@ threadnum_t real_table_persistence_interface_t::pick_thread() {
     return threadnum_t(thread_counter);
 }
 
+bool real_table_persistence_interface_t::is_gc_active() const {
+    for (int thread = 0; thread < get_num_db_threads(); ++thread) {
+        std::map<serializer_t *, auto_drainer_t::lock_t> serializers_copy;
 
+        // Note the copy in the loop below is intentional, one of the members is a
+        // `auto_drainer_t::lock_t` that we want to hold.
+        for (auto real_multistore : real_multistores) {
+            serializer_t *serializer =
+                real_multistore.second.first->get_serializer();
+            if (serializer == nullptr ||
+                    serializer->home_thread() != threadnum_t(thread)) {
+                continue;
+            }
+            serializers_copy.insert(
+                std::make_pair(serializer, real_multistore.second.second));
+        }
+
+        {
+            on_thread_t on_thread((threadnum_t(thread)));
+            for (auto const &serializer : serializers_copy) {
+                if (serializer.first->is_gc_active()) {
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
+}

@@ -72,10 +72,13 @@ public:
     }
 
     void reset() {
-        T *obj_ptr = get();
-        state = DESTRUCTING;
-        obj_ptr->~T();
-        state = EMPTY;
+        guarantee(state == INSTANTIATED || state == EMPTY);
+        if (state == INSTANTIATED) {
+            T *obj_ptr = get();
+            state = DESTRUCTING;
+            obj_ptr->~T();
+            state = EMPTY;
+        }
     }
 
     bool has() const {

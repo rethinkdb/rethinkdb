@@ -20,6 +20,7 @@
 #include "arch/timing.hpp"
 #include "arch/types.hpp"
 #include "concurrency/auto_drainer.hpp"
+#include "concurrency/exponential_backoff.hpp"
 #include "concurrency/wait_any.hpp"
 #include "containers/printf_buffer.hpp"
 #include "logger.hpp"
@@ -880,9 +881,7 @@ fd_t linux_nonthrowing_tcp_listener_t::wait_for_any_socket(const auto_drainer_t:
 }
 
 void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) {
-    static const int initial_backoff_delay_ms = 10;   // Milliseconds
-    static const int max_backoff_delay_ms = 160;
-    int backoff_delay_ms = initial_backoff_delay_ms;
+    exponential_backoff_t backoff(10, 160, 2.0, 0.5);
     fd_t active_fd = socks[0].get();
 
     while(!lock.get_drain_signal()->is_pulsed()) {
@@ -890,10 +889,7 @@ void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) 
 
         if (new_sock != INVALID_FD) {
             coro_t::spawn_now_dangerously(std::bind(&linux_nonthrowing_tcp_listener_t::handle, this, new_sock));
-
-            /* If we backed off before, un-backoff now that the problem seems to be
-            resolved. */
-            if (backoff_delay_ms > initial_backoff_delay_ms) backoff_delay_ms /= 2;
+            backoff.success();
 
             /* Assume that if there was a problem before, it's gone now because accept()
             is working. */
@@ -913,12 +909,12 @@ void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) 
                 log_next_error = false;
             }
 
-            /* Delay before retrying. We use pulse_after_time() instead of nap() so that we will
-            be interrupted immediately if something wants to shut us down. */
-            nap(backoff_delay_ms, lock.get_drain_signal());
-
-            /* Exponentially increase backoff time */
-            if (backoff_delay_ms < max_backoff_delay_ms) backoff_delay_ms *= 2;
+            /* Delay before retrying. */
+            try {
+                backoff.failure(lock.get_drain_signal());
+            } catch (const interrupted_exc_t &) {
+                return;
+            }
         }
     }
 }

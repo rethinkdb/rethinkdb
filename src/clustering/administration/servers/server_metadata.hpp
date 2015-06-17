@@ -15,53 +15,45 @@
 #include "rpc/serialize_macros.hpp"
 #include "utils.hpp"
 
-class server_semilattice_metadata_t {
+class server_config_t {
 public:
-    /* These fields should only be modified by the server that this metadata is
-    describing. */
-
-    versioned_t<name_string_t> name;
-    versioned_t<std::set<name_string_t> > tags;
-
-    /* An empty `boost::optional` means to pick a reasonable cache size automatically. */
-    versioned_t<boost::optional<uint64_t> > cache_size_bytes;
+    name_string_t name;
+    std::set<name_string_t> tags;
+    boost::optional<uint64_t> cache_size_bytes;
 };
 
-RDB_DECLARE_SERIALIZABLE(server_semilattice_metadata_t);
-RDB_DECLARE_SEMILATTICE_JOINABLE(server_semilattice_metadata_t);
-RDB_DECLARE_EQUALITY_COMPARABLE(server_semilattice_metadata_t);
+RDB_DECLARE_SERIALIZABLE(server_config_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(server_config_t);
 
-class servers_semilattice_metadata_t {
+typedef uint64_t server_config_version_t;
+
+class server_config_versioned_t {
 public:
-    typedef std::map<server_id_t, deletable_t<server_semilattice_metadata_t> > server_map_t;
-    server_map_t servers;
+    server_config_t config;
+    server_config_version_t version;
 };
 
-RDB_DECLARE_SERIALIZABLE(servers_semilattice_metadata_t);
-RDB_DECLARE_SEMILATTICE_JOINABLE(servers_semilattice_metadata_t);
-RDB_DECLARE_EQUALITY_COMPARABLE(servers_semilattice_metadata_t);
+RDB_DECLARE_SERIALIZABLE(server_config_versioned_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(server_config_versioned_t);
+
+class server_name_map_t {
+public:
+    name_string_t get(const server_id_t &sid) const;
+    std::map<server_id_t, std::pair<server_config_version_t, name_string_t> > names;
+};
+
+RDB_DECLARE_SERIALIZABLE(server_name_map_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(server_name_map_t);
 
 class server_config_business_card_t {
 public:
-    /* In all cases, an empty reply string means success */
-
+    /* On success, the reply will be an empty string and the version of the new change.
+    On failure, the reply will be zero and an error string. */
     typedef mailbox_t< void(
-            name_string_t,
-            mailbox_t<void(std::string)>::address_t
-        ) > change_name_mailbox_t;
-    change_name_mailbox_t::address_t change_name_addr;
-
-    typedef mailbox_t< void(
-            std::set<name_string_t>,
-            mailbox_t<void(std::string)>::address_t
-        ) > change_tags_mailbox_t;
-    change_tags_mailbox_t::address_t change_tags_addr;
-
-    typedef mailbox_t< void(
-            boost::optional<uint64_t>,   /* in bytes */
-            mailbox_t<void(std::string)>::address_t
-        ) > change_cache_size_mailbox_t;
-    change_cache_size_mailbox_t::address_t change_cache_size_addr;
+            server_config_t,
+            mailbox_t<void(server_config_version_t, std::string)>::address_t
+        ) > set_config_mailbox_t;
+    set_config_mailbox_t::address_t set_config_addr;
 };
 
 RDB_DECLARE_SERIALIZABLE(server_config_business_card_t);

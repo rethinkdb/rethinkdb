@@ -8,10 +8,10 @@
 table_manager_t::table_manager_t(
         const server_id_t &_server_id,
         mailbox_manager_t *_mailbox_manager,
+        server_config_client_t *_server_config_client,
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
             *_table_manager_directory,
         backfill_throttler_t *_backfill_throttler,
-        table_persistence_interface_t *_persistence_interface,
         watchable_map_t<std::pair<server_id_t, server_id_t>, empty_value_t>
             *_connections_map,
         const base_path_t &_base_path,
@@ -19,19 +19,21 @@ table_manager_t::table_manager_t(
         const namespace_id_t &_table_id,
         const multi_table_manager_bcard_t::timestamp_t::epoch_t &_epoch,
         const raft_member_id_t &_raft_member_id,
-        const raft_persistent_state_t<table_raft_state_t> &initial_state,
+        raft_storage_interface_t<table_raft_state_t> *raft_storage,
         multistore_ptr_t *multistore_ptr,
         perfmon_collection_t *perfmon_collection_namespace) :
     table_id(_table_id),
     epoch(_epoch),
     raft_member_id(_raft_member_id),
     mailbox_manager(_mailbox_manager),
-    persistence_interface(_persistence_interface),
+    server_config_client(_server_config_client),
     connections_map(_connections_map),
     perfmon_membership(perfmon_collection_namespace, &perfmon_collection, "regions"),
-    raft(raft_member_id, _mailbox_manager, raft_directory.get_values(), this,
-        initial_state, "Table " + uuid_to_str(table_id)),
+    raft(raft_member_id, _mailbox_manager, raft_directory.get_values(), raft_storage,
+        "Table " + uuid_to_str(table_id)),
     table_manager_bcard(table_manager_bcard_t()),   /* we'll set this later */
+    raft_bcard_copier(&table_manager_bcard_t::raft_business_card,
+        raft.get_business_card(), &table_manager_bcard),
     execution_bcard_read_manager(_mailbox_manager),
     contract_executor(
         _server_id, mailbox_manager,
@@ -59,11 +61,11 @@ table_manager_t::table_manager_t(
             })),
     get_status_mailbox(
         mailbox_manager,
-        std::bind(&table_manager_t::on_get_status, this, ph::_1, ph::_2)),
+        std::bind(&table_manager_t::on_get_status, this, ph::_1, ph::_2, ph::_3)),
     table_directory_subs(
         _table_manager_directory,
         std::bind(&table_manager_t::on_table_directory_change, this, ph::_1, ph::_2),
-        true),
+        initial_call_t::YES),
     raft_readiness_subs(std::bind(&table_manager_t::on_raft_readiness_change, this))
 {
     guarantee(!raft_member_id.is_nil());
@@ -78,7 +80,7 @@ table_manager_t::table_manager_t(
                 bcard.timestamp.log_index = sc->log_index;
             });
         bcard.raft_member_id = raft_member_id;
-        bcard.raft_business_card = raft.get_business_card();
+        bcard.raft_business_card = raft.get_business_card()->get();
         bcard.execution_bcard_minidir_bcard = execution_bcard_read_manager.get_bcard();
         bcard.get_status_mailbox = get_status_mailbox.get_address();
         bcard.server_id = _server_id;
@@ -102,7 +104,8 @@ table_manager_t::leader_t::leader_t(table_manager_t *_parent) :
     parent(_parent),
     contract_ack_read_manager(parent->mailbox_manager),
     coordinator(parent->get_raft(), contract_ack_read_manager.get_values(),
-        parent->connections_map, "Table " + uuid_to_str(parent->table_id)),
+        parent->connections_map),
+    server_name_cache_updater(parent->get_raft(), parent->server_config_client),
     set_config_mailbox(parent->mailbox_manager,
         std::bind(&leader_t::on_set_config, this, ph::_1, ph::_2, ph::_3))
 {
@@ -129,6 +132,8 @@ void table_manager_t::leader_t::on_set_config(
         const mailbox_t<void(
             boost::optional<multi_table_manager_bcard_t::timestamp_t>
             )>::address_t &reply_addr) {
+    logINF("Table %s: Configuration is changing.",
+        uuid_to_str(parent->table_id).c_str());
     boost::optional<raft_log_index_t> result = coordinator.change_config(
         [&](table_config_and_shards_t *config) { *config = new_config; },
         interruptor);
@@ -144,29 +149,23 @@ void table_manager_t::leader_t::on_set_config(
     }
 }
 
-void table_manager_t::write_persistent_state(
-        const raft_persistent_state_t<table_raft_state_t> &inner_ps,
-        signal_t *interruptor) {
-    table_persistent_state_t::active_t active;
-    active.epoch = epoch;
-    active.raft_member_id = raft_member_id;
-    active.raft_state = inner_ps;
-    table_persistent_state_t outer_ps;
-    outer_ps.value = active;
-    persistence_interface->write_metadata(table_id, outer_ps, interruptor);
-}
-
 void table_manager_t::on_get_status(
         signal_t *interruptor,
+        const get_status_selection_t &status_selection,
         const mailbox_t<void(
             std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >,
-            contracts_and_contract_acks_t
+            boost::optional<table_server_status_t>
             )>::address_t &reply_addr) {
-    std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > sindex_status =
-        sindex_manager.get_status(interruptor);
 
-    contracts_and_contract_acks_t contracts_and_contract_acks;
-    {
+    std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > sindex_status;
+    if (status_selection.has_sindex_status()) {
+        sindex_status = sindex_manager.get_status(interruptor);
+    }
+
+    boost::optional<table_server_status_t> server_status;
+    if (status_selection.has_server_status()) {
+        server_status = table_server_status_t();
+
         /* Note that despite the `ASSERT_NO_CORO_WAITING` there may be contract
            acknowledgements in `contract_acks` that refer to a contract that is not in
            `contracts`.
@@ -176,18 +175,19 @@ void table_manager_t::on_get_status(
            only then removes the acknowledgement from the `ack_map`. */
         ASSERT_NO_CORO_WAITING;
 
-        contracts_and_contract_acks.timestamp.epoch = epoch;
-        contracts_and_contract_acks.timestamp.log_index =
-            raft.get_raft()->get_committed_state()->get().log_index;
-        contracts_and_contract_acks.contracts =
-            raft.get_raft()->get_committed_state()->get().state.contracts;
+        server_status->timestamp.epoch = epoch;
+        raft.get_raft()->get_committed_state()->apply_read(
+        [&](const raft_member_t<table_raft_state_t>::state_and_config_t *s) {
+            server_status->timestamp.log_index = s->log_index;
+            server_status->state = s->state;
+        });
         for (const auto &contract_ack : contract_executor.get_acks()->get_all()) {
-            contracts_and_contract_acks.contract_acks.insert(
+            server_status->contract_acks.insert(
                 std::make_pair(contract_ack.first.second, contract_ack.second));
         }
     }
 
-    send(mailbox_manager, reply_addr, sindex_status, contracts_and_contract_acks);
+    send(mailbox_manager, reply_addr, sindex_status, server_status);
 }
 
 void table_manager_t::on_table_directory_change(

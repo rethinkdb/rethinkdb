@@ -22,18 +22,19 @@ bool sindex_config_t::operator==(const sindex_config_t &o) const {
     return stream1.vector() == stream2.vector();
 }
 
-RDB_IMPL_SERIALIZABLE_4_SINCE_v1_16(sindex_config_t,
+RDB_IMPL_SERIALIZABLE_4_SINCE_v2_1(sindex_config_t,
     func, func_version, multi, geo);
 
 void sindex_status_t::accum(const sindex_status_t &other) {
     blocks_processed += other.blocks_processed;
     blocks_total += other.blocks_total;
     ready &= other.ready;
+    start_time = std::min(start_time, other.start_time);
     rassert(outdated == other.outdated);
 }
 
-RDB_IMPL_SERIALIZABLE_4_SINCE_v1_16(sindex_status_t,
-    blocks_processed, blocks_total, ready, outdated);
+RDB_IMPL_SERIALIZABLE_5_SINCE_v2_1(sindex_status_t,
+    blocks_processed, blocks_total, ready, outdated, start_time);
 
 const char *rql_perfmon_name = "query_engine";
 

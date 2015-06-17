@@ -16,24 +16,37 @@
 #include "concurrency/signal.hpp"
 #include "concurrency/watchable.hpp"
 #include "concurrency/watchable_map.hpp"
+#include "concurrency/watchdog_timer.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/stl_types.hpp"
+#include "containers/empty_value.hpp"
 #include "containers/uuid.hpp"
 #include "time.hpp"
 
-/* This file implements the Raft consensus algorithm, as described in the paper "In
-Search of an Understandable Consensus Algorithm (Extended Version)" (2014) by Diego
-Ongaro and John Ousterhout. Because of the complexity and subtlety of the Raft algorithm,
-we follow the paper closely and refer back to it regularly. You are advised to have a
-copy of the paper on hand when reading or modifying this file.
+/* This file and the corresponding `raft_core.tcc` implement the Raft consensus
+algorithm, as described in the paper "In Search of an Understandable Consensus Algorithm
+(Extended Version)" (2014) by Diego Ongaro and John Ousterhout. Because of the complexity
+and subtlety of the Raft algorithm, we follow the paper closely and refer back to it
+regularly. You are advised to have a copy of the paper on hand when reading or modifying
+this file. The comments also occasionally refer to Diego Ongaro's dissertation,
+"Consensus: Bridging Theory and Practice" (2014), as the dissertation addresses a few
+subtle points that the paper does not.
 
-This file only contains the basic Raft algorithm itself; it doesn't contain any
-networking or storage logic. Instead, it uses abstract interfaces to send and receive
-network messages and write data to persistent storage. This both keeps this file as
-as simple as possible and makes it easy to test the Raft algorithm using mocked-up
+These files only contains the basic Raft algorithm itself; they don't contain any
+networking or storage logic. Instead, the algorithm uses abstract interfaces to send and
+receive network messages and write data to persistent storage. This both keeps these
+files as simple as possible and makes it easy to test the Raft algorithm using mocked-up
 network and storage systems.
 
-We support both log compaction and configuration changes.
+We support both log compaction and configuration changes. Configuration changes use the
+joint-configuration mechanism described in the original paper, rather than the
+one-server-at-a-time mechanism described in the dissertation.
+
+This implementation deviates significantly from the Raft paper in that we don't actually
+send a continuous stream of heartbeats from the leader to the followers. Instead, we send
+a "virtual heartbeat stream"; we send a message when a server becomes leader and another
+when it ceases to be leader, and we rely on the underlying networking layer to detect if
+the connection has failed.
 
 The classes in this file are templatized on a types called `state_t`, which represents
 the state machine that the Raft cluster manages. Operations on the state machine are
@@ -68,6 +81,7 @@ public:
     uuid_u uuid;
 };
 RDB_DECLARE_SERIALIZABLE(raft_member_id_t);
+void debug_print(printf_buffer_t *buf, const raft_member_id_t &member_id);
 
 /* `raft_config_t` describes the set of members that are involved in the Raft cluster. */
 class raft_config_t {
@@ -253,12 +267,16 @@ public:
         entries.erase(entries.begin() + (index - prev_index - 1), entries.end());
     }
 
-    /* Deletes the log entry at the given index and all entries before it. */
-    void delete_entries_to(raft_log_index_t index) {
+    /* Deletes the log entry at the given index and all entries before it. Note that
+    `index` may be after the last log entry. */
+    void delete_entries_to(raft_log_index_t index, raft_term_t index_term) {
         guarantee(index > prev_index, "the log doesn't go back this far");
-        guarantee(index <= get_latest_index(), "the log doesn't go forward this far");
-        raft_term_t index_term = get_entry_term(index);
-        entries.erase(entries.begin(), entries.begin() + (index - prev_index));
+        if (index <= get_latest_index()) {
+            guarantee(index_term == get_entry_term(index));
+            entries.erase(entries.begin(), entries.begin() + (index - prev_index));
+        } else {
+            entries.clear();
+        }
         prev_index = index;
         prev_term = index_term;
     }
@@ -284,8 +302,9 @@ public:
         const state_t &initial_state,
         const raft_config_t &initial_config);
 
-private:
-    template<class state2_t> friend class raft_member_t;
+    /* The remaining members are public so that `raft_member_t` and implementations of
+    `raft_storage_interface_t` can access them. In general nothing else besides those two
+    should have to access these. */
 
     /* `current_term` and `voted_for` correspond to the variables with the same names in
     Figure 2 of the Raft paper. */
@@ -314,17 +333,41 @@ data on disk. */
 template<class state_t>
 class raft_storage_interface_t {
 public:
-    /* `write_persistent_state()` writes the state of the Raft member to stable storage.
-    It does not return until the state is safely stored. The values stored with
-    `write_state()` will be passed to the `raft_member_t` constructor when the Raft
-    member is restarted. */
-    virtual void write_persistent_state(
-        const raft_persistent_state_t<state_t> &persistent_state,
-        signal_t *interruptor) = 0;
+    /* `get()` returns a stable pointer to the current state. The `raft_member_t` will
+    take this pointer once and then hold it. It's a const pointer; the `raft_member_t`
+    must use the other methods in order to change the state. */
+    virtual const raft_persistent_state_t<state_t> *get() = 0;
 
-    /* If writing the state becomes a performance bottleneck, we could implement a
-    variant that only rewrites part of the state. In particular, we often need to append
-    a few entries to the log but don't need to make any other changes. */
+    /* These methods perform various combinations of changes on the stored state. The
+    changes will always be visible in the pointer returned by `get()` and also stored
+    safely on disk by the time the method call returns. The changes will always be
+    atomic. */
+
+    /* Set `current_term` and `voted_for`, leaving everything else alone. */
+    virtual void write_current_term_and_voted_for(
+        raft_term_t current_term,
+        raft_member_id_t voted_for) = 0;
+
+    /* Delete any existing log entries in the stored log after `first_replaced`, and then
+    copy any log entries in `source` after `first_replaced` into the stored log. */
+    virtual void write_log_replace_tail(
+        const raft_log_t<state_t> &source,
+        raft_log_index_t first_replaced) = 0;
+
+    /* Append a single entry to the log. */
+    virtual void write_log_append_one(
+        const raft_log_entry_t<state_t> &entry) = 0;
+
+    /* Overwrite `snapshot_state` and `snapshot_config`. If `erase_log` is `true`, it
+    erase the entire log; otherwise, only erase log entries with indexes less than or
+    equal to `log_prev_index`. Set `log.prev_index` and `log.prev_term` to
+    `log_prev_index` and `log_prev_term`. */
+    virtual void write_snapshot(
+        const state_t &snapshot_state,
+        const raft_complex_config_t &snapshot_config,
+        bool clear_log,
+        raft_log_index_t log_prev_index,
+        raft_term_t log_prev_term) = 0;
 
 protected:
     virtual ~raft_storage_interface_t() { }
@@ -451,10 +494,20 @@ public:
         signal_t *interruptor,
         raft_rpc_reply_t *reply_out) = 0;
 
-    /* `get_connected_members()` returns the set of all Raft members for which an RPC is
-    likely to succeed. The values in the map should always be `nullptr`; the only reason
-    it's a map at all is that we don't have a `watchable_set_t` type. */
-    virtual watchable_map_t<raft_member_id_t, empty_value_t>
+    /* `send_virtual_heartbeats()` sends a virtual continuous stream of heartbeat
+    messages to all other members. The stream is "virtual" in that it actually consists
+    of a single start message and a single stop message rather than repeated actual
+    messages. The other members can receive it by looking in `get_connected_members()`.
+    Calling `send_virtual_heartbeats()` with an empty `boost::optional` stops the stream.
+    */
+    virtual void send_virtual_heartbeats(
+        const boost::optional<raft_term_t> &term) = 0;
+
+    /* `get_connected_members()` has an entry for every Raft member that we think we're
+    currently connected to. If the member is sending virtual heartbeats, the values will
+    be the term it is sending heartbeats for; otherwise, the values will be empty
+    `boost::optional`s. */
+    virtual watchable_map_t<raft_member_id_t, boost::optional<raft_term_t> >
         *get_connected_members() = 0;
 
 protected:
@@ -469,20 +522,14 @@ class raft_member_t : public home_thread_mixin_debug_only_t
 public:
     raft_member_t(
         const raft_member_id_t &this_member_id,
+        /* The state in `storage` must already be initialized */
         raft_storage_interface_t<state_t> *storage,
         raft_network_interface_t<state_t> *network,
-        const raft_persistent_state_t<state_t> &persistent_state,
         /* We'll print log messages of the form `<log_prefix>: <message>`. If
         `log_prefix` is empty, we won't print any messages. */
         const std::string &log_prefix);
 
     ~raft_member_t();
-
-    /* Note that if a method on `raft_member_t` is interrupted, the `raft_member_t` will
-    be left in an undefined internal state. Therefore, the destructor should be called
-    after the interruptor has been pulsed. (However, even though the internal state
-    is undefined, the interrupted method call will not make invalid RPC calls or write
-    invalid data to persistent storage.) */
 
     /* `state_and_config_t` describes the Raft cluster's current state, configuration,
     and log index all in the same struct. The reason for putting them in the same struct
@@ -585,8 +632,7 @@ public:
     `propose_config_change()` tries to change the cluster's configuration. 
 
     `propose_[config_]change()` will block while the change is being initiated; this
-    should be a relatively quick process. If you pulse the interruptor, the
-    `raft_member_t` may be left in an undefined internal state.
+    should be a relatively quick process.
 
     If the change is successfully initiated, `propose_[config_]change()` will return a
     `change_token_t` that you can use to monitor the progress of the change. If it is not
@@ -594,26 +640,25 @@ public:
     an explanation of when and why it will return `nullptr`. */
     scoped_ptr_t<change_token_t> propose_change(
         change_lock_t *change_lock,
-        const typename state_t::change_t &change,
-        signal_t *interruptor);
+        const typename state_t::change_t &change);
     scoped_ptr_t<change_token_t> propose_config_change(
         change_lock_t *change_lock,
-        const raft_config_t &new_config,
-        signal_t *interruptor);
+        const raft_config_t &new_config);
 
     /* When a Raft member calls `send_rpc()` on its `raft_network_interface_t`, the RPC
     is sent across the network and delivered by calling `on_rpc()` at its destination. */
     void on_rpc(
         const raft_rpc_request_t<state_t> &request,
-        signal_t *interruptor,
         raft_rpc_reply_t *reply_out);
 
+#ifndef NDEBUG
     /* `check_invariants()` asserts that the given collection of Raft cluster members are
     in a valid, consistent state. This may block, because it needs to acquire each
     member's mutex, but it will not modify anything. Since this requires direct access to
     each member of the Raft cluster, it's only useful for testing. */
     static void check_invariants(
         const std::set<raft_member_t<state_t> *> &members);
+#endif
 
 private:
     enum class mode_t {
@@ -629,15 +674,9 @@ private:
     static const int32_t election_timeout_min_ms = 1000,
                          election_timeout_max_ms = 2000;
 
-    /* TODO: We should probably deviate from the Raft paper by using the network layer's
-    disconnect detection instead of timeouts to detect a dead leader. This will make
-    elections much faster and also make us less sensitive to timing. However, this will
-    involve adding a new RPC, for a master to inform followers that it is stepping down.
-    */
-
-    /* This is the amount of time the server waits between sending heartbeats. It should
-    be much shorter than the election timeout. */
-    static const int32_t heartbeat_interval_ms = 500;
+    /* When the number of committed entries in the log exceeds this number, we will take
+    a snapshot to compress them. */
+    static const size_t snapshot_threshold = 20;
 
     /* Note: Methods prefixed with `follower_`, `candidate_`, or `leader_` are methods
     that are only used when in that state. This convention will hopefully make the code
@@ -647,28 +686,42 @@ private:
     received. */
     void on_request_vote_rpc(
         const typename raft_rpc_request_t<state_t>::request_vote_t &rpc,
-        signal_t *interruptor,
         raft_rpc_reply_t::request_vote_t *reply_out);
     void on_install_snapshot_rpc(
         const typename raft_rpc_request_t<state_t>::install_snapshot_t &rpc,
-        signal_t *interruptor,
         raft_rpc_reply_t::install_snapshot_t *reply_out);
     void on_append_entries_rpc(
         const typename raft_rpc_request_t<state_t>::append_entries_t &rpc,
-        signal_t *interruptor,
         raft_rpc_reply_t::append_entries_t *reply_out);
 
+#ifndef NDEBUG
     /* Asserts that all of the invariants that can be checked locally hold true. This
     doesn't block or modify anything. It should be safe to call it at any time (except
     when in between modifying two variables that should remain consistent with each
     other, of course). In general we call it whenever we acquire or release the mutex,
     because we know that the variables should be consistent at those times. */
     void check_invariants(const new_mutex_acq_t *mutex_acq);
+#endif
 
-    /* `on_watchdog_timer()` is called periodically. If we're a follower and we haven't
-    heard from a leader within the election timeout, it starts a new election by spawning
-    `candidate_and_leader_coro()`. */
-    void on_watchdog_timer();
+    /* `on_connected_members_change()` is called whenever the contents of
+    `network->get_connected_members()` changes. If we're a leader, we use it to run
+    `update_readiness_for_change()`. We also use it to check for higher terms in virtual
+    heartbeats. */
+    void on_connected_members_change(
+        const raft_member_id_t &member_id,
+        const boost::optional<raft_term_t> *value);
+
+    /* `on_rpc_from_leader()` is a helper function that we call in response to
+    AppendEntries RPCs, InstallSnapshot RPCs, and virtual heartbeats. It returns `true`
+    if the RPC is valid, and `false` if we should reject the RPC. */
+    bool on_rpc_from_leader(
+        const raft_member_id_t &request_leader_id,
+        raft_term_t request_term,
+        const new_mutex_acq_t *mutex_acq);
+
+    /* `on_watchdog()` is called if we haven't heard from the leader within an election
+    timeout. it starts a new election by spawning `candidate_and_leader_coro()`. */
+    void on_watchdog();
 
     /* `apply_log_entries()` updates `state_and_config` with the entries from `log` with
     indexes `first <= index <= last`. */
@@ -678,26 +731,24 @@ private:
         raft_log_index_t first,
         raft_log_index_t last);
 
-    /* `update_term()` sets the term to `new_term` and resets all per-term variables. It
-    assumes that its caller will flush persistent state to stable storage eventually
-    after it returns. */
+    /* `update_term()` sets the term to `new_term` and resets all per-term variables.
+    Since we often want to set `ps().voted_for` to something immediately after starting a
+    new term, it allows setting that to avoid an extra storage write operation. */
     void update_term(raft_term_t new_term,
+                     raft_member_id_t new_voted_for,
                      const new_mutex_acq_t *mutex_acq);
 
     /* When we change the commit index we have to also apply changes to the state
-    machine. `update_commit_index()` handles that automatically. It assumes that its
-    caller will flush persistent state to stable storage eventually after it returns. */
+    machine. `update_commit_index()` handles that automatically. */
     void update_commit_index(raft_log_index_t new_commit_index,
                              const new_mutex_acq_t *mutex_acq);
 
     /* When we change `match_index` we might have to update `commit_index` as well.
-    `leader_update_match_index()` handles that automatically. It may flush persistent
-    state to stable storage before it returns. */
+    `leader_update_match_index()` handles that automatically. */
     void leader_update_match_index(
         raft_member_id_t key,
         raft_log_index_t new_value,
-        const new_mutex_acq_t *mutex_acq,
-        signal_t *interruptor);
+        const new_mutex_acq_t *mutex_acq);
 
     /* `update_readiness_for_change()` should be called whenever any of the variables
     that are used to compute `readiness_for_change` or `readiness_for_config_change` are
@@ -708,10 +759,6 @@ private:
     state to `follower` state. It kills `candidate_and_leader_coro()` and blocks until it
     exits. */
     void candidate_or_leader_become_follower(const new_mutex_acq_t *mutex_acq);
-
-    /* `follower_become_candidate()` moves us from the `follower` state to the
-    `candidate` state. It spawns `candidate_and_leader_coro()`.*/
-    void follower_become_candidate(const new_mutex_acq_t *mutex_acq);
 
     /* `candidate_and_leader_coro()` contains most of the candidate- and leader-specific
     logic. It runs in a separate coroutine for as long as we are a candidate or leader.
@@ -765,8 +812,7 @@ private:
     the second phase by committing the new configuration. It also checks if we have
     completed the second phase and if so, it makes us step down. */
     void leader_continue_reconfiguration(
-        const new_mutex_acq_t *mutex_acq,
-        signal_t *interruptor);
+        const new_mutex_acq_t *mutex_acq);
 
     /* `candidate_or_leader_note_term()` is a helper function for
     `candidate_run_election()` and `leader_send_updates()`. If the given term is greater
@@ -778,11 +824,16 @@ private:
 
     /* `leader_append_log_entry()` is a helper for `propose_change_if_leader()` and
     `propose_config_change_if_leader()`. It adds an entry to the log but doesn't wait for
-    the entry to be committed. It flushes persistent state to stable storage. */
+    the entry to be committed. */
     void leader_append_log_entry(
         const raft_log_entry_t<state_t> &log_entry,
-        const new_mutex_acq_t *mutex_acq,
-        signal_t *interruptor);
+        const new_mutex_acq_t *mutex_acq);
+
+    /* This is because we end up needing to access the persistent state very frequently,
+    and `storage->get()` is too verbose. */
+    raft_persistent_state_t<state_t> const &ps() {
+        return *storage->get();
+    }
 
     /* The member ID of the member of the Raft cluster represented by this
     `raft_member_t`. */
@@ -792,11 +843,6 @@ private:
     raft_network_interface_t<state_t> *const network;
 
     const std::string log_prefix;
-
-    /* This stores all of the state variables of the Raft member that need to be written
-    to stable storage when they change. We end up writing `ps.*` a lot, which is why the
-    name is so abbreviated. */
-    raft_persistent_state_t<state_t> ps;
 
     /* `committed_state` describes the state after all committed log entries have been
     applied. The `state` field of `committed_state` is equivalent to the "state machine"
@@ -823,12 +869,14 @@ private:
     to redirect clients as described in Figure 2 and Section 8. */
     raft_member_id_t current_term_leader_id;
 
-    /* `last_heard_from_candidate` and `last_heard_from_leader` are the times we last
-    received a message from a candidate or leader. When `on_watchdog_timer()` is deciding
-    whether or not to start a new election, it uses the later of the two. The reason they
-    are separate is because `on_request_vote_rpc()` should only disregard RPCs if it
-    hasn't heard from a leader recently, even if it has heard from a candidate. */
-    microtime_t last_heard_from_candidate, last_heard_from_leader;
+    /* If any member is sending us valid virtual heartbeats for `ps.current_term`, then
+    `virtual_heartbeat_sender` will be set to that member; otherwise it will be nil. */
+    raft_member_id_t virtual_heartbeat_sender;
+
+    /* If `virtual_heartbeat_sender` is non-empty, we'll set
+    `virtual_heartbeat_watchdog_blockers` to make sure that neither `watchdog` nor
+    `watchdog_leader` gets triggered while we're receiving virtual heartbeats. */
+    scoped_ptr_t<watchdog_timer_t::blocker_t> virtual_heartbeat_watchdog_blockers[2];
 
     /* `match_indexes` corresponds to the `matchIndex` array described in Figure 2 of the
     Raft paper. Note that it is only used if we are the leader; if we are not the leader,
@@ -858,9 +906,9 @@ private:
     new_mutex_t mutex;
 
     /* This mutex assertion controls writes to the Raft log and associated state.
-    Specifically, anything writing to `ps.log`, `ps.snapshot`, `committed_state`,
-    `committed_config`, `commit_index`, or `last_applied` should hold this mutex
-    assertion.
+    Specifically, anything writing to `ps().log`, `ps().snapshot_*`, `committed_state`,
+    or `latest_state` should hold this mutex assertion.
+
     If we are follower, `on_append_entries_rpc()` and `on_install_snapshot_rpc()` acquire
     this temporarily; if we are candidate or leader, `candidate_and_leader_coro()` holds
     this at all times. */
@@ -877,14 +925,17 @@ private:
     that the destructor can destroy it early. */
     scoped_ptr_t<auto_drainer_t> drainer;
 
-    /* This periodically calls `on_watchdog_timer()` to check if we need to start a new
-    election. It's in a `scoped_ptr_t` so that the destructor can destroy it early. */
-    scoped_ptr_t<repeating_timer_t> watchdog_timer;
+    /* Whenever we get a valid RPC from a candidate, we notify `watchdog`. Whenever we
+    get a valid RPC from a leader, we notify both watchdogs. If `watchdog` is triggered,
+    we start a new election. The purpose of `watchdog_leader_only` is that to keep track
+    of whether we have seen a valid leader recently, so that we know whether or not to
+    accept RequestVote RPCs. */
+    scoped_ptr_t<watchdog_timer_t> watchdog, watchdog_leader_only;
 
     /* This calls `update_readiness_for_change()` whenever a peer connects or
     disconnects. */
-    scoped_ptr_t<watchable_map_t<raft_member_id_t, empty_value_t>::all_subs_t>
-        connected_members_subs;
+    scoped_ptr_t<watchable_map_t<raft_member_id_t, boost::optional<raft_term_t> >
+        ::all_subs_t> connected_members_subs;
 };
 
 #endif /* CLUSTERING_GENERIC_RAFT_CORE_HPP_ */

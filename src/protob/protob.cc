@@ -1,14 +1,24 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "protob/protob.hpp"
 
-#include <google/protobuf/stubs/common.h>
+// We need to include `openssl/evp.h` first, since it declares a function with the
+// name `final`.
+// Because of missing support for the `final` annotation in older GCC versions,
+// we redefine final to the empty string in `errors.hpp`. So we must make
+// sure that we haven't included `errors.hpp` by the time we include `evp.h`.
+#include <openssl/evp.h> // NOLINT(build/include_order)
 
-#include <set>
-#include <string>
-#include <limits>
+#include "protob/protob.hpp" // NOLINT(build/include_order)
 
-#include "errors.hpp"
-#include <boost/lexical_cast.hpp>
+#include <google/protobuf/stubs/common.h> // NOLINT(build/include_order)
+
+#include <array> // NOLINT(build/include_order)
+#include <random> // NOLINT(build/include_order)
+#include <set> // NOLINT(build/include_order)
+#include <string> // NOLINT(build/include_order)
+#include <limits> // NOLINT(build/include_order)
+
+#include "errors.hpp" // NOLINT(build/include_order)
+#include <boost/lexical_cast.hpp> // NOLINT(build/include_order)
 
 #include "arch/arch.hpp"
 #include "arch/io/network.hpp"
@@ -21,9 +31,9 @@
 #include "protob/json_shim.hpp"
 #include "rapidjson/stringbuffer.h"
 #include "rdb_protocol/backtrace.hpp"
+#include "rdb_protocol/base64.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rpc/semilattice/view.hpp"
-#include "utils.hpp"
 
 #include "rdb_protocol/ql2.pb.h"
 #include "rdb_protocol/query_server.hpp"
@@ -58,9 +68,28 @@ time_t http_conn_cache_t::http_conn_t::last_accessed_time() const {
 }
 
 http_conn_cache_t::http_conn_cache_t(uint32_t _http_timeout_sec) :
-    next_id(0),
     http_timeout_timer(TIMER_RESOLUTION_MS, this),
-    http_timeout_sec(_http_timeout_sec) { }
+    http_timeout_sec(_http_timeout_sec) {
+
+    // Seed the random number generator from a true random source.
+    // Note1: On some platforms std::random_device might not actually be
+    //   non-deterministic, and it seems that there is no reliable way to tell.
+    //   On major platforms it should be fine.
+    // Note2: std::random_device() might block for a while. Since we only create
+    //   http_conn_cache_t once at startup, that should be fine. But it's something
+    //   to keep in mind.
+
+    // Seed with an amount of bits equal to the state size of key_generator.
+    static_assert(std::mt19937::word_size == 32,
+                  "std::mt19937's word size doesn't match what we expected.");
+    std::array<uint32_t, std::mt19937::state_size> seed_data;
+    std::random_device rd;
+    for (size_t i = 0; i < seed_data.size(); ++i) {
+        seed_data[i] = rd();
+    }
+    std::seed_seq seed_seq(seed_data.begin(), seed_data.end());
+    key_generator.seed(seed_seq);
+}
 
 http_conn_cache_t::~http_conn_cache_t() {
     for (auto &pair : cache) pair.second->pulse();
@@ -75,23 +104,36 @@ bool http_conn_cache_t::is_expired(const http_conn_t &conn) const {
     return difftime(time(0), conn.last_accessed_time()) > http_timeout_sec;
 }
 
-counted_t<http_conn_cache_t::http_conn_t> http_conn_cache_t::find(int32_t key) {
+counted_t<http_conn_cache_t::http_conn_t> http_conn_cache_t::find(
+        const conn_key_t &key) {
     assert_thread();
     auto conn_it = cache.find(key);
     if (conn_it == cache.end()) return counted_t<http_conn_t>();
     return conn_it->second;
 }
 
-int32_t http_conn_cache_t::create(rdb_context_t *rdb_ctx,
-                                  ip_and_port_t client_addr_port) {
+http_conn_cache_t::conn_key_t http_conn_cache_t::create(
+        rdb_context_t *rdb_ctx,
+        ip_and_port_t client_addr_port) {
     assert_thread();
-    int32_t key = next_id++;
+    // Generate a 128 bit random key to avoid XSS attacks where someone
+    // could run queries by guessing the connection ID.
+    // The same origin policy of browsers will stop attackers from seeing
+    // the response of the connection setup, so the attacker will have no chance
+    // of getting a valid connection ID.
+    uint32_t key_buf[4];
+    for(size_t i = 0; i < 4; ++i) {
+        key_buf[i] = key_generator();
+    }
+    conn_key_t key = encode_base64(reinterpret_cast<const char *>(key_buf),
+                                   sizeof(key_buf));
+
     cache.insert(
         std::make_pair(key, make_counted<http_conn_t>(rdb_ctx, client_addr_port)));
     return key;
 }
 
-void http_conn_cache_t::erase(int32_t key) {
+void http_conn_cache_t::erase(const conn_key_t &key) {
     assert_thread();
     auto it = cache.find(key);
     if (it != cache.end()) {
@@ -121,6 +163,19 @@ void http_conn_cache_t::on_ring() {
             guarantee(!conn);
         }
     }
+}
+
+size_t http_conn_cache_t::sha_hasher_t::operator()(const conn_key_t &x) const {
+    EVP_MD_CTX c;
+    EVP_DigestInit(&c, EVP_sha256());
+    EVP_DigestUpdate(&c, x.data(), x.size());
+    unsigned char digest[EVP_MAX_MD_SIZE];
+    unsigned int digest_size = 0;
+    EVP_DigestFinal(&c, digest, &digest_size);
+    rassert(digest_size >= sizeof(size_t));
+    size_t res = 0;
+    memcpy(&res, digest, std::min(sizeof(size_t), static_cast<size_t>(digest_size)));
+    return res;
 }
 
 struct protob_server_exc_t : public std::exception {
@@ -606,11 +661,10 @@ void query_server_t::handle(const http_req_t &req,
     auto_drainer_t::lock_t auto_drainer_lock(&drainer);
     if (req.method == http_method_t::POST &&
         req.resource.as_string().find("open-new-connection") != std::string::npos) {
-        int32_t conn_id = http_conn_cache.create(rdb_ctx, req.peer);
+        http_conn_cache_t::conn_key_t conn_id
+            = http_conn_cache.create(rdb_ctx, req.peer);
 
-        std::string body_data;
-        body_data.assign(reinterpret_cast<char *>(&conn_id), sizeof(conn_id));
-        result->set_body("application/octet-stream", body_data);
+        result->set_body("text/plain", conn_id);
         result->code = http_status_code_t::OK;
         return;
     }
@@ -622,8 +676,7 @@ void query_server_t::handle(const http_req_t &req,
         return;
     }
 
-    std::string string_conn_id = *optional_conn_id;
-    int32_t conn_id = boost::lexical_cast<int32_t>(string_conn_id);
+    http_conn_cache_t::conn_key_t conn_id = *optional_conn_id;
 
     if (req.method == http_method_t::POST &&
         req.resource.as_string().find("close-connection") != std::string::npos) {

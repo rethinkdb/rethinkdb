@@ -7,10 +7,10 @@ const datum_string_t log_write_issue_t::log_write_issue_type =
 const uuid_u log_write_issue_t::base_issue_id =
     str_to_uuid("a0c0dc6d-aa7f-4119-a29d-4c717c343445");
 
-log_write_issue_t::log_write_issue_t() { }
+log_write_issue_t::log_write_issue_t() : issue_t(nil_uuid()) { }
 
 log_write_issue_t::log_write_issue_t(const std::string &_message) :
-    local_issue_t(from_hash(base_issue_id, _message)),
+    issue_t(from_hash(base_issue_id, _message)),
     message(_message) { }
 
 bool log_write_issue_t::build_info_and_description(
@@ -26,10 +26,9 @@ bool log_write_issue_t::build_info_and_description(
     for (auto const &server_id : reporting_server_ids) {
         ql::datum_t server_name_or_uuid;
         name_string_t server_name;
-        if (!convert_server_id_to_datum(server_id, identifier_format,
+        if (!convert_connected_server_id_to_datum(server_id, identifier_format,
                 server_config_client, &server_name_or_uuid, &server_name)) {
-            server_name_or_uuid = ql::datum_t("__deleted_server__");
-            server_name = name_string_t::guarantee_valid("__deleted_server__");
+            continue;
         }
         servers_builder.add(server_name_or_uuid);
         if (!servers_string.empty()) {
@@ -52,53 +51,40 @@ bool log_write_issue_t::build_info_and_description(
     return true;
 }
 
-log_write_issue_tracker_t::log_write_issue_tracker_t(local_issue_aggregator_t *parent) :
-    issues(std::vector<log_write_issue_t>()),
-    subs(parent, issues.get_watchable(), &local_issues_t::log_write_issues) { }
+RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(log_write_issue_t,
+    issue_id, reporting_server_ids, message);
+RDB_IMPL_EQUALITY_COMPARABLE_3(log_write_issue_t,
+    issue_id, reporting_server_ids, message);
 
-log_write_issue_tracker_t::~log_write_issue_tracker_t() {
-    // Clear any log write issue
-    report_success();
-}
-
-void log_write_issue_tracker_t::do_update() {
-    issues.apply_atomic_op(
-        [&](std::vector<log_write_issue_t> *local_issues) -> bool {
-            local_issues->clear();
-            if (error_message) {
-                local_issues->push_back(log_write_issue_t(error_message.get()));
-            }
-            return true;
-        });
+std::vector<log_write_issue_t> log_write_issue_tracker_t::get_issues() {
+    std::vector<log_write_issue_t> issues;
+    if (static_cast<bool>(error_message)) {
+        issues.push_back(log_write_issue_t(*error_message));
+    }
+    return issues;
 }
 
 void log_write_issue_tracker_t::report_success() {
     assert_thread();
-    if (error_message) {
-        error_message.reset();
-        do_update();
-    }
+    error_message = boost::none;
 }
 
 void log_write_issue_tracker_t::report_error(const std::string &message) {
     assert_thread();
-    if (!error_message || error_message.get() != message) {
-        error_message = message;
-        do_update();
-    }
+    error_message = boost::make_optional(message);
 }
 
 void log_write_issue_tracker_t::combine(
-        local_issues_t *local_issues,
+        std::vector<log_write_issue_t> &&issues,
         std::vector<scoped_ptr_t<issue_t> > *issues_out) {
     std::map<std::string, log_write_issue_t*> combined_issues;
-    for (auto &issue : local_issues->log_write_issues) {
+    for (auto &issue : issues) {
         auto combined_it = combined_issues.find(issue.message);
         if (combined_it == combined_issues.end()) {
             combined_issues.insert(std::make_pair(issue.message, &issue));
         } else {
             rassert(issue.reporting_server_ids.size() == 1);
-            combined_it->second->add_server(issue.reporting_server_ids[0]);
+            combined_it->second->add_server(*issue.reporting_server_ids.begin());
         }
     }
 

@@ -26,6 +26,11 @@ private:
         void write(cluster_version_t cluster_version, write_message_t *wm) {
             serialize_for_version(cluster_version, wm, arg);
         }
+#ifdef ENABLE_MESSAGE_PROFILER
+        const char *message_profiler_tag() const {
+            return "unittest";
+        }
+#endif
     private:
         friend class read_impl_t;
         int32_t arg;

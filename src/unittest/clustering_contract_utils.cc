@@ -19,7 +19,7 @@ region_map_t<version_t> quick_cpu_version_map(
         } else {
             version = version_t(
                 qvm.branch->branch_ids[which_cpu_subspace],
-                state_timestamp_t::from_num(qvm.timestamp));
+                make_state_timestamp(qvm.timestamp));
         }
         region_vector.push_back(region);
         version_vector.push_back(version);
@@ -49,14 +49,14 @@ cpu_branch_ids_t quick_cpu_branch(
     "branch" */
     branch_birth_certificate_t bcs[CPU_SHARDING_FACTOR];
     for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
-        bcs[i].region = region_intersection(
+        region_t region = region_intersection(
             region_t(res.range), cpu_sharding_subspace(i));
         bcs[i].initial_timestamp = state_timestamp_t::zero();
         bcs[i].origin = quick_cpu_version_map(i, origin);
-        bcs[i].origin.visit(bcs[i].region, [&](const region_t &, const version_t &v) {
+        bcs[i].origin.visit(region, [&](const region_t &, const version_t &v) {
             bcs[i].initial_timestamp = std::max(bcs[i].initial_timestamp, v.timestamp);
         });
-        
+
     }
 
     /* Register the branches */
@@ -69,74 +69,57 @@ cpu_branch_ids_t quick_cpu_branch(
     return res;
 }
 
-static branch_id_t branch_or_nil(const cpu_branch_ids_t *branch, size_t i) {
-    if (branch != nullptr) {
-        return branch->branch_ids[i];
-    } else {
-        return nil_uuid();
-    }
-}
-
 cpu_contracts_t quick_contract_simple(
         const std::set<server_id_t> &voters,
-        const server_id_t &primary,
-        const cpu_branch_ids_t *branch) {
+        const server_id_t &primary) {
     cpu_contracts_t res;
     for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
         res.contracts[i].replicas = res.contracts[i].voters = voters;
         res.contracts[i].primary =
             boost::make_optional(contract_t::primary_t { primary, boost::none } );
-        res.contracts[i].branch = branch_or_nil(branch, i);
     }
     return res;
 }
 cpu_contracts_t quick_contract_extra_replicas(
         const std::set<server_id_t> &voters,
         const std::set<server_id_t> &extras,
-        const server_id_t &primary,
-        const cpu_branch_ids_t *branch) {
+        const server_id_t &primary) {
     cpu_contracts_t res;
     for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
         res.contracts[i].replicas = res.contracts[i].voters = voters;
         res.contracts[i].replicas.insert(extras.begin(), extras.end());
         res.contracts[i].primary =
             boost::make_optional(contract_t::primary_t { primary, boost::none } );
-        res.contracts[i].branch = branch_or_nil(branch, i);
     }
     return res;
 }
-        
+
 cpu_contracts_t quick_contract_no_primary(
-        const std::set<server_id_t> &voters,   /* first voter is primary */
-        const cpu_branch_ids_t *branch) {
+        const std::set<server_id_t> &voters   /* first voter is primary */) {
     cpu_contracts_t res;
     for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
         res.contracts[i].replicas = res.contracts[i].voters = voters;
         res.contracts[i].primary = boost::none;
-        res.contracts[i].branch = branch_or_nil(branch, i);
     }
     return res;
 }
 cpu_contracts_t quick_contract_hand_over(
         const std::set<server_id_t> &voters,
         const server_id_t &primary,
-        const server_id_t &hand_over,
-        const cpu_branch_ids_t *branch) {
+        const server_id_t &hand_over) {
     cpu_contracts_t res;
     for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
         res.contracts[i].replicas = res.contracts[i].voters = voters;
         res.contracts[i].primary =
             boost::make_optional(contract_t::primary_t {
                 primary, boost::make_optional(hand_over) } );
-        res.contracts[i].branch = branch_or_nil(branch, i);
     }
     return res;
 }
 cpu_contracts_t quick_contract_temp_voters(
         const std::set<server_id_t> &voters,
         const std::set<server_id_t> &temp_voters,
-        const server_id_t &primary,
-        const cpu_branch_ids_t *branch) {
+        const server_id_t &primary) {
     cpu_contracts_t res;
     for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
         res.contracts[i].replicas = res.contracts[i].voters = voters;
@@ -144,7 +127,6 @@ cpu_contracts_t quick_contract_temp_voters(
         res.contracts[i].temp_voters = boost::make_optional(temp_voters);
         res.contracts[i].primary =
             boost::make_optional(contract_t::primary_t { primary, boost::none } );
-        res.contracts[i].branch = branch_or_nil(branch, i);
     }
     return res;
 }
@@ -152,8 +134,7 @@ cpu_contracts_t quick_contract_temp_voters_hand_over(
         const std::set<server_id_t> &voters,
         const std::set<server_id_t> &temp_voters,
         const server_id_t &primary,
-        const server_id_t &hand_over,
-        const cpu_branch_ids_t *branch) {
+        const server_id_t &hand_over) {
     cpu_contracts_t res;
     for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
         res.contracts[i].replicas = res.contracts[i].voters = voters;
@@ -162,7 +143,6 @@ cpu_contracts_t quick_contract_temp_voters_hand_over(
         res.contracts[i].primary =
             boost::make_optional(contract_t::primary_t {
                 primary, boost::make_optional(hand_over) } );
-        res.contracts[i].branch = branch_or_nil(branch, i);
     }
     return res;
 }

@@ -7,7 +7,7 @@
 
 class optional_datum_less_t {
 public:
-    explicit optional_datum_less_t() { }
+    optional_datum_less_t() { }
     bool operator()(const ql::datum_t &a, const ql::datum_t &b) const {
         if (a.has()) {
             return b.has() && a < b;

@@ -242,6 +242,12 @@ private:
     template<class V>
     friend void debug_print(printf_buffer_t *buf, const region_map_t<V> &map);
 
+    template<cluster_version_t W, class V>
+    friend void serialize(write_message_t *wm, const region_map_t<V> &map);
+
+    template<cluster_version_t W, class V>
+    friend MUST_USE archive_result_t deserialize(read_stream_t *s, region_map_t<V> *map);
+
     region_map_t(key_range_map_t &&_inner, uint64_t _hash_beg, uint64_t _hash_end) :
         inner(_inner), hash_beg(_hash_beg), hash_end(_hash_end) { }
 
@@ -259,34 +265,46 @@ void debug_print(printf_buffer_t *buf, const region_map_t<V> &map) {
     buf->appendf("}");
 }
 
-/* These serialization functions are implemented manually for backwards compatibility.
-Older RethinkDB versions serialized `region_map_t` as a `vector<pair<region_t, V> >`, so
-we have to support reading that format. We could in theory use a newer format when
-writing data, but we currently don't. */
-
 template<cluster_version_t W, class V>
 void serialize(write_message_t *wm, const region_map_t<V> &map) {
-    std::vector<std::pair<region_t, V> > pairs;
-    map.visit(map.get_domain(), [&](const region_t &reg, const V &val) {
-        pairs.push_back(std::make_pair(reg, val));
-    });
-    serialize<W>(wm, pairs);
+    static_assert(W == cluster_version_t::v2_1_is_latest,
+        "serialize() is only supported for the latest version");
+    serialize<W>(wm, map.inner);
+    serialize<W>(wm, map.hash_beg);
+    serialize<W>(wm, map.hash_end);
 }
 
 template<cluster_version_t W, class V>
 MUST_USE archive_result_t deserialize(read_stream_t *s, region_map_t<V> *map) {
-    std::vector<std::pair<region_t, V> > pairs;
-    archive_result_t res = deserialize<W>(s, &pairs);
-    if (bad(res)) { return res; }
-    std::vector<region_t> regions;
-    std::vector<V> values;
-    for (auto &&pair : pairs) {
-        regions.push_back(pair.first);
-        values.push_back(std::move(pair.second));
+    switch (W) {
+        case cluster_version_t::v2_1_is_latest: {
+            archive_result_t res;
+            res = deserialize<W>(s, &map->inner);
+            if (bad(res)) { return res; }
+            res = deserialize<W>(s, &map->hash_beg);
+            if (bad(res)) { return res; }
+            res = deserialize<W>(s, &map->hash_end);
+            if (bad(res)) { return res; }
+            return archive_result_t::SUCCESS;
+        }
+        case cluster_version_t::v2_0:
+        case cluster_version_t::v1_16:
+        case cluster_version_t::v1_15:
+        case cluster_version_t::v1_14: {
+            std::vector<std::pair<region_t, V> > pairs;
+            archive_result_t res = deserialize<W>(s, &pairs);
+            if (bad(res)) { return res; }
+            std::vector<region_t> regions;
+            std::vector<V> values;
+            for (auto &&pair : pairs) {
+                regions.push_back(pair.first);
+                values.push_back(std::move(pair.second));
+            }
+            *map = region_map_t<V>::from_unordered_fragments(
+                std::move(regions), std::move(values));
+            return archive_result_t::SUCCESS;
+        }
     }
-    *map = region_map_t<V>::from_unordered_fragments(
-        std::move(regions), std::move(values));
-    return archive_result_t::SUCCESS;
 }
 
 #endif  // REGION_REGION_MAP_HPP_

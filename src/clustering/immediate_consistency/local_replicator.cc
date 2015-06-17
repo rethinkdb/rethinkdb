@@ -25,16 +25,12 @@ local_replicator_t::local_replicator_t(
     certificate (just as a sanity check) */
     read_token_t read_token;
     store->new_read_token(&read_token);
-    region_map_t<binary_blob_t> origin_blob;
-    store->do_get_metainfo(
+    region_map_t<version_t> origin = to_version_map(store->get_metainfo(
         order_source.check_in("local_replica_t(read)").with_read_mode(),
-        &read_token,
-        interruptor,
-        &origin_blob);
-    guarantee(to_version_map(origin_blob) ==
-        primary->get_branch_birth_certificate().origin);
+        &read_token, store->get_region(), interruptor));
+    guarantee(origin == primary->get_branch_birth_certificate().origin);
     guarantee(store->get_region() ==
-        primary->get_branch_birth_certificate().region);
+        primary->get_branch_birth_certificate().get_region());
 #endif
 
     /* Store the new branch in the branch history manager. We have to do this before we
@@ -70,6 +66,13 @@ local_replicator_t::local_replicator_t(
     guarantee(first_timestamp ==
         primary->get_branch_birth_certificate().initial_timestamp);
     registration->mark_ready();
+}
+
+local_replicator_t::~local_replicator_t() {
+    /* Since `local_replicator_t` is the primary dispatchee, changefeeds are always
+    routed here. But when the primary changes we need to shut off the changefeed. This
+    destructor is a good place to do it. */
+    store->note_reshard();
 }
 
 void local_replicator_t::do_read(

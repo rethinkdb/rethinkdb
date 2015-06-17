@@ -20,7 +20,7 @@ table_query_client_t::table_query_client_t(
       subs(directory,
         std::bind(&table_query_client_t::update_registrant,
             this, ph::_1, ph::_2),
-        true) {
+        initial_call_t::YES) {
     rassert(ctx != NULL);
     starting_up = false;
     if (start_count == 0) {
@@ -37,14 +37,16 @@ bool table_query_client_t::check_readiness(table_readiness_t readiness,
         case table_readiness_t::outdated_reads:
             {
                 read_response_t res;
-                read_t r(dummy_read_t(), profile_bool_t::DONT_PROFILE);
-                read_outdated(r, &res, interruptor);
+                read_t r(dummy_read_t(), profile_bool_t::DONT_PROFILE,
+                         read_mode_t::OUTDATED);
+                read(r, &res, order_token_t::ignore, interruptor);
             }
             break;
         case table_readiness_t::reads:
             {
                 read_response_t res;
-                read_t r(dummy_read_t(), profile_bool_t::DONT_PROFILE);
+                read_t r(dummy_read_t(), profile_bool_t::DONT_PROFILE,
+                         read_mode_t::SINGLE);
                 read(r, &res, order_token_t::ignore, interruptor);
             }
             break;
@@ -76,22 +78,18 @@ void table_query_client_t::read(
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
     order_token.assert_read_mode();
-    dispatch_immediate_op<read_t, fifo_enforcer_sink_t::exit_read_t, read_response_t>(
-            &primary_query_client_t::new_read_token,
-            &primary_query_client_t::read,
-            r, response, order_token, interruptor);
-}
-
-void table_query_client_t::read_outdated(
-        const read_t &r,
-        read_response_t *response,
-        signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
-    guarantee(!r.route_to_primary());
-    /* This seems kind of silly. We do it this way because
-       `dispatch_outdated_read` needs to be able to see `outdated_read_info_t`,
-       which is defined in the `private` section. */
-    dispatch_outdated_read(r, response, interruptor);
+    if (r.read_mode == read_mode_t::OUTDATED) {
+        guarantee(!r.route_to_primary());
+        /* This seems kind of silly. We do it this way because
+           `dispatch_outdated_read` needs to be able to see `outdated_read_info_t`,
+           which is defined in the `private` section. */
+        dispatch_outdated_read(r, response, interruptor);
+    } else {
+        dispatch_immediate_op<read_t, fifo_enforcer_sink_t::exit_read_t, read_response_t>(
+                &primary_query_client_t::new_read_token,
+                &primary_query_client_t::read,
+                r, response, order_token, interruptor);
+    }
 }
 
 void table_query_client_t::write(
@@ -333,16 +331,14 @@ void table_query_client_t::perform_outdated_read(
             cont.get_address());
         wait_any_t waiter(replica_to_contact->keepalive.get_drain_signal(), &done);
         wait_interruptible(&waiter, interruptor);
-    } catch (const interrupted_exc_t &) {
-        if (interruptor->is_pulsed()) {
-            /* Return immediately. `dispatch_immediate_op()` will notice that the
-            interruptor has been pulsed. */
-            return;
-        } else {
-            /* `keepalive.get_drain_signal()` was pulsed because the other server
-            disconnected or stopped being a replica */
+        if (!done.is_pulsed()) {
+            /* `wait_interruptible()` returned because
+            `replica_to_contact->keepalive.get_drain_signal()` was pulsed */
             failures->at(i).assign("lost contact with replica");
         }
+    } catch (const interrupted_exc_t &) {
+        /* Return immediately. `dispatch_immediate_op()` will notice that the
+        interruptor has been pulsed. */
     }
 }
 

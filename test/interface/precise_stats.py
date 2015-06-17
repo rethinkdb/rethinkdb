@@ -94,7 +94,9 @@ with driver.Metacluster() as metacluster:
     # Create a secondary index that will be used in some of the inserts
     check_query_stats(tbl.index_create('double', r.row['id']), reads=0, writes=0)
     check_query_stats(tbl.index_create('value'), reads=0, writes=0)
-
+    
+    tbl.index_wait().run()
+    
     # batch of writes
     check_query_stats(tbl.insert(r.range(100).map(lambda x: {'id': x})), reads=0, writes=100)
 

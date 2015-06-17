@@ -21,7 +21,7 @@ watchable_map_transform_t<key1_t, value1_t, key2_t, value2_t>::watchable_map_tra
                     this->do_notify_change(key2, nullptr, &write_acq);
                 }
             }
-        }, false)
+        }, initial_call_t::NO)
     { }
 
 template<class key1_t, class value1_t, class key2_t, class value2_t>
@@ -109,7 +109,7 @@ clone_ptr_t<watchable_t<boost::optional<value_t> > > get_watchable_for_key(
                      rwi_lock_assertion_t::write_acq_t acq(&(this->rwi_lock));
                     publisher.publish([](const std::function<void()> &f) { f(); });
                 },
-                false)
+                initial_call_t::NO)
             { }
         w_t *clone() const {
             return new w_t(map, key);
@@ -142,9 +142,8 @@ template<class key_t, class value_t>
 watchable_map_entry_copier_t<key_t, value_t>::watchable_map_entry_copier_t(
         watchable_map_var_t<key_t, value_t> *_map,
         const key_t &_key,
-        clone_ptr_t<watchable_t<value_t> > _value,
-        bool _remove_when_done) :
-    map(_map), key(_key), value(_value), remove_when_done(_remove_when_done),
+        clone_ptr_t<watchable_t<value_t> > _value) :
+    map(_map), key(_key), value(_value),
     subs([this]() {
         map->set_key_no_equals(key, value->get());
     })
@@ -156,20 +155,31 @@ watchable_map_entry_copier_t<key_t, value_t>::watchable_map_entry_copier_t(
 
 template<class key_t, class value_t>
 watchable_map_entry_copier_t<key_t, value_t>::~watchable_map_entry_copier_t() {
-    if (remove_when_done) {
-        map->delete_key(key);
-    }
+    map->delete_key(key);
 }
 
 template<class tag_t, class key_t, class value_t>
 watchable_map_combiner_t<tag_t, key_t, value_t>::source_t::source_t(
         watchable_map_combiner_t *_parent,
         const tag_t &tag,
-        watchable_map_t<key_t, value_t> *inner) :
+        watchable_map_t<key_t, value_t> *_inner) :
     parent(_parent),
+    inner(_inner),
     sentry(&parent->map, tag, inner),
-    subs(inner, std::bind(&source_t::on_change, this, ph::_1, ph::_2), true)
+    subs(inner,
+        std::bind(&source_t::on_change, this, ph::_1, ph::_2),
+        initial_call_t::YES)
     { }
+
+template<class tag_t, class key_t, class value_t>
+watchable_map_combiner_t<tag_t, key_t, value_t>::source_t::~source_t() {
+    tag_t tag = sentry.get_key();
+    sentry.reset();
+    rwi_lock_assertion_t::write_acq_t write_acq(&parent->rwi_lock);
+    inner->read_all([&](const key_t &key, const value_t *) {
+        parent->notify_change(std::make_pair(tag, key), nullptr, &write_acq);
+    });
+}
 
 template<class tag_t, class key_t, class value_t>
 void watchable_map_combiner_t<tag_t, key_t, value_t>::source_t::on_change(

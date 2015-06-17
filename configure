@@ -79,9 +79,13 @@ configure () {
         *) error "unsupported operating system: $MACHINE" ;;
     esac
     case "${MACHINE%%-*}" in
-        x86_64|i?86) true ;;
-        arm*) final_warning="ARM support is still experimental";;
-        *) error "unsopported architecture: $MACHINE"
+        x86_64|i?86)
+            true ;;
+        arm*)
+            var_append LDFLAGS -ldl
+            final_warning="ARM support is still experimental" ;;
+        *)
+            error "unsupported architecture: $MACHINE"
     esac
     var M_LIBS -lm
     require "Build Architecture"
@@ -105,7 +109,6 @@ configure () {
         fi
     fi
     boolvar USE_PRECOMPILED_WEB_ASSETS $enable_precompiled_web
-    check_admin_deps
     for bin in $required_bin_deps; do
         require_dep $bin
         check_bin $bin
@@ -118,6 +121,7 @@ configure () {
         fi
         check_bin $bin
     done
+    check_admin_deps
     for bin in $optional_bin_deps; do
         optional_dep $bin
         check_bin $bin

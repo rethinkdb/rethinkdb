@@ -54,7 +54,19 @@ class table_config_t {
 public:
     class shard_t {
     public:
-        std::set<server_id_t> replicas;
+        std::set<server_id_t> voting_replicas() const {
+            std::set<server_id_t> s;
+            std::set_difference(
+                all_replicas.begin(), all_replicas.end(),
+                nonvoting_replicas.begin(), nonvoting_replicas.end(),
+                std::inserter(s, s.end()));
+            return s;
+        }
+
+        /* `nonvoting_replicas` must be a subset of `all_replicas`. `primary_replica`
+        must be in `all_replicas` and not in `nonvoting_replicas`. */
+        std::set<server_id_t> all_replicas;
+        std::set<server_id_t> nonvoting_replicas;
         server_id_t primary_replica;
     };
     table_basic_config_t basic;
@@ -108,12 +120,16 @@ RDB_DECLARE_SERIALIZABLE(table_shard_scheme_t);
 RDB_DECLARE_EQUALITY_COMPARABLE(table_shard_scheme_t);
 
 /* `table_config_and_shards_t` exists because the `table_config_t` needs to be changed in
-sync with the `table_shard_scheme_t`. */
+sync with the `table_shard_scheme_t` and the server name mapping. */
 
 class table_config_and_shards_t {
 public:
     table_config_t config;
     table_shard_scheme_t shard_scheme;
+
+    /* This contains an entry for every server mentioned in the config. The `uint64_t`s
+    are server config versions. */
+    server_name_map_t server_names;
 };
 
 RDB_DECLARE_SERIALIZABLE(table_config_and_shards_t);

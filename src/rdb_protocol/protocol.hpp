@@ -462,6 +462,7 @@ struct read_t {
                            dummy_read_t> variant_t;
     variant_t read;
     profile_bool_t profile;
+    read_mode_t read_mode;
 
     region_t get_region() const THROWS_NOTHING;
     // Returns true if the read has any operation for this region.  Returns
@@ -476,8 +477,8 @@ struct read_t {
 
     read_t() { }
     template<class T>
-    read_t(T &&_read, profile_bool_t _profile)
-        : read(std::forward<T>(_read)), profile(_profile) { }
+    read_t(T &&_read, profile_bool_t _profile, read_mode_t _read_mode)
+        : read(std::forward<T>(_read)), profile(_profile), read_mode(_read_mode) { }
 
     // We use snapshotting for queries that acquire-and-hold large portions of the
     // table, so that they don't block writes.
@@ -662,13 +663,13 @@ struct write_t {
     durability_requirement_t durability() const { return durability_requirement; }
 
     /* The clustering layer calls this. */
-    static write_t make_sync(const region_t &region) {
+    static write_t make_sync(const region_t &region, profile_bool_t profile) {
         sync_t sync;
         sync.region = region;
         return write_t(
             sync,
             DURABILITY_REQUIREMENT_HARD,
-            profile_bool_t::DONT_PROFILE,
+            profile,
             ql::configured_limits_t());
     }
 

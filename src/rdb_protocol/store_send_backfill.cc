@@ -241,14 +241,14 @@ continue_bool_t store_t::send_backfill(
             scoped_ptr_t<real_superblock_t> sb;
             get_btree_superblock_and_txn_for_backfilling(
                 general_cache_conn.get(), btree->get_backfill_account(), &sb, &txn);
-            region_map_t<binary_blob_t> metainfo;
-            get_metainfo_internal(sb.get(), &metainfo);
 
             pre_item_producer->rewind(threshold);
             pre_item_adapter_t pre_item_adapter(pre_item_producer);
 
+            region_map_t<binary_blob_t> metainfo_copy =
+                metainfo->get(sb.get(), region_t(pair.first));
             limiting_btree_backfill_item_consumer_t limiter(
-                item_consumer, &threshold, &metainfo);
+                item_consumer, &threshold, &metainfo_copy);
 
             rdb_value_sizer_t sizer(cache->max_block_size());
             key_range_t to_do = pair.first;

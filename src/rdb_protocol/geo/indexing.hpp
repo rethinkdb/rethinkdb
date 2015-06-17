@@ -11,6 +11,7 @@
 
 namespace ql {
 class datum_t;
+enum class skey_version_t;
 }
 class signal_t;
 
@@ -32,10 +33,8 @@ std::vector<std::string> compute_index_grid_keys(
 // TODO (daniel): Support compound indexes somehow.
 class geo_index_traversal_helper_t : public concurrent_traversal_callback_t {
 public:
-    explicit geo_index_traversal_helper_t(const signal_t *interruptor);
-    explicit geo_index_traversal_helper_t(
-            const std::vector<std::string> &query_grid_keys,
-            const signal_t *interruptor);
+    geo_index_traversal_helper_t(
+        ql::skey_version_t skey_version, const signal_t *interruptor);
 
     void init_query(const std::vector<std::string> &query_grid_keys);
 
@@ -62,13 +61,14 @@ private:
     static bool cell_intersects_with_range(const geo::S2CellId c,
                                            const geo::S2CellId left_min,
                                            const geo::S2CellId right_max);
-    bool any_query_cell_intersects(const btree_key_t *left_incl_or_null,
+    bool any_query_cell_intersects(const btree_key_t *left_excl_or_null,
                                    const btree_key_t *right_incl);
     bool any_query_cell_intersects(const geo::S2CellId left_min,
                                    const geo::S2CellId right_max);
 
     std::vector<geo::S2CellId> query_cells_;
     bool is_initialized_;
+    const ql::skey_version_t skey_version_;
     const signal_t *interruptor_;
 };
 

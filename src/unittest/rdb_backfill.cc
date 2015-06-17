@@ -32,7 +32,8 @@ std::string read_from_dispatcher(
         const std::string &key,
         order_token_t otok,
         signal_t *interruptor) {
-    read_t read(point_read_t(store_key_t(key)), profile_bool_t::PROFILE);
+    read_t read(point_read_t(store_key_t(key)),
+                profile_bool_t::PROFILE, read_mode_t::SINGLE);
     fifo_enforcer_source_t fifo_source;
     fifo_enforcer_sink_t fifo_sink;
     fifo_enforcer_sink_t::exit_read_t exiter(&fifo_sink, fifo_source.enter_read());
@@ -90,13 +91,13 @@ private:
                 std::string(value_padding_length, 'a'))));
             write = write_t(
                     point_write_t(store_key_t(key), std::move(doc).to_datum(), true),
-                    DURABILITY_REQUIREMENT_DEFAULT,
+                    DURABILITY_REQUIREMENT_SOFT,
                     profile_bool_t::PROFILE,
                     ql::configured_limits_t());
         } else {
             write = write_t(
                     point_delete_t(store_key_t(key)),
-                    DURABILITY_REQUIREMENT_DEFAULT,
+                    DURABILITY_REQUIREMENT_SOFT,
                     profile_bool_t::PROFILE,
                     ql::configured_limits_t());
         }
@@ -114,12 +115,11 @@ private:
 };
 
 region_map_t<version_t> get_store_version_map(store_view_t *store) {
-    region_map_t<binary_blob_t> binary;
     read_token_t token;
     store->new_read_token(&token);
     cond_t non_interruptor;
-    store->do_get_metainfo(order_token_t::ignore, &token, &non_interruptor, &binary);
-    return to_version_map(binary);
+    return to_version_map(store->get_metainfo(
+        order_token_t::ignore, &token, store->get_region(), &non_interruptor));
 }
 
 backfill_config_t unlimited_queues_config() {

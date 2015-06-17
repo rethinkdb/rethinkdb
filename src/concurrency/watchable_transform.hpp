@@ -104,20 +104,44 @@ public:
     watchable_map_entry_copier_t(
         watchable_map_var_t<key_t, value_t> *map,
         const key_t &key,
-        clone_ptr_t<watchable_t<value_t> > value,
-        /* If `remove_when_done` is `true`, the `watchable_map_entry_copier_t` will
-        remove the entry in its destructor. */
-        // RSI(raft): Get rid of this parameter. Any code that sets it to `false` is
-        // probably badly designed.
-        bool remove_when_done = true);
+        clone_ptr_t<watchable_t<value_t> > value);
     ~watchable_map_entry_copier_t();
 
 private:
     watchable_map_var_t<key_t, value_t> *map;
     key_t key;
     clone_ptr_t<watchable_t<value_t> > value;
-    bool remove_when_done;
     typename watchable_t<value_t>::subscription_t subs;
+};
+
+/* `watchable_field_copier_t` keeps some field of a `watchable_variable_t` in sync with
+the value of some other `watchable_t`. */
+template<class inner_t, class outer_t>
+class watchable_field_copier_t {
+public:
+    watchable_field_copier_t(
+            inner_t outer_t::*_field,
+            const clone_ptr_t<watchable_t<inner_t> > &_inner,
+            watchable_variable_t<outer_t> *_outer) :
+        field(_field), inner(_inner), outer(_outer),
+        subscription(
+            [this]() {
+                outer->apply_atomic_op([this](outer_t *value) {
+                    value->*field = inner->get();
+                    return true;
+                });
+            },
+            inner,
+            initial_call_t::YES)
+        { }
+
+private:
+    inner_t outer_t::*field;
+    clone_ptr_t<watchable_t<inner_t> > inner;
+    watchable_variable_t<outer_t> *outer;
+    typename watchable_t<inner_t>::subscription_t subscription;
+
+    DISABLE_COPYING(watchable_field_copier_t);
 };
 
 /* `watchable_map_keyed_var_t` is like a `watchable_map_var_t`, except that the key-value
@@ -165,9 +189,11 @@ public:
             watchable_map_combiner_t *parent,
             const tag_t &tag,
             watchable_map_t<key_t, value_t> *inner);
+        ~source_t();
     private:
         void on_change(const key_t &key, const value_t *value);
         watchable_map_combiner_t *parent;
+        watchable_map_t<key_t, value_t> *inner;
         map_insertion_sentry_t<tag_t, watchable_map_t<key_t, value_t> *> sentry;
         typename watchable_map_t<key_t, value_t>::all_subs_t subs;
     };

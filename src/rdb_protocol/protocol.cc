@@ -467,7 +467,7 @@ bool read_t::shard(const hash_region_t<key_range_t> &region,
                    read_t *read_out) const THROWS_NOTHING {
     read_t::variant_t payload;
     bool result = boost::apply_visitor(rdb_r_shard_visitor_t(&region, &payload), read);
-    *read_out = read_t(payload, profile);
+    *read_out = read_t(payload, profile, read_mode);
     return result;
 }
 
@@ -722,8 +722,8 @@ void rdb_r_unshard_visitor_t::unshard_range_batch(const query_t &q, sorting_t so
                 out->result = ql::exc_t(
                     ql::base_exc_t::GENERIC,
                     strprintf("INTERNAL ERROR: mismatched skey versions %d and %d.",
-                              out->skey_version,
-                              resp->skey_version),
+                              static_cast<int>(out->skey_version),
+                              static_cast<int>(resp->skey_version)),
                     ql::backtrace_id_t::empty());
                 return;
             }
@@ -878,7 +878,7 @@ bool read_t::use_snapshot() const THROWS_NOTHING {
 
 struct route_to_primary_visitor_t : public boost::static_visitor<bool> {
     bool operator()(const rget_read_t &rget) const {
-        return rget.stamp;
+        return static_cast<bool>(rget.stamp);
     }
     bool operator()(const point_read_t &) const {                 return false; }
     bool operator()(const dummy_read_t &) const {                 return false; }
@@ -1211,7 +1211,7 @@ RDB_IMPL_SERIALIZABLE_5_FOR_CLUSTER(
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(changefeed_stamp_t, addr, region);
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(changefeed_point_stamp_t, addr, key);
 
-RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(read_t, read, profile);
+RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(read_t, read, profile, read_mode);
 
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(point_write_response_t, result);
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(point_delete_response_t, result);

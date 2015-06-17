@@ -195,7 +195,7 @@ scoped_ptr_t<sindex_superblock_t> acquire_sindex_for_read(
     }
 
     *sindex_uuid_out = sindex_uuid;
-    return std::move(sindex_sb);
+    return sindex_sb;
 }
 
 void do_read(ql::env_t *env,

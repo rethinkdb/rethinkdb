@@ -46,6 +46,11 @@ public:
                 int res = send_write_message(stream, &wm);
                 if (res) { throw fake_archive_exc_t(); }
             }
+#ifdef ENABLE_MESSAGE_PROFILER
+            const char *message_profiler_tag() const {
+                return "unittest";
+            }
+#endif
             int32_t data;
         } writer(message);
         get_connectivity_cluster()->send_message(connection, connection_keepalive,
@@ -415,6 +420,11 @@ public:
                 int64_t res = stream->write(spectrum, CHAR_MAX - CHAR_MIN + 1);
                 if (res != CHAR_MAX - CHAR_MIN + 1) { throw fake_archive_exc_t(); }
             }
+#ifdef ENABLE_MESSAGE_PROFILER
+            const char *message_profiler_tag() const {
+                return "unittest";
+            }
+#endif
         } writer;
         auto_drainer_t::lock_t connection_keepalive;
         connectivity_cluster_t::connection_t *connection =

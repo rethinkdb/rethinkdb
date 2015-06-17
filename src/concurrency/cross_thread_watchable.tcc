@@ -49,7 +49,7 @@ cross_thread_watchable_map_var_t<key_t, value_t>::cross_thread_watchable_map_var
     subs(input,
         [this](const key_t &key, const value_t *new_value) {
             this->on_change(key, new_value);
-        }, false)
+        }, initial_call_t::NO)
     { }
 
 template<class key_t, class value_t>

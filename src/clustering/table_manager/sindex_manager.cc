@@ -2,6 +2,7 @@
 #include "clustering/table_manager/sindex_manager.hpp"
 
 #include "concurrency/cross_thread_signal.hpp"
+#include "concurrency/pmap.hpp"
 #include "rdb_protocol/store.hpp"
 
 sindex_manager_t::sindex_manager_t(
@@ -17,7 +18,7 @@ sindex_manager_t::sindex_manager_t(
 }
 
 std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
-sindex_manager_t::get_status(signal_t *interruptor) {
+sindex_manager_t::get_status(signal_t *interruptor) const {
     /* First, we make a list of all the sindexes in the config. Then, we iterate over
     the actual sindexes in the stores and try to match them to the sindexes in the
     config. If we find a match, we accumulate the `sindex_status_t`s. If there's a sindex
@@ -30,13 +31,15 @@ sindex_manager_t::get_status(signal_t *interruptor) {
         }
     });
 
-    for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
+    pmap(static_cast<int64_t>(0), static_cast<int64_t>(CPU_SHARDING_FACTOR),
+    [&](int64_t i) {
+        std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > store_state;
         store_t *store = multistore->get_underlying_store(i);
         cross_thread_signal_t ct_interruptor(interruptor, store->home_thread());
-        on_thread_t thread_switcher(store->home_thread());
-
-        std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > store_state =
-            store->sindex_list(&ct_interruptor);
+        {
+            on_thread_t thread_switcher(store->home_thread());
+            store_state = store->sindex_list(&ct_interruptor);
+        }
 
         for (auto &&pair : res) {
             auto it = store_state.find(pair.first);
@@ -48,7 +51,7 @@ sindex_manager_t::get_status(signal_t *interruptor) {
                 pair.second.second.ready = false;
             }
         }
-    }
+    });
 
     return res;
 }

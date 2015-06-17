@@ -33,7 +33,7 @@ struct indexed_datum_t {
 };
 
 struct stamped_range_t {
-    stamped_range_t(uint64_t _next_expected_stamp)
+    explicit stamped_range_t(uint64_t _next_expected_stamp)
         : next_expected_stamp(_next_expected_stamp),
           left_fencepost(store_key_t::min()) { }
     const store_key_t &get_right_fencepost() {
@@ -92,7 +92,7 @@ std::string print(const std::string &s) {
     return "str(" + s + ")";
 }
 std::string print(uint64_t i) {
-    return strprintf("%zu", i);
+    return strprintf("%" PRIu64, i);
 }
 std::string print(const key_range_t &rng) {
     return rng.print();
@@ -127,7 +127,7 @@ std::string print(const store_key_t &key) {
     return strprintf("store_key_t(%s)", buf.c_str());
 }
 std::string print(const stamped_range_t &srng) {
-    return strprintf("stamped_range_t(%zu, %s, %s)",
+    return strprintf("stamped_range_t(%" PRIu64 ", %s, %s)",
                      srng.next_expected_stamp,
                      key_to_debug_str(srng.left_fencepost).c_str(),
                      print(srng.ranges).c_str());
@@ -1383,7 +1383,7 @@ private:
     std::vector<scoped_ptr_t<disconnect_watcher_t> > disconnect_watchers;
 
     struct queue_t {
-        queue_t(uint64_t _next) : next(_next) { }
+        explicit queue_t(uint64_t _next) : next(_next) { }
         rwlock_t lock;
         uint64_t next;
         struct lt_t {
@@ -1415,7 +1415,7 @@ real_feed_t::real_feed_t(auto_drainer_t::lock_t _client_lock,
       mailbox(manager, std::bind(&real_feed_t::mailbox_cb, this, ph::_1, ph::_2)) {
     try {
         read_t read(changefeed_subscribe_t(mailbox.get_address()),
-                    profile_bool_t::DONT_PROFILE);
+                    profile_bool_t::DONT_PROFILE, read_mode_t::SINGLE);
         read_response_t read_resp;
         ns_if->read(read, &read_resp, order_token_t::ignore, interruptor);
         auto resp = boost::get<changefeed_subscribe_response_t>(&read_resp.response);
@@ -1559,7 +1559,7 @@ public:
             || (include_initial_vals && state != state_t::READY)
             || has_change_val();
     }
-    virtual counted_t<datum_stream_t> to_stream(
+    counted_t<datum_stream_t> to_stream(
         env_t *env,
         std::string,
         namespace_interface_t *nif,
@@ -1578,7 +1578,7 @@ public:
         read_response_t read_resp;
         nif->read(
             read_t(changefeed_point_stamp_t{addr, store_key_t(pkey.print_primary())},
-                   profile_bool_t::DONT_PROFILE),
+                   profile_bool_t::DONT_PROFILE, read_mode_t::SINGLE),
             &read_resp,
             order_token_t::ignore,
             env->interruptor);
@@ -1753,7 +1753,7 @@ public:
             || has_change_val();
     }
 
-    virtual counted_t<datum_stream_t> to_stream(
+    counted_t<datum_stream_t> to_stream(
         env_t *outer_env,
         std::string,
         namespace_interface_t *nif,
@@ -1767,7 +1767,9 @@ public:
         read_response_t read_resp;
         // Note that we use the `outer_env`'s interruptor for the read.
         nif->read(
-            read_t(changefeed_stamp_t(addr), profile_bool_t::DONT_PROFILE),
+            read_t(changefeed_stamp_t(addr),
+                   profile_bool_t::DONT_PROFILE,
+                   read_mode_t::SINGLE),
             &read_resp, order_token_t::ignore, outer_env->interruptor);
         auto resp = boost::get<changefeed_stamp_response_t>(&read_resp.response);
         guarantee(resp != NULL);
@@ -2085,7 +2087,7 @@ public:
         return ret;
     }
 
-    virtual counted_t<datum_stream_t> to_stream(
+    counted_t<datum_stream_t> to_stream(
         env_t *env,
         std::string table,
         namespace_interface_t *nif,
@@ -2107,7 +2109,8 @@ public:
                        spec.range.sindex
                        ? region_t::universe()
                        : region_t(spec.range.range.to_primary_keyrange())),
-                   profile_bool_t::DONT_PROFILE),
+                   profile_bool_t::DONT_PROFILE,
+                   read_mode_t::SINGLE),
             &read_resp,
             order_token_t::ignore,
             env->interruptor);
@@ -2412,7 +2415,7 @@ private:
         // back empty batches, but that's OK and should be rare in practice.  In
         // the future we should consider either sleeping for 100ms in that case
         // or hooking into the waiting logic to block until we're ready.
-        return std::move(ret);
+        return ret;
     }
 
     bool discard(const store_key_t &pkey,

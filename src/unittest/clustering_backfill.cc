@@ -26,7 +26,6 @@ TPTEST(ClusteringBackfill, BackfillTest) {
     branch_id_t dummy_branch_id = generate_uuid();
     {
         branch_birth_certificate_t dummy_branch;
-        dummy_branch.region = region;
         dummy_branch.initial_timestamp = state_timestamp_t::zero();
         dummy_branch.origin = region_map_t<version_t>(region, version_t::zero());
         branch_history_manager.create_branch(dummy_branch_id, dummy_branch, &non_interruptor);
@@ -62,10 +61,11 @@ TPTEST(ClusteringBackfill, BackfillTest) {
             backfiller_store.new_write_token(&token);
 
 #ifndef NDEBUG
-            equality_metainfo_checker_callback_t
-                metainfo_checker_callback(
-                    binary_blob_t(version_t(dummy_branch_id, timestamp.pred())));
-            metainfo_checker_t metainfo_checker(&metainfo_checker_callback, region);
+            metainfo_checker_t metainfo_checker(region,
+                [&](const region_t &, const binary_blob_t &bb) {
+                    rassert(bb == binary_blob_t(version_t(
+                        dummy_branch_id, timestamp.pred())));
+                });
 #endif
 
             backfiller_store.write(
@@ -127,22 +127,18 @@ TPTEST(ClusteringBackfill, BackfillTest) {
     read_token_t token1;
     backfillee_store.new_read_token(&token1);
 
-    region_map_t<binary_blob_t> blob_backfillee_metadata;
-    backfillee_store.do_get_metainfo(order_source.check_in("backfillee_store.do_get_metainfo").with_read_mode(),
-                                     &token1, &non_interruptor, &blob_backfillee_metadata);
-
     region_map_t<version_t> backfillee_metadata =
-        to_version_map(blob_backfillee_metadata);
+        to_version_map(backfillee_store.get_metainfo(
+            order_source.check_in("backfillee_store.get_metainfo").with_read_mode(),
+            &token1, backfillee_store.get_region(), &non_interruptor));
 
     read_token_t token2;
     backfiller_store.new_read_token(&token2);
 
-    region_map_t<binary_blob_t> blob_backfiller_metadata;
-    backfiller_store.do_get_metainfo(order_source.check_in("backfiller_store.do_get_metainfo").with_read_mode(),
-                                     &token2, &non_interruptor, &blob_backfiller_metadata);
-
     region_map_t<version_t> backfiller_metadata =
-        to_version_map(blob_backfiller_metadata);
+        to_version_map(backfiller_store.get_metainfo(
+            order_source.check_in("backfiller_store.get_metainfo").with_read_mode(),
+            &token2, backfiller_store.get_region(), &non_interruptor));
 
     EXPECT_TRUE(backfillee_metadata == backfiller_metadata);
 

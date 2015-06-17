@@ -43,7 +43,8 @@ struct make_sindex_read_t {
                 boost::optional<ql::terminal_variant_t>(),
                 sindex_rangespec_t(id, boost::none, rng),
                 sorting_t::UNORDERED),
-            profile_bool_t::PROFILE);
+            profile_bool_t::PROFILE,
+            read_mode_t::SINGLE);
     }
 };
 
@@ -130,6 +131,12 @@ key_range_t quick_range(const char *bounds) {
 
 region_t quick_region(const char *bounds) {
     return region_t(quick_range(bounds));
+}
+
+state_timestamp_t make_state_timestamp(int n) {
+    state_timestamp_t t;
+    t.num = n;
+    return t;
 }
 
 }  // namespace unittest

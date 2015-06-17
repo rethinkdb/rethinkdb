@@ -40,7 +40,7 @@ real_branch_history_manager_t::real_branch_history_manager_t(
         interruptor);
 }
 
-branch_birth_certificate_t 
+branch_birth_certificate_t
 real_branch_history_manager_t::get_branch(const branch_id_t &branch)
         const THROWS_ONLY(missing_branch_exc_t) {
     assert_thread();
@@ -79,6 +79,7 @@ void real_branch_history_manager_t::import_branch_history(
         metadata_file_t::write_txn_t write_txn(metadata_file, interruptor);
         for (const auto &pair : new_records.branches) {
             if (!is_branch_known(pair.first)) {
+                cache.branches.insert(pair);
                 write_txn.write(
                     mdprefix_branch_birth_certificate().suffix(
                         uuid_to_str(table_id) + "/" + uuid_to_str(pair.first)),
@@ -87,6 +88,5 @@ void real_branch_history_manager_t::import_branch_history(
             }
         }
     }
-    cache.branches.insert(new_records.branches.begin(), new_records.branches.end());
 }
 

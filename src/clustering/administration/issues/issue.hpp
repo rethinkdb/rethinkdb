@@ -2,9 +2,10 @@
 #ifndef CLUSTERING_ADMINISTRATION_ISSUES_ISSUE_HPP_
 #define CLUSTERING_ADMINISTRATION_ISSUES_ISSUE_HPP_
 
-#include <vector>
+#include <numeric>
 #include <set>
 #include <string>
+#include <vector>
 
 #include "containers/scoped.hpp"
 #include "rpc/semilattice/view.hpp"
@@ -39,15 +40,10 @@ public:
     virtual const datum_string_t &get_name() const = 0;
     issue_id_t get_id() const { return issue_id; }
 
-    /* RSI: remove me completely
-    static const std::string get_server_name(const metadata_t &metadata,
-                                             const server_id_t &server_id);
-    */
-
     // Utility function for generating deterministic UUIDs via a hash of the args
     template<class... Args>
     static uuid_u from_hash(const uuid_u &base, const Args&... args) {
-        return uuid_u::from_hash(base, concat(args...));
+        return uuid_u::from_hash(base, concat({ item_to_str(args)... }));
     }
 
     issue_id_t issue_id;
@@ -64,21 +60,22 @@ protected:
         datum_string_t *description_out) const = 0;
 
 private:
-    // Terminal concat call
-    static std::string concat() { return std::string(""); }
+    template <typename T>
+    static std::string concat_internal(T items) {
+        return std::accumulate(items.begin(), items.end(), std::string(),
+            [](const std::string &acc, typename T::value_type const &val) {
+                return acc + item_to_str(val);
+            });
+    }
 
-    template <typename T, typename... Args>
-    static std::string concat(const T& arg1, const Args&... args) {
-        return item_to_str(arg1) + concat(args...);
+    template <typename T>
+    static std::string concat(const std::initializer_list<T> &list) {
+        return concat_internal(list);
     }
 
     template <typename T>
     static std::string item_to_str(const std::vector<T> &vec) {
-        std::string res;
-        for (auto const &item : vec) {
-            res += item_to_str(item);
-        }
-        return res;
+        return concat_internal(vec);
     }
 
     static std::string item_to_str(const name_string_t &str);
@@ -90,7 +87,7 @@ class issue_tracker_t {
 public:
     issue_tracker_t() { }
     virtual ~issue_tracker_t() { }
-    virtual std::vector<scoped_ptr_t<issue_t> > get_issues() const = 0;
+    virtual std::vector<scoped_ptr_t<issue_t> > get_issues(signal_t *interruptor) const = 0;
 private:
     DISABLE_COPYING(issue_tracker_t);
 };

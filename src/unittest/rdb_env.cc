@@ -22,12 +22,6 @@ void mock_namespace_interface_t::read(const read_t &query,
                                       read_response_t *response,
                                       UNUSED order_token_t tok,
                                       signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
-    read_outdated(query, response, interruptor);
-}
-
-void mock_namespace_interface_t::read_outdated(const read_t &query,
-                                               read_response_t *response,
-                                               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
     if (interruptor->is_pulsed()) {
         throw interrupted_exc_t();
     }
@@ -517,6 +511,18 @@ bool test_rdb_env_t::instance_t::table_reconfigure(
 bool test_rdb_env_t::instance_t::db_reconfigure(
         UNUSED counted_t<const ql::db_t> db,
         UNUSED const table_generate_config_params_t &params,
+        UNUSED bool dry_run,
+        UNUSED signal_t *local_interruptor,
+        UNUSED ql::datum_t *result_out,
+        std::string *error_out) {
+    *error_out = "test_rdb_env_t::instance_t doesn't support reconfigure()";
+    return false;
+}
+
+bool test_rdb_env_t::instance_t::table_emergency_repair(
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED const name_string_t &name,
+        UNUSED bool allow_erase,
         UNUSED bool dry_run,
         UNUSED signal_t *local_interruptor,
         UNUSED ql::datum_t *result_out,

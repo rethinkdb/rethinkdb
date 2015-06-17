@@ -30,12 +30,12 @@ directory_map_write_manager_t<key_t, value_t>::directory_map_write_manager_t(
             }
         },
         /* `on_connections_change()` will take care of sending initial messages */
-        false),
+        initial_call_t::NO),
     connections_subs(
         connectivity_cluster->get_connections(),
         std::bind(&directory_map_write_manager_t::on_connection_change,
             this, ph::_1, ph::_2),
-        true)
+        initial_call_t::YES)
 {
 }
 
@@ -47,6 +47,7 @@ public:
     update_writer_t(
             uint64_t _timestamp, const key_t &_key, boost::optional<value_t> &&_value) :
         timestamp(_timestamp), key(_key), value(std::move(_value)) { }
+
     void write(write_stream_t *s) {
         write_message_t wm;
         serialize<cluster_version_t::CLUSTER>(&wm, timestamp);
@@ -57,6 +58,15 @@ public:
             throw fake_archive_exc_t();
         }
     }
+
+#ifdef ENABLE_MESSAGE_PROFILER
+    const char *message_profiler_tag() const {
+        static const std::string tag = strprintf("directory_map<%s,%s>",
+            typeid(key_t).name(), typeid(value_t).name());
+        return tag.c_str();
+    }
+#endif
+
 private:
     uint64_t timestamp;
     key_t key;

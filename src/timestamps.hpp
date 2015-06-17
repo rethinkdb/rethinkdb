@@ -11,7 +11,11 @@
 #include "rpc/serialize_macros.hpp"
 
 class printf_buffer_t;
+class state_timestamp_t;
 
+namespace unittest {
+    state_timestamp_t make_state_timestamp(int n);
+}
 
 /* These are the timestamp types used by the clustering code.
 `repli_timestamp_t`, which is used internally within the btree code, is defined
@@ -65,24 +69,14 @@ public:
         return ts;
     }
 
+private:
     friend void debug_print(printf_buffer_t *buf, state_timestamp_t ts);
-
-    // This is only used for unit tests.
-#ifndef NDEBUG
-    static state_timestamp_t from_num(int n) {
-        state_timestamp_t t;
-        t.num = n;
-        return t;
-    }
-#endif
+    friend state_timestamp_t unittest::make_state_timestamp(int);
+    uint64_t num;
 
     RDB_MAKE_ME_SERIALIZABLE_1(state_timestamp_t, num);
-
-private:
-    uint64_t num;
 };
 
 void debug_print(printf_buffer_t *buf, state_timestamp_t ts);
-
 
 #endif /* TIMESTAMPS_HPP_ */

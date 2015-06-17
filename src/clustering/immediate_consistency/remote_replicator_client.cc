@@ -334,14 +334,14 @@ remote_replicator_client_t::remote_replicator_client_t(
     {
         /* Sanity check that the store's metainfo is all on the correct branch and all at
         the correct timestamp */
-        region_map_t<binary_blob_t> metainfo_blob;
         read_token_t read_token;
         store->new_read_token(&read_token);
-        store->do_get_metainfo(order_token_t::ignore.with_read_mode(),
-            &read_token, interruptor, &metainfo_blob);
+        region_map_t<version_t> version = to_version_map(store->get_metainfo(
+            order_token_t::ignore.with_read_mode(), &read_token, store->get_region(),
+            interruptor));
         version_t expect(branch_id,
             timestamp_enforcer_->get_latest_all_before_completed());
-        to_version_map(metainfo_blob).visit(store->get_region(),
+        version.visit(store->get_region(),
         [&](const region_t &region, const version_t &actual) {
             rassert(actual == expect, "Expected version %s for sub-range %s, but "
                 "got version %s.", debug_strprint(expect).c_str(),
@@ -376,9 +376,10 @@ void remote_replicator_client_t::apply_write_or_metainfo(
         region, binary_blob_t(version_t(branch_id, timestamp)));
     if (has_write) {
 #ifndef NDEBUG
-        equality_metainfo_checker_callback_t checker_cb(
-            binary_blob_t(version_t(branch_id, timestamp.pred())));
-        metainfo_checker_t checker(&checker_cb, region);
+        metainfo_checker_t checker(region,
+            [&](const region_t &, const binary_blob_t &bb) {
+                rassert(bb == binary_blob_t(version_t(branch_id, timestamp.pred())));
+            });
 #endif
         write_response_t dummy_response;
         store->write(

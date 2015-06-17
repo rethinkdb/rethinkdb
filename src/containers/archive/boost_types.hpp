@@ -7,7 +7,6 @@
 #include <boost/optional.hpp>
 #include <boost/variant.hpp>
 
-#include "concurrency/watchable_map.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/archive/varint.hpp"
 
@@ -146,14 +145,4 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, boost::optional<T> *x) {
     }
 }
 
-/* This isn't a Boost type, but there's not really a better place to put it. */
-
-template <cluster_version_t W>
-void serialize(write_message_t *, const empty_value_t &) {
-}
-
-template <cluster_version_t W>
-MUST_USE archive_result_t deserialize(read_stream_t *, empty_value_t *) {
-    return archive_result_t::SUCCESS;
-}
 #endif  // CONTAINERS_ARCHIVE_BOOST_TYPES_HPP_

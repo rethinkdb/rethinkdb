@@ -4,11 +4,8 @@
 
 #include "clustering/administration/perfmon_collection_repo.hpp"
 #include "clustering/immediate_consistency/backfill_throttler.hpp"
-#include "clustering/table_contract/coordinator.hpp"
 #include "clustering/table_contract/cpu_sharding.hpp"
-#include "clustering/table_contract/executor.hpp"
 #include "clustering/table_manager/table_manager.hpp"
-#include "clustering/table_manager/table_metadata.hpp"
 
 /* There is one `multi_table_manager_t` on each server. For tables hosted on this server,
 it handles administrative operations: table creation and deletion, adding and removing
@@ -71,6 +68,7 @@ public:
     multi_table_manager_t(
         const server_id_t &_server_id,
         mailbox_manager_t *_mailbox_manager,
+        server_config_client_t *server_config_client,
         watchable_map_t<peer_id_t, multi_table_manager_bcard_t>
             *_multi_table_manager_directory,
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
@@ -90,10 +88,12 @@ public:
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
             *_table_manager_directory);
 
+    ~multi_table_manager_t();
+
     multi_table_manager_bcard_t get_multi_table_manager_bcard() {
         multi_table_manager_bcard_t bcard;
-        bcard.action_mailbox = action_mailbox.get_address();
-        bcard.get_config_mailbox = get_config_mailbox.get_address();
+        bcard.action_mailbox = action_mailbox->get_address();
+        bcard.get_config_mailbox = get_config_mailbox->get_address();
         bcard.server_id = server_id;
         return bcard;
     }
@@ -112,6 +112,34 @@ public:
             std::pair<table_basic_config_t, multi_table_manager_bcard_t::timestamp_t> >
                 *get_table_basic_configs() {
         return &table_basic_configs;
+    }
+
+    /* Calls `callable` for each table, it must have a signature of:
+           void(const namespace_id_t &table_id, multistore_ptr_t *, table_manager_t *)
+     */
+    template <typename F>
+    void visit_tables(signal_t *interruptor, const F &callable) {
+        /* Fetch information for all tables that we know about. First we get in line for
+        each mutex, then we release the global mutex assertion, then we wait for each
+        mutex to be ready and copy out its data. */
+        mutex_assertion_t::acq_t global_mutex_acq(&mutex);
+        std::map<namespace_id_t, scoped_ptr_t<new_mutex_in_line_t> >
+            table_mutex_in_lines;
+        for (const auto &pair : tables) {
+            table_mutex_in_lines[pair.first] =
+                make_scoped<new_mutex_in_line_t>(&pair.second->mutex);
+        }
+        global_mutex_acq.reset();
+        for (const auto &pair : table_mutex_in_lines) {
+            wait_interruptible(pair.second->acq_signal(), interruptor);
+            auto it = tables.find(pair.first);
+            guarantee(it != tables.end());
+            if (it->second->status == table_t::status_t::ACTIVE) {
+                callable(pair.first,
+                         it->second->multistore_ptr.get(),
+                         &(it->second->active->manager));
+            }
+        }
     }
 
 private:
@@ -147,7 +175,7 @@ private:
             const namespace_id_t &table_id,
             const multi_table_manager_bcard_t::timestamp_t::epoch_t &epoch,
             const raft_member_id_t &member_id,
-            const raft_persistent_state_t<table_raft_state_t> &initial_state,
+            raft_storage_interface_t<table_raft_state_t> *raft_storage,
             multistore_ptr_t *multistore_ptr,
             perfmon_collection_t *perfmon_collection_namespace);
 
@@ -156,7 +184,19 @@ private:
         }
 
         void on_raft_commit();
-        void update_basic_configs_entry();
+
+        /* Updates `table->basic_configs_entry` to reflect any changes in the table's
+        basic config. Returns `true` if there was a change and `false` if it's the same.
+        */
+        bool update_basic_configs_entry();
+
+        /* Checks if there is a discrepancy between the table bcard we're getting from
+        the other peer and our local knowledge about the table. The reason for the
+        `_assuming_no_name_change` part of the name is that if the table's name has
+        changed, we need to sync to every server, but this function will still return
+        `false`. */
+        bool should_sync_assuming_no_name_change(
+            const peer_id_t &peer_id, const server_id_t &server_id);
 
         multi_table_manager_t *const parent;
         table_t *const table;
@@ -189,7 +229,7 @@ private:
     replica for this table. */
     class table_t {
     public:
-        enum class status_t { ACTIVE, INACTIVE, DELETED };
+        enum class status_t { ACTIVE, INACTIVE, DELETED, SHUTTING_DOWN };
 
         table_t() : sync_coro_running(false) { }
 
@@ -223,15 +263,14 @@ private:
         scoped_ptr_t<multistore_ptr_t> multistore_ptr;
         scoped_ptr_t<active_table_t> active;
 
-        /* Destructor order matters here. We must destroy `active` before
-        `multistore_ptr` because `active` uses the multistore. We must destroy `active`
-        before `basic_configs_entry` because `active` sometimes manipulates
-        `basic_configs_entry` through a `table_t *`. */
+        /* We must destroy `active` before `multistore_ptr` because `active` uses the
+        multistore. We must destroy `active` before `basic_configs_entry` because
+        `active` sometimes manipulates `basic_configs_entry` through a `table_t *`. */
     };
 
-    void on_table_manager_directory_change(
-        const std::pair<peer_id_t, namespace_id_t> &key,
-        const table_manager_bcard_t &value);
+    /* `help_construct()` initializes `multi_table_manager_directory_subs`,
+    `table_manager_directory_subs`, `action_mailbox`, and `get_config_mailbox`. */
+    void help_construct();
 
     /* `on_action()` and `on_get_config()` are mailbox callbacks */
 
@@ -249,9 +288,9 @@ private:
     void on_get_config(
         signal_t *interruptor,
         const boost::optional<namespace_id_t> &table_id,
-        const mailbox_t<void(
-            std::map<namespace_id_t, table_config_and_shards_t>
-            )>::address_t &reply_addr);
+        const mailbox_t<void(std::map<namespace_id_t, std::pair<
+                table_config_and_shards_t, multi_table_manager_bcard_t::timestamp_t>
+            >)>::address_t &reply_addr);
 
     /* `do_sync()` checks if it is necessary to send an action message to the given
     server regarding the given table, and sends one if so. It is called in the following
@@ -290,6 +329,7 @@ private:
     bool is_proxy_server;
     server_id_t server_id;
     mailbox_manager_t * const mailbox_manager;
+    server_config_client_t *server_config_client;
     watchable_map_t<peer_id_t, multi_table_manager_bcard_t>
         * const multi_table_manager_directory;
     watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
@@ -316,7 +356,7 @@ private:
     watchable_map_var_t<namespace_id_t, table_manager_bcard_t>
         table_manager_bcards;
 
-    /* This collects `table_query_bcards_t`s from all of the tables on this server into
+    /* This collects `table_query_bcard_t`s from all of the tables on this server into
     a single `watchable_map_t`. */
     watchable_map_combiner_t<namespace_id_t, uuid_u, table_query_bcard_t>
         table_query_bcard_combiner;
@@ -336,13 +376,14 @@ private:
 
     auto_drainer_t drainer;
 
-    watchable_map_t<peer_id_t, multi_table_manager_bcard_t>::all_subs_t
+    scoped_ptr_t<watchable_map_t<peer_id_t, multi_table_manager_bcard_t>::all_subs_t>
         multi_table_manager_directory_subs;
-    watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
-        ::all_subs_t table_manager_directory_subs;
+    scoped_ptr_t<watchable_map_t<
+        std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>::all_subs_t>
+            table_manager_directory_subs;
 
-    multi_table_manager_bcard_t::action_mailbox_t action_mailbox;
-    multi_table_manager_bcard_t::get_config_mailbox_t get_config_mailbox;
+    scoped_ptr_t<multi_table_manager_bcard_t::action_mailbox_t> action_mailbox;
+    scoped_ptr_t<multi_table_manager_bcard_t::get_config_mailbox_t> get_config_mailbox;
 };
 
 #endif /* CLUSTERING_TABLE_MANAGER_MULTI_TABLE_MANAGER_HPP_ */

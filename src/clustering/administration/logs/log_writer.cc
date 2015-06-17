@@ -447,8 +447,7 @@ TLS_with_init(thread_pool_log_writer_t *, global_log_writer, NULL);
 TLS_with_init(auto_drainer_t *, global_log_drainer, NULL);
 TLS_with_init(int, log_writer_block, 0);
 
-thread_pool_log_writer_t::thread_pool_log_writer_t(local_issue_aggregator_t *local_issue_aggregator) :
-        log_write_issue_tracker(local_issue_aggregator) {
+thread_pool_log_writer_t::thread_pool_log_writer_t() {
     pmap(get_num_threads(), boost::bind(&thread_pool_log_writer_t::install_on_thread, this, _1));
 }
 

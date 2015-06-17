@@ -25,10 +25,8 @@ bool changespec_t::include_initial_vals() {
 // RANGE/READGEN STUFF
 rget_response_reader_t::rget_response_reader_t(
     const counted_t<real_table_t> &_table,
-    bool _use_outdated,
     scoped_ptr_t<readgen_t> &&_readgen)
     : table(_table),
-      use_outdated(_use_outdated),
       started(false), shards_exhausted(false),
       readgen(std::move(_readgen)),
       last_read_start(store_key_t::min()),
@@ -164,7 +162,7 @@ struct last_read_start_visitor_t : public boost::static_visitor<store_key_t> {
 
 rget_read_response_t rget_response_reader_t::do_read(env_t *env, const read_t &read) {
     read_response_t res;
-    table->read_with_profile(env, read, &res, use_outdated);
+    table->read_with_profile(env, read, &res);
     auto rget_res = boost::get<rget_read_response_t>(&res.response);
     r_sanity_check(rget_res != NULL);
     if (auto e = boost::get<exc_t>(&rget_res->result)) {
@@ -176,9 +174,8 @@ rget_read_response_t rget_response_reader_t::do_read(env_t *env, const read_t &r
 
 rget_reader_t::rget_reader_t(
     const counted_t<real_table_t> &_table,
-    bool _use_outdated,
     scoped_ptr_t<readgen_t> &&_readgen)
-    : rget_response_reader_t(_table, _use_outdated, std::move(_readgen)) { }
+    : rget_response_reader_t(_table, std::move(_readgen)) { }
 
 void rget_reader_t::accumulate_all(env_t *env, eager_acc_t *acc) {
     r_sanity_check(!started);
@@ -295,9 +292,8 @@ bool rget_reader_t::load_items(env_t *env, const batchspec_t &batchspec) {
 
 intersecting_reader_t::intersecting_reader_t(
     const counted_t<real_table_t> &_table,
-    bool _use_outdated,
     scoped_ptr_t<readgen_t> &&_readgen)
-    : rget_response_reader_t(_table, _use_outdated, std::move(_readgen)) { }
+    : rget_response_reader_t(_table, std::move(_readgen)) { }
 
 void intersecting_reader_t::accumulate_all(env_t *env, eager_acc_t *acc) {
     r_sanity_check(!started);
@@ -377,10 +373,12 @@ readgen_t::readgen_t(
     const std::map<std::string, wire_func_t> &_global_optargs,
     std::string _table_name,
     profile_bool_t _profile,
+    read_mode_t _read_mode,
     sorting_t _sorting)
     : global_optargs(_global_optargs),
       table_name(std::move(_table_name)),
       profile(_profile),
+      read_mode(_read_mode),
       sorting(_sorting) { }
 
 bool readgen_t::update_range(key_range_t *active_range,
@@ -414,8 +412,9 @@ rget_readgen_t::rget_readgen_t(
     std::string _table_name,
     const datum_range_t &_original_datum_range,
     profile_bool_t _profile,
+    read_mode_t _read_mode,
     sorting_t _sorting)
-    : readgen_t(_global_optargs, std::move(_table_name), _profile, _sorting),
+    : readgen_t(_global_optargs, std::move(_table_name), _profile, _read_mode, _sorting),
       original_datum_range(_original_datum_range) { }
 
 read_t rget_readgen_t::next_read(
@@ -428,7 +427,8 @@ read_t rget_readgen_t::next_read(
                       std::move(stamp),
                       std::move(transforms),
                       batchspec),
-                  profile);
+                  profile,
+                  read_mode);
 }
 
 // TODO: this is how we did it before, but it sucks.
@@ -442,20 +442,23 @@ read_t rget_readgen_t::terminal_read(
         transforms,
         batchspec);
     read.terminal = _terminal;
-    return read_t(read, profile);
+    return read_t(read, profile, read_mode);
 }
 
 primary_readgen_t::primary_readgen_t(
     const std::map<std::string, wire_func_t> &global_optargs,
     std::string table_name,
     datum_range_t range,
-    profile_bool_t profile,
+    profile_bool_t _profile,
+    read_mode_t _read_mode,
     sorting_t sorting)
-    : rget_readgen_t(global_optargs, std::move(table_name), range, profile, sorting) { }
+    : rget_readgen_t(global_optargs, std::move(table_name), range,
+                     _profile, _read_mode, sorting) { }
 
 scoped_ptr_t<readgen_t> primary_readgen_t::make(
     env_t *env,
     std::string table_name,
+    read_mode_t read_mode,
     datum_range_t range,
     sorting_t sorting) {
     return scoped_ptr_t<readgen_t>(
@@ -464,6 +467,7 @@ scoped_ptr_t<readgen_t> primary_readgen_t::make(
             std::move(table_name),
             range,
             env->profile(),
+            read_mode,
             sorting));
 }
 
@@ -515,15 +519,18 @@ sindex_readgen_t::sindex_readgen_t(
     std::string table_name,
     const std::string &_sindex,
     datum_range_t range,
-    profile_bool_t profile,
+    profile_bool_t _profile,
+    read_mode_t _read_mode,
     sorting_t sorting)
-    : rget_readgen_t(global_optargs, std::move(table_name), range, profile, sorting),
+    : rget_readgen_t(global_optargs, std::move(table_name), range,
+                     _profile, _read_mode, sorting),
       sindex(_sindex),
       sent_first_read(false) { }
 
 scoped_ptr_t<readgen_t> sindex_readgen_t::make(
     env_t *env,
     std::string table_name,
+    read_mode_t read_mode,
     const std::string &sindex,
     datum_range_t range,
     sorting_t sorting) {
@@ -534,6 +541,7 @@ scoped_ptr_t<readgen_t> sindex_readgen_t::make(
             sindex,
             range,
             env->profile(),
+            read_mode,
             sorting));
 }
 
@@ -649,7 +657,8 @@ boost::optional<read_t> sindex_readgen_t::sindex_sort_read(
                             region_t(key_range_t(rng)),
                             original_datum_range),
                         sorting),
-                    profile);
+                    profile,
+                    read_mode);
             }
         }
     }
@@ -673,14 +682,17 @@ intersecting_readgen_t::intersecting_readgen_t(
     std::string table_name,
     const std::string &_sindex,
     const datum_t &_query_geometry,
-    profile_bool_t profile)
-    : readgen_t(global_optargs, std::move(table_name), profile, sorting_t::UNORDERED),
+    profile_bool_t _profile,
+    read_mode_t _read_mode)
+    : readgen_t(global_optargs, std::move(table_name),
+                _profile, _read_mode, sorting_t::UNORDERED),
       sindex(_sindex),
       query_geometry(_query_geometry) { }
 
 scoped_ptr_t<readgen_t> intersecting_readgen_t::make(
     env_t *env,
     std::string table_name,
+    read_mode_t read_mode,
     const std::string &sindex,
     const datum_t &query_geometry) {
     return scoped_ptr_t<readgen_t>(
@@ -689,7 +701,8 @@ scoped_ptr_t<readgen_t> intersecting_readgen_t::make(
             std::move(table_name),
             sindex,
             query_geometry,
-            env->profile()));
+            env->profile(),
+            read_mode));
 }
 
 read_t intersecting_readgen_t::next_read(
@@ -702,7 +715,8 @@ read_t intersecting_readgen_t::next_read(
                       std::move(stamp),
                       std::move(transforms),
                       batchspec),
-                  profile);
+                  profile,
+                  read_mode);
 }
 
 read_t intersecting_readgen_t::terminal_read(
@@ -716,7 +730,7 @@ read_t intersecting_readgen_t::terminal_read(
             transforms,
             batchspec);
     read.terminal = _terminal;
-    return read_t(read, profile);
+    return read_t(read, profile, read_mode);
 }
 
 intersecting_geo_read_t intersecting_readgen_t::next_read_impl(
@@ -1225,7 +1239,16 @@ public:
         if (!stream->is_exhausted() && !running) {
             running = true;
             auto_drainer_t::lock_t lock(&parent->drainer);
-            coro_t::spawn_sometime([this, lock]{this->cb(lock);});
+            if (stream->cfeed_type() == feed_type_t::not_feed) {
+                // We only launch a limited number of non-feed reads per union
+                // at a time, controlled by a coro pool.
+                parent->read_queue.push([this, lock]{this->cb(lock);});
+            } else {
+                // For feeds, we have to spawn a coroutine since we cannot afford
+                // to wait for a specific subset of substreams to yield a result
+                // before spawning a read from the remaining ones.
+                coro_t::spawn_sometime([this, lock]{this->cb(lock);});
+            }
         }
     }
     const counted_t<datum_stream_t> stream;
@@ -1281,6 +1304,10 @@ private:
     union_datum_stream_t *parent;
 };
 
+// The maximum number of reads that a union_datum_stream spawns on its substreams
+// at a time. This limit does not apply to changefeed streams.
+const size_t MAX_CONCURRENT_UNION_READS = 32;
+
 union_datum_stream_t::union_datum_stream_t(
     env_t *env,
     std::vector<counted_t<datum_stream_t> > &&streams,
@@ -1291,6 +1318,7 @@ union_datum_stream_t::union_datum_stream_t(
       is_infinite_union(false),
       sent_init(false),
       ready_needed(expected_states),
+      read_coro_pool(MAX_CONCURRENT_UNION_READS, &read_queue, &read_coro_callback),
       active(0),
       coros_exhausted(false) {
 

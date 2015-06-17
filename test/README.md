@@ -112,10 +112,10 @@ Interface tests live in `rethinkdb/test/interface/`. They usually take no
 parameters on the command line.
 
 Some examples:
-* `log.py` starts a server and fetches log entries from it over the HTTP
-    interface.
-* `progress.py` causes a backfill to happen and makes sure that the progress of
-    the backfill can be monitored through the HTTP interface
+* `log.py` starts a server and fetches log entries through the ReQL admin
+interface.
+* `rethinkdb_jobs.py` tests that various long running operations show up in the
+rethinkdb.jobs table
 
 Like scenario tests, interface tests are allowed to leave junk in the local
 directory.

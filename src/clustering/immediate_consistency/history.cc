@@ -18,11 +18,10 @@ region_map_t<binary_blob_t> from_version_map(const region_map_t<version_t> &vers
     return vers_map.map(vers_map.get_domain(), &binary_blob_t::make<version_t>);
 }
 
-/* RSI(raft): This should be SINCE_N, where N is the version when Raft is released */
-RDB_IMPL_SERIALIZABLE_3_SINCE_v1_16(branch_birth_certificate_t,
-                        region, initial_timestamp, origin);
-RDB_IMPL_EQUALITY_COMPARABLE_3(branch_birth_certificate_t,
-                               region, initial_timestamp, origin);
+RDB_IMPL_SERIALIZABLE_2_SINCE_v2_1(branch_birth_certificate_t,
+    initial_timestamp, origin);
+RDB_IMPL_EQUALITY_COMPARABLE_2(branch_birth_certificate_t,
+    initial_timestamp, origin);
 
 void branch_history_reader_t::export_branch_history(
         const branch_id_t &branch, branch_history_t *out) const THROWS_NOTHING {
@@ -35,7 +34,7 @@ void branch_history_reader_t::export_branch_history(
         to_process.erase(to_process.begin());
         auto res = out->branches.insert(std::make_pair(next, get_branch(next)));
         guarantee(res.second);
-        res.first->second.origin.visit(res.first->second.region,
+        res.first->second.origin.visit(res.first->second.origin.get_domain(),
         [&](const region_t &, const version_t &vers) {
             if (!vers.branch.is_nil() && out->branches.count(vers.branch) == 0) {
                 to_process.insert(vers.branch);
@@ -69,8 +68,7 @@ bool branch_history_t::is_branch_known(const branch_id_t &branch) const THROWS_N
     return branches.count(branch) != 0;
 }
 
-/* RSI(raft): This should be SINCE_N, where N is the version when Raft is released */
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_16(branch_history_t, branches);
+RDB_IMPL_SERIALIZABLE_1_SINCE_v2_1(branch_history_t, branches);
 RDB_IMPL_EQUALITY_COMPARABLE_1(branch_history_t, branches);
 
 bool version_is_ancestor(
@@ -88,7 +86,7 @@ bool version_is_ancestor(
         stack.pop();
         if (vers.branch == ancestor.branch && vers.timestamp >= ancestor.timestamp) {
             /* OK, this part matches; we don't need to do any further checking here */
-        } else if (vers.timestamp <= ancestor.timestamp) {
+        } else if (vers.timestamp < ancestor.timestamp) {
             /* This part definitely doesn't match */
             return false;
         } else {
@@ -150,7 +148,11 @@ region_map_t<version_t> version_find_common(
     std::stack<fragment_t> stack;
     std::vector<region_t> result_regions;
     std::vector<version_t> result_versions;
-    stack.push({initial_region, initial_v1, initial_v2, {}, {}});
+    fragment_t initial_fragment;
+    initial_fragment.r = initial_region;
+    initial_fragment.v1 = initial_v1;
+    initial_fragment.v2 = initial_v2;
+    stack.push(initial_fragment);
     while (!stack.empty()) {
         fragment_t x = stack.top();
         stack.pop();

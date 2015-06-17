@@ -2,24 +2,23 @@
 #ifndef CLUSTERING_TABLE_MANAGER_TABLE_MANAGER_HPP_
 #define CLUSTERING_TABLE_MANAGER_TABLE_MANAGER_HPP_
 
-#include "clustering/table_contract/coordinator.hpp"
-#include "clustering/table_contract/executor.hpp"
+#include "clustering/table_contract/coordinator/coordinator.hpp"
+#include "clustering/table_contract/executor/executor.hpp"
+#include "clustering/table_manager/server_name_cache_updater.hpp"
 #include "clustering/table_manager/sindex_manager.hpp"
 #include "clustering/table_manager/table_metadata.hpp"
 
 /* `table_manager_t` hosts the `raft_member_t` and the `contract_executor_t`. It also
 hosts the `contract_coordinator_t` if we are the Raft leader. */
-class table_manager_t :
-    private raft_storage_interface_t<table_raft_state_t>
-{
+class table_manager_t {
 public:
     table_manager_t(
         const server_id_t &_server_id,
         mailbox_manager_t *_mailbox_manager,
+        server_config_client_t *server_config_client,
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
             *_table_manager_directory,
         backfill_throttler_t *_backfill_throttler,
-        table_persistence_interface_t *_persistence_interface,
         watchable_map_t<std::pair<server_id_t, server_id_t>, empty_value_t>
             *_connections_map,
         const base_path_t &_base_path,
@@ -27,7 +26,7 @@ public:
         const namespace_id_t &_table_id,
         const multi_table_manager_bcard_t::timestamp_t::epoch_t &_epoch,
         const raft_member_id_t &raft_member_id,
-        const raft_persistent_state_t<table_raft_state_t> &initial_state,
+        raft_storage_interface_t<table_raft_state_t> *raft_storage,
         multistore_ptr_t *multistore_ptr,
         perfmon_collection_t *perfmon_collection_namespace);
 
@@ -50,6 +49,10 @@ public:
         return contract_executor.get_local_table_query_bcards();
     }
 
+    const sindex_manager_t &get_sindex_manager() const {
+        return sindex_manager;
+    }
+
 private:
     /* `leader_t` hosts the `contract_coordinator_t`. */
     class leader_t {
@@ -69,21 +72,17 @@ private:
         minidir_read_manager_t<std::pair<server_id_t, contract_id_t>, contract_ack_t>
             contract_ack_read_manager;
         contract_coordinator_t coordinator;
+        server_name_cache_updater_t server_name_cache_updater;
         table_manager_bcard_t::leader_bcard_t::set_config_mailbox_t set_config_mailbox;
     };
-
-    /* This is a `raft_storage_interface_t` method that the `raft_member_t` calls to
-    write its state to disk. */
-    void write_persistent_state(
-        const raft_persistent_state_t<table_raft_state_t> &persistent_state,
-        signal_t *interruptor);
 
     /* This is the callback for `get_status_mailbox`. */
     void on_get_status(
         signal_t *interruptor,
+        const get_status_selection_t &status_selection,
         const mailbox_t<void(
             std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >,
-            contracts_and_contract_acks_t
+            boost::optional<table_server_status_t>
             )>::address_t &reply_addr);
 
     /* This is the callback for `table_directory_subs`. It's responsible for
@@ -97,7 +96,7 @@ private:
     void on_raft_readiness_change();
 
     mailbox_manager_t * const mailbox_manager;
-    table_persistence_interface_t * const persistence_interface;
+    server_config_client_t *server_config_client;
     watchable_map_t<std::pair<server_id_t, server_id_t>, empty_value_t>
         * const connections_map;
 
@@ -135,6 +134,9 @@ private:
     raft_networked_member_t<table_raft_state_t> raft;
 
     watchable_variable_t<table_manager_bcard_t> table_manager_bcard;
+    watchable_field_copier_t<
+        raft_business_card_t<table_raft_state_t>, table_manager_bcard_t
+        > raft_bcard_copier;
 
     /* `leader` will be non-empty if we are the Raft leader */
     scoped_ptr_t<leader_t> leader;

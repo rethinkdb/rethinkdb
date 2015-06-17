@@ -251,6 +251,23 @@ bool artificial_reql_cluster_interface_t::db_reconfigure(
         result_out, error_out);
 }
 
+bool artificial_reql_cluster_interface_t::table_emergency_repair(
+        counted_t<const ql::db_t> db,
+        const name_string_t &name,
+        bool allow_erase,
+        bool dry_run,
+        signal_t *interruptor,
+        ql::datum_t *result_out,
+        std::string *error_out) {
+    if (db->name == database) {
+        *error_out = strprintf("Database `%s` is special; you can't configure the "
+            "tables in it.", database.c_str());
+        return false;
+    }
+    return next->table_emergency_repair(db, name, allow_erase, dry_run, interruptor,
+        result_out, error_out);
+}
+
 bool artificial_reql_cluster_interface_t::table_rebalance(
         counted_t<const ql::db_t> db,
         const name_string_t &name,
@@ -367,8 +384,9 @@ admin_artificial_tables_t::admin_artificial_tables_t(
 
     for (int i = 0; i < 2; ++i) {
         issues_backend[i].init(new issues_artificial_table_backend_t(
+            _mailbox_manager,
             _semilattice_view,
-            _directory_view,
+            _directory_map_view,
             _server_config_client,
             _table_meta_client,
             static_cast<admin_identifier_format_t>(i)));
@@ -387,17 +405,14 @@ admin_artificial_tables_t::admin_artificial_tables_t(
         std::make_pair(logs_backend[0].get(), logs_backend[1].get());
 
     server_config_backend.init(new server_config_artificial_table_backend_t(
-        metadata_field(&cluster_semilattice_metadata_t::servers,
-            _semilattice_view),
+        _directory_map_view,
         _server_config_client));
     backends[name_string_t::guarantee_valid("server_config")] =
         std::make_pair(server_config_backend.get(), server_config_backend.get());
 
     server_status_backend.init(new server_status_artificial_table_backend_t(
-        metadata_field(&cluster_semilattice_metadata_t::servers,
-            _semilattice_view),
-        _server_config_client,
-        _directory_map_view));
+        _directory_map_view,
+        _server_config_client));
     backends[name_string_t::guarantee_valid("server_status")] =
         std::make_pair(server_status_backend.get(), server_status_backend.get());
 
@@ -424,9 +439,9 @@ admin_artificial_tables_t::admin_artificial_tables_t(
     for (int i = 0; i < 2; ++i) {
         table_status_backend[i].init(new table_status_artificial_table_backend_t(
             _semilattice_view,
+            _server_config_client,
             _table_meta_client,
-            static_cast<admin_identifier_format_t>(i),
-            _server_config_client));
+            static_cast<admin_identifier_format_t>(i)));
     }
     backends[name_string_t::guarantee_valid("table_status")] =
         std::make_pair(table_status_backend[0].get(), table_status_backend[1].get());
@@ -448,18 +463,15 @@ admin_artificial_tables_t::admin_artificial_tables_t(
         std::make_pair(debug_scratch_backend.get(), debug_scratch_backend.get());
 
     debug_stats_backend.init(new debug_stats_artificial_table_backend_t(
-        metadata_field(&cluster_semilattice_metadata_t::servers,
-            _semilattice_view),
-        _server_config_client,
         _directory_map_view,
+        _server_config_client,
         _mailbox_manager));
     backends[name_string_t::guarantee_valid("_debug_stats")] =
         std::make_pair(debug_stats_backend.get(), debug_stats_backend.get());
 
     debug_table_status_backend.init(new debug_table_status_artificial_table_backend_t(
         _semilattice_view,
-        _table_meta_client,
-        _server_config_client));
+        _table_meta_client));
     backends[name_string_t::guarantee_valid("_debug_table_status")] =
         std::make_pair(debug_table_status_backend.get(),
                        debug_table_status_backend.get());

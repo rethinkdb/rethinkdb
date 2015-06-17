@@ -24,6 +24,7 @@
 #include "protocol_api.hpp"
 #include "rdb_protocol/changefeed.hpp"
 #include "rdb_protocol/protocol.hpp"
+#include "rdb_protocol/store_metainfo.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "store_view.hpp"
 #include "utils.hpp"
@@ -106,11 +107,11 @@ public:
     void new_read_token(read_token_t *token_out);
     void new_write_token(write_token_t *token_out);
 
-    void do_get_metainfo(
+    region_map_t<binary_blob_t> get_metainfo(
             order_token_t order_token,
             read_token_t *token,
-            signal_t *interruptor,
-            region_map_t<binary_blob_t> *out)
+            const region_t &region,
+            signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
     void set_metainfo(
@@ -312,10 +313,6 @@ public:
                         scoped_ptr_t<real_superblock_t> *superblock,
                         signal_t *interruptor);
 
-    void get_metainfo_internal(real_superblock_t *superblock,
-                               region_map_t<binary_blob_t> *out)
-        const THROWS_NOTHING;
-
     void acquire_superblock_for_read(
             read_token_t *token,
             scoped_ptr_t<txn_t> *txn_out,
@@ -355,21 +352,6 @@ private:
             const sindex_name_t &name);
 
 public:
-    void check_and_update_metainfo(
-        DEBUG_ONLY(const metainfo_checker_t &metainfo_checker, )
-        const region_map_t<binary_blob_t> &new_metainfo,
-        real_superblock_t *superblock) const
-        THROWS_NOTHING;
-
-    region_map_t<binary_blob_t> check_metainfo(
-        DEBUG_ONLY(const metainfo_checker_t &metainfo_checker, )
-        real_superblock_t *superblock) const
-        THROWS_NOTHING;
-
-    void update_metainfo(const region_map_t<binary_blob_t> &old_metainfo,
-                         const region_map_t<binary_blob_t> &new_metainfo,
-                         real_superblock_t *superblock) const THROWS_NOTHING;
-
     namespace_id_t const &get_table_id() const;
 
     typedef std::map<
@@ -392,6 +374,7 @@ public:
     io_backender_t *io_backender_;
     base_path_t base_path_;
     perfmon_membership_t perfmon_collection_membership;
+    scoped_ptr_t<store_metainfo_manager_t> metainfo;
 
     std::map<uuid_u, scoped_ptr_t<btree_slice_t> > secondary_index_slices;
 

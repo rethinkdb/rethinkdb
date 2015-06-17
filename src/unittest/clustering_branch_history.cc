@@ -21,14 +21,14 @@ region_map_t<version_t> quick_version_map(
     for (const quick_version_map_args_t &qvm : qvms) {
         region_vector.push_back(region_t(quick_range(qvm.quick_range_spec)));
         version_vector.push_back(
-            version_t(qvm.branch, state_timestamp_t::from_num(qvm.timestamp)));
+            version_t(qvm.branch, make_state_timestamp(qvm.timestamp)));
     }
     return region_map_t<version_t>::from_unordered_fragments(
         std::move(region_vector), std::move(version_vector));
 }
 
 version_t quick_vers(const branch_id_t &branch, int timestamp) {
-    return version_t(branch, state_timestamp_t::from_num(timestamp));
+    return version_t(branch, make_state_timestamp(timestamp));
 }
 
 branch_id_t quick_branch(
@@ -36,9 +36,8 @@ branch_id_t quick_branch(
         std::initializer_list<quick_version_map_args_t> origin) {
     branch_birth_certificate_t bc;
     bc.origin = quick_version_map(origin);
-    bc.region = bc.origin.get_domain();
     bc.initial_timestamp = state_timestamp_t::zero();
-    bc.origin.visit(bc.region, [&](const region_t &, const version_t &version) {
+    bc.origin.visit(bc.get_region(), [&](const region_t &, const version_t &version) {
         bc.initial_timestamp = std::max(bc.initial_timestamp, version.timestamp);
     });
     branch_id_t bid = generate_uuid();

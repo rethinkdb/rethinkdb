@@ -237,7 +237,7 @@ message Datum {
 // Some arguments must be provided as literal values (and not the results of sub
 // terms).  These are marked with a `!`.
 // Optional arguments are specified within curly braces as argname `:` value
-// type (e.x `{use_outdated:BOOL}`)
+// type (e.x `{noreply:BOOL}`)
 // Many RQL operations are polymorphic. For these, alterantive type signatures
 // are separated by `|`.
 //
@@ -313,8 +313,8 @@ message Term {
         // Returns a reference to a database.
         DB    = 14; // STRING -> Database
         // Returns a reference to a table.
-        TABLE = 15; // Database, STRING, {use_outdated:BOOL, identifier_format:STRING} -> Table
-                    // STRING, {use_outdated:BOOL, identifier_format:STRING} -> Table
+        TABLE = 15; // Database, STRING, {read_mode:STRING, identifier_format:STRING} -> Table
+                    // STRING, {read_mode:STRING, identifier_format:STRING} -> Table
         // Gets a single element from a table by its primary or a secondary key.
         GET   = 16; // Table, STRING -> SingleSelection | Table, NUMBER -> SingleSelection |
                     // Table, STRING -> NULL            | Table, NUMBER -> NULL |
@@ -511,11 +511,18 @@ message Term {
         WAIT    = 177; // Table -> OBJECT
                        // Database -> OBJECT
         // Generates a new config for the given table, or all tables in the given database
-        // The `shards` and `replicas` arguments are required
-        RECONFIGURE   = 176; // Database, {shards:NUMBER, replicas:NUMBER[, primary_replica_tag:STRING, dry_run:BOOLEAN]} -> OBJECT
-                             // Database, {shards:NUMBER, replicas:OBJECT[, primary_replica_tag:STRING, dry_run:BOOLEAN]} -> OBJECT
-                             // Table, {shards:NUMBER, replicas:NUMBER[, primary_replica_tag:STRING, dry_run:BOOLEAN]} -> OBJECT
-                             // Table, {shards:NUMBER, replicas:OBJECT[, primary_replica_tag:STRING, dry_run:BOOLEAN]} -> OBJECT
+        // The `shards` and `replicas` arguments are required. If `emergency_repair` is
+        // specified, it will enter a completely different mode of repairing a table
+        // which has lost half or more of its replicas.
+        RECONFIGURE   = 176; // Database|Table, {shards:NUMBER, replicas:NUMBER [,
+                             //                  dry_run:BOOLEAN]
+                             //                 } -> OBJECT
+                             // Database|Table, {shards:NUMBER, replicas:OBJECT [,
+                             //                  primary_replica_tag:STRING,
+                             //                  nonvoting_replica_tags:ARRAY,
+                             //                  dry_run:BOOLEAN]
+                             //                 } -> OBJECT
+                             // Table, {emergency_repair:STRING, dry_run:BOOLEAN} -> OBJECT
         // Balances the table's shards but leaves everything else the same. Can also be
         // applied to an entire database at once.
         REBALANCE     = 179; // Table -> OBJECT
@@ -767,7 +774,7 @@ message Term {
 //                                  EXAMPLE                                   //
 ////////////////////////////////////////////////////////////////////////////////
 //   ```ruby
-//   r.table('tbl', {:use_outdated => true}).insert([{:id => 0}, {:id => 1}])
+//   r.table('tbl', {:read_mode => 'outdated'}).insert([{:id => 0}, {:id => 1}])
 //   ```
 // Would turn into:
 //   Term {
@@ -778,10 +785,10 @@ message Term {
 //                         type = DATUM;
 //                         datum = Datum { type = R_STR; r_str = "tbl"; };
 //                       }];
-//               optargs = [["use_outdated",
+//               optargs = [["read_mode",
 //                           Term {
 //                             type = DATUM;
-//                             datum = Datum { type = R_BOOL; r_bool = true; };
+//                             datum = Datum { type = R_STR; r_bool = "outdated"; };
 //                           }]];
 //             },
 //             Term {
