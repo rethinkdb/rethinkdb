@@ -105,7 +105,9 @@ var cleanTable = function() {
 // -- tests
 
 describe('JavaScript changefeed', function() {
-    
+    this.timeout(5000); // Bump timeout from the default 2000ms because some operations
+                        // (like table creation) may take a moment
+
     before(cleanTable); // clean before the tests, some tests require continuity
     
     // ensure validity of reqlConn, tbl, and tableFeed
@@ -206,7 +208,8 @@ describe('JavaScript changefeed', function() {
                 });
             });
             
-            it('errors with an onFinishedCallback', function() {
+            // Deactivated, waiting on https://github.com/rethinkdb/rethinkdb/issues/4421
+            /*it('errors with an onFinishedCallback', function() {
                 return tbl.changes().run(reqlConn)
                 .then(function(tableFeed) {
                     return tableFeed.each(function() {}, function() {});
@@ -217,7 +220,7 @@ describe('JavaScript changefeed', function() {
                 .catch(r.Error.RqlRuntimeError, function(err) {
                     return true;
                 });
-            });
+            });*/
         });
         
         it('errors on hasNext', function() {
@@ -330,7 +333,7 @@ describe('JavaScript changefeed', function() {
             setTimeout(function() {
                 if(eventCounterA == expectedEvents) {
                      done();
-               } else {
+                } else {
                     err = new Error('Expected ' + expectedEvents + ' events but saw ' + eventCounterA + '/' + eventCounterB);
                     done(err);
                 }
@@ -350,7 +353,7 @@ describe('JavaScript changefeed', function() {
                 
                 // insert 2 events
                 tbl.insert([{'test':'data once'}, {'test':'data once'}]).run(reqlConn);
-                
+
                 // set a timeout to check on the result
                 setTimeout(function() {
                     if(eventCounter == 1) {
@@ -447,20 +450,20 @@ describe('JavaScript changefeed', function() {
             done();
         });
         
-        it("doesn't emit events after close", function() {
+        it("doesn't emit events after close", function(done) {
             var counter = 0;
             
             // set the event receiver
             tableFeed.on('data', function() { counter += 1; });
             
             // close the cursor
-            tableFeed.close()
+            tableFeed.close();
             
             // insert an item
-            tbl.insert({}).run(reqlConn)
+            tbl.insert({}).run(reqlConn);
             
             // after a short timeout check that counter is still 0
-            setTimeout(function(done) {
+            setTimeout(function() {
                 if(counter == 0) {
                     done();
                 } else {
