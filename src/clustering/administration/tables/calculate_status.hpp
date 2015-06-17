@@ -21,12 +21,10 @@
    so we should prioritize displaying `waiting_for_quorum` to make it clear why the
    primary is stuck. `transitioning` is the least informative error condition, so we
    shouldn't display it at all unless it's the only thing keeping us from being ready.
-   A replica in the `nothing` state is hidden, and last of all, the `disconnected` state
-   can never occur in conjunction with any other state, so it doesn't have a meaningful
-   position in the list. */
+   The `disconnected` state can never occur in conjunction with any other state, so it
+   doesn't have a meaningful position in the list. */
 enum class server_status_t {
     DISCONNECTED = 0,
-    NOTHING,
     READY,
     TRANSITIONING,
     WAITING_FOR_PRIMARY,
