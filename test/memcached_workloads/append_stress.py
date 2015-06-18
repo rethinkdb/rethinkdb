@@ -16,11 +16,8 @@ with rdb_workload_common.make_table_and_connection(opts) as (table, conn):
 
     table.insert({'id': key, 'val': val_chunks[0]}).run(conn)
 
-    # All commands have noreply except the last.
     for i in xrange(1, opts["n_appends"]):
-        time.sleep(.001)
-        noreply = not (i == opts["n_appends"] - 1)
-        response = table.get(key).update(lambda row: {'val': row['val'].add(val_chunks[i % 3])}).run(conn, noreply=noreply)
+        response = table.get(key).update(lambda row: {'val': row['val'].add(val_chunks[i % 3])}, durability="soft").run(conn)
 
     # Read the reply from the last command.
     if (response['replaced'] != 1):

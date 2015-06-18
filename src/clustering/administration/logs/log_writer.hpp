@@ -32,11 +32,16 @@ public:
 
 RDB_DECLARE_SERIALIZABLE(log_message_t);
 
+class log_read_exc_t : public std::runtime_error {
+public:
+    explicit log_read_exc_t(const std::string &s) : std::runtime_error(s) { }
+};
+
 std::string format_log_level(log_level_t l);
-log_level_t parse_log_level(const std::string &s) THROWS_ONLY(std::runtime_error);
+log_level_t parse_log_level(const std::string &s) THROWS_ONLY(log_read_exc_t);
 
 std::string format_log_message(const log_message_t &m, bool for_console = false);
-log_message_t parse_log_message(const std::string &s) THROWS_ONLY(std::runtime_error);
+log_message_t parse_log_message(const std::string &s) THROWS_ONLY(log_read_exc_t);
 
 
 class file_reverse_reader_t {
@@ -61,10 +66,14 @@ void vlog_internal(const char *src_file, int src_line, log_level_t level, const 
 
 class thread_pool_log_writer_t : public home_thread_mixin_t {
 public:
-    explicit thread_pool_log_writer_t(local_issue_aggregator_t *local_issue_aggregator);
+    thread_pool_log_writer_t();
     ~thread_pool_log_writer_t();
 
-    std::vector<log_message_t> tail(int max_lines, struct timespec min_timestamp, struct timespec max_timestamp, signal_t *interruptor) THROWS_ONLY(std::runtime_error, interrupted_exc_t);
+    std::vector<log_message_t> tail(int max_lines, struct timespec min_timestamp, struct timespec max_timestamp, signal_t *interruptor) THROWS_ONLY(log_read_exc_t, interrupted_exc_t);
+
+    log_write_issue_tracker_t *get_log_write_issue_tracker() {
+        return &log_write_issue_tracker;
+    }
 
 private:
     friend void log_coro(thread_pool_log_writer_t *writer, log_level_t level, const std::string &message, auto_drainer_t::lock_t lock);

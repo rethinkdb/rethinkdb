@@ -104,8 +104,12 @@ public:
           there_originally_was_value(false), stat_block(NULL_BLOCK_ID) { }
 
     ~keyvalue_location_t() {
-        if (pass_back_superblock != NULL && superblock != NULL) {
-            pass_back_superblock->pulse(superblock);
+        if (superblock != nullptr) {
+            if (pass_back_superblock != nullptr) {
+                pass_back_superblock->pulse(superblock);
+            } else {
+                superblock->release();
+            }
         }
     }
 
@@ -193,7 +197,8 @@ block_id_t create_stat_block(buf_parent_t parent);
  * the superblock is returned only when `*keyvalue_location_out` gets destructed. */
 void find_keyvalue_location_for_write(
         value_sizer_t *sizer,
-        superblock_t *superblock, const btree_key_t *key,
+        superblock_t *superblock,
+        const btree_key_t *key,
         repli_timestamp_t timestamp,
         const value_deleter_t *balancing_detacher,
         keyvalue_location_t *keyvalue_location_out,
@@ -202,9 +207,11 @@ void find_keyvalue_location_for_write(
 
 void find_keyvalue_location_for_read(
         value_sizer_t *sizer,
-        superblock_t *superblock, const btree_key_t *key,
+        superblock_t *superblock,
+        const btree_key_t *key,
         keyvalue_location_t *keyvalue_location_out,
-        btree_stats_t *stats, profile::trace_t *trace);
+        btree_stats_t *stats,
+        profile::trace_t *trace);
 
 /* Specifies whether `apply_keyvalue_change` should delete or erase a value.
 The difference is that deleting a value updates the node's replication timestamp

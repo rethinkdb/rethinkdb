@@ -5,6 +5,7 @@
 
 bool issue_t::to_datum(const metadata_t &metadata,
                        server_config_client_t *server_config_client,
+                       table_meta_client_t *table_meta_client,
                        admin_identifier_format_t identifier_format,
                        ql::datum_t *datum_out) const {
     ql::datum_object_builder_t builder;
@@ -13,8 +14,8 @@ bool issue_t::to_datum(const metadata_t &metadata,
     builder.overwrite("critical", ql::datum_t::boolean(is_critical()));
     ql::datum_t info;
     datum_string_t description;
-    if (!build_info_and_description(metadata, server_config_client, identifier_format,
-            &info, &description)) {
+    if (!build_info_and_description(metadata, server_config_client, table_meta_client,
+            identifier_format, &info, &description)) {
         return false;
     }
     builder.overwrite("info", info);
@@ -22,18 +23,6 @@ bool issue_t::to_datum(const metadata_t &metadata,
     *datum_out = std::move(builder).to_datum();
     return true;
 }
-
-/* RSI: remove me completely
-const std::string issue_t::get_server_name(const issue_t::metadata_t &metadata,
-                                           const server_id_t &server_id) {
-    auto server_it = metadata.servers.servers.find(server_id);
-    if (server_it == metadata.servers.servers.end() ||
-        server_it->second.is_deleted()) {
-        return std::string("__deleted_server__");
-    }
-    return server_it->second.get_ref().name.get_ref().str();
-}
-*/
 
 std::string issue_t::item_to_str(const name_string_t &str) {
     return item_to_str(str.str());

@@ -6,6 +6,7 @@
 #include <utility>
 #include <vector>
 
+#include "btree/types.hpp"
 #include "buffer_cache/types.hpp"
 #include "errors.hpp"
 
@@ -164,32 +165,31 @@ void remove(
 
 void erase_presence(value_sizer_t *sizer, leaf_node_t *node, const btree_key_t *key, key_modification_proof_t km_proof);
 
-class entry_reception_callback_t {
-public:
-    /* Note: If any of these callbacks throw exceptions, then
-    `dump_entries_since_time()` must pass the exception up and not leak memory
-    or anything. */
+/* Returns the smallest timestamp such that if a deletion had occurred with that
+timestamp, the node would still have a record of it. */
+repli_timestamp_t min_deletion_timestamp(
+    value_sizer_t *sizer,
+    const leaf_node_t *node,
+    // the recency of the buf that `node` came from
+    repli_timestamp_t maximum_existing_timestamp);
 
-    // Says that the timestamp was too early, and we can't send accurate deletion history.
-    virtual void lost_deletions() = 0;
+/* Removes all timestamps and deletions earlier than the given timestamp. */
+void erase_deletions(
+    value_sizer_t *sizer, leaf_node_t *node, repli_timestamp_t min_timestamp);
 
-    // Sends a deletion in the deletion history.
-    virtual void deletion(const btree_key_t *k, repli_timestamp_t tstamp) = 0;
-
-    // Sends the key/value pairs in the leaf.
-    virtual void keys_values(const std::vector<const btree_key_t *> &ks, const std::vector<const void *> &values, const std::vector<repli_timestamp_t> &tstamps) = 0;
-
-protected:
-    virtual ~entry_reception_callback_t() { }
-};
-
-void dump_entries_since_time(
-        value_sizer_t *sizer,
-        const leaf_node_t *node,
-        repli_timestamp_t minimum_tstamp,
-        /* the recency of the buf_t that `node` comes from */
-        repli_timestamp_t maximum_existing_tstamp,
-        entry_reception_callback_t *cb);
+/* Calls `cb` on every entry in the node, whether a real entry or a deletion. The calls
+will be in order from most recent to least recent. For entries with no timestamp, the
+callback will get `min_deletion_timestamp() - 1`. */
+continue_bool_t visit_entries(
+    value_sizer_t *sizer,
+    const leaf_node_t *node,
+    // the recency of the buf that `node` came from
+    repli_timestamp_t maximum_existing_timestamp,
+    const std::function<continue_bool_t(
+        const btree_key_t *key,
+        repli_timestamp_t timestamp,
+        const void *value   /* null for deletion */
+        )> &cb);
 
 class iterator {
 public:

@@ -5,6 +5,37 @@
 #include "rdb_protocol/datum.hpp"
 #include "time.hpp"
 
+bool sindex_config_t::operator==(const sindex_config_t &o) const {
+    if (func_version != o.func_version || multi != o.multi || geo != o.geo) {
+        return false;
+    }
+    /* This is kind of a hack--we compare the functions by serializing them and comparing
+    the serialized values. */
+    write_message_t wm1, wm2;
+    serialize<cluster_version_t::CLUSTER>(&wm1, func);
+    serialize<cluster_version_t::CLUSTER>(&wm2, o.func);
+    vector_stream_t stream1, stream2;
+    int res = send_write_message(&stream1, &wm1);
+    guarantee(res == 0);
+    res = send_write_message(&stream2, &wm2);
+    guarantee(res == 0);
+    return stream1.vector() == stream2.vector();
+}
+
+RDB_IMPL_SERIALIZABLE_4_SINCE_v2_1(sindex_config_t,
+    func, func_version, multi, geo);
+
+void sindex_status_t::accum(const sindex_status_t &other) {
+    blocks_processed += other.blocks_processed;
+    blocks_total += other.blocks_total;
+    ready &= other.ready;
+    start_time = std::min(start_time, other.start_time);
+    rassert(outdated == other.outdated);
+}
+
+RDB_IMPL_SERIALIZABLE_5_SINCE_v2_1(sindex_status_t,
+    blocks_processed, blocks_total, ready, outdated, start_time);
+
 const char *rql_perfmon_name = "query_engine";
 
 rdb_context_t::stats_t::stats_t(perfmon_collection_t *global_stats)

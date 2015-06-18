@@ -1,5 +1,6 @@
 #include "concurrency/rwlock.hpp"
 
+#include "concurrency/interruptor.hpp"
 #include "valgrind.hpp"
 
 rwlock_t::rwlock_t() { }
@@ -90,6 +91,15 @@ rwlock_acq_t::rwlock_acq_t(rwlock_t *lock, access_t access)
         read_signal()->wait();
     } else {
         write_signal()->wait();
+    }
+}
+
+rwlock_acq_t::rwlock_acq_t(rwlock_t *lock, access_t access, signal_t *interruptor)
+    : rwlock_in_line_t(lock, access) {
+    if (access == access_t::read) {
+        wait_interruptible(read_signal(), interruptor);
+    } else {
+        wait_interruptible(write_signal(), interruptor);
     }
 }
 

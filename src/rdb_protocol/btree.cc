@@ -10,7 +10,6 @@
 #include "errors.hpp"
 #include <boost/optional.hpp>
 
-#include "btree/backfill.hpp"
 #include "btree/concurrent_traversal.hpp"
 #include "btree/get_distribution.hpp"
 #include "btree/operations.hpp"
@@ -110,6 +109,7 @@ void kv_location_delete(keyvalue_location_t *kv_location,
                         const store_key_t &key,
                         repli_timestamp_t timestamp,
                         const deletion_context_t *deletion_context,
+                        delete_or_erase_t delete_or_erase,
                         rdb_modification_info_t *mod_info_out) {
     // Notice this also implies that buf is valid.
     guarantee(kv_location->value.has());
@@ -134,7 +134,7 @@ void kv_location_delete(keyvalue_location_t *kv_location,
     rdb_value_sizer_t sizer(block_size);
     null_key_modification_callback_t null_cb;
     apply_keyvalue_change(&sizer, kv_location, key.btree_key(), timestamp,
-            deletion_context->balancing_detacher(), &null_cb);
+            deletion_context->balancing_detacher(), &null_cb, delete_or_erase);
 }
 
 MUST_USE ql::serialization_result_t
@@ -264,7 +264,8 @@ batched_replace_response_t rdb_replace_and_return_superblock(
             /* Now that the change has passed validation, write it to disk */
             if (new_val.get_type() == ql::datum_t::R_NULL) {
                 kv_location_delete(&kv_location, *info.key, info.btree->timestamp,
-                                   deletion_context, mod_info_out);
+                                   deletion_context, delete_or_erase_t::DELETE,
+                                   mod_info_out);
             } else {
                 r_sanity_check(new_val.get_field(primary_key, ql::NOTHROW).has());
                 ql::serialization_result_t res =
@@ -483,98 +484,20 @@ void rdb_set(const store_key_t &key,
         (had_value ? point_write_result_t::DUPLICATE : point_write_result_t::STORED);
 }
 
-class agnostic_rdb_backfill_callback_t : public agnostic_backfill_callback_t {
-public:
-    agnostic_rdb_backfill_callback_t(rdb_backfill_callback_t *cb,
-                                     const key_range_t &kr,
-                                     btree_slice_t *slice) :
-        cb_(cb), kr_(kr), slice_(slice) { }
-
-    void on_delete_range(const key_range_t &range, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        rassert(kr_.is_superset(range));
-        cb_->on_delete_range(range, interruptor);
-    }
-
-    void on_deletion(const btree_key_t *key, repli_timestamp_t recency, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        rassert(kr_.contains_key(key->contents, key->size));
-        cb_->on_deletion(key, recency, interruptor);
-    }
-
-    void on_pairs(buf_parent_t leaf_node,
-                  const std::vector<repli_timestamp_t> &recencies,
-                  const std::vector<const btree_key_t *> &keys,
-                  const std::vector<const void *> &vals,
-                  signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-
-        std::vector<backfill_atom_t> chunk_atoms;
-        chunk_atoms.reserve(keys.size());
-        size_t current_chunk_size = 0;
-
-        for (size_t i = 0; i < keys.size(); ++i) {
-            rassert(kr_.contains_key(keys[i]->contents, keys[i]->size));
-            const rdb_value_t *value = static_cast<const rdb_value_t *>(vals[i]);
-
-            backfill_atom_t atom;
-            atom.key.assign(keys[i]->size, keys[i]->contents);
-            atom.value = get_data(value, leaf_node);
-            atom.recency = recencies[i];
-            chunk_atoms.push_back(atom);
-            current_chunk_size += static_cast<size_t>(atom.key.size())
-                + serialized_size<cluster_version_t::CLUSTER>(atom.value);
-
-            if (current_chunk_size >= BACKFILL_MAX_KVPAIRS_SIZE) {
-                // To avoid flooding the receiving node with overly large chunks
-                // (which could easily make it run out of memory in extreme
-                // cases), pass on what we have got so far. Then continue
-                // with the remaining values.
-                slice_->stats.pm_keys_read.record(chunk_atoms.size());
-                slice_->stats.pm_total_keys_read += chunk_atoms.size();
-                cb_->on_keyvalues(std::move(chunk_atoms), interruptor);
-                chunk_atoms = std::vector<backfill_atom_t>();
-                chunk_atoms.reserve(keys.size() - (i+1));
-                current_chunk_size = 0;
-            }
-        }
-        if (!chunk_atoms.empty()) {
-            // Pass on the final chunk
-            slice_->stats.pm_keys_read.record(chunk_atoms.size());
-            slice_->stats.pm_total_keys_read += chunk_atoms.size();
-            cb_->on_keyvalues(std::move(chunk_atoms), interruptor);
-        }
-    }
-
-    void on_sindexes(const std::map<std::string, secondary_index_t> &sindexes, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        cb_->on_sindexes(sindexes, interruptor);
-    }
-
-    rdb_backfill_callback_t *cb_;
-    key_range_t kr_;
-    btree_slice_t *slice_;
-};
-
-void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range,
-                  repli_timestamp_t since_when, rdb_backfill_callback_t *callback,
-                  refcount_superblock_t *superblock,
-                  buf_lock_t *sindex_block,
-                  parallel_traversal_progress_t *p, signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t) {
-    agnostic_rdb_backfill_callback_t agnostic_cb(callback, key_range, slice);
-    rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
-    do_agnostic_btree_backfill(&sizer, key_range, since_when, &agnostic_cb,
-                               superblock, sindex_block, p, interruptor);
-}
-
 void rdb_delete(const store_key_t &key, btree_slice_t *slice,
                 repli_timestamp_t timestamp,
                 real_superblock_t *superblock,
                 const deletion_context_t *deletion_context,
+                delete_or_erase_t delete_or_erase,
                 point_delete_response_t *response,
                 rdb_modification_info_t *mod_info,
-                profile::trace_t *trace) {
+                profile::trace_t *trace,
+                promise_t<superblock_t *> *pass_back_superblock) {
     keyvalue_location_t kv_location;
     rdb_value_sizer_t sizer(superblock->cache()->max_block_size());
     find_keyvalue_location_for_write(&sizer, superblock, key.btree_key(), timestamp,
-            deletion_context->balancing_detacher(), &kv_location, trace);
+            deletion_context->balancing_detacher(), &kv_location, trace,
+            pass_back_superblock);
     slice->stats.pm_keys_set.record();
     slice->stats.pm_total_keys_set += 1;
     bool exists = kv_location.value.has();
@@ -583,7 +506,8 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice,
     if (exists) {
         mod_info->deleted.first = get_data(kv_location.value_as<rdb_value_t>(),
                                            buf_parent_t(&kv_location.buf));
-        kv_location_delete(&kv_location, key, timestamp, deletion_context, mod_info);
+        kv_location_delete(&kv_location, key, timestamp, deletion_context,
+            delete_or_erase, mod_info);
         guarantee(!mod_info->deleted.second.empty() && mod_info->added.second.empty());
     }
     response->result = (exists ? point_delete_result_t::DELETED : point_delete_result_t::MISSING);
@@ -671,7 +595,7 @@ public:
               boost::optional<rget_sindex_data_t> &&_sindex,
               const key_range_t &range);
 
-    virtual done_traversing_t handle_pair(
+    virtual continue_bool_t handle_pair(
         scoped_key_value_t &&keyvalue,
         concurrent_traversal_fifo_enforcer_signal_t waiter)
         THROWS_ONLY(interrupted_exc_t);
@@ -697,7 +621,7 @@ rget_cb_t::rget_cb_t(rget_io_data_t &&_io,
       bad_init(false) {
     io.response->last_key = !reversed(job.sorting)
         ? range.left
-        : (!range.right.unbounded ? range.right.key : store_key_t::max());
+        : (!range.right.unbounded ? range.right.key() : store_key_t::max());
     disabler.init(new profile::disabler_t(job.env->trace));
     sampler.init(new profile::sampler_t("Range traversal doc evaluation.",
                                         job.env->trace));
@@ -711,20 +635,20 @@ void rget_cb_t::finish() THROWS_ONLY(interrupted_exc_t) {
 }
 
 // Handle a keyvalue pair.  Returns whether or not we're done early.
-done_traversing_t rget_cb_t::handle_pair(
+continue_bool_t rget_cb_t::handle_pair(
     scoped_key_value_t &&keyvalue,
     concurrent_traversal_fifo_enforcer_signal_t waiter)
     THROWS_ONLY(interrupted_exc_t) {
     sampler->new_sample();
 
     if (bad_init || boost::get<ql::exc_t>(&io.response->result) != NULL) {
-        return done_traversing_t::YES;
+        return continue_bool_t::ABORT;
     }
 
     // Load the key and value.
     store_key_t key(keyvalue.key());
     if (sindex && !sindex->pkey_range.contains_key(ql::datum_t::extract_primary(key))) {
-        return done_traversing_t::NO;
+        return continue_bool_t::CONTINUE;
     }
 
     lazy_json_t row(static_cast<const rdb_value_t *>(keyvalue.value()),
@@ -769,7 +693,7 @@ done_traversing_t rget_cb_t::handle_pair(
                 guarantee(sindex_val.has());
             }
             if (!sindex->range.contains(sindex_val)) {
-                return done_traversing_t::NO;
+                return continue_bool_t::CONTINUE;
             }
         }
 
@@ -788,13 +712,13 @@ done_traversing_t rget_cb_t::handle_pair(
                                   std::move(sindex_val)); // NULL if no sindex
     } catch (const ql::exc_t &e) {
         io.response->result = e;
-        return done_traversing_t::YES;
+        return continue_bool_t::ABORT;
     } catch (const ql::datum_exc_t &e) {
 #ifndef NDEBUG
         unreachable();
 #else
         io.response->result = ql::exc_t(e, ql::backtrace_id_t::empty());
-        return done_traversing_t::YES;
+        return continue_bool_t::ABORT;
 #endif // NDEBUG
     }
 }
@@ -949,7 +873,7 @@ void rdb_get_nearest_slice(
             std::move(partial_res->begin(), partial_res->end(),
                       std::back_inserter(*full_res));
         }
-    } while (state.proceed_to_next_batch() == done_traversing_t::NO);
+    } while (state.proceed_to_next_batch() == continue_bool_t::CONTINUE);
 }
 
 void rdb_distribution_get(int max_depth,
@@ -1426,6 +1350,7 @@ void rdb_update_single_sindex(
                             it->first,
                             repli_timestamp_t::distant_past,
                             deletion_context,
+                            delete_or_erase_t::DELETE,
                             NULL);
                     }
                     // The keyvalue location gets destroyed here.

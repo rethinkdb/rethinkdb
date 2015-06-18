@@ -68,7 +68,8 @@ private:
 
     static void *start_thread(void*);
     static void interrupt_handler(int signo, siginfo_t *siginfo, void *);
-    static void sigsegv_handler(int, siginfo_t *, void *) NORETURN;
+    // Currently handles SIGSEGV and SIGBUS signals.
+    static void fatal_signal_handler(int, siginfo_t *, void *) NORETURN;
     spinlock_t interrupt_message_lock;
     os_signal_cond_t *interrupt_message;
 

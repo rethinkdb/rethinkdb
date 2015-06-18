@@ -41,13 +41,17 @@
 
 class store_subview_t final : public store_view_t {
 public:
+    /* Note that `store_subview_t` can be created and deleted on any thread, but its
+    "home thread" will be set as the home thread of the underlying store. */
+
     store_subview_t(store_view_t *_store_view, region_t region)
         : store_view_t(region), store_view(_store_view) {
+        home_thread_mixin_t::real_home_thread = store_view->home_thread();
         rassert(region_is_superset(_store_view->get_region(), region));
     }
 
     ~store_subview_t() {
-        store_view->note_reshard();
+        home_thread_mixin_t::real_home_thread = get_thread_id();
     }
     void note_reshard() {
         store_view->note_reshard();
@@ -65,24 +69,26 @@ public:
         store_view->new_write_token(token_out);
     }
 
-    void do_get_metainfo(order_token_t order_token,
-                         read_token_t *token,
-                         signal_t *interruptor,
-                         region_map_t<binary_blob_t> *out)
+    region_map_t<binary_blob_t> get_metainfo(
+            order_token_t order_token,
+            read_token_t *token,
+            const region_t &region,
+            signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
-        region_map_t<binary_blob_t> tmp;
-        store_view->do_get_metainfo(order_token, token, interruptor, &tmp);
-        *out = tmp.mask(get_region());
+        rassert(region_is_superset(get_region(), region));
+        return store_view->get_metainfo(order_token, token, region, interruptor);
     }
 
     void set_metainfo(const region_map_t<binary_blob_t> &new_metainfo,
                       order_token_t order_token,
                       write_token_t *token,
+                      write_durability_t durability,
                       signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
         rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
-        store_view->set_metainfo(new_metainfo, order_token, token, interruptor);
+        store_view->set_metainfo(
+            new_metainfo, order_token, token, durability, interruptor);
     }
 
     void read(
@@ -93,9 +99,10 @@ public:
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
-        rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
+        rassert(region_is_superset(get_region(), metainfo_checker.region));
 
-        store_view->read(DEBUG_ONLY(metainfo_checker, ) read, response, token, interruptor);
+        store_view->read(DEBUG_ONLY(metainfo_checker, ) read, response, token,
+            interruptor);
     }
 
     void write(
@@ -110,38 +117,49 @@ public:
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
-        rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
+        rassert(region_is_superset(get_region(), metainfo_checker.region));
         rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 
-        store_view->write(DEBUG_ONLY(metainfo_checker, ) new_metainfo, write, response, durability, timestamp, order_token, token, interruptor);
+        store_view->write(DEBUG_ONLY(metainfo_checker, ) new_metainfo, write, response,
+            durability, timestamp, order_token, token, interruptor);
     }
 
-    bool send_backfill(
+    continue_bool_t send_backfill_pre(
             const region_map_t<state_timestamp_t> &start_point,
-            send_backfill_callback_t *send_backfill_cb,
-            traversal_progress_combiner_t *p,
-            read_token_t *token,
+            backfill_pre_item_consumer_t *pre_item_consumer,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
         rassert(region_is_superset(get_region(), start_point.get_domain()));
-
-        return store_view->send_backfill(start_point, send_backfill_cb, p, token, interruptor);
+        return store_view->send_backfill_pre(
+            start_point, pre_item_consumer, interruptor);
     }
 
-    void receive_backfill(
-            const backfill_chunk_t &chunk,
-            write_token_t *token,
+    continue_bool_t send_backfill(
+            const region_map_t<state_timestamp_t> &start_point,
+            backfill_pre_item_producer_t *pre_item_producer,
+            backfill_item_consumer_t *item_consumer,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
-        store_view->receive_backfill(chunk, token, interruptor);
+        rassert(region_is_superset(get_region(), start_point.get_domain()));
+        return store_view->send_backfill(
+            start_point, pre_item_producer, item_consumer, interruptor);
     }
 
-    void throttle_backfill_chunk(signal_t *interruptor)
+    continue_bool_t receive_backfill(
+            const region_t &region,
+            backfill_item_producer_t *item_producer,
+            signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
-        store_view->throttle_backfill_chunk(interruptor);
+        rassert(region_is_superset(get_region(), region));
+        return store_view->receive_backfill(region, item_producer, interruptor);
+    }
+
+    void wait_until_ok_to_receive_backfill(signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t) {
+        store_view->wait_until_ok_to_receive_backfill(interruptor);
     }
 
     void reset_data(
@@ -152,7 +170,6 @@ public:
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
         rassert(region_is_superset(get_region(), subregion));
-
         store_view->reset_data(zero_version, subregion, durability, interruptor);
     }
 

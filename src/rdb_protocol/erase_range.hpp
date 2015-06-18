@@ -34,13 +34,17 @@ struct always_true_key_tester_t : public key_tester_t {
 };
 
 /* `rdb_erase_small_range` has a complexity of O(log n * m) where n is the size of
- * the btree, and m is the number of documents actually being deleted.
- * It also requires O(m) memory.
- * It returns a number of modification reports that should be applied
- * to secondary indexes separately. Blobs are detached, and should be deleted later
- * if required (passing the modification reports to store_t::update_sindexes()
- * takes care of that). */
-done_traversing_t rdb_erase_small_range(
+the btree, and m is the number of documents actually being deleted.
+
+It also requires O(m) memory.
+
+It returns a number of modification reports that should be applied to secondary indexes
+separately. Blobs are detached, and should be deleted later if required (passing the
+modification reports to store_t::update_sindexes() takes care of that).
+
+Returns `CONTINUE` if it stopped because it collected `max_keys_to_erase` and `ABORT` if
+it stopped because it hit the end of the range. */
+continue_bool_t rdb_erase_small_range(
     btree_slice_t *btree_slice,
     key_tester_t *tester,
     const key_range_t &keys,

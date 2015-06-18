@@ -22,12 +22,6 @@ void mock_namespace_interface_t::read(const read_t &query,
                                       read_response_t *response,
                                       UNUSED order_token_t tok,
                                       signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
-    read_outdated(query, response, interruptor);
-}
-
-void mock_namespace_interface_t::read_outdated(const read_t &query,
-                                               read_response_t *response,
-                                               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
     if (interruptor->is_pulsed()) {
         throw interrupted_exc_t();
     }
@@ -118,16 +112,6 @@ void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
 
 void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
         UNUSED const distribution_read_t &dg) {
-    throw cannot_perform_query_exc_t("unimplemented");
-}
-
-void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
-        UNUSED const sindex_list_t &sinner) {
-    throw cannot_perform_query_exc_t("unimplemented");
-}
-
-void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
-        UNUSED const sindex_status_t &ss) {
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
@@ -244,18 +228,6 @@ void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const poin
 }
 
 void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const point_delete_t &) {
-    throw cannot_perform_query_exc_t("unimplemented");
-}
-
-void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const sindex_create_t &) {
-    throw cannot_perform_query_exc_t("unimplemented");
-}
-
-void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const sindex_drop_t &) {
-    throw cannot_perform_query_exc_t("unimplemented");
-}
-
-void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const sindex_rename_t &) {
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
@@ -547,6 +519,18 @@ bool test_rdb_env_t::instance_t::db_reconfigure(
     return false;
 }
 
+bool test_rdb_env_t::instance_t::table_emergency_repair(
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED const name_string_t &name,
+        UNUSED bool allow_erase,
+        UNUSED bool dry_run,
+        UNUSED signal_t *local_interruptor,
+        UNUSED ql::datum_t *result_out,
+        std::string *error_out) {
+    *error_out = "test_rdb_env_t::instance_t doesn't support reconfigure()";
+    return false;
+}
+
 bool test_rdb_env_t::instance_t::table_rebalance(
         UNUSED counted_t<const ql::db_t> db,
         UNUSED const name_string_t &name,
@@ -563,6 +547,50 @@ bool test_rdb_env_t::instance_t::db_rebalance(
         UNUSED ql::datum_t *result_out,
         std::string *error_out) {
     *error_out = "test_rdb_env_t::instance_t doesn't support rebalance()";
+    return false;
+}
+
+bool test_rdb_env_t::instance_t::sindex_create(
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED const name_string_t &table,
+        UNUSED const std::string &name,
+        UNUSED const sindex_config_t &config,
+        UNUSED signal_t *local_interruptor,
+        std::string *error_out) {
+    *error_out = "test_rdb_env_t::instance_t doesn't support sindex_create()";
+    return false;
+}
+
+bool test_rdb_env_t::instance_t::sindex_drop(
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED const name_string_t &table,
+        UNUSED const std::string &name,
+        UNUSED signal_t *local_interruptor,
+        std::string *error_out) {
+    *error_out = "test_rdb_env_t::instance_t doesn't support sindex_drop()";
+    return false;
+}
+
+bool test_rdb_env_t::instance_t::sindex_rename(
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED const name_string_t &table,
+        UNUSED const std::string &name,
+        UNUSED const std::string &new_name,
+        UNUSED bool overwrite,
+        UNUSED signal_t *local_interruptor,
+        std::string *error_out) {
+    *error_out = "test_rdb_env_t::instance_t doesn't support sindex_rename()";
+    return false;
+}
+
+bool test_rdb_env_t::instance_t::sindex_list(
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED const name_string_t &table,
+        UNUSED signal_t *local_interruptor,
+        std::string *error_out,
+        UNUSED std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
+            *configs_and_statuses_out) {
+    *error_out = "test_rdb_env_t::instance_t doesn't support sindex_list()";
     return false;
 }
 

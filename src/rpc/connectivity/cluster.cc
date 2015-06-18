@@ -131,7 +131,7 @@ connectivity_cluster_t::connection_t::connection_t(run_t *p,
                                                    const peer_address_t &a) THROWS_NOTHING :
     conn(c),
     peer_address(a),
-    flusher([&]() {
+    flusher([&](signal_t *) {
         guarantee(this->conn != nullptr);
         // We need to acquire the send_mutex because flushing the buffer
         // must not interleave with other writes (restriction of linux_tcp_conn_t).
@@ -464,6 +464,11 @@ public:
         /* Do nothing. The cluster will end up sending just the tag 'H' with no message
         attached, which will trigger `keepalive_read()` on the remote server. */
     }
+#ifdef ENABLE_MESSAGE_PROFILER
+    const char *message_profiler_tag() const {
+        return "heartbeat";
+    }
+#endif
     connectivity_cluster_t::connection_t *connection;
     auto_drainer_t::lock_t connection_keepalive;
     bool read_done, write_done;
@@ -1163,6 +1168,31 @@ connectivity_cluster_t::connectivity_cluster_t() THROWS_NOTHING :
 
 connectivity_cluster_t::~connectivity_cluster_t() THROWS_NOTHING {
     guarantee(!current_run);
+
+#ifdef ENABLE_MESSAGE_PROFILER
+    std::map<std::string, std::pair<uint64_t, uint64_t> > total_counts;
+    pmap(get_num_threads(), [&](int num) {
+        std::map<std::string, std::pair<uint64_t, uint64_t> > copy;
+        {
+            on_thread_t thread_switcher((threadnum_t(num)));
+            copy = *message_profiler_counts.get();
+        }
+        for (const auto &pair : copy) {
+            total_counts[pair.first].first += pair.second.first;
+            total_counts[pair.first].second += pair.second.second;
+        }
+    });
+
+    std::string output_filename =
+        strprintf("message_profiler_out_%d.txt", static_cast<int>(getpid()));
+    FILE *file = fopen(output_filename.c_str(), "w");
+    guarantee(file != nullptr, "Cannot open %s for writing", output_filename.c_str());
+    for (const auto &pair : total_counts) {
+        fprintf(file, "%" PRIu64 " %" PRIu64 " %s\n",
+            pair.second.first, pair.second.second, pair.first.c_str());
+    }
+    fclose(file);
+#endif
 }
 
 peer_id_t connectivity_cluster_t::get_me() THROWS_NOTHING {
@@ -1231,6 +1261,13 @@ void connectivity_cluster_t::send_message(connection_t *connection,
 
     size_t bytes_sent = buffer.vector().size();
 
+#ifdef ENABLE_MESSAGE_PROFILER
+    std::pair<uint64_t, uint64_t> *stats =
+        &(*message_profiler_counts.get())[callback->message_profiler_tag()];
+    stats->first += 1;
+    stats->second += bytes_sent;
+#endif
+
     if (connection->is_loopback()) {
         // We could be on any thread here! Oh no!
         std::vector<char> buffer_data;
@@ -1286,7 +1323,9 @@ void connectivity_cluster_t::send_message(connection_t *connection,
             }
         } /* Releases the send_mutex */
 
-        connection->flusher.sync();
+        connection->flusher.notify();
+        cond_t dummy_interruptor;
+        connection->flusher.flush(&dummy_interruptor);
         if (!connection->conn->is_write_open()) {
             if (connection->conn->is_read_open()) {
                 connection->conn->shutdown_read();

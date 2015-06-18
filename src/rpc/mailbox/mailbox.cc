@@ -99,6 +99,13 @@ public:
         res = send_write_message(stream, &wm);
         if (res) { throw fake_archive_exc_t(); }
     }
+
+#ifdef ENABLE_MESSAGE_PROFILER
+    const char *message_profiler_tag() const {
+        return subwriter->message_profiler_tag();
+    }
+#endif
+
 private:
     int32_t dest_thread;
     raw_mailbox_t::id_t dest_mailbox_id;

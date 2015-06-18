@@ -14,41 +14,27 @@
 #include "rpc/connectivity/cluster.hpp"
 #include "rpc/semilattice/view.hpp"
 
+class server_config_client_t;
+
 class auto_reconnector_t {
 public:
     auto_reconnector_t(
         connectivity_cluster_t *connectivity_cluster,
         connectivity_cluster_t::run_t *connectivity_cluster_run,
-        const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, server_id_t> > > &server_id_translation_table,
-        const boost::shared_ptr<semilattice_read_view_t<servers_semilattice_metadata_t> > &server_metadata);
-
-    /* Returns the server's last known address, if it has ever been connected to us. */
-    boost::optional<peer_address_t> get_last_known_address(server_id_t server) {
-        auto it = addresses.find(server);
-        if (it == addresses.end()) {
-            return boost::optional<peer_address_t>();
-        } else {
-            return boost::optional<peer_address_t>(it->second);
-        }
-    }
+        server_config_client_t *server_config_client);
 
 private:
-    void on_connect_or_disconnect();
+    void on_connect_or_disconnect(const peer_id_t &peer_id);
 
     /* `try_reconnect()` runs in a coroutine. It automatically terminates
-    itself if the peer reconnects. */
-    void try_reconnect(server_id_t server, auto_drainer_t::lock_t drainer);
+    itself if the server ever reconnects. */
+    void try_reconnect(const server_id_t &server, auto_drainer_t::lock_t drainer);
 
-    void pulse_if_server_declared_dead(server_id_t server, cond_t *c);
-    void pulse_if_server_reconnected(server_id_t server, cond_t *c);
+    connectivity_cluster_t *const connectivity_cluster;
+    connectivity_cluster_t::run_t *const connectivity_cluster_run;
+    server_config_client_t *const server_config_client;
 
-    connectivity_cluster_t *connectivity_cluster;
-    connectivity_cluster_t::run_t *connectivity_cluster_run;
-    clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, server_id_t> > > server_id_translation_table;
-    boost::shared_ptr<semilattice_read_view_t<servers_semilattice_metadata_t> > server_metadata;
-
-    /* `addresses` contains the last known address of every server we've ever seen,
-    unless it has been declared dead. */
+    /* `addresses` contains the last known address of every server we've ever seen */
     std::map<server_id_t, peer_address_t> addresses;
 
     /* `server_ids` contains the server IDs of servers that are currently connected. We
@@ -56,10 +42,14 @@ private:
     connected servers we get from the `connectivity_cluster_t`. */
     std::map<peer_id_t, server_id_t> server_ids;
 
+    /* `stop_conds` contains an entry for each running instance of `try_reconnect()`.
+    It's used to interrupt the coroutines if the server reconnects. */
+    std::multimap<server_id_t, cond_t *> stop_conds;
+
     auto_drainer_t drainer;
 
-    watchable_t<change_tracking_map_t<peer_id_t, server_id_t> >::subscription_t
-        server_id_translation_table_subs;
+    watchable_map_t<peer_id_t, server_id_t>::all_subs_t
+        server_id_subs;
     watchable_map_t<peer_id_t, connectivity_cluster_t::connection_pair_t>::all_subs_t
         connection_subs;
 

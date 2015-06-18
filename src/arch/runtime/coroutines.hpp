@@ -46,6 +46,7 @@ class coro_t : private coro_profiler_mixin_t,
                public home_thread_mixin_t {
 public:
     friend bool is_coroutine_stack_overflow(void *);
+    friend bool has_n_bytes_free_stack_space(size_t);
 
     template<class Callable>
     static void spawn_now_dangerously(Callable &&action) {
@@ -85,7 +86,7 @@ public:
     `yield()` by different coroutines may return in a different order than they
     began in. */
     static void yield();
-    /* Like `yield()`, but guarantees that the ordering of coroutines calling 
+    /* Like `yield()`, but guarantees that the ordering of coroutines calling
     `yield_ordered()` is maintained. */
     static void yield_ordered();
 
@@ -224,6 +225,8 @@ private:
 
 /* Returns true if the given address is in the protection page of the current coroutine. */
 bool is_coroutine_stack_overflow(void *addr);
+/* Returns true if at least n bytes are available on the stack of the current coroutine. */
+bool has_n_bytes_free_stack_space(size_t n);
 bool coroutines_have_been_initialized();
 
 class home_coro_mixin_t {

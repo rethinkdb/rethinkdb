@@ -34,6 +34,13 @@ public:
         return pulsed;
     }
 
+    /* Crashes if the signal is not pulsed. Note that this works on any thread. This is
+    OK because it should only be called if the signal is already pulsed, and if the
+    signal is already pulsed, then `pulsed` should not change. */
+    void guarantee_pulsed() const {
+        guarantee(pulsed);
+    }
+
     /* Wrapper around a `publisher_t<signal_t::subscription_t>::subscription_t`
     */
 

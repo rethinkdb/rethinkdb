@@ -13,6 +13,7 @@
 
 class cluster_semilattice_metadata_t;
 class server_config_client_t;
+class table_meta_client_t;
 
 /* Note that we generally use `ql::configured_limits_t::unlimited` when converting
 things to datum, rather than using a user-specified limit. This is mostly for consistency
@@ -50,21 +51,15 @@ ql::datum_t convert_name_or_uuid_to_datum(
         const uuid_u &uuid,
         admin_identifier_format_t identifier_format);
 
-/* `convert_server_id_to_datum()` will return `false` if the server ID corresponds to a
-permanently removed server. */
-bool convert_server_id_to_datum(
+/* If the given server is connected, sets `*server_name_or_uuid_out` to a datum
+representation of the server and returns `true`. If it's not connected, returns `false`.
+*/
+bool convert_connected_server_id_to_datum(
         const server_id_t &server_id,
         admin_identifier_format_t identifier_format,
         server_config_client_t *server_config_client,
         ql::datum_t *server_name_or_uuid_out,
         name_string_t *server_name_out);
-bool convert_server_id_from_datum(
-        const ql::datum_t &server_name_or_uuid,
-        admin_identifier_format_t identifier_format,
-        server_config_client_t *server_config_client,
-        server_id_t *server_id_out,
-        name_string_t *server_name_out,
-        std::string *error_out);
 
 /* `convert_table_id_to_datums()` will return `false` if the table ID corresponds to a
 deleted table. If the table still exists but the database does not, it will return `true`
@@ -73,6 +68,7 @@ bool convert_table_id_to_datums(
         const namespace_id_t &table_id,
         admin_identifier_format_t identifier_format,
         const cluster_semilattice_metadata_t &metadata,
+        table_meta_client_t *table_meta_client,
         /* Any of these can be `nullptr` if they are not needed */
         ql::datum_t *table_name_or_uuid_out,
         name_string_t *table_name_out,

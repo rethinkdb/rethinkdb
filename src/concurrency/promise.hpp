@@ -36,6 +36,12 @@ public:
         return &cond;
     }
 
+    /* Note that `assert_get_value()` can be called on any thread. */
+    val_t assert_get_value() const {
+        cond.guarantee_pulsed();
+        return *value.get();
+    }
+
     MUST_USE bool try_get_value(val_t *out) const {
         if (is_pulsed()) {
             *out = *value.get();

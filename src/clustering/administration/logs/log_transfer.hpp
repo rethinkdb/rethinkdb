@@ -6,7 +6,6 @@
 #include <vector>
 
 #include "clustering/administration/logs/log_writer.hpp"
-#include "clustering/generic/resource.hpp"
 
 class log_server_business_card_t {
 public:
@@ -43,8 +42,13 @@ private:
 /* Fetches a block of entries from another server's log file. It examines the last
 `max_entries` entries from the server's log, and filters out those whose timestamps are
 not between `min_timestamp` and `max_timestamp`, inclusive. It returns the results in
-reverse chronological order. Throws `resource_lost_exc_t` if the server disconnected or
-`std::runtime_error` if there's a problem with reading the log file. */
+reverse chronological order. Throws `log_transfer_exc_t` if the server disconnected or
+`log_read_exc_t` if there's a problem with reading the log file. */
+class log_transfer_exc_t : public std::runtime_error {
+public:
+    log_transfer_exc_t() : std::runtime_error(
+        "Lost contact with server while trying to transfer log messages") { }
+};
 std::vector<log_message_t> fetch_log_file(
     mailbox_manager_t *mailbox_manager,
     const log_server_business_card_t &server_bcard,
@@ -52,6 +56,6 @@ std::vector<log_message_t> fetch_log_file(
     struct timespec min_timestamp,
     struct timespec max_timestamp,
     signal_t *interruptor)
-    THROWS_ONLY(resource_lost_exc_t, std::runtime_error, interrupted_exc_t);
+    THROWS_ONLY(log_transfer_exc_t, log_read_exc_t, interrupted_exc_t);
 
 #endif /* CLUSTERING_ADMINISTRATION_LOGS_LOG_TRANSFER_HPP_ */
