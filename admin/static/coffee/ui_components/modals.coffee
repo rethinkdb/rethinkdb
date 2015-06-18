@@ -169,14 +169,18 @@ class RenameItemModal extends AbstractModal
     error_template: require('../../handlebars/error_input.hbs')
     class: 'rename-item-modal'
 
-    initialize: (model, options) =>
-        super()
+    initialize: (options) =>
+        super
         if @model instanceof models.Table
             @item_type = 'table'
         else if @model instanceof models.Database
             @item_type = 'database'
         else if @model instanceof models.Server
             @item_type = 'server'
+        else if options.item_type?
+            @item_type = options.item_type
+        else
+            throw "Rename *what* kind of item?"
 
     render: ->
         super
@@ -189,7 +193,7 @@ class RenameItemModal extends AbstractModal
         @$('#focus_new_name').focus()
 
 
-    on_submit: ->
+    on_submit: =>
         super
         @old_name = @model.get('name')
         @formdata = util.form_data_as_object($('form', @$modal))
@@ -207,13 +211,13 @@ class RenameItemModal extends AbstractModal
 
         # Check if already use
         if no_error is true
-            if @model instanceof models.Table
+            if @item_type == "table"
                 query = r.db(system_db).table('table_config').get(@model.get('id')).update
                     name: @formdata.new_name
-            else if @model instanceof model.Database
+            else if @item_type == "database"
                 query = r.db(system_db).table('db_config').get(@model.get('id')).update
                     name: @formdata.new_name
-            else if @model instanceof model.Server
+            else if @item_type == "server"
                 query = r.db(system_db).table('server_config').get(@model.get('id')).update
                     name: @formdata.new_name
 
