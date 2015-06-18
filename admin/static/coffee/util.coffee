@@ -447,6 +447,41 @@ class BackboneViewWidget
         @view?.remove()
 
 
+replica_rolename = ({configured_primary: configured, \
+                     currently_primary: currently, \
+                     nonvoting: nonvoting, \
+                     }) ->
+    if configured and currently
+        "Primary replica"
+    else if configured and not currently
+        "Goal primary replica"
+    else if not configured and currently
+        "Acting primary replica"
+    else if nonvoting
+        "Non-voting secondary replica"
+    else
+        "Secondary replica"
+
+replica_roleclass = ({configured_primary: configured, \
+                      currently_primary: currently}) ->
+    if configured and currently
+        "primary"
+    else if configured and not currently
+        "goal.primary"
+    else if not configured and currently
+        "acting.primary"
+    else
+        "secondary"
+
+state_color = (state) ->
+  switch state
+      when "ready"        then "green"
+      when "disconnected" then "red"
+      else                     "yellow"
+
+humanize_state_string = (state_string) ->
+    state_string.replace(/_/g, ' ')
+
 exports.capitalize = capitalize
 exports.humanize_table_status = humanize_table_status
 exports.form_data_as_object = form_data_as_object
@@ -462,3 +497,7 @@ exports.pluralize_noun = pluralize_noun
 exports.pluralize_verb = pluralize_verb
 exports.humanize_uuid = humanize_uuid
 exports.BackboneViewWidget = BackboneViewWidget
+exports.replica_rolename = replica_rolename
+exports.replica_roleclass = replica_roleclass
+exports.state_color = state_color
+exports.humanize_state_string = humanize_state_string

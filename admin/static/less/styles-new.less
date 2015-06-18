@@ -80,17 +80,17 @@ This will also help porting if we move to another CSS preprocessor (say scss)
 }
 /* End of mixins */
 
-.server-assignments.tree-view2 {
+.tree-view2 {
     font-family: @sans;
     padding: 20px 20px 10px 25px;
-    ul.shards {
+    ul.parents {
         padding: 0px 5px 0px 10px;
         list-style: none;
-        li.shard {
+        li.parent {
             position: relative;
         }
     }
-    .shard-heading {
+    .parent-heading {
         display: flex;
         flex-direction: row;
         justify-content: flex-begin;
@@ -115,25 +115,25 @@ This will also help porting if we move to another CSS preprocessor (say scss)
             background-repeat: no-repeat, repeat-y;
         }
     }
-    .shard-title {
+    .parent-title {
         display: inline-block;
         font-size: 16px;
         word-wrap: break-word;
         white-space: nowrap;
     }
-    ul.replicas {
+    ul.children {
         padding-left: 5px;
         color: @text-color;
         margin-bottom: 10px;
     }
-    li.replica {
+    li.child {
         @role-width: 205px;
         @state-width: 181px;
         .flex-evenly-spaced-centered;
         border-bottom: 1px solid #eee;
         padding: 7px 0px;
         font-size: 14px;
-        .replica-role {
+        .child-role {
             width: @role-width;
             position: relative;
             &.primary {
@@ -148,12 +148,11 @@ This will also help porting if we move to another CSS preprocessor (say scss)
                 .icon-before(@grid-icon);
             }
         }
-        .server-name {
-            .flex-evenly-spaced-centered;
+        .child-name {
             margin-left: 10px;
             width: 35%;
             position: relative; // needed to position bullet and dash
-            a::before {
+            &:before  {
                 .dummy-before-boilerplate;
                 width: 22px;
                 top: 0;
