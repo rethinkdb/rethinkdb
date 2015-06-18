@@ -193,6 +193,7 @@ class TableContainer extends Backbone.View
                                     id: server_name_to_id(replica('server')).default(null),
                                     configured_primary: config('primary_replica').eq(replica('server'))
                                     currently_primary: status('primary_replicas').contains(replica('server'))
+                                    nonvoting: config('nonvoting_replicas').contains(replica('server'))
                                 ).orderBy(r.desc('currently_primary'), r.desc('configured_primary'))
                         )
                     )
