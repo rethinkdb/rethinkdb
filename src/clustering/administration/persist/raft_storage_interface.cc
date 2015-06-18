@@ -4,8 +4,8 @@
 #include "clustering/administration/persist/file_keys.hpp"
 
 /* The raft state is stored as follows:
-- There is a single `table_raft_stored_header_t` which stores `current_term` and
-    `voted_for`.
+- There is a single `table_raft_stored_header_t` which stores `current_term`,
+    `voted_for`, and `commit_index`.
 - There is a single `table_raft_stored_snapshot_t` which stores `snapshot_state`,
     `snapshot_config`, `log.prev_index`, and `log.prev_term`.
 - There are zero or more `raft_log_entry_t`s, which use the log index as part of the
@@ -15,10 +15,11 @@ class table_raft_stored_header_t {
 public:
     raft_term_t current_term;
     raft_member_id_t voted_for;
+    raft_log_index_t commit_index;
 };
 
-RDB_IMPL_SERIALIZABLE_2_SINCE_v2_1(table_raft_stored_header_t,
-    current_term, voted_for);
+RDB_IMPL_SERIALIZABLE_3_SINCE_v2_1(table_raft_stored_header_t,
+    current_term, voted_for, commit_index);
 
 class table_raft_stored_snapshot_t {
 public:
@@ -69,6 +70,7 @@ table_raft_storage_interface_t::table_raft_storage_interface_t(
         mdprefix_table_raft_header().suffix(uuid_to_str(table_id)), interruptor);
     state.current_term = header.current_term;
     state.voted_for = header.voted_for;
+    state.commit_index = header.commit_index;
     table_raft_stored_snapshot_t snapshot = txn->read(
         mdprefix_table_raft_snapshot().suffix(uuid_to_str(table_id)), interruptor);
     state.snapshot_state = std::move(snapshot.snapshot_state);
@@ -99,6 +101,7 @@ table_raft_storage_interface_t::table_raft_storage_interface_t(
     table_raft_stored_header_t header;
     header.current_term = state.current_term;
     header.voted_for = state.voted_for;
+    header.commit_index = state.commit_index;
     txn->write(
         mdprefix_table_raft_header().suffix(uuid_to_str(table_id)),
         header,
@@ -165,6 +168,21 @@ void table_raft_storage_interface_t::write_current_term_and_voted_for(
     table_raft_stored_header_t header;
     header.current_term = state.current_term = current_term;
     header.voted_for = state.voted_for = voted_for;
+    header.commit_index = state.commit_index;
+    txn.write(
+        mdprefix_table_raft_header().suffix(uuid_to_str(table_id)),
+        header,
+        &non_interruptor);
+}
+
+void table_raft_storage_interface_t::write_commit_index(
+        raft_log_index_t commit_index) {
+    cond_t non_interruptor;
+    metadata_file_t::write_txn_t txn(file, &non_interruptor);
+    table_raft_stored_header_t header;
+    header.current_term = state.current_term;
+    header.voted_for = state.voted_for;
+    header.commit_index = state.commit_index = commit_index;
     txn.write(
         mdprefix_table_raft_header().suffix(uuid_to_str(table_id)),
         header,
@@ -215,9 +233,18 @@ void table_raft_storage_interface_t::write_snapshot(
         const raft_complex_config_t &snapshot_config,
         bool clear_log,
         raft_log_index_t log_prev_index,
-        raft_term_t log_prev_term) {
+        raft_term_t log_prev_term,
+        raft_log_index_t commit_index) {
     cond_t non_interruptor;
     metadata_file_t::write_txn_t txn(file, &non_interruptor);
+    table_raft_stored_header_t header;
+    header.current_term = state.current_term;
+    header.voted_for = state.voted_for;
+    header.commit_index = state.commit_index = commit_index;
+    txn.write(
+        mdprefix_table_raft_header().suffix(uuid_to_str(table_id)),
+        header,
+        &non_interruptor);
     table_raft_stored_snapshot_t snapshot;
     snapshot.snapshot_state = snapshot_state;
     snapshot.snapshot_config = snapshot_config;

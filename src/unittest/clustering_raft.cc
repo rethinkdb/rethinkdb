@@ -314,6 +314,11 @@ private:
             stored_state.voted_for = voted_for;
             block();
         }
+        void write_commit_index(raft_log_index_t commit_index) {
+            block();
+            stored_state.commit_index = commit_index;
+            block();
+        }
         void write_log_replace_tail(
                 const raft_log_t<dummy_raft_state_t> &log,
                 raft_log_index_t first_replaced) {
@@ -339,7 +344,8 @@ private:
                 const raft_complex_config_t &snapshot_config,
                 bool clear_log,
                 raft_log_index_t log_prev_index,
-                raft_term_t log_prev_term) {
+                raft_term_t log_prev_term,
+                raft_log_index_t commit_index) {
             block();
             stored_state.snapshot_state = snapshot_state;
             stored_state.snapshot_config = snapshot_config;
@@ -350,6 +356,7 @@ private:
             } else {
                 stored_state.log.delete_entries_to(log_prev_index, log_prev_term);
             }
+            stored_state.commit_index = commit_index;
             block();
         }
         void block() {
