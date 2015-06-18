@@ -412,6 +412,41 @@ json_to_node = do ->
                 value: if value then 'true' else 'false'
 
 
+class BackboneViewWidget
+    # An adapter class to allow a Backbone View to act as a
+    # virtual-dom Widget. This allows the view to update itself and
+    # not have to worry about being destroyed and reinserted, causing
+    # loss of listeners etc.
+    type: "Widget"  # required by virtual-dom to detect this as a widget.
+    constructor: (thunk) ->
+        # The constructor doesn't create the view or cause a render
+        # because many many widgets will be created, and they need to
+        # be very lightweight.
+        @thunk = thunk
+        @view = null
+    init: () ->
+        # init is called when virtual-dom first notices a widget. This
+        # will initialize the view with the given options, render the
+        # view, and return its DOM element for virtual-dom to place in
+        # the document
+        @view = @thunk()
+        @view.render()
+        @view.el  # init needs to return a raw dom element
+    update: (previous, domNode) ->
+        # Every time the vdom is updated, a new widget will be
+        # created, which will be passed the old widget (previous). We
+        # need to copy the state from the old widget over and return
+        # null to indicate the DOM element should be re-used and not
+        # replaced.
+        @view = previous.view
+        return null
+    destroy: (domNode) ->
+        # This is called when virtual-dom detects the widget should be
+        # removed from the tree. It just calls `.remove()` on the
+        # underlying view so listeners etc can be cleaned up.
+        @view?.remove()
+
+
 exports.capitalize = capitalize
 exports.humanize_table_status = humanize_table_status
 exports.form_data_as_object = form_data_as_object
@@ -426,3 +461,4 @@ exports.approximate_count = approximate_count
 exports.pluralize_noun = pluralize_noun
 exports.pluralize_verb = pluralize_verb
 exports.humanize_uuid = humanize_uuid
+exports.BackboneViewWidget = BackboneViewWidget
