@@ -52,7 +52,8 @@ std::string log_index_to_str(raft_log_index_t log_index) {
     std::string str;
     str.reserve(16);
     for (size_t i = 0; i < 16; ++i) {
-        int val = log_index >> ((15 - i) * 4);
+        int val = (log_index >> ((15 - i) * 4)) & 0x0f;
+        rassert(val >= 0 && val < 16);
         str.push_back("0123456789abcdef"[val]);
     }
     return str;
@@ -78,7 +79,11 @@ table_raft_storage_interface_t::table_raft_storage_interface_t(
         mdprefix_table_raft_log().suffix(uuid_to_str(table_id) + "/"),
         [&](const std::string &index_str,
                 const raft_log_entry_t<table_raft_state_t> &entry) {
-            guarantee(str_to_log_index(index_str) == state.log.get_latest_index() + 1);
+            guarantee(str_to_log_index(index_str) == state.log.get_latest_index() + 1,
+                "%" PRIu64 " ('%s') == %" PRIu64,
+                str_to_log_index(index_str),
+                index_str.c_str(),
+                state.log.get_latest_index() + 1);
             state.log.append(entry);
         },
         interruptor);
@@ -174,7 +179,7 @@ void table_raft_storage_interface_t::write_log_replace_tail(
     guarantee(first_replaced > state.log.prev_index);
     guarantee(first_replaced <= state.log.get_latest_index() + 1);
     for (raft_log_index_t i = first_replaced;
-            i < std::max(state.log.get_latest_index(), source.get_latest_index()); ++i) {
+            i <= std::max(state.log.get_latest_index(), source.get_latest_index()); ++i) {
         metadata_file_t::key_t<raft_log_entry_t<table_raft_state_t> > key =
             mdprefix_table_raft_log().suffix(
                 uuid_to_str(table_id) + "/" + log_index_to_str(i));

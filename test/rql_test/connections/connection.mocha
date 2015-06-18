@@ -111,7 +111,9 @@ var assertNotNull = function(x){
 }
 
 describe("JavaScript Callback style", function() {
-    
+    this.timeout(5000); // Bump timeout from the default 2000ms because some operations
+                        // (like table creation) may take a moment
+
     describe("connect", function() {
         
         it("works normally", function(done) {
@@ -357,8 +359,16 @@ describe("JavaScript Callback style", function() {
             });
 
             describe('read', function() {
-                it("accepts useOutdated", function(done){
-                    tbl.run(reqlConn, {useOutdated: true}, noError(done));
+                it("accepts readMode='outdated'", function(done){
+                    tbl.run(reqlConn, {readMode: "outdated"}, noError(done));
+                });
+
+                it("accepts readMode='majority'", function(done){
+                    tbl.run(reqlConn, {readMode: "majority"}, noError(done));
+                });
+
+                it("accepts readMode='single'", function(done){
+                    tbl.run(reqlConn, {readMode: "single"}, noError(done));
                 });
             });
             
