@@ -13,6 +13,11 @@
 
 class table_raft_stored_header_t {
 public:
+    static table_raft_stored_header_t from_state(
+            const raft_persistent_state_t<table_raft_state_t> &state) {
+        return table_raft_stored_header_t {
+            state.current_term, state.voted_for, state.commit_index };
+    }
     raft_term_t current_term;
     raft_member_id_t voted_for;
     raft_log_index_t commit_index;
@@ -98,13 +103,9 @@ table_raft_storage_interface_t::table_raft_storage_interface_t(
         const raft_persistent_state_t<table_raft_state_t> &_state,
         signal_t *interruptor) :
         file(_file), table_id(_table_id), state(_state) {
-    table_raft_stored_header_t header;
-    header.current_term = state.current_term;
-    header.voted_for = state.voted_for;
-    header.commit_index = state.commit_index;
     txn->write(
         mdprefix_table_raft_header().suffix(uuid_to_str(table_id)),
-        header,
+        table_raft_stored_header_t::from_state(state),
         interruptor);
 
     /* To avoid expensive copies of `state`, we move `state` into the snapshot and then
@@ -165,13 +166,11 @@ void table_raft_storage_interface_t::write_current_term_and_voted_for(
         raft_member_id_t voted_for) {
     cond_t non_interruptor;
     metadata_file_t::write_txn_t txn(file, &non_interruptor);
-    table_raft_stored_header_t header;
-    header.current_term = state.current_term = current_term;
-    header.voted_for = state.voted_for = voted_for;
-    header.commit_index = state.commit_index;
+    state.current_term = current_term;
+    state.voted_for = voted_for;
     txn.write(
         mdprefix_table_raft_header().suffix(uuid_to_str(table_id)),
-        header,
+        table_raft_stored_header_t::from_state(state),
         &non_interruptor);
 }
 
@@ -179,13 +178,10 @@ void table_raft_storage_interface_t::write_commit_index(
         raft_log_index_t commit_index) {
     cond_t non_interruptor;
     metadata_file_t::write_txn_t txn(file, &non_interruptor);
-    table_raft_stored_header_t header;
-    header.current_term = state.current_term;
-    header.voted_for = state.voted_for;
-    header.commit_index = state.commit_index = commit_index;
+    state.commit_index = commit_index;
     txn.write(
         mdprefix_table_raft_header().suffix(uuid_to_str(table_id)),
-        header,
+        table_raft_stored_header_t::from_state(state),
         &non_interruptor);
 }
 
@@ -237,13 +233,10 @@ void table_raft_storage_interface_t::write_snapshot(
         raft_log_index_t commit_index) {
     cond_t non_interruptor;
     metadata_file_t::write_txn_t txn(file, &non_interruptor);
-    table_raft_stored_header_t header;
-    header.current_term = state.current_term;
-    header.voted_for = state.voted_for;
-    header.commit_index = state.commit_index = commit_index;
+    state.commit_index = commit_index;
     txn.write(
         mdprefix_table_raft_header().suffix(uuid_to_str(table_id)),
-        header,
+        table_raft_stored_header_t::from_state(state),
         &non_interruptor);
     table_raft_stored_snapshot_t snapshot;
     snapshot.snapshot_state = snapshot_state;
