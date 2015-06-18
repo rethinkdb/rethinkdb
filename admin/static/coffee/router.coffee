@@ -76,7 +76,7 @@ class BackboneCluster extends Backbone.Router
 
     server: (id) ->
         @current_view.remove()
-        @current_view = new server_view.ServerContainer id
+        @current_view = new server_view.View(id)
         @container.html @current_view.render().$el
 
 

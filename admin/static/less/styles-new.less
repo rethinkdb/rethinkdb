@@ -22,7 +22,9 @@ This will also help porting if we move to another CSS preprocessor (say scss)
 @shard-title-color: #5c6169;
 @link-color-hover: #005580;
 @link-color: #08C;
-
+@dividing-line-color: #f0f0f0;
+@profile-description-blue: #72bddf;
+@profile-value-gray: #5C6169;
 /* Fonts */
 @sans: "Open Sans";
 @serif: "Copse";
@@ -47,6 +49,23 @@ This will also help porting if we move to another CSS preprocessor (say scss)
 @red-light-icon: url(images/red-light_glow.png);
 @yellow-light-icon: url(images/yellow-light_glow.png);
 /* End of Icons */
+/* ionicon elements */
+// Lazily pull these in from _ionicons-variables
+@ion-monitor: "\f20a";
+@ion-refresh: "\f21c";
+@ion-pin: "\f2a6";
+@ion-clock: "\f26e";
+@ion-document: "\f12f";
+@ion-pricetags-outline: "\f48e";
+@ion-soup-can-outline: "\f4f3";
+
+// Mapping from ionicon names to internal names
+@hostname-icon: @ion-soup-can-outline;
+@version-icon: @ion-refresh;
+@uptime-icon: @ion-clock;
+@cache-size-icon: @ion-document;
+@tags-icon: @ion-pricetags-outline;
+/* End of ionicon elements */
 
 /* Mixin functions */
 .icon-before(@image; @icon-size: 16px; @padding: 10px) {
@@ -55,6 +74,17 @@ This will also help porting if we move to another CSS preprocessor (say scss)
     background-position: 0 50%;
     background-repeat: no-repeat;
     padding-left: @icon-size + @padding;
+}
+
+.ionicon-before(@content, @xoffset: 0, @yoffset: 0) {
+    content: @content;
+    font-family: Ionicons;
+    font-size: 20px;
+    color: #D0D0D0;
+    padding: 0 10px 10px 0;
+    left: 0 + @xoffset;
+    top: 50% + @yoffset;
+    position: absolute;
 }
 
 .icon-after(@image; @icon-size: 16px; @padding: 10px) {
@@ -78,6 +108,7 @@ This will also help porting if we move to another CSS preprocessor (say scss)
     justify-content: space-between;
     flex-direction: row;
 }
+
 /* End of mixins */
 
 .tree-view2 {
@@ -172,4 +203,48 @@ This will also help porting if we move to another CSS preprocessor (say scss)
             &.green {.icon-after(@green-light-icon);}
         }
     }
+}
+
+.profile-row {
+    border-top: thin solid @dividing-line-color;
+    &:first-child {
+        border-top: thin solid transparent;
+    }
+    position: relative;
+    p {
+        font-family: @sans;
+        color: @profile-description-blue;
+        font-size: 15px;
+        line-height: 20px;
+        margin-left: 30px;
+        cursor: help;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        .big {
+            color: @profile-value-gray;
+            font-size: 24px;
+            line-height: 30px;
+        }
+        .tags, &.admonition {
+            font-size: 18px;
+            color: @profile-value-gray;
+        }
+
+    }
+    &.hostname::before {
+        .ionicon-before(@hostname-icon);
+    }
+    &.version::before {
+        .ionicon-before(@version-icon);
+    }
+    &.uptime::before {
+        .ionicon-before(@uptime-icon);
+    }
+    &.cache-size::before {
+        .ionicon-before(@cache-size-icon, 3px);
+    }
+    &.tags::before {
+        .ionicon-before(@tags-icon, 1px, -5px);
+    }
+
 }
