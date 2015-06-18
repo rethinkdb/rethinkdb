@@ -32,6 +32,7 @@
     "handlebars": "^3.0.1",
     "hbsfy": "^2.2.1",
     "less": "^2.4.0",
+    "moment": "^2.10.3",
     "uber-watchify": "^2.3.2",
     "uglifyify": "^3.0.1",
     "vinyl": "^0.4.6",
