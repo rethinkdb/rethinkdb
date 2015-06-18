@@ -379,7 +379,8 @@ void calculate_all_contracts(
             *connections_map,
         std::set<contract_id_t> *remove_contracts_out,
         std::map<contract_id_t, std::pair<region_t, contract_t> > *add_contracts_out,
-        std::map<region_t, branch_id_t> *register_current_branches_out) {
+        std::map<region_t, branch_id_t> *register_current_branches_out,
+        branch_history_t *add_branches_out) {
 
     ASSERT_FINITE_CORO_WAITING;
 
@@ -458,10 +459,14 @@ void calculate_all_contracts(
                     });
                     if (!already_registered) {
                         auto res = register_current_branches_out->insert(
-                            std::make_pair(
-                                reg,
-                                *acks_map.at(old_contract.primary->server).branch));
+                            std::make_pair(reg, to_register));
                         guarantee(res.second);
+                        copy_branch_history_for_branch(
+                            to_register,
+                            acks_map.at(old_contract.primary->server).branch_history,
+                            old_state,
+                            add_branches_out);
+                            
                     }
                 }
 

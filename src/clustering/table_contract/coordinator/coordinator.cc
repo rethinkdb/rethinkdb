@@ -2,6 +2,7 @@
 #include "clustering/table_contract/coordinator/coordinator.hpp"
 
 #include "clustering/generic/raft_core.tcc"
+#include "clustering/table_contract/coordinator/branch_history_gc.hpp"
 #include "clustering/table_contract/coordinator/calculate_contracts.hpp"
 #include "clustering/table_contract/coordinator/calculate_misc.hpp"
 #include "logger.hpp"

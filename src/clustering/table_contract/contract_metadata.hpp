@@ -177,11 +177,15 @@ public:
         public:
             std::set<contract_id_t> remove_contracts;
             std::map<contract_id_t, std::pair<region_t, contract_t> > add_contracts;
-            std::set<branch_id_t> remove_branches;
-            branch_history_t add_branches;
             std::map<region_t, branch_id_t> register_current_branches;
+            branch_history_t add_branches;
             std::set<server_id_t> remove_server_names;
             server_name_map_t add_server_names;
+        };
+
+        class branch_history_gc_t {
+        public:
+            std::set<branch_id_t> remove_branches;
         };
 
         class new_member_ids_t {
@@ -202,6 +206,7 @@ public:
         boost::variant<
             set_table_config_t,
             new_contracts_t,
+            branch_history_gc_t,
             new_member_ids_t,
             new_server_names_t> v;
     };
@@ -224,14 +229,6 @@ public:
     it. */
     std::map<contract_id_t, std::pair<region_t, contract_t> > contracts;
 
-    /* `branch_history` contains all of the branches that appear in the `branch` fields
-    of the contracts, plus their ancestors going back to the common ancestor with the
-    data version stored on the replicas. The idea is that if a replica sends us its
-    current version and its branch history, we can combine the replica's branch history
-    with this branch history to form a complete picture of the relationship of the
-    replica's current data version to the contract's `branch`. */
-    branch_history_t branch_history;
-
     /* `current_branches` contains the most recently acked branch IDs for a given
     region. It gets updated by the coordinator when a new primary registers its
     branch with the coordinator through a `contract_ack_t`.
@@ -239,6 +236,14 @@ public:
     data version for a given range (see `break_ack_into_fragments()` in
     coordinator.cc). */
     region_map_t<branch_id_t> current_branches;
+
+    /* `branch_history` contains all of the branches that appear in `current_branches`,
+    plus their ancestors going back to the common ancestor with the data version stored
+    on the replicas. The idea is that if a replica sends us its current version and its
+    branch history, we can combine the replica's branch history with this branch history
+    to form a complete picture of the relationship of the replica's current data version
+    to the contract's `branch`. */
+    branch_history_t branch_history;
 
     /* `member_ids` assigns a Raft member ID to each server that's supposed to be part of
     the Raft cluster for this table. `contract_coordinator_t` writes it;
