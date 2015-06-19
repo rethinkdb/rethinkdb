@@ -89,28 +89,6 @@ void table_meta_client_t::list_names(
         });
 }
 
-bool supersedes_with_leader(
-        const multi_table_manager_bcard_t::timestamp_t &lhs_timestamp,
-        bool lhs_leader,
-        const multi_table_manager_bcard_t::timestamp_t &rhs_timestamp,
-        bool rhs_leader) {
-    /* This returns true if `lhs.supersedes(rhs)`, lexically ordering by
-    `(timestamp.epoch, leader, timestamp.log_index)`. */
-    if (lhs_timestamp.epoch.supersedes(rhs_timestamp.epoch)) {
-        return true;
-    } else if (rhs_timestamp.epoch.supersedes(lhs_timestamp.epoch)) {
-        return false;
-    } else {
-        if (lhs_leader > rhs_leader) {
-            return true;
-        } else if (rhs_leader > lhs_leader) {
-            return false;
-        } else {
-            return lhs_timestamp.log_index > rhs_timestamp.log_index;
-        }
-    }
-}
-
 void table_meta_client_t::get_config(
         const namespace_id_t &table_id,
         signal_t *interruptor_on_caller,
@@ -118,67 +96,22 @@ void table_meta_client_t::get_config(
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t) {
     cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
-
-    retry([&](signal_t *interruptor2) {
-        /* Find a mailbox of a server that claims to be hosting the given table */
-        multi_table_manager_bcard_t::get_config_mailbox_t::address_t best_mailbox;
-        multi_table_manager_bcard_t::timestamp_t best_timestamp;
-        bool best_leader = false;
-        table_manager_directory->read_all(
-        [&](const std::pair<peer_id_t, namespace_id_t> &key,
-                const table_manager_bcard_t *table_bcard) {
-            if (key.second == table_id) {
-                multi_table_manager_directory->read_key(key.first,
-                [&](const multi_table_manager_bcard_t *server_bcard) {
-                    if (server_bcard != nullptr) {
-                        if (best_mailbox.is_nil() ||
-                                supersedes_with_leader(
-                                    table_bcard->timestamp,
-                                    static_cast<bool>(table_bcard->leader),
-                                    best_timestamp,
-                                    best_leader)) {
-                            best_mailbox = server_bcard->get_config_mailbox;
-                            best_timestamp = table_bcard->timestamp;
-                            best_leader = static_cast<bool>(table_bcard->leader);
-                        }
-                    }
-                });
-            }
-        });
-        if (best_mailbox.is_nil()) {
-            throw_appropriate_exception(table_id);
-        }
-
-        typedef std::pair<
-            table_config_and_shards_t,
-            multi_table_manager_bcard_t::timestamp_t> timestamped_config_and_shards_t;
-
-        /* Send a request to the server we found */
-        disconnect_watcher_t dw(mailbox_manager, best_mailbox.get_peer());
-        promise_t<std::map<namespace_id_t, timestamped_config_and_shards_t> > promise;
-        mailbox_t<void(std::map<namespace_id_t, timestamped_config_and_shards_t>
-                )> ack_mailbox(
-            mailbox_manager,
-            [&](signal_t *,
-                    const std::map<namespace_id_t, timestamped_config_and_shards_t>
-                        &configs) {
-                promise.pulse(configs);
-            });
-        send(mailbox_manager, best_mailbox,
-            boost::make_optional(table_id), ack_mailbox.get_address());
-        wait_any_t done_cond(promise.get_ready_signal(), &dw);
-        wait_interruptible(&done_cond, interruptor2);
-        if (!promise.is_pulsed()) {
-            throw_appropriate_exception(table_id);
-        }
-        std::map<namespace_id_t, timestamped_config_and_shards_t> maybe_result =
-            promise.assert_get_value();
-        if (maybe_result.empty()) {
-            throw_appropriate_exception(table_id);
-        }
-        guarantee(maybe_result.size() == 1);
-        *config_out = maybe_result.at(table_id).first;
-    }, &interruptor);
+    table_status_request_t request;
+    request.want_config = true;
+    std::set<namespace_id_t> failures;
+    get_status(
+        boost::make_optional(table_id),
+        request,
+        server_selector_t::BEST_SERVER_ONLY,
+        &interruptor,
+        [&](const server_id_t &, const table_id_t &,
+                const table_status_response_t &response) {
+            *config_out = response.config;
+        },
+        &failures);
+    if (!failures.empty()) {
+        throw_appropriate_exception(table_id);
+    }
 }
 
 void table_meta_client_t::list_configs(
@@ -189,221 +122,120 @@ void table_meta_client_t::list_configs(
     cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
     configs_out->clear();
-
-    /* Collect mailbox addresses for every single server we can see */
-    std::vector<multi_table_manager_bcard_t::get_config_mailbox_t::address_t>
-        addresses;
-    multi_table_manager_directory->read_all(
-    [&](const peer_id_t &, const multi_table_manager_bcard_t *server_bcard) {
-        addresses.push_back(server_bcard->get_config_mailbox);
-    });
-
-    typedef std::pair<
-        table_config_and_shards_t,
-        multi_table_manager_bcard_t::timestamp_t> timestamped_config_and_shards_t;
-
-    std::map<namespace_id_t, multi_table_manager_bcard_t::timestamp_t> timestamps;
-
-    /* Send a message to every server and collect all of the results */
-    pmap(addresses.begin(), addresses.end(),
-    [&](const multi_table_manager_bcard_t::get_config_mailbox_t::address_t &a) {
-        disconnect_watcher_t dw(mailbox_manager, a.get_peer());
-        promise_t<std::map<namespace_id_t, timestamped_config_and_shards_t> > promise;
-        mailbox_t<void(std::map<namespace_id_t, timestamped_config_and_shards_t>
-            )> ack_mailbox(
-        mailbox_manager,
-        [&](signal_t *,
-                const std::map<namespace_id_t, timestamped_config_and_shards_t>
-                    &results) {
-            promise.pulse(results);
-        });
-        send(mailbox_manager, a,
-            boost::optional<namespace_id_t>(), ack_mailbox.get_address());
-        wait_any_t done_cond(promise.get_ready_signal(), &dw, &interruptor);
-        done_cond.wait_lazily_unordered();
-        if (promise.get_ready_signal()->is_pulsed()) {
-            std::map<namespace_id_t, timestamped_config_and_shards_t> maybe_results =
-                promise.assert_get_value();
-            for (const auto &result : maybe_results) {
-                /* Insert the result if it's new, or if its timestamp supersedes the
-                result we already have. */
-                auto timestamp_it = timestamps.find(result.first);
-                if (timestamp_it == timestamps.end() ||
-                        result.second.second.supersedes(timestamp_it->second)) {
-                    (*configs_out)[result.first] = std::move(result.second.first);
-                    timestamps[result.first] = std::move(result.second.second);
-                }
-            }
-        }
-    });
-
-    /* The `pmap()` above will abort early without throwing anything if the interruptor
-    is pulsed, so we have to throw the exception here */
-    if (interruptor.is_pulsed()) {
-        throw interrupted_exc_t();
-    }
-
-    /* Make sure we contacted at least one server for every table */
-    multi_table_manager->get_table_basic_configs()->read_all(
-        [&](const namespace_id_t &table_id, const timestamped_basic_config_t *config) {
-            if (configs_out->count(table_id) == 0) {
+    table_status_request_t request;
+    request.want_config = true;
+    std::set<namespace_id_t> failures;
+    get_status(
+        boost::none,
+        request,
+        server_selector_t::BEST_SERVER_ONLY,
+        &interruptor,
+        [&](const server_id_t &, const table_id_t &table_id,
+                const table_status_response_t &response) {
+            configs_out->insert(std::make_pair(table_id, response.config));
+        },
+        &failures);
+    for (const namespace_id_t &table_id : failures) {
+        multi_table_manager->get_table_basic_configs->read_key(table_id,
+        [&](const timestamped_basic_config_t *value) {
+            if (value != nullptr) {
                 disconnected_configs_out->insert(
-                    std::make_pair(table_id, config->first));
+                    std::make_pair(table_id, value->config));
             }
         });
+    }
 }
 
-void table_meta_client_t::get_status(
+void table_meta_client_t::get_sindex_status(
         const namespace_id_t &table_id,
         signal_t *interruptor_on_caller,
         std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
-            *sindex_statuses_out,
+            *index_statuses_out)
+        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t) {
+    typedef std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
+        index_statuses_t;
+    cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
+    on_thread_t thread_switcher(home_thread());
+    sindex_statuses_out->clear();
+    table_config_and_shards_t config;
+    get_config(table_id, &interruptor, &config);
+    for (const auto &pair : config.config.sindexes) {
+        (*sindex_statuses_out)[pair.first] =
+            std::make_pair(pair.second, sindex_status_t());
+    }
+    table_status_request_t request;
+    request.want_sindexes = true;
+    std::set<namespace_id_t> failures;
+    get_status(
+        boost::make_optional(table_id),
+        request,
+        server_selector_t::EVERY_SERVER,
+        &interruptor,
+        [&](const server_id_t &, const table_id_t &, const table_status_response_t &r) {
+            for (auto &&pair : *sindex_statuses_out) {
+                auto it = r.sindex_statuses.find(pair.first);
+                /* Note that we treat an index with the wrong definition like a
+                missing index. */
+                if (it != r.sindex_statuses.end() &&
+                        it->second.first == pair.second.first) {
+                    pair.second.second.accum(it->second.second);
+                } else {
+                    pair.second.second.ready = false;
+                }
+            }
+        },
+        &failures);
+    if (!failures.empty()) {
+        throw_appropriate_exception(table_id);
+    }
+}
+
+void table_meta_client_t::get_shard_status(
+        const namespace_id_t &table_id,
+        signal_t *interruptor_on_caller,
         std::map<server_id_t, table_server_status_t> *server_statuses_out,
         server_name_map_t *server_names_out,
         server_id_t *latest_server_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t) {
-    typedef std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
-        index_statuses_t;
-
     cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
-
-    /* Figure out which status we need to fetch. */
-    get_status_selection_t status_selection(
-            sindex_statuses_out != nullptr,
-            server_statuses_out != nullptr);
-
-    /* Initialize the sindex map. We fill in the `sindex_config_t`s at this stage, but we
-    set the `sindex_status_t`s to empty. The rest of this function is concerned with
-    filling in the `sindex_status_t`s. */
-    if (status_selection.has_sindex_status()) {
-        sindex_statuses_out->clear();
-        table_config_and_shards_t config;
-        get_config(table_id, &interruptor, &config);
-        for (const auto &pair : config.config.sindexes) {
-            (*sindex_statuses_out)[pair.first] =
-                std::make_pair(pair.second, sindex_status_t());
-        }
-    }
-
-    /* Collect business cards for every single server we can see that's hosting data for
-    this table. */
-    std::vector<table_manager_bcard_t> bcards;
-    table_manager_directory->read_all(
-    [&](const std::pair<peer_id_t, namespace_id_t> &key,
-            const table_manager_bcard_t *server_bcard) {
-        if (key.second == table_id) {
-            bcards.push_back(*server_bcard);
-        }
-    });
-
-    /* Send a message to every server and collect all of the results in
-       `sindex_statuses_out`, `contract_acks_t`, and `contracts_t`. */
-    bool at_least_one_reply = false;
-    pmap(bcards.begin(), bcards.end(), [&](const table_manager_bcard_t &bcard) {
-        /* There are two things that can go wrong. One is that we'll lose contact with
-        the other server; in this case `server_disconnected` will be pulsed. The other is
-        that the server will stop hosting the given table; in this case `server_stopped`
-        will be pulsed. */
-        disconnect_watcher_t server_disconnected(
-            mailbox_manager, bcard.get_status_mailbox.get_peer());
-        cond_t server_stopped;
-        watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
-                ::key_subs_t bcard_subs(
-            table_manager_directory,
-            std::make_pair(bcard.get_status_mailbox.get_peer(), table_id),
-            [&](const table_manager_bcard_t *bcard2) {
-                /* We check equality of `bcard->get_config_mailbox` because if the other
-                server stops hosting the table and then immediately starts again, any
-                messages we send will be dropped. */
-                if (bcard2 == nullptr ||
-                        !(bcard2->get_status_mailbox == bcard.get_status_mailbox)) {
-                    server_stopped.pulse_if_not_already_pulsed();
-                }
-            }, initial_call_t::YES);
-
-        cond_t got_reply;
-        mailbox_t<void(index_statuses_t, boost::optional<table_server_status_t>)>
-        ack_mailbox(
-            mailbox_manager,
-            [&](signal_t *,
-                    const index_statuses_t &statuses,
-                    const boost::optional<table_server_status_t> &server_statuses) {
-
-                guarantee(!status_selection.has_server_status() ||
-                          static_cast<bool>(server_statuses));
-
-                /* Fetch the server's name. The reason we fetch the server's name here is
-                so that we want to put the name in `server_names_out` iff we put an entry
-                in `server_statuses_out`. */
-                boost::optional<server_config_versioned_t> config =
-                    server_config_client->get_server_config_map()
-                        ->get_key(bcard.server_id);
-                if (!static_cast<bool>(config)) {
-                    /* The server disconnected. */
-                    server_stopped.pulse_if_not_already_pulsed();
-                    return;
-                }
-                if (server_names_out != nullptr) {
-                    server_names_out->names.insert(std::make_pair(bcard.server_id,
-                        std::make_pair(config->version, config->config.name)));
-                }
-
-                /* Make sure every sindex in the config is present in the reply from this
-                server. If a sindex isn't present on this server, we set its `ready`
-                field to false. */
-                if (status_selection.has_sindex_status()) {
-                    for (auto &&pair : *sindex_statuses_out) {
-                        auto it = statuses.find(pair.first);
-                        /* Note that we treat an index with the wrong definition like a
-                        missing index. */
-                        if (it != statuses.end() &&
-                                it->second.first == pair.second.first) {
-                            pair.second.second.accum(it->second.second);
-                        } else {
-                            pair.second.second.ready = false;
-                        }
-                    }
-                }
-
-                if (status_selection.has_server_status()) {
-                    server_statuses_out->insert(
-                        std::make_pair(bcard.server_id, *server_statuses));
-                }
-
-                got_reply.pulse();
-            });
-
-        send(mailbox_manager, bcard.get_status_mailbox, status_selection,
-             ack_mailbox.get_address());
-        wait_any_t done_cond(
-            &server_disconnected, &server_stopped, &got_reply, &interruptor);
-        done_cond.wait_lazily_unordered();
-
-        /* The function succeeds as long as we get a reply from at least one server. If
-        our attempt to get sindex statuses from a server fails, we silently ignore it. */
-        at_least_one_reply |= got_reply.is_pulsed();
-    });
-
-    if (interruptor.is_pulsed()) {
-        throw interrupted_exc_t();
-    }
-
-    if (!at_least_one_reply) {
+    table_status_request_t request;
+    request.want_shard_statuses = true;
+    std::set<namespace_id_t> failures;
+    get_status(
+        boost::make_optional(table_id),
+        request,
+        server_selector_t::EVERY_SERVER,
+        &interruptor,
+        [&](const server_id_t &server, const table_id_t &,
+                const table_status_response_t &response) {
+            /* Fetch the server's name. The reason we fetch the server's name here is so
+            that we want to put the name in `server_names_out` iff we put an entry in
+            `server_statuses_out`. */
+            boost::optional<server_config_versioned_t> config =
+                server_config_client->get_server_config_map()
+                    ->get_key(server);
+            if (!static_cast<bool>(config)) {
+                /* The server disconnected. */
+                return;
+            }
+            server_names_out->names.insert(std::make_pair(server_id,
+                std::make_pair(config->version, config->config.name)));
+            server_statuses_out->insert(
+                std::make_pair(server_id, *server_statuses));
+        },
+        &failures);
+    if (!failures.empty() || server_statuses_out->empty()) {
         throw_appropriate_exception(table_id);
     }
-
-    /* Determine the most up-to-date server */
-    if (status_selection.has_server_status() && latest_server_out != nullptr) {
-        *latest_server_out = nil_uuid();
-        for (const auto &pair : *server_statuses_out) {
-            if (*latest_server_out == nil_uuid() || pair.second.timestamp.supersedes(
-                    server_statuses_out->at(*latest_server_out).timestamp)) {
-                *latest_server_out = pair.first;
-            }
+    *latest_server_out = nil_uuid();
+    for (const auto &pair : *server_statuses_out) {
+        if (*latest_server_out == nil_uuid() || pair.second.timestamp.supersedes(
+                server_statuses_out->at(*latest_server_out).timestamp)) {
+            *latest_server_out = pair.first;
         }
-        guarantee(!latest_server_out->is_nil());
     }
+    guarantee(!latest_server_out->is_nil());
 }
 
 void table_meta_client_t::create(
@@ -728,6 +560,136 @@ void table_meta_client_t::create_or_emergency_repair(
                     value->second.epoch.supersedes(timestamp.epoch));
         },
         interruptor);
+}
+
+/* `best_server_rank_t` is used for comparing servers when we're in `BEST_SERVER_ONLY`
+mode. */
+class best_server_rank_t {
+public:
+    /* Note that a default-constructed `best_server_rank_t` is superseded by any other
+    `best_server_rank_t`. */
+    best_server_rank_t() :
+        is_leader(false), timestamp(multi_table_manager_t::timestamp_t::min()) { }
+    best_server_rank_t(bool il, const multi_table_manager_t::timestamp_t ts) :
+        is_leader(il), timestamp(ts) { }
+
+    bool supersedes(const best_server_rank_t &other) const {
+        return std::tie(timestamp.epoch, is_leader, timestamp.log_index) >
+            std::tie(other.timestamp.epoch, other.is_leader, other.timestamp.log_index);
+    }
+
+    bool is_leader;
+    multi_table_manager_t::timestamp_t timestamp;
+}
+
+void get_status(
+        const boost::optional<table_id_t> &table,
+        const table_status_request_t &request,
+        server_selector_t servers,
+        signal_t *interruptor,
+        const std::function<void(
+            const server_id_t &server,
+            const table_id_t &table,
+            const table_status_response_t &response
+            )> &callback,
+        std::set<namespace_id_t> *failures_out)
+        THROWS_ONLY(interrupted_exc_t) {
+    assert_thread();
+    interruptor->assert_thread();
+
+    /* Assemble a set of all the tables we need information for. As we get information
+    for each table, we'll remove it from the set; we'll use this to track which tables
+    we need to retry for. */
+    std::set<namespace_id_t> tables_todo;
+    if (static_cast<bool>(table)) {
+        tables_todo.insert(*table);
+    } else {
+        table_basic_configs.get_watchable()->read_all(
+            [&](const namespace_id_t &table_id, const timestamped_basic_config_t *) {
+                tables_todo.insert(table_id);
+            });
+    }
+
+    /* If we're in `BEST_SERVER_ONLY` mode, there's a risk that the table will move off
+    the server we selected before we get a chance to run the query, which could cause
+    spurious failures. So in that mode we try again if the first try fails. */
+    int tries_left = servers == server_selector_t::BEST_SERVER_ONLY ? 2 : 1;
+
+    while (!tables_todo.empty() && tries_left > 0) {
+        --tries_left;
+
+        /* Assemble a list of which servers we need to send messages to, and which tables
+        we want from each server. */
+        std::map<peer_id_t, std::set<namespace_id_t> > targets;
+        switch (servers) {
+            case server_selector_t::EVERY_SERVER: {
+                table_manager_directory->read_all(
+                [&](const std::pair<peer_id_t, namespace_id_t> &key,
+                        const table_manager_bcard_t *bcard) {
+                    if (tables_todo.count(key.second) == 1) {
+                        targets[key.first].insert(key.second);
+                    }
+                });
+                break;
+            }
+            case server_selector_t::BEST_SERVER_ONLY: {
+                std::map<namespace_id_t, peer_id_t> best_servers;
+                std::map<namespace_id_t, best_server_rank_t> best_ranks;
+                table_manager_directory->read_all(
+                [&](const std::pair<peer_id_t, namespace_id_t> &key,
+                        const table_manager_bcard_t *bcard) {
+                    if (tables_todo.count(key.second) == 1) {
+                        best_server_rank_t rank(
+                            static_cast<bool>(bcard->leader, bcard->timestamp);
+                        /* This relies on the fact that a default-constructed
+                        `best_server_rank_t` is always superseded */
+                        if (rank.supersedes(best_ranks[key.second])) {
+                            best_ranks[key.second] = rank;
+                            best_servers[key.second] = key.first;
+                        }
+                    }
+                });
+                for (const auto &pair : best_servers) {
+                    targets[pair.second].insert(pair.first);
+                }
+                break;
+            }
+        }
+
+        /* Dispatch all the messages in parallel. Probably this should really be a
+        `throttled_pmap` instead. */
+        pmap(targets.begin(), targets.end(),
+        [&](const std::pair<peer_id_t, std::set<namespace_id_t> > &p) {
+            boost::optional<multi_table_manager_bcard_t> bcard =
+                multi_table_manager_directory->get_key(p.first);
+            if (!static_cast<bool>(bcard)) {
+                return;
+            }
+            disconnect_watcher_t dw(mailbox_manager,
+                bcard->get_status_mailbox.get_peer());
+            cond_t got_ack;
+            mailbox_t<void(std::map<namespace_id_t, table_status_response_t>)>
+            ack_mailbox(mailbox_manager,
+                [&](signal_t *, const std::map<
+                        namespace_id_t, table_status_response_t> &resp) {
+                    for (const auto &pair2 : resp) {
+                        callback(pair.second.server, pair2.first, pair2.second);
+                        tables_todo.erase(pair2.first);
+                    }
+                    got_ack.pulse();
+                });
+            send(mailbox_manager, bcard->get_status_mailbox,
+                p.second, request, ack_mailbox.get_address());
+            wait_any_t waiter(&dw, interruptor, &got_ack);
+            waiter->wait_lazily_unordered();
+        });
+
+        if (interruptor->is_pulsed()) {
+            throw interrupted_exc_t();
+        }
+    }
+
+    *failures_out = std::move(tables_todo);
 }
 
 void table_meta_client_t::retry(
