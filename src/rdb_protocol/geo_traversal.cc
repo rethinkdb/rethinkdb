@@ -77,6 +77,9 @@ geo_intersecting_cb_t::geo_intersecting_cb_t(
       env(_env),
       distinct_emitted(_distinct_emitted_in_out) {
     guarantee(distinct_emitted != NULL);
+    // We must disable profiler events for subtasks, because multiple instances
+    // of `handle_pair`are going to run in parallel which  would otherwise corrupt
+    // the sequence of events in the profiler trace.
     disabler.init(new profile::disabler_t(env->trace));
     sampler.init(new profile::sampler_t("Geospatial intersection traversal.",
                                         env->trace));
