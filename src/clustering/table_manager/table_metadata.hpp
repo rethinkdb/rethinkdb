@@ -256,13 +256,13 @@ public:
     expensive computation if the result will not be used. */
 
     /* `config` is controlled by `want_config`. */
-    table_config_and_shards_t config;
+    boost::optional<table_config_and_shards_t> config;
 
     /* `sindexes` is controlled by `want_sindexes`. */
     std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > sindexes;
 
     /* `shard_status` is controlled by `want_shard_status` */
-    table_server_status_t shard_status;
+    boost::optional<table_server_status_t> shard_status;
 };
 RDB_DECLARE_SERIALIZABLE(table_status_response_t);
 

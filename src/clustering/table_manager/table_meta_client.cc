@@ -106,7 +106,7 @@ void table_meta_client_t::get_config(
         &interruptor,
         [&](const server_id_t &, const namespace_id_t &,
                 const table_status_response_t &response) {
-            *config_out = response.config;
+            *config_out = *response.config;
         },
         &failures);
     if (!failures.empty()) {
@@ -132,7 +132,7 @@ void table_meta_client_t::list_configs(
         &interruptor,
         [&](const server_id_t &, const namespace_id_t &table_id,
                 const table_status_response_t &response) {
-            configs_out->insert(std::make_pair(table_id, response.config));
+            configs_out->insert(std::make_pair(table_id, *response.config));
         },
         &failures);
     for (const namespace_id_t &table_id : failures) {
@@ -221,7 +221,7 @@ void table_meta_client_t::get_shard_status(
             server_names_out->names.insert(std::make_pair(server_id,
                 std::make_pair(config->version, config->config.name)));
             server_statuses_out->insert(
-                std::make_pair(server_id, response.shard_status));
+                std::make_pair(server_id, *response.shard_status));
         },
         &failures);
     if (!failures.empty() || server_statuses_out->empty()) {

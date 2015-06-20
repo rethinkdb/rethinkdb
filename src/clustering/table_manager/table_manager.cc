@@ -104,7 +104,7 @@ void table_manager_t::get_status(
     if (request.want_config) {
         get_raft()->get_committed_state()->apply_read(
             [&](const raft_member_t<table_raft_state_t>::state_and_config_t *s) {
-                response->config = s->state.config;
+                response->config = boost::make_optional(s->state.config);
             });
     }
     if (request.want_sindexes) {
@@ -117,14 +117,15 @@ void table_manager_t::get_status(
         `contract_executor_t::update_blocking` which first resets the executor and only
         then removes the acknowledgement from the `ack_map`. */
         ASSERT_NO_CORO_WAITING;
-        response->shard_status.timestamp.epoch = epoch;
+        response->shard_status = boost::make_optional(table_server_status_t());
+        response->shard_status->timestamp.epoch = epoch;
         get_raft()->get_committed_state()->apply_read(
         [&](const raft_member_t<table_raft_state_t>::state_and_config_t *s) {
-            response->shard_status.timestamp.log_index = s->log_index;
-            response->shard_status.state = s->state;
+            response->shard_status->timestamp.log_index = s->log_index;
+            response->shard_status->state = s->state;
         });
         for (const auto &contract_ack : contract_executor.get_acks()->get_all()) {
-            response->shard_status.contract_acks.insert(
+            response->shard_status->contract_acks.insert(
                 std::make_pair(contract_ack.first.second, contract_ack.second));
         }
     }
