@@ -13,11 +13,13 @@ table_status_artificial_table_backend_t::table_status_artificial_table_backend_t
         boost::shared_ptr<semilattice_readwrite_view_t<
             cluster_semilattice_metadata_t> > _semilattice_view,
         server_config_client_t *_server_config_client,
+        namespace_repo_t *_namespace_repo,
         table_meta_client_t *_table_meta_client,
         admin_identifier_format_t _identifier_format) :
     common_table_artificial_table_backend_t(
         _semilattice_view, _table_meta_client, _identifier_format),
-    server_config_client(_server_config_client) { }
+    server_config_client(_server_config_client),
+    namespace_repo(_namespace_repo) { }
 
 table_status_artificial_table_backend_t::~table_status_artificial_table_backend_t() {
     begin_changefeed_destruction();
@@ -212,7 +214,7 @@ void table_status_artificial_table_backend_t::format_row(
         readiness = table_readiness_t::finished;
     } else {
         namespace_interface_access_t ns_if =
-            namespace_repo.get_namespace_interface(table_id, interruptor_on_home);
+            namespace_repo->get_namespace_interface(table_id, interruptor_on_home);
         if (ns_if.get()->check_readiness(
                 table_readiness_t::writes, interruptor_on_home)) {
             readiness = table_readiness_t::writes;

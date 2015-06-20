@@ -8,6 +8,7 @@
 #include "clustering/administration/tables/generate_config.hpp"
 #include "clustering/administration/tables/split_points.hpp"
 #include "clustering/administration/tables/table_config.hpp"
+#include "clustering/administration/tables/wait_for_readiness.hpp"
 #include "clustering/table_manager/table_meta_client.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "rdb_protocol/artificial_table/artificial_table.hpp"
@@ -257,16 +258,6 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
             convert_name_to_datum(db->name), config.config,
             admin_identifier_format_t::name, config.server_names);
 
-        table_status_artificial_table_backend_t *status_backend =
-            admin_tables->table_status_backend[
-                static_cast<int>(admin_identifier_format_t::name)].get();
-        wait_for_table_readiness(
-            table_id,
-            table_readiness_t::finished,
-            status_backend,
-            &interruptor_on_home,
-            nullptr);
-
     } catch (const admin_op_exc_t &msg) {
         *error_out = msg.what();
         return false;
@@ -275,26 +266,26 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
         "The table was not created.",
         "The table may or may not have been created.")
 
-    /* Because `wait_for_table_readiness()` succeeded, we know that the replicas are all
-    set up. However, `wait_for_table_readiness()` doesn't check that we've established a
-    `namespace_interface_t` for the table. If we haven't done so yet, this could cause
-    the first few queries to fail. So we have to run dummy queries until we get a query
-    through, and only then we return to the user.
-
-    This could hang because of a node disconnecting or the user deleting the table. In
-    that case, timeout after 10 seconds and pretend everything's alright. */
-    signal_timer_t timer_interruptor;
-    wait_any_t combined_interruptor(interruptor_on_caller, &timer_interruptor);
-    timer_interruptor.start(10000);
+    /* Wait for the table to set itself up. Various things could interfere with this
+    process, causing it to wait indefinitely; for example, the table might be deleted, or
+    a server might go down. So we set a 10-second timeout. */
+    signal_timer_t timer;
+    timer.start(10000);
+    wait_any_t combined_interruptor(&timer, interruptor_on_caller);
     try {
-        namespace_interface_access_t ns_if =
-            namespace_repo.get_namespace_interface(table_id, &combined_interruptor);
-        while (!ns_if.get()->check_readiness(table_readiness_t::writes,
-                                             &combined_interruptor)) {
-            nap(100, &combined_interruptor);
-        }
+        wait_for_table_readiness(
+            table_id,
+            table_readiness_t::finished,
+            &namespace_repo,
+            table_meta_client,
+            &combined_interruptor);
+    } catch (const no_such_table_exc_t &) {
+        /* The table was deleted after being created. Just return normally. */
     } catch (const interrupted_exc_t &) {
-        // Do nothing
+        if (interruptor_on_caller->is_pulsed()) {
+            throw interrupted_exc_t();
+        }
+        /* Ten seconds elapsed. Just return normally. */
     }
 
     ql::datum_object_builder_t result_builder;
@@ -486,120 +477,6 @@ bool real_reql_cluster_interface_t::table_status(
     } CATCH_NAME_ERRORS(db->name, name, error_out)
 }
 
-/* Waits until all of the tables listed in `tables` are ready to the given level of
-readiness, or have been deleted. */
-void real_reql_cluster_interface_t::wait_internal(
-        std::set<namespace_id_t> tables,
-        table_readiness_t readiness,
-        signal_t *interruptor_on_caller,
-        ql::datum_t *result_out,
-        int *count_out)
-        THROWS_ONLY(interrupted_exc_t, admin_op_exc_t) {
-    /* Note that `wait_internal()` can be called from any thread */
-
-    table_status_artificial_table_backend_t *status_backend =
-        admin_tables->table_status_backend[
-            static_cast<int>(admin_identifier_format_t::name)].get();
-    guarantee(status_backend->home_thread() == home_thread());
-
-    /* Record the old values of `table_status` so we can report them in the result */
-    std::map<namespace_id_t, ql::datum_t> old_statuses;
-    for (auto it = tables.begin(); it != tables.end();) {
-        ql::datum_t status;
-        std::string error;
-        if (!status_backend->read_row(
-                convert_uuid_to_datum(*it), interruptor_on_caller, &status, &error)) {
-            throw admin_op_exc_t(error);
-        }
-        if (!status.has()) {
-            /* The table was deleted; remove it from the set */
-            auto jt = it;
-            ++jt;
-            tables.erase(it);
-            it = jt;
-        } else {
-            old_statuses[*it] = status;
-            ++it;
-        }
-    }
-
-    std::map<namespace_id_t, ql::datum_t> new_statuses;
-    /* We alternate between two checks for readiness: waiting on `table_status_backend`,
-    and running test queries. We consider ourselves done when both tests succeed for
-    every table with no failures in between. */
-    while (true) {
-        /* First we wait until all the `table_status_backend` checks succeed in a row */
-        {
-            cross_thread_signal_t interruptor_on_home(
-                interruptor_on_caller, home_thread());
-            on_thread_t thread_switcher(home_thread());
-
-            // Loop until all tables are ready - we have to check all tables again
-            // if a table was not immediately ready, because we're supposed to
-            // wait until all the checks succeed with no failures in between.
-            bool immediate;
-            do {
-                new_statuses.clear();
-                immediate = true;
-                for (auto it = tables.begin(); it != tables.end();) {
-                    ql::datum_t status;
-                    table_wait_result_t res = wait_for_table_readiness(
-                        *it, readiness, status_backend, &interruptor_on_home, &status);
-                    if (res == table_wait_result_t::DELETED) {
-                        /* Remove this entry so we don't keep trying to wait on it after
-                        it's been erased */
-                        tables.erase(it++);
-                    } else {
-                        new_statuses[*it] = status;
-                        ++it;
-                    }
-                    immediate = immediate && (res == table_wait_result_t::IMMEDIATE);
-                }
-            } while (!immediate && tables.size() != 1);
-        }
-
-        /* Next we check that test queries succeed. */
-        // We cannot wait for anything higher than 'writes' through namespace_interface_t
-        table_readiness_t readiness2 = std::min(readiness, table_readiness_t::writes);
-        bool success = true;
-        for (auto it = tables.begin(); it != tables.end() && success; ++it) {
-            namespace_interface_access_t ns_if =
-                namespace_repo.get_namespace_interface(*it, interruptor_on_caller);
-            success = success && ns_if.get()->check_readiness(
-                readiness2, interruptor_on_caller);
-        }
-        if (success) {
-            break;
-        }
-
-        /* The `table_status` check succeeded, but the test query didn't. Go back and try
-        the `table_status` check again, after waiting for a bit. */
-        nap(100, interruptor_on_caller);
-    }
-
-    guarantee(new_statuses.size() == tables.size());
-
-    if (result_out != nullptr) {
-        ql::datum_object_builder_t result_builder;
-        result_builder.overwrite("ready",
-            ql::datum_t(static_cast<double>(tables.size())));
-        ql::datum_array_builder_t status_changes_builder(
-            ql::configured_limits_t::unlimited);
-        for (const namespace_id_t &table_id : tables) {
-            ql::datum_object_builder_t change_builder;
-            change_builder.overwrite("old_val", old_statuses.at(table_id));
-            change_builder.overwrite("new_val", new_statuses.at(table_id));
-            status_changes_builder.add(std::move(change_builder).to_datum());
-        }
-        result_builder.overwrite("status_changes",
-            std::move(status_changes_builder).to_datum());
-        *result_out = std::move(result_builder).to_datum();
-    }
-    if (count_out != nullptr) {
-        *count_out = tables.size();
-    }
-}
-
 bool real_reql_cluster_interface_t::table_wait(
         counted_t<const ql::db_t> db,
         const name_string_t &name,
@@ -612,18 +489,8 @@ bool real_reql_cluster_interface_t::table_wait(
     try {
         namespace_id_t table_id;
         table_meta_client->find(db->id, name, &table_id);
-
-        int num_waited;
-        wait_internal({table_id}, readiness, interruptor_on_caller, result_out,
-            &num_waited);
-
-        /* If the table is deleted, then `wait_internal()` will just return normally.
-        This behavior makes sense for `db_wait()` but not for `table_wait()`. So we
-        manually check to see if the wait succeeded. */
-        if (num_waited != 1) {
-            throw no_such_table_exc_t();
-        }
-
+        wait_for_table_readiness(table_id, readiness, &namespace_repo,
+            table_meta_client, interruptor_on_caller);
         return true;
     } catch (const admin_op_exc_t &msg) {
         *error_out = msg.what();
@@ -650,7 +517,8 @@ bool real_reql_cluster_interface_t::db_wait(
     }
 
     try {
-        wait_internal(table_ids, readiness, interruptor_on_caller, result_out, nullptr);
+        wait_for_many_tables_readiness(table_ids, readinesss, &namespace_repo,
+            table_meta_client, interruptor_on_caller);
         return true;
     } catch (const admin_op_exc_t &msg) {
         *error_out = msg.what();

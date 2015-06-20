@@ -205,6 +205,7 @@ public:
                 *_directory_map_view,
             table_meta_client_t *_table_meta_client,
             server_config_client_t *_server_config_client,
+            namespace_repo_t *_namespace_repo,
             mailbox_manager_t *_mailbox_manager);
     reql_cluster_interface_t *get_reql_cluster_interface() {
         return reql_cluster_interface.get();

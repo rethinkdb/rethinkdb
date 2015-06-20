@@ -21,6 +21,7 @@ public:
                 cluster_semilattice_metadata_t> > _semilattice_view,
             server_config_client_t *server_config_client,
             table_meta_client_t *_table_meta_client,
+            namespace_repo_t *_namespace_repo,
             admin_identifier_format_t _identifier_format);
     ~table_status_artificial_table_backend_t();
 
@@ -41,6 +42,7 @@ private:
             THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t);
 
     server_config_client_t *server_config_client;
+    namespace_repo_t *namespace_repo;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_TABLES_TABLE_STATUS_HPP_ */
