@@ -277,11 +277,6 @@ public:
         backfilling |= other.backfilling;
         transitioning |= other.transitioning;
     }
-    bool operator==(const table_shard_status_t &other) const {
-        return primary == other.primary && secondary == other.secondary &&
-            need_primary == other.need_primary && need_quorum == other.need_quorum &&
-            backfilling == other.backfilling && transitioning == other.transitioning;
-    }
     bool primary;   /* server is primary */
     bool secondary;   /* server is secondary */
     bool need_primary;   /* server is secondary and waiting for primary */
@@ -289,6 +284,7 @@ public:
     bool backfilling;   /* server is receiving a backfill */
     bool transitioning;   /* server is in a contract, but has no ack */
 };
+RDB_DECLARE_EQUALITY_COMPARABLE(table_shard_status_t);
 RDB_DECLARE_SERIALIZABLE(table_shard_status_t);
 
 void debug_print(printf_buffer_t *buf, const contract_t::primary_t &primary);
