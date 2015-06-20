@@ -79,13 +79,19 @@ class DatabasesContainer extends Backbone.View
             tables: r.db(system_db).table('table_status').orderBy((table) -> table("name"))
                 .filter({db: db("name")})
                 .merge( (table) ->
-                    shards: table("shards").count()
-                    replicas: table("shards").map((shard) ->
+                    shards: table("shards").count().default(0)
+                    replicas: table("shards").default([]).map((shard) ->
                         shard('replicas').count()).sum()
-                    replicas_ready: table('shards').map((shard) ->
+                    replicas_ready: table('shards').default([]).map((shard) ->
                         shard('replicas').filter((replica) ->
                             replica('state').eq('ready')).count()).sum()
-                    status: table('status')
+                    # TODO: remove this after #4374 is completed
+                    status: table('status').default(
+                        all_replicas_ready: false
+                        ready_for_reads: false
+                        ready_for_writes: false
+                        ready_for_outdated_reads: false
+                    )
                     id: table('id')
                 )
 

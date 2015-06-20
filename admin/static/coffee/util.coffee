@@ -61,7 +61,8 @@ pluralize_noun = (noun, num, capitalize) ->
 
 Handlebars.registerHelper 'pluralize_noun', pluralize_noun
 Handlebars.registerHelper 'pluralize_verb_to_have', (num) -> if num is 1 then 'has' else 'have'
-Handlebars.registerHelper 'pluralize_verb', (verb, num) -> if num is 1 then verb+'s' else verb
+pluralize_verb = (verb, num) -> if num is 1 then "#{verb}s" else verb
+Handlebars.registerHelper 'pluralize_verb', pluralize_verb
 #
 # Helpers for capitalization
 capitalize = (str) ->
@@ -72,11 +73,8 @@ capitalize = (str) ->
 Handlebars.registerHelper 'capitalize', capitalize
 
 # Helpers for shortening uuids
-Handlebars.registerHelper 'humanize_uuid', (str) ->
-    if str?
-        str.substr(0, 6)
-    else
-        "NULL"
+humanize_uuid = (str) -> if str? then str.substr(0, 6) else "NULL"
+Handlebars.registerHelper 'humanize_uuid', humanize_uuid
 
 # Helpers for printing connectivity
 Handlebars.registerHelper 'humanize_server_connectivity', (status) ->
@@ -426,3 +424,5 @@ exports.binary_to_string = binary_to_string
 exports.json_to_node = json_to_node
 exports.approximate_count = approximate_count
 exports.pluralize_noun = pluralize_noun
+exports.pluralize_verb = pluralize_verb
+exports.humanize_uuid = humanize_uuid

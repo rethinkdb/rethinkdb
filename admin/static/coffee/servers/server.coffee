@@ -43,10 +43,10 @@ class ServerContainer extends Backbone.View
                         responsibilities: r.db(system_db).table('table_status'
                         ).orderBy( (table) -> table('db').add('.').add(table('name')) ).map( (table) ->
                             table.merge( (table) ->
-                                shards: table("shards").map(r.range(), (shard, index) ->
+                                shards: table("shards").default([]).map(r.range(), (shard, index) ->
                                     shard.merge(
                                         index: index.add(1)
-                                        num_shards: table('shards').count()
+                                        num_shards: table('shards').count().default(0)
                                         role: r.branch(shard('primary_replicas').contains(server_status('name')),
                                             'primary', 'secondary')
                                         )

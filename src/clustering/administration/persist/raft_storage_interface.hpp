@@ -37,6 +37,8 @@ public:
     void write_current_term_and_voted_for(
         raft_term_t current_term,
         raft_member_id_t voted_for);
+    void write_commit_index(
+        raft_log_index_t commit_index);
     void write_log_replace_tail(
         const raft_log_t<table_raft_state_t> &source,
         raft_log_index_t first_replaced);
@@ -47,7 +49,8 @@ public:
         const raft_complex_config_t &snapshot_config,
         bool clear_log,
         raft_log_index_t log_prev_index,
-        raft_term_t log_prev_index_term);
+        raft_term_t log_prev_term,
+        raft_log_index_t commit_index);
 
 private:
     metadata_file_t *const file;

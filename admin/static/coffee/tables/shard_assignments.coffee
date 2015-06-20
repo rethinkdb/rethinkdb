@@ -54,16 +54,14 @@ render_shard = (shard, index) ->
   ]
 
 render_replica = (replica) ->
-  h "li.replica", [
-    h "span.server-name.#{state_color(replica.state)}", [
-      h "a", href: "#servers/#{replica.id}", replica.server
+    h "li.replica", [
+        h "span.server-name.#{state_color(replica.state)}",
+            h "a", href: "#servers/#{replica.id}", replica.server
+        h "span.replica-role.#{replica_roleclass(replica)}",
+            replica_rolename(replica)
+        h "span.state.#{state_color(replica.state)}",
+            humanize_state_string(replica.state)
     ]
-    h "span.replica-role.#{replica_roleclass(replica)}", [
-      replica_rolename(replica)
-    ]
-    h "span.state.#{state_color(replica.state)}",
-        humanize_state_string replica.state
-  ]
 
 state_color = (state) ->
   switch state
@@ -71,13 +69,18 @@ state_color = (state) ->
       when "disconnected" then "red"
       else                     "yellow"
 
-replica_rolename = ({configured_primary: configured, currently_primary: currently}) ->
+replica_rolename = ({configured_primary: configured, \
+                     currently_primary: currently, \
+                     nonvoting: nonvoting, \
+                     }) ->
     if configured and currently
         "Primary replica"
     else if configured and not currently
         "Goal primary replica"
     else if not configured and currently
         "Acting primary replica"
+    else if nonvoting
+        "Non-voting secondary replica"
     else
         "Secondary replica"
 

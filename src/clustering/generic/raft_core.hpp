@@ -324,8 +324,13 @@ public:
     `log` variable in Figure 2. */
     raft_log_t<state_t> log;
 
-    RDB_MAKE_ME_SERIALIZABLE_5(raft_persistent_state_t, current_term, voted_for,
-        snapshot_state, snapshot_config, log);
+    /* This implementation deviates from the Raft paper by also persisting
+    `commit_index`. This ensures that the Raft committed state doesn't revert to an
+    earlier state if the member crashes and restarts. */
+    raft_log_index_t commit_index;
+
+    RDB_MAKE_ME_SERIALIZABLE_6(raft_persistent_state_t, current_term, voted_for,
+        snapshot_state, snapshot_config, log, commit_index);
 };
 
 /* `raft_storage_interface_t` is an abstract class that `raft_member_t` uses to store
@@ -348,6 +353,10 @@ public:
         raft_term_t current_term,
         raft_member_id_t voted_for) = 0;
 
+    /* Set `commit_index`, leaving everything else alone. */
+    virtual void write_commit_index(
+        raft_log_index_t commit_index) = 0;
+
     /* Delete any existing log entries in the stored log after `first_replaced`, and then
     copy any log entries in `source` after `first_replaced` into the stored log. */
     virtual void write_log_replace_tail(
@@ -361,13 +370,14 @@ public:
     /* Overwrite `snapshot_state` and `snapshot_config`. If `erase_log` is `true`, it
     erase the entire log; otherwise, only erase log entries with indexes less than or
     equal to `log_prev_index`. Set `log.prev_index` and `log.prev_term` to
-    `log_prev_index` and `log_prev_term`. */
+    `log_prev_index` and `log_prev_term`. Set `commit_index`. */
     virtual void write_snapshot(
         const state_t &snapshot_state,
         const raft_complex_config_t &snapshot_config,
         bool clear_log,
         raft_log_index_t log_prev_index,
-        raft_term_t log_prev_term) = 0;
+        raft_term_t log_prev_term,
+        raft_log_index_t commit_index) = 0;
 
 protected:
     virtual ~raft_storage_interface_t() { }

@@ -338,11 +338,9 @@ void do_a_replace_from_batched_replace(
     rdb_modification_report_cb_t *mod_cb,
     bool update_pkey_cfeeds,
     batched_replace_response_t *stats_out,
-    profile::sampler_t *sampler,
     profile::trace_t *trace,
     std::set<std::string> *conditions) {
 
-    sampler->new_sample();
     fifo_enforcer_sink_t::exit_write_t exiter(
         batched_replaces_fifo_sink, batched_replaces_fifo_token);
     // We need to get in line for this while still holding the superblock so
@@ -385,6 +383,13 @@ batched_replace_response_t rdb_batched_replace(
     // We have to drain write operations before destructing everything above us,
     // because the coroutines being drained use them.
     {
+        // We must disable profiler events for subtasks, because multiple instances
+        // of `handle_pair`are going to run in parallel which  would otherwise corrupt
+        // the sequence of events in the profiler trace.
+        // Instead we add a single event for the whole batched replace.
+        sampler->new_sample();
+        profile::starter_t profile_starter("Perform parallel replaces.", trace);
+        profile::disabler_t trace_disabler(trace);
         unlimited_fifo_queue_t<std::function<void()> > coro_queue;
         struct callback_t : public coro_pool_callback_t<std::function<void()> > {
             virtual void coro_pool_callback(std::function<void()> f, signal_t *) {
@@ -415,7 +420,6 @@ batched_replace_response_t rdb_batched_replace(
                         sindex_cb,
                         update_pkey_cfeeds,
                         &stats,
-                        sampler,
                         trace,
                         &conditions));
                 current_superblock.init(
@@ -622,6 +626,9 @@ rget_cb_t::rget_cb_t(rget_io_data_t &&_io,
     io.response->last_key = !reversed(job.sorting)
         ? range.left
         : (!range.right.unbounded ? range.right.key() : store_key_t::max());
+    // We must disable profiler events for subtasks, because multiple instances
+    // of `handle_pair`are going to run in parallel which  would otherwise corrupt
+    // the sequence of events in the profiler trace.
     disabler.init(new profile::disabler_t(job.env->trace));
     sampler.init(new profile::sampler_t("Range traversal doc evaluation.",
                                         job.env->trace));

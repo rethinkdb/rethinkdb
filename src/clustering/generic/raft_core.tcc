@@ -43,6 +43,7 @@ raft_persistent_state_t<state_t>::make_initial(
     ps.snapshot_config = complex_config;
     ps.log.prev_index = 0;
     ps.log.prev_term = 0;
+    ps.commit_index = 0;
     return ps;
 }
 
@@ -100,6 +101,12 @@ raft_member_t<state_t>::raft_member_t(
         this->apply_log_entries(
             s, this->ps().log, s->log_index + 1, this->ps().log.get_latest_index());
         return !this->ps().log.entries.empty();
+    });
+    /* Finish initializing `committed_state` */
+    committed_state.apply_atomic_op([&](state_and_config_t *s) -> bool {
+        this->apply_log_entries(
+            s, this->ps().log, s->log_index + 1, this->ps().commit_index);
+        return true;
     });
     DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
 }
@@ -559,7 +566,8 @@ void raft_member_t<state_t>::on_install_snapshot_rpc(
             request.snapshot_config,
             false,
             request.last_included_index,
-            request.last_included_term);
+            request.last_included_term,
+            std::max(request.last_included_index, ps().commit_index));
         guarantee(ps().log.prev_index == request.last_included_index);
         guarantee(ps().log.prev_term == request.last_included_term);
 
@@ -576,7 +584,8 @@ void raft_member_t<state_t>::on_install_snapshot_rpc(
             request.snapshot_config,
             true,
             request.last_included_index,
-            request.last_included_term);
+            request.last_included_term,
+            request.last_included_index);
         guarantee(ps().log.prev_index == request.last_included_index);
         guarantee(ps().log.prev_term == request.last_included_term);
 
@@ -585,20 +594,21 @@ void raft_member_t<state_t>::on_install_snapshot_rpc(
             ps().log.prev_index, ps().snapshot_state, ps().snapshot_config));
     }
 
-    /* Raft paper, Figure 13: "Reset state machine using snapshot contents" */
-    committed_state.apply_atomic_op([&](state_and_config_t *state_and_config) -> bool {
-        /* This conditional doesn't appear in the Raft paper. It will always be true if
-        we discarded the entire log, but it will sometimes be false if we only discarded
-        part of the log, which is why this implementation needs it. */
-        if (request.last_included_index > state_and_config->log_index) {
-            state_and_config->log_index = request.last_included_index;
-            state_and_config->state = this->ps().snapshot_state;
-            state_and_config->config = this->ps().snapshot_config;
+    /* Raft paper, Figure 13: "Reset state machine using snapshot contents"
+    This conditional doesn't appear in the Raft paper. It will always be true if we
+    discarded the entire log, but it will sometimes be false if we only discarded part of
+    the log, which is why this implementation needs it.*/
+    if (request.last_included_index > committed_state.get_ref().log_index) {
+        /* Note that we already updated `ps().commit_index` earlier, as part of the same
+        storage write operation that changed the snapshot. */
+        guarantee(ps().commit_index == request.last_included_index);
+        committed_state.apply_atomic_op([&](state_and_config_t *sc) -> bool {
+            sc->log_index = request.last_included_index;
+            sc->state = this->ps().snapshot_state;
+            sc->config = this->ps().snapshot_config;
             return true;
-        } else {
-            return false;
-        }
-    });
+        });
+    }
 
     reply_out->term = ps().current_term;
 
@@ -696,6 +706,8 @@ void raft_member_t<state_t>::check_invariants(
     mutex_acq->guarantee_is_holding(&mutex);
 
     raft_log_index_t commit_index = committed_state.get_ref().log_index;
+    guarantee(commit_index == ps().commit_index, "Commit index stored in persistent "
+        "state should match commit index stored in committed_state watchable.");
 
     /* Some of these checks are copied directly from LogCabin's list of invariants. */
 
@@ -1023,6 +1035,7 @@ void raft_member_t<state_t>::apply_log_entries(
         const raft_log_t<state_t> &log,
         raft_log_index_t first,
         raft_log_index_t last) {
+    guarantee(last >= first - 1);
     guarantee(state_and_config->log_index + 1 == first);
     for (raft_log_index_t i = first; i <= last; ++i) {
         const raft_log_entry_t<state_t> &e = log.get_entry_ref(i);
@@ -1074,6 +1087,11 @@ void raft_member_t<state_t>::update_commit_index(
 
     raft_log_index_t old_commit_index = committed_state.get_ref().log_index;
     guarantee(new_commit_index > old_commit_index);
+
+    /* This implementation deviates from the Raft paper in that we persist the commit
+    index to disk whenever it changes. This ensures that the state machine never appears
+    to go backwards. */
+    storage->write_commit_index(new_commit_index);
 
     /* Raft paper, Figure 2: "If commitIndex > lastApplied: increment lastApplied, apply
     log[lastApplied] to state machine"
@@ -1128,7 +1146,8 @@ void raft_member_t<state_t>::update_commit_index(
             committed_state.get_ref().config,
             false,
             new_commit_index,
-            ps().log.get_entry_term(new_commit_index));
+            ps().log.get_entry_term(new_commit_index),
+            new_commit_index);
     }
 
     /* If we just committed the second step of a config change, then we might need to
@@ -1642,9 +1661,8 @@ void raft_member_t<state_t>::leader_send_updates(
         member. It doesn't correspond to anything in the Raft paper. This implementation
         deviates from the Raft paper slightly in that when the leader commits a log
         entry, it immediately sends an append-entries RPC so that clients can commit the
-        log entry too, instead of waiting for the next heartbeat to tell the clients it's
-        time to commit. This allows the latency of a transaction to be much shorter than
-        the heartbeat interval. */
+        log entry too. This is necessary because we use "virtual heartbeats" in place of
+        regular heartbeats, and virtual heartbeats don't update the commit index. */
         raft_log_index_t member_commit_index = 0;
 
         /* Raft paper, Figure 2: "Upon election: send initial empty AppendEntries RPCs
