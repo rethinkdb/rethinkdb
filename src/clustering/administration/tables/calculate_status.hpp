@@ -8,9 +8,18 @@
 class namespace_repo_t;
 class signal_t;
 
+/* There's a slight difference between `wait_for_*_readiness()` and `get_table_status()`
+in how they react when the table's leader reports that all replicas are ready.
+`wait_for_*_readiness()` will go ahead and run the probe read/write query even if the
+leader reports everything is fine, because this will ensure that the `namespace_repo_t`
+is also ready. But `get_table_status()` will go ahead and report
+`table_readiness_t::finished` without running any probe queries against the
+`namespace_repo_t`. This is to save work and also to make the results of
+`get_table_status()` more consistent between servers. */
+
 /* Blocks until the given table is available at the given level of readiness. If the
 table is deleted, throws `no_such_table_exc_t`. The return value is `true` if the table
-was ready immediately, or `false` if it was necessary to wait. */
+was ready immediately, or `false` if it was necessary to wait.*/
 bool wait_for_table_readiness(
     const namespace_id_t &table_id,
     table_readiness_t readiness,
