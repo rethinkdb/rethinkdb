@@ -136,7 +136,7 @@ public:
         const namespace_id_t &table_id,
         signal_t *interruptor,
         std::map<server_id_t, range_map_t<key_range_t::right_bound_t,
-            std::set<contract_ack_t::state_t> > > *server_shards_out,
+            table_status_response_t::shard_status_t> > *shard_statuses_out,
         bool *all_replicas_ready_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t);
 

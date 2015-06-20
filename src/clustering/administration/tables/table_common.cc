@@ -49,6 +49,9 @@ bool common_table_artificial_table_backend_t::read_all_rows_as_vector(
         } catch (const no_such_table_exc_t &) {
             /* The table got deleted between the call to `list_configs()` and the
             call to `format_row()`. Ignore it. */
+        } catch (const failed_table_op_exc_t &) {
+            rows_out->push_back(make_error_row(
+                pair.first, db_name_or_uuid, pair.second.config.basic.name));
         }
     }
     for (const auto &pair : disconnected_configs) {
@@ -95,12 +98,10 @@ bool common_table_artificial_table_backend_t::read_row(
         table_config_and_shards_t config;
         try {
             table_meta_client->get_config(table_id, &interruptor_on_home, &config);
+            format_row(table_id, config, db_name_or_uuid, &interruptor_on_home, row_out);
         } catch (const failed_table_op_exc_t &) {
             *row_out = make_error_row(table_id, db_name_or_uuid, basic_config.name);
-            return true;
         }
-
-        format_row(table_id, config, db_name_or_uuid, &interruptor_on_home, row_out);
         return true;
     } catch (const no_such_table_exc_t &) {
         *row_out = ql::datum_t();

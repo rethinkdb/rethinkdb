@@ -50,7 +50,7 @@ protected:
             const ql::datum_t &db_name_or_uuid,
             signal_t *interruptor_on_home,
             ql::datum_t *row_out)
-        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t) = 0;
+        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t) = 0;
 
     ql::datum_t make_error_row(
             const namespace_id_t &table_id,

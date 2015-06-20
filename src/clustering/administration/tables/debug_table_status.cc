@@ -277,7 +277,7 @@ void debug_table_status_artificial_table_backend_t::format_row(
         const ql::datum_t &db_name_or_uuid,
         signal_t *interruptor_on_home,
         ql::datum_t *row_out)
-        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t) {
+        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t) {
     assert_thread();
 
     std::map<server_id_t, table_status_response_t> statuses;
