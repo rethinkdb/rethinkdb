@@ -129,14 +129,23 @@ public:
             *index_statuses_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t);
 
-    /* `get_shard_status()` returns the information necessary to fill in the
-    `rethinkdb.table_status` system table. */
+    /* `get_shard_status()` returns some of the information necessary to fill in the
+    `rethinkdb.table_status` system table. If `server_shards_out` is set to `nullptr`, it
+    that information will not be retrieved, which will improve performance. */
     void get_shard_status(
         const namespace_id_t &table_id,
         signal_t *interruptor,
-        std::map<server_id_t, table_server_status_t> *server_statuses_out,
-        server_name_map_t *server_names_out,
-        server_id_t *latest_server_out)
+        std::map<server_id_t, range_map_t<key_range_t::right_bound_t,
+            std::set<contract_ack_t::state_t> > > *server_shards_out,
+        bool *all_replicas_ready_out)
+        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t);
+
+    /* `get_debug_status()` fetches all status information from all servers. This is for
+    displaying in `rethinkdb._debug_table_status`. */
+    void get_debug_status(
+        const namespace_id_t &table_id,
+        signal_t *interruptor,
+        std::map<server_id_t, table_status_response_t> *responses_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t);
 
     /* `create()` creates a table with the given configuration. It sets `*table_id_out`

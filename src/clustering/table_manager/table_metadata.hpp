@@ -233,27 +233,25 @@ RDB_DECLARE_SERIALIZABLE(table_manager_bcard_t);
 class table_status_request_t {
 public:
     table_status_request_t() :
-        want_config(false), want_sindexes(false), want_shard_status(false) { }
+        want_config(false), want_sindexes(false), want_raft_state(false),
+        want_contract_acks(false), want_shard_status(false),
+        want_all_replicas_ready(false) { }
 
     bool want_config;
     bool want_sindexes;
+    bool want_raft_state;
+    bool want_contract_acks;
     bool want_shard_status;
+    bool want_all_replicas_ready;
 };
 RDB_DECLARE_SERIALIZABLE(table_status_request_t);
-
-class table_server_status_t {
-public:
-    multi_table_manager_bcard_t::timestamp_t timestamp;
-    table_raft_state_t state;
-    std::map<contract_id_t, contract_ack_t> contract_acks;
-};
-RDB_DECLARE_SERIALIZABLE(table_server_status_t);
 
 class table_status_response_t {
 public:
     /* The booleans in `table_status_request_t` control whether each field of
     `table_status_response_t` will be included or not. This is to avoid making an
-    expensive computation if the result will not be used. */
+    expensive computation if the result will not be used. If a field is not requested,
+    its value is undefined (but typically empty or default-constructed). */
 
     /* `config` is controlled by `want_config`. */
     boost::optional<table_config_and_shards_t> config;
@@ -261,8 +259,22 @@ public:
     /* `sindexes` is controlled by `want_sindexes`. */
     std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > sindexes;
 
-    /* `shard_status` is controlled by `want_shard_status` */
-    boost::optional<table_server_status_t> shard_status;
+    /* `raft_state` and `raft_state_timestamp` are controlled by `want_raft_state` */
+    boost::optional<table_raft_state_t> raft_state;
+    boost::optional<multi_table_manager_bcard_t::timestamp_t> raft_state_timestamp;
+
+    /* `contract_acks` is controlled by `want_contract_acks` */
+    std::map<contract_id_t, contract_ack_t> contract_acks;
+
+    /* `shard_status` is controlled by `want_shard_status`. */
+    range_map_t<key_range_t::right_bound_t, std::set<contract_ack_t::state_t> >
+        shard_status;
+
+    /* `all_replicas_ready` is controlled by `want_all_replicas_ready`. It will be set to
+    `true` if the responding server is leader and can confirm that all backfills are
+    completed, the status matches the config, etc. Otherwise it will be set to `false`.
+    */
+    bool all_replicas_ready;
 };
 RDB_DECLARE_SERIALIZABLE(table_status_response_t);
 

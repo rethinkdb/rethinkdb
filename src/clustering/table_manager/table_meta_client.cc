@@ -192,15 +192,55 @@ void table_meta_client_t::get_sindex_status(
 
 void table_meta_client_t::get_shard_status(
         const namespace_id_t &table_id,
-        signal_t *interruptor_on_caller,
-        std::map<server_id_t, table_server_status_t> *server_statuses_out,
-        server_name_map_t *server_names_out,
-        server_id_t *latest_server_out)
+        signal_t *interruptor,
+        std::map<server_id_t, range_map_t<key_range_t::right_bound_t,
+            std::set<contract_ack_t::state_t> > > *server_shards_out,
+        bool *all_replicas_ready_out)
+        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t) {
+    cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
+    on_thread_t thread_switcher(home_thread());
+    *all_replicas_ready_out = false;
+    table_status_request_t request;
+    request.want_shard_status = (server_shards_out != nullptr);
+    request.want_all_replicas_ready = true;
+    std::set<namespace_id_t> failures;
+    get_status(
+        boost::make_optional(table_id),
+        request,
+        /* If we only care about `all_replicas_ready`, there's no need to contact any
+        server other than the primary */
+        server_shards_out != nullptr
+            ? server_selector_t::EVERY_SERVER
+            : server_selector_t::BEST_SERVER_ONLY,
+        &interruptor,
+        [&](const server_id_t &server_id, const namespace_id_t &,
+                const table_status_response_t &response) {
+            if (server_shards_out != nullptr) {
+                server_shards_out->insert(
+                    std::make_pair(server_id, response.shard_status));
+            }
+            *all_replicas_ready_out |= response.all_replicas_ready;
+        },
+        &failures);
+    if (!failures.empty()) {
+        throw_appropriate_exception(table_id);
+    }
+}
+
+void table_meta_client_t::get_debug_status(
+        const namespace_id_t &table_id,
+        signal_t *interruptor,
+        std::map<server_id_t, table_status_response_t> *responses_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t) {
     cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
     table_status_request_t request;
+    request.want_config = true;
+    request.want_sindexes = true;
+    request.want_raft_state = true;
+    request.want_contract_acks = true;
     request.want_shard_status = true;
+    request.want_all_replicas_ready = true;
     std::set<namespace_id_t> failures;
     get_status(
         boost::make_optional(table_id),
@@ -209,32 +249,12 @@ void table_meta_client_t::get_shard_status(
         &interruptor,
         [&](const server_id_t &server_id, const namespace_id_t &,
                 const table_status_response_t &response) {
-            /* Fetch the server's name. The reason we fetch the server's name here is so
-            that we want to put the name in `server_names_out` iff we put an entry in
-            `server_statuses_out`. */
-            boost::optional<server_config_versioned_t> config =
-                server_config_client->get_server_config_map()->get_key(server_id);
-            if (!static_cast<bool>(config)) {
-                /* The server disconnected. */
-                return;
-            }
-            server_names_out->names.insert(std::make_pair(server_id,
-                std::make_pair(config->version, config->config.name)));
-            server_statuses_out->insert(
-                std::make_pair(server_id, *response.shard_status));
+            responses_out->insert(std::make_pair(server_id, response));
         },
         &failures);
-    if (!failures.empty() || server_statuses_out->empty()) {
+    if (!failures.empty()) {
         throw_appropriate_exception(table_id);
     }
-    *latest_server_out = nil_uuid();
-    for (const auto &pair : *server_statuses_out) {
-        if (*latest_server_out == nil_uuid() || pair.second.timestamp.supersedes(
-                server_statuses_out->at(*latest_server_out).timestamp)) {
-            *latest_server_out = pair.first;
-        }
-    }
-    guarantee(!latest_server_out->is_nil());
 }
 
 void table_meta_client_t::create(
@@ -419,22 +439,38 @@ void table_meta_client_t::emergency_repair(
     cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
 
-    std::map<server_id_t, table_server_status_t> old_contracts;
-    server_name_map_t server_names;
-    server_id_t latest_server;
+    table_raft_state_t old_state;
+    table_status_request_t request;
+    request.want_raft_state = true;
+    std::set<namespace_id_t> failures;
+    get_status(
+        boost::make_optional(table_id),
+        request,
+        server_selector_t::BEST_SERVER_ONLY,
+        &interruptor,
+        [&](const server_id_t &, const namespace_id_t &,
+                const table_status_response_t &response) {
+            old_state = *response.raft_state;
+        },
+        &failures);
+    if (!failures.empty()) {
+        throw_appropriate_exception(table_id);
+    }
+    
     get_shard_status(
         table_id, &interruptor, &old_contracts, &server_names, &latest_server);
 
     std::set<server_id_t> dead_servers;
-    for (const auto &pair : old_contracts.at(latest_server).state.member_ids) {
-        if (old_contracts.count(pair.first) == 0) {
+    for (const auto &pair : old_state.member_ids) {
+        if (!static_cast<bool>(server_config_client->
+                get_server_to_peer_map()->get_key(pair.first))) {
             dead_servers.insert(pair.first);
         }
     }
 
     table_raft_state_t new_state;
     calculate_emergency_repair(
-        old_contracts.at(latest_server).state,
+        old_state,
         dead_servers,
         allow_erase,
         &new_state,
