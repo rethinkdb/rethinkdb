@@ -157,7 +157,8 @@ void table_issue_tracker_t::check_table(const namespace_id_t &table_id,
         status.total_loss = true;
     }
 
-    if (status.readiness != table_readiness_t::finished) {
+    if (status.readiness != table_readiness_t::finished &&
+            (status.total_loss || !status.disconnected.empty())) {
         issues_out->emplace_back(make_scoped<table_availability_issue_t>(
             table_id, std::move(status)));
     }
