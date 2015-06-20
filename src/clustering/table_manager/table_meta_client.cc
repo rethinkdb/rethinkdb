@@ -733,7 +733,11 @@ void table_meta_client_t::create_or_emergency_repair(
 void table_meta_client_t::retry(
         const std::function<void(signal_t *)> &fun,
         signal_t *interruptor) {
-    static const int max_tries = 5;
+    /* 8 tries at 300ms initially with 1.5x exponential backoff means the last try will
+    be about 15 seconds after the first try. Since that's about ten times the Raft
+    election timeout, we can be reasonably certain that if it fails that many times there
+    is a real problem and not just a transient failure. */
+    static const int max_tries = 8;
     static const int initial_wait_ms = 300;
     int tries_left = max_tries;
     int wait_ms = initial_wait_ms;
