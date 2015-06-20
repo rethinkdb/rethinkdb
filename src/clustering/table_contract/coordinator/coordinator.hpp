@@ -35,10 +35,15 @@ public:
         watchable_map_t<std::pair<server_id_t, server_id_t>, empty_value_t>
             *connections_map);
 
-    /* `table_meta_client_t` calls `change_config()` to change the cluster config. */
+    /* `table_meta_client_t` calls `change_config()` (indirectly, over the network) to
+    change the cluster config. */
     boost::optional<raft_log_index_t> change_config(
         const std::function<void(table_config_and_shards_t *)> &changer,
         signal_t *interruptor);
+
+    /* Returns `true` if we can confirm that the contracts match the config and all of
+    the contracts are fully executed. */
+    bool check_all_replicas_ready(signal_t *interruptor);
 
 private:
     void on_ack_change(

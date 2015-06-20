@@ -12,6 +12,7 @@ issues_artificial_table_backend_t::issues_artificial_table_backend_t(
         watchable_map_t<peer_id_t, cluster_directory_metadata_t> *directory_view,
         server_config_client_t *_server_config_client,
         table_meta_client_t *_table_meta_client,
+        namespace_repo_t *_namespace_repo,
         admin_identifier_format_t _identifier_format) :
     identifier_format(_identifier_format),
     cluster_sl_view(_cluster_sl_view),
@@ -20,7 +21,7 @@ issues_artificial_table_backend_t::issues_artificial_table_backend_t(
     local_issue_client(mailbox_manager, directory_view),
     name_collision_issue_tracker(
         server_config_client, cluster_sl_view, table_meta_client),
-    table_issue_tracker(server_config_client, table_meta_client)
+    table_issue_tracker(server_config_client, table_meta_client, _namespace_repo)
 {
     trackers.insert(&local_issue_client);
     trackers.insert(&name_collision_issue_tracker);

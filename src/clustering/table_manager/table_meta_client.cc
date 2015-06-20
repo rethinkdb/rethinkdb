@@ -192,16 +192,16 @@ void table_meta_client_t::get_sindex_status(
 
 void table_meta_client_t::get_shard_status(
         const namespace_id_t &table_id,
-        signal_t *interruptor,
+        signal_t *interruptor_on_caller,
         std::map<server_id_t, range_map_t<key_range_t::right_bound_t,
-            table_status_response_t::shard_status_t> > *shard_statuses_out,
+            table_shard_status_t> > *shard_statuses_out,
         bool *all_replicas_ready_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t) {
     cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
     *all_replicas_ready_out = false;
     table_status_request_t request;
-    request.want_shard_status = (server_shards_out != nullptr);
+    request.want_shard_status = (shard_statuses_out != nullptr);
     request.want_all_replicas_ready = true;
     std::set<namespace_id_t> failures;
     get_status(
@@ -209,14 +209,14 @@ void table_meta_client_t::get_shard_status(
         request,
         /* If we only care about `all_replicas_ready`, there's no need to contact any
         server other than the primary */
-        server_shards_out != nullptr
+        shard_statuses_out != nullptr
             ? server_selector_t::EVERY_SERVER
             : server_selector_t::BEST_SERVER_ONLY,
         &interruptor,
         [&](const server_id_t &server_id, const namespace_id_t &,
                 const table_status_response_t &response) {
-            if (server_shards_out != nullptr) {
-                server_shards_out->insert(
+            if (shard_statuses_out != nullptr) {
+                shard_statuses_out->insert(
                     std::make_pair(server_id, response.shard_status));
             }
             *all_replicas_ready_out |= response.all_replicas_ready;
@@ -229,7 +229,7 @@ void table_meta_client_t::get_shard_status(
 
 void table_meta_client_t::get_debug_status(
         const namespace_id_t &table_id,
-        signal_t *interruptor,
+        signal_t *interruptor_on_caller,
         std::map<server_id_t, table_status_response_t> *responses_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t) {
     cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
@@ -456,9 +456,6 @@ void table_meta_client_t::emergency_repair(
     if (!failures.empty()) {
         throw_appropriate_exception(table_id);
     }
-    
-    get_shard_status(
-        table_id, &interruptor, &old_contracts, &server_names, &latest_server);
 
     std::set<server_id_t> dead_servers;
     for (const auto &pair : old_state.member_ids) {

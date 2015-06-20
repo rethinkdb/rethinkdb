@@ -110,23 +110,33 @@ void table_manager_t::get_status(
     if (request.want_sindexes) {
         response->sindexes = sindex_manager.get_status(interruptor);
     }
-    if (request.want_shard_status) {
-        /* Note that despite the `ASSERT_NO_CORO_WAITING` there may be contract
-        acknowledgements in `contract_acks` that refer to a contract that is not in
-        `contracts`. This may happen because of the two-step process in
-        `contract_executor_t::update_blocking` which first resets the executor and only
-        then removes the acknowledgement from the `ack_map`. */
-        ASSERT_NO_CORO_WAITING;
-        response->shard_status = boost::make_optional(table_server_status_t());
-        response->shard_status->timestamp.epoch = epoch;
+    if (request.want_raft_state) {
         get_raft()->get_committed_state()->apply_read(
-        [&](const raft_member_t<table_raft_state_t>::state_and_config_t *s) {
-            response->shard_status->timestamp.log_index = s->log_index;
-            response->shard_status->state = s->state;
+            [&](const raft_member_t<table_raft_state_t>::state_and_config_t *s) {
+                response->raft_state = boost::make_optional(s->state);
+                multi_table_manager_bcard_t::timestamp_t ts;
+                ts.epoch = epoch;
+                ts.log_index = s->log_index;
+                response->raft_state_timestamp = boost::make_optional(ts);
+            });
+    }
+    if (request.want_contract_acks) {
+        contract_executor.get_acks()->read_all(
+        [&](const std::pair<server_id_t, contract_id_t> &k, const contract_ack_t *ack) {
+            response->contract_acks.insert(std::make_pair(k.second, *ack));
         });
-        for (const auto &contract_ack : contract_executor.get_acks()->get_all()) {
-            response->shard_status->contract_acks.insert(
-                std::make_pair(contract_ack.first.second, contract_ack.second));
+    }
+    if (request.want_shard_status) {
+        response->shard_status = contract_executor.get_shard_status();
+    }
+    if (request.want_all_replicas_ready) {
+        new_mutex_acq_t leader_acq(&leader_mutex, interruptor);
+        if (static_cast<bool>(leader)) {
+            response->all_replicas_ready =
+                leader->get_contract_coordinator()->
+                    check_all_replicas_ready(interruptor);
+        } else {
+            response->all_replicas_ready = false;
         }
     }
 }

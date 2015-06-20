@@ -66,6 +66,8 @@ private:
         explicit leader_t(table_manager_t *_parent);
         ~leader_t();
 
+        contract_coordinator_t *get_contract_coordinator() { return &coordinator; }
+
     private:
         void on_set_config(
             signal_t *interruptor,

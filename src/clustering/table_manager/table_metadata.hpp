@@ -266,30 +266,8 @@ public:
     /* `contract_acks` is controlled by `want_contract_acks` */
     std::map<contract_id_t, contract_ack_t> contract_acks;
 
-    /* `shard_status` is controlled by `want_shard_status`. The `shard_status_t` type
-    describes the current state of the server with respect to some range of the
-    key-space. It's designed so that `shard_status_t`s from different hash-shards or
-    different ranges can be meaningfully combined. */
-    class shard_status_t {
-    public:
-        shard_status_t() : primary(false), secondary(false), need_primary(false),
-            need_quorum(false), backfilling(false), transitioning(false) { }
-        void merge(const shard_status_t &other) {
-            primary |= other.primary;
-            secondary |= other.secondary;
-            need_primary |= other.need_primary;
-            need_quorum |= other.need_quorum;
-            backfilling |= other.backfilling;
-            transitioning |= other.transitioning;
-        }
-        bool primary;   /* server is primary */
-        bool secondary;   /* server is secondary */
-        bool need_primary;   /* server is secondary and waiting for primary */
-        bool need_quorum;   /* server is primary and waiting for branch */
-        bool backfilling;   /* server is receiving a backfill */
-        bool transitioning;   /* server is in a contract, but has no ack */
-    };
-    range_map_t<key_range_t::right_bound_t, shard_status_t> shard_status;
+    /* `shard_status` is controlled by `want_shard_status`. */
+    range_map_t<key_range_t::right_bound_t, table_shard_status_t> shard_status;
 
     /* `all_replicas_ready` is controlled by `want_all_replicas_ready`. It will be set to
     `true` if the responding server is leader and can confirm that all backfills are

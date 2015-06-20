@@ -5,10 +5,10 @@
 #include "clustering/administration/datum_adapter.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
 #include "clustering/administration/servers/config_client.hpp"
+#include "clustering/administration/tables/calculate_status.hpp"
 #include "clustering/administration/tables/generate_config.hpp"
 #include "clustering/administration/tables/split_points.hpp"
 #include "clustering/administration/tables/table_config.hpp"
-#include "clustering/administration/tables/wait_for_readiness.hpp"
 #include "clustering/table_manager/table_meta_client.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "rdb_protocol/artificial_table/artificial_table.hpp"
@@ -491,6 +491,9 @@ bool real_reql_cluster_interface_t::table_wait(
         table_meta_client->find(db->id, name, &table_id);
         wait_for_table_readiness(table_id, readiness, &namespace_repo,
             table_meta_client, interruptor_on_caller);
+        ql::datum_object_builder_t builder;
+        builder.overwrite("ready", ql::datum_t(1.0));
+        *result_out = std::move(builder).to_datum();
         return true;
     } catch (const admin_op_exc_t &msg) {
         *error_out = msg.what();
@@ -517,8 +520,11 @@ bool real_reql_cluster_interface_t::db_wait(
     }
 
     try {
-        wait_for_many_tables_readiness(table_ids, readinesss, &namespace_repo,
-            table_meta_client, interruptor_on_caller);
+        size_t count = wait_for_many_tables_readiness(table_ids, readiness,
+            &namespace_repo, table_meta_client, interruptor_on_caller);
+        ql::datum_object_builder_t builder;
+        builder.overwrite("ready", ql::datum_t(static_cast<double>(count)));
+        *result_out = std::move(builder).to_datum();
         return true;
     } catch (const admin_op_exc_t &msg) {
         *error_out = msg.what();

@@ -10,7 +10,12 @@
 #include "clustering/administration/tables/calculate_status.hpp"
 #include "clustering/administration/tables/table_common.hpp"
 
+class namespace_repo_t;
 class server_config_client_t;
+
+ql::datum_t convert_table_status_to_datum(
+        const table_status_t &status,
+        admin_identifier_format_t identifier_format);
 
 class table_status_artificial_table_backend_t :
     public common_table_artificial_table_backend_t
@@ -40,6 +45,12 @@ private:
             signal_t *interruptor_on_home,
             ql::datum_t *row_out)
             THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t);
+
+    void format_error_row(
+            const namespace_id_t &table_id,
+            const ql::datum_t &db_name_or_uuid,
+            const name_string_t &table_name,
+            ql::datum_t *row_out);
 
     server_config_client_t *server_config_client;
     namespace_repo_t *namespace_repo;

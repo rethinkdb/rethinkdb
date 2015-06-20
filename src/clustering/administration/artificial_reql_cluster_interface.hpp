@@ -24,6 +24,7 @@
 #include "rdb_protocol/artificial_table/in_memory.hpp"
 #include "rdb_protocol/context.hpp"
 
+class namespace_repo_t;
 class real_reql_cluster_interface_t;
 class server_config_client_t;
 class table_meta_client_t;
