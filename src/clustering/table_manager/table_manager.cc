@@ -59,9 +59,6 @@ table_manager_t::table_manager_t(
                     -> table_config_t {
                 return sc.state.config.config;
             })),
-    get_status_mailbox(
-        mailbox_manager,
-        std::bind(&table_manager_t::on_get_status, this, ph::_1, ph::_2, ph::_3)),
     table_directory_subs(
         _table_manager_directory,
         std::bind(&table_manager_t::on_table_directory_change, this, ph::_1, ph::_2),
@@ -82,7 +79,6 @@ table_manager_t::table_manager_t(
         bcard.raft_member_id = raft_member_id;
         bcard.raft_business_card = raft.get_business_card()->get();
         bcard.execution_bcard_minidir_bcard = execution_bcard_read_manager.get_bcard();
-        bcard.get_status_mailbox = get_status_mailbox.get_address();
         bcard.server_id = _server_id;
         table_manager_bcard.set_value_no_equals(bcard);
     }
@@ -98,6 +94,40 @@ table_manager_t::~table_manager_t() {
     destructors for the templated types `raft_networked_member_t` and
     `minidir_write_manager_t`. The destructors are defined in `.tcc` files which are
     visible here but not in the `.hpp`. */
+}
+
+void table_manager_t::get_status(
+        const table_status_request_t &request,
+        signal_t *interruptor,
+        table_status_response_t *response)
+        THROWS_ONLY(interrupted_exc_t) {
+    if (request.want_config) {
+        get_raft()->get_committed_state()->apply_read(
+            [&](const raft_member_t<table_raft_state_t>::state_and_config_t *s) {
+                response->config = s->state.config;
+            });
+    }
+    if (request.want_sindexes) {
+        response->sindexes = sindex_manager.get_status(interruptor);
+    }
+    if (request.want_shard_status) {
+        /* Note that despite the `ASSERT_NO_CORO_WAITING` there may be contract
+        acknowledgements in `contract_acks` that refer to a contract that is not in
+        `contracts`. This may happen because of the two-step process in
+        `contract_executor_t::update_blocking` which first resets the executor and only
+        then removes the acknowledgement from the `ack_map`. */
+        ASSERT_NO_CORO_WAITING;
+        response->shard_status.timestamp.epoch = epoch;
+        get_raft()->get_committed_state()->apply_read(
+        [&](const raft_member_t<table_raft_state_t>::state_and_config_t *s) {
+            response->shard_status.timestamp.log_index = s->log_index;
+            response->shard_status.state = s->state;
+        });
+        for (const auto &contract_ack : contract_executor.get_acks()->get_all()) {
+            response->shard_status.contract_acks.insert(
+                std::make_pair(contract_ack.first.second, contract_ack.second));
+        }
+    }
 }
 
 table_manager_t::leader_t::leader_t(table_manager_t *_parent) :
@@ -147,47 +177,6 @@ void table_manager_t::leader_t::on_set_config(
         send(parent->mailbox_manager, reply_addr,
             boost::optional<multi_table_manager_bcard_t::timestamp_t>());
     }
-}
-
-void table_manager_t::on_get_status(
-        signal_t *interruptor,
-        const get_status_selection_t &status_selection,
-        const mailbox_t<void(
-            std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >,
-            boost::optional<table_server_status_t>
-            )>::address_t &reply_addr) {
-
-    std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > sindex_status;
-    if (status_selection.has_sindex_status()) {
-        sindex_status = sindex_manager.get_status(interruptor);
-    }
-
-    boost::optional<table_server_status_t> server_status;
-    if (status_selection.has_server_status()) {
-        server_status = table_server_status_t();
-
-        /* Note that despite the `ASSERT_NO_CORO_WAITING` there may be contract
-           acknowledgements in `contract_acks` that refer to a contract that is not in
-           `contracts`.
-
-           This may happen because of the two-step process in
-           `contract_executor_t::update_blocking` which first resets the executor and
-           only then removes the acknowledgement from the `ack_map`. */
-        ASSERT_NO_CORO_WAITING;
-
-        server_status->timestamp.epoch = epoch;
-        raft.get_raft()->get_committed_state()->apply_read(
-        [&](const raft_member_t<table_raft_state_t>::state_and_config_t *s) {
-            server_status->timestamp.log_index = s->log_index;
-            server_status->state = s->state;
-        });
-        for (const auto &contract_ack : contract_executor.get_acks()->get_all()) {
-            server_status->contract_acks.insert(
-                std::make_pair(contract_ack.first.second, contract_ack.second));
-        }
-    }
-
-    send(mailbox_manager, reply_addr, sindex_status, server_status);
 }
 
 void table_manager_t::on_table_directory_change(

@@ -166,8 +166,8 @@ void calculate_status(
     std::map<server_id_t, table_server_status_t> server_statuses;
     server_id_t latest_contracts_server_id;
     try {
-        table_meta_client->get_status(table_id, interruptor,
-            nullptr, &server_statuses, server_names_out, &latest_contracts_server_id);
+        table_meta_client->get_shard_status(table_id, interruptor,
+            &server_statuses, server_names_out, &latest_contracts_server_id);
     } catch (const failed_table_op_exc_t &) {
         if (readiness_out != nullptr) {
             *readiness_out = table_readiness_t::unavailable;

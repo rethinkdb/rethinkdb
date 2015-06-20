@@ -53,6 +53,12 @@ public:
         return sindex_manager;
     }
 
+    void get_status(
+        const table_status_request_t &request,
+        signal_t *interruptor,
+        table_status_response_t *response)
+        THROWS_ONLY(interrupted_exc_t);
+
 private:
     /* `leader_t` hosts the `contract_coordinator_t`. */
     class leader_t {
@@ -75,15 +81,6 @@ private:
         server_name_cache_updater_t server_name_cache_updater;
         table_manager_bcard_t::leader_bcard_t::set_config_mailbox_t set_config_mailbox;
     };
-
-    /* This is the callback for `get_status_mailbox`. */
-    void on_get_status(
-        signal_t *interruptor,
-        const get_status_selection_t &status_selection,
-        const mailbox_t<void(
-            std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >,
-            boost::optional<table_server_status_t>
-            )>::address_t &reply_addr);
 
     /* This is the callback for `table_directory_subs`. It's responsible for
     maintaining `raft_directory`, `execution_bcard_minidir_directory`, and
@@ -172,8 +169,6 @@ private:
     sindex_manager_t sindex_manager;
 
     auto_drainer_t drainer;
-
-    table_manager_bcard_t::get_status_mailbox_t get_status_mailbox;
 
     watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
         ::all_subs_t table_directory_subs;

@@ -104,7 +104,7 @@ void table_meta_client_t::get_config(
         request,
         server_selector_t::BEST_SERVER_ONLY,
         &interruptor,
-        [&](const server_id_t &, const table_id_t &,
+        [&](const server_id_t &, const namespace_id_t &,
                 const table_status_response_t &response) {
             *config_out = response.config;
         },
@@ -130,17 +130,16 @@ void table_meta_client_t::list_configs(
         request,
         server_selector_t::BEST_SERVER_ONLY,
         &interruptor,
-        [&](const server_id_t &, const table_id_t &table_id,
+        [&](const server_id_t &, const namespace_id_t &table_id,
                 const table_status_response_t &response) {
             configs_out->insert(std::make_pair(table_id, response.config));
         },
         &failures);
     for (const namespace_id_t &table_id : failures) {
-        multi_table_manager->get_table_basic_configs->read_key(table_id,
+        multi_table_manager->get_table_basic_configs()->read_key(table_id,
         [&](const timestamped_basic_config_t *value) {
             if (value != nullptr) {
-                disconnected_configs_out->insert(
-                    std::make_pair(table_id, value->config));
+                disconnected_configs_out->insert(std::make_pair(table_id, value->first));
             }
         });
     }
@@ -150,7 +149,7 @@ void table_meta_client_t::get_sindex_status(
         const namespace_id_t &table_id,
         signal_t *interruptor_on_caller,
         std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
-            *index_statuses_out)
+            *sindex_statuses_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t) {
     typedef std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
         index_statuses_t;
@@ -171,12 +170,13 @@ void table_meta_client_t::get_sindex_status(
         request,
         server_selector_t::EVERY_SERVER,
         &interruptor,
-        [&](const server_id_t &, const table_id_t &, const table_status_response_t &r) {
+        [&](const server_id_t &, const namespace_id_t &,
+                const table_status_response_t &response) {
             for (auto &&pair : *sindex_statuses_out) {
-                auto it = r.sindex_statuses.find(pair.first);
+                auto it = response.sindexes.find(pair.first);
                 /* Note that we treat an index with the wrong definition like a
                 missing index. */
-                if (it != r.sindex_statuses.end() &&
+                if (it != response.sindexes.end() &&
                         it->second.first == pair.second.first) {
                     pair.second.second.accum(it->second.second);
                 } else {
@@ -200,21 +200,20 @@ void table_meta_client_t::get_shard_status(
     cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
     table_status_request_t request;
-    request.want_shard_statuses = true;
+    request.want_shard_status = true;
     std::set<namespace_id_t> failures;
     get_status(
         boost::make_optional(table_id),
         request,
         server_selector_t::EVERY_SERVER,
         &interruptor,
-        [&](const server_id_t &server, const table_id_t &,
+        [&](const server_id_t &server_id, const namespace_id_t &,
                 const table_status_response_t &response) {
             /* Fetch the server's name. The reason we fetch the server's name here is so
             that we want to put the name in `server_names_out` iff we put an entry in
             `server_statuses_out`. */
             boost::optional<server_config_versioned_t> config =
-                server_config_client->get_server_config_map()
-                    ->get_key(server);
+                server_config_client->get_server_config_map()->get_key(server_id);
             if (!static_cast<bool>(config)) {
                 /* The server disconnected. */
                 return;
@@ -222,7 +221,7 @@ void table_meta_client_t::get_shard_status(
             server_names_out->names.insert(std::make_pair(server_id,
                 std::make_pair(config->version, config->config.name)));
             server_statuses_out->insert(
-                std::make_pair(server_id, *server_statuses));
+                std::make_pair(server_id, response.shard_status));
         },
         &failures);
     if (!failures.empty() || server_statuses_out->empty()) {
@@ -421,8 +420,10 @@ void table_meta_client_t::emergency_repair(
     on_thread_t thread_switcher(home_thread());
 
     std::map<server_id_t, table_server_status_t> old_contracts;
+    server_name_map_t server_names;
     server_id_t latest_server;
-    get_status(table_id, &interruptor, nullptr, &old_contracts, nullptr, &latest_server);
+    get_shard_status(
+        table_id, &interruptor, &old_contracts, &server_names, &latest_server);
 
     std::set<server_id_t> dead_servers;
     for (const auto &pair : old_contracts.at(latest_server).state.member_ids) {
@@ -569,27 +570,32 @@ public:
     /* Note that a default-constructed `best_server_rank_t` is superseded by any other
     `best_server_rank_t`. */
     best_server_rank_t() :
-        is_leader(false), timestamp(multi_table_manager_t::timestamp_t::min()) { }
-    best_server_rank_t(bool il, const multi_table_manager_t::timestamp_t ts) :
+        is_leader(false), timestamp(multi_table_manager_bcard_t::timestamp_t::min()) { }
+    best_server_rank_t(bool il, const multi_table_manager_bcard_t::timestamp_t ts) :
         is_leader(il), timestamp(ts) { }
 
     bool supersedes(const best_server_rank_t &other) const {
-        return std::tie(timestamp.epoch, is_leader, timestamp.log_index) >
-            std::tie(other.timestamp.epoch, other.is_leader, other.timestamp.log_index);
+        /* Ordered comparison first on `timestamp.epoch`, then `is_leader`, then
+        `timestamp.log_index`. This is slightly convoluted because `timestamp.epoch` is
+        compared with `supersedes()` rather than `operator<()`. */
+        return timestamp.epoch.supersedes(other.timestamp.epoch) ||
+            (timestamp.epoch == other.timestamp.epoch &&
+                std::tie(is_leader, timestamp.log_index) >
+                    std::tie(other.is_leader, other.timestamp.log_index));
     }
 
     bool is_leader;
-    multi_table_manager_t::timestamp_t timestamp;
-}
+    multi_table_manager_bcard_t::timestamp_t timestamp;
+};
 
-void get_status(
-        const boost::optional<table_id_t> &table,
+void table_meta_client_t::get_status(
+        const boost::optional<namespace_id_t> &table,
         const table_status_request_t &request,
         server_selector_t servers,
         signal_t *interruptor,
         const std::function<void(
             const server_id_t &server,
-            const table_id_t &table,
+            const namespace_id_t &table,
             const table_status_response_t &response
             )> &callback,
         std::set<namespace_id_t> *failures_out)
@@ -625,7 +631,7 @@ void get_status(
             case server_selector_t::EVERY_SERVER: {
                 table_manager_directory->read_all(
                 [&](const std::pair<peer_id_t, namespace_id_t> &key,
-                        const table_manager_bcard_t *bcard) {
+                        const table_manager_bcard_t *) {
                     if (tables_todo.count(key.second) == 1) {
                         targets[key.first].insert(key.second);
                     }
@@ -640,7 +646,7 @@ void get_status(
                         const table_manager_bcard_t *bcard) {
                     if (tables_todo.count(key.second) == 1) {
                         best_server_rank_t rank(
-                            static_cast<bool>(bcard->leader, bcard->timestamp);
+                            static_cast<bool>(bcard->leader), bcard->timestamp);
                         /* This relies on the fact that a default-constructed
                         `best_server_rank_t` is always superseded */
                         if (rank.supersedes(best_ranks[key.second])) {
@@ -659,9 +665,9 @@ void get_status(
         /* Dispatch all the messages in parallel. Probably this should really be a
         `throttled_pmap` instead. */
         pmap(targets.begin(), targets.end(),
-        [&](const std::pair<peer_id_t, std::set<namespace_id_t> > &p) {
+        [&](const std::pair<peer_id_t, std::set<namespace_id_t> > &target) {
             boost::optional<multi_table_manager_bcard_t> bcard =
-                multi_table_manager_directory->get_key(p.first);
+                multi_table_manager_directory->get_key(target.first);
             if (!static_cast<bool>(bcard)) {
                 return;
             }
@@ -672,16 +678,16 @@ void get_status(
             ack_mailbox(mailbox_manager,
                 [&](signal_t *, const std::map<
                         namespace_id_t, table_status_response_t> &resp) {
-                    for (const auto &pair2 : resp) {
-                        callback(pair.second.server, pair2.first, pair2.second);
-                        tables_todo.erase(pair2.first);
+                    for (const auto &pair : resp) {
+                        callback(bcard->server_id, pair.first, pair.second);
+                        tables_todo.erase(pair.first);
                     }
                     got_ack.pulse();
                 });
             send(mailbox_manager, bcard->get_status_mailbox,
-                p.second, request, ack_mailbox.get_address());
+                target.second, request, ack_mailbox.get_address());
             wait_any_t waiter(&dw, interruptor, &got_ack);
-            waiter->wait_lazily_unordered();
+            waiter.wait_lazily_unordered();
         });
 
         if (interruptor->is_pulsed()) {

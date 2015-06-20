@@ -205,17 +205,17 @@ private:
     a particular table and that table doesn't exist, it throws `no_such_table_exc_t`. */
     enum class server_selector_t { EVERY_SERVER, BEST_SERVER_ONLY };
     void get_status(
-        const boost::optional<table_id_t> &table,
+        const boost::optional<namespace_id_t> &table,
         const table_status_request_t &request,
         server_selector_t servers,
         signal_t *interruptor,
         const std::function<void(
             const server_id_t &server,
-            const table_id_t &table,
+            const namespace_id_t &table,
             const table_status_response_t &response
             )> &callback,
         std::set<namespace_id_t> *failures_out)
-        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t);
+        THROWS_ONLY(interrupted_exc_t);
 
     /* `retry()` calls `fun()` repeatedly. If `fun()` fails with a
     `failed_table_op_exc_t` or `maybe_failed_table_op_exc_t`, then `retry()` catches the

@@ -135,19 +135,6 @@ ql::datum_t convert_debug_table_shard_scheme_to_datum(
     return std::move(builder).to_datum();
 }
 
-ql::datum_t convert_debug_sindex_statuses_to_datum(
-        const std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
-            &sindex_statuses) {
-    ql::datum_array_builder_t builder(ql::configured_limits_t::unlimited);
-    for (const auto &sindex_status : sindex_statuses) {
-        builder.add(ql::sindex_status_to_datum(
-            sindex_status.first,
-            sindex_status.second.first,
-            sindex_status.second.second));
-    }
-    return std::move(builder).to_datum();
-}
-
 ql::datum_t convert_debug_contract_ack_state_to_datum(
        const contract_ack_t::state_t &state) {
     switch (state) {
@@ -296,11 +283,11 @@ void debug_table_status_artificial_table_backend_t::format_row(
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t) {
     assert_thread();
 
-    std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > sindex_statuses;
     std::map<server_id_t, table_server_status_t> server_statuses;
+    server_name_map_t server_names;
     server_id_t latest_server;
-    table_meta_client->get_status(table_id, interruptor_on_home,
-        &sindex_statuses, &server_statuses, nullptr, &latest_server);
+    table_meta_client->get_shard_status(table_id, interruptor_on_home,
+        &server_statuses, &server_names, &latest_server);
 
     ql::datum_object_builder_t builder;
     builder.overwrite("id", convert_uuid_to_datum(table_id));
@@ -319,8 +306,6 @@ void debug_table_status_artificial_table_backend_t::format_row(
         "shard_scheme",
         convert_debug_table_shard_scheme_to_datum(
             server_statuses.at(latest_server).state.config.shard_scheme));
-    builder.overwrite(
-        "sindexes", convert_debug_sindex_statuses_to_datum(sindex_statuses));
     builder.overwrite(
         "table_server_status",
         convert_debug_table_server_statuses_to_datum(server_statuses));

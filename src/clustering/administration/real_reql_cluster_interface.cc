@@ -1162,9 +1162,8 @@ bool real_reql_cluster_interface_t::sindex_list(
         on_thread_t thread_switcher(home_thread());
         namespace_id_t table_id;
         table_meta_client->find(db->id, table_name, &table_id);
-        table_meta_client->get_status(
-            table_id, &interruptor_on_home,
-            configs_and_statuses_out, nullptr, nullptr, nullptr);
+        table_meta_client->get_sindex_status(
+            table_id, &interruptor_on_home, configs_and_statuses_out);
         return true;
     } CATCH_NAME_ERRORS(db->name, table_name, error_out)
       CATCH_OP_ERRORS(db->name, table_name, error_out, "", "")
