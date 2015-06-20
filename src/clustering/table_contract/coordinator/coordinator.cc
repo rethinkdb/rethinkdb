@@ -88,7 +88,10 @@ bool contract_coordinator_t::check_all_replicas_ready(signal_t *interruptor) {
         return false;
     }
     wait_interruptible(change_token->get_ready_signal(), interruptor);
-    return change_token->wait();
+    if (!change_token->wait()) {
+        return false;
+    }
+    return true;
 }
 
 void contract_coordinator_t::on_ack_change(

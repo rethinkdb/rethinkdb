@@ -46,12 +46,8 @@ def spawn_table_wait(port, tbl):
             if tbl is None:
                 r.db(db).wait().run(conn)
             else:
-                old_status = r.db(db).table(tbl).status().run(conn)
                 res = r.db(db).table(tbl).wait().run(conn)
-                new_status = r.db(db).table(tbl).status().run(conn)
                 assert res["ready"] == 1
-                assert res["status_changes"] == \
-                    [{'old_val': old_status, 'new_val': new_status}]
         finally:
             done_event.set()
 
