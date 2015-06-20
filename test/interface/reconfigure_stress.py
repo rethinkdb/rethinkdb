@@ -82,8 +82,7 @@ with driver.Cluster(initial_servers=server_names, output_folder='.', command_pre
         for name in table_names:
             res = r.table(name).wait(wait_for = "all_replicas_ready", timeout = 600).run(conn)
             assert res["ready"] == 1, res
-            for config_shard, status_shard in \
-                    zip(shards, res["status_changes"][0]["new_val"]["shards"]):
+            for config_shard, status_shard in zip(shards, r.table(name).status()["shards"].run(conn)):
                 # make sure issue #4265 didn't happen
                 assert status_shard["primary_replicas"] == [config_shard["primary_replica"]]
 
