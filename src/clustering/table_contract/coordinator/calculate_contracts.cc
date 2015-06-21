@@ -589,12 +589,14 @@ void calculate_all_contracts(
                 /* Branch history GC. The key decision is whether we should only keep
                 `current_branch`, or whether we need to keep all of its ancestors too. */
                 old_state.current_branches.visit(reg,
-                [&](const region_t &subregion, const branch_id_t &current_branch) {                
-                    if (can_gc_branch_history) {
-                        remove_branches_out->erase(current_branch);
-                    } else {
-                        mark_all_ancestors_live(current_branch, subregion,
-                            &old_state.branch_history, remove_branches_out);
+                [&](const region_t &subregion, const branch_id_t &current_branch) {
+                    if (!current_branch.is_nil()) {
+                        if (can_gc_branch_history) {
+                            remove_branches_out->erase(current_branch);
+                        } else {
+                            mark_all_ancestors_live(current_branch, subregion,
+                                &old_state.branch_history, remove_branches_out);
+                        }
                     }
                 });
 

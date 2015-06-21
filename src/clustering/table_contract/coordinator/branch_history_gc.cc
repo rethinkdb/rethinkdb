@@ -33,19 +33,20 @@ void mark_all_ancestors_live(
         const region_t &region,
         const branch_history_reader_t *branch_reader,
         std::set<branch_id_t> *remove_branches_out) {
-    std::set<branch_id_t> todo, done;
-    todo.insert(root);
+    std::multimap<branch_id_t, region_t> todo;
+    std::set<branch_id_t> done;
+    todo.insert(std::make_pair(root, region));
     while (!todo.empty()) {
-        branch_id_t b = *todo.begin();
+        std::pair<branch_id_t, region_t> next = *todo.begin();
         todo.erase(todo.begin());
-        done.insert(b);
-        remove_branches_out->erase(b);
-        branch_reader->get_branch(b).origin.visit(region,
-        [&](const region_t &, const version_t &version) {
+        done.insert(next.first);
+        remove_branches_out->erase(next.first);
+        branch_reader->get_branch(next.first).origin.visit(next.second,
+        [&](const region_t &subregion, const version_t &version) {
             if (version != version_t::zero() &&
                     branch_reader->is_branch_known(version.branch) &&
                     done.count(version.branch) == 0) {
-                todo.insert(version.branch);
+                todo.insert(std::make_pair(version.branch, subregion));
             }
         });
     }

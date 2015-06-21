@@ -223,8 +223,13 @@ region_map_t<version_t> version_find_branch_common(
         const branch_id_t &branch,
         const region_t &relevant_region)
         THROWS_ONLY(missing_branch_exc_t) {
-    return version_find_common(
-        bh, version, version_t(branch, state_timestamp_t::max()), relevant_region);
+    version_t branch_version;
+    if (branch.is_nil()) {
+        branch_version = version_t::zero();
+    } else {
+        branch_version = version_t(branch, state_timestamp_t::max());
+    }
+    return version_find_common(bh, version, branch_version, relevant_region);
 }
 
 branch_birth_certificate_t branch_history_combiner_t::get_branch(
