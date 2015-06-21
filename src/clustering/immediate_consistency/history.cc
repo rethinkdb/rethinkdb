@@ -54,8 +54,8 @@ void branch_history_reader_t::export_branch_history(
     });
 }
 
-branch_birth_certificate_t branch_history_t::get_branch(const branch_id_t &branch)
-        const THROWS_NOTHING {
+branch_birth_certificate_t branch_history_t::get_branch(const branch_id_t &branch) const
+        THROWS_ONLY(missing_branch_exc_t) {
     auto it = branches.find(branch);
     if (it == branches.end()) {
         throw missing_branch_exc_t();

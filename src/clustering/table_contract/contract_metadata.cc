@@ -21,19 +21,19 @@ void contract_t::sanity_check() const {
 
 RDB_IMPL_EQUALITY_COMPARABLE_2(
     contract_t::primary_t, server, hand_over);
-RDB_IMPL_EQUALITY_COMPARABLE_4(
+RDB_IMPL_EQUALITY_COMPARABLE_5(
     contract_t, replicas, voters, temp_voters, primary, after_emergency_repair);
 
 RDB_IMPL_SERIALIZABLE_2_SINCE_v2_1(
     contract_t::primary_t, server, hand_over);
-RDB_IMPL_SERIALIZABLE_4_SINCE_v2_1(
+RDB_IMPL_SERIALIZABLE_5_SINCE_v2_1(
     contract_t, replicas, voters, temp_voters, primary, after_emergency_repair);
 
 #ifndef NDEBUG
 void contract_ack_t::sanity_check(
         const server_id_t &server,
         const contract_id_t &contract_id,
-        const table_raft_state_t &raft_state) {
+        const table_raft_state_t &raft_state) const {
     const region_t &region = raft_state.contracts.at(contract_id).first;
     const contract_t &contract = raft_state.contracts.at(contract_id).second;
 
@@ -47,7 +47,7 @@ void contract_ack_t::sanity_check(
     guarantee(ack_says_primary == contract_says_primary,
         "The contract says a server should be primary, but it sent a non-primary ack.");
 
-    guarantee((state == state_t::primary_need_branch) == static_cast<bool>(branch_id),
+    guarantee((state == state_t::primary_need_branch) == static_cast<bool>(branch),
         "branch_id should be present iff state is primary_need_branch");
     guarantee((state == state_t::secondary_need_primary) == static_cast<bool>(version),
         "version should be present iff state is secondary_need_primary");
@@ -56,23 +56,23 @@ void contract_ack_t::sanity_check(
 
     bool is_voter = contract.voters.count(server) == 1 ||
         (static_cast<bool>(contract.temp_voters) &&
-            contract.temp_voters.count(server) == 1));
+            contract.temp_voters->count(server) == 1);
     if (!contract.after_emergency_repair && is_voter) {
         try {
             if (state == state_t::primary_need_branch) {
                 branch_history_combiner_t combiner(
-                    &raft_state.branch_history, branch_history);
-                version_t branch_as_version(
-                    branch_id,
-                    branch_history.get_branch(*branch_id).initial_version);
+                    &raft_state.branch_history, &branch_history);
+                version_t branch_initial_version(
+                    *branch,
+                    branch_history.get_branch(*branch).initial_timestamp);
                 raft_state.current_branches.visit(region,
                 [&](const region_t &subregion, const branch_id_t &cur_branch) {
                     version_find_branch_common(
-                        &combiner, branch_as_version, cur_branch, subregion);
+                        &combiner, branch_initial_version, cur_branch, subregion);
                 });
             } else if (state == state_t::secondary_need_primary) {
                 branch_history_combiner_t combiner(
-                    &raft_state.branch_history, branch_history);
+                    &raft_state.branch_history, &branch_history);
                 version->visit(region,
                 [&](const region_t &subregion, const version_t &subversion) {
                     raft_state.current_branches.visit(subregion,

@@ -2,6 +2,8 @@
 #ifndef CLUSTERING_TABLE_CONTRACT_COORDINATOR_BRANCH_HISTORY_GC_HPP_
 #define CLUSTERING_TABLE_CONTRACT_COORDINATOR_BRANCH_HISTORY_GC_HPP_
 
+#include "clustering/table_contract/contract_metadata.hpp"
+
 /* The branch history is stored in the Raft state and again on disk on each replica. Each
 replica's B-tree metainfo refers to some branches, and the `current_branches` field in
 the Raft state also refers to branches. When backfilling, we use the branch history to
@@ -30,23 +32,12 @@ void copy_branch_history_for_branch(
         const table_raft_state_t &old_state,
         branch_history_t *add_branches_out);
 
-/* `can_gc_branches_in_coordinator()` checks which of the replicas in the contract have
-sent acks proving that they are on `branch`. It sets `*all_voters_out` to `true` if all
-voters have sent such contracts, and `*all_replicas_out` to `true` if all replicas
-(voters or non) have sent such contracts. */
-void can_gc_branches_in_coordinator(
-        const contract_t &contract,
-        const branch_id_t &branch,
-        const std::map<server_id_t, contract_ack_t> &acks,
-        bool *all_voters_out,
-        bool *all_replicas_out);
-
 /* `mark_all_ancestors_live()` removes `branch` and all of its ancestors in the given
 region from `remove_branches_out`. */
 void mark_all_ancestors_live(
         const branch_id_t &root,
         const region_t &region,
-        branch_history_reader_t *branch_reader,
+        const branch_history_reader_t *branch_reader,
         std::set<branch_id_t> *remove_branches_out);
 
 #endif /* CLUSTERING_TABLE_CONTRACT_COORDINATOR_BRANCH_HISTORY_GC_HPP_ */

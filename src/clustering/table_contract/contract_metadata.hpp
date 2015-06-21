@@ -90,6 +90,16 @@ RDB_DECLARE_EQUALITY_COMPARABLE(contract_t);
 RDB_DECLARE_SERIALIZABLE(contract_t::primary_t);
 RDB_DECLARE_SERIALIZABLE(contract_t);
 
+/* Each contract is tagged with a `contract_id_t`. If the contract changes in any way, it
+gets a new ID. All the `contract_ack_t`s are tagged with the contract ID that they are
+responding to. This way, the coordinator knows exactly which contract the executor is
+acking.
+
+In order to facilitiate CPU sharding, each contract's region must apply to exactly one
+CPU shard. */
+
+typedef uuid_u contract_id_t;
+
 /* The `contract_executor_t` looks at what each `contract_t` says about its server ID,
 and reacts according to the following rules:
 
@@ -137,7 +147,7 @@ public:
     void sanity_check(
         const server_id_t &server,
         const contract_id_t &contract_id,
-        const table_raft_state_t &raft_state);
+        const table_raft_state_t &raft_state) const;
 #endif
 
     state_t state;
@@ -161,16 +171,6 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
     contract_ack_t::state_t::secondary_streaming);
 RDB_DECLARE_SERIALIZABLE(contract_ack_t);
 RDB_DECLARE_EQUALITY_COMPARABLE(contract_ack_t);
-
-/* Each contract is tagged with a `contract_id_t`. If the contract changes in any way, it
-gets a new ID. All the `contract_ack_t`s are tagged with the contract ID that they are
-responding to. This way, the coordinator knows exactly which contract the executor is
-acking.
-
-In order to facilitiate CPU sharding, each contract's region must apply to exactly one
-CPU shard. */
-
-typedef uuid_u contract_id_t;
 
 /* `table_raft_state_t` is the datum that each table's Raft cluster manages. The
 `raft_member_t` type is templatized on a template paramter called `state_t`, and
@@ -214,7 +214,6 @@ public:
         boost::variant<
             set_table_config_t,
             new_contracts_t,
-            branch_history_gc_t,
             new_member_ids_t,
             new_server_names_t> v;
     };

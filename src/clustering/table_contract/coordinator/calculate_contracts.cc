@@ -1,6 +1,7 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/table_contract/coordinator/calculate_contracts.hpp"
 
+#include "clustering/table_contract/coordinator/branch_history_gc.hpp"
 #include "clustering/table_contract/cpu_sharding.hpp"
 #include "logger.hpp"
 
@@ -68,9 +69,9 @@ region_map_t<contract_ack_frag_t> break_ack_into_fragments(
                 } catch (const missing_branch_exc_t &) {
                     crash("Branch history is incomplete");
                 }
-                return points_on_canonical_branch.map(reg,
+                return points_on_canonical_branch.map(branch_reg,
                 [&](const version_t &common_vers) {
-                    base_frag.common_ancestor_with_current_branch =
+                    base_frag.common_ancestor =
                         boost::make_optional(common_vers.timestamp);
                     return base_frag;
                 });
@@ -78,7 +79,7 @@ region_map_t<contract_ack_frag_t> break_ack_into_fragments(
         });
     } else {
         return ack.version->map(region,
-        [&](const region_t &ack_version_reg, const version_t &vers) {
+        [&](const version_t &vers) {
             base_frag.version = boost::make_optional(vers);
             return base_frag;
         });
@@ -311,7 +312,7 @@ contract_t calculate_contract(
         and voter C is removed by emergency repair. Then the normal algorithm could pick
         voter B as the primary, even though it's missing some data. */
         server_id_t best_primary = nil_uuid();
-        state_timstamp_t best_timestamp;
+        state_timestamp_t best_timestamp;
         bool all_present = true;
         for (const server_id_t &server : new_c.voters) {
             if (acks.count(server) == 1 && acks.at(server).state ==
@@ -327,7 +328,7 @@ contract_t calculate_contract(
             }
         }
         if (all_present) {
-            constract_t::primary_t p;
+            contract_t::primary_t p;
             p.server = best_primary;
             new_c.primary = boost::make_optional(p);
         }
@@ -435,8 +436,8 @@ void calculate_all_contracts(
         std::set<contract_id_t> *remove_contracts_out,
         std::map<contract_id_t, std::pair<region_t, contract_t> > *add_contracts_out,
         std::map<region_t, branch_id_t> *register_current_branches_out,
-        branch_history_t *add_branches_out,
-        std::set<branch_id_t> *remove_branches_out) {
+        std::set<branch_id_t> *remove_branches_out,
+        branch_history_t *add_branches_out) {
 
     ASSERT_FINITE_CORO_WAITING;
 
@@ -483,7 +484,7 @@ void calculate_all_contracts(
             for (const auto &pair : *this_contract_acks) {
                 /* Sanity-check the ack */
                 DEBUG_ONLY_CODE(pair.second.sanity_check(
-                    pair.first, cpair.second.second));
+                    pair.first, cpair.first, old_state));
 
                 /* There are two situations where we don't compute the common ancestor:
                 1. If the server sending the ack is not in `voters` or `temp_voters`
@@ -549,50 +550,56 @@ void calculate_all_contracts(
                         guarantee(res.second);
                         copy_branch_history_for_branch(
                             to_register,
-                            acks_map.at(old_contract.primary->server).branch_history,
+                            this_contract_acks->at(
+                                old_contract.primary->server).branch_history,
                             old_state,
                             add_branches_out);
                         registered_new_branch = boost::make_optional(to_register);
                     }
                 }
 
-                /* Mark live branches in this region for branch history GC purposes. */
-                if (static_cast<bool>(registered_new_branch)) {
-                    /* If we just registered a new branch, don't bother trying to GC,
-                    because `can_gc_branches_in_coordinator()` would return `false`
-                    anyway. */
-                    branch_history_combiner_t branch_history_combiner(
-                        add_branches_out, old_state.branch_history);
-                    mark_all_ancestors_live(*registered_new_branch, reg,
-                        &branch_history_combiner, remove_branches_out);
-                } else if (boost::optional<branch_id_t> current_branch =
-                        old_state.current_branches.extract_uniform(reg)) {
-                    bool all_voters, all_replicas;
-                    can_gc_branches_in_coordinator(
-                        new_contract, *current_branch, *this_contract_acks,
-                        &all_voters, &all_replicas);
-                    if (all_replicas) {
-                        /* Because we're sure that all replicas are on the current
-                        branch, we can GC other branches for this region, by not calling
-                        `mark_all_ancestors_live()` and instead only marking the current
-                        branch live. */
-                        remove_branches_out->erase(*current_branch);
+                /* Check to what extent we can confirm that the replicas are on
+                `current_branch`. We'll use this to determine when it's safe to GC and
+                whether we can switch off the `after_emergency_repair` flag (if it was
+                on). */
+                bool can_gc_branch_history = true, can_end_after_emergency_repair = true;
+                for (const server_id_t &server : new_contract.replicas) {
+                    auto it = this_contract_acks->find(server);
+                    if (it == this_contract_acks->end() || (
+                            it->second.state !=
+                                contract_ack_t::state_t::primary_ready &&
+                            it->second.state !=
+                                contract_ack_t::state_t::secondary_streaming)) {
+                        /* At least one replica can't be confirmed to be on
+                        `current_branch`, so we should keep the branch history around in
+                        order to make it easy for that replica to rejoin later. */
+                        can_gc_branch_history = false;
+
+                        if (new_contract.voters.count(server) == 1 ||
+                                (static_cast<bool>(new_contract.temp_voters) &&
+                                    new_contract.temp_voters->count(server) == 1)) {
+                            /* If the `after_emergency_repair` flag is set to `true`, we
+                            need to leave it set to `true` until we can confirm that
+                            the branch history is intact. */
+                            can_end_after_emergency_repair = false;
+                        }
+                    }
+                }
+
+                /* Branch history GC. The key decision is whether we should only keep
+                `current_branch`, or whether we need to keep all of its ancestors too. */
+                old_state.current_branches.visit(reg,
+                [&](const region_t &subregion, const branch_id_t &current_branch) {                
+                    if (can_gc_branch_history) {
+                        remove_branches_out->erase(current_branch);
                     } else {
-                        mark_all_ancestors_live(*current_branch, reg,
-                            old_state.branch_history, remove_branches_out);
-                    }
-                    if (all_voters) {
-                        /* If `after_emergency_repair` was set before, it's safe to clear
-                        it now because we've confirmed that the branch history is now
-                        intact. */
-                        contract.after_emergency_repair = false;
-                    }
-                } else {
-                    old_state.current_branches.visit(reg,
-                    [&](const region_t &subreg, const branch_id_t &cur_branch) {
-                        mark_all_ancestors_live(subreg, cur_branch,
+                        mark_all_ancestors_live(current_branch, subregion,
                             &old_state.branch_history, remove_branches_out);
-                    });
+                    }
+                });
+
+                if (can_end_after_emergency_repair) {
+                    new_contract.after_emergency_repair = false;
                 }
 
                 new_contract_region_vector.push_back(reg);

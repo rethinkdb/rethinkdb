@@ -71,7 +71,8 @@ backfiller_t::client_t::client_t(
                             common ancestor of the two versions, act as if it's zero.
                             This will always produce correct results but it might make us
                             do more backfilling than necessary. */
-                            return state_timestamp_t::zero();
+                            return region_map_t<state_timestamp_t>(
+                                region2, state_timestamp_t::zero());
                         }
                     });
             });

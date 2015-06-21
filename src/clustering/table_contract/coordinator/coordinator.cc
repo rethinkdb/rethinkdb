@@ -118,7 +118,7 @@ void contract_coordinator_t::pump_contracts(signal_t *interruptor) {
                 state->state, acks_by_contract, connections_map,
                 &change.remove_contracts, &change.add_contracts,
                 &change.register_current_branches,
-                &change.add_branches, &change.remove_branches);
+                &change.remove_branches, &change.add_branches);
             calculate_server_names(
                 state->state, change.remove_contracts, change.add_contracts,
                 &change.remove_server_names, &change.add_server_names);

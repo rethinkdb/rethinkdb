@@ -83,7 +83,7 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
             /* Switch back to the home thread so we can send the initial ack */
             on_thread_t thread_switcher_2(home_thread());
 
-            branch_history_manager->export_branch_history(
+            context->branch_history_manager->export_branch_history(
                 *initial_ack.version, &initial_ack.branch_history);
 
             send_ack(initial_ack);

@@ -2,8 +2,11 @@
 #define REGION_REGION_MAP_HPP_
 
 #include <algorithm>
-#include <vector>
 #include <utility>
+#include <vector>
+
+#include "errors.hpp"
+#include <boost/optional.hpp>
 
 #include "containers/archive/stl_types.hpp"
 #include "containers/range_map.hpp"
@@ -169,27 +172,6 @@ public:
                 }),
             region.beg,
             region.end);
-    }
-
-    /* If the `region_map_t` has the same value over the entirety of the given region,
-    returns that value. Otherwise, returns `boost::none`. */
-    boost::optional<value_t> extract_uniform(const region_t &region) const {
-        boost::optional<value_t> res;
-        bool first = true;
-        inner.visit(key_edge_t(region.inner.left), region.inner.right,
-            [&](const key_edge_t &l, const key_edge_t &r, const hash_range_map_t &hrm) {
-                hrm.visit(region.beg, region.end,
-                    [&](uint64_t b, uint64_t e, const value_t &value) {
-                        if (first) {
-                            res = boost::make_optional(value);
-                            first = false;
-                        } else if (static_cast<bool>(res) && *res != value) {
-                            res = boost::none;
-                        }
-                    });
-            });
-        guarantee(!first, "extract_uniform() was called on an empty region");
-        return res;
     }
 
     bool operator==(const region_map_t &other) const {
