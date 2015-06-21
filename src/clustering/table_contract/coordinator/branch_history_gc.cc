@@ -27,19 +27,26 @@ void copy_branch_history_for_branch(
     }
 }
 
-bool can_gc_branches_in_coordinator(
+void can_gc_branches_in_coordinator(
         const contract_t &contract,
         const branch_id_t &branch,
-        const std::map<server_id_t, contract_id_t> &acks) {
+        const std::map<server_id_t, contract_id_t> &acks,
+        bool *all_voters_out,
+        bool *all_replicas_out) {
+    *all_voters_out = *all_replicas_out = true;
     for (const server_id_t &server : contract.replicas) {
         auto it = acks.find(server);
         if (it == acks.end() || (
                 it->second.state != contract_ack_t::state_t::primary_ready &&
                 it->second.state != contract_ack_t::state_t::secondary_streaming)) {
-            return false;
+            *all_replicas_out = false;
+            if (contract.voters.count(server) == 1 ||
+                    (static_cast<bool>(contract.temp_voters) &&
+                        contract.temp_voters->count(server) == 1)) {
+                *all_voters_out = false;
+            }
         }
     }
-    return true;
 }
 
 void mark_all_ancestors_live(

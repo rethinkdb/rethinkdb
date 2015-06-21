@@ -30,12 +30,16 @@ void copy_branch_history_for_branch(
         const table_raft_state_t &old_state,
         branch_history_t *add_branches_out);
 
-/* `can_gc_branches_in_coordinator()` returns `true` if every replica in the contract has
-sent an ack proving that its current B-tree version is on `branch`. */
-bool can_gc_branches_in_coordinator(
+/* `can_gc_branches_in_coordinator()` checks which of the replicas in the contract have
+sent acks proving that they are on `branch`. It sets `*all_voters_out` to `true` if all
+voters have sent such contracts, and `*all_replicas_out` to `true` if all replicas
+(voters or non) have sent such contracts. */
+void can_gc_branches_in_coordinator(
         const contract_t &contract,
         const branch_id_t &branch,
-        const std::map<server_id_t, contract_ack_t> &acks);
+        const std::map<server_id_t, contract_ack_t> &acks,
+        bool *all_voters_out,
+        bool *all_replicas_out);
 
 /* `mark_all_ancestors_live()` removes `branch` and all of its ancestors in the given
 region from `remove_branches_out`. */

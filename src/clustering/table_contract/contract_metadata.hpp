@@ -134,7 +134,10 @@ public:
     explicit contract_ack_t(state_t s) : state(s) { }
 
 #ifndef NDEBUG
-    void sanity_check(const server_id_t &server, const contract_t &contract);
+    void sanity_check(
+        const server_id_t &server,
+        const contract_id_t &contract_id,
+        const table_raft_state_t &raft_state);
 #endif
 
     state_t state;

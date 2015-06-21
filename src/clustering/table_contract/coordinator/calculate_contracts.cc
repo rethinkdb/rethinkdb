@@ -567,15 +567,25 @@ void calculate_all_contracts(
                         &branch_history_combiner, remove_branches_out);
                 } else if (boost::optional<branch_id_t> current_branch =
                         old_state.current_branches.extract_uniform(reg)) {
-                    if (can_gc_branches_in_coordinator(
-                            new_contract, *current_branch, *this_contract_acks)) {
-                        /* GC branches, by not calling `mark_all_ancestors_live()` and
-                        instead only marking the latest branch live. */
+                    bool all_voters, all_replicas;
+                    can_gc_branches_in_coordinator(
+                        new_contract, *current_branch, *this_contract_acks,
+                        &all_voters, &all_replicas);
+                    if (all_replicas) {
+                        /* Because we're sure that all replicas are on the current
+                        branch, we can GC other branches for this region, by not calling
+                        `mark_all_ancestors_live()` and instead only marking the current
+                        branch live. */
                         remove_branches_out->erase(*current_branch);
-                        new_contract.after_emergency_repair = false;
                     } else {
                         mark_all_ancestors_live(*current_branch, reg,
                             old_state.branch_history, remove_branches_out);
+                    }
+                    if (all_voters) {
+                        /* If `after_emergency_repair` was set before, it's safe to clear
+                        it now because we've confirmed that the branch history is now
+                        intact. */
+                        contract.after_emergency_repair = false;
                     }
                 } else {
                     old_state.current_branches.visit(reg,
