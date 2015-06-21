@@ -27,4 +27,44 @@ void copy_branch_history_for_branch(
     }
 }
 
+bool can_gc_branches_in_coordinator(
+        const contract_t &contract,
+        const branch_id_t &branch,
+        const std::map<server_id_t, contract_id_t> &acks) {
+    for (const server_id_t &server : contract.replicas) {
+        auto it = acks.find(server);
+        if (it == acks.end() || (
+                it->second.state != contract_ack_t::state_t::primary_ready &&
+                it->second.state != contract_ack_t::state_t::secondary_streaming)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void mark_all_ancestors_live(
+        const branch_id_t &root,
+        const region_t &region,
+        branch_history_reader_t *branch_reader,
+        std::set<branch_id_t> *remove_branches_out) {
+    std::set<branch_id_t> todo, done;
+    todo.insert(root);
+    while (!todo.empty()) {
+        branch_id_t b = todo.begin();
+        todo.erase(todo.begin());
+        done.insert(b);
+        remove_branches_out->erase(b);
+        branch_reader->get_branch(b)->origin.visit(
+            key_range_t::right_bound_t(region.inner.left), region.inner.right,
+            [&](const key_range_t::right_bound_t &left,
+                    const key_range_t::right_bound_t &right,
+                    const version_t &version) {
+                if (version != version_t::zero() &&
+                        branch_reader->is_branch_known(version.branch) &&
+                        done.count(version.branch) == 0) {
+                    todo.insert(version.branch);
+                }
+            });
+    }
+}
 

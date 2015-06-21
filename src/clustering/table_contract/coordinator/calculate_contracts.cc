@@ -16,50 +16,72 @@ of the `region_map_t<version_t>` it has a single `state_timestamp_t`. Use
 class contract_ack_frag_t {
 public:
     bool operator==(const contract_ack_frag_t &x) const {
-        return state == x.state && version == x.version && branch == x.branch;
+        return state == x.state && version == x.version &&
+            common_ancestor == x.common_ancestor && branch == x.branch;
     }
     bool operator!=(const contract_ack_frag_t &x) const {
         return !(*this == x);
     }
 
+    /* `state` and `branch` are the same as the corresponding fields of the original
+    `contract_ack_t` */
     contract_ack_t::state_t state;
-    boost::optional<state_timestamp_t> version;
     boost::optional<branch_id_t> branch;
+
+    /* `version` is the value of the `version` field of the original `contract_ack_t` for
+    the specific sub-region this fragment applies to. */
+    boost::optional<version_t> version;
+
+    /* `common_ancestor` is the timestamp of the last common ancestor of the original
+    `contract_ack_t` and the `current_branch` in the Raft state for the specific
+    sub-region this fragment applies to. If `version` is blank, this will always be
+    blank; if `version` is present, `common_ancestor` might or might not be blank
+    depending on whether we expect to use the value. */
+    boost::optional<state_timestamp_t> common_ancestor;
 };
 
 region_map_t<contract_ack_frag_t> break_ack_into_fragments(
         const region_t &region,
         const contract_ack_t &ack,
         const region_map_t<branch_id_t> &current_branches,
-        const branch_history_reader_t *raft_branch_history) {
+        const branch_history_reader_t *raft_branch_history,
+        bool compute_common_ancestor) {
     contract_ack_frag_t base_frag;
     base_frag.state = ack.state;
     base_frag.branch = ack.branch;
     if (!static_cast<bool>(ack.version)) {
         return region_map_t<contract_ack_frag_t>(region, base_frag);
-    } else {
+    } else if (compute_common_ancestor) {
         branch_history_combiner_t combined_branch_history(
             raft_branch_history, &ack.branch_history);
         /* Fragment over branches and then over versions within each branch. */
-        return current_branches.map_multi(region,
+        return ack.version->map_multi(region,
+        [&](const region_t &ack_version_reg, const version_t &vers) {
+            base_frag.version = boost::make_optional(vers);
+            return current_branches.map_multi(ack_version_reg,
             [&](const region_t &branch_reg, const branch_id_t &branch) {
-                return ack.version->map_multi(branch_reg,
-                    [&](const region_t &reg, const version_t &vers) {
-                        region_map_t<version_t> points_on_canonical_branch;
-                        try {
-                            points_on_canonical_branch =
-                                version_find_branch_common(&combined_branch_history,
-                                    vers, branch, reg);
-                        } catch (const missing_branch_exc_t &) {
-                            RSI XXX
-                        }
-                        return points_on_canonical_branch.map(reg,
-                            [&](const version_t &common_vers) {
-                                base_frag.version = boost::make_optional(common_vers.timestamp);
-                                return base_frag;
-                            });
-                    });
+                region_map_t<version_t> points_on_canonical_branch;
+                try {
+                    points_on_canonical_branch =
+                        version_find_branch_common(&combined_branch_history,
+                            vers, branch, branch_reg);
+                } catch (const missing_branch_exc_t &) {
+                    crash("Branch history is incomplete");
+                }
+                return points_on_canonical_branch.map(reg,
+                [&](const version_t &common_vers) {
+                    base_frag.common_ancestor_with_current_branch =
+                        boost::make_optional(common_vers.timestamp);
+                    return base_frag;
+                });
             });
+        });
+    } else {
+        return ack.version->map(region,
+        [&](const region_t &ack_version_reg, const version_t &vers) {
+            base_frag.version = boost::make_optional(vers);
+            return base_frag;
+        });
     }
 }
 
@@ -198,7 +220,7 @@ contract_t calculate_contract(
     to elapse before electing a different replica. This is to make sure that we won't
     elect the wrong replica simply because the user's designated primary took a little
     longer to send the ack. */
-    if (!static_cast<bool>(old_c.primary)) {
+    if (!static_cast<bool>(old_c.primary) && !old_c.after_emergency_repair) {
         /* We have an invariant that every acked write must be on the path from the root
         of the branch history to `old_c.branch`. So we project each voter's state onto
         that path, then sort them by position along the path. Any voter that is at least
@@ -215,7 +237,7 @@ contract_t calculate_contract(
             if (acks.count(server) == 1 && acks.at(server).state ==
                     contract_ack_t::state_t::secondary_need_primary) {
                 sorted_candidates.push_back(
-                    std::make_pair(*(acks.at(server).version), server));
+                    std::make_pair(*(acks.at(server).common_ancestor), server));
             }
         }
         std::sort(sorted_candidates.begin(), sorted_candidates.end());
@@ -275,6 +297,39 @@ contract_t calculate_contract(
                 p.server = eligible_candidates.back();
                 new_c.primary = boost::make_optional(p);
             }
+        }
+
+    } else if (!static_cast<bool>(old_c.primary) && old_c.after_emergency_repair) {
+        /* If we recently completed an emergency repair operation, we use a different
+        procedure to pick the primary: we require all voters to be present, and then we
+        pick the voter with the highest version, regardless of `current_branch`. The
+        reason we can't take `current_branch` into account is that the emergency repair
+        might create gaps in the branch history, so we can't reliably compute each
+        replica's position on `current_branch`. The reason we require all replicas to be
+        present is to make the emergency repair safer. For example, imagine if a table
+        has three voters, A, B, and C. Suppose that voter B is lagging behind the others,
+        and voter C is removed by emergency repair. Then the normal algorithm could pick
+        voter B as the primary, even though it's missing some data. */
+        server_id_t best_primary = nil_uuid();
+        state_timstamp_t best_timestamp;
+        bool all_present = true;
+        for (const server_id_t &server : new_c.voters) {
+            if (acks.count(server) == 1 && acks.at(server).state ==
+                    contract_ack_t::state_t::secondary_need_primary) {
+                state_timestamp_t timestamp = acks.at(server).version->timestamp;
+                if (best_primary.is_nil() || timestamp > best_timestamp) {
+                    best_primary = server;
+                    best_timestamp = timestamp;
+                }
+            } else {
+                all_present = false;
+                break;
+            }
+        }
+        if (all_present) {
+            constract_t::primary_t p;
+            p.server = best_primary;
+            new_c.primary = boost::make_optional(p);
         }
     }
 
@@ -380,9 +435,16 @@ void calculate_all_contracts(
         std::set<contract_id_t> *remove_contracts_out,
         std::map<contract_id_t, std::pair<region_t, contract_t> > *add_contracts_out,
         std::map<region_t, branch_id_t> *register_current_branches_out,
-        branch_history_t *add_branches_out) {
+        branch_history_t *add_branches_out,
+        std::set<branch_id_t> *remove_branches_out) {
 
     ASSERT_FINITE_CORO_WAITING;
+
+    /* Initially, we put every branch into `remove_branches_out`. Then as we process
+    contracts, we "mark branches live" by removing them from `remove_branches_out`. */
+    for (const auto &pair : old_state.branch_history.branches) {
+        remove_branches_out->insert(pair.first);
+    }
 
     std::vector<region_t> new_contract_region_vector;
     std::vector<contract_t> new_contract_vector;
@@ -403,28 +465,51 @@ void calculate_all_contracts(
                 continue;
             }
 
+            /* Find acks for this contract. If there aren't any acks for this contract,
+            then `acks` might not even have an empty map, so we need to construct an
+            empty map in that case. */
+            const std::map<server_id_t, contract_ack_t> *this_contract_acks;
+            {
+                static const std::map<server_id_t, contract_ack_t> empty_ack_map;
+                auto it = acks.find(cpair.first);
+                this_contract_acks = (it == acks.end()) ? &empty_ack_map : &it->second;
+            }
+
             /* Now collect the acks for this contract into `ack_frags`. `ack_frags` is
             homogeneous at first and then it gets fragmented as we iterate over `acks`.
             */
             region_map_t<std::map<server_id_t, contract_ack_frag_t> > frags_by_server(
                 region);
-            auto this_contract_acks = acks.find(cpair.first);
-            if (this_contract_acks != acks.end()) {
-                for (const auto &pair : this_contract_acks->second) {
-                    region_map_t<contract_ack_frag_t> frags = break_ack_into_fragments(
-                        region, pair.second, old_state.current_branches,
-                        &old_state.branch_history);
-                    frags.visit(region,
-                    [&](const region_t &reg, const contract_ack_frag_t &frag) {
-                        frags_by_server.visit_mutable(reg,
-                        [&](const region_t &,
-                                std::map<server_id_t, contract_ack_frag_t> *acks_map) {
-                            auto res = acks_map->insert(
-                                std::make_pair(pair.first, frag));
-                            guarantee(res.second);
-                        });
+            for (const auto &pair : *this_contract_acks) {
+                /* Sanity-check the ack */
+                DEBUG_ONLY_CODE(pair.second.sanity_check(
+                    pair.first, cpair.second.second));
+
+                /* There are two situations where we don't compute the common ancestor:
+                1. If the server sending the ack is not in `voters` or `temp_voters`
+                2. If the contract has the `after_emergency_repair` flag set
+                In these situations, we don't need the common ancestor, but computing it
+                might be dangerous because the branch history might be incomplete. */
+                bool compute_common_ancestor =
+                    (cpair.second.second.voters.count(pair.first) == 1 ||
+                        (static_cast<bool>(cpair.second.second.temp_voters) &&
+                            cpair.second.second.temp_voters->count(pair.first) == 1)) &&
+                    !cpair.second.second.after_emergency_repair;
+
+                region_map_t<contract_ack_frag_t> frags = break_ack_into_fragments(
+                    region, pair.second, old_state.current_branches,
+                    &old_state.branch_history, compute_common_ancestor);
+
+                frags.visit(region,
+                [&](const region_t &reg, const contract_ack_frag_t &frag) {
+                    frags_by_server.visit_mutable(reg,
+                    [&](const region_t &,
+                            std::map<server_id_t, contract_ack_frag_t> *acks_map) {
+                        auto res = acks_map->insert(
+                            std::make_pair(pair.first, frag));
+                        guarantee(res.second);
                     });
-                }
+                });
             }
 
             frags_by_server.visit(region,
@@ -443,6 +528,7 @@ void calculate_all_contracts(
                     connections_map);
 
                 /* Register a branch if a primary is asking us to */
+                boost::optional<branch_id_t> registered_new_branch;
                 if (static_cast<bool>(old_contract.primary) &&
                         static_cast<bool>(new_contract.primary) &&
                         old_contract.primary->server ==
@@ -466,8 +552,37 @@ void calculate_all_contracts(
                             acks_map.at(old_contract.primary->server).branch_history,
                             old_state,
                             add_branches_out);
-                            
+                        registered_new_branch = boost::make_optional(to_register);
                     }
+                }
+
+                /* Mark live branches in this region for branch history GC purposes. */
+                if (static_cast<bool>(registered_new_branch)) {
+                    /* If we just registered a new branch, don't bother trying to GC,
+                    because `can_gc_branches_in_coordinator()` would return `false`
+                    anyway. */
+                    branch_history_combiner_t branch_history_combiner(
+                        add_branches_out, old_state.branch_history);
+                    mark_all_ancestors_live(*registered_new_branch, reg,
+                        &branch_history_combiner, remove_branches_out);
+                } else if (boost::optional<branch_id_t> current_branch =
+                        old_state.current_branches.extract_uniform(reg)) {
+                    if (can_gc_branches_in_coordinator(
+                            new_contract, *current_branch, *this_contract_acks)) {
+                        /* GC branches, by not calling `mark_all_ancestors_live()` and
+                        instead only marking the latest branch live. */
+                        remove_branches_out->erase(*current_branch);
+                        new_contract.after_emergency_repair = false;
+                    } else {
+                        mark_all_ancestors_live(*current_branch, reg,
+                            old_state.branch_history, remove_branches_out);
+                    }
+                } else {
+                    old_state.current_branches.visit(reg,
+                    [&](const region_t &subreg, const branch_id_t &cur_branch) {
+                        mark_all_ancestors_live(subreg, cur_branch,
+                            &old_state.branch_history, remove_branches_out);
+                    });
                 }
 
                 new_contract_region_vector.push_back(reg);

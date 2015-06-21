@@ -78,6 +78,11 @@ public:
     /* `primary` contains the server that's supposed to be primary. If we're in the
     middle of a transition between two primaries, then `primary` will be empty. */
     boost::optional<primary_t> primary;
+
+    /* `after_emergency_repair` is set to `true` when we conduct an emergency repair.
+    When it's `true` we'll use a different algorithm for choosing primary replicas. Once
+    the table has stabilized after the repair, we'll set it back to `false`. */
+    bool after_emergency_repair;
 };
 
 RDB_DECLARE_EQUALITY_COMPARABLE(contract_t::primary_t);
@@ -127,6 +132,10 @@ public:
 
     contract_ack_t() { }
     explicit contract_ack_t(state_t s) : state(s) { }
+
+#ifndef NDEBUG
+    void sanity_check(const server_id_t &server, const contract_t &contract);
+#endif
 
     state_t state;
 
@@ -179,13 +188,9 @@ public:
             std::map<contract_id_t, std::pair<region_t, contract_t> > add_contracts;
             std::map<region_t, branch_id_t> register_current_branches;
             branch_history_t add_branches;
+            std::set<branch_id_t> remove_branches;
             std::set<server_id_t> remove_server_names;
             server_name_map_t add_server_names;
-        };
-
-        class branch_history_gc_t {
-        public:
-            std::set<branch_id_t> remove_branches;
         };
 
         class new_member_ids_t {

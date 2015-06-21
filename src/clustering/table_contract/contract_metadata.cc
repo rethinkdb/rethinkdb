@@ -22,12 +22,27 @@ void contract_t::sanity_check() const {
 RDB_IMPL_EQUALITY_COMPARABLE_2(
     contract_t::primary_t, server, hand_over);
 RDB_IMPL_EQUALITY_COMPARABLE_4(
-    contract_t, replicas, voters, temp_voters, primary);
+    contract_t, replicas, voters, temp_voters, primary, after_emergency_repair);
 
 RDB_IMPL_SERIALIZABLE_2_SINCE_v2_1(
     contract_t::primary_t, server, hand_over);
 RDB_IMPL_SERIALIZABLE_4_SINCE_v2_1(
-    contract_t, replicas, voters, temp_voters, primary);
+    contract_t, replicas, voters, temp_voters, primary, after_emergency_repair);
+
+#ifndef NDEBUG
+void contract_ack_t::sanity_check(
+        const server_id_t &server, const contract_t &contract) {
+    guarantee(contract.replicas.count(server) == 1);
+
+    bool ack_says_primary = state == state_t::primary_need_branch ||
+        state == state_t::primary_in_progress || state == state_t::primary_ready;
+    bool contract_says_primary = static_cast<bool>(contract.primary) &&
+        contract.primary->server == server;
+    guarantee(ack_says_primary == contract_says_primary);
+
+    TODO: Check branch history completeness
+}
+#endif /* NDEBUG */
 
 RDB_IMPL_SERIALIZABLE_4_FOR_CLUSTER(
     contract_ack_t, state, version, branch, branch_history);
