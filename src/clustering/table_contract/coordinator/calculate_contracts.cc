@@ -312,7 +312,7 @@ contract_t calculate_contract(
         and voter C is removed by emergency repair. Then the normal algorithm could pick
         voter B as the primary, even though it's missing some data. */
         server_id_t best_primary = nil_uuid();
-        state_timestamp_t best_timestamp;
+        state_timestamp_t best_timestamp = state_timestamp_t::zero();
         bool all_present = true;
         for (const server_id_t &server : new_c.voters) {
             if (acks.count(server) == 1 && acks.at(server).state ==
