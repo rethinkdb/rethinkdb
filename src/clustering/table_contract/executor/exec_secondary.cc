@@ -9,15 +9,11 @@
 
 secondary_execution_t::secondary_execution_t(
         const execution_t::context_t *_context,
-        store_view_t *_store,
-        perfmon_collection_t *_perfmon_collection,
-        const std::function<void(
-            const contract_id_t &, const contract_ack_t &)> &_ack_cb,
+        execution_t::params_t *_params,
         const contract_id_t &cid,
         const table_raft_state_t &raft_state,
         const branch_id_t &_branch) :
-    execution_t(_context, _store, _perfmon_collection, _ack_cb),
-    on_branch(false)
+    execution_t(_context, _params)
 {
     const contract_t &c = raft_state.contracts.at(cid).second;
     guarantee(c.replicas.count(context->server_id) == 1);
@@ -54,23 +50,15 @@ void secondary_execution_t::update_contract_or_raft_state(
     guarantee(c.replicas.count(context->server_id) == 1);
     guarantee(primary.is_nil() || primary == c.primary->server);
     if (contract_id != cid && static_cast<bool>(last_ack)) {
-        ack_cb(cid, *last_ack);
+        params->send_ack(cid, *last_ack);
     }
     contract_id = cid;
-}
-
-bool secondary_execution_t::check_gc(boost::optional<branch_id_t> *live_branch_out) {
-    if (on_branch) {
-        *live_branch_out = boost::make_optional(branch);
-        return true;
-    } else {
-        return false;
-    }
 }
 
 void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
     assert_thread();
     order_source_t order_source(store->home_thread());
+    bool enabled_gc = false;
     while (!keepalive.get_drain_signal()->is_pulsed()) {
         try {
             /* Switch to the store thread so we can extract our metainfo and set up the
@@ -186,7 +174,11 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
 
             on_thread_t thread_switcher_4(home_thread());
 
-            on_branch = true;
+            /* Now that we've backfilled, it's safe to call `enable_gc()`. */
+            if (!enabled_gc) {
+                enabled_gc = true;
+                params->enable_gc(branch);
+            }
 
             /* Let the coordinator know we finished backfilling */
             send_ack(contract_ack_t(contract_ack_t::state_t::secondary_streaming));
@@ -211,7 +203,7 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
 
 void secondary_execution_t::send_ack(const contract_ack_t &ca) {
     assert_thread();
-    ack_cb(contract_id, ca);
+    params->send_ack(contract_id, ca);
     last_ack = boost::make_optional(ca);
 }
 

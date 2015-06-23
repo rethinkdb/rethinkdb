@@ -10,10 +10,7 @@ class erase_execution_t : public execution_t, public home_thread_mixin_t {
 public:
     erase_execution_t(
         const execution_t::context_t *context,
-        store_view_t *store,
-        perfmon_collection_t *perfmon_collection,
-        const std::function<void(
-            const contract_id_t &, const contract_ack_t &)> &ack_cb,
+        execution_t::params_t *params,
         const contract_id_t &cid,
         const table_raft_state_t &raft_state);
 
@@ -21,14 +18,9 @@ public:
         const contract_id_t &cid,
         const table_raft_state_t &raft_state);
 
-    bool check_gc(boost::optional<branch_id_t> *live_branch_out);
-
 private:
     /* `run()` does the actual work of erasing the data. */
     void run(auto_drainer_t::lock_t);
-
-    /* Set to `true` if we successfully erased the data */
-    bool done;
 
     /* `drainer` makes sure that `run()` stops before the `erase_execution_t` is
     destroyed. */

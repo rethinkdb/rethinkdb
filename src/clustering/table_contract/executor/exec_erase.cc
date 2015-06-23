@@ -5,13 +5,10 @@
 
 erase_execution_t::erase_execution_t(
         const execution_t::context_t *_context,
-        store_view_t *_store,
-        perfmon_collection_t *_perfmon_collection,
-        const std::function<void(
-            const contract_id_t &, const contract_ack_t &)> &_ack_cb,
+        execution_t::params_t *_params,
         const contract_id_t &cid,
         const table_raft_state_t &raft_state) :
-    execution_t(_context, _store, _perfmon_collection, _ack_cb), done(false)
+    execution_t(_context, _params)
 {
     update_contract_or_raft_state(cid, raft_state);
     coro_t::spawn_sometime(std::bind(&erase_execution_t::run, this, drainer.lock()));
@@ -23,15 +20,6 @@ void erase_execution_t::update_contract_or_raft_state(
     assert_thread();
     rassert(raft_state.contracts.at(cid).second.replicas.count(context->server_id) == 0);
     rassert(raft_state.contracts.at(cid).first == region);
-}
-
-bool erase_execution_t::check_gc(boost::optional<branch_id_t> *live_branch_out) {
-    if (done) {
-        *live_branch_out = boost::none;
-        return true;
-    } else {
-        return false;
-    }
 }
 
 void erase_execution_t::run(auto_drainer_t::lock_t keepalive) {
@@ -50,7 +38,7 @@ void erase_execution_t::run(auto_drainer_t::lock_t keepalive) {
             /* do nothing */
         }
     }
-    done = true;
+    params->enable_gc(nil_uuid());
 }
 
 

@@ -7,6 +7,114 @@
 #include "clustering/table_contract/executor/exec_secondary.hpp"
 #include "store_subview.hpp"
 
+class contract_executor_t::execution_wrapper_t : private execution_t::params_t {
+public:
+    execution_wrapper_t(
+            contract_executor_t *_parent,
+            const execution_key_t &key,
+            const branch_id_t &branch,
+            const contract_id_t &_contract_id,
+            const table_raft_state_t &state) :
+        parent(_parent), contract_id(_contract_id),
+        store_subview(
+            parent->multistore->get_cpu_sharded_store(
+                get_cpu_shard_number(key.region)),
+            key.region),
+        perfmon_membership(
+            parent->perfmons,
+            &perfmon_collection,
+            strprintf("%s-%d", key.role_name().c_str(), ++parent->perfmon_counter))
+    {
+        switch (key.role) {
+        case execution_key_t::role_t::primary:
+            execution.init(new primary_execution_t(
+                &parent->execution_context, this, contract_id, state));
+            break;
+        case execution_key_t::role_t::secondary:
+            execution.init(new secondary_execution_t(
+                &parent->execution_context, this, contract_id, state, branch));
+            break;
+        case execution_key_t::role_t::erase:
+            execution.init(new erase_execution_t(
+                &parent->execution_context, this, contract_id, state));
+            break;
+        default: unreachable();
+        }
+    }
+    ~execution_wrapper_t() {
+        /* Stop the execution first, so it can't call `send_ack()` after we've deleted
+        the entry from `ack_map` */
+        execution.reset();
+        parent->ack_map.delete_key(std::make_pair(parent->server_id, contract_id));
+    }
+
+    void update(const contract_id_t &new_contract_id,
+                const table_raft_state_t &new_state) {
+        contract_id_t old_contract_id = contract_id;
+        contract_id = new_contract_id;
+        /* Note that `update_contract_or_raft_state()` will never block. Also note that
+        we call it even if the contract ID has not actually changed, because it might
+        care about the changes to the parts of the Raft state other than the contract. */
+        execution->update_contract_or_raft_state(new_contract_id, new_state);
+        if (old_contract_id != new_contract_id) {
+            /* Delete the old contract ack, if there was one */
+            parent->ack_map.delete_key(
+                std::make_pair(parent->server_id, old_contract_id));
+        }
+    }
+
+    contract_id_t get_contract_id() const {
+        return contract_id;
+    }
+
+    /* If the execution has called its `enable_gc()` callback, this will contain the
+    value that was provided. Otherwise, this will be empty. */
+    boost::optional<branch_id_t> enable_gc_branch;
+
+private:
+    perfmon_collection_t *get_perfmon_collection() {
+        return &perfmon_collection;
+    }
+
+    store_view_t *get_store() {
+        return &store_subview;
+    }
+
+    void send_ack(const contract_id_t &cid, const contract_ack_t &ack) {
+        parent->assert_thread();
+        /* If the contract is out of date, don't send the ack */
+        if (cid == contract_id) {
+            parent->ack_map.set_key_no_equals(
+                std::make_pair(parent->server_id, contract_id), ack);
+        }
+    }
+
+    void enable_gc(const branch_id_t &new_enable_gc_branch) {
+        parent->assert_thread();
+        guarantee(!static_cast<bool>(enable_gc_branch));
+        enable_gc_branch = boost::make_optional(new_enable_gc_branch);
+        parent->gc_branch_history_pumper.notify();
+    }
+
+    contract_executor_t *const parent;
+
+    /* The contract ID of the contract governing this execution. Note that this may
+    change over the course of an execution; see the comment about `execution_key_t`. */
+    contract_id_t contract_id;
+
+    /* A `store_subview_t` containing only the sub-region of the store that this
+    execution affects. */
+    store_subview_t store_subview;
+
+    /* We create a new perfmon category for each execution. This way the executions
+    themselves don't have to think about perfmon key collisions. */
+    perfmon_collection_t perfmon_collection;
+    perfmon_membership_t perfmon_membership;
+
+    /* The execution itself */
+    scoped_ptr_t<execution_t> execution;
+};
+
 contract_executor_t::contract_executor_t(
         const server_id_t &_server_id,
         mailbox_manager_t *_mailbox_manager,
@@ -23,9 +131,11 @@ contract_executor_t::contract_executor_t(
     multistore(_multistore),
     perfmons(_perfmons),
     perfmon_counter(0),
-    update_pumper(new pump_coro_t(
-        std::bind(&contract_executor_t::update_blocking, this, ph::_1))),
-    raft_state_subs([this]() { update_pumper->notify(); })
+    update_pumper(
+        std::bind(&contract_executor_t::update_blocking, this, ph::_1)),
+    gc_branch_history_pumper(
+        std::bind(&contract_executor_t::gc_branch_history, this, ph::_1)),
+    raft_state_subs([this]() { update_pumper.notify(); })
 {
     execution_context.server_id = _server_id;
     execution_context.mailbox_manager = _mailbox_manager;
@@ -43,25 +153,22 @@ contract_executor_t::contract_executor_t(
 
     watchable_t<table_raft_state_t>::freeze_t freeze(raft_state);
     raft_state_subs.reset(raft_state, &freeze);
-    update_pumper->notify();
+    update_pumper.notify();
 }
 
 contract_executor_t::~contract_executor_t() {
-    /* Run destructors manually so that we can control how `executions` is destroyed. We
-    want to first destroy every individual execution without modifying the `std::map`,
-    then we want to destroy the `std::map`. This is because the `execution_t`s can
-    access the `std::map` via `send_ack()` until they are all destroyed. */
-
+    /* We have to detroy `raft_state_subs` before `update_pumper` because its callback
+    accessses `update_pumper`. */
     raft_state_subs.reset();
 
-    /* Call `drain()` before setting `update_pumper` itself to null because
-    `update_blocking()` will sometimes try to dereference `update_pumper`. */
-    update_pumper->drain();
-    update_pumper.reset();
+    /* We have to drain `update_pumper` and `gc_branch_history_pumper` before
+    `executions` because their callbacks access `executions`. */
+    update_pumper.drain();
+    gc_branch_history_pumper.drain();
 
-    for (auto &&pair : executions) {
-        pair.second->execution.reset();
-    }
+    /* We have to clean out `executions` before destroying `gc_branch_history_pumper`
+    because the `execution_wrapper_t`s may access `gc_branch_history_pumper`. */
+    executions.clear();
 }
 
 contract_executor_t::execution_key_t contract_executor_t::get_contract_key(
@@ -91,170 +198,107 @@ contract_executor_t::execution_key_t contract_executor_t::get_contract_key(
 }
 
 void contract_executor_t::update_blocking(signal_t *interruptor) {
-    std::set<execution_key_t> to_delete;
+    new_mutex_acq_t executions_mutex_acq(&executions_mutex, interruptor);
+    std::set<execution_key_t> dont_delete;
     {
         ASSERT_NO_CORO_WAITING;
-        raft_state->apply_read([&](const table_raft_state_t *state) {
-            update(*state, &to_delete); });
+        raft_state->apply_read([&](const table_raft_state_t *new_state) {
+            for (const auto &new_pair : new_state->contracts) {
+                /* Extract the current branch ID for the region covered by this contract.
+                If there are multiple branches for different subregions, we consider the
+                branch as incoherent and don't set a branch ID. */
+                branch_id_t branch = nil_uuid();
+                bool branch_mismatch = false;
+                new_state->current_branches.visit(new_pair.second.first,
+                [&](const region_t &, const branch_id_t &b) {
+                    if (branch.is_nil()) {
+                        branch = b;
+                    } else if (branch != b) {
+                        branch_mismatch = true;
+                    }
+                });
+                if (branch_mismatch) {
+                    branch = nil_uuid();
+                }
+
+                execution_key_t key = get_contract_key(new_pair.second, branch);
+                dont_delete.insert(key);
+                auto it = executions.find(key);
+                if (it != executions.end()) {
+                    it->second->update(new_pair.first, *new_state);
+                } else {
+                    /* Create a new execution, unless there's already an execution whose
+                    region overlaps ours. In the latter case, the execution will be
+                    deleted soon. */
+                    bool ok_to_create = true;
+                    for (const auto &old_pair : executions) {
+                        if (region_overlaps(old_pair.first.region,
+                                            new_pair.second.first)) {
+                            ok_to_create = false;
+                            break;
+                        }
+                    }
+                    if (ok_to_create) {
+                        executions[key] = make_scoped<execution_wrapper_t>(
+                            this, key, branch, new_pair.first, *new_state);
+                    }
+                }
+            }
+        });
     }
-    if (!to_delete.empty()) {
-        for (const execution_key_t &key : to_delete) {
-            auto it = executions.find(key);
-            guarantee(it != executions.end());
-            /* Resetting `execution` is the part that can block. */
-            it->second->execution.reset();
-            /* Remove the entry from the ack map, only once we are sure that the
-            execution won't recreate it. */
-            ack_map.delete_key(std::make_pair(server_id, it->second->contract_id));
-            /* Note that we do a two-step process: first we reset `execution`, then we
-            erase the entry from `executions`. This is because until we finish resetting
-            `execution`, it may still be calling `send_ack()`, and it's important that
-            `send_ack()` be able to see the entry in `executions`. */
-            executions.erase(it);
+    bool deleted_any = false;
+    for (auto it = executions.begin(); it != executions.end();) {
+        if (dont_delete.count(it->first) == 1) {
+            ++it;
+        } else {
+            /* This is the part that can block. */
+            executions.erase(it++);
+            deleted_any = true;
         }
+    }
+    if (deleted_any) {
         /* Now that we've deleted the executions, `update()` is likely to have new
         instructions for us, so we should run again. */
-        update_pumper->notify();
-    } else {
-        /* If `to_delete` was empty, that means that our executions cover the entire
-        key-space, so now would be a good time to GC the branch history. */
-        std::set<branch_id_t> remove_branches;
-        execution_context.branch_history_manager->prepare_gc(
-            &remove_branches);
-        bool ok = true;
-        raft_state->apply_read([&](const table_raft_state_t *state) {
-            for (const auto &pair : executions) {
-                boost::optional<branch_id_t> live_branch;
-                if (!pair.second->execution->check_gc(&live_branch)) {
-                    ok = false;
-                    break;
-                }
-                if (static_cast<bool>(live_branch)) {
-                    mark_ancestors_since_base_live(
-                        *live_branch,
-                        pair.first.region,
-                        execution_context.branch_history_manager,
-                        &state->branch_history,
-                        &remove_branches);
-                }
-            }
-        });
-        if (ok) {
-            execution_context.branch_history_manager->perform_gc(
-                remove_branches, interruptor);
-        }
+        update_pumper.notify();
     }
 }
 
-void contract_executor_t::update(const table_raft_state_t &new_state,
-                                 std::set<execution_key_t> *to_delete_out) {
-    assert_thread();
-    /* Go through the new contracts and try to match them to existing executions */
-    std::set<execution_key_t> dont_delete;
-    for (const auto &new_pair : new_state.contracts) {
-        /* Extract the current branch ID for the region covered by this contract.
-        If there are multiple branches for different subregions, we consider
-        the branch as incoherent and don't set a branch ID. */
-        branch_id_t branch = nil_uuid();
-        bool branch_mismatch = false;
-        new_state.current_branches.visit(new_pair.second.first,
-        [&](const region_t &, const branch_id_t &b) {
-            if (branch.is_nil()) {
-                branch = b;
-            } else if (branch != b) {
-                branch_mismatch = true;
-            }
-        });
-        if (branch_mismatch) {
-            branch = nil_uuid();
+void contract_executor_t::gc_branch_history(signal_t *interruptor) {
+    new_mutex_acq_t executions_mutex_acq(&executions_mutex, interruptor);
+    std::set<branch_id_t> remove_branches;
+    execution_context.branch_history_manager->prepare_gc(&remove_branches);
+    bool ok = true;
+    raft_state->apply_read([&](const table_raft_state_t *state) {
+        std::set<contract_id_t> contract_ids;
+        for (const auto &pair : state->contracts) {
+            contract_ids.insert(pair.first);
         }
-
-        execution_key_t key = get_contract_key(new_pair.second, branch);
-        dont_delete.insert(key);
-        auto it = executions.find(key);
-        if (it != executions.end()) {
-            /* Update the existing execution */
-            contract_id_t old_contract_id = it->second->contract_id;
-            it->second->contract_id = new_pair.first;
-            /* Note that `update_contract_or_raft_state()` will never block.
-            Also note that we call it even if the contract ID has not actually changed,
-            because it might care about the changes to the parts of the Raft state
-            other than the contract. */
-            it->second->execution->update_contract_or_raft_state(
-                new_pair.first, new_state);
-            if (old_contract_id != new_pair.first) {
-                /* Delete the old contract ack, if there was one */
-                ack_map.delete_key(std::make_pair(server_id, old_contract_id));
+        for (const auto &pair : executions) {
+            contract_ids.erase(pair.second->get_contract_id());
+            if (!static_cast<bool>(pair.second->enable_gc_branch)) {
+                ok = false;
+                break;
             }
-        } else {
-            /* Create a new execution, unless there's already an execution whose region
-            overlaps ours. In the latter case, the execution will be deleted soon. */
-            bool ok_to_create = true;
-            for (const auto &old_pair : executions) {
-                if (region_overlaps(old_pair.first.region, new_pair.second.first)) {
-                    ok_to_create = false;
-                    break;
-                }
-            }
-            if (ok_to_create) {
-                executions[key] = make_scoped<execution_data_t>();
-                execution_data_t *data = executions[key].get();
-                data->contract_id = new_pair.first;
-
-                data->store_subview = make_scoped<store_subview_t>(
-                    multistore->get_cpu_sharded_store(get_cpu_shard_number(key.region)),
-                    key.region);
-
-                /* We generate perfmon keys of the form "primary-3", "secondary-8", etc.
-                The numbers are arbitrary but unique. */
-                data->perfmon_membership = make_scoped<perfmon_membership_t>(
-                    perfmons, &data->perfmon_collection,
-                    strprintf("%s-%d", key.role_name().c_str(), ++perfmon_counter));
-
-                std::function<void(const contract_id_t &, const contract_ack_t &)>
-                    acker = std::bind(&contract_executor_t::send_ack, this,
-                        key, ph::_1, ph::_2);
-                /* Note that these constructors will never block. */
-                switch (key.role) {
-                case execution_key_t::role_t::primary:
-                    data->execution.init(new primary_execution_t(
-                        &execution_context, data->store_subview.get(),
-                        &data->perfmon_collection, acker,
-                        new_pair.first, new_state));
-                    break;
-                case execution_key_t::role_t::secondary:
-                    data->execution.init(new secondary_execution_t(
-                        &execution_context, data->store_subview.get(),
-                        &data->perfmon_collection, acker,
-                        new_pair.first, new_state, branch));
-                    break;
-                case execution_key_t::role_t::erase:
-                    data->execution.init(new erase_execution_t(
-                        &execution_context, data->store_subview.get(),
-                        &data->perfmon_collection, acker,
-                        new_pair.first, new_state));
-                    break;
-                default: unreachable();
-                }
+            if (!pair.second->enable_gc_branch->is_nil()) {
+                mark_ancestors_since_base_live(
+                    *pair.second->enable_gc_branch,
+                    pair.first.region,
+                    execution_context.branch_history_manager,
+                    &state->branch_history,
+                    &remove_branches);
             }
         }
-    }
-    /* Go through our existing executions and delete the ones that don't correspond to
-    any of the new contracts */
-    for (const auto &old_pair : executions) {
-        if (dont_delete.count(old_pair.first) == 0) {
-            to_delete_out->insert(old_pair.first);
+        if (!contract_ids.empty()) {
+            /* Since we were missing executions for one more more contracts, don't
+            garbage collect. This is to make sure that if we're in a transitional state
+            where some regions have no execution, we won't throw away the branches for
+            those regions. */
+            ok = false;
         }
+    });
+    if (ok) {
+        execution_context.branch_history_manager->perform_gc(
+            remove_branches, interruptor);
     }
 }
-
-void contract_executor_t::send_ack(const execution_key_t &key, const contract_id_t &cid,
-        const contract_ack_t &ack) {
-    assert_thread();
-    /* If the contract is out of date, don't send the ack */
-    if (executions.at(key)->contract_id == cid) {
-        ack_map.set_key_no_equals(std::make_pair(server_id, cid), ack);
-    }
-}
-
 
