@@ -201,6 +201,7 @@ table_raft_state_t make_new_table_raft_state(
             contract.primary = boost::make_optional(
                 contract_t::primary_t { shard_conf.primary_replica, boost::none });
         }
+        contract.after_emergency_repair = false;
         for (size_t j = 0; j < CPU_SHARDING_FACTOR; ++j) {
             region_t region = region_intersection(
                 region_t(config.shard_scheme.get_shard_range(i)),
