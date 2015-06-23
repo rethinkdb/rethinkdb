@@ -53,10 +53,10 @@ void secondary_execution_t::update_contract_or_raft_state(
     guarantee(raft_state.contracts.at(cid).first == region);
     guarantee(c.replicas.count(context->server_id) == 1);
     guarantee(primary.is_nil() || primary == c.primary->server);
-    contract_id = cid;
-    if (static_cast<bool>(last_ack)) {
-        ack_cb(contract_id, *last_ack);
+    if (contract_id != cid && static_cast<bool>(last_ack)) {
+        ack_cb(cid, *last_ack);
     }
+    contract_id = cid;
 }
 
 bool secondary_execution_t::check_gc(boost::optional<branch_id_t> *live_branch_out) {
