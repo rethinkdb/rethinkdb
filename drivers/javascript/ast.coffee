@@ -210,6 +210,7 @@ class RDBVal extends TermBase
     or: (args...) -> new Or {}, @, args...
     and: (args...) -> new And {}, @, args...
 
+    branch: (args...) -> new Branch {}, @, args...
     forEach: (args...) -> new ForEach {}, @, args.map(funcWrap)...
 
     sum: (args...) -> new Sum {}, @, args.map(funcWrap)...
@@ -974,7 +975,7 @@ class Default extends RDBOp
 
 class Branch extends RDBOp
     tt: protoTermType.BRANCH
-    st: 'branch'
+    mt: 'branch'
 
 class Or extends RDBOp
     tt: protoTermType.OR
