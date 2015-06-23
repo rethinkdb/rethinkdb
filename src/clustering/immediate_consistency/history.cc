@@ -29,17 +29,22 @@ void branch_history_reader_t::export_branch_history(
         return;
     }
     std::set<branch_id_t> to_process {branch};
+    std::set<branch_id_t> done;
     while (!to_process.empty()) {
         branch_id_t next = *to_process.begin();
         to_process.erase(to_process.begin());
-        auto res = out->branches.insert(std::make_pair(next, get_branch(next)));
-        guarantee(res.second);
-        res.first->second.origin.visit(res.first->second.origin.get_domain(),
-        [&](const region_t &, const version_t &vers) {
-            if (!vers.branch.is_nil() && out->branches.count(vers.branch) == 0) {
-                to_process.insert(vers.branch);
-            }
-        });
+        done.insert(next);
+        if (is_branch_known(next)) {
+            auto res = out->branches.insert(std::make_pair(next, get_branch(next)));
+            guarantee(res.second);
+            res.first->second.origin.visit(res.first->second.origin.get_domain(),
+            [&](const region_t &, const version_t &vers) {
+                if (!vers.branch.is_nil() && out->branches.count(vers.branch) == 0 &&
+                        done.count(vers.branch) == 0) {
+                    to_process.insert(vers.branch);
+                }
+            });
+        }
     }
 }
 
