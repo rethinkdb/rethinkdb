@@ -975,7 +975,7 @@ class Default extends RDBOp
 
 class Branch extends RDBOp
     tt: protoTermType.BRANCH
-    mt: 'branch'
+    st: 'branch'
 
 class Or extends RDBOp
     tt: protoTermType.OR

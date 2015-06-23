@@ -1486,7 +1486,7 @@ class Sync(RqlMethodQuery):
     st = 'sync'
 
 
-class Branch(RqlMethodQuery):
+class Branch(RqlTopLevelQuery):
     tt = pTerm.BRANCH
     st = "branch"
 
