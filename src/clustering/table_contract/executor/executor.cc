@@ -135,7 +135,10 @@ contract_executor_t::contract_executor_t(
         std::bind(&contract_executor_t::update_blocking, this, ph::_1)),
     gc_branch_history_pumper(
         std::bind(&contract_executor_t::gc_branch_history, this, ph::_1)),
-    raft_state_subs([this]() { update_pumper.notify(); })
+    raft_state_subs([this]() {
+        update_pumper.notify();
+        gc_branch_history_pumper.notify();
+    })
 {
     execution_context.server_id = _server_id;
     execution_context.mailbox_manager = _mailbox_manager;
@@ -157,8 +160,8 @@ contract_executor_t::contract_executor_t(
 }
 
 contract_executor_t::~contract_executor_t() {
-    /* We have to detroy `raft_state_subs` before `update_pumper` because its callback
-    accessses `update_pumper`. */
+    /* We have to destroy `raft_state_subs` before the `pump_coro_t`s because its
+    callback accesses them. */
     raft_state_subs.reset();
 
     /* We have to drain `update_pumper` and `gc_branch_history_pumper` before
