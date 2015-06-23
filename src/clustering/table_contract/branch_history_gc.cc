@@ -74,7 +74,7 @@ void mark_ancestors_since_base_live(
             if (version != version_t::zero() &&
                     branch_reader->is_branch_known(version.branch) &&
                     done.count(version.branch) == 0) {
-                bool version_in_base = base->is_branch_known(next.first);
+                bool version_in_base = base->is_branch_known(version.branch);
                 if (!(next_in_base && !version_in_base)) {
                     todo.insert(std::make_pair(version.branch, subregion));
                 }
