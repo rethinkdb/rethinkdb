@@ -52,9 +52,12 @@ public:
         const contract_id_t &cid,
         const table_raft_state_t &raft_state);
     ~primary_execution_t();
+
     void update_contract_or_raft_state(
         const contract_id_t &cid,
         const table_raft_state_t &raft_state);
+
+    bool check_gc(boost::optional<branch_id_t> *live_branch_out);
 
 private:
     class write_callback_t;
@@ -176,6 +179,10 @@ private:
     /* `begin_write_mutex` is used to ensure that we don't ack a contract until all past
     and ongoing writes are safe under the contract's conditions. */
     mutex_assertion_t begin_write_mutex;
+
+    /* `on_branch` is `true` once the version in the B-tree is on `*our_branch_id`. We
+    use this to prevent branch history GC before we're fully set up. */
+    bool on_branch;
 
     /* `drainer` ensures that `run()` and `update_contract_on_store_thread()` are
     stopped before the other member variables are destroyed. */

@@ -1,6 +1,7 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/table_contract/executor/executor.hpp"
 
+#include "clustering/table_contract/branch_history_gc.hpp"
 #include "clustering/table_contract/executor/exec_erase.hpp"
 #include "clustering/table_contract/executor/exec_primary.hpp"
 #include "clustering/table_contract/executor/exec_secondary.hpp"
@@ -89,7 +90,7 @@ contract_executor_t::execution_key_t contract_executor_t::get_contract_key(
     return key;
 }
 
-void contract_executor_t::update_blocking(UNUSED signal_t *interruptor) {
+void contract_executor_t::update_blocking(signal_t *interruptor) {
     std::set<execution_key_t> to_delete;
     {
         ASSERT_NO_CORO_WAITING;
@@ -114,6 +115,34 @@ void contract_executor_t::update_blocking(UNUSED signal_t *interruptor) {
         /* Now that we've deleted the executions, `update()` is likely to have new
         instructions for us, so we should run again. */
         update_pumper->notify();
+    } else {
+        /* If `to_delete` was empty, that means that our executions cover the entire
+        key-space, so now would be a good time to GC the branch history. */
+        std::set<branch_id_t> remove_branches;
+        execution_context.branch_history_manager->prepare_gc(
+            &remove_branches);
+        bool ok = true;
+        raft_state->apply_read([&](const table_raft_state_t *state) {
+            for (const auto &pair : executions) {
+                boost::optional<branch_id_t> live_branch;
+                if (!pair.second->execution->check_gc(&live_branch)) {
+                    ok = false;
+                    break;
+                }
+                if (static_cast<bool>(live_branch)) {
+                    mark_ancestors_since_base_live(
+                        *live_branch,
+                        pair.first.region,
+                        execution_context.branch_history_manager,
+                        &state->branch_history,
+                        &remove_branches);
+                }
+            }
+        });
+        if (ok) {
+            execution_context.branch_history_manager->perform_gc(
+                remove_branches, interruptor);
+        }
     }
 }
 

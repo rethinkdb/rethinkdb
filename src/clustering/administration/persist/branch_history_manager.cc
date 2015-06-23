@@ -90,3 +90,28 @@ void real_branch_history_manager_t::import_branch_history(
     }
 }
 
+void real_branch_history_manager_t::prepare_gc(
+        std::set<branch_id_t> *branches_out)
+        THROWS_NOTHING {
+    branches_out->clear();
+    for (const auto &pair : cache.branches) {
+        branches_out->insert(pair.first);
+    }
+}
+
+void real_branch_history_manager_t::perform_gc(
+        const std::set<branch_id_t> &remove_branches,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t) {
+    metadata_file_t::write_txn_t write_txn(metadata_file, interruptor);
+    for (const branch_id_t &bid : remove_branches) {
+        if (is_branch_known(bid)) {
+            cache.branches.erase(bid);
+            write_txn.erase(
+                mdprefix_branch_birth_certificate().suffix(
+                    uuid_to_str(table_id) + "/" + uuid_to_str(bid)),
+                interruptor);
+        }
+    }
+}
+

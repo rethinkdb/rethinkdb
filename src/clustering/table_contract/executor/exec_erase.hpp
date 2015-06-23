@@ -16,13 +16,19 @@ public:
             const contract_id_t &, const contract_ack_t &)> &ack_cb,
         const contract_id_t &cid,
         const table_raft_state_t &raft_state);
+
     void update_contract_or_raft_state(
         const contract_id_t &cid,
         const table_raft_state_t &raft_state);
 
+    bool check_gc(boost::optional<branch_id_t> *live_branch_out);
+
 private:
     /* `run()` does the actual work of erasing the data. */
     void run(auto_drainer_t::lock_t);
+
+    /* Set to `true` if we successfully erased the data */
+    bool done;
 
     /* `drainer` makes sure that `run()` stops before the `erase_execution_t` is
     destroyed. */

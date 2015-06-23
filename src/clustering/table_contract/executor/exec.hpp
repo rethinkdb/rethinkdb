@@ -44,14 +44,8 @@ public:
         watchable_map_var_t<uuid_u, table_query_bcard_t> *local_table_query_bcards;
     };
 
-    /* All subclasses of `execution_t` have the following things in common:
-    - A constructor that takes the same parameters as `execution_t` plus a `contract_t`
-        and a `std::function<void(const contract_ack_t &)>`. The constructor cannot throw
-        exceptions or block.
-    - A destructor which may block
-    - A method `update_contract_or_raft_state` that takes a `contract_id_t` and
-        raft state, at least one of which have been changed.
-    */
+    /* All subclasses of `execution_t` have a constructor that takes the same parameters 
+    as `execution_t` plus those of `update_contract_or_raft_state()`. */
     execution_t(
             const context_t *_context,
             store_view_t *_store,
@@ -61,10 +55,20 @@ public:
         context(_context), region(_store->get_region()), store(_store),
         perfmon_collection(_perfmon_collection), ack_cb(_ack_cb)
         { }
+
+    /* Note: Subclass destructors may block. */
     virtual ~execution_t() { }
+
     virtual void update_contract_or_raft_state(
         const contract_id_t &cid,
         const table_raft_state_t &raft_state) = 0;
+
+    /* Check if it's OK to GC the branch history. If the return value is `true`, then GC
+    will proceed but all ancestors of `**branch_out` leading back to the Raft state's
+    branch history will be preserved. If the return value is `false`, then GC will be
+    cancelled. */
+    virtual bool check_gc(
+        boost::optional<branch_id_t> *live_branch_out) = 0;
 
 protected:
     context_t const *const context;

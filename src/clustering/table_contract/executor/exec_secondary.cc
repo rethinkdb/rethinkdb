@@ -16,7 +16,8 @@ secondary_execution_t::secondary_execution_t(
         const contract_id_t &cid,
         const table_raft_state_t &raft_state,
         const branch_id_t &_branch) :
-    execution_t(_context, _store, _perfmon_collection, _ack_cb)
+    execution_t(_context, _store, _perfmon_collection, _ack_cb),
+    on_branch(false)
 {
     const contract_t &c = raft_state.contracts.at(cid).second;
     guarantee(c.replicas.count(context->server_id) == 1);
@@ -55,6 +56,15 @@ void secondary_execution_t::update_contract_or_raft_state(
     contract_id = cid;
     if (static_cast<bool>(last_ack)) {
         ack_cb(contract_id, *last_ack);
+    }
+}
+
+bool secondary_execution_t::check_gc(boost::optional<branch_id_t> *live_branch_out) {
+    if (on_branch) {
+        *live_branch_out = boost::make_optional(branch);
+        return true;
+    } else {
+        return false;
     }
 }
 
@@ -175,6 +185,8 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
                 &stop_signal_on_store_thread);
 
             on_thread_t thread_switcher_4(home_thread());
+
+            on_branch = true;
 
             /* Let the coordinator know we finished backfilling */
             send_ack(contract_ack_t(contract_ack_t::state_t::secondary_streaming));

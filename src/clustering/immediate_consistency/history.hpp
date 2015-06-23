@@ -230,6 +230,18 @@ public:
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) = 0;
 
+    /* `prepare_gc()` fills `branches` with the IDs of all known branches. `perform_gc()`
+    deletes any branches whose IDs are in `remove_branches`. The standard procedure is to
+    call `prepare_gc()`, delete the live branches from the set, then call `perform_gc()`.
+    */
+    virtual void prepare_gc(
+        std::set<branch_id_t> *branches_out)
+        THROWS_NOTHING = 0;
+    virtual void perform_gc(
+        const std::set<branch_id_t> &remove_branches,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t) = 0;
+
 protected:
     virtual ~branch_history_manager_t() { }
 };

@@ -1,5 +1,5 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
-#include "clustering/table_contract/coordinator/branch_history_gc.hpp"
+#include "clustering/table_contract/branch_history_gc.hpp"
 
 void copy_branch_history_for_branch(
         const branch_id_t &root,
@@ -33,6 +33,7 @@ void mark_all_ancestors_live(
         const region_t &region,
         const branch_history_reader_t *branch_reader,
         std::set<branch_id_t> *remove_branches_out) {
+    guarantee(!root.is_nil());
     std::multimap<branch_id_t, region_t> todo;
     std::set<branch_id_t> done;
     todo.insert(std::make_pair(root, region));
@@ -47,6 +48,36 @@ void mark_all_ancestors_live(
                     branch_reader->is_branch_known(version.branch) &&
                     done.count(version.branch) == 0) {
                 todo.insert(std::make_pair(version.branch, subregion));
+            }
+        });
+    }
+}
+
+void mark_ancestors_since_base_live(
+        const branch_id_t &root,
+        const region_t &region,
+        const branch_history_reader_t *branch_reader,
+        const branch_history_reader_t *base,
+        std::set<branch_id_t> *remove_branches_out) {
+    guarantee(!root.is_nil());
+    std::multimap<branch_id_t, region_t> todo;
+    std::set<branch_id_t> done;
+    todo.insert(std::make_pair(root, region));
+    while (!todo.empty()) {
+        std::pair<branch_id_t, region_t> next = *todo.begin();
+        todo.erase(todo.begin());
+        done.insert(next.first);
+        remove_branches_out->erase(next.first);
+        bool next_in_base = base->is_branch_known(next.first);
+        branch_reader->get_branch(next.first).origin.visit(next.second,
+        [&](const region_t &subregion, const version_t &version) {
+            if (version != version_t::zero() &&
+                    branch_reader->is_branch_known(version.branch) &&
+                    done.count(version.branch) == 0) {
+                bool version_in_base = base->is_branch_known(next.first);
+                if (!(next_in_base && !version_in_base)) {
+                    todo.insert(std::make_pair(version.branch, subregion));
+                }
             }
         });
     }

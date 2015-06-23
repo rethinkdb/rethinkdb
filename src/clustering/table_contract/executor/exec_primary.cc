@@ -18,7 +18,7 @@ primary_execution_t::primary_execution_t(
         const contract_id_t &contract_id,
         const table_raft_state_t &raft_state) :
     execution_t(_context, _store, _perfmon_collection, _ack_cb),
-    our_dispatcher(nullptr)
+    our_dispatcher(nullptr), on_branch(false)
 {
     const contract_t &contract = raft_state.contracts.at(contract_id).second;
     guarantee(static_cast<bool>(contract.primary));
@@ -35,6 +35,15 @@ primary_execution_t::primary_execution_t(
 primary_execution_t::~primary_execution_t() {
     drainer.drain();
     begin_write_mutex.rethread(home_thread());
+}
+
+bool primary_execution_t::check_gc(boost::optional<branch_id_t> *live_branch_out) {
+    if (on_branch) {
+        *live_branch_out = boost::make_optional(*our_branch_id);
+        return true;
+    } else {
+        return false;
+    }
 }
 
 void primary_execution_t::update_contract_or_raft_state(
@@ -210,6 +219,12 @@ void primary_execution_t::run(auto_drainer_t::lock_t keepalive) {
             pre_replica_contract,
             keepalive,
             pre_replica_mutex_in_line.release()));
+
+        /* Now that we've constructed the `local_replicator_t` it's safe to set
+        `on_branch` to `true`. This is because it's the `local_replicator_t` constructor
+        that actually puts `*our_branch_id` in the branch history and the B-tree
+        metainfo */
+        on_branch = true;
 
         /* Put an entry in the minidir so the replicas can find us */
         contract_execution_bcard_t ce_bcard;

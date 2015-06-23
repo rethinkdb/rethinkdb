@@ -20,9 +20,12 @@ public:
         const contract_id_t &cid,
         const table_raft_state_t &raft_state,
         const branch_id_t &_branch);
+
     void update_contract_or_raft_state(
         const contract_id_t &cid,
         const table_raft_state_t &raft_state);
+
+    bool check_gc(boost::optional<branch_id_t> *live_branch_out);
 
 private:
     /* `run()` does the actual work of setting up the `listener_t`, etc. */
@@ -39,6 +42,10 @@ private:
     branch_id_t branch;
 
     contract_id_t contract_id;
+
+    /* `on_branch` is `true` if we successfully backfilled at least once, so that our
+    local copy of the data is on `branch` */
+    bool on_branch;
 
     /* `last_ack` contains the last ack we've sent via `ack_cb`, if any. */
     boost::optional<contract_ack_t> last_ack;

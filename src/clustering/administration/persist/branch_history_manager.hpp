@@ -28,6 +28,13 @@ public:
         const branch_history_t &new_records,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
+    void prepare_gc(
+        std::set<branch_id_t> *branches_out)
+        THROWS_NOTHING;
+    void perform_gc(
+        const std::set<branch_id_t> &remove_branches,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t);
 
 private:
     namespace_id_t const table_id;

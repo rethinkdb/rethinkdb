@@ -1,6 +1,6 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_TABLE_CONTRACT_COORDINATOR_BRANCH_HISTORY_GC_HPP_
-#define CLUSTERING_TABLE_CONTRACT_COORDINATOR_BRANCH_HISTORY_GC_HPP_
+#ifndef CLUSTERING_TABLE_CONTRACT_BRANCH_HISTORY_GC_HPP_
+#define CLUSTERING_TABLE_CONTRACT_BRANCH_HISTORY_GC_HPP_
 
 #include "clustering/table_contract/contract_metadata.hpp"
 
@@ -40,5 +40,25 @@ void mark_all_ancestors_live(
         const branch_history_reader_t *branch_reader,
         std::set<branch_id_t> *remove_branches_out);
 
-#endif /* CLUSTERING_TABLE_CONTRACT_COORDINATOR_BRANCH_HISTORY_GC_HPP_ */
+/* `mark_ancestors_since_base_live()` traces the ancestry of `root` back until it finds a
+branch in `base`, then keeps tracing back until it finds a branch not in `base`. All of
+the branches except the last one will be removed from `remove_branches_out`.
+
+For example, suppose that the branch history looks like this:
+    zero -> A -> B -> C -> D -> E -> root
+Suppose that branches `C` and `D` are in `base`. Then `root`, `C`, `D`, and `E` would be
+removed from `remove_branches_out`. But if `base` were empty, then `A` and `B` would also
+be removed.
+
+This is used on the contract executor to clean up the branch history. `root` will point
+to the branch that is currently in use, and `base` will point to the Raft state branch
+history. */
+void mark_ancestors_since_base_live(
+        const branch_id_t &root,
+        const region_t &region,
+        const branch_history_reader_t *reader,
+        const branch_history_reader_t *base,
+        std::set<branch_id_t> *remove_branches_out);
+
+#endif /* CLUSTERING_TABLE_CONTRACT_BRANCH_HISTORY_GC_HPP_ */
 
