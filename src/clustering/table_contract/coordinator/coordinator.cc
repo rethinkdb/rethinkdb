@@ -162,9 +162,9 @@ void contract_coordinator_t::pump_contracts(signal_t *interruptor) {
 void contract_coordinator_t::pump_configs(signal_t *interruptor) {
     assert_thread();
 
-    nap(200, interruptor);
-
     while (true) {
+        nap(200, interruptor);
+
         /* Wait until the Raft member is likely to accept config changes. This
         isn't actually necessary for changes to `member_ids`, but it's easier to
         just handle `member_ids` changes and Raft configuration changes at the
@@ -204,7 +204,6 @@ void contract_coordinator_t::pump_configs(signal_t *interruptor) {
             }
         });
 
-        bool member_ids_ok;
         if (!member_ids_change.remove_member_ids.empty() ||
                 !member_ids_change.add_member_ids.empty()) {
             /* Apply the `member_ids` change */
@@ -212,35 +211,29 @@ void contract_coordinator_t::pump_configs(signal_t *interruptor) {
                 change_token = raft->propose_change(
                     &change_lock,
                     table_raft_state_t::change_t(member_ids_change));
-            member_ids_ok = change_token.has();
-        } else {
-            /* The change is a no-op, so don't bother applying it */
-            member_ids_ok = true;
+            if (!change_token.has()) {
+                /* Go back to the top of the loop and try again. Note that we don't even
+                attempt the config change if the member IDs change fails; the config
+                change would not be valid to apply unless it came after the member IDs
+                change. */
+                continue;
+            }
         }
 
-        bool config_ok;
-        if (!member_ids_ok) {
-            /* If the `member_ids` change didn't go through, don't attempt the
-            config change. The config change would be unlikely to succeed, but
-            more importantly, the config change isn't necessarily valid to apply
-            unless it comes after the `member_ids` change. */
-            config_ok = false;
-        } else if (static_cast<bool>(config_change)) {
+        if (static_cast<bool>(config_change)) {
             /* Apply the config change */
-            scoped_ptr_t<raft_member_t<table_raft_state_t>::change_token_t>
-                change_token = raft->propose_config_change(&change_lock, *config_change);
-            config_ok = change_token.has();
-        } else {
-            /* The config change is a no-op */
-            config_ok = true;
+            raft->propose_config_change(&change_lock, *config_change);
+
+            /* Go back to the top of the loop whether or not the change succeeded. If it
+            failed, we want to try again; if it succeeded, we want to wait until it gets
+            applied and then re-run `calculate_member_ids_and_raft_config()` because
+            there might be further changes. */
+            continue;
         }
 
-        /* If both changes succeeded, break out of the loop. Otherwise, go back
-        to the top of the loop and wait for `get_readiness_for_config_change()`
-        again. */
-        if (member_ids_ok && config_ok) {
-            break;
-        }
+        /* Both changes succeeded, or there was nothing to change in the first place; so
+        we break out of the loop. */
+        break;
     }
 }
 

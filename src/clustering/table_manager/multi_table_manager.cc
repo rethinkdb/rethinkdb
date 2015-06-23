@@ -202,8 +202,7 @@ bool multi_table_manager_t::active_table_t::should_sync_assuming_no_name_change(
                 should_sync = (sc->state.member_ids.count(other_server_id) == 1);
             } else {
                 /* Sync if:
-                - The other server shouldn't be involved in this table (in
-                    which case `expected_member_id` will be nil)
+                - The other server shouldn't be involved in this table
                 - The other server has the wrong raft member ID
                 - The other server has an epoch that is too old */
                 should_sync =
