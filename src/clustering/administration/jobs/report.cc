@@ -128,6 +128,8 @@ bool backfill_job_report_t::info_derived(
     info_builder_out->overwrite("progress",
         ql::datum_t(progress_numerator / progress_denominator));
 
+    std::cout << uuid_to_str(id) << " " << progress_numerator << " " << progress_denominator << "\n";
+
     return true;
 }
 

@@ -22,12 +22,14 @@ const uuid_u jobs_manager_t::base_backfill_id =
 
 jobs_manager_t::jobs_manager_t(mailbox_manager_t *_mailbox_manager,
                                server_id_t const &_server_id,
+                               server_config_client_t *_server_config_client,
                                rdb_context_t *_rdb_context,
                                real_table_persistence_interface_t
                                    *_table_persistence_interface,
                                multi_table_manager_t *_multi_table_manager) :
     mailbox_manager(_mailbox_manager),
     server_id(_server_id),
+    server_config_client(_server_config_client),
     rdb_context(_rdb_context),
     table_persistence_interface(_table_persistence_interface),
     multi_table_manager(_multi_table_manager),
@@ -140,6 +142,52 @@ void jobs_manager_t::on_get_job_reports(
                 status.second.second.blocks_processed,
                 status.second.second.blocks_total);
         }
+
+        auto backfills =
+            table_manager->get_backfill_progress_trackers().get_progress_trackers();
+        std::string base_str = uuid_to_str(server_id) + uuid_to_str(table_id);
+        for (const auto &backfill : backfills) {
+            /* backfill_job_report_t(
+                uuid_u const &id,
+                double duration,
+                server_id_t const &server_id,
+                namespace_id_t const &table,
+                bool is_ready,
+                double progress,
+                server_id_t const &source_server,
+                server_id_t const &destination_server); */
+
+            boost::optional<server_id_t> source_server_id =
+                server_config_client->get_peer_to_server_map()->get_key(
+                    backfill.second.source_peer_id);
+            if (static_cast<bool>(source_server_id) == false) {
+                continue;
+            }
+
+            uuid_u id = uuid_u::from_hash(
+                base_backfill_id,
+                base_str + uuid_to_str(source_server_id.get()));
+
+            /* As above we only calculate the duration if the backfill is still in
+               progress. */
+            double duration = backfill.second.is_ready
+                ? 0
+                : time - std::min(backfill.second.start_time, time);
+
+            backfill_job_reports.emplace_back(
+                id,
+                duration,
+                server_id,
+                table_id,
+                backfill.second.is_ready,
+                backfill.second.progress,
+                source_server_id.get(),
+                server_id);
+        }
+
+
+
+        // std::cout << "-- " << backfill_progress_trackers.size() << std::endl;
     });
 
     // RSI(raft): Reimplement `"backfill"` jobs.

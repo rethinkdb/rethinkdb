@@ -1,6 +1,6 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_TABLE_MANAGER_SERVER_NAMES_MANAGER_HPP_
-#define CLUSTERING_TABLE_MANAGER_SERVER_NAMES_MANAGER_HPP_
+#ifndef CLUSTERING_TABLE_MANAGER_SERVER_NAME_CACHE_UPDATER_HPP_
+#define CLUSTERING_TABLE_MANAGER_SERVER_NAME_CACHE_UPDATER_HPP_
 
 #include "clustering/administration/servers/config_client.hpp"
 #include "concurrency/pump_coro.hpp"
@@ -27,5 +27,5 @@ private:
         server_config_map_subs;
 };
 
-#endif /* CLUSTERING_TABLE_MANAGER_SERVER_NAMES_MANAGER_HPP_ */
+#endif /* CLUSTERING_TABLE_MANAGER_SERVER_NAME_CACHE_UPDATER_HPP_ */
 

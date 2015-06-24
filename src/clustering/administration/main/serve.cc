@@ -277,6 +277,7 @@ bool do_serve(io_backender_t *io_backender,
             jobs_manager_t jobs_manager(
                 &mailbox_manager,
                 server_id,
+                &server_config_client,
                 &rdb_ctx,
                 /* A `table_persistence_interface` is only instantiated when
                 `i_am_a_server` is true, and a `nullptr` otherwise. */

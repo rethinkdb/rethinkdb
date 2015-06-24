@@ -6,6 +6,7 @@
 #include "clustering/immediate_consistency/primary_dispatcher.hpp"
 #include "clustering/immediate_consistency/remote_replicator_client.hpp"
 #include "clustering/immediate_consistency/remote_replicator_server.hpp"
+#include "clustering/table_manager/backfill_progress_tracker.hpp"
 #include "containers/uuid.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "unittest/branch_history_manager.hpp"
@@ -133,6 +134,8 @@ void run_backfill_test(
         dispatcher);
 
     backfill_throttler_t backfill_throttler;
+    backfill_progress_tracker_t backfill_progress_tracker;
+    peer_id_t nil_peer;
 
     /* Set up a second mirror */
     mock_store_t store2((binary_blob_t(version_t::zero())));
@@ -141,11 +144,13 @@ void run_backfill_test(
     remote_replicator_client_t remote_replicator_client(
         &backfill_throttler,
         backfill_config_t(),
+        &backfill_progress_tracker,
         cluster->get_mailbox_manager(),
         generate_uuid(),
         dispatcher->get_branch_id(),
         remote_replicator_server.get_bcard(),
         local_replicator->get_replica_bcard(),
+        nil_peer,
         &store2,
         &bhm2,
         &interruptor);

@@ -3,6 +3,7 @@
 
 #include "clustering/immediate_consistency/backfill_throttler.hpp"
 #include "clustering/table_contract/executor/executor.hpp"
+#include "clustering/table_manager/backfill_progress_tracker.hpp"
 #include "unittest/branch_history_manager.hpp"
 #include "unittest/clustering_contract_utils.hpp"
 #include "unittest/clustering_utils.hpp"
@@ -75,6 +76,7 @@ private:
     simple_mailbox_cluster_t cluster;
     io_backender_t io_backender;
     backfill_throttler_t backfill_throttler;
+    backfill_progress_tracker_t backfill_progress_tracker;
     watchable_map_var_t<
         std::pair<server_id_t, branch_id_t>,
         contract_execution_bcard_t> contract_execution_bcards;
@@ -135,6 +137,7 @@ public:
             base_path_t("."),
             &context->io_backender,
             &context->backfill_throttler,
+            &context->backfill_progress_tracker,
             &get_global_perfmon_collection()));
 
         /* Copy our contract execution bcards into the context's map so that other

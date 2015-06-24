@@ -162,11 +162,13 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
             remote_replicator_client_t remote_replicator_client(
                 context->backfill_throttler,
                 backfill_config_t(),
+                context->backfill_progress_tracker,
                 context->mailbox_manager,
                 context->server_id,
                 branch,
                 primary_bcard.assert_get_value().remote_replicator_server,
                 primary_bcard.assert_get_value().replica,
+                primary_bcard.assert_get_value().peer,
                 store,
                 context->branch_history_manager,
                 &stop_signal_on_store_thread);

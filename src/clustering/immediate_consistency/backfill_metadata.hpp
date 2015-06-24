@@ -160,6 +160,8 @@ public:
         begin_session_mailbox_t::address_t begin_session_mailbox;
         end_session_mailbox_t::address_t end_session_mailbox;
         ack_items_mailbox_t::address_t ack_items_mailbox;
+        std::map<store_key_t, int64_t> distribution_counts;
+        int64_t distribution_counts_sum;
     };
 
     typedef mailbox_t<void(

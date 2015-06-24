@@ -7,6 +7,7 @@
 #include "clustering/immediate_consistency/primary_dispatcher.hpp"
 #include "clustering/immediate_consistency/remote_replicator_client.hpp"
 #include "clustering/immediate_consistency/remote_replicator_server.hpp"
+#include "clustering/table_manager/backfill_progress_tracker.hpp"
 #include "extproc/extproc_pool.hpp"
 #include "extproc/extproc_spawner.hpp"
 #include "rapidjson/document.h"
@@ -169,6 +170,7 @@ void run_backfill_test(const backfill_test_config_t &cfg) {
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
     extproc_pool_t extproc_pool(2);
     rdb_context_t ctx(&extproc_pool, NULL);
+    peer_id_t nil_peer;
     cond_t non_interruptor;
 
     in_memory_branch_history_manager_t bhm;
@@ -204,15 +206,18 @@ void run_backfill_test(const backfill_test_config_t &cfg) {
                 &dispatcher);
 
             backfill_throttler_t backfill_throttler;
+            backfill_progress_tracker_t backfill_progress_tracker;
             remote_replicator_client_t remote_replicator_client_2(&backfill_throttler,
-                cfg.backfill, cluster.get_mailbox_manager(), generate_uuid(),
-                dispatcher.get_branch_id(), remote_replicator_server.get_bcard(),
-                local_replicator.get_replica_bcard(), &store2.store, &bhm,
+                cfg.backfill, &backfill_progress_tracker, cluster.get_mailbox_manager(),
+                generate_uuid(), dispatcher.get_branch_id(),
+                remote_replicator_server.get_bcard(),
+                local_replicator.get_replica_bcard(), nil_peer, &store2.store, &bhm,
                 &non_interruptor);
             remote_replicator_client_t remote_replicator_client_3(&backfill_throttler,
-                cfg.backfill, cluster.get_mailbox_manager(), generate_uuid(),
-                dispatcher.get_branch_id(), remote_replicator_server.get_bcard(),
-                local_replicator.get_replica_bcard(), &store3.store, &bhm,
+                cfg.backfill, &backfill_progress_tracker, cluster.get_mailbox_manager(),
+                generate_uuid(), dispatcher.get_branch_id(),
+                remote_replicator_server.get_bcard(),
+                local_replicator.get_replica_bcard(), nil_peer, &store3.store, &bhm,
                 &non_interruptor);
 
             if (cfg.stream_during_backfill) {
@@ -263,10 +268,12 @@ void run_backfill_test(const backfill_test_config_t &cfg) {
             &dispatcher);
 
         backfill_throttler_t backfill_throttler;
+        backfill_progress_tracker_t backfill_progress_tracker;
         remote_replicator_client_t remote_replicator_client(&backfill_throttler,
-            cfg.backfill, cluster.get_mailbox_manager(), generate_uuid(),
-            dispatcher.get_branch_id(), remote_replicator_server.get_bcard(),
-            local_replicator.get_replica_bcard(), &store1.store, &bhm,
+            cfg.backfill, &backfill_progress_tracker, cluster.get_mailbox_manager(),
+            generate_uuid(), dispatcher.get_branch_id(),
+            remote_replicator_server.get_bcard(),
+            local_replicator.get_replica_bcard(), nil_peer, &store1.store, &bhm,
             &non_interruptor);
 
         if (cfg.stream_during_backfill) {
@@ -303,10 +310,12 @@ void run_backfill_test(const backfill_test_config_t &cfg) {
             &dispatcher);
 
         backfill_throttler_t backfill_throttler;
+        backfill_progress_tracker_t backfill_progress_tracker;
         remote_replicator_client_t remote_replicator_client(&backfill_throttler,
-            cfg.backfill, cluster.get_mailbox_manager(), generate_uuid(),
-            dispatcher.get_branch_id(), remote_replicator_server.get_bcard(),
-            local_replicator.get_replica_bcard(), &store3.store, &bhm,
+            cfg.backfill, &backfill_progress_tracker, cluster.get_mailbox_manager(),
+            generate_uuid(), dispatcher.get_branch_id(),
+            remote_replicator_server.get_bcard(),
+            local_replicator.get_replica_bcard(), nil_peer, &store3.store, &bhm,
             &non_interruptor);
 
         if (cfg.stream_during_backfill) {

@@ -43,7 +43,8 @@ table_manager_t::table_manager_t(
                 return sc.state;
             }),
         execution_bcard_read_manager.get_values(), multistore_ptr, _base_path,
-        _io_backender, _backfill_throttler, &perfmon_collection),
+        _io_backender, _backfill_throttler, &backfill_progress_tracker,
+        &perfmon_collection),
     execution_bcard_write_manager(
         mailbox_manager,
         contract_executor.get_local_contract_execution_bcards(),
