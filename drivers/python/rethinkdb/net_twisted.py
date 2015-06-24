@@ -6,6 +6,7 @@ from twisted.python import log
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, returnValue, Deferred
 from twisted.internet.defer import DeferredQueue
+from twisted.internet import defer
 from twisted.internet.protocol import ClientFactory, Protocol
 from twisted.internet.endpoints import TCP4ClientEndpoint
 from twisted.internet.error import TimeoutError
@@ -22,7 +23,7 @@ pQuery = p.Query.QueryType
 
 def start_timeout(timeout, deferToFail):
     # Timeout = 0 or None then, there is no timeout.
-    if timeout == 0 or timeout is None:
+    if timeout == 0 or timeout is None or (not timeout):
         return
 
     def raisesTimeout():
@@ -158,12 +159,19 @@ class CursorItems(DeferredQueue):
     def __len__(self):
         return len(self.pending)
 
+    def __getitem__(self, key):
+        return self.pending[key]
+
 class TwistedCursor(Cursor):
 
     def __init__(self, *args, **kwargs):
         super(TwistedCursor, self).__init__(*args, **kwargs)
         self.new_response = Deferred()
+        self.new_response.addErrback(self._set_error)
         self.items = CursorItems()
+
+    def _set_error(self, error):
+        self.error = error.value
 
     def _extend_queue(self, data):
         for k in data:
@@ -185,8 +193,10 @@ class TwistedCursor(Cursor):
         if self.outstanding_requests == 0 and self.error is not None:
             del self.conn._cursor_cache[res.token]
 
-        self.new_response.callback(None)
+        if not self.new_response.called:
+            self.new_response.callback(None)
         self.new_response = Deferred()
+        self.new_response.addErrback(self._set_error)
 
     def _empty_error(self):
         return RqlCursorEmpty(self.query.term)
@@ -195,12 +205,16 @@ class TwistedCursor(Cursor):
         while True:
             if self.error is RqlCursorEmpty and len(self.items) == 0:
                 yield StopIteration
+            elif self.error:
+                raise self.error
             else:
                 d = self._get_next(None)
                 yield d
 
     @inlineCallbacks
     def _get_next(self, timeout):
+        if self.error:
+            raise self.error
         start_timeout(timeout, self.new_response)
         self._maybe_fetch_batch()
         returnValue(convert_pseudo((yield self.items.get()), self.query))
@@ -226,20 +240,20 @@ class ConnectionInstance(object):
             if cursor is not None:
                 cursor._extend(res)
             elif token in self._user_queries:
-                query, defer = self._user_queries[token]
+                query, deferred = self._user_queries[token]
                 if res.type == pResponse.SUCCESS_ATOM:
                     value = convert_pseudo(res.data[0], query)
-                    defer.callback(maybe_profile(value, res))
+                    deferred.callback(maybe_profile(value, res))
                 elif res.type in (pResponse.SUCCESS_SEQUENCE,
                                   pResponse.SUCCESS_PARTIAL):
                     cursor = TwistedCursor(self, query)
                     self._cursor_cache[token] = cursor
                     cursor._extend(res)
-                    defer.callback(maybe_profile(cursor, res))
+                    deferred.callback(maybe_profile(cursor, res))
                 elif res.type == pResponse.WAIT_COMPLETE:
-                    defer.callback(None)
+                    deferred.callback(None)
                 else:
-                    defer.errback(res.make_error(query))
+                    deferred.errback(res.make_error(query))
                 del self._user_queries[token]
             elif not self._closing:
                 raise RqlDriverError("Unexpected response received.")
@@ -274,7 +288,7 @@ class ConnectionInstance(object):
         try:
             yield pConnection.wait_for_handshake
         except Exception as e:
-            raise RqlDriverError('Connection interrupted during the handshake with {p.host}:{p.port}. Error: {exc}'
+            raise RqlDriverError('Connection interrupted during handshake with {p.host}:{p.port}. Error: {exc}'
                                  .format(p=self._parent, exc=str(e)))
 
         self._connection = pConnection
@@ -284,8 +298,8 @@ class ConnectionInstance(object):
     def is_open(self):
         return self._connection._open
 
-    @inlineCallbacks
     def close(self, noreply_wait, token, exception=None):
+        d = defer.succeed(None)
         self._closing = True
         error_message = "Connection is closed"
         if exception is not None:
@@ -295,18 +309,20 @@ class ConnectionInstance(object):
             cursor._error(error_message)
 
         for query, deferred in iter(self._user_queries.values()):
-            deferred.errback(fail=RqlDriverError(error_message))
+            if not deferred.called:
+                deferred.errback(fail=RqlDriverError(error_message))
 
         self._user_queries = {}
         self._cursor_cache = {}
 
         if noreply_wait:
             noreply = Query(pQuery.NOREPLY_WAIT, token, None, None)
-            yield self.run_query(noreply, False)
+            d = self.run_query(noreply, False)
 
-        self._connection.transport.loseConnection()
+        def closeConnection(_):
+            self._connection.transport.loseConnection()
 
-        returnValue(None)
+        return d.addCallback(closeConnection)
 
     @inlineCallbacks
     def run_query(self, query, noreply):
@@ -333,10 +349,7 @@ class Connection(ConnectionBase):
 
     @inlineCallbacks
     def close(self, *args, **kwargs):
-        if self._instance is None:
-            res = None
-        else:
-            res = yield super(Connection, self).close(*args, **kwargs)
+        res = yield super(Connection, self).close(*args, **kwargs) or None
         returnValue(res)
 
     @inlineCallbacks
