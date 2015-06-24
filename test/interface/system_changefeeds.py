@@ -97,7 +97,7 @@ with driver.Metacluster() as metacluster:
     assert res["tables_created"] == 1, res
     res = r.table_create("test2", replicas={"b_tag": 1}, primary_replica_tag="b_tag").run(conn)
     assert res["tables_created"] == 1, res
-    check(["table_config", "table_status"], 1.0)
+    check(["table_config", "table_status", "logs", "current_issues"], 1.5)
 
     feeds["test_config"] = AsyncChangefeed(proc1.host, proc1.driver_port,
         "r.table('test').config()")
@@ -112,26 +112,19 @@ with driver.Metacluster() as metacluster:
            .update({"shards": [{"primary_replica": "a", "replicas": ["a", "b"]}]}).run(conn)
     assert res["errors"] == 0, res
     r.table("test").wait().run(conn)
-    check(["table_config", "table_status", "test_config", "test_status"], 1.0)
+    check(["table_config", "table_status", "test_config", "test_status", "logs", "current_issues"], 1.5)
 
     print("Renaming server...")
     res = r.db("rethinkdb").table("server_config").filter({"name": "b"}) \
            .update({"name": "c"}).run(conn)
     assert res["replaced"] == 1 and res["errors"] == 0, res
     check(["logs", "server_config", "server_status", "table_config", "table_status",
-        "test_config", "test_status", "test2_config", "test2_status"], 1.0)
+        "test_config", "test_status", "test2_config", "test2_status"], 1.5)
 
     print("Killing one server...")
     proc2.check_and_stop()
-    check(["logs", "server_status", "table_status", "current_issues",
-        "test_status", "test2_status"], 1.0)
-
-    print("Declaring it dead...")
-    res = r.db("rethinkdb").table("server_config").filter({"name": "c"}).delete() \
-           .run(conn)
-    assert res["deleted"] == 1 and res["errors"] == 0, res
-    check(["server_config", "server_status", "table_config", "table_status", "current_issues",
-        "test_config", "test_status", "test2_config", "test2_status"], 1.0)
+    check(["logs", "server_config", "server_status", "table_config", "table_status", "current_issues",
+        "test_status", "test2_config", "test2_status"], 1.5)
 
     print("Shutting everything down...")
     cluster1.check_and_stop()

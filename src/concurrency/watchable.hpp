@@ -29,6 +29,10 @@ home thread. */
 template <class value_t> class watchable_t;
 template <class value_t> class watchable_freeze_t;
 
+/* `initial_call_t` is used to indicate whether a subscription should call its callback
+immediately upon being created. */
+enum class initial_call_t { YES, NO };
+
 template <class value_t>
 class watchable_subscription_t {
 public:
@@ -45,6 +49,20 @@ public:
         : subscription(f, watchable->get_publisher()) {
         watchable->assert_thread();
         freeze->rwi_lock_acquisition.assert_is_holding(watchable->get_rwi_lock_assertion());
+    }
+
+    watchable_subscription_t(
+            const std::function<void()> &f,
+            const clone_ptr_t<watchable_t<value_t> > &watchable,
+            initial_call_t initial_call) :
+        subscription(f)
+    {
+        rwi_lock_assertion_t::read_acq_t rwi_lock_acquisition(
+            watchable->get_rwi_lock_assertion());
+        subscription.reset(watchable->get_publisher());
+        if (initial_call == initial_call_t::YES) {
+            f();
+        }
     }
 
     void reset() {
@@ -151,6 +169,17 @@ private:
     DISABLE_COPYING(watchable_t);
 };
 
+/* `run_until_satisfied_2()` repeatedly calls `fun(a->get(), b->get())` until
+`fun` returns `true` or `interruptor` is pulsed. It's efficient because it only
+retries `fun` when the value of `a` or `b` changes. */
+template<class a_type, class b_type, class callable_type>
+void run_until_satisfied_2(
+        const clone_ptr_t<watchable_t<a_type> > &a,
+        const clone_ptr_t<watchable_t<b_type> > &b,
+        const callable_type &fun,
+        signal_t *interruptor,
+        int64_t nap_before_retry_ms = 0) THROWS_ONLY(interrupted_exc_t);
+
 inline void call_function(const std::function<void()> &f) {
     f();
 }
@@ -168,7 +197,8 @@ public:
 
     void set_value(const value_t &_value) {
         DEBUG_VAR rwi_lock_assertion_t::write_acq_t acquisition(&rwi_lock_assertion);
-        if (value != _value) {
+        /* Sometimes we have `==` but not `!=` for whatever reason */
+        if (!(value == _value)) {
             value = _value;
             publisher_controller.publish(&call_function);
         }
@@ -200,6 +230,13 @@ public:
     void apply_read(const std::function<void(const value_t*)> &read) {
         ASSERT_NO_CORO_WAITING;
         read(&value);
+    }
+
+    /* This returns a const reference to the current value. The caller is responsible for
+    ensuring that nothing calls `set_value()` or `apply_atomic_op()` while this reference
+    exists. */
+    const value_t &get_ref() {
+        return value;
     }
 
     value_t get() {

@@ -61,7 +61,7 @@
  * identify an "execution point". Data is recorded and reported for each such
  * execution point.
  *
- * The aggregated data is written to the file "coro_profiler_out.py" in the working
+ * The aggregated data is written to the file "coro_profiler_out_PID.py" in the working
  * directory. Data is written every `CORO_PROFILER_REPORTING_INTERVAL` ticks.
  */
 class coro_profiler_t {

@@ -73,20 +73,6 @@ with driver.Cluster(initial_servers=['first'], output_folder='.', command_prefix
     server1.check_and_stop()
     time.sleep(.1)
     
-    conn2 = r.connect(server2.host, server2.driver_port)
-    
-    issues = list(r.db('rethinkdb').table('current_issues').run(conn2))
-    assert len(issues) == 1, 'The issues was not the single item expected: %s' % repr(issues)
-    
-    print("Declaring first server dead (%.2fs)" % (time.time() - startTime))
-    
-    assert r.db('rethinkdb').table('server_config').get(server1.uuid).delete().run(conn2)['errors'] == 0
-    time.sleep(.1)
-    r.db(dbName).wait().run(conn2)
-    
-    issues = list(r.db('rethinkdb').table('current_issues').run(conn2))
-    assert [] == issues, 'The issues list was not empty: %s' % repr(issues)
-    
     print("Starting second workload (%.2fs)" % (time.time() - startTime))
 
     workload_ports2 = workload_runner.RDBPorts(host=server2.host, http_port=server2.http_port, rdb_port=server2.driver_port, db_name=dbName, table_name=tableName)

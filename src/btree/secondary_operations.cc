@@ -48,6 +48,7 @@ const block_magic_t
 btree_sindex_block_magic_t<cluster_version_t::v2_1_is_latest_disk>::value
     = { { 's', 'i', 'n', 'i' } };
 
+
 cluster_version_t sindex_block_version(const btree_sindex_block_t *data) {
     if (data->magic == v1_13_sindex_block_magic) {
         fail_due_to_user_error(

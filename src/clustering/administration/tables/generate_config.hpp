@@ -5,26 +5,27 @@
 #include <map>
 #include <string>
 
+#include "clustering/administration/admin_op_exc.hpp"
 #include "clustering/administration/tables/table_metadata.hpp"
 #include "rdb_protocol/context.hpp"
 
 class real_reql_cluster_interface_t;
 class server_config_client_t;
+class table_meta_client_t;
 
 /* Suggests a `table_config_t` for the table. This is the brains behind
 `table.reconfigure()`. */
-bool table_generate_config(
-        /* This is used to look up server names for error messages. */
+void table_generate_config(
+        /* This is used to get the list of servers with each tag, and to look up the
+        names to fill `server_names_out`. */
         server_config_client_t *server_config_client,
         /* The UUID of the table being reconfigured. This can be `nil_uuid()`. */
         namespace_id_t table_id,
         /* This is used to determine where the table's data is currently stored and
-        prioritize keeping it there. If `table_id` is `nil_uuid()`, this can be NULL. */
-        watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
-                        namespace_directory_metadata_t> *directory_view,
-        /* Compute this by calling `calculate_server_usage()` on the table configs for
-        all of the other tables */
-        const std::map<server_id_t, int> &server_usage,
+        prioritize keeping it there. It's also used to determine where the other tables'
+        data is currently stored, so we can put this table's data elsewhere if possible.
+        */
+        table_meta_client_t *table_meta_client,
         /* `table_generate_config()` will validate `params`, so there's no need for the
         caller to do so. */
         const table_generate_config_params_t &params,
@@ -33,14 +34,12 @@ bool table_generate_config(
         const table_shard_scheme_t &shard_scheme,
 
         signal_t *interruptor,
-        table_config_t *config_out,
-        std::string *error_out);
 
-/* `calculate_server_usage()` adds usage statistics for the configuration described in
-`config` to the map `usage_inout`. */
-void calculate_server_usage(
-        const table_config_t &config,
-        std::map<server_id_t, int> *server_usage_inout);
+        std::vector<table_config_t::shard_t> *config_shards_out,
+        server_name_map_t *server_names_out)
+
+        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,
+            admin_op_exc_t);
 
 #endif /* CLUSTERING_ADMINISTRATION_TABLES_GENERATE_CONFIG_HPP_ */
 

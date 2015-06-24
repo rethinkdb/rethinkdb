@@ -11,7 +11,7 @@
 template <class request_type>
 multi_client_client_t<request_type>::multi_client_client_t(
         mailbox_manager_t *mm,
-        const clone_ptr_t<watchable_t<boost::optional<boost::optional<mc_business_card_t> > > > &server,
+        const mc_business_card_t &server,
         signal_t *interruptor) :
     mailbox_manager(mm) {
 
@@ -24,35 +24,12 @@ multi_client_client_t<request_type>::multi_client_client_t(
     {
         const client_business_card_t client_business_card(intro_mailbox.get_address());
 
-        // We have to type out this type in order to (a) scare you and (b) compile
-        // under clang on OS X.  (Clang will crash if you try to pass the
-        // server->subview(...) expression directly to the registrant_t
-        // constructor.)  I haven't tried using "auto" for this variable, but see
-        // reason (a).  It probably helps a lot to have this type plainly visible. sitting
-        // here.
-
-        clone_ptr_t<watchable_t<boost::optional<boost::optional<registrar_business_card_t<typename multi_client_business_card_t<request_type>::client_business_card_t> > > > > registrar_card_view
-            = server->subview(&multi_client_client_t::extract_registrar_business_card);
-
         registrant.init(new registrant_t<client_business_card_t>(mailbox_manager,
-                                                                 registrar_card_view,
+                                                                 server.registrar,
                                                                  client_business_card));
     }
 
-    wait_any_t waiter(intro_promise.get_ready_signal(), registrant->get_failed_signal(), interruptor);
-    waiter.wait();
-    if (interruptor->is_pulsed()) {
-        throw interrupted_exc_t();
-    }
-    if (registrant->get_failed_signal()->is_pulsed()) {
-        throw resource_lost_exc_t();
-    }
-    rassert(intro_promise.get_ready_signal()->is_pulsed());
-}
-
-template <class request_type>
-signal_t *multi_client_client_t<request_type>::get_failed_signal() {
-    return registrant->get_failed_signal();
+    wait_interruptible(intro_promise.get_ready_signal(), interruptor);
 }
 
 template <class request_type>
@@ -77,7 +54,7 @@ multi_client_client_t<request_type>::extract_registrar_business_card(
 }
 
 
-#include "clustering/immediate_consistency/query/master_access.hpp"
+#include "clustering/query_routing/metadata.hpp"
 
 #include "rdb_protocol/protocol.hpp"
-template class multi_client_client_t<master_business_card_t::request_t>;
+template class multi_client_client_t<primary_query_bcard_t::request_t>;

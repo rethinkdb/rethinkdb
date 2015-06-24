@@ -69,8 +69,6 @@ public:
 
     void read(const read_t &read, read_response_t *response, order_token_t tok, signal_t *interruptor);
 
-    void read_outdated(const read_t &read, read_response_t *response, signal_t *interruptor);
-
     void write(const write_t &write, write_response_t *response, order_token_t tok, signal_t *interruptor);
 
 private:
@@ -87,10 +85,6 @@ public:
 
     void read(const read_t &read, read_response_t *response, order_token_t tok, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
         return sharder->read(read, response, tok, interruptor);
-    }
-
-    void read_outdated(const read_t &read, read_response_t *response, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
-        return sharder->read_outdated(read, response, interruptor);
     }
 
     void write(const write_t &write, write_response_t *response, order_token_t tok, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {

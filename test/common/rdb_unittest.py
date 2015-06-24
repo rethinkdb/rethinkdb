@@ -12,8 +12,12 @@ class RdbTestCase(unittest.TestCase):
     servers = None # defaults to shards * replicas
     shards = 1
     replicas = 1
+    
+    server_command_prefix = None
+    server_extra_options = None
+    
     fieldName = 'id'
-    recordsToGenerate = 100
+    recordsToGenerate = 0
     
     samplesPerShard = 5 # when making changes the number of changes to make per shard
     
@@ -48,6 +52,8 @@ class RdbTestCase(unittest.TestCase):
             if self.tableName is None:
                 self.__class__.tableName = defaultTable
         
+        self.__class__.table = self.r.db(self.dbName).table(self.tableName)
+        
         # Allow detecting test failure in tearDown
         self.__currentResult = result or self.defaultTestResult()
         self.__problemCount = 0 if result is None else len(self.__currentResult.errors) + len(self.__currentResult.failures)
@@ -66,7 +72,8 @@ class RdbTestCase(unittest.TestCase):
                 return server
         return None
     
-    def getReplicaForShard(self, index, tableName=None, dbName=None):
+    def getReplicasForShard(self, index, tableName=None, dbName=None):
+    
         if tableName is None:
             tableName = self.tableName
         if dbName is None:
@@ -75,10 +82,18 @@ class RdbTestCase(unittest.TestCase):
         shardsData = self.r.db(dbName).table(tableName).config()['shards'].nth(index).run(self.conn)
         replicaNames = [x for x in shardsData['replicas'] if x != shardsData['primary_replica']]
         
+        replicas = []
         for server in self.cluster:
             if server.name in replicaNames:
-                return server
-        return None
+                replicas.append(server)
+        return replicas
+    
+    def getReplicaForShard(self, index, tableName=None, dbName=None):
+        replicas = self.getReplicasForShard(index, tableName=None, dbName=None)
+        if replicas:
+            return replicas[0]
+        else:
+            return None
     
     def setUp(self):
         
@@ -96,13 +111,18 @@ class RdbTestCase(unittest.TestCase):
         
         # - start new servers if necessary
         
-        # note: we start up enough servers to make sure they only have only one role
+        # note: we start up enough servers to make sure they each have only one role
         
         if self.cluster is None:
             initalServers = max(self.shards * self.replicas, self.servers)
             if self.servers is not None and initalServers > self.servers:
                 raise ValueError('servers must always be >= shards * replicas. If you need another configureation you must set it up manually')
-            self.__class__.cluster = driver.Cluster(initial_servers=initalServers)
+            self.__class__.cluster = driver.Cluster(
+                initial_servers=initalServers,
+                wait_until_ready=True,
+                command_prefix=self.server_command_prefix,
+                extra_options=self.server_extra_options
+            )
         if self.conn is None:
             server = self.cluster[0]
             self.__class__.conn = self.r.connect(host=server.host, port=server.driver_port)

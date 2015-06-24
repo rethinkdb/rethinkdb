@@ -44,7 +44,8 @@ private:
     class client_t : public intrusive_list_node_t<client_t> {
     public:
         client_t(multi_client_server_t *p,
-                 const client_business_card_t &client_bc) :
+                 const client_business_card_t &client_bc,
+                 UNUSED signal_t *interruptor) :
             registrant(p->user_data),
             drainer(new auto_drainer_t),
             request_mailbox(new mailbox_t<void(request_type)>(p->mailbox_manager,

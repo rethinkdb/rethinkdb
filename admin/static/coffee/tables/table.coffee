@@ -107,20 +107,29 @@ class TableContainer extends Backbone.View
                     null,
                     table_status.merge(
                         max_shards: 32
-                        num_shards: table_config("shards").count()
+                        num_shards: table_config("shards").count().default(0)
                         num_servers: server_config.count()
                         num_default_servers: server_config.filter((server) ->
                             server('tags').contains('default')).count()
-                        num_available_shards: table_status("shards").count(
-                            (row) -> row('primary_replica').ne(null))
+                        num_primary_replicas:
+                            table_status("shards").count(
+                                (row) -> row('primary_replicas').isEmpty().not())
+                                .default(0)
                         num_replicas: table_config("shards").concatMap(
-                            (shard) -> shard('replicas')).count()
+                            (shard) -> shard('replicas')).count().default(0)
                         num_available_replicas: table_status("shards").concatMap(
                             (shard) ->
-                                shard('replicas').filter({state: "ready"})).count()
-                        num_replicas_per_shard: table_config("shards").map(
-                            (shard) -> shard('replicas').count()).max()
-                        status: table_status('status')
+                                shard('replicas').filter({state: "ready"}))
+                                .count().default(0)
+                        num_replicas_per_shard: table_config("shards").default([]).map(
+                            (shard) -> shard('replicas').count()).max().default(0)
+                        # TODO: remove this after #4374 is completed
+                        status: table_status('status').default(
+                            all_replicas_ready: false
+                            ready_for_reads: false
+                            ready_for_writes: false
+                            ready_for_outdated_reads: false
+                        )
                         id: table_status("id")
                         # These are updated below if the table is ready
                     ).without('shards')
@@ -136,7 +145,7 @@ class TableContainer extends Backbone.View
             r.db(system_db).table('table_config').get(@id)
             (table_config) ->
                 r.db(table_config("db"))
-                .table(table_config("name"), {useOutdated: true})
+                .table(table_config("name"), read_mode: "single")
                 .indexStatus()
                 .pluck('index', 'ready', 'blocks_processed', 'blocks_total')
                 .merge( (index) -> {
@@ -162,31 +171,32 @@ class TableContainer extends Backbone.View
             (table_status, table_config, server_name_to_id) ->
                 table_status.merge({
                     distribution: r.db(table_status('db'))
-                        .table(table_status('name'), {useOutdated: true})
+                        .table(table_status('name'), read_mode: "single")
                         .info()('doc_count_estimates')
                         .map(r.range(), (num_keys, position) ->
                             num_keys: num_keys
                             id: position)
                         .coerceTo('array')
                     total_keys: r.db(table_status('db'))
-                        .table(table_status('name'), {useOutdated: true})
+                        .table(table_status('name'), read_mode: "single")
                         .info()('doc_count_estimates')
                         .sum()
-                    shards_assignments: table_config("shards").map(r.range(),
-                        (shard, position) ->
-                            id: position.add(1)
-                            num_keys: r.db(table_status('db'))
-                                .table(table_status('name'), {useOutdated: true})
-                                .info()('doc_count_estimates')(position)
-                            primary:
-                                id: server_name_to_id(shard("primary_replica"))
-                                name: shard("primary_replica")
-                            replicas: shard("replicas")
-                                .filter( (replica) -> replica.ne(shard("primary_replica")))
-                                .map (name) ->
-                                    id: server_name_to_id(name)
-                                    name: name
-                    ).coerceTo('array')
+                    shard_assignments: table_status.merge((table_status) ->
+                        table_status('shards').default([]).map(
+                            table_config('shards').default([]),
+                            r.db(table_status('db'))
+                                .table(table_status('name'), read_mode: "single")
+                                .info()('doc_count_estimates'),
+                            (status, config, estimate) ->
+                                num_keys: estimate,
+                                replicas: status('replicas').merge((replica) ->
+                                    id: server_name_to_id(replica('server')).default(null),
+                                    configured_primary: config('primary_replica').eq(replica('server'))
+                                    currently_primary: status('primary_replicas').contains(replica('server'))
+                                    nonvoting: config('nonvoting_replicas').contains(replica('server'))
+                                ).orderBy(r.desc('currently_primary'), r.desc('configured_primary'))
+                        )
+                    )
                 })
         )
 
@@ -230,39 +240,13 @@ class TableContainer extends Backbone.View
             @distribution = new models.Distribution _.map(
                 result.distribution, (shard) -> new models.Shard shard)
             @table_view?.set_distribution @distribution
-        shards_assignments = []
-        for shard in result.shards_assignments
-            shards_assignments.push
-                id: "start_shard_#{shard.id}"
-                shard_id: shard.id
-                num_keys: shard.num_keys
-                start_shard: true
-
-            shards_assignments.push
-                id: "shard_primary_#{shard.id}"
-                primary: true
-                shard_id: shard.id
-                data: shard.primary
-
-            for replica, position in shard.replicas
-                shards_assignments.push
-                    id: "shard_replica_#{shard.id}_#{position}"
-                    replica: true
-                    replica_position: position
-                    shard_id: shard.id
-                    data: replica
-
-            shards_assignments.push
-                id: "end_shard_#{shard.id}"
-                shard_id: shard.id
-                end_shard: true
 
         if @shards_assignments?
-            @shards_assignments.set _.map shards_assignments, (shard) ->
+            @shards_assignments.set _.map result.shard_assignments, (shard) ->
                 new models.ShardAssignment shard
         else
             @shards_assignments = new models.ShardAssignments(
-                _.map shards_assignments,
+                _.map result.shard_assignments,
                     (shard) -> new models.ShardAssignment shard
             )
             @table_view?.set_assignments @shards_assignments
@@ -525,7 +509,8 @@ class ReconfigurePanel extends Backbone.View
 
     fetch_progress: =>
         query = r.db(system_db).table('table_status')
-            .get(@model.get('id'))('shards')('replicas').concatMap((x) -> x)
+            .get(@model.get('id'))('shards').default([])('replicas')
+            .concatMap((x) -> x)
             .do((replicas) ->
                 num_available_replicas: replicas.filter(state: 'ready').count()
                 num_replicas: replicas.count()
@@ -626,7 +611,7 @@ class Profile extends Backbone.View
             status: @model.get 'status'
             total_keys: @model.get 'total_keys'
             num_shards: @model.get 'num_shards'
-            num_available_shards: @model.get 'num_available_shards'
+            num_primary_replicas: @model.get 'num_primary_replicas'
             num_replicas: @model.get 'num_replicas'
             num_available_replicas: @model.get 'num_available_replicas'
         }

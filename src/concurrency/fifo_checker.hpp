@@ -107,6 +107,10 @@ public:
     order_token_t check_in(const std::string&) { return order_token_t(); }
 #endif  // ndef NDEBUG
 
+    void rethread(DEBUG_VAR threadnum_t new_thread) {
+        DEBUG_ONLY_CODE(home_thread_mixin_debug_only_t::real_home_thread = new_thread);
+    }
+
 private:
 #ifndef NDEBUG
     order_bucket_t bucket_;
@@ -137,6 +141,10 @@ public:
     void check_out(UNUSED  order_token_t token) { }
 
 #endif  // ifndef NDEBUG
+
+    void rethread(DEBUG_VAR threadnum_t new_thread) {
+        DEBUG_ONLY_CODE(home_thread_mixin_debug_only_t::real_home_thread = new_thread);
+    }
 
 private:
 

@@ -472,7 +472,7 @@ class TestConnection(TestWithConnection):
         yield r.table('t2').run(c, db='db2')
 
     @gen.coroutine
-    def test_use_outdated(self):
+    def test_outdated_read(self):
         c = yield r.connect(host=sharedServerHost,
                             port=sharedServerDriverPort)
 
@@ -483,8 +483,8 @@ class TestConnection(TestWithConnection):
         # Use outdated is an option that can be passed to db.table or `run`
         # We're just testing here if the server actually accepts the option.
 
-        yield r.table('t1', use_outdated=True).run(c)
-        yield r.table('t1').run(c, use_outdated=True)
+        yield r.table('t1', read_mode='outdated').run(c)
+        yield r.table('t1').run(c, read_mode='outdated')
 
     @gen.coroutine
     def test_repl(self):

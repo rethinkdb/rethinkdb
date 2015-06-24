@@ -27,12 +27,13 @@ template <typename T>
 bool job_report_base_t<T>::to_datum(
         admin_identifier_format_t identifier_format,
         server_config_client_t *server_config_client,
+        table_meta_client_t *table_meta_client,
         cluster_semilattice_metadata_t const &metadata,
         ql::datum_t *row_out) const {
     ql::datum_array_builder_t servers_builder(ql::configured_limits_t::unlimited);
     for (uuid_u const &server : servers) {
         ql::datum_t server_name_or_uuid;
-        if (convert_server_id_to_datum(
+        if (convert_connected_server_id_to_datum(
                 server,
                 identifier_format,
                 server_config_client,
@@ -47,7 +48,8 @@ bool job_report_base_t<T>::to_datum(
 
     ql::datum_object_builder_t info_builder;
     if (static_cast<T const *>(this)->info_derived(
-            identifier_format, server_config_client, metadata, &info_builder) == false) {
+            identifier_format, server_config_client, table_meta_client,
+            metadata, &info_builder) == false) {
         return false;
     }
 

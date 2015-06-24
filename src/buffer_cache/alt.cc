@@ -414,7 +414,7 @@ void buf_lock_t::help_construct(buf_parent_t parent, block_id_t block_id,
     }
 
 #if ALT_DEBUG
-    debugf("%p: buf_lock_t %p %s %lu\n", cache(), this, show(access), block_id);
+    debugf("%p: buf_lock_t %p %s %" PRIu64 "\n", cache(), this, show(access), block_id);
 #endif
 }
 
@@ -463,12 +463,12 @@ void buf_lock_t::help_construct(buf_parent_t parent, block_id_t block_id,
                                           parent.lock_or_null_->block_id(),
                                           current_page_acq_->block_id());
 #if ALT_DEBUG
-        debugf("%p: buf_lock_t %p create %lu (as child of %lu)\n",
+        debugf("%p: buf_lock_t %p create %" PRIu64 " (as child of %" PRIu64 ")\n",
                cache(), this, buf_lock_t::block_id(), parent.lock_or_null_->block_id());
 #endif
     } else {
 #if ALT_DEBUG
-        debugf("%p: buf_lock_t %p create %lu (no parent)\n",
+        debugf("%p: buf_lock_t %p create %" PRIu64 " (no parent)\n",
                cache(), this, buf_lock_t::block_id());
 #endif
     }
@@ -497,7 +497,7 @@ buf_lock_t::buf_lock_t(buf_parent_t parent,
 void buf_lock_t::mark_deleted() {
     ASSERT_FINITE_CORO_WAITING;
 #if ALT_DEBUG
-    debugf("%p: buf_lock_t %p delete %lu\n", cache(), this, block_id());
+    debugf("%p: buf_lock_t %p delete %" PRIu64 "\n", cache(), this, block_id());
 #endif
     guarantee(!empty());
     current_page_acq()->mark_deleted();
@@ -518,6 +518,8 @@ void buf_lock_t::wait_for_parent(buf_parent_t parent, access_t access) {
 }
 
 void buf_lock_t::help_construct(buf_parent_t parent, alt_create_t) {
+    cache()->assert_thread();
+
     buf_lock_t::wait_for_parent(parent, access_t::write);
 
     // Makes sure nothing funny can happen in current_page_acq_t constructor.
@@ -535,12 +537,12 @@ void buf_lock_t::help_construct(buf_parent_t parent, alt_create_t) {
                                           parent.lock_or_null_->block_id(),
                                           current_page_acq_->block_id());
 #if ALT_DEBUG
-        debugf("%p: buf_lock_t %p create %lu (as child of %lu)\n",
+        debugf("%p: buf_lock_t %p create %" PRIu64 " (as child of %" PRIu64 ")\n",
                cache(), this, block_id(), parent.lock_or_null_->block_id());
 #endif
     } else {
 #if ALT_DEBUG
-        debugf("%p: buf_lock_t %p create %lu (no parent)\n",
+        debugf("%p: buf_lock_t %p create %" PRIu64 " (no parent)\n",
                cache(), this, block_id());
 #endif
     }
@@ -565,11 +567,12 @@ buf_lock_t::buf_lock_t(buf_lock_t *parent,
 }
 
 buf_lock_t::~buf_lock_t() {
-#if ALT_DEBUG
     if (txn_ != NULL) {
-        debugf("%p: buf_lock_t %p destroy %lu\n", cache(), this, block_id());
-    }
+        cache()->assert_thread();
+#if ALT_DEBUG
+        debugf("%p: buf_lock_t %p destroy %" PRIu64 "\n", cache(), this, block_id());
 #endif
+    }
     guarantee(access_ref_count_ == 0);
 
     if (snapshot_node_ != NULL) {
@@ -619,8 +622,9 @@ void buf_lock_t::reset_buf_lock() {
 }
 
 void buf_lock_t::snapshot_subdag() {
+    cache()->assert_thread();
 #if ALT_DEBUG
-    debugf("%p: buf_lock_t %p snapshot %lu\n", cache(), this, block_id());
+    debugf("%p: buf_lock_t %p snapshot %" PRIu64 "\n", cache(), this, block_id());
 #endif
     ASSERT_FINITE_CORO_WAITING;
     guarantee(!empty());

@@ -6,17 +6,17 @@
 
 from __future__ import print_function
 
+import asyncio
 import datetime
 import os
 import random
 import re
+import socket
 import sys
 import tempfile
 import time
 import traceback
 import unittest
-import socket
-import asyncio
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                 os.pardir, os.pardir, "common"))
@@ -380,9 +380,9 @@ class TestConnection(TestWithConnection):
         yield from r.table('t2').run(c, db='db2')
 
     @asyncio.coroutine
-    def test_use_outdated(self):
+    def test_outdated_read(self):
         c = yield from r.connect(host=sharedServerHost,
-                            port=sharedServerDriverPort)
+                                 port=sharedServerDriverPort)
 
         if 't1' in (yield from r.db('test').table_list().run(c)):
             yield from r.db('test').table_drop('t1').run(c)
@@ -391,8 +391,8 @@ class TestConnection(TestWithConnection):
         # Use outdated is an option that can be passed to db.table or `run`
         # We're just testing here if the server actually accepts the option.
 
-        yield from r.table('t1', use_outdated=True).run(c)
-        yield from r.table('t1').run(c, use_outdated=True)
+        yield from r.table('t1', read_mode='outdated').run(c)
+        yield from r.table('t1').run(c, read_mode='outdated')
 
     @asyncio.coroutine
     def test_repl(self):

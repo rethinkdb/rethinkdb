@@ -1,0 +1,176 @@
+/* Many rules from the original styles.less are no longer needed. This
+file is an attempt to do copying garbage collection since finding
+unnecessary CSS rules is almost impossible by inspection.
+
+Every time new rules are needed or old ones are modified, they should
+be moved to this file. Over time the other file should become smaller
+and more densely packed with unused rules and it will hopefully be
+easier to determine if they're still needed.
+
+Along with moving them here the rules should be cleaned up in a few ways:
+
+- rules should be unnested when possible so they can be re-used
+- Color literals should be pulled out into a global variable
+- Colors that are already global variables should be replaced with the variable
+- repetitive code should be pulled out into function-like mixins
+
+This will also help porting if we move to another CSS preprocessor (say scss)
+ */
+
+/* Colors */
+@text-color: #5c6169;
+@shard-title-color: #5c6169;
+@link-color-hover: #005580;
+@link-color: #08C;
+
+/* Fonts */
+@sans: "Open Sans";
+@serif: "Copse";
+/* End of fonts */
+
+/* Sizes */
+@icon-size: 16px;
+/* End of sizes */
+
+/* Styling images */
+@list-square-bullet: url(images/list-square-bullet.png);
+@list-horiz-dash: url(images/list-horiz-dash.png);
+@list-vert-dash: url(images/list-vert-dash.png);
+/* End of styling images */
+
+/* Icons */
+@layers-icon: url(images/layers-icon.png);
+@layers-exclamation-icon: url(images/layers-exclamation-icon.png);
+@bars-icon: url(images/bars-icon_server-assignments.png);
+@grid-icon: url(images/grid-icon.png);
+@green-light-icon: url(images/green-light_glow.png);
+@red-light-icon: url(images/red-light_glow.png);
+@yellow-light-icon: url(images/yellow-light_glow.png);
+/* End of Icons */
+
+/* Mixin functions */
+.icon-before(@image; @icon-size: 16px; @padding: 10px) {
+    // Add an icon before an element, centered vertically
+    background-image: @image;
+    background-position: 0 50%;
+    background-repeat: no-repeat;
+    padding-left: @icon-size + @padding;
+}
+
+.icon-after(@image; @icon-size: 16px; @padding: 10px) {
+    // Add an icon after an element, centered vertically
+    background-image: @image;
+    background-position: 100% 50%;
+    background-repeat: no-repeat;
+    padding-right: @icon-size + @padding;
+}
+
+.dummy-before-boilerplate() {
+    // Boilerplate for dummy ::before elements
+    content: "";
+    display: block;
+    position: absolute;
+}
+
+.flex-evenly-spaced-centered {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-direction: row;
+}
+/* End of mixins */
+
+.server-assignments.tree-view2 {
+    font-family: @sans;
+    padding: 20px 20px 10px 25px;
+    ul.shards {
+        padding: 0px 5px 0px 10px;
+        list-style: none;
+        li.shard {
+            position: relative;
+        }
+    }
+    .shard-heading {
+        display: flex;
+        flex-direction: row;
+        justify-content: flex-begin;
+        align-items: flex-end;
+        font-size: 16px;
+        color: @shard-title-color;
+        margin: 10px 0;
+        span.numkeys {
+            margin-left: 30px;
+            font-size: 16px;
+            .icon-before(@bars-icon);
+        }
+        &::before {
+            // The dashed vertical line and shard's endcap for the tree image
+            .dummy-before-boilerplate();
+            top: 4.5px;
+            bottom: 16px;
+            width: 7px;
+            left: -14px;
+            background-image: @list-square-bullet, @list-vert-dash;
+            background-position: left top, 2.5px center;
+            background-repeat: no-repeat, repeat-y;
+        }
+    }
+    .shard-title {
+        display: inline-block;
+        font-size: 16px;
+        word-wrap: break-word;
+        white-space: nowrap;
+    }
+    ul.replicas {
+        padding-left: 5px;
+        color: @text-color;
+        margin-bottom: 10px;
+    }
+    li.replica {
+        @role-width: 205px;
+        @state-width: 181px;
+        .flex-evenly-spaced-centered;
+        border-bottom: 1px solid #eee;
+        padding: 7px 0px;
+        font-size: 14px;
+        .replica-role {
+            width: @role-width;
+            position: relative;
+            &.primary {
+                .icon-before(@layers-icon);
+                font-weight: bold;
+                &.goal {
+                    font-weight: normal;
+                    .icon-before(@layers-exclamation-icon);
+                }
+            }
+            &.secondary {
+                .icon-before(@grid-icon);
+            }
+        }
+        .server-name {
+            .flex-evenly-spaced-centered;
+            margin-left: 10px;
+            width: 35%;
+            position: relative; // needed to position bullet and dash
+            a::before {
+                .dummy-before-boilerplate;
+                width: 22px;
+                top: 0;
+                bottom: 0px;
+                left:-30px;
+                background-image: @list-square-bullet, @list-horiz-dash;
+                background-position: right center, 3.5px center;
+                background-repeat: no-repeat, repeat-x;
+            }
+        }
+        .state {
+            margin-left: 10px;
+            text-align: right;
+            width: @state-width;
+            &.yellow {.icon-after(@yellow-light-icon);}
+            &.red {.icon-after(@red-light-icon);}
+            &.green {.icon-after(@green-light-icon);}
+        }
+    }
+}
