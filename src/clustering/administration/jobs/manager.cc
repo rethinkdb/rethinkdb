@@ -147,16 +147,6 @@ void jobs_manager_t::on_get_job_reports(
             table_manager->get_backfill_progress_trackers().get_progress_trackers();
         std::string base_str = uuid_to_str(server_id) + uuid_to_str(table_id);
         for (const auto &backfill : backfills) {
-            /* backfill_job_report_t(
-                uuid_u const &id,
-                double duration,
-                server_id_t const &server_id,
-                namespace_id_t const &table,
-                bool is_ready,
-                double progress,
-                server_id_t const &source_server,
-                server_id_t const &destination_server); */
-
             boost::optional<server_id_t> source_server_id =
                 server_config_client->get_peer_to_server_map()->get_key(
                     backfill.second.source_peer_id);
@@ -184,10 +174,6 @@ void jobs_manager_t::on_get_job_reports(
                 source_server_id.get(),
                 server_id);
         }
-
-
-
-        // std::cout << "-- " << backfill_progress_trackers.size() << std::endl;
     });
 
     // RSI(raft): Reimplement `"backfill"` jobs.
