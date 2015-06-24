@@ -11,17 +11,15 @@ backfill_progress_tracker_t::insert_progress_tracker(const region_t &region) {
 
 std::map<region_t, backfill_progress_tracker_t::progress_tracker_t>
 backfill_progress_tracker_t::get_progress_trackers() {
-    // TODO
-
     std::map<region_t, progress_tracker_t> output;
-    pmap(get_num_threads(), [&](int i) {
-        std::map<region_t, progress_tracker_t> temp;
+    pmap(get_num_threads(), [&](int thread) {
+        std::map<region_t, progress_tracker_t> inner;
         {
-            on_thread_t th((threadnum_t(i)));
-            temp = *progress_trackers.get();
+            on_thread_t on_thread((threadnum_t(thread)));
+            inner = *progress_trackers.get();
         }
-        for (const auto &pair : temp) {
-            auto res = output.insert(pair);
+        for (const auto &pair : inner) {
+            auto res = output.insert(std::move(pair));
             guarantee(res.second);
         }
     });
