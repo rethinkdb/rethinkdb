@@ -114,7 +114,7 @@ public:
         return &table_basic_configs;
     }
 
-    /* Calls `callable` for each table, it must have a signature of:
+    /* Calls `callable` for each active table, it must have a signature of:
            void(const namespace_id_t &table_id, multistore_ptr_t *, table_manager_t *)
      */
     template <typename F>
@@ -139,6 +139,31 @@ public:
                          it->second->multistore_ptr.get(),
                          &(it->second->active->manager));
             }
+        }
+    }
+
+    /* Calls `callable` on the specific table, if it's available. `callable`'s signature
+    must be:
+        void(multistore_ptr_t *, table_manager_t *
+    If the table doesn't exist or is not active on this server, calls `callable` with
+    null pointers. */
+    template <typename F>
+    void visit_table(
+            const namespace_id_t &table_id, signal_t *interruptor, const F &callable) {
+        mutex_assertion_t::acq_t global_mutex_acq(&mutex);
+        auto it = tables.find(table_id);
+        if (it == tables.end()) {
+            callable(nullptr, nullptr);
+            return;
+        }
+        table_t *table = it->second.get();
+        new_mutex_in_line_t mutex_in_line(&table->mutex);
+        global_mutex_acq.reset();
+        wait_interruptible(mutex_in_line.acq_signal(), interruptor);
+        if (table->status == table_t::status_t::ACTIVE) {
+            callable(table->multistore_ptr.get(), &table->active->manager);
+        } else {
+            callable(nullptr, nullptr);
         }
     }
 

@@ -710,8 +710,6 @@ region_t monokey_region(const store_key_t &k);
 // TODO consider relocating this
 key_range_t sindex_key_range(const store_key_t &start,
                              const store_key_t &end);
-
-region_t cpu_sharding_subspace(int subregion_number, int num_cpu_shards);
 }  // namespace rdb_protocol
 
 
