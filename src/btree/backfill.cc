@@ -2,6 +2,7 @@
 #include "btree/backfill.hpp"
 
 #include "arch/runtime/coroutines.hpp"
+#include "btree/backfill_debug.hpp"
 #include "btree/depth_first_traversal.hpp"
 #include "btree/leaf_node.hpp"
 #include "concurrency/pmap.hpp"
@@ -61,6 +62,8 @@ continue_bool_t btree_send_backfill_pre(
         repli_timestamp_t reference_timestamp,
         btree_backfill_pre_item_consumer_t *pre_item_consumer,
         signal_t *interruptor) {
+    backfill_debug_range(range, strprintf(
+        "btree_send_backfill_pre %" PRIu64, reference_timestamp.longtime));
     class callback_t : public depth_first_traversal_callback_t {
     public:
         continue_bool_t filter_range_ts(
@@ -94,6 +97,8 @@ continue_bool_t btree_send_backfill_pre(
                 */
                 backfill_pre_item_t pre_item;
                 pre_item.range = convert_to_key_range(left_excl_or_null, right_incl);
+                backfill_debug_range(pre_item.range, strprintf(
+                    "pre-item leaf %" PRIu64, min_deletion_timestamp.longtime));
                 return pre_item_consumer->on_pre_item(std::move(pre_item));
             } else {
                 std::vector<const btree_key_t *> keys;
@@ -114,6 +119,8 @@ continue_bool_t btree_send_backfill_pre(
                         if (timestamp <= reference_timestamp) {
                             return continue_bool_t::ABORT;
                         }
+                        backfill_debug_key(store_key_t(key), strprintf(
+                            "pre-item key %" PRIu64, timestamp.longtime));
                         keys.push_back(key);
                         return continue_bool_t::CONTINUE;
                     });
@@ -364,6 +371,8 @@ private:
         if (min_deletion_timestamp > reference_timestamp) {
             /* We might be missing deletion entries, so re-transmit the entire node as a
             single `backfill_item_t` */
+            backfill_debug_range(subrange, strprintf(
+                "item leaf %" PRIu64, min_deletion_timestamp.longtime));
             backfill_item_t item;
             item.min_deletion_timestamp = min_deletion_timestamp;
             item.range = subrange;
@@ -448,6 +457,7 @@ private:
                     pre items, so it's OK for now. */
                     for (backfill_item_t &a : items_from_pre) {
                         if (a.range.contains_key(key)) {
+                            backfill_debug_key(store_key_t(key), "item_from_pre");
                             item = &a;
                             break;
                         }
@@ -456,6 +466,8 @@ private:
                         /* We didn't find an item in `items_from_pre`. */
                         if (timestamp > reference_timestamp) {
                             /* We should create a new item for this key-value pair */
+                            backfill_debug_key(store_key_t(key), strprintf(
+                                "item %" PRIu64, timestamp.longtime));
                             items_from_time.push_back(backfill_item_t());
                             item = &items_from_time.back();
                             item->range = key_range_t(key);
@@ -569,6 +581,8 @@ continue_bool_t btree_send_backfill(
         btree_backfill_pre_item_producer_t *pre_item_producer,
         btree_backfill_item_consumer_t *item_consumer,
         signal_t *interruptor) {
+    backfill_debug_range(range, strprintf(
+        "btree_send_backfill %" PRIu64, reference_timestamp.longtime));
     cond_t abort_cond;
     backfill_item_loader_t loader(item_consumer, &abort_cond);
     backfill_item_preparer_t preparer(
@@ -613,6 +627,8 @@ void btree_receive_backfill_item_update_deletion_timestamps(
         value_sizer_t *sizer,
         const backfill_item_t &item,
         signal_t *interruptor) {
+    backfill_debug_range(item.range, strprintf(
+        "b.r.b.i.u.d.t. %" PRIu64, item.min_deletion_timestamp.longtime));
     backfill_deletion_timestamp_updater_t updater(sizer, item.min_deletion_timestamp);
     continue_bool_t res = btree_depth_first_traversal(
         superblock, item.range, &updater, access_t::write, FORWARD, release_superblock,

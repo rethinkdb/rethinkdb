@@ -51,7 +51,7 @@ std::string read_from_dispatcher(
         backfill_debug_key(store_key_t(key), "read \"" + value + "\"");
         return value;
     } else {
-        backfill_debug_key(store_key_t(key), "read empty");
+        backfill_debug_key(store_key_t(key), "read (absent)");
         return "";
     }
 }
@@ -92,14 +92,12 @@ private:
                     DURABILITY_REQUIREMENT_SOFT,
                     profile_bool_t::PROFILE,
                     ql::configured_limits_t());
-            backfill_debug_key(store_key_t(key), "write \"" + value + "\"");
         } else {
             write = write_t(
                     point_delete_t(store_key_t(key)),
                     DURABILITY_REQUIREMENT_SOFT,
                     profile_bool_t::PROFILE,
                     ql::configured_limits_t());
-            backfill_debug_key(store_key_t(key), "write empty");
         }
         simple_write_callback_t write_callback;
         dispatcher->spawn_write(write, otok, &write_callback);
