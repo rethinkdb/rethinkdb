@@ -208,16 +208,16 @@ void run_backfill_test(const backfill_test_config_t &cfg) {
             backfill_progress_tracker_t backfill_progress_tracker;
             remote_replicator_client_t remote_replicator_client_2(&backfill_throttler,
                 cfg.backfill, &backfill_progress_tracker, cluster.get_mailbox_manager(),
-                generate_uuid(), generate_uuid(), dispatcher.get_branch_id(),
+                generate_uuid(), dispatcher.get_branch_id(),
                 remote_replicator_server.get_bcard(),
-                local_replicator.get_replica_bcard(), &store2.store, &bhm,
-                &non_interruptor);
+                local_replicator.get_replica_bcard(), generate_uuid(), &store2.store,
+                &bhm, &non_interruptor);
             remote_replicator_client_t remote_replicator_client_3(&backfill_throttler,
                 cfg.backfill, &backfill_progress_tracker, cluster.get_mailbox_manager(),
-                generate_uuid(), generate_uuid(), dispatcher.get_branch_id(),
+                generate_uuid(), dispatcher.get_branch_id(),
                 remote_replicator_server.get_bcard(),
-                local_replicator.get_replica_bcard(), &store3.store, &bhm,
-                &non_interruptor);
+                local_replicator.get_replica_bcard(), generate_uuid(), &store3.store,
+                &bhm, &non_interruptor);
 
             if (cfg.stream_during_backfill) {
                 inserter.stop();
@@ -270,9 +270,9 @@ void run_backfill_test(const backfill_test_config_t &cfg) {
         backfill_progress_tracker_t backfill_progress_tracker;
         remote_replicator_client_t remote_replicator_client(&backfill_throttler,
             cfg.backfill, &backfill_progress_tracker, cluster.get_mailbox_manager(),
-            generate_uuid(), generate_uuid(), dispatcher.get_branch_id(),
+            generate_uuid(), dispatcher.get_branch_id(),
             remote_replicator_server.get_bcard(),
-            local_replicator.get_replica_bcard(), &store1.store, &bhm,
+            local_replicator.get_replica_bcard(), generate_uuid(), &store1.store, &bhm,
             &non_interruptor);
 
         if (cfg.stream_during_backfill) {
@@ -312,9 +312,9 @@ void run_backfill_test(const backfill_test_config_t &cfg) {
         backfill_progress_tracker_t backfill_progress_tracker;
         remote_replicator_client_t remote_replicator_client(&backfill_throttler,
             cfg.backfill, &backfill_progress_tracker, cluster.get_mailbox_manager(),
-            generate_uuid(), generate_uuid(), dispatcher.get_branch_id(),
+            generate_uuid(), dispatcher.get_branch_id(),
             remote_replicator_server.get_bcard(),
-            local_replicator.get_replica_bcard(), &store3.store, &bhm,
+            local_replicator.get_replica_bcard(), generate_uuid(), &store3.store, &bhm,
             &non_interruptor);
 
         if (cfg.stream_during_backfill) {

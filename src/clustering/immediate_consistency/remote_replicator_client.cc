@@ -94,11 +94,11 @@ remote_replicator_client_t::remote_replicator_client_t(
         backfill_progress_tracker_t *backfill_progress_tracker,
         mailbox_manager_t *mailbox_manager,
         const server_id_t &server_id,
-        const server_id_t &primary_server_id,
 
         const branch_id_t &branch_id,
         const remote_replicator_server_bcard_t &remote_replicator_server_bcard,
         const replica_bcard_t &replica_bcard,
+        const server_id_t &primary_server_id,
 
         store_view_t *store,
         branch_history_manager_t *branch_history_manager,
