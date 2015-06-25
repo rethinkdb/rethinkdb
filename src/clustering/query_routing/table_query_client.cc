@@ -384,10 +384,12 @@ void table_query_client_t::dispatch_debug_direct_read(
 #ifndef NDEBUG
                     metainfo_checker_t checker(
                         region, [](const region_t &, const binary_blob_t &) {});
-#endif
+#endif /* NDEBUG */
                     read_token_t token;
                     store->new_read_token(&token);
-                    store->read(checker, subread, &subresponse, &token,
+                    store->read(
+                        DEBUG_ONLY(checker, )
+                        subread, &subresponse, &token,
                         &interruptor_on_store);
                 }
                 responses.push_back(subresponse);
