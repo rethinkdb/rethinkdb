@@ -6,6 +6,7 @@
 #include "clustering/query_routing/primary_query_client.hpp"
 #include "clustering/table_contract/cpu_sharding.hpp"
 #include "clustering/table_manager/multi_table_manager.hpp"
+#include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/watchable.hpp"
 #include "rdb_protocol/env.hpp"
@@ -354,10 +355,12 @@ void table_query_client_t::perform_outdated_read(
 void table_query_client_t::dispatch_debug_direct_read(
         const read_t &op,
         read_response_t *response,
-        signal_t *interruptor)
+        signal_t *interruptor_on_caller)
         THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
+    cross_thread_signal_t interruptor_on_mtm(
+        interruptor_on_caller, multi_table_manager->home_thread());
     on_thread_t thread_switcher(multi_table_manager->home_thread());
-    multi_table_manager->visit_table(table_id, interruptor,
+    multi_table_manager->visit_table(table_id, &interruptor_on_mtm,
     [&](multistore_ptr_t *multistore, table_manager_t *) {
         if (multistore == nullptr) {
             throw cannot_perform_query_exc_t(
@@ -375,24 +378,28 @@ void table_query_client_t::dispatch_debug_direct_read(
                 {
                     store_view_t *store =
                         multistore->get_cpu_sharded_store(shard_number);
-                    on_thread_t thread_switcher(store->home_thread());
+                    cross_thread_signal_t interruptor_on_store(
+                        &interruptor_on_mtm, store->home_thread());
+                    on_thread_t thread_switcher_2(store->home_thread());
 #ifndef NDEBUG
                     metainfo_checker_t checker(
                         region, [](const region_t &, const binary_blob_t &) {});
 #endif
                     read_token_t token;
                     store->new_read_token(&token);
-                    store->read(checker, subread, &subresponse, &token, interruptor);
+                    store->read(checker, subread, &subresponse, &token,
+                        &interruptor_on_store);
                 }
                 responses.push_back(subresponse);
             } catch (const interrupted_exc_t &) {
                 /* ignore; we'll catch it outside the pmap */
             }
         });
-        if (interruptor->is_pulsed()) {
+        if (interruptor_on_mtm.is_pulsed()) {
             throw interrupted_exc_t();
         }
-        op.unshard(responses.data(), responses.size(), response, ctx, interruptor);
+        op.unshard(responses.data(), responses.size(), response, ctx,
+            &interruptor_on_mtm);
     });
 }
 

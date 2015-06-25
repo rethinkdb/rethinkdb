@@ -63,7 +63,7 @@ the remaining servers' action mailboxes, so the table will finish being created.
 as though the table still exists, it will forward the drop message to that server's
 action mailbox. */
 
-class multi_table_manager_t {
+class multi_table_manager_t : public home_thread_mixin_t {
 public:
     multi_table_manager_t(
         const server_id_t &_server_id,
