@@ -164,6 +164,8 @@ public:
 
 void run_backfill_test(const backfill_test_config_t &cfg) {
 
+    backfill_debug_clear_log();
+
     order_source_t order_source;
     simple_mailbox_cluster_t cluster;
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);

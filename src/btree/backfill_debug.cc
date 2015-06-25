@@ -16,6 +16,11 @@ public:
 std::deque<backfill_debug_msg_t> backfill_debug_msgs;
 spinlock_t backfill_debug_lock;
 
+void backfill_debug_clear_log() {
+    spinlock_acq_t acq(&backfill_debug_lock);
+    backfill_debug_msgs.clear();
+}
+
 void backfill_debug_key(const store_key_t &key, const std::string &msg) {
     backfill_debug_range(key_range_t(key.btree_key()), msg);
 }
