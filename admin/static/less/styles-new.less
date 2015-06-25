@@ -22,7 +22,9 @@ This will also help porting if we move to another CSS preprocessor (say scss)
 @shard-title-color: #5c6169;
 @link-color-hover: #005580;
 @link-color: #08C;
-
+@dividing-line-color: #f0f0f0;
+@profile-description-blue: #72bddf;
+@profile-value-gray: #5C6169;
 /* Fonts */
 @sans: "Open Sans";
 @serif: "Copse";
@@ -47,6 +49,23 @@ This will also help porting if we move to another CSS preprocessor (say scss)
 @red-light-icon: url(images/red-light_glow.png);
 @yellow-light-icon: url(images/yellow-light_glow.png);
 /* End of Icons */
+/* ionicon elements */
+// Lazily pull these in from _ionicons-variables
+@ion-monitor: "\f20a";
+@ion-refresh: "\f21c";
+@ion-pin: "\f2a6";
+@ion-clock: "\f26e";
+@ion-document: "\f12f";
+@ion-pricetags-outline: "\f48e";
+@ion-soup-can-outline: "\f4f3";
+
+// Mapping from ionicon names to internal names
+@hostname-icon: @ion-soup-can-outline;
+@version-icon: @ion-refresh;
+@uptime-icon: @ion-clock;
+@cache-size-icon: @ion-document;
+@tags-icon: @ion-pricetags-outline;
+/* End of ionicon elements */
 
 /* Mixin functions */
 .icon-before(@image; @icon-size: 16px; @padding: 10px) {
@@ -55,6 +74,17 @@ This will also help porting if we move to another CSS preprocessor (say scss)
     background-position: 0 50%;
     background-repeat: no-repeat;
     padding-left: @icon-size + @padding;
+}
+
+.ionicon-before(@content, @xoffset: 0, @yoffset: 0) {
+    content: @content;
+    font-family: Ionicons;
+    font-size: 20px;
+    color: #D0D0D0;
+    padding: 0 10px 10px 0;
+    left: 0 + @xoffset;
+    top: 50% + @yoffset;
+    position: absolute;
 }
 
 .icon-after(@image; @icon-size: 16px; @padding: 10px) {
@@ -78,19 +108,20 @@ This will also help porting if we move to another CSS preprocessor (say scss)
     justify-content: space-between;
     flex-direction: row;
 }
+
 /* End of mixins */
 
-.server-assignments.tree-view2 {
+.tree-view2 {
     font-family: @sans;
     padding: 20px 20px 10px 25px;
-    ul.shards {
+    ul.parents {
         padding: 0px 5px 0px 10px;
         list-style: none;
-        li.shard {
+        li.parent {
             position: relative;
         }
     }
-    .shard-heading {
+    .parent-heading {
         display: flex;
         flex-direction: row;
         justify-content: flex-begin;
@@ -115,25 +146,25 @@ This will also help porting if we move to another CSS preprocessor (say scss)
             background-repeat: no-repeat, repeat-y;
         }
     }
-    .shard-title {
+    .parent-title {
         display: inline-block;
         font-size: 16px;
         word-wrap: break-word;
         white-space: nowrap;
     }
-    ul.replicas {
+    ul.children {
         padding-left: 5px;
         color: @text-color;
         margin-bottom: 10px;
     }
-    li.replica {
+    li.child {
         @role-width: 205px;
         @state-width: 181px;
         .flex-evenly-spaced-centered;
         border-bottom: 1px solid #eee;
         padding: 7px 0px;
         font-size: 14px;
-        .replica-role {
+        .child-role {
             width: @role-width;
             position: relative;
             &.primary {
@@ -148,12 +179,11 @@ This will also help porting if we move to another CSS preprocessor (say scss)
                 .icon-before(@grid-icon);
             }
         }
-        .server-name {
-            .flex-evenly-spaced-centered;
+        .child-name {
             margin-left: 10px;
             width: 35%;
             position: relative; // needed to position bullet and dash
-            a::before {
+            &:before  {
                 .dummy-before-boilerplate;
                 width: 22px;
                 top: 0;
@@ -173,4 +203,48 @@ This will also help porting if we move to another CSS preprocessor (say scss)
             &.green {.icon-after(@green-light-icon);}
         }
     }
+}
+
+.profile-row {
+    border-top: thin solid @dividing-line-color;
+    &:first-child {
+        border-top: thin solid transparent;
+    }
+    position: relative;
+    p {
+        font-family: @sans;
+        color: @profile-description-blue;
+        font-size: 15px;
+        line-height: 20px;
+        margin-left: 30px;
+        cursor: help;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        .big {
+            color: @profile-value-gray;
+            font-size: 24px;
+            line-height: 30px;
+        }
+        .tags, &.admonition {
+            font-size: 18px;
+            color: @profile-value-gray;
+        }
+
+    }
+    &.hostname::before {
+        .ionicon-before(@hostname-icon);
+    }
+    &.version::before {
+        .ionicon-before(@version-icon);
+    }
+    &.uptime::before {
+        .ionicon-before(@uptime-icon);
+    }
+    &.cache-size::before {
+        .ionicon-before(@cache-size-icon, 3px);
+    }
+    &.tags::before {
+        .ionicon-before(@tags-icon, 1px, -5px);
+    }
+
 }

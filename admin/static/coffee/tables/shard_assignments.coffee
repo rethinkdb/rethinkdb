@@ -33,7 +33,7 @@ render_assignments = (info_unavailable, shard_assignments) ->
     h "div", [
         h "h2.title", "Servers used by this table"
         render_warning(info_unavailable)
-        h "ul.shards", shard_assignments?.map(render_shard)
+        h "ul.parents", shard_assignments?.map(render_shard)
     ]
 
 render_warning = (info_unavailable) ->
@@ -44,57 +44,27 @@ render_warning = (info_unavailable) ->
         ]
 
 render_shard = (shard, index) ->
-  h "li.shard", [
-    h "div.shard-heading", [
-      h "span.shard-title", "Shard #{index + 1}"
-      h "span.numkeys", ["~", util.approximate_count(shard.num_keys), " ",
-                         util.pluralize_noun('document', shard.num_keys)]
+    h "li.parent", [
+        h "div.parent-heading", [
+            h "span.parent-title", "Shard #{index + 1}"
+            h "span.numkeys", ["~", util.approximate_count(shard.num_keys), " ",
+                util.pluralize_noun('document', shard.num_keys)]
+        ]
+        h "ul.children", shard.replicas.map(render_replica)
     ]
-    h "ul.replicas", shard.replicas.map(render_replica)
-  ]
 
 render_replica = (replica) ->
-    h "li.replica", [
-        h "span.server-name.#{state_color(replica.state)}",
-            h "a", href: "#servers/#{replica.id}", replica.server
-        h "span.replica-role.#{replica_roleclass(replica)}",
-            replica_rolename(replica)
-        h "span.state.#{state_color(replica.state)}",
-            humanize_state_string(replica.state)
+    h "li.child", [
+        h "span.child-name", [
+            if replica.state == 'ready'
+                h "a", href: "#servers/#{replica.id}", replica.server
+            else
+                replica.server
+        ]
+        h "span.child-role.#{util.replica_roleclass(replica)}",
+            util.replica_rolename(replica)
+        h "span.state.#{util.state_color(replica.state)}",
+            util.humanize_state_string(replica.state)
     ]
-
-state_color = (state) ->
-  switch state
-      when "ready"        then "green"
-      when "disconnected" then "red"
-      else                     "yellow"
-
-replica_rolename = ({configured_primary: configured, \
-                     currently_primary: currently, \
-                     nonvoting: nonvoting, \
-                     }) ->
-    if configured and currently
-        "Primary replica"
-    else if configured and not currently
-        "Goal primary replica"
-    else if not configured and currently
-        "Acting primary replica"
-    else if nonvoting
-        "Non-voting secondary replica"
-    else
-        "Secondary replica"
-
-replica_roleclass = ({configured_primary: configured, currently_primary: currently}) ->
-    if configured and currently
-        "primary"
-    else if configured and not currently
-        "goal.primary"
-    else if not configured and currently
-        "acting.primary"
-    else
-        "secondary"
-
-humanize_state_string = (state_string) ->
-    state_string.replace(/_/g, ' ')
 
 exports.ShardAssignmentsView = ShardAssignmentsView
