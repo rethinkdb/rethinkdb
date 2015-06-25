@@ -321,15 +321,11 @@ private:
                         &disconnect);
                 } catch (const interrupted_exc_t &) {
                      throw cannot_perform_query_exc_t(
-                         "lost contact with primary", query_state_t::INDETERMINATE);
+                         "lost contact with primary", query_state_t::OP_FAILED);
                 }
             } else {
-                // I'm not 100% sure when this happens so marking it
-                // INDETERMINATE seemed safer, but if this is known to have
-                // failed feel free to change it.
                 throw cannot_perform_query_exc_t(
-                    "no primary found on this executor",
-                    query_state_t::INDETERMINATE);
+                    "no primary found on this executor", query_state_t::OP_FAILED);
             }
         }
         signal_t *get_disconnect_signal() {
