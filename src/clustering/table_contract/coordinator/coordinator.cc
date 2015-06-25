@@ -4,6 +4,7 @@
 #include "clustering/generic/raft_core.tcc"
 #include "clustering/table_contract/coordinator/calculate_contracts.hpp"
 #include "clustering/table_contract/coordinator/calculate_misc.hpp"
+#include "clustering/table_contract/coordinator/check_ready.hpp"
 #include "logger.hpp"
 
 contract_coordinator_t::contract_coordinator_t(
@@ -63,6 +64,34 @@ boost::optional<raft_log_index_t> contract_coordinator_t::change_config(
         return boost::none;
     }
     return boost::make_optional(log_index);
+}
+
+bool contract_coordinator_t::check_all_replicas_ready(signal_t *interruptor) {
+    assert_thread();
+    /* The bulk of the work is in the `::check_all_replicas_ready()` function defined in
+    `check_ready.hpp`. But we also make sure to commit the state that `check_ready` saw
+    before we reply, to ensure that we are actually still the Raft leader. */
+    scoped_ptr_t<raft_member_t<table_raft_state_t>::change_token_t> change_token;
+    {
+        raft_member_t<table_raft_state_t>::change_lock_t change_lock(raft, interruptor);
+        bool ok;
+        raft->get_latest_state()->apply_read(
+        [&](const raft_member_t<table_raft_state_t>::state_and_config_t *state) {
+            ok = ::check_all_replicas_ready(state->state, acks);
+        });
+        if (!ok) {
+            return false;
+        }
+        change_token = raft->propose_noop(&change_lock);
+    }
+    if (!change_token.has()) {
+        return false;
+    }
+    wait_interruptible(change_token->get_ready_signal(), interruptor);
+    if (!change_token->wait()) {
+        return false;
+    }
+    return true;
 }
 
 void contract_coordinator_t::on_ack_change(

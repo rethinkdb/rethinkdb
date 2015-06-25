@@ -92,7 +92,7 @@ multi_table_manager_t::~multi_table_manager_t() {
     /* First, shut out further mailbox events or watchable callbacks. This ensures that
     tables are not created or destroyed, nor are their states changed (active vs.
     inactive vs. deleted). */
-    get_config_mailbox.reset();
+    get_status_mailbox.reset();
     action_mailbox.reset();
     table_manager_directory_subs.reset();
     multi_table_manager_directory_subs.reset();
@@ -252,10 +252,10 @@ void multi_table_manager_t::help_construct() {
         std::bind(&multi_table_manager_t::on_action, this,
             ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6, ph::_7, ph::_8)));
 
-    get_config_mailbox.init(new multi_table_manager_bcard_t::get_config_mailbox_t(
+    get_status_mailbox.init(new multi_table_manager_bcard_t::get_status_mailbox_t(
         mailbox_manager,
-        std::bind(&multi_table_manager_t::on_get_config, this,
-            ph::_1, ph::_2, ph::_3)));
+        std::bind(&multi_table_manager_t::on_get_status, this,
+            ph::_1, ph::_2, ph::_3, ph::_4)));
 }
 
 void multi_table_manager_t::on_action(
@@ -487,60 +487,29 @@ void multi_table_manager_t::on_action(
     }
 }
 
-void multi_table_manager_t::on_get_config(
+void multi_table_manager_t::on_get_status(
         signal_t *interruptor,
-        const boost::optional<namespace_id_t> &table_id,
-        const mailbox_t<void(std::map<namespace_id_t, std::pair<
-                table_config_and_shards_t, multi_table_manager_bcard_t::timestamp_t>
-            >)>::address_t &reply_addr) {
-    std::map<namespace_id_t, std::pair<
-        table_config_and_shards_t, multi_table_manager_bcard_t::timestamp_t> > result;
-    if (static_cast<bool>(table_id)) {
+        const std::set<namespace_id_t> &tables_of_interest,
+        const table_status_request_t &request,
+        const mailbox_t<void(
+            std::map<namespace_id_t, table_status_response_t>
+            )>::address_t &reply_addr) {
+    std::map<namespace_id_t, table_status_response_t> responses;
+    for (const namespace_id_t &table_id : tables_of_interest) {
         /* Fetch information for a specific table. */
         mutex_assertion_t::acq_t global_mutex_acq(&mutex);
-        auto it = tables.find(*table_id);
+        auto it = tables.find(table_id);
         if (it != tables.end()) {
             new_mutex_in_line_t table_mutex_in_line(&it->second->mutex);
             global_mutex_acq.reset();
             wait_interruptible(table_mutex_in_line.acq_signal(), interruptor);
             if (it->second->status == table_t::status_t::ACTIVE) {
-                it->second->active->get_raft()->get_committed_state()->apply_read(
-                [&](const raft_member_t<table_raft_state_t>::state_and_config_t *s) {
-                    multi_table_manager_bcard_t::timestamp_t timestamp;
-                    timestamp.epoch = it->second->active->manager.epoch;
-                    timestamp.log_index = s->log_index;
-                    result[*table_id] = std::make_pair(s->state.config, timestamp);
-                });
-            }
-        }
-    } else {
-        /* Fetch information for all tables that we know about. First we get in line for
-        each mutex, then we release the global mutex assertion, then we wait for each
-        mutex to be ready and copy out its data. */
-        mutex_assertion_t::acq_t global_mutex_acq(&mutex);
-        std::map<namespace_id_t, scoped_ptr_t<new_mutex_in_line_t> >
-            table_mutex_in_lines;
-        for (const auto &pair : tables) {
-            table_mutex_in_lines[pair.first] =
-                make_scoped<new_mutex_in_line_t>(&pair.second->mutex);
-        }
-        global_mutex_acq.reset();
-        for (const auto &pair : table_mutex_in_lines) {
-            wait_interruptible(pair.second->acq_signal(), interruptor);
-            auto it = tables.find(pair.first);
-            guarantee(it != tables.end());
-            if (it->second->status == table_t::status_t::ACTIVE) {
-                it->second->active->get_raft()->get_committed_state()->apply_read(
-                [&](const raft_member_t<table_raft_state_t>::state_and_config_t *s) {
-                    multi_table_manager_bcard_t::timestamp_t timestamp;
-                    timestamp.epoch = it->second->active->manager.epoch;
-                    timestamp.log_index = s->log_index;
-                    result[pair.first] = std::make_pair(s->state.config, timestamp);
-                });
+                it->second->active->manager.get_status(
+                    request, interruptor, &responses[table_id]);
             }
         }
     }
-    send(mailbox_manager, reply_addr, result);
+    send(mailbox_manager, reply_addr, responses);
 }
 
 void multi_table_manager_t::do_sync(

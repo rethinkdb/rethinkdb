@@ -580,19 +580,19 @@ public:
 
     2. Construct a `change_lock_t` on that `raft_member_t`.
 
-    3. Call `propose_[config_]change()`. You can make multiple calls to
-    `propose_change()` with the same `change_lock_t`, but no more than one call to
+    3. Call `propose_*()`. You can make multiple calls to `propose_change()` and
+    `propose_noop()` with the same `change_lock_t`, but no more than one call to
     `propose_config_change()`.
 
     4. Destroy the `change_lock_t` so the Raft cluster can process your transaction.
 
     5. If you need to be notified of whether your transaction succeeds or not, wait on
-    the `change_token_t` returned by `propose_[config_]change()`. */
+    the `change_token_t` returned by `propose_*()`. */
 
     /* These watchables indicate whether this Raft member is ready to accept changes. In
-    general, if these watchables are true, then `propose_[config_]change()` will probably
-    succeed. (However, this is not guaranteed.) If these watchables are false, don't
-    bother trying `propose_[config_]change()`.
+    general, if these watchables are true, then `propose_*()` will probably succeed.
+    (However, this is not guaranteed.) If these watchables are false, don't bother trying
+    `propose_*()`.
 
     Under the hood, these are true if:
     - This member is currently the leader
@@ -607,16 +607,16 @@ public:
     }
 
     /* `change_lock_t` freezes the Raft member state in preparation for calling
-    `propose_[config_]change()`. Only one `change_lock_t` can exist at a time, and while
-    it exists, the Raft member will not process normal traffic; so don't keep the
-    `change_lock_t` around longer than necessary. However, it is safe to block while
-    holding the `change_lock_t` if you need to.
+    `propose_*()`. Only one `change_lock_t` can exist at a time, and while it exists, the
+    Raft member will not process normal traffic; so don't keep the `change_lock_t` around
+    longer than necessary. However, it is safe to block while holding the `change_lock_t`
+    if you need to.
 
     The point of `change_lock_t` is that `get_latest_state()` will not change while the
-    `change_lock_t` exists, unless the lock owner calls `propose_[config_]change()`. The
-    state reported by `get_latest_state()` is guaranteed to be the state that the
-    proposed change will be applied to. This makes it possible to atomically read the
-    state and issue a change conditional on the state. */
+    `change_lock_t` exists, unless the lock owner calls `propose_*()`. The state reported
+    by `get_latest_state()` is guaranteed to be the state that the proposed change will
+    be applied to. This makes it possible to atomically read the state and issue a change
+    conditional on the state. */
     class change_lock_t {
     public:
         change_lock_t(raft_member_t *parent, signal_t *interruptor);
@@ -639,21 +639,25 @@ public:
     };
 
     /* `propose_change()` tries to apply a `change_t` to the cluster.
-    `propose_config_change()` tries to change the cluster's configuration. 
+    `propose_config_change()` tries to change the cluster's configuration.
+    `propose_noop()` executes a transaction with no side effects; this can be used to
+    test if this node is actually a functioning leader. 
 
-    `propose_[config_]change()` will block while the change is being initiated; this
-    should be a relatively quick process.
+    `propose_*()` will block while the change is being initiated; this should be a
+    relatively quick process.
 
-    If the change is successfully initiated, `propose_[config_]change()` will return a
-    `change_token_t` that you can use to monitor the progress of the change. If it is not
-    successful, it will return `nullptr`. See `get_readiness_for_[config_]change()` for
-    an explanation of when and why it will return `nullptr`. */
+    If the change is successfully initiated, `propose_*()` will return a `change_token_t`
+    that you can use to monitor the progress of the change. If it is not successful, it
+    will return `nullptr`. See `get_readiness_for_[config_]change()` for an explanation
+    of when and why it will return `nullptr`. */
     scoped_ptr_t<change_token_t> propose_change(
         change_lock_t *change_lock,
         const typename state_t::change_t &change);
     scoped_ptr_t<change_token_t> propose_config_change(
         change_lock_t *change_lock,
         const raft_config_t &new_config);
+    scoped_ptr_t<change_token_t> propose_noop(
+        change_lock_t *change_lock);
 
     /* When a Raft member calls `send_rpc()` on its `raft_network_interface_t`, the RPC
     is sent across the network and delivered by calling `on_rpc()` at its destination. */

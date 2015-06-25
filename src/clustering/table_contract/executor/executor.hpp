@@ -47,6 +47,8 @@ public:
         return &local_table_query_bcards;
     }
 
+    range_map_t<key_range_t::right_bound_t, table_shard_status_t> get_shard_status();
+
 private:
     /* The actual work of executing the contract--accepting queries from the user,
     performing backfills, etc.--is carried out by the three `execution_t` subclasses,

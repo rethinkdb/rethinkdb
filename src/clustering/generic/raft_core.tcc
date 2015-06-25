@@ -252,6 +252,33 @@ raft_member_t<state_t>::propose_config_change(
 }
 
 template<class state_t>
+scoped_ptr_t<typename raft_member_t<state_t>::change_token_t>
+raft_member_t<state_t>::propose_noop(
+        change_lock_t *change_lock) {
+    assert_thread();
+    change_lock->mutex_acq.guarantee_is_holding(&mutex);
+
+    if (!readiness_for_change.get_ref()) {
+        return scoped_ptr_t<change_token_t>();
+    }
+    guarantee(mode == mode_t::leader);
+
+    raft_log_index_t log_index = ps().log.get_latest_index() + 1;
+    scoped_ptr_t<change_token_t> change_token(
+        new change_token_t(this, log_index, false));
+
+    raft_log_entry_t<state_t> new_entry;
+    new_entry.type = raft_log_entry_type_t::noop;
+    new_entry.term = ps().current_term;
+
+    leader_append_log_entry(new_entry, &change_lock->mutex_acq);
+    guarantee(ps().log.get_latest_index() == log_index);
+
+    DEBUG_ONLY_CODE(check_invariants(&change_lock->mutex_acq));
+    return change_token;
+}
+
+template<class state_t>
 void raft_member_t<state_t>::on_rpc(
         const raft_rpc_request_t<state_t> &request,
         raft_rpc_reply_t *reply_out) {

@@ -24,6 +24,7 @@
 #include "rdb_protocol/artificial_table/in_memory.hpp"
 #include "rdb_protocol/context.hpp"
 
+class namespace_repo_t;
 class real_reql_cluster_interface_t;
 class server_config_client_t;
 class table_meta_client_t;
@@ -205,6 +206,7 @@ public:
                 *_directory_map_view,
             table_meta_client_t *_table_meta_client,
             server_config_client_t *_server_config_client,
+            namespace_repo_t *_namespace_repo,
             mailbox_manager_t *_mailbox_manager);
     reql_cluster_interface_t *get_reql_cluster_interface() {
         return reql_cluster_interface.get();

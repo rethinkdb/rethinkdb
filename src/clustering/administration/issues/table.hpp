@@ -7,14 +7,17 @@
 #include "clustering/administration/issues/issue.hpp"
 #include "containers/scoped.hpp"
 
+class namespace_repo_t;
 class server_config_client_t;
 class table_meta_client_t;
 class table_basic_config_t;
 
 class table_issue_tracker_t : public issue_tracker_t {
 public:
-    table_issue_tracker_t(server_config_client_t *server_config_client,
-                          table_meta_client_t *_table_meta_client);
+    table_issue_tracker_t(
+        server_config_client_t *server_config_client,
+        table_meta_client_t *_table_meta_client,
+        namespace_repo_t *_namespace_repo);
     ~table_issue_tracker_t();
 
     std::vector<scoped_ptr_t<issue_t> > get_issues(signal_t *interruptor) const;
@@ -26,6 +29,7 @@ private:
 
     server_config_client_t *server_config_client;
     table_meta_client_t *table_meta_client;
+    namespace_repo_t *namespace_repo;
 
     DISABLE_COPYING(table_issue_tracker_t);
 };

@@ -63,6 +63,56 @@ contract_executor_t::~contract_executor_t() {
     }
 }
 
+range_map_t<key_range_t::right_bound_t, table_shard_status_t>
+contract_executor_t::get_shard_status() {
+    range_map_t<key_range_t::right_bound_t, table_shard_status_t> result(
+        key_range_t::right_bound_t(store_key_t::min()),
+        key_range_t::right_bound_t::make_unbounded());
+    raft_state->apply_read([&](const table_raft_state_t *state) {
+        for (const auto &pair : state->contracts) {
+            if (pair.second.second.replicas.count(server_id) == 0) {
+                continue;
+            }
+            result.visit_mutable(
+            key_range_t::right_bound_t(pair.second.first.inner.left),
+            pair.second.first.inner.right,
+            [&](const key_range_t::right_bound_t &,
+                    const key_range_t::right_bound_t &,
+                    table_shard_status_t *status) {
+                ack_map.read_key(std::make_pair(server_id, pair.first),
+                [&](const contract_ack_t *ack) {
+                    if (ack == nullptr) {
+                        status->transitioning = true;
+                        return;
+                    }
+                    switch (ack->state) {
+                        case contract_ack_t::state_t::primary_need_branch:
+                            status->primary = true;
+                            status->need_quorum = true;
+                            break;
+                        case contract_ack_t::state_t::primary_in_progress:  // fall thru
+                        case contract_ack_t::state_t::primary_ready:
+                            status->primary = true;
+                            break;
+                        case contract_ack_t::state_t::secondary_need_primary:
+                            status->secondary = true;
+                            status->need_primary = true;
+                            break;
+                        case contract_ack_t::state_t::secondary_backfilling:
+                            status->secondary = true;
+                            status->backfilling = true;
+                            break;
+                        case contract_ack_t::state_t::secondary_streaming:
+                            status->secondary = true;
+                            break;
+                    }
+                });
+            });
+        }
+    });
+    return result;
+}
+
 contract_executor_t::execution_key_t contract_executor_t::get_contract_key(
         const std::pair<region_t, contract_t> &pair,
         const branch_id_t &branch) {

@@ -159,6 +159,11 @@ table_raft_state_t make_new_table_raft_state(
     return state;
 }
 
+RDB_IMPL_EQUALITY_COMPARABLE_6(table_shard_status_t,
+    primary, secondary, need_primary, need_quorum, backfilling, transitioning);
+RDB_IMPL_SERIALIZABLE_6_FOR_CLUSTER(table_shard_status_t,
+    primary, secondary, need_primary, need_quorum, backfilling, transitioning);
+
 void debug_print(printf_buffer_t *buf, const contract_t::primary_t &primary) {
     buf->appendf("primary_t { server = ");
     debug_print(buf, primary.server);
