@@ -196,6 +196,13 @@ with driver.Cluster(initial_servers=['a', 'b', 'never_used'], output_folder='.',
     test_invalid(r.row.without("primary_key"))
     test_invalid(r.row.without("db"))
     test_invalid(r.row.without("shards"))
+    test_invalid(r.row.merge({"durability": "hard as rock"}))
+    test_invalid(r.row.merge({"durability": 1}))
+    test_invalid(r.row.merge({"write_acks": [{"replicas": ["a"], "acks": "single"}]}))   # This was OK before 2.1
+    test_invalid(r.row.merge({"write_acks": 3}))
+    test_invalid(r.row.merge({"write_acks": "this is a string"}))
+    test_invalid(r.row.without("durability"))
+    test_invalid(r.row.without("write_acks"))
 
     print("Testing that table_status is not writable (%.2fs)" %
         (time.time() - startTime))
