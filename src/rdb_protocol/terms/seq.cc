@@ -405,7 +405,8 @@ private:
             include_states = v->as_bool();
         }
         scoped_ptr_t<val_t> include_initial_vals_val =
-            args->optarg(env, "include_initial_vals");
+            scoped_ptr_t<val_t>();
+            // args->optarg(env, "include_initial_vals");
 
         scoped_ptr_t<val_t> v = args->arg(env, 0);
         configured_limits_t limits = env->env->limits_with_changefeed_queue_size(
