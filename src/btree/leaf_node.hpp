@@ -154,6 +154,8 @@ void insert(
         repli_timestamp_t maximum_existing_tstamp,
         UNUSED key_modification_proof_t km_proof);
 
+/* `remove()` removes any preexisting value or tombstone, then creates a tombstone unless
+`tstamp` is before `tstamp_cutpoint`. */
 void remove(
         value_sizer_t *sizer,
         leaf_node_t *node,
