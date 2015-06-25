@@ -99,18 +99,6 @@ TPTEST(ClusteringBranch, ReadWrite) {
 /* The `Backfill` test starts up a node with one mirror, inserts some data, and
 then adds another mirror. */
 
-static void write_to_dispatcher(
-        primary_dispatcher_t *dispatcher,
-        const std::string& key,
-        const std::string& value,
-        order_token_t otok,
-        signal_t *) {
-    write_t w = mock_overwrite(key, value);
-    simple_write_callback_t write_callback;
-    dispatcher->spawn_write(w, otok, &write_callback);
-    write_callback.wait_lazily_unordered();
-}
-
 void run_backfill_test(
         simple_mailbox_cluster_t *cluster,
         primary_dispatcher_t *dispatcher,
@@ -119,13 +107,32 @@ void run_backfill_test(
         order_source_t *order_source) {
     /* Start sending operations to the broadcaster */
     std::map<std::string, std::string> inserter_state;
-    test_inserter_t inserter(
-        std::bind(&write_to_dispatcher, dispatcher, ph::_1, ph::_2, ph::_3, ph::_4),
-        std::function<std::string(const std::string &, order_token_t, signal_t *)>(),
-        &dummy_key_gen,
-        order_source,
-        "run_backfill_test/inserter",
-        &inserter_state);
+    class inserter_t : public test_inserter_t {
+    public:
+        inserter_t(
+                primary_dispatcher_t *d,
+                std::map<std::string, std::string> *s,
+                order_source_t *os) :
+            test_inserter_t(os, "run_backfill_test::inserter_t", s, true),
+            dispatcher(d)
+            { }
+    private:
+        void write(const std::string &key, const std::string &value,
+                order_token_t otok, signal_t *) {
+            write_t w = mock_overwrite(key, value);
+            simple_write_callback_t write_callback;
+            dispatcher->spawn_write(w, otok, &write_callback);
+            write_callback.wait_lazily_unordered();
+        }
+        std::string read(const std::string &, order_token_t, signal_t *) {
+            unreachable();
+        }
+        std::string generate_key() {
+            return dummy_key_gen();
+        }
+        primary_dispatcher_t *dispatcher;
+    } inserter(dispatcher, &inserter_state, order_source);
+
     nap(100);
 
     remote_replicator_server_t remote_replicator_server(

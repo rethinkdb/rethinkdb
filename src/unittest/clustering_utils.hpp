@@ -87,15 +87,11 @@ public:
     typedef std::map<std::string, std::string> state_t;
 
     test_inserter_t(
-            std::function<void(const std::string &, const std::string &, order_token_t, signal_t *)> _wfun,
-            std::function<std::string(const std::string &, order_token_t, signal_t *)> _rfun,
-            std::function<std::string()> _key_gen_fun,
             order_source_t *_osource,
             const std::string &_tag,
             state_t *state,
             bool should_start = true) :
-        values_inserted(state), wfun(_wfun), rfun(_rfun), key_gen_fun(_key_gen_fun),
-        osource(_osource), tag(_tag), next_value(0)
+        values_inserted(state), osource(_osource), tag(_tag), next_value(0)
     {
         for (const auto &pair : *values_inserted) {
             keys_used.push_back(pair.first);
@@ -127,7 +123,58 @@ public:
         return drainer.has();
     }
 
+    void validate() {
+        for (state_t::iterator it = values_inserted->begin();
+                               it != values_inserted->end();
+                               it++) {
+            cond_t non_interruptor;
+            std::string response = read(
+                it->first,
+                osource->check_in(strprintf("mock::test_inserter_t::validate(%p)", this))
+                    .with_read_mode(),
+                &non_interruptor);
+            if (it->second != response) {
+                report_error(it->first, it->second, response);
+            }
+        }
+    }
+
+    /* `validate_no_extras()` makes sure that no keys from `extras` are present that are
+    not supposed to be present. It complements `validate`, which only checks for the
+    existence of keys that are supposed to exist. */
+    void validate_no_extras(const std::map<std::string, std::string> &extras) {
+        for (const auto &pair : extras) {
+            auto it = values_inserted->find(pair.first);
+            std::string expect = it != values_inserted->end() ? it->second : "";
+            cond_t non_interruptor;
+            std::string actual = read(
+                pair.first,
+                osource->check_in(strprintf("mock::test_inserter_t::validate(%p)", this))
+                    .with_read_mode(),
+                &non_interruptor);
+            if (expect != actual) {
+                report_error(pair.first, expect, actual);
+            }
+        }
+    }
+
     state_t *values_inserted;
+
+protected:
+    virtual void write(
+            const std::string &, const std::string &, order_token_t, signal_t *) = 0;
+    virtual std::string read(const std::string &, order_token_t, signal_t *) = 0;
+    virtual std::string generate_key() = 0;
+
+    virtual void report_error(
+            const std::string &key,
+            const std::string &expect,
+            const std::string &actual) {
+        crash("For key `%s`: expected `%s`, got `%s`\n",
+            key.c_str(), expect.c_str(), actual.c_str());
+    }
+
+    virtual ~test_inserter_t() { }
 
 private:
     scoped_ptr_t<auto_drainer_t> drainer;
@@ -135,7 +182,7 @@ private:
     void insert_one() {
         std::string key, value;
         if (randint(3) != 0 || keys_used.empty()) {
-            key = key_gen_fun();
+            key = generate_key();
             value = strprintf("%d", next_value++);
             keys_used.push_back(key);
         } else {
@@ -149,7 +196,7 @@ private:
         }
         (*values_inserted)[key] = value;
         cond_t interruptor;
-        wfun(key, value, osource->check_in(tag), &interruptor);
+        write(key, value, osource->check_in(tag), &interruptor);
     }
 
     void insert_forever(auto_drainer_t::lock_t keepalive) {
@@ -164,45 +211,7 @@ private:
         }
     }
 
-public:
-    void validate() {
-        for (state_t::iterator it = values_inserted->begin();
-                               it != values_inserted->end();
-                               it++) {
-            cond_t non_interruptor;
-            std::string response = rfun(
-                it->first,
-                osource->check_in(strprintf("mock::test_inserter_t::validate(%p)", this))
-                    .with_read_mode(),
-                &non_interruptor);
-            guarantee(it->second == response, "For key `%s`: expected `%s`, got `%s`\n",
-                it->first.c_str(), it->second.c_str(), response.c_str());
-        }
-    }
-
-    /* `validate_no_extras()` makes sure that no keys from `extras` are present that are
-    not supposed to be present. It complements `validate`, which only checks for the
-    existence of keys that are supposed to exist. */
-    void validate_no_extras(const std::map<std::string, std::string> &extras) {
-        for (const auto &pair : extras) {
-            auto it = values_inserted->find(pair.first);
-            std::string expect = it != values_inserted->end() ? it->second : "";
-            cond_t non_interruptor;
-            std::string actual = rfun(
-                pair.first,
-                osource->check_in(strprintf("mock::test_inserter_t::validate(%p)", this))
-                    .with_read_mode(),
-                &non_interruptor);
-            guarantee(expect == actual, "For key `%s`: expected `%s`, got `%s`\n",
-                pair.first.c_str(), expect.c_str(), actual.c_str());
-        }
-    }
-
-private:
     std::vector<std::string> keys_used;
-    std::function<void(const std::string &, const std::string &, order_token_t, signal_t *)> wfun;
-    std::function<std::string(const std::string &, order_token_t, signal_t *)> rfun;
-    std::function<std::string()> key_gen_fun;
     order_source_t *osource;
     std::string tag;
     int next_value;
