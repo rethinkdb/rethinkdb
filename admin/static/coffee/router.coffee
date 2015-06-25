@@ -4,7 +4,7 @@ log_view = require('./log_view.coffee')
 dataexplorer_view = require('./dataexplorer.coffee')
 tables_view = require('./tables/index.coffee')
 table_view = require('./tables/table.coffee')
-servers_view = require('./servers/index.coffee')
+servers_index = require('./servers/index.coffee')
 server_view = require('./servers/server.coffee')
 app = require('./app.coffee')
 
@@ -48,7 +48,7 @@ class BackboneCluster extends Backbone.Router
 
     index_servers: (data) ->
         @current_view.remove()
-        @current_view = new servers_view.ServersContainer
+        @current_view = new servers_index.View
         @container.html @current_view.render().$el
 
     dashboard: ->

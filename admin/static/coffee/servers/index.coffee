@@ -1,156 +1,102 @@
 # Copyright 2010-2015 RethinkDB
 
+
+r = require('rethinkdb')
+h = require('virtual-dom/h')
+diff = require('virtual-dom/diff')
+patch = require('virtual-dom/patch')
+createElement = require('virtual-dom/create-element')
+moment = require('moment')
+
+util = require('../util.coffee')
 app = require('../app.coffee')
 system_db = app.system_db
 driver = app.driver
 models = require('../models.coffee')
 
-r = require('rethinkdb')
 
-class ServersContainer extends Backbone.View
-    id: 'servers_container'
-    template:
-        main: require('../../handlebars/servers_container.hbs')
+class Model extends Backbone.Model
+    @query: (server_configs, server_statuses, table_status) ->
+        servers: server_configs.map(server_statuses, (sconfig, sstatus) ->
+            id: sconfig('id')
+            name: sconfig('name')
+            tags: sconfig('tags')
+            time_started: sstatus('process')('time_started')
+            hostname: sstatus('network')('hostname')
+            cache_size: sconfig('cache_size_mb')
+            primary_count: table_status.map((table) ->
+                table('shards').count((shard) ->
+                    shard('primary_replicas').contains(sconfig('name')))
+            ).sum()
+            secondary_count:
+                table_status.map((table) ->
+                    table('shards').count (shard) ->
+                        shard('replicas')('server').contains(sconfig('name')).and(
+                            shard('primary_replicas').contains(sconfig('name')).not())
+                ).sum()
+        ).coerceTo('array')
+    defaults:
+        servers: []
 
-    initialize: =>
-        if not app.view_data_backup.servers_view_servers?
-            app.view_data_backup.servers_view_servers = new models.Servers
-            @loading = true
-        else
-            @loading = false
-        @servers = app.view_data_backup.servers_view_servers
+class View extends Backbone.View
+    initialize: (options) ->
+        if not options?.model
+            @model = new Model()
+        @listenTo @model, "change", @render
+        @current_vdom_tree = @render_vdom()
+        @setElement(createElement(@current_vdom_tree))
 
-        @servers_list = new ServersListView
-            collection: @servers
+        @fetch()
 
-        @fetch_servers()
+    fetch: ->
+        server_config = r.db(system_db).table('server_config')
+        server_status = r.db(system_db).table('server_status')
+        table_status = r.db(system_db).table('table_status')
 
-    render: =>
-        @$el.html @template.main({})
-        @$('.servers_list').html @servers_list.render().$el
-        @
-
-
-    fetch_servers: =>
-        query = r.do(
-            r.db(system_db).table('server_config').map((x) ->[x('id'), x]).coerceTo('ARRAY').coerceTo('OBJECT')
-            r.db(system_db).table('table_config').coerceTo('array'),
-            r.db(system_db).table('table_config').coerceTo('array')
-                .concatMap((table) -> table('shards').default([])),
-            (server_config, table_config, table_config_shards) ->
-                r.db(system_db).table('server_status').merge( (server) ->
-                    id: server("id")
-                    tags: server_config(server('id'))('tags')
-                    primary_count:
-                        table_config.concatMap( (table) -> table("shards").default([]) )
-                        .count((shard) ->
-                            shard("primary_replica").eq(server("name")))
-                    secondary_count:
-                        table_config_shards.filter((shard) ->
-                            shard("primary_replica").ne(server("name")))
-                        .map((shard) -> shard("replicas").count((replica) ->
-                            replica.eq(server("name")))).sum()
-            )
+        query = r.expr(
+            Model.query(server_config, server_status, table_status)
         )
         @timer = driver.run query, 5000, (error, result) =>
             if error?
                 console.log error
-                return
-            ids = {}
-            for server, index in result
-                @servers.add new models.Server(server)
-                ids[server.id] = true
-
-            # Clean  removed servers
-            toDestroy = []
-            for server in @servers.models
-                if ids[server.get('id')] isnt true
-                    toDestroy.push server
-            for server in toDestroy
-                server.destroy()
-
-            @render()
-
-    remove: =>
-        driver.stop_timer @timer
-        @servers_list.remove()
-        super()
-
-class ServersListView extends Backbone.View
-    className: 'servers_view'
-    tagName: 'tbody'
-    template:
-        loading_servers: require('../../handlebars/loading_servers.hbs')
-    initialize: =>
-        @servers_view = []
-
-        @collection.each (server) =>
-            view = new ServerView
-                model: server
-            @servers_view.push view
-            @$el.append view.render().$el
-
-
-        @listenTo @collection, 'add', (server) =>
-            new_view = new ServerView
-                model: server
-
-            if @servers_view.length is 0
-                @servers_view.push new_view
-                @$el.html new_view.render().$el
             else
-                added = false
-                for view, position in @servers_view
-                    if view.model.get('name') > server.get('name')
-                        added = true
-                        @servers_view.splice position, 0, new_view
-                        if position is 0
-                            @$el.prepend new_view.render().$el
-                        else
-                            @$('.server_container').eq(position-1).after new_view.render().$el
-                        break
-                if added is false
-                    @servers_view.push new_view
-                    @$el.append new_view.render().$el
-
-        #TODO Test when we can remove a server from the API
-        @listenTo @collection, 'remove', (server) =>
-            for view in @servers_view
-                if view.model is server
-                    server.destroy()
-                    view.remove()
-                    break
-
-    render: =>
-        if @servers_view.length is 0
-            # No servers means we are probably loading
-            @$el.append @template.loading_servers()
-        else
-            for server_view in @servers_view
-                @$el.append server_view.render().$el
-        @
-
-    remove: =>
-        @stopListening()
-        for view in @servers_view
-            view.remove()
-        super()
-
-class ServerView extends Backbone.View
-    className: 'server_container'
-    tagName: 'tr'
-    template: require('../../handlebars/server.hbs')
-    initialize: =>
-        @listenTo @model, 'change', @render
+                @model.set(result)
+    remove: ->
+        driver.stop_timer @timer
+        super
 
     render: ->
-        @$el.html @template @model.toJSON()
+        new_tree = @render_vdom()
+        patch(@el, diff(@current_vdom_tree, new_tree))
+        @current_vdom_tree = new_tree
         @
 
-    remove: =>
-        @stopListening()
+    render_vdom: ->
+        h "div.servers-container", [
+            h "h1.title", "Servers connected to the cluster"
+            h "table.servers-list.section",
+                @model.get('servers').map(render_server)
+        ]
 
+render_server = (server) ->
+    h "tr.server-container", [
+        h "td.name", [
+            h "a", href: "#servers/#{server.id}", server.name
+            h "span.tags", title: server.tags.join(", "),
+                server.tags.join(', ')
+        ]
+        h "td.quick-info", [
+            "#{server.primary_count} "
+            "#{util.pluralize_noun('primary', server.primary_count)}, "
+            "#{server.secondary_count} "
+            "#{util.pluralize_noun('secondary', server.secondary_count)}"
+        ]
+        h "td.quick-info", [
+            h("span.highlight", server.hostname)
+            ", up for "
+            moment(server.time_started).fromNow(true)
+        ]
+   ]
 
-exports.ServersContainer = ServersContainer
-exports.ServersListView = ServersListView
-exports.ServerView = ServerView
+exports.View = View
+exports.Model = Model

@@ -19,12 +19,17 @@ This will also help porting if we move to another CSS preprocessor (say scss)
 
 /* Colors */
 @text-color: #5c6169;
+@alternate-text-color: #626264;
+@light-text-color: #9898A0;
 @shard-title-color: #5c6169;
 @link-color-hover: #005580;
-@link-color: #08C;
+@link-color: #0597d8;
+@light-border-color: #cfcfd1;
+@profile-icon-color: #d0d0d0;
 @dividing-line-color: #f0f0f0;
+@status-separator-color: #e4e4e4;
+@almost-white: #fafafa;
 @profile-description-blue: #72bddf;
-@profile-value-gray: #5C6169;
 /* Fonts */
 @sans: "Open Sans";
 @serif: "Copse";
@@ -67,6 +72,10 @@ This will also help porting if we move to another CSS preprocessor (say scss)
 @tags-icon: @ion-pricetags-outline;
 /* End of ionicon elements */
 
+/* Standardized widths (keep this section minimal probably) */
+@border-padding: 20px;
+/* End of standardized padding */
+
 /* Mixin functions */
 .icon-before(@image; @icon-size: 16px; @padding: 10px) {
     // Add an icon before an element, centered vertically
@@ -80,7 +89,7 @@ This will also help porting if we move to another CSS preprocessor (say scss)
     content: @content;
     font-family: Ionicons;
     font-size: 20px;
-    color: #D0D0D0;
+    color: @profile-icon-color;
     padding: 0 10px 10px 0;
     left: 0 + @xoffset;
     top: 50% + @yoffset;
@@ -161,7 +170,7 @@ This will also help porting if we move to another CSS preprocessor (say scss)
         @role-width: 205px;
         @state-width: 181px;
         .flex-evenly-spaced-centered;
-        border-bottom: 1px solid #eee;
+        border-bottom: 1px solid @light-border-color;
         padding: 7px 0px;
         font-size: 14px;
         .child-role {
@@ -221,13 +230,13 @@ This will also help porting if we move to another CSS preprocessor (say scss)
         overflow: hidden;
         text-overflow: ellipsis;
         .big {
-            color: @profile-value-gray;
+            color: @text-color;
             font-size: 24px;
             line-height: 30px;
         }
         .tags, &.admonition {
             font-size: 18px;
-            color: @profile-value-gray;
+            color: @text-color;
         }
 
     }
@@ -247,4 +256,74 @@ This will also help porting if we move to another CSS preprocessor (say scss)
         .ionicon-before(@tags-icon, 1px, -5px);
     }
 
+}
+
+table.servers-list {
+    padding: 2px 11px !important;
+    min-width: 940px;
+    max-width: 940px;
+    background: @almost-white;
+    border-radius: 4px;
+    border-collapse: separate;
+    border-spacing: 0 10px;
+}
+.server-shadow {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+tr.server-container {
+    @bar_height: 44px;
+    background: white;
+
+    @border-padding: 20px;
+    @outer-border-style: 1px solid @light-border-color;
+    @offset: 8px;
+    @line-height: @bar_height - @offset*2;
+    font-family: @sans;
+    .server-shadow;
+    td {
+        @offset: 8px;
+        border-bottom: @outer-border-style;
+        border-top: @outer-border-style;
+        margin: 0px 0px;
+        padding: 10px;
+        &:first-child {
+            border-radius: 3px 0px 0px 3px;
+            border-left: @outer-border-style;
+        }
+        &:last-child {
+            border-radius: 0px 3px 3px 0px;
+            border-right: @outer-border-style;
+        }
+    }
+    .name {
+        background: @border-padding center no-repeat url('images/server-icon.png');
+        padding-right: 20px;
+        padding-left: 60px;
+        a {
+            color: @link-color;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        .tags {
+            border-left: 0px;
+            font-weight: normal;
+            font-size: 13px;
+            margin-left: 5px;
+            color: @light-text-color;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    }
+    .quick-info {
+        color: @alternate-text-color;
+        padding-left: 20px;
+        padding-right: 20px;
+        white-space: nowrap;
+        .highlight {
+            font-weight: bold;
+        }
+    }
 }
