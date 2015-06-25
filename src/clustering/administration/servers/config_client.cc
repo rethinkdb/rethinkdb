@@ -54,7 +54,11 @@ bool server_config_client_t::set_config(
 
     boost::optional<peer_id_t> peer = server_to_peer_map.get_key(server_id);
     if (!static_cast<bool>(peer)) {
-        *error_out = admin_err_t{disconnect_msg, query_state_t::FAILED};
+        std::string s = strprintf(
+            "Could not contact server `%s` while trying to change the server "
+            "configuration.  The configuration was not changed.",
+            old_server_name.c_str());
+        *error_out = admin_err_t{s, query_state_t::FAILED};
         return false;
     }
     server_config_business_card_t bcard;
@@ -77,7 +81,7 @@ bool server_config_client_t::set_config(
         wait_any_t waiter(reply.get_ready_signal(), &disconnect_watcher);
         wait_interruptible(&waiter, interruptor);
         if (!reply.is_pulsed()) {
-            *error_out = admin_err_t{disconnect_msg, query_state_t::FAILED};
+            *error_out = admin_err_t{disconnect_msg, query_state_t::INDETERMINATE};
             return false;
         }
         if (!reply.assert_get_value().second.empty()) {
