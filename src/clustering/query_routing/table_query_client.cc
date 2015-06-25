@@ -222,7 +222,7 @@ void table_query_client_t::dispatch_immediate_op(
     }
     if (first_failure) {
         guarantee(!seen_non_failure);
-        throw first_failure;
+        throw *first_failure;
     }
 
     op.unshard(results.data(), results.size(), response, ctx, interruptor);

@@ -12,15 +12,17 @@ struct admin_err_t {
 };
 
 // These have to be macros because `rfail` and `rfail_datum` are macros.
-#define REQL_RETHROW(X) do {                                          \
-        rfail(error.query_state == query_state_t::FAILED              \
-              ? ql::base_exc_t::OP_FAILED : ql::base_exc_t::OP_INDETERMINATE, \
-          "%s", error.msg.c_str());                                   \
+#define REQL_RETHROW(X) do {                                            \
+        rfail((X).query_state == query_state_t::FAILED                  \
+              ? ql::base_exc_t::OP_FAILED                               \
+              : ql::base_exc_t::OP_INDETERMINATE,                       \
+              "%s", (X).msg.c_str());                                   \
     } while (0)
-#define REQL_RETHROW_DATUM(X) do {                                          \
-        rfail_datum(error.query_state == query_state_t::FAILED              \
-                    ? ql::base_exc_t::OP_FAILED : ql::base_exc_t::OP_INDETERMINATE, \
-          "%s", error.msg.c_str());                                         \
+#define REQL_RETHROW_DATUM(X) do {                                      \
+        rfail_datum((X).query_state == query_state_t::FAILED            \
+                    ? ql::base_exc_t::OP_FAILED                         \
+                    : ql::base_exc_t::OP_INDETERMINATE,                 \
+                    "%s", (X).msg.c_str());                             \
     } while (0)
 
 

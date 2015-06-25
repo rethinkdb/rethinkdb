@@ -643,7 +643,7 @@ class table_term_t : public op_term_t {
 public:
     table_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1, 2),
-          optargspec_t({ "read_mode", "identifier_format" })) { }
+          optargspec_t({"read_mode", "identifier_format"})) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         read_mode_t read_mode = read_mode_t::SINGLE;
@@ -663,7 +663,8 @@ private:
         }
 
         auto identifier_format =
-            boost::make_optional<admin_identifier_format_t>(false, admin_identifier_format_t());
+            boost::make_optional<admin_identifier_format_t>(
+                false, admin_identifier_format_t());
         if (scoped_ptr_t<val_t> v = args->optarg(env, "identifier_format")) {
             const datum_string_t &str = v->as_str();
             if (str == "name") {

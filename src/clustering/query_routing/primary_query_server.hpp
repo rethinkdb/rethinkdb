@@ -31,14 +31,14 @@ public:
             order_token_t order_token,
             signal_t *interruptor,
             write_response_t *response_out,
-            std::string *error_out) = 0;
+            admin_err_t *error_out) = 0;
         virtual bool on_read(
             const read_t &request,
             fifo_enforcer_sink_t::exit_read_t *exiter,
             order_token_t order_token,
             signal_t *interruptor,
             read_response_t *response_out,
-            std::string *error_out) = 0;
+            admin_err_t *error_out) = 0;
     protected:
         virtual ~query_callback_t() { }
     };
