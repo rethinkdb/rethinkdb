@@ -140,7 +140,7 @@ void primary_dispatcher_t::read(
             throw;
         } else {
             throw cannot_perform_query_exc_t(
-                "lost contact with replica during read",
+                "Lost contact with replica during read.",
                 query_state_t::INDETERMINATE);
         }
     }
