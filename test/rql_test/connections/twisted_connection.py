@@ -16,8 +16,7 @@ import time
 import unittest
 import socket
 
-from twisted.internet import reactor
-from twisted.internet import defer
+from twisted.internet import reactor, defer, threads
 from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.python.failure import Failure
 
@@ -90,6 +89,18 @@ def closeSharedServer():
     sharedServerOutput = None
     sharedServerHost = None
     sharedServerDriverPort = None
+
+# == Utilities functions
+def start_timeout(timeout, *defersToFail):
+    # Timeout = 0 or None then, there is no timeout.
+    if timeout == 0 or timeout is None or (not timeout):
+        return
+
+    def raisesTimeout():
+        for deferToFail in defersToFail:
+            deferToFail.errback(r.RqlTimeoutError())
+
+    return reactor.callLater(timeout, raisesTimeout)
 
 
 # == Test Base Classes
@@ -509,10 +520,11 @@ class TestBatching(TestWithConnection):
         yield t1.insert([{'id': i} for i in ids]).run(c)
         cursor = yield t1.run(c, max_batch_rows=batch_size)
 
-        for i in xrange(0, count - 1):
+        for i in xrange(count - 1):
             row = yield cursor.next()
             self.assertTrue(row['id'] in ids)
             ids.remove(row['id'])
+
 
         self.assertEqual((yield cursor.next())['id'], ids.pop())
         with self.assertRaises(r.RqlCursorEmpty):
@@ -600,8 +612,8 @@ class TestCursor(TestWithConnection):
 
         @inlineCallbacks
         def read_cursor(cursor):
-            for item in cursor:
-                yield item
+            while (yield cursor.fetch_next()):
+                item = yield cursor.next()
                 cursor.close()
 
         with self.assertRaisesRegexp(r.RqlRuntimeError, "Connection is closed."):
@@ -612,8 +624,8 @@ class TestCursor(TestWithConnection):
         cursor = yield r.range().run(self.conn)
         cursor.close()
         count = 0
-        for item in cursor:
-            yield item
+        while (yield cursor.fetch_next()):
+            item = yield cursor.next()
             count += 1
 
         self.assertNotEqual(count, 0, "Did not get any cursor results")
@@ -623,8 +635,8 @@ class TestCursor(TestWithConnection):
         cursor = yield r.range().run(self.conn)
         count = 0
 
-        for item in cursor:
-            yield item
+        while (yield cursor.fetch_next()):
+            item = yield cursor.next()
             count += 1
             if count == 2:
                 cursor.close()
@@ -636,8 +648,8 @@ class TestCursor(TestWithConnection):
         range_size = 10000
         cursor = yield r.range().limit(range_size).run(self.conn)
         count = 0
-        for item in cursor:
-            yield item
+        while (yield cursor.fetch_next()):
+            item = yield cursor.next()
             count += 1
         self.assertEqual(count, range_size,
              "Expected %d results on the cursor, but got %d" % (range_size, count))
@@ -648,14 +660,14 @@ class TestCursor(TestWithConnection):
         cursor = yield r.range().limit(range_size).run(self.conn)
         count = 0
 
-        for item in cursor:
-            yield item
+        while (yield cursor.fetch_next()):
+            item = yield cursor.next()
             count += 1
         self.assertEqual(count, range_size,
              "Expected %d results on the cursor, but got %d" % (range_size, count))
 
-        for item in cursor:
-            yield item
+        while (yield cursor.fetch_next()):
+            item = yield cursor.next()
             count += 1
         self.assertEqual(count, range_size,
              "Expected no results on the second iteration of the cursor, but got %d" % (count - range_size))
@@ -697,7 +709,7 @@ class TestCursor(TestWithConnection):
 
         [cursor.close() for cursor in cursors]
 
-        returnValue(sum(cursor_counts), sum(cursor_timeouts))
+        returnValue((sum(cursor_counts), sum(cursor_timeouts)))
 
     @inlineCallbacks
     def test_false_wait(self):
@@ -743,15 +755,19 @@ class TestCursor(TestWithConnection):
         cursor_initial_size = len(cursor.items)
 
         # Wait for the second (pre-fetched) batch to arrive
-        yield cursor.items.get()
+        yield cursor.items.wait_for_new_item() # Wait for the queue.
+        yield sleep(0.5) # Let's wait a little bit (to let the items aggregate them).
         cursor_new_size = len(cursor.items)
 
         self.assertLess(cursor_initial_size, cursor_new_size)
 
+
         # Wait and observe that no third batch arrives
         with self.assertRaises(r.RqlTimeoutError):
-            start_timeout(2, cursor.new_response)
-            yield cursor.new_response
+            new_item = cursor.items.wait_for_new_item()
+            start_timeout(2, new_item)
+            yield new_item
+
         self.assertEqual(cursor_new_size, len(cursor.items))
 
     # Test that an error on a cursor (such as from closing the connection)
@@ -772,7 +788,7 @@ class TestCursor(TestWithConnection):
                     yield cursor.next(wait=1)
             except r.RqlTimeoutError:
                 pass
-            hanging.callback(True)
+            hanging.callback(None)
             yield cursor.next()
 
         @inlineCallbacks
@@ -787,7 +803,7 @@ class TestCursor(TestWithConnection):
                 raise ex
 
         cursor_hanging = defer.Deferred()
-        done = reactor.deferToThread(read_wrapper, cursor, cursor_hanging)
+        done = read_wrapper(cursor, cursor_hanging)
 
         # Wait for the cursor to hit the hang point before we close and cause an error
         yield cursor_hanging
@@ -831,21 +847,14 @@ class TestChangefeeds(TestWithConnection):
             yield r.db('test').table("b").insert({"id": i}).run(self.conn)
 
     @inlineCallbacks
-    def cfeed_noticer(self, table, ready, done, needed_values):
+    def cfeed_noticer(self, table, ready, needed_values):
         feed = yield r.db('test').table(table).changes(squash=False).run(self.conn)
-        try:
-            ready.callback(None)
-            for item in feed:
-                if len(needed_values) != 0:
-                    break
-
-                item = yield feed.next()
-                self.assertIsNone(item['old_val'])
-                self.assertIn(item['new_val']['id'], needed_values)
-                needed_values.remove(item['new_val']['id'])
-            done.callback(None)
-        except Exception as ex:
-            done.errback(ex)
+        ready.callback(None)
+        while len(needed_values) > 0:
+            item = yield feed.next()
+            self.assertIsNone(item['old_val'])
+            self.assertIn(item['new_val']['id'], needed_values)
+            needed_values.remove(item['new_val']['id'])
 
     @inlineCallbacks
     def test_multiple_changefeeds(self):
@@ -854,9 +863,7 @@ class TestChangefeeds(TestWithConnection):
         needed_values = { 'a': set(range(20)), 'b': set(range(10)) }
         for n in ('a', 'b'):
             feeds_ready[n] = defer.Deferred()
-            feeds_done[n] = defer.Deferred()
-            reactor.callInThread(self.cfeed_noticer, n, feeds_ready[n],
-                                 feeds_done[n], needed_values[n])
+            feeds_done[n] = self.cfeed_noticer(n, feeds_ready[n], needed_values[n])
 
         yield defer.DeferredList(feeds_ready.values())
         yield defer.DeferredList([self.table_a_even_writer(),
@@ -918,13 +925,12 @@ if __name__ == '__main__':
     defer.setDebugging(True)
     suite = AsyncSuite()
     loader = AsyncTestLoader()
-    # suite.addTest(loader.loadTestsFromTestCase(TestCursor))
-    # suite.addTest(loader.loadTestsFromTestCase(TestChangefeeds)) - TODO:
-    # Infinite loop
+    suite.addTest(loader.loadTestsFromTestCase(TestCursor))
+    suite.addTest(loader.loadTestsFromTestCase(TestChangefeeds))
     suite.addTest(loader.loadTestsFromTestCase(TestNoConnection))
     suite.addTest(loader.loadTestsFromTestCase(TestConnection))
-    # suite.addTest(TestBatching()) - TODO: Infinite loop
-    # suite.addTest(TestGetIntersectingBatching()) -- TODO: Infinite loop
+    suite.addTest(TestBatching())
+    suite.addTest(TestGetIntersectingBatching())
     suite.addTest(TestGroupWithTimeKey())
     suite.addTest(TestSuccessAtomFeed())
     suite.addTest(loader.loadTestsFromTestCase(TestShutdown))
