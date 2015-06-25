@@ -98,8 +98,9 @@ private:
     // These functions are here so that if you add a new type you have to update
     // this file.
     // THINGS TO DO:
-    // * Update the coerce_map_t
-    // * Add the various coercions
+    // * Update the coerce_map_t.
+    // * Add the various coercions.
+    // * Update the `switch` in `info_term_t`.
     // * !!! CHECK WHETHER WE HAVE MORE THAN MAX_TYPE TYPES AND INCREASE !!!
     //   !!! MAX_TYPE IF WE DO                                           !!!
     void NOCALL_ct_catch_new_types(val_t::type_t::raw_type_t t, datum_t::type_t t2) {
@@ -348,7 +349,8 @@ public:
     info_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(
+        scope_env_t *env, args_t *args, eval_flags_t) const {
         return new_val(val_info(env, args->arg(env, 0)));
     }
 
@@ -402,6 +404,44 @@ private:
                 b |= info.add("indexes", std::move(res).to_datum());
             }
         } break;
+        case TABLE_SLICE_TYPE: {
+            counted_t<table_slice_t> ts = v->as_table_slice();
+            b |= info.add("table", val_info(env, new_val(ts->get_tbl())));
+            b |= info.add("index",
+                          ts->idx ? datum_t(ts->idx->c_str()) : datum_t::null());
+            switch (ts->sorting) {
+            case sorting_t::UNORDERED:
+                b |= info.add("sorting", datum_t("UNORDERED"));
+                break;
+            case sorting_t::ASCENDING:
+                b |= info.add("sorting", datum_t("ASCENDING"));
+                break;
+            case sorting_t::DESCENDING:
+                b |= info.add("sorting", datum_t("DESCENDING"));
+                break;
+            default: unreachable();
+            }
+            if (ts->bounds.left_bound.get_type() == datum_t::type_t::MINVAL) {
+                b |= info.add("left_bound_type", datum_t("unbounded"));
+            } else if (ts->bounds.left_bound.get_type() == datum_t::type_t::MAXVAL) {
+                b |= info.add("left_bound_type", datum_t("unachievable"));
+            } else {
+                b |= info.add("left_bound", ts->bounds.left_bound);
+                b |= info.add("left_bound_type",
+                              datum_t(ts->bounds.left_bound_type == key_range_t::open
+                                      ? "open" : "closed"));
+            }
+            if (ts->bounds.right_bound.get_type() == datum_t::type_t::MAXVAL) {
+                b |= info.add("right_bound_type", datum_t("unbounded"));
+            } else if (ts->bounds.right_bound.get_type() == datum_t::type_t::MINVAL) {
+                b |= info.add("right_bound_type", datum_t("unachievable"));
+            } else {
+                b |= info.add("right_bound", ts->bounds.right_bound);
+                b |= info.add("right_bound_type",
+                              datum_t(ts->bounds.right_bound_type == key_range_t::open
+                                      ? "open" : "closed"));
+            }
+        } break;
         case SELECTION_TYPE: {
             b |= info.add("table",
                           val_info(env, new_val(v->as_selection(env->env)->table)));
@@ -410,15 +450,15 @@ private:
             b |= info.add("table",
                           val_info(env, new_val(v->as_selection(env->env)->table)));
         } break;
-        case SINGLE_SELECTION_TYPE: {
-            b |= info.add("table",
-                          val_info(env, new_val(v->as_single_selection()->get_tbl())));
-        } break;
         case SEQUENCE_TYPE: {
             if (v->as_seq(env->env)->is_grouped()) {
                 bool res = info.add("type", datum_t("GROUPED_STREAM"));
                 r_sanity_check(res);
             }
+        } break;
+        case SINGLE_SELECTION_TYPE: {
+            b |= info.add("table",
+                          val_info(env, new_val(v->as_single_selection()->get_tbl())));
         } break;
 
         case FUNC_TYPE: {
@@ -428,12 +468,11 @@ private:
 
         case GROUPED_DATA_TYPE: break; // No more info
 
-        case R_BINARY_TYPE: // fallthru
+        case R_BINARY_TYPE:
             b |= info.add("count",
-                          datum_t(
-                              safe_to_double(v->as_datum().as_binary().size())));
+                          datum_t(safe_to_double(v->as_datum().as_binary().size())));
+            // fallthru
 
-        case R_NULL_TYPE:   // fallthru
         case R_BOOL_TYPE:   // fallthru
         case R_NUM_TYPE:    // fallthru
         case R_STR_TYPE:    // fallthru
@@ -443,7 +482,10 @@ private:
             b |= info.add("value",
                           datum_t(datum_string_t(
                               v->as_datum().print(env->env->reql_version()))));
-        } break;
+        } // fallthru
+        case R_NULL_TYPE:   // fallthru
+        case MINVAL_TYPE:   // fallthru
+        case MAXVAL_TYPE: break;
 
         default: r_sanity_check(false);
         }

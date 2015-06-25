@@ -123,6 +123,7 @@ public:
     const boost::optional<std::string> &get_idx() const { return idx; }
     ql::changefeed::keyspec_t::range_t get_range_spec();
 private:
+    friend class info_term_t;
     friend class distinct_term_t;
     const counted_t<table_t> tbl;
     const boost::optional<std::string> idx;
