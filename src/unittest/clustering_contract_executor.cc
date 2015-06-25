@@ -208,7 +208,8 @@ public:
                 primary_finder.get_disconnect_signal());
         } catch (const interrupted_exc_t &) {
             throw cannot_perform_query_exc_t(
-                "lost contact with primary", query_state_t::INDETERMINATE);
+                "lost contact with primary",
+                query_state_t::FAILED);
         }
         EXPECT_EQ(expect, mock_parse_read_response(response));
     }
