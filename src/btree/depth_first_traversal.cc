@@ -163,6 +163,10 @@ continue_bool_t btree_depth_first_traversal(
     block->read.init(new buf_read_t(&block->lock));
     const node_t *node = static_cast<const node_t *>(block->read->get_data_read());
     if (node::is_internal(node)) {
+        if (continue_bool_t::ABORT == cb->handle_pre_internal(
+                block, left_excl_or_null, right_incl, interruptor)) {
+            return continue_bool_t::ABORT;
+        }
         const internal_node_t *inode = reinterpret_cast<const internal_node_t *>(node);
         int start_index = internal_node::get_offset_index(inode, range.left.btree_key());
         int end_index;

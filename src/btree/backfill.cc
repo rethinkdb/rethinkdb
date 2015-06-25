@@ -611,6 +611,17 @@ public:
         buf_write_t buf_write(&buf->lock);
         leaf_node_t *lnode = static_cast<leaf_node_t *>(buf_write.get_data_write());
         leaf::erase_deletions(sizer, lnode, min_deletion_timestamp);
+        buf->lock.set_recency(superceding_recency(
+            min_deletion_timestamp, buf->lock.get_recency()));
+        return continue_bool_t::CONTINUE;
+    }
+    continue_bool_t handle_pre_internal(
+            const counted_t<counted_buf_lock_and_read_t> &buf,
+            UNUSED const btree_key_t *left_excl_or_null,
+            UNUSED const btree_key_t *right_incl,
+            signal_t *) {
+        buf->lock.set_recency(superceding_recency(
+            min_deletion_timestamp, buf->lock.get_recency()));
         return continue_bool_t::CONTINUE;
     }
     continue_bool_t handle_pair(scoped_key_value_t &&, signal_t *) {
