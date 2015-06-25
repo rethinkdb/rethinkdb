@@ -5,7 +5,6 @@
 
 replica_t::replica_t(
         mailbox_manager_t *_mailbox_manager,
-        const server_id_t &server_id,
         store_view_t *_store,
         branch_history_manager_t *_bhm,
         const branch_id_t &_branch_id,
@@ -15,7 +14,7 @@ replica_t::replica_t(
     branch_id(_branch_id),
     start_enforcer(_timestamp),
     end_enforcer(_timestamp),
-    backfiller(_mailbox_manager, server_id, _bhm, _store),
+    backfiller(_mailbox_manager, _bhm, _store),
     synchronize_mailbox(mailbox_manager,
         std::bind(&replica_t::on_synchronize, this, ph::_1, ph::_2, ph::_3))
     { }

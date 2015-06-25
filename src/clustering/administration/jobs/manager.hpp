@@ -23,7 +23,6 @@ class jobs_manager_t {
 public:
     explicit jobs_manager_t(mailbox_manager_t *mailbox_manager,
                             server_id_t const &server_id,
-                            server_config_client_t *server_config_client,
                             rdb_context_t *rdb_context,
                             real_table_persistence_interface_t
                                 *table_persistence_interface,
@@ -47,7 +46,6 @@ private:
 
     mailbox_manager_t *mailbox_manager;
     server_id_t server_id;
-    server_config_client_t *server_config_client;
 
     rdb_context_t *rdb_context;
     real_table_persistence_interface_t *table_persistence_interface;

@@ -25,7 +25,6 @@ to the underlying store's underlying store outside of the region covered by the
 class backfiller_t : public home_thread_mixin_debug_only_t {
 public:
     backfiller_t(mailbox_manager_t *_mailbox_manager,
-                 const server_id_t &server_id,
                  branch_history_manager_t *_branch_history_manager,
                  store_view_t *_store);
 
@@ -110,7 +109,6 @@ private:
     };
 
     mailbox_manager_t *const mailbox_manager;
-    server_id_t server_id;
     branch_history_manager_t *const branch_history_manager;
     store_view_t *const store;
 

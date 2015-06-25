@@ -6,8 +6,6 @@
 #include "clustering/immediate_consistency/backfiller.hpp"
 #include "concurrency/timestamp_enforcer.hpp"
 
-class backfill_progress_tracker_t;
-
 /* `replica_t` represents a replica of a shard which is currently tracking changes to a
 given branch. `local_replicator_t` and `remote_replicator_client_t` construct a
 `replica_t` after they finish initializing the state of the `store_t` to match the
@@ -19,7 +17,6 @@ class replica_t : public home_thread_mixin_debug_only_t {
 public:
     replica_t(
         mailbox_manager_t *mailbox_manager,
-        const server_id_t &server_id,
         store_view_t *store,
         branch_history_manager_t *bhm,
         const branch_id_t &branch_id,

@@ -92,7 +92,6 @@ TPTEST(ClusteringBackfill, BackfillTest) {
 
     backfiller_t backfiller(
         cluster.get_mailbox_manager(),
-        generate_uuid(),
         &branch_history_manager,
         &backfiller_store);
 

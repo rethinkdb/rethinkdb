@@ -5,8 +5,8 @@
 #include <map>
 
 #include "concurrency/one_per_thread.hpp"
+#include "containers/uuid.hpp"
 #include "region/region.hpp"
-#include "rpc/connectivity/peer_id.hpp"
 #include "time.hpp"
 
 class backfill_progress_tracker_t {
@@ -15,7 +15,7 @@ public:
     public:
         bool is_ready;
         microtime_t start_time;
-        peer_id_t source_peer_id;
+        server_id_t source_server_id;
         double progress;
     };
 

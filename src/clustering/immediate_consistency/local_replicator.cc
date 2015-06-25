@@ -13,7 +13,6 @@ local_replicator_t::local_replicator_t(
     store(_store),
     replica(
         mailbox_manager,
-        server_id,
         store,
         bhm,
         primary->get_branch_id(),

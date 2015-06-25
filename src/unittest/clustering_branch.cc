@@ -147,10 +147,10 @@ void run_backfill_test(
         &backfill_progress_tracker,
         cluster->get_mailbox_manager(),
         generate_uuid(),
+        generate_uuid(),
         dispatcher->get_branch_id(),
         remote_replicator_server.get_bcard(),
         local_replicator->get_replica_bcard(),
-        nil_peer,
         &store2,
         &bhm2,
         &interruptor);

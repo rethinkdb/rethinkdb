@@ -7,8 +7,6 @@
 #include "clustering/immediate_consistency/replica.hpp"
 #include "store_view.hpp"
 
-class backfill_progress_tracker_t;
-
 /* `local_replicator_t` receives writes from a `primary_dispatcher_t` on the same server
 and applies them directly to a `store_t` on the same server. It doesn't receive a
 backfill at startup; instead, it asserts that the store's state is equal to the starting

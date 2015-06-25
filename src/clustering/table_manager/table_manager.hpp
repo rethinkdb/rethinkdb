@@ -50,7 +50,7 @@ public:
         return contract_executor.get_local_table_query_bcards();
     }
 
-    backfill_progress_tracker_t &get_backfill_progress_trackers() {
+    backfill_progress_tracker_t &get_backfill_progress_tracker() {
         return backfill_progress_tracker;
     }
 

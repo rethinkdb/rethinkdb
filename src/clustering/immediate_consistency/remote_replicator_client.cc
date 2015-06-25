@@ -94,11 +94,11 @@ remote_replicator_client_t::remote_replicator_client_t(
         backfill_progress_tracker_t *backfill_progress_tracker,
         mailbox_manager_t *mailbox_manager,
         const server_id_t &server_id,
+        const server_id_t &primary_server_id,
 
         const branch_id_t &branch_id,
         const remote_replicator_server_bcard_t &remote_replicator_server_bcard,
         const replica_bcard_t &replica_bcard,
-        const peer_id_t &peer_id,
 
         store_view_t *store,
         branch_history_manager_t *branch_history_manager,
@@ -131,7 +131,7 @@ remote_replicator_client_t::remote_replicator_client_t(
         backfill_progress_tracker->insert_progress_tracker(store->get_region());
     progress_tracker->is_ready = false;
     progress_tracker->start_time = current_microtime();
-    progress_tracker->source_peer_id = peer_id;
+    progress_tracker->source_server_id = primary_server_id;
     progress_tracker->progress = 0.0;
 
     backfill_throttler_t::lock_t backfill_throttler_lock(
@@ -365,9 +365,8 @@ remote_replicator_client_t::remote_replicator_client_t(
 
     /* Now we're completely up-to-date and synchronized with the primary, it's time to
     create a `replica_t`. */
-    replica_.init(new replica_t(mailbox_manager_, server_id, store_,
-        branch_history_manager, branch_id,
-        timestamp_enforcer_->get_latest_all_before_completed()));
+    replica_.init(new replica_t(mailbox_manager_, store_, branch_history_manager,
+        branch_id, timestamp_enforcer_->get_latest_all_before_completed()));
 
     rwlock_acq.reset();
 

@@ -7,11 +7,9 @@
 
 backfiller_t::backfiller_t(
         mailbox_manager_t *_mailbox_manager,
-        const server_id_t &_server_id,
         branch_history_manager_t *_branch_history_manager,
         store_view_t *_store) :
     mailbox_manager(_mailbox_manager),
-    server_id(_server_id),
     branch_history_manager(_branch_history_manager),
     store(_store),
     registrar(mailbox_manager, this)
