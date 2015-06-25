@@ -167,8 +167,6 @@ void jobs_manager_t::on_get_job_reports(
         }
     });
 
-    // RSI(raft): Reimplement `"backfill"` jobs.
-
     send(mailbox_manager,
          reply_address,
          query_job_reports,
