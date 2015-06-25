@@ -16,10 +16,14 @@
 namespace ql {
 
 bool changespec_t::include_initial_vals() {
+    return boost::get<changefeed::keyspec_t::limit_t>(&keyspec.spec) != nullptr
+        || boost::get<changefeed::keyspec_t::point_t>(&keyspec.spec) != nullptr;
+    /*
     if (auto *range = boost::get<changefeed::keyspec_t::range_t>(&keyspec.spec)) {
         if (range->range.is_universe()) return false;
     }
     return true;
+    */
 }
 
 // RANGE/READGEN STUFF

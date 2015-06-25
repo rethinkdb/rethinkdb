@@ -402,7 +402,8 @@ private:
             include_states = v->as_bool();
         }
         scoped_ptr_t<val_t> include_initial_vals_val =
-            args->optarg(env, "include_initial_vals");
+            scoped_ptr_t<val_t>();
+            // args->optarg(env, "include_initial_vals");
 
         scoped_ptr_t<val_t> v = args->arg(env, 0);
         if (v->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
