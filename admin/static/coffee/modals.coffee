@@ -9,6 +9,7 @@ driver = app.driver
 system_db = app.system_db
 
 r = require('rethinkdb')
+Handlebars = require('hbsfy/runtime')
 
 class AddDatabaseModal extends ui_modals.AbstractModal
     template: require('../handlebars/add_database-modal.hbs')
@@ -414,6 +415,8 @@ class ReconfigureModal extends ui_modals.AbstractModal
         @diff_view = new table_view.ReconfigureDiffView
             model: @model
             el: @$('.reconfigure-diff')[0]
+        if @get_errors()
+            @change_errors()
         @
 
     change_errors: =>
@@ -429,7 +432,8 @@ class ReconfigureModal extends ui_modals.AbstractModal
             for error in errors
                 message = @$(".alert.error p.error.#{error}").addClass('shown')
                 if error == 'server-error'
-                    @$('.alert.error .server-msg').append(Handlebars.Utils.escapeExpression(@model.get('server_error')))
+                    @$('.alert.error .server-msg').append(
+                        Handlebars.Utils.escapeExpression(@model.get('server_error')))
         else
             @error_on_empty = false
             @$('.btn.btn-primary').removeAttr 'disabled'
@@ -582,7 +586,7 @@ class ReconfigureModal extends ui_modals.AbstractModal
                             .concatMap (server) -> [
                                 server,
                                 r.db(system_db).table('server_status')
-                                    .filter(name: server)(0)('id')
+                                    .filter(name: server)(0)('id').default(null)
                             ]
                     ))
             )

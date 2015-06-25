@@ -25,12 +25,12 @@ class Model extends Backbone.Model
             hostname: sstatus('network')('hostname')
             cache_size: sconfig('cache_size_mb')
             primary_count: table_status.map((table) ->
-                table('shards').count((shard) ->
+                table('shards').default([]).count((shard) ->
                     shard('primary_replicas').contains(sconfig('name')))
             ).sum()
             secondary_count:
                 table_status.map((table) ->
-                    table('shards').count (shard) ->
+                    table('shards').default([]).count (shard) ->
                         shard('replicas')('server').contains(sconfig('name')).and(
                             shard('primary_replicas').contains(sconfig('name')).not())
                 ).sum()
