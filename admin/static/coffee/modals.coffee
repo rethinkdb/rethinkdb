@@ -201,7 +201,8 @@ class AddTableModal extends ui_modals.AbstractModal
                 primary_key = 'id'
 
 
-            query = r.db(system_db).table("server_status").filter({status: "connected"}).coerceTo("ARRAY").do (servers) =>
+            query = r.db(system_db).table("server_status").coerceTo("ARRAY")
+              .do (servers) =>
                 r.branch(
                     servers.isEmpty(),
                     r.error("No server is connected"),
