@@ -89,16 +89,16 @@ public:
     test_inserter_t(
             order_source_t *_osource,
             const std::string &_tag,
-            state_t *state,
-            bool should_start = true) :
+            state_t *state) :
         values_inserted(state), osource(_osource), tag(_tag), next_value(0)
     {
         for (const auto &pair : *values_inserted) {
             keys_used.push_back(pair.first);
         }
-        if (should_start) {
-            start();
-        }
+    }
+
+    virtual ~test_inserter_t() {
+        guarantee(!running(), "subclass should call stop()");
     }
 
     void insert(size_t n) {
@@ -173,8 +173,6 @@ protected:
         crash("For key `%s`: expected `%s`, got `%s`\n",
             key.c_str(), expect.c_str(), actual.c_str());
     }
-
-    virtual ~test_inserter_t() { }
 
 private:
     scoped_ptr_t<auto_drainer_t> drainer;

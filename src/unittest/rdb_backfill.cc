@@ -63,11 +63,20 @@ public:
             order_source_t *order_source,
             size_t _value_padding_length,
             std::map<std::string, std::string> *inserter_state,
-            bool start = true) :
-        test_inserter_t(order_source, "dispatcher_inserter_t", inserter_state, start),
+            bool should_start = true) :
+        test_inserter_t(order_source, "dispatcher_inserter_t", inserter_state),
         dispatcher(_dispatcher),
         value_padding_length(_value_padding_length)
-        { }
+    {
+        if (should_start) {
+            this->start();
+        }
+    }
+    ~dispatcher_inserter_t() {
+        if (running()) {
+            stop();
+        }
+    }
 private:
     void write(const std::string &key, const std::string &value,
             order_token_t otok, signal_t *interruptor) {

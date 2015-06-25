@@ -113,9 +113,14 @@ void run_backfill_test(
                 primary_dispatcher_t *d,
                 std::map<std::string, std::string> *s,
                 order_source_t *os) :
-            test_inserter_t(os, "run_backfill_test::inserter_t", s, true),
+            test_inserter_t(os, "run_backfill_test::inserter_t", s),
             dispatcher(d)
-            { }
+        {
+            start();
+        }
+        ~inserter_t() {
+            stop();
+        }
     private:
         void write(const std::string &key, const std::string &value,
                 order_token_t otok, signal_t *) {

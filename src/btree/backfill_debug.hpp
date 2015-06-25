@@ -9,7 +9,7 @@
 /* If the `ENABLE_BACKFILL_DEBUG` symbol is defined, then backfilling-related events
 will be recorded in a log and indexed by key. This can be useful for diagnosing bugs in
 the backfilling logic. Obviously, this should be disabled when not in use. */
-// #define ENABLE_BACKFILL_DEBUG
+#define ENABLE_BACKFILL_DEBUG
 
 #ifdef ENABLE_BACKFILL_DEBUG
 void backfill_debug_clear_log();
