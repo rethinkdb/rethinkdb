@@ -3,10 +3,9 @@
 import struct
 
 from twisted.python import log
-from twisted.internet import reactor
+from twisted.internet import reactor, defer
 from twisted.internet.defer import inlineCallbacks, returnValue, Deferred
-from twisted.internet.defer import DeferredQueue
-from twisted.internet import defer
+from twisted.internet.defer import DeferredQueue, CancelledError
 from twisted.internet.protocol import ClientFactory, Protocol
 from twisted.internet.endpoints import TCP4ClientEndpoint
 from twisted.internet.error import TimeoutError
@@ -21,16 +20,14 @@ __all__ = ['Connection']
 pResponse = p.Response.ResponseType
 pQuery = p.Query.QueryType
 
-def start_timeout(timeout, deferToFail):
-    # Timeout = 0 or None then, there is no timeout.
-    if timeout == 0 or timeout is None or (not timeout):
+def start_timeout(timeout, *defersToFail):
+    # Timeout is None == Infinite wait
+    if timeout is None:
         return
 
     def raisesTimeout():
-        # If the action hasn't been completed before.
-        if not deferToFail.called:
-            # Raise a timeout error. :)
-            deferToFail.errback(RqlTimeoutError)
+        for deferToFail in defersToFail:
+            deferToFail.cancel()
 
     return reactor.callLater(timeout, raisesTimeout)
 
@@ -116,10 +113,17 @@ class DatabaseProtocol(Protocol):
         # 2. Buffer the data, until the size of the data match the expected
         # length provided by the header.
         self.buf += data
-        if len(self.buf) == self.buf_expected_length:
+        if len(self.buf) >= self.buf_expected_length:
+            expected_len = self.buf_expected_length
+            if len(data) > expected_len:
+                self.buf = self.buf[:expected_len]
             self.factory.response_handler(self.buf_token, self.buf)
             self.buf_token = None
             self.resetBuffer()
+            # If we have more than a response, we should rehandle them.
+            if len(data) > expected_len:
+                self._handleResponse(data[expected_len:])
+
 
     def dataReceived(self, data):
         try:
@@ -156,6 +160,27 @@ class CursorItems(DeferredQueue):
     def __init__(self):
         super(CursorItems, self).__init__(self)
 
+    @inlineCallbacks
+    def wait_for_new_item(self):
+        """
+        Callback whenever a new item arrived.
+        It use the behavior of put.
+        Warning: It ignores QueueUnderflow / QueueOverflow mechanisms.
+        """
+        d = Deferred(canceller=self._cancelGet)
+        self.waiting.append(d)
+        item = yield d
+        self.pending.append(item)
+        returnValue(item)
+
+    def cancel_getters(self, err):
+        """
+        Cancel all waiters.
+        """
+        for waiter in self.waiting[:]:
+            waiter.errback(err)
+            self.waiting.remove(waiter)
+
     def __len__(self):
         return len(self.pending)
 
@@ -166,12 +191,8 @@ class TwistedCursor(Cursor):
 
     def __init__(self, *args, **kwargs):
         super(TwistedCursor, self).__init__(*args, **kwargs)
-        self.new_response = Deferred()
-        self.new_response.addErrback(self._set_error)
         self.items = CursorItems()
-
-    def _set_error(self, error):
-        self.error = error.value
+        self.new_response = Deferred()
 
     def _extend_queue(self, data):
         for k in data:
@@ -186,6 +207,7 @@ class TwistedCursor(Cursor):
             elif res.type == pResponse.SUCCESS_SEQUENCE:
                 self._extend_queue(res.data)
                 self.error = self._empty_error()
+                self.items.cancel_getters(self.error)
             else:
                 self.error = res.make_error(self.query)
             self._maybe_fetch_batch()
@@ -193,31 +215,50 @@ class TwistedCursor(Cursor):
         if self.outstanding_requests == 0 and self.error is not None:
             del self.conn._cursor_cache[res.token]
 
-        if not self.new_response.called:
-            self.new_response.callback(None)
+        self.new_response.callback(None)
         self.new_response = Deferred()
-        self.new_response.addErrback(self._set_error)
 
     def _empty_error(self):
         return RqlCursorEmpty(self.query.term)
 
-    def __iter__(self):
-        while True:
-            if self.error is RqlCursorEmpty and len(self.items) == 0:
-                yield StopIteration
-            elif self.error:
-                raise self.error
-            else:
-                d = self._get_next(None)
-                yield d
-
     @inlineCallbacks
-    def _get_next(self, timeout):
-        if self.error:
-            raise self.error
+    def fetch_next(self, wait=True):
+        timeout = Cursor._wait_to_timeout(wait)
         start_timeout(timeout, self.new_response)
+        while len(self.items) == 0 and self.error is None:
+            self._maybe_fetch_batch()
+            try:
+                yield self.new_response
+            except CancelledError:
+                raise RqlTimeoutError()
+
+        returnValue(not self.is_empty() or self.has_error())
+
+    def has_error(self):
+        return self.error and (not isinstance(self.error, RqlCursorEmpty))
+
+    def is_empty(self):
+        return isinstance(self.error, RqlCursorEmpty) and len(self.items) == 0
+
+    def _get_next(self, timeout):
+        if self.is_empty() or self.has_error():
+            return defer.fail(self.error)
+
+        def returnNextItem(item):
+            return convert_pseudo(item, self.query)
+        def raiseTimeout(errback):
+            if isinstance(errback.value, CancelledError):
+                raise RqlTimeoutError()
+            else:
+                raise errback.value
+
+        item_defer = self.items.get()
+        item_defer.addCallback(returnNextItem)
+        item_defer.addErrback(raiseTimeout)
+        start_timeout(timeout, item_defer)
         self._maybe_fetch_batch()
-        returnValue(convert_pseudo((yield self.items.get()), self.query))
+
+        return item_defer
 
 
 class ConnectionInstance(object):
@@ -319,22 +360,25 @@ class ConnectionInstance(object):
             noreply = Query(pQuery.NOREPLY_WAIT, token, None, None)
             d = self.run_query(noreply, False)
 
-        def closeConnection(_):
+        def closeConnection(res):
             self._connection.transport.loseConnection()
+            return res
 
-        return d.addCallback(closeConnection)
+        return d.addBoth(closeConnection)
 
     @inlineCallbacks
     def run_query(self, query, noreply):
+        response_defer = Deferred()
+        if not noreply:
+            self._user_queries[query.token] = (query, response_defer)
+        # Send the query
         self._connection.transport.write(query.serialize())
+
         if noreply:
             returnValue(None)
-
-        response_defer = Deferred()
-        self._user_queries[query.token] = (query, response_defer)
-        res = yield response_defer
-
-        returnValue(res)
+        else:
+            res = yield response_defer
+            returnValue(res)
 
 class Connection(ConnectionBase):
 
