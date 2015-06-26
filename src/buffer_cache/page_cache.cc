@@ -1302,9 +1302,25 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
 
         blocks_releasable_cb.wait();
 
-        // All blocks have been written. Free the associated snapshots on the
-        // cache thread.
+        // All blocks have been written. Update the block tokens and free the
+        // associated snapshots on the cache thread.
         coro_t::spawn_on_thread([&]() {
+            // Update the block tokens of the written blocks
+            for (auto it = blocks_by_tokens.begin(); it != blocks_by_tokens.end(); ++it) {
+                if (it->block_token.has() && it->page != NULL) {
+                    // We know page is still a valid pointer because of the page_ptr_t in
+                    // snapshotted_dirtied_pages_.
+
+                    // KSI: This assertion would fail if we try to force-evict the page
+                    // simultaneously as this write.
+                    rassert(!it->page->block_token().has());
+                    eviction_bag_t *old_bag
+                        = page_cache->evicter().correct_eviction_category(it->page);
+                    it->page->init_block_token(std::move(it->block_token), page_cache);
+                    page_cache->evicter().change_to_correct_eviction_bag(old_bag, it->page);
+                }
+            }
+
             for (auto &txn : txns) {
                 for (size_t i = 0, e = txn->snapshotted_dirtied_pages_.size(); i < e; ++i) {
                     txn->snapshotted_dirtied_pages_[i].ptr.reset_page_ptr(page_cache);
@@ -1333,29 +1349,6 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
     // continue (this is important because once we return, a page transaction
     // or even the whole page cache might get destructed).
     blocks_released_cond.wait();
-
-    // Set the page_t's block token field to their new block tokens.  KSI: Can we
-    // do this earlier?  Do we have to wait for blocks_releasable_cb?  It doesn't
-    // matter that much as long as we have some way to prevent parallel forced
-    // eviction from happening, though.  (That doesn't happen yet.)
-
-    // KSI: We could pass these block tokens as a message back to the cache thread
-    // and set them earlier -- at least we could after blocks_releasable_cb.wait()
-    // and before the index_write.
-    for (auto it = blocks_by_tokens.begin(); it != blocks_by_tokens.end(); ++it) {
-        if (it->block_token.has() && it->page != NULL) {
-            // We know page is still a valid pointer because of the page_ptr_t in
-            // snapshotted_dirtied_pages_.
-
-            // KSI: This assertion would fail if we try to force-evict the page
-            // simultaneously as this write.
-            rassert(!it->page->block_token().has());
-            eviction_bag_t *old_bag
-                = page_cache->evicter().correct_eviction_category(it->page);
-            it->page->init_block_token(std::move(it->block_token), page_cache);
-            page_cache->evicter().change_to_correct_eviction_bag(old_bag, it->page);
-        }
-    }
 }
 
 void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
