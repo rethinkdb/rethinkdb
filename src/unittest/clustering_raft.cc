@@ -710,19 +710,14 @@ public:
 
         cluster.print_state();
 
+        /* Give the cluster some time to stabilize */
+        nap(5000);
+
+        do_writes(&cluster, 100, 20000);
+
         signal_timer_t final_interruptor;
-        final_interruptor.start(20000); // Allow up to 10 seconds to finish the final verification
+        final_interruptor.start(10000); // Allow up to 10 seconds to finish the final verification
         raft_member_id_t leader = cluster.find_leader(&final_interruptor);
-        bool res;
-
-        cluster.run_on_member(leader, [&](dummy_raft_member_t *m, signal_t *) {
-                m->get_readiness_for_change()->run_until_satisfied([&](bool v) {
-                    return v;
-                }, &final_interruptor);
-            });
-
-        res = cluster.try_change(leader, generate_uuid(), &final_interruptor);
-        guarantee(res);
         raft_config_t final_config;
         final_config.voting_members.insert(leader);
 
@@ -732,7 +727,7 @@ public:
                 }, &final_interruptor);
             });
 
-        res = cluster.try_config_change(leader, final_config, &final_interruptor);
+        bool res = cluster.try_config_change(leader, final_config, &final_interruptor);
         guarantee(res);
     }
 
@@ -773,9 +768,9 @@ private:
                     // We can only add a member if there is at least one alive member
                     for (auto &&id : member_ids) {
                         if (cluster.get_live(id) == dummy_raft_cluster_t::live_t::alive) {
-                            raft_member_id_t id = cluster.join();
-                            member_ids.push_back(id);
-                            config.non_voting_members.insert(id);
+                            raft_member_id_t id2 = cluster.join();
+                            member_ids.push_back(id2);
+                            config.non_voting_members.insert(id2);
                             break;
                         }
                     }
