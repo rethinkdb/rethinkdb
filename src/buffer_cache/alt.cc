@@ -19,7 +19,7 @@ using alt::page_txn_t;
 using alt::throttler_acq_t;
 
 const int64_t MINIMUM_SOFT_UNWRITTEN_CHANGES_LIMIT = 1;
-const int64_t SOFT_UNWRITTEN_CHANGES_LIMIT = 4000;
+const int64_t SOFT_UNWRITTEN_CHANGES_LIMIT = 8000;
 const double SOFT_UNWRITTEN_CHANGES_MEMORY_FRACTION = 0.5;
 
 // There are very few ASSERT_NO_CORO_WAITING calls (instead we have

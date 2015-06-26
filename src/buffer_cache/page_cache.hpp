@@ -387,6 +387,7 @@ private:
     friend class page_txn_t;
     static void do_flush_changes(page_cache_t *page_cache,
                                  const std::map<block_id_t, block_change_t> &changes,
+                                 const std::vector<page_txn_t *> &txns,
                                  fifo_enforcer_write_token_t index_write_token);
     static void do_flush_txn_set(page_cache_t *page_cache,
                                  std::map<block_id_t, block_change_t> *changes_ptr,

@@ -976,12 +976,7 @@ page_txn_t::~page_txn_t() {
     guarantee(preceders_.empty());
     guarantee(subseqers_.empty());
 
-    // KSI: We could surely free the resources of snapshotted_dirtied_pages_ sooner
-    // (as mentioned elsewhere).
-    for (size_t i = 0, e = snapshotted_dirtied_pages_.size(); i < e; ++i) {
-        snapshotted_dirtied_pages_[i].ptr.reset_page_ptr(page_cache_);
-        page_cache_->consider_evicting_current_page(snapshotted_dirtied_pages_[i].block_id);
-    }
+    guarantee(snapshotted_dirtied_pages_.empty());
 }
 
 void page_txn_t::add_acquirer(DEBUG_VAR current_page_acq_t *acq) {
@@ -1190,6 +1185,7 @@ struct ancillary_info_t {
 
 void page_cache_t::do_flush_changes(page_cache_t *page_cache,
                                     const std::map<block_id_t, block_change_t> &changes,
+                                    const std::vector<page_txn_t *> &txns,
                                     fifo_enforcer_write_token_t index_write_token) {
     rassert(!changes.empty());
     std::vector<block_token_tstamp_t> blocks_by_tokens;
@@ -1255,6 +1251,7 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
         }
     }
 
+    cond_t blocks_released_cond;
     {
         on_thread_t th(page_cache->serializer_->home_thread());
 
@@ -1305,6 +1302,21 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
 
         blocks_releasable_cb.wait();
 
+        // All blocks have been written. Free the associated snapshots on the
+        // cache thread.
+        coro_t::spawn_on_thread([&]() {
+            for (auto &txn : txns) {
+                for (size_t i = 0, e = txn->snapshotted_dirtied_pages_.size(); i < e; ++i) {
+                    txn->snapshotted_dirtied_pages_[i].ptr.reset_page_ptr(page_cache);
+                    page_cache->consider_evicting_current_page(
+                        txn->snapshotted_dirtied_pages_[i].block_id);
+                }
+                txn->snapshotted_dirtied_pages_.clear();
+                txn->throttler_acq_.update_dirty_page_count(0);
+            }
+            blocks_released_cond.pulse();
+        }, page_cache->home_thread());
+
         fifo_enforcer_sink_t::exit_write_t exiter(&page_cache->index_write_sink_->sink,
                                                   index_write_token);
         exiter.wait();
@@ -1316,6 +1328,11 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
         page_cache->serializer_->index_write(&mutex_acq,
                                              write_ops);
     }
+
+    // Wait until the block release coroutine has finished to we can safely
+    // continue (this is important because once we return, a page transaction
+    // or even the whole page cache might get destructed).
+    blocks_released_cond.wait();
 
     // Set the page_t's block token field to their new block tokens.  KSI: Can we
     // do this earlier?  Do we have to wait for blocks_releasable_cb?  It doesn't
@@ -1362,7 +1379,7 @@ void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
 
     // Okay, yield, thank you.
     coro_t::yield();
-    do_flush_changes(page_cache, changes, index_write_token);
+    do_flush_changes(page_cache, changes, txns, index_write_token);
 
     // Flush complete.
 

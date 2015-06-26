@@ -83,6 +83,10 @@ public:
         set_size(size_ - 1);
     }
 
+    void clear() {
+        set_size(0);
+    }
+
     void resize_with_zeros(size_t new_size) {
         set_size(new_size);
     }

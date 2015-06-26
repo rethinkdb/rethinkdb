@@ -773,9 +773,9 @@ private:
                     // We can only add a member if there is at least one alive member
                     for (auto &&id : member_ids) {
                         if (cluster.get_live(id) == dummy_raft_cluster_t::live_t::alive) {
-                            raft_member_id_t id = cluster.join();
-                            member_ids.push_back(id);
-                            config.non_voting_members.insert(id);
+                            raft_member_id_t join_id = cluster.join();
+                            member_ids.push_back(join_id);
+                            config.non_voting_members.insert(join_id);
                             break;
                         }
                     }
