@@ -659,7 +659,14 @@ void print_config(RAFT_DEBUG_VAR const raft_complex_config_t &config) {
 class raft_fuzzer_t {
 public:
     raft_fuzzer_t(size_t initial_member_count) :
-        cluster(initial_member_count, dummy_raft_state_t(), &member_ids) { }
+            cluster(initial_member_count, dummy_raft_state_t(), &member_ids)
+    {
+        raft_config_t config;
+        for (auto &&id : member_ids) {
+            config.voting_members.insert(id);
+        }
+        active_config.config = config;
+    }
 
     void run(uint64_t timeout_ms) {
         signal_timer_t interruptor;
@@ -679,6 +686,7 @@ public:
         states_done.wait();
         config_done.wait();
         writes_done.wait();
+        RAFT_DEBUG("stopped fuzzer sub-coroutines\n");
 
         print_config(active_config);
         cluster.print_state();
@@ -711,10 +719,13 @@ public:
         cluster.print_state();
 
         /* Give the cluster some time to stabilize */
+        RAFT_DEBUG("waiting for cluster to stabilize\n");
         nap(5000);
 
+        RAFT_DEBUG("running final test writes\n");
         do_writes(&cluster, 100, 20000);
 
+        RAFT_DEBUG("running final test config change\n");
         signal_timer_t final_interruptor;
         final_interruptor.start(10000); // Allow up to 10 seconds to finish the final verification
         raft_member_id_t leader = cluster.find_leader(&final_interruptor);
@@ -739,64 +750,47 @@ private:
                 timeout.start(rng.randint(800));
                 wait_interruptible(&timeout, interruptor);
 
-                raft_member_id_t id = member_ids[rng.randint(member_ids.size())];
-                dummy_raft_cluster_t::live_t new_state =
-                    static_cast<dummy_raft_cluster_t::live_t>(rng.randint(3));
-                cluster.set_live(id, new_state);
+                if (rng.randint(4) == 0) {
+                    // We can only add a member if there is at least one alive member
+                    for (auto &&id : member_ids) {
+                        if (cluster.get_live(id) == dummy_raft_cluster_t::live_t::alive) {
+                            raft_member_id_t id2 = cluster.join();
+                            member_ids.push_back(id2);
+                            break;
+                        }
+                    }
+                } else {
+                    raft_member_id_t id = member_ids[rng.randint(member_ids.size())];
+                    dummy_raft_cluster_t::live_t new_state =
+                        static_cast<dummy_raft_cluster_t::live_t>(rng.randint(3));
+                    cluster.set_live(id, new_state);
+                }
             }
         } catch (const interrupted_exc_t &) { /* pass */ }
         done->pulse();
     }
 
     void fuzz_config(cond_t *done, signal_t *interruptor) {
-        enum class task_t { ADD, REMOVE, SHUFFLE, NUM_TASKS };
-        raft_config_t config;
-        for (auto &&id : member_ids) {
-            config.voting_members.insert(id);
-        }
-        active_config.config = config;
         try {
             while (true) {
                 signal_timer_t timeout;
                 timeout.start(rng.randint(100));
                 wait_interruptible(&timeout, interruptor);
-                task_t task =
-                    static_cast<task_t>(rng.randint(static_cast<int>(task_t::NUM_TASKS)));
 
-                switch (task) {
-                case task_t::ADD:
-                    // We can only add a member if there is at least one alive member
-                    for (auto &&id : member_ids) {
-                        if (cluster.get_live(id) == dummy_raft_cluster_t::live_t::alive) {
-                            raft_member_id_t id2 = cluster.join();
-                            member_ids.push_back(id2);
-                            config.non_voting_members.insert(id2);
-                            break;
-                        }
+                raft_config_t config;
+                for (auto &&id : member_ids) {
+                    switch (rng.randint(3)) {
+                    case 0:
+                        config.voting_members.insert(id);
+                        break;
+                    case 1:
+                        config.non_voting_members.insert(id);
+                        break;
+                    case 2:
+                        /* Make this server not a member at all */
+                        break;
+                    default: unreachable();
                     }
-                    break;
-                case task_t::REMOVE:
-                    if (member_ids.size() > 1) {
-                        raft_member_id_t id = member_ids[rng.randint(member_ids.size())];
-                        config.voting_members.erase(id);
-                        config.non_voting_members.erase(id);
-                    }
-                    break;
-                case task_t::SHUFFLE:
-                    for (auto &&id : member_ids) {
-                        bool voting = (rng.randint(2) == 1);
-                        config.voting_members.erase(id);
-                        config.non_voting_members.erase(id);
-                        if (voting) {
-                            config.voting_members.insert(id);
-                        } else {
-                            config.non_voting_members.insert(id);
-                        }
-                    }
-                    break;
-                case task_t::NUM_TASKS: // Fallthrough intentional
-                default:
-                    unreachable();
                 }
 
                 if (rng.randint(3) == 0 && config.voting_members.size() > 0) {
@@ -874,13 +868,16 @@ private:
     raft_complex_config_t active_config;
 };
 
-void run_fuzzer(int64_t initial_size) {
-    raft_fuzzer_t fuzzer(initial_size + 1);
-    fuzzer.run(20000);
-}
-
 TPTEST(ClusteringRaft, Fuzzer) {
-    pmap(10, std::bind(&run_fuzzer, ph::_1));
+#ifdef ENABLE_RAFT_DEBUG
+    int num_concurrent = 1;
+#else
+    int num_concurrent = 10;
+#endif
+    pmap(num_concurrent, [](int) {
+        raft_fuzzer_t fuzzer(randint(7) + 1);
+        fuzzer.run(20000);
+    });
 }
 
 }   /* namespace unittest */
