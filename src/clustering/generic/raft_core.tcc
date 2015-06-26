@@ -1892,7 +1892,8 @@ void raft_member_t<state_t>::leader_continue_reconfiguration(
     guarantee(mode == mode_t::leader);
     /* Check if we recently committed a joint consensus configuration, or a configuration
     in which we are no longer leader. */
-    if (!committed_state.get_ref().config.is_valid_leader(this_member_id)) {
+    if (!committed_state.get_ref().config.is_valid_leader(this_member_id) &&
+            !latest_state.get_ref().config.is_valid_leader(this_member_id)) {
         /* Raft paper, Section 6: "...the leader steps down (returns to follower state)
         once it has committed the C_new log entry."
         `candidate_or_leader_note_term()` isn't designed for the purpose of making us
@@ -1945,7 +1946,17 @@ bool raft_member_t<state_t>::candidate_or_leader_note_term(
                 */
                 if (this->ps().current_term == local_current_term) {
                     this->update_term(term, raft_member_id_t(), &mutex_acq_2);
-                    this->candidate_or_leader_become_follower(&mutex_acq_2);
+                    /* It's unlikely that `mode` will be `follower` at this point, but
+                    it's possible. Suppose that we are a candidate for term T, and we
+                    receive an RPC reply for term T+1, so we call `..._note_term()` and
+                    this coroutine is spawned. But before this coroutine acquires the
+                    mutex, we receive an AppendEntries RPC from a leader for term T, so
+                    we transition to follower state. Then when this coroutine actually
+                    executes, it will find that `current_term` has not changed, but we
+                    are in follower state. */
+                    if (mode != mode_t::follower) {
+                        this->candidate_or_leader_become_follower(&mutex_acq_2);
+                    }
                 }
                 DEBUG_ONLY_CODE(this->check_invariants(&mutex_acq_2));
             } catch (const interrupted_exc_t &) {
