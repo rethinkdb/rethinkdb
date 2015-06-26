@@ -2,8 +2,8 @@
 #define REGION_REGION_MAP_HPP_
 
 #include <algorithm>
-#include <vector>
 #include <utility>
+#include <vector>
 
 #include "containers/archive/stl_types.hpp"
 #include "containers/range_map.hpp"
@@ -69,7 +69,6 @@ public:
             return r;
         }
     }
-
 
     const value_t &lookup(const store_key_t &key) const {
         uint64_t h = hash_region_hasher(key);

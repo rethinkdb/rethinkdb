@@ -61,10 +61,19 @@ backfiller_t::client_t::client_t(
             [&](const region_t &region1, const version_t &version1) {
                 return our_version.map_multi(region1,
                     [&](const region_t &region2, const version_t &version2) {
-                        return version_find_common(
-                                &combined_history, version1, version2, region2)
-                            .map(region2,
-                                [](const version_t &v) { return v.timestamp; });
+                        try {
+                            return version_find_common(
+                                    &combined_history, version1, version2, region2)
+                                .map(region2,
+                                    [](const version_t &v) { return v.timestamp; });
+                        } catch (const missing_branch_exc_t &) {
+                            /* If we don't have enough information to determine the
+                            common ancestor of the two versions, act as if it's zero.
+                            This will always produce correct results but it might make us
+                            do more backfilling than necessary. */
+                            return region_map_t<state_timestamp_t>(
+                                region2, state_timestamp_t::zero());
+                        }
                     });
             });
 
