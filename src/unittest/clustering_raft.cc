@@ -658,7 +658,7 @@ void print_config(RAFT_DEBUG_VAR const raft_complex_config_t &config) {
 
 class raft_fuzzer_t {
 public:
-    raft_fuzzer_t(size_t initial_member_count) :
+    explicit raft_fuzzer_t(size_t initial_member_count) :
             cluster(initial_member_count, dummy_raft_state_t(), &member_ids)
     {
         raft_config_t config;
