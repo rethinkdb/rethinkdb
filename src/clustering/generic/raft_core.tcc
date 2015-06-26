@@ -1527,6 +1527,9 @@ bool raft_member_t<state_t>::candidate_run_election(
                             /* We got a response with a higher term than our current
                             term. `candidate_and_leader_coro()` will be interrupted soon.
                             */
+                            RAFT_DEBUG_THIS(
+                                "got rpc reply with term %" PRIu64 " from %s\n",
+                                reply->term, show_member_id(peer).c_str());
                             return;
                         }
 
@@ -1757,6 +1760,8 @@ void raft_member_t<state_t>::leader_send_updates(
                 if (candidate_or_leader_note_term(reply->term, mutex_acq.get())) {
                     /* We got a reply with a higher term than our term.
                     `candidate_and_leader_coro()` will be interrupted soon. */
+                    RAFT_DEBUG_THIS("got rpc reply with term %" PRIu64 " from %s\n",
+                                    reply->term, show_member_id(peer).c_str());
                     return;
                 }
 
@@ -1826,6 +1831,8 @@ void raft_member_t<state_t>::leader_send_updates(
                 if (candidate_or_leader_note_term(reply->term, mutex_acq.get())) {
                     /* We got a reply with a higher term than our term.
                     `candidate_and_leader_coro()` will be interrupted soon. */
+                    RAFT_DEBUG_THIS("got rpc reply with term %" PRIu64 " from %s\n",
+                                    reply->term, show_member_id(peer).c_str());
                     return;
                 }
 
@@ -1891,6 +1898,7 @@ void raft_member_t<state_t>::leader_continue_reconfiguration(
         `candidate_or_leader_note_term()` isn't designed for the purpose of making us
         intentionally step down, but it contains all the right logic. This has a side
         effect of incrementing `current_term`, but I don't think that's a problem. */
+        RAFT_DEBUG_THIS("stepping down, new term: %" PRIu64 "\n", ps().current_term + 1);
         candidate_or_leader_note_term(ps().current_term + 1, mutex_acq);
     } else if (committed_state.get_ref().config.is_joint_consensus() &&
             latest_state.get_ref().config.is_joint_consensus()) {
@@ -1936,7 +1944,6 @@ bool raft_member_t<state_t>::candidate_or_leader_note_term(
                 `candidate_or_leader_note_term()` was called and when this coroutine ran.
                 */
                 if (this->ps().current_term == local_current_term) {
-                    RAFT_DEBUG_THIS("got rpc reply with term %" PRIu64 "\n", term);
                     this->update_term(term, raft_member_id_t(), &mutex_acq_2);
                     this->candidate_or_leader_become_follower(&mutex_acq_2);
                 }
