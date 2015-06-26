@@ -32,15 +32,16 @@ with driver.Metacluster() as metacluster:
     conn = r.connect(host=server_a_1.host, port=server_a_1.driver_port)
 
     print("Creating a table (%.2fs)" % (time.time() - startTime))
+    num_shards = 16
     r.db_create("test").run(conn)
     r.db("rethinkdb").table("table_config").insert({
         "name": "test",
         "db": "test",
-        "shards": [{"primary_replica": "a", "replicas": ["a"]}] * 16
+        "shards": [{"primary_replica": "a", "replicas": ["a"]}] * num_shards
         }).run(conn)
     r.table("test").wait().run(conn)
 
-    total_docs = 100000
+    total_docs = 50000
     print("Inserting %d documents (%.2fs)" % (total_docs, time.time() - startTime))
     docs_so_far = 0
     while docs_so_far < total_docs:
@@ -55,10 +56,14 @@ with driver.Metacluster() as metacluster:
 
     print("Beginning replication to second server (%.2fs)" % (time.time() - startTime))
     r.table("test").config().update({
-        "shards": [{"primary_replica": "a", "replicas": ["a", "b"]}] * 16
+        "shards": [{"primary_replica": "a", "replicas": ["a", "b"]}] * num_shards
         }).run(conn)
     status = r.table("test").status().run(conn)
     assert status["status"]["ready_for_writes"], status
+    assert not status["status"]["all_replicas_ready"], status
+
+    print("Waiting a few seconds for backfill to get going (%.2fs)" % (time.time() - startTime))
+    time.sleep(2)
 
     print("Shutting down both servers (%.2fs)" % (time.time() - startTime))
     server_a_1.check_and_stop()
@@ -77,14 +82,14 @@ with driver.Metacluster() as metacluster:
     print("Checking that table is available for writes (%.2fs)" % (time.time() - startTime))
     try:
         r.table("test").wait(wait_for="ready_for_writes", timeout=10).run(conn_a)
-    except RqlRuntimeError, e:
-        status = r.table("test").status().run(conn_a)
+    except r.RqlRuntimeError, e:
+        status = r.db("rethinkdb").table("_debug_table_status").nth(0).run(conn_a)
         pprint.pprint(status)
         raise
     try:
-        r.table("test").wait(wait_for="ready_for_writes", timeout=10).run(conn_b)
-    except RqlRuntimeError, e:
-        status = r.table("test").status().run(conn_b)
+        r.table("test").wait(wait_for="ready_for_writes", timeout=3).run(conn_b)
+    except r.RqlRuntimeError, e:
+        status = r.db("rethinkdb").table("_debug_table_status").nth(0).run(conn_b)
         pprint.pprint(status)
         raise
 
