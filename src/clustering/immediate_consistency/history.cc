@@ -35,15 +35,19 @@ void branch_history_reader_t::export_branch_history(
         to_process.erase(to_process.begin());
         done.insert(next);
         if (is_branch_known(next)) {
-            auto res = out->branches.insert(std::make_pair(next, get_branch(next)));
-            guarantee(res.second);
-            res.first->second.origin.visit(res.first->second.origin.get_domain(),
-            [&](const region_t &, const version_t &vers) {
-                if (!vers.branch.is_nil() && out->branches.count(vers.branch) == 0 &&
-                        done.count(vers.branch) == 0) {
-                    to_process.insert(vers.branch);
-                }
-            });
+            try {
+                auto res = out->branches.insert(std::make_pair(next, get_branch(next)));
+                guarantee(res.second);
+                res.first->second.origin.visit(res.first->second.origin.get_domain(),
+                [&](const region_t &, const version_t &vers) {
+                    if (!vers.branch.is_nil() && out->branches.count(vers.branch) == 0 &&
+                            done.count(vers.branch) == 0) {
+                        to_process.insert(vers.branch);
+                    }
+                });
+            } catch (const missing_branch_exc_t &) {
+                crash("get_branch() failed even after is_branch_known() returned true");
+            }
         }
     }
 }
