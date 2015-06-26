@@ -1167,6 +1167,25 @@ void write_t::unshard(write_response_t *responses, size_t count,
     }
 }
 
+struct rdb_w_expected_document_changes_visitor_t : public boost::static_visitor<int> {
+    rdb_w_expected_document_changes_visitor_t() { }
+    int operator()(const batched_replace_t &w) const {
+        return w.keys.size();
+    }
+    int operator()(const batched_insert_t &w) const {
+        return w.inserts.size();
+    }
+    int operator()(const point_write_t &) const { return 1; }
+    int operator()(const point_delete_t &) const { return 1; }
+    int operator()(const sync_t &) const { return 0; }
+    int operator()(const dummy_write_t &) const { return 0; }
+};
+
+int write_t::expected_document_changes() const {
+    const rdb_w_expected_document_changes_visitor_t visitor;
+    return boost::apply_visitor(visitor, write);
+}
+
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(point_read_response_t, data);
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
     ql::skey_version_t, int8_t,

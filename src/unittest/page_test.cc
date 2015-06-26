@@ -42,10 +42,6 @@ struct mock_ser_t {
     }
 };
 
-void reset_throttler_acq(alt::throttler_acq_t *acq) {
-    alt::throttler_acq_t movee(std::move(*acq));
-}
-
 class test_txn_t;
 
 class test_cache_t : public page_cache_t {
@@ -57,7 +53,7 @@ public:
           throttler_(throttler) { }
 
     void flush(scoped_ptr_t<test_txn_t> txn) {
-        flush_and_destroy_txn(std::move(txn), &reset_throttler_acq);
+        flush_and_destroy_txn(std::move(txn), []() { });
     }
 
     alt::throttler_acq_t make_throttler_acq() {
@@ -329,33 +325,33 @@ public:
             auto_drainer_t drain;
             c = &cache;
 
-            coro_t::spawn_ordered(std::bind(&bigger_test_t::run_txn6,
-                                            this, drain.lock()));
-            coro_t::spawn_ordered(std::bind(&bigger_test_t::run_txn7,
-                                            this, drain.lock()));
-            coro_t::spawn_ordered(std::bind(&bigger_test_t::run_txn8,
-                                            this, drain.lock()));
+            coro_t::spawn_later_ordered(std::bind(&bigger_test_t::run_txn6,
+                                                  this, drain.lock()));
+            coro_t::spawn_later_ordered(std::bind(&bigger_test_t::run_txn7,
+                                                  this, drain.lock()));
+            coro_t::spawn_later_ordered(std::bind(&bigger_test_t::run_txn8,
+                                                  this, drain.lock()));
 
-            coro_t::spawn_ordered(std::bind(&bigger_test_t::run_txn1,
-                                            this, drain.lock()));
-            coro_t::spawn_ordered(std::bind(&bigger_test_t::run_txn2,
-                                            this, drain.lock()));
-            coro_t::spawn_ordered(std::bind(&bigger_test_t::run_txn3,
-                                            this, drain.lock()));
-            coro_t::spawn_ordered(std::bind(&bigger_test_t::run_txn4,
-                                            this, drain.lock()));
-            coro_t::spawn_ordered(std::bind(&bigger_test_t::run_txn5,
-                                            this, drain.lock()));
-            coro_t::spawn_ordered(std::bind(&bigger_test_t::run_txn9,
-                                            this, drain.lock()));
-            coro_t::spawn_ordered(std::bind(&bigger_test_t::run_txn10,
-                                            this, drain.lock()));
-            coro_t::spawn_ordered(std::bind(&bigger_test_t::run_txn11,
-                                            this, drain.lock()));
-            coro_t::spawn_ordered(std::bind(&bigger_test_t::run_txn12,
-                                            this, drain.lock()));
-            coro_t::spawn_ordered(std::bind(&bigger_test_t::run_txn13,
-                                            this, drain.lock()));
+            coro_t::spawn_later_ordered(std::bind(&bigger_test_t::run_txn1,
+                                                  this, drain.lock()));
+            coro_t::spawn_later_ordered(std::bind(&bigger_test_t::run_txn2,
+                                                  this, drain.lock()));
+            coro_t::spawn_later_ordered(std::bind(&bigger_test_t::run_txn3,
+                                                  this, drain.lock()));
+            coro_t::spawn_later_ordered(std::bind(&bigger_test_t::run_txn4,
+                                                  this, drain.lock()));
+            coro_t::spawn_later_ordered(std::bind(&bigger_test_t::run_txn5,
+                                                  this, drain.lock()));
+            coro_t::spawn_later_ordered(std::bind(&bigger_test_t::run_txn9,
+                                                  this, drain.lock()));
+            coro_t::spawn_later_ordered(std::bind(&bigger_test_t::run_txn10,
+                                                  this, drain.lock()));
+            coro_t::spawn_later_ordered(std::bind(&bigger_test_t::run_txn11,
+                                                  this, drain.lock()));
+            coro_t::spawn_later_ordered(std::bind(&bigger_test_t::run_txn12,
+                                                  this, drain.lock()));
+            coro_t::spawn_later_ordered(std::bind(&bigger_test_t::run_txn13,
+                                                  this, drain.lock()));
 
             condH.wait();
             condB.pulse();
@@ -374,10 +370,10 @@ public:
             test_cache_t cache(mock.ser.get(), &balancer, mock.throttler.get());
             auto_drainer_t drain;
             c = &cache;
-            coro_t::spawn_ordered(std::bind(&bigger_test_t::run_txn14,
-                                            this, drain.lock()));
-            coro_t::spawn_ordered(std::bind(&bigger_test_t::run_txn15,
-                                            this, drain.lock()));
+            coro_t::spawn_later_ordered(std::bind(&bigger_test_t::run_txn14,
+                                                  this, drain.lock()));
+            coro_t::spawn_later_ordered(std::bind(&bigger_test_t::run_txn15,
+                                                  this, drain.lock()));
         }
         c = NULL;
 
@@ -742,10 +738,10 @@ private:
 
             acq6->write_acq_signal()->wait();
 
-            coro_t::spawn_ordered(std::bind(&bigger_test_t::run_txn9A, this, txn9.get(),
-                                    subdrainer.lock()));
-            coro_t::spawn_ordered(std::bind(&bigger_test_t::run_txn9B, this, txn9.get(),
-                                    subdrainer.lock()));
+            coro_t::spawn_later_ordered(std::bind(&bigger_test_t::run_txn9A, this,
+                                                  txn9.get(), subdrainer.lock()));
+            coro_t::spawn_later_ordered(std::bind(&bigger_test_t::run_txn9B, this,
+                                                  txn9.get(), subdrainer.lock()));
 
             condQ1.wait();
             condQ2.wait();
@@ -766,8 +762,8 @@ private:
         make_empty(acq11);
         check_and_append(acq11, "", "t9");
 
-        coro_t::spawn_ordered(std::bind(&bigger_test_t::run_txn9C, this, txn9, lock));
-        coro_t::spawn_ordered(std::bind(&bigger_test_t::run_txn9D, this, txn9, lock));
+        coro_t::spawn_later_ordered(std::bind(&bigger_test_t::run_txn9C, this, txn9, lock));
+        coro_t::spawn_later_ordered(std::bind(&bigger_test_t::run_txn9D, this, txn9, lock));
 
         condR1.pulse();
         condS1.wait();
@@ -800,8 +796,8 @@ private:
         make_empty(acq12);
         check_and_append(acq12, "", "t9");
 
-        coro_t::spawn_ordered(std::bind(&bigger_test_t::run_txn9E, this, txn9, lock));
-        coro_t::spawn_ordered(std::bind(&bigger_test_t::run_txn9F, this, txn9, lock));
+        coro_t::spawn_later_ordered(std::bind(&bigger_test_t::run_txn9E, this, txn9, lock));
+        coro_t::spawn_later_ordered(std::bind(&bigger_test_t::run_txn9F, this, txn9, lock));
 
         condT1.wait();
         condT2.wait();
@@ -846,7 +842,7 @@ private:
         make_empty(acq15);
         check_and_append(acq15, "", "t10");
 
-        coro_t::spawn_ordered(std::bind(&bigger_test_t::run_txn9G, this, txn9, lock));
+        coro_t::spawn_later_ordered(std::bind(&bigger_test_t::run_txn9G, this, txn9, lock));
 
         condR3.pulse();
         condS3.wait();

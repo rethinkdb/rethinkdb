@@ -5,7 +5,7 @@
 backfill_progress_tracker_t::progress_tracker_t *
 backfill_progress_tracker_t::insert_progress_tracker(const region_t &region) {
     return &progress_trackers.get()->insert(
-            std::make_pair(region, backfill_progress_tracker_t::progress_tracker_t{})
+            std::make_pair(region, backfill_progress_tracker_t::progress_tracker_t())
         ).first->second;
 }
 

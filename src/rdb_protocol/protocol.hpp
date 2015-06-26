@@ -660,6 +660,9 @@ struct write_t {
                  write_response_t *response, rdb_context_t *cache, signal_t *)
         const THROWS_NOTHING;
 
+    // This is currently used to improve the cache's write transaction throttling.
+    int expected_document_changes() const;
+
     durability_requirement_t durability() const { return durability_requirement; }
 
     /* The clustering layer calls this. */

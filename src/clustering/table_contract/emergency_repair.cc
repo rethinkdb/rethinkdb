@@ -24,6 +24,17 @@ bool quorum_dead(
     return alive * 2 <= servers.size();
 }
 
+/* Returns `true` if any of the servers in `servers` is also in `dead`. */
+bool any_dead(
+        const std::set<server_id_t> &servers, const std::set<server_id_t> &dead) {
+    for (const server_id_t &server : servers) {
+        if (dead.count(server) == 1) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void calculate_emergency_repair(
         const table_raft_state_t &old_state,
         const std::set<server_id_t> &dead_servers,
@@ -57,10 +68,13 @@ void calculate_emergency_repair(
                 contract = contract_t();
                 contract.replicas.insert(erase_replacement);
                 contract.voters.insert(erase_replacement);
+                contract.after_emergency_repair = true;
             }
         } else if (quorum_dead(contract.voters, dead_servers) ||
                 (static_cast<bool>(contract.temp_voters) &&
-                    quorum_dead(*contract.temp_voters, dead_servers))) {
+                    quorum_dead(*contract.temp_voters, dead_servers)) ||
+                (contract.after_emergency_repair &&
+                    any_dead(contract.voters, dead_servers))) {
             *rollback_found_out = true;
             /* Remove the primary (a new one will be elected) */
             contract.primary = boost::none;
@@ -83,6 +97,8 @@ void calculate_emergency_repair(
                     }
                 }
             }
+            /* Record that we just did an emergency repair */
+            contract.after_emergency_repair = true;
         }
         /* We generate a new contract ID for the new contract, whether or not it's
         identical to the old contract. In practice this doesn't matter since contract IDs

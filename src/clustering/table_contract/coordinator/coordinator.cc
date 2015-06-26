@@ -2,6 +2,7 @@
 #include "clustering/table_contract/coordinator/coordinator.hpp"
 
 #include "clustering/generic/raft_core.tcc"
+#include "clustering/table_contract/branch_history_gc.hpp"
 #include "clustering/table_contract/coordinator/calculate_contracts.hpp"
 #include "clustering/table_contract/coordinator/calculate_misc.hpp"
 #include "clustering/table_contract/coordinator/check_ready.hpp"
@@ -145,11 +146,7 @@ void contract_coordinator_t::pump_contracts(signal_t *interruptor) {
             calculate_all_contracts(
                 state->state, acks_by_contract, connections_map,
                 &change.remove_contracts, &change.add_contracts,
-                &change.register_current_branches);
-            calculate_branch_history(
-                state->state, acks_by_contract,
-                change.remove_contracts, change.add_contracts,
-                change.register_current_branches,
+                &change.register_current_branches,
                 &change.remove_branches, &change.add_branches);
             calculate_server_names(
                 state->state, change.remove_contracts, change.add_contracts,
