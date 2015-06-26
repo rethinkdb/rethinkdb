@@ -1946,6 +1946,14 @@ bool raft_member_t<state_t>::candidate_or_leader_note_term(
                 */
                 if (this->ps().current_term == local_current_term) {
                     this->update_term(term, raft_member_id_t(), &mutex_acq_2);
+                    /* It's unlikely that `mode` will be `follower` at this point, but
+                    it's possible. Suppose that we are a candidate for term T, and we
+                    receive an RPC reply for term T+1, so we call `..._note_term()` and
+                    this coroutine is spawned. But before this coroutine acquires the
+                    mutex, we receive an AppendEntries RPC from a leader for term T, so
+                    we transition to follower state. Then when this coroutine actually
+                    executes, it will find that `current_term` has not changed, but we
+                    are in follower state. */
                     if (mode != mode_t::follower) {
                         this->candidate_or_leader_become_follower(&mutex_acq_2);
                     }
