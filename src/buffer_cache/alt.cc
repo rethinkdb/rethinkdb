@@ -67,10 +67,6 @@ throttler_acq_t alt_txn_throttler_t::begin_txn_or_throttle(int64_t expected_chan
     return acq;
 }
 
-void alt_txn_throttler_t::end_txn(UNUSED throttler_acq_t acq) {
-    // Just let the acq destructor do its thing.
-}
-
 void alt_txn_throttler_t::inform_memory_limit_change(uint64_t memory_limit,
                                                      const block_size_t max_block_size) {
     int64_t throttler_limit = std::min<int64_t>(SOFT_UNWRITTEN_CHANGES_LIMIT,
@@ -206,31 +202,18 @@ void txn_t::help_construct(int64_t expected_change_count,
                                   cache_conn));
 }
 
-void txn_t::inform_tracker(cache_t *cache, throttler_acq_t *throttler_acq) {
-    cache->throttler_.end_txn(std::move(*throttler_acq));
-}
-
-void txn_t::pulse_and_inform_tracker(cache_t *cache,
-                                     throttler_acq_t *throttler_acq,
-                                     cond_t *pulsee) {
-    inform_tracker(cache, throttler_acq);
-    pulsee->pulse();
-}
-
 txn_t::~txn_t() {
     cache_->assert_thread();
 
     if (durability_ == write_durability_t::SOFT) {
-        cache_->page_cache_.flush_and_destroy_txn(std::move(page_txn_),
-                                                  std::bind(&txn_t::inform_tracker,
-                                                            cache_,
-                                                            ph::_1));
+        cache_->page_cache_.flush_and_destroy_txn(
+            std::move(page_txn_),
+            []() { });
     } else {
         cond_t cond;
         cache_->page_cache_.flush_and_destroy_txn(
                 std::move(page_txn_),
-                std::bind(&txn_t::pulse_and_inform_tracker,
-                          cache_, ph::_1, &cond));
+                [&cond]() { cond.pulse(); });
         cond.wait();
     }
 }

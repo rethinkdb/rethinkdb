@@ -298,6 +298,8 @@ public:
     // See below:  this can update how much semaphore_acq_ holds.
     void update_dirty_page_count(int64_t new_count);
 
+    void reset();
+
 private:
     friend class ::alt_txn_throttler_t;
     // At first, the number of dirty pages is 0 and semaphore_acq_.count() >=
@@ -318,11 +320,10 @@ public:
                  alt_txn_throttler_t *throttler);
     ~page_cache_t();
 
-    // Takes a txn to be flushed.  Calls on_flush_complete() (which resets the
-    // throttler_acq parameter) when done.
+    // Takes a txn to be flushed.  Calls on_flush_complete() when done.
     void flush_and_destroy_txn(
             scoped_ptr_t<page_txn_t> txn,
-            std::function<void(throttler_acq_t *)> on_flush_complete);
+            std::function<void()> on_flush_complete);
 
     current_page_t *page_for_block_id(block_id_t block_id);
     current_page_t *page_for_new_block_id(block_id_t *block_id_out);
