@@ -93,7 +93,7 @@ public:
     multi_table_manager_bcard_t get_multi_table_manager_bcard() {
         multi_table_manager_bcard_t bcard;
         bcard.action_mailbox = action_mailbox->get_address();
-        bcard.get_config_mailbox = get_config_mailbox->get_address();
+        bcard.get_status_mailbox = get_status_mailbox->get_address();
         bcard.server_id = server_id;
         return bcard;
     }
@@ -285,12 +285,13 @@ private:
             &initial_raft_state,
         const mailbox_t<void()>::address_t &ack_addr);
 
-    void on_get_config(
+    void on_get_status(
         signal_t *interruptor,
-        const boost::optional<namespace_id_t> &table_id,
-        const mailbox_t<void(std::map<namespace_id_t, std::pair<
-                table_config_and_shards_t, multi_table_manager_bcard_t::timestamp_t>
-            >)>::address_t &reply_addr);
+        const std::set<namespace_id_t> &tables,
+        const table_status_request_t &request,
+        const mailbox_t<void(
+            std::map<namespace_id_t, table_status_response_t>
+            )>::address_t &reply_addr);
 
     /* `do_sync()` checks if it is necessary to send an action message to the given
     server regarding the given table, and sends one if so. It is called in the following
@@ -383,7 +384,7 @@ private:
             table_manager_directory_subs;
 
     scoped_ptr_t<multi_table_manager_bcard_t::action_mailbox_t> action_mailbox;
-    scoped_ptr_t<multi_table_manager_bcard_t::get_config_mailbox_t> get_config_mailbox;
+    scoped_ptr_t<multi_table_manager_bcard_t::get_status_mailbox_t> get_status_mailbox;
 };
 
 #endif /* CLUSTERING_TABLE_MANAGER_MULTI_TABLE_MANAGER_HPP_ */

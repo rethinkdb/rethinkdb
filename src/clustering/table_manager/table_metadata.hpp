@@ -13,8 +13,8 @@
 #include "clustering/table_contract/executor/exec.hpp"
 #include "rpc/mailbox/typed.hpp"
 
-class table_server_status_t;
-class get_status_selection_t;
+class table_status_request_t;
+class table_status_response_t;
 
 class multi_table_manager_bcard_t {
 public:
@@ -143,18 +143,17 @@ public:
         )> action_mailbox_t;
     action_mailbox_t::address_t action_mailbox;
 
-    /* `get_config_mailbox` handles fetching the current value of the
-    `table_config_and_shards_t` for a specific table or all tables. If `table_id` is
-    non-empty, the receiver will reply with a map with zero or one entries, depending on
-    if it is hosting the given table or not. If `table_id` is empty, the receiver will
-    reply with an entry for every table it is hosting. */
+    /* `get_status_mailbox` retrieves configurations, current statuses, etc. for one or
+    more tables. Many different types of status queries are combined into one mailbox in
+    order to allow more code to be re-used. */
     typedef mailbox_t<void(
-        boost::optional<namespace_id_t> table_id,
-        mailbox_t<void(std::map<namespace_id_t, std::pair<
-                table_config_and_shards_t, multi_table_manager_bcard_t::timestamp_t>
-            >)>::address_t reply_addr
-        )> get_config_mailbox_t;
-    get_config_mailbox_t::address_t get_config_mailbox;
+        std::set<namespace_id_t> table_ids,
+        table_status_request_t request,
+        mailbox_t<void(
+            std::map<namespace_id_t, table_status_response_t>
+            )>::address_t reply_addr
+        )> get_status_mailbox_t;
+    get_status_mailbox_t::address_t get_status_mailbox;
 
     /* The server ID of the server sending this business card. In theory you could figure
     it out from the peer ID, but this is way more convenient. Proxy servers will set this
@@ -224,16 +223,6 @@ public:
     minidir_bcard_t<std::pair<server_id_t, branch_id_t>, contract_execution_bcard_t>
         execution_bcard_minidir_bcard;
 
-    /* This is used for status queries. */
-    typedef mailbox_t<void(
-        get_status_selection_t,
-        mailbox_t<void(
-            std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >,
-            boost::optional<table_server_status_t>
-            )>::address_t
-        )> get_status_mailbox_t;
-    get_status_mailbox_t::address_t get_status_mailbox;
-
     /* The server ID of the server sending this business card. In theory you could figure
     it out from the peer ID, but this is way more convenient. */
     server_id_t server_id;
@@ -241,34 +230,52 @@ public:
 RDB_DECLARE_SERIALIZABLE(table_manager_bcard_t::leader_bcard_t);
 RDB_DECLARE_SERIALIZABLE(table_manager_bcard_t);
 
-class get_status_selection_t {
+class table_status_request_t {
 public:
-    get_status_selection_t() : selection_bitmap(0) { }
-    get_status_selection_t(bool sindex_status, bool server_status) {
-        // For some reason this initialization of selection_bitmap doesn't work
-        // if it's in the initializer list. So don't move it there.
-        // I don't understand why, but there's probably some obscure C++ reason
-        // for it (or it's a Clang bug)...
-        selection_bitmap =
-            (sindex_status ? SINDEX_STATUS_BIT : 0) |
-            (server_status ? SERVER_STATUS_BIT : 0);
-    }
-    bool has_sindex_status() const { return selection_bitmap & SINDEX_STATUS_BIT; }
-    bool has_server_status() const { return selection_bitmap & SERVER_STATUS_BIT; }
-    RDB_DECLARE_ME_SERIALIZABLE(get_status_selection_t);
-private:
-    uint8_t selection_bitmap;
-    static const uint8_t SINDEX_STATUS_BIT = 1;
-    static const uint8_t SERVER_STATUS_BIT = 2;
-};
+    table_status_request_t() :
+        want_config(false), want_sindexes(false), want_raft_state(false),
+        want_contract_acks(false), want_shard_status(false),
+        want_all_replicas_ready(false) { }
 
-class table_server_status_t {
-public:
-    multi_table_manager_bcard_t::timestamp_t timestamp;
-    table_raft_state_t state;
-    std::map<contract_id_t, contract_ack_t> contract_acks;
+    bool want_config;
+    bool want_sindexes;
+    bool want_raft_state;
+    bool want_contract_acks;
+    bool want_shard_status;
+    bool want_all_replicas_ready;
 };
-RDB_DECLARE_SERIALIZABLE(table_server_status_t);
+RDB_DECLARE_SERIALIZABLE(table_status_request_t);
+
+class table_status_response_t {
+public:
+    /* The booleans in `table_status_request_t` control whether each field of
+    `table_status_response_t` will be included or not. This is to avoid making an
+    expensive computation if the result will not be used. If a field is not requested,
+    its value is undefined (but typically empty or default-constructed). */
+
+    /* `config` is controlled by `want_config`. */
+    boost::optional<table_config_and_shards_t> config;
+
+    /* `sindexes` is controlled by `want_sindexes`. */
+    std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > sindexes;
+
+    /* `raft_state` and `raft_state_timestamp` are controlled by `want_raft_state` */
+    boost::optional<table_raft_state_t> raft_state;
+    boost::optional<multi_table_manager_bcard_t::timestamp_t> raft_state_timestamp;
+
+    /* `contract_acks` is controlled by `want_contract_acks` */
+    std::map<contract_id_t, contract_ack_t> contract_acks;
+
+    /* `shard_status` is controlled by `want_shard_status`. */
+    range_map_t<key_range_t::right_bound_t, table_shard_status_t> shard_status;
+
+    /* `all_replicas_ready` is controlled by `want_all_replicas_ready`. It will be set to
+    `true` if the responding server is leader and can confirm that all backfills are
+    completed, the status matches the config, etc. Otherwise it will be set to `false`.
+    */
+    bool all_replicas_ready;
+};
+RDB_DECLARE_SERIALIZABLE(table_status_response_t);
 
 /* If we are an active member for a given table, we'll store a
 `table_active_persistent_state_t` plus a `raft_persistent_state_t<table_raft_state_t>`;

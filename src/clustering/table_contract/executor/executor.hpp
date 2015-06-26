@@ -10,6 +10,8 @@
 #include "concurrency/pump_coro.hpp"
 #include "store_subview.hpp"
 
+class backfill_progress_tracker_t;
+
 /* The `contract_executor_t` is responsible for executing the instructions contained in
 the `contract_t`s in the `table_raft_state_t`. Each server has one `contract_executor_t`
 for each table it's a replica of. The `contract_executor_t` constantly monitors the
@@ -31,6 +33,7 @@ public:
         const base_path_t &base_path,
         io_backender_t *io_backender,
         backfill_throttler_t *backfill_throttler,
+        backfill_progress_tracker_t *backfill_progress_tracker,
         perfmon_collection_t *perfmons);
     ~contract_executor_t();
 
@@ -46,6 +49,8 @@ public:
     watchable_map_t<uuid_u, table_query_bcard_t> *get_local_table_query_bcards() {
         return &local_table_query_bcards;
     }
+
+    range_map_t<key_range_t::right_bound_t, table_shard_status_t> get_shard_status();
 
 private:
     /* The actual work of executing the contract--accepting queries from the user,
@@ -63,6 +68,10 @@ private:
         /* A `store_subview_t` containing only the sub-region of the store that this
         execution affects. */
         scoped_ptr_t<store_subview_t> store_subview;
+
+        /* A `backfill_progress_tracker_t` through which backfills their destination
+        server, start time, and progress are registered. */
+        backfill_progress_tracker_t *backfill_progress_tracker;
 
         /* We create a new perfmon category for each execution. This way the executions
         themselves don't have to think about perfmon key collisions. */

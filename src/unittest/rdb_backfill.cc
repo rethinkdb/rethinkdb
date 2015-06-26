@@ -8,6 +8,7 @@
 #include "clustering/immediate_consistency/primary_dispatcher.hpp"
 #include "clustering/immediate_consistency/remote_replicator_client.hpp"
 #include "clustering/immediate_consistency/remote_replicator_server.hpp"
+#include "clustering/table_manager/backfill_progress_tracker.hpp"
 #include "extproc/extproc_pool.hpp"
 #include "extproc/extproc_spawner.hpp"
 #include "rapidjson/document.h"
@@ -216,18 +217,21 @@ void run_backfill_test(const backfill_test_config_t &cfg) {
 
             backfill_throttler_t backfill_throttler;
             backfill_debug_all("begin backfill store1 -> store2");
+            backfill_progress_tracker_t backfill_progress_tracker;
             remote_replicator_client_t remote_replicator_client_2(&backfill_throttler,
-                cfg.backfill, cluster.get_mailbox_manager(), generate_uuid(),
-                dispatcher.get_branch_id(), remote_replicator_server.get_bcard(),
-                local_replicator.get_replica_bcard(), &store2.store, &bhm,
-                &non_interruptor);
+                cfg.backfill, &backfill_progress_tracker, cluster.get_mailbox_manager(),
+                generate_uuid(), dispatcher.get_branch_id(),
+                remote_replicator_server.get_bcard(),
+                local_replicator.get_replica_bcard(), generate_uuid(), &store2.store,
+                &bhm, &non_interruptor);
             backfill_debug_all("end backfill store1 -> store2");
             backfill_debug_all("begin backfill store1 -> store3");
             remote_replicator_client_t remote_replicator_client_3(&backfill_throttler,
-                cfg.backfill, cluster.get_mailbox_manager(), generate_uuid(),
-                dispatcher.get_branch_id(), remote_replicator_server.get_bcard(),
-                local_replicator.get_replica_bcard(), &store3.store, &bhm,
-                &non_interruptor);
+                cfg.backfill, &backfill_progress_tracker, cluster.get_mailbox_manager(),
+                generate_uuid(), dispatcher.get_branch_id(),
+                remote_replicator_server.get_bcard(),
+                local_replicator.get_replica_bcard(), generate_uuid(), &store3.store,
+                &bhm, &non_interruptor);
             backfill_debug_all("end backfill store1 -> store3");
 
             if (cfg.stream_during_backfill) {
@@ -283,10 +287,12 @@ void run_backfill_test(const backfill_test_config_t &cfg) {
 
         backfill_throttler_t backfill_throttler;
         backfill_debug_all("begin backfill store2 -> store1");
+        backfill_progress_tracker_t backfill_progress_tracker;
         remote_replicator_client_t remote_replicator_client(&backfill_throttler,
-            cfg.backfill, cluster.get_mailbox_manager(), generate_uuid(),
-            dispatcher.get_branch_id(), remote_replicator_server.get_bcard(),
-            local_replicator.get_replica_bcard(), &store1.store, &bhm,
+            cfg.backfill, &backfill_progress_tracker, cluster.get_mailbox_manager(),
+            generate_uuid(), dispatcher.get_branch_id(),
+            remote_replicator_server.get_bcard(),
+            local_replicator.get_replica_bcard(), generate_uuid(), &store1.store, &bhm,
             &non_interruptor);
         backfill_debug_all("end backfill store2 -> store1");
 
@@ -325,10 +331,12 @@ void run_backfill_test(const backfill_test_config_t &cfg) {
 
         backfill_throttler_t backfill_throttler;
         backfill_debug_all("begin backfill store1 -> store3");
+        backfill_progress_tracker_t backfill_progress_tracker;
         remote_replicator_client_t remote_replicator_client(&backfill_throttler,
-            cfg.backfill, cluster.get_mailbox_manager(), generate_uuid(),
-            dispatcher.get_branch_id(), remote_replicator_server.get_bcard(),
-            local_replicator.get_replica_bcard(), &store3.store, &bhm,
+            cfg.backfill, &backfill_progress_tracker, cluster.get_mailbox_manager(),
+            generate_uuid(), dispatcher.get_branch_id(),
+            remote_replicator_server.get_bcard(),
+            local_replicator.get_replica_bcard(), generate_uuid(), &store3.store, &bhm,
             &non_interruptor);
         backfill_debug_all("end backfill store1 -> store3");
 

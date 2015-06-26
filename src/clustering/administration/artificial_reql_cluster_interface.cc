@@ -367,6 +367,7 @@ admin_artificial_tables_t::admin_artificial_tables_t(
         watchable_map_t<peer_id_t, cluster_directory_metadata_t> *_directory_map_view,
         table_meta_client_t *_table_meta_client,
         server_config_client_t *_server_config_client,
+        namespace_repo_t *_namespace_repo,
         mailbox_manager_t *_mailbox_manager) {
     std::map<name_string_t,
         std::pair<artificial_table_backend_t *, artificial_table_backend_t *> > backends;
@@ -389,6 +390,7 @@ admin_artificial_tables_t::admin_artificial_tables_t(
             _directory_map_view,
             _server_config_client,
             _table_meta_client,
+            _namespace_repo,
             static_cast<admin_identifier_format_t>(i)));
     }
     backends[name_string_t::guarantee_valid("current_issues")] =
@@ -441,6 +443,7 @@ admin_artificial_tables_t::admin_artificial_tables_t(
             _semilattice_view,
             _server_config_client,
             _table_meta_client,
+            _namespace_repo,
             static_cast<admin_identifier_format_t>(i)));
     }
     backends[name_string_t::guarantee_valid("table_status")] =

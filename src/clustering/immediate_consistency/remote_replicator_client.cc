@@ -3,6 +3,7 @@
 
 #include "clustering/immediate_consistency/backfill_throttler.hpp"
 #include "clustering/immediate_consistency/backfillee.hpp"
+#include "clustering/table_manager/backfill_progress_tracker.hpp"
 #include "stl_utils.hpp"
 #include "store_view.hpp"
 
@@ -90,12 +91,14 @@ private:
 remote_replicator_client_t::remote_replicator_client_t(
         backfill_throttler_t *backfill_throttler,
         const backfill_config_t &backfill_config,
+        backfill_progress_tracker_t *backfill_progress_tracker,
         mailbox_manager_t *mailbox_manager,
         const server_id_t &server_id,
 
         const branch_id_t &branch_id,
         const remote_replicator_server_bcard_t &remote_replicator_server_bcard,
         const replica_bcard_t &replica_bcard,
+        const server_id_t &primary_server_id,
 
         store_view_t *store,
         branch_history_manager_t *branch_history_manager,
@@ -120,6 +123,16 @@ remote_replicator_client_t::remote_replicator_client_t(
 {
     guarantee(remote_replicator_server_bcard.branch == branch_id);
     guarantee(remote_replicator_server_bcard.region == store->get_region());
+
+
+    /* We create the progress trackers before grabbing the `backfill_throttler_lock`
+    such that the progress will not move backwards when backfills are unlocked. */
+    auto progress_tracker =
+        backfill_progress_tracker->insert_progress_tracker(store->get_region());
+    progress_tracker->is_ready = false;
+    progress_tracker->start_time = current_microtime();
+    progress_tracker->source_server_id = primary_server_id;
+    progress_tracker->progress = 0.0;
 
     backfill_throttler_t::lock_t backfill_throttler_lock(
         backfill_throttler,
@@ -162,7 +175,7 @@ remote_replicator_client_t::remote_replicator_client_t(
     they arrive because `discard_threshold_` is the left boundary. */
 
     backfillee_t backfillee(mailbox_manager, branch_history_manager, store,
-        replica_bcard.backfiller_bcard, backfill_config, interruptor);
+        replica_bcard.backfiller_bcard, backfill_config, progress_tracker, interruptor);
 
     /* We acquire `rwlock_` to lock out writes while we're writing to `region_*_`,
     `queue_fun_`, and `replica_`, and for the last stage of draining the queue. */
@@ -205,7 +218,7 @@ remote_replicator_client_t::remote_replicator_client_t(
             mailbox_t<void()> ack_mbox(
                 mailbox_manager,
                 [&](signal_t *) { backfiller_is_up_to_date.pulse(); });
-            send(mailbox_manager, replica_bcard.synchronize_mailbox, 
+            send(mailbox_manager, replica_bcard.synchronize_mailbox,
                 backfill_start_timestamp, ack_mbox.get_address());
             wait_interruptible(&backfiller_is_up_to_date, interruptor);
         }

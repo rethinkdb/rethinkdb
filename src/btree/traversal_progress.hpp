@@ -1,6 +1,6 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
-#ifndef BACKFILL_PROGRESS_HPP_
-#define BACKFILL_PROGRESS_HPP_
+#ifndef BTREE_TRAVERSAL_PROGRESS_HPP_
+#define BTREE_TRAVERSAL_PROGRESS_HPP_
 
 #include <vector>
 
@@ -70,4 +70,4 @@ private:
 
     DISABLE_COPYING(traversal_progress_combiner_t);
 };
-#endif  // BACKFILL_PROGRESS_HPP_
+#endif  // BTREE_TRAVERSAL_PROGRESS_HPP_

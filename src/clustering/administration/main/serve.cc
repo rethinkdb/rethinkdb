@@ -271,6 +271,7 @@ bool do_serve(io_backender_t *io_backender,
                 directory_read_manager.get_root_map_view(),
                 &table_meta_client,
                 &server_config_client,
+                real_reql_cluster_interface.get_namespace_repo(),
                 &mailbox_manager);
 
             jobs_manager_t jobs_manager(

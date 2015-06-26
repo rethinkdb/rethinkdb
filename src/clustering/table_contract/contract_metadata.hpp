@@ -261,6 +261,32 @@ RDB_DECLARE_SERIALIZABLE(table_raft_state_t);
 table_raft_state_t make_new_table_raft_state(
     const table_config_and_shards_t &config);
 
+/* `table_shard_status_t` describes the current state of the server with respect to some
+range of the key-space. It's used for producing `rethinkdb.table_status`. It's designed
+so that `table_shard_status_t`s from different hash-shards or different ranges can be
+meaningfully combined. */
+class table_shard_status_t {
+public:
+    table_shard_status_t() : primary(false), secondary(false), need_primary(false),
+        need_quorum(false), backfilling(false), transitioning(false) { }
+    void merge(const table_shard_status_t &other) {
+        primary |= other.primary;
+        secondary |= other.secondary;
+        need_primary |= other.need_primary;
+        need_quorum |= other.need_quorum;
+        backfilling |= other.backfilling;
+        transitioning |= other.transitioning;
+    }
+    bool primary;   /* server is primary */
+    bool secondary;   /* server is secondary */
+    bool need_primary;   /* server is secondary and waiting for primary */
+    bool need_quorum;   /* server is primary and waiting for branch */
+    bool backfilling;   /* server is receiving a backfill */
+    bool transitioning;   /* server is in a contract, but has no ack */
+};
+RDB_DECLARE_EQUALITY_COMPARABLE(table_shard_status_t);
+RDB_DECLARE_SERIALIZABLE(table_shard_status_t);
+
 void debug_print(printf_buffer_t *buf, const contract_t::primary_t &primary);
 void debug_print(printf_buffer_t *buf, const contract_t &contract);
 void debug_print(printf_buffer_t *buf, const contract_ack_t &ack);
