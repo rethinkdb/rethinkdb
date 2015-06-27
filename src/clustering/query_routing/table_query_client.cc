@@ -394,7 +394,8 @@ void table_query_client_t::dispatch_debug_direct_read(
     [&](multistore_ptr_t *multistore, table_manager_t *) {
         if (multistore == nullptr) {
             throw cannot_perform_query_exc_t(
-                "This server does not have any data available for the given table.");
+                "This server does not have any data available for the given table.",
+                query_state_t::FAILED);
         }
         std::vector<read_response_t> responses;
         pmap(CPU_SHARDING_FACTOR, [&](size_t shard_number) {
