@@ -137,19 +137,6 @@ ql::datum_t convert_debug_table_shard_scheme_to_datum(
     return std::move(builder).to_datum();
 }
 
-ql::datum_t convert_debug_sindex_statuses_to_datum(
-        const std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
-            &sindex_statuses) {
-    ql::datum_array_builder_t builder(ql::configured_limits_t::unlimited);
-    for (const auto &sindex_status : sindex_statuses) {
-        builder.add(ql::sindex_status_to_datum(
-            sindex_status.first,
-            sindex_status.second.first,
-            sindex_status.second.second));
-    }
-    return std::move(builder).to_datum();
-}
-
 ql::datum_t convert_debug_contract_ack_state_to_datum(
        const contract_ack_t::state_t &state) {
     switch (state) {
@@ -165,8 +152,6 @@ ql::datum_t convert_debug_contract_ack_state_to_datum(
             return convert_string_to_datum("secondary_backfilling");
         case contract_ack_t::state_t::secondary_streaming:
             return convert_string_to_datum("secondary_streaming");
-        case contract_ack_t::state_t::nothing:
-            return convert_string_to_datum("nothing");
         default:
             unreachable();
     }
@@ -215,7 +200,6 @@ ql::datum_t convert_debug_current_branches_to_datum(
 ql::datum_t convert_debug_branch_birth_certificate_to_datum(
         const branch_birth_certificate_t &birth_certificate) {
     ql::datum_object_builder_t builder;
-    builder.overwrite("region", convert_debug_region_to_datum(birth_certificate.region));
     builder.overwrite("initial_timestamp", ql::datum_t(static_cast<double>(
         birth_certificate.initial_timestamp.to_repli_timestamp().longtime)));
     builder.overwrite(
@@ -268,25 +252,22 @@ ql::datum_t convert_debug_contract_acks_to_datum(
     return std::move(builder).to_datum();
 }
 
-ql::datum_t convert_debug_table_server_statuses_to_datum(
-        const std::map<server_id_t, table_server_status_t> &server_statuses) {
+ql::datum_t convert_debug_statuses_to_datum(
+        const std::map<server_id_t, table_status_response_t> &statuses) {
     ql::datum_array_builder_t builder(ql::configured_limits_t::unlimited);
-    for (const auto &peer : server_statuses) {
+    for (const auto &peer : statuses) {
         ql::datum_object_builder_t peer_builder;
         peer_builder.overwrite("server", convert_uuid_to_datum(peer.first));
-        peer_builder.overwrite(
-            "timestamp",
+        peer_builder.overwrite("timestamp",
             convert_debug_multi_table_manager_bcard_timestamp_to_datum(
-                peer.second.timestamp));
-        peer_builder.overwrite(
-            "contracts", convert_debug_contracts_to_datum(peer.second.state.contracts));
-        peer_builder.overwrite(
-            "contract_acks",
+                *peer.second.raft_state_timestamp));
+        peer_builder.overwrite("contracts",
+            convert_debug_contracts_to_datum(peer.second.raft_state->contracts));
+        peer_builder.overwrite("contract_acks",
             convert_debug_contract_acks_to_datum(peer.second.contract_acks));
-        peer_builder.overwrite(
-            "current_branches",
+        peer_builder.overwrite("current_branches",
              convert_debug_current_branches_to_datum(
-                peer.second.state.current_branches));
+                peer.second.raft_state->current_branches));
         builder.add(std::move(peer_builder).to_datum());
     }
     return std::move(builder).to_datum();
@@ -298,14 +279,11 @@ void debug_table_status_artificial_table_backend_t::format_row(
         const ql::datum_t &db_name_or_uuid,
         signal_t *interruptor_on_home,
         ql::datum_t *row_out)
-        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t) {
+        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t) {
     assert_thread();
 
-    std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > sindex_statuses;
-    std::map<server_id_t, table_server_status_t> server_statuses;
-    server_id_t latest_server;
-    table_meta_client->get_status(table_id, interruptor_on_home,
-        &sindex_statuses, &server_statuses, nullptr, &latest_server);
+    std::map<server_id_t, table_status_response_t> statuses;
+    table_meta_client->get_debug_status(table_id, interruptor_on_home, &statuses);
 
     ql::datum_object_builder_t builder;
     builder.overwrite("id", convert_uuid_to_datum(table_id));
@@ -317,17 +295,14 @@ void debug_table_status_artificial_table_backend_t::format_row(
         convert_table_config_to_datum(
             table_id,
             db_name_or_uuid,
-            server_statuses.at(latest_server).state.config.config,
+            config_and_shards.config,
             admin_identifier_format_t::uuid,
-            server_statuses.at(latest_server).state.config.server_names));
+            config_and_shards.server_names));
     builder.overwrite(
         "shard_scheme",
-        convert_debug_table_shard_scheme_to_datum(
-            server_statuses.at(latest_server).state.config.shard_scheme));
-    builder.overwrite(
-        "sindexes", convert_debug_sindex_statuses_to_datum(sindex_statuses));
+        convert_debug_table_shard_scheme_to_datum(config_and_shards.shard_scheme));
     builder.overwrite(
         "table_server_status",
-        convert_debug_table_server_statuses_to_datum(server_statuses));
+        convert_debug_statuses_to_datum(statuses));
     *row_out = std::move(builder).to_datum();
 }

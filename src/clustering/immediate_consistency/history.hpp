@@ -82,7 +82,9 @@ public:
     /* The region that the branch applies to. This is the same as the region of the
     `broadcaster_t` that corresponds to the branch. Every write to the branch must affect
     only some (non-proper) subset of this region. */
-    region_t region;
+    region_t get_region() const {
+        return origin.get_domain();
+    }
 
     /* The timestamp of the first state on the branch. `version_t(branch_id,
     initial_timestamp)` describes the same B-tree state as `origin`. `initial_timestamp`
@@ -90,12 +92,22 @@ public:
     state_timestamp_t initial_timestamp;
 
     /* The state of the meta-info of the B-tree when the `broadcaster_t` was
-    constructed. `origin.get_region()` will be the same as `region`. */
+    constructed. */
     region_map_t<version_t> origin;
 };
 
 RDB_DECLARE_SERIALIZABLE(branch_birth_certificate_t);
 RDB_DECLARE_EQUALITY_COMPARABLE(branch_birth_certificate_t);
+
+/* `missing_branch_exc_t` is thrown if we try to fetch a birth certificate for a branch
+that doesn't exist. This can happen if the branch history GC cleans up the branch while a
+B-tree still exists that points at it, which is uncommon but not impossible. */
+
+class missing_branch_exc_t : public std::runtime_error {
+public:
+    missing_branch_exc_t() :
+        std::runtime_error("tried to look up a branch that is not in the history") { }
+};
 
 /* A `branch_history_t` is a map from `branch_id_t` to `branch_birth_certificate_t`.
 `branch_history_reader_t` is an interface that allows reading from a `branch_history_t`
@@ -108,19 +120,18 @@ class branch_history_t;
 
 class branch_history_reader_t {
 public:
-    /* Returns information about one specific branch. Crashes if we don't have a
-    record for this branch. */
+    /* Returns information about one specific branch. Throws `missing_branch_exc_t` if we
+    don't have a record for this branch. */
     virtual branch_birth_certificate_t get_branch(const branch_id_t &branch)
-        const THROWS_NOTHING = 0;
+        const THROWS_ONLY(missing_branch_exc_t) = 0;
 
-    /* Checks whether a given branch id is known. This can be used with get_branch
-    to prevent failures. */
+    /* Checks whether a given branch id is known. */
     virtual bool is_branch_known(const branch_id_t &branch) const THROWS_NOTHING = 0;
 
-    /* Copies records related to the given branch and all its ancestors into
-    `out`. The reason this mutates `out` instead of returning a
-    `branch_history_t` is so that you can call it several times with different
-    branches that share history; they will re-use records that they share. */
+    /* Copies records related to the given branch and all its known ancestors into `out`.
+    `out`. The reason this mutates `out` instead of returning a `branch_history_t` is so
+    that you can call it several times with different branches that share history; they
+    will re-use records that they share. */
     void export_branch_history(
         const branch_id_t &branch, branch_history_t *out) const THROWS_NOTHING;
 
@@ -137,7 +148,7 @@ protected:
 class branch_history_t : public branch_history_reader_t {
 public:
     branch_birth_certificate_t get_branch(const branch_id_t &branch)
-        const THROWS_NOTHING;
+        const THROWS_ONLY(missing_branch_exc_t);
     bool is_branch_known(const branch_id_t &branch) const THROWS_NOTHING;
 
     std::map<branch_id_t, branch_birth_certificate_t> branches;
@@ -147,22 +158,27 @@ RDB_DECLARE_EQUALITY_COMPARABLE(branch_history_t);
 
 /* These are the key functions that we use to do lookups in the branch history. */
 
-/* `version_is_ancestor()` returns `true` if every key in `relevant_region` of
-the table passed through `ancestor` version on the way to `descendent` version.
-Also returns true if `ancestor` and `descendent` are the same version. */
+/* `version_is_ancestor()` returns `true` if every key in `relevant_region` of the table
+passed through `ancestor` version on the way to `descendent` version. Also returns true
+if `ancestor` and `descendent` are the same version. Throws `missing_branch_exc_t` if the
+question can't be answered because some history is missing. */
 bool version_is_ancestor(
     const branch_history_reader_t *bh,
     const version_t &ancestor,
     const version_t &descendent,
-    const region_t &relevant_region);
+    const region_t &relevant_region)
+    THROWS_ONLY(missing_branch_exc_t);
 
 /* `version_find_common()` finds the last common ancestor of two other versions. The
-result may be different for different sub-regions, so it returns a `region_map_t`. */
+result may be different for different sub-regions, so it returns a `region_map_t`. Throws
+`missing_branch_exc_t` if the question can't be answered because some history is missing.
+*/
 region_map_t<version_t> version_find_common(
     const branch_history_reader_t *bh,
     const version_t &v1,
     const version_t &v2,
-    const region_t &relevant_region);
+    const region_t &relevant_region)
+    THROWS_ONLY(missing_branch_exc_t);
 
 /* `version_find_branch_common()` is like `version_find_common()` but in place of one of
 the versions, it uses the latest version on the given branch. */
@@ -170,7 +186,8 @@ region_map_t<version_t> version_find_branch_common(
     const branch_history_reader_t *bh,
     const version_t &version,
     const branch_id_t &branch,
-    const region_t &relevant_region);
+    const region_t &relevant_region)
+    THROWS_ONLY(missing_branch_exc_t);
 
 /* `branch_history_combiner_t` is a `branch_history_reader_t` that reads from two or more
 other `branch_history_reader_t`s. */
@@ -181,7 +198,7 @@ public:
         const branch_history_reader_t *_r2)
         : r1(_r1), r2(_r2) { } 
     branch_birth_certificate_t get_branch(const branch_id_t& branch)
-        const THROWS_NOTHING;
+        const THROWS_ONLY(missing_branch_exc_t);
     bool is_branch_known(const branch_id_t &branch) const THROWS_NOTHING;
 private:
     const branch_history_reader_t *r1, *r2;
@@ -210,6 +227,18 @@ public:
     */
     virtual void import_branch_history(
         const branch_history_t &new_records,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t) = 0;
+
+    /* `prepare_gc()` fills `branches` with the IDs of all known branches. `perform_gc()`
+    deletes any branches whose IDs are in `remove_branches`. The standard procedure is to
+    call `prepare_gc()`, delete the live branches from the set, then call `perform_gc()`.
+    */
+    virtual void prepare_gc(
+        std::set<branch_id_t> *branches_out)
+        THROWS_NOTHING = 0;
+    virtual void perform_gc(
+        const std::set<branch_id_t> &remove_branches,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) = 0;
 

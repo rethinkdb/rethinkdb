@@ -4,15 +4,14 @@
 
 #include "clustering/table_contract/coordinator/coordinator.hpp"
 #include "clustering/table_contract/executor/executor.hpp"
+#include "clustering/table_manager/backfill_progress_tracker.hpp"
 #include "clustering/table_manager/server_name_cache_updater.hpp"
 #include "clustering/table_manager/sindex_manager.hpp"
 #include "clustering/table_manager/table_metadata.hpp"
 
 /* `table_manager_t` hosts the `raft_member_t` and the `contract_executor_t`. It also
 hosts the `contract_coordinator_t` if we are the Raft leader. */
-class table_manager_t :
-    private raft_storage_interface_t<table_raft_state_t>
-{
+class table_manager_t {
 public:
     table_manager_t(
         const server_id_t &_server_id,
@@ -21,7 +20,6 @@ public:
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
             *_table_manager_directory,
         backfill_throttler_t *_backfill_throttler,
-        table_persistence_interface_t *_persistence_interface,
         watchable_map_t<std::pair<server_id_t, server_id_t>, empty_value_t>
             *_connections_map,
         const base_path_t &_base_path,
@@ -29,7 +27,7 @@ public:
         const namespace_id_t &_table_id,
         const multi_table_manager_bcard_t::timestamp_t::epoch_t &_epoch,
         const raft_member_id_t &raft_member_id,
-        const raft_persistent_state_t<table_raft_state_t> &initial_state,
+        raft_storage_interface_t<table_raft_state_t> *raft_storage,
         multistore_ptr_t *multistore_ptr,
         perfmon_collection_t *perfmon_collection_namespace);
 
@@ -52,9 +50,19 @@ public:
         return contract_executor.get_local_table_query_bcards();
     }
 
+    backfill_progress_tracker_t &get_backfill_progress_tracker() {
+        return backfill_progress_tracker;
+    }
+
     const sindex_manager_t &get_sindex_manager() const {
         return sindex_manager;
     }
+
+    void get_status(
+        const table_status_request_t &request,
+        signal_t *interruptor,
+        table_status_response_t *response)
+        THROWS_ONLY(interrupted_exc_t);
 
 private:
     /* `leader_t` hosts the `contract_coordinator_t`. */
@@ -62,6 +70,8 @@ private:
     public:
         explicit leader_t(table_manager_t *_parent);
         ~leader_t();
+
+        contract_coordinator_t *get_contract_coordinator() { return &coordinator; }
 
     private:
         void on_set_config(
@@ -79,21 +89,6 @@ private:
         table_manager_bcard_t::leader_bcard_t::set_config_mailbox_t set_config_mailbox;
     };
 
-    /* This is a `raft_storage_interface_t` method that the `raft_member_t` calls to
-    write its state to disk. */
-    void write_persistent_state(
-        const raft_persistent_state_t<table_raft_state_t> &persistent_state,
-        signal_t *interruptor);
-
-    /* This is the callback for `get_status_mailbox`. */
-    void on_get_status(
-        signal_t *interruptor,
-        const get_status_selection_t &status_selection,
-        const mailbox_t<void(
-            std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >,
-            boost::optional<table_server_status_t>
-            )>::address_t &reply_addr);
-
     /* This is the callback for `table_directory_subs`. It's responsible for
     maintaining `raft_directory`, `execution_bcard_minidir_directory`, and
     `contract_ack_minidir_directory`. */
@@ -106,7 +101,6 @@ private:
 
     mailbox_manager_t * const mailbox_manager;
     server_config_client_t *server_config_client;
-    table_persistence_interface_t * const persistence_interface;
     watchable_map_t<std::pair<server_id_t, server_id_t>, empty_value_t>
         * const connections_map;
 
@@ -161,6 +155,11 @@ private:
     minidir_read_manager_t<std::pair<server_id_t, branch_id_t>,
         contract_execution_bcard_t> execution_bcard_read_manager;
 
+    /* The `backfill_progress_tracker` keeps track of backfills their destination
+    server, start time, and progress. This must be destructed after the
+    `contract_executor`. */
+    backfill_progress_tracker_t backfill_progress_tracker;
+
     /* The `contract_executor_t` creates and destroys `broadcaster_t`s,
     `listener_t`s, etc. to handle queries. */
     contract_executor_t contract_executor;
@@ -182,8 +181,6 @@ private:
     sindex_manager_t sindex_manager;
 
     auto_drainer_t drainer;
-
-    table_manager_bcard_t::get_status_mailbox_t get_status_mailbox;
 
     watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
         ::all_subs_t table_directory_subs;

@@ -180,12 +180,11 @@ public:
         std::set<contract_id_t> remove_contracts;
         std::map<contract_id_t, std::pair<region_t, contract_t> > add_contracts;
         std::map<region_t, branch_id_t> register_current_branches;
-        calculate_all_contracts(state, acks, &connections, "",
-            &remove_contracts, &add_contracts, &register_current_branches);
         std::set<branch_id_t> remove_branches;
         branch_history_t add_branches;
-        calculate_branch_history(state, acks, remove_contracts, add_contracts,
-            register_current_branches, &remove_branches, &add_branches);
+        calculate_all_contracts(state, acks, &connections,
+            &remove_contracts, &add_contracts, &register_current_branches,
+            &remove_branches, &add_branches);
         for (const contract_id_t &id : remove_contracts) {
             state.contracts.erase(id);
             acks.erase(id);
@@ -293,7 +292,6 @@ TPTEST(ClusteringContractCoordinator, AddReplica) {
     cpu_contract_ids_t cid1 = test.add_contract("*-*",
         quick_contract_simple({alice}, alice));
     test.add_ack(alice, cid1, contract_ack_t::state_t::primary_ready);
-    test.add_ack(billy, cid1, contract_ack_t::state_t::nothing);
 
     test.coordinate();
     test.check_same_contract(cid1);
@@ -427,7 +425,6 @@ TPTEST(ClusteringContractCoordinator, Split) {
     cpu_contract_ids_t cid1 = test.add_contract("*-*",
         quick_contract_simple({alice}, alice));
     test.add_ack(alice, cid1, contract_ack_t::state_t::primary_ready);
-    test.add_ack(billy, cid1, contract_ack_t::state_t::nothing);
 
     test.coordinate();
     test.check_same_contract(cid1);
@@ -450,7 +447,6 @@ TPTEST(ClusteringContractCoordinator, Split) {
         { {"N-*", &branch1, 123} });
     test.add_ack(alice, cid2ABC, contract_ack_t::state_t::primary_need_branch,
         alice_branch_history, &branch2ABC);
-    test.add_ack(billy, cid2ABC, contract_ack_t::state_t::nothing);
     test.add_ack(alice, cid2DE, contract_ack_t::state_t::primary_need_branch,
         alice_branch_history, &branch2DE);
     test.add_ack(billy, cid2DE, contract_ack_t::state_t::secondary_need_primary,
@@ -466,7 +462,6 @@ TPTEST(ClusteringContractCoordinator, Split) {
     test.check_current_branches(branch2DE);
 
     test.add_ack(alice, cid3ABC, contract_ack_t::state_t::primary_ready);
-    test.add_ack(billy, cid3ABC, contract_ack_t::state_t::nothing);
     test.add_ack(alice, cid3DE, contract_ack_t::state_t::primary_ready);
     test.add_ack(billy, cid3DE, contract_ack_t::state_t::secondary_streaming);
 
@@ -486,7 +481,6 @@ TPTEST(ClusteringContractCoordinator, Split) {
         quick_contract_no_primary({billy}));
     test.check_current_branches(branch2DE);
 
-    test.add_ack(alice, cid5DE, contract_ack_t::state_t::nothing);
     test.add_ack(billy, cid5DE, contract_ack_t::state_t::secondary_need_primary,
         test.state.branch_history,
         { {"N-*", &branch2DE, 456 } });
@@ -501,7 +495,6 @@ TPTEST(ClusteringContractCoordinator, Split) {
     cpu_branch_ids_t branch3DE = quick_cpu_branch(
         &billy_branch_history,
         { {"N-*", &branch2DE, 456} });
-    test.add_ack(alice, cid6DE, contract_ack_t::state_t::nothing);
     test.add_ack(billy, cid6DE, contract_ack_t::state_t::primary_need_branch,
         billy_branch_history, &branch3DE);
 

@@ -63,7 +63,7 @@ the remaining servers' action mailboxes, so the table will finish being created.
 as though the table still exists, it will forward the drop message to that server's
 action mailbox. */
 
-class multi_table_manager_t {
+class multi_table_manager_t : public home_thread_mixin_t {
 public:
     multi_table_manager_t(
         const server_id_t &_server_id,
@@ -93,7 +93,7 @@ public:
     multi_table_manager_bcard_t get_multi_table_manager_bcard() {
         multi_table_manager_bcard_t bcard;
         bcard.action_mailbox = action_mailbox->get_address();
-        bcard.get_config_mailbox = get_config_mailbox->get_address();
+        bcard.get_status_mailbox = get_status_mailbox->get_address();
         bcard.server_id = server_id;
         return bcard;
     }
@@ -114,7 +114,7 @@ public:
         return &table_basic_configs;
     }
 
-    /* Calls `callable` for each table, it must have a signature of:
+    /* Calls `callable` for each active table, it must have a signature of:
            void(const namespace_id_t &table_id, multistore_ptr_t *, table_manager_t *)
      */
     template <typename F>
@@ -139,6 +139,31 @@ public:
                          it->second->multistore_ptr.get(),
                          &(it->second->active->manager));
             }
+        }
+    }
+
+    /* Calls `callable` on the specific table, if it's available. `callable`'s signature
+    must be:
+        void(multistore_ptr_t *, table_manager_t *
+    If the table doesn't exist or is not active on this server, calls `callable` with
+    null pointers. */
+    template <typename F>
+    void visit_table(
+            const namespace_id_t &table_id, signal_t *interruptor, const F &callable) {
+        mutex_assertion_t::acq_t global_mutex_acq(&mutex);
+        auto it = tables.find(table_id);
+        if (it == tables.end()) {
+            callable(nullptr, nullptr);
+            return;
+        }
+        table_t *table = it->second.get();
+        new_mutex_in_line_t mutex_in_line(&table->mutex);
+        global_mutex_acq.reset();
+        wait_interruptible(mutex_in_line.acq_signal(), interruptor);
+        if (table->status == table_t::status_t::ACTIVE) {
+            callable(table->multistore_ptr.get(), &table->active->manager);
+        } else {
+            callable(nullptr, nullptr);
         }
     }
 
@@ -175,7 +200,7 @@ private:
             const namespace_id_t &table_id,
             const multi_table_manager_bcard_t::timestamp_t::epoch_t &epoch,
             const raft_member_id_t &member_id,
-            const raft_persistent_state_t<table_raft_state_t> &initial_state,
+            raft_storage_interface_t<table_raft_state_t> *raft_storage,
             multistore_ptr_t *multistore_ptr,
             perfmon_collection_t *perfmon_collection_namespace);
 
@@ -285,12 +310,13 @@ private:
             &initial_raft_state,
         const mailbox_t<void()>::address_t &ack_addr);
 
-    void on_get_config(
+    void on_get_status(
         signal_t *interruptor,
-        const boost::optional<namespace_id_t> &table_id,
-        const mailbox_t<void(std::map<namespace_id_t, std::pair<
-                table_config_and_shards_t, multi_table_manager_bcard_t::timestamp_t>
-            >)>::address_t &reply_addr);
+        const std::set<namespace_id_t> &tables,
+        const table_status_request_t &request,
+        const mailbox_t<void(
+            std::map<namespace_id_t, table_status_response_t>
+            )>::address_t &reply_addr);
 
     /* `do_sync()` checks if it is necessary to send an action message to the given
     server regarding the given table, and sends one if so. It is called in the following
@@ -356,7 +382,7 @@ private:
     watchable_map_var_t<namespace_id_t, table_manager_bcard_t>
         table_manager_bcards;
 
-    /* This collects `table_query_bcards_t`s from all of the tables on this server into
+    /* This collects `table_query_bcard_t`s from all of the tables on this server into
     a single `watchable_map_t`. */
     watchable_map_combiner_t<namespace_id_t, uuid_u, table_query_bcard_t>
         table_query_bcard_combiner;
@@ -383,7 +409,7 @@ private:
             table_manager_directory_subs;
 
     scoped_ptr_t<multi_table_manager_bcard_t::action_mailbox_t> action_mailbox;
-    scoped_ptr_t<multi_table_manager_bcard_t::get_config_mailbox_t> get_config_mailbox;
+    scoped_ptr_t<multi_table_manager_bcard_t::get_status_mailbox_t> get_status_mailbox;
 };
 
 #endif /* CLUSTERING_TABLE_MANAGER_MULTI_TABLE_MANAGER_HPP_ */

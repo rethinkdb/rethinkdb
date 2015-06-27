@@ -1,5 +1,4 @@
 # RSI(raft): Add test for outdated index issues
-# RSI(raft): Add tests for server, database, and table name conflicts
 
 for interface_test_name in [
         'artificial_table',
@@ -11,6 +10,7 @@ for interface_test_name in [
         'log',
         'log_write_issue',
         'metadata_persistence',
+        'name_collision',
         'net_corruption',
         'precise_stats',
         'reconfigure_stress',
@@ -22,7 +22,6 @@ for interface_test_name in [
         'shard_fuzzer',
         'stat',
         'system_changefeeds',
-        'table_acks_durability',
         'table_config',
         'table_doc_count_estimates',
         'table_readiness',

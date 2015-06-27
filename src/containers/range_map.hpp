@@ -4,6 +4,7 @@
 #include <map>
 
 #include "debug.hpp"
+#include "rpc/serialize_macros.hpp"
 
 /* `range_map_t` maps from ranges delimited by `edge_t` to values of type `value_t`. The
 ranges must be contiguous and non-overlapping; adjacent ranges with the same value will
@@ -311,6 +312,8 @@ public:
         coalesce_range(l, r);
         DEBUG_ONLY_CODE(validate());
     }
+
+    RDB_MAKE_ME_SERIALIZABLE_2(range_map_t, left, zones);
 
 private:
 #ifndef NDEBUG

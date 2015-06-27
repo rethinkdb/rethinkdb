@@ -655,6 +655,8 @@ private:
                 read_mode = read_mode_t::SINGLE;
             } else if (str == "outdated") {
                 read_mode = read_mode_t::OUTDATED;
+            } else if (str == "_debug_direct") {
+                read_mode = read_mode_t::DEBUG_DIRECT;
             } else {
                 rfail(base_exc_t::LOGIC, "Read mode `%s` unrecognized (options "
                       "are \"majority\", \"single\", and \"outdated\").",

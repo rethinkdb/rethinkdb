@@ -78,12 +78,27 @@ public:
     /* `primary` contains the server that's supposed to be primary. If we're in the
     middle of a transition between two primaries, then `primary` will be empty. */
     boost::optional<primary_t> primary;
+
+    /* `after_emergency_repair` is set to `true` when we conduct an emergency repair.
+    When it's `true` we'll use a different algorithm for choosing primary replicas. Once
+    the table has stabilized after the repair, we'll set it back to `false`. */
+    bool after_emergency_repair;
 };
 
 RDB_DECLARE_EQUALITY_COMPARABLE(contract_t::primary_t);
 RDB_DECLARE_EQUALITY_COMPARABLE(contract_t);
 RDB_DECLARE_SERIALIZABLE(contract_t::primary_t);
 RDB_DECLARE_SERIALIZABLE(contract_t);
+
+/* Each contract is tagged with a `contract_id_t`. If the contract changes in any way, it
+gets a new ID. All the `contract_ack_t`s are tagged with the contract ID that they are
+responding to. This way, the coordinator knows exactly which contract the executor is
+acking.
+
+In order to facilitiate CPU sharding, each contract's region must apply to exactly one
+CPU shard. */
+
+typedef uuid_u contract_id_t;
 
 /* The `contract_executor_t` looks at what each `contract_t` says about its server ID,
 and reacts according to the following rules:
@@ -110,7 +125,8 @@ Otherwise, if `server_id` is in `contract.replicas`:
     `secondary_streaming`.
 
 If `server_id` is not in `contract.replicas`:
-- Delete all data and ack `nothing`.
+- Delete all data.
+- Don't send an ack.
 */
 
 class contract_ack_t {
@@ -121,12 +137,18 @@ public:
         primary_ready,
         secondary_need_primary,
         secondary_backfilling,
-        secondary_streaming,
-        nothing
+        secondary_streaming
     };
 
     contract_ack_t() { }
     explicit contract_ack_t(state_t s) : state(s) { }
+
+#ifndef NDEBUG
+    void sanity_check(
+        const server_id_t &server,
+        const contract_id_t &contract_id,
+        const table_raft_state_t &raft_state) const;
+#endif
 
     state_t state;
 
@@ -145,19 +167,10 @@ public:
 };
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
     contract_ack_t::state_t, int8_t,
-    contract_ack_t::state_t::primary_need_branch, contract_ack_t::state_t::nothing);
+    contract_ack_t::state_t::primary_need_branch,
+    contract_ack_t::state_t::secondary_streaming);
 RDB_DECLARE_SERIALIZABLE(contract_ack_t);
 RDB_DECLARE_EQUALITY_COMPARABLE(contract_ack_t);
-
-/* Each contract is tagged with a `contract_id_t`. If the contract changes in any way, it
-gets a new ID. All the `contract_ack_t`s are tagged with the contract ID that they are
-responding to. This way, the coordinator knows exactly which contract the executor is
-acking.
-
-In order to facilitiate CPU sharding, each contract's region must apply to exactly one
-CPU shard. */
-
-typedef uuid_u contract_id_t;
 
 /* `table_raft_state_t` is the datum that each table's Raft cluster manages. The
 `raft_member_t` type is templatized on a template paramter called `state_t`, and
@@ -176,9 +189,9 @@ public:
         public:
             std::set<contract_id_t> remove_contracts;
             std::map<contract_id_t, std::pair<region_t, contract_t> > add_contracts;
-            std::set<branch_id_t> remove_branches;
-            branch_history_t add_branches;
             std::map<region_t, branch_id_t> register_current_branches;
+            branch_history_t add_branches;
+            std::set<branch_id_t> remove_branches;
             std::set<server_id_t> remove_server_names;
             server_name_map_t add_server_names;
         };
@@ -223,11 +236,6 @@ public:
     it. */
     std::map<contract_id_t, std::pair<region_t, contract_t> > contracts;
 
-    /* `branch_history` contains branch history information for any branch that appears
-    in the `branch` field of any contract in `contracts`.
-    RSI(raft): We should prune branches if they no longer meet this condition. */
-    branch_history_t branch_history;
-
     /* `current_branches` contains the most recently acked branch IDs for a given
     region. It gets updated by the coordinator when a new primary registers its
     branch with the coordinator through a `contract_ack_t`.
@@ -235,6 +243,14 @@ public:
     data version for a given range (see `break_ack_into_fragments()` in
     coordinator.cc). */
     region_map_t<branch_id_t> current_branches;
+
+    /* `branch_history` contains all of the branches that appear in `current_branches`,
+    plus their ancestors going back to the common ancestor with the data version stored
+    on the replicas. The idea is that if a replica sends us its current version and its
+    branch history, we can combine the replica's branch history with this branch history
+    to form a complete picture of the relationship of the replica's current data version
+    to the contract's `branch`. */
+    branch_history_t branch_history;
 
     /* `member_ids` assigns a Raft member ID to each server that's supposed to be part of
     the Raft cluster for this table. `contract_coordinator_t` writes it;
@@ -259,6 +275,32 @@ RDB_DECLARE_SERIALIZABLE(table_raft_state_t);
 */
 table_raft_state_t make_new_table_raft_state(
     const table_config_and_shards_t &config);
+
+/* `table_shard_status_t` describes the current state of the server with respect to some
+range of the key-space. It's used for producing `rethinkdb.table_status`. It's designed
+so that `table_shard_status_t`s from different hash-shards or different ranges can be
+meaningfully combined. */
+class table_shard_status_t {
+public:
+    table_shard_status_t() : primary(false), secondary(false), need_primary(false),
+        need_quorum(false), backfilling(false), transitioning(false) { }
+    void merge(const table_shard_status_t &other) {
+        primary |= other.primary;
+        secondary |= other.secondary;
+        need_primary |= other.need_primary;
+        need_quorum |= other.need_quorum;
+        backfilling |= other.backfilling;
+        transitioning |= other.transitioning;
+    }
+    bool primary;   /* server is primary */
+    bool secondary;   /* server is secondary */
+    bool need_primary;   /* server is secondary and waiting for primary */
+    bool need_quorum;   /* server is primary and waiting for branch */
+    bool backfilling;   /* server is receiving a backfill */
+    bool transitioning;   /* server is in a contract, but has no ack */
+};
+RDB_DECLARE_EQUALITY_COMPARABLE(table_shard_status_t);
+RDB_DECLARE_SERIALIZABLE(table_shard_status_t);
 
 void debug_print(printf_buffer_t *buf, const contract_t::primary_t &primary);
 void debug_print(printf_buffer_t *buf, const contract_t &contract);

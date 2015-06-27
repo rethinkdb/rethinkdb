@@ -17,6 +17,7 @@
 responsible for constructing and caching `cluster_namespace_interface_t` objects. */
 
 class mailbox_manager_t;
+class multi_table_manager_t;
 class namespace_interface_t;
 class namespaces_directory_metadata_t;
 class peer_id_t;
@@ -35,6 +36,7 @@ public:
     namespace_repo_t(
         mailbox_manager_t *mailbox_manager,
         watchable_map_t<directory_key_t, table_query_bcard_t> *directory,
+        multi_table_manager_t *multi_table_manager,
         rdb_context_t *ctx);
     ~namespace_repo_t();
 
@@ -53,6 +55,7 @@ private:
 
     mailbox_manager_t * const mailbox_manager;
     watchable_map_t<directory_key_t, table_query_bcard_t> * const directory;
+    multi_table_manager_t *const multi_table_manager;
     rdb_context_t * const ctx;
 
     one_per_thread_t<namespace_cache_t> namespace_caches;

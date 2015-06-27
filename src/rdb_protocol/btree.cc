@@ -109,7 +109,7 @@ void kv_location_delete(keyvalue_location_t *kv_location,
                         const store_key_t &key,
                         repli_timestamp_t timestamp,
                         const deletion_context_t *deletion_context,
-                        delete_or_erase_t delete_or_erase,
+                        delete_mode_t delete_mode,
                         rdb_modification_info_t *mod_info_out) {
     // Notice this also implies that buf is valid.
     guarantee(kv_location->value.has());
@@ -134,7 +134,7 @@ void kv_location_delete(keyvalue_location_t *kv_location,
     rdb_value_sizer_t sizer(block_size);
     null_key_modification_callback_t null_cb;
     apply_keyvalue_change(&sizer, kv_location, key.btree_key(), timestamp,
-            deletion_context->balancing_detacher(), &null_cb, delete_or_erase);
+            deletion_context->balancing_detacher(), &null_cb, delete_mode);
 }
 
 MUST_USE ql::serialization_result_t
@@ -180,7 +180,8 @@ kv_location_set(keyvalue_location_t *kv_location,
     rdb_value_sizer_t sizer(block_size);
     apply_keyvalue_change(&sizer, kv_location, key.btree_key(),
                           timestamp,
-                          deletion_context->balancing_detacher(), &null_cb);
+                          deletion_context->balancing_detacher(), &null_cb,
+                          delete_mode_t::REGULAR_QUERY);
     return ql::serialization_result_t::SUCCESS;
 }
 
@@ -205,7 +206,8 @@ kv_location_set(keyvalue_location_t *kv_location,
     null_key_modification_callback_t null_cb;
     rdb_value_sizer_t sizer(kv_location->buf.cache()->max_block_size());
     apply_keyvalue_change(&sizer, kv_location, key.btree_key(), timestamp,
-                          deletion_context->balancing_detacher(), &null_cb);
+                          deletion_context->balancing_detacher(), &null_cb,
+                          delete_mode_t::REGULAR_QUERY);
     return ql::serialization_result_t::SUCCESS;
 }
 
@@ -264,7 +266,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
             /* Now that the change has passed validation, write it to disk */
             if (new_val.get_type() == ql::datum_t::R_NULL) {
                 kv_location_delete(&kv_location, *info.key, info.btree->timestamp,
-                                   deletion_context, delete_or_erase_t::DELETE,
+                                   deletion_context, delete_mode_t::REGULAR_QUERY,
                                    mod_info_out);
             } else {
                 r_sanity_check(new_val.get_field(primary_key, ql::NOTHROW).has());
@@ -338,11 +340,9 @@ void do_a_replace_from_batched_replace(
     rdb_modification_report_cb_t *mod_cb,
     bool update_pkey_cfeeds,
     batched_replace_response_t *stats_out,
-    profile::sampler_t *sampler,
     profile::trace_t *trace,
     std::set<std::string> *conditions) {
 
-    sampler->new_sample();
     fifo_enforcer_sink_t::exit_write_t exiter(
         batched_replaces_fifo_sink, batched_replaces_fifo_token);
     // We need to get in line for this while still holding the superblock so
@@ -385,6 +385,13 @@ batched_replace_response_t rdb_batched_replace(
     // We have to drain write operations before destructing everything above us,
     // because the coroutines being drained use them.
     {
+        // We must disable profiler events for subtasks, because multiple instances
+        // of `handle_pair`are going to run in parallel which  would otherwise corrupt
+        // the sequence of events in the profiler trace.
+        // Instead we add a single event for the whole batched replace.
+        sampler->new_sample();
+        profile::starter_t profile_starter("Perform parallel replaces.", trace);
+        profile::disabler_t trace_disabler(trace);
         unlimited_fifo_queue_t<std::function<void()> > coro_queue;
         struct callback_t : public coro_pool_callback_t<std::function<void()> > {
             virtual void coro_pool_callback(std::function<void()> f, signal_t *) {
@@ -415,7 +422,6 @@ batched_replace_response_t rdb_batched_replace(
                         sindex_cb,
                         update_pkey_cfeeds,
                         &stats,
-                        sampler,
                         trace,
                         &conditions));
                 current_superblock.init(
@@ -488,7 +494,7 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice,
                 repli_timestamp_t timestamp,
                 real_superblock_t *superblock,
                 const deletion_context_t *deletion_context,
-                delete_or_erase_t delete_or_erase,
+                delete_mode_t delete_mode,
                 point_delete_response_t *response,
                 rdb_modification_info_t *mod_info,
                 profile::trace_t *trace,
@@ -507,7 +513,7 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice,
         mod_info->deleted.first = get_data(kv_location.value_as<rdb_value_t>(),
                                            buf_parent_t(&kv_location.buf));
         kv_location_delete(&kv_location, key, timestamp, deletion_context,
-            delete_or_erase, mod_info);
+            delete_mode, mod_info);
         guarantee(!mod_info->deleted.second.empty() && mod_info->added.second.empty());
     }
     response->result = (exists ? point_delete_result_t::DELETED : point_delete_result_t::MISSING);
@@ -622,6 +628,9 @@ rget_cb_t::rget_cb_t(rget_io_data_t &&_io,
     io.response->last_key = !reversed(job.sorting)
         ? range.left
         : (!range.right.unbounded ? range.right.key() : store_key_t::max());
+    // We must disable profiler events for subtasks, because multiple instances
+    // of `handle_pair`are going to run in parallel which  would otherwise corrupt
+    // the sequence of events in the profiler trace.
     disabler.init(new profile::disabler_t(job.env->trace));
     sampler.init(new profile::sampler_t("Range traversal doc evaluation.",
                                         job.env->trace));
@@ -1351,7 +1360,7 @@ void rdb_update_single_sindex(
                             it->first,
                             repli_timestamp_t::distant_past,
                             deletion_context,
-                            delete_or_erase_t::DELETE,
+                            delete_mode_t::REGULAR_QUERY,
                             NULL);
                     }
                     // The keyvalue location gets destroyed here.

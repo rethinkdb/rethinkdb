@@ -36,13 +36,13 @@ class ServersContainer extends Backbone.View
             r.db(system_db).table('server_config').map((x) ->[x('id'), x]).coerceTo('ARRAY').coerceTo('OBJECT')
             r.db(system_db).table('table_config').coerceTo('array'),
             r.db(system_db).table('table_config').coerceTo('array')
-                .concatMap((table) -> table('shards')),
+                .concatMap((table) -> table('shards').default([])),
             (server_config, table_config, table_config_shards) ->
                 r.db(system_db).table('server_status').merge( (server) ->
                     id: server("id")
                     tags: server_config(server('id'))('tags')
                     primary_count:
-                        table_config.concatMap( (table) -> table("shards") )
+                        table_config.concatMap( (table) -> table("shards").default([]) )
                         .count((shard) ->
                             shard("primary_replica").eq(server("name")))
                     secondary_count:

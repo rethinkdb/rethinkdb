@@ -10,6 +10,8 @@
 #include "clustering/immediate_consistency/backfill_metadata.hpp"
 #include "store_view.hpp"
 
+class backfill_progress_tracker_t;
+
 /* `backfiller_t` is responsible for copying the given store's state to other servers via
 `backfillee_t`.
 

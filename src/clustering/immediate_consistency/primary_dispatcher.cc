@@ -77,7 +77,6 @@ primary_dispatcher_t::primary_dispatcher_t(
 
     branch_id = generate_uuid();
     branch_bc.origin = base_version;
-    branch_bc.region = base_version.get_domain();
     branch_bc.initial_timestamp = current_timestamp;
 }
 
@@ -89,7 +88,7 @@ void primary_dispatcher_t::read(
         read_response_t *response_out)
         THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
     assert_thread();
-    rassert(region_is_superset(branch_bc.region, read.get_region()));
+    rassert(region_is_superset(branch_bc.get_region(), read.get_region()));
     order_token.assert_read_mode();
 
     dispatchee_registration_t *dispatchee = nullptr;
@@ -152,7 +151,7 @@ void primary_dispatcher_t::spawn_write(
         write_callback_t *cb) {
     ASSERT_FINITE_CORO_WAITING;
     assert_thread();
-    rassert(region_is_superset(branch_bc.region, write.get_region()));
+    rassert(region_is_superset(branch_bc.get_region(), write.get_region()));
     order_token.assert_write_mode();
 
     DEBUG_VAR mutex_assertion_t::acq_t mutex_acq(&mutex);

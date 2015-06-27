@@ -1,38 +1,6 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/table_contract/coordinator/calculate_misc.hpp"
 
-/* `calculate_branch_history()` figures out what changes need to be made to the branch
-history stored in the Raft state. In practice this means two things:
-  - When a new primary asks us to register a branch, we copy it and relevant ancestors
-    into the branch history.
-  - When all of the replicas are known to be descended from a certain point in the branch
-    history, we prune the history leading up to that point, since it's no longer needed.
-*/
-void calculate_branch_history(
-        const table_raft_state_t &old_state,
-        const std::map<contract_id_t, std::map<server_id_t, contract_ack_t> > &acks,
-        const std::set<contract_id_t> &remove_contracts,
-        const std::map<contract_id_t, std::pair<region_t, contract_t> > &add_contracts,
-        const std::map<region_t, branch_id_t> &register_current_branches,
-        std::set<branch_id_t> *remove_branches_out,
-        branch_history_t *add_branches_out) {
-    /* RSI(raft): This is a totally naive implementation that never prunes branches and
-    sometimes adds unnecessary branches. */
-    (void)old_state;
-    (void)remove_contracts;
-    (void)add_contracts;
-    (void)register_current_branches;
-    (void)remove_branches_out;
-    for (const auto &pair : acks) {
-        for (const auto &pair2 : pair.second) {
-            if (static_cast<bool>(pair2.second.branch)) {
-                pair2.second.branch_history.export_branch_history(
-                    *pair2.second.branch, add_branches_out);
-            }
-        }
-    }
-}
-
 /* `calculate_server_names()` figures out what changes need to be made to the server
 names stored in the Raft state. When a contract is added that refers to a new server, it
 will copy the server name from the table config; when the last contract that refers to a

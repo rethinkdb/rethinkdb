@@ -140,18 +140,33 @@ void mock_store_t::read(
             nap(rng_.randint(10), interruptor);
         }
 
+        const distribution_read_t *distribution_read =
+            boost::get<distribution_read_t>(&read.read);
         const point_read_t *point_read = boost::get<point_read_t>(&read.read);
-        guarantee(point_read != NULL);
+        guarantee(!(distribution_read == nullptr && point_read == nullptr));
 
-        response->n_shards = 1;
-        response->response = point_read_response_t();
-        point_read_response_t *res = boost::get<point_read_response_t>(&response->response);
+        if (distribution_read != nullptr) {
+            response->n_shards = 1;
+            response->response = distribution_read_response_t();
+            distribution_read_response_t *res =
+                boost::get<distribution_read_response_t>(&response->response);
 
-        auto it = table_.find(point_read->key);
-        if (it == table_.end()) {
-            res->data = ql::datum_t::null();
+            guarantee(table_.size() < distribution_read->result_limit);
+            for (auto const &pair : table_) {
+                res->key_counts.insert(std::make_pair(pair.first, 1));
+            }
+            res->region = read.get_region();
         } else {
-            res->data = it->second.second;
+            response->n_shards = 1;
+            response->response = point_read_response_t();
+            point_read_response_t *res = boost::get<point_read_response_t>(&response->response);
+
+            auto it = table_.find(point_read->key);
+            if (it == table_.end()) {
+                res->data = ql::datum_t::null();
+            } else {
+                res->data = it->second.second;
+            }
         }
     }
     if (rng_.randint(2) == 0) {

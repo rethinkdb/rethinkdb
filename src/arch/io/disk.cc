@@ -81,16 +81,11 @@ public:
         return new accounting_diskmgr_t::account_t(&accounter, pri, outstanding_requests_limit);
     }
 
-    void delayed_destroy(void *_account) {
-        on_thread_t t(home_thread());
-
-        // The account destructor can block if there are outstanding requests.
-        delete static_cast<accounting_diskmgr_t::account_t *>(_account);
-    }
-
     void destroy_account(void *account) {
-        coro_t::spawn_sometime(std::bind(&linux_disk_manager_t::delayed_destroy, this,
-                                         account));
+        coro_t::spawn_on_thread([account] {
+            // The account destructor can block if there are outstanding requests.
+            delete static_cast<accounting_diskmgr_t::account_t *>(account);
+        }, home_thread());
     }
 
     void submit_action_to_stack_stats(action_t *a) {

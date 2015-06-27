@@ -5,6 +5,7 @@
 #include "clustering/generic/registrant.hpp"
 #include "clustering/immediate_consistency/history.hpp"
 #include "clustering/immediate_consistency/backfill_metadata.hpp"
+#include "clustering/table_manager/backfill_progress_tracker.hpp"
 #include "concurrency/new_mutex.hpp"
 #include "rpc/connectivity/peer_id.hpp"
 #include "store_view.hpp"
@@ -64,6 +65,7 @@ public:
         store_view_t *_store,
         const backfiller_bcard_t &backfiller,
         const backfill_config_t &backfill_config,
+        backfill_progress_tracker_t::progress_tracker_t *progress_tracker,
         signal_t *interruptor);
     ~backfillee_t();
 
@@ -72,7 +74,7 @@ public:
     backfiller's region; for subsequent calls, `start_point` must be between the last
     point for which `on_progress()` returned `true` and the last point for which
     `on_progress()` returned `false`.
-    
+
     Pulsing `interruptor` invalidates the `backfillee_t`.
 
     Durability guarantees: The data is not necessarily safely on disk when
@@ -112,6 +114,7 @@ private:
     branch_history_manager_t *const branch_history_manager;
     store_view_t *const store;
     backfill_config_t const backfill_config;
+    backfill_progress_tracker_t::progress_tracker_t *const progress_tracker;
 
     backfiller_bcard_t::intro_2_t intro;
 

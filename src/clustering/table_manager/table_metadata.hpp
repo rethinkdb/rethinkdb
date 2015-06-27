@@ -13,8 +13,8 @@
 #include "clustering/table_contract/executor/exec.hpp"
 #include "rpc/mailbox/typed.hpp"
 
-class table_server_status_t;
-class get_status_selection_t;
+class table_status_request_t;
+class table_status_response_t;
 
 class multi_table_manager_bcard_t {
 public:
@@ -143,18 +143,17 @@ public:
         )> action_mailbox_t;
     action_mailbox_t::address_t action_mailbox;
 
-    /* `get_config_mailbox` handles fetching the current value of the
-    `table_config_and_shards_t` for a specific table or all tables. If `table_id` is
-    non-empty, the receiver will reply with a map with zero or one entries, depending on
-    if it is hosting the given table or not. If `table_id` is empty, the receiver will
-    reply with an entry for every table it is hosting. */
+    /* `get_status_mailbox` retrieves configurations, current statuses, etc. for one or
+    more tables. Many different types of status queries are combined into one mailbox in
+    order to allow more code to be re-used. */
     typedef mailbox_t<void(
-        boost::optional<namespace_id_t> table_id,
-        mailbox_t<void(std::map<namespace_id_t, std::pair<
-                table_config_and_shards_t, multi_table_manager_bcard_t::timestamp_t>
-            >)>::address_t reply_addr
-        )> get_config_mailbox_t;
-    get_config_mailbox_t::address_t get_config_mailbox;
+        std::set<namespace_id_t> table_ids,
+        table_status_request_t request,
+        mailbox_t<void(
+            std::map<namespace_id_t, table_status_response_t>
+            )>::address_t reply_addr
+        )> get_status_mailbox_t;
+    get_status_mailbox_t::address_t get_status_mailbox;
 
     /* The server ID of the server sending this business card. In theory you could figure
     it out from the peer ID, but this is way more convenient. Proxy servers will set this
@@ -224,16 +223,6 @@ public:
     minidir_bcard_t<std::pair<server_id_t, branch_id_t>, contract_execution_bcard_t>
         execution_bcard_minidir_bcard;
 
-    /* This is used for status queries. */
-    typedef mailbox_t<void(
-        get_status_selection_t,
-        mailbox_t<void(
-            std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >,
-            boost::optional<table_server_status_t>
-            )>::address_t
-        )> get_status_mailbox_t;
-    get_status_mailbox_t::address_t get_status_mailbox;
-
     /* The server ID of the server sending this business card. In theory you could figure
     it out from the peer ID, but this is way more convenient. */
     server_id_t server_id;
@@ -241,93 +230,115 @@ public:
 RDB_DECLARE_SERIALIZABLE(table_manager_bcard_t::leader_bcard_t);
 RDB_DECLARE_SERIALIZABLE(table_manager_bcard_t);
 
-class get_status_selection_t {
+class table_status_request_t {
 public:
-    get_status_selection_t() : selection_bitmap(0) { }
-    get_status_selection_t(bool sindex_status, bool server_status) {
-        // For some reason this initialization of selection_bitmap doesn't work
-        // if it's in the initializer list. So don't move it there.
-        // I don't understand why, but there's probably some obscure C++ reason
-        // for it (or it's a Clang bug)...
-        selection_bitmap =
-            (sindex_status ? SINDEX_STATUS_BIT : 0) |
-            (server_status ? SERVER_STATUS_BIT : 0);
-    }
-    bool has_sindex_status() const { return selection_bitmap & SINDEX_STATUS_BIT; }
-    bool has_server_status() const { return selection_bitmap & SERVER_STATUS_BIT; }
-    RDB_DECLARE_ME_SERIALIZABLE(get_status_selection_t);
-private:
-    uint8_t selection_bitmap;
-    static const uint8_t SINDEX_STATUS_BIT = 1;
-    static const uint8_t SERVER_STATUS_BIT = 2;
-};
+    table_status_request_t() :
+        want_config(false), want_sindexes(false), want_raft_state(false),
+        want_contract_acks(false), want_shard_status(false),
+        want_all_replicas_ready(false) { }
 
-class table_server_status_t {
+    bool want_config;
+    bool want_sindexes;
+    bool want_raft_state;
+    bool want_contract_acks;
+    bool want_shard_status;
+    bool want_all_replicas_ready;
+};
+RDB_DECLARE_SERIALIZABLE(table_status_request_t);
+
+class table_status_response_t {
 public:
-    multi_table_manager_bcard_t::timestamp_t timestamp;
-    table_raft_state_t state;
+    /* The booleans in `table_status_request_t` control whether each field of
+    `table_status_response_t` will be included or not. This is to avoid making an
+    expensive computation if the result will not be used. If a field is not requested,
+    its value is undefined (but typically empty or default-constructed). */
+
+    /* `config` is controlled by `want_config`. */
+    boost::optional<table_config_and_shards_t> config;
+
+    /* `sindexes` is controlled by `want_sindexes`. */
+    std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > sindexes;
+
+    /* `raft_state` and `raft_state_timestamp` are controlled by `want_raft_state` */
+    boost::optional<table_raft_state_t> raft_state;
+    boost::optional<multi_table_manager_bcard_t::timestamp_t> raft_state_timestamp;
+
+    /* `contract_acks` is controlled by `want_contract_acks` */
     std::map<contract_id_t, contract_ack_t> contract_acks;
-};
-RDB_DECLARE_SERIALIZABLE(table_server_status_t);
 
-/* `table_persistent_state_t` is the type of the records we store on disk for each table.
-If we're an active member for the table, we'll store an `active_t`; if we're not an
-active member, we'll store an `inactive_t`. */
-class table_persistent_state_t {
+    /* `shard_status` is controlled by `want_shard_status`. */
+    range_map_t<key_range_t::right_bound_t, table_shard_status_t> shard_status;
+
+    /* `all_replicas_ready` is controlled by `want_all_replicas_ready`. It will be set to
+    `true` if the responding server is leader and can confirm that all backfills are
+    completed, the status matches the config, etc. Otherwise it will be set to `false`.
+    */
+    bool all_replicas_ready;
+};
+RDB_DECLARE_SERIALIZABLE(table_status_response_t);
+
+/* If we are an active member for a given table, we'll store a
+`table_active_persistent_state_t` plus a `raft_persistent_state_t<table_raft_state_t>`;
+the latter will be stored as individual components for better efficiency. If we are not
+an active member, we'll store a `table_inactive_persistent_state_t`. If the table is
+deleted we won't store anything. */
+
+class table_active_persistent_state_t {
 public:
-    class active_t {
-    public:
-        multi_table_manager_bcard_t::timestamp_t::epoch_t epoch;
-        raft_member_id_t raft_member_id;
-        raft_persistent_state_t<table_raft_state_t> raft_state;
-    };
-
-    class inactive_t {
-    public:
-        table_basic_config_t second_hand_config;
-
-        /* `timestamp` records a time at which `second_hand_config` is known to have been
-        correct. */
-        multi_table_manager_bcard_t::timestamp_t timestamp;
-    };
-
-    static table_persistent_state_t active(
-            const multi_table_manager_bcard_t::timestamp_t::epoch_t &epoch,
-            const raft_member_id_t &raft_member_id,
-            const raft_persistent_state_t<table_raft_state_t> &raft_state) {
-        active_t a { epoch, raft_member_id, raft_state };
-        table_persistent_state_t s { a };
-        return s;
-    }
-
-    static table_persistent_state_t inactive(
-            const table_basic_config_t &second_hand_config,
-            const multi_table_manager_bcard_t::timestamp_t &timestamp) {
-        inactive_t i { second_hand_config, timestamp };
-        table_persistent_state_t s { i };
-        return s;
-    }
-
-    /* Note that there's no `deleted_t`. This is because we don't record anything on disk
-    for tables that have been deleted. */
-
-    boost::variant<active_t, inactive_t> value;
+    multi_table_manager_bcard_t::timestamp_t::epoch_t epoch;
+    raft_member_id_t raft_member_id;
 };
-RDB_DECLARE_SERIALIZABLE(table_persistent_state_t::active_t);
-RDB_DECLARE_SERIALIZABLE(table_persistent_state_t::inactive_t);
-RDB_DECLARE_SERIALIZABLE(table_persistent_state_t);
+
+RDB_DECLARE_SERIALIZABLE(table_active_persistent_state_t);
+
+class table_inactive_persistent_state_t {
+public:
+    table_basic_config_t second_hand_config;
+
+    /* `timestamp` records a time at which `second_hand_config` is known to have been
+    correct. */
+    multi_table_manager_bcard_t::timestamp_t timestamp;
+};
+
+RDB_DECLARE_SERIALIZABLE(table_inactive_persistent_state_t);
 
 class table_persistence_interface_t {
 public:
+    /* Some of these methods return a `raft_storage_interface_t *`. This returned pointer
+    will remain valid until the next call to `read_all_metadata()`, `write_metadata_*()`
+    or `delete_metadata()` affecting that table. */
+
+    /* Finds all tables stored in the metadata and calls the appropriate callback. Note
+    that this invalidates any existing `raft_storage_interface_t`s! */
     virtual void read_all_metadata(
         const std::function<void(
             const namespace_id_t &table_id,
-            const table_persistent_state_t &state)> &callback,
+            const table_active_persistent_state_t &state,
+            raft_storage_interface_t<table_raft_state_t> *raft_storage)> &active_cb,
+        const std::function<void(
+            const namespace_id_t &table_id,
+            const table_inactive_persistent_state_t &state)> &inactive_cb,
         signal_t *interruptor) = 0;
-    virtual void write_metadata(
+
+    /* `write_metadata_active()` sets the stored metadata for the table to be the given
+    `state` and `raft_state`. It then returns a `raft_storage_interface_t *` that can be
+    used to make incremental updates to the Raft state. Any previously existing
+    `raft_storage_interface_t *` for this table will be invalidated. */
+    virtual void write_metadata_active(
         const namespace_id_t &table_id,
-        const table_persistent_state_t &state,
+        const table_active_persistent_state_t &state,
+        const raft_persistent_state_t<table_raft_state_t> &raft_state,
+        signal_t *interruptor,
+        raft_storage_interface_t<table_raft_state_t> **raft_storage_out) = 0;
+
+    /* `write_metadata_inactive()` sets the stored metadata for the table to be the given
+    `state`, which is inactive. */
+    virtual void write_metadata_inactive(
+        const namespace_id_t &table_id,
+        const table_inactive_persistent_state_t &state,
         signal_t *interruptor) = 0;
+
+    /* `delete_metadata()` deletes all metadata for the table. */
     virtual void delete_metadata(
         const namespace_id_t &table_id,
         signal_t *interruptor) = 0;

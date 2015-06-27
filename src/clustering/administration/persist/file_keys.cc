@@ -21,9 +21,29 @@ metadata_file_t::key_t<server_config_versioned_t>
     return metadata_file_t::key_t<server_config_versioned_t>("server_config");
 }
 
-metadata_file_t::key_t<table_persistent_state_t>
-        mdprefix_table_persistent_state() {
-    return metadata_file_t::key_t<table_persistent_state_t>("table/");
+metadata_file_t::key_t<table_active_persistent_state_t>
+        mdprefix_table_active() {
+    return metadata_file_t::key_t<table_active_persistent_state_t>("table.active/");
+}
+
+metadata_file_t::key_t<table_inactive_persistent_state_t>
+        mdprefix_table_inactive() {
+    return metadata_file_t::key_t<table_inactive_persistent_state_t>("table.inactive/");
+}
+
+metadata_file_t::key_t<table_raft_stored_header_t>
+        mdprefix_table_raft_header() {
+    return metadata_file_t::key_t<table_raft_stored_header_t>("table.header/");
+}
+
+metadata_file_t::key_t<table_raft_stored_snapshot_t>
+        mdprefix_table_raft_snapshot() {
+    return metadata_file_t::key_t<table_raft_stored_snapshot_t>("table.snapshot/");
+}
+
+metadata_file_t::key_t<raft_log_entry_t<table_raft_state_t> >
+        mdprefix_table_raft_log() {
+    return metadata_file_t::key_t<raft_log_entry_t<table_raft_state_t> >("table.log/");
 }
 
 metadata_file_t::key_t<branch_birth_certificate_t>

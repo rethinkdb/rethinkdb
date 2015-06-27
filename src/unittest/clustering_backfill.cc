@@ -1,6 +1,7 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/immediate_consistency/backfiller.hpp"
 #include "clustering/immediate_consistency/backfillee.hpp"
+#include "clustering/table_manager/backfill_progress_tracker.hpp"
 #include "containers/uuid.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "unittest/branch_history_manager.hpp"
@@ -26,7 +27,6 @@ TPTEST(ClusteringBackfill, BackfillTest) {
     branch_id_t dummy_branch_id = generate_uuid();
     {
         branch_birth_certificate_t dummy_branch;
-        dummy_branch.region = region;
         dummy_branch.initial_timestamp = state_timestamp_t::zero();
         dummy_branch.origin = region_map_t<version_t>(region, version_t::zero());
         branch_history_manager.create_branch(dummy_branch_id, dummy_branch, &non_interruptor);
@@ -98,12 +98,18 @@ TPTEST(ClusteringBackfill, BackfillTest) {
     /* Run a backfill */
 
     {
+        backfill_progress_tracker_t backfill_progress_tracker;
+        backfill_progress_tracker_t::progress_tracker_t *progress_tracker =
+            backfill_progress_tracker.insert_progress_tracker(
+                backfillee_store.get_region());
+
         backfillee_t backfillee(
             cluster.get_mailbox_manager(),
             &branch_history_manager,
             &backfillee_store,
             backfiller.get_business_card(),
             backfill_config_t(),
+            progress_tracker,
             &non_interruptor);
         class callback_t : public backfillee_t::callback_t {
         public:

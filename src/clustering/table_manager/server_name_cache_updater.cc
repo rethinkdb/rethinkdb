@@ -90,11 +90,9 @@ void server_name_cache_updater_t::update_blocking(signal_t *interruptor) {
         bool change_ok;
         if (!change.config_and_shards.names.empty() ||
                 !change.raft_state.names.empty()) {
-            cond_t non_interruptor;
             scoped_ptr_t<raft_member_t<table_raft_state_t>::change_token_t>
                 change_token = raft->propose_change(
-                    &change_lock, table_raft_state_t::change_t(change),
-                    &non_interruptor);
+                    &change_lock, table_raft_state_t::change_t(change));
 
             change_ok = change_token.has();
 

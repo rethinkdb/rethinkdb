@@ -122,12 +122,12 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(durability_requirement_t,
                                       DURABILITY_REQUIREMENT_DEFAULT,
                                       DURABILITY_REQUIREMENT_SOFT);
 
-enum class read_mode_t { MAJORITY, SINGLE, OUTDATED };
+enum class read_mode_t { MAJORITY, SINGLE, OUTDATED, DEBUG_DIRECT };
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(read_mode_t,
                                       int8_t,
                                       read_mode_t::MAJORITY,
-                                      read_mode_t::OUTDATED);
+                                      read_mode_t::DEBUG_DIRECT);
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         reql_version_t, int8_t,

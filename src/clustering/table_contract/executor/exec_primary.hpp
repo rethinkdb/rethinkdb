@@ -45,13 +45,11 @@ class primary_execution_t :
 public:
     primary_execution_t(
         const execution_t::context_t *context,
-        store_view_t *store,
-        perfmon_collection_t *perfmon_collection,
-        const std::function<void(
-            const contract_id_t &, const contract_ack_t &)> &ack_cb,
+        execution_t::params_t *params,
         const contract_id_t &cid,
         const table_raft_state_t &raft_state);
     ~primary_execution_t();
+
     void update_contract_or_raft_state(
         const contract_id_t &cid,
         const table_raft_state_t &raft_state);

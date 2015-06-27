@@ -15,6 +15,7 @@
 #include "clustering/administration/issues/name_collision.hpp"
 #include "clustering/administration/issues/table.hpp"
 
+class namespace_repo_t;
 
 class issues_artificial_table_backend_t :
     public timer_cfeed_artificial_table_backend_t
@@ -27,6 +28,7 @@ public:
         watchable_map_t<peer_id_t, cluster_directory_metadata_t> *directory_view,
         server_config_client_t *server_config_client,
         table_meta_client_t *table_meta_client,
+        namespace_repo_t *namespace_repo,
         admin_identifier_format_t identifier_format);
     ~issues_artificial_table_backend_t();
 

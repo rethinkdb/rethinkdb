@@ -21,7 +21,7 @@ public:
     remote_replicator_server_bcard_t get_bcard() {
         return remote_replicator_server_bcard_t {
             primary->get_branch_id(),
-            primary->get_branch_birth_certificate().region,
+            primary->get_branch_birth_certificate().get_region(),
             registrar.get_business_card() };
     }
 

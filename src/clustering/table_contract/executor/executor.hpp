@@ -10,6 +10,8 @@
 #include "concurrency/pump_coro.hpp"
 #include "store_subview.hpp"
 
+class backfill_progress_tracker_t;
+
 /* The `contract_executor_t` is responsible for executing the instructions contained in
 the `contract_t`s in the `table_raft_state_t`. Each server has one `contract_executor_t`
 for each table it's a replica of. The `contract_executor_t` constantly monitors the
@@ -31,6 +33,7 @@ public:
         const base_path_t &base_path,
         io_backender_t *io_backender,
         backfill_throttler_t *backfill_throttler,
+        backfill_progress_tracker_t *backfill_progress_tracker,
         perfmon_collection_t *perfmons);
     ~contract_executor_t();
 
@@ -47,31 +50,15 @@ public:
         return &local_table_query_bcards;
     }
 
+    range_map_t<key_range_t::right_bound_t, table_shard_status_t> get_shard_status();
+
 private:
     /* The actual work of executing the contract--accepting queries from the user,
     performing backfills, etc.--is carried out by the three `execution_t` subclasses,
     `primary_execution_t`, `secondary_execution_t`, and `erase_execution_t`.
-    `execution_data_t` is just a simple wrapper around an `execution_t` with some
+    `execution_wrapper_t` is just a simple wrapper around an `execution_t` with some
     supporting objects. */
-    class execution_data_t {
-    public:
-        /* The contract ID of the contract governing this execution. Note that this may
-        change over the course of an execution; see the comment about `execution_key_t`.
-        */
-        contract_id_t contract_id;
-
-        /* A `store_subview_t` containing only the sub-region of the store that this
-        execution affects. */
-        scoped_ptr_t<store_subview_t> store_subview;
-
-        /* We create a new perfmon category for each execution. This way the executions
-        themselves don't have to think about perfmon key collisions. */
-        perfmon_collection_t perfmon_collection;
-        scoped_ptr_t<perfmon_membership_t> perfmon_membership;
-
-        /* The execution itself */
-        scoped_ptr_t<execution_t> execution;
-    };
+    class execution_wrapper_t; 
 
     /* When a contract changes, we sometimes want to create a new execution and we
     sometimes want to update an existing one. Specifically, we want to create a new
@@ -123,10 +110,9 @@ private:
     void update(const table_raft_state_t &new_state,
                 std::set<execution_key_t> *to_delete_out);
 
-    /* This will send `cid` and `ack` to the coordinator. We pass it as a callback to
-    the `execution_t`. */
-    void send_ack(const execution_key_t &key, const contract_id_t &cid,
-        const contract_ack_t &ack);
+    /* `gc_branch_history()` runs in a `pump_coro_t` to garbage-collect the branch
+    history. */
+    void gc_branch_history(signal_t *interruptor);
 
     const server_id_t server_id;
     clone_ptr_t<watchable_t<table_raft_state_t> > raft_state;
@@ -153,20 +139,28 @@ private:
     `execution_t`s need access to. */
     execution_t::context_t execution_context;
 
-    std::map<execution_key_t, scoped_ptr_t<execution_data_t> > executions;
+    std::map<execution_key_t, scoped_ptr_t<execution_wrapper_t> > executions;
+
+    /* This lock prevents `update_blocking()` and `gc_branch_history()` from accessing
+    `executions` at the same time. */
+    new_mutex_t executions_mutex;
 
     /* Used to generate unique names for perfmons */
     int perfmon_counter;
 
-    /* `update_pumper` calls `update_blocking()`. Destructor order matters: we must
-    destroy `raft_state_subs` before `update_pumper` because it notifies `update_pumper`,
-    but we must destroy `update_pumper` before the other member variables because
-    `update_blocking()` accesses them. */
-    scoped_ptr_t<pump_coro_t> update_pumper;
+    /* `update_pumper` calls `update_blocking()`. */
+    pump_coro_t update_pumper;
+
+    /* `gc_branch_history_pumper` calls `gc_branch_history()`. */
+    pump_coro_t gc_branch_history_pumper;
 
     /* We subscribe to changes in the Raft committed state so we can find out when a new
     contract has been issued. */
     watchable_t<table_raft_state_t>::subscription_t raft_state_subs;
+
+    /* Normally destructor order would matter for `executions`, the `*_pumper`s, and
+    `raft_state_subs`; but in this case we actually manage the destruction explicitly in
+    `~executor_t()`. */
 };
 
 #endif /* CLUSTERING_TABLE_CONTRACT_EXECUTOR_EXECUTOR_HPP_ */

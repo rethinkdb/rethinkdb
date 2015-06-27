@@ -261,6 +261,7 @@ bool do_serve(io_backender_t *io_backender,
                 &rdb_ctx,
                 &server_config_client,
                 &table_meta_client,
+                multi_table_manager.get(),
                 table_query_directory_read_manager.get_root_view());
 
             admin_artificial_tables_t admin_tables(
@@ -271,6 +272,7 @@ bool do_serve(io_backender_t *io_backender,
                 directory_read_manager.get_root_map_view(),
                 &table_meta_client,
                 &server_config_client,
+                real_reql_cluster_interface.get_namespace_repo(),
                 &mailbox_manager);
 
             jobs_manager_t jobs_manager(

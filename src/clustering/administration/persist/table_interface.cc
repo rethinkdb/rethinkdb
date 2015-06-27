@@ -7,6 +7,7 @@
 #include "clustering/administration/issues/outdated_index.hpp"
 #include "clustering/administration/persist/branch_history_manager.hpp"
 #include "clustering/administration/persist/file_keys.hpp"
+#include "clustering/administration/persist/raft_storage_interface.hpp"
 #include "clustering/administration/perfmon_collection_repo.hpp"
 #include "logger.hpp"
 #include "serializer/log/log_serializer.hpp"
@@ -179,24 +180,69 @@ private:
 void real_table_persistence_interface_t::read_all_metadata(
         const std::function<void(
             const namespace_id_t &table_id,
-            const table_persistent_state_t &state)> &callback,
+            const table_active_persistent_state_t &state,
+            raft_storage_interface_t<table_raft_state_t> *raft_storage)> &active_cb,
+        const std::function<void(
+            const namespace_id_t &table_id,
+            const table_inactive_persistent_state_t &state)> &inactive_cb,
         signal_t *interruptor) {
     metadata_file_t::read_txn_t read_txn(metadata_file, interruptor);
-    read_txn.read_many<table_persistent_state_t>(
-        mdprefix_table_persistent_state(),
-        [&](const std::string &uuid_str, const table_persistent_state_t &state) {
-            callback(str_to_uuid(uuid_str), state);
+
+    std::map<namespace_id_t, table_active_persistent_state_t> active_tables;
+    read_txn.read_many<table_active_persistent_state_t>(
+        mdprefix_table_active(),
+        [&](const std::string &uuid_str, const table_active_persistent_state_t &state) {
+            active_tables[str_to_uuid(uuid_str)] = state;
+        },
+        interruptor);
+    storage_interfaces.clear();
+    for (const auto &pair : active_tables) {
+        storage_interfaces[pair.first].init(new table_raft_storage_interface_t(
+            metadata_file, &read_txn, pair.first, interruptor));
+        active_cb(pair.first, pair.second, storage_interfaces[pair.first].get());
+    }
+
+    read_txn.read_many<table_inactive_persistent_state_t>(
+        mdprefix_table_inactive(),
+        [&](const std::string &uuid_str, const table_inactive_persistent_state_t &s) {
+            inactive_cb(str_to_uuid(uuid_str), s);
         },
         interruptor);
 }
 
-void real_table_persistence_interface_t::write_metadata(
+void real_table_persistence_interface_t::write_metadata_active(
         const namespace_id_t &table_id,
-        const table_persistent_state_t &state,
-        signal_t *interruptor) {
+        const table_active_persistent_state_t &state,
+        const raft_persistent_state_t<table_raft_state_t> &raft_state,
+        signal_t *interruptor,
+        raft_storage_interface_t<table_raft_state_t> **raft_storage_out) {
+    storage_interfaces.erase(table_id);
     metadata_file_t::write_txn_t write_txn(metadata_file, interruptor);
+    write_txn.erase(
+        mdprefix_table_inactive().suffix(uuid_to_str(table_id)),
+        interruptor);
+    table_raft_storage_interface_t::erase(&write_txn, table_id, interruptor);
     write_txn.write(
-        mdprefix_table_persistent_state().suffix(uuid_to_str(table_id)),
+        mdprefix_table_active().suffix(uuid_to_str(table_id)),
+        state,
+        interruptor);
+    storage_interfaces[table_id].init(new table_raft_storage_interface_t(
+        metadata_file, &write_txn, table_id, raft_state, interruptor));
+    *raft_storage_out = storage_interfaces[table_id].get();
+}
+
+void real_table_persistence_interface_t::write_metadata_inactive(
+        const namespace_id_t &table_id,
+        const table_inactive_persistent_state_t &state,
+        signal_t *interruptor) {
+    storage_interfaces.erase(table_id);
+    metadata_file_t::write_txn_t write_txn(metadata_file, interruptor);
+    write_txn.erase(
+        mdprefix_table_active().suffix(uuid_to_str(table_id)),
+        interruptor);
+    table_raft_storage_interface_t::erase(&write_txn, table_id, interruptor);
+    write_txn.write(
+        mdprefix_table_inactive().suffix(uuid_to_str(table_id)),
         state,
         interruptor);
 }
@@ -204,10 +250,15 @@ void real_table_persistence_interface_t::write_metadata(
 void real_table_persistence_interface_t::delete_metadata(
         const namespace_id_t &table_id,
         signal_t *interruptor) {
+    storage_interfaces.erase(table_id);
     metadata_file_t::write_txn_t write_txn(metadata_file, interruptor);
     write_txn.erase(
-        mdprefix_table_persistent_state().suffix(uuid_to_str(table_id)),
+        mdprefix_table_active().suffix(uuid_to_str(table_id)),
         interruptor);
+    write_txn.erase(
+        mdprefix_table_inactive().suffix(uuid_to_str(table_id)),
+        interruptor);
+    table_raft_storage_interface_t::erase(&write_txn, table_id, interruptor);
 }
 
 void real_table_persistence_interface_t::load_multistore(

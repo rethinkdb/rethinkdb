@@ -1,57 +1,76 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_TABLES_CALCULATE_STATUS_HPP_
 #define CLUSTERING_ADMINISTRATION_TABLES_CALCULATE_STATUS_HPP_
 
-#include <map>
-#include <set>
-#include <vector>
-
-#include "clustering/administration/servers/config_client.hpp"
-#include "clustering/table_contract/contract_metadata.hpp"
 #include "clustering/table_manager/table_meta_client.hpp"
 #include "protocol_api.hpp"
 
-/* Sometimes different parts of a shard can be in different states. To avoid confusing
-   the user, we only ever present one state. The ordering of the states in this enum are
-   used to decide which state to present; we'll always present the state that's furthest
-   down the list.
+class namespace_repo_t;
+class signal_t;
 
-   `backfilling` has a performance impact so we should display it whenever it's
-   happening. `waiting_for_quorum` can cause another machine to be `waiting_for_primary`,
-   so we should prioritize displaying `waiting_for_quorum` to make it clear why the
-   primary is stuck. `transitioning` is the least informative error condition, so we
-   shouldn't display it at all unless it's the only thing keeping us from being ready.
-   A replica in the `nothing` state is hidden, and last of all, the `disconnected` state
-   can never occur in conjunction with any other state, so it doesn't have a meaningful
-   position in the list. */
-enum class server_status_t {
-    DISCONNECTED = 0,
-    NOTHING,
-    READY,
-    TRANSITIONING,
-    WAITING_FOR_PRIMARY,
-    WAITING_FOR_QUORUM,
-    BACKFILLING
-};
+/* There's a slight difference between `wait_for_*_readiness()` and `get_table_status()`
+in how they react when the table's leader reports that all replicas are ready.
+`wait_for_*_readiness()` will go ahead and run the probe read/write query even if the
+leader reports everything is fine, because this will ensure that the `namespace_repo_t`
+is also ready. But `get_table_status()` will go ahead and report
+`table_readiness_t::finished` without running any probe queries against the
+`namespace_repo_t`. This is to save work and also to make the results of
+`get_table_status()` more consistent between servers. */
 
-struct shard_status_t {
+/* Blocks until the given table is available at the given level of readiness. If the
+table is deleted, throws `no_such_table_exc_t`. The return value is `true` if the table
+was ready immediately, or `false` if it was necessary to wait.*/
+bool wait_for_table_readiness(
+    const namespace_id_t &table_id,
+    table_readiness_t readiness,
+    namespace_repo_t *namespace_repo,
+    table_meta_client_t *table_meta_client,
+    signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t);
+
+/* Blocks until all of the tables in the given set are either deleted or ready at the
+given level of readiness. Returns the number of tables that were ready (as opposed to
+deleted.) */
+size_t wait_for_many_tables_readiness(
+    const std::set<namespace_id_t> &tables,
+    table_readiness_t readiness,
+    namespace_repo_t *namespace_repo,
+    table_meta_client_t *table_meta_client,
+    signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t);
+
+/* `table_status_t` describes the current status of a table, in a format that can be
+converted to a `rethinkdb.table_status` entry by `convert_table_status_to_datum()`. */
+class table_status_t {
+public:
     table_readiness_t readiness;
-    std::set<server_id_t> primary_replicas;
-    std::map<server_id_t, server_status_t> replicas;
+
+    /* If `total_loss` is `true`, that indicates that we were unable to access even one
+    server for the table, and the fields below are meaningless. */
+    bool total_loss;
+
+    /* No server appears in both `server_shards` and `disconnected`. Every server in
+    `config` appears in either `server_shards` and `disconnected`, but some servers may
+    appear in `server_shards` that aren't in `config`. Every server in any of the three
+    appears in `server_names`. */
+
+    table_config_and_shards_t config;
+    std::map<server_id_t, range_map_t<key_range_t::right_bound_t,
+        table_shard_status_t> > server_shards;
+    std::set<server_id_t> disconnected;
+    server_name_map_t server_names;
 };
 
-/* Note: `calculate_status()` may leave `shard_statuses_out` empty. This means that not
-only is the table unavailable, but we couldn't even figure out which servers were
-supposed to be hosting it or how many shards it has. */
-void calculate_status(
-        const namespace_id_t &table_id,
-        signal_t *interruptor,
-        server_config_client_t *server_config_client,
-        table_meta_client_t *table_meta_client,
-        table_readiness_t *readiness_out,
-        std::vector<shard_status_t> *shard_statuses_out,
-        server_name_map_t *server_names_out)
-        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t);
+/* Fetches the current `table_status_t` for a table that isn't a total loss. */
+void get_table_status(
+    const namespace_id_t &table_id,
+    const table_config_and_shards_t &config,
+    namespace_repo_t *namespace_repo,
+    table_meta_client_t *table_meta_client,
+    server_config_client_t *server_config_client,
+    signal_t *interruptor,
+    table_status_t *status_out)
+    THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t);
 
 #endif /* CLUSTERING_ADMINISTRATION_TABLES_CALCULATE_STATUS_HPP_ */
 

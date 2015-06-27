@@ -42,7 +42,7 @@ real_branch_history_manager_t::real_branch_history_manager_t(
 
 branch_birth_certificate_t
 real_branch_history_manager_t::get_branch(const branch_id_t &branch)
-        const THROWS_NOTHING {
+        const THROWS_ONLY(missing_branch_exc_t) {
     assert_thread();
     return cache.get_branch(branch);
 }
@@ -79,6 +79,7 @@ void real_branch_history_manager_t::import_branch_history(
         metadata_file_t::write_txn_t write_txn(metadata_file, interruptor);
         for (const auto &pair : new_records.branches) {
             if (!is_branch_known(pair.first)) {
+                cache.branches.insert(pair);
                 write_txn.write(
                     mdprefix_branch_birth_certificate().suffix(
                         uuid_to_str(table_id) + "/" + uuid_to_str(pair.first)),
@@ -87,6 +88,30 @@ void real_branch_history_manager_t::import_branch_history(
             }
         }
     }
-    cache.branches.insert(new_records.branches.begin(), new_records.branches.end());
+}
+
+void real_branch_history_manager_t::prepare_gc(
+        std::set<branch_id_t> *branches_out)
+        THROWS_NOTHING {
+    branches_out->clear();
+    for (const auto &pair : cache.branches) {
+        branches_out->insert(pair.first);
+    }
+}
+
+void real_branch_history_manager_t::perform_gc(
+        const std::set<branch_id_t> &remove_branches,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t) {
+    metadata_file_t::write_txn_t write_txn(metadata_file, interruptor);
+    for (const branch_id_t &bid : remove_branches) {
+        if (is_branch_known(bid)) {
+            cache.branches.erase(bid);
+            write_txn.erase(
+                mdprefix_branch_birth_certificate().suffix(
+                    uuid_to_str(table_id) + "/" + uuid_to_str(bid)),
+                interruptor);
+        }
+    }
 }
 
