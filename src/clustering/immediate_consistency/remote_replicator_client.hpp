@@ -23,28 +23,7 @@ There is one `remote_replicator_client_t` on each secondary replica server of ea
 `secondary_execution_t` constructs it. */
 
 class remote_replicator_client_t {
-private:
-    class backfill_end_timestamps_t;
-
 public:
-    /* Here's how the backfill works:
-
-    1. We sign up for a stream of writes from the `remote_replicator_server_t`. Initially
-        we store the writes in `write_queue_`.
-    2. We start backfilling from the `replica_t`. We ensure that the `replica_t` is on
-        the same branch as the `remote_replicator_server_t`, and that the backfill's end
-        timestamp is greater than or equal to the stream's begin timestamp.
-    3. When `write_queue_` reaches a certain size, we stop the backfill. We perform all
-        the queued writes that affect the region that we backfilled, and discard all
-        others.
-    4. Go back to step 1, except that incoming writes that apply to the region that was
-        backfilled are performed immediately instead of being queued.
-    5. Repeat steps 1-4 until the whole region has been backfilled.
-
-    The `remote_replicator_client_t` constructor blocks until this entire process is
-    complete. The backfilled data will be safely flushed to disk by the time it returns.
-    */
-
     remote_replicator_client_t(
         backfill_throttler_t *backfill_throttler,
         const backfill_config_t &backfill_config,
@@ -63,18 +42,6 @@ public:
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
 private:
-    class queue_entry_t {
-    public:
-        /* `has_write` is `false` if the write has no effect on the region that is being
-        queued. We still create a queue entry for such writes because we need to update
-        the metainfo. */
-        bool has_write;
-        write_t write;
-        state_timestamp_t timestamp;
-        order_token_t order_token;
-    };
-    typedef std::function<void(queue_entry_t &&, cond_t *)> queue_function_t;
-
     /* `apply_write_or_metainfo()` is a helper function for `drain_stream_queue()` and
     `on_write_async()`. It applies the given write to the store and updates the metainfo;
     but if `has_write` is `false`, it only updates the metainfo. */
@@ -87,20 +54,6 @@ private:
             state_timestamp_t timestamp,
             write_token_t *token,
             order_token_t order_token,
-            signal_t *interruptor);
-
-    /* `drain_stream_queue()` is a helper function for the constructor. It applies the
-    queue entries in `queue` to `store`. When the queue is empty, it calls
-    `on_queue_empty()`; if the queue is still empty after `on_queue_empty()` returns,
-    then `drain_stream_queue()` returns. */
-    static void drain_stream_queue(
-            store_view_t *store,
-            const branch_id_t &branch_id,
-            const region_t &region,
-            std::queue<queue_entry_t> *queue,
-            const backfill_end_timestamps_t &bets,
-            const std::function<void(signal_t *)> &on_queue_empty,
-            const std::function<void(signal_t *)> &on_finished_one_entry,
             signal_t *interruptor);
 
     /* `on_write_async()`, `on_write_sync()`, and `on_read()` are mailbox callbacks for
@@ -131,27 +84,155 @@ private:
 
     mailbox_manager_t *const mailbox_manager_;
     store_view_t *const store_;
+    region_t const region_;   /* same as `store_->get_region()` */
     branch_id_t const branch_id_;
+
+    /* During the constructor, we alternate between `PAUSED` and `BACKFILLING`. When the
+    constructor is done, we switch to `STREAMING` mode and stay there. */
+    enum class backfill_mode_t {
+        /* We haven't backfilled completely, but we aren't currently backfilling either.
+        Usually this means we're waiting for the backfill throttler. However, we will
+        still accept streaming writes in the regions we've already backfilled. */
+        PAUSED,
+        /* We're actively receiving backfill items over the network. Whenever the
+        backfill reaches a given timestamp, we'll also apply all writes at or before that
+        timestamp; this is mediated by `backfilling_thresholds_`. */
+        BACKFILLING,
+        /* We finished backfilling and we're just applying writes as they arrive. */
+        STREAMING
+        };
+    backfill_mode_t mode_;
+
+    /* `timestamp_range_tracker_t` is essentially a `region_map_t<state_timestamp_t>`,
+    but in a different format. The domain is the region that has been backfilled thus
+    far; the values are equal to the current timestamps in the B-tree metainfo. */
+    class timestamp_range_tracker_t {
+    public:
+        timestamp_range_tracker_t(
+                const region_t &_store_region,
+                state_timestamp_t _prev_timestamp) :
+            store_region(_store_region),
+            prev_timestamp(_prev_timestamp) { }
+
+        /* Records that the backfill has copied values up to the given timestamp for the
+        given range. */
+        void record_backfill(const region_t &region, const timestamp_t &ts) {
+            rassert(region.beg == store_region.beg);
+            rassert(region.end == store_region.end);
+            rassert(key_range_t::right_bound_t(region.left) ==
+                (entries.empty()
+                    ? key_range_t::right_bound_t(store_region.left)
+                    : entries.back().first));
+            rassert(region.right <= store_region.right);
+            if (entries.empty() || entries.back().second != ts) {
+                entries.push_back(std::make_pair(region.right, ts));
+            } else {
+                /* Rather than making a second entry with the same timestamp, coalesce
+                the two entries. */
+                entries.back().first = region.right;
+            }
+        }
+
+        /* Returns the timestamp of the last streaming write processed. */
+        state_timestamp_t get_prev_timestamp() const {
+            return prev_timestamp;
+        }
+
+        /* Returns the rightmost point we've backfilled to so far */
+        key_range_t::right_bound_t get_backfill_threshold() const {
+            if (entries.empty()) {
+                return key_range_t::right_bound_t(store_region.left);
+            } else {
+                return entries.back().first;
+            }
+        }
+
+        /* Given the next streaming write, extracts the part of it that should be applied
+        such that the streaming write and the backfill together will neither skip nor
+        duplicate any change. If the backfill hasn't sent us any changes with timestamps
+        equal to or greater than the next write, we wouldn't be able to determine where
+        to clip the write, so this will crash. It also updates the
+        `timestamp_range_tracker_t`'s internal record to reflect the fact that the write
+        will be applied to the store. */
+        void process_next_write_backfilling(
+                const write_t &write,
+                timestamp_t timestamp,
+                bool *has_subwrite_out,
+                write_t *subwrite_out) {
+            guarantee(can_process_next_write_backfilling());
+            process_next_write_paused(write, timestamp, has_subwrite_out, subwrite_out);
+        }
+
+        /* Returns `true` if the backfill has sent us some changes with timestamps equal
+        to or greater than the next write. */
+        bool can_process_next_write_backfilling() const {
+            return !entries.empty() &&
+                (entries.size() > 1 || entries[0].first == store_region.inner.right);
+        }
+
+        /* Similar to `process_next_write_backfilling()`, except that if the backfill
+        hasn't sent us any changes with timestamps equal to or greater than the next
+        write, it will assume that the timestamps in all yet-to-be-backfilled regions
+        will be equal to or greater than the next write. Therefore, this is only safe to
+        use in `PAUSED` mode; when we exit `PAUSED` mode, we'll ensure that the backfill
+        resumes from a timestamp equal to or greater than the next write. */
+        void process_next_write_paused(
+                const write_t &write,
+                timestamp_t timestamp,
+                bool *has_subwrite_out,
+                write_t *subwrite_out) {
+            guarantee(timestamp == prev_timestamp.next(), "sanity check failed");
+            if (entries.empty() || entries[0].second > prev_timestamp) {
+                *has_subwrite_out = false;
+                prev_timestamp = timestamp;
+                return;
+            }
+            guarantee(entries[0].second == prev_timestamp);
+            region_t clip_region = store_region;
+            clip_region.inner.right = entries.front().first;
+            *has_subwrite_out = write.shard(clip_region, subwrite_out);
+            entries[0].second = timestamp;
+            if (entries.size() > 1 && entries[1].second == timestamp) {
+                entries.pop_front();
+            }
+        }
+
+    private:
+        /* Same as `remote_replicator_client_t::store_->get_region()`. */
+        region_t store_region;
+
+        /* The timestamp of the next streaming write that should be applied. */
+        state_timestamp_t prev_timestamp;
+
+        /* Each entry in `entries` represents a possibly-empty range. The right bound of
+        the range is the `right_bound_t` on the entry; the left bound of the range is the
+        `right_bound_t` on the previous entry, or `store_region.inner.left` for the very
+        first entry. There will always be at least one entry.
+
+        The entries' `right_bound_t`s and timestamps will be strictly monotonically
+        increasing, but the difference between adjacent entries' timestamps may be more
+        than one. */
+        std::deque<std::pair<key_range_t::right_bound_t, state_timestamp_t> > entries;
+
+    };
+    scoped_ptr_t<timestamp_range_tracker_t> tracker_;
+
+    /* Whenever a call to `tracker_->record_backfill()` causes
+    `can_process_next_write_backfilling()` to switch from `false` to `true`, it will
+    pulse `*pulse_on_progress_` if it's not `nullptr`. */
+    cond_t *pulse_on_progress_;
 
     /* `timestamp_enforcer_` is used to order writes as they arrive. `replica_` will do
     its own ordering of writes, so `timestamp_enforcer_` is only important during the
     constructor before `replica_` has been created. */
     scoped_ptr_t<timestamp_enforcer_t> timestamp_enforcer_;
 
-    /* `region_*_`, `queue_fun_`, and `queue_order_checkpoint_` are only used during the
-    constructor. Specifically, the constructor uses them to control what
-    `on_write_async()` does with writes that arrive during the backfill. See
-    `on_write_async()` for more information. */
-    region_t region_streaming_, region_queueing_, region_discarding_;
-    queue_function_t *queue_fun_;
-    order_checkpoint_t queue_order_checkpoint_;
-
     /* `replica_` is created at the end of the constructor, once the backfill is over. */
     scoped_ptr_t<replica_t> replica_;
 
-    /* Read access to `rwlock_` is required when reading `region_*_`, `queue_fun_`,
+    /* Read access to `rwlock_` is required when reading [RSI(raft) complete this comment] 
     or `replica_`, or when calling `timestamp_enforcer_->complete()`. Write access to
-    `rwlock_` is required when writing to `region_*_`, `queue_fun_`, or `replica_`. */
+    `rwlock_` is required when writing to [RSI(raft) complete this comment]. */
     rwlock_t rwlock_;
 
     /* `registered` is pulsed once we've gotten the initial message from the
