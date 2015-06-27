@@ -39,9 +39,13 @@ public:
 };
 
 void throttler_acq_t::update_dirty_page_count(int64_t new_count) {
-    if (new_count > semaphore_acq_.count()) {
-        semaphore_acq_.change_count(new_count);
+    if (new_count > changes_semaphore_acq_.count()) {
+        changes_semaphore_acq_.change_count(new_count);
     }
+}
+
+void throttler_acq_t::reset_dirty_page_count() {
+    changes_semaphore_acq_.change_count(0);
 }
 
 page_read_ahead_cb_t::page_read_ahead_cb_t(serializer_t *serializer,
@@ -1328,7 +1332,7 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
                         txn->snapshotted_dirtied_pages_[i].block_id);
                 }
                 txn->snapshotted_dirtied_pages_.clear();
-                txn->throttler_acq_.update_dirty_page_count(0);
+                txn->throttler_acq_.reset_dirty_page_count();
             }
             blocks_released_cond.pulse();
         }, page_cache->home_thread());

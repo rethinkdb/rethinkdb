@@ -34,6 +34,7 @@ private:
     const int64_t minimum_unwritten_changes_limit_;
 
     new_semaphore_t unwritten_changes_semaphore_;
+    new_semaphore_t unwritten_txns_semaphore_;
 
     DISABLE_COPYING(alt_txn_throttler_t);
 };

@@ -291,20 +291,27 @@ public:
     throttler_acq_t() { }
     ~throttler_acq_t() { }
     throttler_acq_t(throttler_acq_t &&movee)
-        : semaphore_acq_(std::move(movee.semaphore_acq_)) {
-        movee.semaphore_acq_.reset();
+        : changes_semaphore_acq_(std::move(movee.changes_semaphore_acq_)),
+          txn_semaphore_acq_(std::move(movee.txn_semaphore_acq_)) {
+        movee.changes_semaphore_acq_.reset();
+        movee.txn_semaphore_acq_.reset();
     }
 
-    // See below:  this can update how much semaphore_acq_ holds.
+    // See below:  this can update how much changes_semaphore_acq_ holds.
     void update_dirty_page_count(int64_t new_count);
+
+    // Sets changes_semaphore_acq_ to 0.
+    void reset_dirty_page_count();
 
 private:
     friend class ::alt_txn_throttler_t;
-    // At first, the number of dirty pages is 0 and semaphore_acq_.count() >=
+    // At first, the number of dirty pages is 0 and changes_semaphore_acq_.count() >=
     // dirtied_count_.  Once the number of dirty pages gets bigger than the original
-    // value of semaphore_acq_.count(), we use semaphore_acq_.change_count() to keep
-    // the numbers equal.
-    new_semaphore_acq_t semaphore_acq_;
+    // value of changes_semaphore_acq_.count(), we use
+    // changes_semaphore_acq_.change_count() to keep the numbers equal.
+    new_semaphore_acq_t changes_semaphore_acq_;
+
+    new_semaphore_acq_t txn_semaphore_acq_;
 
     DISABLE_COPYING(throttler_acq_t);
 };

@@ -21,6 +21,7 @@ using alt::throttler_acq_t;
 const int64_t MINIMUM_SOFT_UNWRITTEN_CHANGES_LIMIT = 1;
 const int64_t SOFT_UNWRITTEN_CHANGES_LIMIT = 8000;
 const double SOFT_UNWRITTEN_CHANGES_MEMORY_FRACTION = 0.5;
+const int32_t NUM_UNWRITTEN_TXNS_LIMIT = 128;
 
 // There are very few ASSERT_NO_CORO_WAITING calls (instead we have
 // ASSERT_FINITE_CORO_WAITING) because most of the time we're at the mercy of the
@@ -56,14 +57,17 @@ private:
 
 alt_txn_throttler_t::alt_txn_throttler_t(int64_t minimum_unwritten_changes_limit)
     : minimum_unwritten_changes_limit_(minimum_unwritten_changes_limit),
-      unwritten_changes_semaphore_(SOFT_UNWRITTEN_CHANGES_LIMIT) { }
+      unwritten_changes_semaphore_(SOFT_UNWRITTEN_CHANGES_LIMIT),
+      unwritten_txns_semaphore_(NUM_UNWRITTEN_TXNS_LIMIT) { }
 
 alt_txn_throttler_t::~alt_txn_throttler_t() { }
 
 throttler_acq_t alt_txn_throttler_t::begin_txn_or_throttle(int64_t expected_change_count) {
     throttler_acq_t acq;
-    acq.semaphore_acq_.init(&unwritten_changes_semaphore_, expected_change_count);
-    acq.semaphore_acq_.acquisition_signal()->wait();
+    acq.txn_semaphore_acq_.init(&unwritten_txns_semaphore_, 1);
+    acq.txn_semaphore_acq_.acquisition_signal()->wait();
+    acq.changes_semaphore_acq_.init(&unwritten_changes_semaphore_, expected_change_count);
+    acq.changes_semaphore_acq_.acquisition_signal()->wait();
     return acq;
 }
 
