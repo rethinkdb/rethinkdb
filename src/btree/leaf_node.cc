@@ -1457,9 +1457,6 @@ void insert(
     validate(sizer, node);
 }
 
-// This asserts that the key is in the node.  TODO: This means we're
-// already sure the key is in the node, which means we're doing an
-// unnecessary binary search.
 void remove(
         value_sizer_t *sizer,
         leaf_node_t *node,
@@ -1467,11 +1464,6 @@ void remove(
         repli_timestamp_t tstamp,
         repli_timestamp_t maximum_existing_tstamp,
         UNUSED key_modification_proof_t km_proof) {
-    /* Confirm that the key is already in the node */
-    DEBUG_VAR int index;
-    rassert(find_key(node, key, &index), "remove() called on key that's not in node");
-    rassert(entry_is_live(get_entry(node, node->pair_offsets[index])), "remove() called on key with dead entry");
-
     /* If the deletion entry would fall after `tstamp_cutpoint`, then it
     shouldn't be written at all. If that's the case, then
     `prepare_space_for_new_entry()` will return false because we pass false for
