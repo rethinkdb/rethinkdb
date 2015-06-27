@@ -409,6 +409,7 @@ bool primary_execution_t::on_read(
         case read_mode_t::MAJORITY:
             return sync_committed_read(request, order_token, interruptor, error_out);
         case read_mode_t::OUTDATED: // Fallthrough intentional
+        case read_mode_t::DEBUG_DIRECT:
         default:
             unreachable();
         }

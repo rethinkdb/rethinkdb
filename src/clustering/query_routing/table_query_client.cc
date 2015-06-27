@@ -4,16 +4,23 @@
 #include <functional>
 
 #include "clustering/query_routing/primary_query_client.hpp"
+#include "clustering/table_contract/cpu_sharding.hpp"
+#include "clustering/table_manager/multi_table_manager.hpp"
+#include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/watchable.hpp"
 #include "rdb_protocol/env.hpp"
 
 table_query_client_t::table_query_client_t(
+        const namespace_id_t &_table_id,
         mailbox_manager_t *mm,
         watchable_map_t<std::pair<peer_id_t, uuid_u>, table_query_bcard_t> *d,
+        multi_table_manager_t *mtm,
         rdb_context_t *_ctx)
-    : mailbox_manager(mm),
+    : table_id(_table_id),
+      mailbox_manager(mm),
       directory(d),
+      multi_table_manager(mtm),
       ctx(_ctx),
       start_count(0),
       starting_up(true),
@@ -84,6 +91,9 @@ void table_query_client_t::read(
            `dispatch_outdated_read` needs to be able to see `outdated_read_info_t`,
            which is defined in the `private` section. */
         dispatch_outdated_read(r, response, interruptor);
+    } else if (r.read_mode == read_mode_t::DEBUG_DIRECT) {
+        guarantee(!r.route_to_primary());
+        dispatch_debug_direct_read(r, response, interruptor);
     } else {
         dispatch_immediate_op<read_t, fifo_enforcer_sink_t::exit_read_t, read_response_t>(
                 &primary_query_client_t::new_read_token,
@@ -340,6 +350,59 @@ void table_query_client_t::perform_outdated_read(
         /* Return immediately. `dispatch_immediate_op()` will notice that the
         interruptor has been pulsed. */
     }
+}
+
+void table_query_client_t::dispatch_debug_direct_read(
+        const read_t &op,
+        read_response_t *response,
+        signal_t *interruptor_on_caller)
+        THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
+    cross_thread_signal_t interruptor_on_mtm(
+        interruptor_on_caller, multi_table_manager->home_thread());
+    on_thread_t thread_switcher(multi_table_manager->home_thread());
+    multi_table_manager->visit_table(table_id, &interruptor_on_mtm,
+    [&](multistore_ptr_t *multistore, table_manager_t *) {
+        if (multistore == nullptr) {
+            throw cannot_perform_query_exc_t(
+                "This server does not have any data available for the given table.");
+        }
+        std::vector<read_response_t> responses;
+        pmap(CPU_SHARDING_FACTOR, [&](size_t shard_number) {
+            try {
+                region_t region = cpu_sharding_subspace(shard_number);
+                read_t subread;
+                if (!op.shard(region, &subread)) {
+                    return;
+                }
+                read_response_t subresponse;
+                {
+                    store_view_t *store =
+                        multistore->get_cpu_sharded_store(shard_number);
+                    cross_thread_signal_t interruptor_on_store(
+                        &interruptor_on_mtm, store->home_thread());
+                    on_thread_t thread_switcher_2(store->home_thread());
+#ifndef NDEBUG
+                    metainfo_checker_t checker(
+                        region, [](const region_t &, const binary_blob_t &) {});
+#endif /* NDEBUG */
+                    read_token_t token;
+                    store->new_read_token(&token);
+                    store->read(
+                        DEBUG_ONLY(checker, )
+                        subread, &subresponse, &token,
+                        &interruptor_on_store);
+                }
+                responses.push_back(subresponse);
+            } catch (const interrupted_exc_t &) {
+                /* ignore; we'll catch it outside the pmap */
+            }
+        });
+        if (interruptor_on_mtm.is_pulsed()) {
+            throw interrupted_exc_t();
+        }
+        op.unshard(responses.data(), responses.size(), response, ctx,
+            &interruptor_on_mtm);
+    });
 }
 
 void table_query_client_t::update_registrant(

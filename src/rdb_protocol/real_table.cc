@@ -290,8 +290,9 @@ void real_table_t::read_with_profile(ql::env_t *env, const read_t &read,
         read_response_t *response) {
     profile::starter_t starter(
         (read.read_mode == read_mode_t::OUTDATED ? "Perform outdated read." :
+         (read.read_mode == read_mode_t::DEBUG_DIRECT ? "Perform debug_direct read." :
          (read.read_mode == read_mode_t::SINGLE ? "Perform read." :
-                                                  "Perform majority read.")),
+                                                  "Perform majority read."))),
         env->trace);
     profile::splitter_t splitter(env->trace);
     /* propagate whether or not we're doing profiles */

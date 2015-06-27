@@ -25,8 +25,8 @@ with driver.Cluster(initial_servers=['a', 'b'], output_folder='.', command_prefi
     
     print("Establishing ReQL connection (%.2fs)" % (time.time() - startTime))
     
-    server = cluster[0]
-    conn = r.connect(host=server.host, port=server.driver_port)
+    conn = r.connect(host=cluster[0].host, port=cluster[0].driver_port)
+    conn2 = r.connect(host=cluster[1].host, port=cluster[1].driver_port)
     
     print("Creating db if necessary (%.2fs)" % (time.time() - startTime))
     
@@ -51,6 +51,14 @@ with driver.Cluster(initial_servers=['a', 'b'], output_folder='.', command_prefi
     res = r.db(dbName).table("uuid_pkey").info().run(conn)["doc_count_estimates"]
     pprint.pprint(res)
     for num in res:
+        assert 250 < num < 750
+
+    print("Checking shard balancing by reading directly (%.2fs)" % (time.time() - startTime))
+    direct_counts = [
+        r.db(dbName).table("uuid_pkey", read_mode="_debug_direct").count().run(conn),
+        r.db(dbName).table("uuid_pkey", read_mode="_debug_direct").count().run(conn2)]
+    pprint.pprint(direct_counts)
+    for num in direct_counts:
         assert 250 < num < 750
 
     print("Testing sharding of existing inserted data (%.2fs)" % (time.time() - startTime))

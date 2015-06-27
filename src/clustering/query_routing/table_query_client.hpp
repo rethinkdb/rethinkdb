@@ -16,6 +16,7 @@
 #include "protocol_api.hpp"
 #include "rdb_protocol/protocol.hpp"
 
+class multi_table_manager_t;
 class primary_query_client_t;
 
 /* `table_query_client_t` is responsible for sending queries to the cluster. It
@@ -25,9 +26,11 @@ the entire table whereas they cover single shards. */
 class table_query_client_t : public namespace_interface_t {
 public:
     table_query_client_t(
+            const namespace_id_t &table_id,
             mailbox_manager_t *mm,
             watchable_map_t<std::pair<peer_id_t, uuid_u>, table_query_bcard_t>
                 *directory,
+            multi_table_manager_t *multi_table_manager,
             rdb_context_t *);
 
     /* Returns a signal that will be pulsed when we have either successfully connected
@@ -117,6 +120,12 @@ private:
             signal_t *interruptor)
         THROWS_NOTHING;
 
+    void dispatch_debug_direct_read(
+            const read_t &op,
+            read_response_t *response,
+            signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
+
     void update_registrant(const std::pair<peer_id_t, uuid_u> &key,
                            const table_query_bcard_t *bcard);
 
@@ -126,10 +135,12 @@ private:
         bool is_start,
         auto_drainer_t::lock_t lock) THROWS_NOTHING;
 
-    mailbox_manager_t *mailbox_manager;
+    namespace_id_t const table_id;
+    mailbox_manager_t *const mailbox_manager;
     watchable_map_t<std::pair<peer_id_t, uuid_u>, table_query_bcard_t>
-        *directory;
-    rdb_context_t *ctx;
+        *const directory;
+    multi_table_manager_t *const multi_table_manager;
+    rdb_context_t *const ctx;
 
     rng_t distributor_rng;
 

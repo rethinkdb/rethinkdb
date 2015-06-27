@@ -27,6 +27,7 @@ real_reql_cluster_interface_t::real_reql_cluster_interface_t(
         rdb_context_t *_rdb_context,
         server_config_client_t *_server_config_client,
         table_meta_client_t *_table_meta_client,
+        multi_table_manager_t *_multi_table_manager,
         watchable_map_t<
             std::pair<peer_id_t, std::pair<namespace_id_t, branch_id_t> >,
             table_query_bcard_t> *_table_query_directory
@@ -39,6 +40,7 @@ real_reql_cluster_interface_t::real_reql_cluster_interface_t(
     namespace_repo(
         mailbox_manager,
         _table_query_directory,
+        _multi_table_manager,
         rdb_context),
     changefeed_client(mailbox_manager,
         [this](const namespace_id_t &id, signal_t *interruptor) {
