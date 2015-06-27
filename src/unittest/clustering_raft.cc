@@ -870,6 +870,8 @@ private:
 
 TPTEST(ClusteringRaft, Fuzzer) {
 #ifdef ENABLE_RAFT_DEBUG
+    /* If we run multiple concurrent coroutines with raft debugging enabled, the logs
+    will get interleaved and the result will be difficult to understand. */
     int num_concurrent = 1;
 #else
     int num_concurrent = 10;
