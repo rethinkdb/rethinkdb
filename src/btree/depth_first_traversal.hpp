@@ -97,6 +97,15 @@ public:
         return continue_bool_t::CONTINUE;
     }
 
+    /* Called on every internal node before recursing. */
+    virtual continue_bool_t handle_pre_internal(
+            UNUSED const counted_t<counted_buf_lock_and_read_t> &buf,
+            UNUSED const btree_key_t *left_excl_or_null,
+            UNUSED const btree_key_t *right_incl,
+            UNUSED signal_t *interruptor) {
+        return continue_bool_t::CONTINUE;
+    }
+
     /* The guts of the callback; this handles the actual key-value pairs. */
     virtual continue_bool_t handle_pair(
             scoped_key_value_t &&keyvalue,
