@@ -327,7 +327,9 @@ private:
             } else {
                 rcheck_toplevel(
                     size <= env->limits().array_size_limit(), base_exc_t::GENERIC,
-                    strprintf("Array over size limit `%zu`.",
+                    strprintf("Array over size limit `%zu`. \
+                              To change the number of allowed elements, \
+                              modify the arrayLimit option, or use an index.",
                               env->limits().array_size_limit()).c_str());
             }
             lst1->reserve(lst1->size() + lst2->size());
@@ -355,7 +357,9 @@ private:
             } else {
                 rcheck_toplevel(
                     size <= env->limits().array_size_limit(), base_exc_t::GENERIC,
-                    strprintf("Array over size limit `%zu`.",
+                    strprintf("Array over size limit `%zu`. \
+                              To change the number of allowed elements, \
+                              modify the 'arrayLimit' option, or use an index.",
                               env->limits().array_size_limit()).c_str());
             }
 
