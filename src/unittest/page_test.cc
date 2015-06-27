@@ -42,6 +42,10 @@ struct mock_ser_t {
     }
 };
 
+void reset_throttler_acq(alt::throttler_acq_t *acq) {
+    alt::throttler_acq_t movee(std::move(*acq));
+}
+
 class test_txn_t;
 
 class test_cache_t : public page_cache_t {
@@ -53,7 +57,7 @@ public:
           throttler_(throttler) { }
 
     void flush(scoped_ptr_t<test_txn_t> txn) {
-        flush_and_destroy_txn(std::move(txn), []() { });
+        flush_and_destroy_txn(std::move(txn), &reset_throttler_acq);
     }
 
     alt::throttler_acq_t make_throttler_acq() {

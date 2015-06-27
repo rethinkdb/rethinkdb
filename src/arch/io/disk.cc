@@ -82,7 +82,7 @@ public:
     }
 
     void destroy_account(void *account) {
-        coro_t::spawn_on_thread([account] {
+        coro_t::spawn_on_thread([this, account] {
             // The account destructor can block if there are outstanding requests.
             delete static_cast<accounting_diskmgr_t::account_t *>(account);
         }, home_thread());

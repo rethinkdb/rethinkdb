@@ -25,6 +25,7 @@ public:
     ~alt_txn_throttler_t();
 
     alt::throttler_acq_t begin_txn_or_throttle(int64_t expected_change_count);
+    void end_txn(alt::throttler_acq_t acq);
 
     void inform_memory_limit_change(uint64_t memory_limit,
                                     block_size_t max_block_size);
@@ -96,6 +97,16 @@ public:
     cache_account_t *account() { return cache_account_; }
 
 private:
+    // Resets the *throttler_acq parameter.
+    static void inform_tracker(cache_t *cache,
+                               alt::throttler_acq_t *throttler_acq);
+
+    // Resets the *throttler_acq parameter.
+    static void pulse_and_inform_tracker(cache_t *cache,
+                                         alt::throttler_acq_t *throttler_acq,
+                                         cond_t *pulsee);
+
+
     void help_construct(int64_t expected_change_count, cache_conn_t *cache_conn);
 
     cache_t *const cache_;
