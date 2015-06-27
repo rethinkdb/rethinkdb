@@ -41,19 +41,20 @@ bool table_availability_issue_t::build_info_and_description(
         admin_identifier_format_t identifier_format,
         ql::datum_t *info_out,
         datum_string_t *description_out) const {
-    ql::datum_t db_id_datum;
+    ql::datum_t db_name_or_uuid;
     name_string_t db_name;
-    ql::datum_t table_id_datum;
+    ql::datum_t table_name_or_uuid;
     name_string_t table_name;
     if (!convert_table_id_to_datums(table_id, identifier_format, metadata,
-                                    table_meta_client, &table_id_datum, &table_name,
-                                    &db_id_datum, &db_name)) {
+                                    table_meta_client, &table_name_or_uuid, &table_name,
+                                    &db_name_or_uuid, &db_name)) {
         return false;
     }
 
     ql::datum_t status_datum = convert_table_status_to_datum(status, identifier_format);
     ql::datum_object_builder_t builder(status_datum);
-    builder.overwrite("table", table_id_datum);
+    builder.overwrite("table", table_name_or_uuid);
+    builder.overwrite("db", db_name_or_uuid);
     *info_out = std::move(builder).to_datum();
 
     // Provide a textual description of the problem as well
