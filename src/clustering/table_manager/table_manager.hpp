@@ -25,7 +25,7 @@ public:
         const base_path_t &_base_path,
         io_backender_t *_io_backender,
         const namespace_id_t &_table_id,
-        const multi_table_manager_bcard_t::timestamp_t::epoch_t &_epoch,
+        const multi_table_manager_timestamp_t::epoch_t &_epoch,
         const raft_member_id_t &raft_member_id,
         raft_storage_interface_t<table_raft_state_t> *raft_storage,
         multistore_ptr_t *multistore_ptr,
@@ -35,7 +35,7 @@ public:
 
     /* These are public so that `multi_table_manager_t` can see them */
     const namespace_id_t table_id;
-    const multi_table_manager_bcard_t::timestamp_t::epoch_t epoch;
+    const multi_table_manager_timestamp_t::epoch_t epoch;
     const raft_member_id_t raft_member_id;
 
     raft_member_t<table_raft_state_t> *get_raft() {
@@ -78,7 +78,7 @@ private:
             signal_t *interruptor,
             const table_config_and_shards_t &new_config_and_shards,
             const mailbox_t<void(
-                boost::optional<multi_table_manager_bcard_t::timestamp_t>
+                boost::optional<multi_table_manager_timestamp_t>
                 )>::address_t &reply_addr);
 
         table_manager_t * const parent;

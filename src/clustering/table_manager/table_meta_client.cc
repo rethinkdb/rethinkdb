@@ -151,8 +151,6 @@ void table_meta_client_t::get_sindex_status(
         std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
             *sindex_statuses_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t) {
-    typedef std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
-        index_statuses_t;
     cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
     sindex_statuses_out->clear();
@@ -308,7 +306,7 @@ void table_meta_client_t::drop(
                 [&](signal_t *) { got_ack.pulse(); });
             send(mailbox_manager, pair.second.action_mailbox,
                 table_id,
-                multi_table_manager_bcard_t::timestamp_t::deletion(),
+                multi_table_manager_timestamp_t::deletion(),
                 multi_table_manager_bcard_t::status_t::DELETED,
                 boost::optional<table_basic_config_t>(),
                 boost::optional<raft_member_id_t>(),
@@ -342,13 +340,13 @@ void table_meta_client_t::set_config(
     cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
 
-    multi_table_manager_bcard_t::timestamp_t timestamp;
+    multi_table_manager_timestamp_t timestamp;
     retry([&](signal_t *interruptor2) {
         /* Find the server (if any) which is acting as leader for the table */
         uuid_u best_leader_uuid;
         table_manager_bcard_t::leader_bcard_t::set_config_mailbox_t::address_t
             best_mailbox;
-        multi_table_manager_bcard_t::timestamp_t best_timestamp;
+        multi_table_manager_timestamp_t best_timestamp;
         table_manager_directory->read_all(
         [&](const std::pair<peer_id_t, namespace_id_t> &key,
                 const table_manager_bcard_t *bcard) {
@@ -387,11 +385,11 @@ void table_meta_client_t::set_config(
                 });
 
         /* OK, now send the change and wait for a reply, or for something to go wrong */
-        promise_t<boost::optional<multi_table_manager_bcard_t::timestamp_t> > promise;
-        mailbox_t<void(boost::optional<multi_table_manager_bcard_t::timestamp_t>)>
+        promise_t<boost::optional<multi_table_manager_timestamp_t> > promise;
+        mailbox_t<void(boost::optional<multi_table_manager_timestamp_t>)>
             ack_mailbox(mailbox_manager,
             [&](signal_t *, const boost::optional<
-                    multi_table_manager_bcard_t::timestamp_t> &res) {
+                    multi_table_manager_timestamp_t> &res) {
                 promise.pulse(res);
             });
         send(mailbox_manager, best_mailbox, new_config, ack_mailbox.get_address());
@@ -403,7 +401,7 @@ void table_meta_client_t::set_config(
         }
 
         /* Sometimes the server will reply by indicating that something went wrong */
-        boost::optional<multi_table_manager_bcard_t::timestamp_t> maybe_timestamp =
+        boost::optional<multi_table_manager_timestamp_t> maybe_timestamp =
             promise.wait();
         if (!static_cast<bool>(maybe_timestamp)) {
             throw maybe_failed_table_op_exc_t();
@@ -488,7 +486,7 @@ void table_meta_client_t::emergency_repair(
         microtime_t old_epoch_timestamp;
         multi_table_manager->get_table_basic_configs()->read_key(table_id,
             [&](const std::pair<table_basic_config_t,
-                    multi_table_manager_bcard_t::timestamp_t> *pair) {
+                    multi_table_manager_timestamp_t> *pair) {
                 if (pair == nullptr) {
                     throw no_such_table_exc_t();
                 }
@@ -513,7 +511,7 @@ void table_meta_client_t::create_or_emergency_repair(
     assert_thread();
 
     /* Prepare the message that we'll be sending to each server */
-    multi_table_manager_bcard_t::timestamp_t timestamp;
+    multi_table_manager_timestamp_t timestamp;
     timestamp.epoch.timestamp = epoch_timestamp;
     timestamp.epoch.id = generate_uuid();
     timestamp.log_index = 0;
@@ -603,8 +601,8 @@ public:
     /* Note that a default-constructed `best_server_rank_t` is superseded by any other
     `best_server_rank_t`. */
     best_server_rank_t() :
-        is_leader(false), timestamp(multi_table_manager_bcard_t::timestamp_t::min()) { }
-    best_server_rank_t(bool il, const multi_table_manager_bcard_t::timestamp_t ts) :
+        is_leader(false), timestamp(multi_table_manager_timestamp_t::min()) { }
+    best_server_rank_t(bool il, const multi_table_manager_timestamp_t ts) :
         is_leader(il), timestamp(ts) { }
 
     bool supersedes(const best_server_rank_t &other) const {
@@ -618,7 +616,7 @@ public:
     }
 
     bool is_leader;
-    multi_table_manager_bcard_t::timestamp_t timestamp;
+    multi_table_manager_timestamp_t timestamp;
 };
 
 void table_meta_client_t::get_status(
