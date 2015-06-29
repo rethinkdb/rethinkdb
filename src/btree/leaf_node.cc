@@ -1489,8 +1489,6 @@ void remove(
 void erase_presence(value_sizer_t *sizer, leaf_node_t *node, const btree_key_t *key, UNUSED key_modification_proof_t km_proof) {
     int index;
     bool found = find_key(node, key, &index);
-
-    rassert(found);
     if (found) {
         int offset = node->pair_offsets[index];
         entry_t *ent = get_entry(node, offset);
@@ -1505,7 +1503,6 @@ void erase_presence(value_sizer_t *sizer, leaf_node_t *node, const btree_key_t *
         memmove(node->pair_offsets + index, node->pair_offsets + index + 1, (node->num_pairs - (index + 1)) * sizeof(uint16_t));
         node->num_pairs -= 1;
     }
-
 
     validate(sizer, node);
 }
