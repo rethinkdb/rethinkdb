@@ -193,7 +193,7 @@ public:
             maybe_failed_table_op_exc_t);
 
 private:
-    typedef std::pair<table_basic_config_t, multi_table_manager_bcard_t::timestamp_t>
+    typedef std::pair<table_basic_config_t, multi_table_manager_timestamp_t>
         timestamped_basic_config_t;
 
     /* `create_or_emergency_repair()` factors out the common parts of `create()` and

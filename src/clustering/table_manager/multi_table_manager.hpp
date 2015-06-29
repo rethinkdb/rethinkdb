@@ -109,7 +109,7 @@ public:
     }
 
     watchable_map_t<namespace_id_t,
-            std::pair<table_basic_config_t, multi_table_manager_bcard_t::timestamp_t> >
+            std::pair<table_basic_config_t, multi_table_manager_timestamp_t> >
                 *get_table_basic_configs() {
         return &table_basic_configs;
     }
@@ -198,7 +198,7 @@ private:
             multi_table_manager_t *parent,
             table_t *table,
             const namespace_id_t &table_id,
-            const multi_table_manager_bcard_t::timestamp_t::epoch_t &epoch,
+            const multi_table_manager_timestamp_t::epoch_t &epoch,
             const raft_member_id_t &member_id,
             raft_storage_interface_t<table_raft_state_t> *raft_storage,
             multistore_ptr_t *multistore_ptr,
@@ -278,7 +278,7 @@ private:
         holding `mutex`.) When `status` is `INACTIVE`, it's updated when we receive
         messages from other servers. */
         object_buffer_t<watchable_map_var_t<namespace_id_t,
-                std::pair<table_basic_config_t, multi_table_manager_bcard_t::timestamp_t>
+                std::pair<table_basic_config_t, multi_table_manager_timestamp_t>
                 >::entry_t>
             basic_configs_entry;
 
@@ -302,7 +302,7 @@ private:
     void on_action(
         signal_t *interruptor,
         const namespace_id_t &table_id,
-        const multi_table_manager_bcard_t::timestamp_t &timestamp,
+        const multi_table_manager_timestamp_t &timestamp,
         multi_table_manager_bcard_t::status_t status,
         const boost::optional<table_basic_config_t> &basic_config,
         const boost::optional<raft_member_id_t> &raft_member_id,
@@ -374,7 +374,7 @@ private:
     /* This collects the `table_basic_config_t` for every non-deleted table in the
     `tables` map, for the benefit of the `table_meta_client_t`. */
     watchable_map_var_t<namespace_id_t,
-            std::pair<table_basic_config_t, multi_table_manager_bcard_t::timestamp_t> >
+            std::pair<table_basic_config_t, multi_table_manager_timestamp_t> >
         table_basic_configs;
 
     /* This map describes the table business cards that we show to other servers via the

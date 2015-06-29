@@ -2,9 +2,9 @@
 #include "clustering/table_manager/table_metadata.hpp"
 
 RDB_IMPL_SERIALIZABLE_2_SINCE_v2_1(
-    multi_table_manager_bcard_t::timestamp_t::epoch_t, timestamp, id);
+    multi_table_manager_timestamp_t::epoch_t, timestamp, id);
 RDB_IMPL_SERIALIZABLE_2_SINCE_v2_1(
-    multi_table_manager_bcard_t::timestamp_t, epoch, log_index);
+    multi_table_manager_timestamp_t, epoch, log_index);
 RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(
     multi_table_manager_bcard_t,
     action_mailbox, get_status_mailbox, server_id);
