@@ -7,6 +7,137 @@
 #include "stl_utils.hpp"
 #include "store_view.hpp"
 
+class remote_replicator_client_t::timestamp_range_tracker_t {
+public:
+    timestamp_range_tracker_t(
+            const region_t &_store_region,
+            state_timestamp_t _prev_timestamp) :
+        store_region(_store_region),
+        prev_timestamp(_prev_timestamp) { }
+
+    /* Records that the backfill has copied values up to the given timestamp for the
+    given range. */
+    void record_backfill(const region_t &region, const state_timestamp_t &ts) {
+        rassert(region.beg == store_region.beg);
+        rassert(region.end == store_region.end);
+        rassert(key_range_t::right_bound_t(region.inner.left) ==
+            (entries.empty()
+                ? key_range_t::right_bound_t(store_region.inner.left)
+                : entries.back().first));
+        rassert(region.inner.right <= store_region.inner.right);
+        if (entries.empty() || entries.back().second != ts) {
+            entries.push_back(std::make_pair(region.inner.right, ts));
+        } else {
+            /* Rather than making a second entry with the same timestamp, coalesce
+            the two entries. */
+            entries.back().first = region.inner.right;
+        }
+    }
+
+    /* Records that the write with the given timestamp has been applies in the given
+    region. */
+    void record_write(const region_t &region, state_timestamp_t ts) {
+        rassert(ts == prev_timestamp.next());
+        prev_timestamp = ts;
+        if (region_is_empty(region)) {
+            rassert(entries.empty() || entries[0].second >= ts);
+            return;
+        }
+        rassert(region.beg == store_region.beg);
+        rassert(region.end == store_region.end);
+        rassert(region.inner.left == store_region.inner.left);
+        rassert(region.inner.right == entries[0].first);
+        rassert(entries[0].second.next() == ts);
+        entries[0].second = ts;
+        if (entries.size() > 1 && entries[1].second == ts) {
+            entries.pop_front();
+        }
+    }
+
+    /* Returns the timestamp of the last streaming write processed. */
+    state_timestamp_t get_prev_timestamp() const {
+        return prev_timestamp;
+    }
+
+    /* Returns the highest timestamp present in the map */
+    state_timestamp_t get_max_timestamp() const {
+        if (entries.empty()) {
+            return prev_timestamp;
+        } else {
+            return entries.back().second;
+        }
+    }
+
+    /* Returns the rightmost point we've backfilled to so far */
+    key_range_t::right_bound_t get_backfill_threshold() const {
+        if (entries.empty()) {
+            return key_range_t::right_bound_t(store_region.inner.left);
+        } else {
+            return entries.back().first;
+        }
+    }
+
+    /* Returns `true` if the timestamp is consistent throughout the entire region */
+    bool is_homogeneous() const {
+        return !entries.empty() && entries[0].first == store_region.inner.right;
+    }
+
+    /* Given the next streaming write, extracts the part of it that should be applied
+    such that the streaming write and the backfill together will neither skip nor
+    duplicate any change. If the backfill hasn't sent us any changes with timestamps
+    equal to or greater than the next write, we wouldn't be able to determine where
+    to clip the write, so this will crash. It also updates the
+    `timestamp_range_tracker_t`'s internal record to reflect the fact that the write
+    will be applied to the store. */
+    void clip_next_write_backfilling(
+            state_timestamp_t timestamp, region_t *region_out) {
+        guarantee(can_clip_next_write_backfilling());
+        clip_next_write_paused(timestamp, region_out);
+    }
+
+    /* Returns `true` if the backfill has sent us some changes with timestamps equal
+    to or greater than the next write. */
+    bool can_clip_next_write_backfilling() const {
+        return !entries.empty() &&
+            (entries.size() > 1 || entries[0].first == store_region.inner.right);
+    }
+
+    /* Similar to `clip_next_write_backfilling()`, except that if the backfill
+    hasn't sent us any changes with timestamps equal to or greater than the next
+    write, it will assume that the timestamps in all yet-to-be-backfilled regions
+    will be equal to or greater than the next write. Therefore, this is only safe to
+    use in `PAUSED` mode; when we exit `PAUSED` mode, we'll ensure that the backfill
+    resumes from a timestamp equal to or greater than the next write. */
+    void clip_next_write_paused(
+            state_timestamp_t timestamp, region_t *region_out) {
+        guarantee(timestamp == prev_timestamp.next(), "sanity check failed");
+        if (entries.empty() || entries[0].second > prev_timestamp) {
+            *region_out = region_t::empty();
+            return;
+        }
+        guarantee(entries[0].second == prev_timestamp);
+        *region_out = store_region;
+        region_out->inner.right = entries.front().first;
+    }
+
+private:
+    /* Same as `remote_replicator_client_t::store_->get_region()`. */
+    region_t store_region;
+
+    /* The timestamp of the next streaming write that should be applied. */
+    state_timestamp_t prev_timestamp;
+
+    /* Each entry in `entries` represents a possibly-empty range. The right bound of
+    the range is the `right_bound_t` on the entry; the left bound of the range is the
+    `right_bound_t` on the previous entry, or `store_region.inner.left` for the very
+    first entry. There will always be at least one entry.
+
+    The entries' `right_bound_t`s and timestamps will be strictly monotonically
+    increasing, but the difference between adjacent entries' timestamps may be more
+    than one. */
+    std::deque<std::pair<key_range_t::right_bound_t, state_timestamp_t> > entries;
+};
+
 remote_replicator_client_t::remote_replicator_client_t(
         backfill_throttler_t *backfill_throttler,
         const backfill_config_t &backfill_config,
@@ -53,12 +184,6 @@ remote_replicator_client_t::remote_replicator_client_t(
     before we start the backfill. We'll also check again periodically during the
     backfill. */
     store->wait_until_ok_to_receive_backfill(interruptor);
-
-    /* We're about to start subscribing to the stream of writes coming from the primary,
-    but first we want to grab the mutex so they'll queue up until we're ready to start
-    processing them. */
-    scoped_ptr_t<rwlock_acq_t> rwlock_acq(
-        new rwlock_acq_t(&rwlock_, access_t::write, interruptor));
 
     /* Subscribe to the stream of writes coming from the primary */
     remote_replicator_client_intro_t intro;
@@ -141,7 +266,7 @@ remote_replicator_client_t::remote_replicator_client_t(
             callback_t(remote_replicator_client_t *p, signal_t *ps) :
                 parent(p), pause_signal(ps) { }
             bool on_progress(const region_map_t<version_t> &chunk) THROWS_NOTHING {
-                mutex_assertion_t::acq_t mutex_assertion_acq(&mutex_assertion_);
+                mutex_assertion_t::acq_t mutex_assertion_acq(&parent->mutex_assertion_);
                 rassert(parent->next_write_waiter_ == nullptr ||
                     parent->next_write_waiter_->is_pulsed() ||
                     !parent->next_write_can_proceed(&mutex_assertion_acq),
@@ -153,7 +278,7 @@ remote_replicator_client_t::remote_replicator_client_t(
                 });
                 if (parent->next_write_can_proceed(&mutex_assertion_acq)) {
                     if (parent->next_write_waiter_ != nullptr) {
-                        parent->next_write_waiter->pulse_if_not_already_pulsed();
+                        parent->next_write_waiter_->pulse_if_not_already_pulsed();
                     }
                 }
                 /* If the backfill throttler is telling us to pause, then interrupt
@@ -177,7 +302,7 @@ remote_replicator_client_t::remote_replicator_client_t(
             guarantee(mode_ == backfill_mode_t::BACKFILLING);
             mode_ = backfill_mode_t::PAUSED;
             if (next_write_waiter_ != nullptr) {
-                next_write_waiter->pulse_if_not_already_pulsed();
+                next_write_waiter_->pulse_if_not_already_pulsed();
             }
         }
     }
@@ -191,8 +316,8 @@ remote_replicator_client_t::remote_replicator_client_t(
         rwlock_acq_t rwlock_acq(&rwlock_, access_t::write, interruptor);
         mutex_assertion_t::acq_t mutex_assertion_acq(&mutex_assertion_);
 
-        guarantee(tracker_->is_finished());
-        guarantee(tracker_->get_prev_timestamp().next() ==
+        guarantee(tracker_->is_homogeneous());
+        guarantee(tracker_->get_prev_timestamp() ==
             timestamp_enforcer_->get_latest_all_before_completed());
         tracker_.reset();   /* we don't need it anymore */
 
@@ -222,13 +347,18 @@ remote_replicator_client_t::remote_replicator_client_t(
         mode_ = backfill_mode_t::STREAMING;
 
         if (next_write_waiter_ != nullptr) {
-            next_write_waiter->pulse_if_not_already_pulsed();
+            next_write_waiter_->pulse_if_not_already_pulsed();
         }
     }
 
     /* Now that we're completely up-to-date, tell the primary that it's OK to send us
     reads and synchronous writes */
     send(mailbox_manager, intro.ready_mailbox);
+}
+
+remote_replicator_client_t::~remote_replicator_client_t() {
+    /* The destructor is declared here instead of the header file so that we can see the
+    destructor for `timestamp_range_tracker_t` */
 }
 
 void remote_replicator_client_t::on_write_async(
@@ -243,7 +373,7 @@ void remote_replicator_client_t::on_write_async(
     rwlock_acq_t rwlock_acq(&rwlock_, access_t::read, interruptor);
 
     mutex_assertion_t::acq_t mutex_assertion_acq(&mutex_assertion_);
-    if (!next_write_can_proceed(&mutex_assertion_acq) {
+    if (!next_write_can_proceed(&mutex_assertion_acq)) {
         cond_t cond;
         guarantee(next_write_waiter_ == nullptr);
         assignment_sentry_t<cond_t *> cond_sentry(&next_write_waiter_, &cond);
@@ -257,6 +387,7 @@ void remote_replicator_client_t::on_write_async(
         /* Once the constructor is done, all writes will take this branch; it's the
         common case. */
         timestamp_enforcer_->complete(timestamp);
+        mutex_assertion_acq.reset();
         rwlock_acq.reset();
 
         write_response_t dummy_response;
@@ -273,26 +404,27 @@ void remote_replicator_client_t::on_write_async(
         write_token_t token;
         store_->new_write_token(&token);
         timestamp_enforcer_->complete(timestamp);
+        mutex_assertion_acq.reset();
         rwlock_acq.reset();
 
         if (!region_is_empty(clip_region)) {
             region_map_t<binary_blob_t> new_metainfo(
-                clip_region, binary_blob_t(version_t(branch_id, timestamp)));
+                clip_region, binary_blob_t(version_t(branch_id_, timestamp)));
             write_t subwrite;
-            if (write.shard(&subwrite, clip_region)) {
+            if (write.shard(clip_region, &subwrite)) {
 #ifndef NDEBUG
-                metainfo_checker_t checker(region,
+                metainfo_checker_t checker(clip_region,
                     [&](const region_t &, const binary_blob_t &bb) {
                         rassert(bb == binary_blob_t(
-                            version_t(branch_id, timestamp.pred())));
+                            version_t(branch_id_, timestamp.pred())));
                     });
 #endif
                 write_response_t dummy_response;
-                store->write(DEBUG_ONLY(checker, ) new_metainfo, write, &dummy_response,
-                    write_durability_t::SOFT, timestamp, order_token, token,
+                store_->write(DEBUG_ONLY(checker, ) new_metainfo, write, &dummy_response,
+                    write_durability_t::SOFT, timestamp, order_token, &token,
                     interruptor);
             } else {
-                store->set_metainfo(new_metainfo, order_token, token,
+                store_->set_metainfo(new_metainfo, order_token, &token,
                     write_durability_t::SOFT, interruptor);
             }
         }
@@ -333,8 +465,9 @@ void remote_replicator_client_t::on_read(
 }
 
 bool remote_replicator_client_t::next_write_can_proceed(
-        const mutex_assertion_t::acq_t *mutex_acq) {
+        mutex_assertion_t::acq_t *mutex_assertion_acq) {
+    mutex_assertion_acq->assert_is_holding(&mutex_assertion_);
     return mode_ != backfill_mode_t::BACKFILLING ||
-        tracker_->can_process_next_write_backfilling();
+        tracker_->can_clip_next_write_backfilling();
 }
 
