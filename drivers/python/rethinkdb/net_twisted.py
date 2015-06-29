@@ -43,7 +43,7 @@ class DatabaseProtocol(Protocol):
             DatabaseProtocol.READY: self._handleResponse
         }
 
-        self.buf = str()
+        self.buf = bytes()
         self.buf_expected_length = 0
         self.buf_token = None
 
@@ -52,7 +52,7 @@ class DatabaseProtocol(Protocol):
         self._open = True
 
     def resetBuffer(self):
-        self.buf = ''
+        self.buf = bytes()
         self.buf_expected_length = 0
 
     def connectionMade(self):
@@ -77,7 +77,7 @@ class DatabaseProtocol(Protocol):
     def _handleHandshake(self, data):
         try:
             self.buf += data
-            if self.buf[-1] == b'\0':
+            if self.buf[-1:] == b'\0':
                 message = decodeUTF(self.buf[:-1]).split('\n')[0]
                 if message != 'SUCCESS':
                     # If there is some problem with the handshake, we errback
@@ -99,7 +99,7 @@ class DatabaseProtocol(Protocol):
     def _handleResponse(self, data):
         # 1. Read the header, until we read the length of the awaited payload.
         if self.buf_expected_length == 0:
-            if data >= 12:
+            if len(data) >= 12:
                 token, length = struct.unpack('<qL', data[:12])
                 self.buf_token = token
                 self.buf_expected_length = length
@@ -158,7 +158,7 @@ class DatabaseProtoFactory(ClientFactory):
 class CursorItems(DeferredQueue):
 
     def __init__(self):
-        super(CursorItems, self).__init__(self)
+        super(CursorItems, self).__init__()
 
     @inlineCallbacks
     def wait_for_new_item(self):
