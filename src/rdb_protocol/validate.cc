@@ -9,7 +9,7 @@
         auto const &check_has_tmp = (pb);                               \
         rcheck_toplevel(                                                \
             check_has_tmp.has_field(),                                  \
-            ql::base_exc_t::GENERIC,                                    \
+            ql::base_exc_t::LOGIC,                                    \
             strprintf("MALFORMED PROTOBUF (missing field `%s`):\n%s",   \
                       (field), check_has_tmp.DebugString().c_str()));   \
     } while (0)
@@ -18,7 +18,7 @@
         auto const &check_not_has_tmp = (pb);                           \
         rcheck_toplevel(                                                \
             !check_not_has_tmp.has_field(),                             \
-            ql::base_exc_t::GENERIC,                                    \
+            ql::base_exc_t::LOGIC,                                    \
             strprintf("MALFORMED PROTOBUF (spurious field `%s`):\n%s",  \
                       (field),                                          \
                       check_not_has_tmp.DebugString().c_str()));        \
@@ -29,7 +29,7 @@
         const int check_size_expected = (expected_size);                \
         rcheck_toplevel(                                                \
             check_size_tmp.field_size() == check_size_expected,         \
-            ql::base_exc_t::GENERIC,                                    \
+            ql::base_exc_t::LOGIC,                                    \
             strprintf("MALFORMED PROTOBUF (expected field `%s` "        \
                       "to have size %d):\n%s",                          \
                       (field), check_size_expected,                     \
@@ -42,7 +42,7 @@
         check_has(pb, has_type, "type");                        \
         rcheck_toplevel(                                                \
             pbname##_##pbname##Type_IsValid(pb.type()),                 \
-            ql::base_exc_t::GENERIC,                                    \
+            ql::base_exc_t::LOGIC,                                    \
             strprintf("MALFORMED PROTOBUF (Illegal " #pbname " type %d).", \
                       pb.type()));                                      \
     } while (0)
@@ -137,14 +137,14 @@ void validate_var_term(const Term &t) {
     rcheck_toplevel(arg0.type() == Term::DATUM && arg0.has_datum() &&
                     arg0.datum().type() == Datum::R_NUM &&
                     arg0.datum().has_r_num(),
-                    ql::base_exc_t::GENERIC,
+                    ql::base_exc_t::LOGIC,
                     strprintf("MALFORMED PROTOBUF (expected VAR term "
                               "to have DATUM of type R_NUM):\n%s",
                               t.DebugString().c_str()));
     double number = arg0.datum().r_num();
     int64_t i;
     if (!ql::number_as_integer(number, &i) || i < 0) {
-        rfail_toplevel(ql::base_exc_t::GENERIC,
+        rfail_toplevel(ql::base_exc_t::LOGIC,
                        "MALFORMED PROTOBUF (VAR term should have "
                        "a positive integer value):\n%s",
                        t.DebugString().c_str());
@@ -244,7 +244,7 @@ void validate_optargs(const Query &q) {
     for (int i = 0; i < q.global_optargs_size(); ++i) {
         rcheck_toplevel(
             acceptable_keys.find(q.global_optargs(i).key()) != acceptable_keys.end(),
-            ql::base_exc_t::GENERIC,
+            ql::base_exc_t::LOGIC,
             strprintf("Unrecognized global optional argument `%s`.",
                       q.global_optargs(i).key().c_str()));
     }

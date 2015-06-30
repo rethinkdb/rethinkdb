@@ -133,7 +133,7 @@ protected:
 
 protected:
     virtual std::vector<changespec_t> get_changespecs() {
-        rfail(base_exc_t::GENERIC, "%s", "Cannot call `changes` on an eager stream.");
+        rfail(base_exc_t::LOGIC, "%s", "Cannot call `changes` on an eager stream.");
     }
     std::vector<transform_variant_t> transforms;
 
@@ -582,7 +582,7 @@ public:
 
     virtual changefeed::keyspec_t::range_t get_range_spec(
         std::vector<transform_variant_t>) const {
-        rfail_datum(base_exc_t::GENERIC,
+        rfail_datum(base_exc_t::LOGIC,
                     "%s", "Cannot call `changes` on an intersection read.");
         unreachable();
     }

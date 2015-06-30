@@ -117,7 +117,7 @@ void check_url_params(const datum_t &params,
             if (pair.second.get_type() != datum_t::R_NUM &&
                 pair.second.get_type() != datum_t::R_STR &&
                 pair.second.get_type() != datum_t::R_NULL) {
-                rfail_target(val, base_exc_t::GENERIC,
+                rfail_target(val, base_exc_t::LOGIC,
                              "Expected `params.%s` to be a NUMBER, STRING or NULL, "
                              "but found %s:\n%s",
                              pair.first.to_std().c_str(),
@@ -126,7 +126,7 @@ void check_url_params(const datum_t &params,
             }
         }
     } else {
-        rfail_target(val, base_exc_t::GENERIC,
+        rfail_target(val, base_exc_t::LOGIC,
                      "Expected `params` to be an OBJECT, but found %s:\n%s",
                      params.get_type_name().c_str(),
                      params.print().c_str());
@@ -152,7 +152,7 @@ public:
 
 private:
     virtual std::vector<changefeed::keyspec_t> get_change_specs() {
-        rfail(base_exc_t::GENERIC, "%s", "Cannot call `changes` on an HTTP stream.");
+        rfail(base_exc_t::LOGIC, "%s", "Cannot call `changes` on an HTTP stream.");
     }
     std::vector<datum_t> next_page(env_t *env);
     std::vector<datum_t> next_raw_batch(env_t *env, const batchspec_t &batchspec);
@@ -347,7 +347,7 @@ bool http_datum_stream_t::apply_depage_url(datum_t new_url) {
     if (new_url.get_type() == datum_t::R_NULL) {
         return false;
     } else if (new_url.get_type() != datum_t::R_STR) {
-        rfail(base_exc_t::GENERIC,
+        rfail(base_exc_t::LOGIC,
               "Expected `url` in OBJECT returned by `page` to be a "
               "STRING or NULL, but found %s.",
               new_url.get_type_name().c_str());
@@ -370,7 +370,7 @@ bool http_datum_stream_t::handle_depage_result(datum_t depage) {
         datum_t new_url = depage.get_field("url", NOTHROW);
         datum_t new_params = depage.get_field("params", NOTHROW);
         if (!new_url.has() && !new_params.has()) {
-            rfail(base_exc_t::GENERIC,
+            rfail(base_exc_t::LOGIC,
                   "OBJECT returned by `page` must contain "
                   "`url` and/or `params` fields.");
         }
@@ -383,7 +383,7 @@ bool http_datum_stream_t::handle_depage_result(datum_t depage) {
             return apply_depage_url(new_url);
         }
     } else {
-        rfail(base_exc_t::GENERIC,
+        rfail(base_exc_t::LOGIC,
               "Expected `page` to return an OBJECT, but found %s.",
               depage.get_type_name().c_str());
     }
@@ -409,7 +409,7 @@ void http_term_t::get_page_and_limit(scope_env_t *env,
     if (!page.has()) {
         return;
     } else if (!page_limit.has()) {
-        rfail_target(page, base_exc_t::GENERIC,
+        rfail_target(page, base_exc_t::LOGIC,
                      "Cannot use `page` without specifying `page_limit` "
                      "(a positive number performs that many requests, -1 is unlimited).");
     }
@@ -418,7 +418,7 @@ void http_term_t::get_page_and_limit(scope_env_t *env,
     *depaginate_limit_out = page_limit->as_int<int64_t>();
 
     if (*depaginate_limit_out < -1) {
-        rfail_target(page_limit, base_exc_t::GENERIC,
+        rfail_target(page_limit, base_exc_t::LOGIC,
                      "`page_limit` should be greater than or equal to -1.");
     }
 }
@@ -454,7 +454,7 @@ void http_term_t::get_timeout_ms(scope_env_t *env,
         tmp *= 1000;
 
         if (tmp < 0) {
-            rfail_target(timeout.get(), base_exc_t::GENERIC,
+            rfail_target(timeout.get(), base_exc_t::LOGIC,
                          "`timeout` may not be negative.");
         } else {
             *timeout_ms_out = clamp<double>(tmp, 0, MAX_TIMEOUT_MS);
@@ -466,7 +466,7 @@ void http_term_t::get_timeout_ms(scope_env_t *env,
 void http_term_t::verify_header_string(const std::string &str,
                                        const bt_rcheckable_t *header) {
     if (str.find_first_of("\r\n") != std::string::npos) {
-        rfail_target(header, base_exc_t::GENERIC,
+        rfail_target(header, base_exc_t::LOGIC,
                      "A `header` item contains newline characters.");
     }
 }
@@ -493,7 +493,7 @@ void http_term_t::get_header(scope_env_t *env,
                     str = strprintf("%s: %s", pair.first.to_std().c_str(),
                                     pair.second.as_str().to_std().c_str());
                 } else if (pair.second.get_type() != datum_t::R_NULL) {
-                    rfail_target(header.get(), base_exc_t::GENERIC,
+                    rfail_target(header.get(), base_exc_t::LOGIC,
                         "Expected `header.%s` to be a STRING or NULL, but found %s.",
                         pair.first.to_std().c_str(), pair.second.get_type_name().c_str());
                 }
@@ -504,7 +504,7 @@ void http_term_t::get_header(scope_env_t *env,
             for (size_t i = 0; i < datum_header.arr_size(); ++i) {
                 datum_t line = datum_header.get(i);
                 if (line.get_type() != datum_t::R_STR) {
-                    rfail_target(header.get(), base_exc_t::GENERIC,
+                    rfail_target(header.get(), base_exc_t::LOGIC,
                         "Expected `header[%zu]` to be a STRING, but found %s.",
                         i, line.get_type_name().c_str());
                 }
@@ -513,7 +513,7 @@ void http_term_t::get_header(scope_env_t *env,
                 header_out->push_back(str);
             }
         } else {
-            rfail_target(header.get(), base_exc_t::GENERIC,
+            rfail_target(header.get(), base_exc_t::LOGIC,
                 "Expected `header` to be an ARRAY or OBJECT, but found %s.",
                 datum_header.get_type_name().c_str());
         }
@@ -541,7 +541,7 @@ void http_term_t::get_method(scope_env_t *env,
         } else if (method_str == "DELETE") {
             *method_out = http_method_t::DELETE;
         } else {
-            rfail_target(method.get(), base_exc_t::GENERIC,
+            rfail_target(method.get(), base_exc_t::LOGIC,
                          "`method` (%s) is not recognized (GET, HEAD, POST, PUT, "
                          "PATCH and DELETE are allowed).", method_str.c_str());
         }
@@ -553,10 +553,10 @@ std::string http_term_t::get_auth_item(const datum_t &datum,
                                        const bt_rcheckable_t *auth) {
     datum_t item = datum.get_field(datum_string_t(name), NOTHROW);
     if (!item.has()) {
-        rfail_target(auth, base_exc_t::GENERIC,
+        rfail_target(auth, base_exc_t::LOGIC,
                      "`auth.%s` not found in the auth object.", name.c_str());
     } else if (item.get_type() != datum_t::R_STR) {
-        rfail_target(auth, base_exc_t::GENERIC,
+        rfail_target(auth, base_exc_t::LOGIC,
                      "Expected `auth.%s` to be a STRING, but found %s.",
                      name.c_str(), item.get_type_name().c_str());
     }
@@ -575,7 +575,7 @@ void http_term_t::get_auth(scope_env_t *env,
     if (auth.has()) {
         datum_t datum_auth = auth->as_datum();
         if (datum_auth.get_type() != datum_t::R_OBJECT) {
-            rfail_target(auth.get(), base_exc_t::GENERIC,
+            rfail_target(auth.get(), base_exc_t::LOGIC,
                          "Expected `auth` to be an OBJECT, but found %s.",
                          datum_auth.get_type_name().c_str());
         }
@@ -587,7 +587,7 @@ void http_term_t::get_auth(scope_env_t *env,
 
             if (type_datum.has()) {
                 if (type_datum.get_type() != datum_t::R_STR) {
-                    rfail_target(auth.get(), base_exc_t::GENERIC,
+                    rfail_target(auth.get(), base_exc_t::LOGIC,
                                  "Expected `auth.type` to be a STRING, but found %s.",
                                  datum_auth.get_type_name().c_str());
                 }
@@ -605,7 +605,7 @@ void http_term_t::get_auth(scope_env_t *env,
         } else if (type == "digest") {
             auth_out->make_digest_auth(std::move(user), std::move(pass));
         } else {
-            rfail_target(auth.get(), base_exc_t::GENERIC, "`auth.type` is not "
+            rfail_target(auth.get(), base_exc_t::LOGIC, "`auth.type` is not "
                          "recognized ('basic', and 'digest' are allowed).");
         }
     }
@@ -624,7 +624,7 @@ std::string http_term_t::print_http_param(const datum_t &datum,
         return std::string();
     }
 
-    rfail_target(val, base_exc_t::GENERIC,
+    rfail_target(val, base_exc_t::LOGIC,
                  "Expected `%s.%s` to be a NUMBER, STRING or NULL, but found %s.",
                  val_name, key_name, datum.get_type_name().c_str());
 }
@@ -676,12 +676,12 @@ void http_term_t::get_data(
                     (*form_data_out)[pair.first.to_std()] = val_str;
                 }
             } else {
-                rfail_target(data.get(), base_exc_t::GENERIC,
+                rfail_target(data.get(), base_exc_t::LOGIC,
                     "Expected `data` to be a STRING or OBJECT, but found %s.",
                     datum_data.get_type_name().c_str());
             }
         } else {
-            rfail_target(this, base_exc_t::GENERIC,
+            rfail_target(this, base_exc_t::LOGIC,
                          "`data` should only be specified on a PUT, POST, PATCH, "
                          "or DELETE request.  If you want URL parameters, use "
                          "`params` instead.");
@@ -729,7 +729,7 @@ void http_term_t::get_result_format(scope_env_t *env,
         } else if (result_format_str == "binary") {
             *result_format_out = http_result_format_t::BINARY;
         } else {
-            rfail_target(result_format.get(), base_exc_t::GENERIC,
+            rfail_target(result_format.get(), base_exc_t::LOGIC,
                          "`result_format` (%s) is not recognized, ('auto', 'json', "
                          "'jsonp', 'text', and 'binary' are allowed).",
                          result_format_str.c_str());

@@ -9,6 +9,8 @@
 #include "perfmon/types.hpp"
 #include "rpc/mailbox/typed.hpp"
 
+struct admin_err_t;
+
 class stat_manager_t {
 public:
     typedef std::string stat_id_t;
@@ -42,7 +44,7 @@ bool fetch_stats_from_server(
         const std::set<std::vector<stat_manager_t::stat_id_t> > &filter,
         signal_t *interruptor,
         ql::datum_t *stats_out,
-        std::string *error_out);
+        admin_err_t *error_out);
 
 #endif /* CLUSTERING_ADMINISTRATION_STATS_STAT_MANAGER_HPP_ */
 

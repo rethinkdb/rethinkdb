@@ -285,7 +285,10 @@ public:
 
         // The real server sends a SUCCESS_SEQUENCE, but this makes the test simpler
         res->set_token(query->token());
-        ql::fill_error(res, Response::RUNTIME_ERROR, stop_query_message,
+        ql::fill_error(res,
+                       Response::RUNTIME_ERROR,
+                       Response::LOGIC,
+                       stop_query_message,
                        ql::backtrace_registry_t::EMPTY_BACKTRACE);
     }
 private:

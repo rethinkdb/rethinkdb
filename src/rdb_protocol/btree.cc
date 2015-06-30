@@ -841,7 +841,8 @@ void rdb_get_nearest_slice(
     nearest_geo_read_response_t *response) {
 
     guarantee(sindex_info.geo == sindex_geo_bool_t::GEO);
-    profile::starter_t starter("Do nearest traversal on geospatial index.", ql_env->trace);
+    profile::starter_t starter("Do nearest traversal on geospatial index.",
+                               ql_env->trace);
 
     const reql_version_t sindex_func_reql_version =
         sindex_info.mapping_version_info.latest_compatible_reql_version;
@@ -867,7 +868,7 @@ void rdb_get_nearest_slice(
             callback.finish(&partial_response);
         } catch (const geo_exception_t &e) {
             partial_response.results_or_error =
-                ql::exc_t(ql::base_exc_t::GENERIC, e.what(),
+                ql::exc_t(ql::base_exc_t::LOGIC, e.what(),
                           ql::backtrace_id_t::empty());
         }
         if (boost::get<ql::exc_t>(&partial_response.results_or_error)) {
@@ -1117,7 +1118,7 @@ std::vector<std::string> expand_geo_key(
         // `compute_keys()`. That's ok, though it would be nice if we could
         // pass on some kind of warning to the user.
         logWRN("Failed to compute grid keys for an index: %s", e.what());
-        rfail_target(&key, ql::base_exc_t::GENERIC,
+        rfail_target(&key, ql::base_exc_t::LOGIC,
                 "Failed to compute grid keys: %s", e.what());
     }
 }

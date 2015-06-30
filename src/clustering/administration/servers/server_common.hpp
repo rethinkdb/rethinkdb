@@ -31,13 +31,13 @@ public:
     bool read_all_rows_as_vector(
             signal_t *interruptor_on_caller,
             std::vector<ql::datum_t> *rows_out,
-            std::string *error_out);
+            admin_err_t *error_out);
 
     bool read_row(
             ql::datum_t primary_key,
             signal_t *interruptor_on_caller,
             ql::datum_t *row_out,
-            std::string *error_out);
+            admin_err_t *error_out);
 
 protected:
     virtual bool format_row(
@@ -46,7 +46,7 @@ protected:
             cluster_directory_metadata_t const & directory_entry,
             signal_t *interruptor_on_home,
             ql::datum_t *row_out,
-            std::string *error_out) = 0;
+            admin_err_t *error_out) = 0;
 
     /* `lookup()` returns `true` if it finds a row corresponding to the given
     `primary_key` and `false` if it does not find a row. It never produces an error. It

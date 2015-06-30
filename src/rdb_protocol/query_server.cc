@@ -51,7 +51,9 @@ void rdb_query_server_t::run_query(ql::query_id_t &&query_id,
         throw; // Interruptions should be handled by our caller, who can provide context
 #ifdef NDEBUG // In debug mode we crash, in release we send an error.
     } catch (const std::exception &e) {
-        ql::fill_error(response_out, Response::RUNTIME_ERROR,
+        ql::fill_error(response_out,
+                       Response::RUNTIME_ERROR,
+                       Response::INTERNAL,
                        strprintf("Unexpected exception: %s\n", e.what()),
                        ql::backtrace_registry_t::EMPTY_BACKTRACE);
 #endif // NDEBUG

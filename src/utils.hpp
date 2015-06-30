@@ -42,6 +42,8 @@ void *rrealloc(void *ptr, size_t size);
 /* Forwards to the isfinite macro, or std::isfinite. */
 bool risfinite(double);
 
+enum class query_state_t { FAILED, INDETERMINATE };
+
 class rng_t {
 public:
 // Returns a random number in [0, n).  Is not perfectly uniform; the

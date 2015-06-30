@@ -14,9 +14,11 @@ ql::datum_t convert_string_to_datum(
 bool convert_string_from_datum(
         const ql::datum_t &datum,
         std::string *value_out,
-        std::string *error_out) {
+        admin_err_t *error_out) {
     if (datum.get_type() != ql::datum_t::R_STR) {
-        *error_out = "Expected a string; got " + datum.print();
+        *error_out = admin_err_t{
+            "Expected a string; got " + datum.print(),
+            query_state_t::FAILED};
         return false;
     }
     *value_out = datum.as_str().to_std();
@@ -32,14 +34,18 @@ bool convert_name_from_datum(
         ql::datum_t datum,
         const std::string &what,
         name_string_t *value_out,
-        std::string *error_out) {
+        admin_err_t *error_out) {
     if (datum.get_type() != ql::datum_t::R_STR) {
-        *error_out = "Expected a " + what + "; got " + datum.print();
+        *error_out = admin_err_t{
+            "Expected a " + what + "; got " + datum.print(),
+            query_state_t::FAILED};
         return false;
     }
     if (!value_out->assign_value(datum.as_str())) {
-        *error_out = datum.print() + " is not a valid " + what + "; " +
-            std::string(name_string_t::valid_char_msg);
+        *error_out = admin_err_t{
+            datum.print() + " is not a valid " + what + "; "
+            + std::string(name_string_t::valid_char_msg),
+            query_state_t::FAILED};
         return false;
     }
     return true;
@@ -53,13 +59,17 @@ ql::datum_t convert_uuid_to_datum(
 bool convert_uuid_from_datum(
         ql::datum_t datum,
         uuid_u *value_out,
-        std::string *error_out) {
+        admin_err_t *error_out) {
     if (datum.get_type() != ql::datum_t::R_STR) {
-        *error_out = "Expected a UUID; got " + datum.print();
+        *error_out = admin_err_t{
+            "Expected a UUID; got " + datum.print(),
+            query_state_t::FAILED};
         return false;
     }
     if (!str_to_uuid(datum.as_str().to_std(), value_out)) {
-        *error_out = "Expected a UUID; got " + datum.print();
+        *error_out = admin_err_t{
+            "Expected a UUID; got " + datum.print(),
+            query_state_t::FAILED};
         return false;
     }
     return true;
@@ -162,7 +172,7 @@ bool convert_database_id_from_datum(
         const cluster_semilattice_metadata_t &metadata,
         database_id_t *db_id_out,
         name_string_t *db_name_out,
-        std::string *error_out) {
+        admin_err_t *error_out) {
     if (identifier_format == admin_identifier_format_t::name) {
         name_string_t name;
         if (!convert_name_from_datum(db_name_or_uuid, "database name",
@@ -183,8 +193,10 @@ bool convert_database_id_from_datum(
         }
         auto it = metadata.databases.databases.find(db_id);
         if (it == metadata.databases.databases.end() || it->second.is_deleted()) {
-            *error_out = strprintf("There is no database with UUID `%s`.",
-                uuid_to_str(db_id).c_str());
+            *error_out = admin_err_t{
+                strprintf("There is no database with UUID `%s`.",
+                          uuid_to_str(db_id).c_str()),
+                query_state_t::FAILED};
             return false;
         }
         if (db_id_out != nullptr) *db_id_out = db_id;
@@ -205,9 +217,11 @@ ql::datum_t convert_microtime_to_datum(
 
 bool converter_from_datum_object_t::init(
         ql::datum_t _datum,
-        std::string *error_out) {
+        admin_err_t *error_out) {
     if (_datum.get_type() != ql::datum_t::R_OBJECT) {
-        *error_out = "Expected an object; got " + _datum.print();
+        *error_out = admin_err_t{
+            "Expected an object; got " + _datum.print(),
+            query_state_t::FAILED};
         return false;
     }
     datum = _datum;
@@ -221,11 +235,13 @@ bool converter_from_datum_object_t::init(
 bool converter_from_datum_object_t::get(
         const char *key,
         ql::datum_t *value_out,
-        std::string *error_out) {
+        admin_err_t *error_out) {
     extra_keys.erase(datum_string_t(key));
     *value_out = datum.get_field(key, ql::NOTHROW);
     if (!value_out->has()) {
-        *error_out = strprintf("Expected a field named `%s`.", key);
+        *error_out = admin_err_t{
+            strprintf("Expected a field named `%s`.", key),
+            query_state_t::FAILED};
         return false;
     }
     return true;
@@ -242,11 +258,11 @@ bool converter_from_datum_object_t::has(const char *key) {
     return datum.get_field(key, ql::NOTHROW).has();
 }
 
-bool converter_from_datum_object_t::check_no_extra_keys(std::string *error_out) {
+bool converter_from_datum_object_t::check_no_extra_keys(admin_err_t *error_out) {
     if (!extra_keys.empty()) {
-        *error_out = "Unexpected key(s):";
+        *error_out = admin_err_t{"Unexpected key(s):", query_state_t::FAILED};
         for (const datum_string_t &key : extra_keys) {
-            (*error_out) += " " + key.to_std();
+            error_out->msg += " " + key.to_std();
         }
         return false;
     }

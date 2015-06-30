@@ -64,9 +64,9 @@ end
 
 NoError = "<no error>"
 AnyUUID = "<any uuid>"
-Err = Struct.new(:type, :message, :backtrace, :regex)
+Err = Struct.new(:type, :message, :backtrace)
 Bag = Struct.new(:items, :partial)
-PartitalHash = Struct.new(:hash)
+PartialHash = Struct.new(:hash)
 
 def bag(list, partial=false)
   Bag.new(list, partial)
@@ -78,7 +78,7 @@ def partial(expected)
   elsif expected.kind_of?(Bag)
     bag(expected.items, true)
   elsif expected.kind_of?(Hash)
-    PartitalHash.new(expected)
+    PartialHash.new(expected)
   else
     raise("partial can only handle Hashs, Arrays, or Bags. Got: #{expected.class}")
   end
@@ -114,11 +114,11 @@ def shard
 end
 
 def err(type, message, backtrace=[])
-  Err.new(type, message, backtrace, false)
+  Err.new(RethinkDB.const_get(type), message, backtrace)
 end
 
 def err_regex(type, message, backtrace=[])
-  Err.new(type, message, backtrace, true)
+  Err.new(RethinkDB.const_get(type), Regexp.new(message), backtrace)
 end
 
 class Number
@@ -182,21 +182,10 @@ def cmp_test(expected, result, testopts={}, partial=false)
 
   case "#{expected.class}"
   when "Err"
-    if result.kind_of? Exception
-      result = Err.new("#{result.class}".sub(/^RethinkDB::/,""), result.message, false)
-    end
-    cmp = result.class.name <=> expected.class.name
-    return cmp if cmp != 0
-    if not expected.regex
-      result_msg = result.message.sub(/:\n(.|\n)*|:$/, ".")
-      [result.type, result_msg] <=> [expected.type, expected.message]
-    else
-      if (Regexp.compile expected.type) =~ result.type and
-          (Regexp.compile expected.message) =~ result.message
-        return 0
-      end
-      return -1
-    end
+    # Don't try to be clever and rearrange this.  `<=` is used to
+    # check for subclasses, so swapping the arguments and using `>`
+    # will break this.  Likewise, `===` isn't symmetric.
+    return result.class <= expected.type && expected.message === result.message ? 0 : -1
 
   when "Array"
     if result.respond_to? :to_a
@@ -228,7 +217,7 @@ def cmp_test(expected, result, testopts={}, partial=false)
     end
     return 0
 
-  when "PartitalHash"
+  when "PartialHash"
     return cmp_test(expected.hash, result, testopts, true)
 
   when "Hash"

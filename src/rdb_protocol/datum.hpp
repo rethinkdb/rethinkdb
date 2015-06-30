@@ -457,7 +457,7 @@ public:
                          right_bound_type == key_range_t::open ? ')' : ']');
     }
 private:
-
+    friend class info_term_t;
     datum_t left_bound, right_bound;
     key_range_t::bound_t left_bound_type, right_bound_type;
 };

@@ -32,7 +32,7 @@ std::string common_server_artificial_table_backend_t::get_primary_key_name() {
 bool common_server_artificial_table_backend_t::read_all_rows_as_vector(
         signal_t *interruptor_on_caller,
         std::vector<ql::datum_t> *rows_out,
-        std::string *error_out) {
+        admin_err_t *error_out) {
     cross_thread_signal_t interruptor_on_home(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
     rows_out->clear();
@@ -55,7 +55,7 @@ bool common_server_artificial_table_backend_t::read_row(
         ql::datum_t primary_key,
         signal_t *interruptor_on_caller,
         ql::datum_t *row_out,
-        std::string *error_out) {
+        admin_err_t *error_out) {
     cross_thread_signal_t interruptor_on_home(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
     server_id_t server_id;
@@ -76,7 +76,7 @@ bool common_server_artificial_table_backend_t::lookup(
         peer_id_t *peer_id_out,
         cluster_directory_metadata_t *metadata_out) {
     assert_thread();
-    std::string dummy_error;
+    admin_err_t dummy_error;
     if (!convert_uuid_from_datum(primary_key, server_id_out, &dummy_error)) {
         return false;
     }

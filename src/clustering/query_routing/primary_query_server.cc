@@ -1,6 +1,7 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/query_routing/primary_query_server.hpp"
 
+#include "clustering/administration/admin_op_exc.hpp"
 #include "containers/archive/boost_types.hpp"
 
 primary_query_server_t::primary_query_server_t(
@@ -44,13 +45,14 @@ void primary_query_server_t::client_t::perform_request(
 
             read->order_token.assert_read_mode();
             fifo_enforcer_sink_t::exit_read_t exiter(&fifo_sink, read->fifo_token);
-            boost::variant<read_response_t, std::string> reply = read_response_t();
-            std::string error;
-            bool ok = parent->query_callback->on_read(read->read, &exiter,
-                read->order_token, &parent->shutdown_cond,
+            boost::variant<read_response_t, cannot_perform_query_exc_t> reply
+                = read_response_t();
+            admin_err_t error;
+            bool ok = parent->query_callback->on_read(
+                read->read, &exiter, read->order_token, &parent->shutdown_cond,
                 boost::get<read_response_t>(&reply), &error);
             if (!ok) {
-                reply = error;
+                reply = cannot_perform_query_exc_t(error.msg, error.query_state);
             }
             send(parent->mailbox_manager, read->cont_addr, reply);
 
@@ -59,13 +61,14 @@ void primary_query_server_t::client_t::perform_request(
 
             write->order_token.assert_write_mode();
             fifo_enforcer_sink_t::exit_write_t exiter(&fifo_sink, write->fifo_token);
-            boost::variant<write_response_t, std::string> reply = write_response_t();
-            std::string error;
-            bool ok = parent->query_callback->on_write(write->write, &exiter,
-                write->order_token, &parent->shutdown_cond,
+            boost::variant<write_response_t, cannot_perform_query_exc_t> reply
+                = write_response_t();
+            admin_err_t error;
+            bool ok = parent->query_callback->on_write(
+                write->write, &exiter, write->order_token, &parent->shutdown_cond,
                 boost::get<write_response_t>(&reply), &error);
             if (!ok) {
-                reply = error;
+                reply = cannot_perform_query_exc_t(error.msg, error.query_state);
             }
             send(parent->mailbox_manager, write->cont_addr, reply);
 

@@ -122,7 +122,9 @@ void primary_dispatcher_t::read(
 
         rassert(dispatchee != nullptr, "Primary replica should always be ready");
         if (dispatchee == nullptr) {
-            throw cannot_perform_query_exc_t("No replicas are ready for reading.");
+            throw cannot_perform_query_exc_t(
+                "No replicas are ready for reading.",
+                query_state_t::FAILED);
         }
 
         order_checkpoint.check_through(order_token);
@@ -136,7 +138,9 @@ void primary_dispatcher_t::read(
         if (interruptor->is_pulsed()) {
             throw;
         } else {
-            throw cannot_perform_query_exc_t("lost contact with replica during read");
+            throw cannot_perform_query_exc_t(
+                "Lost contact with replica during read.",
+                query_state_t::INDETERMINATE);
         }
     }
 }

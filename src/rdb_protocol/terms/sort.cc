@@ -142,14 +142,14 @@ private:
         if (seq.has() && seq->is_exhausted()){
             /* Do nothing for empty sequence */
             if (!index.has()) {
-                rcheck(!comparisons.empty(), base_exc_t::GENERIC,
+                rcheck(!comparisons.empty(), base_exc_t::LOGIC,
                        "Must specify something to order by.");
             }
         /* Add a sorting to the table if we're doing indexed sorting. */
         } else if (index.has()) {
-            rcheck(tbl_slice.has(), base_exc_t::GENERIC,
+            rcheck(tbl_slice.has(), base_exc_t::LOGIC,
                    "Indexed order_by can only be performed on a TABLE or TABLE_SLICE.");
-            rcheck(!seq.has(), base_exc_t::GENERIC,
+            rcheck(!seq.has(), base_exc_t::LOGIC,
                    "Indexed order_by can only be performed on a TABLE or TABLE_SLICE.");
             sorting_t sorting = sorting_t::UNORDERED;
             for (int i = 0; i < get_src()->optargs_size(); ++i) {
@@ -174,7 +174,7 @@ private:
             if (!seq.has()) {
                 seq = tbl_slice->as_seq(env->env, backtrace());
             }
-            rcheck(!comparisons.empty(), base_exc_t::GENERIC,
+            rcheck(!comparisons.empty(), base_exc_t::LOGIC,
                    "Must specify something to order by.");
             std::vector<datum_t> to_sort;
             batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
@@ -185,7 +185,7 @@ private:
                     break;
                 }
                 std::move(data.begin(), data.end(), std::back_inserter(to_sort));
-                rcheck_array_size(to_sort, env->env->limits(), base_exc_t::GENERIC);
+                rcheck_array_size(to_sort, env->env->limits());
             }
             profile::sampler_t sampler("Sorting in-memory.", env->env->trace);
             auto fn = boost::bind(lt_cmp, env->env, &sampler, _1, _2);
@@ -240,7 +240,7 @@ private:
                 return new_val(env->env, s->ordered_distinct());
             }
         }
-        rcheck(!idx, base_exc_t::GENERIC,
+        rcheck(!idx, base_exc_t::LOGIC,
                "Can only perform an indexed distinct on a TABLE.");
         counted_t<datum_stream_t> s = v->as_seq(env->env);
         // The reql_version matters here, because we copy `results` into `toret`
@@ -253,7 +253,7 @@ private:
             datum_t d;
             while (d = s->next(env->env, batchspec), d.has()) {
                 results.insert(std::move(d));
-                rcheck_array_size(results, env->env->limits(), base_exc_t::GENERIC);
+                rcheck_array_size(results, env->env->limits());
                 sampler.new_sample();
             }
         }

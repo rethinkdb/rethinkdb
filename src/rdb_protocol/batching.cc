@@ -110,7 +110,7 @@ batchspec_t batchspec_t::user(batch_type_t batch_type, env_t *env) {
         rcheck_target(
             &max_dur_d,
             max_dur_d.as_num() < MAX_BATCH_SECONDS,
-            base_exc_t::GENERIC,
+            base_exc_t::LOGIC,
             strprintf("max_batch_seconds is too large (got `%"
                       PR_RECONSTRUCTABLE_DOUBLE "`, must be less than %"
                       PR_RECONSTRUCTABLE_DOUBLE ").",
@@ -118,7 +118,7 @@ batchspec_t batchspec_t::user(batch_type_t batch_type, env_t *env) {
         rcheck_target(
             &max_dur_d,
             max_dur_d.as_num() >= 0.0,
-            base_exc_t::GENERIC,
+            base_exc_t::LOGIC,
             strprintf("max_batch_seconds must be positive (got `%"
                       PR_RECONSTRUCTABLE_DOUBLE "`).",
                       max_dur_d.as_num()));

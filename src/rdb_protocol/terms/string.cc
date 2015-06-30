@@ -43,7 +43,7 @@ private:
         if (search == cache.regexes.end()) {
             regexp.reset(new re2::RE2(re, re2::RE2::Quiet));
             if (!regexp->ok()) {
-                rfail(base_exc_t::GENERIC,
+                rfail(base_exc_t::LOGIC,
                       "Error in regexp `%s` (portion `%s`): %s",
                       regexp->pattern().c_str(),
                       regexp->error_arg().c_str(),
@@ -241,7 +241,7 @@ private:
         if (args->num_args() > 2) {
             n = args->arg(env, 2)->as_int();
             rcheck(n >= -1 && n <= int64_t(env->env->limits().array_size_limit()) - 1,
-                   base_exc_t::GENERIC,
+                   base_exc_t::LOGIC,
                    strprintf("Error: `split` size argument must be in range [-1, %zu].",
                              env->env->limits().array_size_limit() - 1));
         }
