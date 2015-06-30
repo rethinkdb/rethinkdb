@@ -1,7 +1,7 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
 
-#include "clustering/immediate_consistency/backfill_throttler.hpp"
+#include "clustering/immediate_consistency/standard_backfill_throttler.hpp"
 #include "clustering/table_contract/executor/executor.hpp"
 #include "clustering/table_manager/backfill_progress_tracker.hpp"
 #include "unittest/branch_history_manager.hpp"

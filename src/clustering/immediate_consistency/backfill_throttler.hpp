@@ -27,29 +27,27 @@ public:
         int num_changes;
     };
 
-    class lock_t {
+    class lock_t : public home_thread_mixin_t {
     public:
         lock_t(backfill_throttler_t *p,
-               const peer_id_t &_peer,
                const priority_t &_priority,
                signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) :
-            peer(_peer), priority(_priority), parent(p)
+            priority(_priority), parent(p)
         {
             parent->enter(this, interruptor);
         }
         ~lock_t() {
             parent->exit(this);
         }
-        signal_t *get_pause_signal() {
-            return &pause_signal;
+        signal_t *get_preempt_signal() {
+            return &preempt_signal;
         }
-        const peer_id_t peer;
         const priority_t priority;
     private:
         friend class backfill_throttler_t;
         backfill_throttler_t *parent;
-        cond_t pause_signal;
+        cond_t preempt_signal;
     };
 
 protected:
@@ -60,10 +58,10 @@ protected:
     virtual void enter(lock_t *lock, signal_t *interruptor) = 0;
     virtual void exit(lock_t *lock) = 0;
 
-    /* This allows subclasses to signal locks' pause signals even though `pause_signal`
-    is a private member of `lock_t` */
-    void pause(lock_t *lock) {
-        lock->pause_signal.pulse();
+    /* This allows subclasses to signal locks' preempt signals even though
+    `preempt_signal` is a private member of `lock_t` */
+    void preempt(lock_t *lock) {
+        lock->preempt_signal.pulse();
     }
 };
 

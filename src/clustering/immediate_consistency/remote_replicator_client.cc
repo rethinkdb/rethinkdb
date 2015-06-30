@@ -144,6 +144,7 @@ remote_replicator_client_t::remote_replicator_client_t(
         backfill_progress_tracker_t *backfill_progress_tracker,
         mailbox_manager_t *mailbox_manager,
         const server_id_t &server_id,
+        bool is_critical_priority,
 
         const branch_id_t &branch_id,
         const remote_replicator_server_bcard_t &remote_replicator_server_bcard,
@@ -286,7 +287,7 @@ remote_replicator_client_t::remote_replicator_client_t(
             }
             remote_replicator_client_t *parent;
             signal_t *pause_signal;
-        } callback(this, backfill_throttler_lock.get_pause_signal());
+        } callback(this, backfill_throttler_lock.get_preempt_signal());
 
         backfillee.go(
             &callback,
@@ -294,7 +295,7 @@ remote_replicator_client_t::remote_replicator_client_t(
             interruptor);
 
         if (tracker_->get_backfill_threshold() != region_.inner.right) {
-            // guarantee(backfill_throttler_lock.get_pause_signal()->is_pulsed());
+            guarantee(backfill_throttler_lock.get_preempt_signal()->is_pulsed());
             /* Switch mode to `PAUSED` so that writes can proceed while we wait to
             reacquire the throttler lock */
             mutex_assertion_t::acq_t mutex_assertion_acq(&mutex_assertion_);

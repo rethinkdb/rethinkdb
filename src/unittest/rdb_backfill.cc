@@ -141,7 +141,9 @@ public:
         value_padding_length(100),
         num_initial_writes(500),
         num_step_writes(100),
-        stream_during_backfill(true)
+        stream_during_backfill(true),
+        min_preempt_ms(1000 * 60 * 60),
+        max_preempt_ms(1000 * 60 * 60)
         { }
 
     /* `value_padding_length` is the amount of extra padding to add to each document, in
@@ -159,8 +161,46 @@ public:
     online writes during the backfill. */
     bool stream_during_backfill;
 
+    /* Each phase of the backfill will be allowed to run for a random time between
+    `min_preempt_ms` and `max_preempt_ms` before being preempted. */
+    int min_preempt_ms, max_preempt_ms;
+
     /* This controls the queue sizes, etc. in the backfill logic. */
     backfill_config_t backfill;
+};
+
+/* `stress_backfill_throttler_t` allows each backfill to run for a random amount of time
+before preempting it. */
+class stress_backfill_throttler_t : public backfill_throttler_t {
+public:
+    stress_backfill_throttler_t(const backfill_test_config_t &_config) :
+        config(_config) { }
+    ~stress_backfill_throttler_t() {
+        guarantee(drainers.empty());
+    }
+
+private:
+    void enter(lock_t *lock, signal_t *) {
+        auto_drainer_t::lock_t keepalive(&drainers[lock]);
+        coro_t::spawn_sometime([lock, keepalive]() {
+            try {
+                int time = config.min_preempt_ms +
+                    randint(config.max_preempt_ms - config.min_preempt_ms);
+                nap(time, keepalive.get_drain_signal());
+                preempt(lock);
+            } catch (const interrupted_exc_t &) {
+                /* ignore */
+            }
+        });
+    }
+
+    void exit(lock_t *lock) {
+        size_t res = drainers.erase(lock);
+        guarantee(res == 1);
+    }
+
+    backfill_test_config_t config;
+    std::map<lock_t *, auto_drainer_t> drainers;
 };
 
 void run_backfill_test(const backfill_test_config_t &cfg) {
@@ -204,7 +244,7 @@ void run_backfill_test(const backfill_test_config_t &cfg) {
                 cluster.get_mailbox_manager(),
                 &dispatcher);
 
-            backfill_throttler_t backfill_throttler;
+            stress_backfill_throttler_t backfill_throttler(cfg);
             backfill_progress_tracker_t backfill_progress_tracker;
             remote_replicator_client_t remote_replicator_client_2(&backfill_throttler,
                 cfg.backfill, &backfill_progress_tracker, cluster.get_mailbox_manager(),
@@ -266,7 +306,7 @@ void run_backfill_test(const backfill_test_config_t &cfg) {
             cluster.get_mailbox_manager(),
             &dispatcher);
 
-        backfill_throttler_t backfill_throttler;
+        stress_backfill_throttler_t backfill_throttler(cfg);
         backfill_progress_tracker_t backfill_progress_tracker;
         remote_replicator_client_t remote_replicator_client(&backfill_throttler,
             cfg.backfill, &backfill_progress_tracker, cluster.get_mailbox_manager(),
@@ -308,7 +348,7 @@ void run_backfill_test(const backfill_test_config_t &cfg) {
             cluster.get_mailbox_manager(),
             &dispatcher);
 
-        backfill_throttler_t backfill_throttler;
+        stress_backfill_throttler_t backfill_throttler(cfg);
         backfill_progress_tracker_t backfill_progress_tracker;
         remote_replicator_client_t remote_replicator_client(&backfill_throttler,
             cfg.backfill, &backfill_progress_tracker, cluster.get_mailbox_manager(),
