@@ -260,7 +260,6 @@ remote_replicator_client_t::remote_replicator_client_t(
 
         /* Backfill in lexicographical order until we finish or the backfill throttler
         lock tells us to pause again */
-        cond_t fake_pause_signal;
         class callback_t : public backfillee_t::callback_t {
         public:
             callback_t(remote_replicator_client_t *p, signal_t *ps) :
@@ -287,7 +286,7 @@ remote_replicator_client_t::remote_replicator_client_t(
             }
             remote_replicator_client_t *parent;
             signal_t *pause_signal;
-        } callback(this, &fake_pause_signal /* backfill_throttler_lock.get_pause_signal() */);
+        } callback(this, backfill_throttler_lock.get_pause_signal());
 
         backfillee.go(
             &callback,
