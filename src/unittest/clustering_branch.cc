@@ -147,6 +147,7 @@ void run_backfill_test(
         &backfill_progress_tracker,
         cluster->get_mailbox_manager(),
         generate_uuid(),
+        backfill_throttler_t::priority_t::critical_t::NO,
         dispatcher->get_branch_id(),
         remote_replicator_server.get_bcard(),
         local_replicator->get_replica_bcard(),

@@ -2,7 +2,10 @@
 #ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_STANDARD_BACKFILL_THROTTLER_HPP_
 #define CLUSTERING_IMMEDIATE_CONSISTENCY_STANDARD_BACKFILL_THROTTLER_HPP_
 
+#include <set>
+
 #include "clustering/immediate_consistency/backfill_throttler.hpp"
+#include "concurrency/new_mutex.hpp"
 
 /* `standard_backfill_throttler_t` is the `backfill_throttler_t` that is used in
 production. It allows a fixed number of backfills per peer and a fixed number of

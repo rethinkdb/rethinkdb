@@ -75,7 +75,7 @@ private:
     friend class executor_tester_t;
     simple_mailbox_cluster_t cluster;
     io_backender_t io_backender;
-    backfill_throttler_t backfill_throttler;
+    standard_backfill_throttler_t backfill_throttler;
     backfill_progress_tracker_t backfill_progress_tracker;
     watchable_map_var_t<
         std::pair<server_id_t, branch_id_t>,

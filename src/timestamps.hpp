@@ -69,6 +69,13 @@ public:
         return ts;
     }
 
+    /* Used for estimating the number of changes that have happened between two
+    timestamps. */
+    uint64_t count_changes(state_timestamp_t since) const {
+        guarantee(*this >= since);
+        return num - since.num;
+    }
+
 private:
     friend void debug_print(printf_buffer_t *buf, state_timestamp_t ts);
     friend state_timestamp_t unittest::make_state_timestamp(int);

@@ -67,6 +67,11 @@ public:
     void sanity_check() const;
 #endif /* NDEBUG */
 
+    bool is_voter(const server_id_t &s) const {
+        return voters.count(s) == 1 ||
+            (static_cast<bool>(temp_voters) && temp_voters->count(s) == 1);
+    }
+
     /* `replicas` is all the servers that are replicas for this table, whether voting or
     non-voting. `voters` is a subset of `replicas` that just contains the voting
     replicas. If we're in the middle of a transition between two sets of voters, then

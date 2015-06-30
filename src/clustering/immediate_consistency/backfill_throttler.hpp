@@ -17,13 +17,14 @@ class backfill_throttler_t : public home_thread_mixin_t {
 public:
     class priority_t {
     public:
+        enum class critical_t { NO, YES };
         bool operator<(const priority_t &other) const {
             /* Prrocess critical backfills before non-critical backfills; process
             backfills with few changes before backfills with many changes */
-            return std::tuple(critical, -num_changes) <
-                std::tuple(other.critical, -other.num_changes);
+            return std::make_tuple(critical, -num_changes) <
+                std::make_tuple(other.critical, -other.num_changes);
         }
-        bool critical;
+        critical_t critical;
         int num_changes;
     };
 
@@ -53,7 +54,7 @@ public:
 protected:
     friend class lock_t;
 
-    ~backfill_throttler_t() { }
+    virtual ~backfill_throttler_t() { }
 
     virtual void enter(lock_t *lock, signal_t *interruptor) = 0;
     virtual void exit(lock_t *lock) = 0;

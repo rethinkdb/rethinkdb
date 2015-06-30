@@ -5,6 +5,7 @@
 #include <queue>
 
 #include "clustering/generic/registrant.hpp"
+#include "clustering/immediate_consistency/backfill_throttler.hpp"
 #include "clustering/immediate_consistency/remote_replicator_metadata.hpp"
 #include "clustering/immediate_consistency/replica.hpp"
 #include "concurrency/coro_pool.hpp"
@@ -12,7 +13,6 @@
 #include "concurrency/semaphore.hpp"
 
 class backfill_progress_tracker_t;
-class backfill_throttler_t;
 
 /* `remote_replicator_client_t` contacts a `remote_replicator_server_t` on another server
 to sign up for writes to a given shard, and then applies them to a `store_t` on the same
@@ -30,7 +30,7 @@ public:
         backfill_progress_tracker_t *backfill_progress_tracker,
         mailbox_manager_t *mailbox_manager,
         const server_id_t &server_id,
-        bool is_critical_priority,
+        backfill_throttler_t::priority_t::critical_t is_critical_priority,
 
         const branch_id_t &branch_id,
         const remote_replicator_server_bcard_t &remote_replicator_server_bcard,

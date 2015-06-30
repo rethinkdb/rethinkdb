@@ -33,16 +33,6 @@ public:
     /* The maximum size, in bytes, of a chunk of pre-items sent over the network from the
     backfillee to the backfiller. */
     size_t pre_item_chunk_mem_size;
-
-    /* The maximum number of writes that the `remote_replicator_client_t` will allow to
-    queue up before it pauses the backfill to perform the writes */
-    size_t write_queue_count;
-
-    /* Every time the `remote_replicator_client_t` performs a queued write, it allows
-    `write_queue_trickle_fraction` new writes to be added to the back of the queue. So
-    this must be between 0 and 1. Higher values improve streaming write performance, but
-    make the backfill take longer. */
-    double write_queue_trickle_fraction;
 };
 
 RDB_DECLARE_SERIALIZABLE(backfill_config_t);
@@ -154,12 +144,23 @@ public:
 
     class intro_2_t {
     public:
+        /* The backfillee uses this to determine where to send pre-items from. */
         region_map_t<state_timestamp_t> common_version;
+
+        /* This is the branch history corresponding to the `version_t`s that will be sent
+        later. */
         branch_history_t final_version_history;
+
+        /* These mailboxes are used to conduct the actual backfill itself. */
         pre_items_mailbox_t::address_t pre_items_mailbox;
         begin_session_mailbox_t::address_t begin_session_mailbox;
         end_session_mailbox_t::address_t end_session_mailbox;
         ack_items_mailbox_t::address_t ack_items_mailbox;
+
+        /* This is used to determine the backfill priority. */
+        uint64_t num_changes_estimate;
+
+        /* These are used to estimate backfill progress. */
         std::map<store_key_t, int64_t> distribution_counts;
         int64_t distribution_counts_sum;
     };

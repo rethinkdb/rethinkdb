@@ -69,6 +69,10 @@ public:
         signal_t *interruptor);
     ~backfillee_t();
 
+    /* Returns an estimate of the number of keys that will need to be retransmitted
+    during this backfill. */
+    uint64_t get_num_changes_estimate();
+
     /* Begins a backfill session. All keys from `start_point` onward will be
     re-backfilled. For the first call, `start_point` must be the left-hand side of the
     backfiller's region; for subsequent calls, `start_point` must be between the last

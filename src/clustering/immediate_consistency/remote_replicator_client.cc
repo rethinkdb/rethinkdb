@@ -144,7 +144,7 @@ remote_replicator_client_t::remote_replicator_client_t(
         backfill_progress_tracker_t *backfill_progress_tracker,
         mailbox_manager_t *mailbox_manager,
         const server_id_t &server_id,
-        bool is_critical_priority,
+        backfill_throttler_t::priority_t::critical_t is_critical_priority,
 
         const branch_id_t &branch_id,
         const remote_replicator_server_bcard_t &remote_replicator_server_bcard,
@@ -232,10 +232,12 @@ remote_replicator_client_t::remote_replicator_client_t(
         anything from the backfiller and we aren't piling up changes in any queues. */
         store->wait_until_ok_to_receive_backfill(interruptor);
 
+        backfill_throttler_t::priority_t priority;
+        priority.critical = is_critical_priority;
+        priority.num_changes = backfillee.get_num_changes_estimate();
+
         backfill_throttler_t::lock_t backfill_throttler_lock(
-            backfill_throttler,
-            replica_bcard.synchronize_mailbox.get_peer(),
-            interruptor);
+            backfill_throttler, priority, interruptor);
 
         state_timestamp_t backfill_start_timestamp;
         {
