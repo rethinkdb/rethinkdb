@@ -15,7 +15,7 @@ class Model extends Backbone.Model
         time_started: server_status('process')('time_started')
         hostname: server_status('network')('hostname')
         tags: server_config('tags')
-        cache_size_mb: server_status('process')('cache_size_mb')
+        cache_size: server_status('process')('cache_size_mb').mul(1024*1024)
 
     defaults:
         version: null
@@ -40,7 +40,7 @@ class View extends Backbone.View
 
     render_vdom: (model) ->
         version = model.version?.split(' ')[1].split('-')[0]
-        approx_cache_size = util.format_bytes(model.cache_size_mb * 1024, 1)
+        approx_cache_size = util.format_bytes(model.cache_size, 1)
         h "div.server-info-view",
             h "div.summary", [
                 render_profile_row("hostname", "hostname", model.hostname or "N/A")
@@ -53,7 +53,7 @@ class View extends Backbone.View
                 render_profile_row(
                     "cache-size",
                     "cache size",
-                    "#{approx_cache_size}") if model.cache_size_mb?
+                    "#{approx_cache_size}") if model.cache_size?
                 render_tag_row(model.tags) if model.tags?
             ]
 

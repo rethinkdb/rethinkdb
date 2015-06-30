@@ -86,12 +86,7 @@ class DatabasesContainer extends Backbone.View
                         shard('replicas').filter((replica) ->
                             replica('state').eq('ready')).count()).sum()
                     # TODO: remove this after #4374 is completed
-                    status: table('status').default(
-                        all_replicas_ready: false
-                        ready_for_reads: false
-                        ready_for_writes: false
-                        ready_for_outdated_reads: false
-                    )
+                    status: table('status')
                     id: table('id')
                 )
 

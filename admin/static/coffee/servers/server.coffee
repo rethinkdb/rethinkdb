@@ -7,7 +7,7 @@ patch = require("virtual-dom/patch")
 diff = require("virtual-dom/diff")
 createElement = require("virtual-dom/create-element")
 
-util = require('../util.coffee')
+vdom = require('../vdom_util.coffee')
 models = require('../models.coffee')
 app = require('../app.coffee')
 driver = app.driver
@@ -92,7 +92,8 @@ class View extends Backbone.View
 
     render: =>
         new_tree = @render_vdom()
-        patches = patch(@el, diff(@current_vdom_tree, new_tree))
+        patch(@el, diff(@current_vdom_tree, new_tree))
+        @current_vdom_tree = new_tree
         @
 
     remove: =>
@@ -134,11 +135,11 @@ class View extends Backbone.View
             h "div.section.statistics", [
                 h "div.content.row-fluid", [
                     h "div.span4.profile",
-                        new util.BackboneViewWidget(=>
+                        new vdom.BackboneViewWidget(=>
                             new server_profile.View(model: @profile_model)
                         )
                     h "div.span8.performance-graph",
-                        new util.BackboneViewWidget(=>
+                        new vdom.BackboneViewWidget(=>
                             new vis.OpsPlot(
                                 @stats.get_stats,
                                 width:  564             # width in pixels
@@ -150,13 +151,13 @@ class View extends Backbone.View
                 ]
             ]
             h "div.section.responsibilities.tree-view2",
-                new util.BackboneViewWidget(=>
+                new vdom.BackboneViewWidget(=>
                     new server_resp.View(model: @resp_model)
                 )
             h "div.section.recent-logs", [
                 h "h2.title", "Recent log entries"
                 h "div.recent-log-entries",
-                    new util.BackboneViewWidget(=>
+                    new vdom.BackboneViewWidget(=>
                         new log_view.LogsContainer(
                             server_id: @model.get('id'),
                             limit: 5
