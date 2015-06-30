@@ -42,7 +42,7 @@ void runtime_sanity_check_failed(const char *file, int line, const char *test,
     if (!msg.empty()) {
         error_msg += " " + msg;
     }
-    throw exc_t(base_exc_t::GENERIC,
+    throw exc_t(base_exc_t::INTERNAL,
                 strprintf("SANITY CHECK FAILED: %s at `%s:%d` (server is buggy).  "
                           "Backtrace:\n%s",
                           error_msg.c_str(), file, line, bt.addrs().c_str()),
@@ -53,7 +53,7 @@ base_exc_t::type_t exc_type(const datum_t *d) {
     r_sanity_check(d);
     return d->get_type() == datum_t::R_NULL
         ? base_exc_t::NON_EXISTENCE
-        : base_exc_t::GENERIC;
+        : base_exc_t::LOGIC;
 }
 base_exc_t::type_t exc_type(const datum_t &d) {
     r_sanity_check(d.has());
@@ -64,7 +64,7 @@ base_exc_t::type_t exc_type(const val_t *v) {
     if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
         return exc_type(v->as_datum());
     } else {
-        return base_exc_t::GENERIC;
+        return base_exc_t::LOGIC;
     }
 }
 base_exc_t::type_t exc_type(const scoped_ptr_t<val_t> &v) {
@@ -73,7 +73,7 @@ base_exc_t::type_t exc_type(const scoped_ptr_t<val_t> &v) {
 }
 
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(backtrace_id_t, id);
-RDB_IMPL_SERIALIZABLE_4_SINCE_v1_13(exc_t, type_, message, bt, dummy_frames_);
-RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(datum_exc_t, type_, message);
+RDB_IMPL_SERIALIZABLE_4_SINCE_v1_13(exc_t, type, message, bt, dummy_frames_);
+RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(datum_exc_t, type, message);
 
 } // namespace ql

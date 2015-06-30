@@ -320,21 +320,6 @@ key_range_t sindex_key_range(const store_key_t &start,
     return key_range_t(key_range_t::closed, start, key_range_t::open, end_key);
 }
 
-region_t cpu_sharding_subspace(int subregion_number,
-                               int num_cpu_shards) {
-    guarantee(subregion_number >= 0);
-    guarantee(subregion_number < num_cpu_shards);
-
-    // We have to be careful with the math here, to avoid overflow.
-    uint64_t width = HASH_REGION_HASH_SIZE / num_cpu_shards;
-
-    uint64_t beg = width * subregion_number;
-    uint64_t end = subregion_number + 1 == num_cpu_shards
-        ? HASH_REGION_HASH_SIZE : beg + width;
-
-    return region_t(beg, end, key_range_t::universe());
-}
-
 }  // namespace rdb_protocol
 
 /* read_t::get_region implementation */
@@ -720,8 +705,8 @@ void rdb_r_unshard_visitor_t::unshard_range_batch(const query_t &q, sorting_t so
 #else
             if (out->skey_version != resp->skey_version) {
                 out->result = ql::exc_t(
-                    ql::base_exc_t::GENERIC,
-                    strprintf("INTERNAL ERROR: mismatched skey versions %d and %d.",
+                    ql::base_exc_t::INTERNAL,
+                    strprintf("Mismatched skey versions %d and %d.",
                               static_cast<int>(out->skey_version),
                               static_cast<int>(resp->skey_version)),
                     ql::backtrace_id_t::empty());

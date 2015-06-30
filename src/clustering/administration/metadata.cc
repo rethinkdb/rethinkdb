@@ -47,7 +47,7 @@ bool search_db_metadata_by_name(
         const databases_semilattice_metadata_t &metadata,
         const name_string_t &name,
         database_id_t *id_out,
-        std::string *error_out) {
+        admin_err_t *error_out) {
     size_t found = 0;
     for (const auto &pair : metadata.databases) {
         if (!pair.second.is_deleted() && pair.second.get_ref().name.get_ref() == name) {
@@ -56,11 +56,15 @@ bool search_db_metadata_by_name(
         }
     }
     if (found == 0) {
-        *error_out = strprintf("Database `%s` does not exist.", name.c_str());
+        *error_out = admin_err_t{
+            strprintf("Database `%s` does not exist.", name.c_str()),
+            query_state_t::FAILED};
         return false;
     } else if (found >= 2) {
-        *error_out = strprintf("Database `%s` is ambiguous; there are multiple "
-            "databases with that name.", name.c_str());
+        *error_out = admin_err_t{
+            strprintf("Database `%s` is ambiguous; there are multiple "
+                      "databases with that name.", name.c_str()),
+            query_state_t::FAILED};
         return false;
     } else {
         return true;

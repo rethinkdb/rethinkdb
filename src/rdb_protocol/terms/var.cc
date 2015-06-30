@@ -11,26 +11,26 @@ class var_term_t : public term_t {
 public:
     var_term_t(compile_env_t *env, const protob_t<const Term> &term)
             : term_t(term) {
-        rcheck(term->args_size() == 1, base_exc_t::GENERIC,
+        rcheck(term->args_size() == 1, base_exc_t::LOGIC,
                "A variable term has the wrong number of arguments.");
 
         const Term &arg0 = term->args(0);
-        rcheck(arg0.type() == Term::DATUM, base_exc_t::GENERIC,
+        rcheck(arg0.type() == Term::DATUM, base_exc_t::LOGIC,
                "A variable term has a non-numeric argument.");
-        rcheck(arg0.has_datum(), base_exc_t::GENERIC,
+        rcheck(arg0.has_datum(), base_exc_t::LOGIC,
                "A datum term (in a variable term) is missing its datum field.");
 
         const Datum &datum = arg0.datum();
-        rcheck(datum.type() == Datum::R_NUM, base_exc_t::GENERIC,
+        rcheck(datum.type() == Datum::R_NUM, base_exc_t::LOGIC,
                "A variable term has a non-numeric variable name argument.");
-        rcheck(datum.has_r_num(), base_exc_t::GENERIC,
+        rcheck(datum.has_r_num(), base_exc_t::LOGIC,
                "A variable term's datum term is missing its r_num field.");
 
         const double number = datum.r_num();
         const int64_t var_value = checked_convert_to_int(this, number);
 
         sym_t var(var_value);
-        rcheck(env->visibility.contains_var(var), base_exc_t::GENERIC,
+        rcheck(env->visibility.contains_var(var), base_exc_t::LOGIC,
                "Variable name not found.");
 
         varname = var;
@@ -57,10 +57,10 @@ public:
     implicit_var_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : term_t(term) {
         rcheck(
-            term->args_size() == 0 && term->optargs_size() == 0, base_exc_t::GENERIC,
+            term->args_size() == 0 && term->optargs_size() == 0, base_exc_t::LOGIC,
             "Expected no arguments or optional arguments on implicit variable term.");
 
-        rcheck(env->visibility.implicit_is_accessible(), base_exc_t::GENERIC,
+        rcheck(env->visibility.implicit_is_accessible(), base_exc_t::LOGIC,
                env->visibility.get_implicit_depth() == 0
                ? "r.row is not defined in this context."
                : "Cannot use r.row in nested queries.  Use functions instead.");

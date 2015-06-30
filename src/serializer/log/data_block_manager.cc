@@ -381,7 +381,7 @@ data_block_manager_t::data_block_manager_t(
         extent_manager_t *em, log_serializer_t *_serializer,
         const log_serializer_on_disk_static_config_t *_static_config,
         log_serializer_stats_t *_stats)
-    : stats(_stats), shutdown_callback(NULL), state(state_unstarted),
+    : stats(_stats), shutdown_callback(NULL), state(state_unstarted), gc_enabled(true),
       static_config(_static_config), extent_manager(em), serializer(_serializer),
       gc_stats(stats)
 {
@@ -1287,6 +1287,10 @@ void data_block_manager_t::prepare_metablock(data_block_manager::metablock_mixin
     }
 }
 
+void data_block_manager_t::disable_gc() {
+    gc_enabled = false;
+}
+
 bool data_block_manager_t::shutdown(data_block_manager::shutdown_callback_t *cb) {
     rassert(cb != NULL);
     guarantee(state == state_ready);
@@ -1434,19 +1438,19 @@ void data_block_manager_t::remove_last_unyoung_entry() {
 // look, it's the next largest entry.  Should we keep gc'ing?  Returns
 // false when the garbage ratio is lower than GC_STOP_RATIO.
 bool data_block_manager_t::should_we_keep_gcing() const {
-    return garbage_ratio() > GC_STOP_RATIO;
+    return gc_enabled && garbage_ratio() > GC_STOP_RATIO;
 }
 
 bool data_block_manager_t::should_terminate_one_gc_thread() const {
     const size_t goal_num_active_gcs = compute_gc_concurrency();
-    return active_gcs.size() > goal_num_active_gcs;
+    return !gc_enabled || active_gcs.size() > goal_num_active_gcs;
 }
 
 // Answers the following question: Do we want to bother gc'ing?
 // Returns true when our garbage_ratio is greater than
 // GC_THRESHOLD_RATIO_*.
 bool data_block_manager_t::do_we_want_to_start_gcing() const {
-    return garbage_ratio() > GC_START_RATIO;
+    return gc_enabled && garbage_ratio() > GC_START_RATIO;
 }
 
 bool gc_entry_less_t::operator()(const gc_entry_t *x, const gc_entry_t *y) {

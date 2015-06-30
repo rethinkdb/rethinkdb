@@ -97,14 +97,14 @@ private:
         order_token_t order_token,
         signal_t *interruptor,
         write_response_t *response_out,
-        std::string *error_out);
+        admin_err_t *error_out);
     bool on_read(
         const read_t &request,
         fifo_enforcer_sink_t::exit_read_t *exiter,
         order_token_t order_token,
         signal_t *interruptor,
         read_response_t *response_out,
-        std::string *error_out);
+        admin_err_t *error_out);
 
     /* `sync_majority()` is used after a read in 'majority' mode, and will perform a
     `sync` operation across a majority of replicas to make sure what has just been read
@@ -112,7 +112,7 @@ private:
     bool sync_committed_read(const read_t &read_request,
                              order_token_t order_token,
                              signal_t *interruptor,
-                             std::string *error_out);
+                             admin_err_t *error_out);
 
     /* `update_contract_or_raft_state()` spawns `update_contract_on_store_thread()`
     to deliver the new contract to `store->home_thread()`. It has two jobs:

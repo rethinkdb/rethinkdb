@@ -17,7 +17,7 @@ table_manager_t::table_manager_t(
         const base_path_t &_base_path,
         io_backender_t *_io_backender,
         const namespace_id_t &_table_id,
-        const multi_table_manager_bcard_t::timestamp_t::epoch_t &_epoch,
+        const multi_table_manager_timestamp_t::epoch_t &_epoch,
         const raft_member_id_t &_raft_member_id,
         raft_storage_interface_t<table_raft_state_t> *raft_storage,
         multistore_ptr_t *multistore_ptr,
@@ -115,7 +115,7 @@ void table_manager_t::get_status(
         get_raft()->get_committed_state()->apply_read(
             [&](const raft_member_t<table_raft_state_t>::state_and_config_t *s) {
                 response->raft_state = boost::make_optional(s->state);
-                multi_table_manager_bcard_t::timestamp_t ts;
+                multi_table_manager_timestamp_t ts;
                 ts.epoch = epoch;
                 ts.log_index = s->log_index;
                 response->raft_state_timestamp = boost::make_optional(ts);
@@ -172,7 +172,7 @@ void table_manager_t::leader_t::on_set_config(
         signal_t *interruptor,
         const table_config_and_shards_t &new_config,
         const mailbox_t<void(
-            boost::optional<multi_table_manager_bcard_t::timestamp_t>
+            boost::optional<multi_table_manager_timestamp_t>
             )>::address_t &reply_addr) {
     logINF("Table %s: Configuration is changing.",
         uuid_to_str(parent->table_id).c_str());
@@ -180,14 +180,14 @@ void table_manager_t::leader_t::on_set_config(
         [&](table_config_and_shards_t *config) { *config = new_config; },
         interruptor);
     if (static_cast<bool>(result)) {
-        multi_table_manager_bcard_t::timestamp_t timestamp;
+        multi_table_manager_timestamp_t timestamp;
         timestamp.epoch = parent->epoch;
         timestamp.log_index = *result;
         send(parent->mailbox_manager, reply_addr,
             boost::make_optional(timestamp));
     } else {
         send(parent->mailbox_manager, reply_addr,
-            boost::optional<multi_table_manager_bcard_t::timestamp_t>());
+            boost::optional<multi_table_manager_timestamp_t>());
     }
 }
 

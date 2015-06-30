@@ -42,7 +42,7 @@ private:
         try {
             return eval_geo(env, args, flags);
         } catch (const geo_exception_t &e) {
-            rfail(base_exc_t::GENERIC, "%s", e.what());
+            rfail(base_exc_t::LOGIC, "%s", e.what());
         }
     }
 };
@@ -63,7 +63,7 @@ private:
         try {
             return obj_eval_geo(env, args, v0);
         } catch (const geo_exception_t &e) {
-            rfail(base_exc_t::GENERIC, "%s", e.what());
+            rfail(base_exc_t::LOGIC, "%s", e.what());
         }
     }
 };
@@ -82,7 +82,7 @@ private:
         datum_object_builder_t result(geo_json);
         bool dup = result.add(datum_t::reql_type_string,
                               datum_t(pseudo::geometry_string));
-        rcheck(!dup, base_exc_t::GENERIC, "GeoJSON object already had a "
+        rcheck(!dup, base_exc_t::LOGIC, "GeoJSON object already had a "
                                           "$reql_type$ field.");
         // Drop the `bbox` field in case it exists. We don't have any use for it.
         UNUSED bool had_bbox = result.delete_field("bbox");
@@ -148,7 +148,7 @@ lon_lat_point_t parse_point_argument(const datum_t &point_datum) {
         // The argument must be a coordinate pair
         rcheck_target(&point_datum,
                       point_datum.arr_size() == 2,
-                      base_exc_t::GENERIC,
+                      base_exc_t::LOGIC,
                       strprintf("Expected point coordinate pair.  "
                                 "Got %zu element array instead of a 2 element one.",
                                 point_datum.arr_size()));
@@ -248,11 +248,11 @@ ellipsoid_spec_t pick_reference_ellipsoid(scope_env_t *env, args_t *args) {
             double f = geo_system_arg->as_datum().get_field("f").as_num();
             rcheck_target(geo_system_arg.get(),
                           a > 0.0,
-                          base_exc_t::GENERIC,
+                          base_exc_t::LOGIC,
                           "The equator radius `a` must be positive.");
             rcheck_target(geo_system_arg.get(),
                           f >= 0.0 && f < 1.0,
-                          base_exc_t::GENERIC,
+                          base_exc_t::LOGIC,
                           "The flattening `f` must be in the range [0, 1).");
             return ellipsoid_spec_t(a, f);
         } else {
@@ -262,7 +262,7 @@ ellipsoid_spec_t pick_reference_ellipsoid(scope_env_t *env, args_t *args) {
             } else if (v == "unit_sphere") {
                 return UNIT_SPHERE;
             } else {
-                rfail_target(geo_system_arg.get(), base_exc_t::GENERIC,
+                rfail_target(geo_system_arg.get(), base_exc_t::LOGIC,
                              "Unrecognized geo system \"%s\" (valid options: "
                              "\"WGS84\", \"unit_sphere\").", v.c_str());
             }
@@ -336,7 +336,7 @@ private:
             num_vertices = num_vertices_arg->as_int<unsigned int>();
             rcheck_target(num_vertices_arg.get(),
                           num_vertices > 0,
-                          base_exc_t::GENERIC,
+                          base_exc_t::LOGIC,
                           "num_vertices must be positive.");
         }
 
@@ -370,10 +370,10 @@ private:
         counted_t<table_t> table = args->arg(env, 0)->as_table();
         scoped_ptr_t<val_t> query_arg = args->arg(env, 1);
         scoped_ptr_t<val_t> index = args->optarg(env, "index");
-        rcheck(index.has(), base_exc_t::GENERIC,
+        rcheck(index.has(), base_exc_t::LOGIC,
                "get_intersecting requires an index argument.");
         std::string index_str = index->as_str().to_std();
-        rcheck(index_str != table->get_pkey(), base_exc_t::GENERIC,
+        rcheck(index_str != table->get_pkey(), base_exc_t::LOGIC,
                "get_intersecting cannot use the primary index.");
         counted_t<datum_stream_t> stream = table->get_intersecting(
             env->env, query_arg->as_ptype(pseudo::geometry_string), index_str,
@@ -411,10 +411,10 @@ private:
         counted_t<table_t> table = args->arg(env, 0)->as_table();
         scoped_ptr_t<val_t> center_arg = args->arg(env, 1);
         scoped_ptr_t<val_t> index = args->optarg(env, "index");
-        rcheck(index.has(), base_exc_t::GENERIC,
+        rcheck(index.has(), base_exc_t::LOGIC,
                "get_nearest requires an index argument.");
         std::string index_str = index->as_str().to_std();
-        rcheck(index_str != table->get_pkey(), base_exc_t::GENERIC,
+        rcheck(index_str != table->get_pkey(), base_exc_t::LOGIC,
                "get_nearest cannot use the primary index.");
         lon_lat_point_t center = parse_point_argument(center_arg->as_datum());
         ellipsoid_spec_t reference_ellipsoid = pick_reference_ellipsoid(env, args);
@@ -426,7 +426,7 @@ private:
                 convert_dist_unit(max_dist_arg->as_num(), dist_unit, dist_unit_t::M);
             rcheck_target(max_dist_arg,
                           max_dist > 0.0,
-                          base_exc_t::GENERIC,
+                          base_exc_t::LOGIC,
                           "max_dist must be positive.");
         }
         scoped_ptr_t<val_t> max_results_arg = args->optarg(env, "max_results");
@@ -435,7 +435,7 @@ private:
             max_results = max_results_arg->as_int();
             rcheck_target(max_results_arg,
                           max_results > 0,
-                          base_exc_t::GENERIC,
+                          base_exc_t::LOGIC,
                           "max_results must be positive.");
         }
 
@@ -457,12 +457,12 @@ private:
 
         rcheck_target(arg.get(),
                       res.get_field("type").as_str() == "Polygon",
-                      base_exc_t::GENERIC,
+                      base_exc_t::LOGIC,
                       strprintf("Expected a Polygon but found a %s.",
                                 res.get_field("type").as_str().to_std().c_str()));
         rcheck_target(arg.get(),
                       res.get_field("coordinates").arr_size() <= 1,
-                      base_exc_t::GENERIC,
+                      base_exc_t::LOGIC,
                       "Expected a Polygon with only an outer shell.  "
                       "This one has holes.");
         return res;

@@ -115,7 +115,7 @@ multi_table_manager_t::active_table_t::active_table_t(
         multi_table_manager_t *_parent,
         table_t *_table,
         const namespace_id_t &_table_id,
-        const multi_table_manager_bcard_t::timestamp_t::epoch_t &epoch,
+        const multi_table_manager_timestamp_t::epoch_t &epoch,
         const raft_member_id_t &member_id,
         raft_storage_interface_t<table_raft_state_t> *raft_storage,
         multistore_ptr_t *multistore_ptr,
@@ -165,14 +165,14 @@ bool multi_table_manager_t::active_table_t::update_basic_configs_entry() {
     bool changed;
     manager.get_raft()->get_committed_state()->apply_read(
         [&](const raft_member_t<table_raft_state_t>::state_and_config_t *sc) {
-            std::pair<table_basic_config_t, multi_table_manager_bcard_t::timestamp_t> p;
+            std::pair<table_basic_config_t, multi_table_manager_timestamp_t> p;
             p.first = sc->state.config.config.basic;
             p.second.epoch = manager.epoch;
             p.second.log_index = sc->log_index;
             if (table->basic_configs_entry.has()) {
                 table->basic_configs_entry->change(
                     [&](std::pair<table_basic_config_t,
-                                  multi_table_manager_bcard_t::timestamp_t> *value
+                                  multi_table_manager_timestamp_t> *value
                             ) -> bool {
                         changed = !(value->first == p.first);
                         *value = p;
@@ -261,7 +261,7 @@ void multi_table_manager_t::help_construct() {
 void multi_table_manager_t::on_action(
         signal_t *interruptor,
         const namespace_id_t &table_id,
-        const multi_table_manager_bcard_t::timestamp_t &timestamp,
+        const multi_table_manager_timestamp_t &timestamp,
         multi_table_manager_bcard_t::status_t action_status,
         const boost::optional<table_basic_config_t> &basic_config,
         const boost::optional<raft_member_id_t> &raft_member_id,
@@ -307,7 +307,7 @@ void multi_table_manager_t::on_action(
 
     /* Reject outdated or redundant messages */
     if (!is_new) {
-        multi_table_manager_bcard_t::timestamp_t current_timestamp;
+        multi_table_manager_timestamp_t current_timestamp;
         switch (table->status) {
             case table_t::status_t::ACTIVE:
                 current_timestamp.epoch = table->active->manager.epoch;
@@ -318,7 +318,7 @@ void multi_table_manager_t::on_action(
                 current_timestamp = table->basic_configs_entry->get_value().second;
                 break;
             case table_t::status_t::DELETED:
-                current_timestamp = multi_table_manager_bcard_t::timestamp_t::deletion();
+                current_timestamp = multi_table_manager_timestamp_t::deletion();
                 break;
             case table_t::status_t::SHUTTING_DOWN:   /* fall through */
             default: unreachable();
@@ -521,7 +521,7 @@ void multi_table_manager_t::do_sync(
     typedef multi_table_manager_bcard_t::status_t action_status_t;
 
     if (table.status == table_t::status_t::ACTIVE) {
-        multi_table_manager_bcard_t::timestamp_t timestamp;
+        multi_table_manager_timestamp_t timestamp;
         timestamp.epoch = table.active->manager.epoch;
         action_status_t action_status;
         boost::optional<table_basic_config_t> basic_config;
@@ -582,7 +582,7 @@ void multi_table_manager_t::do_sync(
     } else if (table.status == table_t::status_t::DELETED) {
         send(mailbox_manager, table_manager_bcard.action_mailbox,
             table_id,
-            multi_table_manager_bcard_t::timestamp_t::deletion(),
+            multi_table_manager_timestamp_t::deletion(),
             action_status_t::DELETED,
             boost::optional<table_basic_config_t>(),
             boost::optional<raft_member_id_t>(),

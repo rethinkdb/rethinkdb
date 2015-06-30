@@ -6,7 +6,7 @@
 bool convert_job_type_and_id_from_datum(ql::datum_t primary_key,
                                         std::string *type_out,
                                         uuid_u *id_out) {
-    std::string error;
+    admin_err_t error;
     return primary_key.get_type() == ql::datum_t::R_ARRAY &&
            primary_key.arr_size() == 2 &&
            convert_string_from_datum(primary_key.get(0), type_out, &error) &&

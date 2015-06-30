@@ -16,6 +16,7 @@
 #include "protocol_api.hpp"
 #include "rdb_protocol/protocol.hpp"
 
+class multi_table_manager_t;
 class primary_query_client_t;
 
 /* `table_query_client_t` is responsible for sending queries to the cluster. It
@@ -25,9 +26,11 @@ the entire table whereas they cover single shards. */
 class table_query_client_t : public namespace_interface_t {
 public:
     table_query_client_t(
+            const namespace_id_t &table_id,
             mailbox_manager_t *mm,
             watchable_map_t<std::pair<peer_id_t, uuid_u>, table_query_bcard_t>
                 *directory,
+            multi_table_manager_t *multi_table_manager,
             rdb_context_t *);
 
     /* Returns a signal that will be pulsed when we have either successfully connected
@@ -97,9 +100,9 @@ private:
             void (primary_query_client_t::*how_to_run_query)(const op_type &, op_response_type *, order_token_t, fifo_enforcer_token_type *, signal_t *) /* THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) */,
             std::vector<scoped_ptr_t<immediate_op_info_t<op_type, fifo_enforcer_token_type> > > *masters_to_contact,
             std::vector<op_response_type> *results,
-            std::vector<std::string> *failures,
+            std::vector<boost::optional<cannot_perform_query_exc_t> > *failures,
             order_token_t order_token,
-            int i,
+            size_t i,
             signal_t *interruptor)
         THROWS_NOTHING;
 
@@ -113,9 +116,15 @@ private:
             std::vector<scoped_ptr_t<outdated_read_info_t> > *direct_readers_to_contact,
             std::vector<read_response_t> *results,
             std::vector<std::string> *failures,
-            int i,
+            size_t i,
             signal_t *interruptor)
         THROWS_NOTHING;
+
+    void dispatch_debug_direct_read(
+            const read_t &op,
+            read_response_t *response,
+            signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
 
     void update_registrant(const std::pair<peer_id_t, uuid_u> &key,
                            const table_query_bcard_t *bcard);
@@ -126,10 +135,12 @@ private:
         bool is_start,
         auto_drainer_t::lock_t lock) THROWS_NOTHING;
 
-    mailbox_manager_t *mailbox_manager;
+    namespace_id_t const table_id;
+    mailbox_manager_t *const mailbox_manager;
     watchable_map_t<std::pair<peer_id_t, uuid_u>, table_query_bcard_t>
-        *directory;
-    rdb_context_t *ctx;
+        *const directory;
+    multi_table_manager_t *const multi_table_manager;
+    rdb_context_t *const ctx;
 
     rng_t distributor_rng;
 

@@ -62,7 +62,7 @@ std::map<std::string, wire_func_t> parse_global_optargs(protob_t<Query> q) {
                                             construct_optarg_wire_func(ap.val())));
         if (!insert_res.second) {
             rfail_toplevel(
-                    base_exc_t::GENERIC,
+                    base_exc_t::LOGIC,
                     "Duplicate global optarg: %s", ap.key().c_str());
         }
     }

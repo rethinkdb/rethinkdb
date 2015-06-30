@@ -49,9 +49,11 @@ public:
 namespace_repo_t::namespace_repo_t(
         mailbox_manager_t *_mailbox_manager,
         watchable_map_t<directory_key_t, table_query_bcard_t> *_directory,
+        multi_table_manager_t *_multi_table_manager,
         rdb_context_t *_ctx)
     : mailbox_manager(_mailbox_manager),
       directory(_directory),
+      multi_table_manager(_multi_table_manager),
       ctx(_ctx)
       { }
 
@@ -126,8 +128,10 @@ void namespace_repo_t::create_and_destroy_namespace_interface(
     on_thread_t switch_back(thread);
 
     table_query_client_t query_client(
+        table_id,
         mailbox_manager,
         directory_converter_on_this_thread.get_watchable(),
+        multi_table_manager,
         ctx);
 
     try {

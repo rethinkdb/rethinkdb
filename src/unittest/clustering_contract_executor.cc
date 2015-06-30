@@ -188,7 +188,8 @@ public:
                 &token,
                 primary_finder.get_disconnect_signal());
         } catch (const interrupted_exc_t &) {
-            throw cannot_perform_query_exc_t("lost contact with primary");
+            throw cannot_perform_query_exc_t(
+                "lost contact with primary", query_state_t::INDETERMINATE);
         }
     }
 
@@ -209,7 +210,9 @@ public:
                 &token,
                 primary_finder.get_disconnect_signal());
         } catch (const interrupted_exc_t &) {
-            throw cannot_perform_query_exc_t("lost contact with primary");
+            throw cannot_perform_query_exc_t(
+                "lost contact with primary",
+                query_state_t::FAILED);
         }
         EXPECT_EQ(expect, mock_parse_read_response(response));
     }
@@ -320,10 +323,12 @@ private:
                         bcard,
                         &disconnect);
                 } catch (const interrupted_exc_t &) {
-                     throw cannot_perform_query_exc_t("lost contact with primary");
+                     throw cannot_perform_query_exc_t(
+                         "lost contact with primary", query_state_t::FAILED);
                 }
             } else {
-                throw cannot_perform_query_exc_t("no primary found on this executor");
+                throw cannot_perform_query_exc_t(
+                    "no primary found on this executor", query_state_t::FAILED);
             }
         }
         signal_t *get_disconnect_signal() {

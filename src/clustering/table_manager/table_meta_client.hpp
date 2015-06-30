@@ -33,28 +33,28 @@ is a bug, they will never be shown to the user. */
 class no_such_table_exc_t : public std::runtime_error {
 public:
     no_such_table_exc_t() :
-        std::runtime_error("there is no table with the given name / UUID") { }
+        std::runtime_error("There is no table with the given name / UUID.") { }
 };
 
 class ambiguous_table_exc_t : public std::runtime_error {
 public:
     ambiguous_table_exc_t() :
-        std::runtime_error("there are multiple tables with the given name") { }
+        std::runtime_error("There are multiple tables with the given name.") { }
 };
 
 class failed_table_op_exc_t : public std::runtime_error {
 public:
-    failed_table_op_exc_t() : std::runtime_error("the attempt to read or modify the "
-        "table's configuration failed because none of the servers were accessible. if "
+    failed_table_op_exc_t() : std::runtime_error("The attempt to read or modify the "
+        "table's configuration failed because none of the servers were accessible.  If "
         "it was an attempt to modify, the modification did not take place.") { }
 };
 
 class maybe_failed_table_op_exc_t : public std::runtime_error {
 public:
-    maybe_failed_table_op_exc_t() : std::runtime_error("the attempt to modify the "
+    maybe_failed_table_op_exc_t() : std::runtime_error("The attempt to modify the "
         "table's configuration failed because we lost contact with the servers after "
         "initiating the modification, or the Raft leader lost contact with its "
-        "followers, or we timed out while waiting for the changes to propagate. the "
+        "followers, or we timed out while waiting for the changes to propagate.  The "
         "modification may or may not have taken place.") { }
 };
 
@@ -193,7 +193,7 @@ public:
             maybe_failed_table_op_exc_t);
 
 private:
-    typedef std::pair<table_basic_config_t, multi_table_manager_bcard_t::timestamp_t>
+    typedef std::pair<table_basic_config_t, multi_table_manager_timestamp_t>
         timestamped_basic_config_t;
 
     /* `create_or_emergency_repair()` factors out the common parts of `create()` and

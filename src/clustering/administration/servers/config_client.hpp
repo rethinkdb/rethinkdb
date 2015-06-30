@@ -6,9 +6,9 @@
 #include <set>
 #include <string>
 
-#include "containers/incremental_lenses.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/servers/server_metadata.hpp"
+#include "containers/incremental_lenses.hpp"
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/semilattice/view.hpp"
 
@@ -49,7 +49,7 @@ public:
         const name_string_t &old_server_name,   /* for error messages */
         const server_config_t &new_server_config,
         signal_t *interruptor,
-        std::string *error_out);
+        admin_err_t *error_out);
 
 private:
     void install_server_metadata(

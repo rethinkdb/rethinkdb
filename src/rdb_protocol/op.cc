@@ -96,7 +96,7 @@ arg_terms_t::arg_terms_t(const protob_t<const Term> _src, argspec_t _argspec,
     // We check this here *and* in `start_eval` because if `r.args` isn't in
     // play we want to give a compile-time error.
     rcheck(argspec.contains(original_args.size()),
-           base_exc_t::GENERIC,
+           base_exc_t::LOGIC,
            strprintf("Expected %s but found %zu.",
                      argspec.print().c_str(), original_args.size()));
 }
@@ -117,7 +117,7 @@ argvec_t arg_terms_t::start_eval(scope_env_t *env, eval_flags_t flags) const {
         }
     }
     rcheck(argspec.contains(args.size()),
-           base_exc_t::GENERIC,
+           base_exc_t::LOGIC,
            strprintf("Expected %s but found %zu.",
                      argspec.print().c_str(), args.size()));
     return argvec_t(std::move(args));
@@ -177,13 +177,13 @@ op_term_t::op_term_t(compile_env_t *env, const protob_t<const Term> term,
     for (int i = 0; i < term->optargs_size(); ++i) {
         const Term_AssocPair *ap = &term->optargs(i);
         rcheck_src(backtrace_id_t(&ap->val()), optargspec.contains(ap->key()),
-                   base_exc_t::GENERIC, strprintf("Unrecognized optional argument `%s`.",
+                   base_exc_t::LOGIC, strprintf("Unrecognized optional argument `%s`.",
                                                   ap->key().c_str()));
         counted_t<const term_t> t =
             compile_term(env, term.make_child(&ap->val()));
         auto res = optargs.insert(std::make_pair(ap->key(), std::move(t)));
         rcheck_src(backtrace_id_t(&ap->val()), res.second,
-                   base_exc_t::GENERIC, strprintf("Duplicate optional argument: %s",
+                   base_exc_t::LOGIC, strprintf("Duplicate optional argument: %s",
                                                   ap->key().c_str()));
     }
 }
@@ -329,7 +329,7 @@ bool bounded_op_term_t::open_bool(
     } else if (s == "closed") {
         return false;
     } else {
-        rfail(base_exc_t::GENERIC,
+        rfail(base_exc_t::LOGIC,
               "Expected `open` or `closed` for optarg `%s` (got `%s`).",
               key.c_str(), v->trunc_print().c_str());
     }

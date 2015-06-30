@@ -62,16 +62,18 @@ void fill_backtrace(Backtrace *bt_out,
 }
 
 void fill_error(Response *res,
-                Response::ResponseType type,
+                Response::ResponseType response_type,
+                Response::ErrorType error_type,
                 const std::string &message,
                 datum_t backtrace) {
-    guarantee(type == Response::CLIENT_ERROR ||
-              type == Response::COMPILE_ERROR ||
-              type == Response::RUNTIME_ERROR);
+    guarantee(response_type == Response::CLIENT_ERROR ||
+              response_type == Response::COMPILE_ERROR ||
+              response_type == Response::RUNTIME_ERROR);
     Datum error_msg;
     error_msg.set_type(Datum::R_STR);
     error_msg.set_r_str(message);
-    res->set_type(type);
+    res->set_type(response_type);
+    res->set_error_type(error_type);
     res->clear_response();
     res->clear_profile();
     *res->add_response() = error_msg;

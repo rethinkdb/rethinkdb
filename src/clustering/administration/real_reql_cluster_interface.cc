@@ -27,6 +27,7 @@ real_reql_cluster_interface_t::real_reql_cluster_interface_t(
         rdb_context_t *_rdb_context,
         server_config_client_t *_server_config_client,
         table_meta_client_t *_table_meta_client,
+        multi_table_manager_t *_multi_table_manager,
         watchable_map_t<
             std::pair<peer_id_t, std::pair<namespace_id_t, branch_id_t> >,
             table_query_bcard_t> *_table_query_directory
@@ -39,6 +40,7 @@ real_reql_cluster_interface_t::real_reql_cluster_interface_t(
     namespace_repo(
         mailbox_manager,
         _table_query_directory,
+        _multi_table_manager,
         rdb_context),
     changefeed_client(mailbox_manager,
         [this](const namespace_id_t &id, signal_t *interruptor) {
@@ -60,7 +62,7 @@ real_reql_cluster_interface_t::real_reql_cluster_interface_t(
 
 bool real_reql_cluster_interface_t::db_create(const name_string_t &name,
         signal_t *interruptor_on_caller, ql::datum_t *result_out,
-        std::string *error_out) {
+        admin_err_t *error_out) {
     guarantee(name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
     cluster_semilattice_metadata_t metadata;
@@ -73,7 +75,9 @@ bool real_reql_cluster_interface_t::db_create(const name_string_t &name,
         for (const auto &pair : metadata.databases.databases) {
             if (!pair.second.is_deleted() &&
                     pair.second.get_ref().name.get_ref() == name) {
-                *error_out = strprintf("Database `%s` already exists.", name.c_str());
+                *error_out = admin_err_t{
+                    strprintf("Database `%s` already exists.", name.c_str()),
+                    query_state_t::FAILED};
                 return false;
             }
         }
@@ -101,7 +105,7 @@ bool real_reql_cluster_interface_t::db_create(const name_string_t &name,
 
 bool real_reql_cluster_interface_t::db_drop(const name_string_t &name,
         signal_t *interruptor_on_caller, ql::datum_t *result_out,
-        std::string *error_out) {
+        admin_err_t *error_out) {
     guarantee(name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
     cluster_semilattice_metadata_t metadata;
@@ -160,7 +164,7 @@ bool real_reql_cluster_interface_t::db_drop(const name_string_t &name,
 
 bool real_reql_cluster_interface_t::db_list(
         UNUSED signal_t *interruptor_on_caller, std::set<name_string_t> *names_out,
-        UNUSED std::string *error_out) {
+        UNUSED admin_err_t *error_out) {
     databases_semilattice_metadata_t db_metadata;
     get_databases_metadata(&db_metadata);
     for (const auto &pair : db_metadata.databases) {
@@ -173,7 +177,7 @@ bool real_reql_cluster_interface_t::db_list(
 
 bool real_reql_cluster_interface_t::db_find(const name_string_t &name,
         UNUSED signal_t *interruptor_on_caller, counted_t<const ql::db_t> *db_out,
-        std::string *error_out) {
+        admin_err_t *error_out) {
     guarantee(name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
     /* Find the specified database */
@@ -192,17 +196,19 @@ bool real_reql_cluster_interface_t::db_config(
         ql::backtrace_id_t bt,
         ql::env_t *env,
         scoped_ptr_t<ql::val_t> *selection_out,
-        std::string *error_out) {
+        admin_err_t *error_out) {
     try {
         make_single_selection(admin_tables->db_config_backend.get(),
             name_string_t::guarantee_valid("db_config"), db->id, bt, env,
             selection_out);
         return true;
     } catch (const no_such_table_exc_t &) {
-        *error_out = strprintf("Database `%s` does not exist.", db->name.c_str());
+        *error_out = admin_err_t{
+            strprintf("Database `%s` does not exist.", db->name.c_str()),
+            query_state_t::FAILED};
         return false;
     } catch (const admin_op_exc_t &msg) {
-        *error_out = msg.what();
+        *error_out = admin_err_t{msg.what(), msg.query_state};
         return false;
     }
 }
@@ -214,7 +220,7 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
         write_durability_t durability,
         signal_t *interruptor_on_caller,
         ql::datum_t *result_out,
-        std::string *error_out) {
+        admin_err_t *error_out) {
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
 
@@ -227,8 +233,10 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
 
         /* Make sure there isn't an existing table with the same name */
         if (table_meta_client->exists(db->id, name)) {
-            *error_out = strprintf("Table `%s.%s` already exists.", db->name.c_str(),
-                name.c_str());
+            *error_out = admin_err_t{
+                strprintf("Table `%s.%s` already exists.",
+                          db->name.c_str(), name.c_str()),
+                query_state_t::FAILED};
             return false;
         }
 
@@ -259,7 +267,7 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
             admin_identifier_format_t::name, config.server_names);
 
     } catch (const admin_op_exc_t &msg) {
-        *error_out = msg.what();
+        *error_out = admin_err_t{msg.what(), msg.query_state};
         return false;
     } CATCH_NAME_ERRORS(db->name, name, error_out)
       CATCH_OP_ERRORS(db->name, name, error_out,
@@ -299,7 +307,7 @@ bool real_reql_cluster_interface_t::table_create(const name_string_t &name,
 
 bool real_reql_cluster_interface_t::table_drop(const name_string_t &name,
         counted_t<const ql::db_t> db, signal_t *interruptor_on_caller,
-        ql::datum_t *result_out, std::string *error_out) {
+        ql::datum_t *result_out, admin_err_t *error_out) {
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
     cluster_semilattice_metadata_t metadata;
@@ -340,7 +348,7 @@ bool real_reql_cluster_interface_t::table_drop(const name_string_t &name,
 
 bool real_reql_cluster_interface_t::table_list(counted_t<const ql::db_t> db,
         UNUSED signal_t *interruptor_on_caller, std::set<name_string_t> *names_out,
-        UNUSED std::string *error_out) {
+        UNUSED admin_err_t *error_out) {
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
     std::map<namespace_id_t, table_basic_config_t> tables;
@@ -357,7 +365,7 @@ bool real_reql_cluster_interface_t::table_find(
         const name_string_t &name, counted_t<const ql::db_t> db,
         UNUSED boost::optional<admin_identifier_format_t> identifier_format,
         signal_t *interruptor_on_caller,
-        counted_t<base_table_t> *table_out, std::string *error_out) {
+        counted_t<base_table_t> *table_out, admin_err_t *error_out) {
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
     namespace_id_t table_id;
@@ -387,7 +395,7 @@ bool real_reql_cluster_interface_t::table_estimate_doc_counts(
         const name_string_t &name,
         ql::env_t *env,
         std::vector<int64_t> *doc_counts_out,
-        std::string *error_out) {
+        admin_err_t *error_out) {
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
     cross_thread_signal_t interruptor_on_home(env->interruptor, home_thread());
@@ -439,7 +447,7 @@ bool real_reql_cluster_interface_t::table_config(
         ql::backtrace_id_t bt,
         ql::env_t *env,
         scoped_ptr_t<ql::val_t> *selection_out,
-        std::string *error_out) {
+        admin_err_t *error_out) {
     try {
         namespace_id_t table_id;
         table_meta_client->find(db->id, name, &table_id);
@@ -450,7 +458,7 @@ bool real_reql_cluster_interface_t::table_config(
             env, selection_out);
         return true;
     } catch (const admin_op_exc_t &msg) {
-        *error_out = msg.what();
+        *error_out = admin_err_t{msg.what(), msg.query_state};
         return false;
     } CATCH_NAME_ERRORS(db->name, name, error_out)
 }
@@ -461,7 +469,7 @@ bool real_reql_cluster_interface_t::table_status(
         ql::backtrace_id_t bt,
         ql::env_t *env,
         scoped_ptr_t<ql::val_t> *selection_out,
-        std::string *error_out) {
+        admin_err_t *error_out) {
     try {
         namespace_id_t table_id;
         table_meta_client->find(db->id, name, &table_id);
@@ -472,7 +480,7 @@ bool real_reql_cluster_interface_t::table_status(
             env, selection_out);
         return true;
     } catch (const admin_op_exc_t &msg) {
-        *error_out = msg.what();
+        *error_out = admin_err_t{msg.what(), msg.query_state};
         return false;
     } CATCH_NAME_ERRORS(db->name, name, error_out)
 }
@@ -483,7 +491,7 @@ bool real_reql_cluster_interface_t::table_wait(
         table_readiness_t readiness,
         signal_t *interruptor_on_caller,
         ql::datum_t *result_out,
-        std::string *error_out) {
+        admin_err_t *error_out) {
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
     try {
@@ -496,7 +504,7 @@ bool real_reql_cluster_interface_t::table_wait(
         *result_out = std::move(builder).to_datum();
         return true;
     } catch (const admin_op_exc_t &msg) {
-        *error_out = msg.what();
+        *error_out = admin_err_t{msg.what(), msg.query_state};
         return false;
     } CATCH_NAME_ERRORS(db->name, name, error_out)
 }
@@ -506,7 +514,7 @@ bool real_reql_cluster_interface_t::db_wait(
         table_readiness_t readiness,
         signal_t *interruptor_on_caller,
         ql::datum_t *result_out,
-        std::string *error_out) {
+        admin_err_t *error_out) {
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
 
@@ -527,7 +535,7 @@ bool real_reql_cluster_interface_t::db_wait(
         *result_out = std::move(builder).to_datum();
         return true;
     } catch (const admin_op_exc_t &msg) {
-        *error_out = msg.what();
+        *error_out = admin_err_t{msg.what(), msg.query_state};
         return false;
     }
 }
@@ -556,7 +564,7 @@ void real_reql_cluster_interface_t::reconfigure_internal(
         admin_tables->table_status_backend[
             static_cast<int>(admin_identifier_format_t::name)].get();
     ql::datum_t old_status;
-    std::string error;
+    admin_err_t error;
     if (!status_backend->read_row(convert_uuid_to_datum(table_id), interruptor_on_home,
             &old_status, &error)) {
         throw admin_op_exc_t(error);
@@ -618,7 +626,7 @@ bool real_reql_cluster_interface_t::table_reconfigure(
         bool dry_run,
         signal_t *interruptor_on_caller,
         ql::datum_t *result_out,
-        std::string *error_out) {
+        admin_err_t *error_out) {
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
     cross_thread_signal_t interruptor_on_home(interruptor_on_caller, home_thread());
@@ -630,7 +638,7 @@ bool real_reql_cluster_interface_t::table_reconfigure(
             result_out);
         return true;
     } catch (const admin_op_exc_t &msg) {
-        *error_out = msg.what();
+        *error_out = admin_err_t{msg.what(), msg.query_state};
         return false;
     } CATCH_NAME_ERRORS(db->name, name, error_out)
       CATCH_OP_ERRORS(db->name, name, error_out,
@@ -644,7 +652,7 @@ bool real_reql_cluster_interface_t::db_reconfigure(
         bool dry_run,
         signal_t *interruptor_on_caller,
         ql::datum_t *result_out,
-        std::string *error_out) {
+        admin_err_t *error_out) {
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
     cross_thread_signal_t interruptor_on_home(interruptor_on_caller, home_thread());
@@ -669,7 +677,7 @@ bool real_reql_cluster_interface_t::db_reconfigure(
             deleted before the operation even began. */
             continue;
         } catch (const admin_op_exc_t &msg) {
-            *error_out = msg.what();
+            *error_out = admin_err_t{msg.what(), msg.query_state};
             return false;
         } CATCH_OP_ERRORS(db->name, pair.second.name, error_out,
             "The tables may or may not have been reconfigured.",
@@ -707,7 +715,7 @@ void real_reql_cluster_interface_t::emergency_repair_internal(
         admin_tables->table_status_backend[
             static_cast<int>(admin_identifier_format_t::name)].get();
     ql::datum_t old_status;
-    std::string error;
+    admin_err_t error;
     if (!status_backend->read_row(convert_uuid_to_datum(table_id), interruptor_on_home,
             &old_status, &error)) {
         throw admin_op_exc_t(error);
@@ -727,17 +735,20 @@ void real_reql_cluster_interface_t::emergency_repair_internal(
 
     if (!rollback_found) {
         if (!erase_found) {
-            throw admin_op_exc_t("This table doesn't need to be repaired.");
+            throw admin_op_exc_t("This table doesn't need to be repaired.",
+                                 query_state_t::FAILED);
         } else if (erase_found && !allow_erase) {
-            throw admin_op_exc_t("One or more shards of this table have no available "
+            throw admin_op_exc_t(
+                "One or more shards of this table have no available "
                 "replicas. Since there are no available copies of the data that was "
                 "stored in those shards, those shards cannot be repaired. If you run "
                 "the command again with `emergency_repair` set to "
                 "`unsafe_rollback_or_erase`, those shards will be reset to an empty, "
                 "but writeable state; but if the missing replicas later reconnect, the "
-                "original data that was stored on them will be lost permanently.");
+                "original data that was stored on them will be lost permanently.",
+                query_state_t::FAILED);
         }
-    }    
+    }
 
     // Compute the new value of the config and status
     ql::datum_t new_config_datum = convert_table_config_to_datum(
@@ -771,7 +782,7 @@ bool real_reql_cluster_interface_t::table_emergency_repair(
         bool dry_run,
         signal_t *interruptor_on_caller,
         ql::datum_t *result_out,
-        std::string *error_out) {
+        admin_err_t *error_out) {
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
     cross_thread_signal_t interruptor_on_home(interruptor_on_caller, home_thread());
@@ -783,7 +794,7 @@ bool real_reql_cluster_interface_t::table_emergency_repair(
             &interruptor_on_home, result_out);
         return true;
     } catch (const admin_op_exc_t &msg) {
-        *error_out = msg.what();
+        *error_out = admin_err_t{msg.what(), msg.query_state};
         return false;
     } CATCH_NAME_ERRORS(db->name, name, error_out)
       CATCH_OP_ERRORS(db->name, name, error_out,
@@ -810,7 +821,7 @@ void real_reql_cluster_interface_t::rebalance_internal(
         admin_tables->table_status_backend[
             static_cast<int>(admin_identifier_format_t::name)].get();
     ql::datum_t old_status;
-    std::string error;
+    admin_err_t error;
     if (!status_backend->read_row(convert_uuid_to_datum(table_id), interruptor_on_home,
             &old_status, &error)) {
         throw admin_op_exc_t(error);
@@ -844,7 +855,7 @@ bool real_reql_cluster_interface_t::table_rebalance(
         const name_string_t &name,
         signal_t *interruptor_on_caller,
         ql::datum_t *result_out,
-        std::string *error_out) {
+        admin_err_t *error_out) {
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
     cross_thread_signal_t interruptor_on_home(interruptor_on_caller, home_thread());
@@ -855,7 +866,7 @@ bool real_reql_cluster_interface_t::table_rebalance(
         rebalance_internal(table_id, &interruptor_on_home, result_out);
         return true;
     } catch (const admin_op_exc_t &msg) {
-        *error_out = msg.what();
+        *error_out = admin_err_t{msg.what(), msg.query_state};
         return false;
     } CATCH_NAME_ERRORS(db->name, name, error_out)
       CATCH_OP_ERRORS(db->name, name, error_out,
@@ -867,7 +878,7 @@ bool real_reql_cluster_interface_t::db_rebalance(
         counted_t<const ql::db_t> db,
         signal_t *interruptor_on_caller,
         ql::datum_t *result_out,
-        std::string *error_out) {
+        admin_err_t *error_out) {
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
         "real_reql_cluster_interface_t should never get queries for system tables");
     cross_thread_signal_t interruptor_on_home(interruptor_on_caller, home_thread());
@@ -889,7 +900,7 @@ bool real_reql_cluster_interface_t::db_rebalance(
             just ignore it to avoid making a confusing error message. */
             continue;
         } catch (const admin_op_exc_t &msg) {
-            *error_out = msg.what();
+            *error_out = admin_err_t{msg.what(), msg.query_state};
             return false;
         } CATCH_OP_ERRORS(db->name, pair.second.name, error_out,
             "The tables may or may not have been rebalanced.",
@@ -928,22 +939,23 @@ bool real_reql_cluster_interface_t::sindex_create(
         const std::string &name,
         const sindex_config_t &config,
         signal_t *interruptor_on_caller,
-        std::string *error_out) {
+        admin_err_t *error_out) {
     try {
         sindex_change_internal(
             db, table,
             [&](std::map<std::string, sindex_config_t> *map) {
                 if (map->count(name) == 1) {
-                    throw admin_op_exc_t(strprintf(
-                        "Index `%s` already exists on table `%s.%s`.",
-                        name.c_str(), db->name.c_str(), table.c_str()));
+                    throw admin_op_exc_t(
+                        strprintf("Index `%s` already exists on table `%s.%s`.",
+                                  name.c_str(), db->name.c_str(), table.c_str()),
+                        query_state_t::FAILED);
                 }
                 map->insert(std::make_pair(name, config));
             },
             interruptor_on_caller);
         return true;
     } catch (const admin_op_exc_t &exc) {
-        *error_out = exc.what();
+        *error_out = admin_err_t{exc.what(), exc.query_state};
         return false;
     } CATCH_NAME_ERRORS(db->name, name, error_out)
       CATCH_OP_ERRORS(db->name, name, error_out,
@@ -956,22 +968,23 @@ bool real_reql_cluster_interface_t::sindex_drop(
         const name_string_t &table,
         const std::string &name,
         signal_t *interruptor_on_caller,
-        std::string *error_out) {
+        admin_err_t *error_out) {
     try {
         sindex_change_internal(
             db, table,
             [&](std::map<std::string, sindex_config_t> *map) {
                 if (map->count(name) == 0) {
-                    throw admin_op_exc_t(strprintf(
-                        "Index `%s` does not exist on table `%s.%s`.",
-                        name.c_str(), db->name.c_str(), table.c_str()));
+                    throw admin_op_exc_t(
+                        strprintf("Index `%s` does not exist on table `%s.%s`.",
+                                  name.c_str(), db->name.c_str(), table.c_str()),
+                        query_state_t::FAILED);
                 }
                 map->erase(name);
             },
             interruptor_on_caller);
         return true;
     } catch (const admin_op_exc_t &exc) {
-        *error_out = exc.what();
+        *error_out = admin_err_t{exc.what(), exc.query_state};
         return false;
     } CATCH_NAME_ERRORS(db->name, name, error_out)
       CATCH_OP_ERRORS(db->name, name, error_out,
@@ -986,24 +999,28 @@ bool real_reql_cluster_interface_t::sindex_rename(
         const std::string &new_name,
         bool overwrite,
         signal_t *interruptor_on_caller,
-        std::string *error_out) {
+        admin_err_t *error_out) {
     try {
         sindex_change_internal(
             db, table,
             [&](std::map<std::string, sindex_config_t> *map) {
                 if (map->count(name) == 0) {
-                    throw admin_op_exc_t(strprintf(
-                        "Index `%s` does not exist on table `%s.%s`.",
-                        name.c_str(), db->name.c_str(), table.c_str()));
+                    throw admin_op_exc_t(
+                        strprintf("Index `%s` does not exist on table `%s.%s`.",
+                                  name.c_str(), db->name.c_str(), table.c_str()),
+                        query_state_t::FAILED);
                 }
                 if (name != new_name) {
                     if (map->count(new_name) == 1) {
                         if (overwrite) {
                             map->erase(new_name);
                         } else {
-                            throw admin_op_exc_t(strprintf(
-                                "Index `%s` already exists on table `%s.%s`.",
-                                new_name.c_str(), db->name.c_str(), table.c_str()));
+                            throw admin_op_exc_t(
+                                strprintf("Index `%s` already exists on table `%s.%s`.",
+                                          new_name.c_str(),
+                                          db->name.c_str(),
+                                          table.c_str()),
+                                query_state_t::FAILED);
                         }
                     }
                     sindex_config_t config = map->at(name);
@@ -1014,7 +1031,7 @@ bool real_reql_cluster_interface_t::sindex_rename(
             interruptor_on_caller);
         return true;
     } catch (const admin_op_exc_t &exc) {
-        *error_out = exc.what();
+        *error_out = admin_err_t{exc.what(), exc.query_state};
         return false;
     } CATCH_NAME_ERRORS(db->name, name, error_out)
       CATCH_OP_ERRORS(db->name, name, error_out,
@@ -1026,7 +1043,7 @@ bool real_reql_cluster_interface_t::sindex_list(
         counted_t<const ql::db_t> db,
         const name_string_t &table_name,
         signal_t *interruptor_on_caller,
-        std::string *error_out,
+        admin_err_t *error_out,
         std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
             *configs_and_statuses_out) {
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
@@ -1087,7 +1104,7 @@ void real_reql_cluster_interface_t::make_single_selection(
         scoped_ptr_t<ql::val_t> *selection_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, admin_op_exc_t) {
     ql::datum_t row;
-    std::string error;
+    admin_err_t error;
     if (!table_backend->read_row(convert_uuid_to_datum(primary_key), env->interruptor,
             &row, &error)) {
         throw admin_op_exc_t(error);
