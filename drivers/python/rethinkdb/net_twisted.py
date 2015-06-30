@@ -1,6 +1,6 @@
 # Copyright 2015 RethinkDB, all rights reserved.
 
-import struct
+import struct, time
 
 from twisted.python import log
 from twisted.internet import reactor, defer
@@ -19,17 +19,6 @@ __all__ = ['Connection']
 
 pResponse = p.Response.ResponseType
 pQuery = p.Query.QueryType
-
-def start_timeout(timeout, *defersToFail):
-    # Timeout is None == Infinite wait
-    if timeout is None:
-        return
-
-    def raisesTimeout():
-        for deferToFail in defersToFail:
-            deferToFail.cancel()
-
-    return reactor.callLater(timeout, raisesTimeout)
 
 class DatabaseProtocol(Protocol):
     WAITING_FOR_HANDSHAKE = 0
@@ -51,10 +40,6 @@ class DatabaseProtocol(Protocol):
 
         self._open = True
 
-    def resetBuffer(self):
-        self.buf = bytes()
-        self.buf_expected_length = 0
-
     def connectionMade(self):
         # Send immediately the handshake.
         self.transport.write(self.factory.handshake_payload)
@@ -71,20 +56,23 @@ class DatabaseProtocol(Protocol):
         # If we are here, we failed to do the handshake before the timeout.
         # We close the connection and raise an RqlTimeoutError in the
         # wait_for_handshake deferred.
+        self._open = False
         self.transport.loseConnection()
         self.wait_for_handshake.errback(RqlTimeoutError())
 
     def _handleHandshake(self, data):
         try:
             self.buf += data
-            if self.buf[-1:] == b'\0':
-                message = decodeUTF(self.buf[:-1]).split('\n')[0]
-                if message != 'SUCCESS':
+            end_index = self.buf.find(b'\0')
+            if end_index != -1:
+                message = self.buf[:end_index]
+                self.buf = self.buf[end_index + 1:]
+                if message != b'SUCCESS':
                     # If there is some problem with the handshake, we errback
                     # our deferred.
                     self.wait_for_handshake.errback(RqlDriverError('Server'
-                    'dropped connection with message'
-                    '"{msg}"'.format(msg=message)))
+                        'dropped connection with message'
+                        '"{msg}"'.format(msg=decodeUTF(message))))
                 else:
                     # We cancel the scheduled timeout.
                     self._timeout_defer.cancel()
@@ -92,42 +80,39 @@ class DatabaseProtocol(Protocol):
                     self.wait_for_handshake.callback(None)
                     # We're now ready to work with real data.
                     self.state = DatabaseProtocol.READY
-                    self.resetBuffer()
         except Exception as e:
             self.wait_for_handshake.errback(e)
 
     def _handleResponse(self, data):
-        # 1. Read the header, until we read the length of the awaited payload.
-        if self.buf_expected_length == 0:
-            if len(data) >= 12:
-                token, length = struct.unpack('<qL', data[:12])
-                self.buf_token = token
-                self.buf_expected_length = length
-                data = data[12:]
-            else:
-                self.buf += data
-                # We quit the function, it is impossible to have read the
-                # entire payload at this point.
+        # If we have more than one response, we should handle all of them.
+        self.buf += data
+        while True:
+            # 1. Read the header, until we read the length of the awaited payload.
+            if self.buf_expected_length == 0:
+                if len(self.buf) >= 12:
+                    token, length = struct.unpack('<qL', self.buf[:12])
+                    self.buf_token = token
+                    self.buf_expected_length = length
+                    self.buf = self.buf[12:]
+                else:
+                    # We quit the function, it is impossible to have read the
+                    # entire payload at this point.
+                    return
+
+            # 2. Buffer the data, until the size of the data match the expected
+            # length provided by the header.
+            if len(self.buf) < self.buf_expected_length:
                 return
 
-        # 2. Buffer the data, until the size of the data match the expected
-        # length provided by the header.
-        self.buf += data
-        if len(self.buf) >= self.buf_expected_length:
-            expected_len = self.buf_expected_length
-            if len(data) > expected_len:
-                self.buf = self.buf[:expected_len]
-            self.factory.response_handler(self.buf_token, self.buf)
+            self.factory.response_handler(self.buf_token, self.buf[:self.buf_expected_length])
+            self.buf = self.buf[self.buf_expected_length:]
             self.buf_token = None
-            self.resetBuffer()
-            # If we have more than a response, we should rehandle them.
-            if len(data) > expected_len:
-                self._handleResponse(data[expected_len:])
-
+            self.buf_expected_length = 0
 
     def dataReceived(self, data):
         try:
-            self._handlers[self.state](data)
+            if self._open:
+                self._handlers[self.state](data)
         except Exception as e:
             raise RqlDriverError('Driver failed to handle received data.'
             'Error: {exc}. Dropping the connection.'.format(exc=str(e)))
@@ -156,67 +141,40 @@ class DatabaseProtoFactory(ClientFactory):
         pass
 
 class CursorItems(DeferredQueue):
-
     def __init__(self):
         super(CursorItems, self).__init__()
-
-    @inlineCallbacks
-    def wait_for_new_item(self):
-        """
-        Callback whenever a new item arrived.
-        It use the behavior of put.
-        Warning: It ignores QueueUnderflow / QueueOverflow mechanisms.
-        """
-        d = Deferred(canceller=self._cancelGet)
-        self.waiting.append(d)
-        item = yield d
-        self.pending.append(item)
-        returnValue(item)
 
     def cancel_getters(self, err):
         """
         Cancel all waiters.
         """
         for waiter in self.waiting[:]:
-            waiter.errback(err)
+            if not waiter.called:
+                waiter.errback(err)
             self.waiting.remove(waiter)
+
+    def extend(self, data):
+        for k in data:
+            self.put(k)
 
     def __len__(self):
         return len(self.pending)
 
-    def __getitem__(self, key):
-        return self.pending[key]
-
 class TwistedCursor(Cursor):
-
     def __init__(self, *args, **kwargs):
         super(TwistedCursor, self).__init__(*args, **kwargs)
         self.items = CursorItems()
-        self.new_response = Deferred()
-
-    def _extend_queue(self, data):
-        for k in data:
-            self.items.put(k)
+        self.waiting = list()
 
     def _extend(self, res):
-        self.outstanding_requests -= 1
-        self.threshold = len(res.data)
-        if self.error is None:
-            if res.type == pResponse.SUCCESS_PARTIAL:
-                self._extend_queue(res.data)
-            elif res.type == pResponse.SUCCESS_SEQUENCE:
-                self._extend_queue(res.data)
-                self.error = self._empty_error()
-                self.items.cancel_getters(self.error)
-            else:
-                self.error = res.make_error(self.query)
-            self._maybe_fetch_batch()
+        Cursor._extend(self, res)
 
-        if self.outstanding_requests == 0 and self.error is not None:
-            del self.conn._cursor_cache[res.token]
+        if self.error is not None:
+            self.items.cancel_getters(self.error)
 
-        self.new_response.callback(None)
-        self.new_response = Deferred()
+        for d in self.waiting[:]:
+            d.callback(None)
+            self.waiting.remove(d)
 
     def _empty_error(self):
         return RqlCursorEmpty(self.query.term)
@@ -224,40 +182,47 @@ class TwistedCursor(Cursor):
     @inlineCallbacks
     def fetch_next(self, wait=True):
         timeout = Cursor._wait_to_timeout(wait)
-        start_timeout(timeout, self.new_response)
+        deadline = None if timeout is None else time.time() + timeout
+
+        def wait_canceller(d):
+            d.errback(RqlTimeoutError())
+
         while len(self.items) == 0 and self.error is None:
             self._maybe_fetch_batch()
-            try:
-                yield self.new_response
-            except CancelledError:
-                raise RqlTimeoutError()
 
-        returnValue(not self.is_empty() or self.has_error())
+            wait = Deferred(canceller=wait_canceller)
+            self.waiting.append(wait)
+            if deadline is not None:
+                timeout = max(0, deadline - time.time())
+                reactor.callLater(timeout, lambda: wait.cancel())
+            yield wait
 
-    def has_error(self):
+        returnValue(not self._is_empty() or self._has_error())
+
+    def _has_error(self):
         return self.error and (not isinstance(self.error, RqlCursorEmpty))
 
-    def is_empty(self):
+    def _is_empty(self):
         return isinstance(self.error, RqlCursorEmpty) and len(self.items) == 0
 
     def _get_next(self, timeout):
-        if self.is_empty() or self.has_error():
+        if len(self.items) == 0 and self.error is not None:
             return defer.fail(self.error)
 
-        def returnNextItem(item):
-            return convert_pseudo(item, self.query)
-        def raiseTimeout(errback):
+        def raise_timeout(errback):
             if isinstance(errback.value, CancelledError):
                 raise RqlTimeoutError()
             else:
                 raise errback.value
 
         item_defer = self.items.get()
-        item_defer.addCallback(returnNextItem)
-        item_defer.addErrback(raiseTimeout)
-        start_timeout(timeout, item_defer)
-        self._maybe_fetch_batch()
+        item_defer.addCallback(lambda x: convert_pseudo(x, self.query))
 
+        if timeout is not None:
+            item_defer.addErrback(raise_timeout)
+            timer = reactor.callLater(timeout, lambda: item_defer.cancel())
+
+        self._maybe_fetch_batch()
         return item_defer
 
 

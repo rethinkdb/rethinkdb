@@ -90,18 +90,6 @@ def closeSharedServer():
     sharedServerHost = None
     sharedServerDriverPort = None
 
-# == Utilities functions
-def start_timeout(timeout, *defersToFail):
-    # Timeout = 0 or None then, there is no timeout.
-    if timeout == 0 or timeout is None or (not timeout):
-        return
-
-    def raisesTimeout():
-        for deferToFail in defersToFail:
-            deferToFail.errback(r.RqlTimeoutError())
-
-    return reactor.callLater(timeout, raisesTimeout)
-
 
 # == Test Base Classes
 
@@ -755,18 +743,22 @@ class TestCursor(TestWithConnection):
         cursor_initial_size = len(cursor.items)
 
         # Wait for the second (pre-fetched) batch to arrive
-        yield cursor.items.wait_for_new_item() # Wait for the queue.
-        yield sleep(0.5) # Let's wait a little bit (to let the items aggregate them).
+        new_response = defer.Deferred()
+        reactor.callLater(2, lambda: new_response.cancel())
+        cursor.waiting.append(new_response)
+        yield new_response
+
         cursor_new_size = len(cursor.items)
 
         self.assertLess(cursor_initial_size, cursor_new_size)
 
 
         # Wait and observe that no third batch arrives
-        with self.assertRaises(r.RqlTimeoutError):
-            new_item = cursor.items.wait_for_new_item()
-            start_timeout(2, new_item)
-            yield new_item
+        with self.assertRaises(defer.CancelledError):
+            new_response = defer.Deferred()
+            reactor.callLater(2, lambda: new_response.cancel())
+            cursor.waiting.append(new_response)
+            yield new_response
 
         self.assertEqual(cursor_new_size, len(cursor.items))
 
