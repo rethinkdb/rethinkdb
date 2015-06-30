@@ -185,7 +185,7 @@ private:
         coro_t::spawn_sometime([this, lock, keepalive   /* important to capture */]() {
             try {
                 int time = config.min_preempt_ms +
-                    randint(config.max_preempt_ms - config.min_preempt_ms);
+                    randint(config.max_preempt_ms - config.min_preempt_ms + 1);
                 nap(time, keepalive.get_drain_signal());
                 preempt(lock);
             } catch (const interrupted_exc_t &) {

@@ -189,12 +189,6 @@ remote_replicator_client_t::remote_replicator_client_t(
     /* Subscribe to the stream of writes coming from the primary */
     remote_replicator_client_intro_t intro;
     {
-        /* As soon as we construct `registrant_`, we might start getting calls to
-        `on_write_async()`. But we can't process those calls properly until after we've
-        received the message on `intro_mailbox`. So we use `rwlock_` to make them wait
-        until we're ready. */
-        rwlock_acq_t rwlock_acq(&rwlock_, access_t::write, interruptor);
-
         cond_t got_intro;
         remote_replicator_client_bcard_t::intro_mailbox_t intro_mailbox(
             mailbox_manager,
@@ -216,6 +210,7 @@ remote_replicator_client_t::remote_replicator_client_t(
         registrant_.init(new registrant_t<remote_replicator_client_bcard_t>(
             mailbox_manager, remote_replicator_server_bcard.registrar, our_bcard));
         wait_interruptible(&got_intro, interruptor);
+        registered_.pulse();
     }
 
     /* OK, now we're streaming writes from the primary, but they're being discarded as
@@ -269,11 +264,6 @@ remote_replicator_client_t::remote_replicator_client_t(
                 parent(p), pause_signal(ps) { }
             bool on_progress(const region_map_t<version_t> &chunk) THROWS_NOTHING {
                 mutex_assertion_t::acq_t mutex_assertion_acq(&parent->mutex_assertion_);
-                rassert(parent->next_write_waiter_ == nullptr ||
-                    parent->next_write_waiter_->is_pulsed() ||
-                    !parent->next_write_can_proceed(&mutex_assertion_acq),
-                    "next_write_waiter_ should be null because on_write should already "
-                    "be able to proceed");
                 chunk.visit(chunk.get_domain(),
                 [&](const region_t &reg, const version_t &vers) {
                     parent->tracker_->record_backfill(reg, vers.timestamp);
@@ -370,19 +360,20 @@ void remote_replicator_client_t::on_write_async(
         order_token_t order_token,
         const mailbox_t<void()>::address_t &ack_addr)
         THROWS_ONLY(interrupted_exc_t) {
+    wait_interruptible(&registered_, interruptor);
+
     timestamp_enforcer_->wait_all_before(timestamp.pred(), interruptor);
 
     rwlock_acq_t rwlock_acq(&rwlock_, access_t::read, interruptor);
 
     mutex_assertion_t::acq_t mutex_assertion_acq(&mutex_assertion_);
-    if (!next_write_can_proceed(&mutex_assertion_acq)) {
+    while (!next_write_can_proceed(&mutex_assertion_acq)) {
         cond_t cond;
         guarantee(next_write_waiter_ == nullptr);
         assignment_sentry_t<cond_t *> cond_sentry(&next_write_waiter_, &cond);
         mutex_assertion_acq.reset();
         wait_interruptible(&cond, interruptor);
         mutex_assertion_acq.reset(&mutex_assertion_);
-        guarantee(next_write_can_proceed(&mutex_assertion_acq));
     }
 
     if (mode_ == backfill_mode_t::STREAMING) {

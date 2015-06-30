@@ -118,7 +118,7 @@ private:
     scoped_ptr_t<replica_t> replica_;
 
     mutex_assertion_t mutex_assertion_;
-
+    cond_t registered_;
     rwlock_t rwlock_;
 
     remote_replicator_client_bcard_t::write_async_mailbox_t write_async_mailbox_;
