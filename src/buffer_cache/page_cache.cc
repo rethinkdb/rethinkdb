@@ -30,6 +30,17 @@ cache_conn_t::~cache_conn_t() {
 
 namespace alt {
 
+// This limit exists for the purpose of making the unwritten transaction limit
+// behave more smoothly. Without this, we would often have all
+// NUM_UNWRITTEN_TXNS_LIMIT (see alt.cc) transactions get into the same index write,
+// making subsequent transactions wait until all of them would be done.
+// Keeping the individual index writes slightly smaller not only keeps latencies
+// for throttled transaction in check under benchmarking conditions, but also
+// allows for a better overall utilization of resources because more things can
+// happen in parallel.
+const int32_t MAX_TXNS_PER_INDEX_WRITE = 128;
+
+
 class current_page_help_t {
 public:
     current_page_help_t(block_id_t _block_id, page_cache_t *_page_cache)
@@ -218,6 +229,7 @@ page_cache_t::page_cache_t(serializer_t *serializer,
         }
         default_reads_account_.init(serializer->home_thread(),
                                     serializer->make_io_account(CACHE_READS_IO_PRIORITY));
+        index_write_txns_semaphore_.init(new new_semaphore_t(MAX_TXNS_PER_INDEX_WRITE));
         index_write_sink_.init(new page_cache_index_write_sink_t);
         recencies_ = serializer->get_all_recencies();
     }
@@ -251,13 +263,15 @@ page_cache_t::~page_cache_t() {
     }
 
     {
-        /* IO accounts must be destroyed on the thread they were created on */
+        /* IO accounts and a few other fields must be destroyed on the serializer
+        thread. */
         on_thread_t thread_switcher(serializer_->home_thread());
         // Resetting default_reads_account_ is opportunistically done here, instead
         // of making its destructor switch back to the serializer thread a second
         // time.
         default_reads_account_.reset();
         index_write_sink_.reset();
+        index_write_txns_semaphore_.reset();
     }
 }
 
@@ -1345,8 +1359,14 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
 
         rassert(!write_ops.empty());
         mutex_acq.acq_signal()->wait();
-        page_cache->serializer_->index_write(&mutex_acq,
-                                             write_ops);
+        {
+            new_semaphore_acq_t index_write_sem_acq(
+                page_cache->index_write_txns_semaphore_.get(),
+                txns.size());
+            index_write_sem_acq.acquisition_signal()->wait();
+            page_cache->serializer_->index_write(&mutex_acq,
+                                                 write_ops);
+        }
     }
 
     // Wait until the block release coroutine has finished to we can safely

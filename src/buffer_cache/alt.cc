@@ -21,7 +21,15 @@ using alt::throttler_acq_t;
 const int64_t MINIMUM_SOFT_UNWRITTEN_CHANGES_LIMIT = 1;
 const int64_t SOFT_UNWRITTEN_CHANGES_LIMIT = 8000;
 const double SOFT_UNWRITTEN_CHANGES_MEMORY_FRACTION = 0.5;
-const int32_t NUM_UNWRITTEN_TXNS_LIMIT = 128;
+
+// In addition to the data blocks themselves, transactions that are not completely
+// flushed yet consume memory for the index writes and general metadata. If
+// there are a lot of soft durability transactions, these can accumulate and consume
+// an increasing amount of RAM. Hence we limit the number of unwritten transactions
+// in addition to the number of unwritten blocks.
+// Note: When updating this, please make sure that `MAX_TXNS_PER_INDEX_WRITE` in
+// page_cache.cc still has an appropriate value.
+const int32_t NUM_UNWRITTEN_TXNS_LIMIT = 1024;
 
 // There are very few ASSERT_NO_CORO_WAITING calls (instead we have
 // ASSERT_FINITE_CORO_WAITING) because most of the time we're at the mercy of the

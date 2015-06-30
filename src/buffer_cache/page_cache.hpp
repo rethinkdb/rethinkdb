@@ -440,6 +440,12 @@ private:
     // default account).
     cache_account_t default_reads_account_;
 
+    // Limits the number of transactions that can get into a single index write.
+    // See the description for `MAX_TXNS_PER_INDEX_WRITE` in page_cache.cc for
+    // details.
+    // index_write_txns_semaphore_'s pontee's home thread is on the serializer.
+    scoped_ptr_t<new_semaphore_t> index_write_txns_semaphore_;
+
     // This fifo enforcement pair ensures ordering of index_write operations after we
     // move to the serializer thread and get a bunch of blocks written.
     // index_write_sink's pointee's home thread is on the serializer.
