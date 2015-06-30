@@ -24,8 +24,18 @@ class RqlServerError extends Error
 class RqlRuntimeError extends RqlServerError
 
 class RqlCompileError extends RqlServerError
-
 class RqlClientError extends RqlServerError
+
+class RqlInternalError extends RqlRuntimeError
+class RqlResourceError extends RqlRuntimeError
+class RqlLogicError extends RqlRuntimeError
+class RqlNonExistenceError extends RqlRuntimeError
+
+class RqlOpError extends RqlRuntimeError
+class RqlOpFailedError extends RqlOpError
+class RqlOpIndeterminateError extends RqlOpError
+
+class RqlUserError extends RqlRuntimeError
 
 class RqlQueryPrinter
     printQuery: (term) ->
