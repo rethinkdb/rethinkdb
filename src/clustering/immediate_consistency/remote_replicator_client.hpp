@@ -97,8 +97,10 @@ private:
     /* `timestamp_range_tracker_t` is essentially a `region_map_t<state_timestamp_t>`,
     but in a different format and optimized for this specific use case. The domain of
     `tracker_` is the region that has been backfilled thus far; the values are equal to
-    the current timestamps in the B-tree metainfo. `tracker_` exists only during the
-    backfill; it gets destroyed after the backfill is over. */
+    the current timestamps in the B-tree metainfo. `tracker_` is used to make sure that
+    every change gets applied either as a streaming change or as a backfilled change but
+    not as both. `tracker_` exists only during the backfill; it gets destroyed after the
+    backfill is over. */
     scoped_ptr_t<timestamp_range_tracker_t> tracker_;
 
     /* Returns `true` if the next write can be applied now, instead of having to wait for
@@ -117,9 +119,19 @@ private:
     /* `replica_` is created at the end of the constructor, once the backfill is over. */
     scoped_ptr_t<replica_t> replica_;
 
+    /* `mutex_assertion_` protects `mode_`, `tracker_`, `next_write_waiter_`,
+    `timestamp_enforcer_`, and `replica_`; but we aren't particularly careful about
+    always acquiring it before accessing those variables. */
     mutex_assertion_t mutex_assertion_;
+
+    /* `registered_` is pulsed once `timestamp_enforcer_` is set up. So
+    `on_write_async()` has to wait for it before proceeding. */
     cond_t registered_;
-    rwlock_t rwlock_;
+
+    /* `cleanup_rwlock_` is used to temporarily lock out writes when doing the very last
+    phase of the backfill. Writes acquire it in read mode; the last phase of the backfill
+    acquires it in write mode. */
+    rwlock_t cleanup_rwlock_;
 
     remote_replicator_client_bcard_t::write_async_mailbox_t write_async_mailbox_;
     remote_replicator_client_bcard_t::write_sync_mailbox_t write_sync_mailbox_;

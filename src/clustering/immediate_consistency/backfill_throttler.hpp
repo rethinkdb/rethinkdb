@@ -13,10 +13,17 @@
 #include "rpc/connectivity/peer_id.hpp"
 #include "threading.hpp"
 
+/* `backfill_throttler_t` controls which backfills are allowed to run when. It can block
+backfills from starting and also preempt already-running backfills. It's abstract to make
+unit testing easier; the concrete implementation used in production is always
+`standard_backfill_throttler_t`. */
+
 class backfill_throttler_t : public home_thread_mixin_t {
 public:
     class priority_t {
     public:
+        /* Backfills are marked as "critical" if the availability of a table depends on
+        them. */
         enum class critical_t { NO, YES };
         bool operator<(const priority_t &other) const {
             /* Prrocess critical backfills before non-critical backfills; process
@@ -28,6 +35,9 @@ public:
         int num_changes;
     };
 
+    /* Every backfill constructs a `lock_t` before starting. If the lock's preempt signal
+    is pulsed, the backfill will pause, destroy the `lock_t`, and construct another
+    `lock_t` before resuming. */
     class lock_t : public home_thread_mixin_t {
     public:
         lock_t(backfill_throttler_t *p,

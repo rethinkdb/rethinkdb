@@ -34,8 +34,8 @@ public:
         }
     }
 
-    /* Records that the write with the given timestamp has been applies in the given
-    region. */
+    /* Records that the streaming write with the given timestamp has been applied in the
+    given region. */
     void record_write(const region_t &region, state_timestamp_t ts) {
         rassert(ts == prev_timestamp.next());
         prev_timestamp = ts;
@@ -86,9 +86,7 @@ public:
     such that the streaming write and the backfill together will neither skip nor
     duplicate any change. If the backfill hasn't sent us any changes with timestamps
     equal to or greater than the next write, we wouldn't be able to determine where
-    to clip the write, so this will crash. It also updates the
-    `timestamp_range_tracker_t`'s internal record to reflect the fact that the write
-    will be applied to the store. */
+    to clip the write, so this will crash. */
     void clip_next_write_backfilling(
             state_timestamp_t timestamp, region_t *region_out) {
         guarantee(can_clip_next_write_backfilling());
@@ -227,10 +225,10 @@ remote_replicator_client_t::remote_replicator_client_t(
         anything from the backfiller and we aren't piling up changes in any queues. */
         store->wait_until_ok_to_receive_backfill(interruptor);
 
+        /* Acquire the backfill throttler lock. */
         backfill_throttler_t::priority_t priority;
         priority.critical = is_critical_priority;
         priority.num_changes = backfillee.get_num_changes_estimate();
-
         backfill_throttler_t::lock_t backfill_throttler_lock(
             backfill_throttler, priority, interruptor);
 
@@ -245,7 +243,12 @@ remote_replicator_client_t::remote_replicator_client_t(
         }
 
         /* Block until backfiller reaches `backfill_start_timestamp`, to ensure that the
-        backfill end timestamp will be at least `backfill_start_timestamp` */
+        backfill end timestamp will be at least `backfill_start_timestamp`. In the first
+        time through the loop, this is important to ensure that there isn't any gap
+        between the backfilled data and the streamed writes; in subsequent iterations,
+        this is important to ensure that if we threw away part of a streamed change while
+        in `PAUSED` mode, we'll definitely get that part of that write as part of the
+        backfill. */
         {
             cond_t backfiller_is_up_to_date;
             mailbox_t<void()> ack_mbox(
@@ -261,7 +264,7 @@ remote_replicator_client_t::remote_replicator_client_t(
         class callback_t : public backfillee_t::callback_t {
         public:
             callback_t(remote_replicator_client_t *p, signal_t *ps) :
-                parent(p), pause_signal(ps) { }
+                parent(p), preempt_signal(ps) { }
             bool on_progress(const region_map_t<version_t> &chunk) THROWS_NOTHING {
                 mutex_assertion_t::acq_t mutex_assertion_acq(&parent->mutex_assertion_);
                 chunk.visit(chunk.get_domain(),
@@ -275,10 +278,10 @@ remote_replicator_client_t::remote_replicator_client_t(
                 }
                 /* If the backfill throttler is telling us to pause, then interrupt
                 `backfillee.go()` */
-                return !pause_signal->is_pulsed();
+                return !preempt_signal->is_pulsed();
             }
             remote_replicator_client_t *parent;
-            signal_t *pause_signal;
+            signal_t *preempt_signal;
         } callback(this, backfill_throttler_lock.get_preempt_signal());
 
         backfillee.go(
@@ -294,6 +297,7 @@ remote_replicator_client_t::remote_replicator_client_t(
             guarantee(mode_ == backfill_mode_t::BACKFILLING);
             mode_ = backfill_mode_t::PAUSED;
             if (next_write_waiter_ != nullptr) {
+                /* Writes can always proceed immediately in `PAUSED` mode */
                 next_write_waiter_->pulse_if_not_already_pulsed();
             }
         }
@@ -305,13 +309,13 @@ remote_replicator_client_t::remote_replicator_client_t(
 
     {
         /* Lock out writes again because some of these final operations might block */
-        rwlock_acq_t rwlock_acq(&rwlock_, access_t::write, interruptor);
+        rwlock_acq_t cleanup_rwlock_acq(&cleanup_rwlock_, access_t::write, interruptor);
         mutex_assertion_t::acq_t mutex_assertion_acq(&mutex_assertion_);
 
         guarantee(tracker_->is_homogeneous());
         guarantee(tracker_->get_prev_timestamp() ==
             timestamp_enforcer_->get_latest_all_before_completed());
-        tracker_.reset();   /* we don't need it anymore */
+        tracker_.reset();   /* we don't need `tracker_` anymore */
 
 #ifndef NDEBUG
         /* Sanity check that the store's metainfo is all on the correct branch and
@@ -339,6 +343,7 @@ remote_replicator_client_t::remote_replicator_client_t(
         mode_ = backfill_mode_t::STREAMING;
 
         if (next_write_waiter_ != nullptr) {
+            /* Writes can always proceed immediately in `STREAMING` mode */
             next_write_waiter_->pulse_if_not_already_pulsed();
         }
     }
@@ -364,7 +369,7 @@ void remote_replicator_client_t::on_write_async(
 
     timestamp_enforcer_->wait_all_before(timestamp.pred(), interruptor);
 
-    rwlock_acq_t rwlock_acq(&rwlock_, access_t::read, interruptor);
+    rwlock_acq_t cleanup_rwlock_acq(&cleanup_rwlock_, access_t::read, interruptor);
 
     mutex_assertion_t::acq_t mutex_assertion_acq(&mutex_assertion_);
     while (!next_write_can_proceed(&mutex_assertion_acq)) {
@@ -379,9 +384,12 @@ void remote_replicator_client_t::on_write_async(
     if (mode_ == backfill_mode_t::STREAMING) {
         /* Once the constructor is done, all writes will take this branch; it's the
         common case. */
+
         timestamp_enforcer_->complete(timestamp);
+
+        /* Release the locks before we start the slow part */
         mutex_assertion_acq.reset();
-        rwlock_acq.reset();
+        cleanup_rwlock_acq.reset();
 
         write_response_t dummy_response;
         replica_->do_write(write, timestamp, order_token, write_durability_t::SOFT,
@@ -397,8 +405,10 @@ void remote_replicator_client_t::on_write_async(
         write_token_t token;
         store_->new_write_token(&token);
         timestamp_enforcer_->complete(timestamp);
+
+        /* Release the locks before we start the slow part */
         mutex_assertion_acq.reset();
-        rwlock_acq.reset();
+        cleanup_rwlock_acq.reset();
 
         if (!region_is_empty(clip_region)) {
             region_map_t<binary_blob_t> new_metainfo(
@@ -417,6 +427,8 @@ void remote_replicator_client_t::on_write_async(
                     write_durability_t::SOFT, timestamp, order_token, &token,
                     interruptor);
             } else {
+                /* The write doesn't actually affect any keys in this region, but we
+                still have to update the metainfo for consistency's sake. */
                 store_->set_metainfo(new_metainfo, order_token, &token,
                     write_durability_t::SOFT, interruptor);
             }
