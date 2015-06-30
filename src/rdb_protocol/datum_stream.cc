@@ -745,8 +745,7 @@ datum_stream_t::next_batch(env_t *env, const batchspec_t &batchspec) {
     }
 }
 
-datum_t datum_stream_t::next(
-    env_t *env, const batchspec_t &batchspec) {
+datum_t datum_stream_t::next(env_t *env, const batchspec_t &batchspec) {
 
     profile::starter_t("Reading element from datum stream.", env->trace);
     if (batch_cache_index >= batch_cache.size()) {
@@ -1409,6 +1408,7 @@ map_datum_stream_t::map_datum_stream_t(std::vector<counted_t<datum_stream_t> > &
                                        const protob_t<const Backtrace> &bt_src)
     : eager_datum_stream_t(bt_src), streams(std::move(_streams)), func(std::move(_func)),
       union_type(feed_type_t::not_feed), is_array_map(true), is_infinite_map(true) {
+    args.reserve(streams.size());
     for (const auto &stream : streams) {
         is_array_map &= stream->is_array();
         union_type = union_of(union_type, stream->cfeed_type());
@@ -1427,18 +1427,30 @@ map_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
     std::vector<datum_t> batch;
     batcher_t batcher = batchspec.to_batcher();
 
-    std::vector<datum_t> args;
-    args.reserve(streams.size());
     // We need a separate batchspec for the streams to prevent calling `stream->next`
     // with a `batch_type_t::TERMINAL` on an infinite stream.
     batchspec_t batchspec_inner = batchspec_t::default_for(batch_type_t::NORMAL);
     while (!is_exhausted()) {
-        args.clear();   // This prevents allocating a new vector every iteration.
-        for (const auto &stream : streams) {
-            args.push_back(stream->next(env, batchspec_inner));
+        while (args.size() < streams.size()) {
+            datum_t d = streams[args.size()]->next(env, batchspec_inner);
+            if (union_type == feed_type_t::not_feed) {
+                r_sanity_check(d.has());
+            } else {
+                if (!d.has()) {
+                    // This just causes us to hit the `break` below.  I really
+                    // wish C++ let you break out of two loops at once.
+                    break;
+                }
+            }
+            args.push_back(std::move(d));
         }
-
+        if (args.size() < streams.size()) {
+            // We still allow empty changefeed batches for the web UI.
+            break;
+        }
         datum_t datum = func->call(env, args)->as_datum();
+        r_sanity_check(datum.has());
+        args.clear();
         batcher.note_el(datum);
         batch.push_back(std::move(datum));
         if (batcher.should_send_batch()) {
