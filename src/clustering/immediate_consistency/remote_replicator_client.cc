@@ -122,13 +122,13 @@ private:
     /* Same as `remote_replicator_client_t::store_->get_region()`. */
     region_t store_region;
 
-    /* The timestamp of the next streaming write that should be applied. */
+    /* The timestamp of the last streaming write that has been applied. */
     state_timestamp_t prev_timestamp;
 
     /* Each entry in `entries` represents a possibly-empty range. The right bound of
     the range is the `right_bound_t` on the entry; the left bound of the range is the
     `right_bound_t` on the previous entry, or `store_region.inner.left` for the very
-    first entry. There will always be at least one entry.
+    first entry.
 
     The entries' `right_bound_t`s and timestamps will be strictly monotonically
     increasing, but the difference between adjacent entries' timestamps may be more
