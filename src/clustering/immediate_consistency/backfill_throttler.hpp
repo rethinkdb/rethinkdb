@@ -26,13 +26,19 @@ public:
         them. */
         enum class critical_t { NO, YES };
         bool operator<(const priority_t &other) const {
-            /* Prrocess critical backfills before non-critical backfills; process
-            backfills with few changes before backfills with many changes */
-            return std::make_tuple(critical, -num_changes) <
-                std::make_tuple(other.critical, -other.num_changes);
+            /* Prrocess critical backfills before non-critical backfills */
+            if (other.critical == critical_t::YES && critical == critical_t::NO) {
+                return true;
+            } else if (other.critical == critical_t::NO && critical == critical_t::YES) {
+                return false;
+            } else {
+                /* If backfills are equally critical, prioritize the one that is likely
+                to finish faster */
+                return num_changes > other.num_changes;
+            }
         }
         critical_t critical;
-        int num_changes;
+        uint64_t num_changes;
     };
 
     /* Every backfill constructs a `lock_t` before starting. If the lock's preempt signal
