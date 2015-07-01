@@ -1,7 +1,7 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
 
-#include "clustering/immediate_consistency/backfill_throttler.hpp"
+#include "clustering/immediate_consistency/standard_backfill_throttler.hpp"
 #include "clustering/table_contract/executor/executor.hpp"
 #include "clustering/table_manager/backfill_progress_tracker.hpp"
 #include "unittest/branch_history_manager.hpp"
@@ -75,7 +75,7 @@ private:
     friend class executor_tester_t;
     simple_mailbox_cluster_t cluster;
     io_backender_t io_backender;
-    backfill_throttler_t backfill_throttler;
+    standard_backfill_throttler_t backfill_throttler;
     backfill_progress_tracker_t backfill_progress_tracker;
     watchable_map_var_t<
         std::pair<server_id_t, branch_id_t>,

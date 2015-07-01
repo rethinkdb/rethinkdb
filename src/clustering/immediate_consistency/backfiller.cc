@@ -118,6 +118,25 @@ backfiller_t::client_t::client_t(
         }
     }
 
+    /* Estimate the total number of changes that will need to be backfilled, by comparing
+    `our_version`, `intro.initial_version`, and `common_version`. We estimate the number
+    of changes as the largest version difference. In theory we could be smarter by
+    cross-referencing with `distribution_counts`, but it's not worth the trouble for now.
+    */
+    uint64_t num_changes_estimate = 0;
+    our_version.visit(full_region, [&](const region_t &r1, const version_t &v1) {
+        intro.initial_version.visit(r1, [&](const region_t &r2, const version_t &v2) {
+            common_version.visit(r2, [&](const region_t &, const state_timestamp_t &b) {
+                guarantee(v1.timestamp >= b);
+                guarantee(v2.timestamp >= b);
+                uint64_t backfiller_changes = v1.timestamp.count_changes(b);
+                uint64_t backfillee_changes = v2.timestamp.count_changes(b);
+                uint64_t total_changes = backfiller_changes + backfillee_changes;
+                num_changes_estimate = std::max(num_changes_estimate, total_changes);
+            });
+        });
+    });
+
     /* Send the computed common ancestor to the backfillee, along with the mailboxes it
     can use to contact us. */
     backfiller_bcard_t::intro_2_t our_intro;
@@ -127,6 +146,7 @@ backfiller_t::client_t::client_t(
     our_intro.begin_session_mailbox = begin_session_mailbox.get_address();
     our_intro.end_session_mailbox = end_session_mailbox.get_address();
     our_intro.ack_items_mailbox = ack_items_mailbox.get_address();
+    our_intro.num_changes_estimate = num_changes_estimate;
     our_intro.distribution_counts = std::move(distribution_counts);
     our_intro.distribution_counts_sum = distribution_counts_sum;
     send(parent->mailbox_manager, intro.intro_mailbox, our_intro);
