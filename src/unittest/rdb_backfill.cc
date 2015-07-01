@@ -179,7 +179,7 @@ public:
 before preempting it. */
 class stress_backfill_throttler_t : public backfill_throttler_t {
 public:
-    stress_backfill_throttler_t(const backfill_test_config_t &_config) :
+    explicit stress_backfill_throttler_t(const backfill_test_config_t &_config) :
         config(_config) { }
     ~stress_backfill_throttler_t() {
         guarantee(drainers.empty());
@@ -187,6 +187,7 @@ public:
 
 private:
     void enter(lock_t *lock, signal_t *) {
+        assert_thread();   /* this unit test is single-threaded */
         drainers[lock].init(new auto_drainer_t);
         auto_drainer_t::lock_t keepalive(drainers[lock].get());
         coro_t::spawn_sometime([this, lock, keepalive   /* important to capture */]() {
@@ -202,6 +203,7 @@ private:
     }
 
     void exit(lock_t *lock) {
+        assert_thread();
         size_t res = drainers.erase(lock);
         guarantee(res == 1);
     }
