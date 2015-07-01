@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2014 RethinkDB, all rights reserved.
+# Copyright 2015 RethinkDB, all rights reserved.
 
 from __future__ import print_function
 
