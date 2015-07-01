@@ -30,15 +30,15 @@ cache_conn_t::~cache_conn_t() {
 
 namespace alt {
 
-// This limit exists for the purpose of making the unwritten transaction limit
-// behave more smoothly. Without this, we would often have all
-// NUM_UNWRITTEN_TXNS_LIMIT (see alt.cc) transactions get into the same index write,
-// making subsequent transactions wait until all of them would be done.
+// This limit exists for the purpose of making the unwritten index changes limit
+// behave more smoothly. Without this, we would often have all transactions
+// get into the same index write, making subsequent transactions wait in throttling
+// until all of them are done.
 // Keeping the individual index writes slightly smaller not only keeps latencies
 // for throttled transaction in check under benchmarking conditions, but also
 // allows for a better overall utilization of resources because more things can
 // happen in parallel.
-const int32_t MAX_TXNS_PER_INDEX_WRITE = 128;
+const int32_t MAX_TXNS_PER_INDEX_WRITE = 256;
 
 
 class current_page_help_t {
@@ -50,13 +50,16 @@ public:
 };
 
 void throttler_acq_t::update_dirty_page_count(int64_t new_count) {
-    if (new_count > changes_semaphore_acq_.count()) {
-        changes_semaphore_acq_.change_count(new_count);
+    rassert(
+        block_changes_semaphore_acq_.count() == index_changes_semaphore_acq_.count());
+    if (new_count > block_changes_semaphore_acq_.count()) {
+        block_changes_semaphore_acq_.change_count(new_count);
+        index_changes_semaphore_acq_.change_count(new_count);
     }
 }
 
-void throttler_acq_t::reset_dirty_page_count() {
-    changes_semaphore_acq_.change_count(0);
+void throttler_acq_t::mark_dirty_pages_written() {
+    block_changes_semaphore_acq_.change_count(0);
 }
 
 page_read_ahead_cb_t::page_read_ahead_cb_t(serializer_t *serializer,
@@ -1346,7 +1349,7 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
                         txn->snapshotted_dirtied_pages_[i].block_id);
                 }
                 txn->snapshotted_dirtied_pages_.clear();
-                txn->throttler_acq_.reset_dirty_page_count();
+                txn->throttler_acq_.mark_dirty_pages_written();
             }
             blocks_released_cond.pulse();
         }, page_cache->home_thread());
@@ -1354,19 +1357,20 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
         fifo_enforcer_sink_t::exit_write_t exiter(&page_cache->index_write_sink_->sink,
                                                   index_write_token);
         exiter.wait();
+        new_semaphore_acq_t index_write_sem_acq(
+            page_cache->index_write_txns_semaphore_.get(),
+            txns.size());
         new_mutex_in_line_t mutex_acq(&page_cache->index_write_sink_->mutex);
         exiter.end();
 
         rassert(!write_ops.empty());
+        // This doesn't dead-lock because both new_semaphore_t and new_mutex_t
+        // maintain ordering (if only the mutex maintained it but not the semaphore
+        // for example we would be in trouble).
+        index_write_sem_acq.acquisition_signal()->wait();
         mutex_acq.acq_signal()->wait();
-        {
-            new_semaphore_acq_t index_write_sem_acq(
-                page_cache->index_write_txns_semaphore_.get(),
-                txns.size());
-            index_write_sem_acq.acquisition_signal()->wait();
-            page_cache->serializer_->index_write(&mutex_acq,
-                                                 write_ops);
-        }
+        page_cache->serializer_->index_write(&mutex_acq,
+                                             write_ops);
     }
 
     // Wait until the block release coroutine has finished to we can safely
