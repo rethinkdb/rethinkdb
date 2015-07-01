@@ -22,7 +22,7 @@ void standard_backfill_throttler_t::enter(lock_t *lock, signal_t *interruptor_on
         active.insert(std::make_pair(lock->priority, lock));
 
     } else {
-        /* Insert `cond` into the waiting queue */
+        /* Insert `cond` into the waiting queue. */
         cond_t cond;
         auto it = waiting.insert(std::make_pair(
             lock->priority, std::make_pair(lock, &cond)));
@@ -47,10 +47,13 @@ void standard_backfill_throttler_t::enter(lock_t *lock, signal_t *interruptor_on
         /* Release the mutex before we wait for the cond */
         mutex_acq.reset();
 
-        /* Wait until it's our turn to go */
+        /* Wait until it's our turn to go. Note that we don't throw `interrupted_exc_t`
+        because we still need to clean up. */
         wait_any_t waiter(&cond, &interruptor_on_home);
         waiter.wait_lazily_unordered();
 
+        mutex_acq.init(new new_mutex_acq_t(&mutex));   /* again, not interruptible */
+        ASSERT_NO_CORO_WAITING;
         if (cond.is_pulsed()) {
             guarantee(active.count(std::make_pair(lock->priority, lock)) == 1);
         } else {
@@ -63,6 +66,7 @@ void standard_backfill_throttler_t::enter(lock_t *lock, signal_t *interruptor_on
 void standard_backfill_throttler_t::exit(lock_t *lock) {
     on_thread_t thread_switcher(home_thread());
     new_mutex_acq_t acq(&mutex);
+    ASSERT_NO_CORO_WAITING;
 
     /* Find the entry corresponding to this particular backfill. */
     auto it = active.find(std::make_pair(lock->priority, lock));
@@ -70,14 +74,16 @@ void standard_backfill_throttler_t::exit(lock_t *lock) {
     active.erase(it);
 
     /* Find the highest-priority backfill that's waiting to start */
-    auto jt = waiting.rbegin();
-    if (jt != waiting.rend()) {
+    auto jt = waiting.end();
+    if (jt != waiting.begin()) {
+        --jt;
+
         /* Pulse the `cond_t` so that `enter()` can return */
         jt->second.second->pulse();
 
         /* Transfer the backfill from `active` to `waiting` */
         active.insert(std::make_pair(jt->first, jt->second.first));
-        waiting.erase(jt.base());
+        waiting.erase(jt);
     }
 }
 

@@ -682,14 +682,14 @@ class Process(_Process):
             self._close_console_output = True
             if console_output is False:
                 self.console_file = tempfile.NamedTemporaryFile(mode='w+')
-            elif self.files is None:
+            elif files is None:
                 outerDir = cluster.metacluster.dbs_path
                 if output_folder:
                     outerDir = output_folder
                 self.console_file = tempfile.NamedTemporaryFile(mode='w+', dir=outerDir, delete=False)
                 moveConsoleFile = True
             else:
-                self.console_file = open(os.path.join(self.files.db_path, 'console.txt'), 'w+')
+                self.console_file = open(os.path.join(files.db_path, 'console.txt'), 'w+')
         elif hasattr(console_output, 'write'):
             self.console_file = console_output
         else:

@@ -11,8 +11,10 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.
 import driver, scenario_common, utils, vcoptparse
 
 op = vcoptparse.OptParser()
+op["num_rows"] = vcoptparse.IntFlag("--num-rows", 50000)
 scenario_common.prepare_option_parser_mode_flags(op)
-_, command_prefix, serve_options = scenario_common.parse_mode_flags(op.parse(sys.argv))
+opts = op.parse(sys.argv)
+_, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
 
 r = utils.import_python_driver()
 
@@ -41,18 +43,18 @@ with driver.Metacluster() as metacluster:
         }).run(conn)
     r.table("test").wait().run(conn)
 
-    total_docs = 50000
-    print("Inserting %d documents (%.2fs)" % (total_docs, time.time() - startTime))
+    print("Inserting %d documents (%.2fs)" % (opts["num_rows"], time.time() - startTime))
     docs_so_far = 0
-    while docs_so_far < total_docs:
-        chunk = min(total_docs - docs_so_far, 1000)
+    while docs_so_far < opts["num_rows"]:
+        chunk = min(opts["num_rows"] - docs_so_far, 1000)
         res = r.table("test").insert(r.range(chunk).map({
             "value": r.row,
             "padding": "x" * 100
             }), durability="soft").run(conn)
         assert res["inserted"] == chunk
         docs_so_far += chunk
-        print("Progress: %d/%d (%.2fs)" % (docs_so_far, total_docs, time.time() - startTime))
+        print("Progress: %d/%d (%.2fs)" %
+            (docs_so_far, opts["num_rows"], time.time() - startTime))
 
     print("Beginning replication to second server (%.2fs)" % (time.time() - startTime))
     r.table("test").config().update({

@@ -159,6 +159,8 @@ remote_replicator_client_t::remote_replicator_client_t(
     region_(store->get_region()),
     branch_id_(branch_id),
 
+    next_write_waiter_(nullptr),
+
     write_async_mailbox_(mailbox_manager,
         std::bind(&remote_replicator_client_t::on_write_async, this,
             ph::_1, ph::_2, ph::_3, ph::_4, ph::_5)),

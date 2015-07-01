@@ -20,7 +20,6 @@ public:
 private:
     void enter(lock_t *lock, signal_t *interruptor);
     void exit(lock_t *lock);
-    void maybe_preempt();
 
     std::multimap<priority_t, std::pair<lock_t *, cond_t *> > waiting;
     std::set<std::pair<priority_t, lock_t *> > active;
