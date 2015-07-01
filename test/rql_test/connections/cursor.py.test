@@ -2,9 +2,8 @@
 
 '''Tests the driver cursor API'''
 
-from __future__ import print_function
+import os, random, re, socket, subprocess, sys, tempfile, unittest
 
-import os, random, re, socket, subprocess, sys, tempfile, time, unittest
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, os.pardir, "common"))
 import driver, utils
 

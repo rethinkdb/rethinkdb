@@ -1,56 +1,37 @@
 #!/usr/bin/env python
 
-'''Basic test that `from rethinkdb import *` works'''
-
-import os, sys
+import os, sys, subprocess
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, os.pardir, "common"))
-import driver, utils
+import utils
 
-dbName, tableName = utils.get_test_db_table()
+# -- start rethinkdb server if necessary
 
-# -- import rethikndb driver via star method
+server = None
+host = None
+port = None
 
-proto_r = utils.import_python_driver()
-sys.path.insert(0, os.path.dirname(os.path.realpath(proto_r.__file__)))
-from rethinkdb import *
+if not ('RDB_SERVER_HOST' in os.environ or 'RDB_DRIVER_PORT' in os.environ):
+    import driver
+    
+    serverExe = sys.argv[1] if len(sys.argv) > 1 else utils.find_rethinkdb_executable()
+    server = driver.Process(executable_path=serverExe)
+    
+    # expose the server info for the subprocess
+    
+    os.environ['RDB_DRIVER_PORT'] = port = str(server.driver_port)
+    os.environ['RDB_SERVER_HOST'] = host = server.host
+else:
+    host = os.environ.get('RDB_SERVER_HOST', 'localhost')
+    port = int(os.environ.get('RDB_DRIVER_PORT', 28015))
 
-# -- import tests
+# -- create the 'test' database
 
-assert r == rethinkdb
-assert issubclass(r, object)
-assert issubclass(rethinkdb, object)
+r = utils.import_python_driver()
+conn = r.connect(host=host, port=port)
+r.expr(['test']).set_difference(r.db_list()).for_each(r.db_create(r.row)).run(conn)
 
-assert issubclass(RqlError, Exception)
-assert issubclass(RqlClientError, RqlError)
-assert issubclass(RqlCompileError, RqlError)
-assert issubclass(RqlRuntimeError, RqlError)
-assert issubclass(RqlDriverError, Exception)
+# -- run test
 
-# -- simple tests
-
-with driver.Process(wait_until_ready=True) as server:
-    
-    # - connect
-    
-    r.connect(host=server.host, port=server.driver_port)
-    conn = rethinkdb.connect(host=server.host, port=server.driver_port)
-    
-    # - create database
-    
-    if dbName not in r.db_list().run(conn):
-        r.db_create(dbName).run(conn)
-    
-    # - create table
-    
-    if tableName in r.db(dbName).table_list().run(conn):
-        r.db(dbName).table_drop(tableName).run(conn)
-    r.db(dbName).table_create(tableName).run(conn)
-    
-    # - simple querys
-    
-    r.db_list().run(conn)
-    rethinkdb.db_list().run(conn)
-    
-    assert len(r.db(dbName).table_list().run(conn)) > 0
-    assert len(rethinkdb.db(dbName).table_list().run(conn)) > 0
+command = [os.environ.get('INTERPRETER_PATH', 'python'), os.path.join(os.path.dirname(__file__), 'connection_star.py')]
+sys.exit(subprocess.call(command, stderr=subprocess.STDOUT))

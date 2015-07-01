@@ -165,7 +165,7 @@ class Cluster(object):
         # - metacluster
         
         if metacluster is not None and output_folder is not None:
-            raise NotImplementedError('supplying a metacluster and an output_folder does not currently work')
+            raise NotImplementedError('supplying both a metacluster and an output_folder does not currently work')
         elif metacluster is None:
             metacluster = Metacluster(output_folder=output_folder)
         
@@ -419,6 +419,10 @@ class _Process(object):
             self.local_cluster_port = utils.get_avalible_port()
             options += ['--client-port', str(self.local_cluster_port)]
         
+        # add log file path
+        
+        options += ['--log-file', str(self.logfile_path)]
+        
         # -- supress update checks/reporting in
         
         if not '--no-update-check' in options:
@@ -441,7 +445,7 @@ class _Process(object):
             
             self.console_file.write("Launching:\n%s\n" % str(self.args))
             
-            self.process = subprocess.Popen(self.args, stdout=self.console_file, stderr=self.console_file, preexec_fn=os.setpgrp)
+            self.process = subprocess.Popen(self.args, stdout=self.console_file, stderr=subprocess.STDOUT, preexec_fn=os.setpgrp)
             
             runningServers.append(self)
             self.process_group_id = self.process.pid
@@ -650,9 +654,9 @@ class Process(_Process):
 
     def __init__(self, cluster=None, files=None, output_folder=None, console_output=None, executable_path=None, server_tags=None, command_prefix=None, extra_options=None, wait_until_ready=False):
         
-        assert isinstance(cluster, (Cluster, None.__class__)), 'cluster must be a Cluster or None, got: %s' % repr(cluster)
-        assert isinstance(files, (Files, str, None.__class__)), 'files must be a Files, string (name), or None, got: %s' % repr(cluster)
-        assert output_folder is None or os.path.isdir(output_folder)
+        assert isinstance(cluster, (Cluster, None.__class__)), 'cluster must be a Cluster or None, got: %r' % cluster
+        assert isinstance(files, (Files, str, None.__class__)), 'files must be a Files, string (name), or None, got: %r' % files
+        assert output_folder is None or os.path.isdir(output_folder), 'output_folder if given must be the path to an existing folder, got: %r' % output_folder
         
         # -- validate bad combinations
         
@@ -706,7 +710,7 @@ class Process(_Process):
             self.console_file.flush()
             if moveConsoleFile:
                 os.rename(self.console_file.name, os.path.join(files.db_path, 'console.txt'))
-            os.rename(os.path.join(files.db_path, 'log_file'), os.path.join(files.db_path, 'create_log_file'))
+            os.rename(os.path.join(files.db_path, 'log_file'), os.path.join(files.db_path, 'create_log_file.txt'))
         assert isinstance(files, Files)
         
         # -- default command_prefix
@@ -726,7 +730,7 @@ class Process(_Process):
         # -- store values
         
         self.files = files
-        self.logfile_path = os.path.join(files.db_path, "log_file")
+        self.logfile_path = os.path.join(files.db_path, "log_file.txt")
         
         # -- run command
         

@@ -1,28 +1,20 @@
 #!/usr/bin/env python
 
-import os, subprocess, sys
+import os, sys, subprocess
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, os.pardir, "common"))
-import driver, utils
+import utils
 
 sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
 import http_support
 
-# -- start target server
-
-targetServer = http_support.HttpTargetServer()
-
-os.environ['HTTPBIN_TEST_ADDRESS'] = 'localhost:%d' % targetServer.httpbinPort
-os.environ['HTTP_TEST_ADDRESS'] = 'localhost:%d' % targetServer.httpPort
-os.environ['HTTPS_TEST_ADDRESS'] = 'localhost:%d' % targetServer.sslPort
-
-# -- make sure a server is avalible
+# -- start rethinkdb server if necessary
 
 server = None
 host = None
 port = None
 
-if not 'RDB_DRIVER_PORT' in os.environ:
+if not ('RDB_SERVER_HOST' in os.environ or 'RDB_DRIVER_PORT' in os.environ):
     import driver
     
     serverExe = sys.argv[1] if len(sys.argv) > 1 else utils.find_rethinkdb_executable()
@@ -33,15 +25,30 @@ if not 'RDB_DRIVER_PORT' in os.environ:
     os.environ['RDB_DRIVER_PORT'] = port = str(server.driver_port)
     os.environ['RDB_SERVER_HOST'] = host = server.host
 else:
-    host = os.environ['RDB_SERVER_HOST']
-    port = int(os.environ['RDB_DRIVER_PORT'])
+    host = os.environ.get('RDB_SERVER_HOST', 'localhost')
+    port = int(os.environ.get('RDB_DRIVER_PORT', 28015))
 
-# -- Run with mocha
+# -- create the 'test' database
 
-os.environ['BLUEBIRD_DEBUG'] = '1' # better stacktraces
+r = utils.import_python_driver()
+conn = r.connect(host=host, port=port)
+r.expr(['test']).set_difference(r.db_list()).for_each(r.db_create(r.row)).run(conn)
+
+# -- start target server
+
+targetServer = http_support.HttpTargetServer()
+
+os.environ['HTTPBIN_TEST_ADDRESS'] = 'localhost:%d' % targetServer.httpbinPort
+os.environ['HTTP_TEST_ADDRESS'] = 'localhost:%d' % targetServer.httpPort
+os.environ['HTTPS_TEST_ADDRESS'] = 'localhost:%d' % targetServer.sslPort
+
+# -- run test
 
 mochaOptions = ['-R', 'spec', '--timeout', '10000']
 if not utils.supportsTerminalColors():
     mochaOptions += ['--no-colors'] # handle https://github.com/mochajs/mocha/issues/1304
 
-sys.exit(subprocess.call(['mocha'] + mochaOptions + [os.path.join(os.path.dirname(__file__), 'http.js')]))
+os.environ['BLUEBIRD_DEBUG'] = '1' # better stacktraces
+
+command = ['mocha'] + mochaOptions + [os.path.join(os.path.dirname(__file__), 'http.js')]
+sys.exit(subprocess.call(command, stderr=subprocess.STDOUT))
