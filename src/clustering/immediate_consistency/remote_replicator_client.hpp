@@ -24,6 +24,33 @@ There is one `remote_replicator_client_t` on each secondary replica server of ea
 
 class remote_replicator_client_t {
 public:
+    /* Here's how the backfill works:
+
+    1. We sign up for a stream of writes from the `remote_replicator_server_t`. Initially
+        we let the writes queue up (in the form of blocked coroutines) as they arrive.
+    2. We start backfilling from the `replica_t`. We ensure that the `replica_t` is on
+        the same branch as the `remote_replicator_server_t`, and that the backfill's end
+        timestamp is greater than or equal to the stream's begin timestamp.
+    3. Suppose that the backfill sends us the range [-inf, K) at timestamp T and the
+        range [K, L) at timestamp T+1. Then we unblock the streaming write with timestamp
+        T+1 but only apply it to range [-inf, K). Then when the backfill sneds us the
+        range [L, M) at timestamp T+2 we unblock the streaming write with timestamp T+2
+        and apply it to the range [-inf, L). This way, every change gets applied exactly
+        once, either as part of a streaming write or as part of a backfill. This
+        procedure relies on the fact that the backfill proceeds from left to right
+        monotonically and the versions it sends increase monotonically in timestamps.
+    4. Any given write only remains queued up for as long as it takes for it to be
+        applied on the `replica_t` and then for another chunk with the updated timestamp
+        to be sent over the network.
+    5. If the `backfill_throttler_t` tells us to pause, then while the backfill is paused
+        we unconditionally apply writes to the area we've already backfilled. When the
+        pause ends, we resume the backfill but ensure that the backfill resumes after the
+        timestamp of the last write applied during the pause.
+
+    The `remote_replicator_client_t` constructor blocks until this entire process is
+    complete. The backfilled data will be safely flushed to disk by the time it returns.
+    */
+
     remote_replicator_client_t(
         backfill_throttler_t *backfill_throttler,
         const backfill_config_t &backfill_config,
