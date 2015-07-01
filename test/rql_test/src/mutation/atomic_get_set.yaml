@@ -6,7 +6,7 @@ tests:
     - cd: tbl.insert({'id':0}, :return_vals => true).pluck('changes', 'first_error')
       py: tbl.insert({'id':0}, return_vals=True).pluck('changes', 'first_error')
       js: tbl.insert({'id':0}, {'return_vals':true}).pluck('changes', 'first__error')
-      ot: err("RqlRuntimeError", "Error:"+" encountered obsolete optarg `return_vals`.  Use `return_changes` instead.", [0])
+      ot: err("RqlLogicError", "Error:"+" encountered obsolete optarg `return_vals`.  Use `return_changes` instead.", [0])
 
     - cd: tbl.insert({'id':0}, :return_changes => true).pluck('changes', 'first_error')
       py: tbl.insert({'id':0}, return_changes=True).pluck('changes', 'first_error')

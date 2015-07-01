@@ -445,7 +445,7 @@ tests:
       ot: 4
 
     - cd: tbl.group()
-      ot: err('RqlRuntimeError', 'Cannot group by nothing.', [])
+      ot: err('RqlLogicError', 'Cannot group by nothing.', [])
 
     - py: tbl.group(index='id').count()
       js: tbl.group({index:'id'}).count()

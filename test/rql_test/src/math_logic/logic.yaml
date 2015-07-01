@@ -137,7 +137,7 @@ tests:
 
     # Test that precedence errors are detected
     - py: r.expr(r.expr('a')['b']).default(2)
-      ot: err("RqlRuntimeError", "Cannot perform bracket on a non-object non-sequence `\"a\"`.", [])
+      ot: err("RqlLogicError", "Cannot perform bracket on a non-object non-sequence `\"a\"`.", [])
     - py: r.expr(r.expr(True) & r.expr(False) == r.expr(False) | r.expr(True))
       ot: err("RqlDriverError", "Calling '==' on result of infix bitwise operator.", [])
     - py: r.expr(r.and_(True, False) == r.or_(False, True))

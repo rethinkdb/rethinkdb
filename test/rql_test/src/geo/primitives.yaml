@@ -19,7 +19,7 @@ tests:
   - js: r.circle([0,0], 14000000, {num_vertices:3})
     py: r.circle([0,0], 14000000, num_vertices=3)
     rb: r.circle([0,0], 14000000, :num_vertices=>3)
-    ot: err('RqlRuntimeError', 'Radius must be smaller than a quarter of the circumference along the minor axis of the reference ellipsoid.  Got 14000000m, but must be smaller than 9985163.1855612862855m.', [0])
+    ot: err('RqlLogicError', 'Radius must be smaller than a quarter of the circumference along the minor axis of the reference ellipsoid.  Got 14000000m, but must be smaller than 9985163.1855612862855m.', [0])
   
   - js: r.circle([0,0], 1, {num_vertices:3, geo_system:'WGS84'})
     py: r.circle([0,0], 1, num_vertices=3, geo_system='WGS84')
@@ -29,7 +29,7 @@ tests:
   - js: r.circle([0,0], 2, {num_vertices:3, geo_system:'unit_'+'sphere'})
     py: r.circle([0,0], 2, num_vertices=3, geo_system='unit_sphere')
     rb: r.circle([0,0], 2, :num_vertices=>3, :geo_system=>'unit_sphere')
-    ot: err('RqlRuntimeError', 'Radius must be smaller than a quarter of the circumference along the minor axis of the reference ellipsoid.  Got 2m, but must be smaller than 1.570796326794896558m.', [0])
+    ot: err('RqlLogicError', 'Radius must be smaller than a quarter of the circumference along the minor axis of the reference ellipsoid.  Got 2m, but must be smaller than 1.570796326794896558m.', [0])
   
   - js: r.circle([0,0], 0.1, {num_vertices:3, geo_system:'unit_'+'sphere'})
     py: r.circle([0,0], 0.1, num_vertices=3, geo_system='unit_sphere')

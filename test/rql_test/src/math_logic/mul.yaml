@@ -40,16 +40,16 @@ tests:
     # Type errors
     - py: r.expr('a') * 0.8
       cd: r('a').mul(0.8)
-      ot: err('RqlRuntimeError', 'Expected type NUMBER but found STRING.', [0])
+      ot: err('RqlLogicError', 'Expected type NUMBER but found STRING.', [0])
 
     - py: r.expr(1) * 'a'
       cd: r(1).mul('a')
-      ot: err('RqlRuntimeError', 'Expected type NUMBER but found STRING.', [1])
+      ot: err('RqlLogicError', 'Expected type NUMBER but found STRING.', [1])
 
     - py: r.expr('b') * 'a'
       cd: r('b').mul('a')
-      ot: err('RqlRuntimeError', 'Expected type NUMBER but found STRING.', [0])
+      ot: err('RqlLogicError', 'Expected type NUMBER but found STRING.', [0])
 
     - py: r.expr([]) * 1.5
       cd: r([]).mul(1.5)
-      ot: "err('RqlRuntimeError', 'Number not an integer: 1.5', [0])"
+      ot: "err('RqlLogicError', 'Number not an integer: 1.5', [0])"
