@@ -44,8 +44,12 @@ public:
         to be sent over the network.
     5. If the `backfill_throttler_t` tells us to pause, then while the backfill is paused
         we unconditionally apply writes to the area we've already backfilled. When the
-        pause ends, we resume the backfill but ensure that the backfill resumes after the
-        timestamp of the last write applied during the pause.
+        pause ends, we resume the backfill but ensure that all future backfilled chunks
+        have timestamps greater than or equal to the timestamp of the last write
+        backfilled during the pause. This is because during the pause we already
+        discarded the parts of the streaming writes that applied to the unbackfilled
+        area, so we have to receive those changes as part of the backfill or we won't
+        get them at all.
 
     The `remote_replicator_client_t` constructor blocks until this entire process is
     complete. The backfilled data will be safely flushed to disk by the time it returns.
