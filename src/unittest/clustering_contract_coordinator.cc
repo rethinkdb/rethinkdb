@@ -224,13 +224,25 @@ public:
                 const contract_t &actual = pair.second.second;
                 EXPECT_EQ(expect.replicas, actual.replicas);
                 EXPECT_EQ(expect.voters, actual.voters);
-                EXPECT_EQ(expect.temp_voters, actual.temp_voters);
+                // Compare the boost::optional in two steps, to avoid #4257
+                EXPECT_EQ(static_cast<bool>(expect.temp_voters),
+                    static_cast<bool>(actual.temp_voters));
+                if (static_cast<bool>(expect.temp_voters) &&
+                        static_cast<bool>(actual.temp_voters)) {
+                    EXPECT_EQ(*expect.temp_voters, *actual.temp_voters);
+                }
                 EXPECT_EQ(static_cast<bool>(expect.primary),
                     static_cast<bool>(actual.primary));
                 if (static_cast<bool>(expect.primary) &&
                         static_cast<bool>(actual.primary)) {
                     EXPECT_EQ(expect.primary->server, actual.primary->server);
-                    EXPECT_EQ(expect.primary->hand_over, actual.primary->hand_over);
+                    // Again, two-step comparison of optional to avoid #4257
+                    EXPECT_EQ(static_cast<bool>(expect.primary->hand_over),
+                        static_cast<bool>(actual.primary->hand_over));
+                    if (static_cast<bool>(expect.primary->hand_over) &&
+                            static_cast<bool>(actual.primary->hand_over)) {
+                        EXPECT_EQ(*expect.primary->hand_over, *actual.primary->hand_over);
+                    }
                 }
             }
         }
