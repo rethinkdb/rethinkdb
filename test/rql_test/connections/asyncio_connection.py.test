@@ -2,7 +2,4 @@
 
 import os, sys, subprocess
 
-if not os.path.isdir('run'):
-    os.makedirs('run')
-
 sys.exit(subprocess.call([os.environ.get('INTERPRETER_PATH', 'python'), os.path.join(os.path.dirname(__file__), 'asyncio_connection.py')]))
