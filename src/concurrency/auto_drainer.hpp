@@ -95,7 +95,8 @@ private:
     class toy_tcp_server_t {
 
     public:
-        toy_tcp_server_t(int port) :
+        toy_tcp_server_t(int port, foo_t cxt) :
+            context(cxt),
             listener(new tcp_listener_t(port,
                 std::bind(&toy_tcp_server_t::serve,
                     this,
@@ -114,12 +115,16 @@ private:
         void serve(auto_drainer_t::lock_t keepalive, scoped_ptr_t<tcp_conn_t> &conn) {
             signal_t *interruptor = keepalive.get_drain_signal();
             try {
-                serve_queries_until_interrupted(conn, interruptor);
+                serve_queries_until_interrupted(conn, context, interruptor);
             } catch (const interrupted_exc_t &) {
                 // Ignore
             }
         }
 
+        // Destructor order is important here; `listener` must be destroyed before
+        // `drainer` because it acquires `drainer`, but `drainer` must be destroyed
+        // before `context` because `serve()` accesses `context`
+        foo_t context;
         auto_drainer_t drainer;
         scoped_ptr_t<tcp_listener_t> listener;
     };
@@ -131,6 +136,21 @@ destructor is run (so no new connections are accepted) and then the
 `auto_drainer_t::drain()` is run. `keepalive.get_drain_signal()` is pulsed,
 which interrupts `serve_queries_until_interrupted()`, causing `serve()` to
 return and destroy `keepalive`. This way, `drain()` blocks until
-all the copies of `serve` have returned. */
+all the copies of `serve` have returned.
+
+When an `auto_drainer_t` is used as a member of a class, it usually must be
+destroyed in a specific order with respect to the other class members. In
+particular, the destructor order is usually as follows:
+
+1. Destroy the any `mailbox_t`s, `watchable_t` subscriptions,
+    `repeating_timer_t`s, or other member variables that will spontaneously
+    call callbacks or spawn coroutines that access the class.
+2. Destroy the `auto_drainer_t` itself, which will block until any such
+    coroutines have stopped.
+3. Destroy all the other members of the class.
+
+When writing code that relies in the destructor order, it's good practice to
+leave a comment explaining which things must be destroyed before which other
+things and why. */
 
 #endif /* CONCURRENCY_AUTO_DRAINER_HPP_ */
