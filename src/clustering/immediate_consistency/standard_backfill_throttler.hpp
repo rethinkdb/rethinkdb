@@ -8,9 +8,9 @@
 #include "concurrency/new_mutex.hpp"
 
 /* `standard_backfill_throttler_t` is the `backfill_throttler_t` that is used in
-production. It allows a fixed number of backfills per peer and a fixed number of
-backfills total. Within those limits, it always interrupts lower-priority backfills in
-favor of higher-priority backfills. */
+production. It allows a fixed number of backfills total (currently 8); if there are more
+than 8 backfills trying to run, it will always allow the highest-priority backfills to go
+first, preempting the lower-priority backfills if necessary. */
 
 class standard_backfill_throttler_t : public backfill_throttler_t {
 public:

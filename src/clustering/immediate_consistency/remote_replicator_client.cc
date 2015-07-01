@@ -425,9 +425,9 @@ void remote_replicator_client_t::on_write_async(
                     });
 #endif
                 write_response_t dummy_response;
-                store_->write(DEBUG_ONLY(checker, ) new_metainfo, write, &dummy_response,
-                    write_durability_t::SOFT, timestamp, order_token, &token,
-                    interruptor);
+                store_->write(DEBUG_ONLY(checker, ) new_metainfo, subwrite,
+                    &dummy_response, write_durability_t::SOFT, timestamp, order_token,
+                    &token, interruptor);
             } else {
                 /* The write doesn't actually affect any keys in this region, but we
                 still have to update the metainfo for consistency's sake. */
