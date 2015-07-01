@@ -131,6 +131,9 @@ bool do_serve(io_backender_t *io_backender,
         semilattice_manager_t<auth_semilattice_metadata_t>
             semilattice_manager_auth(&connectivity_cluster, 'A', auth_metadata);
 
+        /* The `directory_*_read_manager_t`s are responsible for receiving directory
+        updates over the network from other servers. */
+
         /* The `cluster_directory_metadata_t` contains basic information about each
         server (such as its name, server ID, version, PID, command line arguments, etc.)
         and also many singleton mailboxes for various purposes. */
