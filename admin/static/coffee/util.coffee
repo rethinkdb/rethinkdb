@@ -157,6 +157,17 @@ approximate_count = (num) ->
 
 Handlebars.registerHelper 'approximate_count', approximate_count
 
+# formatBytes
+# from http://stackoverflow.com/a/18650828/180718
+format_bytes = (bytes, decimals=2) ->
+    if bytes == 0
+        return '0 Byte'
+    k = 1000;
+    dm = decimals + 1
+    sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
+    i = Math.floor(Math.log(bytes) / Math.log(k))
+    (bytes / Math.pow(k, i)).toPrecision(dm) + ' ' + sizes[i]
+
 # Safe string
 Handlebars.registerHelper 'print_safe', (str) ->
     if str?
@@ -501,3 +512,4 @@ exports.replica_rolename = replica_rolename
 exports.replica_roleclass = replica_roleclass
 exports.state_color = state_color
 exports.humanize_state_string = humanize_state_string
+exports.format_bytes = format_bytes

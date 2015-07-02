@@ -132,7 +132,6 @@ class View extends Backbone.View
                     "Server overview for #{@model.get('name')}"
             h "div.user-alert-space"
             h "div.section.statistics", [
-                h "h2.title", "Statistics"
                 h "div.content.row-fluid", [
                     h "div.span4.profile",
                         new util.BackboneViewWidget(=>
