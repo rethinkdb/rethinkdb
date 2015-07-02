@@ -188,6 +188,7 @@ class RenameItemModal extends AbstractModal
             old_name: @model.get('name')
             id: @model.get('id')
             modal_title: "Rename #{@item_type}"
+            is_database: @item_type == 'database'
             btn_primary_text: "Rename #{@item_type}"
 
         @$('#focus_new_name').focus()
