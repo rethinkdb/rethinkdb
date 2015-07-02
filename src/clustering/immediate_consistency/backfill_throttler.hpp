@@ -26,7 +26,7 @@ public:
         them. */
         enum class critical_t { NO, YES };
         bool operator<(const priority_t &other) const {
-            /* Prrocess critical backfills before non-critical backfills */
+            /* Process critical backfills before non-critical backfills */
             if (other.critical == critical_t::YES && critical == critical_t::NO) {
                 return true;
             } else if (other.critical == critical_t::NO && critical == critical_t::YES) {
