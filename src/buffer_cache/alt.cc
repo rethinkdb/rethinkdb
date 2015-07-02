@@ -28,7 +28,7 @@ const double SOFT_UNWRITTEN_CHANGES_MEMORY_FRACTION = 0.5;
 // an increasing amount of RAM. Hence we limit the number of unwritten index
 // updates in addition to the number of unwritten blocks. We scale that limit
 // proportionally to the unwritten block changes limit
-const int64_t INDEX_CHANGES_LIMIT_FACTOR = 10;
+const int64_t INDEX_CHANGES_LIMIT_FACTOR = 5;
 
 // There are very few ASSERT_NO_CORO_WAITING calls (instead we have
 // ASSERT_FINITE_CORO_WAITING) because most of the time we're at the mercy of the
