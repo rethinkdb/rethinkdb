@@ -1437,16 +1437,12 @@ map_datum_stream_t::next_raw_batch(env_t *env, const batchspec_t &batchspec) {
                 r_sanity_check(d.has());
             } else {
                 if (!d.has()) {
-                    // This just causes us to hit the `break` below.  I really
-                    // wish C++ let you break out of two loops at once.
-                    break;
+                    // Return with `args` partway full and continue next time
+                    // the client asks for a batch.
+                    return batch;
                 }
             }
             args.push_back(std::move(d));
-        }
-        if (args.size() < streams.size()) {
-            // We still allow empty changefeed batches for the web UI.
-            break;
         }
         datum_t datum = func->call(env, args)->as_datum();
         r_sanity_check(datum.has());
