@@ -403,6 +403,10 @@ backfillee_t::~backfillee_t() {
     definition of `session_t` in scope for the `scoped_ptr_t<session_t>` to work. */
 }
 
+uint64_t backfillee_t::get_num_changes_estimate() {
+    return intro.num_changes_estimate;
+}
+
 void backfillee_t::go(
         callback_t *callback,
         const key_range_t::right_bound_t &threshold,

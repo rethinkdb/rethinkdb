@@ -26,7 +26,8 @@ bool check_all_replicas_ready(
                 static_cast<bool>(contract.temp_voters) ||
                 !static_cast<bool>(contract.primary) ||
                 contract.primary->server != shard->primary_replica ||
-                static_cast<bool>(contract.primary->hand_over)) {
+                static_cast<bool>(contract.primary->hand_over) ||
+                contract.after_emergency_repair) {
             return false;
         }
 

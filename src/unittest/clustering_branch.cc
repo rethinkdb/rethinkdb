@@ -1,11 +1,11 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
 
-#include "clustering/immediate_consistency/backfill_throttler.hpp"
 #include "clustering/immediate_consistency/local_replicator.hpp"
 #include "clustering/immediate_consistency/primary_dispatcher.hpp"
 #include "clustering/immediate_consistency/remote_replicator_client.hpp"
 #include "clustering/immediate_consistency/remote_replicator_server.hpp"
+#include "clustering/immediate_consistency/standard_backfill_throttler.hpp"
 #include "clustering/table_manager/backfill_progress_tracker.hpp"
 #include "containers/uuid.hpp"
 #include "rdb_protocol/protocol.hpp"
@@ -145,7 +145,7 @@ void run_backfill_test(
         cluster->get_mailbox_manager(),
         dispatcher);
 
-    backfill_throttler_t backfill_throttler;
+    standard_backfill_throttler_t backfill_throttler;
     backfill_progress_tracker_t backfill_progress_tracker;
     peer_id_t nil_peer;
 
@@ -159,6 +159,7 @@ void run_backfill_test(
         &backfill_progress_tracker,
         cluster->get_mailbox_manager(),
         generate_uuid(),
+        backfill_throttler_t::priority_t::critical_t::NO,
         dispatcher->get_branch_id(),
         remote_replicator_server.get_bcard(),
         local_replicator->get_replica_bcard(),

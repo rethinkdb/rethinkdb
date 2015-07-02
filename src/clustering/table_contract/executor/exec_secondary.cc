@@ -38,6 +38,9 @@ secondary_execution_t::secondary_execution_t(
 
     branch = _branch;
     contract_id = cid;
+    is_critical_priority = c.is_voter(context->server_id)
+        ? backfill_throttler_t::priority_t::critical_t::YES
+        : backfill_throttler_t::priority_t::critical_t::NO;
     coro_t::spawn_sometime(std::bind(&secondary_execution_t::run, this, drainer.lock()));
 }
 
@@ -53,6 +56,9 @@ void secondary_execution_t::update_contract_or_raft_state(
         params->send_ack(cid, *last_ack);
     }
     contract_id = cid;
+    is_critical_priority = c.is_voter(context->server_id)
+        ? backfill_throttler_t::priority_t::critical_t::YES
+        : backfill_throttler_t::priority_t::critical_t::NO;
 }
 
 void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
@@ -145,6 +151,11 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
             /* Let the coordinator know we found the primary. */
             send_ack(contract_ack_t(contract_ack_t::state_t::secondary_backfilling));
 
+            /* While we're on the home thread, make a local copy of
+            `is_critical_priority` */
+            backfill_throttler_t::priority_t::critical_t local_is_critical_priority =
+                is_critical_priority;
+
             /* Set up a signal that will get pulsed if we lose contact with the primary
             or we get interrupted */
             wait_any_t stop_signal(
@@ -166,6 +177,7 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
                 context->backfill_progress_tracker,
                 context->mailbox_manager,
                 context->server_id,
+                local_is_critical_priority,
                 branch,
                 primary_bcard.assert_get_value().remote_replicator_server,
                 primary_bcard.assert_get_value().replica,
