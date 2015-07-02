@@ -1,3 +1,19 @@
+# Release 2.0.4 (Yojimbo)
+
+Released on 2015-07-06
+
+Bug fix release
+
+* Fixed the version number used by the JavaScript driver (#4436)
+* Fixed a bug that caused crashes with a "Guarantee failed: [stop]" error (#4430)
+* Fixed a latency issue when processing indexed `distinct` queries over low-cardinality data sets (#4362)
+* Changed the implementation of compile time assertions (#4346)
+* Changed the Data Explorer to render empty results more clearly (#4110)
+* Fixed a linking issue on ARM (#4064)
+* Improved the message showing the query execution time in the Data Explorer (#3454, #3927)
+
+--
+
 # Release 2.0.3 (Yojimbo)
 
 Released on 2015-06-10
