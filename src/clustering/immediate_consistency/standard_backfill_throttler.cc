@@ -4,7 +4,7 @@
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/wait_any.hpp"
 
-static const int max_active_backfills = 8;
+static const size_t max_active_backfills = 8;
 
 standard_backfill_throttler_t::~standard_backfill_throttler_t() {
     guarantee(active.empty());
