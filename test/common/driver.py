@@ -686,14 +686,14 @@ class Process(_Process):
             self._close_console_output = True
             if console_output is False:
                 self.console_file = tempfile.NamedTemporaryFile(mode='w+')
-            elif files is None:
+            elif isinstance(files, Files):
+                self.console_file = open(os.path.join(files.db_path, 'console.txt'), 'w+')
+            else:
                 outerDir = cluster.metacluster.dbs_path
                 if output_folder:
                     outerDir = output_folder
                 self.console_file = tempfile.NamedTemporaryFile(mode='w+', dir=outerDir, delete=False)
                 moveConsoleFile = True
-            else:
-                self.console_file = open(os.path.join(files.db_path, 'console.txt'), 'w+')
         elif hasattr(console_output, 'write'):
             self.console_file = console_output
         else:
@@ -708,10 +708,10 @@ class Process(_Process):
             files = Files(metacluster=cluster.metacluster, server_name=files, server_tags=server_tags, db_containter=output_folder, console_output=self.console_file, executable_path=executable_path, command_prefix=command_prefix)
             self.console_file.write('=========== End Create Console ============\n\n')
             self.console_file.flush()
-            if moveConsoleFile:
-                os.rename(self.console_file.name, os.path.join(files.db_path, 'console.txt'))
             os.rename(os.path.join(files.db_path, 'log_file'), os.path.join(files.db_path, 'create_log_file.txt'))
         assert isinstance(files, Files)
+        if moveConsoleFile:
+            os.rename(self.console_file.name, os.path.join(files.db_path, 'console.txt'))
         
         # -- default command_prefix
         
