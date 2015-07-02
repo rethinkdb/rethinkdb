@@ -5,6 +5,7 @@
 #include <queue>
 
 #include "clustering/generic/registrant.hpp"
+#include "clustering/immediate_consistency/backfill_throttler.hpp"
 #include "clustering/immediate_consistency/remote_replicator_metadata.hpp"
 #include "clustering/immediate_consistency/replica.hpp"
 #include "concurrency/coro_pool.hpp"
@@ -12,7 +13,6 @@
 #include "concurrency/semaphore.hpp"
 
 class backfill_progress_tracker_t;
-class backfill_throttler_t;
 
 /* `remote_replicator_client_t` contacts a `remote_replicator_server_t` on another server
 to sign up for writes to a given shard, and then applies them to a `store_t` on the same
@@ -23,23 +23,33 @@ There is one `remote_replicator_client_t` on each secondary replica server of ea
 `secondary_execution_t` constructs it. */
 
 class remote_replicator_client_t {
-private:
-    class backfill_end_timestamps_t;
-
 public:
     /* Here's how the backfill works:
 
     1. We sign up for a stream of writes from the `remote_replicator_server_t`. Initially
-        we store the writes in `write_queue_`.
+        we let the writes queue up (in the form of blocked coroutines) as they arrive.
     2. We start backfilling from the `replica_t`. We ensure that the `replica_t` is on
         the same branch as the `remote_replicator_server_t`, and that the backfill's end
         timestamp is greater than or equal to the stream's begin timestamp.
-    3. When `write_queue_` reaches a certain size, we stop the backfill. We perform all
-        the queued writes that affect the region that we backfilled, and discard all
-        others.
-    4. Go back to step 1, except that incoming writes that apply to the region that was
-        backfilled are performed immediately instead of being queued.
-    5. Repeat steps 1-4 until the whole region has been backfilled.
+    3. Suppose that the backfill sends us the range [-inf, K) at timestamp T and the
+        range [K, L) at timestamp T+1. Then we unblock the streaming write with timestamp
+        T+1 but only apply it to range [-inf, K). Then when the backfill sneds us the
+        range [L, M) at timestamp T+2 we unblock the streaming write with timestamp T+2
+        and apply it to the range [-inf, L). This way, every change gets applied exactly
+        once, either as part of a streaming write or as part of a backfill. This
+        procedure relies on the fact that the backfill proceeds from left to right
+        monotonically and the versions it sends increase monotonically in timestamps.
+    4. Any given write only remains queued up for as long as it takes for it to be
+        applied on the `replica_t` and then for another chunk with the updated timestamp
+        to be sent over the network.
+    5. If the `backfill_throttler_t` tells us to pause, then while the backfill is paused
+        we unconditionally apply writes to the area we've already backfilled. When the
+        pause ends, we resume the backfill but ensure that all future backfilled chunks
+        have timestamps greater than or equal to the timestamp of the last write
+        backfilled during the pause. This is because during the pause we already
+        discarded the parts of the streaming writes that applied to the unbackfilled
+        area, so we have to receive those changes as part of the backfill or we won't
+        get them at all.
 
     The `remote_replicator_client_t` constructor blocks until this entire process is
     complete. The backfilled data will be safely flushed to disk by the time it returns.
@@ -51,6 +61,7 @@ public:
         backfill_progress_tracker_t *backfill_progress_tracker,
         mailbox_manager_t *mailbox_manager,
         const server_id_t &server_id,
+        backfill_throttler_t::priority_t::critical_t is_critical_priority,
 
         const branch_id_t &branch_id,
         const remote_replicator_server_bcard_t &remote_replicator_server_bcard,
@@ -62,46 +73,10 @@ public:
 
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
+    ~remote_replicator_client_t();
+
 private:
-    class queue_entry_t {
-    public:
-        /* `has_write` is `false` if the write has no effect on the region that is being
-        queued. We still create a queue entry for such writes because we need to update
-        the metainfo. */
-        bool has_write;
-        write_t write;
-        state_timestamp_t timestamp;
-        order_token_t order_token;
-    };
-    typedef std::function<void(queue_entry_t &&, cond_t *)> queue_function_t;
-
-    /* `apply_write_or_metainfo()` is a helper function for `drain_stream_queue()` and
-    `on_write_async()`. It applies the given write to the store and updates the metainfo;
-    but if `has_write` is `false`, it only updates the metainfo. */
-    static void apply_write_or_metainfo(
-            store_view_t *store,
-            const branch_id_t &branch_id,
-            const region_t &region,
-            bool has_write,
-            const write_t &write,
-            state_timestamp_t timestamp,
-            write_token_t *token,
-            order_token_t order_token,
-            signal_t *interruptor);
-
-    /* `drain_stream_queue()` is a helper function for the constructor. It applies the
-    queue entries in `queue` to `store`. When the queue is empty, it calls
-    `on_queue_empty()`; if the queue is still empty after `on_queue_empty()` returns,
-    then `drain_stream_queue()` returns. */
-    static void drain_stream_queue(
-            store_view_t *store,
-            const branch_id_t &branch_id,
-            const region_t &region,
-            std::queue<queue_entry_t> *queue,
-            const backfill_end_timestamps_t &bets,
-            const std::function<void(signal_t *)> &on_queue_empty,
-            const std::function<void(signal_t *)> &on_finished_one_entry,
-            signal_t *interruptor);
+    class timestamp_range_tracker_t;
 
     /* `on_write_async()`, `on_write_sync()`, and `on_read()` are mailbox callbacks for
     `write_async_mailbox_`, `write_sync_mailbox_`, and `read_mailbox_`. */
@@ -131,33 +106,63 @@ private:
 
     mailbox_manager_t *const mailbox_manager_;
     store_view_t *const store_;
+    region_t const region_;   /* same as `store_->get_region()` */
     branch_id_t const branch_id_;
+
+    /* During the constructor, we alternate between `PAUSED` and `BACKFILLING`. When the
+    constructor is done, we switch to `STREAMING` mode and stay there. */
+    enum class backfill_mode_t {
+        /* We haven't backfilled completely, but we aren't currently backfilling either.
+        Usually this means we're waiting for the backfill throttler. However, we will
+        still accept streaming writes in the regions we've already backfilled. */
+        PAUSED,
+        /* We're actively receiving backfill items over the network. Whenever the
+        backfill reaches a given timestamp, we'll also apply all writes at or before that
+        timestamp; this is mediated by `backfilling_thresholds_`. */
+        BACKFILLING,
+        /* We finished backfilling and we're just applying writes as they arrive. */
+        STREAMING
+        };
+    backfill_mode_t mode_;
+
+    /* `timestamp_range_tracker_t` is essentially a `region_map_t<state_timestamp_t>`,
+    but in a different format and optimized for this specific use case. The domain of
+    `tracker_` is the region that has been backfilled thus far; the values are equal to
+    the current timestamps in the B-tree metainfo. `tracker_` is used to make sure that
+    every change gets applied either as a streaming change or as a backfilled change but
+    not as both. `tracker_` exists only during the backfill; it gets destroyed after the
+    backfill is over. */
+    scoped_ptr_t<timestamp_range_tracker_t> tracker_;
+
+    /* Returns `true` if the next write can be applied now, instead of having to wait for
+    the backfill to make more progress. */
+    bool next_write_can_proceed(mutex_assertion_t::acq_t *mutex_acq);
+
+    /* If the next write cannot proceed, it will set `next_write_waiter_` and wait for it
+    to be pulsed. */
+    cond_t *next_write_waiter_;
 
     /* `timestamp_enforcer_` is used to order writes as they arrive. `replica_` will do
     its own ordering of writes, so `timestamp_enforcer_` is only important during the
     constructor before `replica_` has been created. */
     scoped_ptr_t<timestamp_enforcer_t> timestamp_enforcer_;
 
-    /* `region_*_`, `queue_fun_`, and `queue_order_checkpoint_` are only used during the
-    constructor. Specifically, the constructor uses them to control what
-    `on_write_async()` does with writes that arrive during the backfill. See
-    `on_write_async()` for more information. */
-    region_t region_streaming_, region_queueing_, region_discarding_;
-    queue_function_t *queue_fun_;
-    order_checkpoint_t queue_order_checkpoint_;
-
     /* `replica_` is created at the end of the constructor, once the backfill is over. */
     scoped_ptr_t<replica_t> replica_;
 
-    /* Read access to `rwlock_` is required when reading `region_*_`, `queue_fun_`,
-    or `replica_`, or when calling `timestamp_enforcer_->complete()`. Write access to
-    `rwlock_` is required when writing to `region_*_`, `queue_fun_`, or `replica_`. */
-    rwlock_t rwlock_;
+    /* `mutex_assertion_` protects `mode_`, `tracker_`, `next_write_waiter_`,
+    `timestamp_enforcer_`, and `replica_`; but we aren't particularly careful about
+    always acquiring it before accessing those variables. */
+    mutex_assertion_t mutex_assertion_;
 
-    /* `registered` is pulsed once we've gotten the initial message from the
-    `remote_replicator_server_t`. `timestamp_enforcer_` won't be initialized until
-    `registered_` is pulsed. */
+    /* `registered_` is pulsed once `timestamp_enforcer_` is set up. So
+    `on_write_async()` has to wait for it before proceeding. */
     cond_t registered_;
+
+    /* `cleanup_rwlock_` is used to temporarily lock out writes when doing the very last
+    phase of the backfill. Writes acquire it in read mode; the last phase of the backfill
+    acquires it in write mode. */
+    rwlock_t cleanup_rwlock_;
 
     remote_replicator_client_bcard_t::write_async_mailbox_t write_async_mailbox_;
     remote_replicator_client_bcard_t::write_sync_mailbox_t write_sync_mailbox_;

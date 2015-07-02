@@ -134,7 +134,6 @@ backfill_config_t unlimited_queues_config() {
     backfill_config_t c;
     c.item_queue_mem_size = GIGABYTE;
     c.pre_item_queue_mem_size = GIGABYTE;
-    c.write_queue_count = 1000000;
     return c;
 }
 
@@ -148,7 +147,9 @@ public:
         value_padding_length(100),
         num_initial_writes(500),
         num_step_writes(100),
-        stream_during_backfill(true)
+        stream_during_backfill(true),
+        min_preempt_ms(200),
+        max_preempt_ms(1000)
         { }
 
     /* `value_padding_length` is the amount of extra padding to add to each document, in
@@ -166,8 +167,49 @@ public:
     online writes during the backfill. */
     bool stream_during_backfill;
 
+    /* Each phase of the backfill will be allowed to run for a random time between
+    `min_preempt_ms` and `max_preempt_ms` before being preempted. */
+    int min_preempt_ms, max_preempt_ms;
+
     /* This controls the queue sizes, etc. in the backfill logic. */
     backfill_config_t backfill;
+};
+
+/* `stress_backfill_throttler_t` allows each backfill to run for a random amount of time
+before preempting it. */
+class stress_backfill_throttler_t : public backfill_throttler_t {
+public:
+    explicit stress_backfill_throttler_t(const backfill_test_config_t &_config) :
+        config(_config) { }
+    ~stress_backfill_throttler_t() {
+        guarantee(drainers.empty());
+    }
+
+private:
+    void enter(lock_t *lock, signal_t *) {
+        assert_thread();   /* this unit test is single-threaded */
+        drainers[lock].init(new auto_drainer_t);
+        auto_drainer_t::lock_t keepalive(drainers[lock].get());
+        coro_t::spawn_sometime([this, lock, keepalive   /* important to capture */]() {
+            try {
+                int time = config.min_preempt_ms +
+                    randint(config.max_preempt_ms - config.min_preempt_ms + 1);
+                nap(time, keepalive.get_drain_signal());
+                preempt(lock);
+            } catch (const interrupted_exc_t &) {
+                /* ignore */
+            }
+        });
+    }
+
+    void exit(lock_t *lock) {
+        assert_thread();
+        size_t res = drainers.erase(lock);
+        guarantee(res == 1);
+    }
+
+    backfill_test_config_t config;
+    std::map<lock_t *, scoped_ptr_t<auto_drainer_t> > drainers;
 };
 
 void run_backfill_test(const backfill_test_config_t &cfg) {
@@ -215,21 +257,21 @@ void run_backfill_test(const backfill_test_config_t &cfg) {
                 cluster.get_mailbox_manager(),
                 &dispatcher);
 
-            backfill_throttler_t backfill_throttler;
+            stress_backfill_throttler_t backfill_throttler(cfg);
             backfill_debug_all("begin backfill store1 -> store2");
             backfill_progress_tracker_t backfill_progress_tracker;
             remote_replicator_client_t remote_replicator_client_2(&backfill_throttler,
                 cfg.backfill, &backfill_progress_tracker, cluster.get_mailbox_manager(),
-                generate_uuid(), dispatcher.get_branch_id(),
-                remote_replicator_server.get_bcard(),
+                generate_uuid(), backfill_throttler_t::priority_t::critical_t::NO,
+                dispatcher.get_branch_id(), remote_replicator_server.get_bcard(),
                 local_replicator.get_replica_bcard(), generate_uuid(), &store2.store,
                 &bhm, &non_interruptor);
             backfill_debug_all("end backfill store1 -> store2");
             backfill_debug_all("begin backfill store1 -> store3");
             remote_replicator_client_t remote_replicator_client_3(&backfill_throttler,
                 cfg.backfill, &backfill_progress_tracker, cluster.get_mailbox_manager(),
-                generate_uuid(), dispatcher.get_branch_id(),
-                remote_replicator_server.get_bcard(),
+                generate_uuid(), backfill_throttler_t::priority_t::critical_t::NO,
+                dispatcher.get_branch_id(), remote_replicator_server.get_bcard(),
                 local_replicator.get_replica_bcard(), generate_uuid(), &store3.store,
                 &bhm, &non_interruptor);
             backfill_debug_all("end backfill store1 -> store3");
@@ -285,13 +327,13 @@ void run_backfill_test(const backfill_test_config_t &cfg) {
             cluster.get_mailbox_manager(),
             &dispatcher);
 
-        backfill_throttler_t backfill_throttler;
+        stress_backfill_throttler_t backfill_throttler(cfg);
         backfill_debug_all("begin backfill store2 -> store1");
         backfill_progress_tracker_t backfill_progress_tracker;
         remote_replicator_client_t remote_replicator_client(&backfill_throttler,
             cfg.backfill, &backfill_progress_tracker, cluster.get_mailbox_manager(),
-            generate_uuid(), dispatcher.get_branch_id(),
-            remote_replicator_server.get_bcard(),
+            generate_uuid(), backfill_throttler_t::priority_t::critical_t::NO,
+            dispatcher.get_branch_id(), remote_replicator_server.get_bcard(),
             local_replicator.get_replica_bcard(), generate_uuid(), &store1.store, &bhm,
             &non_interruptor);
         backfill_debug_all("end backfill store2 -> store1");
@@ -329,13 +371,13 @@ void run_backfill_test(const backfill_test_config_t &cfg) {
             cluster.get_mailbox_manager(),
             &dispatcher);
 
-        backfill_throttler_t backfill_throttler;
+        stress_backfill_throttler_t backfill_throttler(cfg);
         backfill_debug_all("begin backfill store1 -> store3");
         backfill_progress_tracker_t backfill_progress_tracker;
         remote_replicator_client_t remote_replicator_client(&backfill_throttler,
             cfg.backfill, &backfill_progress_tracker, cluster.get_mailbox_manager(),
-            generate_uuid(), dispatcher.get_branch_id(),
-            remote_replicator_server.get_bcard(),
+            generate_uuid(), backfill_throttler_t::priority_t::critical_t::NO,
+            dispatcher.get_branch_id(), remote_replicator_server.get_bcard(),
             local_replicator.get_replica_bcard(), generate_uuid(), &store3.store, &bhm,
             &non_interruptor);
         backfill_debug_all("end backfill store1 -> store3");
@@ -441,11 +483,13 @@ TPTEST(RDBBackfill, NearEmptyTable) {
 }
 
 TPTEST(RDBBackfill, FillItemQueue) {
-    /* Force the item queue to fill up, but make the other two queues unlimited. */
+    /* Force the item queue to fill up, but make the pre-item queue unlimited and never
+    preempt. */
     backfill_test_config_t cfg;
-    cfg.backfill = unlimited_queues_config();
     cfg.backfill.item_queue_mem_size = 1;
     cfg.backfill.item_chunk_mem_size = 1;
+    cfg.backfill.pre_item_queue_mem_size = GIGABYTE;
+    cfg.min_preempt_ms = cfg.max_preempt_ms = 60 * 60 * 1000;
     /* Since the item queue will stall a lot, this backfill will be much slower than
     normal; so we backfill fewer items to speed up the test. */
     cfg.num_initial_writes = 100;
@@ -454,10 +498,13 @@ TPTEST(RDBBackfill, FillItemQueue) {
 }
 
 TPTEST(RDBBackfill, FillPreItemQueue) {
-    /* Force the pre-item queue to fill up, but make the other two queues unlimited. */
+    /* Force the pre-item queue to fill up, but make the item queue unlimited and never
+    preempt. */
     backfill_test_config_t cfg;
     cfg.backfill.pre_item_queue_mem_size = 1;
     cfg.backfill.pre_item_chunk_mem_size = 1;
+    cfg.backfill.item_queue_mem_size = GIGABYTE;
+    cfg.min_preempt_ms = cfg.max_preempt_ms = 60 * 60 * 1000;
     /* Since the pre-item queue will stall a lot, this backfill will be much slower than
     normal; so we backfill fewer items to speed up the test. */
     cfg.num_initial_writes = 100;
@@ -465,22 +512,23 @@ TPTEST(RDBBackfill, FillPreItemQueue) {
     run_backfill_test(cfg);
 }
 
-TPTEST(RDBBackfill, FillWriteQueue) {
-    /* Force the write queue to fill up so that the backfill repeatedly switches between
-    streaming and backfilling modes. */
+TPTEST(RDBBackfill, PreemptOften) {
+    /* Force the backfill to be preempted after every single backfill item, just to
+    stress the system */
     backfill_test_config_t cfg;
-    cfg.backfill.write_queue_count = 3;
+    cfg.min_preempt_ms = cfg.max_preempt_ms = 0;
     run_backfill_test(cfg);
 }
 
-TPTEST(RDBBackfill, FillAllQueues) {
-    /* Make all the queues very small, just to stress the system. */
+TPTEST(RDBBackfill, FillBothQueuesAndPreemptOften) {
+    /* Make both the queues very small and also preempt often, just to stress the system.
+    */
     backfill_test_config_t cfg;
     cfg.backfill.item_queue_mem_size = 1;
     cfg.backfill.item_chunk_mem_size = 1;
     cfg.backfill.pre_item_queue_mem_size = 1;
     cfg.backfill.pre_item_chunk_mem_size = 1;
-    cfg.backfill.write_queue_count = 1;
+    cfg.min_preempt_ms = cfg.max_preempt_ms = 0;
     /* Speed up the test by backfilling fewer items */
     cfg.num_initial_writes = 100;
     cfg.num_step_writes = 10;

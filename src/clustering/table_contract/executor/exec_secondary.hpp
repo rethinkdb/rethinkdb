@@ -2,11 +2,11 @@
 #ifndef CLUSTERING_TABLE_CONTRACT_EXECUTOR_EXEC_SECONDARY_HPP_
 #define CLUSTERING_TABLE_CONTRACT_EXECUTOR_EXEC_SECONDARY_HPP_
 
+#include "clustering/immediate_consistency/backfill_throttler.hpp"
 #include "clustering/table_contract/contract_metadata.hpp"
 #include "clustering/table_contract/executor/exec.hpp"
 #include "store_view.hpp"
 
-class backfill_throttler_t;
 class io_backender_t;
 
 class secondary_execution_t : public execution_t, public home_thread_mixin_t {
@@ -40,6 +40,9 @@ private:
 
     /* `last_ack` contains the last ack we've sent via `ack_cb`, if any. */
     boost::optional<contract_ack_t> last_ack;
+
+    /* Set to `YES` if we're a voter, `NO` if we're a nonvoter */
+    backfill_throttler_t::priority_t::critical_t is_critical_priority;
 
     /* `drainer` ensures that `run` is stopped before the other member variables are
     destroyed. */

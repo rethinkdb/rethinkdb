@@ -124,25 +124,25 @@ with driver.Cluster(initial_servers=['a', 'x'], output_folder='.',
         else:
             raise ValueError("Expected emergency repair to fail")
 
-    def wait_for_table(name):
+    def wait_for_table(name, wait_for="ready_for_writes"):
         """Blocks until the given table is ready for writes."""
         try:
-            res = r.table(name).wait(wait_for="ready_for_writes", timeout=10).run(conn)
+            res = r.table(name).wait(wait_for=wait_for, timeout=10).run(conn)
             assert res["ready"] == 1
         except r.RqlRuntimeError, e:
             pprint.pprint(r.table(name).status().run(conn))
             raise
 
-    def check_table(name):
+    def check_table(name, wait_for="ready_for_writes"):
         """Checks that the table is readable and its data has not been lost."""
         print("Checking contents of table '%s' (%.2fs)" % (name, time.time() - startTime))
-        wait_for_table(name)
+        wait_for_table(name, wait_for)
         assert r.table(name).count().run(conn) == docs_per_table
 
-    def check_table_half(name):
+    def check_table_half(name, wait_for="ready_for_writes"):
         """Checks that approximately half of the data in the table has been lost."""
         print("Checking contents of table '%s' (expect half erased) (%.2fs)" % (name, time.time() - startTime))
-        wait_for_table(name)
+        wait_for_table(name, wait_for)
         count = r.table(name).count().run(conn)
         assert 0.25*docs_per_table < count < 0.75*docs_per_table, \
             ("Found %d rows, expected about %d" % (count, 0.50*docs_per_table))
@@ -203,12 +203,12 @@ with driver.Cluster(initial_servers=['a', 'x'], output_folder='.',
     new_x.wait_until_started_up()
 
     # Make sure that the reappearance of the dead server doesn't break anything
-    check_table("no_repair_1")
-    check_table("no_repair_2")
-    check_table("rollback")
-    check_table("rollback_nonvoting")
-    check_table_half("erase")
-    check_table_half("rollback_then_erase")
+    check_table("no_repair_1", wait_for="all_replicas_ready")
+    check_table("no_repair_2", wait_for="all_replicas_ready")
+    check_table("rollback", wait_for="all_replicas_ready")
+    check_table("rollback_nonvoting", wait_for="all_replicas_ready")
+    check_table_half("erase", wait_for="all_replicas_ready")
+    check_table_half("rollback_then_erase", wait_for="all_replicas_ready")
 
     # Make sure that the table we dropped stays dropped, and the drop propagates to the
     # other server in the cluster.

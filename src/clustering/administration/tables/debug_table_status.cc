@@ -237,16 +237,9 @@ ql::datum_t convert_debug_contract_acks_to_datum(
                 ? convert_debug_version_map_to_datum(
                         contract_ack.second.version.get())
                 : ql::datum_t::null());
-        /* RSI(raft) The branch history is append-only thus it grows without bound,
-           printing it can be reinstated once it's garbage collected per #3879. For the
-           time being we print the size instead.
         contract_builder.overwrite(
             "branch_history",
-            convert_debug_branch_history_to_datum(contract_ack.second.branch_history)); */
-        contract_builder.overwrite(
-            "branch_history",
-            ql::datum_t(static_cast<double>(
-                contract_ack.second.branch_history.branches.size())));
+            convert_debug_branch_history_to_datum(contract_ack.second.branch_history));
         builder.add(std::move(contract_builder).to_datum());
     }
     return std::move(builder).to_datum();
