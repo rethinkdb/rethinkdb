@@ -95,6 +95,9 @@ bool do_serve(io_backender_t *io_backender,
     // Do this here so we don't block on popen while pretending to serve.
     std::string uname = run_uname("ms");
     try {
+        /* `extproc_pool` spawns several subprocesses that can be used to run tasks that
+        we don't want to run in the main RethinkDB process, such as Javascript
+        evaluations. */
         extproc_pool_t extproc_pool(get_num_threads());
 
         /* `thread_pool_log_writer_t` automatically registers itself. While it exists,
@@ -210,7 +213,7 @@ bool do_serve(io_backender_t *io_backender,
         logNTC("Listening for intracluster connections on port %d\n",
             connectivity_cluster_run->get_port());
 
-        /* `auto_reconnecor` tries to reconnect to other servers if we lose the
+        /* `auto_reconnector` tries to reconnect to other servers if we lose the
         connection to them. */
         auto_reconnector_t auto_reconnector(
             &connectivity_cluster,

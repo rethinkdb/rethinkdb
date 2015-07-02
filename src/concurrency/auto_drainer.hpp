@@ -142,14 +142,14 @@ When an `auto_drainer_t` is used as a member of a class, it usually must be
 destroyed in a specific order with respect to the other class members. In
 particular, the destructor order is usually as follows:
 
-1. Destroy the any `mailbox_t`s, `watchable_t` subscriptions,
+1. Destroy any `mailbox_t`s, `watchable_t` subscriptions,
     `repeating_timer_t`s, or other member variables that will spontaneously
     call callbacks or spawn coroutines that access the class.
 2. Destroy the `auto_drainer_t` itself, which will block until any such
     coroutines have stopped.
 3. Destroy all the other members of the class.
 
-When writing code that relies in the destructor order, it's good practice to
+When writing code that relies on the destructor order, it's good practice to
 leave a comment explaining which things must be destroyed before which other
 things and why. */
 
