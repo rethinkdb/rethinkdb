@@ -54,6 +54,13 @@ module.exports.toCamelCase = (token) ->
         match[1].toUpperCase()
     )
 
+module.exports.bindToCurrentDomain = (callback) ->
+    domain = process.domain
+    if domain == null or callback == null
+        callback
+    else
+        domain.bind callback
+
 convertPseudotype = (obj, opts) ->
     # An R_OBJECT may be a regular object or a "pseudo-type" so we need a
     # second layer of type switching here on the obfuscated field "$reql_type$"
