@@ -217,10 +217,14 @@ tests:
 
     - cd: tbl.count()
       ot: 6
-
+    
+    - cd: tableCount = tbl2.count()
     - cd: r.expr([1, 2, 3]).for_each( tbl2.insert({}) )
       ot: ({'deleted':0.0,'replaced':0.0,'generated_keys':arrlen(3,uuid()),'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':3})
-
+      # inserts only a single document per #3700
+    - cd: tbl2.count()
+      ot: tableCount + 1
+    
     # We have six elements, update them 6*2*3=36 times
     - js: r([1, 2, 3]).forEach(function (row) { return [tbl.update({ foo:row }), tbl.update({ bar:row })] })
       py: r.expr([1,2,3]).for_each(lambda row:[tbl.update({'foo':row}), tbl.update({'bar':row})])
@@ -271,6 +275,18 @@ tests:
     - cd: r.expr([1, 2]).map(r.db('test').table_create('nested_table'))
       ot: err('RqlCompileError', 'Cannot nest writes or meta ops in stream operations.  Use FOR_EACH instead.', [0])
 
+    - cd: r.expr([1, 2]).map(r.db('test').table_create('nested_table'))
+      ot: err('RqlCompileError', 'Cannot nest writes or meta ops in stream operations.  Use FOR_EACH instead.', [0])
+
+    - cd: r.expr([1, 2]).map(tbl.insert({'foo':r.row}).get_field('inserted'))
+      rb: r.expr([1, 2]).map{|x| tbl.insert({'foo':x}).get_field('inserted')}
+      ot: err('RqlCompileError', 'Cannot nest writes or meta ops in stream operations.  Use FOR_EACH instead.', [0])
+
+    - cd: r.expr([1, 2]).map(tbl.insert({'foo':r.row}).get_field('inserted').add(5))
+      rb: r.expr([1, 2]).map{|x| tbl.insert({'foo':x}).get_field('inserted').add(5)}
+      ot: err('RqlCompileError', 'Cannot nest writes or meta ops in stream operations.  Use FOR_EACH instead.', [0])
+
     - cd: r.expr(1).do(r.db('test').table_create('nested_table'))
       ot: partial({'tables_created':1})
+
     - cd: r.db('test').table_drop('nested_table')

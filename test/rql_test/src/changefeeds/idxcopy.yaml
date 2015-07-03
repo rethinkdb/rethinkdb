@@ -1,24 +1,35 @@
 desc: Test duplicate indexes with squashing
 table_variable_name: tbl
 tests:
-    - rb: tbl.index_create('a')
+    - cd: tbl.index_create('a')
       ot: partial({'created':1})
+    - cd: tbl.index_wait('a')
 
-    - rb: changes = tbl.orderby(index:'a').limit(10).changes(squash:true).limit(9)
-    - rb: tbl.insert((0...12).map{|i| {id:i, a:5}})
+    - py: feed = tbl.order_by(index='a').limit(10).changes(squash=2).limit(9)
+      rb: feed = tbl.orderby(index:'a').limit(10).changes(squash:2).limit(9)
+      js: feed = tbl.orderBy({index:'a'}).limit(10).changes({squash:2}).limit(9)
+    
+    - py: tbl.insert(r.range(0, 12).map({'id':r.row, 'a':5}))
+      rb: tbl.insert(r.range(0, 12).map{|row| {'id':row, 'a':5}})
+      js: tbl.insert(r.range(0, 12).map(function(row){ return {'id':row, 'a':5}; }))
       ot: partial({'inserted':12, 'errors':0})
 
-    - rb: tbl.get_all(0, 1, 8, index:'id').delete
+    - py: tbl.get_all(0, 1, 8, index='id').delete()
+      rb: tbl.get_all(0, 1, 8, index:'id').delete()
+      js: tbl.get_all(0, 1, 8, {index:'id'}).delete()
       ot: partial({'deleted':3, 'errors':0})
-
-    - rb: changes
+    
+    # should be replaced with a noreplyWait
+    - cd: wait(2)
+    
+    - cd: feed
       ot: bag([
-            {"new_val"=>{"a"=>5, "id"=>2}, "old_val"=>nil},
-            {"new_val"=>{"a"=>5, "id"=>3}, "old_val"=>nil},
-            {"new_val"=>{"a"=>5, "id"=>4}, "old_val"=>nil},
-            {"new_val"=>{"a"=>5, "id"=>5}, "old_val"=>nil},
-            {"new_val"=>{"a"=>5, "id"=>6}, "old_val"=>nil},
-            {"new_val"=>{"a"=>5, "id"=>7}, "old_val"=>nil},
-            {"new_val"=>{"a"=>5, "id"=>9}, "old_val"=>nil},
-            {"new_val"=>{"a"=>5, "id"=>10}, "old_val"=>nil},
-            {"new_val"=>{"a"=>5, "id"=>11}, "old_val"=>nil}])
+            {"new_val":{"a":5, "id":2}, "old_val":nil},
+            {"new_val":{"a":5, "id":3}, "old_val":nil},
+            {"new_val":{"a":5, "id":4}, "old_val":nil},
+            {"new_val":{"a":5, "id":5}, "old_val":nil},
+            {"new_val":{"a":5, "id":6}, "old_val":nil},
+            {"new_val":{"a":5, "id":7}, "old_val":nil},
+            {"new_val":{"a":5, "id":9}, "old_val":nil},
+            {"new_val":{"a":5, "id":10}, "old_val":nil},
+            {"new_val":{"a":5, "id":11}, "old_val":nil}])

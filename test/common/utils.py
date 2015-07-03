@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
+
 import atexit, collections, fcntl, os, random, re, shutil, signal, socket, string, subprocess, sys, tempfile, threading, time, warnings
 
 import test_exceptions
@@ -37,6 +39,11 @@ driverPaths = {
 non_text_bytes = \
   list(range(0x00, 0x09+1)) + [0x0B, 0x0C] + list(range(0x0F, 0x1F+1)) + \
   [0xC0, 0xC1] + list(range(0xF5, 0xFF+1))
+
+startTime = time.time()
+def print_with_time(*args, **kwargs): # add timing information to print statements
+    args += ('(T+ %.2fs)' % (time.time() - startTime), )
+    print(*args, **kwargs)
 
 def guess_is_text_file(name):
     with file(name, 'rb') as f:
