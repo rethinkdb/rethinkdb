@@ -35,10 +35,12 @@ public:
         const std::function<void(
             const namespace_id_t &table_id,
             const table_active_persistent_state_t &state,
-            raft_storage_interface_t<table_raft_state_t> *raft_storage)> &active_cb,
+            raft_storage_interface_t<table_raft_state_t> *raft_storage,
+            metadata_file_t::read_txn_t *metadata_read_txn)> &active_cb,
         const std::function<void(
             const namespace_id_t &table_id,
-            const table_inactive_persistent_state_t &state)> &inactive_cb,
+            const table_inactive_persistent_state_t &state,
+            metadata_file_t::read_txn_t *metadata_read_txn)> &inactive_cb,
         signal_t *interruptor);
     void write_metadata_active(
         const namespace_id_t &table_id,
@@ -56,6 +58,7 @@ public:
 
     void load_multistore(
         const namespace_id_t &table_id,
+        metadata_file_t::read_txn_t *metadata_read_txn,
         scoped_ptr_t<multistore_ptr_t> *multistore_ptr_out,
         signal_t *interruptor,
         perfmon_collection_t *perfmon_collection_serializers);

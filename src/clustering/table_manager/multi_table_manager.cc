@@ -36,7 +36,8 @@ multi_table_manager_t::multi_table_manager_t(
     persistence_interface->read_all_metadata(
         [&](const namespace_id_t &table_id,
                 const table_active_persistent_state_t &state,
-                raft_storage_interface_t<table_raft_state_t> *raft_storage) {
+                raft_storage_interface_t<table_raft_state_t> *raft_storage,
+                metadata_file_t::read_txn_t *metadata_read_txn) {
             guarantee(tables.count(table_id) == 0);
             table_t *table;
             tables[table_id].init(table = new table_t);
@@ -45,14 +46,15 @@ multi_table_manager_t::multi_table_manager_t(
                 perfmon_collection_repo->get_perfmon_collections_for_namespace(table_id);
             table->status = table_t::status_t::ACTIVE;
             persistence_interface->load_multistore(
-                table_id, &table->multistore_ptr, &non_interruptor,
+                table_id, metadata_read_txn, &table->multistore_ptr, &non_interruptor,
                 &perfmon_collections->serializers_collection);
             table->active = make_scoped<active_table_t>(
                 this, table, table_id, state.epoch, state.raft_member_id, raft_storage,
                 table->multistore_ptr.get(), &perfmon_collections->namespace_collection);
         },
         [&](const namespace_id_t &table_id,
-                const table_inactive_persistent_state_t &state) {
+                const table_inactive_persistent_state_t &state,
+                metadata_file_t::read_txn_t *) {
             guarantee(tables.count(table_id) == 0);
             table_t *table;
             tables[table_id].init(table = new table_t);

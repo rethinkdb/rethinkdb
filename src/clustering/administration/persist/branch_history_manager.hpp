@@ -14,6 +14,7 @@ public:
     real_branch_history_manager_t(
         const namespace_id_t &_table_id,
         metadata_file_t *_metadata_file,
+        metadata_file_t::read_txn_t *metadata_read_txn,
         signal_t *interruptor);
 
     branch_birth_certificate_t get_branch(const branch_id_t &branch)
