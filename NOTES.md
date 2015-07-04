@@ -1,3 +1,105 @@
+# Release 2.1.0-beta (Das Boot)
+
+-- issues up-to-date with the 2.1 milestone as of 2015-07-06 23:00 UTC
+-- contributors " " next as of 3dac994 and docs:master as of 0b661c4
+
+Release highlight:
+
+* Automatic failover
+
+Read the [blog post][2.1-beta] for more details.
+
+[2.1-beta]: http://rethinkdbblog.com/blog/2.1-beta/
+
+## Compatibility ##
+
+This beta release does not include automatic migration of data
+directories from older versions of RethinkDB. However the final 2.1.0
+version will include that feature for versions of RethinkDB down to
+1.14.0. Upgrading directly from RethinkDB 1.13 will no longer be
+supported.
+
+### API-breaking changes ###
+
+* `.split('')` now treats the input as UTF8 instead of an array of bytes.
+* `null` values in compound index are no longer discarded.
+* The new `read_mode` optional argument replaces `use_outdated`
+* The format of the system tables has changed
+
+## New features ##
+
+* Server
+ * Added automatic failover and semi-lossless rebalance based on raft (#223)
+ * Backfills are now interuptible and reversible (#3886, #3885)
+ * `table.reconfigure()` now works even if some servers are disconnected (#3913)
+ * Replicas can now be marked as voting or non-voting (#3891)
+ * Table reconfigurations can now be applied without consensus (#3893)
+ * Reads can now be made against a majority of replicas (#3895)
+ * Added an emergency read mode that extract data under certain failures (#4388)
+ * Now allow servers to go away without issues if they don't have any responsibilities (#1790)
+* ReQL
+ * Added `ceil`, `floor` and `round` (#866)
+* All drivers
+ * Added driver-side support for ssl connections and CA verification (#4075, #4076, #4080)
+* Python driver
+ * Added asyncio support (#4071)
+ * `rethinkdb export` now supports the `--delimiter` option for CSV files (#3916)
+
+## Improvements ##
+
+* Server
+ * Improved the handling of membership and removal of servers (#3262, #3897, #1790)
+ * Changed the formatting of the `table_status` system table (#3882, #4196)
+ * Made `datum_t` movable (#4056)
+ * ReQL backtraces are now faster and smaller (#2900)
+ * Replaced cJSON with rapidjson (#3844)
+ * Transparently retry failed meta operations (#4199)
+ * Log more cluster events (#3878)
+ * Improved unsaved data limit throttling (#4441)
+* ReQL
+ * `.split('')` is now UTF8-aware (#2518)
+ * Improved the behaviour of compound index values containing `null` (#4146)
+ * Errors now distinguish failed writes from indeterminate writes (#4296)
+ * `r.union` is now a top-level term (#4030)
+* Web UI
+ * Use real dependency management and namespaces (#3465, #3660)
+ * Updated to reflect the new clustering features and changes (#4283, #4330, #4288, ...)
+* JavaScript driver
+ * The version of bluebird was updated to 2.9.25 (#4178)
+* Python driver
+ * Added a `r.__version__` (#3100)
+
+## Bug fixes ##
+
+* Python driver
+ * Fixed a missing argument error (#4402)
+* JavaScript driver
+ * Better handling of the `db` optional argument to `run` (#4347)
+
+## Contributors ##
+
+Many thanks to external contributors from the RethinkDB community for helping
+us ship RethinkDB 2.1. In no particular order:
+
+* Thomas Kluyver (@takluyver)
+* Jonathan Phillips (@jipperinbham)
+* Yohan Graterol (@yograterol)
+* Adam Grandquist (@grandquista)
+* Peter Hamilton (@hamiltop)
+* Marshall Cottrell (@marshall007)
+* Elias Levy (@eliaslevy)
+* Ian Beringer (@ianberinger)
+* Jason Dobry (@jmdobry)
+* Wankai Zhang (@wankai)
+* Elifarley Cruz (@elifarley)
+* Brandon Mills (@btmills)
+* Daniel Compton (@danielcompton)
+* Ed Costello (@epc)
+* Lowe Thiderman (@thiderman)
+* Andy Wilson (@wilsaj)
+
+--
+
 # Release 2.0.0 (Yojimbo)
 
 Release highlights:
