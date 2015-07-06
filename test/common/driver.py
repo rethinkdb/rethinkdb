@@ -419,14 +419,11 @@ class _Process(object):
             self.local_cluster_port = utils.get_avalible_port()
             options += ['--client-port', str(self.local_cluster_port)]
         
-        # add log file path
-        
-        options += ['--log-file', str(self.logfile_path)]
-        
-        # -- supress update checks/reporting in
+        if not '--log-file' in options:
+            options += ['--log-file', str(self.logfile_path)]
         
         if not '--no-update-check' in options:
-            options += ['--no-update-check']
+            options += ['--no-update-check'] # supress update checks/reporting in
         
         # - set to join the cluster
         
@@ -758,8 +755,8 @@ class ProxyProcess(_Process):
             extra_options = []
         
         self.logfile_path = logfile_path
-
-        options = ["proxy", "--log-file", self.logfile_path] + extra_options
+        
+        options = ["proxy"] + extra_options
 
         _Process.__init__(self, cluster, options, console_output=console_output, executable_path=executable_path, command_prefix=command_prefix)
 
