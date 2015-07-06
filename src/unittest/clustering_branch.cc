@@ -120,7 +120,9 @@ void run_backfill_test(
             start();
         }
         ~inserter_t() {
-            stop();
+            if (running()) {
+                stop();
+            }
         }
     private:
         void write(const std::string &key, const std::string &value,
