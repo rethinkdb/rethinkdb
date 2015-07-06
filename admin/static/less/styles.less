@@ -882,166 +882,7 @@ TODO: retire this
     }
 }
 
-/*
-    ----------------------------
-    Dashboard
-    ----------------------------
-*/
-#dashboard_container {
-    #cluster_status_container {
-        padding: 0;
-        width: 940px;
-        margin-left: auto;
-        margin-right: auto;
-        overflow: auto;
-        border-collapse: collapse;
-        .flex-justify(space-between);
-
-        .flex();
-        .panel {
-            border: thin solid #dfdfdf;
-            .flex-grow(0);
-            .flex-shrink(0);
-            flex-basis: 233px;
-            @bad: #e85250;
-            @good: #3ba51a;
-            vertical-align: top;
-            overflow: hidden;
-            white-space: nowrap;
-            & > div:first-child{
-                padding: 20px;
-            text-overflow: ellipsis;
-            }
-            h3 {
-                margin-top: 0;
-                margin-bottom: 10px;
-                font-family: @serif;
-                font-size: 17px;
-                color: #4c4c4c;
-                padding-left: 21px;
-            }
-
-            .no-problems-detected h3 { background: 0 3px no-repeat url('images/green-light.png'); }
-            .problems-detected h3 { background: 0 3px no-repeat url('images/red-light.png'); }
-
-            p {
-                font-family: @sans;
-                font-size: 14px;
-                line-height: 22px;
-                margin: 0;
-                color: #4c4c4c;
-                span.good { color: @good; }
-                span.bad { color: @bad; }
-                span.good, span.bad { font-weight: bold; }
-            }
-
-            &.first { border-left: none; }
-
-            .popup_container{
-                font-family: @sans;
-                display: none;
-                width: 430px;
-                position: absolute;
-                top: 0px;
-                left: 0px;
-                z-index: 200;
-                padding: 10px 20px;
-                border: thin solid #cfcfcf;
-                background: #fff;
-                .inner_content{
-                    max-height: 600px;
-                    overflow: auto;
-                }
-                .close{
-                    position: absolute;
-                    top: 10px;
-                    right: 10px;
-                    color: #444;
-                    font-size: 18px;
-                    text-decoration: none;
-                }
-                .arrow_left{
-                    position: absolute;
-                    z-index: 201;
-                    top: 60px;
-                    left: -11px;
-                    width: 0;
-                    height: 0;
-                    border-top: 10px solid transparent;
-                    border-bottom: 10px solid transparent;
-                    border-right:10px solid #bbb;
-                }
-                .arrow_left_overlay{
-                    position: absolute;
-                    z-index: 202;
-                    top: 60px;
-                    left: -10px; //TODO
-                    width: 0;
-                    height: 0;
-                    border-top: 10px solid transparent;
-                    border-bottom: 10px solid transparent;
-                    border-right:10px solid #fff;
-                }
-                .arrow_right{
-                    position: absolute;
-                    z-index: 201;
-                    top: 60px;
-                    left: 471px;
-                    width: 0;
-                    height: 0;
-                    border-top: 10px solid transparent;
-                    border-bottom: 10px solid transparent;
-                    border-left:10px solid #bbb;
-                }
-                .arrow_right_overlay{
-                    position: absolute;
-                    z-index: 202;
-                    top: 60px;
-                    left: 470px;
-                    width: 0;
-                    height: 0;
-                    border-top: 10px solid transparent;
-                    border-bottom: 10px solid transparent;
-                    border-left:10px solid #fff;
-                }
-
-                h4{
-                    font-family: @sans;
-                    font-size: 16px;
-                    margin: 15px 0px 10px 0px;
-                    padding: 0px 20px 10px 20px;
-                    border-bottom: 1px solid #999;
-                    background: none;
-                }
-                .ul_first_level{
-                    margin: 0px 0px 10px 0px;
-                    padding: 0px;
-                    list-style: none;
-                }
-                .li_first_level{
-                    font-weight: bold;
-                }
-                .ul_second_level{
-                    margin: 6px 0px 15px 10px;
-                    padding: 0px;
-                    list-style: none;
-                    font-weight: normal;
-                }
-                .li_second_level{
-                    margin: 0px;
-                    padding: 0px 0px 5px 10px;
-                    border-left: 1px solid #ccc;
-                }
-                .resolve_issues_link{
-                    margin-left: 300px;
-                    font-weight: bold;
-                }
-            }
-        }
-    }
-}
-
-#dashboard_container, #server-view {
+#server-view {
     .recent-logs {
         & > h2.title {
             border-bottom: thin solid #f0f0f0;
@@ -1080,7 +921,7 @@ TODO: retire this
             border-bottom: thin solid #CCC;
             padding: 13px 15px;
             background: #fff;
-            .border-radius(4px 4px 0px 0px);
+            border-radius: 4px 4px 0px 0px;
 
             .element-type, h3.name {
                 display: inline-block;
@@ -1088,7 +929,7 @@ TODO: retire this
             }
             .element-type {
                 background: #f7ae41;
-                .border-radius(2px);
+                border-radius: 2px;
                 padding: 4px 15px;
                 text-transform: uppercase;
                 margin-right: 20px;
@@ -1112,7 +953,7 @@ TODO: retire this
         .element-list-container {
             padding: 0px 13px 12px 13px;
             background: #fafafa;
-            .border-radius(0px 0px 4px 4px);
+            border-radius: 0px 0px 4px 4px;
         }
 
         .table_container {
@@ -1120,7 +961,7 @@ TODO: retire this
             height: @bar_height;
             background: #FFF;
             border: thin solid #cfcfcf;
-            .border-radius(3px);
+            border-radius: 3px;
             margin-top: 12px;
 
             .box-shadow(~"0 1px 0 rgba(255, 255, 255, 0.02), 0 1px 3px rgba(0, 0, 0, 0.08)");
@@ -1136,7 +977,7 @@ TODO: retire this
 
                 input[type="checkbox"] + label {
                     border: thin solid #cfcfcf;
-                    .border-radius(3px);
+                    border-radius: 3px;
                     padding: 7px;
                     display: inline-block;
                     position: relative;
@@ -1153,10 +994,10 @@ TODO: retire this
             }
 
             .element-details {
-                .flex();
-                .flex-direction(row);
-                .flex-justify(space-between);
-                .flex-align-items(stretch);
+                display: flex;
+                flex-direction: row;
+                flex-justify: space-between;
+                align-items: stretch;
                 height: 100%;
 
                 @border_padding: 20px;
@@ -1171,8 +1012,8 @@ TODO: retire this
                     @offset: 8px;
                     padding: 0 @offset * 2;
                     border-left: thin solid #e4e4e4;
-                    .flex();
-                    .flex-align-items(center);
+                    display: flex;
+                    align-items: center;
                     height: 100%;
                 }
                 // mixin for icons
@@ -1190,7 +1031,7 @@ TODO: retire this
                     font-weight: bold;
                     overflow: hidden;
                     text-overflow: ellipsis;
-                    .flex-grow(2);
+                    flex-grow: 2;
                 }
                 .quick_info {
                     .with-icon('images/graph-icon.png');

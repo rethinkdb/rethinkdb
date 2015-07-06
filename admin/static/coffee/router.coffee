@@ -1,5 +1,5 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
-dashboard_view = require('./dashboard.coffee')
+dashboard = require('./dashboard/dashboard.coffee')
 log_view = require('./log_view.coffee')
 dataexplorer_view = require('./dataexplorer.coffee')
 tables_view = require('./tables/index.coffee')
@@ -53,7 +53,7 @@ class BackboneCluster extends Backbone.Router
 
     dashboard: ->
         @current_view.remove()
-        @current_view = new dashboard_view.DashboardContainer
+        @current_view = new dashboard.View
         @container.html @current_view.render().$el
 
     logs: ->

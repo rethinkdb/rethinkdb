@@ -56,7 +56,7 @@ render_shard = (shard, index) ->
 render_replica = (replica) ->
     h "li.child", [
         h "span.child-name", [
-            if replica.state == 'ready'
+            if replica.state != 'disconnected'
                 h "a", href: "#servers/#{replica.id}", replica.server
             else
                 replica.server

@@ -26,10 +26,18 @@ This will also help porting if we move to another CSS preprocessor (say scss)
 @link-color: #0597d8;
 @light-border-color: #cfcfd1;
 @profile-icon-color: #d0d0d0;
+@plot-border-color: #dcdcdc;
 @dividing-line-color: #f0f0f0;
 @status-separator-color: #e4e4e4;
 @almost-white: #fafafa;
 @profile-description-blue: #72bddf;
+@status-bad-red: #e85250;
+@status-good-green: #3ba51a;
+@reads-plot-color: #729E51;
+@writes-plot-color: #983434;
+@axis-label-fill-color: #A3A3A3;
+@dark-slate-gray: #444444;
+@lighter-dark-slate-gray: #4c4c4c;
 /* Fonts */
 @sans: "Open Sans";
 @serif: "Copse";
@@ -323,6 +331,222 @@ tr.server-container {
         white-space: nowrap;
         .highlight {
             font-weight: bold;
+        }
+    }
+}
+
+.dashboard-container {
+    .recent-logs {
+        & > h2.title {
+            border-bottom: thin solid @dividing-line-color;
+            padding-bottom: 22px;
+            margin-bottom: 0;
+        }
+        .btn.view-logs { float: right; }
+        ul.log-entries { margin-bottom: 5px; }
+        // This overrides some of the common styles used on other log pages
+        h1 { display: none; }
+        #log-view {
+            padding: 0px;
+            border: 0px;
+            box-shadow: none;
+            .log-entry {
+                padding-top: 5px;
+                padding-bottom: 5px;
+                background-position: left center;
+            }
+
+        }
+    }
+    .cluster-status {
+        padding: 0 !important;
+        width: 940px;
+        margin-left: auto;
+        margin-right: auto;
+        overflow: auto;
+        border-collapse: collapse;
+
+        display: flex;
+        justify-content: space-between;
+        .panel {
+            border: thin solid @dividing-line-color;
+            flex-grow: 0;
+            flex-shrink: 0;
+            flex-basis: 233px;
+            vertical-align: top;
+            overflow: hidden;
+            white-space: nowrap;
+            display: flex;
+            // justify-content: center;
+            align-items: center;
+            .dashboard-panel {
+                padding: 20px;
+                text-overflow: ellipsis;
+                margin-left: 5%;
+            }
+            h3 {
+                margin-top: 0;
+                margin-bottom: 8px;
+                font-family: @serif;
+                font-size: 17px;
+                color: @lighter-dark-slate-gray;
+                padding-left: 21px;
+            }
+
+            .no-problems-detected h3 {
+                background: 0 3px no-repeat url('images/green-light.png');
+            }
+            .problems-detected h3 {
+                background: 0 3px no-repeat url('images/red-light.png');
+            }
+            ul {
+                padding-left: 0;
+                margin-bottom: 0px;
+                margin-top: 0px;
+            }
+            li {
+                list-style: none;
+                font-family: @sans;
+                font-size: 14px;
+                line-height: 22px;
+                margin: 0;
+                color: @lighter-dark-slate-gray;
+                span.good { color: @status-good-green; }
+                span.bad { color: @status-bad-red; }
+                span.good, span.bad { font-weight: bold; }
+                span.highlight {
+                    font-weight: bold;
+                }
+            }
+
+            &.first { border-left: none; }
+
+        }
+    }
+    .ops-plot {
+        /* GPU acceleration */
+        -webkit-transform : translateZ(0);
+        -o-transform : translateZ(0);
+        -moz-transform : translateZ(0);
+        transform : translateZ(0);
+        /* For Safari */
+        -webkit-perspective: 1000;
+        -webkit-backface-visibility: hidden;
+
+        @plot_height: 300px;
+
+        .ops-plot-legend {
+            float: right;
+            color: @axis-label-fill-color;
+            font: 15px @serif;
+            text-align: right;
+
+            .element {
+                display: inline-block;
+                vertical-align: top;
+                margin-left: 40px;
+                p {
+                    margin: 0;
+                    margin-left: 23px;
+                    line-height: 15px;
+                }
+            }
+
+            .reads .color { background-color: @reads-plot-color; }
+            .writes .color { background-color: @writes-plot-color; }
+
+            /* concentric circles for legend element */
+            .color {
+                @radius: 4px;
+                width: @radius*2;
+                height: @radius*2;
+                border-radius: @radius;
+                margin: 2px;
+            }
+
+            .outer-circle {
+                @radius: 6px;
+                width: @radius*2;
+                height: @radius*2;
+                border-radius: @radius;
+                border: thin solid @light-border-color;
+                float: left;
+            }
+
+        }
+        .plot-container {
+            background-color: white;
+            border: thin solid @plot-border-color;
+            border-radius: 4px;
+            padding: 10px;
+        }
+        .plot {
+            position: relative;
+            .chart {
+                border: none;
+                z-index: 150;
+                position: relative;
+                overflow: hidden;
+                display: inline-block;
+
+                .title { display: none; }
+                .value { display: none; }
+                canvas { display: block; }
+            }
+
+            // make room for the vaxis on the left
+            .chart, .haxis, .hgrid, .line { margin-left: 34px; }
+
+            // common styles
+            .haxis, .vaxis, .hgrid, .vgrid {
+                // NOTE: because the plot is laid out poorly,
+                // this font size matter a lot. It will define
+                // how aligned the vaxis labels are with the
+                // vaxis grid. Adjust according to the font
+                // being used. Ugly hack!
+                font: 7px @sans;
+                line {
+                    stroke: @plot-border-color;
+                    shape-rendering: crispEdges;
+                }
+                opacity: 1;
+                line {  opacity: 1; }
+            }
+
+            // labels on the axes
+            .vaxis text, .haxis text {
+                font: 13px @sans;
+                fill: @axis-label-fill-color;
+                -webkit-transition: fill-opacity 250ms linear;
+            }
+
+            // vaxis and vgrid
+            .vaxis {
+                margin-top: -1 * (@plot_height + 26px);
+                .tick { display: none; }
+            }
+            .vgrid {
+                position: absolute;
+                top: 0;
+                left: 0px;
+            }
+
+            // haxis and hgrid
+            .haxis { margin-top: -9px; }
+            .hgrid {
+                display: none;
+
+                height: @plot_height;
+                position: absolute;
+                top: -3px;
+                left: 0;
+            }
+
+            .line {
+                background: black;
+                opacity: .2;
+                z-index: 2;
+            }
         }
     }
 }
