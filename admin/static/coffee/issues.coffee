@@ -6,6 +6,7 @@ patch = require('virtual-dom/patch')
 createElement = require('virtual-dom/create-element')
 
 util = require('./util.coffee')
+ui_modals = require('./ui_components/modals.coffee')
 
 
 class IssuesBanner extends Backbone.View
@@ -21,6 +22,7 @@ class IssuesBanner extends Backbone.View
 
         @listenTo @model, 'change', @render
         @listenTo @collection, 'change', @render
+        @rename_modal = null
 
         @setElement(createElement(@current_vdom_tree))
 
@@ -42,6 +44,14 @@ class IssuesBanner extends Backbone.View
         if @collection.length == 0
             @show_resolve = true
         @
+
+rename_modal = (dataset) =>
+    modal = new ui_modals.RenameItemModal
+        item_type: dataset.itemType
+        model: new Backbone.Model
+            id: dataset.id
+            name: dataset.name
+    modal.render()
 
 render_unknown_issue = (issue) ->
     title: "Unknown issue"
@@ -113,10 +123,27 @@ render_name_collision = (collision_type, issue) ->
         ]
         h "ul", issue.info.ids.map((id) ->
             plural_type = util.pluralize_noun(collision_type, 2)
-            h "li",
-                h "a", href: "#{plural_type}/#{id}",
-                    h "span.uuid", util.humanize_uuid(id)
-                "(", h("a#rename_#{id}.rename", "Rename"), ")"
+            if collision_type != 'database'
+                link = h("a.change-route", href: "##{plural_type}/#{id}",
+                    h("span.uuid", util.humanize_uuid(id)))
+            else
+                link = h("span.uuid", util.humanize_uuid(id))
+            h "li", [
+                link
+                " ("
+                h("a.rename",
+                    href: "#",
+                    onclick: (event) =>
+                        event.preventDefault()
+                        rename_modal(event.target.dataset)
+                    dataset: {
+                        itemType: collision_type,
+                        id: id,
+                        name: issue.info.name,
+                    },
+                    "Rename")
+                ")"
+            ]
         )
     ]
 

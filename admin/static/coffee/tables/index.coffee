@@ -85,7 +85,6 @@ class DatabasesContainer extends Backbone.View
                     replicas_ready: table('shards').default([]).map((shard) ->
                         shard('replicas').filter((replica) ->
                             replica('state').eq('ready')).count()).sum()
-                    # TODO: remove this after #4374 is completed
                     status: table('status')
                     id: table('id')
                 )

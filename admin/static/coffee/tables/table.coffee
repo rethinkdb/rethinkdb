@@ -115,8 +115,8 @@ class TableContainer extends Backbone.View
                             table_status("shards").count(
                                 (row) -> row('primary_replicas').isEmpty().not())
                                 .default(0)
-                        num_replicas: table_config("shards").concatMap(
-                            (shard) -> shard('replicas')).count().default(0)
+                        num_replicas: table_status("shards").default([]).map((shard) ->
+                            shard('replicas').count()).sum()
                         num_available_replicas: table_status("shards").concatMap(
                             (shard) ->
                                 shard('replicas').filter({state: "ready"}))

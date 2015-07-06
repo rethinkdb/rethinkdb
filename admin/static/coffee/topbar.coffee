@@ -76,13 +76,10 @@ class ServersConnected extends Backbone.View
 
     initialize: =>
         @listenTo @model, 'change:num_servers', @render
-        @listenTo @model, 'change:num_available_servers', @render
 
     render: =>
         @$el.html @template
-            num_available_servers: @model.get 'num_available_servers'
             num_servers: @model.get 'num_servers'
-            error: @model.get('num_available_servers') < @model.get 'num_servers'
         @
 
     remove: =>
