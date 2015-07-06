@@ -27,11 +27,11 @@ void real_branch_history_manager_t::erase(
 real_branch_history_manager_t::real_branch_history_manager_t(
         const namespace_id_t &_table_id,
         metadata_file_t *_metadata_file,
+        metadata_file_t::read_txn_t *metadata_read_txn,
         signal_t *interruptor):
     table_id(_table_id), metadata_file(_metadata_file)
 {
-    metadata_file_t::read_txn_t read_txn(metadata_file, interruptor);
-    read_txn.read_many<branch_birth_certificate_t>(
+    metadata_read_txn->read_many<branch_birth_certificate_t>(
         mdprefix_branch_birth_certificate().suffix(uuid_to_str(table_id) + "/"),
         [&](const std::string &branch_id_str, const branch_birth_certificate_t &bc) {
             branch_id_t branch_id = str_to_uuid(branch_id_str);
