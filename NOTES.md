@@ -1,6 +1,6 @@
 # Release 2.0.4 (Yojimbo)
 
-Released on 2015-07-06
+Released on 2015-07-08
 
 Bug fix release
 
@@ -11,6 +11,8 @@ Bug fix release
 * Changed the Data Explorer to render empty results more clearly (#4110)
 * Fixed a linking issue on ARM (#4064)
 * Improved the message showing the query execution time in the Data Explorer (#3454, #3927)
+* Fixed an error that happened when calling `info` on an ordered table stream (#4242)
+* Fixed a bug that caused an error to be thrown for certain streams in the Data Explorer (#4242)
 
 --
 
