@@ -241,7 +241,7 @@ class TwistedCursor(Cursor):
         return isinstance(self.error, RqlCursorEmpty) and len(self.items) == 0
 
     def _get_next(self, timeout):
-        if self.is_empty() or self.has_error():
+        if len(self.items) == 0 and self.error:
             return defer.fail(self.error)
 
         def returnNextItem(item):
