@@ -13,6 +13,7 @@ Bug fix release
 * Improved the message showing the query execution time in the Data Explorer (#3454, #3927)
 * Fixed an error that happened when calling `info` on an ordered table stream (#4242)
 * Fixed a bug that caused an error to be thrown for certain streams in the Data Explorer (#4242)
+* Increased the coroutine stack safety buffer to detect stack overflows in optarg processing (#4473)
 
 --
 
