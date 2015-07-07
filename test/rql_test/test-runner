@@ -1132,7 +1132,8 @@ class MochaTest(Test):
         assert isinstance(driverLang, JsLang), 'Mocha tests only support JavaScript'
         super(MochaTest, self).__init__(name, path, driverLang=driverLang, timeout=timeout)
         
-        self.envVariablesToSet.update({'BLUEBIRD_DEBUG':'1'})
+# disabled due to https://github.com/rethinkdb/rethinkdb/issues/4178
+#        self.envVariablesToSet.update({'BLUEBIRD_DEBUG':'1'})
     
     @property
     def interpreter_path(self):
