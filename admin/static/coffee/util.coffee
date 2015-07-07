@@ -41,7 +41,7 @@ Handlebars.registerHelper 'links_to_datacenters_inline_for_replica', (datacenter
     return new Handlebars.SafeString(out)
 
 # Helpers for pluralization of nouns and verbs
-Handlebars.registerHelper 'pluralize_noun', (noun, num, capitalize) ->
+pluralize_noun = (noun, num, capitalize) ->
     return 'NOUN_NULL' unless noun?
     ends_with_y = noun.substr(-1) is 'y'
     if num is 1
@@ -59,8 +59,10 @@ Handlebars.registerHelper 'pluralize_noun', (noun, num, capitalize) ->
         result = result.charAt(0).toUpperCase() + result.slice(1)
     return result
 
+Handlebars.registerHelper 'pluralize_noun', pluralize_noun
 Handlebars.registerHelper 'pluralize_verb_to_have', (num) -> if num is 1 then 'has' else 'have'
-Handlebars.registerHelper 'pluralize_verb', (verb, num) -> if num is 1 then verb+'s' else verb
+pluralize_verb = (verb, num) -> if num is 1 then "#{verb}s" else verb
+Handlebars.registerHelper 'pluralize_verb', pluralize_verb
 #
 # Helpers for capitalization
 capitalize = (str) ->
@@ -71,11 +73,8 @@ capitalize = (str) ->
 Handlebars.registerHelper 'capitalize', capitalize
 
 # Helpers for shortening uuids
-Handlebars.registerHelper 'humanize_uuid', (str) ->
-    if str?
-        str.substr(0, 6)
-    else
-        "NULL"
+humanize_uuid = (str) -> if str? then str.substr(0, 6) else "NULL"
+Handlebars.registerHelper 'humanize_uuid', humanize_uuid
 
 # Helpers for printing connectivity
 Handlebars.registerHelper 'humanize_server_connectivity', (status) ->
@@ -115,7 +114,7 @@ Handlebars.registerHelper 'humanize_table_readiness', (status, num, denom) ->
 
 Handlebars.registerHelper 'humanize_table_status', humanize_table_status
 
-Handlebars.registerHelper 'approximate_count', (num) ->
+approximate_count = (num) ->
     # 0 => 0
     # 1 - 5 => 5
     # 5 - 10 => 10
@@ -155,6 +154,19 @@ Handlebars.registerHelper 'approximate_count', (num) ->
             if result.length is 1 # In case we have 4 for 4000, we want 4.0
                 result = result + '.0'
             return result+'B'
+
+Handlebars.registerHelper 'approximate_count', approximate_count
+
+# formatBytes
+# from http://stackoverflow.com/a/18650828/180718
+format_bytes = (bytes, decimals=2) ->
+    if bytes == 0
+        return '0 Byte'
+    k = 1024;
+    dm = decimals + 1
+    sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
+    i = Math.floor(Math.log(bytes) / Math.log(k))
+    (bytes / Math.pow(k, i)).toPrecision(dm) + ' ' + sizes[i]
 
 # Safe string
 Handlebars.registerHelper 'print_safe', (str) ->
@@ -411,6 +423,41 @@ json_to_node = do ->
                 value: if value then 'true' else 'false'
 
 
+replica_rolename = ({configured_primary: configured, \
+                     currently_primary: currently, \
+                     nonvoting: nonvoting, \
+                     }) ->
+    if configured and currently
+        "Primary replica"
+    else if configured and not currently
+        "Goal primary replica"
+    else if not configured and currently
+        "Acting primary replica"
+    else if nonvoting
+        "Non-voting secondary replica"
+    else
+        "Secondary replica"
+
+replica_roleclass = ({configured_primary: configured, \
+                      currently_primary: currently}) ->
+    if configured and currently
+        "primary"
+    else if configured and not currently
+        "goal.primary"
+    else if not configured and currently
+        "acting.primary"
+    else
+        "secondary"
+
+state_color = (state) ->
+  switch state
+      when "ready"        then "green"
+      when "disconnected" then "red"
+      else                     "yellow"
+
+humanize_state_string = (state_string) ->
+    state_string.replace(/_/g, ' ')
+
 exports.capitalize = capitalize
 exports.humanize_table_status = humanize_table_status
 exports.form_data_as_object = form_data_as_object
@@ -421,3 +468,12 @@ exports.date_to_string = date_to_string
 exports.prettify_duration = prettify_duration
 exports.binary_to_string = binary_to_string
 exports.json_to_node = json_to_node
+exports.approximate_count = approximate_count
+exports.pluralize_noun = pluralize_noun
+exports.pluralize_verb = pluralize_verb
+exports.humanize_uuid = humanize_uuid
+exports.replica_rolename = replica_rolename
+exports.replica_roleclass = replica_roleclass
+exports.state_color = state_color
+exports.humanize_state_string = humanize_state_string
+exports.format_bytes = format_bytes

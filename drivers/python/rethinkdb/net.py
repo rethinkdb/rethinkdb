@@ -462,7 +462,7 @@ class ConnectionInstance(object):
                 return res
             elif not self._closing and cursor is None:
                 # This response is corrupted or not intended for us
-                self.close(noreply_wait=False)
+                self.close(False, None)
                 raise RqlDriverError("Unexpected response received.")
 
     def _handle_cursor_response(self, cursor, res):

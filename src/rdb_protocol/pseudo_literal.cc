@@ -16,7 +16,7 @@ void rcheck_literal_valid(const datum_t *lit) {
             r_sanity_check(pair.second.as_str() == literal_string);
         } else if (pair.first == value_key) {
         } else {
-            rfail_target(lit, base_exc_t::GENERIC,
+            rfail_target(lit, base_exc_t::LOGIC,
                          "Invalid literal term with illegal key `%s`.",
                          pair.first.to_std().c_str());
         }

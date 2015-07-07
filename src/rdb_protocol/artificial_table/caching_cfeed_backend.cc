@@ -1,6 +1,7 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/artificial_table/caching_cfeed_backend.hpp"
 
+#include "clustering/administration/admin_op_exc.hpp"
 #include "rdb_protocol/env.hpp"
 
 caching_cfeed_artificial_table_backend_t::caching_cfeed_artificial_table_backend_t() :
@@ -94,15 +95,12 @@ void caching_cfeed_artificial_table_backend_t::caching_machinery_t::run(
     parent->set_notifications(true);
     try {
         while (true) {
-            guarantee(dirtiness != dirtiness_t::none_or_some || !dirty_keys.empty(),
-                "If nothing is dirty, we shouldn't have gotten here");
-
             bool success;
             {
                 new_mutex_acq_t mutex_acq(&mutex);
                 success = diff_dirty(&mutex_acq, keepalive.get_drain_signal());
             }
-                
+
             if (success) {
                 ready.pulse_if_not_already_pulsed();
             } else {
@@ -134,7 +132,7 @@ bool caching_cfeed_artificial_table_backend_t::caching_machinery_t::diff_dirty(
     /* Copy the dirtiness flags into local variables and reset them. Resetting them now
     is important because it means that notifications that arrive while we're processing
     the current batch will be queued up instead of ignored. */
-    std::set<ql::datum_t, latest_version_optional_datum_less_t> local_dirty_keys;
+    std::set<ql::datum_t, optional_datum_less_t> local_dirty_keys;
     dirtiness_t local_dirtiness = dirtiness_t::none_or_some;
     std::swap(dirty_keys, local_dirty_keys);
     std::swap(dirtiness, local_dirtiness);
@@ -155,7 +153,7 @@ bool caching_cfeed_artificial_table_backend_t::caching_machinery_t::diff_one(
         const ql::datum_t &key, const new_mutex_acq_t *proof, signal_t *interruptor) {
     /* Fetch new value from backend */
     ql::datum_t new_val;
-    std::string error;
+    admin_err_t error;
     if (!parent->read_row(key, interruptor, &new_val, &error)) {
         return false;
     }
@@ -227,7 +225,7 @@ bool caching_cfeed_artificial_table_backend_t::caching_machinery_t::diff_all(
 bool caching_cfeed_artificial_table_backend_t::caching_machinery_t::get_values(
         signal_t *interruptor, std::map<store_key_t, ql::datum_t> *out) {
     out->clear();
-    std::string error;
+    admin_err_t error;
     counted_t<ql::datum_stream_t> stream;
     if (!parent->read_all_rows_as_stream(
             ql::backtrace_id_t(),

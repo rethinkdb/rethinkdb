@@ -63,6 +63,13 @@ public:
     // but it's O.K.
     void change_count(int64_t new_count);
 
+    // Transfers the "semaphore credits" that `other` owns to `this` and resets `other`.
+    // `other` and `this` must both already own the semaphore.
+    //
+    // For example, if `this->count() == 1` and `other->count() == 2` before the call,
+    // then after the call `this->count() == 3` and `other` is invalid.
+    void transfer_in(new_semaphore_acq_t &&other);
+
     // Initializes the object.
     void init(new_semaphore_t *semaphore, int64_t count);
 

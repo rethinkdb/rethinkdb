@@ -219,18 +219,26 @@ artificial_stack_t::~artificial_stack_t() {
 #endif
 }
 
-bool artificial_stack_t::address_in_stack(void *addr) {
+bool artificial_stack_t::address_in_stack(const void *addr) const {
     return reinterpret_cast<uintptr_t>(addr) >=
             reinterpret_cast<uintptr_t>(get_stack_bound())
         && reinterpret_cast<uintptr_t>(addr) <
             reinterpret_cast<uintptr_t>(get_stack_base());
 }
 
-bool artificial_stack_t::address_is_stack_overflow(void *addr) {
+bool artificial_stack_t::address_is_stack_overflow(const void *addr) const {
     void *addr_base =
         reinterpret_cast<void *>(floor_aligned(reinterpret_cast<uintptr_t>(addr),
                                                getpagesize()));
     return get_stack_bound() == addr_base;
+}
+
+size_t artificial_stack_t::free_space_below(const void *addr) const {
+    guarantee(address_in_stack(addr) && !address_is_stack_overflow(addr));
+    // The bottom page is protected and used to detect stack overflows. Everything
+    // above that is usable space.
+    return reinterpret_cast<uintptr_t>(addr)
+            - (reinterpret_cast<uintptr_t>(get_stack_bound()) + getpagesize());
 }
 
 extern "C" {
@@ -539,21 +547,21 @@ void *threaded_stack_t::internal_run(void *p) {
     return NULL;
 }
 
-bool threaded_stack_t::address_in_stack(void *addr) {
+bool threaded_stack_t::address_in_stack(const void *addr) const {
     return reinterpret_cast<uintptr_t>(addr) >=
             reinterpret_cast<uintptr_t>(get_stack_bound())
         && reinterpret_cast<uintptr_t>(addr) <
             reinterpret_cast<uintptr_t>(get_stack_base());
 }
 
-bool threaded_stack_t::address_is_stack_overflow(void *addr) {
+bool threaded_stack_t::address_is_stack_overflow(const void *addr) const {
     void *addr_base =
         reinterpret_cast<void *>(floor_aligned(reinterpret_cast<uintptr_t>(addr),
                                                getpagesize()));
     return get_stack_bound() == addr_base;
 }
 
-void *threaded_stack_t::get_stack_base() {
+void *threaded_stack_t::get_stack_base() const {
     void *stackaddr;
     size_t stacksize;
     get_stack_addr_size(&stackaddr, &stacksize);
@@ -562,15 +570,23 @@ void *threaded_stack_t::get_stack_base() {
     return reinterpret_cast<void *>(base);
 }
 
-void *threaded_stack_t::get_stack_bound() {
+void *threaded_stack_t::get_stack_bound() const {
     void *stackaddr;
     size_t stacksize;
     get_stack_addr_size(&stackaddr, &stacksize);
     return stackaddr;
 }
 
+size_t threaded_stack_t::free_space_below(const void *addr) const {
+    guarantee(address_in_stack(addr) && !address_is_stack_overflow(addr));
+    // The bottom page is protected and used to detect stack overflows. Everything
+    // above that is usable space.
+    return reinterpret_cast<uintptr_t>(addr)
+            - (reinterpret_cast<uintptr_t>(get_stack_bound()) + getpagesize());
+}
+
 void threaded_stack_t::get_stack_addr_size(void **stackaddr_out,
-                                           size_t *stacksize_out) {
+                                           size_t *stacksize_out) const {
 #ifdef __MACH__
     // Implementation for OS X
     *stacksize_out = pthread_get_stacksize_np(thread);

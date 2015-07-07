@@ -4,10 +4,11 @@ tests:
 
     - def: common_prefix = r.expr([0,1,2,3,4,5,6,7,8])
 
-    - js: tbl.index_create('sindex', function (row) { return common_prefix.append(row('value')); })
+    - js: tbl.indexCreate('sindex', function (row) { return common_prefix.append(row('value')); })
       py: tbl.index_create('sindex', lambda row:common_prefix.append(row['value']))
       rb: tbl.index_create('sindex'){ |row| common_prefix.append(row['value']) }
       ot: ({'created':1})
+    - cd: tbl.index_wait('sindex')
 
     - cd: pre = r.range(7).coerce_to('array').add(r.range(10,70).coerce_to('array')).append(100)
     - cd: mid = r.range(2,9).coerce_to('array').add(r.range(20,90).coerce_to('array'))
@@ -16,13 +17,13 @@ tests:
     # Start overlapping changefeeds
     - py: pre_changes = tbl.between(r.minval, common_prefix.append('7'), index='sindex').changes(squash=False).limit(len(pre))
       rb: pre_changes = tbl.between(r.minval, common_prefix.append('7'), index:'sindex').changes(squash:false).limit(pre.length)
-      js: pre_changes = tbl.between(r.minval, common_prefix.append('7'), {index:'sindex'}).changes({squash:false}).limit(pre.length)
+      js: pre_changes = tbl.between(r.minval, commonPrefix.append('7'), {index:'sindex'}).changes({squash:false}).limit(pre.length)
     - py: mid_changes = tbl.between(common_prefix.append('2'), common_prefix.append('9'), index='sindex').changes(squash=False).limit(len(post))
       rb: mid_changes = tbl.between(common_prefix.append('2'), common_prefix.append('9'), index:'sindex').changes(squash:false).limit(post.length)
-      js: mid_changes = tbl.between(common_prefix.append('2'), common_prefix.append('9'), {index:'sindex'}).changes({squash:false}).limit(post.length)
+      js: mid_changes = tbl.between(commonPrefix.append('2'), common_prefix.append('9'), {index:'sindex'}).changes({squash:false}).limit(post.length)
     - py: post_changes = tbl.between(common_prefix.append('3'), r.maxval, index='sindex').changes(squash=False).limit(len(mid))
       rb: post_changes = tbl.between(common_prefix.append('3'), r.maxval, index:'sindex').changes(squash:false).limit(mid.length)
-      js: post_changes = tbl.between(common_prefix.append('3'), r.maxval, {index:'sindex'}).changes({squash:false}).limit(mid.length)
+      js: post_changes = tbl.between(commonPrefix.append('3'), r.maxval, {index:'sindex'}).changes({squash:false}).limit(mid.length)
 
     # Start changefeeds with non-existence errors
     - def:

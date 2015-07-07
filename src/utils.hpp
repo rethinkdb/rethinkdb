@@ -45,6 +45,8 @@ void *rrealloc(void *ptr, size_t size);
 /* Forwards to the isfinite macro, or std::isfinite. */
 bool risfinite(double);
 
+enum class query_state_t { FAILED, INDETERMINATE };
+
 class rng_t {
 public:
 // ATN : fix comment
@@ -149,12 +151,25 @@ bool blocking_read_file(const char *path, std::string *contents_out);
 template <class T>
 class assignment_sentry_t {
 public:
+    assignment_sentry_t() : var(nullptr), old_value() { }
     assignment_sentry_t(T *v, const T &value) :
-        var(v), old_value(*var) {
+            var(v), old_value(*var) {
         *var = value;
     }
     ~assignment_sentry_t() {
-        *var = old_value;
+        reset();
+    }
+    void reset(T *v, const T &value) {
+        reset();
+        var = v;
+        old_value = *var;
+        *var = value;
+    }
+    void reset() {
+        if (var != nullptr) {
+            *var = old_value;
+            var = nullptr;
+        }
     }
 private:
     T *var;
@@ -179,6 +194,8 @@ static inline std::string time2str(const time_t &t) {
 // Contains the name of the directory in which all data is stored.
 class base_path_t {
 public:
+    // Constructs an empty path.
+    base_path_t() { }
     explicit base_path_t(const std::string& path);
     const std::string& path() const;
 

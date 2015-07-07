@@ -32,11 +32,13 @@
     "handlebars": "^3.0.1",
     "hbsfy": "^2.2.1",
     "less": "^2.4.0",
+    "moment": "^2.10.3",
     "uber-watchify": "^2.3.2",
     "uglifyify": "^3.0.1",
     "vinyl": "^0.4.6",
     "vinyl-buffer": "^1.0.0",
     "vinyl-source-stream": "^1.0.0",
+    "virtual-dom": "^2.0.1",
     "yargs": "^3.4.5"
   }
 }

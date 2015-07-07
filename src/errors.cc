@@ -107,6 +107,8 @@ const char *errno_string_maybe_using_buffer(int errsv, char *buf, size_t buflen)
 NORETURN void generic_crash_handler(int signum) {
     if (signum == SIGSEGV) {
         crash("Segmentation fault.");
+    } else if (signum == SIGBUS) {
+        crash("Bus error.");
     } else {
         crash("Unexpected signal: %d", signum);
     }
@@ -155,7 +157,9 @@ void install_generic_crash_handler() {
         struct sigaction sa = make_sa_handler(0, generic_crash_handler);
 
         int res = sigaction(SIGSEGV, &sa, NULL);
-        guarantee_err(res == 0, "Could not install SEGV handler");
+        guarantee_err(res == 0, "Could not install SEGV signal handler");
+        res = sigaction(SIGBUS, &sa, NULL);
+        guarantee_err(res == 0, "Could not install BUS signal handler");
     }
 #endif
 

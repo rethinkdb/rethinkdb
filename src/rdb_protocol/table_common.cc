@@ -35,7 +35,7 @@ void rcheck_row_replacement(
         rcheck_target(&new_row,
             primary_key_value.compare(
                 store_key_t(new_primary_key_value.print_primary())) == 0,
-            ql::base_exc_t::GENERIC,
+            ql::base_exc_t::LOGIC,
             (old_row.get_type() == ql::datum_t::R_NULL
              ? strprintf("Primary key `%s` cannot be changed (null -> %s)",
                          primary_key_name.to_std().c_str(), new_row.print().c_str())
@@ -89,9 +89,25 @@ ql::datum_t make_row_replacement_stats(
     *was_changed_out = (old_row != new_row);
 
     ql::datum_object_builder_t resp;
-    if (*was_changed_out && return_changes == return_changes_t::YES) {
-        bool conflict = resp.add("changes", make_replacement_pair(old_row, new_row));
-        guarantee(!conflict);
+    switch (return_changes) {
+    // The default can't be at the bottom because we have a fall-through, which
+    // prevents us from putting the cases in their own blocks, so if we put it
+    // at the bottom we'd have a jump that went past variable initialization.
+    default: unreachable();
+    case return_changes_t::NO: break;
+    case return_changes_t::YES:
+        if (!*was_changed_out) {
+            // Add an empty array even if there are no changes to report.
+            UNUSED bool b = resp.add(
+                "changes",
+                ql::datum_t(std::vector<ql::datum_t>(),
+                            ql::configured_limits_t::unlimited));
+            break;
+        }
+        // fallthru
+    case return_changes_t::ALWAYS:
+        UNUSED bool b = resp.add("changes", make_replacement_pair(old_row, new_row));
+        break;
     }
 
     // We use `conflict` below to store whether or not there was a key
@@ -130,9 +146,18 @@ ql::datum_t make_row_replacement_error_stats(
         return_changes_t return_changes,
         const char *error_message) {
     ql::datum_object_builder_t resp;
-    if (return_changes == return_changes_t::YES) {
-        bool conflict = resp.add("changes", make_replacement_pair(old_row, old_row));
-        guarantee(!conflict);
+    switch (return_changes) {
+    case return_changes_t::NO: break;
+    case return_changes_t::YES: {
+        // Add an empty array even though there are no changes to report.
+        UNUSED bool b = resp.add(
+            "changes",
+            ql::datum_t(std::vector<ql::datum_t>(), ql::configured_limits_t::unlimited));
+    } break;
+    case return_changes_t::ALWAYS: {
+        UNUSED bool b = resp.add("changes", make_replacement_pair(old_row, old_row));
+    } break;
+    default: unreachable();
     }
     resp.add_error(error_message);
     return std::move(resp).to_datum();
@@ -150,7 +175,7 @@ ql::datum_t resolve_insert_conflict(
     } else if (conflict_behavior == conflict_behavior_t::UPDATE) {
         return old_row.merge(insert_row);
     } else {
-        rfail_target(&old_row, ql::base_exc_t::GENERIC,
+        rfail_target(&old_row, ql::base_exc_t::OP_FAILED,
                      "Duplicate primary key `%s`:\n%s\n%s",
                      primary_key.c_str(), old_row.print().c_str(),
                      insert_row.print().c_str());

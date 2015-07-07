@@ -15,10 +15,13 @@
 #include <boost/optional.hpp>
 
 #include "btree/keys.hpp"
+#include "cjson/json.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/counted.hpp"
 #include "rdb_protocol/datum_string.hpp"
-#include "http/json.hpp"
+#include "rapidjson/document.h"
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
 #include "rdb_protocol/configured_limits.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/serialize_datum.hpp"
@@ -211,7 +214,7 @@ public:
     std::string get_reql_type() const;
     std::string get_type_name(
         name_for_sorting_t for_sorting = name_for_sorting_t::NO) const;
-    std::string print() const;
+    std::string print(reql_version_t reql_version = reql_version_t::LATEST) const;
     static const size_t trunc_len = 300;
     std::string trunc_print() const;
     std::string print_primary() const;
@@ -229,7 +232,7 @@ public:
         const std::string &tag);
     static std::string encode_tag_num(uint64_t tag_num);
     // tag_num is used for multi-indexes.
-    std::string print_secondary(reql_version_t reql_version,
+    std::string print_secondary(skey_version_t reql_version,
                                 const store_key_t &primary_key,
                                 boost::optional<uint64_t> tag_num) const;
     /* An inverse to print_secondary. Returns the primary key. */
@@ -286,36 +289,30 @@ public:
                   const configured_limits_t &limits,
                   std::set<std::string> *conditions) const;
 
+    // json_writer_t can be rapidjson::Writer<rapidjson::StringBuffer>
+    // or rapidjson::PrettyWriter<rapidjson::StringBuffer>
+    template <class json_writer_t> void write_json(json_writer_t *writer) const;
+
+    // DEPRECATED: Used for backwards compatibility with reql_versions before 2.1
     cJSON *as_json_raw() const;
     scoped_cJSON_t as_json() const;
+
     counted_t<datum_stream_t> as_datum_stream(backtrace_id_t backtrace) const;
 
     // These behave as expected and defined in RQL.  Theoretically, two data of the
     // same type should compare appropriately, while disparate types are compared
     // alphabetically by type name.
-    int cmp(reql_version_t reql_version, const datum_t &rhs) const;
-
-    template<class T>
-    bool operator<(const T &t) {
-        static_assert(sizeof(t) == 0, "Use `cmp`.");
-        unreachable();
-    }
-
-    // Modern datum_t::cmp implementation, for reql_version_t::v1_14 and later.
-    // Called by cmp, ==, !=.
-    int modern_cmp(const datum_t &rhs) const;
-
-    // Archaic datum_t::cmp implementation for reql_version_t::v1_13.
-    int v1_13_cmp(const datum_t &rhs) const;
+    int cmp(const datum_t &rhs) const;
 
     // operator== and operator!= don't take a reql_version_t, unlike other comparison
     // functions, because we know (by inspection) that the behavior of cmp() hasn't
     // changed with respect to the question of equality vs. inequality.
-
     bool operator==(const datum_t &rhs) const;
     bool operator!=(const datum_t &rhs) const;
-    bool compare_lt(reql_version_t reql_version, const datum_t &rhs) const;
-    bool compare_gt(reql_version_t reql_version, const datum_t &rhs) const;
+    bool operator<(const datum_t &rhs) const;
+    bool operator<=(const datum_t &rhs) const;
+    bool operator>(const datum_t &rhs) const;
+    bool operator>=(const datum_t &rhs) const;
 
     void runtime_fail(base_exc_t::type_t exc_type,
                       const char *test, const char *file, int line,
@@ -365,7 +362,7 @@ private:
     void binary_to_str_key(std::string *str_out) const;
     void extrema_to_str_key(std::string *str_out) const;
 
-    int pseudo_cmp(reql_version_t reql_version, const datum_t &rhs) const;
+    int pseudo_cmp(const datum_t &rhs) const;
     bool pseudo_compares_as_obj() const;
     static const std::set<std::string> _allowed_pts;
     void maybe_sanitize_ptype(const std::set<std::string> &allowed_pts = _allowed_pts);
@@ -438,8 +435,8 @@ public:
     explicit datum_range_t(datum_t val);
     static datum_range_t universe();
 
-    bool contains(reql_version_t reql_version, datum_t val) const;
-    bool is_empty(reql_version_t reql_version) const;
+    bool contains(datum_t val) const;
+    bool is_empty() const;
     bool is_universe() const;
 
     RDB_DECLARE_ME_SERIALIZABLE(datum_range_t);
@@ -460,18 +457,22 @@ public:
                          right_bound_type == key_range_t::open ? ')' : ']');
     }
 private:
-
+    friend class info_term_t;
     datum_t left_bound, right_bound;
     key_range_t::bound_t left_bound_type, right_bound_type;
 };
 
 datum_t to_datum(const Datum *d, const configured_limits_t &, reql_version_t);
+datum_t to_datum(
+    const rapidjson::Value &json,
+    const configured_limits_t &,
+    reql_version_t);
+// DEPRECATED: Used in the r.json term for pre 2.1 backwards compatibility
 datum_t to_datum(cJSON *json, const configured_limits_t &, reql_version_t);
 
 // This should only be used to send responses to the client.
-datum_t to_datum_for_client_serialization(grouped_data_t &&gd,
-                                          reql_version_t reql_version,
-                                          const configured_limits_t &);
+datum_t to_datum_for_client_serialization(
+    grouped_data_t &&gd, const configured_limits_t &);
 
 // Converts a double to int, but returns false if it's not an integer or out of range.
 bool number_as_integer(double d, int64_t *i_out);
@@ -494,7 +495,8 @@ public:
     void overwrite(const datum_string_t &key, datum_t val);
     void overwrite(const char *key, datum_t val);
     void add_warning(const char *msg, const configured_limits_t &limits);
-    void add_warnings(const std::set<std::string> &msgs, const configured_limits_t &limits);
+    void add_warnings(
+        const std::set<std::string> &msgs, const configured_limits_t &limits);
     void add_error(const char *msg);
 
     MUST_USE bool delete_field(const datum_string_t &key);
@@ -519,8 +521,10 @@ private:
 // array-size checks on the fly.
 class datum_array_builder_t {
 public:
-    explicit datum_array_builder_t(const configured_limits_t &_limits) : limits(_limits) {}
-    explicit datum_array_builder_t(const datum_t &copy_from, const configured_limits_t &);
+    explicit datum_array_builder_t(
+        const configured_limits_t &_limits) : limits(_limits) {}
+    explicit datum_array_builder_t(
+        const datum_t &copy_from, const configured_limits_t &);
 
     bool empty() const { return vector.empty(); }
     size_t size() const { return vector.size(); }
@@ -533,13 +537,11 @@ public:
     void change(size_t i, datum_t val);
 
     // On v1_13, insert and splice don't enforce the array size limit.
-    void insert(reql_version_t reql_version, size_t index,
-                datum_t val);
-    void splice(reql_version_t reql_version, size_t index,
-                datum_t values);
+    void insert(size_t index, datum_t val);
+    void splice(size_t index, datum_t values);
 
     // On v1_13, erase_range doesn't allow start and end to equal array_size.
-    void erase_range(reql_version_t reql_version, size_t start, size_t end);
+    void erase_range(size_t start, size_t end);
 
     void erase(size_t index);
 

@@ -29,21 +29,21 @@ public:
         }
     }
 
-    done_traversing_t handle_pair(scoped_key_value_t &&keyvalue) {
+    continue_bool_t handle_pair(scoped_key_value_t &&keyvalue, signal_t *) {
         guarantee(!aborted_);
         guarantee(key_range_.contains_key(
             keyvalue.key()->contents, keyvalue.key()->size));
         if (!tester_->key_should_be_erased(keyvalue.key())) {
-            return done_traversing_t::NO;
+            return continue_bool_t::CONTINUE;
         }
         store_key_t key(keyvalue.key());
         collected_keys_.push_back(key);
         if (collected_keys_.size() == max_keys_to_collect_ ||
                 interruptor_->is_pulsed()) {
             aborted_ = true;
-            return done_traversing_t::YES;
+            return continue_bool_t::ABORT;
         } else {
-            return done_traversing_t::NO;
+            return continue_bool_t::CONTINUE;
         }
     }
 
@@ -67,7 +67,7 @@ private:
     DISABLE_COPYING(collect_keys_helper_t);
 };
 
-done_traversing_t rdb_erase_small_range(
+continue_bool_t rdb_erase_small_range(
         btree_slice_t *btree_slice,
         key_tester_t *tester,
         const key_range_t &key_range,
@@ -85,8 +85,9 @@ done_traversing_t rdb_erase_small_range(
     /* Step 1: Collect all keys that we want to erase using a depth-first traversal. */
     collect_keys_helper_t key_collector(tester, key_range, max_keys_to_erase,
         interruptor);
-    btree_depth_first_traversal(superblock, key_range, &key_collector,
-                                direction_t::FORWARD, release_superblock_t::KEEP);
+    btree_depth_first_traversal(
+        superblock, key_range, &key_collector, access_t::read, direction_t::FORWARD,
+        release_superblock_t::KEEP, interruptor);
     if (interruptor->is_pulsed()) {
         /* If the interruptor is pulsed during the depth-first traversal, then the
         traversal will stop early but not throw an exception. So we have to throw it
@@ -145,13 +146,13 @@ done_traversing_t rdb_erase_small_range(
                                   repli_timestamp_t::invalid /* ignored for erase */,
                                   deletion_context->in_tree_deleter(),
                                   &null_cb,
-                                  delete_or_erase_t::ERASE);
+                                  delete_mode_t::ERASE);
         } // kv_location is destroyed here. That's important because sometimes
           // pass_back_superblock_promise isn't pulsed before the kv_location
           // gets deleted.
         guarantee(pass_back_superblock_promise.wait() == superblock);
 
-        guarantee(key >= deleted_out->right.key);
+        guarantee(key >= deleted_out->right.key());
         *deleted_out = key_range_t(key_range_t::closed, key_range.left,
                                    key_range_t::closed, key);
 
@@ -171,6 +172,11 @@ done_traversing_t rdb_erase_small_range(
         *deleted_out = key_range;
     }
 
-    return key_collector.get_aborted() ? done_traversing_t::NO : done_traversing_t::YES;
+    /* If we aborted `btree_depth_first_traversal()`, then that's because we found the
+    maximum number of keys, so `rdb_erase_small_range()` should be called again to keep
+    deleting. If we didn't abort, that's because we hit the right-hand side of the range,
+    so `rdb_erase_small_range()` shouldn't be called again. */
+    return key_collector.get_aborted()
+        ? continue_bool_t::CONTINUE : continue_bool_t::ABORT;
 }
 

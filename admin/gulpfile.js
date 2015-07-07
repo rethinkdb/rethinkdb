@@ -73,7 +73,7 @@ gulp.task('clean', function(cb) {
 // probably a large enough task that we're likely to rewrite the
 // entire thing in sass or something before that happens.
 gulp.task('less', function() {
-  return gulp.src(LESS_DIR+'/styles.less')
+  return gulp.src(LESS_DIR+'/styles*.less')
     .pipe(less({
       paths: [LESS_DIR],
     }))

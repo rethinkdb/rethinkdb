@@ -30,7 +30,7 @@ void log_server_t::handle_request(
             writer->tail(max_lines, min_timestamp, max_timestamp, interruptor);
         send(mailbox_manager, cont, boost::variant<std::vector<log_message_t>, std::string>(messages));
         return;
-    } catch (const std::runtime_error &e) {
+    } catch (const log_read_exc_t &e) {
         error = e.what();
     } catch (const interrupted_exc_t &) {
         /* don't respond; we'll shut down in a moment */
@@ -45,7 +45,7 @@ std::vector<log_message_t> fetch_log_file(
         mailbox_manager_t *mm,
         const log_server_business_card_t &bcard,
         int max_lines, timespec min_timestamp, timespec max_timestamp,
-        signal_t *interruptor) THROWS_ONLY(resource_lost_exc_t, std::runtime_error, interrupted_exc_t) {
+        signal_t *interruptor) THROWS_ONLY(log_transfer_exc_t, log_read_exc_t, interrupted_exc_t) {
     promise_t<boost::variant<std::vector<log_message_t>, std::string> > promise;
     log_server_business_card_t::result_mailbox_t reply_mailbox(
         mm,
@@ -65,9 +65,9 @@ std::vector<log_message_t> fetch_log_file(
         if (std::vector<log_message_t> *messages = boost::get<std::vector<log_message_t> >(&res)) {
             return *messages;
         } else {
-            throw std::runtime_error(boost::get<std::string>(res));
+            throw log_read_exc_t(boost::get<std::string>(res));
         }
     } else {
-        throw resource_lost_exc_t();
+        throw log_transfer_exc_t();
     }
 }

@@ -35,7 +35,7 @@ pkg_fetch () {
 
 pkg_shrinkwrap () {
     pkg_make_tmp_fetch_dir
-    echo "$package_json" > "$tmp_dir/package.json"
+    package_json > "$tmp_dir/package.json"
     mkdir "$tmp_dir/node_modules"
     in_dir "$tmp_dir" npm install
     in_dir "$tmp_dir" npm shrinkwrap

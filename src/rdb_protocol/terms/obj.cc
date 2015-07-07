@@ -15,7 +15,6 @@ private:
         scoped_ptr_t<val_t> v = args->arg(env, 0);
         datum_t d = v->as_datum();
         switch (env->env->reql_version()) {
-        case reql_version_t::v1_13:
         case reql_version_t::v1_14: // v1_15 is the same as v1_14
             break;
         case reql_version_t::v1_16:
@@ -23,7 +22,7 @@ private:
         case reql_version_t::v2_1_is_latest:
             rcheck_target(v,
                           d.has() && d.get_type() == datum_t::R_OBJECT && !d.is_ptype(),
-                          base_exc_t::GENERIC,
+                          base_exc_t::LOGIC,
                           strprintf("Cannot call `%s` on objects of type `%s`.",
                                     name(),
                                     d.get_type_name().c_str()));
@@ -50,7 +49,7 @@ public:
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         rcheck(args->num_args() % 2 == 0,
-               base_exc_t::GENERIC,
+               base_exc_t::LOGIC,
                strprintf("OBJECT expects an even number of arguments (but found %zu).",
                          args->num_args()));
         datum_object_builder_t obj;
@@ -58,7 +57,7 @@ private:
             const datum_string_t &key = args->arg(env, i)->as_str();
             datum_t keyval = args->arg(env, i + 1)->as_datum();
             bool b = obj.add(key, keyval);
-            rcheck(!b, base_exc_t::GENERIC,
+            rcheck(!b, base_exc_t::LOGIC,
                    strprintf("Duplicate key `%s` in object.  "
                              "(got `%s` and `%s` as values)",
                              key.to_std().c_str(),

@@ -20,14 +20,19 @@ class backtrace_registry_t;
 class bt_exc_t : public std::exception {
 public:
     bt_exc_t(Response::ResponseType _response_type,
+             Response::ErrorType _error_type,
              const std::string &_message,
              datum_t _bt_datum)
-        : response_type(_response_type), message(_message), bt_datum(_bt_datum) { }
+        : response_type(_response_type),
+          error_type(_error_type),
+          message(_message),
+          bt_datum(_bt_datum) { }
     virtual ~bt_exc_t() throw () { }
 
     const char *what() const throw () { return message.c_str(); }
 
     const Response::ResponseType response_type;
+    const Response::ErrorType error_type;
     const std::string message;
     const datum_t bt_datum;
 };
@@ -65,7 +70,8 @@ void fill_backtrace(Backtrace *bt_out,
                     datum_t backtrace);
 
 void fill_error(Response *res_out,
-                Response::ResponseType type,
+                Response::ResponseType response_type,
+                Response::ErrorType error_type,
                 const std::string &message,
                 datum_t backtrace);
 

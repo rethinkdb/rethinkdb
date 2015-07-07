@@ -89,7 +89,7 @@ private:
 
             datum_array_builder_t out(limits);
             const int64_t num_copies = num.as_int();
-            rcheck(num_copies >= 0, base_exc_t::GENERIC,
+            rcheck(num_copies >= 0, base_exc_t::LOGIC,
                    "Cannot multiply an ARRAY by a negative number.");
 
             for (int64_t j = 0; j < num_copies; ++j) {
@@ -109,7 +109,7 @@ private:
                 UNUSED const configured_limits_t &limits) const {
         lhs.check_type(datum_t::R_NUM);
         rhs.check_type(datum_t::R_NUM);
-        rcheck(rhs.as_num() != 0, base_exc_t::GENERIC, "Cannot divide by zero.");
+        rcheck(rhs.as_num() != 0, base_exc_t::LOGIC, "Cannot divide by zero.");
         // throws on non-finite values
         return datum_t(lhs.as_num() / rhs.as_num());
     }
@@ -128,9 +128,9 @@ private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         int64_t i0 = args->arg(env, 0)->as_int();
         int64_t i1 = args->arg(env, 1)->as_int();
-        rcheck(i1, base_exc_t::GENERIC, "Cannot take a number modulo 0.");
+        rcheck(i1, base_exc_t::LOGIC, "Cannot take a number modulo 0.");
         rcheck(!(i0 == std::numeric_limits<int64_t>::min() && i1 == -1),
-               base_exc_t::GENERIC,
+               base_exc_t::LOGIC,
                strprintf("Cannot take %" PRIi64 " mod %" PRIi64, i0, i1));
         return new_val(datum_t(static_cast<double>(i0 % i1)));
     }

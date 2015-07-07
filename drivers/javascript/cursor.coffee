@@ -34,6 +34,8 @@ class IterableResult
         @_closeAsap = false
         @_cont = null
         @_cbQueue = []
+        @_closeCb = null
+        @_closeCbPromise = null
 
         @next = @_next
         @each = @_each
@@ -177,29 +179,44 @@ class IterableResult
 
 
     close: varar 0, 1, (cb) ->
-        new Promise( (resolve, reject) =>
-            if @_endFlag is true
-                resolve()
-            else if not @_closeCb?
-                @_closeCb = (err) =>
-                    # Clear all callbacks for outstanding requests
-                    while @_cbQueue.length > 0
-                        @_cbQueue.shift()
-                    # The connection uses _outstandingRequests to see
-                    # if it should remove the token for this
-                    # cursor. This states unambiguously that we don't
-                    # care whatever responses return now.
-                    @_outstandingRequests = 0
-                    if (err)
-                        reject(err)
-                    else
-                        resolve()
-                @_closeAsap = true
-                @_outstandingRequests += 1
-                @_conn._endQuery(@_token)
+        if @_closeCbPromise?
+            if @_closeCbPromise.isPending()
+                # There's an existing promise and it hasn't resolved
+                # yet, so we chain this callback onto it.
+                @_closeCbPromise = @_closeCbPromise.nodeify(cb)
             else
-                @emit 'error', new err.RqlDriverError "This shouldn't happen"
-        ).nodeify cb
+                # The existing promise has been fulfilled, so we chuck
+                # it out and replace it with a Promise that resolves
+                # immediately with the callback.
+                @_closeCbPromise = Promise.resolve().nodeify(cb)
+        else # @_closeCbPromise not set
+            if @_endFlag
+                # We are ended and this is the first time close() was
+                # called. Just return a promise that resolves
+                # immediately.
+                @_closeCbPromise = Promise.resolve().nodeify(cb)
+            else
+                # We aren't ended, and we need to. Create a promise
+                # that's resolved when the END query is acknowledged.
+                @_closeCbPromise = new Promise((resolve, reject) =>
+                    @_closeCb = (err) =>
+                        # Clear all callbacks for outstanding requests
+                        while @_cbQueue.length > 0
+                            @_cbQueue.shift()
+                        # The connection uses _outstandingRequests to see
+                        # if it should remove the token for this
+                        # cursor. This states unambiguously that we don't
+                        # care whatever responses return now.
+                        @_outstandingRequests = 0
+                        if (err)
+                            reject(err)
+                        else
+                            resolve()
+                    @_closeAsap = true
+                    @_outstandingRequests += 1
+                    @_conn._endQuery(@_token)
+                ).nodeify(cb)
+        return @_closeCbPromise
 
     _each: varar(1, 2, (cb, onFinished) ->
         unless typeof cb is 'function'
@@ -259,50 +276,49 @@ class IterableResult
             throw new err.RqlDriverError "You cannot use the cursor interface and the EventEmitter interface at the same time."
 
 
-    addListener: (args...) ->
+    addListener: (event, listener) ->
         if not @emitter?
             @_makeEmitter()
             setImmediate => @_each @_eachCb
-        @emitter.addListener(args...)
+        @emitter.addListener(event, listener)
 
-    on: (args...) ->
+    on: (event, listener) ->
         if not @emitter?
             @_makeEmitter()
             setImmediate => @_each @_eachCb
-        @emitter.on(args...)
+        @emitter.on(event, listener)
 
-
-    once: ->
+    once: (event, listener) ->
         if not @emitter?
             @_makeEmitter()
             setImmediate => @_each @_eachCb
-        @emitter.once(args...)
+        @emitter.once(event, listener)
 
-    removeListener: ->
+    removeListener: (event, listener) ->
         if not @emitter?
             @_makeEmitter()
             setImmediate => @_each @_eachCb
-        @emitter.removeListener(args...)
+        @emitter.removeListener(event, listener)
 
-    removeAllListeners: ->
+    removeAllListeners: (event) ->
         if not @emitter?
             @_makeEmitter()
             setImmediate => @_each @_eachCb
-        @emitter.removeAllListeners(args...)
+        @emitter.removeAllListeners(event)
 
-    setMaxListeners: ->
+    setMaxListeners: (n) ->
         if not @emitter?
             @_makeEmitter()
             setImmediate => @_each @_eachCb
-        @emitter.setMaxListeners(args...)
+        @emitter.setMaxListeners(n)
 
-    listeners: ->
+    listeners: (event) ->
         if not @emitter?
             @_makeEmitter()
             setImmediate => @_each @_eachCb
-        @emitter.listeners(args...)
+        @emitter.listeners(event)
 
-    emit: ->
+    emit: (args...) ->
         if not @emitter?
             @_makeEmitter()
             setImmediate => @_each @_eachCb

@@ -38,7 +38,7 @@ private:
         } else if (!func.has() && idx.has()) {
             return on_idx(env->env, v->as_table(), std::move(idx));
         } else {
-            rfail(base_exc_t::GENERIC,
+            rfail(base_exc_t::LOGIC,
                   "Cannot provide both a function and an index to %s.",
                   name());
         }
@@ -57,7 +57,7 @@ private:
     virtual bool uses_idx() const { return false; }
     virtual scoped_ptr_t<val_t> on_idx(
         env_t *, counted_t<table_t>, scoped_ptr_t<val_t>) const {
-        rfail(base_exc_t::GENERIC, "Cannot call %s on an index.", this->name());
+        rfail(base_exc_t::LOGIC, "Cannot call %s on an index.", this->name());
     }
 };
 class sum_term_t : public unindexable_map_acc_term_t<sum_wire_func_t> {
@@ -174,7 +174,7 @@ private:
         boost::optional<std::size_t> func_arity = func->arity();
         if (!!func_arity) {
             rcheck(func_arity.get() == 0 || func_arity.get() == args->num_args() - 1,
-                   base_exc_t::GENERIC,
+                   base_exc_t::LOGIC,
                    strprintf("The function passed to `map` expects %zu argument%s, "
                              "but %zu sequence%s found.",
                              func_arity.get(),
@@ -245,7 +245,7 @@ private:
             seq = args->arg(env, 0)->as_seq(env->env);
         }
 
-        rcheck((funcs.size() + append_index) != 0, base_exc_t::GENERIC,
+        rcheck((funcs.size() + append_index) != 0, base_exc_t::LOGIC,
                "Cannot group by nothing.");
 
         bool multi = false;
@@ -319,7 +319,7 @@ struct rcheck_transform_visitor_t : public bt_rcheckable_t,
     void check_f(const wire_func_t &f) const {
         rcheck_src(f.get_bt(),
                    f.compile_wire_func()->is_deterministic(),
-                   base_exc_t::GENERIC,
+                   base_exc_t::LOGIC,
                    "Cannot call `changes` after a non-deterministic function.");
     }
     void operator()(const map_wire_func_t &f) const {
@@ -337,19 +337,19 @@ struct rcheck_transform_visitor_t : public bt_rcheckable_t,
             check_f(f);
             break;
         case result_hint_t::NO_HINT:
-            rfail(base_exc_t::GENERIC, "Cannot call `changes` after `concat_map`.");
+            rfail(base_exc_t::LOGIC, "Cannot call `changes` after `concat_map`.");
             // fallthru
         default: unreachable();
         }
     }
     NORETURN void operator()(const group_wire_func_t &) const {
-        rfail(base_exc_t::GENERIC, "Cannot call `changes` after `group`.");
+        rfail(base_exc_t::LOGIC, "Cannot call `changes` after `group`.");
     }
     NORETURN void operator()(const distinct_wire_func_t &) const {
-        rfail(base_exc_t::GENERIC, "Cannot call `changes` after `distinct`.");
+        rfail(base_exc_t::LOGIC, "Cannot call `changes` after `distinct`.");
     }
     NORETURN void operator()(const zip_wire_func_t &) const {
-        rfail(base_exc_t::GENERIC, "Cannot call `changes` after `zip`.");
+        rfail(base_exc_t::LOGIC, "Cannot call `changes` after `zip`.");
     }
 };
 
@@ -365,7 +365,7 @@ struct rcheck_spec_visitor_t : public bt_rcheckable_t,
     }
     void operator()(const changefeed::keyspec_t::limit_t &spec) const {
         (*this)(spec.range);
-        rcheck(spec.limit <= env->limits().array_size_limit(), base_exc_t::GENERIC,
+        rcheck(spec.limit <= env->limits().array_size_limit(), base_exc_t::RESOURCE,
                strprintf(
                    "Array size limit `%zu` exceeded.  (`.limit(X).changes()` is illegal "
                    "if X is larger than the array size limit.)",
@@ -378,8 +378,9 @@ struct rcheck_spec_visitor_t : public bt_rcheckable_t,
 class changes_term_t : public op_term_t {
 public:
     changes_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(1),
-                    optargspec_t({"squash", "include_states"})) { }
+        : op_term_t(
+            env, term, argspec_t(1),
+            optargspec_t({"squash", "include_initial_vals", "include_states"})) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
         scope_env_t *env, args_t *args, eval_flags_t) const {
@@ -387,11 +388,11 @@ private:
         scoped_ptr_t<val_t> sval = args->optarg(env, "squash");
         datum_t squash = sval.has() ? sval->as_datum() : datum_t::boolean(false);
         if (squash.get_type() == datum_t::type_t::R_NUM) {
-            rcheck_target(sval, squash.as_num() >= 0.0, base_exc_t::GENERIC,
+            rcheck_target(sval, squash.as_num() >= 0.0, base_exc_t::LOGIC,
                           "Expected BOOL or a positive NUMBER but found "
                           "a negative NUMBER.");
         } else if (squash.get_type() != datum_t::type_t::R_BOOL) {
-            rfail_target(sval, base_exc_t::GENERIC,
+            rfail_target(sval, base_exc_t::LOGIC,
                          "Expected BOOL or NUMBER but found %s.",
                          squash.get_type_name().c_str());
         }
@@ -400,24 +401,34 @@ private:
         if (scoped_ptr_t<val_t> v = args->optarg(env, "include_states")) {
             include_states = v->as_bool();
         }
+        scoped_ptr_t<val_t> include_initial_vals_val =
+            args->optarg(env, "include_initial_vals");
 
         scoped_ptr_t<val_t> v = args->arg(env, 0);
         if (v->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
             counted_t<datum_stream_t> seq = v->as_seq(env->env);
             std::vector<counted_t<datum_stream_t> > streams;
-            std::vector<changefeed::keyspec_t> keyspecs = seq->get_change_specs();
-            r_sanity_check(keyspecs.size() >= 1);
-            for (auto &&keyspec : keyspecs) {
+            std::vector<changespec_t> changespecs = seq->get_changespecs();
+            r_sanity_check(changespecs.size() >= 1);
+            for (auto &&changespec : changespecs) {
+                bool include_initial_vals = include_initial_vals_val.has()
+                    ? include_initial_vals_val->as_bool()
+                    : changespec.include_initial_vals();
+                if (include_initial_vals) {
+                    r_sanity_check(changespec.stream.has());
+                }
                 boost::apply_visitor(rcheck_spec_visitor_t(env->env, backtrace()),
-                                     keyspec.spec);
+                                     changespec.keyspec.spec);
                 streams.push_back(
-                    keyspec.table->read_changes(
+                    changespec.keyspec.table->read_changes(
                         env->env,
+                        include_initial_vals ? std::move(changespec.stream)
+                                             : counted_t<datum_stream_t>(),
                         squash,
                         include_states,
-                        std::move(keyspec.spec),
+                        std::move(changespec.keyspec.spec),
                         backtrace(),
-                        keyspec.table_name));
+                        changespec.keyspec.table_name));
             }
             if (streams.size() == 1) {
                 return new_val(env->env, streams[0]);
@@ -425,15 +436,22 @@ private:
                 return new_val(
                     env->env,
                     make_counted<union_datum_stream_t>(
-                        env->env, std::move(streams), backtrace()));
+                        env->env,
+                        std::move(streams),
+                        backtrace(),
+                        streams.size()));
             }
         } else if (v->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
+                bool include_initial_vals = include_initial_vals_val.has()
+                    ? include_initial_vals_val->as_bool()
+                    : true;
             return new_val(
                 env->env,
-                v->as_single_selection()->read_changes(squash, include_states));
+                v->as_single_selection()->read_changes(
+                    include_initial_vals, squash, include_states));
         }
         auto selection = v->as_selection(env->env);
-        rfail(base_exc_t::GENERIC,
+        rfail(base_exc_t::LOGIC,
               ".changes() not yet supported on range selections");
     }
     virtual const char *name() const { return "changes"; }
@@ -479,7 +497,7 @@ private:
         datum_t bound = bound_val->as_datum();
         if (bound.get_type() == datum_t::R_NULL) {
             rcheck_target(bound_val, null_behavior != between_null_t::ERROR,
-                          base_exc_t::GENERIC,
+                          base_exc_t::LOGIC,
                           "Cannot use `null` in BETWEEN, use `r.minval` or `r.maxval` "
                           "to denote unboundedness.");
             bound = unbounded_type == datum_t::type_t::MINVAL ? datum_t::minval() :

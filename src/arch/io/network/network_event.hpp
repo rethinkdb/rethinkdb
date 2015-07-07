@@ -230,7 +230,6 @@ private:
     /* Reads up to the given number of bytes, but not necessarily that many. Simple wrapper around
     ::read(). Returns the number of bytes read or throws tcp_conn_read_closed_exc_t. Bypasses read_buffer. */
     size_t read_internal(void *buffer, size_t size) THROWS_ONLY(tcp_conn_read_closed_exc_t);
-
     static const size_t WRITE_QUEUE_MAX_SIZE = 128 * KILOBYTE;
     static const size_t WRITE_CHUNK_SIZE = 8 * KILOBYTE;
 

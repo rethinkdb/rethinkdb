@@ -33,7 +33,8 @@ public:
 private:
     const int64_t minimum_unwritten_changes_limit_;
 
-    new_semaphore_t unwritten_changes_semaphore_;
+    new_semaphore_t unwritten_block_changes_semaphore_;
+    new_semaphore_t unwritten_index_changes_semaphore_;
 
     DISABLE_COPYING(alt_txn_throttler_t);
 };

@@ -19,8 +19,16 @@ using alt::page_txn_t;
 using alt::throttler_acq_t;
 
 const int64_t MINIMUM_SOFT_UNWRITTEN_CHANGES_LIMIT = 1;
-const int64_t SOFT_UNWRITTEN_CHANGES_LIMIT = 4000;
+const int64_t SOFT_UNWRITTEN_CHANGES_LIMIT = 8000;
 const double SOFT_UNWRITTEN_CHANGES_MEMORY_FRACTION = 0.5;
+
+// In addition to the data blocks themselves, transactions that are not completely
+// flushed yet consume memory for the index writes and general metadata. If
+// there are a lot of soft durability transactions, these can accumulate and consume
+// an increasing amount of RAM. Hence we limit the number of unwritten index
+// updates in addition to the number of unwritten blocks. We scale that limit
+// proportionally to the unwritten block changes limit
+const int64_t INDEX_CHANGES_LIMIT_FACTOR = 5;
 
 // There are very few ASSERT_NO_CORO_WAITING calls (instead we have
 // ASSERT_FINITE_CORO_WAITING) because most of the time we're at the mercy of the
@@ -56,14 +64,22 @@ private:
 
 alt_txn_throttler_t::alt_txn_throttler_t(int64_t minimum_unwritten_changes_limit)
     : minimum_unwritten_changes_limit_(minimum_unwritten_changes_limit),
-      unwritten_changes_semaphore_(SOFT_UNWRITTEN_CHANGES_LIMIT) { }
+      unwritten_block_changes_semaphore_(SOFT_UNWRITTEN_CHANGES_LIMIT),
+      unwritten_index_changes_semaphore_(
+          SOFT_UNWRITTEN_CHANGES_LIMIT * INDEX_CHANGES_LIMIT_FACTOR) { }
 
 alt_txn_throttler_t::~alt_txn_throttler_t() { }
 
 throttler_acq_t alt_txn_throttler_t::begin_txn_or_throttle(int64_t expected_change_count) {
     throttler_acq_t acq;
-    acq.semaphore_acq_.init(&unwritten_changes_semaphore_, expected_change_count);
-    acq.semaphore_acq_.acquisition_signal()->wait();
+    acq.index_changes_semaphore_acq_.init(
+        &unwritten_index_changes_semaphore_,
+        expected_change_count);
+    acq.index_changes_semaphore_acq_.acquisition_signal()->wait();
+    acq.block_changes_semaphore_acq_.init(
+        &unwritten_block_changes_semaphore_,
+        expected_change_count);
+    acq.block_changes_semaphore_acq_.acquisition_signal()->wait();
     return acq;
 }
 
@@ -79,7 +95,9 @@ void alt_txn_throttler_t::inform_memory_limit_change(uint64_t memory_limit,
     // Always provide at least one capacity in the semaphore
     throttler_limit = std::max<int64_t>(throttler_limit, minimum_unwritten_changes_limit_);
 
-    unwritten_changes_semaphore_.set_capacity(throttler_limit);
+    unwritten_index_changes_semaphore_.set_capacity(
+        throttler_limit * INDEX_CHANGES_LIMIT_FACTOR);
+    unwritten_block_changes_semaphore_.set_capacity(throttler_limit);
 }
 
 cache_t::cache_t(serializer_t *serializer,
@@ -414,7 +432,7 @@ void buf_lock_t::help_construct(buf_parent_t parent, block_id_t block_id,
     }
 
 #if ALT_DEBUG
-    debugf("%p: buf_lock_t %p %s %lu\n", cache(), this, show(access), block_id);
+    debugf("%p: buf_lock_t %p %s %" PRIu64 "\n", cache(), this, show(access), block_id);
 #endif
 }
 
@@ -463,12 +481,12 @@ void buf_lock_t::help_construct(buf_parent_t parent, block_id_t block_id,
                                           parent.lock_or_null_->block_id(),
                                           current_page_acq_->block_id());
 #if ALT_DEBUG
-        debugf("%p: buf_lock_t %p create %lu (as child of %lu)\n",
+        debugf("%p: buf_lock_t %p create %" PRIu64 " (as child of %" PRIu64 ")\n",
                cache(), this, buf_lock_t::block_id(), parent.lock_or_null_->block_id());
 #endif
     } else {
 #if ALT_DEBUG
-        debugf("%p: buf_lock_t %p create %lu (no parent)\n",
+        debugf("%p: buf_lock_t %p create %" PRIu64 " (no parent)\n",
                cache(), this, buf_lock_t::block_id());
 #endif
     }
@@ -497,7 +515,7 @@ buf_lock_t::buf_lock_t(buf_parent_t parent,
 void buf_lock_t::mark_deleted() {
     ASSERT_FINITE_CORO_WAITING;
 #if ALT_DEBUG
-    debugf("%p: buf_lock_t %p delete %lu\n", cache(), this, block_id());
+    debugf("%p: buf_lock_t %p delete %" PRIu64 "\n", cache(), this, block_id());
 #endif
     guarantee(!empty());
     current_page_acq()->mark_deleted();
@@ -518,6 +536,8 @@ void buf_lock_t::wait_for_parent(buf_parent_t parent, access_t access) {
 }
 
 void buf_lock_t::help_construct(buf_parent_t parent, alt_create_t) {
+    cache()->assert_thread();
+
     buf_lock_t::wait_for_parent(parent, access_t::write);
 
     // Makes sure nothing funny can happen in current_page_acq_t constructor.
@@ -535,12 +555,12 @@ void buf_lock_t::help_construct(buf_parent_t parent, alt_create_t) {
                                           parent.lock_or_null_->block_id(),
                                           current_page_acq_->block_id());
 #if ALT_DEBUG
-        debugf("%p: buf_lock_t %p create %lu (as child of %lu)\n",
+        debugf("%p: buf_lock_t %p create %" PRIu64 " (as child of %" PRIu64 ")\n",
                cache(), this, block_id(), parent.lock_or_null_->block_id());
 #endif
     } else {
 #if ALT_DEBUG
-        debugf("%p: buf_lock_t %p create %lu (no parent)\n",
+        debugf("%p: buf_lock_t %p create %" PRIu64 " (no parent)\n",
                cache(), this, block_id());
 #endif
     }
@@ -565,11 +585,12 @@ buf_lock_t::buf_lock_t(buf_lock_t *parent,
 }
 
 buf_lock_t::~buf_lock_t() {
-#if ALT_DEBUG
     if (txn_ != NULL) {
-        debugf("%p: buf_lock_t %p destroy %lu\n", cache(), this, block_id());
-    }
+        cache()->assert_thread();
+#if ALT_DEBUG
+        debugf("%p: buf_lock_t %p destroy %" PRIu64 "\n", cache(), this, block_id());
 #endif
+    }
     guarantee(access_ref_count_ == 0);
 
     if (snapshot_node_ != NULL) {
@@ -619,8 +640,9 @@ void buf_lock_t::reset_buf_lock() {
 }
 
 void buf_lock_t::snapshot_subdag() {
+    cache()->assert_thread();
 #if ALT_DEBUG
-    debugf("%p: buf_lock_t %p snapshot %lu\n", cache(), this, block_id());
+    debugf("%p: buf_lock_t %p snapshot %" PRIu64 "\n", cache(), this, block_id());
 #endif
     ASSERT_FINITE_CORO_WAITING;
     guarantee(!empty());

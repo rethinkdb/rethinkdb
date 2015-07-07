@@ -34,7 +34,7 @@ scoped_ptr_t<val_t> func_t::call(env_t *env,
 
 void func_t::assert_deterministic(const char *extra_msg) const {
     rcheck(is_deterministic(),
-           base_exc_t::GENERIC,
+           base_exc_t::LOGIC,
            strprintf("Could not prove function deterministic.  %s", extra_msg));
 }
 
@@ -56,7 +56,7 @@ scoped_ptr_t<val_t> reql_func_t::call(env_t *env,
         // about that.  Some server-created functions might also be constructed this
         // way (thanks to entropy).  TODO: This is bad.
         rcheck(arg_names.size() == args.size() || arg_names.size() == 0,
-               base_exc_t::GENERIC,
+               base_exc_t::LOGIC,
                strprintf("Expected %zd argument%s but found %zu.",
                          arg_names.size(),
                          (arg_names.size() == 1 ? "" : "s"),
@@ -105,11 +105,11 @@ scoped_ptr_t<val_t> js_func_t::call(
         try {
             result = env->get_js_runner()->call(js_source, args, config);
         } catch (const extproc_worker_exc_t &e) {
-            rfail(base_exc_t::GENERIC,
+            rfail(base_exc_t::INTERNAL,
                   "Javascript query `%s` caused a crash in a worker process.",
                   js_source.c_str());
         } catch (const interrupted_exc_t &e) {
-            rfail(base_exc_t::GENERIC,
+            rfail(base_exc_t::LOGIC,
                   "JavaScript query `%s` timed out after "
                   "%" PRIu64 ".%03" PRIu64 " seconds.",
                   js_source.c_str(), js_timeout_ms / 1000, js_timeout_ms % 1000);
@@ -145,10 +145,10 @@ func_term_t::func_term_t(compile_env_t *env, const protob_t<const Term> &t)
     r_sanity_check(t.has());
     r_sanity_check(t->type() == Term_TermType_FUNC);
     rcheck(t->optargs_size() == 0,
-           base_exc_t::GENERIC,
+           base_exc_t::LOGIC,
            "FUNC takes no optional arguments.");
     rcheck(t->args_size() == 2,
-           base_exc_t::GENERIC,
+           base_exc_t::LOGIC,
            strprintf("Func takes exactly two arguments (got %d)", t->args_size()));
 
     std::vector<sym_t> args;
@@ -156,12 +156,12 @@ func_term_t::func_term_t(compile_env_t *env, const protob_t<const Term> &t)
     if (vars->type() == Term_TermType_DATUM) {
         const Datum *d = &vars->datum();
         rcheck(d->type() == Datum_DatumType_R_ARRAY,
-               base_exc_t::GENERIC,
+               base_exc_t::LOGIC,
                "CLIENT ERROR: FUNC variables must be a literal *array* of numbers.");
         for (int i = 0; i < d->r_array_size(); ++i) {
             const Datum *dnum = &d->r_array(i);
             rcheck(dnum->type() == Datum_DatumType_R_NUM,
-                   base_exc_t::GENERIC,
+                   base_exc_t::LOGIC,
                    "CLIENT ERROR: FUNC variables must be a literal array of *numbers*.");
             // this is fucking retarded
             args.push_back(sym_t(dnum->r_num()));
@@ -170,17 +170,17 @@ func_term_t::func_term_t(compile_env_t *env, const protob_t<const Term> &t)
         for (int i = 0; i < vars->args_size(); ++i) {
             const Term *arg = &vars->args(i);
             rcheck(arg->type() == Term_TermType_DATUM,
-                   base_exc_t::GENERIC,
+                   base_exc_t::LOGIC,
                    "CLIENT ERROR: FUNC variables must be a *literal* array of numbers.");
             const Datum *dnum = &arg->datum();
             rcheck(dnum->type() == Datum_DatumType_R_NUM,
-                   base_exc_t::GENERIC,
+                   base_exc_t::LOGIC,
                    "CLIENT ERROR: FUNC variables must be a literal array of *numbers*.");
             // this is fucking retarded
             args.push_back(sym_t(dnum->r_num()));
         }
     } else {
-        rfail(base_exc_t::GENERIC,
+        rfail(base_exc_t::LOGIC,
               "CLIENT ERROR: FUNC variables must be a *literal array of numbers*.");
     }
 
@@ -393,7 +393,7 @@ counted_t<const func_t> new_page_func(datum_t method, backtrace_id_t bt) {
         } else {
             std::string msg = strprintf("`page` method '%s' not recognized, "
                                         "only 'link-next' is available.", name.c_str());
-            rcheck_src(bt, false, base_exc_t::GENERIC, msg);
+            rcheck_src(bt, false, base_exc_t::LOGIC, msg);
         }
     }
     return counted_t<const func_t>();
@@ -401,7 +401,7 @@ counted_t<const func_t> new_page_func(datum_t method, backtrace_id_t bt) {
 
 
 val_t *js_result_visitor_t::operator()(const std::string &err_val) const {
-    rfail_target(parent, base_exc_t::GENERIC, "%s", err_val.c_str());
+    rfail_target(parent, base_exc_t::LOGIC, "%s", err_val.c_str());
     unreachable();
 }
 val_t *js_result_visitor_t::operator()(

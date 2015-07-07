@@ -43,7 +43,7 @@ private:
         if (search == cache.regexes.end()) {
             regexp.reset(new re2::RE2(re, re2::RE2::Quiet));
             if (!regexp->ok()) {
-                rfail(base_exc_t::GENERIC,
+                rfail(base_exc_t::LOGIC,
                       "Error in regexp `%s` (portion `%s`): %s",
                       regexp->pattern().c_str(),
                       regexp->error_arg().c_str(),
@@ -195,7 +195,7 @@ private:
         }
         return res;
     }
-    std::vector<datum_t> &&old_split(const std::string &s,
+    std::vector<datum_t> old_split(const std::string &s,
                                     const boost::optional<std::string> &delim,
                                     size_t maxnum) const {
         const char *const splitchars = " \t\n\r\x0B\x0C";
@@ -223,9 +223,10 @@ private:
                 ? std::string::npos
                 : next + (delim ? delim->size() : 1);
         }
-        return std::move(res);
+        return res;
     }
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(
+        scope_env_t *env, args_t *args, eval_flags_t) const {
         std::string s = args->arg(env, 0)->as_str().to_std();
 
         boost::optional<std::string> delim;
@@ -240,7 +241,7 @@ private:
         if (args->num_args() > 2) {
             n = args->arg(env, 2)->as_int();
             rcheck(n >= -1 && n <= int64_t(env->env->limits().array_size_limit()) - 1,
-                   base_exc_t::GENERIC,
+                   base_exc_t::LOGIC,
                    strprintf("Error: `split` size argument must be in range [-1, %zu].",
                              env->env->limits().array_size_limit() - 1));
         }
@@ -249,7 +250,6 @@ private:
         std::vector<datum_t> res;
 
         switch (env->env->reql_version()) {
-        case reql_version_t::v1_13:
         case reql_version_t::v1_14:
         case reql_version_t::v1_16: // v1_15 is the same as v1_14
         case reql_version_t::v2_0:

@@ -17,23 +17,27 @@
 responsible for constructing and caching `cluster_namespace_interface_t` objects. */
 
 class mailbox_manager_t;
+class multi_table_manager_t;
 class namespace_interface_t;
 class namespaces_directory_metadata_t;
 class peer_id_t;
 class rdb_context_t;
 class signal_t;
+class table_meta_client_t;
 class uuid_u;
 template <class> class watchable_t;
 
 class namespace_repo_t : public home_thread_mixin_t {
 public:
+    /* Alias to reduce verbosity */
+    typedef std::pair<peer_id_t, std::pair<namespace_id_t, uuid_u> >
+        directory_key_t;
+
     namespace_repo_t(
-        mailbox_manager_t *,
-        const boost::shared_ptr<semilattice_read_view_t<
-            cow_ptr_t<namespaces_semilattice_metadata_t> > > &semilattice_view,
-        watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
-                        namespace_directory_metadata_t> *directory,
-        rdb_context_t *);
+        mailbox_manager_t *mailbox_manager,
+        watchable_map_t<directory_key_t, table_query_bcard_t> *directory,
+        multi_table_manager_t *multi_table_manager,
+        rdb_context_t *ctx);
     ~namespace_repo_t();
 
     namespace_interface_access_t get_namespace_interface(const namespace_id_t &ns_id,
@@ -48,26 +52,17 @@ private:
             const uuid_u &namespace_id,
             auto_drainer_t::lock_t keepalive)
             THROWS_NOTHING;
-    void on_namespaces_change(auto_drainer_t::lock_t keepalive);
 
-    mailbox_manager_t *mailbox_manager;
-    boost::shared_ptr<semilattice_read_view_t<
-        cow_ptr_t<namespaces_semilattice_metadata_t> > > namespaces_view;
-    watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
-                    namespace_directory_metadata_t> *directory;
-    rdb_context_t *ctx;
-
-    one_per_thread_t<std::map<namespace_id_t, std::map<key_range_t, server_id_t> > >
-        region_to_primary_maps;
+    mailbox_manager_t * const mailbox_manager;
+    watchable_map_t<directory_key_t, table_query_bcard_t> * const directory;
+    multi_table_manager_t *const multi_table_manager;
+    rdb_context_t * const ctx;
 
     one_per_thread_t<namespace_cache_t> namespace_caches;
 
-    DISABLE_COPYING(namespace_repo_t);
-
     auto_drainer_t drainer;
 
-    // We must destroy the subscription before the drainer
-    semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t> >::subscription_t namespaces_subscription;
+    DISABLE_COPYING(namespace_repo_t);
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_NAMESPACE_INTERFACE_REPOSITORY_HPP_ */

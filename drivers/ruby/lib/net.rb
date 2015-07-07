@@ -195,6 +195,9 @@ module RethinkDB
                   elsif (row.has_key?('new_val') && !row.has_key?('old_val') &&
                          @handler.respond_to?(:on_initial_val))
                     handle(:on_initial_val, row['new_val'])
+                  elsif (row.has_key?('old_val') && !row.has_key?('new_val') &&
+                         @handler.respond_to?(:on_uninitial_val))
+                    handle(:on_uninitial_val, row['old_val'])
                   elsif row.has_key?('error') && @handler.respond_to?(:on_change_error)
                     handle(:on_change_error, row['error'])
                   elsif row.has_key?('state') && @handler.respond_to?(:on_state)
@@ -318,6 +321,9 @@ module RethinkDB
     def run(*args, &b)
       unbound_if(@body == RQL)
       args = parse(*args, &b)
+      if args[:block].is_a?(Handler)
+        raise RuntimeError, "Cannot call `run` with a handler, did you mean `em_run`?"
+      end
       args[:conn].run(@body, args[:opts], args[:block])
     end
     def em_run(*args, &b)
@@ -553,14 +559,16 @@ module RethinkDB
     end
 
     def send packet
-      written = 0
-      while written < packet.length
-        # Supposedly slice will not copy the array if it goes all the way to the end
-        # We use IO::syswrite here rather than IO::write because of incompatibilities in
-        # JRuby regarding filling up the TCP send buffer.
-        # Reference: https://github.com/rethinkdb/rethinkdb/issues/3795
-        written += @socket.syswrite(packet.slice(written, packet.length))
-      end
+      @mon.synchronize {
+        written = 0
+        while written < packet.length
+          # Supposedly slice will not copy the array if it goes all the way to the end
+          # We use IO::syswrite here rather than IO::write because of incompatibilities in
+          # JRuby regarding filling up the TCP send buffer.
+          # Reference: https://github.com/rethinkdb/rethinkdb/issues/3795
+          written += @socket.syswrite(packet.slice(written, packet.length))
+        end
+      }
     end
 
     def dispatch(msg, token)

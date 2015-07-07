@@ -373,9 +373,9 @@ coro_stack_t* coro_t::get_stack() {
     return &stack;
 }
 
-/* Called by SIGSEGV handler to identify segfaults that come from overflowing a coroutine's
-stack. Could also in theory be used by a function to check if it's about to overflow
-the stack. */
+/* Called by SIGSEGV/SIGBUS handler to identify segfaults that come from overflowing
+a coroutine's stack. Could also in theory be used by a function to check if it's
+about to overflow the stack. */
 
 bool is_coroutine_stack_overflow(void *addr) {
 #ifndef _WIN32 // ATN TODO
@@ -383,6 +383,16 @@ bool is_coroutine_stack_overflow(void *addr) {
 #else
 	return false;
 #endif
+}
+
+bool has_n_bytes_free_stack_space(size_t n) {
+    // We assume that `tester` is going to be allocated on the stack.
+    // Theoretically this is not guaranteed by the C++ standard, but in practice
+    // it should work.
+    char tester;
+    const coro_t *current_coro = TLS_get_cglobals()->current_coro;
+    guarantee(current_coro != nullptr);
+    return current_coro->stack.free_space_below(&tester) >= n;
 }
 
 bool coroutines_have_been_initialized() {

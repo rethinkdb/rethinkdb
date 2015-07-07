@@ -1,0 +1,14 @@
+desc: Test that multi indexes ignore values that cannot be indexed, still indexing the remaining values
+table_variable_name: tbl
+tests:
+  # This is testing a property of the server, so a single language (in this case JS)
+  # is enough.
+  - js: tbl.indexCreate("multi_idx", function(x) { return [x("a"), x("b")] }, {multi:true})
+    ot: {created: 1}
+  - js: tbl.indexWait("multi_idx")
+
+  - js: tbl.insert([{a:"a", b:null}, {a:"a", b:r.point(0,0)}])("inserted")
+    ot: 2
+
+  - js: tbl.getAll("a", {index:"multi_idx"}).count()
+    ot: 2

@@ -16,7 +16,7 @@ $streams = [
 
 $infstreams = [
   $t.changes(),
-  $t.between(10, 100, index: 'id').changes(),
+  $t.between(10, 100, index: 'id').changes(include_initial_vals: false),
   $t.get(0).changes().skip(1)
 ]
 

@@ -133,7 +133,7 @@ class Metacluster(object):
             raise
         for process in processes:
             process.cluster = dest
-            dest.processes.add(process)
+            dest.processes.append(process)
 
 class Cluster(object):
     """A `Cluster` represents a group of `Processes` that are all connected to each other (ideally, anyway; see the note in `move_processes`). """
@@ -165,7 +165,7 @@ class Cluster(object):
         # - metacluster
         
         if metacluster is not None and output_folder is not None:
-            raise NotImplementedError('supplying a metacluster and an output_folder does not currently work')
+            raise NotImplementedError('supplying both a metacluster and an output_folder does not currently work')
         elif metacluster is None:
             metacluster = Metacluster(output_folder=output_folder)
         
@@ -176,12 +176,14 @@ class Cluster(object):
         
         self.metacluster = metacluster
         self.metacluster.clusters.add(self)
-        self.processes = set()
+        self.processes = []
         
         # -- start servers
         
         for nameOrFiles in initial_servers:
-            self.processes.add(Process(cluster=self, files=nameOrFiles, console_output=console_output, executable_path=executable_path, command_prefix=command_prefix, extra_options=extra_options))
+            # The constructor will insert itself into `self.processes`
+            p = Process(cluster=self, files=nameOrFiles, console_output=console_output, executable_path=executable_path, command_prefix=command_prefix, extra_options=extra_options)
+            assert p in self.processes
         
         # -- wait for servers
         
@@ -211,10 +213,10 @@ class Cluster(object):
         nonzero exit code. Also makes the cluster object invalid """
         try:
             while self.processes:
-                iter(self.processes).next().check_and_stop()
+                self.processes[0].check_and_stop()
         finally:
             while self.processes:
-                iter(self.processes).next().close()
+                self.processes[0].close()
             if self.metacluster is not None:
                 self.metacluster.clusters.remove(self)
                 self.metacluster = None
@@ -237,12 +239,11 @@ class Cluster(object):
     
     def __getitem__(self, pos):
         if isinstance(pos, slice):
-            items = list(self.processes)
-            return [items[x] for x in xrange(*pos.indices(len(items)))]
+            return [self.processes[x] for x in xrange(*pos.indices(len(self.processes)))]
         elif isinstance(pos, int):
             if not (-1 * len(self.processes) <= pos < len(self.processes) ):
                 raise IndexError('This cluster only has %d servers, so index %s is invalid' % (len(self.processes), str(pos)))
-            return list(self.processes)[pos]
+            return self.processes[pos]
         else:
             raise TypeError("Invalid argument type: %s" % repr(pos))
     
@@ -398,7 +399,7 @@ class _Process(object):
         # - add to the cluster
         
         self.cluster = cluster
-        self.cluster.processes.add(self)
+        self.cluster.processes.append(self)
         
         # - set defaults
         
@@ -418,6 +419,12 @@ class _Process(object):
             self.local_cluster_port = utils.get_avalible_port()
             options += ['--client-port', str(self.local_cluster_port)]
         
+        if not '--log-file' in options:
+            options += ['--log-file', str(self.logfile_path)]
+        
+        if not '--no-update-check' in options:
+            options += ['--no-update-check'] # supress update checks/reporting in
+        
         # - set to join the cluster
         
         for peer in cluster.processes:
@@ -435,7 +442,7 @@ class _Process(object):
             
             self.console_file.write("Launching:\n%s\n" % str(self.args))
             
-            self.process = subprocess.Popen(self.args, stdout=self.console_file, stderr=self.console_file, preexec_fn=os.setpgrp)
+            self.process = subprocess.Popen(self.args, stdout=self.console_file, stderr=subprocess.STDOUT, preexec_fn=os.setpgrp)
             
             runningServers.append(self)
             self.process_group_id = self.process.pid
@@ -453,6 +460,7 @@ class _Process(object):
                     other_cluster._unblock_process(self)
             if self.cluster and self in self.cluster.processes:
                 self.cluster.processes.remove(self)
+                assert self not in self.cluster.processes
             raise
     
     def __enter__(self):
@@ -634,6 +642,7 @@ class _Process(object):
                     other_cluster._unblock_process(self)
 
             self.cluster.processes.remove(self)
+            assert self not in self.cluster.processes, "we are in the list twice"
             self.cluster = None
     
 class Process(_Process):
@@ -642,9 +651,9 @@ class Process(_Process):
 
     def __init__(self, cluster=None, files=None, output_folder=None, console_output=None, executable_path=None, server_tags=None, command_prefix=None, extra_options=None, wait_until_ready=False):
         
-        assert isinstance(cluster, (Cluster, None.__class__)), 'cluster must be a Cluster or None, got: %s' % repr(cluster)
-        assert isinstance(files, (Files, str, None.__class__)), 'files must be a Files, string (name), or None, got: %s' % repr(cluster)
-        assert output_folder is None or os.path.isdir(output_folder)
+        assert isinstance(cluster, (Cluster, None.__class__)), 'cluster must be a Cluster or None, got: %r' % cluster
+        assert isinstance(files, (Files, str, None.__class__)), 'files must be a Files, string (name), or None, got: %r' % files
+        assert output_folder is None or os.path.isdir(output_folder), 'output_folder if given must be the path to an existing folder, got: %r' % output_folder
         
         # -- validate bad combinations
         
@@ -674,14 +683,14 @@ class Process(_Process):
             self._close_console_output = True
             if console_output is False:
                 self.console_file = tempfile.NamedTemporaryFile(mode='w+')
-            elif self.files is None:
+            elif isinstance(files, Files):
+                self.console_file = open(os.path.join(files.db_path, 'console.txt'), 'w+')
+            else:
                 outerDir = cluster.metacluster.dbs_path
                 if output_folder:
                     outerDir = output_folder
                 self.console_file = tempfile.NamedTemporaryFile(mode='w+', dir=outerDir, delete=False)
                 moveConsoleFile = True
-            else:
-                self.console_file = open(os.path.join(self.files.db_path, 'console.txt'), 'w+')
         elif hasattr(console_output, 'write'):
             self.console_file = console_output
         else:
@@ -696,10 +705,10 @@ class Process(_Process):
             files = Files(metacluster=cluster.metacluster, server_name=files, server_tags=server_tags, db_containter=output_folder, console_output=self.console_file, executable_path=executable_path, command_prefix=command_prefix)
             self.console_file.write('=========== End Create Console ============\n\n')
             self.console_file.flush()
-            if moveConsoleFile:
-                os.rename(self.console_file.name, os.path.join(files.db_path, 'console.txt'))
-            os.rename(os.path.join(files.db_path, 'log_file'), os.path.join(files.db_path, 'create_log_file'))
+            os.rename(os.path.join(files.db_path, 'log_file'), os.path.join(files.db_path, 'create_log_file.txt'))
         assert isinstance(files, Files)
+        if moveConsoleFile:
+            os.rename(self.console_file.name, os.path.join(files.db_path, 'console.txt'))
         
         # -- default command_prefix
         
@@ -718,7 +727,7 @@ class Process(_Process):
         # -- store values
         
         self.files = files
-        self.logfile_path = os.path.join(files.db_path, "log_file")
+        self.logfile_path = os.path.join(files.db_path, "log_file.txt")
         
         # -- run command
         
@@ -744,8 +753,8 @@ class ProxyProcess(_Process):
             extra_options = []
         
         self.logfile_path = logfile_path
-
-        options = ["proxy", "--log-file", self.logfile_path] + extra_options
+        
+        options = ["proxy"] + extra_options
 
         _Process.__init__(self, cluster, options, console_output=console_output, executable_path=executable_path, command_prefix=command_prefix)
 

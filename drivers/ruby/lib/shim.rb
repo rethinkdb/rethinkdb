@@ -57,14 +57,25 @@ module RethinkDB
 
     def self.response_to_native(r, orig_term, opts)
       rt = Response::ResponseType
+      re = Response::ErrorType
       begin
         case r['t']
-        when rt::SUCCESS_ATOM      then r['r'][0]
-        when rt::SUCCESS_PARTIAL   then r['r']
-        when rt::SUCCESS_SEQUENCE  then r['r']
-        when rt::RUNTIME_ERROR     then raise RqlRuntimeError, r['r'][0]
-        when rt::COMPILE_ERROR     then raise RqlCompileError, r['r'][0]
-        when rt::CLIENT_ERROR      then raise RqlDriverError,  r['r'][0]
+        when rt::SUCCESS_ATOM         then r['r'][0]
+        when rt::SUCCESS_PARTIAL      then r['r']
+        when rt::SUCCESS_SEQUENCE     then r['r']
+        when rt::RUNTIME_ERROR
+          case r['e']
+            when re::INTERNAL         then raise RqlInternalError, r['r'][0]
+            when re::RESOURCE         then raise RqlResourceError, r['r'][0]
+            when re::LOGIC            then raise RqlLogicError, r['r'][0]
+            when re::NON_EXISTENCE    then raise RqlNonExistenceError, r['r'][0]
+            when re::OP_FAILED        then raise RqlOpFailedError, r['r'][0]
+            when re::OP_INDETERMINATE then raise RqlOpIndeterminateError, r['r'][0]
+            when re::USER             then raise RqlUserError, r['r'][0]
+            else                           raise RqlRuntimeError, r['r'][0]
+          end
+        when rt::COMPILE_ERROR        then raise RqlCompileError, r['r'][0]
+        when rt::CLIENT_ERROR         then raise RqlDriverError,  r['r'][0]
         else raise RqlRuntimeError, "Unexpected response: #{r.inspect}"
         end
       rescue RqlError => e

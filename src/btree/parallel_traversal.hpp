@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "concurrency/access.hpp"
-#include "backfill_progress.hpp"
+#include "btree/traversal_progress.hpp"
 #include "btree/types.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/interruptor.hpp"

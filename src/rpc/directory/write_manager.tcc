@@ -25,7 +25,7 @@ directory_write_manager_t<metadata_t>::directory_write_manager_t(
     connections_change_subscription(connectivity_cluster->get_connections(),
         std::bind(&directory_write_manager_t::on_connection_change,
             this, ph::_1, ph::_2),
-        true)
+        initial_call_t::YES)
 {
     typename watchable_t<metadata_t>::freeze_t value_freeze(value);
     value_change_subscription.reset(value, &value_freeze);
@@ -101,6 +101,15 @@ public:
             throw fake_archive_exc_t();
         }
     }
+
+#ifdef ENABLE_MESSAGE_PROFILER
+    const char *message_profiler_tag() const {
+        static const std::string tag =
+            strprintf("directory<%s>.init", typeid(metadata_t).name());
+        return tag.c_str();
+    }
+#endif
+
 private:
     const metadata_t &initial_value;
     fifo_enforcer_state_t metadata_fifo_state;
@@ -128,6 +137,15 @@ public:
             throw fake_archive_exc_t();
         }
     }
+
+#ifdef ENABLE_MESSAGE_PROFILER
+    const char *message_profiler_tag() const {
+        static const std::string tag =
+            strprintf("directory<%s>.update", typeid(metadata_t).name());
+        return tag.c_str();
+    }
+#endif
+
 private:
     const metadata_t &new_value;
     fifo_enforcer_write_token_t metadata_fifo_token;

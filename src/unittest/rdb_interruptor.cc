@@ -6,6 +6,7 @@
 #include <boost/optional.hpp>
 
 #include "protob/protob.hpp"
+#include "rapidjson/document.h"
 #include "rdb_protocol/backtrace.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/env.hpp"
@@ -179,7 +180,7 @@ public:
 
 TEST(RDBInterrupt, GetOp) {
     uint32_t eval_count;
-    std::set<ql::datum_t, latest_version_optional_datum_less_t> initial_data;
+    std::set<ql::datum_t, optional_datum_less_t> initial_data;
 
     ql::datum_object_builder_t row;
     row.overwrite("id", ql::datum_t(datum_string_t("key")));
@@ -212,7 +213,7 @@ TEST(RDBInterrupt, GetOp) {
 
 TEST(RDBInterrupt, DeleteOp) {
     uint32_t eval_count;
-    std::set<ql::datum_t, latest_version_optional_datum_less_t> initial_data;
+    std::set<ql::datum_t, optional_datum_less_t> initial_data;
 
     ql::datum_object_builder_t row;
     row.overwrite("id", ql::datum_t(datum_string_t("key")));
@@ -284,7 +285,10 @@ public:
 
         // The real server sends a SUCCESS_SEQUENCE, but this makes the test simpler
         res->set_token(query->token());
-        ql::fill_error(res, Response::RUNTIME_ERROR, stop_query_message,
+        ql::fill_error(res,
+                       Response::RUNTIME_ERROR,
+                       Response::LOGIC,
+                       stop_query_message,
                        ql::backtrace_registry_t::EMPTY_BACKTRACE);
     }
 private:
@@ -350,31 +354,32 @@ void send_query(int64_t token, const std::string &query_json, tcp_conn_stream_t 
 
 std::string parse_json_error_message(const char *json,
                                      int32_t expected_type) {
-    scoped_cJSON_t response(cJSON_Parse(json));
-    guarantee(response.get() != nullptr);
+    rapidjson::Document response;
+    response.Parse(json);
+    guarantee(!response.HasParseError());
+    guarantee(response.IsObject());
 
-    json_object_iterator_t it(response.get());
+    rapidjson::Value::ConstMemberIterator it = response.MemberBegin();
+    guarantee(it != response.MemberEnd());
     // The `make_optional` call works around an incorrect warning in old versions of GCC
     boost::optional<Response::ResponseType> type =
         boost::make_optional(false, Response::COMPILE_ERROR);
     boost::optional<std::string> msg = boost::make_optional(false, std::string());
 
     while (!type || !msg) {
-        cJSON *item = it.next();
-        guarantee(item != nullptr);
-        std::string item_name(item->string);
+        std::string item_name(it->name.GetString(), it->name.GetStringLength());
 
         if (item_name == "t") {
-            guarantee(item->type == cJSON_Number);
-            type = static_cast<Response::ResponseType>(item->valueint);
+            guarantee(it->value.IsNumber());
+            type = static_cast<Response::ResponseType>(it->value.GetInt());
         } else if (item_name == "r") {
-            json_array_iterator_t rit(item);
-            item = rit.next();
-            guarantee(item != nullptr);
-            guarantee(item->type == cJSON_String);
-            msg = std::string(item->valuestring);
-            guarantee(rit.next() == nullptr);
+            rapidjson::Value::ConstValueIterator rit = it->value.Begin();
+            guarantee(rit != it->value.End());
+            guarantee(rit->IsString());
+            msg = std::string(rit->GetString(), rit->GetStringLength());
+            guarantee(++rit == it->value.End());
         }
+        ++it;
     }
     guarantee(type.get() == expected_type);
     guarantee(msg->length() != 0);
@@ -478,29 +483,26 @@ http_res_t run_http_req(const http_req_t &req,
     return result;
 }
 
-int32_t create_http_session(http_app_t *query_app) {
+std::string create_http_session(http_app_t *query_app) {
     http_req_t create_req("/query/open-new-connection");
     create_req.method = http_method_t::POST;
 
     cond_t dummy_interruptor;
     http_res_t result = run_http_req(create_req, query_app, &dummy_interruptor);
-    guarantee(result.body.size() == sizeof(int32_t));
-    return *reinterpret_cast<const int32_t *>(result.body.data());
+    return result.body.data();
 }
 
-http_req_t make_http_close(int32_t conn_id) {
+http_req_t make_http_close(const std::string &conn_id) {
     http_req_t close_req("/query/close-connection");
     close_req.method = http_method_t::POST;
-    close_req.query_params.insert(std::make_pair("conn_id",
-                                                 strprintf("%" PRIi32, conn_id)));
+    close_req.query_params.insert(std::make_pair("conn_id", conn_id));
     return close_req;
 }
 
-http_req_t make_http_query(int32_t conn_id, const std::string &query_json) {
+http_req_t make_http_query(const std::string &conn_id, const std::string &query_json) {
     http_req_t query_req("/query");
     query_req.method = http_method_t::POST;
-    query_req.query_params.insert(std::make_pair("conn_id",
-                                                 strprintf("%" PRIi32, conn_id)));
+    query_req.query_params.insert(std::make_pair("conn_id", conn_id));
     query_req.body.append(reinterpret_cast<const char *>(&test_token),
                           sizeof(test_token));
     query_req.body.append(query_json);
@@ -523,7 +525,7 @@ std::string parse_http_result(const http_res_t &http_res, int32_t expected_type)
 void http_interrupt_test(test_rdb_env_t *test_env,
                          const std::string &expected_msg,
                          std::function<void(scoped_ptr_t<query_server_t> *,
-                                            cond_t *, int32_t)> interrupt_fn) {
+                                            cond_t *, std::string)> interrupt_fn) {
     scoped_ptr_t<test_rdb_env_t::instance_t> env_instance = test_env->make_env();
 
     query_hanger_t hanger; // Causes all queries to hang until interrupted
@@ -536,7 +538,7 @@ void http_interrupt_test(test_rdb_env_t *test_env,
     http_res_t result;
     cond_t http_done;
 
-    int32_t conn_id = create_http_session(server.get());
+    std::string conn_id = create_http_session(server.get());
 
     coro_t::spawn_now_dangerously([&]() {
             result = run_http_req(make_http_query(conn_id, r_uuid_json),
@@ -560,7 +562,7 @@ TEST(RDBInterrupt, HttpInterrupt) {
         unittest::run_in_thread_pool(std::bind(http_interrupt_test, &test_env,
             "This ReQL connection has been terminated.",
             [](UNUSED scoped_ptr_t<query_server_t> *server,
-               cond_t *interruptor, UNUSED int32_t conn_id) {
+               cond_t *interruptor, UNUSED const std::string &conn_id) {
                 // We don't have a real socket here, use the fake interruptor
                 interruptor->pulse_if_not_already_pulsed();
             }));
@@ -572,7 +574,7 @@ TEST(RDBInterrupt, HttpInterrupt) {
         unittest::run_in_thread_pool(std::bind(http_interrupt_test, &test_env,
             "This ReQL connection has been terminated.",
             [](scoped_ptr_t<query_server_t> *server,
-               cond_t *interruptor, int32_t conn_id) {
+               cond_t *interruptor, const std::string &conn_id) {
                 http_res_t result = run_http_req(make_http_close(conn_id),
                                                  server->get(), interruptor);
             }));
@@ -584,7 +586,7 @@ TEST(RDBInterrupt, HttpInterrupt) {
         unittest::run_in_thread_pool(std::bind(http_interrupt_test, &test_env,
             "Server is shutting down.", // Technically we can't send this message back
             [](scoped_ptr_t<query_server_t> *server,
-               UNUSED cond_t *interruptor, UNUSED int32_t conn_id) {
+               UNUSED cond_t *interruptor, UNUSED const std::string &conn_id) {
                 server->reset();
             }));
     }
@@ -595,7 +597,7 @@ TEST(RDBInterrupt, HttpInterrupt) {
         unittest::run_in_thread_pool(std::bind(http_interrupt_test, &test_env,
             query_hanger_t::stop_query_message,
             [](scoped_ptr_t<query_server_t> *server,
-               cond_t *interruptor, int32_t conn_id) {
+               cond_t *interruptor, const std::string &conn_id) {
                 http_res_t result = run_http_req(make_http_query(conn_id, stop_json),
                                                  server->get(), interruptor);
             }));
@@ -607,7 +609,7 @@ TEST(RDBInterrupt, HttpInterrupt) {
         unittest::run_in_thread_pool(std::bind(http_interrupt_test, &test_env,
             "HTTP ReQL query timed out after 2 seconds.",
             [](UNUSED scoped_ptr_t<query_server_t> *server,
-               UNUSED cond_t *interruptor, UNUSED int32_t conn_id) {
+               UNUSED cond_t *interruptor, UNUSED const std::string &conn_id) {
                 // Don't actually have to do anything here, the test should
                 // wait for the timeout
             }));

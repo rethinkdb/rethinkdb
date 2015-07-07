@@ -36,7 +36,7 @@ std::string format_log_level(log_level_t l) {
     }
 }
 
-log_level_t parse_log_level(const std::string &s) THROWS_ONLY(std::runtime_error) {
+log_level_t parse_log_level(const std::string &s) THROWS_ONLY(log_read_exc_t) {
     if (s == "debug")
         return log_level_debug;
     else if (s == "info")
@@ -48,7 +48,7 @@ log_level_t parse_log_level(const std::string &s) THROWS_ONLY(std::runtime_error
     else if (s == "error")
         return log_level_error;
     else
-        throw std::runtime_error("cannot parse '" + s + "' as log level");
+        throw log_read_exc_t("cannot parse '" + s + "' as log level");
 }
 
 std::string format_log_message(const log_message_t &m, bool for_console) {
@@ -117,31 +117,31 @@ std::string format_log_message(const log_message_t &m, bool for_console) {
 
 
 
-log_message_t parse_log_message(const std::string &s) THROWS_ONLY(std::runtime_error) {
+log_message_t parse_log_message(const std::string &s) THROWS_ONLY(log_read_exc_t) {
     const char *p = s.c_str();
     const char *start_timestamp = p;
     while (*p && *p != ' ') p++;
-    if (!*p) throw std::runtime_error("cannot parse log message (1)");
+    if (!*p) throw log_read_exc_t("cannot parse log message (1)");
     const char *end_timestamp = p;
     p++;
     const char *start_uptime_ipart = p;
     while (*p && *p != '.') p++;
-    if (!*p) throw std::runtime_error("cannot parse log message (2)");
+    if (!*p) throw log_read_exc_t("cannot parse log message (2)");
     const char *end_uptime_ipart = p;
     p++;
     const char *start_uptime_fpart = p;
     while (*p && *p != 's') p++;
-    if (!*p) throw std::runtime_error("cannot parse log message (3)");
+    if (!*p) throw log_read_exc_t("cannot parse log message (3)");
     const char *end_uptime_fpart = p;
     p++;
-    if (*p != ' ') throw std::runtime_error("cannot parse log message (4)");
+    if (*p != ' ') throw log_read_exc_t("cannot parse log message (4)");
     p++;
     const char *start_level = p;
     while (*p && *p != ':') p++;
-    if (*p != ':') throw std::runtime_error("cannot parse log message (5)");
+    if (*p != ':') throw log_read_exc_t("cannot parse log message (5)");
     const char *end_level = p;
     p++;
-    if (*p != ' ') throw std::runtime_error("cannot parse log message (6)");
+    if (*p != ' ') throw log_read_exc_t("cannot parse log message (6)");
     p++;
     const char *start_message = p;
     while (*p) p++;
@@ -152,7 +152,7 @@ log_message_t parse_log_message(const std::string &s) THROWS_ONLY(std::runtime_e
         std::string errmsg;
         if (!parse_time(std::string(start_timestamp, end_timestamp - start_timestamp),
                         local_or_utc_time_t::local, &timestamp, &errmsg)) {
-            throw std::runtime_error(errmsg);
+            throw log_read_exc_t(errmsg);
         }
     }
     struct timespec uptime;
@@ -161,7 +161,7 @@ log_message_t parse_log_message(const std::string &s) THROWS_ONLY(std::runtime_e
         std::string tv_sec_str(start_uptime_ipart, end_uptime_ipart - start_uptime_ipart);
         uint64_t tv_sec;
         if (!strtou64_strict(tv_sec_str, 10, &tv_sec)) {
-            throw std::runtime_error("cannot parse log message (9)");
+            throw log_read_exc_t("cannot parse log message (9)");
         }
 
         uptime.tv_sec = tv_sec;
@@ -169,7 +169,7 @@ log_message_t parse_log_message(const std::string &s) THROWS_ONLY(std::runtime_e
         std::string tv_nsec_str(start_uptime_fpart, end_uptime_fpart - start_uptime_fpart);
         uint64_t tv_nsec;
         if (!strtou64_strict(tv_nsec_str, 10, &tv_nsec)) {
-            throw std::runtime_error("cannot parse log message (10)");
+            throw log_read_exc_t("cannot parse log message (10)");
         }
 
         // TODO: Seriously?  We assume three decimal places?
@@ -184,7 +184,7 @@ log_message_t parse_log_message(const std::string &s) THROWS_ONLY(std::runtime_e
 
 void throw_unless(bool condition, const std::string &where) {
     if (!condition) {
-        throw std::runtime_error("file IO error: " + where + " (errno = " + errno_string(get_errno()).c_str() + ")");
+        throw log_read_exc_t("file IO error: " + where + " (errno = " + errno_string(get_errno()).c_str() + ")");
     }
 }
 
@@ -477,8 +477,7 @@ TLS_with_init(thread_pool_log_writer_t *, global_log_writer, nullptr);
 TLS_with_init(auto_drainer_t *, global_log_drainer, nullptr);
 TLS_with_init(int, log_writer_block, 0);
 
-thread_pool_log_writer_t::thread_pool_log_writer_t(local_issue_aggregator_t *local_issue_aggregator) :
-        log_write_issue_tracker(local_issue_aggregator) {
+thread_pool_log_writer_t::thread_pool_log_writer_t() {
     pmap(get_num_threads(), boost::bind(&thread_pool_log_writer_t::install_on_thread, this, _1));
 }
 
@@ -486,7 +485,7 @@ thread_pool_log_writer_t::~thread_pool_log_writer_t() {
     pmap(get_num_threads(), boost::bind(&thread_pool_log_writer_t::uninstall_on_thread, this, _1));
 }
 
-std::vector<log_message_t> thread_pool_log_writer_t::tail(int max_lines, struct timespec min_timestamp, struct timespec max_timestamp, signal_t *interruptor) THROWS_ONLY(std::runtime_error, interrupted_exc_t) {
+std::vector<log_message_t> thread_pool_log_writer_t::tail(int max_lines, struct timespec min_timestamp, struct timespec max_timestamp, signal_t *interruptor) THROWS_ONLY(log_read_exc_t, interrupted_exc_t) {
     volatile bool cancel = false;
     class cancel_subscription_t : public signal_t::subscription_t {
     public:
@@ -511,7 +510,7 @@ std::vector<log_message_t> thread_pool_log_writer_t::tail(int max_lines, struct 
             return log_messages;
         }
     } else {
-        throw std::runtime_error(error_message);
+        throw log_read_exc_t(error_message);
     }
 }
 
@@ -569,7 +568,7 @@ void thread_pool_log_writer_t::tail_blocking(int max_lines, struct timespec min_
         }
         *ok_out = true;
         return;
-    } catch (const std::runtime_error &e) {
+    } catch (const log_read_exc_t &e) {
         *error_out = e.what();
         *ok_out = false;
         return;

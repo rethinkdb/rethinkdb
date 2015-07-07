@@ -2,6 +2,7 @@
 #include "clustering/administration/tables/generate_config.hpp"
 
 #include "clustering/administration/servers/config_client.hpp"
+#include "clustering/table_manager/table_meta_client.hpp"
 #include "containers/counted.hpp"
 
 /* `long_calculation_yielder_t` is used in a long-running calculation to periodically
@@ -42,7 +43,7 @@ void calculate_server_usage(
         const table_config_t &config,
         std::map<server_id_t, int> *usage) {
     for (const table_config_t::shard_t &shard : config.shards) {
-        for (const server_id_t &server : shard.replicas) {
+        for (const server_id_t &server : shard.all_replicas) {
             (*usage)[server] += SECONDARY_USAGE_COST;
         }
         (*usage)[shard.primary_replica] += (PRIMARY_USAGE_COST - SECONDARY_USAGE_COST);
@@ -50,37 +51,50 @@ void calculate_server_usage(
 }
 
 /* `validate_params()` checks if `params` are legal. */
-static bool validate_params(
+static void validate_params(
         const table_generate_config_params_t &params,
         const std::map<name_string_t, std::set<server_id_t> > &servers_with_tags,
-        const std::map<server_id_t, name_string_t> &server_names,
-        std::string *error_out) {
+        const server_name_map_t &server_names)
+        THROWS_ONLY(admin_op_exc_t) {
     if (params.num_shards <= 0) {
-        *error_out = "Every table must have at least one shard.";
-        return false;
+        throw admin_op_exc_t("Every table must have at least one shard.",
+                             query_state_t::FAILED);
     }
     size_t total_replicas = 0;
     for (const auto &pair : params.num_replicas) {
         total_replicas += pair.second;
     }
     if (total_replicas == 0) {
-        *error_out = "You must set `replicas` to at least one. `replicas` includes the "
-            "primary replica; if there are zero replicas, there is nowhere to put the "
-            "data.";
-        return false;
+        throw admin_op_exc_t(
+            "You must set `replicas` to at least one. `replicas` "
+            "includes the primary replica; if there are zero replicas, there is nowhere "
+            "to put the data.",
+            query_state_t::FAILED);
     }
     static const size_t max_shards = 32;
     if (params.num_shards > max_shards) {
-        *error_out = strprintf("Maximum number of shards is %zu.", max_shards);
-        return false;
+        throw admin_op_exc_t(
+            strprintf("Maximum number of shards is %zu.", max_shards),
+            query_state_t::FAILED);
     }
     if (params.num_replicas.count(params.primary_replica_tag) == 0 ||
             params.num_replicas.at(params.primary_replica_tag) == 0) {
-        *error_out = strprintf("Can't use server tag `%s` for primary replicas "
-                               "because you specified no replicas in server tag `%s`.",
-                               params.primary_replica_tag.c_str(),
-                               params.primary_replica_tag.c_str());
-        return false;
+        throw admin_op_exc_t(
+            strprintf("Can't use server tag `%s` for primary replicas "
+                      "because you specified no replicas in server tag `%s`.",
+                      params.primary_replica_tag.c_str(),
+                      params.primary_replica_tag.c_str()),
+            query_state_t::FAILED);
+    }
+    for (const name_string_t &nonvoting_tag : params.nonvoting_replica_tags) {
+        if (params.num_replicas.count(nonvoting_tag) == 0) {
+            throw admin_op_exc_t(
+                strprintf("You specified that the replicas in server "
+                          "tag `%s` should be non-voting, but you didn't specify a "
+                          "number of replicas in server tag `%s`.",
+                          nonvoting_tag.c_str(), nonvoting_tag.c_str()),
+                query_state_t::FAILED);
+        }
     }
     std::map<server_id_t, name_string_t> servers_claimed;
     for (auto it = params.num_replicas.begin(); it != params.num_replicas.end(); ++it) {
@@ -91,66 +105,50 @@ static bool validate_params(
             if (servers_claimed.count(server) == 0) {
                 servers_claimed.insert(std::make_pair(server, it->first));
             } else {
-                *error_out = strprintf("Server tags `%s` and `%s` overlap; the server "
-                    "`%s` has both tags. The server tags used for replication settings "
-                    "for a given table must be non-overlapping.", it->first.c_str(),
-                    servers_claimed.at(server).c_str(), server_names.at(server).c_str());
-                return false;
+                throw admin_op_exc_t(
+                    strprintf("Server tags `%s` and `%s` overlap; the server "
+                              "`%s` has both tags. The server tags used for replication "
+                              "settings for a given table must be non-overlapping.",
+                              it->first.c_str(), servers_claimed.at(server).c_str(),
+                              server_names.get(server).c_str()),
+                    query_state_t::FAILED);
             }
         }
     }
-    return true;
 }
 
-/* `estimate_cost_to_get_up_to_date()` returns a number that describes how much trouble
-we expect it to be to get the given server into an up-to-date state.
-
-This takes O(shards) time, since `business_card` probably contains O(shards) activities.
-*/
-static double estimate_cost_to_get_up_to_date(
-        const reactor_business_card_t &business_card,
-        region_t shard) {
-    typedef reactor_business_card_t rb_t;
-    region_map_t<double> costs(shard, 3);
-    for (rb_t::activity_map_t::const_iterator it = business_card.activities.begin();
-            it != business_card.activities.end(); it++) {
-        region_t intersection = region_intersection(it->second.region, shard);
-        if (!region_is_empty(intersection)) {
-            int cost;
-            if (boost::get<rb_t::primary_when_safe_t>(&it->second.activity)) {
-                cost = 0;
-            } else if (boost::get<rb_t::primary_t>(&it->second.activity)) {
-                cost = 0;
-            } else if (boost::get<rb_t::secondary_up_to_date_t>(&it->second.activity)) {
-                cost = 1;
-            } else if (boost::get<rb_t::secondary_without_primary_t>(&it->second.activity)) {
-                cost = 2;
-            } else if (boost::get<rb_t::secondary_backfilling_t>(&it->second.activity)) {
-                cost = 2;
-            } else if (boost::get<rb_t::nothing_when_safe_t>(&it->second.activity)) {
-                cost = 3;
-            } else if (boost::get<rb_t::nothing_when_done_erasing_t>(&it->second.activity)) {
-                cost = 3;
-            } else if (boost::get<rb_t::nothing_t>(&it->second.activity)) {
-                cost = 3;
+/* `estimate_backfill_cost()` estimates the cost of backfilling the data in `range` from
+the locations specified in `old_config` to the server `server`. The cost is measured in
+arbitrary units that are only comparable to each other. */
+double estimate_backfill_cost(
+        const key_range_t &range,
+        const table_config_and_shards_t &old_config,
+        const server_id_t &server) {
+    /* If `range` aligns perfectly to an existing shard, the cost is 0.0 if `server` is
+    already primary for that shard; 1.0 if it's a voting non-primary replica; 2.0 if it's
+    a non-voting replica; and 3.0 otherwise. If `range` overlaps multiple existing
+    shards' ranges, we average over all of them. */
+    guarantee(!range.is_empty());
+    double numerator = 0;
+    int denominator = 0;
+    for (size_t i = 0; i < old_config.shard_scheme.num_shards(); ++i) {
+        if (old_config.shard_scheme.get_shard_range(i).overlaps(range)) {
+            ++denominator;
+            if (old_config.config.shards[i].primary_replica == server) {
+                numerator += 0.0;
+            } else if (old_config.config.shards[i].all_replicas.count(server)) {
+                if (old_config.config.shards[i].nonvoting_replicas.count(server) == 0) {
+                    numerator += 1.0;
+                } else {
+                    numerator += 2.0;
+                }
             } else {
-                // I don't know if this is unreachable, but cost would be uninitialized otherwise  - Sam
-                // TODO: Is this really unreachable?
-                unreachable();
+                numerator += 3.0;
             }
-            /* It's ok to just call `set()` instead of trying to find the minimum
-            because activities should never overlap. */
-            costs.set(intersection, cost);
         }
     }
-    double sum = 0;
-    int count = 0;
-    for (region_map_t<double>::iterator it = costs.begin(); it != costs.end(); it++) {
-        /* TODO: Scale by how much data is in `it->first` */
-        sum += it->second;
-        count++;
-    }
-    return sum / count;
+    guarantee(denominator != 0);
+    return numerator / denominator;
 }
 
 /* A `pairing_t` represents the possibility of using the given server as a replica for
@@ -239,86 +237,75 @@ void pick_best_pairings(
     }
 }
 
-bool table_generate_config(
+void table_generate_config(
         server_config_client_t *server_config_client,
         namespace_id_t table_id,
-        watchable_map_t<std::pair<peer_id_t, namespace_id_t>,
-                        namespace_directory_metadata_t> *directory_view,
-        const std::map<server_id_t, int> &server_usage,
+        table_meta_client_t *table_meta_client,
         const table_generate_config_params_t &params,
         const table_shard_scheme_t &shard_scheme,
-
         signal_t *interruptor,
-        table_config_t *config_out,
-        std::string *error_out) {
-
+        std::vector<table_config_t::shard_t> *config_shards_out,
+        server_name_map_t *server_names_out)
+        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,
+            admin_op_exc_t) {
     long_calculation_yielder_t yielder;
 
     /* First, make local copies of the server name map and the list of servers with each
     tag. We have to make local copies because the values returned by
     `server_config_client` could change at any time, but we need the values to be
     consistent. */
-    std::map<server_id_t, name_string_t> server_names =
-        server_config_client->get_server_id_to_name_map()->get();
+    server_name_map_t server_names;
     std::map<name_string_t, std::set<server_id_t> > servers_with_tags;
-    for (auto it = params.num_replicas.begin(); it != params.num_replicas.end(); ++it) {
-        std::set<server_id_t> servers =
-            server_config_client->get_servers_with_tag(it->first);
-        auto pair = servers_with_tags.insert(
-            std::make_pair(it->first, std::set<server_id_t>()));
-        for (const server_id_t &server : servers) {
-            /* It's possible that due to a race condition, a server might appear in
-            `servers_with_tags` but not `server_names`. We filter such servers out so
-            that the code below us sees consistent data. */
-            if (server_names.count(server) == 1) {
-                pair.first->second.insert(server);
+    server_config_client->get_server_config_map()->read_all(
+    [&](const server_id_t &sid, const server_config_versioned_t *config) {
+        bool any = false;
+        for (const name_string_t &tag : config->config.tags) {
+            if (params.num_replicas.count(tag) != 0) {
+                servers_with_tags[tag].insert(sid);
+                any = true;
             }
         }
-    }
-
-    if (!validate_params(params, servers_with_tags, server_names, error_out)) {
-        return false;
-    }
-
-    /* Fetch reactor information for all of the servers */
-    std::map<server_id_t, cow_ptr_t<reactor_business_card_t> > directory_metadata;
-    if (table_id != nil_uuid()) {
-        std::set<server_id_t> disconnected;
-        for (auto it = servers_with_tags.begin();
-                  it != servers_with_tags.end();
-                ++it) {
-            for (auto jt = it->second.begin(); jt != it->second.end(); ++jt) {
-                server_id_t server_id = *jt;
-                boost::optional<peer_id_t> peer_id =
-                    server_config_client->get_peer_id_for_server_id(server_id);
-                if (!static_cast<bool>(peer_id)) {
-                    disconnected.insert(server_id);
-                    continue;
-                }
-                directory_view->read_key(std::make_pair(*peer_id, table_id),
-                    [&](const namespace_directory_metadata_t *metadata) {
-                        /* If this is `nullptr`, that means that the server is connected
-                        but it doesn't have a reactor entry for this table. This is
-                        usually because the table was just created or the server just
-                        reconnected. In this case, we don't put an entry in the map, and
-                        this is equivalent to assuming the server has no data for the
-                        shard. */
-                        if (metadata != nullptr) {
-                            directory_metadata[server_id] = metadata->internal;
-                        }
-                    });
-            }
+        if (any) {
+            server_names.names.insert(std::make_pair(
+                sid, std::make_pair(config->version, config->config.name)));
         }
-        if (!disconnected.empty()) {
-            *error_out = strprintf("Can't configure table because server `%s` is "
-                "disconnected", server_names.at(*disconnected.begin()).c_str());
-            return false;
-        }
-    }
+    });
+
+    validate_params(params, servers_with_tags, server_names);
 
     yielder.maybe_yield(interruptor);
 
-    config_out->shards.resize(params.num_shards);
+    /* Fetch the current configurations for all tables */
+    std::map<namespace_id_t, table_config_and_shards_t> old_table_configs;
+    std::map<namespace_id_t, table_basic_config_t> disconnected_tables;
+    table_meta_client->list_configs(
+        interruptor, &old_table_configs, &disconnected_tables);
+
+    /* Find the config for the specific table we're reconfiguring, if any */
+    const table_config_and_shards_t *old_config = nullptr;
+    if (!table_id.is_nil()) {
+        auto it = old_table_configs.find(table_id);
+        if (it == old_table_configs.end()) {
+            if (disconnected_tables.count(table_id) == 1) {
+                throw failed_table_op_exc_t();
+            } else {
+                throw no_such_table_exc_t();
+            }
+        }
+        old_config = &it->second;
+    }
+
+    /* Calculate the current load on each server */
+    std::map<server_id_t, int> server_usage;
+    for (const auto &pair : old_table_configs) {
+        if (pair.first == table_id) {
+            /* Don't count the table being reconfigured in the load calculation */
+            continue;
+        }
+        calculate_server_usage(pair.second.config, &server_usage);
+    }
+
+    config_shards_out->resize(params.num_shards);
 
     size_t total_replicas = 0;
     for (auto it = params.num_replicas.begin(); it != params.num_replicas.end(); ++it) {
@@ -332,11 +319,13 @@ bool table_generate_config(
         name_string_t server_tag = it->first;
         size_t num_in_tag = servers_with_tags.at(server_tag).size();
         if (num_in_tag < it->second) {
-            *error_out = strprintf("Can't put %zu replicas on servers with the tag "
-                "`%s` because there are only %zu servers with the tag `%s`. It's "
-                "impossible to have more replicas of the data than there are servers.",
-                it->second, server_tag.c_str(), num_in_tag, server_tag.c_str());
-            return false;
+            throw admin_op_exc_t(
+                strprintf("Can't put %zu replicas on servers with the tag `%s` because "
+                          "there are only %zu servers with the tag `%s`. It's impossible"
+                          " to have more replicas of the data than there are servers.",
+                          it->second, server_tag.c_str(),
+                          num_in_tag, server_tag.c_str()),
+                query_state_t::FAILED);
         }
 
         /* Compute the desirability of each shard/server pair */
@@ -350,19 +339,12 @@ bool table_generate_config(
             for (size_t shard = 0; shard < params.num_shards; ++shard) {
                 pairing_t p;
                 p.shard = shard;
-                if (table_id != nil_uuid()) {
-                    auto dir_it = directory_metadata.find(server);
-                    if (dir_it == directory_metadata.end()) {
-                        p.backfill_cost = 3.0;
-                    } else {
-                        p.backfill_cost = estimate_cost_to_get_up_to_date(
-                            *dir_it->second,
-                            hash_region_t<key_range_t>(
-                                shard_scheme.get_shard_range(shard)));
-                    }
+                if (!table_id.is_nil()) {
+                    p.backfill_cost = estimate_backfill_cost(
+                        shard_scheme.get_shard_range(shard), *old_config, server);
                 } else {
                     /* We're creating a new table, so we won't have to backfill no matter
-                    where we put the servers */
+                    which servers we choose. */
                     p.backfill_cost = 0;
                 }
                 sp.pairings.insert(p);
@@ -406,9 +388,9 @@ bool table_generate_config(
                 &yielder,
                 interruptor,
                 [&](size_t shard, const server_id_t &server) {
-                    guarantee(config_out->shards[shard].primary_replica.is_unset());
-                    config_out->shards[shard].replicas.insert(server);
-                    config_out->shards[shard].primary_replica = server;
+                    guarantee(config_shards_out->at(shard).primary_replica.is_unset());
+                    config_shards_out->at(shard).all_replicas.insert(server);
+                    config_shards_out->at(shard).primary_replica = server;
                     /* We have to update `pairings` as priamry replicas are selected so
                     that our second call to `pick_best_pairings()` will take into account
                     the choices made in this round. */
@@ -440,16 +422,20 @@ bool table_generate_config(
             &yielder,
             interruptor,
             [&](size_t shard, const server_id_t &server) {
-                config_out->shards[shard].replicas.insert(server);
+                (*config_shards_out)[shard].all_replicas.insert(server);
+                if (params.nonvoting_replica_tags.count(it->first) == 1) {
+                    (*config_shards_out)[shard].nonvoting_replicas.insert(server);
+                }
             });
     }
 
-    for (size_t shard = 0; shard < params.num_shards; ++shard) {
-        guarantee(!config_out->shards[shard].primary_replica.is_unset());
-        guarantee(config_out->shards[shard].replicas.size() == total_replicas);
+    for (size_t shard_ix = 0; shard_ix < params.num_shards; ++shard_ix) {
+        const table_config_t::shard_t &shard = (*config_shards_out)[shard_ix];
+        guarantee(!shard.primary_replica.is_unset());
+        guarantee(shard.all_replicas.size() == total_replicas);
+        for (const server_id_t &replica : shard.all_replicas) {
+            server_names_out->names[replica] = server_names.names.at(replica);
+        }
     }
-
-    return true;
 }
-
 

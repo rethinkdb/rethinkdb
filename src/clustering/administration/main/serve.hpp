@@ -8,7 +8,7 @@
 #include <vector>
 
 #include "clustering/administration/metadata.hpp"
-#include "clustering/administration/persist.hpp"
+#include "clustering/administration/persist/file.hpp"
 #include "clustering/administration/main/version_check.hpp"
 #include "arch/address.hpp"
 
@@ -126,8 +126,7 @@ long time to compile. */
 
 bool serve(io_backender_t *io_backender,
            const base_path_t &base_path,
-           metadata_persistence::cluster_persistent_file_t *cluster_persistent_file,
-           metadata_persistence::auth_persistent_file_t *auth_persistent_file,
+           metadata_file_t *metadata_file,
            const serve_info_t &serve_info,
            os_signal_cond_t *stop_cond);
 

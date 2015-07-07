@@ -10,7 +10,6 @@
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "extproc/extproc_job.hpp"
-#include "rdb_protocol/rdb_protocol_json.hpp"
 #include "rdb_protocol/pseudo_time.hpp"
 #include "rdb_protocol/configured_limits.hpp"
 #include "utils.hpp"
@@ -510,8 +509,7 @@ js_result_t js_env_t::call(js_id_t id,
 
     if (!value.IsEmpty()) {
         if (value->IsFunction()) {
-            v8::Handle<v8::Function> sub_func = v8::Handle<v8::Function>::Cast(value);
-            result = remember_value(sub_func);
+            *err_out = "Returning functions from within `r.js` is unsupported.";
         } else {
             // JSONify result.
             ql::datum_t datum = js_to_datum(value, limits, err_out);

@@ -25,18 +25,23 @@ ql::datum_t convert_log_key_to_datum(const timespec &ts, const server_id_t &si) 
 }
 
 bool convert_log_key_from_datum(const ql::datum_t &d,
-        timespec *ts_out, server_id_t *si_out, std::string *error_out) {
+        timespec *ts_out, server_id_t *si_out, admin_err_t *error_out) {
     if (d.get_type() != ql::datum_t::R_ARRAY || d.arr_size() != 2) {
-        *error_out = "Expected two-element array, got:" + d.print();
+        *error_out = admin_err_t{
+            "Expected two-element array, got:" + d.print(),
+            query_state_t::FAILED};
         return false;
     }
     if (d.get(0).get_type() != ql::datum_t::R_STR) {
-        *error_out = "Expected string, got:" + d.print();
+        *error_out = admin_err_t{
+            "Expected string, got:" + d.print(),
+            query_state_t::FAILED};
         return false;
     }
+    std::string err;
     if (!parse_time(d.get(0).as_str().to_std(), local_or_utc_time_t::utc,
-            ts_out, error_out)) {
-        *error_out = "In timestamp: " + *error_out;
+            ts_out, &err)) {
+        *error_out = admin_err_t{"In timestamp: " + err, query_state_t::FAILED};
         return false;
     }
     if (!convert_uuid_from_datum(d.get(1), si_out, error_out)) {
@@ -69,24 +74,23 @@ std::string logs_artificial_table_backend_t::get_primary_key_name() {
 bool logs_artificial_table_backend_t::read_all_rows_as_vector(
         signal_t *interruptor,
         std::vector<ql::datum_t> *rows_out,
-        std::string *error_out) {
+        admin_err_t *error_out) {
     return read_all_rows_raw(
         [&](const log_message_t &msg, const server_id_t &si, const ql::datum_t &sd) {
             rows_out->push_back(convert_log_message_to_datum(msg, si, sd));
         },
         interruptor,
         error_out);
-                
 }
 
 bool logs_artificial_table_backend_t::read_row(
         ql::datum_t primary_key,
         signal_t *interruptor,
         ql::datum_t *row_out,
-        std::string *error_out) {
+        admin_err_t *error_out) {
     timespec timestamp;
     server_id_t server_id;
-    std::string dummy_error;
+    admin_err_t dummy_error;
     if (!convert_log_key_from_datum(primary_key, &timestamp, &server_id, &dummy_error)) {
         *row_out = ql::datum_t();
         return true;
@@ -94,15 +98,15 @@ bool logs_artificial_table_backend_t::read_row(
 
     ql::datum_t server_datum;
     name_string_t server_name;
-    if (!convert_server_id_to_datum(server_id, identifier_format, server_config_client,
-            &server_datum, &server_name)) {
-        /* The server doesn't exist in the metadata */
+    if (!convert_connected_server_id_to_datum(server_id, identifier_format,
+            server_config_client, &server_datum, &server_name)) {
+        /* The server is not currently connected */
         *row_out = ql::datum_t();
         return true;
     }
 
     boost::optional<peer_id_t> peer_id =
-        server_config_client->get_peer_id_for_server_id(server_id);
+        server_config_client->get_server_to_peer_map()->get_key(server_id);
     if (!static_cast<bool>(peer_id)) {
         /* Disconnected or nonexistent server, so log entries shouldn't be present in the
         table */
@@ -131,13 +135,15 @@ bool logs_artificial_table_backend_t::read_row(
         timestamp we're looking for, and there should be at most one such message. */
         messages = fetch_log_file(mailbox_manager, *bcard,
             entries_per_server, timestamp, timestamp, interruptor);
-    } catch (const resource_lost_exc_t &) {
+    } catch (const log_transfer_exc_t &) {
         /* Server disconnected during the query. */
         *row_out = ql::datum_t();
         return true;
-    } catch (const std::runtime_error &e) {
-        *error_out = strprintf("Problem when reading log file on server `%s`: %s",
-            server_name.c_str(), e.what());
+    } catch (const log_read_exc_t &e) {
+        *error_out = admin_err_t{
+            strprintf("Problem when reading log file on server `%s`: %s",
+                      server_name.c_str(), e.what()),
+            query_state_t::FAILED};
         return false;
     }
 
@@ -149,9 +155,11 @@ bool logs_artificial_table_backend_t::read_row(
         /* This shouldn't happen unless the user tampered with the log file or the server
         clock ran backwards while the server was shut down (and even then it's very
         unlikely) */
-        *error_out = strprintf("Problem when reading log file on server `%s`: Found "
-            "multiple log entries with identical timestamps.",
-            server_name.c_str());
+        *error_out = admin_err_t{
+            strprintf("Problem when reading log file on server `%s`: Found "
+                      "multiple log entries with identical timestamps.",
+                      server_name.c_str()),
+            query_state_t::FAILED};
         return false;
     }
 
@@ -173,8 +181,10 @@ bool logs_artificial_table_backend_t::write_row(
         UNUSED bool pkey_was_autogenerated,
         UNUSED ql::datum_t *new_value_inout,
         UNUSED signal_t *interruptor,
-        std::string *error_out) {
-    *error_out = "It's illegal to write to the `rethinkdb.logs` system table.";
+        admin_err_t *error_out) {
+    *error_out = admin_err_t{
+        "It's illegal to write to the `rethinkdb.logs` system table.",
+        query_state_t::FAILED};
     return false;
 }
 
@@ -186,7 +196,7 @@ logs_artificial_table_backend_t::cfeed_machinery_t::cfeed_machinery_t(
     dir_subs(
         parent->directory,
         std::bind(&cfeed_machinery_t::on_change, this, ph::_1, ph::_2),
-        true)
+        initial_call_t::YES)
 {
     starting = false;
     /* In the unlikely event that we're not connected to any servers (not even ourself)
@@ -200,13 +210,6 @@ void logs_artificial_table_backend_t::cfeed_machinery_t::on_change(
         const peer_id_t &peer,
         const cluster_directory_metadata_t *dir) {
     if (dir == nullptr || peers_handled.count(peer) != 0) {
-        return;
-    }
-    server_id_t server_id = dir->server_id;
-    if (!static_cast<bool>(parent->server_config_client->
-            get_name_for_server_id(server_id))) {
-        /* The server was permanently removed. Don't bother retrieving its log messages.
-        */
         return;
     }
     peers_handled.insert(peer);
@@ -262,11 +265,11 @@ void logs_artificial_table_backend_t::cfeed_machinery_t::run(
                     min_time,
                     max_time,
                     keepalive.get_drain_signal());
-            } catch (const resource_lost_exc_t &) {
+            } catch (const log_transfer_exc_t &) {
                 /* The server disconnected. However, to avoid race conditions, we can't
                 exit unless we see that the server is absent from the directory, which we
                 check above. So we ignore the error and go around the loop again. */
-            } catch (const std::runtime_error &) {
+            } catch (const log_read_exc_t &) {
                 /* Something went wrong reading the log file on the other server. Go
                 around the loop again. */
             }
@@ -320,20 +323,21 @@ void logs_artificial_table_backend_t::cfeed_machinery_t::run(
                     min_time,
                     max_time,
                     keepalive.get_drain_signal());
-            } catch (const resource_lost_exc_t &) {
+            } catch (const log_transfer_exc_t &) {
                 /* Just like in the earlier loop, we ignore the error and rely on
                 `check_disconnected()` to do the work. */
-            } catch (const std::runtime_error &) {
+            } catch (const log_read_exc_t &) {
                 /* Just like in the earlier loop. */
             }
 
             if (!messages.empty()) {
                 /* Compute the server name to attach to the log messages */
                 ql::datum_t server_datum;
-                if (!convert_server_id_to_datum(server_id, parent->identifier_format,
-                        parent->server_config_client, &server_datum, nullptr)) {
-                    /* The server was permanently removed. Don't retrieve log messages
-                    from it. */
+                if (!convert_connected_server_id_to_datum(server_id,
+                        parent->identifier_format, parent->server_config_client,
+                        &server_datum, nullptr)) {
+                    /* The server is disconnected. Don't retrieve log messages until it
+                    reconnects. */
                     peers_handled.erase(peer);
                     return;
                 }
@@ -391,7 +395,7 @@ bool logs_artificial_table_backend_t::cfeed_machinery_t::get_initial_values(
         const new_mutex_acq_t *proof,
         std::vector<ql::datum_t> *initial_values_out,
         signal_t *interruptor) {
-    std::string dummy_error;
+    admin_err_t dummy_error;
     return parent->read_all_rows_raw(
         [&](const log_message_t &msg, const server_id_t &si, const ql::datum_t &sd) {
             ql::datum_t row = convert_log_message_to_datum(msg, si, sd);
@@ -414,30 +418,30 @@ bool logs_artificial_table_backend_t::read_all_rows_raw(
             const server_id_t &server_id,
             const ql::datum_t &server_datum)> &callback,
         signal_t *interruptor,
-        std::string *error_out) {
-    std::map<server_id_t, log_server_business_card_t> servers;
+        admin_err_t *error_out) {
+    std::map<server_id_t, std::pair<name_string_t, log_server_business_card_t> > servers;
     directory->read_all(
         [&](const peer_id_t &, const cluster_directory_metadata_t *value) {
-            servers.insert(std::make_pair(value->server_id, value->log_mailbox));
+            if (value->peer_type == SERVER_PEER) {
+                servers.insert(std::make_pair(value->server_id,
+                    std::make_pair(value->server_config.config.name,
+                                   value->log_mailbox)));
+            }
         });
 
     boost::optional<std::string> error;
     pmap(servers.begin(), servers.end(),
-        [&](const std::pair<server_id_t, log_server_business_card_t> &server) {
-            ql::datum_t server_datum;
-            name_string_t server_name;
-            if (!convert_server_id_to_datum(server.first, identifier_format,
-                    server_config_client, &server_datum, &server_name)) {
-                /* The server was permanently removed. Don't display its log messages. */
-                return;
-            }
+        [&](const std::pair<server_id_t,
+                std::pair<name_string_t, log_server_business_card_t> > &pair) {
+            ql::datum_t server_datum = convert_name_or_uuid_to_datum(
+                pair.second.first, pair.first, identifier_format);
             std::vector<log_message_t> messages;
             try {
                 struct timespec min_time = { 0, 0 };
                 struct timespec max_time = { std::numeric_limits<time_t>::max(), 0 };
                 messages = fetch_log_file(
                     mailbox_manager,
-                    server.second,
+                    pair.second.second,
                     entries_per_server,
                     min_time,
                     max_time,
@@ -445,17 +449,17 @@ bool logs_artificial_table_backend_t::read_all_rows_raw(
             } catch (const interrupted_exc_t &) {
                 /* We'll deal with it outside the `pmap()` */
                 return;
-            } catch (const resource_lost_exc_t &) {
+            } catch (const log_transfer_exc_t &) {
                 /* The server disconnected. Ignore it. */
                 return;
-            } catch (const std::runtime_error &e) {
+            } catch (const log_read_exc_t &e) {
                 /* We'll deal with it outside the `pmap()` */
                 error = strprintf("Problem with reading log file on server `%s`: %s",
-                    server_name.c_str(), e.what());
+                    pair.second.first.c_str(), e.what());
                 return;
             }
             for (const log_message_t &m : messages) {
-                callback(m, server.first, server_datum);
+                callback(m, pair.first, server_datum);
             }
         });
 
@@ -464,7 +468,7 @@ bool logs_artificial_table_backend_t::read_all_rows_raw(
     if (interruptor->is_pulsed()) {
         throw interrupted_exc_t();
     } else if (static_cast<bool>(error)) {
-        *error_out = *error;
+        *error_out = admin_err_t{*error, query_state_t::FAILED};
         return false;
     }
     return true;

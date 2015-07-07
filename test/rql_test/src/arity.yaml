@@ -251,6 +251,9 @@ tests:
     - cd: r.branch(r.args([true, 1]), r.error("a"))
       ot: 1
 
+    - cd: r.expr(true).branch(1, 2)
+      ot: 1
+
     - cd: r.branch(r.args([true, 1, r.error("a")]))
       ot: err("RqlRuntimeError", "a", [])
 

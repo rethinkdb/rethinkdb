@@ -16,7 +16,7 @@ private:
         if (args->num_args() == 0) {
             rfail(base_exc_t::EMPTY_USER, "Empty ERROR term outside a default block.");
         } else {
-            rfail(base_exc_t::GENERIC, "%s", args->arg(env, 0)->as_str().to_std().c_str());
+            rfail(base_exc_t::USER, "%s", args->arg(env, 0)->as_str().to_std().c_str());
         }
     }
     virtual const char *name() const { return "error"; }

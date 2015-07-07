@@ -24,18 +24,15 @@ the future. */
 template <class request_type>
 class multi_client_client_t {
 private:
-    typedef multi_client_business_card_t<request_type>
-        mc_business_card_t;
+    typedef multi_client_business_card_t<request_type> mc_business_card_t;
     typedef typename mc_business_card_t::server_business_card_t server_business_card_t;
     typedef typename mc_business_card_t::client_business_card_t client_business_card_t;
 
 public:
     multi_client_client_t(
             mailbox_manager_t *mm,
-            const clone_ptr_t<watchable_t<boost::optional<boost::optional<mc_business_card_t> > > > &server,
+            const mc_business_card_t &server,
             signal_t *interruptor);
-
-    signal_t *get_failed_signal();
 
     void spawn_request(const request_type &request);
 

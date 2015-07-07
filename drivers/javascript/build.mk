@@ -70,7 +70,7 @@ $(JS_PKG_DIR)/node_modules: $(BLUEBIRD_MODULE_DIR) $(JS_PKG_DIR) | $(NPM_BIN_DEP
 $(JS_BUILD_DIR)/rethinkdb.js: $(JS_PKG_DIR) $(JS_PKG_DIR)/node_modules | $(BROWSERIFY_BIN_DEP)
 	$P BROWSERIFY
 	cd $(JS_PKG_DIR) && \
-	  $(abspath $(BROWSERIFY)) --require ./rethinkdb:rethinkdb --outfile $(abspath $@)
+	  $(abspath $(BROWSERIFY)) --require ./rethinkdb:rethinkdb --ignore tls --outfile $(abspath $@)
 
 .PHONY: js-driver
 js-driver: $(JS_BUILD_DIR)/rethinkdb.js

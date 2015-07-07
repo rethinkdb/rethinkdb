@@ -6,14 +6,22 @@
 #include "concurrency/cross_thread_signal.hpp"
 
 common_server_artificial_table_backend_t::common_server_artificial_table_backend_t(
-        boost::shared_ptr< semilattice_readwrite_view_t<
-            servers_semilattice_metadata_t> > _servers_sl_view,
-        server_config_client_t *_server_config_client) :
-    servers_sl_view(_servers_sl_view),
+        server_config_client_t *_server_config_client,
+        watchable_map_t<peer_id_t, cluster_directory_metadata_t> *_directory) :
+    directory(_directory),
     server_config_client(_server_config_client),
-    subs([this]() { notify_all(); }, _servers_sl_view)
+    directory_subs(directory,
+        [this](const peer_id_t &, const cluster_directory_metadata_t *md) {
+            if (md == nullptr) {
+                notify_all();
+            } else {
+                /* This is one of the rare cases where we can tell exactly which row
+                needs to be recomputed */
+                notify_row(convert_uuid_to_datum(md->server_id));
+            }
+        }, initial_call_t::NO)
 {
-    servers_sl_view->assert_thread();
+    directory->assert_thread();
     server_config_client->assert_thread();
 }
 
@@ -22,32 +30,20 @@ std::string common_server_artificial_table_backend_t::get_primary_key_name() {
 }
 
 bool common_server_artificial_table_backend_t::read_all_rows_as_vector(
-        signal_t *interruptor,
+        signal_t *interruptor_on_caller,
         std::vector<ql::datum_t> *rows_out,
-        std::string *error_out) {
-    cross_thread_signal_t ct_interruptor(interruptor, home_thread());
+        admin_err_t *error_out) {
+    cross_thread_signal_t interruptor_on_home(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
     rows_out->clear();
-    servers_semilattice_metadata_t servers_sl = servers_sl_view->get();
-    /* Note that we don't have a subscription watching `get_server_id_to_name_map()`,
-    even though we use it in this calculation. This is OK because any time
-    `get_server_id_to_name_map()` changes, we'll also get a notification through
-    `servers_sl_view`, and since the `cfeed_artificial_table_backend_t` does its
-    recalculations asynchronously, it shouldn't matter that there is a slight delay
-    between when we get a notification through `servers_sl_view` and when
-    `get_server_id_to_name_map()` actually changes. But it's still a bit fragile, and
-    maybe we shouldn't do it. */
-    std::map<server_id_t, name_string_t> server_map =
-        server_config_client->get_server_id_to_name_map()->get();
-    for (auto it = server_map.begin(); it != server_map.end(); ++it) {
-        ql::datum_t row;
-        std::map<server_id_t, deletable_t<server_semilattice_metadata_t> >
-            ::iterator sl_it;
-        if (!search_metadata_by_uuid(&servers_sl.servers, it->first, &sl_it)) {
+    std::map<peer_id_t, cluster_directory_metadata_t> metadata = directory->get_all();
+    for (const auto &pair : metadata) {
+        if (pair.second.peer_type != SERVER_PEER) {
             continue;
         }
-        if (!format_row(it->second, it->first, sl_it->second.get_ref(),
-                        &ct_interruptor, &row, error_out)) {
+        ql::datum_t row;
+        if (!format_row(pair.second.server_id, pair.first, pair.second,
+                &interruptor_on_home, &row, error_out)) {
             return false;
         }
         rows_out->push_back(row);
@@ -57,48 +53,49 @@ bool common_server_artificial_table_backend_t::read_all_rows_as_vector(
 
 bool common_server_artificial_table_backend_t::read_row(
         ql::datum_t primary_key,
-        signal_t *interruptor,
+        signal_t *interruptor_on_caller,
         ql::datum_t *row_out,
-        std::string *error_out) {
-    cross_thread_signal_t ct_interruptor(interruptor, home_thread());
+        admin_err_t *error_out) {
+    cross_thread_signal_t interruptor_on_home(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
-    servers_semilattice_metadata_t servers_sl = servers_sl_view->get();
-    name_string_t server_name;
     server_id_t server_id;
-    server_semilattice_metadata_t *server_sl;
-    if (!lookup(primary_key, &servers_sl, &server_name, &server_id, &server_sl)) {
+    peer_id_t peer_id;
+    cluster_directory_metadata_t metadata;
+    if (!lookup(primary_key, &server_id, &peer_id, &metadata)) {
         *row_out = ql::datum_t();
         return true;
     } else {
-        return format_row(server_name, server_id, *server_sl,
-                          &ct_interruptor, row_out, error_out);
+        return format_row(server_id, peer_id, metadata,
+            &interruptor_on_home, row_out, error_out);
     }
 }
 
 bool common_server_artificial_table_backend_t::lookup(
-        ql::datum_t primary_key,
-        servers_semilattice_metadata_t *servers,
-        name_string_t *name_out,
+        const ql::datum_t &primary_key,
         server_id_t *server_id_out,
-        server_semilattice_metadata_t **server_out) {
+        peer_id_t *peer_id_out,
+        cluster_directory_metadata_t *metadata_out) {
     assert_thread();
-    std::string dummy_error;
+    admin_err_t dummy_error;
     if (!convert_uuid_from_datum(primary_key, server_id_out, &dummy_error)) {
         return false;
     }
-    std::map<server_id_t, deletable_t<server_semilattice_metadata_t> >::iterator it;
-    if (!search_metadata_by_uuid(&servers->servers, *server_id_out, &it)) {
+    boost::optional<peer_id_t> peer_id =
+        server_config_client->get_server_to_peer_map()->get_key(*server_id_out);
+    if (!static_cast<bool>(peer_id)) {
         return false;
     }
-    *server_out = it->second.get_mutable();
-    boost::optional<name_string_t> res =
-        server_config_client->get_name_for_server_id(*server_id_out);
-    if (!res) {
-        /* This is probably impossible, but it could conceivably be possible due to a
-        race condition */
-        return false;
-    }
-    *name_out = *res;
-    return true;
+    *peer_id_out = *peer_id;
+    bool ok;
+    directory->read_key(*peer_id, [&](const cluster_directory_metadata_t *metadata) {
+        if (metadata == nullptr) {
+            ok = false;
+        } else {
+            guarantee(metadata->peer_type == SERVER_PEER);
+            *metadata_out = *metadata;
+            ok = true;
+        }
+    });
+    return ok;
 }
 

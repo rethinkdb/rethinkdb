@@ -139,7 +139,7 @@ with driver.Cluster(output_folder='.') as cluster:
     # 2**40 is chosen so that it fits into a 64-bit integer when expressed in bytes, to
     # test the code path where the value is sent to the other server but then rejected by
     # validate_total_cache_size().
-    try_bad_cache_size(2**40, "Error when trying to change the cache size of server")
+    try_bad_cache_size(2**40, "Error when trying to change the configuration")
     # 2**100 is chosen so that it doesn't fit into a 64-bit integer, so it will take a
     # different code path and get a different error message.
     try_bad_cache_size(2**100, "wrong format")

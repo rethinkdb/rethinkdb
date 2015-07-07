@@ -459,6 +459,9 @@ class RqlQuery(object):
     def group(self, *args, **kwargs):
         return Group(self, *[func_wrap(arg) for arg in args], **kwargs)
 
+    def branch(self, *args):
+        return Branch(self, *args)
+
     def for_each(self, *args):
         return ForEach(self, *[func_wrap(arg) for arg in args])
 
@@ -1171,6 +1174,7 @@ class Table(RqlQuery):
         return UUID(self, *args, **kwargs)
 
     def compose(self, args, optargs):
+        args.extend([T(k, '=', v) for k, v in dict_items(optargs)])
         if isinstance(self.args[0], DB):
             return T(args[0], '.table(', T(*(args[1:]), intsp=', '), ')')
         else:

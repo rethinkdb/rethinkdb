@@ -25,8 +25,8 @@ with driver.Cluster(initial_servers=['a', 'b'], output_folder='.', command_prefi
     
     print("Establishing ReQL connection (%.2fs)" % (time.time() - startTime))
     
-    server = cluster[0]
-    conn = r.connect(host=server.host, port=server.driver_port)
+    conn = r.connect(host=cluster[0].host, port=cluster[0].driver_port)
+    conn2 = r.connect(host=cluster[1].host, port=cluster[1].driver_port)
     
     print("Creating db if necessary (%.2fs)" % (time.time() - startTime))
     
@@ -53,6 +53,14 @@ with driver.Cluster(initial_servers=['a', 'b'], output_folder='.', command_prefi
     for num in res:
         assert 250 < num < 750
 
+    print("Checking shard balancing by reading directly (%.2fs)" % (time.time() - startTime))
+    direct_counts = [
+        r.db(dbName).table("uuid_pkey", read_mode="_debug_direct").count().run(conn),
+        r.db(dbName).table("uuid_pkey", read_mode="_debug_direct").count().run(conn2)]
+    pprint.pprint(direct_counts)
+    for num in direct_counts:
+        assert 250 < num < 750
+
     print("Testing sharding of existing inserted data (%.2fs)" % (time.time() - startTime))
     res = r.db(dbName).table_create("numeric_pkey").run(conn)
     assert res["tables_created"] == 1
@@ -77,7 +85,7 @@ with driver.Cluster(initial_servers=['a', 'b'], output_folder='.', command_prefi
     assert res[0] > 500
     assert res[1] < 100
 
-    # RSI(reql_admin): Once #2896 is implemented, make sure the server has an issue now
+    # If we ever implement #2896, we should make sure the server has an issue now
 
     print("Fixing the unbalanced table (%.2fs)" % (time.time() - startTime))
     status_before = r.db(dbName).table("unbalanced").status().run(conn)

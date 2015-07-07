@@ -22,7 +22,7 @@ public:
             : term_t(term), in(term), out(make_counted_term()) {
         int args_size = in->args_size();
         rcheck(argspec.contains(args_size),
-               base_exc_t::GENERIC,
+               base_exc_t::LOGIC,
                strprintf("Expected %s but found %d.",
                          argspec.print().c_str(), args_size));
         out->Swap(&rewrite(in, in).get());

@@ -170,7 +170,7 @@ end
 def test_failed_json_parse()
     url = 'http://' + $httpbinAddress + '/html'
     expect_error(r.http(url, {:result_format => 'json'}),
-                 RethinkDB::RqlRuntimeError, err_string('GET', url, 'failed to parse JSON response'))
+                 RethinkDB::RqlRuntimeError, err_string('GET', url, 'failed to parse JSON response: Invalid value.'))
 end
 
 def test_basic_auth()

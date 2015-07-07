@@ -24,6 +24,9 @@ public:
     virtual ~mailbox_write_callback_t() { }
     virtual void write(cluster_version_t cluster_version,
                        write_message_t *wm) = 0;
+#ifdef ENABLE_MESSAGE_PROFILER
+    virtual const char *message_profiler_tag() const = 0;
+#endif
 };
 
 class mailbox_read_callback_t {
@@ -125,7 +128,7 @@ public:
 
 /* `send()` sends a message to a mailbox. `send()` can block and must be called
 in a coroutine. If the mailbox does not exist or the peer is disconnected, `send()`
-will silently fail. */
+will silently fail. Mailbox messages are not necessarily delivered in order. */
 
 void send(mailbox_manager_t *src,
           raw_mailbox_t::address_t dest,

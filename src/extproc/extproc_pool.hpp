@@ -8,18 +8,14 @@
 #include "utils.hpp"
 #include "containers/scoped.hpp"
 #include "concurrency/cond_var.hpp"
-#include "concurrency/coro_pool.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/cross_thread_semaphore.hpp"
-#include "concurrency/queue/single_value_producer.hpp"
+#include "concurrency/pump_coro.hpp"
 #include "extproc/extproc_worker.hpp"
-
-class extproc_pool_dummy_value_t { };
 
 // Extproc pool is used to acquire and release workers from any thread,
 //  must be created from within the thread pool
 class extproc_pool_t : public home_thread_mixin_t,
-                       public coro_pool_callback_t<extproc_pool_dummy_value_t>,
                        public repeating_timer_callback_t {
 public:
     explicit extproc_pool_t(size_t worker_count);
@@ -76,16 +72,16 @@ private:
 
     // Callback that handles worker deallocations in a coro pool, so we don't block the
     // timer callback or have multiple deallocations happening at once
-    void coro_pool_callback(extproc_pool_dummy_value_t,
-                            UNUSED signal_t *interruptor);
+    void dealloc_blocking(UNUSED signal_t *interruptor);
 
     // Cross-threaded semaphore allowing workers to be acquired from any thread
     cross_thread_semaphore_t<extproc_worker_t> worker_semaphore;
 
-    // Coroutine pool to make sure there is only one worker deallocation happening at a time
-    // The single_value_producer_t makes sure we never build up a backlog.
-    single_value_producer_t<extproc_pool_dummy_value_t> pool_queue;
-    coro_pool_t<extproc_pool_dummy_value_t> dealloc_pool;
+    // This `pump_coro_t` spawns `dealloc_blocking()` on request, making sure that there
+    // are never two copies running at once. Destructor order is important:
+    // `dealloc_pumper` must be destroyed before everything else because it stops
+    // `dealloc_blocking()`.
+    pump_coro_t dealloc_pumper;
 };
 
 #endif /* EXTPROC_EXTPROC_POOL_HPP_ */

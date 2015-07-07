@@ -551,7 +551,7 @@ void apply_keyvalue_change(
         const btree_key_t *key, repli_timestamp_t tstamp,
         const value_deleter_t *balancing_detacher,
         key_modification_callback_t *km_callback,
-        delete_or_erase_t delete_or_erase) {
+        delete_mode_t delete_mode) {
     key_modification_proof_t km_proof
         = km_callback->value_modification(kv_loc, key);
 
@@ -603,9 +603,10 @@ void apply_keyvalue_change(
         }
     } else {
         // Delete the value if it's there.
-        if (kv_loc->there_originally_was_value) {
+        if (kv_loc->there_originally_was_value ||
+                delete_mode != delete_mode_t::REGULAR_QUERY) {
             const repli_timestamp_t previous_leaf_recency = kv_loc->buf.get_recency();
-            if (delete_or_erase == delete_or_erase_t::DELETE) {
+            if (delete_mode != delete_mode_t::ERASE) {
                 /* Update the leaf node's recency to the greater of its previous recency
                 and the deletion's recency, to maintain the invariant that its recency is
                 greater than or equal to that of any entry pair in it. */
@@ -616,8 +617,9 @@ void apply_keyvalue_change(
             {
                 buf_write_t write(&kv_loc->buf);
                 auto leaf_node = static_cast<leaf_node_t *>(write.get_data_write());
-                switch (delete_or_erase) {
-                    case delete_or_erase_t::DELETE: {
+                switch (delete_mode) {
+                    case delete_mode_t::REGULAR_QUERY:   /* fall through */
+                    case delete_mode_t::MAKE_TOMBSTONE: {
                         leaf::remove(sizer,
                              leaf_node,
                              key,
@@ -625,7 +627,7 @@ void apply_keyvalue_change(
                              previous_leaf_recency,
                              km_proof);
                     } break;
-                    case delete_or_erase_t::ERASE: {
+                    case delete_mode_t::ERASE: {
                         leaf::erase_presence(sizer,
                             leaf_node,
                             key,
@@ -635,6 +637,8 @@ void apply_keyvalue_change(
                 }
 
             }
+        }
+        if (kv_loc->there_originally_was_value) {
             population_change = -1;
         } else {
             population_change = 0;

@@ -13,8 +13,13 @@
 #include "errors.hpp"
 #include <boost/detail/endian.hpp>
 
+#include "cjson/json.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "containers/scoped.hpp"
+#include "rapidjson/prettywriter.h"
+#include "rapidjson/rapidjson.h"
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/pseudo_binary.hpp"
@@ -289,7 +294,7 @@ datum_t::datum_t(construct_binary_t dummy, datum_string_t _data)
     : data(dummy, std::move(_data)) { }
 
 datum_t::datum_t(double _num) : data(_num) {
-    rcheck(risfinite(data.r_num), base_exc_t::GENERIC,
+    rcheck(risfinite(data.r_num), base_exc_t::LOGIC,
            strprintf("Non-finite number: %" PR_RECONSTRUCTABLE_DOUBLE, data.r_num));
 }
 
@@ -302,7 +307,7 @@ datum_t::datum_t(const char *cstr) : data(cstr) { }
 datum_t::datum_t(std::vector<datum_t> &&_array,
                  const configured_limits_t &limits)
     : data(std::move(_array)) {
-    rcheck_array_size(*data.r_array, limits, base_exc_t::GENERIC);
+    rcheck_array_size(*data.r_array, limits);
 }
 
 datum_t::datum_t(std::vector<datum_t> &&_array,
@@ -335,25 +340,17 @@ std::vector<std::pair<datum_string_t, datum_t> > datum_t::to_sorted_vec(
 }
 
 datum_t to_datum_for_client_serialization(grouped_data_t &&gd,
-                                          reql_version_t reql_version,
                                           const configured_limits_t &limits) {
     std::map<datum_string_t, datum_t> map;
-    map[datum_t::reql_type_string] =
-        datum_t("GROUPED_DATA");
-
+    map[datum_t::reql_type_string] = datum_t("GROUPED_DATA");
     {
         datum_array_builder_t arr(limits);
         arr.reserve(gd.size());
-        iterate_ordered_by_version(
-                reql_version,
-                gd,
-                [&arr, &limits](const datum_t &key,
-                                datum_t &value) {
-                    arr.add(datum_t(
-                            std::vector<datum_t>{
-                                key, std::move(value) },
+        for (auto &&pair : *gd.get_underlying_map()) {
+            arr.add(datum_t(std::vector<datum_t>{
+                                std::move(pair.first), std::move(pair.second)},
                             limits));
-                });
+        }
         map[data_field] = std::move(arr).to_datum();
     }
 
@@ -406,10 +403,8 @@ datum_t datum_t::binary(datum_string_t &&_data) {
 
 // two versions of these, because std::string is not necessarily null
 // terminated.
-inline void fail_if_invalid(reql_version_t reql_version, const std::string &string)
-{
+inline void fail_if_invalid(reql_version_t reql_version, const std::string &string) {
     switch (reql_version) {
-        case reql_version_t::v1_13:
         case reql_version_t::v1_14: // v1_15 is the same as v1_14
             break;
         case reql_version_t::v1_16:
@@ -418,7 +413,7 @@ inline void fail_if_invalid(reql_version_t reql_version, const std::string &stri
             utf8::reason_t reason;
             if (!utf8::is_valid(string, &reason)) {
                 int truncation_length = std::min<size_t>(reason.position, 20);
-                rfail_datum(base_exc_t::GENERIC,
+                rfail_datum(base_exc_t::LOGIC,
                             "String `%.*s` (truncated) is not a UTF-8 string; "
                             "%s at position %zu.",
                             truncation_length, string.c_str(), reason.explanation,
@@ -430,19 +425,20 @@ inline void fail_if_invalid(reql_version_t reql_version, const std::string &stri
     }
 }
 
-inline void fail_if_invalid(reql_version_t reql_version, const char *string)
-{
+inline void fail_if_invalid(
+        reql_version_t reql_version,
+        const char *string,
+        size_t string_length) {
     switch (reql_version) {
-        case reql_version_t::v1_13:
         case reql_version_t::v1_14: // v1_15 is the same as v1_14
             break;
         case reql_version_t::v1_16:
         case reql_version_t::v2_0:
         case reql_version_t::v2_1_is_latest:
             utf8::reason_t reason;
-            if (!utf8::is_valid(string, &reason)) {
+            if (!utf8::is_valid(string, string + string_length, &reason)) {
                 int truncation_length = std::min<size_t>(reason.position, 20);
-                rfail_datum(base_exc_t::GENERIC,
+                rfail_datum(base_exc_t::LOGIC,
                             "String `%.*s` (truncated) is not a UTF-8 string; "
                             "%s at position %zu.",
                             truncation_length, string, reason.explanation,
@@ -454,44 +450,52 @@ inline void fail_if_invalid(reql_version_t reql_version, const char *string)
     }
 }
 
-datum_t to_datum(cJSON *json, const configured_limits_t &limits,
+datum_t to_datum(const rapidjson::Value &json, const configured_limits_t &limits,
                  reql_version_t reql_version) {
-    switch (json->type) {
-    case cJSON_False: {
-        return datum_t::boolean(false);
-    } break;
-    case cJSON_True: {
-        return datum_t::boolean(true);
-    } break;
-    case cJSON_NULL: {
+    switch(json.GetType()) {
+    case rapidjson::kNullType: {
         return datum_t::null();
     } break;
-    case cJSON_Number: {
-        return datum_t(json->valuedouble);
+    case rapidjson::kFalseType: {
+        return datum_t::boolean(false);
     } break;
-    case cJSON_String: {
-        fail_if_invalid(reql_version, json->valuestring);
-        return datum_t(json->valuestring);
+    case rapidjson::kTrueType: {
+        return datum_t::boolean(true);
     } break;
-    case cJSON_Array: {
-        std::vector<datum_t> array;
-        json_array_iterator_t it(json);
-        while (cJSON *item = it.next()) {
-            array.push_back(to_datum(item, limits, reql_version));
-        }
-        return datum_t(std::move(array), limits);
-    } break;
-    case cJSON_Object: {
+    case rapidjson::kObjectType: {
         datum_object_builder_t builder;
-        json_object_iterator_t it(json);
-        while (cJSON *item = it.next()) {
-            fail_if_invalid(reql_version, item->string);
-            bool dup = builder.add(item->string, to_datum(item, limits, reql_version));
-            rcheck_datum(!dup, base_exc_t::GENERIC,
-                         strprintf("Duplicate key `%s` in JSON.", item->string));
+        for (rapidjson::Value::ConstMemberIterator it = json.MemberBegin();
+             it != json.MemberEnd();
+             ++it) {
+            fail_if_invalid(reql_version,
+                            it->name.GetString(),
+                            it->name.GetStringLength());
+            bool dup = builder.add(datum_string_t(it->name.GetStringLength(),
+                                                  it->name.GetString()),
+                                   to_datum(it->value, limits, reql_version));
+            rcheck_datum(!dup, base_exc_t::LOGIC,
+                         strprintf("Duplicate key `%s` in JSON.",
+                                   it->name.GetString()));
         }
         const std::set<std::string> pts = { pseudo::literal_string };
         return std::move(builder).to_datum(pts);
+    } break;
+    case rapidjson::kArrayType: {
+        datum_array_builder_t builder(limits);
+        builder.reserve(json.Size());
+        for (rapidjson::Value::ConstValueIterator it = json.Begin();
+             it != json.End();
+             ++it) {
+            builder.add(to_datum(*it, limits, reql_version));
+        }
+        return std::move(builder).to_datum();
+    } break;
+    case rapidjson::kStringType: {
+        fail_if_invalid(reql_version, json.GetString(), json.GetStringLength());
+        return datum_t(datum_string_t(json.GetStringLength(), json.GetString()));
+    } break;
+    case rapidjson::kNumberType: {
+        return datum_t(json.GetDouble());
     } break;
     default: unreachable();
     }
@@ -500,12 +504,13 @@ datum_t to_datum(cJSON *json, const configured_limits_t &limits,
 
 void check_str_validity(const char *bytes, size_t count) {
     const char *pos = static_cast<const char *>(memchr(bytes, 0, count));
-    rcheck_datum(pos == NULL,
-                 base_exc_t::GENERIC,
-                 // We truncate because lots of other places can call `c_str` on the
-                 // error message.
-                 strprintf("String `%.20s` (truncated) contains NULL byte at offset %zu.",
-                           bytes, pos - bytes));
+    rcheck_datum(
+        pos == NULL,
+        base_exc_t::LOGIC,
+        // We truncate because lots of other places can call `c_str` on the
+        // error message.
+        strprintf("String `%.20s` (truncated) contains NULL byte at offset %zu.",
+                  bytes, pos - bytes));
 }
 
 void datum_t::check_str_validity(const datum_string_t &str) {
@@ -541,7 +546,7 @@ std::string datum_t::get_reql_type() const {
     datum_t maybe_reql_type = get_field(reql_type_string, NOTHROW);
     r_sanity_check(maybe_reql_type.has());
     rcheck(maybe_reql_type.get_type() == R_STR,
-           base_exc_t::GENERIC,
+           base_exc_t::LOGIC,
            strprintf("Error: Field `%s` must be a string (got `%s` of type %s):\n%s",
                      reql_type_string.to_std().c_str(),
                      maybe_reql_type.trunc_print().c_str(),
@@ -575,8 +580,23 @@ std::string datum_t::get_type_name(name_for_sorting_t for_sorting) const {
     }
 }
 
-std::string datum_t::print() const {
-    return has() ? as_json().Print() : "UNINITIALIZED";
+std::string datum_t::print(reql_version_t reql_version) const {
+    if (has()) {
+        if (reql_version < reql_version_t::v2_1) {
+            return as_json().Print();
+        } else {
+            rapidjson::StringBuffer buffer;
+            rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
+            // Change indentation character to tab for compatibility with cJSON
+            // (it doesn't actually matter, but many of our tests are currently
+            //  assuming this format)
+            writer.SetIndent('\t', 1);
+            write_json(&writer);
+            return std::string(buffer.GetString(), buffer.GetSize());
+        }
+    } else {
+        return "UNINITIALIZED";
+    }
 }
 
 std::string datum_t::trunc_print() const {
@@ -593,11 +613,11 @@ void datum_t::pt_to_str_key(std::string *str_out) const {
     if (get_reql_type() == pseudo::time_string) {
         pseudo::time_to_str_key(*this, str_out);
     } else if (get_reql_type() == pseudo::geometry_string) {
-        rfail(base_exc_t::GENERIC,
+        rfail(base_exc_t::LOGIC,
               "Cannot use a geometry value as a key value in a primary or "
               "non-geospatial secondary index.");
     } else {
-        rfail(base_exc_t::GENERIC,
+        rfail(base_exc_t::LOGIC,
               "Cannot use pseudotype %s as a primary or secondary key value .",
               get_type_name().c_str());
     }
@@ -734,15 +754,15 @@ void datum_t::array_to_str_key(std::string *str_out) const {
     }
 }
 
-int datum_t::pseudo_cmp(reql_version_t reql_version, const datum_t &rhs) const {
+int datum_t::pseudo_cmp(const datum_t &rhs) const {
     r_sanity_check(is_ptype());
     if (get_type() == R_BINARY) {
         return as_binary().compare(rhs.as_binary());
     } else if (get_reql_type() == pseudo::time_string) {
-        return pseudo::time_cmp(reql_version, *this, rhs);
+        return pseudo::time_cmp(*this, rhs);
     }
 
-    rfail(base_exc_t::GENERIC, "Incomparable type %s.", get_type_name().c_str());
+    rfail(base_exc_t::LOGIC, "Incomparable type %s.", get_type_name().c_str());
 }
 
 bool datum_t::pseudo_compares_as_obj() const {
@@ -765,7 +785,7 @@ void datum_t::maybe_sanitize_ptype(const std::set<std::string> &allowed_pts) {
         }
         if (s == pseudo::literal_string) {
             rcheck(std_contains(allowed_pts, pseudo::literal_string),
-                   base_exc_t::GENERIC,
+                   base_exc_t::LOGIC,
                    "Stray literal keyword found: literal is only legal inside of "
                    "the object passed to merge or update and cannot nest inside "
                    "other literals.");
@@ -787,13 +807,13 @@ void datum_t::maybe_sanitize_ptype(const std::set<std::string> &allowed_pts) {
                                   pseudo::decode_base64_ptype(*data.r_object));
             return;
         }
-        rfail(base_exc_t::GENERIC,
+        rfail(base_exc_t::LOGIC,
               "Unknown $reql_type$ `%s`.", get_type_name().c_str());
     }
 }
 
 void datum_t::rcheck_is_ptype(const std::string s) const {
-    rcheck(is_ptype(), base_exc_t::GENERIC,
+    rcheck(is_ptype(), base_exc_t::LOGIC,
            (s == ""
             ? strprintf("Not a pseudotype: `%s`.", trunc_print().c_str())
             : strprintf("Not a %s pseudotype: `%s`.",
@@ -904,7 +924,7 @@ void datum_t::rcheck_valid_replace(datum_t old_val,
                                    datum_t orig_key,
                                    const datum_string_t &pkey) const {
     datum_t pk = get_field(pkey, NOTHROW);
-    rcheck(pk.has(), base_exc_t::GENERIC,
+    rcheck(pk.has(), base_exc_t::LOGIC,
            strprintf("Inserted object must have primary key `%s`:\n%s",
                      pkey.to_std().c_str(), print().c_str()));
     if (old_val.has()) {
@@ -914,7 +934,7 @@ void datum_t::rcheck_valid_replace(datum_t old_val,
             r_sanity_check(old_pk.has());
         }
         if (old_pk.has()) {
-            rcheck(old_pk == pk, base_exc_t::GENERIC,
+            rcheck(old_pk == pk, base_exc_t::LOGIC,
                    strprintf("Primary key `%s` cannot be changed (`%s` -> `%s`).",
                              pkey.to_std().c_str(), old_val.print().c_str(),
                              print().c_str()));
@@ -956,7 +976,7 @@ std::string datum_t::print_primary_internal() const {
 std::string datum_t::print_primary() const {
     std::string s = print_primary_internal();
     if (s.size() > rdb_protocol::MAX_PRIMARY_KEY_SIZE) {
-        rfail(base_exc_t::GENERIC,
+        rfail(base_exc_t::LOGIC,
               "Primary key too long (max %zu characters): %s",
               rdb_protocol::MAX_PRIMARY_KEY_SIZE - 1, print().c_str());
     }
@@ -1016,7 +1036,7 @@ std::string datum_t::compose_secondary(
 
     std::string primary_key_string = key_to_unescaped_str(primary_key);
     rcheck_toplevel(primary_key_string.length() <= rdb_protocol::MAX_PRIMARY_KEY_SIZE,
-        base_exc_t::GENERIC, strprintf("Primary key too long (max %zu characters): %s",
+        base_exc_t::LOGIC, strprintf("Primary key too long (max %zu characters): %s",
                                        rdb_protocol::MAX_PRIMARY_KEY_SIZE - 1,
                                        key_to_debug_str(primary_key).c_str()));
 
@@ -1032,7 +1052,7 @@ std::string datum_t::compose_secondary(
         skey_version, truncated_secondary_key, primary_key_string, tag_string);
 }
 
-std::string datum_t::print_secondary(reql_version_t reql_version,
+std::string datum_t::print_secondary(skey_version_t skey_version,
                                      const store_key_t &primary_key,
                                      boost::optional<uint64_t> tag_num) const {
     std::string secondary_key_string;
@@ -1059,27 +1079,19 @@ std::string datum_t::print_secondary(reql_version_t reql_version,
             get_type_name().c_str(), trunc_print().c_str()));
     }
 
-    switch (reql_version) {
-    case reql_version_t::v1_13:
-        break;
-    case reql_version_t::v1_14: // v1_15 is the same as v1_14
-    case reql_version_t::v1_16:
-    case reql_version_t::v2_0:
-    case reql_version_t::v2_1_is_latest:
+    switch (skey_version) {
+    case skey_version_t::pre_1_16: break;
+    case skey_version_t::post_1_16:
         secondary_key_string.append(1, '\x00');
         break;
-    default:
-        unreachable();
+    default: unreachable();
     }
 
-    return compose_secondary(
-        skey_version_from_reql_version(reql_version),
-        secondary_key_string, primary_key, tag_num);
+    return compose_secondary(skey_version, secondary_key_string, primary_key, tag_num);
 }
 
 skey_version_t skey_version_from_reql_version(reql_version_t rv) {
     switch (rv) {
-    case reql_version_t::v1_13: // fallthru
     case reql_version_t::v1_14: // v1_15 == v1_14
         return skey_version_t::pre_1_16;
     case reql_version_t::v1_16:
@@ -1185,7 +1197,7 @@ store_key_t datum_t::truncated_secondary(skey_version_t skey_version, extrema_ok
     } else if (get_type() == R_OBJECT && is_ptype()) {
         pt_to_str_key(&s);
     } else if (get_type() == MINVAL || get_type() == MAXVAL) {
-        rcheck_datum(extrema_ok == extrema_ok_t::OK, base_exc_t::GENERIC,
+        rcheck_datum(extrema_ok == extrema_ok_t::OK, base_exc_t::LOGIC,
                      "Cannot use `r.minval` or `r.maxval` in a secondary index key.");
         extrema_to_str_key(&s);
     } else {
@@ -1248,7 +1260,7 @@ int64_t checked_convert_to_int(const rcheckable_t *target, double d) {
     if (number_as_integer(d, &i)) {
         return i;
     } else {
-        rfail_target(target, base_exc_t::GENERIC,
+        rfail_target(target, base_exc_t::LOGIC,
                      "Number not an integer%s: %" PR_RECONSTRUCTABLE_DOUBLE,
                      d < min_dbl_int ? " (<-2^53)" :
                          d > max_dbl_int ? " (>2^53)" : "",
@@ -1371,10 +1383,60 @@ datum_t datum_t::get_field(const char *key, throw_bool_t throw_bool) const {
     return get_field(datum_string_t(key), throw_bool);
 }
 
+template <class json_writer_t>
+void datum_t::write_json(json_writer_t *writer) const {
+    switch (get_type()) {
+    case MINVAL: rfail_datum(base_exc_t::LOGIC, "Cannot convert `r.minval` to JSON.");
+    case MAXVAL: rfail_datum(base_exc_t::LOGIC, "Cannot convert `r.maxval` to JSON.");
+    case R_NULL: writer->Null(); break;
+    case R_BINARY: pseudo::encode_base64_ptype(as_binary(), writer); break;
+    case R_BOOL: writer->Bool(as_bool()); break;
+    case R_NUM: {
+        const double d = as_num();
+        // Always print -0.0 as a double since integers cannot represent -0.
+        // Otherwise check if the number is an integer and print it as such.
+        int64_t i;
+        if (!(d == 0.0 && std::signbit(d))
+            && number_as_integer(d, &i)) {
+            writer->Int64(i);
+        } else {
+            writer->Double(d);
+        }
+    } break;
+    case R_STR: writer->String(as_str().data(), as_str().size()); break;
+    case R_ARRAY: {
+        writer->StartArray();
+        const size_t sz = arr_size();
+        for (size_t i = 0; i < sz; ++i) {
+            unchecked_get(i).write_json(writer);
+        }
+        writer->EndArray();
+    } break;
+    case R_OBJECT: {
+        writer->StartObject();
+        const size_t sz = obj_size();
+        for (size_t i = 0; i < sz; ++i) {
+            auto pair = get_pair(i);
+            writer->Key(pair.first.data(), pair.first.size());
+            pair.second.write_json(writer);
+        }
+        writer->EndObject();
+    } break;
+    case UNINITIALIZED: // fallthru
+    default: unreachable();
+    }
+}
+
+// Explicit instantiation
+template void datum_t::write_json(
+    rapidjson::Writer<rapidjson::StringBuffer> *writer) const;
+template void datum_t::write_json(
+    rapidjson::PrettyWriter<rapidjson::StringBuffer> *writer) const;
+
 cJSON *datum_t::as_json_raw() const {
     switch (get_type()) {
-    case MINVAL: rfail_datum(base_exc_t::GENERIC, "Cannot convert `r.minval` to JSON.");
-    case MAXVAL: rfail_datum(base_exc_t::GENERIC, "Cannot convert `r.maxval` to JSON.");
+    case MINVAL: rfail_datum(base_exc_t::LOGIC, "Cannot convert `r.minval` to JSON.");
+    case MAXVAL: rfail_datum(base_exc_t::LOGIC, "Cannot convert `r.maxval` to JSON.");
     case R_NULL: return cJSON_CreateNull();
     case R_BINARY: return pseudo::encode_base64_ptype(as_binary()).release();
     case R_BOOL: return cJSON_CreateBool(as_bool());
@@ -1512,100 +1574,14 @@ int derived_cmp(T a, T b) {
     return a < b ? -1 : 1;
 }
 
-int datum_t::v1_13_cmp(const datum_t &rhs) const {
-    if (get_type() == MINVAL && rhs.get_type() != MINVAL) return -1;
-    if (get_type() == MAXVAL && rhs.get_type() != MAXVAL) return 1;
-    if (get_type() != MINVAL && rhs.get_type() == MINVAL) return 1;
-    if (get_type() != MAXVAL && rhs.get_type() == MAXVAL) return -1;
-
-    if (is_ptype() && !rhs.is_ptype()) {
-        return 1;
-    } else if (!is_ptype() && rhs.is_ptype()) {
-        return -1;
-    }
-
-    if (get_type() != rhs.get_type()) {
-        return derived_cmp(get_type(), rhs.get_type());
-    }
-    switch (get_type()) {
-    case R_NULL: return 0;
-    case MINVAL: return 0;
-    case MAXVAL: return 0;
-    case R_BOOL: return derived_cmp(as_bool(), rhs.as_bool());
-    case R_NUM: return derived_cmp(as_num(), rhs.as_num());
-    case R_STR: return as_str().compare(rhs.as_str());
-    case R_ARRAY: {
-        size_t i;
-        const size_t sz = arr_size();
-        const size_t rhs_sz = rhs.arr_size();
-        for (i = 0; i < sz; ++i) {
-            if (i >= rhs_sz) return 1;
-            int cmpval = unchecked_get(i).v1_13_cmp(rhs.unchecked_get(i));
-            if (cmpval != 0) return cmpval;
-        }
-        guarantee(i <= rhs_sz);
-        return i == rhs_sz ? 0 : -1;
-    } unreachable();
-    case R_OBJECT: {
-        if (is_ptype() && !pseudo_compares_as_obj()) {
-            if (get_reql_type() != rhs.get_reql_type()) {
-                return derived_cmp(get_reql_type(), rhs.get_reql_type());
-            }
-            return pseudo_cmp(reql_version_t::v1_13, rhs);
-        } else {
-            size_t i = 0;
-            size_t i2 = 0;
-            const size_t sz = obj_size();
-            const size_t rhs_sz = rhs.obj_size();
-            while (i < sz && i2 < rhs_sz) {
-                auto pair = unchecked_get_pair(i);
-                auto pair2 = rhs.unchecked_get_pair(i2);
-                int key_cmpval = pair.first.compare(pair2.first);
-                if (key_cmpval != 0) {
-                    return key_cmpval;
-                }
-                int val_cmpval = pair.second.v1_13_cmp(pair2.second);
-                if (val_cmpval != 0) {
-                    return val_cmpval;
-                }
-                ++i;
-                ++i2;
-            }
-            if (i != sz) return 1;
-            if (i2 != rhs_sz) return -1;
-            return 0;
-        }
-    } unreachable();
-    case R_BINARY: // This should be handled by the ptype code above
-    case UNINITIALIZED: // fallthru
-    default: unreachable();
-    }
-}
-
-int datum_t::cmp(reql_version_t reql_version, const datum_t &rhs) const {
-    // If the ordering of ReQL terms changes, rename
-    // LATEST_has_v1_14_ordering in version.hpp
-    switch (reql_version) {
-    case reql_version_t::v1_13:
-        return v1_13_cmp(rhs);
-    case reql_version_t::v1_14: // v1_15 is the same as v1_14
-    case reql_version_t::v1_16:
-    case reql_version_t::v2_0:
-    case reql_version_t::v2_1_is_latest:
-        return modern_cmp(rhs);
-    default:
-        unreachable();
-    }
-}
-
-int datum_t::modern_cmp(const datum_t &rhs) const {
+int datum_t::cmp(const datum_t &rhs) const {
     bool lhs_ptype = is_ptype() && !pseudo_compares_as_obj();
     bool rhs_ptype = rhs.is_ptype() && !rhs.pseudo_compares_as_obj();
     if (lhs_ptype && rhs_ptype) {
         if (get_reql_type() != rhs.get_reql_type()) {
             return derived_cmp(get_reql_type(), rhs.get_reql_type());
         }
-        return pseudo_cmp(reql_version_t::LATEST_has_v1_14_ordering, rhs);
+        return pseudo_cmp(rhs);
     } else if (lhs_ptype || rhs_ptype) {
         return derived_cmp(get_type_name(name_for_sorting_t::YES),
                            rhs.get_type_name(name_for_sorting_t::YES));
@@ -1627,7 +1603,7 @@ int datum_t::modern_cmp(const datum_t &rhs) const {
         const size_t rhs_sz = rhs.arr_size();
         for (i = 0; i < sz; ++i) {
             if (i >= rhs_sz) return 1;
-            int cmpval = unchecked_get(i).modern_cmp(rhs.unchecked_get(i));
+            int cmpval = unchecked_get(i).cmp(rhs.unchecked_get(i));
             if (cmpval != 0) return cmpval;
         }
         guarantee(i <= rhs_sz);
@@ -1645,7 +1621,7 @@ int datum_t::modern_cmp(const datum_t &rhs) const {
             if (key_cmpval != 0) {
                 return key_cmpval;
             }
-            int val_cmpval = pair.second.modern_cmp(pair2.second);
+            int val_cmpval = pair.second.cmp(pair2.second);
             if (val_cmpval != 0) {
                 return val_cmpval;
             }
@@ -1662,14 +1638,12 @@ int datum_t::modern_cmp(const datum_t &rhs) const {
     }
 }
 
-bool datum_t::operator==(const datum_t &rhs) const { return modern_cmp(rhs) == 0; }
-bool datum_t::operator!=(const datum_t &rhs) const { return modern_cmp(rhs) != 0; }
-bool datum_t::compare_lt(reql_version_t reql_version, const datum_t &rhs) const {
-    return cmp(reql_version, rhs) < 0;
-}
-bool datum_t::compare_gt(reql_version_t reql_version, const datum_t &rhs) const {
-    return cmp(reql_version, rhs) > 0;
-}
+bool datum_t::operator==(const datum_t &rhs) const { return cmp(rhs) == 0; }
+bool datum_t::operator!=(const datum_t &rhs) const { return cmp(rhs) != 0; }
+bool datum_t::operator<(const datum_t &rhs) const { return cmp(rhs) < 0; }
+bool datum_t::operator<=(const datum_t &rhs) const { return cmp(rhs) <= 0; }
+bool datum_t::operator>(const datum_t &rhs) const { return cmp(rhs) > 0; }
+bool datum_t::operator>=(const datum_t &rhs) const { return cmp(rhs) >= 0; }
 
 void datum_t::runtime_fail(base_exc_t::type_t exc_type,
                            const char *test, const char *file, int line,
@@ -1695,8 +1669,14 @@ datum_t to_datum(const Datum *d, const configured_limits_t &limits,
     } break;
     case Datum::R_JSON: {
         fail_if_invalid(reql_version, d->r_str());
-        scoped_cJSON_t cjson(cJSON_Parse(d->r_str().c_str()));
-        return to_datum(cjson.get(), limits, reql_version);
+        if (reql_version < reql_version_t::v2_1) {
+            scoped_cJSON_t cjson(cJSON_Parse(d->r_str().c_str()));
+            return to_datum(cjson.get(), limits, reql_version);
+        } else {
+            rapidjson::Document json;
+            json.Parse(d->r_str().c_str());
+            return to_datum(json, limits, reql_version);
+        }
     } break;
     case Datum::R_ARRAY: {
         datum_array_builder_t out(limits);
@@ -1717,11 +1697,54 @@ datum_t to_datum(const Datum *d, const configured_limits_t &limits,
             auto res = map.insert(std::make_pair(key,
                                                  to_datum(&ap->val(), limits,
                                                           reql_version)));
-            rcheck_datum(res.second, base_exc_t::GENERIC,
+            rcheck_datum(res.second, base_exc_t::LOGIC,
                          strprintf("Duplicate key %s in object.", key.to_std().c_str()));
         }
         const std::set<std::string> pts = { pseudo::literal_string };
         return datum_t(std::move(map), pts);
+    } break;
+    default: unreachable();
+    }
+}
+
+datum_t to_datum(cJSON *json, const configured_limits_t &limits,
+                 reql_version_t reql_version) {
+    switch (json->type) {
+    case cJSON_False: {
+        return datum_t::boolean(false);
+    } break;
+    case cJSON_True: {
+        return datum_t::boolean(true);
+    } break;
+    case cJSON_NULL: {
+        return datum_t::null();
+    } break;
+    case cJSON_Number: {
+        return datum_t(json->valuedouble);
+    } break;
+    case cJSON_String: {
+        fail_if_invalid(reql_version, json->valuestring);
+        return datum_t(json->valuestring);
+    } break;
+    case cJSON_Array: {
+        std::vector<datum_t> array;
+        json_array_iterator_t it(json);
+        while (cJSON *item = it.next()) {
+            array.push_back(to_datum(item, limits, reql_version));
+        }
+        return datum_t(std::move(array), limits);
+    } break;
+    case cJSON_Object: {
+        datum_object_builder_t builder;
+        json_object_iterator_t it(json);
+        while (cJSON *item = it.next()) {
+            fail_if_invalid(reql_version, item->string);
+            bool dup = builder.add(item->string, to_datum(item, limits, reql_version));
+            rcheck_datum(!dup, base_exc_t::LOGIC,
+                         strprintf("Duplicate key `%s` in JSON.", item->string));
+        }
+        const std::set<std::string> pts = { pseudo::literal_string };
+        return std::move(builder).to_datum(pts);
     } break;
     default: unreachable();
     }
@@ -1759,8 +1782,8 @@ void datum_t::write_to_protobuf(Datum *d, use_json_t use_json) const {
     switch (use_json) {
     case use_json_t::NO: {
         switch (get_type()) {
-        case MINVAL: rfail_datum(base_exc_t::GENERIC, "Cannot convert `r.minval` to a protobuf.");
-        case MAXVAL: rfail_datum(base_exc_t::GENERIC, "Cannot convert `r.maxval` to a protobuf.");
+        case MINVAL: rfail_datum(base_exc_t::LOGIC, "Cannot convert `r.minval` to a protobuf.");
+        case MAXVAL: rfail_datum(base_exc_t::LOGIC, "Cannot convert `r.maxval` to a protobuf.");
         case R_NULL: {
             d->set_type(Datum::R_NULL);
         } break;
@@ -1805,7 +1828,10 @@ void datum_t::write_to_protobuf(Datum *d, use_json_t use_json) const {
     } break;
     case use_json_t::YES: {
         d->set_type(Datum::R_JSON);
-        d->set_r_str(as_json().PrintUnformatted());
+        rapidjson::StringBuffer buffer;
+        rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+        write_json(&writer);
+        d->set_r_str(buffer.GetString(), buffer.GetSize());
     } break;
     default: unreachable();
     }
@@ -1851,7 +1877,7 @@ datum_t stats_merge(UNUSED const datum_string_t &key,
     // Merging a string is left-preferential, which is just a no-op.
     rcheck_datum(
         l.get_type() == datum_t::R_STR && r.get_type() == datum_t::R_STR,
-        base_exc_t::GENERIC,
+        base_exc_t::LOGIC,
         strprintf("Cannot merge statistics `%s` (type %s) and `%s` (type %s).",
                   l.trunc_print().c_str(), l.get_type_name().c_str(),
                   r.trunc_print().c_str(), r.get_type_name().c_str()));
@@ -1899,8 +1925,10 @@ void datum_object_builder_t::add_warning(const char *msg, const configured_limit
             if (warnings_entry->get(i).as_str() == msg) return;
         }
         rcheck_datum(warnings_entry_sz + 1 <= limits.array_size_limit(),
-            base_exc_t::GENERIC,
-            strprintf("Warnings would exceed array size limit %zu; increase it to see warnings", limits.array_size_limit()));
+            base_exc_t::RESOURCE,
+            strprintf("Warnings would exceed array size limit %zu; "
+                      "increase it to see warnings",
+                      limits.array_size_limit()));
         datum_array_builder_t out(*warnings_entry, limits);
         out.add(datum_t(msg));
         *warnings_entry = std::move(out).to_datum();
@@ -1915,9 +1943,12 @@ void datum_object_builder_t::add_warnings(const std::set<std::string> &msgs, con
     if (msgs.empty()) return;
     datum_t *warnings_entry = &map[warnings_field];
     if (warnings_entry->has()) {
-        rcheck_datum(warnings_entry->arr_size() + msgs.size() <= limits.array_size_limit(),
-            base_exc_t::GENERIC,
-            strprintf("Warnings would exceed array size limit %zu; increase it to see warnings", limits.array_size_limit()));
+        rcheck_datum(
+            warnings_entry->arr_size() + msgs.size() <= limits.array_size_limit(),
+            base_exc_t::RESOURCE,
+            strprintf("Warnings would exceed array size limit %zu; "
+                      "increase it to see warnings",
+                      limits.array_size_limit()));
         datum_array_builder_t out(*warnings_entry, limits);
         for (auto const & msg : msgs) {
             bool seen = false;
@@ -1988,14 +2019,14 @@ datum_array_builder_t::datum_array_builder_t(const datum_t &copy_from,
     for (size_t i = 0; i < copy_from_sz; ++i) {
         vector.push_back(copy_from.get(i));
     }
-    rcheck_array_size_datum(vector, limits, base_exc_t::GENERIC);
+    rcheck_array_size_datum(vector, limits);
 }
 
 void datum_array_builder_t::reserve(size_t n) { vector.reserve(n); }
 
 void datum_array_builder_t::add(datum_t val) {
     vector.push_back(std::move(val));
-    rcheck_array_size_datum(vector, limits, base_exc_t::GENERIC);
+    rcheck_array_size_datum(vector, limits);
 }
 
 void datum_array_builder_t::change(size_t index, datum_t val) {
@@ -2006,30 +2037,16 @@ void datum_array_builder_t::change(size_t index, datum_t val) {
     vector[index] = std::move(val);
 }
 
-void datum_array_builder_t::insert(reql_version_t reql_version, size_t index,
-                                   datum_t val) {
+void datum_array_builder_t::insert(size_t index, datum_t val) {
     rcheck_datum(index <= vector.size(),
                  base_exc_t::NON_EXISTENCE,
                  strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
                            index, vector.size()));
     vector.insert(vector.begin() + index, std::move(val));
-
-    switch (reql_version) {
-    case reql_version_t::v1_13:
-        break;
-    case reql_version_t::v1_14: // v1_15 is the same as v1_14
-    case reql_version_t::v1_16:
-    case reql_version_t::v2_0:
-    case reql_version_t::v2_1_is_latest:
-        rcheck_array_size_datum(vector, limits, base_exc_t::GENERIC);
-        break;
-    default:
-        unreachable();
-    }
+    rcheck_array_size_datum(vector, limits);
 }
 
-void datum_array_builder_t::splice(reql_version_t reql_version, size_t index,
-                                   datum_t values) {
+void datum_array_builder_t::splice(size_t index, datum_t values) {
     rcheck_datum(index <= vector.size(),
                  base_exc_t::NON_EXISTENCE,
                  strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
@@ -2047,53 +2064,20 @@ void datum_array_builder_t::splice(reql_version_t reql_version, size_t index,
                   std::make_move_iterator(arr.begin()),
                   std::make_move_iterator(arr.end()));
 
-    switch (reql_version) {
-    case reql_version_t::v1_13:
-        break;
-    case reql_version_t::v1_14: // v1_15 is the same as v1_14
-    case reql_version_t::v1_16:
-    case reql_version_t::v2_0:
-    case reql_version_t::v2_1_is_latest:
-        rcheck_array_size_datum(vector, limits, base_exc_t::GENERIC);
-        break;
-    default:
-        unreachable();
-    }
+    rcheck_array_size_datum(vector, limits);
 }
 
-void datum_array_builder_t::erase_range(reql_version_t reql_version,
-                                        size_t start, size_t end) {
-
-    // See https://github.com/rethinkdb/rethinkdb/issues/2696 about the backwards
-    // compatible implementation for v1_13.
-
-    switch (reql_version) {
-    case reql_version_t::v1_13:
-        rcheck_datum(start < vector.size(),
-                     base_exc_t::NON_EXISTENCE,
-                     strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
-                               start, vector.size()));
-        break;
-    case reql_version_t::v1_14: // v1_15 is the same as v1_14
-    case reql_version_t::v1_16:
-    case reql_version_t::v2_0:
-    case reql_version_t::v2_1_is_latest:
-        rcheck_datum(start <= vector.size(),
-                     base_exc_t::NON_EXISTENCE,
-                     strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
-                               start, vector.size()));
-        break;
-    default:
-        unreachable();
-    }
-
-
+void datum_array_builder_t::erase_range(size_t start, size_t end) {
+    rcheck_datum(start <= vector.size(),
+                 base_exc_t::NON_EXISTENCE,
+                 strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
+                           start, vector.size()));
     rcheck_datum(end <= vector.size(),
                  base_exc_t::NON_EXISTENCE,
                  strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
                            end, vector.size()));
     rcheck_datum(start <= end,
-                 base_exc_t::GENERIC,
+                 base_exc_t::LOGIC,
                  strprintf("Start index `%zu` is greater than end index `%zu`.",
                            start, end));
     vector.erase(vector.begin() + start, vector.begin() + end);
@@ -2139,20 +2123,19 @@ datum_range_t datum_range_t::universe() {
                          datum_t::maxval(), key_range_t::open);
 }
 
-bool datum_range_t::contains(reql_version_t reql_version,
-                             datum_t val) const {
+bool datum_range_t::contains(datum_t val) const {
     r_sanity_check(left_bound.has() && right_bound.has());
 
-    int left_cmp = left_bound.cmp(reql_version, val);
-    int right_cmp = right_bound.cmp(reql_version, val);
+    int left_cmp = left_bound.cmp(val);
+    int right_cmp = right_bound.cmp(val);
     return (left_cmp < 0 || (left_cmp == 0 && left_bound_type == key_range_t::closed)) &&
            (right_cmp > 0 || (right_cmp == 0 && right_bound_type == key_range_t::closed));
 }
 
-bool datum_range_t::is_empty(reql_version_t reql_version) const {
+bool datum_range_t::is_empty() const {
     r_sanity_check(left_bound.has() && right_bound.has());
 
-    int cmp = left_bound.cmp(reql_version, right_bound);
+    int cmp = left_bound.cmp(right_bound);
     return (cmp > 0 ||
             ((left_bound_type == key_range_t::open ||
               right_bound_type == key_range_t::open) && cmp == 0));
@@ -2250,7 +2233,7 @@ void debug_print(printf_buffer_t *buf, const datum_t &d) {
         buf->appendf("d/buf_r_object(...)");
         break;
     default:
-        buf->appendf("datum/garbage{internal_type=%d}", d.data.get_internal_type());
+        buf->appendf("datum/garbage{internal_type=%d}", static_cast<int>(d.data.get_internal_type()));
         break;
     }
 }

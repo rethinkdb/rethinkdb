@@ -78,16 +78,20 @@ public:
 
     /* Returns `true` if the given address is on this stack or in its protection
     page. */
-    bool address_in_stack(void *addr);
+    bool address_in_stack(const void *addr) const;
 
     /* Returns `true` if the given address is in the stack's protection page. */
-    bool address_is_stack_overflow(void *addr);
+    bool address_is_stack_overflow(const void *addr) const;
 
     /* Returns the base of the stack */
-    void *get_stack_base() { return static_cast<char*>(stack.get()) + stack_size; }
+
+    void *get_stack_base() const { return static_cast<char*>(stack.get()) + stack_size; }
 
     /* Returns the end of the stack */
-    void *get_stack_bound() { return stack.get(); }
+    void *get_stack_bound() const { return stack.get(); }
+
+    /* Returns how many more bytes below the given address can be used */
+    size_t free_space_below(const void *addr) const;
 
 private:
     scoped_aligned_malloc_t<char> stack;
@@ -190,20 +194,23 @@ public:
 
     /* Returns `true` if the given address is on this stack or in its protection
     page. */
-    bool address_in_stack(void *addr);
+    bool address_in_stack(const void *addr) const;
 
     /* Returns `true` if the given address is in the stack's protection page. */
-    bool address_is_stack_overflow(void *addr);
+    bool address_is_stack_overflow(const void *addr) const;
 
     /* Returns the base of the stack */
-    void *get_stack_base();
+    void *get_stack_base() const;
 
     /* Returns the end of the stack */
-    void *get_stack_bound();
+    void *get_stack_bound() const;
+
+    /* Returns how many more bytes below the given address can be used */
+    size_t free_space_below(const void *addr) const;
 
 private:
     static void *internal_run(void *p);
-    void get_stack_addr_size(void **stackaddr_out, size_t *stacksize_out);
+    void get_stack_addr_size(void **stackaddr_out, size_t *stacksize_out) const;
 
     pthread_t thread;
     void (*initial_fun)(void);

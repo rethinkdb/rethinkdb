@@ -10,7 +10,8 @@ extproc_pool_t::extproc_pool_t(size_t worker_count) :
     dealloc_timer(DEALLOC_TIMER_FREQ_MS, this),
     worker_semaphore(worker_count,
                      extproc_spawner_t::get_instance()),
-    dealloc_pool(1, &pool_queue, this) { }
+    dealloc_pumper([this](signal_t *interruptor_) { dealloc_blocking(interruptor_); })
+    { }
 
 extproc_pool_t::~extproc_pool_t() {
     // Can only be destructed on the same thread we were created on
@@ -29,11 +30,10 @@ signal_t *extproc_pool_t::get_shutdown_signal() {
 }
 
 void extproc_pool_t::on_ring() {
-    pool_queue.give_value(extproc_pool_dummy_value_t());
+    dealloc_pumper.notify();
 }
 
-void extproc_pool_t::coro_pool_callback(extproc_pool_dummy_value_t,
-                                        signal_t *) {
+void extproc_pool_t::dealloc_blocking(UNUSED signal_t *interruptor_) {
     int cur_worker_cnt = worker_cnt;
     int dealloc_cnt = (prev_worker_cnt - cur_worker_cnt) / 2;
     prev_worker_cnt = cur_worker_cnt;

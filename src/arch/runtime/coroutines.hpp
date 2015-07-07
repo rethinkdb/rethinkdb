@@ -38,8 +38,7 @@ struct coro_profiler_mixin_t {
 coroutine, call wait() to return control to the scheduler; the coroutine will be resumed when
 another fiber calls notify_*() on it.
 
-coro_t objects can switch threads with move_to_thread(), but it is recommended that you use
-on_thread_t for more safety. */
+coro_t objects can switch threads by constructing an `on_thread_t`. */
 
 class coro_t : private coro_profiler_mixin_t,
                private linux_thread_message_t,
@@ -47,6 +46,7 @@ class coro_t : private coro_profiler_mixin_t,
                public home_thread_mixin_t {
 public:
     friend bool is_coroutine_stack_overflow(void *);
+    friend bool has_n_bytes_free_stack_space(size_t);
 
     template<class Callable>
     static void spawn_now_dangerously(Callable &&action) {
@@ -61,6 +61,17 @@ public:
         return coro;
     }
 
+    /* This is an optimization over spawn_sometime() followed by an on_thread_t.
+    It avoids two thread messages, since it doesn't have to run on the original
+    thread first, and also doesn't switch back at the end of the coro's lifetime. */
+    template<class Callable>
+    static coro_t *spawn_on_thread(Callable &&action, threadnum_t thread) {
+        coro_t *coro = get_and_init_coro(std::forward<Callable>(action));
+        coro->current_thread_ = thread;
+        coro->notify_sometime();
+        return coro;
+    }
+
     /* Whenever possible, `spawn_sometime()` should be used instead of
     `spawn_later_ordered()` (or `spawn_ordered()`). `spawn_later_ordered()` does not
     honor scheduler priorities. */
@@ -69,11 +80,6 @@ public:
         coro_t *coro = get_and_init_coro(std::forward<Callable>(action));
         coro->notify_later_ordered();
         return coro;
-    }
-
-    template<class Callable>
-    static void spawn_ordered(Callable &&action) {
-        spawn_later_ordered(std::forward<Callable>(action));
     }
 
     // Use coro_t::spawn_*(std::bind(...)) for spawning with parameters.
@@ -86,7 +92,7 @@ public:
     `yield()` by different coroutines may return in a different order than they
     began in. */
     static void yield();
-    /* Like `yield()`, but guarantees that the ordering of coroutines calling 
+    /* Like `yield()`, but guarantees that the ordering of coroutines calling
     `yield_ordered()` is maintained. */
     static void yield_ordered();
 
@@ -225,6 +231,8 @@ private:
 
 /* Returns true if the given address is in the protection page of the current coroutine. */
 bool is_coroutine_stack_overflow(void *addr);
+/* Returns true if at least n bytes are available on the stack of the current coroutine. */
+bool has_n_bytes_free_stack_space(size_t n);
 bool coroutines_have_been_initialized();
 
 class home_coro_mixin_t {

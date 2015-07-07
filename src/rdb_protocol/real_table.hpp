@@ -10,8 +10,6 @@
 #include "rdb_protocol/context.hpp"
 #include "rdb_protocol/protocol.hpp"
 
-const char *const sindex_blob_prefix = "$reql_index_function$";
-
 namespace ql {
 class datum_range_t;
 namespace changefeed {
@@ -67,7 +65,7 @@ public:
     const std::string &get_pkey() const;
 
     ql::datum_t read_row(ql::env_t *env,
-        ql::datum_t pval, bool use_outdated);
+        ql::datum_t pval, read_mode_t read_mode);
     counted_t<ql::datum_stream_t> read_all(
         ql::env_t *env,
         const std::string &sindex,
@@ -75,9 +73,10 @@ public:
         const std::string &table_name,   /* the table's own name, for display purposes */
         const ql::datum_range_t &range,
         sorting_t sorting,
-        bool use_outdated);
+        read_mode_t read_mode);
     counted_t<ql::datum_stream_t> read_changes(
         ql::env_t *env,
+        counted_t<ql::datum_stream_t> maybe_src,
         const ql::datum_t &squash,
         bool include_states,
         ql::changefeed::keyspec_t::spec_t &&spec,
@@ -88,13 +87,13 @@ public:
         const std::string &sindex,
         ql::backtrace_id_t bt,
         const std::string &table_name,
-        bool use_outdated,
+        read_mode_t read_mode,
         const ql::datum_t &query_geometry);
     ql::datum_t read_nearest(
         ql::env_t *env,
         const std::string &sindex,
         const std::string &table_name,
-        bool use_outdated,
+        read_mode_t read_mode,
         lon_lat_point_t center,
         double max_dist,
         uint64_t max_results,
@@ -114,24 +113,9 @@ public:
     bool write_sync_depending_on_durability(ql::env_t *env,
         durability_requirement_t durability);
 
-    bool sindex_create(ql::env_t *env,
-        const std::string &id,
-        counted_t<const ql::func_t> index_func,
-        sindex_multi_bool_t multi,
-        sindex_geo_bool_t geo);
-    bool sindex_drop(ql::env_t *env,
-        const std::string &id);
-    sindex_rename_result_t sindex_rename(ql::env_t *env,
-        const std::string &old_name,
-        const std::string &new_name,
-        bool overwrite);
-    std::vector<std::string> sindex_list(ql::env_t *env, bool use_outdated);
-    std::map<std::string, ql::datum_t> sindex_status(ql::env_t *env,
-        const std::set<std::string> &sindexes);
-
     /* These are not part of the `base_table_t` interface. They wrap the `read()`,
-    `read_outdated()`, and `write()` methods of the underlying `namespace_interface_t` to
-    add profiling information. Specifically, they:
+    and `write()` methods of the underlying `namespace_interface_t` to add profiling
+    information. Specifically, they:
       * Set the explain field in the read_t/write_t object so that the shards know
         whether or not to do profiling
       * Construct a splitter_t
@@ -139,8 +123,7 @@ public:
       * splitter_t::give_splits with the event logs from the shards
     These are public because some of the stuff in `datum_stream.hpp` needs to be
     able to access them. */
-    void read_with_profile(ql::env_t *env, const read_t &, read_response_t *response,
-            bool outdated);
+    void read_with_profile(ql::env_t *env, const read_t &, read_response_t *response);
     void write_with_profile(ql::env_t *env, write_t *, write_response_t *response);
 
 private:

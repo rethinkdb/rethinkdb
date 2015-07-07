@@ -15,7 +15,6 @@
 #include "rdb_protocol/datum.hpp"
 #include "concurrency/wait_any.hpp"
 #include "arch/timing.hpp"
-#include "http/json.hpp"
 #include "extproc/extproc_job.hpp"
 
 // Unique ids used to refer to objects on the JS side.

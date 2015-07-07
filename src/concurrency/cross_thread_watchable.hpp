@@ -2,11 +2,11 @@
 #ifndef CONCURRENCY_CROSS_THREAD_WATCHABLE_HPP_
 #define CONCURRENCY_CROSS_THREAD_WATCHABLE_HPP_
 
+#include "arch/runtime/runtime.hpp"
 #include "concurrency/watchable.hpp"
 #include "concurrency/watchable_map.hpp"
 #include "concurrency/auto_drainer.hpp"
-#include "concurrency/queue/single_value_producer.hpp"
-#include "concurrency/coro_pool.hpp"
+#include "concurrency/pump_coro.hpp"
 
 /* `cross_thread_watchable_variable_t` is used to "proxy" a `watchable_t` from
 one thread to another. Create the `cross_thread_watchable_variable_t` on the
@@ -21,8 +21,9 @@ template <class value_t>
 class cross_thread_watchable_variable_t
 {
 public:
-    cross_thread_watchable_variable_t(const clone_ptr_t<watchable_t<value_t> > &watchable,
-                                      threadnum_t _dest_thread);
+    cross_thread_watchable_variable_t(
+        const clone_ptr_t<watchable_t<value_t> > &watchable,
+        threadnum_t _dest_thread);
 
     clone_ptr_t<watchable_t<value_t> > get_watchable() {
         return clone_ptr_t<watchable_t<value_t> >(watchable.clone());
@@ -39,12 +40,7 @@ public:
 
 private:
     friend class cross_thread_watcher_subscription_t;
-    void on_value_changed();
-    void deliver(value_t new_value);
-
-    static void call(const std::function<void()> &f) {
-        f();
-    }
+    void deliver(signal_t *interruptor);
 
     class w_t : public watchable_t<value_t> {
     public:
@@ -83,7 +79,7 @@ private:
     /* This object's constructor rethreads our internal components to our other
     thread, and then reverses it in the destructor. It must be a separate object
     instead of logic in the constructor/destructor because its destructor must
-    be run after `drainer`'s destructor. */
+    be run after `deliver_pumper`'s destructor. */
     class rethreader_t {
     public:
         explicit rethreader_t(cross_thread_watchable_variable_t *p) :
@@ -102,15 +98,11 @@ private:
         cross_thread_watchable_variable_t *parent;
     } rethreader;
 
-    /* The destructor for `subs` must be run before the destructor for `drainer`
-    because `drainer`'s destructor will block until all the
-    `auto_drainer_t::lock_t` objects are gone, and `subs`'s callback holds an
-    `auto_drainer_t::lock_t`. */
-    typename watchable_t<value_t>::subscription_t subs;
+    pump_coro_t deliver_pumper;
 
-    single_value_producer_t<value_t> value_producer;
-    std_function_callback_t<value_t> deliver_cb;
-    coro_pool_t<value_t> messanger_pool;
+    /* The destructor for `subs` must be run before the destructor for `deliver_pumper`
+    because `subs` calls `deliver_pumper.notify()` */
+    typename watchable_t<value_t>::subscription_t subs;
 
     DISABLE_COPYING(cross_thread_watchable_variable_t);
 };
@@ -143,14 +135,20 @@ public:
         return &output_var;
     }
 
+    /* Block until changes visible on this end at the moment `flush()` is called are
+    visible on the other end. Caller is responsible for making sure that the
+    `cross_thread_watchable_map_var_t` is not destroyed until after `flush()` returns. */
+    void flush() {
+        cond_t non_interruptor;
+        deliver_pumper.flush(&non_interruptor);
+    }
+
 private:
     void on_change(const key_t &key, const value_t *value);
-    void ferry_changes(auto_drainer_t::lock_t);
+    void deliver(signal_t *interruptor);
     watchable_map_var_t<key_t, value_t> output_var;
     threadnum_t input_thread, output_thread;
-    bool coro_running;
     std::map<key_t, boost::optional<value_t> > queued_changes;
-    mutex_assertion_t lock;
 
     /* This object's constructor rethreads our internal components to our other
     thread, and then reverses it in the destructor. It must be a separate object
@@ -168,8 +166,27 @@ private:
         cross_thread_watchable_map_var_t *parent;
     } rethreader;
 
-    auto_drainer_t drainer;
+    pump_coro_t deliver_pumper;
+
     typename watchable_map_t<key_t, value_t>::all_subs_t subs;
+};
+
+/* `all_thread_watchable_map_var_t` is like a `cross_thread_watchable_map_var_t` except
+that `get_watchable()` works on every thread, not just a specified thread. Internally it
+constructs one `cross_thread_watchable_map_var_t` for each thread, so it's a pretty
+heavy-weight object. */
+
+template<class key_t, class value_t>
+class all_thread_watchable_map_var_t {
+public:
+    all_thread_watchable_map_var_t(
+        watchable_map_t<key_t, value_t> *input);
+    watchable_map_t<key_t, value_t> *get_watchable() const {
+        return vars[get_thread_id().threadnum]->get_watchable();
+    }
+    void flush();
+private:
+    std::vector<scoped_ptr_t<cross_thread_watchable_map_var_t<key_t, value_t> > > vars;
 };
 
 #include "concurrency/cross_thread_watchable.tcc"

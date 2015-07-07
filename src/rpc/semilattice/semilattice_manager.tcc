@@ -32,7 +32,7 @@ semilattice_manager_t<metadata_t>::semilattice_manager_t(
     connection_change_subscription(
         get_connectivity_cluster()->get_connections(),
         std::bind(&semilattice_manager_t::on_connection_change, this, ph::_1, ph::_2),
-        false)
+        initial_call_t::NO)
 {
     guarantee(get_connectivity_cluster()->get_connections()->get_all().empty());
 }
@@ -117,6 +117,15 @@ public:
         int res = send_write_message(stream, &wm);
         if (res) { throw fake_archive_exc_t(); }
     }
+
+#ifdef ENABLE_MESSAGE_PROFILER
+    const char *message_profiler_tag() const {
+        static const std::string tag =
+            strprintf("semilattice<%s>.update", typeid(metadata_t).name());
+        return tag.c_str();
+    }
+#endif
+
 private:
     const metadata_t &md;
     metadata_version_t mdv;
@@ -139,6 +148,15 @@ public:
         int res = send_write_message(stream, &wm);
         if (res) { throw fake_archive_exc_t(); }
     }
+
+#ifdef ENABLE_MESSAGE_PROFILER
+    const char *message_profiler_tag() const {
+        static const std::string tag =
+            strprintf("semilattice<%s>.sync_from", typeid(metadata_t).name());
+        return tag.c_str();
+    }
+#endif
+
 private:
     sync_from_query_id_t query_id;
 };
@@ -161,6 +179,15 @@ public:
         int res = send_write_message(stream, &wm);
         if (res) { throw fake_archive_exc_t(); }
     }
+
+#ifdef ENABLE_MESSAGE_PROFILER
+    const char *message_profiler_tag() const {
+        static const std::string tag =
+            strprintf("semilattice<%s>.sync_from_reply", typeid(metadata_t).name());
+        return tag.c_str();
+    }
+#endif
+
 private:
     sync_from_query_id_t query_id;
     metadata_version_t version;
@@ -184,6 +211,15 @@ public:
         int res = send_write_message(stream, &wm);
         if (res) { throw fake_archive_exc_t(); }
     }
+
+#ifdef ENABLE_MESSAGE_PROFILER
+    const char *message_profiler_tag() const {
+        static const std::string tag =
+            strprintf("semilattice<%s>.sync_to", typeid(metadata_t).name());
+        return tag.c_str();
+    }
+#endif
+
 private:
     sync_to_query_id_t query_id;
     metadata_version_t version;
@@ -206,6 +242,15 @@ public:
         int res = send_write_message(stream, &wm);
         if (res) { throw fake_archive_exc_t(); }
     }
+
+#ifdef ENABLE_MESSAGE_PROFILER
+    const char *message_profiler_tag() const {
+        static const std::string tag =
+            strprintf("semilattice<%s>.sync_to_reply", typeid(metadata_t).name());
+        return tag.c_str();
+    }
+#endif
+
 private:
     sync_to_query_id_t query_id;
 };

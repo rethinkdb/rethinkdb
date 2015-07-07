@@ -15,6 +15,11 @@
 # objects
 net = require('net')
 
+# The [tls module](http://nodejs.org/api/tls.html) is the TLS/SSL
+# networking library Node.js provides. We need it to establish an
+# encrypted connection for `TcpConnection` objects
+tls = require('tls')
+
 # The [events module](http://nodejs.org/api/events.html) is a core
 # Node.js module that provides the ability for objects to emit events,
 # and for callbacks to be attached to those events.
@@ -142,6 +147,19 @@ class Connection extends events.EventEmitter
 
         @authKey = host.authKey || @DEFAULT_AUTH_KEY
         @timeout = host.timeout || @DEFAULT_TIMEOUT
+
+        # Configuration options for enabling an SSL connection
+        # Allows the ability to pass in all the options as specified in
+        # [tls.connect](https://nodejs.org/api/tls.html#tls_tls_connect_options_callback)
+        # or just true  in case the client wants ssl but the server
+        # is using a certificate with a valid verified chain and there
+        # is no need to specify certificates on the client
+        if typeof host.ssl is 'boolean' && host.ssl
+            @ssl = {}
+        else if typeof host.ssl is 'object'
+            @ssl = host.ssl
+        else
+            @ssl = false
 
         # The protocol allows for responses to queries on the same
         # connection to be returned interleaved. When a query is run
@@ -763,20 +781,17 @@ class Connection extends events.EventEmitter
             query.global_optargs[util.fromCamelCase(key)] = r.expr(value).build()
 
         # If the user has specified the `db` on the connection (either
-        # in the constructor, or with the `.use` method, we add that
-        # db to the optargs for the query.
-        if @db?
-            query.global_optargs['db'] = r.db(@db).build()
+        # in the constructor, as an optarg to .run(), or with the `.use` method)
+        # we add that db to the optargs for the query.
+        if opts.db? or @db?
+            query.global_optargs.db = r.db(opts.db or @db).build()
 
-        # Next, ensure that the `useOutdated`, `noreply`, and
-        # `profile` options (if present) are actual booleans using the
-        # `!!` trick. Note that `r.expr(false).build() == false` and
+        # Next, ensure that the `noreply` and `profile` options
+        # (if present) are actual booleans using the `!!` trick.
+        # Note that `r.expr(false).build() == false` and
         # `r.expr(null).build() == null`, so the conversion in the
         # loop above won't affect the boolean value the user intended
         # to pass.
-        if opts.useOutdated?
-            query.global_optargs['use_outdated'] = r.expr(!!opts.useOutdated).build()
-
         if opts.noreply?
             query.global_optargs['noreply'] = r.expr(!!opts.noreply).build()
 
@@ -900,7 +915,10 @@ class TcpConnection extends Connection
         # Next we create the underlying tcp connection to the server
         # using the net module and store it in the `@rawSocket`
         # attribute.
-        @rawSocket = net.connect @port, @host
+        if @ssl
+            @rawSocket = tls.connect options
+        else
+            @rawSocket = net.connect @port, @host
 
         # We disable [Nagle's
         # algorithm](http://en.wikipedia.org/wiki/Nagle%27s_algorithm)
@@ -1112,7 +1130,7 @@ class TcpConnection extends Connection
                         # called in response to the rawSocket 'close'
                         # event, we need to additionally clean up the
                         # rawSocket.
-                        @rawSocket.removeAllListeners()
+                        @rawSocket?.removeAllListeners()
                         @rawSocket = null
                     )
                     @rawSocket.end()
@@ -1244,11 +1262,15 @@ class HttpConnection extends Connection
         #The request is a `POST` to ensure the response isn't cached
         # by the browser (which has caused bugs in the past). The
         # `true` argument is setting the request to be asynchronous.
-        xhr.open("POST", url+"open-new-connection", true)
+        # Some browsers cache this request no matter what cache
+        # control headers are set on the request or the server's
+        # response. So the `cacheBuster` argument ensures every time
+        # we create a connection it's a unique url, and we really do
+        # create a new connection on the server.
+        xhr.open("POST", url+"open-new-connection?cacheBuster=#{Math.random()}", true)
 
-        # We also want the response to come back as a buffer, to
-        # minimize the code that has to be HttpConnection specific
-        xhr.responseType = "arraybuffer"
+        # We response will be a connection ID, which we receive as text.
+        xhr.responseType = "text"
 
         # Next, set up the callback to process the response from the
         # server when the new connection is established.
@@ -1262,14 +1284,8 @@ class HttpConnection extends Connection
                     # since the url doesn't change.
                     @_url = url
 
-                    # We create a
-                    # [DataView](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/DataView)
-                    # for reading the data as an array of bytes. We
-                    # grab the value passed back and interpret it as a
-                    # signed 32 bit little-endian integer. (The `true`
-                    # argument causes it to be interpreted as
-                    # little-endian).
-                    @_connId = (new DataView xhr.response).getInt32(0, true)
+                    # Keep the connection ID we received.
+                    @_connId = xhr.response
 
                     # Emit the `"connect"` event. The `Connection`
                     # superclass's constructor listens for this event

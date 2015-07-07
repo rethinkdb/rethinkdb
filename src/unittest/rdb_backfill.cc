@@ -1,13 +1,17 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
 
+#include "btree/backfill_debug.hpp"
 #include "clustering/administration/metadata.hpp"
-#include "clustering/immediate_consistency/branch/backfill_throttler.hpp"
-#include "clustering/immediate_consistency/branch/broadcaster.hpp"
-#include "clustering/immediate_consistency/branch/listener.hpp"
-#include "clustering/immediate_consistency/branch/replier.hpp"
+#include "clustering/immediate_consistency/backfill_throttler.hpp"
+#include "clustering/immediate_consistency/local_replicator.hpp"
+#include "clustering/immediate_consistency/primary_dispatcher.hpp"
+#include "clustering/immediate_consistency/remote_replicator_client.hpp"
+#include "clustering/immediate_consistency/remote_replicator_server.hpp"
+#include "clustering/table_manager/backfill_progress_tracker.hpp"
 #include "extproc/extproc_pool.hpp"
 #include "extproc/extproc_spawner.hpp"
+#include "rapidjson/document.h"
 #include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/env.hpp"
@@ -24,337 +28,512 @@
 
 namespace unittest {
 
-void run_with_broadcaster(
-    std::function< void(
-        std::pair<io_backender_t *, simple_mailbox_cluster_t *>,
-        branch_history_manager_t *,
-        clone_ptr_t< watchable_t< boost::optional< boost::optional<
-            broadcaster_business_card_t> > > >,
-        scoped_ptr_t<broadcaster_t> *,
-        test_store_t *,
-        scoped_ptr_t<listener_t> *,
-        rdb_context_t *ctx,
-        order_source_t *)> fun) {
+std::string read_from_dispatcher(
+        primary_dispatcher_t *dispatcher,
+        size_t value_padding_length,
+        const std::string &key,
+        order_token_t otok,
+        signal_t *interruptor) {
+    read_t read(point_read_t(store_key_t(key)),
+                profile_bool_t::PROFILE, read_mode_t::SINGLE);
+    fifo_enforcer_source_t fifo_source;
+    fifo_enforcer_sink_t fifo_sink;
+    fifo_enforcer_sink_t::exit_read_t exiter(&fifo_sink, fifo_source.enter_read());
+    read_response_t response;
+    dispatcher->read(read, &exiter, otok, interruptor, &response);
+    point_read_response_t get_result =
+        boost::get<point_read_response_t>(response.response);
+    if (get_result.data.get_type() != ql::datum_t::R_NULL) {
+        EXPECT_EQ(3, get_result.data.obj_size());
+        EXPECT_EQ(key, get_result.data.get_field("id").as_str().to_std());
+        EXPECT_EQ(std::string(value_padding_length, 'a'),
+            get_result.data.get_field("padding").as_str().to_std());
+        std::string value = get_result.data.get_field("value").as_str().to_std();
+        backfill_debug_key(store_key_t(key), "read \"" + value + "\"");
+        return value;
+    } else {
+        backfill_debug_key(store_key_t(key), "read (absent)");
+        return "";
+    }
+}
+
+class dispatcher_inserter_t : public test_inserter_t {
+public:
+    dispatcher_inserter_t(
+            primary_dispatcher_t *_dispatcher,
+            order_source_t *order_source,
+            size_t _value_padding_length,
+            std::map<std::string, std::string> *inserter_state,
+            bool should_start = true) :
+        test_inserter_t(order_source, "dispatcher_inserter_t", inserter_state),
+        dispatcher(_dispatcher),
+        value_padding_length(_value_padding_length)
+    {
+        if (should_start) {
+            this->start();
+        }
+    }
+    ~dispatcher_inserter_t() {
+        if (running()) {
+            stop();
+        }
+    }
+private:
+    void write(const std::string &key, const std::string &value,
+            order_token_t otok, signal_t *interruptor) {
+        write_t write;
+        if (!value.empty()) {
+            ql::datum_object_builder_t doc;
+            doc.overwrite("id", ql::datum_t(datum_string_t(key)));
+            doc.overwrite("value", ql::datum_t(datum_string_t(value)));
+            doc.overwrite("padding", ql::datum_t(datum_string_t(
+                std::string(value_padding_length, 'a'))));
+            write = write_t(
+                    point_write_t(store_key_t(key), std::move(doc).to_datum(), true),
+                    DURABILITY_REQUIREMENT_SOFT,
+                    profile_bool_t::PROFILE,
+                    ql::configured_limits_t());
+        } else {
+            write = write_t(
+                    point_delete_t(store_key_t(key)),
+                    DURABILITY_REQUIREMENT_SOFT,
+                    profile_bool_t::PROFILE,
+                    ql::configured_limits_t());
+        }
+        simple_write_callback_t write_callback;
+        dispatcher->spawn_write(write, otok, &write_callback);
+        wait_interruptible(&write_callback, interruptor);
+    }
+    std::string read(const std::string &key, order_token_t otok, signal_t *interruptor) {
+        return read_from_dispatcher(
+            dispatcher, value_padding_length, key, otok, interruptor);
+    }
+    std::string generate_key() {
+        return alpha_key_gen(20);
+    }
+    void report_error(
+            const std::string &key,
+            const std::string &expect,
+            const std::string &actual) {
+        backfill_debug_dump_log(store_key_t(key));
+        test_inserter_t::report_error(key, expect, actual);
+    }
+    primary_dispatcher_t *dispatcher;
+    size_t value_padding_length;
+};
+
+region_map_t<version_t> get_store_version_map(store_view_t *store) {
+    read_token_t token;
+    store->new_read_token(&token);
+    cond_t non_interruptor;
+    return to_version_map(store->get_metainfo(
+        order_token_t::ignore, &token, store->get_region(), &non_interruptor));
+}
+
+backfill_config_t unlimited_queues_config() {
+    backfill_config_t c;
+    c.item_queue_mem_size = GIGABYTE;
+    c.pre_item_queue_mem_size = GIGABYTE;
+    return c;
+}
+
+/* `backfill_test_config_t` is the parameters for the backfill test. Passing different
+`backfill_test_config_t`s to `run_backfill_test()` will exercise different code paths in
+the backfill logic. */
+class backfill_test_config_t {
+public:
+    /* Most of the tests are minor variations on the default backfill config. */
+    backfill_test_config_t() :
+        value_padding_length(100),
+        num_initial_writes(500),
+        num_step_writes(100),
+        stream_during_backfill(true),
+        min_preempt_ms(200),
+        max_preempt_ms(1000)
+        { }
+
+    /* `value_padding_length` is the amount of extra padding to add to each document, in
+    addition to the ~30 bytes for the key and the value. */
+    size_t value_padding_length;
+
+    /* `num_initial_writes` is the number of writes to send when filling up the first
+    B-tree. */
+    int num_initial_writes;
+
+    /* `num_step_writes` is the number of writes to do between each pair of backfills. */
+    int num_step_writes;
+
+    /* `stream_during_backfill` controls whether or not we send a continuous stream of
+    online writes during the backfill. */
+    bool stream_during_backfill;
+
+    /* Each phase of the backfill will be allowed to run for a random time between
+    `min_preempt_ms` and `max_preempt_ms` before being preempted. */
+    int min_preempt_ms, max_preempt_ms;
+
+    /* This controls the queue sizes, etc. in the backfill logic. */
+    backfill_config_t backfill;
+};
+
+/* `stress_backfill_throttler_t` allows each backfill to run for a random amount of time
+before preempting it. */
+class stress_backfill_throttler_t : public backfill_throttler_t {
+public:
+    explicit stress_backfill_throttler_t(const backfill_test_config_t &_config) :
+        config(_config) { }
+    ~stress_backfill_throttler_t() {
+        guarantee(drainers.empty());
+    }
+
+private:
+    void enter(lock_t *lock, signal_t *) {
+        assert_thread();   /* this unit test is single-threaded */
+        drainers[lock].init(new auto_drainer_t);
+        auto_drainer_t::lock_t keepalive(drainers[lock].get());
+        coro_t::spawn_sometime([this, lock, keepalive   /* important to capture */]() {
+            try {
+                int time = config.min_preempt_ms +
+                    randint(config.max_preempt_ms - config.min_preempt_ms + 1);
+                nap(time, keepalive.get_drain_signal());
+                preempt(lock);
+            } catch (const interrupted_exc_t &) {
+                /* ignore */
+            }
+        });
+    }
+
+    void exit(lock_t *lock) {
+        assert_thread();
+        size_t res = drainers.erase(lock);
+        guarantee(res == 1);
+    }
+
+    backfill_test_config_t config;
+    std::map<lock_t *, scoped_ptr_t<auto_drainer_t> > drainers;
+};
+
+void run_backfill_test(const backfill_test_config_t &cfg) {
+
+    backfill_debug_clear_log();
+
     order_source_t order_source;
-
-    /* Set up a cluster so mailboxes can be created */
     simple_mailbox_cluster_t cluster;
-
-    /* Set up branch history manager */
-    in_memory_branch_history_manager_t branch_history_manager;
-
-    // io backender
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
-
     extproc_pool_t extproc_pool(2);
     rdb_context_t ctx(&extproc_pool, NULL);
-
-    /* Set up a broadcaster and initial listener */
-    test_store_t initial_store(&io_backender, &order_source, &ctx);
-
-    cond_t interruptor;
-
-    scoped_ptr_t<broadcaster_t> broadcaster(
-        new broadcaster_t(
-            cluster.get_mailbox_manager(),
-            &ctx,
-            &branch_history_manager,
-            &initial_store.store,
-            &get_global_perfmon_collection(),
-            &order_source,
-            &interruptor));
-
-    watchable_variable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > broadcaster_business_card_watchable_variable(boost::optional<boost::optional<broadcaster_business_card_t> >(boost::optional<broadcaster_business_card_t>(broadcaster->get_business_card())));
-
-    scoped_ptr_t<listener_t> initial_listener(new listener_t(
-        base_path_t("."), //TODO is it bad that this isn't configurable?
-        &io_backender,
-        cluster.get_mailbox_manager(),
-        generate_uuid(),
-        broadcaster_business_card_watchable_variable.get_watchable(),
-        &branch_history_manager,
-        broadcaster.get(),
-        &get_global_perfmon_collection(),
-        &interruptor,
-        &order_source));
-
-    fun(std::make_pair(&io_backender, &cluster),
-        &branch_history_manager,
-        broadcaster_business_card_watchable_variable.get_watchable(),
-        &broadcaster,
-        &initial_store,
-        &initial_listener,
-        &ctx,
-        &order_source);
-}
-
-void run_in_thread_pool_with_broadcaster(
-        std::function< void(std::pair<io_backender_t *, simple_mailbox_cluster_t *>,
-                            branch_history_manager_t *,
-                            clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > >,
-                            scoped_ptr_t<broadcaster_t> *,
-                            test_store_t *,
-                            scoped_ptr_t<listener_t> *,
-                            rdb_context_t *,
-                            order_source_t *)> fun)
-{
-    extproc_spawner_t extproc_spawner;
-    run_in_thread_pool(std::bind(&run_with_broadcaster, fun));
-}
-
-
-/* `PartialBackfill` backfills only in a specific sub-region. */
-
-ql::datum_t generate_document(size_t value_padding_length, const std::string &value) {
-    ql::configured_limits_t limits;
-    // This is a kind of hacky way to add an object to a map but I'm not sure
-    // anyone really cares.
-    return ql::to_datum(scoped_cJSON_t(cJSON_Parse(strprintf("{\"id\" : %s, \"padding\" : \"%s\"}",
-                                                             value.c_str(),
-                                                             std::string(value_padding_length, 'a').c_str()).c_str())).get(),
-                        limits, reql_version_t::LATEST);
-}
-
-void write_to_broadcaster(size_t value_padding_length,
-                          broadcaster_t *broadcaster,
-                          const std::string &key,
-                          const std::string &value,
-                          order_token_t otok,
-                          signal_t *) {
-    write_t write(
-            point_write_t(
-                store_key_t(key),
-                generate_document(value_padding_length, value),
-                true),
-            DURABILITY_REQUIREMENT_DEFAULT,
-            profile_bool_t::PROFILE,
-            ql::configured_limits_t());
-
-    fake_fifo_enforcement_t enforce;
-    fifo_enforcer_sink_t::exit_write_t exiter(&enforce.sink, enforce.source.enter_write());
-    class : public broadcaster_t::write_callback_t, public cond_t {
-    public:
-        void on_success(const write_response_t &) {
-            pulse();
-        }
-        void on_failure(UNUSED bool might_have_been_run) {
-            EXPECT_TRUE(false);
-        }
-    } write_callback;
     cond_t non_interruptor;
-    fake_ack_checker_t ack_checker(1);
-    broadcaster->spawn_write(write, &exiter, otok, &write_callback, &non_interruptor, &ack_checker);
-    write_callback.wait_lazily_unordered();
-}
 
-void run_backfill_test(size_t value_padding_length,
-                       std::pair<io_backender_t *, simple_mailbox_cluster_t *> io_backender_and_cluster,
-                       branch_history_manager_t *branch_history_manager,
-                       clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > > broadcaster_metadata_view,
-                       scoped_ptr_t<broadcaster_t> *broadcaster,
-                       test_store_t *,
-                       scoped_ptr_t<listener_t> *initial_listener,
-                       rdb_context_t *ctx,
-                       order_source_t *order_source) {
-    io_backender_t *const io_backender = io_backender_and_cluster.first;
-    simple_mailbox_cluster_t *const cluster = io_backender_and_cluster.second;
+    in_memory_branch_history_manager_t bhm;
+    test_store_t store1(&io_backender, &order_source, &ctx);
+    test_store_t store2(&io_backender, &order_source, &ctx);
+    test_store_t store3(&io_backender, &order_source, &ctx);
 
-    recreate_temporary_directory(base_path_t("."));
-    /* Set up a replier so the broadcaster can handle operations */
-    EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
-    replier_t replier(initial_listener->get(), cluster->get_mailbox_manager(), branch_history_manager);
+    std::map<std::string, std::string> first_inserter_state;
 
-    watchable_variable_t<boost::optional<boost::optional<replier_business_card_t> > >
-        replier_business_card_variable(boost::optional<boost::optional<replier_business_card_t> >(boost::optional<replier_business_card_t>(replier.get_business_card())));
-
-    /* Start sending operations to the broadcaster */
-    std::map<std::string, std::string> inserter_state;
-    test_inserter_t inserter(
-        std::bind(&write_to_broadcaster, value_padding_length, broadcaster->get(),
-                  ph::_1, ph::_2, ph::_3, ph::_4),
-        std::function<std::string(const std::string &, order_token_t, signal_t *)>(),
-        &mc_key_gen,
-        order_source,
-        "rdb_backfill run_partial_backfill_test inserter",
-        &inserter_state);
-    nap(10000);
-
-    backfill_throttler_t backfill_throttler;
-
-    /* Set up a second mirror */
-    test_store_t store2(io_backender, order_source, ctx);
-    cond_t interruptor;
-    listener_t listener2(
-        base_path_t("."),
-        io_backender,
-        cluster->get_mailbox_manager(),
-        generate_uuid(),
-        &backfill_throttler,
-        broadcaster_metadata_view,
-        branch_history_manager,
-        &store2.store,
-        replier_business_card_variable.get_watchable(),
-        &get_global_perfmon_collection(),
-        &interruptor,
-        order_source,
-        nullptr);
-
-    EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
-    EXPECT_FALSE(listener2.get_broadcaster_lost_signal()->is_pulsed());
-
-    nap(10000);
-
-    /* Stop the inserter, then let any lingering writes finish */
-    inserter.stop();
-    /* Let any lingering writes finish */
-    // TODO: 100 seconds?
-    nap(100000);
-
-    for (std::map<std::string, std::string>::iterator it = inserter_state.begin();
-            it != inserter_state.end(); it++) {
-        read_t read(point_read_t(store_key_t(it->first)), profile_bool_t::PROFILE);
-        fake_fifo_enforcement_t enforce;
-        fifo_enforcer_sink_t::exit_read_t exiter(&enforce.sink, enforce.source.enter_read());
-        cond_t non_interruptor;
-        read_response_t response;
-        broadcaster->get()->read(read, &response, &exiter, order_source->check_in("unittest::(rdb)run_partial_backfill_test").with_read_mode(), &non_interruptor);
-        point_read_response_t get_result = boost::get<point_read_response_t>(response.response);
-        EXPECT_TRUE(get_result.data.has());
-        EXPECT_EQ(generate_document(value_padding_length,
-                                     it->second),
-                  get_result.data);
-    }
-}
-
-TEST(RDBProtocolBackfill, Backfill) {
-     run_in_thread_pool_with_broadcaster(
-             std::bind(&run_backfill_test, 0, ph::_1, ph::_2, ph::_3,
-                       ph::_4, ph::_5, ph::_6, ph::_7, ph::_8));
-}
-
-TEST(RDBProtocolBackfill, BackfillLargeValues) {
-     run_in_thread_pool_with_broadcaster(
-             std::bind(&run_backfill_test, 300, ph::_1, ph::_2, ph::_3, ph::_4,
-                       ph::_5, ph::_6, ph::_7, ph::_8));
-}
-
-void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster_t *> io_backender_and_cluster,
-                              branch_history_manager_t *branch_history_manager,
-                              clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t> > > > broadcaster_metadata_view,
-                              scoped_ptr_t<broadcaster_t> *broadcaster,
-                              test_store_t *,
-                              scoped_ptr_t<listener_t> *initial_listener,
-                              rdb_context_t *ctx,
-                              order_source_t *order_source) {
-    io_backender_t *const io_backender = io_backender_and_cluster.first;
-    backfill_throttler_t backfill_throttler;
-    simple_mailbox_cluster_t *const cluster = io_backender_and_cluster.second;
-
-    recreate_temporary_directory(base_path_t("."));
-    /* Set up a replier so the broadcaster can handle operations */
-    EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
-    replier_t replier(initial_listener->get(), cluster->get_mailbox_manager(), branch_history_manager);
-    nap(100);   /* make time for the broadcaster to find out about the replier */
-
-    watchable_variable_t<boost::optional<boost::optional<replier_business_card_t> > >
-        replier_business_card_variable(boost::optional<boost::optional<replier_business_card_t> >(boost::optional<replier_business_card_t>(replier.get_business_card())));
-
-    std::string id("sid");
     {
-        /* Create a secondary index object. */
-        const ql::sym_t one(1);
-        ql::protob_t<const Term> mapping = ql::r::var(one)["id"].release_counted();
-        ql::map_wire_func_t m(mapping, make_vector(one), ql::backtrace_id_t::empty());
+        /* Set up `store1` as the primary and start streaming writes to it */
+        primary_dispatcher_t dispatcher(
+            &get_global_perfmon_collection(),
+            region_map_t<version_t>(region_t::universe(), version_t::zero()));
 
-        write_t write(sindex_create_t(id, m, sindex_multi_bool_t::SINGLE,
-                                      sindex_geo_bool_t::REGULAR),
-                      profile_bool_t::PROFILE, ql::configured_limits_t());
+        local_replicator_t local_replicator(cluster.get_mailbox_manager(),
+            generate_uuid(), &dispatcher, &store1.store, &bhm, &non_interruptor);
 
-        fake_fifo_enforcement_t enforce;
-        fifo_enforcer_sink_t::exit_write_t exiter(
-            &enforce.sink, enforce.source.enter_write());
-        class : public broadcaster_t::write_callback_t, public cond_t {
-        public:
-            void on_success(const write_response_t &) {
-                pulse();
+        dispatcher_inserter_t inserter(
+            &dispatcher, &order_source, cfg.value_padding_length, &first_inserter_state,
+            false);
+        backfill_debug_all("begin insert store1");
+        inserter.insert(cfg.num_initial_writes);
+        backfill_debug_all("end insert store1");
+
+        /* Set up `store2` and `store3` as secondaries. Backfill and then wait some time,
+        but then unsubscribe. */
+        {
+            if (cfg.stream_during_backfill) {
+                inserter.start();
             }
-            void on_failure(UNUSED bool might_have_been_run) {
-                EXPECT_TRUE(false);
+
+            remote_replicator_server_t remote_replicator_server(
+                cluster.get_mailbox_manager(),
+                &dispatcher);
+
+            stress_backfill_throttler_t backfill_throttler(cfg);
+            backfill_debug_all("begin backfill store1 -> store2");
+            backfill_progress_tracker_t backfill_progress_tracker;
+            remote_replicator_client_t remote_replicator_client_2(&backfill_throttler,
+                cfg.backfill, &backfill_progress_tracker, cluster.get_mailbox_manager(),
+                generate_uuid(), backfill_throttler_t::priority_t::critical_t::NO,
+                dispatcher.get_branch_id(), remote_replicator_server.get_bcard(),
+                local_replicator.get_replica_bcard(), generate_uuid(), &store2.store,
+                &bhm, &non_interruptor);
+            backfill_debug_all("end backfill store1 -> store2");
+            backfill_debug_all("begin backfill store1 -> store3");
+            remote_replicator_client_t remote_replicator_client_3(&backfill_throttler,
+                cfg.backfill, &backfill_progress_tracker, cluster.get_mailbox_manager(),
+                generate_uuid(), backfill_throttler_t::priority_t::critical_t::NO,
+                dispatcher.get_branch_id(), remote_replicator_server.get_bcard(),
+                local_replicator.get_replica_bcard(), generate_uuid(), &store3.store,
+                &bhm, &non_interruptor);
+            backfill_debug_all("end backfill store1 -> store3");
+
+            if (cfg.stream_during_backfill) {
+                inserter.stop();
             }
-        } write_callback;
-        cond_t non_interruptor;
-        fake_ack_checker_t ack_checker(1);
-        broadcaster->get()->spawn_write(write, &exiter, order_token_t::ignore,
-                                        &write_callback, &non_interruptor, &ack_checker);
-        write_callback.wait_lazily_unordered();
+        }
+
+        /* Keep running writes on `store1` for a bit longer, so that `store1` will be
+        ahead of `store2` and `store3`. */
+        backfill_debug_all("begin insert store1");
+        inserter.insert(cfg.num_step_writes);
+        backfill_debug_all("end insert store1");
     }
 
-    /* Start sending operations to the broadcaster */
-    std::map<std::string, std::string> inserter_state;
-    test_inserter_t inserter(
-        std::bind(&write_to_broadcaster, 0, broadcaster->get(),
-                  ph::_1, ph::_2, ph::_3, ph::_4),
-        std::function<std::string(const std::string &, order_token_t, signal_t *)>(),
-        &mc_key_gen,
-        order_source,
-        "rdb_backfill run_partial_backfill_test inserter",
-        &inserter_state);
-    nap(10000);
+    std::map<std::string, std::string> second_inserter_state;
 
-    /* Set up a second mirror */
-    test_store_t store2(io_backender, order_source, ctx);
-    cond_t interruptor;
-    listener_t listener2(
-        base_path_t("."),
-        io_backender,
-        cluster->get_mailbox_manager(),
-        generate_uuid(),
-        &backfill_throttler,
-        broadcaster_metadata_view,
-        branch_history_manager,
-        &store2.store,
-        replier_business_card_variable.get_watchable(),
-        &get_global_perfmon_collection(),
-        &interruptor,
-        order_source,
-        nullptr);
+    {
+        /* Now set up `store2` as the primary */
+        primary_dispatcher_t dispatcher(
+            &get_global_perfmon_collection(),
+            get_store_version_map(&store2.store));
 
-    EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
-    EXPECT_FALSE(listener2.get_broadcaster_lost_signal()->is_pulsed());
+        local_replicator_t local_replicator(cluster.get_mailbox_manager(),
+            generate_uuid(), &dispatcher, &store2.store, &bhm, &non_interruptor);
 
-    nap(10000);
+        /* Find the subset of `first_inserter_state` that's actually present in `store2`
+        */
+        for (const auto &pair : first_inserter_state) {
+            std::string res = read_from_dispatcher(&dispatcher, cfg.value_padding_length,
+                pair.first, order_token_t::ignore, &non_interruptor);
+            if (!res.empty()) {
+                second_inserter_state[pair.first] = res;
+            }
+        }
 
-    /* Stop the inserter, then let any lingering writes finish */
-    inserter.stop();
-    /* Let any lingering writes finish */
-    // TODO: 100 seconds?
-    nap(100000);
+        /* OK, now start performing some writes on `store2` */
+        dispatcher_inserter_t inserter(
+            &dispatcher, &order_source, cfg.value_padding_length, &second_inserter_state,
+            false);
+        backfill_debug_all("begin insert store2");
+        inserter.insert(cfg.num_step_writes);
+        backfill_debug_all("end insert store2");
 
-    for (std::map<std::string, std::string>::iterator it = inserter_state.begin();
-            it != inserter_state.end(); it++) {
-        scoped_cJSON_t sindex_key_json(cJSON_Parse(it->second.c_str()));
-        auto sindex_key_literal = ql::to_datum(sindex_key_json.get(),
-                                               ql::configured_limits_t(),
-                                               reql_version_t::LATEST);
-        read_t read = make_sindex_read(sindex_key_literal, id);
-        fake_fifo_enforcement_t enforce;
-        fifo_enforcer_sink_t::exit_read_t exiter(&enforce.sink, enforce.source.enter_read());
-        cond_t non_interruptor;
-        read_response_t response;
-        broadcaster->get()->read(read, &response, &exiter, order_source->check_in("unittest::(rdb)run_partial_backfill_test").with_read_mode(), &non_interruptor);
-        rget_read_response_t get_result = boost::get<rget_read_response_t>(response.response);
-        auto groups = boost::get<ql::grouped_t<ql::stream_t> >(&get_result.result);
-        ASSERT_TRUE(groups != NULL);
-        ASSERT_EQ(1, groups->size());
-        // Order doesn't matter because groups->size() is 1.
-        auto result_stream = &groups->begin(ql::grouped::order_doesnt_matter_t())->second;
-        ASSERT_EQ(1u, result_stream->size());
-        EXPECT_EQ(generate_document(0, it->second), result_stream->at(0).data);
+        if (cfg.stream_during_backfill) {
+            inserter.start();
+        }
+
+        /* Set up `store1` as the secondary. So this backfill will require `store1` to
+        reverse the writes that were performed earlier. */
+        remote_replicator_server_t remote_replicator_server(
+            cluster.get_mailbox_manager(),
+            &dispatcher);
+
+        stress_backfill_throttler_t backfill_throttler(cfg);
+        backfill_debug_all("begin backfill store2 -> store1");
+        backfill_progress_tracker_t backfill_progress_tracker;
+        remote_replicator_client_t remote_replicator_client(&backfill_throttler,
+            cfg.backfill, &backfill_progress_tracker, cluster.get_mailbox_manager(),
+            generate_uuid(), backfill_throttler_t::priority_t::critical_t::NO,
+            dispatcher.get_branch_id(), remote_replicator_server.get_bcard(),
+            local_replicator.get_replica_bcard(), generate_uuid(), &store1.store, &bhm,
+            &non_interruptor);
+        backfill_debug_all("end backfill store2 -> store1");
+
+        if (cfg.stream_during_backfill) {
+            inserter.stop();
+        }
+        inserter.validate();
+    }
+
+    {
+        /* Set up `store1` as the primary again */
+        primary_dispatcher_t dispatcher(
+            &get_global_perfmon_collection(),
+            get_store_version_map(&store1.store));
+
+        local_replicator_t local_replicator(cluster.get_mailbox_manager(),
+            generate_uuid(), &dispatcher, &store1.store, &bhm, &non_interruptor);
+
+        /* Validate the state of `store1` to make sure
+        that the backfill was completely correct */
+        dispatcher_inserter_t inserter(
+            &dispatcher, &order_source, cfg.value_padding_length, &second_inserter_state,
+            false);
+        inserter.validate();
+        inserter.validate_no_extras(first_inserter_state);
+
+        if (cfg.stream_during_backfill) {
+            inserter.start();
+        }
+
+        /* Bring back up `store3`. This backfill will test transferring data from
+        `store2` to `store3` via `store1`. */
+        remote_replicator_server_t remote_replicator_server(
+            cluster.get_mailbox_manager(),
+            &dispatcher);
+
+        stress_backfill_throttler_t backfill_throttler(cfg);
+        backfill_debug_all("begin backfill store1 -> store3");
+        backfill_progress_tracker_t backfill_progress_tracker;
+        remote_replicator_client_t remote_replicator_client(&backfill_throttler,
+            cfg.backfill, &backfill_progress_tracker, cluster.get_mailbox_manager(),
+            generate_uuid(), backfill_throttler_t::priority_t::critical_t::NO,
+            dispatcher.get_branch_id(), remote_replicator_server.get_bcard(),
+            local_replicator.get_replica_bcard(), generate_uuid(), &store3.store, &bhm,
+            &non_interruptor);
+        backfill_debug_all("end backfill store1 -> store3");
+
+        if (cfg.stream_during_backfill) {
+            inserter.stop();
+        }
+    }
+
+    {
+        /* Finally, set up `store3` as primary so that we can test its state */
+        primary_dispatcher_t dispatcher(
+            &get_global_perfmon_collection(),
+            get_store_version_map(&store3.store));
+
+        local_replicator_t local_replicator(cluster.get_mailbox_manager(),
+            generate_uuid(), &dispatcher, &store3.store, &bhm, &non_interruptor);
+
+        /* Validate the state of `store3` to make sure that the backfill was completely
+        correct */
+        dispatcher_inserter_t inserter(
+            &dispatcher, &order_source, cfg.value_padding_length, &second_inserter_state,
+            false);
+        inserter.validate();
+        inserter.validate_no_extras(first_inserter_state);
     }
 }
 
-TEST(RDBProtocolBackfill, SindexBackfill) {
-     run_in_thread_pool_with_broadcaster(&run_sindex_backfill_test);
+/* This test does 3000 initial inserts and 3000 changes between every pair of backfills,
+which will make it likely that many complete leaf nodes will be re-backfilled. */
+TPTEST(RDBBackfill, DenseChanges) {
+    backfill_test_config_t cfg;
+    cfg.num_initial_writes = 3000;
+    cfg.num_step_writes = 3000;
+    run_backfill_test(cfg);
+}
+
+/* This test does 3000 initial writes but only 10 writes between ever pair of backfills,
+so many leaf nodes will have only one or two changes. */
+TPTEST(RDBBackfill, SparseChanges) {
+    backfill_test_config_t cfg;
+    cfg.num_initial_writes = 3000;
+    cfg.num_step_writes = 10;
+    /* Disable streaming during the backfill because we can't control how many writes
+    will happen that way */
+    cfg.stream_during_backfill = false;
+    run_backfill_test(cfg);
+}
+
+TPTEST(RDBBackfill, LargeValues) {
+    /* Make sure that the backfill works even with values that don't fit in the leaf
+    node. */
+    backfill_test_config_t cfg;
+    cfg.value_padding_length = 16 * KILOBYTE;
+    run_backfill_test(cfg);
+}
+
+TPTEST(RDBBackfill, VeryLargeValues) {
+    /* Stress-test the system for super-large values. */
+    backfill_test_config_t cfg;
+    cfg.value_padding_length = 100 * MEGABYTE;
+    /* Because each individual value is so expensive to backfill, don't do very many of
+    them */
+    cfg.num_initial_writes = 1;
+    cfg.num_step_writes = 1;
+    cfg.stream_during_backfill = false;
+    run_backfill_test(cfg);
+}
+
+TPTEST(RDBBackfill, SmallValues) {
+    /* The opposite extreme from `LargeValues`: fit as many values into each leaf node as
+    possible. */
+    backfill_test_config_t cfg;
+    cfg.value_padding_length = 0;
+    run_backfill_test(cfg);
+}
+
+TPTEST(RDBBackfill, LargeTable) {
+    /* This approximates a realistic backfill scenario. So we insert a relatively large
+    number of keys. */
+    backfill_test_config_t cfg;
+    cfg.num_initial_writes = 50000;
+    cfg.num_step_writes = 1000;
+    run_backfill_test(cfg);
+}
+
+TPTEST(RDBBackfill, EmptyTable) {
+    /* Test the corner case where no data is actually present; we take a different code
+    path if the B-tree has no root node. */
+    backfill_test_config_t cfg;
+    cfg.num_initial_writes = cfg.num_step_writes = 0;
+    cfg.stream_during_backfill = false;
+    run_backfill_test(cfg);
+}
+
+TPTEST(RDBBackfill, NearEmptyTable) {
+    /* Test the corner case where almost no data is actually present. This test probably
+    isn't useful, but it runs very fast, so there's little cost to having it. */
+    backfill_test_config_t cfg;
+    cfg.num_initial_writes = cfg.num_step_writes = 1;
+    cfg.stream_during_backfill = false;
+    run_backfill_test(cfg);
+}
+
+TPTEST(RDBBackfill, FillItemQueue) {
+    /* Force the item queue to fill up, but make the pre-item queue unlimited and never
+    preempt. */
+    backfill_test_config_t cfg;
+    cfg.backfill.item_queue_mem_size = 1;
+    cfg.backfill.item_chunk_mem_size = 1;
+    cfg.backfill.pre_item_queue_mem_size = GIGABYTE;
+    cfg.min_preempt_ms = cfg.max_preempt_ms = 60 * 60 * 1000;
+    /* Since the item queue will stall a lot, this backfill will be much slower than
+    normal; so we backfill fewer items to speed up the test. */
+    cfg.num_initial_writes = 100;
+    cfg.num_step_writes = 10;
+    run_backfill_test(cfg);
+}
+
+TPTEST(RDBBackfill, FillPreItemQueue) {
+    /* Force the pre-item queue to fill up, but make the item queue unlimited and never
+    preempt. */
+    backfill_test_config_t cfg;
+    cfg.backfill.pre_item_queue_mem_size = 1;
+    cfg.backfill.pre_item_chunk_mem_size = 1;
+    cfg.backfill.item_queue_mem_size = GIGABYTE;
+    cfg.min_preempt_ms = cfg.max_preempt_ms = 60 * 60 * 1000;
+    /* Since the pre-item queue will stall a lot, this backfill will be much slower than
+    normal; so we backfill fewer items to speed up the test. */
+    cfg.num_initial_writes = 100;
+    cfg.num_step_writes = 100;
+    run_backfill_test(cfg);
+}
+
+TPTEST(RDBBackfill, PreemptOften) {
+    /* Force the backfill to be preempted after every single backfill item, just to
+    stress the system */
+    backfill_test_config_t cfg;
+    cfg.min_preempt_ms = cfg.max_preempt_ms = 0;
+    run_backfill_test(cfg);
+}
+
+TPTEST(RDBBackfill, FillBothQueuesAndPreemptOften) {
+    /* Make both the queues very small and also preempt often, just to stress the system.
+    */
+    backfill_test_config_t cfg;
+    cfg.backfill.item_queue_mem_size = 1;
+    cfg.backfill.item_chunk_mem_size = 1;
+    cfg.backfill.pre_item_queue_mem_size = 1;
+    cfg.backfill.pre_item_chunk_mem_size = 1;
+    cfg.min_preempt_ms = cfg.max_preempt_ms = 0;
+    /* Speed up the test by backfilling fewer items */
+    cfg.num_initial_writes = 100;
+    cfg.num_step_writes = 10;
+    run_backfill_test(cfg);
 }
 
 }   /* namespace unittest */
+

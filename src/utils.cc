@@ -4,7 +4,7 @@
 #include <math.h>
 #include <fcntl.h>
 #include <limits.h>
-#include <locale.h>	
+#include <locale.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <inttypes.h>
@@ -103,6 +103,10 @@ void print_hexddump(const void *vbuf, size_t offset, size_t ulength) {
     flockfile(stderr);
 #endif
 
+    if (ulength == 0) {
+        fprintf(stderr, "(data length is zero)\n");
+    }
+
     const char *buf = reinterpret_cast<const char *>(vbuf);
     ssize_t length = ulength;
 
@@ -193,7 +197,7 @@ std::string format_time(struct timespec time, local_or_utc_time_t zone) {
 }
 
 bool parse_time(const std::string &str, local_or_utc_time_t zone,
-        struct timespec *out, std::string *errmsg_out) {
+                struct timespec *out, std::string *errmsg_out) {
     struct tm t;
     struct timespec time;
     int res1 = sscanf(str.c_str(),
@@ -326,6 +330,7 @@ int rng_t::randint(int n) {
 
 uint64_t rng_t::randuint64(uint64_t n) {
 #ifndef _WIN32
+    guarantee(n > 0, "non-positive argument for randint's [0,n) interval");
     uint32_t x_low = jrand48(state.data());  // NOLINT(runtime/int)
     uint32_t x_high = jrand48(state.data());  // NOLINT(runtime/int)
     uint64_t x = x_high;
@@ -363,14 +368,15 @@ void system_random_bytes(void *out, int64_t nbytes) {
 }
 
 int randint(int n) {
-	return TLS_get_rng().randint(n);
+    return TLS_get_rng().randint(n);
 }
 
 uint64_t randuint64(uint64_t n) {
-	return TLS_get_rng().randuint64(n);
+    return TLS_get_rng().randuint64(n);
 }
 
 size_t randsize(size_t n) {
+    guarantee(n > 0, "non-positive argument for randint's [0,n) interval");
     size_t ret = 0;
     size_t i = SIZE_MAX;
     while (i != 0) {

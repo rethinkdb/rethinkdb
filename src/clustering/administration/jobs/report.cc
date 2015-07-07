@@ -6,7 +6,7 @@
 bool convert_job_type_and_id_from_datum(ql::datum_t primary_key,
                                         std::string *type_out,
                                         uuid_u *id_out) {
-    std::string error;
+    admin_err_t error;
     return primary_key.get_type() == ql::datum_t::R_ARRAY &&
            primary_key.arr_size() == 2 &&
            convert_string_from_datum(primary_key.get(0), type_out, &error) &&
@@ -36,6 +36,7 @@ void disk_compaction_job_report_t::merge_derived(
 bool disk_compaction_job_report_t::info_derived(
         UNUSED admin_identifier_format_t identifier_format,
         UNUSED server_config_client_t *server_config_client,
+        UNUSED table_meta_client_t *table_meta_client,
         UNUSED cluster_semilattice_metadata_t const &metadata,
         UNUSED ql::datum_object_builder_t *info_builder_out) const {
     return true;
@@ -76,6 +77,7 @@ void backfill_job_report_t::merge_derived(
 bool backfill_job_report_t::info_derived(
         admin_identifier_format_t identifier_format,
         server_config_client_t *server_config_client,
+        table_meta_client_t *table_meta_client,
         cluster_semilattice_metadata_t const &metadata,
         ql::datum_object_builder_t *info_builder_out) const {
     if (is_ready) {
@@ -88,6 +90,7 @@ bool backfill_job_report_t::info_derived(
             table,
             identifier_format,
             metadata,
+            table_meta_client,
             &table_name_or_uuid,
             nullptr,
             &db_name_or_uuid,
@@ -98,7 +101,7 @@ bool backfill_job_report_t::info_derived(
     info_builder_out->overwrite("db", db_name_or_uuid);
 
     ql::datum_t source_server_name_or_uuid;
-    if (convert_server_id_to_datum(
+    if (convert_connected_server_id_to_datum(
             source_server,
             identifier_format,
             server_config_client,
@@ -110,7 +113,7 @@ bool backfill_job_report_t::info_derived(
     }
 
     ql::datum_t destination_server_name_or_uuid;
-    if (convert_server_id_to_datum(
+    if (convert_connected_server_id_to_datum(
             destination_server,
             identifier_format,
             server_config_client,
@@ -151,14 +154,15 @@ index_construction_job_report_t::index_construction_job_report_t(
         namespace_id_t const &_table,
         std::string const &_index,
         bool _is_ready,
-        double _progress)
+        double _progress_numerator,
+        double _progress_denominator)
     : job_report_base_t<index_construction_job_report_t>(
         "index_construction", _id, _duration, _server_id),
       table(_table),
       index(_index),
       is_ready(_is_ready),
-      progress_numerator(_progress),
-      progress_denominator(1.0) { }
+      progress_numerator(_progress_numerator),
+      progress_denominator(_progress_denominator) { }
 
 void index_construction_job_report_t::merge_derived(
        index_construction_job_report_t const &job_report) {
@@ -170,6 +174,7 @@ void index_construction_job_report_t::merge_derived(
 bool index_construction_job_report_t::info_derived(
         admin_identifier_format_t identifier_format,
         UNUSED server_config_client_t *server_config_client,
+        table_meta_client_t *table_meta_client,
         cluster_semilattice_metadata_t const &metadata,
         ql::datum_object_builder_t *info_builder_out) const {
     if (is_ready) {
@@ -182,6 +187,7 @@ bool index_construction_job_report_t::info_derived(
             table,
             identifier_format,
             metadata,
+            table_meta_client,
             &table_name_or_uuid,
             nullptr,
             &db_name_or_uuid,
@@ -193,7 +199,9 @@ bool index_construction_job_report_t::info_derived(
 
     info_builder_out->overwrite("index", convert_string_to_datum(index));
     info_builder_out->overwrite("progress",
-        ql::datum_t(progress_numerator / progress_denominator));
+        ql::datum_t(progress_denominator == 0
+            ? 0
+            : progress_numerator / progress_denominator));
 
     return true;
 }
@@ -228,6 +236,7 @@ void query_job_report_t::merge_derived(query_job_report_t const &) { }
 bool query_job_report_t::info_derived(
         UNUSED admin_identifier_format_t identifier_format,
         UNUSED server_config_client_t *server_config_client,
+        UNUSED table_meta_client_t *table_meta_client,
         UNUSED cluster_semilattice_metadata_t const &metadata,
         ql::datum_object_builder_t *info_builder_out) const {
     info_builder_out->overwrite("client_address",
@@ -241,3 +250,7 @@ bool query_job_report_t::info_derived(
 
 RDB_IMPL_SERIALIZABLE_6_FOR_CLUSTER(
     query_job_report_t, type, id, duration, servers, client_addr_port, query);
+
+RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(jobs_manager_business_card_t,
+                                    get_job_reports_mailbox_address,
+                                    job_interrupt_mailbox_address);

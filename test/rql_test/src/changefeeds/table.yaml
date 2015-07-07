@@ -56,11 +56,13 @@ tests:
     
     # - changes overflow
 #      
-# ToDo: enable this when we can reduce the number of items to generate the overflow
+# ToDo: enable this when we can reduce the number of items to generate the overflow #3607
 #      
 #    - cd: overflow = tbl.changes()
-#    # add more than 100,000 entries to make sure we get the overflow error
-#    - cd: r.between(1, 100002).for_each(tbl.insert({}))
+#    # add enough entries to make sure we get the overflow error
+#    - js: tbl.insert(r.range(100,002).map(function(x) { return({}); }), {durability:"soft"})
+#      py: tbl.insert(r.range(100,002).map(lambda x: {}), durability="soft")
+#      rb: tbl.insert(r.range(100,002).map(|x| {}), :durability=>"soft")
 #    - cd: overflow
 #      ot: error(RqlDriverError, 'Changefeed cache over array size limit, skipped 1 elements.')
 

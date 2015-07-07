@@ -28,12 +28,12 @@ alt_cache_balancer_t::alt_cache_balancer_t(
     read_ahead_ok(true),
     bytes_toward_read_ahead_limit(0),
     per_thread_data(get_num_threads()),
-    rebalance_pool(1, &pool_queue, this),
+    rebalance_pumper([this](signal_t *interruptor) { rebalance_blocking(interruptor); }),
     cache_size_change_subscription(
         [this]() {
             last_rebalance_time = 0;
             wake_up_activity_happened();
-            pool_queue.give_value(alt_cache_balancer_dummy_value_t());
+            rebalance_pumper.notify();
         })
 {
     watchable_t<uint64_t>::freeze_t freeze(total_cache_size_watchable);
@@ -84,11 +84,11 @@ void alt_cache_balancer_t::on_ring() {
     assert_thread();
 
     // Can't block in this callback, spawn a new coroutine
-    // Using this coro_pool, we only have one rebalance going at once
-    pool_queue.give_value(alt_cache_balancer_dummy_value_t());
+    // Using this `pump_coro_t`, we only have one rebalance going at once
+    rebalance_pumper.notify();
 }
 
-void alt_cache_balancer_t::coro_pool_callback(alt_cache_balancer_dummy_value_t, UNUSED signal_t *interruptor) {
+void alt_cache_balancer_t::rebalance_blocking(UNUSED signal_t *interruptor) {
     assert_thread();
 
     if (rebalance_timer_state != rebalance_timer_state_t::normal) {

@@ -21,7 +21,6 @@ public:
         : block_size_(movee.block_size_),
           ser_buffer_(std::move(movee.ser_buffer_)) {
         movee.block_size_ = block_size_t::undefined();
-        movee.ser_buffer_.reset();
     }
 
     buf_ptr_t(block_size_t size,
