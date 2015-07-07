@@ -25,7 +25,9 @@ bool wait_for_table_readiness(
             interruptor);
         if (ok && readiness == table_readiness_t::finished) {
             try {
-                table_meta_client->get_shard_status(table_id, interruptor, nullptr, &ok);
+                table_meta_client->get_shard_status(
+                    table_id, all_replicas_ready_mode_t::VERIFIED, interruptor,
+                    nullptr, &ok);
             } catch (const failed_table_op_exc_t &) {
                 ok = false;
             }
@@ -81,7 +83,8 @@ void get_table_status(
     bool all_replicas_ready;
     try {
         table_meta_client->get_shard_status(
-            table_id, interruptor, &status_out->server_shards, &all_replicas_ready);
+            table_id, all_replicas_ready_mode_t::OUTDATED_OK, interruptor,
+            &status_out->server_shards, &all_replicas_ready);
     } catch (const failed_table_op_exc_t &) {
         all_replicas_ready = false;
         status_out->server_shards.clear();
@@ -106,7 +109,7 @@ void get_table_status(
                             key_range_t::right_bound_t(store_key_t()),
                             key_range_t::right_bound_t::make_unbounded(),
                             std::move(status))));
-                            
+
                 } else {
                     status_out->disconnected.insert(server);
                 }

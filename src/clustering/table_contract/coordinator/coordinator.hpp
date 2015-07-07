@@ -42,8 +42,11 @@ public:
         signal_t *interruptor);
 
     /* Returns `true` if we can confirm that the contracts match the config and all of
-    the contracts are fully executed. */
+    the contracts are fully executed.
+    `check_outdated_all_replicas_ready` skips the expensive test transaction on
+    the raft state. */
     bool check_all_replicas_ready(signal_t *interruptor);
+    bool check_outdated_all_replicas_ready(signal_t *interruptor);
 
 private:
     void on_ack_change(

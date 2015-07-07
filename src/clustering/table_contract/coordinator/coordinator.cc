@@ -95,6 +95,17 @@ bool contract_coordinator_t::check_all_replicas_ready(signal_t *interruptor) {
     return true;
 }
 
+bool contract_coordinator_t::check_outdated_all_replicas_ready(
+        UNUSED signal_t *interruptor) {
+    assert_thread();
+    bool ok;
+    raft->get_latest_state()->apply_read(
+    [&](const raft_member_t<table_raft_state_t>::state_and_config_t *state) {
+        ok = ::check_all_replicas_ready(state->state, acks);
+    });
+    return ok;
+}
+
 void contract_coordinator_t::on_ack_change(
         const std::pair<server_id_t, contract_id_t> &key,
         const contract_ack_t *ack) {
