@@ -46,6 +46,10 @@ public:
         signal_t *interruptor,
         write_response_t *response_out);
 
+    void do_dummy_write(
+        signal_t *interruptor,
+        write_response_t *response_out);
+
 private:
     void on_synchronize(
         signal_t *interruptor,
