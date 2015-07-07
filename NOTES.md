@@ -1,4 +1,4 @@
-# Release 2.1.0-beta (Das Boot)
+# Release 2.1.0-beta (Forbidden Planet)
 
 -- issues up-to-date with the 2.1 milestone as of 2015-07-06 23:00 UTC
 -- contributors " " next as of 3dac994 and docs:master as of 0b661c4
@@ -6,6 +6,7 @@
 Release highlight:
 
 * Automatic failover
+* More flexible administration for servers and tables
 
 Read the [blog post][2.1-beta] for more details.
 
@@ -23,7 +24,7 @@ supported.
 
 * `.split('')` now treats the input as UTF8 instead of an array of bytes.
 * `null` values in compound index are no longer discarded.
-* The new `read_mode` optional argument replaces `use_outdated`
+* The new `read_mode="outdated"` optional argument replaces `use_outdated=True`
 * The format of the system tables has changed
 
 ## New features ##
@@ -33,9 +34,9 @@ supported.
  * Backfills are now interuptible and reversible (#3886, #3885)
  * `table.reconfigure()` now works even if some servers are disconnected (#3913)
  * Replicas can now be marked as voting or non-voting (#3891)
- * Table reconfigurations can now be applied without consensus (#3893)
+ * Added an emergency repair feature to restore table availability if consensus is lost (#3893)
  * Reads can now be made against a majority of replicas (#3895)
- * Added an emergency read mode that extract data under certain failures (#4388)
+ * Added an emergency read mode that extracts data directly from a given replica for data recovery purposes (#4388)
  * Now allow servers to go away without issues if they don't have any responsibilities (#1790)
 * ReQL
  * Added `ceil`, `floor` and `round` (#866)
@@ -50,31 +51,32 @@ supported.
 * Server
  * Improved the handling of membership and removal of servers (#3262, #3897, #1790)
  * Changed the formatting of the `table_status` system table (#3882, #4196)
- * Made `datum_t` movable (#4056)
+ * Improved efficiency by making `datum_t` movable (#4056)
  * ReQL backtraces are now faster and smaller (#2900)
  * Replaced cJSON with rapidjson (#3844)
- * Transparently retry failed meta operations (#4199)
- * Log more cluster events (#3878)
+ * Failed meta operations are now transparently retried (#4199)
+ * Added more detailed logging of cluster events (#3878)
  * Improved unsaved data limit throttling (#4441)
 * ReQL
  * `.split('')` is now UTF8-aware (#2518)
  * Improved the behaviour of compound index values containing `null` (#4146)
  * Errors now distinguish failed writes from indeterminate writes (#4296)
  * `r.union` is now a top-level term (#4030)
+ * `condition.branch(...)` now works just like `r.branch(condition, ...)` (#4438)
 * Web UI
  * Use real dependency management and namespaces (#3465, #3660)
  * Updated to reflect the new clustering features and changes (#4283, #4330, #4288, ...)
 * JavaScript driver
  * The version of bluebird was updated to 2.9.25 (#4178)
 * Python driver
- * Added a `r.__version__` (#3100)
+ * Added an `r.__version__` property (#3100)
 
 ## Bug fixes ##
 
 * Python driver
  * Fixed a missing argument error (#4402)
 * JavaScript driver
- * Better handling of the `db` optional argument to `run` (#4347)
+ * Made the handling of the `db` optional argument to `run` consistent with the Ruby and Python drivers (#4347)
 
 ## Contributors ##
 
