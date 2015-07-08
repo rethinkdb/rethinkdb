@@ -27,12 +27,12 @@ Or get started right away, with one of our language specific guides:
 
 Besides our three official drivers, we also have many [community drivers](http://rethinkdb.com/docs/install-drivers/) supported by the RethinkDB community. Here's a few:
 
-* [Go      GoRethink](https://github.com/dancannon/gorethink) - @dancannon
-* [C#/.NET rethinkdb-net](https://github.com/mfenniak/rethinkdb-net) - @mfenniak
-* [PHP     php-rql](https://github.com/danielmewes/php-rql) - @danielmewes
-* [Scala   rethink-scala](https://github.com/kclay/rethink-scala) - @kclay
-* [Clojure clj-rethinkdb](https://github.com/apa512/clj-rethinkdb) - @apa512
-* [Haskell haskeel-rethinkdb](https://github.com/atnnn/haskell-rethinkdb) - @atnnn
+* [C#/.NET rethinkdb-net](https://github.com/mfenniak/rethinkdb-net) - [@mfenniak](https://github.com/mfenniak)
+* [Clojure clj-rethinkdb](https://github.com/apa512/clj-rethinkdb) - [@apa512](https://github.com/apa512)
+* [Go      GoRethink](https://github.com/dancannon/gorethink) - [@dancannon](https://github.com/dancannon)
+* [Haskell haskeel-rethinkdb](https://github.com/atnnn/haskell-rethinkdb) - [@atnnn](https://github.com/atnnn)
+* [PHP     php-rql](https://github.com/danielmewes/php-rql) - [@danielmewes](https://github.com/danielmewes)
+* [Scala   rethink-scala](https://github.com/kclay/rethink-scala) - [@kclay](https://github.com/kclay)
 
 
 Need help?
