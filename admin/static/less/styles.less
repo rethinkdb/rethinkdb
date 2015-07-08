@@ -994,10 +994,10 @@ TODO: retire this
             }
 
             .element-details {
-                display: flex;
-                flex-direction: row;
-                flex-justify: space-between;
-                align-items: stretch;
+                .flex();
+                .flex-direction(row);
+                .flex-justify(space-between);
+                .flex-align-items(stretch);
                 height: 100%;
 
                 @border_padding: 20px;
@@ -1012,8 +1012,8 @@ TODO: retire this
                     @offset: 8px;
                     padding: 0 @offset * 2;
                     border-left: thin solid #e4e4e4;
-                    display: flex;
-                    align-items: center;
+                    .flex();
+                    .flex-align-items(center);
                     height: 100%;
                 }
                 // mixin for icons
@@ -1031,7 +1031,7 @@ TODO: retire this
                     font-weight: bold;
                     overflow: hidden;
                     text-overflow: ellipsis;
-                    flex-grow: 2;
+                    .flex-grow(2);
                 }
                 .quick_info {
                     .with-icon('images/graph-icon.png');
@@ -1522,7 +1522,7 @@ TODO: retire this
                                 //word-break: break-word;
                                 margin: 10px;
                                 .flex();
-                                flex-direction: row;
+                                .flex-direction(row);
                                 .flex-justify(space-between);
                                 .right_container{
                                     width: 100%;
