@@ -7,11 +7,11 @@ To learn more, check out [rethinkdb.com](http://rethinkdb.com).
 
 Not sure what types of projects RethinkDB can help you build? Here are a few examples:
 
-* [Build a realtime liveblog with RethinkDB and Pubnub](http://rethinkdb.com/blog/rethinkdb-pubnub/)
-* [Create a collaborative photo sharing whiteboard](https://www.youtube.com/watch?v=pdPRp3UxL_s)
-* [Build an IRC bot in Go with RethinkDB changefeeds](http://rethinkdb.com/blog/go-irc-bot/)
-* [Look at cats on Instagram in realtime](http://rethinkdb.com/blog/cats-of-instagram/)
-* [Watch how Platzi uses RethinkDB to educate](https://www.youtube.com/watch?v=Nb_UzRYDB40)
+* Build a [realtime liveblog](http://rethinkdb.com/blog/rethinkdb-pubnub/) with RethinkDB and PubNub
+* Create a [collaborative photo sharing whiteboard](https://www.youtube.com/watch?v=pdPRp3UxL_s)
+* Build an [IRC bot in Go](http://rethinkdb.com/blog/go-irc-bot/) with RethinkDB changefeeds
+* Look at [cats on Instagram in realtime](http://rethinkdb.com/blog/cats-of-instagram/)
+* Watch [how Platzi uses RethinkDB](https://www.youtube.com/watch?v=Nb_UzRYDB40) to educate
 
 
 Quickstart
@@ -19,20 +19,20 @@ Quickstart
 
 For a thirty-second RethinkDB quickstart, check out  [rethinkdb.com/docs/quickstart](http://www.rethinkdb.com/docs/quickstart).
 
-Or get started right away, with one of our language specific guides:
+Or, get started right away with our ten-minute guide in these languages:
 
-* [Ten-minute guide with RethinkDB and Python](http://rethinkdb.com/docs/guide/python/)
-* [Ten-minute guide with RethinkDB and Ruby](http://rethinkdb.com/docs/guide/ruby/)
-* [Ten-minute guide with RethinkDB and JavaScript](http://rethinkdb.com/docs/guide/javascript/)
+* [**JavaScript**](http://rethinkdb.com/docs/guide/javascript/)
+* [**Python**](http://rethinkdb.com/docs/guide/python/)
+* [**Ruby**](http://rethinkdb.com/docs/guide/ruby/)
 
 Besides our three official drivers, we also have many [community drivers](http://rethinkdb.com/docs/install-drivers/) supported by the RethinkDB community. Here's a few:
 
-* [C#/.NET rethinkdb-net](https://github.com/mfenniak/rethinkdb-net) - [@mfenniak](https://github.com/mfenniak)
-* [Clojure clj-rethinkdb](https://github.com/apa512/clj-rethinkdb) - [@apa512](https://github.com/apa512)
-* [Go      GoRethink](https://github.com/dancannon/gorethink) - [@dancannon](https://github.com/dancannon)
-* [Haskell haskeel-rethinkdb](https://github.com/atnnn/haskell-rethinkdb) - [@atnnn](https://github.com/atnnn)
-* [PHP     php-rql](https://github.com/danielmewes/php-rql) - [@danielmewes](https://github.com/danielmewes)
-* [Scala   rethink-scala](https://github.com/kclay/rethink-scala) - [@kclay](https://github.com/kclay)
+* **C#/.NET:** [rethinkdb-net](https://github.com/mfenniak/rethinkdb-net)
+* **Clojure:** [clj-rethinkdb](https://github.com/apa512/clj-rethinkdb)
+* **Go** [GoRethink](https://github.com/dancannon/gorethink)
+* **Haskell:** [haskeel-rethinkdb](https://github.com/atnnn/haskell-rethinkdb)
+* **PHP:** [php-rql](https://github.com/danielmewes/php-rql) - [@danielmewes](https://github.com/danielmewes)
+* **Scala** [rethink-scala](https://github.com/kclay/rethink-scala) - [@kclay](https://github.com/kclay)
 
 
 Need help?
@@ -53,18 +53,18 @@ Do you use RethinkDB? Send us a story!
 Contributing
 -----------------
 
-RethinkDB was built by a dedicated team but would not have been possible without the support and contributions of hundreds of people from all of the world. We could use your help too! Check out our [contributing guidelines](CONTRIBUTING.md) to get started.
+RethinkDB was built by a dedicated team, but would not have been possible without the support and contributions of hundreds of people from all over the world. We could use your help too! Check out our [contributing guidelines](CONTRIBUTING.md) to get started.
 
-Official Drivers
+Official drivers
 -----------------
 
-The drivers are located in this repository, for more information see one of the following:
+The drivers are located in this repository. For more information see one of the following:
 
 - [JavaScript](drivers/javascript/)
 - [Python](drivers/python/)
 - [Ruby](drivers/ruby/)
 
 
-Where's the Change Log?
+Where's the changelog?
 -----------------
 We keep a [list of changes feature explanations here](NOTES.md).
