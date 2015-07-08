@@ -17,12 +17,12 @@ Read the [blog post][2.1-beta] for more details.
 This beta release does not include automatic migration of data
 directories from older versions of RethinkDB. However the final 2.1.0
 version will include that feature for versions of RethinkDB down to
-1.14.0. Upgrading directly from RethinkDB 1.13 will no longer be
-supported.
+1.14.0. Upgrading directly from RethinkDB 1.13 will require manually
+upgrading using `rethinkdb dump`.
 
 ### API-breaking changes ###
 
-* `.split('')` now treats the input as UTF8 instead of an array of bytes.
+* `.split('')` now treats the input as UTF-8 instead of an array of bytes.
 * `null` values in compound index are no longer discarded.
 * The new `read_mode="outdated"` optional argument replaces `use_outdated=True`
 * The format of the system tables has changed
@@ -30,18 +30,18 @@ supported.
 ## New features ##
 
 * Server
- * Added automatic failover and semi-lossless rebalance based on raft (#223)
+ * Added automatic failover and semi-lossless rebalance based on Raft (#223)
  * Backfills are now interuptible and reversible (#3886, #3885)
  * `table.reconfigure()` now works even if some servers are disconnected (#3913)
  * Replicas can now be marked as voting or non-voting (#3891)
  * Added an emergency repair feature to restore table availability if consensus is lost (#3893)
  * Reads can now be made against a majority of replicas (#3895)
  * Added an emergency read mode that extracts data directly from a given replica for data recovery purposes (#4388)
- * Now allow servers to go away without issues if they don't have any responsibilities (#1790)
+ * Servers with no responsibilities can now be remove from clusters without raising an issue (#1790)
 * ReQL
  * Added `ceil`, `floor` and `round` (#866)
 * All drivers
- * Added driver-side support for ssl connections and CA verification (#4075, #4076, #4080)
+ * Added driver-side support for SSL connections and CA verification (#4075, #4076, #4080)
 * Python driver
  * Added asyncio support (#4071)
  * `rethinkdb export` now supports the `--delimiter` option for CSV files (#3916)
@@ -49,7 +49,7 @@ supported.
 ## Improvements ##
 
 * Server
- * Improved the handling of membership and removal of servers (#3262, #3897, #1790)
+ * Improved the handling of cluster membership and removal of servers (#3262, #3897, #1790)
  * Changed the formatting of the `table_status` system table (#3882, #4196)
  * Improved efficiency by making `datum_t` movable (#4056)
  * ReQL backtraces are now faster and smaller (#2900)
@@ -58,13 +58,13 @@ supported.
  * Added more detailed logging of cluster events (#3878)
  * Improved unsaved data limit throttling (#4441)
 * ReQL
- * `.split('')` is now UTF8-aware (#2518)
+ * `.split('')` is now UTF-8 aware (#2518)
  * Improved the behaviour of compound index values containing `null` (#4146)
  * Errors now distinguish failed writes from indeterminate writes (#4296)
  * `r.union` is now a top-level term (#4030)
  * `condition.branch(...)` now works just like `r.branch(condition, ...)` (#4438)
 * Web UI
- * Use real dependency management and namespaces (#3465, #3660)
+ * Added new dependency and namespace management system to the web UI (#3465, #3660)
  * Updated to reflect the new clustering features and changes (#4283, #4330, #4288, ...)
 * JavaScript driver
  * The version of bluebird was updated to 2.9.25 (#4178)
