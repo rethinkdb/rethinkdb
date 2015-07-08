@@ -11,7 +11,9 @@
 
 #include "arch/io/network.hpp"
 #include "arch/timing.hpp"
+#include "clustering/administration/metadata.hpp"
 #include "concurrency/cross_thread_signal.hpp"
+#include "concurrency/cross_thread_watchable.hpp"
 #include "concurrency/pmap.hpp"
 #include "concurrency/semaphore.hpp"
 #include "config/args.hpp"
@@ -20,6 +22,7 @@
 #include "containers/object_buffer.hpp"
 #include "containers/uuid.hpp"
 #include "logger.hpp"
+#include "rpc/semilattice/watchable.hpp"
 #include "stl_utils.hpp"
 #include "utils.hpp"
 
@@ -200,10 +203,14 @@ static peer_address_t our_peer_address(std::set<ip_address_t> local_addresses,
     return peer_address_t(our_addrs);
 }
 
-connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
-                                     const std::set<ip_address_t> &local_addresses,
-                                     const peer_address_t &canonical_addresses,
-                                     int port, int client_port)
+connectivity_cluster_t::run_t::run_t(
+        connectivity_cluster_t *p,
+        const std::set<ip_address_t> &local_addresses,
+        const peer_address_t &canonical_addresses,
+        int port,
+        int client_port,
+        boost::shared_ptr<semilattice_read_view_t<heartbeat_semilattice_metadata_t> >
+            _heartbeat_sl_view)
         THROWS_ONLY(address_in_use_exc_t, tcp_socket_exc_t) :
     parent(p),
 
@@ -238,6 +245,8 @@ connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
     connected to ourself. The destructor will remove us from the
     `connection_map` and again notify any listeners. */
     connection_to_ourself(this, parent->me, NULL, routing_table[parent->me]),
+
+    heartbeat_sl_view(_heartbeat_sl_view),
 
     listener(new tcp_listener_t(
         cluster_listener_socket.get(),
@@ -400,36 +409,48 @@ class connectivity_cluster_t::heartbeat_manager_t :
     private cluster_send_message_write_callback_t
 {
 public:
-    static const int64_t HEARTBEAT_INTERVAL_MS = 2000;
     static const int HEARTBEAT_TIMEOUT_INTERVALS = 5;
 
     heartbeat_manager_t(
             connectivity_cluster_t::connection_t *connection_,
             auto_drainer_t::lock_t connection_keepalive_,
-            std::string peer_str_) :
+            const std::string &peer_str_,
+            clone_ptr_t<watchable_t<heartbeat_semilattice_metadata_t> >
+                heartbeat_sl_view_) :
         connection(connection_),
         connection_keepalive(connection_keepalive_),
-        read_done(false), write_done(false),
+        read_done(false),
+        write_done(false),
         intervals_since_last_read_done(0),
         peer_str(peer_str_),
-        timer(HEARTBEAT_INTERVAL_MS, this)
+        timeout(0),
+        heartbeat_sl_view(std::move(heartbeat_sl_view_)),
+        heartbeat_sl_view_sub(std::bind(&heartbeat_manager_t::on_heartbeat_change, this))
     {
         connection->conn->set_keepalive_callback(this);
+
+        // This will trigger the initialization of the timeout, and timer
+        watchable_t<heartbeat_semilattice_metadata_t>::freeze_t
+            freeze(heartbeat_sl_view);
+        heartbeat_sl_view_sub.reset(heartbeat_sl_view, &freeze);
     }
 
     ~heartbeat_manager_t() {
-        connection->conn->set_keepalive_callback(NULL);
+        connection->conn->set_keepalive_callback(nullptr);
     }
 
     /* These are called by the `keepalive_tcp_conn_stream_t`. */
     void keepalive_read() {
         read_done = true;
     }
+
     void keepalive_write() {
         write_done = true;
     }
+
     void on_ring() {
         ASSERT_FINITE_CORO_WAITING;
+
         if (intervals_since_last_read_done > HEARTBEAT_TIMEOUT_INTERVALS) {
             logERR("Heartbeat timeout, killing connection to peer %s", peer_str.c_str());
 
@@ -454,33 +475,68 @@ public:
                 });
         }
         if (read_done) {
-            intervals_since_last_read_done = 0;
+            /* `intervals_since_last_read_done` may be negative when transitioning
+               between timeouts, we should't reset it to zero when it's doing so. */
+            if (intervals_since_last_read_done > 0) {
+                intervals_since_last_read_done = 0;
+            } else {
+                intervals_since_last_read_done++;
+            }
             read_done = false;
         } else {
             intervals_since_last_read_done++;
         }
     }
+
     void write(write_stream_t *) {
         /* Do nothing. The cluster will end up sending just the tag 'H' with no message
         attached, which will trigger `keepalive_read()` on the remote server. */
     }
+
 #ifdef ENABLE_MESSAGE_PROFILER
     const char *message_profiler_tag() const {
         return "heartbeat";
     }
 #endif
+
+    void on_heartbeat_change() {
+        int64_t timeout_new = heartbeat_sl_view->get().heartbeat_timeout.get_ref();
+        if (timeout == timeout_new) {
+            /* The timeout hasn't changed, this could be due to the semilattice
+               `versioned` changing without the value changing. */
+            return;
+        }
+
+        if (timeout > timeout_new) {
+            /* It may take the peer some time to transition to the new timeout, by
+               setting `intervals_since_last_read_done` to a negative value we allow it
+               to transition. */
+            intervals_since_last_read_done = -timeout / timeout_new;
+        } else {
+            intervals_since_last_read_done = 0;
+        }
+        timeout = timeout_new;
+        timer = scoped_ptr_t<repeating_timer_t>(new repeating_timer_t(
+            timeout / HEARTBEAT_TIMEOUT_INTERVALS, this));
+    }
+
+private:
     connectivity_cluster_t::connection_t *connection;
     auto_drainer_t::lock_t connection_keepalive;
     bool read_done, write_done;
-    int intervals_since_last_read_done;
+    int64_t intervals_since_last_read_done;
     std::string peer_str;
+    int64_t timeout;
 
     /* Order is important here. When destroying the `heartbeat_manager_t`, we must first
     destroy the timer so that new `on_ring()` calls don't get spawned; then destroy the
     `auto_drainer_t` to drain any ongoing coroutines; and only then is it safe to destroy
     the other fields. */
     auto_drainer_t drainer;
-    repeating_timer_t timer;
+    scoped_ptr_t<repeating_timer_t> timer;
+
+    clone_ptr_t<watchable_t<heartbeat_semilattice_metadata_t> > heartbeat_sl_view;
+    watchable_subscription_t<heartbeat_semilattice_metadata_t> heartbeat_sl_view_sub;
 
     DISABLE_COPYING(heartbeat_manager_t);
 };
@@ -1080,6 +1136,11 @@ void connectivity_cluster_t::run_t::handle(
     threadnum_t chosen_thread = threadnum_t(rng.randint(get_num_threads()));
 
     cross_thread_signal_t connection_thread_drain_signal(drainer_lock.get_drain_signal(), chosen_thread);
+    cross_thread_watchable_variable_t<heartbeat_semilattice_metadata_t>
+        cross_thread_heartbeat_sl_view(
+            clone_ptr_t<semilattice_watchable_t<heartbeat_semilattice_metadata_t> >(
+                new semilattice_watchable_t<heartbeat_semilattice_metadata_t>(
+                    heartbeat_sl_view)), chosen_thread);
 
     rethread_tcp_conn_stream_t unregister_conn(conn, INVALID_THREAD);
     on_thread_t conn_threader(chosen_thread);
@@ -1102,7 +1163,8 @@ void connectivity_cluster_t::run_t::handle(
         heartbeat_manager_t heartbeat_manager(
             &conn_structure,
             auto_drainer_t::lock_t(conn_structure.drainers.get()),
-            peerstr);
+            peerstr,
+            cross_thread_heartbeat_sl_view.get_watchable());
 
         /* Main message-handling loop: read messages off the connection until
         it's closed, which may be due to network events, or the other end

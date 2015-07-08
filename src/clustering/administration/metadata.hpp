@@ -48,6 +48,18 @@ RDB_DECLARE_SERIALIZABLE(auth_semilattice_metadata_t);
 RDB_DECLARE_SEMILATTICE_JOINABLE(auth_semilattice_metadata_t);
 RDB_DECLARE_EQUALITY_COMPARABLE(auth_semilattice_metadata_t);
 
+class heartbeat_semilattice_metadata_t {
+public:
+    heartbeat_semilattice_metadata_t()
+        : heartbeat_timeout(10000) { }
+
+    versioned_t<uint64_t> heartbeat_timeout;
+};
+
+RDB_DECLARE_SERIALIZABLE(heartbeat_semilattice_metadata_t);
+RDB_DECLARE_SEMILATTICE_JOINABLE(heartbeat_semilattice_metadata_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(heartbeat_semilattice_metadata_t);
+
 enum cluster_directory_peer_type_t {
     SERVER_PEER,
     PROXY_PEER

@@ -11,6 +11,12 @@ metadata_file_t::key_t<auth_semilattice_metadata_t>
     return metadata_file_t::key_t<auth_semilattice_metadata_t>("auth_semilattice");
 }
 
+metadata_file_t::key_t<heartbeat_semilattice_metadata_t>
+        mdkey_heartbeat_semilattices() {
+    return metadata_file_t::key_t<heartbeat_semilattice_metadata_t>(
+        "heartbeat_semilattice");
+}
+
 metadata_file_t::key_t<server_id_t>
         mdkey_server_id() {
     return metadata_file_t::key_t<server_id_t>("server_id");
