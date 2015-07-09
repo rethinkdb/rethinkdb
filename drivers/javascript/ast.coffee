@@ -47,6 +47,16 @@ hasImplicit = (args) ->
         return true
     return false
 
+translateRegex = (pattern) ->
+    flags = pattern.toString().match(/[im]*$/)[0]
+    source = pattern.source
+    .replace(/\\u([0-9A-F]{4})/gi, '\\x{$1}') # \u0000 -> \x{0000}
+    .replace /\\c([A-Z])/g, (match, char) ->  # \cM -> \x{000D}
+        hex = (char.charCodeAt(0) - 64).toString(16)
+        return "\\x{#{hex}}"
+
+    return if flags then "(?#{flags})#{source}" else source
+
 # AST classes
 
 class TermBase
@@ -187,7 +197,10 @@ class RDBVal extends TermBase
     bracket: (args...) -> new Bracket {}, @, args...
     toJSON: (args...) -> new ToJsonString {}, @, args...
     toJsonString: (args...) -> new ToJsonString {}, @, args...
-    match: (args...) -> new Match {}, @, args...
+    match: (pattern) ->
+        if pattern instanceof RegExp
+            pattern = translateRegex pattern
+        new Match {}, @, pattern
     split: (args...) -> new Split {}, @, args.map(funcWrap)...
     upcase: (args...) -> new Upcase {}, @, args...
     downcase: (args...) -> new Downcase {}, @, args...
