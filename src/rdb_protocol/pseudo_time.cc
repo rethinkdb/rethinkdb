@@ -649,8 +649,7 @@ time_t boost_date(time_t boost_time) {
     return time_t(ptime_t(d) - zone->base_utc_offset(), zone);
 }
 
-datum_t time_date(datum_t time,
-                                   const rcheckable_t *target) {
+datum_t time_date(datum_t time, const rcheckable_t *target) {
     try {
         return boost_to_time(boost_date(time_to_boost(time)), target);
     } HANDLE_BOOST_ERRORS(target);
