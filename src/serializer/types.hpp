@@ -158,7 +158,7 @@ struct serializer_traits_t<log_serializer_t> {
     typedef ls_block_token_pointee_t block_token_type;
 };
 
-class file_t;
+class rdb_file_t;
 class semantic_checking_file_t;
 
 class serializer_file_opener_t {
@@ -169,9 +169,9 @@ public:
     // real files, this should be the filepath.
     virtual std::string file_name() const = 0;
 
-    virtual void open_serializer_file_create_temporary(scoped_ptr_t<file_t> *file_out) = 0;
+    virtual void open_serializer_file_create_temporary(scoped_ptr_t<rdb_file_t> *file_out) = 0;
     virtual void move_serializer_file_to_permanent_location() = 0;
-    virtual void open_serializer_file_existing(scoped_ptr_t<file_t> *file_out) = 0;
+    virtual void open_serializer_file_existing(scoped_ptr_t<rdb_file_t> *file_out) = 0;
     virtual void unlink_serializer_file() = 0;
 #ifdef SEMANTIC_SERIALIZER_CHECK
     virtual void open_semantic_checking_file(scoped_ptr_t<semantic_checking_file_t> *file_out) = 0;

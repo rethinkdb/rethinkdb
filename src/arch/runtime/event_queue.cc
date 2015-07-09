@@ -32,7 +32,7 @@ std::string format_poll_event(int event) {
         if (s != "") s += " ";
         s += "hup";
     }
-#ifdef __linux
+#if defined(__linux) || defined(__sun)
     if (event & poll_event_rdhup) {
         if (s != "") s += " ";
         s += "rdhup";

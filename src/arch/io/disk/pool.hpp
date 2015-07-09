@@ -12,7 +12,7 @@
 #include "concurrency/queue/passive_producer.hpp"
 #include "containers/scoped.hpp"
 
-#ifdef __MACH__
+#if defined(__MACH__) || defined(__sun)
 #define USE_WRITEV 0
 #else
 #define USE_WRITEV 1

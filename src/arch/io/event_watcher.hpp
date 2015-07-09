@@ -39,7 +39,7 @@ private:
     watch_t **get_watch_slot(int event);
     watch_t *in_watcher;
     watch_t *out_watcher;
-#ifdef __linux
+#if defined(__linux) || defined(__sun)
     watch_t *rdhup_watcher;
 #endif
 

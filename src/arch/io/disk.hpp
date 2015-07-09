@@ -60,7 +60,7 @@ struct file_open_result_t {
     file_open_result_t() : outcome(ERROR), errsv(0) { }
 };
 
-class linux_file_t : public file_t, public home_thread_mixin_debug_only_t {
+class linux_file_t : public rdb_file_t, public home_thread_mixin_debug_only_t {
 public:
     enum mode_t {
         mode_read = 1 << 0,
@@ -98,7 +98,7 @@ private:
     linux_file_t(scoped_fd_t &&fd, int64_t file_size, linux_disk_manager_t *diskmgr);
     friend file_open_result_t open_file(const char *path, int mode,
                                         io_backender_t *backender,
-                                        scoped_ptr_t<file_t> *out);
+                                        scoped_ptr_t<rdb_file_t> *out);
 
     scoped_fd_t fd;
     int64_t file_size;
@@ -127,7 +127,7 @@ private:
 
 file_open_result_t open_file(const char *path, int mode,
                              io_backender_t *backender,
-                             scoped_ptr_t<file_t> *out);
+                             scoped_ptr_t<rdb_file_t> *out);
 
 void crash_due_to_inaccessible_database_file(const char *path, file_open_result_t open_res) NORETURN;
 

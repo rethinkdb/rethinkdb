@@ -3,13 +3,14 @@
 
 #include "containers/scoped.hpp"
 #include "math.hpp"
+#include <strings.h>
 
-lba_disk_structure_t::lba_disk_structure_t(extent_manager_t *_em, file_t *_file)
+lba_disk_structure_t::lba_disk_structure_t(extent_manager_t *_em, rdb_file_t *_file)
     : em(_em), file(_file), superblock_extent(NULL), last_extent(NULL)
 {
 }
 
-lba_disk_structure_t::lba_disk_structure_t(extent_manager_t *_em, file_t *_file, lba_shard_metablock_t *metablock)
+lba_disk_structure_t::lba_disk_structure_t(extent_manager_t *_em, rdb_file_t *_file, lba_shard_metablock_t *metablock)
     : em(_em), file(_file)
 {
     if (metablock->last_lba_extent_offset != NULL_OFFSET) {

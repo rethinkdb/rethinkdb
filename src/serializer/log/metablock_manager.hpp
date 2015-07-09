@@ -82,16 +82,16 @@ public:
     ~metablock_manager_t();
 
     /* Clear metablock slots and write an initial metablock to the database file */
-    static void create(file_t *dbfile, int64_t extent_size, metablock_t *initial);
+    static void create(rdb_file_t *dbfile, int64_t extent_size, metablock_t *initial);
 
     /* Tries to load existing metablocks */
-    void co_start_existing(file_t *dbfile, bool *mb_found, metablock_t *mb_out);
+    void co_start_existing(rdb_file_t *dbfile, bool *mb_found, metablock_t *mb_out);
     struct metablock_read_callback_t {
         virtual void on_metablock_read() = 0;
         virtual ~metablock_read_callback_t() {}
     };
 
-    bool start_existing(file_t *dbfile, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb);
+    bool start_existing(rdb_file_t *dbfile, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb);
 
     struct metablock_write_callback_t {
         virtual void on_metablock_write() = 0;
@@ -129,7 +129,7 @@ private:
         void pop();
     };
 
-    void start_existing_callback(file_t *dbfile, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb);
+    void start_existing_callback(rdb_file_t *dbfile, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb);
     void write_metablock_callback(metablock_t *mb, file_account_t *io_account, metablock_write_callback_t *cb);
     void on_io_complete();
 
@@ -156,7 +156,7 @@ private:
         state_shut_down
     } state;
 
-    file_t *dbfile;
+    rdb_file_t *dbfile;
 
     DISABLE_COPYING(metablock_manager_t);
 };

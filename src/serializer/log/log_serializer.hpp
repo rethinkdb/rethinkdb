@@ -66,16 +66,16 @@ public:
     // The path of the final position of the file.
     std::string file_name() const;
 
-    void open_serializer_file_create_temporary(scoped_ptr_t<file_t> *file_out);
+    void open_serializer_file_create_temporary(scoped_ptr_t<rdb_file_t> *file_out);
     void move_serializer_file_to_permanent_location();
-    void open_serializer_file_existing(scoped_ptr_t<file_t> *file_out);
+    void open_serializer_file_existing(scoped_ptr_t<rdb_file_t> *file_out);
     void unlink_serializer_file();
 #ifdef SEMANTIC_SERIALIZER_CHECK
     void open_semantic_checking_file(scoped_ptr_t<semantic_checking_file_t> *file_out);
 #endif
 
 private:
-    void open_serializer_file(const std::string &path, int extra_flags, scoped_ptr_t<file_t> *file_out);
+    void open_serializer_file(const std::string &path, int extra_flags, scoped_ptr_t<rdb_file_t> *file_out);
 
     // The path of the temporary file.  This is file_name() with some suffix appended.
     std::string temporary_file_name() const;
@@ -250,7 +250,7 @@ private:
         state_shut_down
     } state;
 
-    file_t *dbfile;
+    rdb_file_t *dbfile;
     scoped_ptr_t<file_account_t> index_writes_io_account;
 
     extent_manager_t *extent_manager;

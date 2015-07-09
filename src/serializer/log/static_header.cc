@@ -7,9 +7,9 @@
 #include "arch/arch.hpp"
 #include "arch/runtime/coroutines.hpp"
 #include "config/args.hpp"
+#include <strings.h>
 
-
-bool static_header_check(file_t *file) {
+bool static_header_check(rdb_file_t *file) {
     if (file->get_file_size() < DEVICE_BLOCK_SIZE) {
         return false;
     } else {
@@ -21,7 +21,7 @@ bool static_header_check(file_t *file) {
     }
 }
 
-void co_static_header_write(file_t *file, void *data, size_t data_size) {
+void co_static_header_write(rdb_file_t *file, void *data, size_t data_size) {
     static_header_t *buffer = reinterpret_cast<static_header_t *>(malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE));
     rassert(sizeof(static_header_t) + data_size < DEVICE_BLOCK_SIZE);
 
@@ -39,22 +39,22 @@ void co_static_header_write(file_t *file, void *data, size_t data_size) {
 
     // We want to follow up the static header write with a datasync, because... it's the
     // most important block in the file!
-    co_write(file, 0, DEVICE_BLOCK_SIZE, buffer, DEFAULT_DISK_ACCOUNT, file_t::WRAP_IN_DATASYNCS);
+    co_write(file, 0, DEVICE_BLOCK_SIZE, buffer, DEFAULT_DISK_ACCOUNT, rdb_file_t::WRAP_IN_DATASYNCS);
 
     free(buffer);
 }
 
-void co_static_header_write_helper(file_t *file, static_header_write_callback_t *cb, void *data, size_t data_size) {
+void co_static_header_write_helper(rdb_file_t *file, static_header_write_callback_t *cb, void *data, size_t data_size) {
     co_static_header_write(file, data, data_size);
     cb->on_static_header_write();
 }
 
-bool static_header_write(file_t *file, void *data, size_t data_size, static_header_write_callback_t *cb) {
+bool static_header_write(rdb_file_t *file, void *data, size_t data_size, static_header_write_callback_t *cb) {
     coro_t::spawn_later_ordered(boost::bind(co_static_header_write_helper, file, cb, data, data_size));
     return false;
 }
 
-void co_static_header_read(file_t *file, static_header_read_callback_t *callback, void *data_out, size_t data_size) {
+void co_static_header_read(rdb_file_t *file, static_header_read_callback_t *callback, void *data_out, size_t data_size) {
     rassert(sizeof(static_header_t) + data_size < DEVICE_BLOCK_SIZE);
     static_header_t *buffer = reinterpret_cast<static_header_t *>(malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE));
     co_read(file, 0, DEVICE_BLOCK_SIZE, buffer, DEFAULT_DISK_ACCOUNT);
@@ -76,7 +76,7 @@ void co_static_header_read(file_t *file, static_header_read_callback_t *callback
     free(buffer);
 }
 
-bool static_header_read(file_t *file, void *data_out, size_t data_size, static_header_read_callback_t *cb) {
+bool static_header_read(rdb_file_t *file, void *data_out, size_t data_size, static_header_read_callback_t *cb) {
     coro_t::spawn_later_ordered(boost::bind(co_static_header_read, file, cb, data_out, data_size));
     return false;
 }

@@ -7,7 +7,6 @@
 // Class that wraps a pthread mutex
 class system_mutex_t {
     pthread_mutex_t m;
-    friend class lock_t;
     friend class system_cond_t;
 public:
     system_mutex_t() {

@@ -3,6 +3,7 @@
 #include "clustering/administration/real_reql_cluster_interface.hpp"
 #include "math.hpp"   /* for `clamp()` */
 #include "rdb_protocol/real_table.hpp"
+#include <strings.h>
 
 /* `interpolate_key()` produces a `store_key_t` that is interpolated between `in1` and
 `in2`. For example, if `fraction` is 0.50, the return value will be halfway between `in1`

@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <strings.h>
 
 #include <functional>
 
@@ -38,7 +39,7 @@ std::string filepath_file_opener_t::current_file_name() const {
     return opened_temporary_ ? temporary_file_name() : file_name();
 }
 
-void filepath_file_opener_t::open_serializer_file(const std::string &path, int extra_flags, scoped_ptr_t<file_t> *file_out) {
+void filepath_file_opener_t::open_serializer_file(const std::string &path, int extra_flags, scoped_ptr_t<rdb_file_t> *file_out) {
     const file_open_result_t res = open_file(path.c_str(),
                                              linux_file_t::mode_read | linux_file_t::mode_write | extra_flags,
                                              backender_,
@@ -56,7 +57,7 @@ void filepath_file_opener_t::open_serializer_file(const std::string &path, int e
     }
 }
 
-void filepath_file_opener_t::open_serializer_file_create_temporary(scoped_ptr_t<file_t> *file_out) {
+void filepath_file_opener_t::open_serializer_file_create_temporary(scoped_ptr_t<rdb_file_t> *file_out) {
     mutex_assertion_t::acq_t acq(&reentrance_mutex_);
     open_serializer_file(temporary_file_name(), linux_file_t::mode_create | linux_file_t::mode_truncate, file_out);
     opened_temporary_ = true;
@@ -82,7 +83,7 @@ void filepath_file_opener_t::move_serializer_file_to_permanent_location() {
     opened_temporary_ = false;
 }
 
-void filepath_file_opener_t::open_serializer_file_existing(scoped_ptr_t<file_t> *file_out) {
+void filepath_file_opener_t::open_serializer_file_existing(scoped_ptr_t<rdb_file_t> *file_out) {
     mutex_assertion_t::acq_t acq(&reentrance_mutex_);
     open_serializer_file(current_file_name(), 0, file_out);
 }
@@ -171,7 +172,7 @@ void log_serializer_stats_t::bytes_written(size_t count) {
 void log_serializer_t::create(serializer_file_opener_t *file_opener, static_config_t static_config) {
     log_serializer_on_disk_static_config_t *on_disk_config = &static_config;
 
-    scoped_ptr_t<file_t> file;
+    scoped_ptr_t<rdb_file_t> file;
     file_opener->open_serializer_file_create_temporary(&file);
 
     co_static_header_write(file.get(), on_disk_config, sizeof(*on_disk_config));
@@ -211,7 +212,7 @@ struct ls_start_existing_fsm_t :
         rassert(ser->state == log_serializer_t::state_unstarted);
         ser->state = log_serializer_t::state_starting_up;
 
-        scoped_ptr_t<file_t> dbfile;
+        scoped_ptr_t<rdb_file_t> dbfile;
         file_opener->open_serializer_file_existing(&dbfile);
         ser->dbfile = dbfile.release();
         ser->index_writes_io_account.init(

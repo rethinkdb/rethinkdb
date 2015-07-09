@@ -9,6 +9,7 @@
 #include "errors.hpp"
 #include "rdb_protocol/ql2_extensions.pb.h"
 #include "debug.hpp"
+#include "stl_utils.hpp"
 
 namespace pprint {
 

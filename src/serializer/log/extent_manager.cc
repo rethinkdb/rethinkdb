@@ -64,7 +64,7 @@ class extent_zone_t {
                         std::vector<size_t>,
                         std::greater<size_t> > free_queue;
 
-    file_t *const dbfile;
+    rdb_file_t *const dbfile;
 
     // The number of free extents in the file.
     size_t held_extents_;
@@ -74,7 +74,7 @@ public:
         return held_extents_;
     }
 
-    extent_zone_t(file_t *_dbfile, uint64_t _extent_size)
+    extent_zone_t(rdb_file_t *_dbfile, uint64_t _extent_size)
         : extent_size(_extent_size), dbfile(_dbfile), held_extents_(0) {
         // (Avoid a bunch of reallocations by resize calls (avoiding O(n log n)
         // work on average).)
@@ -192,7 +192,7 @@ public:
     }
 };
 
-extent_manager_t::extent_manager_t(file_t *file,
+extent_manager_t::extent_manager_t(rdb_file_t *file,
                                    const log_serializer_on_disk_static_config_t *static_config,
                                    log_serializer_stats_t *_stats)
     : stats(_stats), extent_size(static_config->extent_size()),

@@ -53,4 +53,19 @@ std::vector<std::string> split_string(const std::string &s, char sep);
 
 #include "stl_utils.tcc"
 
+/*
+ * GCC 4.7/4.9 on SmartOS, whilst offering C++11 support, do not seem to
+ * provide std::to_string(), so we provide a compat version here instead.
+ */
+#ifdef __sun
+#include <sstream>
+namespace std {
+    template <typename T> std::string to_string(const T& n) {
+        std::ostringstream stm;
+        stm << n;
+        return stm.str();
+    }
+}
+#endif
+
 #endif /* STL_UTILS_HPP_ */
