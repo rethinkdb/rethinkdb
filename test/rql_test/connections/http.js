@@ -280,13 +280,13 @@ describe('Javascript HTTP test - ', function() {
         var url = 'http://' + httpbinAddress + '/redirect/2'
         it('with no redirects allowed', withConnection(function(done, conn) {
             r.http(url, {redirects:0}).run(conn, function(err, res) {
-                expect_error(res, err, 'RqlRuntimeError', err_string('GET', url, 'status code 302'));
+                expect_error(res, err, 'RqlNonExistenceError', err_string('GET', url, 'status code 302'));
                 done();
             });
         }));
         it('with not enough redirects allowed', withConnection(function(done, conn) {
             r.http(url, {redirects:1}).run(conn, function(err, res) {
-                expect_error(res, err, 'RqlRuntimeError', err_string('GET', url, 'Number of redirects hit maximum amount'));
+                expect_error(res, err, 'RqlNonExistenceError', err_string('GET', url, 'Number of redirects hit maximum amount'));
                 done();
             });
         }));
@@ -314,29 +314,29 @@ describe('Javascript HTTP test - ', function() {
         var url = 'http://' + httpbinAddress + '/html'
         it('failed json parse', withConnection(function(done, conn) {
             r.http(url, {resultFormat:'json'}).run(conn, function(err, res) {
-                expect_error(res, err, 'RqlRuntimeError', err_string('GET', url, 'failed to parse JSON response: Invalid value.'));
+                expect_error(res, err, 'RqlNonExistenceError', err_string('GET', url, 'failed to parse JSON response: Invalid value.'));
                 done();
             });
         }));
     });
-    
+
     describe('basic auth', function() {
         var url = 'http://' + httpbinAddress + '/basic-auth/azure/hunter2'
         it('wrong password', withConnection(function(done, conn) {
             r.http(url, {auth:{type:'basic',user:'azure',pass:'wrong'}}).run(conn, function(err, res) {
-                expect_error(res, err, 'RqlRuntimeError', err_string('GET', url, 'status code 401'));
+                expect_error(res, err, 'RqlNonExistenceError', err_string('GET', url, 'status code 401'));
                 done();
             });
         }));
         it('wrong username', withConnection(function(done, conn) {
             r.http(url, {auth:{type:'basic',user:'fake',pass:'hunter2'}}).run(conn, function(err, res) {
-                expect_error(res, err, 'RqlRuntimeError', err_string('GET', url, 'status code 401'));
+                expect_error(res, err, 'RqlNonExistenceError', err_string('GET', url, 'status code 401'));
                 done();
             });
         }));
         it('wrong auth type', withConnection(function(done, conn) {
             r.http(url, {auth:{type:'digest',user:'azure',pass:'hunter2'}}).run(conn, function(err, res) {
-                expect_error(res, err, 'RqlRuntimeError', err_string('GET', url, 'status code 401'));
+                expect_error(res, err, 'RqlNonExistenceError', err_string('GET', url, 'status code 401'));
                 done();
             });
         }));
@@ -361,21 +361,21 @@ describe('Javascript HTTP test - ', function() {
         it('wrong password', withConnection(function(done, conn) {
             r.http(url, {redirects:5,
                 auth:{type:'digest',user:'azure',pass:'wrong'}}).run(conn, function(err, res) {
-                expect_error(res, err, 'RqlRuntimeError', err_string('GET', url, 'status code 401'));
+                expect_error(res, err, 'RqlNonExistenceError', err_string('GET', url, 'status code 401'));
                 done();
             });
         }));
         it('wrong username', withConnection(function(done, conn) {
             r.http(url, {redirects:5,
                 auth:{type:'digest',user:'fake',pass:'hunter2'}}).run(conn, function(err, res) {
-                expect_error(res, err, 'RqlRuntimeError', err_string('GET', url, 'status code 401'));
+                expect_error(res, err, 'RqlNonExistenceError', err_string('GET', url, 'status code 401'));
                 done();
             });
         }));
         it('wrong auth type', withConnection(function(done, conn) {
             r.http(url, {redirects:5,
                 auth:{type:'basic',user:'azure',pass:'hunter2'}}).run(conn, function(err, res) {
-                expect_error(res, err, 'RqlRuntimeError', err_string('GET', url, 'status code 401'));
+                expect_error(res, err, 'RqlNonExistenceError', err_string('GET', url, 'status code 401'));
                 done();
             });
         }));
@@ -392,7 +392,7 @@ describe('Javascript HTTP test - ', function() {
     describe('verify', function() {
         function test_part(url, done, conn) {
             r.http(url, {method:'HEAD', verify:true, redirects:5}).run(conn, function(err, res) {
-                expect_error(res, err, 'RqlRuntimeError',
+                expect_error(res, err, 'RqlNonExistenceError',
                              err_string('HEAD', url, 'Peer certificate cannot be ' +
                                         'authenticated with given CA certificates'));
             });
@@ -434,4 +434,3 @@ describe('Javascript HTTP test - ', function() {
         }));
     });
 });
-
