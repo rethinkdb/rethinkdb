@@ -645,7 +645,8 @@ double time_portion(datum_t time, time_component_t c) {
 time_t boost_date(time_t boost_time) {
     ptime_t ptime = boost_time.local_time();
     date_t d(ptime.date().year_month_day());
-    return time_t(ptime_t(d), boost_time.zone());
+    auto zone = boost_time.zone();
+    return time_t(ptime_t(d) - zone->base_utc_offset(), zone);
 }
 
 datum_t time_date(datum_t time,
