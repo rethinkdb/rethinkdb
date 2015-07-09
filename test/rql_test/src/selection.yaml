@@ -41,11 +41,11 @@ tests:
 
     # Missing db case
     - cd: r.db('missing').table('bar')
-      ot: err("RqlRuntimeError", 'Database `missing` does not exist.', [0])
+      ot: err("RqlOpFailedError", 'Database `missing` does not exist.', [0])
 
     # Missing table case
     - cd: r.db('test').table('missing')
-      ot: err("RqlRuntimeError", 'Table `test.missing` does not exist.', [0])
+      ot: err("RqlOpFailedError", 'Table `test.missing` does not exist.', [0])
 
     # make sure we can insert and query json docs with arbitrary unicode attrs
     - js: tbl3.insert({'id':'Здравствуй','value':'Земля!'})
@@ -98,10 +98,10 @@ tests:
 
     # db and table name validation
     - cd: r.db('%')
-      ot: err("RqlRuntimeError", 'Database name `%` invalid (Use A-Za-z0-9_ only).', [0])
+      ot: err("RqlLogicError", 'Database name `%` invalid (Use A-Za-z0-9_ only).', [0])
 
     - cd: r.db('test').table('%')
-      ot: err("RqlRuntimeError", 'Table name `%` invalid (Use A-Za-z0-9_ only).', [0])
+      ot: err("RqlLogicError", 'Table name `%` invalid (Use A-Za-z0-9_ only).', [0])
 
     # Access a table from default db
     - cd: tbl.count()
@@ -141,7 +141,7 @@ tests:
       rb:
         - r.table('test2', {:read_mode => null}).count()
         - r.db('test').table('test2', {:read_mode => null}).count()
-      ot: err("RqlRuntimeError", 'Expected type STRING but found NULL.')
+      ot: err("RqlNonExistenceError", 'Expected type STRING but found NULL.')
 
     - py:
         - r.table('test2', read_mode=false).count()
@@ -152,7 +152,7 @@ tests:
       rb:
         - r.table('test2', {:read_mode => false}).count()
         - r.db('test').table('test2', {:read_mode => true}).count()
-      ot: err("RqlRuntimeError", 'Expected type STRING but found BOOL.')
+      ot: err("RqlLogicError", 'Expected type STRING but found BOOL.')
 
     - py:
         - r.table('test2', read_mode='fake').count()
@@ -163,11 +163,11 @@ tests:
       rb:
         - r.table('test2', {:read_mode => 'fake'}).count()
         - r.db('test').table('test2', {:read_mode => 'fake'}).count()
-      ot: err("RqlRuntimeError", 'Read mode `fake` unrecognized (options are "majority", "single", and "outdated").')
+      ot: err("RqlLogicError", 'Read mode `fake` unrecognized (options are "majority", "single", and "outdated").')
 
     - cd: tbl.get(20).count()
       py: [] # Handled by native Python error
-      ot: err("RqlRuntimeError", 'Expected type SEQUENCE but found SINGLE_SELECTION.', [0])
+      ot: err("RqlLogicError", 'Expected type SEQUENCE but found SINGLE_SELECTION.', [0])
 
     # Get a document that exists
     - cd: tbl.get(20)
@@ -267,7 +267,7 @@ tests:
 
     # Between shouldn't work on arrays
     - cd: r.expr([1, 2, 3]).between(-1, 2)
-      ot: err('RqlRuntimeError', 'Expected type TABLE_SLICE but found DATUM.', [0])
+      ot: err('RqlLogicError', 'Expected type TABLE_SLICE but found DATUM.', [0])
 
     # test between on open intervals
     - cd: tbl.between(r.minval, 2).count()
@@ -293,7 +293,7 @@ tests:
         - tbl.between(null, 2).count()
         - tbl.between(2, null).count()
         - tbl.between(null, null).count()
-      ot: err('RqlRuntimeError', 'Cannot use `nu' + 'll` in BETWEEN, use `r.minval` or `r.maxval` to denote unboundedness.')
+      ot: err('RqlLogicError', 'Cannot use `nu' + 'll` in BETWEEN, use `r.minval` or `r.maxval` to denote unboundedness.')
 
     # test between table where id isn't a primary key
     - cd: tblpkey.between(9, 11).count()
@@ -379,10 +379,9 @@ tests:
     - py: r.expr(5) + tbl
       js: r.expr(5).add(tbl)
       rb: r 5 + tbl
-      ot: err('RqlRuntimeError', 'Expected type DATUM but found TABLE.', [0])
+      ot: err('RqlLogicError', 'Expected type DATUM but found TABLE.', [0])
 
     # Clean up
     - cd: r.expr(['test2','test3','testpkey']).for_each(r.db('test').table_drop(r.row))
       rb: r.expr(['test2','test3','testpkey']).for_each{ |row| r.db('test').table_drop(row) }
       ot: partial({'tables_dropped':3})
-

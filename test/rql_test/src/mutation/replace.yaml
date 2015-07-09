@@ -77,11 +77,11 @@ tests:
     # test atomicity constraints
     - cd: tbl.get(1).replace(r.row.merge({'c':r.js('5')}))
       rb: tbl.get(1).replace{ |row| row.merge({'c':r.js('5')}) }
-      ot: err('RqlRuntimeError', 'Could not prove function deterministic.  Maybe you want to use the non_atomic flag?', [0])
+      ot: err('RqlLogicError', 'Could not prove function deterministic.  Maybe you want to use the non_atomic flag?', [0])
 
     - cd: tbl.get(1).replace(r.row.merge({'c':tbl.nth(0)}))
       rb: tbl.get(1).replace{ |row| row.merge({'c':tbl.nth(0)}) }
-      ot: err('RqlRuntimeError', 'Could not prove function deterministic.  Maybe you want to use the non_atomic flag?', [0])
+      ot: err('RqlLogicError', 'Could not prove function deterministic.  Maybe you want to use the non_atomic flag?', [0])
 
     - py: tbl.get(1).replace(r.row.merge({'c':r.js('5')}), non_atomic=True)
       js: tbl.get(1).replace(r.row.merge({'c':r.js('5')}), {'nonAtomic':true})
