@@ -14,7 +14,7 @@ tests:
       ot: '"foo"'
 
     - cd: r.json("[1,2")
-      ot: err("RqlRuntimeError", 'Failed to parse "[1,2" as JSON:' + ' Missing a comma or \']\' after an array element.', [0])
+      ot: err("RqlLogicError", 'Failed to parse "[1,2" as JSON:' + ' Missing a comma or \']\' after an array element.', [0])
 
     - cd: r.json("[1,2,3]").to_json_string()
       ot: ('[1,2,3]')
@@ -38,16 +38,16 @@ tests:
       ot: sorted
 
     - cd: r.expr(r.minval).to_json_string()
-      ot: err('RqlRuntimeError', 'Cannot convert `r.minval` to JSON.')
+      ot: err('RqlLogicError', 'Cannot convert `r.minval` to JSON.')
 
     - cd: r.expr(r.maxval).to_json_string()
-      ot: err('RqlRuntimeError', 'Cannot convert `r.maxval` to JSON.')
+      ot: err('RqlLogicError', 'Cannot convert `r.maxval` to JSON.')
 
     - cd: r.expr(r.minval).coerce_to('string')
-      ot: err('RqlRuntimeError', 'Cannot convert `r.minval` to JSON.')
+      ot: err('RqlLogicError', 'Cannot convert `r.minval` to JSON.')
 
     - cd: r.expr(r.maxval).coerce_to('string')
-      ot: err('RqlRuntimeError', 'Cannot convert `r.maxval` to JSON.')
+      ot: err('RqlLogicError', 'Cannot convert `r.maxval` to JSON.')
 
     - cd: r.time(2014,9,11, 'Z')
       runopts:

@@ -108,7 +108,7 @@ tests:
     - rb: tbl.map(nondetermmap).changes(squash:false)
       js: tbl.map(nondetermmap).changes({squash:false})
       py: tbl.map(nondetermmap).changes(squash=False)
-      ot: err('RqlRuntimeError', 'Cannot call `changes` after a non-deterministic function.')
+      ot: err('RqlLogicError', 'Cannot call `changes` after a non-deterministic function.')
 
     - rb: postmap_changes3 = tbl.changes(squash:false).map(nondetermmap).limit(100)
       js: postmap_changes3 = tbl.changes({squash:false}).map(nondetermmap).limit(100)
@@ -117,7 +117,7 @@ tests:
     - rb: tbl.filter(nondetermfilter).changes(squash:false)
       js: tbl.filter(nondetermfilter).changes({squash:false})
       py: tbl.filter(nondetermfilter).changes(squash=False)
-      ot: err('RqlRuntimeError', 'Cannot call `changes` after a non-deterministic function.')
+      ot: err('RqlLogicError', 'Cannot call `changes` after a non-deterministic function.')
 
     - rb: postfilter_changes3 = tbl.changes(squash:false).filter(nondetermfilter).limit(4)
       js: postfilter_changes3 = tbl.changes({squash:false}).filter(nondetermfilter).limit(4)

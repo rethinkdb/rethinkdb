@@ -34,7 +34,7 @@ tests:
     - py: tbl.insert({'id':3, 'a':3}, durability='wrong')
       js: tbl.insert({id:3, a:3}, {durability:'wrong'})
       rb: tbl.insert({ :id => 3, :a => 3 }, { :durability => 'wrong' })
-      ot: err('RqlRuntimeError', 'Durability option `wrong` unrecognized (options are "hard" and "soft").', [0])
+      ot: err('RqlLogicError', 'Durability option `wrong` unrecognized (options are "hard" and "soft").', [0])
     - cd: tbl.count()
       ot: 3
 
@@ -109,7 +109,7 @@ tests:
     - py: tbl.insert({'id':3, 'a':3}, conflict='wrong')
       js: tbl.insert({id:3, a:3}, {conflict:'wrong'})
       rb: tbl.insert({ :id => 3, :a => 3 }, { :conflict => 'wrong' })
-      ot: err('RqlRuntimeError', 'Conflict option `wrong` unrecognized (options are "error", "replace" and "update").', [0])
+      ot: err('RqlLogicError', 'Conflict option `wrong` unrecognized (options are "error", "replace" and "update").', [0])
 
     # test auto pkey generation
     - py: r.db('test').table_create('testpkey', primary_key='foo')
@@ -157,10 +157,10 @@ tests:
 
     # Get unreturnable data
     - cd: r.minval
-      ot: err('RqlRuntimeError','Cannot convert `r.minval` to JSON.')
+      ot: err('RqlInternalError','Cannot convert `r.minval` to JSON.')
 
     - cd: r.maxval
-      ot: err('RqlRuntimeError','Cannot convert `r.maxval` to JSON.')
+      ot: err('RqlInternalError','Cannot convert `r.maxval` to JSON.')
 
     # clean up
     - cd: r.db('test').table_drop('test2')
