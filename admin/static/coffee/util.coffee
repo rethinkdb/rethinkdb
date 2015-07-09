@@ -161,7 +161,7 @@ Handlebars.registerHelper 'approximate_count', approximate_count
 # from http://stackoverflow.com/a/18650828/180718
 format_bytes = (bytes, decimals=1) ->
     if bytes == 0
-        return '0 Byte'
+        return '0 Bytes'
     k = 1024
     sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
     i = Math.floor(Math.log(bytes) / Math.log(k))
