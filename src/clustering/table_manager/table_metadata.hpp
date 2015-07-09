@@ -111,12 +111,23 @@ public:
 RDB_DECLARE_SERIALIZABLE(multi_table_manager_timestamp_t::epoch_t);
 RDB_DECLARE_SERIALIZABLE(multi_table_manager_timestamp_t);
 
+/* In VERIFIED mode, the all replicas ready check makes sure that the leader
+still has a quorum and can perform Raft transactions. This is relatively expensive
+and causes disk writes and network overhead.
+OUTDATED_OK skips that step, but might temporarily return an incorrect result. */
+enum class all_replicas_ready_mode_t { INCLUDE_RAFT_TEST = 0, EXCLUDE_RAFT_TEST };
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(all_replicas_ready_mode_t,
+                                      int8_t,
+                                      all_replicas_ready_mode_t::INCLUDE_RAFT_TEST,
+                                      all_replicas_ready_mode_t::EXCLUDE_RAFT_TEST);
+
 class table_status_request_t {
 public:
     table_status_request_t() :
         want_config(false), want_sindexes(false), want_raft_state(false),
         want_contract_acks(false), want_shard_status(false),
-        want_all_replicas_ready(false) { }
+        want_all_replicas_ready(false),
+        all_replicas_ready_mode(all_replicas_ready_mode_t::INCLUDE_RAFT_TEST) { }
 
     bool want_config;
     bool want_sindexes;
@@ -124,6 +135,7 @@ public:
     bool want_contract_acks;
     bool want_shard_status;
     bool want_all_replicas_ready;
+    all_replicas_ready_mode_t all_replicas_ready_mode;
 };
 RDB_DECLARE_SERIALIZABLE(table_status_request_t);
 
@@ -133,6 +145,10 @@ public:
     `table_status_response_t` will be included or not. This is to avoid making an
     expensive computation if the result will not be used. If a field is not requested,
     its value is undefined (but typically empty or default-constructed). */
+
+    /* We must default-initialize boolean fields or they might cause out of range
+    errors during serialization and/or deserializtion. */
+    table_status_response_t() : all_replicas_ready(false) { }
 
     /* `config` is controlled by `want_config`. */
     boost::optional<table_config_and_shards_t> config;

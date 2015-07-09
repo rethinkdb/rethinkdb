@@ -58,6 +58,10 @@ public:
         order_token_t order_token,
         signal_t *interruptor);
 
+    void do_dummy_write(
+        signal_t *interruptor,
+        write_response_t *response_out);
+
 private:
     store_view_t *const store;
     branch_id_t const branch_id;

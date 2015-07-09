@@ -190,6 +190,7 @@ void table_meta_client_t::get_sindex_status(
 
 void table_meta_client_t::get_shard_status(
         const namespace_id_t &table_id,
+        all_replicas_ready_mode_t all_replicas_ready_mode,
         signal_t *interruptor_on_caller,
         std::map<server_id_t, range_map_t<key_range_t::right_bound_t,
             table_shard_status_t> > *shard_statuses_out,
@@ -201,6 +202,7 @@ void table_meta_client_t::get_shard_status(
     table_status_request_t request;
     request.want_shard_status = (shard_statuses_out != nullptr);
     request.want_all_replicas_ready = true;
+    request.all_replicas_ready_mode = all_replicas_ready_mode;
     std::set<namespace_id_t> failures;
     get_status(
         boost::make_optional(table_id),
@@ -227,6 +229,7 @@ void table_meta_client_t::get_shard_status(
 
 void table_meta_client_t::get_debug_status(
         const namespace_id_t &table_id,
+        all_replicas_ready_mode_t all_replicas_ready_mode,
         signal_t *interruptor_on_caller,
         std::map<server_id_t, table_status_response_t> *responses_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t) {
@@ -239,6 +242,7 @@ void table_meta_client_t::get_debug_status(
     request.want_contract_acks = true;
     request.want_shard_status = true;
     request.want_all_replicas_ready = true;
+    request.all_replicas_ready_mode = all_replicas_ready_mode;
     std::set<namespace_id_t> failures;
     get_status(
         boost::make_optional(table_id),

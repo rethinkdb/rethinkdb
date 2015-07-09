@@ -211,7 +211,6 @@
 #define CORO_PRIORITY_BACKFILL_SENDER           (-2)
 #define CORO_PRIORITY_BACKFILL_RECEIVER         (-2)
 #define CORO_PRIORITY_RESET_DATA                (-2)
-#define CORO_PRIORITY_REACTOR                   (-1)
 #define CORO_PRIORITY_DIRECTORY_CHANGES         (-2)
 #define CORO_PRIORITY_LBA_GC                    (-2)
 
