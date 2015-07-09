@@ -791,6 +791,8 @@ class RethinkDBRunningServer(object):
     
     __reqlConnection = None
     
+    logfile_path = None
+    
     def __init__(self, driver_port, cluster_port):
         self.__driver_port = driver_port
         self.__cluster_port = cluster_port
@@ -1516,21 +1518,22 @@ class WorkerThread(threading.Thread):
                             test.errorMessage += ', and the server crashed while running'
                 
                 # - copy the server contents or just the server log
-                if copyServerContents:
-                    shutil.copytree(self.server.files.db_path, os.path.join(testOutputDir, 'server'))
-                    
-                    # try to add the server log to the errorDetails
-                    try:
-                        self.server.console_file.seek(0)
-                        if test.errorDetails is None:
-                            test.errorDetails = '\nServer ouput:\n%s' % self.server.console_file.read()
-                        else:
-                            test.errorDetails += '\n\nServer ouput:\n%s' % self.server.console_file.read()
-                    except IOError: pass # stdout will cause this
-                    except Exception as e:
-                        warnings.warn(str(e))
-                else:
-                    shutil.copyfile(self.server.logfile_path, os.path.join(testOutputDir, 'server_log.txt'))
+                if self.server.logfile_path: # in case this is a local server, change for https://github.com/rethinkdb/rethinkdb/issues/4512
+                    if copyServerContents:
+                        shutil.copytree(self.server.files.db_path, os.path.join(testOutputDir, 'server'))
+                        
+                        # try to add the server log to the errorDetails
+                        try:
+                            self.server.console_file.seek(0)
+                            if test.errorDetails is None:
+                                test.errorDetails = '\nServer ouput:\n%s' % self.server.console_file.read()
+                            else:
+                                test.errorDetails += '\n\nServer ouput:\n%s' % self.server.console_file.read()
+                        except IOError: pass # stdout will cause this
+                        except Exception as e:
+                            warnings.warn(str(e))
+                    else:
+                        shutil.copyfile(self.server.logfile_path, os.path.join(testOutputDir, 'server_log.txt'))
                 
                 if restartServer:
                     try:

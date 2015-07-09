@@ -17,6 +17,8 @@ Along with moving them here the rules should be cleaned up in a few ways:
 This will also help porting if we move to another CSS preprocessor (say scss)
  */
 
+@import "flexbox-mixins.less";
+
 /* Colors */
 @text-color: #5c6169;
 @alternate-text-color: #626264;
@@ -120,10 +122,10 @@ This will also help porting if we move to another CSS preprocessor (say scss)
 }
 
 .flex-evenly-spaced-centered {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-direction: row;
+    .flex();
+    .flex-align-items(center);
+    .flex-justify(space-between);
+    .flex-direction(row);
 }
 
 /* End of mixins */
@@ -139,10 +141,10 @@ This will also help porting if we move to another CSS preprocessor (say scss)
         }
     }
     .parent-heading {
-        display: flex;
-        flex-direction: row;
-        justify-content: flex-begin;
-        align-items: flex-end;
+        .flex();
+        .flex-direction(row);
+        .flex-justify(flex-begin);
+        .flex-align-items(flex-end);
         font-size: 16px;
         color: @shard-title-color;
         margin: 10px 0;
@@ -366,19 +368,18 @@ tr.server-container {
         overflow: auto;
         border-collapse: collapse;
 
-        display: flex;
-        justify-content: space-between;
+        .flex();
+        .flex-justify(space-between);
         .panel {
             border: thin solid @dividing-line-color;
-            flex-grow: 0;
-            flex-shrink: 0;
-            flex-basis: 233px;
+            .flex-grow(0);
+            .flex-shrink(0);
+            .flex-basis(233px);
             vertical-align: top;
             overflow: hidden;
             white-space: nowrap;
-            display: flex;
-            // justify-content: center;
-            align-items: center;
+            .flex();
+            .flex-align-items(center);
             .dashboard-panel {
                 padding: 20px;
                 text-overflow: ellipsis;

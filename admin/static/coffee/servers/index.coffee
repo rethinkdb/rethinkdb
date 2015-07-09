@@ -40,8 +40,11 @@ class Model extends Backbone.Model
 
 class View extends Backbone.View
     initialize: (options) ->
-        if not options?.model
-            @model = new Model()
+        if not app.view_data_backup.servers_view?
+            @model = app.view_data_backup.servers_view = new Model()
+        else
+            @model = app.view_data_backup.servers_view
+
         @listenTo @model, "change", @render
         @current_vdom_tree = @render_vdom()
         @setElement(createElement(@current_vdom_tree))
