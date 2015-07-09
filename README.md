@@ -25,40 +25,43 @@ Or, get started right away with our ten-minute guide in these languages:
 * [**Python**](http://rethinkdb.com/docs/guide/python/)
 * [**Ruby**](http://rethinkdb.com/docs/guide/ruby/)
 
-Besides our three official drivers, we also have many [community drivers](http://rethinkdb.com/docs/install-drivers/) supported by the RethinkDB community. Here's a few:
+Besides our three official drivers, we also have many [third-party drivers](http://rethinkdb.com/docs/install-drivers/) supported by the RethinkDB community. Here's a few:
 
 * **C#/.NET:** [rethinkdb-net](https://github.com/mfenniak/rethinkdb-net)
 * **Clojure:** [clj-rethinkdb](https://github.com/apa512/clj-rethinkdb)
+* **Elixir** [rethinkdb-elixir](https://github.com/hamiltop/rethinkdb-elixir)
 * **Go** [GoRethink](https://github.com/dancannon/gorethink)
 * **Haskell:** [haskeel-rethinkdb](https://github.com/atnnn/haskell-rethinkdb)
 * **PHP:** [php-rql](https://github.com/danielmewes/php-rql) - [@danielmewes](https://github.com/danielmewes)
 * **Scala** [rethink-scala](https://github.com/kclay/rethink-scala) - [@kclay](https://github.com/kclay)
 
+Looking to explore what else RethinkDB offers or the specifics of ReQL? Check out [our RethinkDB docs](http://rethinkdb.com/docs/) and [ReQL API](http://rethinkdb.com/api/).
+
 
 Need help?
 --------
 
-If you need help, a great place to start is  [rethinkdb.com/community](www.rethinkdb.com/community). Here you can find out how to ask us questions, reach out to us, or [report an issue](https://github.com/rethinkdb/rethinkdb/issues). As well, find all the places we frequent online and which conference or meetup you might be able to meet us next.
+A great place to start is [rethinkdb.com/community](www.rethinkdb.com/community). Here you can find out how to ask us questions, reach out to us, or [report an issue](https://github.com/rethinkdb/rethinkdb/issues). You'll be able to find all the places we frequent online and at which conference or meetups you might be able to meet us next.
 
 If you need help right now, you can also find us [on Twitter](http://twitter.com/rethinkdb), via IRC at [#rethinkdb](irc://chat.freenode.net/#rethinkdb) on Freenode, or at [gitter.im/rethinkdb/rethinkdb](https://gitter.im/rethinkdb/rethinkdb).
 
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/rethinkdb/rethinkdb?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
+Need help with something serious like _"production"_? We also offer training and on-demand support in our [support services](http://rethinkdb.com/services/) as provided by the core RethinkDB team (and the Thinker too).
+
 Do you use RethinkDB? Send us a story!
 -----------------
- We love hearing all the awesome ways people are using RethinkDB and we want to hear from you too. Send us your story and we'll send a package your way with  RethinkDB swag.
-
-[rethinkdb.com/community/shirts-for-stories](http://rethinkdb.com/community/shirts-for-stories)
+ We love hearing all the awesome ways people are using RethinkDB and we want to hear from you too. [Send us your story]((http://rethinkdb.com/community/shirts-for-stories)) and we'll send a package your way with RethinkDB swag.
 
 Contributing
 -----------------
 
-RethinkDB was built by a dedicated team, but would not have been possible without the support and contributions of hundreds of people from all over the world. We could use your help too! Check out our [contributing guidelines](CONTRIBUTING.md) to get started.
+RethinkDB was built by a dedicated team, but it wouldn't have been possible without the support and contributions of hundreds of people from all over the world. We could use your help too! Check out our [contributing guidelines](CONTRIBUTING.md) to get started.
 
 Official drivers
 -----------------
 
-The drivers are located in this repository. For more information see one of the following:
+The drivers are located in this repository. For more information, see one of the following:
 
 - [JavaScript](drivers/javascript/)
 - [Python](drivers/python/)
@@ -67,4 +70,4 @@ The drivers are located in this repository. For more information see one of the 
 
 Where's the changelog?
 -----------------
-We keep a [list of changes feature explanations here](NOTES.md).
+We keep [a list of changes and feature explanations here](NOTES.md).
