@@ -171,22 +171,17 @@ void primary_dispatcher_t::spawn_write(
             unreachable();
     }
 
-    /* Don't assign new timestamps to dummy writes. */
-    state_timestamp_t write_timestamp;
-    if (boost::get<dummy_write_t>(&write.write) != nullptr) {
-        write_timestamp = current_timestamp;
-    } else {
-        write_timestamp = current_timestamp.next();
+    /* Assign a new timestamp to the write, unless it's a dummy write. */
+    if (boost::get<dummy_write_t>(&write.write) == nullptr) {
+        current_timestamp = current_timestamp.next();
     }
 
     counted_t<incomplete_write_t> incomplete_write = make_counted<incomplete_write_t>(
         write,
-        write_timestamp,
+        current_timestamp,
         order_checkpoint.check_through(order_token),
         durability,
         cb);
-
-    current_timestamp = write_timestamp;
 
     // You can't reuse the same callback for two writes.
     guarantee(cb->write == nullptr);

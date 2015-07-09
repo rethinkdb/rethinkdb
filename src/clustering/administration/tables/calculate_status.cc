@@ -26,7 +26,7 @@ bool wait_for_table_readiness(
         if (ok && readiness == table_readiness_t::finished) {
             try {
                 table_meta_client->get_shard_status(
-                    table_id, all_replicas_ready_mode_t::VERIFIED, interruptor,
+                    table_id, all_replicas_ready_mode_t::INCLUDE_RAFT_TEST, interruptor,
                     nullptr, &ok);
             } catch (const failed_table_op_exc_t &) {
                 ok = false;
@@ -83,7 +83,7 @@ void get_table_status(
     bool all_replicas_ready;
     try {
         table_meta_client->get_shard_status(
-            table_id, all_replicas_ready_mode_t::OUTDATED_OK, interruptor,
+            table_id, all_replicas_ready_mode_t::EXCLUDE_RAFT_TEST, interruptor,
             &status_out->server_shards, &all_replicas_ready);
     } catch (const failed_table_op_exc_t &) {
         all_replicas_ready = false;

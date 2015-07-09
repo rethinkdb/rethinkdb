@@ -277,7 +277,7 @@ void debug_table_status_artificial_table_backend_t::format_row(
 
     std::map<server_id_t, table_status_response_t> statuses;
     table_meta_client->get_debug_status(
-        table_id, all_replicas_ready_mode_t::OUTDATED_OK, interruptor_on_home,
+        table_id, all_replicas_ready_mode_t::INCLUDE_RAFT_TEST, interruptor_on_home,
         &statuses);
 
     ql::datum_object_builder_t builder;

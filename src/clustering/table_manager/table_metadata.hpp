@@ -115,11 +115,11 @@ RDB_DECLARE_SERIALIZABLE(multi_table_manager_timestamp_t);
 still has a quorum and can perform Raft transactions. This is relatively expensive
 and causes disk writes and network overhead.
 OUTDATED_OK skips that step, but might temporarily return an incorrect result. */
-enum class all_replicas_ready_mode_t { VERIFIED = 0, OUTDATED_OK };
+enum class all_replicas_ready_mode_t { INCLUDE_RAFT_TEST = 0, EXCLUDE_RAFT_TEST };
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(all_replicas_ready_mode_t,
                                       int8_t,
-                                      all_replicas_ready_mode_t::VERIFIED,
-                                      all_replicas_ready_mode_t::OUTDATED_OK);
+                                      all_replicas_ready_mode_t::INCLUDE_RAFT_TEST,
+                                      all_replicas_ready_mode_t::EXCLUDE_RAFT_TEST);
 
 class table_status_request_t {
 public:
@@ -127,7 +127,7 @@ public:
         want_config(false), want_sindexes(false), want_raft_state(false),
         want_contract_acks(false), want_shard_status(false),
         want_all_replicas_ready(false),
-        all_replicas_ready_mode(all_replicas_ready_mode_t::VERIFIED) { }
+        all_replicas_ready_mode(all_replicas_ready_mode_t::INCLUDE_RAFT_TEST) { }
 
     bool want_config;
     bool want_sindexes;

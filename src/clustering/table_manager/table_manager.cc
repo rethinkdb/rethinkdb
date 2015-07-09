@@ -132,7 +132,7 @@ void table_manager_t::get_status(
     }
     if (request.want_all_replicas_ready) {
         switch (request.all_replicas_ready_mode) {
-        case all_replicas_ready_mode_t::OUTDATED_OK: {
+        case all_replicas_ready_mode_t::EXCLUDE_RAFT_TEST: {
             rwlock_in_line_t leader_in_line(&leader_lock, access_t::read);
             // If we cannot acquire the leader_lock immediately, that implies
             // that the leader is currently transitioning. Instead of waiting for the
@@ -145,7 +145,7 @@ void table_manager_t::get_status(
                 response->all_replicas_ready = false;
             }
         } break;
-        case all_replicas_ready_mode_t::VERIFIED: {
+        case all_replicas_ready_mode_t::INCLUDE_RAFT_TEST: {
             rwlock_acq_t leader_acq(&leader_lock, access_t::read, interruptor);
             if (static_cast<bool>(leader)) {
                 response->all_replicas_ready =
