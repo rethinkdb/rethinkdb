@@ -31,11 +31,11 @@ Besides our three official drivers, we also have many [third-party drivers](http
 
 * **C#/.NET:** [rethinkdb-net](https://github.com/mfenniak/rethinkdb-net)
 * **Clojure:** [clj-rethinkdb](https://github.com/apa512/clj-rethinkdb)
-* **Elixir** [rethinkdb-elixir](https://github.com/hamiltop/rethinkdb-elixir)
-* **Go** [GoRethink](https://github.com/dancannon/gorethink)
+* **Elixir:** [rethinkdb-elixir](https://github.com/hamiltop/rethinkdb-elixir)
+* **Go:** [GoRethink](https://github.com/dancannon/gorethink)
 * **Haskell:** [haskeel-rethinkdb](https://github.com/atnnn/haskell-rethinkdb)
 * **PHP:** [php-rql](https://github.com/danielmewes/php-rql) - [@danielmewes](https://github.com/danielmewes)
-* **Scala** [rethink-scala](https://github.com/kclay/rethink-scala) - [@kclay](https://github.com/kclay)
+* **Scala:** [rethink-scala](https://github.com/kclay/rethink-scala) - [@kclay](https://github.com/kclay)
 
 Looking to explore what else RethinkDB offers or the specifics of ReQL? Check out [our RethinkDB docs](http://rethinkdb.com/docs/) and [ReQL API](http://rethinkdb.com/api/).
 
@@ -53,22 +53,12 @@ Need help with something serious like _"production"_? We also offer training and
 
 Do you use RethinkDB? Send us a story!
 -----------------
- We love hearing all the awesome ways people are using RethinkDB and we want to hear from you too. [Send us your story]((http://rethinkdb.com/community/shirts-for-stories)) and we'll send a package your way with RethinkDB swag.
+ We love hearing all the awesome ways people are using RethinkDB. And we want to hear from you too. [Send us your story](http://rethinkdb.com/community/shirts-for-stories) and we'll send a package your way with RethinkDB swag.
 
 Contributing
 -----------------
 
 RethinkDB was built by a dedicated team, but it wouldn't have been possible without the support and contributions of hundreds of people from all over the world. We could use your help too! Check out our [contributing guidelines](CONTRIBUTING.md) to get started.
-
-Official drivers
------------------
-
-The drivers are located in this repository. For more information, see one of the following:
-
-- [JavaScript](drivers/javascript/)
-- [Python](drivers/python/)
-- [Ruby](drivers/ruby/)
-
 
 Where's the changelog?
 -----------------
