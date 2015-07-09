@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "rdb_protocol/terms/terms.hpp"
 
 #include <string>
@@ -310,6 +310,14 @@ public:
                     table->db, name_string_t::guarantee_valid(table->name.c_str()),
                     env->env->interruptor, &error, &configs_and_statuses)) {
                 REQL_RETHROW(error);
+            }
+
+            // Verify all requested sindexes exist.
+            for (const auto &sindex : sindexes) {
+                rcheck(configs_and_statuses.count(sindex) == 1, base_exc_t::OP_FAILED,
+                    strprintf("Index `%s` was not found on table `%s`.",
+                              sindex.c_str(),
+                              table->display_name().c_str()));
             }
 
             ql::datum_array_builder_t statuses(ql::configured_limits_t::unlimited);
