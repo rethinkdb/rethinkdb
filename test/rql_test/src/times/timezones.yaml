@@ -61,7 +61,7 @@ tests:
 
 
   - cd: r.time(2013, 1, 1, "")
-    ot: err('RqlRuntimeError', 'Timezone `` does not start with `-` or `+`.')
+    ot: err('RqlLogicError', 'Timezone `` does not start with `-` or `+`.')
 
   - cd: r.time(2013, 1, 1, "-00")
     ot: err('RqlLogicError', '`-00` is not a valid time offset.')
