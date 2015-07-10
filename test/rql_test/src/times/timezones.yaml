@@ -42,41 +42,41 @@ tests:
   # Invalid timezones
 
   - cd: r.now().in_timezone("")
-    ot: err('RqlRuntimeError', 'Timezone `` does not start with `-` or `+`.')
+    ot: err('RqlLogicError', 'Timezone `` does not start with `-` or `+`.')
 
   - cd: r.now().in_timezone("-00")
-    ot: err('RqlRuntimeError', '`-00` is not a valid time offset.')
+    ot: err('RqlLogicError', '`-00` is not a valid time offset.')
 
   - cd: r.now().in_timezone("-00:00")
-    ot: err('RqlRuntimeError', '`-00:00` is not a valid time offset.')
+    ot: err('RqlLogicError', '`-00:00` is not a valid time offset.')
 
   - cd: r.now().in_timezone("UTC+00")
-    ot: err('RqlRuntimeError', 'Timezone `UTC+00` does not start with `-` or `+`.')
+    ot: err('RqlLogicError', 'Timezone `UTC+00` does not start with `-` or `+`.')
 
   - cd: r.now().in_timezone("+00:60")
-    ot: err('RqlRuntimeError', 'Minutes out of range in `+00:60`.')
+    ot: err('RqlLogicError', 'Minutes out of range in `+00:60`.')
 
   - cd: r.now().in_timezone("+25:00")
-    ot: err('RqlRuntimeError', 'Hours out of range in `+25:00`.')
+    ot: err('RqlLogicError', 'Hours out of range in `+25:00`.')
 
 
   - cd: r.time(2013, 1, 1, "")
     ot: err('RqlRuntimeError', 'Timezone `` does not start with `-` or `+`.')
 
   - cd: r.time(2013, 1, 1, "-00")
-    ot: err('RqlRuntimeError', '`-00` is not a valid time offset.')
+    ot: err('RqlLogicError', '`-00` is not a valid time offset.')
 
   - cd: r.time(2013, 1, 1, "-00:00")
-    ot: err('RqlRuntimeError', '`-00:00` is not a valid time offset.')
+    ot: err('RqlLogicError', '`-00:00` is not a valid time offset.')
 
   - cd: r.time(2013, 1, 1, "UTC+00")
-    ot: err('RqlRuntimeError', 'Timezone `UTC+00` does not start with `-` or `+`.')
+    ot: err('RqlLogicError', 'Timezone `UTC+00` does not start with `-` or `+`.')
 
   - cd: r.time(2013, 1, 1, "+00:60")
-    ot: err('RqlRuntimeError', 'Minutes out of range in `+00:60`.')
+    ot: err('RqlLogicError', 'Minutes out of range in `+00:60`.')
 
   - cd: r.time(2013, 1, 1, "+25:00")
-    ot: err('RqlRuntimeError', 'Hours out of range in `+25:00`.')
+    ot: err('RqlLogicError', 'Hours out of range in `+25:00`.')
 
   - cd: r.epoch_time(1436428422.339).in_timezone('-08:00').date().to_iso8601()
     js: r.epoch_time(1436428422.339).in_timezone('-08:00').date().toISO8601()

@@ -30,6 +30,9 @@ public:
         mailbox_t<void(write_response_t)>::address_t
         )> write_sync_mailbox_t;
     typedef mailbox_t<void(
+        mailbox_t<void(write_response_t)>::address_t
+        )> dummy_write_mailbox_t;
+    typedef mailbox_t<void(
         read_t, state_timestamp_t,
         mailbox_t<void(read_response_t)>::address_t
         )> read_mailbox_t;
@@ -38,6 +41,7 @@ public:
     intro_mailbox_t::address_t intro_mailbox;
     write_async_mailbox_t::address_t write_async_mailbox;
     write_sync_mailbox_t::address_t write_sync_mailbox;
+    dummy_write_mailbox_t::address_t dummy_write_mailbox;
     read_mailbox_t::address_t read_mailbox;
 };
 

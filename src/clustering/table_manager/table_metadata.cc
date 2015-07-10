@@ -15,9 +15,9 @@ RDB_IMPL_SERIALIZABLE_6_FOR_CLUSTER(
     table_manager_bcard_t,
     leader, timestamp, raft_member_id, raft_business_card,
     execution_bcard_minidir_bcard, server_id);
-RDB_IMPL_SERIALIZABLE_6_FOR_CLUSTER(table_status_request_t,
+RDB_IMPL_SERIALIZABLE_7_FOR_CLUSTER(table_status_request_t,
     want_config, want_sindexes, want_raft_state, want_contract_acks, want_shard_status,
-    want_all_replicas_ready);
+    want_all_replicas_ready, all_replicas_ready_mode);
 RDB_IMPL_SERIALIZABLE_7_FOR_CLUSTER(table_status_response_t,
     config, sindexes, raft_state, raft_state_timestamp, contract_acks, shard_status,
     all_replicas_ready);

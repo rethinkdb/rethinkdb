@@ -134,6 +134,7 @@ public:
     that information will not be retrieved, which will improve performance. */
     void get_shard_status(
         const namespace_id_t &table_id,
+        all_replicas_ready_mode_t all_replicas_ready_mode,
         signal_t *interruptor,
         std::map<server_id_t, range_map_t<key_range_t::right_bound_t,
             table_shard_status_t> > *shard_statuses_out,
@@ -144,6 +145,7 @@ public:
     displaying in `rethinkdb._debug_table_status`. */
     void get_debug_status(
         const namespace_id_t &table_id,
+        all_replicas_ready_mode_t all_replicas_ready_mode,
         signal_t *interruptor,
         std::map<server_id_t, table_status_response_t> *responses_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t);

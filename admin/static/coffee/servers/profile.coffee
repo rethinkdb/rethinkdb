@@ -40,7 +40,7 @@ class View extends Backbone.View
 
     render_vdom: (model) ->
         version = model.version?.split(' ')[1].split('-')[0]
-        approx_cache_size = util.format_bytes(model.cache_size, 1)
+        approx_cache_size = util.format_bytes(model.cache_size)
         h "div.server-info-view",
             h "div.summary", [
                 render_profile_row("hostname", "hostname", model.hostname or "N/A")

@@ -3,37 +3,37 @@ tests:
     # js timeout tests
     # Should timeout after the default of 5 seconds
     - cd: r.js('while(true) {}')
-      ot: err("RqlRuntimeError", "JavaScript query `while(true) {}` timed out after 5.000 seconds.", [0])
+      ot: err("RqlLogicError", "JavaScript query `while(true) {}` timed out after 5.000 seconds.", [0])
 
     - py: r.js('while(true) {}', timeout=1.3)
       js: r.js('while(true) {}', {timeout:1.3})
       rb: r.js('while(true) {}', :timeout => 1.3)
-      ot: err("RqlRuntimeError", "JavaScript query `while(true) {}` timed out after 1.300 seconds.", [0])
+      ot: err("RqlLogicError", "JavaScript query `while(true) {}` timed out after 1.300 seconds.", [0])
 
     - py: r.js('while(true) {}', timeout=8)
       js: r.js('while(true) {}', {timeout:8})
       rb: r.js('while(true) {}', :timeout => 8)
-      ot: err("RqlRuntimeError", "JavaScript query `while(true) {}` timed out after 8.000 seconds.", [0])
+      ot: err("RqlLogicError", "JavaScript query `while(true) {}` timed out after 8.000 seconds.", [0])
 
     - cd: r.expr('foo').do(r.js('(function(x) { while(true) {} })'))
-      ot: err("RqlRuntimeError", "JavaScript query `(function(x) { while(true) {} })` timed out after 5.000 seconds.", [0])
+      ot: err("RqlLogicError", "JavaScript query `(function(x) { while(true) {} })` timed out after 5.000 seconds.", [0])
 
     - py: r.expr('foo').do(r.js('(function(x) { while(true) {} })', timeout=1.3))
       js: r.expr('foo').do(r.js('(function(x) { while(true) {} })', {timeout:1.3}))
       rb: r.expr('foo').do(r.js('(function(x) { while(true) {} })', :timeout => 1.3))
-      ot: err("RqlRuntimeError", "JavaScript query `(function(x) { while(true) {} })` timed out after 1.300 seconds.", [0])
+      ot: err("RqlLogicError", "JavaScript query `(function(x) { while(true) {} })` timed out after 1.300 seconds.", [0])
 
     - py: r.expr('foo').do(r.js('(function(x) { while(true) {} })', timeout=8))
       js: r.expr('foo').do(r.js('(function(x) { while(true) {} })', {timeout:8}))
       rb: r.expr('foo').do(r.js('(function(x) { while(true) {} })', :timeout => 8))
-      ot: err("RqlRuntimeError", "JavaScript query `(function(x) { while(true) {} })` timed out after 8.000 seconds.", [0])
+      ot: err("RqlLogicError", "JavaScript query `(function(x) { while(true) {} })` timed out after 8.000 seconds.", [0])
 
     # http timeout tests
     - py: r.http('httpbin.org/delay/10', timeout=0.8)
       js: r.http('httpbin.org/delay/10', {timeout:0.8})
       rb: r.http('httpbin.org/delay/10', {:timeout => 0.8})
-      ot: err("RqlRuntimeError", "Error in HTTP GET of `httpbin.org/delay/10`:" + " timed out after 0.800 seconds.", [])
+      ot: err("RqlNonExistenceError", "Error in HTTP GET of `httpbin.org/delay/10`:" + " timed out after 0.800 seconds.", [])
     - py: r.http('httpbin.org/delay/10', method='PUT', timeout=0.0)
       js: r.http('httpbin.org/delay/10', {method:'PUT', timeout:0.0})
       rb: r.http('httpbin.org/delay/10', {:method => 'PUT', :timeout => 0.0})
-      ot: err("RqlRuntimeError", "Error in HTTP PUT of `httpbin.org/delay/10`:" + " timed out after 0.000 seconds.", [])
+      ot: err("RqlNonExistenceError", "Error in HTTP PUT of `httpbin.org/delay/10`:" + " timed out after 0.000 seconds.", [])

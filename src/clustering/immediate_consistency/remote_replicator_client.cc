@@ -167,6 +167,9 @@ remote_replicator_client_t::remote_replicator_client_t(
     write_sync_mailbox_(mailbox_manager,
         std::bind(&remote_replicator_client_t::on_write_sync, this,
             ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6)),
+    dummy_write_mailbox_(mailbox_manager,
+        std::bind(&remote_replicator_client_t::on_dummy_write, this,
+            ph::_1, ph::_2)),
     read_mailbox_(mailbox_manager,
         std::bind(&remote_replicator_client_t::on_read, this,
             ph::_1, ph::_2, ph::_3, ph::_4))
@@ -206,6 +209,7 @@ remote_replicator_client_t::remote_replicator_client_t(
             intro_mailbox.get_address(),
             write_async_mailbox_.get_address(),
             write_sync_mailbox_.get_address(),
+            dummy_write_mailbox_.get_address(),
             read_mailbox_.get_address() };
         registrant_.init(new registrant_t<remote_replicator_client_bcard_t>(
             mailbox_manager, remote_replicator_server_bcard.registrar, our_bcard));
@@ -457,6 +461,15 @@ void remote_replicator_client_t::on_write_sync(
     replica_->do_write(
         write, timestamp, order_token, durability,
         interruptor, &response);
+    send(mailbox_manager_, ack_addr, response);
+}
+
+void remote_replicator_client_t::on_dummy_write(
+        signal_t *interruptor,
+        const mailbox_t<void(write_response_t)>::address_t &ack_addr)
+        THROWS_ONLY(interrupted_exc_t) {
+    write_response_t response;
+    replica_->do_dummy_write(interruptor, &response);
     send(mailbox_manager_, ack_addr, response);
 }
 

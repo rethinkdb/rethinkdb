@@ -78,8 +78,9 @@ public:
 private:
     class timestamp_range_tracker_t;
 
-    /* `on_write_async()`, `on_write_sync()`, and `on_read()` are mailbox callbacks for
-    `write_async_mailbox_`, `write_sync_mailbox_`, and `read_mailbox_`. */
+    /* `on_write_async()`, `on_write_sync()`, `on_dummy_write()`, and `on_read()`
+    are mailbox callbacks for `write_async_mailbox_`, `write_sync_mailbox_`,
+    `dummy_write_mailbox_` and `read_mailbox_`. */
     void on_write_async(
             signal_t *interruptor,
             write_t &&write,
@@ -94,6 +95,11 @@ private:
             state_timestamp_t timestamp,
             order_token_t order_token,
             write_durability_t durability,
+            const mailbox_t<void(write_response_t)>::address_t &ack_addr)
+        THROWS_ONLY(interrupted_exc_t);
+
+    void on_dummy_write(
+            signal_t *interruptor,
             const mailbox_t<void(write_response_t)>::address_t &ack_addr)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -166,6 +172,7 @@ private:
 
     remote_replicator_client_bcard_t::write_async_mailbox_t write_async_mailbox_;
     remote_replicator_client_bcard_t::write_sync_mailbox_t write_sync_mailbox_;
+    remote_replicator_client_bcard_t::dummy_write_mailbox_t dummy_write_mailbox_;
     remote_replicator_client_bcard_t::read_mailbox_t read_mailbox_;
 
     /* We use `registrant_` to subscribe to a stream of reads and writes from the
