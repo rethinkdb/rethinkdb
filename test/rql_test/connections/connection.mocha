@@ -85,12 +85,12 @@ var withConnection = function(fnct) {
         })
         .catch(r.Error.RqlDriverError, r.Error.RqlRuntimeError, function(err) {
             // re-establish the connection
-        	reqlConn = null;
-        	return r.connect({host:serverHost, port:driverPort})
-        	.then(function(conn) {
+                reqlConn = null;
+                return r.connect({host:serverHost, port:driverPort})
+                .then(function(conn) {
                 reqlConn = conn; // cache the new connection
                 return reqlConn;
-        	});
+                });
         });
     }
 }
@@ -115,7 +115,7 @@ describe("JavaScript Callback style", function() {
                         // (like table creation) may take a moment
 
     describe("connect", function() {
-        
+
         it("works normally", function(done) {
             r.connect({host:serverHost, port:driverPort}, function(err, conn) {
                 try {
@@ -128,7 +128,7 @@ describe("JavaScript Callback style", function() {
                 }
             });
         });
-        
+
         it("times out with a bad port", function(done){
             var server = net.createServer(function(c) {}); // Setup dummy sever
             server.listen(0, function() {
@@ -136,7 +136,7 @@ describe("JavaScript Callback style", function() {
                 r.connect({port:badPort, timeout:.01}, givesError("RqlDriverError", "Handshake timedout", done));
             });
         });
-        
+
         it("fails with a non-open port", function(done) {
             var server = net.createServer(function(c) {}); // Setup dummy sever to get open port
             server.listen(0, function() {
@@ -146,7 +146,7 @@ describe("JavaScript Callback style", function() {
                 });
             });
         });
-        
+
         it("fails with a non-open port on host", function(done) {
             var server = net.createServer(function(c) {}); // Setup dummy sever to get open port
             server.listen(0, function() {
@@ -156,33 +156,33 @@ describe("JavaScript Callback style", function() {
                 });
             });
         });
-        
+
         it("works with default db", function(done, c){
             r.connect(
                 {host:serverHost, port:driverPort, db:'rethinkdb'},
                 noError(function(err, c) { r.table('current_issues').run(c, noError(done)); })
             )
         });
-        
+
         describe('with authorization key', function() {
             // ensure reqlConn is valid before each test
             beforeEach(function() { return withConnection() });
-            
+
             // undo any auth_key changes
             afterEach(function() {
-				return withConnection()
-				.then(function() {
-    				return r.db('rethinkdb').table('cluster_config').update({auth_key:null}).run(reqlConn);
-                })
+                return withConnection()
+                    .then(function() {
+                        return r.db('rethinkdb').table('cluster_config').update({auth_key:null}).run(reqlConn);
+                    })
             });
-            
+
             it("fails when no authorization key is needed", function(done){
                 r.connect(
                     {host:serverHost, port:driverPort, authKey: "hunter2"},
                     givesError("RqlDriverError", "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"", done)
                 );
             });
-            
+
             it("suceeds with correct key", function(done){
                 r.db('rethinkdb').table('cluster_config').update({auth_key: "hunter3"}).run(reqlConn, function(err) {
                     assert.ifError(err);
@@ -196,7 +196,7 @@ describe("JavaScript Callback style", function() {
                     });
                 });
             });
-            
+
             it("fails with wrong authorization key", function(done){
                 r.db('rethinkdb').table('cluster_config').update({auth_key: "hunter4"}).run(reqlConn, function(err) {
                     assert.ifError(err);
@@ -246,6 +246,20 @@ describe("JavaScript Callback style", function() {
 
             it("does not wait if we want it not to", function(done){
                 var t = Date.now();
+                r.js('while(true);', {timeout: 0.2}).run(reqlConn, {noreply: true}, function() {
+                    reqlConn.close({'noreplyWait': false}, function (err) {
+                        assert.ifError(err);
+                        var duration = Date.now() - t;
+                        assert(duration < 200);
+                        done();
+                    });
+                });
+            });
+
+            it("works with noreplyWait even with outstanding noreplyWait calls", function(done){
+                var t = Date.now();
+                r.js('while(true);', {timeout: 0.2}).run(reqlConn, {noreply: true}, function() {});
+                r.js('while(true);', {timeout: 0.2}).run(reqlConn, {noreply: true}, function() {});
                 r.js('while(true);', {timeout: 0.2}).run(reqlConn, {noreply: true}, function() {});
                 reqlConn.close({'noreplyWait': false}, function (err) {
                     assert.ifError(err);
@@ -280,6 +294,20 @@ describe("JavaScript Callback style", function() {
 
             it("does not wait if we want it not to", function(done){
                 var t = Date.now();
+                r.js('while(true);', {timeout: 0.2}).run(reqlConn, {noreply: true}, function() {
+                    reqlConn.reconnect({'noreplyWait': false}, function (err) {
+                        assert.ifError(err);
+                        var duration = Date.now() - t;
+                        assert(duration < 200);
+                        done();
+                    });
+                });
+            });
+
+            it("noreplyWait works even with outstanding noreplyWait calls", function(done){
+                var t = Date.now();
+                r.js('while(true);', {timeout: 0.2}).run(reqlConn, {noreply: true}, function() {});
+                r.js('while(true);', {timeout: 0.2}).run(reqlConn, {noreply: true}, function() {});
                 r.js('while(true);', {timeout: 0.2}).run(reqlConn, {noreply: true}, function() {});
                 reqlConn.reconnect({'noreplyWait': false}, function (err) {
                     assert.ifError(err);
@@ -307,33 +335,33 @@ describe("JavaScript Callback style", function() {
             });
         });
     });
-    
+
     describe('run', function() {
         // ensure reqlConn is valid before each test
         beforeEach(function() { return withConnection() });
-        
+
         it("errors with no connection", function(done) {
             r.expr(1).run().then(function() {
                 done(new Error("Was expecting an error"))
             }).error(givesError("RqlDriverError", "First argument to `run` must be an open connection.", done));
         });
-        
+
         it("errors with an object", function(done) {
             r.expr(1).run({}).then(function() {
                 done(new Error("Was expecting an error"))
             }).error(givesError("RqlDriverError", "First argument to `run` must be an open connection.", done));
         });
-        
+
         it("errors with an invalid optarg", function(done){
             r.expr(1).run(reqlConn, {nonValidOption: true}).then(function() {
                 done(new Error("Was expecting an error"))
             }).error(givesError("RqlCompileError", "Unrecognized global optional argument `non_valid_option`", done));
         });
-        
+
         it("errors with an extra argument", function(done){
             r.expr(1).run(reqlConn, givesError("RqlDriverError", "Second argument to `run` cannot be a function if a third argument is provided.", done), 1)
         });
-        
+
         it("errors with a non-function callback", function(done){
             r.expr(1).run(reqlConn, {}, "not_a_function").error(givesError("RqlDriverError", "If provided, the callback must be a function. Please use `run(connection[, options][, callback])", done))
         });
@@ -341,7 +369,7 @@ describe("JavaScript Callback style", function() {
         it("handles the db optarg", function(done){
             r.tableCreate('dbOptarg').run(reqlConn, {db:'dbOptarg'}).error(givesError('RqlOpFailedError', 'Database `dbOptarg` does not exist', done))
         });
-        
+
         describe('with a table', function() {
             // remove the table to ensure clean settings
             before(function(done) {
@@ -352,7 +380,7 @@ describe("JavaScript Callback style", function() {
                     });
                 });
             });
-            
+
             // ensure the table is clean
             beforeEach(function() {
                 return tbl.delete();
@@ -371,26 +399,26 @@ describe("JavaScript Callback style", function() {
                     tbl.run(reqlConn, {readMode: "single"}, noError(done));
                 });
             });
-            
+
             describe('insert', function() {
                 it("accepts soft durability", function(done) {
                     tbl.insert({data:"5"}).run(reqlConn, {durability: "soft"}, noError(done));
                 });
-                
+
                 it("accepts hard durability", function(done){
                     tbl.insert({data:"5"}).run(reqlConn, {durability: "hard"}, noError(done));
                 });
-                
+
                 it("accepts non-deterministic durability", function(done){
                     tbl.insert({data:"5"}).run(reqlConn, {durability: r.js("'so' + 'ft'")}, noError(done));
                 });
-                
+
                 it("errors with \"default\" durability", function(done) {
                     tbl.insert({data:"5"}).run(reqlConn, {durability: "default"},
                         givesError("RqlLogicError", 'Durability option `default` unrecognized (options are "hard" and "soft")', done)
                     );
                 });
-                
+
                 it("errors with wrong durability", function(done) {
                     tbl.insert({data:"5"}).run(reqlConn, {durability: "wrong"},
                         givesError("RqlLogicError", 'Durability option `wrong` unrecognized (options are "hard" and "soft")', done)
@@ -412,23 +440,23 @@ describe('toString', function() {
 describe('EventEmitter', function() {
     // ensure reqlConn is valid before each test
     beforeEach(function() { return withConnection() });
-    
+
     // ensure we have a clean reqlConn for the next test
     afterEach(function() { reqlConn.removeAllListeners; reqlConn = null; });
-    
+
     it("emits connect event on connect", function(done){
         reqlConn.on('connect', function() {
             done();
         });
-        
+
         reqlConn.reconnect(function(){});
     });
-    
+
     it("emits close event on close", function(done){
         reqlConn.on('close', function() {
             done();
         });
-        
+
         reqlConn.close();
     });
 });
