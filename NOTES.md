@@ -1,12 +1,17 @@
 # Release 2.1.0-beta (Forbidden Planet)
 
--- issues up-to-date with the 2.1 milestone as of 2015-07-06 23:00 UTC
+-- issues up-to-date with the 2.1 milestone as of 2015-07-12 20:00 UTC
 -- contributors " " next as of 3dac994 and docs:master as of 0b661c4
+
+This is a beta release for RethinkDB 2.1. **It is not for production use and has known bugs.** Please do not use this version for production data.
+
+We are looking forward to your bug reports on GitHub (http://github.com/rethinkdb/rethinkdb/issues/new) or on our mailing list (https://groups.google.com/forum/#!forum/rethinkdb).
 
 Release highlight:
 
 * Automatic failover
 * More flexible administration for servers and tables
+* Advanced recovery features
 
 Read the [blog post][2.1-beta] for more details.
 
@@ -20,19 +25,35 @@ version will include that feature for versions of RethinkDB down to
 1.14.0. Upgrading directly from RethinkDB 1.13 will require manually
 upgrading using `rethinkdb dump`.
 
-### API-breaking changes ###
+### Changed handling of server failures ###
+This release introduces a new system for dealing with server failures and network partitions.
+It is no longer necessary nor possible to permanently remove an unreachable server from the cluster through the system tables or the web UI. Instead the cluster now remains in an administrable state even with servers missing. To change the configuration of a given table, a majority of the servers that host replicas for that table need to be connected to guarantee data consistency. If more servers become unavailable, the new `emergency_repair` option to `table.reconfigure` can be used to restore table availability.
 
-* `.split('')` now treats the input as UTF-8 instead of an array of bytes.
-* `null` values in compound index are no longer discarded.
+This release adds full support for automatic failover. Tables with three or more replicas now automatically elect a new primary replica to restore availability after a currently configured primary replica has disconnected. No manual intervention is required in this scenario.
+
+### System table changes ###
+To reflect changes in the underlying cluster administration logic, some of the tables in the `"rethinkdb"` database changed.
+
+Each shard subdocument in the `"table_config"` table now has a new field `nonvoting_replicas`, that can be set to a subset of the servers in the `replicas` field. Furthermore `write_acks` must now be either `"single"` or `"majority"`. Custom write ack specifications are no longer supported. Instead non-voting replicas can be used to set up replicas that do not count towards the write ack requirements. Non-voting replicas can also be configured through the `table.reconfigure` command, by using the `novoting_replica_tags` optional argument. As a special case, `"table_config"` now lists tables that have all of their replicas disconnected as special documents with an `"error"` field.
+
+In the `"table_status"` table, the `primary_replica` field is now called `primary_replicas` and has an array of current primary replicas as its value. While under normal circumstances only a single server will be serving as the primary replica for a given shard, there can temporarily be multiple primary replicas during handover or while data is being transferred between servers. The possible values of the `state` field now are `"ready"`, `"transitioning"`, `"backfilling"`, `"disconnected"`, `"waiting_for_primary"` and `"waiting_for_quorum"`.
+
+The `"server_status"` and `"server_config"` tables no longer include servers that are disconnected from the cluster.
+
+In the `"current_issues"` table, the issue types `"table_needs_primary"`, `"data_lost"`, `"write_acks"`, `"server_ghost"` and `"server_disconnected"` can no longer occur. Instead a new issue type `"table_availability"` was added and appears whenever a table is missing at least one server. Note that no issue is generated if a server which is not hosting any replicas disconnects.
+
+### Other API-breaking changes ###
+
+* `.split('')` now treats the input as UTF-8 instead of an array of bytes
+* `null` values in compound index are no longer discarded
 * The new `read_mode="outdated"` optional argument replaces `use_outdated=True`
-* The format of the system tables has changed
 
 ## New features ##
 
 * Server
  * Added automatic failover and semi-lossless rebalance based on Raft (#223)
  * Backfills are now interuptible and reversible (#3886, #3885)
- * `table.reconfigure()` now works even if some servers are disconnected (#3913)
+ * `table.reconfigure` now works even if some servers are disconnected (#3913)
  * Replicas can now be marked as voting or non-voting (#3891)
  * Added an emergency repair feature to restore table availability if consensus is lost (#3893)
  * Reads can now be made against a majority of replicas (#3895)
@@ -65,14 +86,18 @@ upgrading using `rethinkdb dump`.
  * `condition.branch(...)` now works just like `r.branch(condition, ...)` (#4438)
 * Web UI
  * Added new dependency and namespace management system to the web UI (#3465, #3660)
+ * Improved the information visible on the dashboard (#4461)
+ * Improved layout of server and replica assignment lists (#4372)
  * Updated to reflect the new clustering features and changes (#4283, #4330, #4288, ...)
 * JavaScript driver
- * The version of bluebird was updated to 2.9.25 (#4178)
+ * The version of bluebird was updated to 2.9.32 (#4178, #4475)
 * Python driver
  * Added an `r.__version__` property (#3100)
 
 ## Bug fixes ##
 
+* `time_of_date` and `date` now respect timezones (#4149)
+* Added code to work around a bug in some versions of GLIBC and EGLIBC (#4470)
 * Python driver
  * Fixed a missing argument error (#4402)
 * JavaScript driver
