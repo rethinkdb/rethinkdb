@@ -648,7 +648,7 @@ void server_t::prune_dead_limit(
 limit_order_t::limit_order_t(sorting_t _sorting)
     : sorting(std::move(_sorting)) {
     rcheck_toplevel(
-        sorting != sorting_t::UNORDERED, base_exc_t::GENERIC,
+        sorting != sorting_t::UNORDERED, base_exc_t::LOGIC,
         "Cannot get changes on the first elements of an unordered stream.");
 }
 
@@ -1167,7 +1167,7 @@ public:
     next_raw_batch(env_t *env, const batchspec_t &bs) {
         rcheck(bs.get_batch_type() == batch_type_t::NORMAL
                || bs.get_batch_type() == batch_type_t::NORMAL_FIRST,
-               base_exc_t::GENERIC,
+               base_exc_t::LOGIC,
                "Cannot call a terminal (`reduce`, `count`, etc.) on an "
                "infinite stream (such as a changefeed).");
         return next_stream_batch(env, bs);
@@ -1498,7 +1498,7 @@ void real_feed_t::constructor_cb() {
                      std::bind(&subscription_t::stop,
                                ph::_1,
                                std::make_exception_ptr(
-                                   datum_exc_t(base_exc_t::GENERIC, msg)),
+                                   datum_exc_t(base_exc_t::OP_FAILED, msg)),
                                detach_t::YES));
             num_subs = 0;
         } else {
@@ -1783,7 +1783,7 @@ public:
             scoped_ptr_t<range_sub_t> sub_self(this);
             UNUSED subscription_t *super_self = self.release();
             bool stamped = maybe_src->add_stamp(changefeed_stamp_t(addr));
-            rcheck_src(bt, stamped, base_exc_t::GENERIC,
+            rcheck_src(bt, stamped, base_exc_t::LOGIC,
                        "Cannot call `include_initial_vals` on an unstampable stream.");
             return make_splice_stream(maybe_src, std::move(sub_self), bt);
         } else {
@@ -2300,7 +2300,7 @@ public:
                        std::bind(&subscription_t::stop,
                                  ph::_1,
                                  std::make_exception_ptr(
-                                     datum_exc_t(base_exc_t::GENERIC, msg)),
+                                     datum_exc_t(base_exc_t::OP_FAILED, msg)),
                                  detach_t::NO));
     }
 private:
@@ -2639,7 +2639,7 @@ void subscription_t::maybe_signal_cond() THROWS_NOTHING {
 void subscription_t::destructor_cleanup(std::function<void()> del_sub) THROWS_NOTHING {
     // This error is only sent if we're getting destroyed while blocking.
     stop(std::make_exception_ptr(
-             datum_exc_t(base_exc_t::GENERIC,
+             datum_exc_t(base_exc_t::OP_FAILED,
                          "Subscription destroyed (shutting down?).")),
          detach_t::NO);
     if (feed != NULL) {
@@ -2993,7 +2993,7 @@ counted_t<datum_stream_t> client_t::new_stream(
         return sub->to_stream(env, table_name, access.get(),
                               addr, std::move(maybe_src), std::move(sub), bt);
     } catch (const cannot_perform_query_exc_t &e) {
-        rfail_datum(base_exc_t::GENERIC,
+        rfail_datum(base_exc_t::OP_FAILED,
                     "cannot subscribe to table `%s`: %s",
                     table_name.c_str(), e.what());
     }

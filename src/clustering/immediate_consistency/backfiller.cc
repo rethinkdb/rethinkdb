@@ -61,10 +61,19 @@ backfiller_t::client_t::client_t(
             [&](const region_t &region1, const version_t &version1) {
                 return our_version.map_multi(region1,
                     [&](const region_t &region2, const version_t &version2) {
-                        return version_find_common(
-                                &combined_history, version1, version2, region2)
-                            .map(region2,
-                                [](const version_t &v) { return v.timestamp; });
+                        try {
+                            return version_find_common(
+                                    &combined_history, version1, version2, region2)
+                                .map(region2,
+                                    [](const version_t &v) { return v.timestamp; });
+                        } catch (const missing_branch_exc_t &) {
+                            /* If we don't have enough information to determine the
+                            common ancestor of the two versions, act as if it's zero.
+                            This will always produce correct results but it might make us
+                            do more backfilling than necessary. */
+                            return region_map_t<state_timestamp_t>(
+                                region2, state_timestamp_t::zero());
+                        }
                     });
             });
 
@@ -76,6 +85,58 @@ backfiller_t::client_t::client_t(
             our_version, &our_version_history);
     }
 
+    /* Fetch the key distribution from the store, this is used by the backfillee to
+    calculate the progress of backfill jobs. */
+    std::map<store_key_t, int64_t> distribution_counts;
+    int64_t distribution_counts_sum = 0;
+    {
+        static const int max_depth = 2;
+        static const size_t result_limit = 128;
+
+#ifndef NDEBUG
+        metainfo_checker_t metainfo_checker(
+            parent->store->get_region(),
+            [](const region_t &, const binary_blob_t &) { });
+#endif
+
+        distribution_read_t distribution_read(max_depth, result_limit);
+        read_t read(
+            distribution_read, profile_bool_t::DONT_PROFILE, read_mode_t::OUTDATED);
+        read_response_t read_response;
+        read_token_t read_token;
+        parent->store->read(
+            DEBUG_ONLY(metainfo_checker, )
+            read, &read_response, &read_token, interruptor);
+        distribution_counts = std::move(
+            boost::get<distribution_read_response_t>(read_response.response).key_counts);
+
+        /* For the progress calculation we need partial sums for each key thus we
+        calculate those from the results that the distribution query returns. */
+        for (auto &&distribution_count : distribution_counts) {
+            distribution_count.second =
+                (distribution_counts_sum += distribution_count.second);
+        }
+    }
+
+    /* Estimate the total number of changes that will need to be backfilled, by comparing
+    `our_version`, `intro.initial_version`, and `common_version`. We estimate the number
+    of changes as the largest version difference. In theory we could be smarter by
+    cross-referencing with `distribution_counts`, but it's not worth the trouble for now.
+    */
+    uint64_t num_changes_estimate = 0;
+    our_version.visit(full_region, [&](const region_t &r1, const version_t &v1) {
+        intro.initial_version.visit(r1, [&](const region_t &r2, const version_t &v2) {
+            common_version.visit(r2, [&](const region_t &, const state_timestamp_t &b) {
+                guarantee(v1.timestamp >= b);
+                guarantee(v2.timestamp >= b);
+                uint64_t backfiller_changes = v1.timestamp.count_changes(b);
+                uint64_t backfillee_changes = v2.timestamp.count_changes(b);
+                uint64_t total_changes = backfiller_changes + backfillee_changes;
+                num_changes_estimate = std::max(num_changes_estimate, total_changes);
+            });
+        });
+    });
+
     /* Send the computed common ancestor to the backfillee, along with the mailboxes it
     can use to contact us. */
     backfiller_bcard_t::intro_2_t our_intro;
@@ -85,6 +146,9 @@ backfiller_t::client_t::client_t(
     our_intro.begin_session_mailbox = begin_session_mailbox.get_address();
     our_intro.end_session_mailbox = end_session_mailbox.get_address();
     our_intro.ack_items_mailbox = ack_items_mailbox.get_address();
+    our_intro.num_changes_estimate = num_changes_estimate;
+    our_intro.distribution_counts = std::move(distribution_counts);
+    our_intro.distribution_counts_sum = distribution_counts_sum;
     send(parent->mailbox_manager, intro.intro_mailbox, our_intro);
 }
 

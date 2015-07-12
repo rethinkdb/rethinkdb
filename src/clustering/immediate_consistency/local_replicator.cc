@@ -106,4 +106,10 @@ void local_replicator_t::do_write_async(
         interruptor, &dummy);
 }
 
+void local_replicator_t::do_dummy_write(
+        signal_t *interruptor,
+        write_response_t *response_out) {
+    replica.do_dummy_write(interruptor, response_out);
+}
+
 

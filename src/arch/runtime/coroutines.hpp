@@ -37,8 +37,7 @@ struct coro_profiler_mixin_t {
 coroutine, call wait() to return control to the scheduler; the coroutine will be resumed when
 another fiber calls notify_*() on it.
 
-coro_t objects can switch threads with move_to_thread(), but it is recommended that you use
-on_thread_t for more safety. */
+coro_t objects can switch threads by constructing an `on_thread_t`. */
 
 class coro_t : private coro_profiler_mixin_t,
                private linux_thread_message_t,
@@ -61,6 +60,17 @@ public:
         return coro;
     }
 
+    /* This is an optimization over spawn_sometime() followed by an on_thread_t.
+    It avoids two thread messages, since it doesn't have to run on the original
+    thread first, and also doesn't switch back at the end of the coro's lifetime. */
+    template<class Callable>
+    static coro_t *spawn_on_thread(Callable &&action, threadnum_t thread) {
+        coro_t *coro = get_and_init_coro(std::forward<Callable>(action));
+        coro->current_thread_ = thread;
+        coro->notify_sometime();
+        return coro;
+    }
+
     /* Whenever possible, `spawn_sometime()` should be used instead of
     `spawn_later_ordered()` (or `spawn_ordered()`). `spawn_later_ordered()` does not
     honor scheduler priorities. */
@@ -69,11 +79,6 @@ public:
         coro_t *coro = get_and_init_coro(std::forward<Callable>(action));
         coro->notify_later_ordered();
         return coro;
-    }
-
-    template<class Callable>
-    static void spawn_ordered(Callable &&action) {
-        spawn_later_ordered(std::forward<Callable>(action));
     }
 
     // Use coro_t::spawn_*(std::bind(...)) for spawning with parameters.

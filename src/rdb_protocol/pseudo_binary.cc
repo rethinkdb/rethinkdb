@@ -55,12 +55,12 @@ datum_string_t decode_base64_ptype(
                                                     base64_data.size());
             res = datum_string_t(decoded_str.size(), decoded_str.data());
         } else {
-            rfail_datum(base_exc_t::GENERIC,
+            rfail_datum(base_exc_t::LOGIC,
                         "Invalid binary pseudotype: illegal `%s` key.",
                         it->first.to_std().c_str());
         }
     }
-    rcheck_datum(has_data, base_exc_t::GENERIC,
+    rcheck_datum(has_data, base_exc_t::LOGIC,
                  strprintf("Invalid binary pseudotype: lacking `%s` key.",
                            data_key).c_str());
     return res;

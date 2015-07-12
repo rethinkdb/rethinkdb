@@ -35,61 +35,62 @@ public:
             rdb_context_t *rdb_context,
             server_config_client_t *server_config_client,
             table_meta_client_t *table_meta_client,
+            multi_table_manager_t *multi_table_manager,
             watchable_map_t<
                 std::pair<peer_id_t, std::pair<namespace_id_t, branch_id_t> >,
                 table_query_bcard_t> *table_query_directory
             );
 
     bool db_create(const name_string_t &name,
-            signal_t *interruptor, ql::datum_t *result_out, std::string *error_out);
+            signal_t *interruptor, ql::datum_t *result_out, admin_err_t *error_out);
     bool db_drop(const name_string_t &name,
-            signal_t *interruptor, ql::datum_t *result_out, std::string *error_out);
+            signal_t *interruptor, ql::datum_t *result_out, admin_err_t *error_out);
     bool db_list(
             signal_t *interruptor,
-            std::set<name_string_t> *names_out, std::string *error_out);
+            std::set<name_string_t> *names_out, admin_err_t *error_out);
     bool db_find(const name_string_t &name,
             signal_t *interruptor,
-            counted_t<const ql::db_t> *db_out, std::string *error_out);
+            counted_t<const ql::db_t> *db_out, admin_err_t *error_out);
     bool db_config(
             const counted_t<const ql::db_t> &db,
             ql::backtrace_id_t bt,
             ql::env_t *env,
             scoped_ptr_t<ql::val_t> *selection_out,
-            std::string *error_out);
+            admin_err_t *error_out);
 
     bool table_create(const name_string_t &name, counted_t<const ql::db_t> db,
             const table_generate_config_params_t &config_params,
             const std::string &primary_key, write_durability_t durability,
-            signal_t *interruptor, ql::datum_t *result_out, std::string *error_out);
+            signal_t *interruptor, ql::datum_t *result_out, admin_err_t *error_out);
     bool table_drop(const name_string_t &name, counted_t<const ql::db_t> db,
-            signal_t *interruptor, ql::datum_t *result_out, std::string *error_out);
+            signal_t *interruptor, ql::datum_t *result_out, admin_err_t *error_out);
     bool table_list(counted_t<const ql::db_t> db,
             signal_t *interruptor,
-            std::set<name_string_t> *names_out, std::string *error_out);
+            std::set<name_string_t> *names_out, admin_err_t *error_out);
     bool table_find(const name_string_t &name, counted_t<const ql::db_t> db,
             boost::optional<admin_identifier_format_t> identifier_format,
             signal_t *interruptor, counted_t<base_table_t> *table_out,
-            std::string *error_out);
+            admin_err_t *error_out);
     bool table_estimate_doc_counts(
             counted_t<const ql::db_t> db,
             const name_string_t &name,
             ql::env_t *env,
             std::vector<int64_t> *doc_counts_out,
-            std::string *error_out);
+            admin_err_t *error_out);
     bool table_config(
             counted_t<const ql::db_t> db,
             const name_string_t &name,
             ql::backtrace_id_t bt,
             ql::env_t *env,
             scoped_ptr_t<ql::val_t> *selection_out,
-            std::string *error_out);
+            admin_err_t *error_out);
     bool table_status(
             counted_t<const ql::db_t> db,
             const name_string_t &name,
             ql::backtrace_id_t bt,
             ql::env_t *env,
             scoped_ptr_t<ql::val_t> *selection_out,
-            std::string *error_out);
+            admin_err_t *error_out);
 
     bool table_wait(
             counted_t<const ql::db_t> db,
@@ -97,13 +98,13 @@ public:
             table_readiness_t readiness,
             signal_t *interruptor,
             ql::datum_t *result_out,
-            std::string *error_out);
+            admin_err_t *error_out);
     bool db_wait(
             counted_t<const ql::db_t> db,
             table_readiness_t readiness,
             signal_t *interruptor,
             ql::datum_t *result_out,
-            std::string *error_out);
+            admin_err_t *error_out);
 
     bool table_reconfigure(
             counted_t<const ql::db_t> db,
@@ -112,14 +113,14 @@ public:
             bool dry_run,
             signal_t *interruptor,
             ql::datum_t *result_out,
-            std::string *error_out);
+            admin_err_t *error_out);
     bool db_reconfigure(
             counted_t<const ql::db_t> db,
             const table_generate_config_params_t &params,
             bool dry_run,
             signal_t *interruptor,
             ql::datum_t *result_out,
-            std::string *error_out);
+            admin_err_t *error_out);
 
     bool table_emergency_repair(
             counted_t<const ql::db_t> db,
@@ -128,19 +129,19 @@ public:
             bool dry_run,
             signal_t *interruptor,
             ql::datum_t *result_out,
-            std::string *error_out);
+            admin_err_t *error_out);
 
     bool table_rebalance(
             counted_t<const ql::db_t> db,
             const name_string_t &name,
             signal_t *interruptor,
             ql::datum_t *result_out,
-            std::string *error_out);
+            admin_err_t *error_out);
     bool db_rebalance(
             counted_t<const ql::db_t> db,
             signal_t *interruptor,
             ql::datum_t *result_out,
-            std::string *error_out);
+            admin_err_t *error_out);
 
     bool sindex_create(
             counted_t<const ql::db_t> db,
@@ -148,13 +149,13 @@ public:
             const std::string &name,
             const sindex_config_t &config,
             signal_t *interruptor,
-            std::string *error_out);
+            admin_err_t *error_out);
     bool sindex_drop(
             counted_t<const ql::db_t> db,
             const name_string_t &table,
             const std::string &name,
             signal_t *interruptor,
-            std::string *error_out);
+            admin_err_t *error_out);
     bool sindex_rename(
             counted_t<const ql::db_t> db,
             const name_string_t &table,
@@ -162,12 +163,12 @@ public:
             const std::string &new_name,
             bool overwrite,
             signal_t *interruptor,
-            std::string *error_out);
+            admin_err_t *error_out);
     bool sindex_list(
             counted_t<const ql::db_t> db,
             const name_string_t &table,
             signal_t *interruptor,
-            std::string *error_out,
+            admin_err_t *error_out,
             std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
                 *configs_and_statuses_out);
 

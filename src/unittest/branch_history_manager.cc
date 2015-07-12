@@ -10,18 +10,15 @@
 namespace unittest {
 
 branch_birth_certificate_t in_memory_branch_history_manager_t::get_branch(
-        const branch_id_t &branch) const THROWS_NOTHING {
+        const branch_id_t &branch) const THROWS_ONLY(missing_branch_exc_t) {
     assert_thread();
-    std::map<branch_id_t, branch_birth_certificate_t>::const_iterator it = bh.branches.find(branch);
-    guarantee(it != bh.branches.end(),
-        "no such branch: %s", uuid_to_str(branch).c_str());
-    return it->second;
+    return bh.get_branch(branch);
 }
 
 bool in_memory_branch_history_manager_t::is_branch_known(
         const branch_id_t &branch) const THROWS_NOTHING {
     assert_thread();
-    return bh.branches.count(branch) > 0;
+    return bh.is_branch_known(branch);
 }
 
 void in_memory_branch_history_manager_t::create_branch(
@@ -42,6 +39,26 @@ void in_memory_branch_history_manager_t::import_branch_history(
     nap(10, interruptor);
     for (const auto &pair : new_records.branches) {
         bh.branches.insert(std::make_pair(pair.first, pair.second));
+    }
+}
+
+void in_memory_branch_history_manager_t::prepare_gc(
+        std::set<branch_id_t> *branches_out)
+        THROWS_NOTHING {
+    assert_thread();
+    for (const auto &pair : bh.branches) {
+        branches_out->insert(pair.first);
+    }
+}
+
+void in_memory_branch_history_manager_t::perform_gc(
+        const std::set<branch_id_t> &remove_branches,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t) {
+    assert_thread();
+    nap(10, interruptor);
+    for (const branch_id_t &bid : remove_branches) {
+        bh.branches.erase(bid);
     }
 }
 

@@ -57,33 +57,43 @@ static void validate_params(
         const server_name_map_t &server_names)
         THROWS_ONLY(admin_op_exc_t) {
     if (params.num_shards <= 0) {
-        throw admin_op_exc_t("Every table must have at least one shard.");
+        throw admin_op_exc_t("Every table must have at least one shard.",
+                             query_state_t::FAILED);
     }
     size_t total_replicas = 0;
     for (const auto &pair : params.num_replicas) {
         total_replicas += pair.second;
     }
     if (total_replicas == 0) {
-        throw admin_op_exc_t("You must set `replicas` to at least one. `replicas` "
+        throw admin_op_exc_t(
+            "You must set `replicas` to at least one. `replicas` "
             "includes the primary replica; if there are zero replicas, there is nowhere "
-            "to put the data.");
+            "to put the data.",
+            query_state_t::FAILED);
     }
     static const size_t max_shards = 32;
     if (params.num_shards > max_shards) {
-        throw admin_op_exc_t(strprintf("Maximum number of shards is %zu.", max_shards));
+        throw admin_op_exc_t(
+            strprintf("Maximum number of shards is %zu.", max_shards),
+            query_state_t::FAILED);
     }
     if (params.num_replicas.count(params.primary_replica_tag) == 0 ||
             params.num_replicas.at(params.primary_replica_tag) == 0) {
-        throw admin_op_exc_t(strprintf("Can't use server tag `%s` for primary replicas "
-            "because you specified no replicas in server tag `%s`.",
-            params.primary_replica_tag.c_str(), params.primary_replica_tag.c_str()));
+        throw admin_op_exc_t(
+            strprintf("Can't use server tag `%s` for primary replicas "
+                      "because you specified no replicas in server tag `%s`.",
+                      params.primary_replica_tag.c_str(),
+                      params.primary_replica_tag.c_str()),
+            query_state_t::FAILED);
     }
     for (const name_string_t &nonvoting_tag : params.nonvoting_replica_tags) {
         if (params.num_replicas.count(nonvoting_tag) == 0) {
-            throw admin_op_exc_t(strprintf("You specified that the replicas in server "
-                "tag `%s` should be non-voting, but you didn't specify a number of "
-                "replicas in server tag `%s`.",
-                nonvoting_tag.c_str(), nonvoting_tag.c_str()));
+            throw admin_op_exc_t(
+                strprintf("You specified that the replicas in server "
+                          "tag `%s` should be non-voting, but you didn't specify a "
+                          "number of replicas in server tag `%s`.",
+                          nonvoting_tag.c_str(), nonvoting_tag.c_str()),
+                query_state_t::FAILED);
         }
     }
     std::map<server_id_t, name_string_t> servers_claimed;
@@ -95,11 +105,13 @@ static void validate_params(
             if (servers_claimed.count(server) == 0) {
                 servers_claimed.insert(std::make_pair(server, it->first));
             } else {
-                throw admin_op_exc_t(strprintf("Server tags `%s` and `%s` overlap; the "
-                    "server `%s` has both tags. The server tags used for replication "
-                    "settings for a given table must be non-overlapping.",
-                    it->first.c_str(), servers_claimed.at(server).c_str(),
-                    server_names.get(server).c_str()));
+                throw admin_op_exc_t(
+                    strprintf("Server tags `%s` and `%s` overlap; the server "
+                              "`%s` has both tags. The server tags used for replication "
+                              "settings for a given table must be non-overlapping.",
+                              it->first.c_str(), servers_claimed.at(server).c_str(),
+                              server_names.get(server).c_str()),
+                    query_state_t::FAILED);
             }
         }
     }
@@ -307,10 +319,13 @@ void table_generate_config(
         name_string_t server_tag = it->first;
         size_t num_in_tag = servers_with_tags.at(server_tag).size();
         if (num_in_tag < it->second) {
-            throw admin_op_exc_t(strprintf("Can't put %zu replicas on servers with the "
-                "tag `%s` because there are only %zu servers with the tag `%s`. It's "
-                "impossible to have more replicas of the data than there are servers.",
-                it->second, server_tag.c_str(), num_in_tag, server_tag.c_str()));
+            throw admin_op_exc_t(
+                strprintf("Can't put %zu replicas on servers with the tag `%s` because "
+                          "there are only %zu servers with the tag `%s`. It's impossible"
+                          " to have more replicas of the data than there are servers.",
+                          it->second, server_tag.c_str(),
+                          num_in_tag, server_tag.c_str()),
+                query_state_t::FAILED);
         }
 
         /* Compute the desirability of each shard/server pair */

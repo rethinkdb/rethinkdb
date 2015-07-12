@@ -181,10 +181,12 @@ void real_table_persistence_interface_t::read_all_metadata(
         const std::function<void(
             const namespace_id_t &table_id,
             const table_active_persistent_state_t &state,
-            raft_storage_interface_t<table_raft_state_t> *raft_storage)> &active_cb,
+            raft_storage_interface_t<table_raft_state_t> *raft_storage,
+            metadata_file_t::read_txn_t *metadata_read_txn)> &active_cb,
         const std::function<void(
             const namespace_id_t &table_id,
-            const table_inactive_persistent_state_t &state)> &inactive_cb,
+            const table_inactive_persistent_state_t &state,
+            metadata_file_t::read_txn_t *metadata_read_txn)> &inactive_cb,
         signal_t *interruptor) {
     metadata_file_t::read_txn_t read_txn(metadata_file, interruptor);
 
@@ -199,13 +201,14 @@ void real_table_persistence_interface_t::read_all_metadata(
     for (const auto &pair : active_tables) {
         storage_interfaces[pair.first].init(new table_raft_storage_interface_t(
             metadata_file, &read_txn, pair.first, interruptor));
-        active_cb(pair.first, pair.second, storage_interfaces[pair.first].get());
+        active_cb(
+            pair.first, pair.second, storage_interfaces[pair.first].get(), &read_txn);
     }
 
     read_txn.read_many<table_inactive_persistent_state_t>(
         mdprefix_table_inactive(),
         [&](const std::string &uuid_str, const table_inactive_persistent_state_t &s) {
-            inactive_cb(str_to_uuid(uuid_str), s);
+            inactive_cb(str_to_uuid(uuid_str), s, &read_txn);
         },
         interruptor);
 }
@@ -263,11 +266,13 @@ void real_table_persistence_interface_t::delete_metadata(
 
 void real_table_persistence_interface_t::load_multistore(
         const namespace_id_t &table_id,
+        metadata_file_t::read_txn_t *metadata_read_txn,
         scoped_ptr_t<multistore_ptr_t> *multistore_ptr_out,
         signal_t *interruptor,
         perfmon_collection_t *perfmon_collection_serializers) {
     scoped_ptr_t<real_branch_history_manager_t> bhm(
-        new real_branch_history_manager_t(table_id, metadata_file, interruptor));
+        new real_branch_history_manager_t(
+            table_id, metadata_file, metadata_read_txn, interruptor));
 
     threadnum_t serializer_thread = pick_thread();
     std::vector<threadnum_t> store_threads;
@@ -295,8 +300,10 @@ void real_table_persistence_interface_t::create_multistore(
         scoped_ptr_t<multistore_ptr_t> *multistore_ptr_out,
         signal_t *interruptor,
         perfmon_collection_t *perfmon_collection_serializers) {
+    metadata_file_t::read_txn_t read_txn(metadata_file, interruptor);
     load_multistore(
-        table_id, multistore_ptr_out, interruptor, perfmon_collection_serializers);
+        table_id, &read_txn, multistore_ptr_out, interruptor,
+        perfmon_collection_serializers);
 }
 
 void real_table_persistence_interface_t::destroy_multistore(

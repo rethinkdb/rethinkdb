@@ -39,9 +39,16 @@ public:
 };
 
 void throttler_acq_t::update_dirty_page_count(int64_t new_count) {
-    if (new_count > semaphore_acq_.count()) {
-        semaphore_acq_.change_count(new_count);
+    rassert(
+        block_changes_semaphore_acq_.count() == index_changes_semaphore_acq_.count());
+    if (new_count > block_changes_semaphore_acq_.count()) {
+        block_changes_semaphore_acq_.change_count(new_count);
+        index_changes_semaphore_acq_.change_count(new_count);
     }
+}
+
+void throttler_acq_t::mark_dirty_pages_written() {
+    block_changes_semaphore_acq_.change_count(0);
 }
 
 page_read_ahead_cb_t::page_read_ahead_cb_t(serializer_t *serializer,
@@ -247,7 +254,8 @@ page_cache_t::~page_cache_t() {
     }
 
     {
-        /* IO accounts must be destroyed on the thread they were created on */
+        /* IO accounts and a few other fields must be destroyed on the serializer
+        thread. */
         on_thread_t thread_switcher(serializer_->home_thread());
         // Resetting default_reads_account_ is opportunistically done here, instead
         // of making its destructor switch back to the serializer thread a second
@@ -976,12 +984,7 @@ page_txn_t::~page_txn_t() {
     guarantee(preceders_.empty());
     guarantee(subseqers_.empty());
 
-    // KSI: We could surely free the resources of snapshotted_dirtied_pages_ sooner
-    // (as mentioned elsewhere).
-    for (size_t i = 0, e = snapshotted_dirtied_pages_.size(); i < e; ++i) {
-        snapshotted_dirtied_pages_[i].ptr.reset_page_ptr(page_cache_);
-        page_cache_->consider_evicting_current_page(snapshotted_dirtied_pages_[i].block_id);
-    }
+    guarantee(snapshotted_dirtied_pages_.empty());
 }
 
 void page_txn_t::add_acquirer(DEBUG_VAR current_page_acq_t *acq) {
@@ -1190,6 +1193,7 @@ struct ancillary_info_t {
 
 void page_cache_t::do_flush_changes(page_cache_t *page_cache,
                                     const std::map<block_id_t, block_change_t> &changes,
+                                    const std::vector<page_txn_t *> &txns,
                                     fifo_enforcer_write_token_t index_write_token) {
     rassert(!changes.empty());
     std::vector<block_token_tstamp_t> blocks_by_tokens;
@@ -1255,6 +1259,7 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
         }
     }
 
+    cond_t blocks_released_cond;
     {
         on_thread_t th(page_cache->serializer_->home_thread());
 
@@ -1305,6 +1310,37 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
 
         blocks_releasable_cb.wait();
 
+        // All blocks have been written. Update the block tokens and free the
+        // associated snapshots on the cache thread.
+        coro_t::spawn_on_thread([&]() {
+            // Update the block tokens of the written blocks
+            for (auto it = blocks_by_tokens.begin(); it != blocks_by_tokens.end(); ++it) {
+                if (it->block_token.has() && it->page != NULL) {
+                    // We know page is still a valid pointer because of the page_ptr_t in
+                    // snapshotted_dirtied_pages_.
+
+                    // KSI: This assertion would fail if we try to force-evict the page
+                    // simultaneously as this write.
+                    rassert(!it->page->block_token().has());
+                    eviction_bag_t *old_bag
+                        = page_cache->evicter().correct_eviction_category(it->page);
+                    it->page->init_block_token(std::move(it->block_token), page_cache);
+                    page_cache->evicter().change_to_correct_eviction_bag(old_bag, it->page);
+                }
+            }
+
+            for (auto &txn : txns) {
+                for (size_t i = 0, e = txn->snapshotted_dirtied_pages_.size(); i < e; ++i) {
+                    txn->snapshotted_dirtied_pages_[i].ptr.reset_page_ptr(page_cache);
+                    page_cache->consider_evicting_current_page(
+                        txn->snapshotted_dirtied_pages_[i].block_id);
+                }
+                txn->snapshotted_dirtied_pages_.clear();
+                txn->throttler_acq_.mark_dirty_pages_written();
+            }
+            blocks_released_cond.pulse();
+        }, page_cache->home_thread());
+
         fifo_enforcer_sink_t::exit_write_t exiter(&page_cache->index_write_sink_->sink,
                                                   index_write_token);
         exiter.wait();
@@ -1317,28 +1353,10 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
                                              write_ops);
     }
 
-    // Set the page_t's block token field to their new block tokens.  KSI: Can we
-    // do this earlier?  Do we have to wait for blocks_releasable_cb?  It doesn't
-    // matter that much as long as we have some way to prevent parallel forced
-    // eviction from happening, though.  (That doesn't happen yet.)
-
-    // KSI: We could pass these block tokens as a message back to the cache thread
-    // and set them earlier -- at least we could after blocks_releasable_cb.wait()
-    // and before the index_write.
-    for (auto it = blocks_by_tokens.begin(); it != blocks_by_tokens.end(); ++it) {
-        if (it->block_token.has() && it->page != NULL) {
-            // We know page is still a valid pointer because of the page_ptr_t in
-            // snapshotted_dirtied_pages_.
-
-            // KSI: This assertion would fail if we try to force-evict the page
-            // simultaneously as this write.
-            rassert(!it->page->block_token().has());
-            eviction_bag_t *old_bag
-                = page_cache->evicter().correct_eviction_category(it->page);
-            it->page->init_block_token(std::move(it->block_token), page_cache);
-            page_cache->evicter().change_to_correct_eviction_bag(old_bag, it->page);
-        }
-    }
+    // Wait until the block release coroutine has finished to we can safely
+    // continue (this is important because once we return, a page transaction
+    // or even the whole page cache might get destructed).
+    blocks_released_cond.wait();
 }
 
 void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
@@ -1362,7 +1380,7 @@ void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
 
     // Okay, yield, thank you.
     coro_t::yield();
-    do_flush_changes(page_cache, changes, index_write_token);
+    do_flush_changes(page_cache, changes, txns, index_write_token);
 
     // Flush complete.
 

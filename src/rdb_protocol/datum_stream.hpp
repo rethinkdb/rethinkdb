@@ -133,7 +133,7 @@ protected:
 
 protected:
     virtual std::vector<changespec_t> get_changespecs() {
-        rfail(base_exc_t::GENERIC, "%s", "Cannot call `changes` on an eager stream.");
+        rfail(base_exc_t::LOGIC, "%s", "Cannot call `changes` on an eager stream.");
     }
     std::vector<transform_variant_t> transforms;
 
@@ -380,6 +380,13 @@ private:
     counted_t<const func_t> func;
     feed_type_t union_type;
     bool is_array_map, is_infinite_map;
+
+    // We need to preserve this between calls because we might have gotten data
+    // from a few substreams before having to abort because we timed out on a
+    // changefeed stream and return a partial batch.  (We still time out and
+    // return partial batches, or even empty batches, for the web UI in the case
+    // of a changefeed stream.)
+    std::vector<datum_t> args;
 };
 
 // This class generates the `read_t`s used in range reads.  It's used by
@@ -582,7 +589,7 @@ public:
 
     virtual changefeed::keyspec_t::range_t get_range_spec(
         std::vector<transform_variant_t>) const {
-        rfail_datum(base_exc_t::GENERIC,
+        rfail_datum(base_exc_t::LOGIC,
                     "%s", "Cannot call `changes` on an intersection read.");
         unreachable();
     }

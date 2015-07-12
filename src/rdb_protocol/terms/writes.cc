@@ -38,7 +38,7 @@ conflict_behavior_t parse_conflict_optarg(const scoped_ptr_t<val_t> &arg) {
     if (str == "replace") { return conflict_behavior_t::REPLACE; }
     if (str == "update") { return conflict_behavior_t::UPDATE; }
     rfail_target(arg.get(),
-                 base_exc_t::GENERIC,
+                 base_exc_t::LOGIC,
                  "Conflict option `%s` unrecognized "
                  "(options are \"error\", \"replace\" and \"update\").",
                  str.to_std().c_str());
@@ -50,7 +50,7 @@ durability_requirement_t parse_durability_optarg(const scoped_ptr_t<val_t> &arg)
     if (str == "hard") { return DURABILITY_REQUIREMENT_HARD; }
     if (str == "soft") { return DURABILITY_REQUIREMENT_SOFT; }
     rfail_target(arg.get(),
-                 base_exc_t::GENERIC,
+                 base_exc_t::LOGIC,
                  "Durability option `%s` unrecognized "
                  "(options are \"hard\" and \"soft\").",
                  str.to_std().c_str());
@@ -59,14 +59,14 @@ durability_requirement_t parse_durability_optarg(const scoped_ptr_t<val_t> &arg)
 return_changes_t parse_return_changes(
     scope_env_t *env, args_t *args, backtrace_id_t bt) {
     if (args->optarg(env, "return_vals")) {
-        rfail_src(bt, base_exc_t::GENERIC,
+        rfail_src(bt, base_exc_t::LOGIC,
                   "Error: encountered obsolete optarg `return_vals`.  "
                   "Use `return_changes` instead.");
     }
     if (scoped_ptr_t<val_t> v = args->optarg(env, "return_changes")) {
         datum_t d = v->as_datum();
         if (d.get_type() == datum_t::R_STR) {
-            rcheck_src(bt, d.as_str() == "always", base_exc_t::GENERIC,
+            rcheck_src(bt, d.as_str() == "always", base_exc_t::LOGIC,
                        strprintf("Invalid return_changes value `%s` "
                                  "(options are `true`, `false`, and `'always'`.)",
                                  d.as_str().to_std().c_str()));
@@ -342,7 +342,7 @@ private:
                 } catch (const exc_t &e) {
                     throw exc_t(e.get_type(), fail_msg, e.backtrace(), e.dummy_frames());
                 } catch (const datum_exc_t &de) {
-                    rfail_target(v, base_exc_t::GENERIC, "%s  %s", fail_msg, de.what());
+                    rfail_target(v, de.get_type(), "%s  %s", fail_msg, de.what());
                 }
                 sampler.new_sample();
             }

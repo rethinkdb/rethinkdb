@@ -21,13 +21,73 @@ void contract_t::sanity_check() const {
 
 RDB_IMPL_EQUALITY_COMPARABLE_2(
     contract_t::primary_t, server, hand_over);
-RDB_IMPL_EQUALITY_COMPARABLE_4(
-    contract_t, replicas, voters, temp_voters, primary);
+RDB_IMPL_EQUALITY_COMPARABLE_5(
+    contract_t, replicas, voters, temp_voters, primary, after_emergency_repair);
 
 RDB_IMPL_SERIALIZABLE_2_SINCE_v2_1(
     contract_t::primary_t, server, hand_over);
-RDB_IMPL_SERIALIZABLE_4_SINCE_v2_1(
-    contract_t, replicas, voters, temp_voters, primary);
+RDB_IMPL_SERIALIZABLE_5_SINCE_v2_1(
+    contract_t, replicas, voters, temp_voters, primary, after_emergency_repair);
+
+#ifndef NDEBUG
+void contract_ack_t::sanity_check(
+        const server_id_t &server,
+        const contract_id_t &contract_id,
+        const table_raft_state_t &raft_state) const {
+    const region_t &region = raft_state.contracts.at(contract_id).first;
+    const contract_t &contract = raft_state.contracts.at(contract_id).second;
+
+    guarantee(contract.replicas.count(server) == 1,
+        "A server sent an ack for a contract that it wasn't a replica for.");
+
+    bool ack_says_primary = state == state_t::primary_need_branch ||
+        state == state_t::primary_in_progress || state == state_t::primary_ready;
+    bool contract_says_primary = static_cast<bool>(contract.primary) &&
+        contract.primary->server == server;
+    guarantee(ack_says_primary == contract_says_primary,
+        "The contract says a server should be primary, but it sent a non-primary ack.");
+
+    guarantee((state == state_t::primary_need_branch) == static_cast<bool>(branch),
+        "branch_id should be present iff state is primary_need_branch");
+    guarantee((state == state_t::secondary_need_primary) == static_cast<bool>(version),
+        "version should be present iff state is secondary_need_primary");
+    guarantee(!static_cast<bool>(version) || version->get_domain() == region,
+        "version has wrong region");
+
+    bool is_voter = contract.voters.count(server) == 1 ||
+        (static_cast<bool>(contract.temp_voters) &&
+            contract.temp_voters->count(server) == 1);
+    if (!contract.after_emergency_repair && is_voter) {
+        try {
+            if (state == state_t::primary_need_branch) {
+                branch_history_combiner_t combiner(
+                    &raft_state.branch_history, &branch_history);
+                version_t branch_initial_version(
+                    *branch,
+                    branch_history.get_branch(*branch).initial_timestamp);
+                raft_state.current_branches.visit(region,
+                [&](const region_t &subregion, const branch_id_t &cur_branch) {
+                    version_find_branch_common(
+                        &combiner, branch_initial_version, cur_branch, subregion);
+                });
+            } else if (state == state_t::secondary_need_primary) {
+                branch_history_combiner_t combiner(
+                    &raft_state.branch_history, &branch_history);
+                version->visit(region,
+                [&](const region_t &subregion, const version_t &subversion) {
+                    raft_state.current_branches.visit(subregion,
+                    [&](const region_t &subsubregion, const branch_id_t &cur_branch) {
+                        version_find_branch_common(
+                            &combiner, subversion, cur_branch, subsubregion);
+                    });
+                });
+            }
+        } catch (const missing_branch_exc_t &) {
+            crash("Branch history is missing pieces");
+        }
+    }
+}
+#endif /* NDEBUG */
 
 RDB_IMPL_SERIALIZABLE_4_FOR_CLUSTER(
     contract_ack_t, state, version, branch, branch_history);
@@ -141,6 +201,7 @@ table_raft_state_t make_new_table_raft_state(
             contract.primary = boost::make_optional(
                 contract_t::primary_t { shard_conf.primary_replica, boost::none });
         }
+        contract.after_emergency_repair = false;
         for (size_t j = 0; j < CPU_SHARDING_FACTOR; ++j) {
             region_t region = region_intersection(
                 region_t(config.shard_scheme.get_shard_range(i)),
@@ -158,6 +219,11 @@ table_raft_state_t make_new_table_raft_state(
     DEBUG_ONLY_CODE(state.sanity_check());
     return state;
 }
+
+RDB_IMPL_EQUALITY_COMPARABLE_6(table_shard_status_t,
+    primary, secondary, need_primary, need_quorum, backfilling, transitioning);
+RDB_IMPL_SERIALIZABLE_6_FOR_CLUSTER(table_shard_status_t,
+    primary, secondary, need_primary, need_quorum, backfilling, transitioning);
 
 void debug_print(printf_buffer_t *buf, const contract_t::primary_t &primary) {
     buf->appendf("primary_t { server = ");

@@ -66,40 +66,40 @@ const boost::local_time::local_date_time epoch(raw_epoch, utc);
 // parsing errors, and we don't use streams anywhere else.)
 #define HANDLE_BOOST_ERRORS(TARGET)                                     \
       catch (const boost::gregorian::bad_year &e) {                     \
-        rfail_target(TARGET, base_exc_t::GENERIC,                       \
+        rfail_target(TARGET, base_exc_t::LOGIC,                       \
                      "Error in time logic: %s.", e.what());             \
     } catch (const boost::gregorian::bad_month &e) {                    \
-        rfail_target(TARGET, base_exc_t::GENERIC,                       \
+        rfail_target(TARGET, base_exc_t::LOGIC,                       \
                      "Error in time logic: %s.", e.what());             \
     } catch (const boost::gregorian::bad_day_of_month &e) {             \
-        rfail_target(TARGET, base_exc_t::GENERIC,                       \
+        rfail_target(TARGET, base_exc_t::LOGIC,                       \
                      "Error in time logic: %s.", e.what());             \
     } catch (const boost::gregorian::bad_weekday &e) {                  \
-        rfail_target(TARGET, base_exc_t::GENERIC,                       \
+        rfail_target(TARGET, base_exc_t::LOGIC,                       \
                      "Error in time logic: %s.", e.what());             \
     } catch (const boost::local_time::bad_offset &e) {                  \
-        rfail_target(TARGET, base_exc_t::GENERIC,                       \
+        rfail_target(TARGET, base_exc_t::LOGIC,                       \
                      "Error in time logic: %s.", e.what());             \
     } catch (const boost::local_time::bad_adjustment &e) {              \
-        rfail_target(TARGET, base_exc_t::GENERIC,                       \
+        rfail_target(TARGET, base_exc_t::LOGIC,                       \
                      "Error in time logic: %s.", e.what());             \
     } catch (const boost::local_time::time_label_invalid &e) {          \
-        rfail_target(TARGET, base_exc_t::GENERIC,                       \
+        rfail_target(TARGET, base_exc_t::LOGIC,                       \
                      "Error in time logic: %s.", e.what());             \
     } catch (const boost::local_time::dst_not_valid &e) {               \
-        rfail_target(TARGET, base_exc_t::GENERIC,                       \
+        rfail_target(TARGET, base_exc_t::LOGIC,                       \
                      "Error in time logic: %s.", e.what());             \
     } catch (const boost::local_time::ambiguous_result &e) {            \
-        rfail_target(TARGET, base_exc_t::GENERIC,                       \
+        rfail_target(TARGET, base_exc_t::LOGIC,                       \
                      "Error in time logic: %s.", e.what());             \
     } catch (const boost::local_time::data_not_accessible &e) {         \
-        rfail_target(TARGET, base_exc_t::GENERIC,                       \
+        rfail_target(TARGET, base_exc_t::LOGIC,                       \
                      "Error in time logic: %s.", e.what());             \
     } catch (const boost::local_time::bad_field_count &e) {             \
-        rfail_target(TARGET, base_exc_t::GENERIC,                       \
+        rfail_target(TARGET, base_exc_t::LOGIC,                       \
                      "Error in time logic: %s.", e.what());             \
     } catch (const std::ios_base::failure &e) {                         \
-        rfail_target(TARGET, base_exc_t::GENERIC,                       \
+        rfail_target(TARGET, base_exc_t::LOGIC,                       \
                      "Error in time logic: %s.", e.what());             \
     }                                                                   \
 
@@ -117,10 +117,10 @@ namespace sanitize {
 void mandatory_digits(const std::string &s, size_t n, size_t *p_at, std::string *p_out) {
     for (size_t i = 0; i < n; ++i) {
         size_t at = (*p_at)++;
-        rcheck_datum(at < s.size(), base_exc_t::GENERIC,
+        rcheck_datum(at < s.size(), base_exc_t::LOGIC,
                      strprintf("Truncated date string `%s`.", s.c_str()));
         char c = s[at];
-        rcheck_datum('0' <= c && c <= '9', base_exc_t::GENERIC,
+        rcheck_datum('0' <= c && c <= '9', base_exc_t::LOGIC,
                      strprintf(
                          "Invalid date string `%s` (got `%c` but expected a digit).",
                          s.c_str(), c));
@@ -181,11 +181,11 @@ std::string date(const std::string &s, date_format_t *df_out) {
             return out + "-01";
         }
         bool second_hyphen = optional_char(s, '-', &at, &out);
-        rcheck_datum(!(first_hyphen ^ second_hyphen), base_exc_t::GENERIC,
+        rcheck_datum(!(first_hyphen ^ second_hyphen), base_exc_t::LOGIC,
                      strprintf("Date string `%s` must have 0 or 2 hyphens.", s.c_str()));
         mandatory_digits(s, 2, &at, &out);
     }
-    rcheck_datum(at == s.size(), base_exc_t::GENERIC,
+    rcheck_datum(at == s.size(), base_exc_t::LOGIC,
                  strprintf("Garbage characters `%s` at end of date string `%s`.",
                            s.substr(at).c_str(), s.c_str()));
     return out;
@@ -205,7 +205,7 @@ std::string time(const std::string &s) {
         return out + ":00.000";
     }
     bool second_colon = optional_char(s, ':', &at, &out);
-    rcheck_datum(!(first_colon ^ second_colon), base_exc_t::GENERIC,
+    rcheck_datum(!(first_colon ^ second_colon), base_exc_t::LOGIC,
                  strprintf("Time string `%s` must have 0 or 2 colons.", s.c_str()));
     mandatory_digits(s, 2, &at, &out);
     if (optional_char(s, '.', &at, &out)) {
@@ -223,7 +223,7 @@ std::string time(const std::string &s) {
     } else {
         out += "000";
     }
-    rcheck_datum(at == s.size(), base_exc_t::GENERIC,
+    rcheck_datum(at == s.size(), base_exc_t::LOGIC,
                  strprintf("Garbage characters `%s` at end of time string `%s`.",
                            s.substr(at).c_str(), s.c_str()));
     return out;
@@ -239,7 +239,7 @@ bool minutes_valid(char l, char r) {
 
 // Sanitize a timezone.
 std::string tz(const std::string &s) {
-    rcheck_datum(s != "-00" && s != "-00:00", base_exc_t::GENERIC,
+    rcheck_datum(s != "-00" && s != "-00:00", base_exc_t::LOGIC,
                  strprintf("`%s` is not a valid time offset.", s.c_str()));
     if (s == "Z") {
         return "+00:00";
@@ -248,7 +248,7 @@ std::string tz(const std::string &s) {
     size_t at = 0;
     bool sign_prefix = optional_char(s, '-', &at, &out, EXCLUDE)
         || optional_char(s, '+', &at, &out, EXCLUDE);
-    rcheck_datum(sign_prefix, base_exc_t::GENERIC,
+    rcheck_datum(sign_prefix, base_exc_t::LOGIC,
                  strprintf("Timezone `%s` does not start with `-` or `+`.", s.c_str()));
     mandatory_digits(s, 2, &at, &out);
     if (at == s.size()) {
@@ -256,14 +256,14 @@ std::string tz(const std::string &s) {
     }
     optional_char(s, ':', &at, &out);
     mandatory_digits(s, 2, &at, &out);
-    rcheck_datum(at == s.size(), base_exc_t::GENERIC,
+    rcheck_datum(at == s.size(), base_exc_t::LOGIC,
                  strprintf("Garbage characters `%s` at end of timezone string `%s`.",
                            s.substr(at).c_str(), s.c_str()));
 
     r_sanity_check(out.size() == 6);
-    rcheck_datum(hours_valid(out[1], out[2]), base_exc_t::GENERIC,
+    rcheck_datum(hours_valid(out[1], out[2]), base_exc_t::LOGIC,
                  strprintf("Hours out of range in `%s`.", s.c_str()));
-    rcheck_datum(minutes_valid(out[4], out[5]), base_exc_t::GENERIC,
+    rcheck_datum(minutes_valid(out[4], out[5]), base_exc_t::LOGIC,
                  strprintf("Minutes out of range in `%s`.", s.c_str()));
     return out;
 }
@@ -316,7 +316,7 @@ std::string sanitize_boost_tz(std::string tz, const rcheckable_t *target) {
     }
     rcheck_target(target,
                   tz != "UTC+00" && tz != "",
-                  base_exc_t::GENERIC,
+                  base_exc_t::LOGIC,
                   "ISO 8601 string has no time zone, and no default time "
                   "zone was provided.");
 
@@ -326,7 +326,7 @@ std::string sanitize_boost_tz(std::string tz, const rcheckable_t *target) {
     } else if (tz_valid(tz, &tz_out)) {
         return tz_out;
     }
-    rfail_target(target, base_exc_t::GENERIC,
+    rfail_target(target, base_exc_t::LOGIC,
                  "Invalid ISO 8601 timezone: `%s`.", tz.c_str());
 }
 
@@ -347,7 +347,7 @@ datum_t iso8601_to_time(
         try {
             sanitized = sanitize::iso8601(s, default_tz, &df);
         } catch (const datum_exc_t &e) {
-            rfail_target(target, base_exc_t::GENERIC, "%s", e.what());
+            rfail_target(target, base_exc_t::LOGIC, "%s", e.what());
         }
 
         std::istringstream ss(sanitized);
@@ -356,7 +356,7 @@ datum_t iso8601_to_time(
         case UNSET: r_sanity_check(false); break;
         case MONTH_DAY: ss.imbue(month_day_format); break;
         case WEEKCOUNT: {
-            rfail_target(target, base_exc_t::GENERIC, "%s",
+            rfail_target(target, base_exc_t::LOGIC, "%s",
                          "Due to limitations in the boost time library we use for "
                          "parsing, we cannot support ISO week dates right now.  "
                          "Sorry about that!  Please use years, calendar dates, or "
@@ -369,7 +369,7 @@ datum_t iso8601_to_time(
         ss >> t;
         rcheck_target(target,
                       !t.is_special(),
-                      base_exc_t::GENERIC,
+                      base_exc_t::LOGIC,
                       strprintf("Failed to parse `%s` (`%s`) as ISO 8601 time.",
                                 s.c_str(),
                                 sanitized.c_str()));
@@ -422,7 +422,7 @@ std::string time_to_iso8601(datum_t d) {
         int year = t.date().year();
         // Boost also accepts year 10000.  I don't think any real users will hit
         // that edge case, but better safe than sorry.
-        rcheck_datum(year >= 0 && year <= 9999, base_exc_t::GENERIC,
+        rcheck_datum(year >= 0 && year <= 9999, base_exc_t::LOGIC,
                      strprintf("Year `%d` out of valid ISO 8601 range [0, 9999].",
                                year));
         std::ostringstream ss;
@@ -526,7 +526,7 @@ void sanitize_time(datum_t *time) {
     }
 
     if (msg != "") {
-        rfail_target(time, base_exc_t::GENERIC,
+        rfail_target(time, base_exc_t::LOGIC,
                      "Invalid time object constructed (%s):\n%s",
                      msg.c_str(), time->trunc_print().c_str());
     }
@@ -572,7 +572,7 @@ datum_t make_time(
         try {
             tz = sanitize::tz(tz);
         } catch (const datum_exc_t &e) {
-            rfail_target(target, base_exc_t::GENERIC, "%s", e.what());
+            rfail_target(target, base_exc_t::LOGIC, "%s", e.what());
         }
         boost::local_time::time_zone_ptr zone(
             new boost::local_time::posix_time_zone(tz));
@@ -645,11 +645,11 @@ double time_portion(datum_t time, time_component_t c) {
 time_t boost_date(time_t boost_time) {
     ptime_t ptime = boost_time.local_time();
     date_t d(ptime.date().year_month_day());
-    return time_t(ptime_t(d), boost_time.zone());
+    auto zone = boost_time.zone();
+    return time_t(ptime_t(d) - zone->base_utc_offset(), zone);
 }
 
-datum_t time_date(datum_t time,
-                                   const rcheckable_t *target) {
+datum_t time_date(datum_t time, const rcheckable_t *target) {
     try {
         return boost_to_time(boost_date(time_to_boost(time)), target);
     } HANDLE_BOOST_ERRORS(target);

@@ -2,8 +2,10 @@
 #include "clustering/table_contract/coordinator/coordinator.hpp"
 
 #include "clustering/generic/raft_core.tcc"
+#include "clustering/table_contract/branch_history_gc.hpp"
 #include "clustering/table_contract/coordinator/calculate_contracts.hpp"
 #include "clustering/table_contract/coordinator/calculate_misc.hpp"
+#include "clustering/table_contract/coordinator/check_ready.hpp"
 #include "logger.hpp"
 
 contract_coordinator_t::contract_coordinator_t(
@@ -65,6 +67,45 @@ boost::optional<raft_log_index_t> contract_coordinator_t::change_config(
     return boost::make_optional(log_index);
 }
 
+bool contract_coordinator_t::check_all_replicas_ready(signal_t *interruptor) {
+    assert_thread();
+    /* The bulk of the work is in the `::check_all_replicas_ready()` function defined in
+    `check_ready.hpp`. But we also make sure to commit the state that `check_ready` saw
+    before we reply, to ensure that we are actually still the Raft leader. */
+    scoped_ptr_t<raft_member_t<table_raft_state_t>::change_token_t> change_token;
+    {
+        raft_member_t<table_raft_state_t>::change_lock_t change_lock(raft, interruptor);
+        bool ok;
+        raft->get_latest_state()->apply_read(
+        [&](const raft_member_t<table_raft_state_t>::state_and_config_t *state) {
+            ok = ::check_all_replicas_ready(state->state, acks);
+        });
+        if (!ok) {
+            return false;
+        }
+        change_token = raft->propose_noop(&change_lock);
+    }
+    if (!change_token.has()) {
+        return false;
+    }
+    wait_interruptible(change_token->get_ready_signal(), interruptor);
+    if (!change_token->wait()) {
+        return false;
+    }
+    return true;
+}
+
+bool contract_coordinator_t::check_outdated_all_replicas_ready(
+        UNUSED signal_t *interruptor) {
+    assert_thread();
+    bool ok;
+    raft->get_latest_state()->apply_read(
+    [&](const raft_member_t<table_raft_state_t>::state_and_config_t *state) {
+        ok = ::check_all_replicas_ready(state->state, acks);
+    });
+    return ok;
+}
+
 void contract_coordinator_t::on_ack_change(
         const std::pair<server_id_t, contract_id_t> &key,
         const contract_ack_t *ack) {
@@ -116,11 +157,7 @@ void contract_coordinator_t::pump_contracts(signal_t *interruptor) {
             calculate_all_contracts(
                 state->state, acks_by_contract, connections_map,
                 &change.remove_contracts, &change.add_contracts,
-                &change.register_current_branches);
-            calculate_branch_history(
-                state->state, acks_by_contract,
-                change.remove_contracts, change.add_contracts,
-                change.register_current_branches,
+                &change.register_current_branches,
                 &change.remove_branches, &change.add_branches);
             calculate_server_names(
                 state->state, change.remove_contracts, change.add_contracts,
@@ -162,9 +199,9 @@ void contract_coordinator_t::pump_contracts(signal_t *interruptor) {
 void contract_coordinator_t::pump_configs(signal_t *interruptor) {
     assert_thread();
 
-    nap(200, interruptor);
-
     while (true) {
+        nap(200, interruptor);
+
         /* Wait until the Raft member is likely to accept config changes. This
         isn't actually necessary for changes to `member_ids`, but it's easier to
         just handle `member_ids` changes and Raft configuration changes at the
@@ -204,7 +241,6 @@ void contract_coordinator_t::pump_configs(signal_t *interruptor) {
             }
         });
 
-        bool member_ids_ok;
         if (!member_ids_change.remove_member_ids.empty() ||
                 !member_ids_change.add_member_ids.empty()) {
             /* Apply the `member_ids` change */
@@ -212,35 +248,29 @@ void contract_coordinator_t::pump_configs(signal_t *interruptor) {
                 change_token = raft->propose_change(
                     &change_lock,
                     table_raft_state_t::change_t(member_ids_change));
-            member_ids_ok = change_token.has();
-        } else {
-            /* The change is a no-op, so don't bother applying it */
-            member_ids_ok = true;
+            if (!change_token.has()) {
+                /* Go back to the top of the loop and try again. Note that we don't even
+                attempt the config change if the member IDs change fails; the config
+                change would not be valid to apply unless it came after the member IDs
+                change. */
+                continue;
+            }
         }
 
-        bool config_ok;
-        if (!member_ids_ok) {
-            /* If the `member_ids` change didn't go through, don't attempt the
-            config change. The config change would be unlikely to succeed, but
-            more importantly, the config change isn't necessarily valid to apply
-            unless it comes after the `member_ids` change. */
-            config_ok = false;
-        } else if (static_cast<bool>(config_change)) {
+        if (static_cast<bool>(config_change)) {
             /* Apply the config change */
-            scoped_ptr_t<raft_member_t<table_raft_state_t>::change_token_t>
-                change_token = raft->propose_config_change(&change_lock, *config_change);
-            config_ok = change_token.has();
-        } else {
-            /* The config change is a no-op */
-            config_ok = true;
+            raft->propose_config_change(&change_lock, *config_change);
+
+            /* Go back to the top of the loop whether or not the change succeeded. If it
+            failed, we want to try again; if it succeeded, we want to wait until it gets
+            applied and then re-run `calculate_member_ids_and_raft_config()` because
+            there might be further changes. */
+            continue;
         }
 
-        /* If both changes succeeded, break out of the loop. Otherwise, go back
-        to the top of the loop and wait for `get_readiness_for_config_change()`
-        again. */
-        if (member_ids_ok && config_ok) {
-            break;
-        }
+        /* Both changes succeeded, or there was nothing to change in the first place; so
+        we break out of the loop. */
+        break;
     }
 }
 

@@ -58,6 +58,9 @@ public:
             state_timestamp_t timestamp,
             order_token_t order_token,
             signal_t *interruptor) = 0;
+        virtual void do_dummy_write(
+            signal_t *interruptor,
+            write_response_t *response_out) = 0;
     protected:
         virtual ~dispatchee_t() { }
     };
@@ -84,8 +87,8 @@ public:
         ~dispatchee_registration_t();
 
         /* Initially, dispatchees will only receive `do_write_async()` calls. But after
-        `mark_ready()` is called, the `primary_dispatcher_t` may also send them reads and
-        `do_write_sync()` calls. */
+        `mark_ready()` is called, the `primary_dispatcher_t` may also send them reads,
+        `do_write_sync()`, and `do_dummy_write()` calls. */
         void mark_ready();
 
     private:

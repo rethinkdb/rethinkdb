@@ -140,9 +140,32 @@ void jobs_manager_t::on_get_job_reports(
                 status.second.second.blocks_processed,
                 status.second.second.blocks_total);
         }
-    });
 
-    // RSI(raft): Reimplement `"backfill"` jobs.
+        std::map<region_t, backfill_progress_tracker_t::progress_tracker_t> backfills =
+            table_manager->get_backfill_progress_tracker().get_progress_trackers();
+        std::string base_str = uuid_to_str(server_id) + uuid_to_str(table_id);
+        for (const auto &backfill : backfills) {
+            uuid_u id = uuid_u::from_hash(
+                base_backfill_id,
+                base_str + uuid_to_str(backfill.second.source_server_id));
+
+            /* As above we only calculate the duration if the backfill is still in
+               progress. */
+            double duration = backfill.second.is_ready
+                ? 0
+                : time - std::min(backfill.second.start_time, time);
+
+            backfill_job_reports.emplace_back(
+                id,
+                duration,
+                server_id,
+                table_id,
+                backfill.second.is_ready,
+                backfill.second.progress,
+                backfill.second.source_server_id,
+                server_id);
+        }
+    });
 
     send(mailbox_manager,
          reply_address,

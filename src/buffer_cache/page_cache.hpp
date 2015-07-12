@@ -291,20 +291,27 @@ public:
     throttler_acq_t() { }
     ~throttler_acq_t() { }
     throttler_acq_t(throttler_acq_t &&movee)
-        : semaphore_acq_(std::move(movee.semaphore_acq_)) {
-        movee.semaphore_acq_.reset();
+        : block_changes_semaphore_acq_(std::move(movee.block_changes_semaphore_acq_)),
+          index_changes_semaphore_acq_(std::move(movee.index_changes_semaphore_acq_)) {
+        movee.block_changes_semaphore_acq_.reset();
+        movee.index_changes_semaphore_acq_.reset();
     }
 
-    // See below:  this can update how much semaphore_acq_ holds.
+    // See below:  this can update how much *_changes_semaphore_acq_ holds.
     void update_dirty_page_count(int64_t new_count);
+
+    // Sets block_changes_semaphore_acq_ to 0, but keeps index_changes_semaphore_acq_
+    // as it is.
+    void mark_dirty_pages_written();
 
 private:
     friend class ::alt_txn_throttler_t;
-    // At first, the number of dirty pages is 0 and semaphore_acq_.count() >=
+    // At first, the number of dirty pages is 0 and *_changes_semaphore_acq_.count() >=
     // dirtied_count_.  Once the number of dirty pages gets bigger than the original
-    // value of semaphore_acq_.count(), we use semaphore_acq_.change_count() to keep
-    // the numbers equal.
-    new_semaphore_acq_t semaphore_acq_;
+    // value of *_changes_semaphore_acq_.count(), we use
+    // *_changes_semaphore_acq_.change_count() to keep the numbers equal.
+    new_semaphore_acq_t block_changes_semaphore_acq_;
+    new_semaphore_acq_t index_changes_semaphore_acq_;
 
     DISABLE_COPYING(throttler_acq_t);
 };
@@ -387,6 +394,7 @@ private:
     friend class page_txn_t;
     static void do_flush_changes(page_cache_t *page_cache,
                                  const std::map<block_id_t, block_change_t> &changes,
+                                 const std::vector<page_txn_t *> &txns,
                                  fifo_enforcer_write_token_t index_write_token);
     static void do_flush_txn_set(page_cache_t *page_cache,
                                  std::map<block_id_t, block_change_t> *changes_ptr,

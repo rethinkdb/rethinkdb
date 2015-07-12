@@ -27,11 +27,11 @@ void real_branch_history_manager_t::erase(
 real_branch_history_manager_t::real_branch_history_manager_t(
         const namespace_id_t &_table_id,
         metadata_file_t *_metadata_file,
+        metadata_file_t::read_txn_t *metadata_read_txn,
         signal_t *interruptor):
     table_id(_table_id), metadata_file(_metadata_file)
 {
-    metadata_file_t::read_txn_t read_txn(metadata_file, interruptor);
-    read_txn.read_many<branch_birth_certificate_t>(
+    metadata_read_txn->read_many<branch_birth_certificate_t>(
         mdprefix_branch_birth_certificate().suffix(uuid_to_str(table_id) + "/"),
         [&](const std::string &branch_id_str, const branch_birth_certificate_t &bc) {
             branch_id_t branch_id = str_to_uuid(branch_id_str);
@@ -42,7 +42,7 @@ real_branch_history_manager_t::real_branch_history_manager_t(
 
 branch_birth_certificate_t
 real_branch_history_manager_t::get_branch(const branch_id_t &branch)
-        const THROWS_NOTHING {
+        const THROWS_ONLY(missing_branch_exc_t) {
     assert_thread();
     return cache.get_branch(branch);
 }
@@ -86,6 +86,31 @@ void real_branch_history_manager_t::import_branch_history(
                     pair.second,
                     interruptor);
             }
+        }
+    }
+}
+
+void real_branch_history_manager_t::prepare_gc(
+        std::set<branch_id_t> *branches_out)
+        THROWS_NOTHING {
+    branches_out->clear();
+    for (const auto &pair : cache.branches) {
+        branches_out->insert(pair.first);
+    }
+}
+
+void real_branch_history_manager_t::perform_gc(
+        const std::set<branch_id_t> &remove_branches,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t) {
+    metadata_file_t::write_txn_t write_txn(metadata_file, interruptor);
+    for (const branch_id_t &bid : remove_branches) {
+        if (is_branch_known(bid)) {
+            cache.branches.erase(bid);
+            write_txn.erase(
+                mdprefix_branch_birth_certificate().suffix(
+                    uuid_to_str(table_id) + "/" + uuid_to_str(bid)),
+                interruptor);
         }
     }
 }

@@ -183,6 +183,23 @@ private:
                                 parent->callback_returned_false = true;
                                 parent->send_end_session_message();
                             }
+
+                            if (!new_threshold.unbounded) {
+                                const auto &distribution_counts =
+                                    parent->parent->intro.distribution_counts;
+                                auto lower_bound =
+                                    distribution_counts.lower_bound(new_threshold.key());
+                                if (lower_bound != distribution_counts.end()) {
+                                    double distribution_counts_sum =
+                                        parent->parent->intro.distribution_counts_sum;
+                                    parent->parent->progress_tracker->progress =
+                                        lower_bound->second / distribution_counts_sum;
+                                } else {
+                                    parent->parent->progress_tracker->progress = 1.0;
+                                }
+                            } else {
+                                parent->parent->progress_tracker->progress = 1.0;
+                            }
                         }
                         parent->threshold = new_threshold;
                     }
@@ -234,6 +251,8 @@ private:
         } catch (const interrupted_exc_t &) {
             /* The backfillee was destroyed */
         }
+
+        parent->progress_tracker->is_ready = true;
     }
 
     /* `send_ack_items()` lets the backfiller know the total mem size of the items we've
@@ -305,11 +324,13 @@ backfillee_t::backfillee_t(
         store_view_t *_store,
         const backfiller_bcard_t &backfiller,
         const backfill_config_t &_backfill_config,
+        backfill_progress_tracker_t::progress_tracker_t *_progress_tracker,
         signal_t *interruptor) :
     mailbox_manager(_mailbox_manager),
     branch_history_manager(_branch_history_manager),
     store(_store),
     backfill_config(_backfill_config),
+    progress_tracker(_progress_tracker),
     pre_item_throttler(backfill_config.pre_item_queue_mem_size),
     pre_item_throttler_acq(&pre_item_throttler, 0),
     current_session(nullptr),
@@ -380,6 +401,10 @@ backfillee_t::backfillee_t(
 backfillee_t::~backfillee_t() {
     /* This destructor is declared in the `.cc` file because we need to have the full
     definition of `session_t` in scope for the `scoped_ptr_t<session_t>` to work. */
+}
+
+uint64_t backfillee_t::get_num_changes_estimate() {
+    return intro.num_changes_estimate;
 }
 
 void backfillee_t::go(

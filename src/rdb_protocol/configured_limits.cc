@@ -21,7 +21,7 @@ from_optargs(rdb_context_t *ctx, signal_t *interruptor, global_optargs_t *argume
                   std::map<std::string, wire_func_t>(),
                   nullptr);
         int64_t limit = arguments->get_optarg(&env, "array_limit")->as_int();
-        rcheck_datum(limit > 1, base_exc_t::GENERIC,
+        rcheck_datum(limit > 1, base_exc_t::LOGIC,
                      strprintf("Illegal array size limit `%" PRIi64 "`.", limit));
         return configured_limits_t(limit);
     } else {

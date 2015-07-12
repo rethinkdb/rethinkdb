@@ -61,7 +61,8 @@ pluralize_noun = (noun, num, capitalize) ->
 
 Handlebars.registerHelper 'pluralize_noun', pluralize_noun
 Handlebars.registerHelper 'pluralize_verb_to_have', (num) -> if num is 1 then 'has' else 'have'
-Handlebars.registerHelper 'pluralize_verb', (verb, num) -> if num is 1 then verb+'s' else verb
+pluralize_verb = (verb, num) -> if num is 1 then "#{verb}s" else verb
+Handlebars.registerHelper 'pluralize_verb', pluralize_verb
 #
 # Helpers for capitalization
 capitalize = (str) ->
@@ -72,11 +73,8 @@ capitalize = (str) ->
 Handlebars.registerHelper 'capitalize', capitalize
 
 # Helpers for shortening uuids
-Handlebars.registerHelper 'humanize_uuid', (str) ->
-    if str?
-        str.substr(0, 6)
-    else
-        "NULL"
+humanize_uuid = (str) -> if str? then str.substr(0, 6) else "NULL"
+Handlebars.registerHelper 'humanize_uuid', humanize_uuid
 
 # Helpers for printing connectivity
 Handlebars.registerHelper 'humanize_server_connectivity', (status) ->
@@ -158,6 +156,16 @@ approximate_count = (num) ->
             return result+'B'
 
 Handlebars.registerHelper 'approximate_count', approximate_count
+
+# formatBytes
+# from http://stackoverflow.com/a/18650828/180718
+format_bytes = (bytes, decimals=1) ->
+    if bytes == 0
+        return '0 Bytes'
+    k = 1024
+    sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
+    i = Math.floor(Math.log(bytes) / Math.log(k))
+    (bytes / Math.pow(k, i)).toFixed(decimals) + ' ' + sizes[i]
 
 # Safe string
 Handlebars.registerHelper 'print_safe', (str) ->
@@ -414,6 +422,41 @@ json_to_node = do ->
                 value: if value then 'true' else 'false'
 
 
+replica_rolename = ({configured_primary: configured, \
+                     currently_primary: currently, \
+                     nonvoting: nonvoting, \
+                     }) ->
+    if configured and currently
+        "Primary replica"
+    else if configured and not currently
+        "Goal primary replica"
+    else if not configured and currently
+        "Acting primary replica"
+    else if nonvoting
+        "Non-voting secondary replica"
+    else
+        "Secondary replica"
+
+replica_roleclass = ({configured_primary: configured, \
+                      currently_primary: currently}) ->
+    if configured and currently
+        "primary"
+    else if configured and not currently
+        "goal.primary"
+    else if not configured and currently
+        "acting.primary"
+    else
+        "secondary"
+
+state_color = (state) ->
+  switch state
+      when "ready"        then "green"
+      when "disconnected" then "red"
+      else                     "yellow"
+
+humanize_state_string = (state_string) ->
+    state_string.replace(/_/g, ' ')
+
 exports.capitalize = capitalize
 exports.humanize_table_status = humanize_table_status
 exports.form_data_as_object = form_data_as_object
@@ -426,3 +469,10 @@ exports.binary_to_string = binary_to_string
 exports.json_to_node = json_to_node
 exports.approximate_count = approximate_count
 exports.pluralize_noun = pluralize_noun
+exports.pluralize_verb = pluralize_verb
+exports.humanize_uuid = humanize_uuid
+exports.replica_rolename = replica_rolename
+exports.replica_roleclass = replica_roleclass
+exports.state_color = state_color
+exports.humanize_state_string = humanize_state_string
+exports.format_bytes = format_bytes

@@ -1,8 +1,9 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
 
-#include "clustering/immediate_consistency/backfill_throttler.hpp"
+#include "clustering/immediate_consistency/standard_backfill_throttler.hpp"
 #include "clustering/table_contract/executor/executor.hpp"
+#include "clustering/table_manager/backfill_progress_tracker.hpp"
 #include "unittest/branch_history_manager.hpp"
 #include "unittest/clustering_contract_utils.hpp"
 #include "unittest/clustering_utils.hpp"
@@ -74,7 +75,8 @@ private:
     friend class executor_tester_t;
     simple_mailbox_cluster_t cluster;
     io_backender_t io_backender;
-    backfill_throttler_t backfill_throttler;
+    standard_backfill_throttler_t backfill_throttler;
+    backfill_progress_tracker_t backfill_progress_tracker;
     watchable_map_var_t<
         std::pair<server_id_t, branch_id_t>,
         contract_execution_bcard_t> contract_execution_bcards;
@@ -135,6 +137,7 @@ public:
             base_path_t("."),
             &context->io_backender,
             &context->backfill_throttler,
+            &context->backfill_progress_tracker,
             &get_global_perfmon_collection()));
 
         /* Copy our contract execution bcards into the context's map so that other
@@ -185,7 +188,8 @@ public:
                 &token,
                 primary_finder.get_disconnect_signal());
         } catch (const interrupted_exc_t &) {
-            throw cannot_perform_query_exc_t("lost contact with primary");
+            throw cannot_perform_query_exc_t(
+                "lost contact with primary", query_state_t::INDETERMINATE);
         }
     }
 
@@ -206,7 +210,9 @@ public:
                 &token,
                 primary_finder.get_disconnect_signal());
         } catch (const interrupted_exc_t &) {
-            throw cannot_perform_query_exc_t("lost contact with primary");
+            throw cannot_perform_query_exc_t(
+                "lost contact with primary",
+                query_state_t::FAILED);
         }
         EXPECT_EQ(expect, mock_parse_read_response(response));
     }
@@ -317,10 +323,12 @@ private:
                         bcard,
                         &disconnect);
                 } catch (const interrupted_exc_t &) {
-                     throw cannot_perform_query_exc_t("lost contact with primary");
+                     throw cannot_perform_query_exc_t(
+                         "lost contact with primary", query_state_t::FAILED);
                 }
             } else {
-                throw cannot_perform_query_exc_t("no primary found on this executor");
+                throw cannot_perform_query_exc_t(
+                    "no primary found on this executor", query_state_t::FAILED);
             }
         }
         signal_t *get_disconnect_signal() {

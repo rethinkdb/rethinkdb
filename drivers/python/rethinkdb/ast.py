@@ -459,6 +459,9 @@ class RqlQuery(object):
     def group(self, *args, **kwargs):
         return Group(self, *[func_wrap(arg) for arg in args], **kwargs)
 
+    def branch(self, *args):
+        return Branch(self, *args)
+
     def for_each(self, *args):
         return ForEach(self, *[func_wrap(arg) for arg in args])
 

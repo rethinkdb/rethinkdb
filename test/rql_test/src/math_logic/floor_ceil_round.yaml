@@ -21,7 +21,7 @@ tests:
       ot: -2.0
 
     - cd: r.expr('X').floor()
-      ot: err("RqlRuntimeError", "Expected type NUMBER but found STRING.", [])
+      ot: err("RqlLogicError", "Expected type NUMBER but found STRING.", [])
 
 
     - cd: r.ceil(1.0).type_of()
@@ -45,7 +45,7 @@ tests:
       ot: -1.0
 
     - cd: r.expr('X').ceil()
-      ot: err("RqlRuntimeError", "Expected type NUMBER but found STRING.", [])
+      ot: err("RqlLogicError", "Expected type NUMBER but found STRING.", [])
 
 
     - cd: r.round(1.0).type_of()
@@ -111,4 +111,4 @@ tests:
       ot: -1000000000.0
   
     - cd: r.expr('X').round()
-      ot: err("RqlRuntimeError", "Expected type NUMBER but found STRING.", [])
+      ot: err("RqlLogicError", "Expected type NUMBER but found STRING.", [])

@@ -102,7 +102,8 @@ void dummy_sharder_t::read(const read_t &read, read_response_t *response, order_
         read_t subread;
         if (read.shard(it->region, &subread)) {
             responses.push_back(read_response_t());
-            if (read.read_mode == read_mode_t::OUTDATED) {
+            if (read.read_mode == read_mode_t::OUTDATED ||
+                    read.read_mode == read_mode_t::DEBUG_DIRECT) {
                 it->performer->read_outdated(subread, &responses.back(), interruptor);
             } else {
                 it->timestamper->read(subread, &responses.back(), tok, interruptor);

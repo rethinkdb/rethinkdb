@@ -5,7 +5,7 @@ tests:
     # database
     - cd: r.db_list()
       ot: bag(['rethinkdb', 'test'])
-    
+
     ## DB create
 
     - cd: r.db_create('a')
@@ -14,7 +14,7 @@ tests:
       ot: partial({'dbs_created':1})
 
     ## DB list
-    
+
     - cd: r.db_list()
       ot: bag(['rethinkdb', 'a', 'b', 'test'])
 
@@ -42,11 +42,10 @@ tests:
       ot: partial({'dbs_created':1})
 
     - cd: r.db_create('bar')
-      ot: err('RqlRuntimeError', 'Database `bar` already exists.', [0])
+      ot: err('RqlOpFailedError', 'Database `bar` already exists.', [0])
 
     - cd: r.db_drop('bar')
       ot: partial({'dbs_dropped':1})
 
     - cd: r.db_drop('bar')
-      ot: err('RqlRuntimeError', 'Database `bar` does not exist.', [0])
-
+      ot: err('RqlOpFailedError', 'Database `bar` does not exist.', [0])

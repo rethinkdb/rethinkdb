@@ -172,8 +172,9 @@ public:
         : op_term_t(env, term, argspec_t(4, 7)) { }
 private:
     scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        rcheck(args->num_args() == 4 || args->num_args() == 7, base_exc_t::GENERIC,
-               strprintf("Got %zu arguments to TIME (expected 4 or 7).", args->num_args()));
+        rcheck(args->num_args() == 4 || args->num_args() == 7, base_exc_t::LOGIC,
+               strprintf("Got %zu arguments to TIME (expected 4 or 7).",
+                         args->num_args()));
         int year = args->arg(env, 0)->as_int<int>();
         int month = args->arg(env, 1)->as_int<int>();
         int day = args->arg(env, 2)->as_int<int>();

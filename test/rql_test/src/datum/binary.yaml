@@ -327,18 +327,18 @@ tests:
         py: (b"data")
 
     - cd: r.binary(r.expr({}))
-      ot: err('RqlRuntimeError', 'Expected type STRING but found OBJECT.', [])
+      ot: err('RqlLogicError', 'Expected type STRING but found OBJECT.', [])
 
     - cd: r.binary(r.expr([]))
-      ot: err('RqlRuntimeError', 'Expected type STRING but found ARRAY.', [])
+      ot: err('RqlLogicError', 'Expected type STRING but found ARRAY.', [])
 
     # Test errors
-    
+
     # Missing 'data' field
     - py: r.expr({'$reql_type$':'BINARY'})
       rb: r.expr({'$reql_type$':'BINARY'})
       ot: err('RqlRuntimeError','Invalid binary pseudotype:'+' lacking `data` key.',[])
-    
+
     # Invalid base64 format
     - py: r.expr({'$reql_type$':'BINARY','data':'ABCDEFGH==AA'})
       ot: err('RqlRuntimeError','Invalid base64 format, data found after padding character \'=\'.',[])
@@ -348,15 +348,15 @@ tests:
       ot: err('RqlRuntimeError','Invalid base64 character found:'+' \'^\'.',[])
     - py: r.expr({'$reql_type$':'BINARY','data':'ABCDE'})
       ot: err('RqlRuntimeError','Invalid base64 length:'+' 1 character remaining, cannot decode a full byte.',[])
-    
+
     # Invalid coercions
     - cd: r.binary(a).coerce_to('array')
-      ot: err('RqlRuntimeError','Cannot coerce BINARY to ARRAY.',[])
+      ot: err('RqlLogicError','Cannot coerce BINARY to ARRAY.',[])
     - cd: r.binary(a).coerce_to('object')
-      ot: err('RqlRuntimeError','Cannot coerce BINARY to OBJECT.',[])
+      ot: err('RqlLogicError','Cannot coerce BINARY to OBJECT.',[])
     - cd: r.binary(a).coerce_to('bool')
-      ot: err('RqlRuntimeError','Cannot coerce BINARY to BOOL.',[])
+      ot: err('RqlLogicError','Cannot coerce BINARY to BOOL.',[])
     - cd: r.binary(a).coerce_to('number')
-      ot: err('RqlRuntimeError','Cannot coerce BINARY to NUMBER.',[])
+      ot: err('RqlLogicError','Cannot coerce BINARY to NUMBER.',[])
     - cd: r.binary(a).coerce_to('nu'+'ll')
-      ot: err('RqlRuntimeError','Cannot coerce BINARY to NULL.',[])
+      ot: err('RqlLogicError','Cannot coerce BINARY to NULL.',[])

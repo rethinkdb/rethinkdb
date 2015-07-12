@@ -213,7 +213,8 @@ void store_t::write(
 
     scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> real_superblock;
-    const int expected_change_count = 2; // FIXME: this is incorrect, but will do for now
+    // We assume one block per document, plus changes to the stats block and superblock.
+    const int expected_change_count = 2 + write.expected_document_changes();
     acquire_superblock_for_write(expected_change_count, durability, token,
                                  &txn, &real_superblock, interruptor);
     DEBUG_ONLY_CODE(metainfo->visit(

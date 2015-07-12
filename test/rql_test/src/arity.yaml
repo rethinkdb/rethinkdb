@@ -44,7 +44,7 @@ tests:
       - r.round()
 
     - cd: r.error()
-      ot: err("RqlRuntimeError", "Empty ERROR term outside a default block.", [])
+      ot: err("RqlUserError", "Empty ERROR term outside a default block.", [])
 
     - cd: r.js()
       ot:
@@ -96,7 +96,7 @@ tests:
       ot: err("RqlCompileError", "Expected between 0 and 1 arguments but found 2.", [])
 
     - cd: db.table_drop()
-      ot: err("RqlRuntimeError", "Expected type DATUM but found DATABASE.", [])
+      ot: err("RqlLogicError", "Expected type DATUM but found DATABASE.", [])
 
 
     - cd: db.table_create()
@@ -251,8 +251,11 @@ tests:
     - cd: r.branch(r.args([true, 1]), r.error("a"))
       ot: 1
 
+    - cd: r.expr(true).branch(1, 2)
+      ot: 1
+
     - cd: r.branch(r.args([true, 1, r.error("a")]))
-      ot: err("RqlRuntimeError", "a", [])
+      ot: err("RqlUserError", "a", [])
 
     # Make sure our grouped data hack still works
 

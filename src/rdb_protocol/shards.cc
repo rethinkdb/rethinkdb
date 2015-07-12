@@ -320,13 +320,13 @@ private:
             size += lst2->size();
             if (is_grouped_data(gs, kv->first)) {
                 rcheck_toplevel(
-                    size <= env->limits().array_size_limit(), base_exc_t::GENERIC,
+                    size <= env->limits().array_size_limit(), base_exc_t::RESOURCE,
                     strprintf("Grouped data over size limit `%zu`.  "
                               "Try putting a reduction (like `.reduce` or `.count`) "
                               "on the end.", env->limits().array_size_limit()).c_str());
             } else {
                 rcheck_toplevel(
-                    size <= env->limits().array_size_limit(), base_exc_t::GENERIC,
+                    size <= env->limits().array_size_limit(), base_exc_t::RESOURCE,
                     strprintf("Array over size limit `%zu`.",
                               env->limits().array_size_limit()).c_str());
             }
@@ -348,13 +348,13 @@ private:
             size += stream->size();
             if (is_grouped_data(streams, kv->first)) {
                 rcheck_toplevel(
-                    size <= env->limits().array_size_limit(), base_exc_t::GENERIC,
+                    size <= env->limits().array_size_limit(), base_exc_t::RESOURCE,
                     strprintf("Grouped data over size limit `%zu`.  "
                               "Try putting a reduction (like `.reduce` or `.count`) "
                               "on the end.", env->limits().array_size_limit()).c_str());
             } else {
                 rcheck_toplevel(
-                    size <= env->limits().array_size_limit(), base_exc_t::GENERIC,
+                    size <= env->limits().array_size_limit(), base_exc_t::RESOURCE,
                     strprintf("Array over size limit `%zu`.",
                               env->limits().array_size_limit()).c_str());
             }
@@ -810,7 +810,7 @@ private:
 
             rcheck_src(bt,
                        groups->size() <= env->limits().array_size_limit(),
-                       base_exc_t::GENERIC,
+                       base_exc_t::RESOURCE,
                        strprintf("Too many groups (> %zu).",
                                  env->limits().array_size_limit()));
         }
@@ -974,7 +974,7 @@ private:
         for (auto it = lst->begin(); it != lst->end(); ++it) {
             auto left = (*it).get_field("left", NOTHROW);
             auto right = (*it).get_field("right", NOTHROW);
-            rcheck_datum(left.has(), base_exc_t::GENERIC,
+            rcheck_datum(left.has(), base_exc_t::LOGIC,
                    "ZIP can only be called on the result of a join.");
             *it = right.has() ? left.merge(right) : left;
         }

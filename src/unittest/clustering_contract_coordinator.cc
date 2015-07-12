@@ -180,12 +180,11 @@ public:
         std::set<contract_id_t> remove_contracts;
         std::map<contract_id_t, std::pair<region_t, contract_t> > add_contracts;
         std::map<region_t, branch_id_t> register_current_branches;
-        calculate_all_contracts(state, acks, &connections,
-            &remove_contracts, &add_contracts, &register_current_branches);
         std::set<branch_id_t> remove_branches;
         branch_history_t add_branches;
-        calculate_branch_history(state, acks, remove_contracts, add_contracts,
-            register_current_branches, &remove_branches, &add_branches);
+        calculate_all_contracts(state, acks, &connections,
+            &remove_contracts, &add_contracts, &register_current_branches,
+            &remove_branches, &add_branches);
         for (const contract_id_t &id : remove_contracts) {
             state.contracts.erase(id);
             acks.erase(id);
@@ -225,13 +224,25 @@ public:
                 const contract_t &actual = pair.second.second;
                 EXPECT_EQ(expect.replicas, actual.replicas);
                 EXPECT_EQ(expect.voters, actual.voters);
-                EXPECT_EQ(expect.temp_voters, actual.temp_voters);
+                // Compare the boost::optional in two steps, to avoid #4257
+                EXPECT_EQ(static_cast<bool>(expect.temp_voters),
+                    static_cast<bool>(actual.temp_voters));
+                if (static_cast<bool>(expect.temp_voters) &&
+                        static_cast<bool>(actual.temp_voters)) {
+                    EXPECT_EQ(*expect.temp_voters, *actual.temp_voters);
+                }
                 EXPECT_EQ(static_cast<bool>(expect.primary),
                     static_cast<bool>(actual.primary));
                 if (static_cast<bool>(expect.primary) &&
                         static_cast<bool>(actual.primary)) {
                     EXPECT_EQ(expect.primary->server, actual.primary->server);
-                    EXPECT_EQ(expect.primary->hand_over, actual.primary->hand_over);
+                    // Again, two-step comparison of optional to avoid #4257
+                    EXPECT_EQ(static_cast<bool>(expect.primary->hand_over),
+                        static_cast<bool>(actual.primary->hand_over));
+                    if (static_cast<bool>(expect.primary->hand_over) &&
+                            static_cast<bool>(actual.primary->hand_over)) {
+                        EXPECT_EQ(*expect.primary->hand_over, *actual.primary->hand_over);
+                    }
                 }
             }
         }

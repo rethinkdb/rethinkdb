@@ -1,6 +1,7 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
 
+#include "clustering/administration/admin_op_exc.hpp"
 #include "clustering/query_routing/primary_query_client.hpp"
 #include "clustering/query_routing/primary_query_server.hpp"
 #include "unittest/branch_history_manager.hpp"
@@ -20,7 +21,7 @@ public:
             order_token_t order_token,
             UNUSED signal_t *interruptor,
             write_response_t *response_out,
-            std::string *error_out) {
+            admin_err_t *error_out) {
         order_sink.check_out(order_token);
         exiter->end();
         EXPECT_TRUE(boost::get<dummy_write_t>(&request.write) != nullptr);
@@ -28,7 +29,9 @@ public:
         if (should_succeed) {
             *response_out = write_response_t(dummy_write_response_t());
         } else {
-            *error_out = "query_counter_t write failed";
+            *error_out = admin_err_t{
+                "query_counter_t write failed",
+                query_state_t::FAILED};
         }
         return should_succeed;
     }
@@ -38,7 +41,7 @@ public:
             order_token_t order_token,
             UNUSED signal_t *interruptor,
             read_response_t *response_out,
-            std::string *error_out) {
+            admin_err_t *error_out) {
         order_sink.check_out(order_token);
         exiter->end();
         EXPECT_TRUE(boost::get<dummy_read_t>(&request.read) != nullptr);
@@ -46,7 +49,9 @@ public:
         if (should_succeed) {
             *response_out = read_response_t(dummy_read_response_t());
         } else {
-            *error_out = "query_counter_t read failed";
+            *error_out = admin_err_t{
+                "query_counter_t read failed",
+                query_state_t::FAILED};
         }
         return should_succeed;
     }
@@ -87,7 +92,7 @@ TPTEST(ClusteringQuery, ReadWrite) {
             &non_interruptor);
         EXPECT_TRUE(boost::get<dummy_write_response_t>(&res.response) != nullptr);
         EXPECT_EQ(1, query_counter.num_writes);
-    }   
+    }
 
     /* Send a read to the namespace */
     {

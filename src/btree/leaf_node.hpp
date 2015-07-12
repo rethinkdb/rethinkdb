@@ -154,6 +154,8 @@ void insert(
         repli_timestamp_t maximum_existing_tstamp,
         UNUSED key_modification_proof_t km_proof);
 
+/* `remove()` removes any preexisting value or tombstone, then creates a tombstone unless
+`tstamp` is before `tstamp_cutpoint`. */
 void remove(
         value_sizer_t *sizer,
         leaf_node_t *node,
@@ -163,6 +165,8 @@ void remove(
         repli_timestamp_t maximum_existing_tstamp,
         key_modification_proof_t km_proof);
 
+/* `erase_presence()` removes any preexisting value or tombstone, but does not create a
+new tombstone. */
 void erase_presence(value_sizer_t *sizer, leaf_node_t *node, const btree_key_t *key, key_modification_proof_t km_proof);
 
 /* Returns the smallest timestamp such that if a deletion had occurred with that

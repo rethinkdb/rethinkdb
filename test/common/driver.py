@@ -165,7 +165,7 @@ class Cluster(object):
         # - metacluster
         
         if metacluster is not None and output_folder is not None:
-            raise NotImplementedError('supplying a metacluster and an output_folder does not currently work')
+            raise NotImplementedError('supplying both a metacluster and an output_folder does not currently work')
         elif metacluster is None:
             metacluster = Metacluster(output_folder=output_folder)
         
@@ -419,10 +419,11 @@ class _Process(object):
             self.local_cluster_port = utils.get_avalible_port()
             options += ['--client-port', str(self.local_cluster_port)]
         
-        # -- supress update checks/reporting in
+        if not '--log-file' in options:
+            options += ['--log-file', str(self.logfile_path)]
         
         if not '--no-update-check' in options:
-            options += ['--no-update-check']
+            options += ['--no-update-check'] # supress update checks/reporting in
         
         # - set to join the cluster
         
@@ -441,7 +442,7 @@ class _Process(object):
             
             self.console_file.write("Launching:\n%s\n" % str(self.args))
             
-            self.process = subprocess.Popen(self.args, stdout=self.console_file, stderr=self.console_file, preexec_fn=os.setpgrp)
+            self.process = subprocess.Popen(self.args, stdout=self.console_file, stderr=subprocess.STDOUT, preexec_fn=os.setpgrp)
             
             runningServers.append(self)
             self.process_group_id = self.process.pid
@@ -650,9 +651,9 @@ class Process(_Process):
 
     def __init__(self, cluster=None, files=None, output_folder=None, console_output=None, executable_path=None, server_tags=None, command_prefix=None, extra_options=None, wait_until_ready=False):
         
-        assert isinstance(cluster, (Cluster, None.__class__)), 'cluster must be a Cluster or None, got: %s' % repr(cluster)
-        assert isinstance(files, (Files, str, None.__class__)), 'files must be a Files, string (name), or None, got: %s' % repr(cluster)
-        assert output_folder is None or os.path.isdir(output_folder)
+        assert isinstance(cluster, (Cluster, None.__class__)), 'cluster must be a Cluster or None, got: %r' % cluster
+        assert isinstance(files, (Files, str, None.__class__)), 'files must be a Files, string (name), or None, got: %r' % files
+        assert output_folder is None or os.path.isdir(output_folder), 'output_folder if given must be the path to an existing folder, got: %r' % output_folder
         
         # -- validate bad combinations
         
@@ -682,14 +683,14 @@ class Process(_Process):
             self._close_console_output = True
             if console_output is False:
                 self.console_file = tempfile.NamedTemporaryFile(mode='w+')
-            elif self.files is None:
+            elif isinstance(files, Files):
+                self.console_file = open(os.path.join(files.db_path, 'console.txt'), 'w+')
+            else:
                 outerDir = cluster.metacluster.dbs_path
                 if output_folder:
                     outerDir = output_folder
                 self.console_file = tempfile.NamedTemporaryFile(mode='w+', dir=outerDir, delete=False)
                 moveConsoleFile = True
-            else:
-                self.console_file = open(os.path.join(self.files.db_path, 'console.txt'), 'w+')
         elif hasattr(console_output, 'write'):
             self.console_file = console_output
         else:
@@ -704,10 +705,10 @@ class Process(_Process):
             files = Files(metacluster=cluster.metacluster, server_name=files, server_tags=server_tags, db_containter=output_folder, console_output=self.console_file, executable_path=executable_path, command_prefix=command_prefix)
             self.console_file.write('=========== End Create Console ============\n\n')
             self.console_file.flush()
-            if moveConsoleFile:
-                os.rename(self.console_file.name, os.path.join(files.db_path, 'console.txt'))
-            os.rename(os.path.join(files.db_path, 'log_file'), os.path.join(files.db_path, 'create_log_file'))
+            os.rename(os.path.join(files.db_path, 'log_file'), os.path.join(files.db_path, 'create_log_file.txt'))
         assert isinstance(files, Files)
+        if moveConsoleFile:
+            os.rename(self.console_file.name, os.path.join(files.db_path, 'console.txt'))
         
         # -- default command_prefix
         
@@ -726,7 +727,7 @@ class Process(_Process):
         # -- store values
         
         self.files = files
-        self.logfile_path = os.path.join(files.db_path, "log_file")
+        self.logfile_path = os.path.join(files.db_path, "log_file.txt")
         
         # -- run command
         
@@ -752,8 +753,8 @@ class ProxyProcess(_Process):
             extra_options = []
         
         self.logfile_path = logfile_path
-
-        options = ["proxy", "--log-file", self.logfile_path] + extra_options
+        
+        options = ["proxy"] + extra_options
 
         _Process.__init__(self, cluster, options, console_output=console_output, executable_path=executable_path, command_prefix=command_prefix)
 

@@ -3,8 +3,12 @@
 <form class="form">
         <p>
           <strong>{{type}} id:</strong>
+          {{#if is_database}}
+            {{id}}
+          {{else}}
           <a class="change-route"
              href="#{{pluralize_noun type 2}}/{{id}}">{{id}}</a>
+          {{/if}}
         </p>
         <label for="new_name">Rename {{type}} from '{{old_name}}' to: </label>
         <div class="input">

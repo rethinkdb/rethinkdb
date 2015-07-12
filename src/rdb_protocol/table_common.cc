@@ -35,7 +35,7 @@ void rcheck_row_replacement(
         rcheck_target(&new_row,
             primary_key_value.compare(
                 store_key_t(new_primary_key_value.print_primary())) == 0,
-            ql::base_exc_t::GENERIC,
+            ql::base_exc_t::LOGIC,
             (old_row.get_type() == ql::datum_t::R_NULL
              ? strprintf("Primary key `%s` cannot be changed (null -> %s)",
                          primary_key_name.to_std().c_str(), new_row.print().c_str())
@@ -175,7 +175,7 @@ ql::datum_t resolve_insert_conflict(
     } else if (conflict_behavior == conflict_behavior_t::UPDATE) {
         return old_row.merge(insert_row);
     } else {
-        rfail_target(&old_row, ql::base_exc_t::GENERIC,
+        rfail_target(&old_row, ql::base_exc_t::OP_FAILED,
                      "Duplicate primary key `%s`:\n%s\n%s",
                      primary_key.c_str(), old_row.print().c_str(),
                      insert_row.print().c_str());

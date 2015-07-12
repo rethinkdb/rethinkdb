@@ -91,6 +91,7 @@ void pump_coro_t::run(auto_drainer_t::lock_t keepalive) {
         } catch (const interrupted_exc_t &) {
             return;
         }
+        coro_t::yield();
 
         acq.reset(&mutex);
         for (auto it = flush_waiters.begin();

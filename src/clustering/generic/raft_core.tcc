@@ -22,9 +22,11 @@ inline std::string show_member_id(const raft_member_id_t &mid) {
 #define RAFT_DEBUG_THIS(...) debugf("%s: %s", \
     show_member_id(this_member_id).c_str(), \
     strprintf(__VA_ARGS__).c_str())
+#define RAFT_DEBUG_VAR
 #else
 #define RAFT_DEBUG(...) ((void)0)
 #define RAFT_DEBUG_THIS(...) ((void)0)
+#define RAFT_DEBUG_VAR __attribute__((unused))
 #endif /* ENABLE_RAFT_DEBUG */
 
 template<class state_t>
@@ -43,6 +45,7 @@ raft_persistent_state_t<state_t>::make_initial(
     ps.snapshot_config = complex_config;
     ps.log.prev_index = 0;
     ps.log.prev_term = 0;
+    ps.commit_index = 0;
     return ps;
 }
 
@@ -100,6 +103,12 @@ raft_member_t<state_t>::raft_member_t(
         this->apply_log_entries(
             s, this->ps().log, s->log_index + 1, this->ps().log.get_latest_index());
         return !this->ps().log.entries.empty();
+    });
+    /* Finish initializing `committed_state` */
+    committed_state.apply_atomic_op([&](state_and_config_t *s) -> bool {
+        this->apply_log_entries(
+            s, this->ps().log, s->log_index + 1, this->ps().commit_index);
+        return true;
     });
     DEBUG_ONLY_CODE(check_invariants(&mutex_acq));
 }
@@ -239,6 +248,33 @@ raft_member_t<state_t>::propose_config_change(
 
     /* When the joint consensus is committed, `leader_continue_reconfiguration()`
     will take care of initiating the second step of the reconfiguration. */
+
+    DEBUG_ONLY_CODE(check_invariants(&change_lock->mutex_acq));
+    return change_token;
+}
+
+template<class state_t>
+scoped_ptr_t<typename raft_member_t<state_t>::change_token_t>
+raft_member_t<state_t>::propose_noop(
+        change_lock_t *change_lock) {
+    assert_thread();
+    change_lock->mutex_acq.guarantee_is_holding(&mutex);
+
+    if (!readiness_for_change.get_ref()) {
+        return scoped_ptr_t<change_token_t>();
+    }
+    guarantee(mode == mode_t::leader);
+
+    raft_log_index_t log_index = ps().log.get_latest_index() + 1;
+    scoped_ptr_t<change_token_t> change_token(
+        new change_token_t(this, log_index, false));
+
+    raft_log_entry_t<state_t> new_entry;
+    new_entry.type = raft_log_entry_type_t::noop;
+    new_entry.term = ps().current_term;
+
+    leader_append_log_entry(new_entry, &change_lock->mutex_acq);
+    guarantee(ps().log.get_latest_index() == log_index);
 
     DEBUG_ONLY_CODE(check_invariants(&change_lock->mutex_acq));
     return change_token;
@@ -532,7 +568,8 @@ void raft_member_t<state_t>::on_install_snapshot_rpc(
             request.snapshot_config,
             false,
             request.last_included_index,
-            request.last_included_term);
+            request.last_included_term,
+            std::max(request.last_included_index, ps().commit_index));
         guarantee(ps().log.prev_index == request.last_included_index);
         guarantee(ps().log.prev_term == request.last_included_term);
 
@@ -549,7 +586,8 @@ void raft_member_t<state_t>::on_install_snapshot_rpc(
             request.snapshot_config,
             true,
             request.last_included_index,
-            request.last_included_term);
+            request.last_included_term,
+            request.last_included_index);
         guarantee(ps().log.prev_index == request.last_included_index);
         guarantee(ps().log.prev_term == request.last_included_term);
 
@@ -558,20 +596,21 @@ void raft_member_t<state_t>::on_install_snapshot_rpc(
             ps().log.prev_index, ps().snapshot_state, ps().snapshot_config));
     }
 
-    /* Raft paper, Figure 13: "Reset state machine using snapshot contents" */
-    committed_state.apply_atomic_op([&](state_and_config_t *state_and_config) -> bool {
-        /* This conditional doesn't appear in the Raft paper. It will always be true if
-        we discarded the entire log, but it will sometimes be false if we only discarded
-        part of the log, which is why this implementation needs it. */
-        if (request.last_included_index > state_and_config->log_index) {
-            state_and_config->log_index = request.last_included_index;
-            state_and_config->state = this->ps().snapshot_state;
-            state_and_config->config = this->ps().snapshot_config;
+    /* Raft paper, Figure 13: "Reset state machine using snapshot contents"
+    This conditional doesn't appear in the Raft paper. It will always be true if we
+    discarded the entire log, but it will sometimes be false if we only discarded part of
+    the log, which is why this implementation needs it.*/
+    if (request.last_included_index > committed_state.get_ref().log_index) {
+        /* Note that we already updated `ps().commit_index` earlier, as part of the same
+        storage write operation that changed the snapshot. */
+        guarantee(ps().commit_index == request.last_included_index);
+        committed_state.apply_atomic_op([&](state_and_config_t *sc) -> bool {
+            sc->log_index = request.last_included_index;
+            sc->state = this->ps().snapshot_state;
+            sc->config = this->ps().snapshot_config;
             return true;
-        } else {
-            return false;
-        }
-    });
+        });
+    }
 
     reply_out->term = ps().current_term;
 
@@ -669,6 +708,8 @@ void raft_member_t<state_t>::check_invariants(
     mutex_acq->guarantee_is_holding(&mutex);
 
     raft_log_index_t commit_index = committed_state.get_ref().log_index;
+    guarantee(commit_index == ps().commit_index, "Commit index stored in persistent "
+        "state should match commit index stored in committed_state watchable.");
 
     /* Some of these checks are copied directly from LogCabin's list of invariants. */
 
@@ -996,6 +1037,7 @@ void raft_member_t<state_t>::apply_log_entries(
         const raft_log_t<state_t> &log,
         raft_log_index_t first,
         raft_log_index_t last) {
+    guarantee(last >= first - 1);
     guarantee(state_and_config->log_index + 1 == first);
     for (raft_log_index_t i = first; i <= last; ++i) {
         const raft_log_entry_t<state_t> &e = log.get_entry_ref(i);
@@ -1047,6 +1089,11 @@ void raft_member_t<state_t>::update_commit_index(
 
     raft_log_index_t old_commit_index = committed_state.get_ref().log_index;
     guarantee(new_commit_index > old_commit_index);
+
+    /* This implementation deviates from the Raft paper in that we persist the commit
+    index to disk whenever it changes. This ensures that the state machine never appears
+    to go backwards. */
+    storage->write_commit_index(new_commit_index);
 
     /* Raft paper, Figure 2: "If commitIndex > lastApplied: increment lastApplied, apply
     log[lastApplied] to state machine"
@@ -1101,7 +1148,8 @@ void raft_member_t<state_t>::update_commit_index(
             committed_state.get_ref().config,
             false,
             new_commit_index,
-            ps().log.get_entry_term(new_commit_index));
+            ps().log.get_entry_term(new_commit_index),
+            new_commit_index);
     }
 
     /* If we just committed the second step of a config change, then we might need to
@@ -1479,6 +1527,9 @@ bool raft_member_t<state_t>::candidate_run_election(
                             /* We got a response with a higher term than our current
                             term. `candidate_and_leader_coro()` will be interrupted soon.
                             */
+                            RAFT_DEBUG_THIS(
+                                "got rpc reply with term %" PRIu64 " from %s\n",
+                                reply->term, show_member_id(peer).c_str());
                             return;
                         }
 
@@ -1615,9 +1666,8 @@ void raft_member_t<state_t>::leader_send_updates(
         member. It doesn't correspond to anything in the Raft paper. This implementation
         deviates from the Raft paper slightly in that when the leader commits a log
         entry, it immediately sends an append-entries RPC so that clients can commit the
-        log entry too, instead of waiting for the next heartbeat to tell the clients it's
-        time to commit. This allows the latency of a transaction to be much shorter than
-        the heartbeat interval. */
+        log entry too. This is necessary because we use "virtual heartbeats" in place of
+        regular heartbeats, and virtual heartbeats don't update the commit index. */
         raft_log_index_t member_commit_index = 0;
 
         /* Raft paper, Figure 2: "Upon election: send initial empty AppendEntries RPCs
@@ -1710,6 +1760,8 @@ void raft_member_t<state_t>::leader_send_updates(
                 if (candidate_or_leader_note_term(reply->term, mutex_acq.get())) {
                     /* We got a reply with a higher term than our term.
                     `candidate_and_leader_coro()` will be interrupted soon. */
+                    RAFT_DEBUG_THIS("got rpc reply with term %" PRIu64 " from %s\n",
+                                    reply->term, show_member_id(peer).c_str());
                     return;
                 }
 
@@ -1779,6 +1831,8 @@ void raft_member_t<state_t>::leader_send_updates(
                 if (candidate_or_leader_note_term(reply->term, mutex_acq.get())) {
                     /* We got a reply with a higher term than our term.
                     `candidate_and_leader_coro()` will be interrupted soon. */
+                    RAFT_DEBUG_THIS("got rpc reply with term %" PRIu64 " from %s\n",
+                                    reply->term, show_member_id(peer).c_str());
                     return;
                 }
 
@@ -1838,12 +1892,14 @@ void raft_member_t<state_t>::leader_continue_reconfiguration(
     guarantee(mode == mode_t::leader);
     /* Check if we recently committed a joint consensus configuration, or a configuration
     in which we are no longer leader. */
-    if (!committed_state.get_ref().config.is_valid_leader(this_member_id)) {
+    if (!committed_state.get_ref().config.is_valid_leader(this_member_id) &&
+            !latest_state.get_ref().config.is_valid_leader(this_member_id)) {
         /* Raft paper, Section 6: "...the leader steps down (returns to follower state)
         once it has committed the C_new log entry."
         `candidate_or_leader_note_term()` isn't designed for the purpose of making us
         intentionally step down, but it contains all the right logic. This has a side
         effect of incrementing `current_term`, but I don't think that's a problem. */
+        RAFT_DEBUG_THIS("stepping down, new term: %" PRIu64 "\n", ps().current_term + 1);
         candidate_or_leader_note_term(ps().current_term + 1, mutex_acq);
     } else if (committed_state.get_ref().config.is_joint_consensus() &&
             latest_state.get_ref().config.is_joint_consensus()) {
@@ -1889,9 +1945,18 @@ bool raft_member_t<state_t>::candidate_or_leader_note_term(
                 `candidate_or_leader_note_term()` was called and when this coroutine ran.
                 */
                 if (this->ps().current_term == local_current_term) {
-                    RAFT_DEBUG_THIS("got rpc reply with term %" PRIu64 "\n", term);
                     this->update_term(term, raft_member_id_t(), &mutex_acq_2);
-                    this->candidate_or_leader_become_follower(&mutex_acq_2);
+                    /* It's unlikely that `mode` will be `follower` at this point, but
+                    it's possible. Suppose that we are a candidate for term T, and we
+                    receive an RPC reply for term T+1, so we call `..._note_term()` and
+                    this coroutine is spawned. But before this coroutine acquires the
+                    mutex, we receive an AppendEntries RPC from a leader for term T, so
+                    we transition to follower state. Then when this coroutine actually
+                    executes, it will find that `current_term` has not changed, but we
+                    are in follower state. */
+                    if (mode != mode_t::follower) {
+                        this->candidate_or_leader_become_follower(&mutex_acq_2);
+                    }
                 }
                 DEBUG_ONLY_CODE(this->check_invariants(&mutex_acq_2));
             } catch (const interrupted_exc_t &) {

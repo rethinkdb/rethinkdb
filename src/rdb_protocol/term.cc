@@ -20,13 +20,13 @@ namespace ql {
 
 // The minimum amount of stack space we require to be available on a coroutine
 // before attempting to compile or evaluate a term.
-const size_t MIN_EVAL_STACK_SPACE = 4 * KILOBYTE;
+const size_t MIN_EVAL_STACK_SPACE = 16 * KILOBYTE;
 
 counted_t<const term_t> compile_term(compile_env_t *env, const protob_t<const Term> t) {
     // Check that we have enough stack space available to evaluate the term
     rcheck_toplevel(
         has_n_bytes_free_stack_space(MIN_EVAL_STACK_SPACE),
-        base_exc_t::GENERIC,
+        base_exc_t::RESOURCE,
         "Insufficient stack space available to compile query.  This is usually "
         "caused by running a very deeply-nested query.");
 
@@ -236,7 +236,10 @@ void run(query_id_t &&query_id,
     try {
         validate_pb(*q);
     } catch (const base_exc_t &e) {
-        fill_error(res, Response::CLIENT_ERROR, e.what(),
+        fill_error(res,
+                   Response::CLIENT_ERROR,
+                   e.get_error_type(),
+                   e.what(),
                    backtrace_registry_t::EMPTY_BACKTRACE);
         return;
     }
@@ -244,7 +247,10 @@ void run(query_id_t &&query_id,
     try {
         validate_optargs(*q);
     } catch (const base_exc_t &e) {
-        fill_error(res, Response::COMPILE_ERROR, e.what(),
+        fill_error(res,
+                   Response::COMPILE_ERROR,
+                   e.get_error_type(),
+                   e.what(),
                    backtrace_registry_t::EMPTY_BACKTRACE);
         return;
     }
@@ -280,7 +286,7 @@ void run(query_id_t &&query_id,
         default: unreachable();
         }
     } catch (const bt_exc_t &ex) {
-        fill_error(res, ex.response_type, ex.message, ex.bt_datum);
+        fill_error(res, ex.response_type, ex.error_type, ex.message, ex.bt_datum);
     }
 }
 
@@ -335,7 +341,7 @@ scoped_ptr_t<val_t> runtime_term_t::eval(scope_env_t *env, eval_flags_t eval_fla
         // Check that we have enough stack space available to evaluate the term
         rcheck(
             has_n_bytes_free_stack_space(MIN_EVAL_STACK_SPACE),
-            base_exc_t::GENERIC,
+            base_exc_t::RESOURCE,
             strprintf(
                 "Insufficient stack space available to evaluate `%s`.  This is usually "
                 "caused by running a very deeply-nested query.",

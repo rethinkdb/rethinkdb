@@ -802,6 +802,12 @@ void log_serializer_t::shutdown(cond_t *cb) {
     // to most of the remaining shutdown process which is still FSM-based.
     lba_index->shutdown_gc();
 
+    // Additionally we tell the data block manager to stop GCing.
+    // Not doing this doesn't hurt correctness, but it will delay the shutdown
+    // process because GC writes are contributing to `active_write_count` that
+    // stops us from getting through the remaining shutdown process quickly.
+    data_block_manager->disable_gc();
+
     next_shutdown_step();
 }
 

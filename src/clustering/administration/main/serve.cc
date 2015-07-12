@@ -89,11 +89,19 @@ bool do_serve(io_backender_t *io_backender,
               metadata_file_t *metadata_file,
               const serve_info_t &serve_info,
               os_signal_cond_t *stop_cond) {
+    /* This coroutine is responsible for creating and destroying most of the important
+    components of the server. */
+
     // Do this here so we don't block on popen while pretending to serve.
     std::string uname = run_uname("ms");
     try {
+        /* `extproc_pool` spawns several subprocesses that can be used to run tasks that
+        we don't want to run in the main RethinkDB process, such as Javascript
+        evaluations. */
         extproc_pool_t extproc_pool(get_num_threads());
 
+        /* `thread_pool_log_writer_t` automatically registers itself. While it exists,
+        log messages will be written using the event loop instead of blocking. */
         thread_pool_log_writer_t log_writer;
 
         cluster_semilattice_metadata_t cluster_metadata;
@@ -111,49 +119,82 @@ bool do_serve(io_backender_t *io_backender,
         logNTC("Our server ID is %s", uuid_to_str(server_id).c_str());
 #endif
 
+        /* The `connectivity_cluster_t` maintains TCP connections to other servers in the
+        cluster. */
         connectivity_cluster_t connectivity_cluster;
 
+        /* The `mailbox_manager_t` maintains a local index of mailboxes that exist on
+        this server, and routes mailbox messages received from other servers. */
         mailbox_manager_t mailbox_manager(&connectivity_cluster, 'M');
 
+        /* `semilattice_manager_cluster` and `semilattice_manager_auth` are responsible
+        for syncing the semilattice metadata between servers over the network. */
         semilattice_manager_t<cluster_semilattice_metadata_t>
             semilattice_manager_cluster(&connectivity_cluster, 'S', cluster_metadata);
-
         semilattice_manager_t<auth_semilattice_metadata_t>
             semilattice_manager_auth(&connectivity_cluster, 'A', auth_metadata);
 
+        /* The `directory_*_read_manager_t`s are responsible for receiving directory
+        updates over the network from other servers. */
+
+        /* The `cluster_directory_metadata_t` contains basic information about each
+        server (such as its name, server ID, version, PID, command line arguments, etc.)
+        and also many singleton mailboxes for various purposes. */
         directory_read_manager_t<cluster_directory_metadata_t>
             directory_read_manager(&connectivity_cluster, 'D');
 
+        /* The `table_manager_bcard_t`s contain the mailboxes that allow the Raft members
+        on different servers to communicate with each other. */
         directory_map_read_manager_t<namespace_id_t, table_manager_bcard_t>
             table_directory_read_manager(&connectivity_cluster, 'T');
 
+        /* The `table_query_bcard_t`s contain mailboxes that execute `read_t`s or
+        `write_t`s. The `table_query_client_t` reads this directory to know how to route
+        queries. */
         directory_map_read_manager_t<
                 std::pair<namespace_id_t, branch_id_t>,
                 table_query_bcard_t>
             table_query_directory_read_manager(&connectivity_cluster, 'Q');
 
+        /* `server_connection_read_manager` gives us second-order connectivity
+        information; we can figure out which of the servers we're connected to are
+        connected to which other servers. */
         directory_map_read_manager_t<server_id_t, empty_value_t>
             server_connection_read_manager(&connectivity_cluster, 'C');
 
+        /* `log_server` retrieves pieces of our local log file and sends them out over
+        the network via its mailbox. */
         log_server_t log_server(&mailbox_manager, &log_writer);
 
+        /* `server_config_server` tracks this server's name, tags, etc. It takes care of
+        loading and persisting that information to disk, and also distributing it over
+        the network via the `cluster_directory_metadata_t`. */
         scoped_ptr_t<server_config_server_t> server_config_server;
         if (i_am_a_server) {
             server_config_server.init(new server_config_server_t(
                 &mailbox_manager, metadata_file));
         }
 
+        /* `server_config_client` is used to get a list of all connected servers and
+        request information about their names and tags. It can also be used to change
+        servers' names and tags over the network by sending messages to the servers'
+        `server_config_server_t`s. */
         server_config_client_t server_config_client(
             &mailbox_manager,
             directory_read_manager.get_root_map_view(),
             server_connection_read_manager.get_root_view());
 
+        /* `network_logger` writes to the log file when another server connects or
+        disconnects. */
         network_logger_t network_logger(
             connectivity_cluster.get_me(),
             directory_read_manager.get_root_map_view());
 
+        /* `connectivity_cluster_run` is the other half of the `connectivity_cluster_t`.
+        Before it's created, the `connectivity_cluster_t` won't process any connections
+        or messages. So it's only safe to create now that we've set up all of our message
+        handlers. */
         scoped_ptr_t<connectivity_cluster_t::run_t> connectivity_cluster_run;
-
         try {
             connectivity_cluster_run.init(new connectivity_cluster_t::run_t(
                 &connectivity_cluster,
@@ -172,11 +213,15 @@ bool do_serve(io_backender_t *io_backender,
         logNTC("Listening for intracluster connections on port %d\n",
             connectivity_cluster_run->get_port());
 
+        /* `auto_reconnector` tries to reconnect to other servers if we lose the
+        connection to them. */
         auto_reconnector_t auto_reconnector(
             &connectivity_cluster,
             connectivity_cluster_run.get(),
             &server_config_client);
 
+        /* `initial_joiner` sets up the initial connections to the peers that were
+        specified with the `--join` flag on the command line. */
         scoped_ptr_t<initial_joiner_t> initial_joiner;
         if (!serve_info.peers.empty()) {
             initial_joiner.init(new initial_joiner_t(&connectivity_cluster,
@@ -192,7 +237,9 @@ bool do_serve(io_backender_t *io_backender,
         perfmon_collection_repo_t perfmon_collection_repo(
             &get_global_perfmon_collection());
 
-        // ReQL evaluation context and supporting structures
+        /* We thread the `rdb_context_t` through every function that evaluates ReQL
+        terms. It contains pointers to all the things that the ReQL term evaluation code
+        needs. */
         rdb_context_t rdb_ctx(&extproc_pool,
                               &mailbox_manager,
                               NULL,   /* we'll fill this in later */
@@ -210,6 +257,10 @@ bool do_serve(io_backender_t *io_backender,
                         return &cluster_md->multi_table_manager_bcard;
                     });
 
+            /* The `multi_table_manager_t` takes care of the actual business of setting
+            up tables and handling queries for them. The `table_persistence_interface_t`
+            helps it by constructing the B-trees and serializers, and also persisting
+            table-related metadata to disk. */
             scoped_ptr_t<cache_balancer_t> cache_balancer;
             scoped_ptr_t<outdated_index_issue_tracker_t> outdated_index_issue_tracker;
             scoped_ptr_t<real_table_persistence_interface_t>
@@ -248,6 +299,9 @@ bool do_serve(io_backender_t *io_backender,
                     table_directory_read_manager.get_root_view()));
             }
 
+            /* The `table_meta_client_t` sends messages to the `multi_table_manager_t`s
+            on the other servers in the cluster to create, drop, and reconfigure tables,
+            as well as request information about them. */
             table_meta_client_t table_meta_client(
                 &mailbox_manager,
                 multi_table_manager.get(),
@@ -255,14 +309,19 @@ bool do_serve(io_backender_t *io_backender,
                 table_directory_read_manager.get_root_view(),
                 &server_config_client);
 
+            /* The `real_reql_cluster_interface_t` is the interface that the ReQL logic
+            uses to create, destroy, and reconfigure databases and tables. */
             real_reql_cluster_interface_t real_reql_cluster_interface(
                 &mailbox_manager,
                 semilattice_manager_cluster.get_root_view(),
                 &rdb_ctx,
                 &server_config_client,
                 &table_meta_client,
+                multi_table_manager.get(),
                 table_query_directory_read_manager.get_root_view());
 
+            /* `admin_artificial_tables_t` is a container for all of the tables in the
+            `rethinkdb` system database. */
             admin_artificial_tables_t admin_tables(
                 &real_reql_cluster_interface,
                 semilattice_manager_cluster.get_root_view(),
@@ -271,8 +330,12 @@ bool do_serve(io_backender_t *io_backender,
                 directory_read_manager.get_root_map_view(),
                 &table_meta_client,
                 &server_config_client,
+                real_reql_cluster_interface.get_namespace_repo(),
                 &mailbox_manager);
 
+            /* `jobs_manager_t` keeps track of all of the running jobs on this server.
+            When the user reads the `rethinkdb.jobs` table, it sends messages to the
+            `jobs_manager_t` on each server to get information about running jobs. */
             jobs_manager_t jobs_manager(
                 &mailbox_manager,
                 server_id,
@@ -281,6 +344,9 @@ bool do_serve(io_backender_t *io_backender,
                 `i_am_a_server` is true, and a `nullptr` otherwise. */
                 table_persistence_interface.get_or_null(),
                 multi_table_manager.get());
+
+            /* When the user reads the `rethinkdb.stats` table, it sends messages to the
+            `stat_manager_t` on each server to get the stats information. */
             stat_manager_t stat_manager(&mailbox_manager, server_id);
 
             /* `real_reql_cluster_interface_t` needs access to the admin tables so that
@@ -299,6 +365,9 @@ bool do_serve(io_backender_t *io_backender,
             circular reference. */
             rdb_ctx.cluster_interface = admin_tables.get_reql_cluster_interface();
 
+            /* When the user reads the `rethinkdb.current_issues` table, it sends
+            messages to the `local_issue_server` on each server to get the issues
+            information. */
             scoped_ptr_t<local_issue_server_t> local_issue_server;
             if (i_am_a_server) {
                 local_issue_server.init(new local_issue_server_t(
@@ -341,6 +410,8 @@ bool do_serve(io_backender_t *io_backender,
                     : boost::optional<server_config_business_card_t>(),
                 i_am_a_server ? SERVER_PEER : PROXY_PEER);
 
+            /* `our_root_directory_variable` is the value we'll send out over the network
+            in our directory to all the other servers. */
             watchable_variable_t<cluster_directory_metadata_t>
                 our_root_directory_variable(initial_directory);
 
@@ -366,6 +437,11 @@ bool do_serve(io_backender_t *io_backender,
                         server_config_server->get_config(),
                         &our_root_directory_variable));
             }
+
+            /* These `directory_*_write_manager_t`s are the counterparts to the
+            `directory_*_read_manager_t`s earlier in this file. These are responsible for
+            sending directory information over the network; the `read_manager_t`s are
+            responsible for receiving the transmissions. */
 
             directory_write_manager_t<cluster_directory_metadata_t> directory_write_manager(
                 &connectivity_cluster, 'D', our_root_directory_variable.get_watchable());
@@ -393,6 +469,8 @@ bool do_serve(io_backender_t *io_backender,
             }
 
             {
+                /* The `rdb_query_server_t` listens for client requests and processes the
+                queries it receives. */
                 rdb_query_server_t rdb_query_server(
                     serve_info.ports.local_addresses,
                     serve_info.ports.reql_port,
@@ -407,11 +485,13 @@ bool do_serve(io_backender_t *io_backender,
                         return (md->proc.reql_port != serve_info.ports.reql_port);
                     });
 
+                /* `cluster_metadata_persister` and `auth_metadata_persister` are
+                responsible for syncing the two pieces of semilattice metadata to disk.
+                */
                 scoped_ptr_t<semilattice_persister_t<cluster_semilattice_metadata_t> >
                     cluster_metadata_persister;
                 scoped_ptr_t<semilattice_persister_t<auth_semilattice_metadata_t> >
                     auth_metadata_persister;
-
                 if (i_am_a_server) {
                     cluster_metadata_persister.init(
                         new semilattice_persister_t<cluster_semilattice_metadata_t>(
@@ -426,6 +506,7 @@ bool do_serve(io_backender_t *io_backender,
                 }
 
                 {
+                    /* The `administrative_http_server_manager_t` serves the web UI. */
                     scoped_ptr_t<administrative_http_server_manager_t> admin_server_ptr;
                     if (serve_info.ports.http_admin_is_disabled) {
                         logNTC("Administrative HTTP connections are disabled.\n");
@@ -477,6 +558,8 @@ bool do_serve(io_backender_t *io_backender,
                         logNTC("Proxy ready");
                     }
 
+                    /* `checker` periodically phones home to RethinkDB HQ to check if
+                    there are later versions of RethinkDB available. */
                     scoped_ptr_t<version_checker_t> checker;
                     if (i_am_a_server
                         && serve_info.do_version_checking == update_check_t::perform) {
@@ -484,6 +567,8 @@ bool do_serve(io_backender_t *io_backender,
                             &rdb_ctx, uname, &table_meta_client, &server_config_client));
                     }
 
+                    /* This is the end of the startup process. `stop_cond` will be pulsed
+                    when it's time for the server to shut down. */
                     stop_cond->wait_lazily_unordered();
 
                     if (stop_cond->get_source_signo() == SIGINT) {

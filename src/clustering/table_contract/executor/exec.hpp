@@ -8,6 +8,7 @@
 #include "clustering/query_routing/metadata.hpp"
 #include "store_view.hpp"
 
+class backfill_progress_tracker_t;
 class backfill_throttler_t;
 class io_backender_t;
 
@@ -36,6 +37,7 @@ public:
         branch_history_manager_t *branch_history_manager;
         base_path_t base_path;
         io_backender_t *io_backender;
+        backfill_progress_tracker_t *backfill_progress_tracker;
         backfill_throttler_t *backfill_throttler;
         watchable_map_t<std::pair<server_id_t, branch_id_t>,
             contract_execution_bcard_t> *remote_contract_execution_bcards;
@@ -44,34 +46,45 @@ public:
         watchable_map_var_t<uuid_u, table_query_bcard_t> *local_table_query_bcards;
     };
 
-    /* All subclasses of `execution_t` have the following things in common:
-    - A constructor that takes the same parameters as `execution_t` plus a `contract_t`
-        and a `std::function<void(const contract_ack_t &)>`. The constructor cannot throw
-        exceptions or block.
-    - A destructor which may block
-    - A method `update_contract_or_raft_state` that takes a `contract_id_t` and
-        raft state, at least one of which have been changed.
-    */
-    execution_t(
-            const context_t *_context,
-            store_view_t *_store,
-            perfmon_collection_t *_perfmon_collection,
-            const std::function<void(
-                const contract_id_t &, const contract_ack_t &)> &_ack_cb) :
-        context(_context), region(_store->get_region()), store(_store),
-        perfmon_collection(_perfmon_collection), ack_cb(_ack_cb)
-        { }
+    /* There is one `params` for each `execution_t`; it holds information that's specific
+    to the particular execution, and also provides callbacks for the execution to send
+    events back. */
+    class params_t {
+    public:
+        virtual perfmon_collection_t *get_perfmon_collection() = 0;
+        virtual store_view_t *get_store() = 0;
+
+        /* Sends the given contract ack for the given contract ID. The contract ID should
+        be an ID that has been passed to the constructor or
+        `update_contract_or_raft_state()`. */
+        virtual void send_ack(const contract_id_t &, const contract_ack_t &) = 0;
+
+        /* Once the execution has finished its backfill/erase/whatever, so that the
+        metainfo is on a particular branch and will stay there indefinitely, it calls
+        `enable_gc()` with that branch. `enable_gc()` must not be called more than once.
+        */
+        virtual void enable_gc(const branch_id_t &) = 0;
+
+    protected:
+        virtual ~params_t() { }
+    };
+
+    execution_t(const context_t *_context, params_t *_params) :
+        context(_context), params(_params), store(params->get_store()),
+        region(store->get_region()) { }
+
+    /* Note: Subclass destructors may block. */
     virtual ~execution_t() { }
+
     virtual void update_contract_or_raft_state(
         const contract_id_t &cid,
         const table_raft_state_t &raft_state) = 0;
 
 protected:
     context_t const *const context;
-    region_t const region;
+    params_t *const params;
     store_view_t *const store;
-    perfmon_collection_t *const perfmon_collection;
-    std::function<void(const contract_id_t &, const contract_ack_t &)> ack_cb;
+    region_t const region;
 };
 
 #endif /* CLUSTERING_TABLE_CONTRACT_EXECUTOR_EXEC_HPP_ */

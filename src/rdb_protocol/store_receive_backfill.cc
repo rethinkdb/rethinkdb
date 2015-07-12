@@ -203,7 +203,7 @@ void apply_item_pair(
     } else {
         point_delete_response_t dummy_response;
         rdb_delete(pair.key, slice, pair.recency, superblock,
-            &deletion_context, delete_or_erase_t::DELETE, &dummy_response,
+            &deletion_context, delete_mode_t::MAKE_TOMBSTONE, &dummy_response,
             &mod_reports_out->back().info, nullptr, pass_back_superblock);
     }
 }

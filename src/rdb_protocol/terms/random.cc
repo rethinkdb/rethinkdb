@@ -19,7 +19,7 @@ public:
     scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         int64_t num_int = args->arg(env, 1)->as_int();
         rcheck(num_int >= 0,
-               base_exc_t::GENERIC,
+               base_exc_t::LOGIC,
                strprintf("Number of items to sample must be non-negative, got `%"
                          PRId64 "`.", num_int));
         const size_t num = num_int;
@@ -93,7 +93,7 @@ private:
     int64_t convert_bound(double bound, bound_type_t type) const {
         int64_t res;
         bool success = number_as_integer(bound, &res);
-        rcheck(success, base_exc_t::GENERIC,
+        rcheck(success, base_exc_t::LOGIC,
                strprintf("%s bound (%" PR_RECONSTRUCTABLE_DOUBLE ") could not be safely converted to an integer.",
                          type == bound_type_t::LOWER ? "Lower" : "Upper", bound));
         return res;
@@ -144,7 +144,7 @@ private:
 
             return new_val(datum_t(result));
         } else {
-            rcheck(args->num_args() > 0, base_exc_t::GENERIC,
+            rcheck(args->num_args() > 0, base_exc_t::LOGIC,
                    "Generating a random integer requires one or two bounds.");
             int64_t lower;
             int64_t upper;
@@ -160,7 +160,7 @@ private:
                 upper = convert_bound(args->arg(env, 1)->as_num(), bound_type_t::UPPER);
             }
 
-            rcheck(lower < upper, base_exc_t::GENERIC,
+            rcheck(lower < upper, base_exc_t::LOGIC,
                    strprintf("Lower bound (%" PRIi64 ") is not less than upper bound (%" PRIi64 ").",
                              lower, upper));
 

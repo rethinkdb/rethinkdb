@@ -173,7 +173,7 @@ std::string format_time(struct timespec time, local_or_utc_time_t zone) {
 }
 
 bool parse_time(const std::string &str, local_or_utc_time_t zone,
-        struct timespec *out, std::string *errmsg_out) {
+                struct timespec *out, std::string *errmsg_out) {
     struct tm t;
     struct timespec time;
     int res1 = sscanf(str.c_str(),

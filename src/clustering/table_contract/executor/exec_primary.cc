@@ -1,6 +1,7 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/table_contract/executor/exec_primary.hpp"
 
+#include "clustering/administration/admin_op_exc.hpp"
 #include "clustering/immediate_consistency/local_replicator.hpp"
 #include "clustering/immediate_consistency/primary_dispatcher.hpp"
 #include "clustering/immediate_consistency/remote_replicator_server.hpp"
@@ -11,14 +12,10 @@
 
 primary_execution_t::primary_execution_t(
         const execution_t::context_t *_context,
-        store_view_t *_store,
-        perfmon_collection_t *_perfmon_collection,
-        const std::function<void(
-            const contract_id_t &, const contract_ack_t &)> &_ack_cb,
+        execution_t::params_t *_params,
         const contract_id_t &contract_id,
         const table_raft_state_t &raft_state) :
-    execution_t(_context, _store, _perfmon_collection, _ack_cb),
-    our_dispatcher(nullptr)
+    execution_t(_context, _params), our_dispatcher(nullptr)
 {
     const contract_t &contract = raft_state.contracts.at(contract_id).second;
     guarantee(static_cast<bool>(contract.primary));
@@ -60,7 +57,7 @@ void primary_execution_t::update_contract_or_raft_state(
             registration request */
             latest_ack = boost::make_optional(contract_ack_t(
                 contract_ack_t::state_t::primary_in_progress));
-            ack_cb(contract_id, *latest_ack);
+            params->send_ack(contract_id, *latest_ack);
         }
     }
 
@@ -103,7 +100,7 @@ void primary_execution_t::update_contract_or_raft_state(
 
     /* Send an ack for the new contract */
     if (static_cast<bool>(latest_ack)) {
-        ack_cb(contract_id, *latest_ack);
+        params->send_ack(contract_id, *latest_ack);
     }
 }
 
@@ -123,7 +120,8 @@ void primary_execution_t::run(auto_drainer_t::lock_t keepalive) {
             order_source.check_in("primary_t").with_read_mode(),
             &token, region, &interruptor_store_thread));
 
-        primary_dispatcher_t primary_dispatcher(perfmon_collection, initial_version);
+        primary_dispatcher_t primary_dispatcher(
+            params->get_perfmon_collection(), initial_version);
 
         direct_query_server_t direct_query_server(
             context->mailbox_manager,
@@ -152,7 +150,7 @@ void primary_execution_t::run(auto_drainer_t::lock_t keepalive) {
                 *our_branch_id,
                 primary_dispatcher.get_branch_birth_certificate()));
             latest_ack = boost::make_optional(ack);
-            ack_cb(latest_contract_home_thread->contract_id, ack);
+            params->send_ack(latest_contract_home_thread->contract_id, ack);
         }
 
         /* Wait until we get our branch registered */
@@ -210,6 +208,10 @@ void primary_execution_t::run(auto_drainer_t::lock_t keepalive) {
             pre_replica_contract,
             keepalive,
             pre_replica_mutex_in_line.release()));
+
+        /* The `local_replicator_t` constructor set the metainfo to `*our_branch_id`, so
+        it's now safe to call `enable_gc()`. */
+        params->enable_gc(*our_branch_id);
 
         /* Put an entry in the minidir so the replicas can find us */
         contract_execution_bcard_t ce_bcard;
@@ -293,7 +295,7 @@ bool primary_execution_t::on_write(
         order_token_t order_token,
         signal_t *interruptor,
         write_response_t *response_out,
-        std::string *error_out) {
+        admin_err_t *error_out) {
     store->assert_thread();
     guarantee(our_dispatcher != nullptr);
 
@@ -307,9 +309,11 @@ bool primary_execution_t::on_write(
     counted_t<contract_info_t> contract_snapshot = latest_contract_store_thread;
 
     if (static_cast<bool>(contract_snapshot->contract.primary->hand_over)) {
-        *error_out = "The primary replica is currently changing from one replica to "
+        *error_out = admin_err_t{
+            "The primary replica is currently changing from one replica to "
             "another. The write was not performed. This error should go away in a "
-            "couple of seconds.";
+            "couple of seconds.",
+            query_state_t::FAILED};
         return false;
     }
 
@@ -326,8 +330,10 @@ bool primary_execution_t::on_write(
                 }
             });
         if (!counter.is_safe()) {
-            *error_out = "The primary replica isn't connected to a quorum of replicas. "
-                "The write was not performed.";
+            *error_out = admin_err_t{
+                "The primary replica isn't connected to a quorum of replicas. "
+                "The write was not performed.",
+                query_state_t::FAILED};
             return false;
         }
     }
@@ -350,8 +356,10 @@ bool primary_execution_t::on_write(
 
     bool res = write_callback.result.assert_get_value();
     if (!res) {
-        *error_out = "The primary replica lost contact with the secondary "
-            "replicas. The write may or may not have been performed.";
+        *error_out = admin_err_t{
+            "The primary replica lost contact with the secondary "
+            "replicas. The write may or may not have been performed.",
+            query_state_t::INDETERMINATE};
     }
     return res;
 }
@@ -359,7 +367,7 @@ bool primary_execution_t::on_write(
 bool primary_execution_t::sync_committed_read(const read_t &read_request,
                                               order_token_t order_token,
                                               signal_t *interruptor,
-                                              std::string *error_out) {
+                                              admin_err_t *error_out) {
     write_response_t response;
     write_t request = write_t::make_sync(read_request.get_region(),
                                          read_request.profile);
@@ -379,8 +387,10 @@ bool primary_execution_t::sync_committed_read(const read_t &read_request,
 
     bool res = write_callback.result.assert_get_value();
     if (!res) {
-        *error_out = "The primary replica lost contact with the secondary "
-            "replicas. The read could not be guaranteed as committed.";
+        *error_out = admin_err_t{
+            "The primary replica lost contact with the secondary "
+            "replicas. The read could not be guaranteed as committed.",
+            query_state_t::INDETERMINATE};
     }
     return res;
 }
@@ -391,7 +401,7 @@ bool primary_execution_t::on_read(
         order_token_t order_token,
         signal_t *interruptor,
         read_response_t *response_out,
-        std::string *error_out) {
+        admin_err_t *error_out) {
     store->assert_thread();
     guarantee(our_dispatcher != nullptr);
     try {
@@ -408,11 +418,12 @@ bool primary_execution_t::on_read(
         case read_mode_t::MAJORITY:
             return sync_committed_read(request, order_token, interruptor, error_out);
         case read_mode_t::OUTDATED: // Fallthrough intentional
+        case read_mode_t::DEBUG_DIRECT:
         default:
             unreachable();
         }
     } catch (const cannot_perform_query_exc_t &e) {
-        *error_out = e.what();
+        *error_out = admin_err_t{e.what(), e.get_query_state()};
         return false;
     }
 }
@@ -481,7 +492,7 @@ void primary_execution_t::update_contract_on_store_thread(
             /* OK, time to ack the contract */
             latest_ack = boost::make_optional(
                 contract_ack_t(contract_ack_t::state_t::primary_ready));
-            ack_cb(contract->contract_id, *latest_ack);
+            params->send_ack(contract->contract_id, *latest_ack);
         }
 
     } catch (const interrupted_exc_t &) {

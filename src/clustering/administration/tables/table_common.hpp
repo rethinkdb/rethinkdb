@@ -31,13 +31,13 @@ public:
     bool read_all_rows_as_vector(
             signal_t *interruptor_on_caller,
             std::vector<ql::datum_t> *rows_out,
-            std::string *error_out);
+            admin_err_t *error_out);
 
     bool read_row(
             ql::datum_t primary_key,
             signal_t *interruptor_on_caller,
             ql::datum_t *row_out,
-            std::string *error_out);
+            admin_err_t *error_out);
 
 protected:
     /* This will always be called on the home thread */
@@ -50,12 +50,17 @@ protected:
             const ql::datum_t &db_name_or_uuid,
             signal_t *interruptor_on_home,
             ql::datum_t *row_out)
-        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t) = 0;
+        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t) = 0;
 
-    ql::datum_t make_error_row(
+    /* This is called for tables that we couldn't even determine the current
+    configuration of, because every single server for the table is disconnected. The
+    default implementation produces a document with an `error` field describing the
+    problem. */
+    virtual void format_error_row(
             const namespace_id_t &table_id,
             const ql::datum_t &db_name_or_uuid,
-            const name_string_t &table_name);
+            const name_string_t &table_name,
+            ql::datum_t *row_out);
 
     boost::shared_ptr< semilattice_readwrite_view_t<
         cluster_semilattice_metadata_t> > semilattice_view;

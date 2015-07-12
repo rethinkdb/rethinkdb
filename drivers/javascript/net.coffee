@@ -72,6 +72,10 @@ protoQueryType = protodef.Query.QueryType
 # definitions for the response types.
 protoResponseType = protodef.Response.ResponseType
 
+# The server can respond with several different error types. These are the
+# definitions for the error types.
+protoErrorType = protodef.Response.ErrorType
+
 # The [ast module](ast.html) contains the bulk of the api exposed by
 # the driver. It defines how you can create ReQL queries, and handles
 # serializing those queries into JSON to be transmitted over the wire
@@ -385,7 +389,17 @@ class Connection extends events.EventEmitter
                         # query. For example, if you try to get the
                         # value of a field in an object that doesn't
                         # exist.
-                        cb mkErr(err.RqlRuntimeError, response, root)
+                        errType = switch response.e
+                            when protoErrorType.INTERNAL            then err.RqlInternalError
+                            when protoErrorType.RESOURCE            then err.RqlResourceError
+                            when protoErrorType.LOGIC               then err.RqlLogicError
+                            when protoErrorType.NON_EXISTENCE       then err.RqlNonExistenceError
+                            when protoErrorType.OP_FAILED           then err.RqlOpFailedError
+                            when protoErrorType.OP_INDETERMINATE    then err.RqlOpIndeterminateError
+                            when protoErrorType.USER                then err.RqlUserError
+                            else                                    err.RqlRuntimeError
+
+                        cb mkErr(errType, response, root)
                         @_delQuery(token)
                     # ##### Success responses
                     when protoResponseType.SUCCESS_ATOM

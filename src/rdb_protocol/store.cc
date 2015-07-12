@@ -1,6 +1,7 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/store.hpp"
 
+#include "btree/backfill_debug.hpp"
 #include "btree/reql_specific.hpp"
 #include "btree/superblock.hpp"
 #include "concurrency/cross_thread_signal.hpp"
@@ -180,12 +181,12 @@ scoped_ptr_t<sindex_superblock_t> acquire_sindex_for_read(
             &sindex_uuid);
         // TODO: consider adding some logic on the machine handling the
         // query to attach a real backtrace here.
-        rcheck_toplevel(found, ql::base_exc_t::GENERIC,
+        rcheck_toplevel(found, ql::base_exc_t::OP_FAILED,
                 strprintf("Index `%s` was not found on table `%s`.",
                           sindex_id.c_str(), table_name.c_str()));
     } catch (const sindex_not_ready_exc_t &e) {
         throw ql::exc_t(
-            ql::base_exc_t::GENERIC, e.what(), ql::backtrace_id_t::empty());
+            ql::base_exc_t::OP_FAILED, e.what(), ql::backtrace_id_t::empty());
     }
 
     try {
@@ -243,7 +244,7 @@ void do_read(ql::env_t *env,
 
         if (sindex_info.geo == sindex_geo_bool_t::GEO) {
             res->result = ql::exc_t(
-                ql::base_exc_t::GENERIC,
+                ql::base_exc_t::LOGIC,
                 strprintf(
                     "Index `%s` is a geospatial index.  Only get_nearest and "
                     "get_intersecting can use a geospatial index.",
@@ -415,7 +416,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
 
         if (sindex_info.geo != sindex_geo_bool_t::GEO) {
             res->result = ql::exc_t(
-                ql::base_exc_t::GENERIC,
+                ql::base_exc_t::LOGIC,
                 strprintf(
                     "Index `%s` is not a geospatial index.  get_intersecting can only "
                     "be used with a geospatial index.",
@@ -465,7 +466,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
 
         if (sindex_info.geo != sindex_geo_bool_t::GEO) {
             res->results_or_error = ql::exc_t(
-                ql::base_exc_t::GENERIC,
+                ql::base_exc_t::LOGIC,
                 strprintf(
                     "Index `%s` is not a geospatial index.  get_nearest can only be "
                     "used with a geospatial index.",
@@ -497,7 +498,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                 res->stamp_response = r;
             } else {
                 res->result = ql::exc_t(
-                    ql::base_exc_t::GENERIC,
+                    ql::base_exc_t::OP_FAILED,
                     "Feed aborted before initial values were read.",
                     ql::backtrace_id_t::empty());
                 return;
@@ -679,6 +680,8 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         point_write_response_t *res =
             boost::get<point_write_response_t>(&response->response);
 
+        backfill_debug_key(w.key, strprintf("upsert %" PRIu64, timestamp.longtime));
+
         rdb_live_deletion_context_t deletion_context;
         rdb_modification_report_t mod_report(w.key);
         rdb_set(w.key, w.data, w.overwrite, btree, timestamp, superblock->get(),
@@ -693,10 +696,12 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         point_delete_response_t *res =
             boost::get<point_delete_response_t>(&response->response);
 
+        backfill_debug_key(d.key, strprintf("delete %" PRIu64, timestamp.longtime));
+
         rdb_live_deletion_context_t deletion_context;
         rdb_modification_report_t mod_report(d.key);
         rdb_delete(d.key, btree, timestamp, superblock->get(), &deletion_context,
-                delete_or_erase_t::DELETE, res, &mod_report.info, trace);
+                delete_mode_t::REGULAR_QUERY, res, &mod_report.info, trace);
 
         update_sindexes(mod_report);
     }

@@ -19,8 +19,16 @@ using alt::page_txn_t;
 using alt::throttler_acq_t;
 
 const int64_t MINIMUM_SOFT_UNWRITTEN_CHANGES_LIMIT = 1;
-const int64_t SOFT_UNWRITTEN_CHANGES_LIMIT = 4000;
+const int64_t SOFT_UNWRITTEN_CHANGES_LIMIT = 8000;
 const double SOFT_UNWRITTEN_CHANGES_MEMORY_FRACTION = 0.5;
+
+// In addition to the data blocks themselves, transactions that are not completely
+// flushed yet consume memory for the index writes and general metadata. If
+// there are a lot of soft durability transactions, these can accumulate and consume
+// an increasing amount of RAM. Hence we limit the number of unwritten index
+// updates in addition to the number of unwritten blocks. We scale that limit
+// proportionally to the unwritten block changes limit
+const int64_t INDEX_CHANGES_LIMIT_FACTOR = 5;
 
 // There are very few ASSERT_NO_CORO_WAITING calls (instead we have
 // ASSERT_FINITE_CORO_WAITING) because most of the time we're at the mercy of the
@@ -56,14 +64,22 @@ private:
 
 alt_txn_throttler_t::alt_txn_throttler_t(int64_t minimum_unwritten_changes_limit)
     : minimum_unwritten_changes_limit_(minimum_unwritten_changes_limit),
-      unwritten_changes_semaphore_(SOFT_UNWRITTEN_CHANGES_LIMIT) { }
+      unwritten_block_changes_semaphore_(SOFT_UNWRITTEN_CHANGES_LIMIT),
+      unwritten_index_changes_semaphore_(
+          SOFT_UNWRITTEN_CHANGES_LIMIT * INDEX_CHANGES_LIMIT_FACTOR) { }
 
 alt_txn_throttler_t::~alt_txn_throttler_t() { }
 
 throttler_acq_t alt_txn_throttler_t::begin_txn_or_throttle(int64_t expected_change_count) {
     throttler_acq_t acq;
-    acq.semaphore_acq_.init(&unwritten_changes_semaphore_, expected_change_count);
-    acq.semaphore_acq_.acquisition_signal()->wait();
+    acq.index_changes_semaphore_acq_.init(
+        &unwritten_index_changes_semaphore_,
+        expected_change_count);
+    acq.index_changes_semaphore_acq_.acquisition_signal()->wait();
+    acq.block_changes_semaphore_acq_.init(
+        &unwritten_block_changes_semaphore_,
+        expected_change_count);
+    acq.block_changes_semaphore_acq_.acquisition_signal()->wait();
     return acq;
 }
 
@@ -79,7 +95,9 @@ void alt_txn_throttler_t::inform_memory_limit_change(uint64_t memory_limit,
     // Always provide at least one capacity in the semaphore
     throttler_limit = std::max<int64_t>(throttler_limit, minimum_unwritten_changes_limit_);
 
-    unwritten_changes_semaphore_.set_capacity(throttler_limit);
+    unwritten_index_changes_semaphore_.set_capacity(
+        throttler_limit * INDEX_CHANGES_LIMIT_FACTOR);
+    unwritten_block_changes_semaphore_.set_capacity(throttler_limit);
 }
 
 cache_t::cache_t(serializer_t *serializer,
