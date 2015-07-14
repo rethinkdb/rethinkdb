@@ -308,6 +308,28 @@ bool convert_table_config_shard_from_datum(
     return true;
 }
 
+ql::datum_t convert_sindexes_to_datum(
+        const std::map<std::string, sindex_config_t> &sindexes) {
+    ql::datum_array_builder_t sindexes_builder(ql::configured_limits_t::unlimited);
+    for (const auto &sindex : sindexes) {
+        sindexes_builder.add(convert_string_to_datum(sindex.first));
+    }
+    return std::move(sindexes_builder).to_datum();
+}
+
+bool convert_sindexes_from_datum(
+        ql::datum_t datum,
+        std::set<std::string> *indexes_out,
+        admin_err_t *error_out) {
+    if (!convert_set_from_datum<std::string>(
+            &convert_string_from_datum, false, datum, indexes_out, error_out)) {
+        error_out->msg = "In `indexes`: " + error_out->msg;
+        return false;
+    }
+
+    return true;
+}
+
 /* This is separate from `format_row()` because it needs to be publicly exposed so it can
    be used to create the return value of `table.reconfigure()`. */
 ql::datum_t convert_table_config_to_datum(
@@ -320,6 +342,7 @@ ql::datum_t convert_table_config_to_datum(
     builder.overwrite("name", convert_name_to_datum(config.basic.name));
     builder.overwrite("db", db_name_or_uuid);
     builder.overwrite("id", convert_uuid_to_datum(table_id));
+    builder.overwrite("indexes", convert_sindexes_to_datum(config.sindexes));
     builder.overwrite("primary_key", convert_string_to_datum(config.basic.primary_key));
     builder.overwrite("shards",
         convert_vector_to_datum<table_config_t::shard_t>(
@@ -353,7 +376,7 @@ bool convert_table_config_and_name_from_datum(
         const cluster_semilattice_metadata_t &all_metadata,
         admin_identifier_format_t identifier_format,
         server_config_client_t *server_config_client,
-        const server_name_map_t &old_server_names,
+        const table_config_and_shards_t &old_config,
         table_meta_client_t *table_meta_client,
         signal_t *interruptor,
         namespace_id_t *id_out,
@@ -400,8 +423,41 @@ bool convert_table_config_and_name_from_datum(
         return false;
     }
 
-    /* As a special case, we allow the user to omit `primary_key`, `shards`,
+    /* As a special case, we allow the user to omit `indexes`, `primary_key`, `shards`,
     `write_acks`, and/or `durability` for newly-created tables. */
+
+    if (converter.has("indexes")) {
+        ql::datum_t indexes_datum;
+        if (!converter.get("indexes", &indexes_datum, error_out)) {
+            return false;
+        }
+        std::set<std::string> sindexes;
+        if (!convert_sindexes_from_datum(indexes_datum, &sindexes, error_out)) {
+            return false;
+        }
+
+        if (existed_before) {
+            bool equal = sindexes.size() == old_config.config.sindexes.size();
+            for (const auto &old_sindex : old_config.config.sindexes) {
+                equal &= sindexes.count(old_sindex.first) == 1;
+            }
+            if (!equal) {
+                error_out->msg = "The `indexes` field is read-only and can't be used to "
+                                 "create or drop indexes.";
+                return false;
+            }
+            config_out->sindexes = old_config.config.sindexes;
+        } else if (!sindexes.empty()) {
+            error_out->msg = "The `indexes` field is read-only and can't be used to "
+                             "create indexes.";
+            return false;
+        }
+    } else {
+        if (existed_before) {
+            error_out->msg = "Expected a field named `indexes`.";
+            return false;
+        }
+    }
 
     if (existed_before || converter.has("primary_key")) {
         ql::datum_t primary_key_datum;
@@ -427,7 +483,8 @@ bool convert_table_config_and_name_from_datum(
                         admin_err_t *error_out_2) {
                     return convert_table_config_shard_from_datum(
                         shard_datum, identifier_format, server_config_client,
-                        old_server_names, shard_out, server_names_out, error_out_2);
+                        old_config.server_names, shard_out, server_names_out,
+                        error_out_2);
                 },
                 shards_datum,
                 &config_out->shards,
@@ -608,7 +665,7 @@ bool table_config_artificial_table_backend_t::write_row(
                 name_string_t new_db_name;
                 if (!convert_table_config_and_name_from_datum(*new_value_inout, true,
                         metadata, identifier_format, server_config_client,
-                        old_config.server_names, table_meta_client, &interruptor_on_home,
+                        old_config, table_meta_client, &interruptor_on_home,
                         &new_table_id, &new_config, &new_server_names, &new_db_name,
                         error_out)) {
                     error_out->msg = "The change you're trying to make to "
@@ -653,9 +710,9 @@ bool table_config_artificial_table_backend_t::write_row(
             name_string_t new_db_name;
             if (!convert_table_config_and_name_from_datum(*new_value_inout, false,
                     metadata, identifier_format, server_config_client,
-                    server_name_map_t(),
-                    table_meta_client, &interruptor_on_home, &new_table_id, &new_config,
-                    &new_server_names, &new_db_name, error_out)) {
+                    table_config_and_shards_t(), table_meta_client,
+                    &interruptor_on_home, &new_table_id, &new_config, &new_server_names,
+                    &new_db_name, error_out)) {
                 error_out->msg = "The change you're trying to make to "
                     "`rethinkdb.table_config` has the wrong format. " + error_out->msg;
                 return false;
