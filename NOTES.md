@@ -1,7 +1,6 @@
 # Release 2.1.0-beta (Forbidden Planet)
 
--- issues up-to-date with the 2.1 milestone as of 2015-07-14 21:00 UTC
--- contributors " " next as of 3dac994 and docs:master as of 0b661c4
+Released on 2015-07-16
 
 This is a beta release for RethinkDB 2.1. **It is not for production use and has known
 bugs.** Please do not use this version for production data.
@@ -180,7 +179,74 @@ us ship RethinkDB 2.1. In no particular order:
 
 --
 
+# Release 2.0.4 (Yojimbo)
+
+Released on 2015-07-08
+
+Bug fix release
+
+* Fixed the version number used by the JavaScript driver (#4436)
+* Fixed a bug that caused crashes with a "Guarantee failed: [stop]" error (#4430)
+* Fixed a latency issue when processing indexed `distinct` queries over low-cardinality data sets (#4362)
+* Changed the implementation of compile time assertions (#4346)
+* Changed the Data Explorer to render empty results more clearly (#4110)
+* Fixed a linking issue on ARM (#4064)
+* Improved the message showing the query execution time in the Data Explorer (#3454, #3927)
+* Fixed an error that happened when calling `info` on an ordered table stream (#4242)
+* Fixed a bug that caused an error to be thrown for certain streams in the Data Explorer (#4242)
+* Increased the coroutine stack safety buffer to detect stack overflows in optarg processing (#4473)
+
+--
+
+# Release 2.0.3 (Yojimbo)
+
+Released on 2015-06-10
+
+Bug fix release
+
+* Fixed a bug that broke autocompletion in the Data Explorer (#4261)
+* No longer crash for certain types of stack overflows during query execution (#2639)
+* No longer crash when returning a function from `r.js` (#4190)
+* Fixed a race condition when closing cursors in the JavaScript driver (#4240)
+* Fixed a race condition when closing connections in the JavaScript driver (#4250)
+* Added support for building with GCC 5.1 (#4264)
+* Improved handling of coroutine stack overflows on OS X (#4299)
+* Removed an invalid assertion in the server (#4313)
+
+--
+
+# Release 2.0.2 (Yojimbo)
+
+Released on 2015-05-22
+
+Bug fix release
+
+* Fixed "duplicate token" error in the web UI that happened with certain browsers (#4174)
+* Fixed a cross site request forgery vulnerability in the HTTP admin interface (#2018)
+* Fixed the EventEmitter interface in the JavaScript driver (#4192)
+* Fixed a problem with the RDBInterrupt.InsertOp unit test in some compilation modes (#4038)
+* Added packages for Ubuntu 15.04 (#4123)
+* Added a `return_changes: 'always'` option to restore the `return_changes` behavior from before 2.0.0 (#4068)
+* Fixed a bug with `return_changes` where it would populate `changes` despite an error occurring (#4208)
+* Fixed a performance regression when calling `get_all` with many keys (#4218)
+* Added support for using `r.row` with the `contains` command in the JavaScript driver (#4125)
+
+--
+
+# Release 2.0.1 (Yojimbo)
+
+Released on 2015-04-20
+
+Bug fix release
+
+* Fixed a regression in the backup scripts that detected the server version incorrectly (#3706)
+* Fixed a bug in the cache balancer that could degrade performance (#4066)
+
+--
+
 # Release 2.0.0 (Yojimbo)
+
+Released on 2015-04-14
 
 Release highlights:
 * Support for attaching a changefeed to the `get_all` and `union` commands
