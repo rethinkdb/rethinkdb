@@ -58,7 +58,7 @@ availability of a given table after a server failure:
 To reflect changes in the underlying cluster administration logic, some of the tables in
 the `rethinkdb` database changed.
 
-####Changes to `table_config`:####
+**Changes to `table_config`:**
 
 * Each shard subdocument now has a new field `nonvoting_replicas`, that can be set to a
   subset of the servers in the `replicas` field.
@@ -69,7 +69,7 @@ the `rethinkdb` database changed.
   with an `"error"` field.
 * Servers that are disconnected from the cluster are no longer included in the table.
 
-####Changes to `table_status`:####
+**Changes to `table_status`:**
 
 * The `primary_replica` field is now called `primary_replicas` and has an array of
   current primary replicas as its value. While under normal circumstances only a single
@@ -80,7 +80,7 @@ the `rethinkdb` database changed.
   `"backfilling"`, `"disconnected"`, `"waiting_for_primary"` and `"waiting_for_quorum"`.
 * Servers that are disconnected from the cluster are no longer included in the table.
 
-####Changes to `current_issues`:####
+**Changes to `current_issues`:**
 
 * The issue types `"table_needs_primary"`, `"data_lost"`, `"write_acks"`,
   `"server_ghost"` and `"server_disconnected"` can no longer occur.
