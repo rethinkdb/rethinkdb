@@ -6,11 +6,13 @@
 This is a beta release for RethinkDB 2.1. **It is not for production use and has known
 bugs.** Please do not use this version for production data.
 
-We are looking forward to your bug reports on GitHub
-(http://github.com/rethinkdb/rethinkdb/issues/new) or on our mailing list
-(https://groups.google.com/forum/#!forum/rethinkdb).
+We are looking forward to your bug reports on [GitHub][github-issues]
+or on our [mailing list][mailing-list].
 
-Release highlight:
+[github-issues]: http://github.com/rethinkdb/rethinkdb/issues/
+[mailing-list]: https://groups.google.com/forum/#!forum/rethinkdb
+
+Release highlights:
 
 * Automatic failover using a Raft-based protocol
 * More flexible administration for servers and tables
@@ -18,7 +20,7 @@ Release highlight:
 
 Read the [blog post][2.1-beta] for more details.
 
-[2.1-beta]: http://rethinkdbblog.com/blog/2.1-beta/
+[2.1-beta]: http://rethinkdb.com/blog/2.1-beta/
 
 ## Compatibility ##
 
