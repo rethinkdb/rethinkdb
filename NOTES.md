@@ -1,15 +1,18 @@
 # Release 2.1.0-beta (Forbidden Planet)
 
--- issues up-to-date with the 2.1 milestone as of 2015-07-12 20:00 UTC
+-- issues up-to-date with the 2.1 milestone as of 2015-07-14 21:00 UTC
 -- contributors " " next as of 3dac994 and docs:master as of 0b661c4
 
-This is a beta release for RethinkDB 2.1. **It is not for production use and has known bugs.** Please do not use this version for production data.
+This is a beta release for RethinkDB 2.1. **It is not for production use and has known
+bugs.** Please do not use this version for production data.
 
-We are looking forward to your bug reports on GitHub (http://github.com/rethinkdb/rethinkdb/issues/new) or on our mailing list (https://groups.google.com/forum/#!forum/rethinkdb).
+We are looking forward to your bug reports on GitHub
+(http://github.com/rethinkdb/rethinkdb/issues/new) or on our mailing list
+(https://groups.google.com/forum/#!forum/rethinkdb).
 
 Release highlight:
 
-* Automatic failover
+* Automatic failover using a Raft-based protocol
 * More flexible administration for servers and tables
 * Advanced recovery features
 
@@ -20,27 +23,66 @@ Read the [blog post][2.1-beta] for more details.
 ## Compatibility ##
 
 This beta release does not include automatic migration of data
-directories from older versions of RethinkDB. However the final 2.1.0
-version will include that feature for versions of RethinkDB down to
-1.14.0. Upgrading directly from RethinkDB 1.13 will require manually
-upgrading using `rethinkdb dump`.
+directories from older versions of RethinkDB. The final release of RethinkDB 2.1 will
+automatically migrate data from RethinkDB 1.14 and up.
+
+If you're upgrading directly from RethinkDB 1.13 or earlier, you will need to manually
+upgrade using `rethinkdb dump`.
 
 ### Changed handling of server failures ###
-This release introduces a new system for dealing with server failures and network partitions.
-It is no longer necessary nor possible to permanently remove an unreachable server from the cluster through the system tables or the web UI. Instead the cluster now remains in an administrable state even with servers missing. To change the configuration of a given table, a majority of the servers that host replicas for that table need to be connected to guarantee data consistency. If more servers become unavailable, the new `emergency_repair` option to `table.reconfigure` can be used to restore table availability.
+This release introduces a new system for dealing with server failures and network
+partitions based on the Raft consensus algorithm.
 
-This release adds full support for automatic failover. Tables with three or more replicas now automatically elect a new primary replica to restore availability after a currently configured primary replica has disconnected. No manual intervention is required in this scenario.
+Previously, unreachable servers had to be manually removed from the cluster in order to
+restore availability. RethinkDB 2.1 can resolve many cases of availability loss
+automatically, and keeps the cluster in an administrable state even while servers are
+missing.
+
+There are three important scenarios in RethinkDB 2.1 when it comes to restoring the
+availability of a given table after a server failure:
+
+* The table has three or more replicas, and a majority of the servers that are hosting
+  these replicas are connected. RethinkDB 2.1 automatically elects new primary replicas
+  to replace unavailable servers and restore availability. No manual intervention is
+  required, and data consistency is maintained.
+* A majority of the servers for the table are connected, regardless of the number of
+  replicas. The table can be manually reconfigured using the usual commands, and data
+  consistency is always maintained.
+* A majority of servers for the table are unavailable. The new `emergency_repair` option
+  to `table.reconfigure` can be used to restore table availability in this case.
+
 
 ### System table changes ###
-To reflect changes in the underlying cluster administration logic, some of the tables in the `"rethinkdb"` database changed.
+To reflect changes in the underlying cluster administration logic, some of the tables in
+the `"rethinkdb"` database changed.
 
-Each shard subdocument in the `"table_config"` table now has a new field `nonvoting_replicas`, that can be set to a subset of the servers in the `replicas` field. Furthermore `write_acks` must now be either `"single"` or `"majority"`. Custom write ack specifications are no longer supported. Instead non-voting replicas can be used to set up replicas that do not count towards the write ack requirements. Non-voting replicas can also be configured through the `table.reconfigure` command, by using the `novoting_replica_tags` optional argument. As a special case, `"table_config"` now lists tables that have all of their replicas disconnected as special documents with an `"error"` field.
+Each shard subdocument in the `"table_config"` table now has a new field
+`nonvoting_replicas`, that can be set to a subset of the servers in the `replicas` field.
+Furthermore, `write_acks` must now be either `"single"` or `"majority"`. Custom write ack
+specifications are no longer supported. Instead, non-voting replicas can be used to set
+up replicas that do not count towards the write ack requirements. See the
+[preliminary documentation][non-voting-docs] for more information.
+As a special case, `"table_config"` now lists tables that have all of their replicas
+disconnected as documents with an `"error"` field.
 
-In the `"table_status"` table, the `primary_replica` field is now called `primary_replicas` and has an array of current primary replicas as its value. While under normal circumstances only a single server will be serving as the primary replica for a given shard, there can temporarily be multiple primary replicas during handover or while data is being transferred between servers. The possible values of the `state` field now are `"ready"`, `"transitioning"`, `"backfilling"`, `"disconnected"`, `"waiting_for_primary"` and `"waiting_for_quorum"`.
+[non-voting-docs]: https://github.com/rethinkdb/docs/blob/v2.1/3-learn-the-tools/failover.md
 
-The `"server_status"` and `"server_config"` tables no longer include servers that are disconnected from the cluster.
+In the `"table_status"` table, the `primary_replica` field is now called
+`primary_replicas` and has an array of current primary replicas as its value. While under
+normal circumstances only a single server will be serving as the primary replica for a
+given shard, there can temporarily be multiple primary replicas during handover or while
+data is being transferred between servers. The possible values of the `state` field now
+are `"ready"`, `"transitioning"`, `"backfilling"`, `"disconnected"`,
+`"waiting_for_primary"` and `"waiting_for_quorum"`.
 
-In the `"current_issues"` table, the issue types `"table_needs_primary"`, `"data_lost"`, `"write_acks"`, `"server_ghost"` and `"server_disconnected"` can no longer occur. Instead a new issue type `"table_availability"` was added and appears whenever a table is missing at least one server. Note that no issue is generated if a server which is not hosting any replicas disconnects.
+The `"server_status"` and `"server_config"` tables no longer include servers that are
+disconnected from the cluster.
+
+In the `"current_issues"` table, the issue types `"table_needs_primary"`, `"data_lost"`,
+`"write_acks"`, `"server_ghost"` and `"server_disconnected"` can no longer occur. Instead
+a new issue type `"table_availability"` was added and appears whenever a table is missing
+at least one server. Note that no issue is generated if a server which is not hosting any
+replicas disconnects.
 
 ### Other API-breaking changes ###
 
@@ -55,14 +97,18 @@ In the `"current_issues"` table, the issue types `"table_needs_primary"`, `"data
  * Backfills are now interuptible and reversible (#3886, #3885)
  * `table.reconfigure` now works even if some servers are disconnected (#3913)
  * Replicas can now be marked as voting or non-voting (#3891)
- * Added an emergency repair feature to restore table availability if consensus is lost (#3893)
+ * Added an emergency repair feature to restore table availability if consensus is lost
+   (#3893)
  * Reads can now be made against a majority of replicas (#3895)
- * Added an emergency read mode that extracts data directly from a given replica for data recovery purposes (#4388)
- * Servers with no responsibilities can now be remove from clusters without raising an issue (#1790)
+ * Added an emergency read mode that extracts data directly from a given replica for data
+   recovery purposes (#4388)
+ * Servers with no responsibilities can now be remove from clusters without raising an
+   issue (#1790)
 * ReQL
  * Added `ceil`, `floor` and `round` (#866)
 * All drivers
- * Added driver-side support for SSL connections and CA verification (#4075, #4076, #4080)
+ * Added driver-side support for SSL connections and CA verification (#4075, #4076,
+   #4080)
 * Python driver
  * Added asyncio support (#4071)
  * `rethinkdb export` now supports the `--delimiter` option for CSV files (#3916)
@@ -70,8 +116,10 @@ In the `"current_issues"` table, the issue types `"table_needs_primary"`, `"data
 ## Improvements ##
 
 * Server
- * Improved the handling of cluster membership and removal of servers (#3262, #3897, #1790)
+ * Improved the handling of cluster membership and removal of servers (#3262, #3897,
+   #1790)
  * Changed the formatting of the `table_status` system table (#3882, #4196)
+ * Added an `indexes` field to the `table_config` system table (#4525)
  * Improved efficiency by making `datum_t` movable (#4056)
  * ReQL backtraces are now faster and smaller (#2900)
  * Replaced cJSON with rapidjson (#3844)
@@ -101,7 +149,8 @@ In the `"current_issues"` table, the issue types `"table_needs_primary"`, `"data
 * Python driver
  * Fixed a missing argument error (#4402)
 * JavaScript driver
- * Made the handling of the `db` optional argument to `run` consistent with the Ruby and Python drivers (#4347)
+ * Made the handling of the `db` optional argument to `run` consistent with the Ruby and
+   Python drivers (#4347)
 
 ## Contributors ##
 
