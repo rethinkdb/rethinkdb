@@ -54,35 +54,37 @@ availability of a given table after a server failure:
 
 ### System table changes ###
 To reflect changes in the underlying cluster administration logic, some of the tables in
-the `"rethinkdb"` database changed.
+the `rethinkdb` database changed.
 
-Each shard subdocument in the `"table_config"` table now has a new field
-`nonvoting_replicas`, that can be set to a subset of the servers in the `replicas` field.
-Furthermore, `write_acks` must now be either `"single"` or `"majority"`. Custom write ack
-specifications are no longer supported. Instead, non-voting replicas can be used to set
-up replicas that do not count towards the write ack requirements. See the
-[preliminary documentation][non-voting-docs] for more information.
-As a special case, `"table_config"` now lists tables that have all of their replicas
-disconnected as documents with an `"error"` field.
+####Changes to `table_config`:####
 
-[non-voting-docs]: https://github.com/rethinkdb/docs/blob/v2.1/3-learn-the-tools/failover.md
+* Each shard subdocument now has a new field `nonvoting_replicas`, that can be set to a
+  subset of the servers in the `replicas` field.
+* `write_acks` must now be either `"single"` or `"majority"`. Custom write ack
+  specifications are no longer supported. Instead, non-voting replicas can be used to set
+  up replicas that do not count towards the write ack requirements.
+* Tables that have all of their replicas disconnected are now listed as special documents
+  with an `"error"` field.
+* Servers that are disconnected from the cluster are no longer included in the table.
 
-In the `"table_status"` table, the `primary_replica` field is now called
-`primary_replicas` and has an array of current primary replicas as its value. While under
-normal circumstances only a single server will be serving as the primary replica for a
-given shard, there can temporarily be multiple primary replicas during handover or while
-data is being transferred between servers. The possible values of the `state` field now
-are `"ready"`, `"transitioning"`, `"backfilling"`, `"disconnected"`,
-`"waiting_for_primary"` and `"waiting_for_quorum"`.
+####Changes to `table_status`:####
 
-The `"server_status"` and `"server_config"` tables no longer include servers that are
-disconnected from the cluster.
+* The `primary_replica` field is now called `primary_replicas` and has an array of
+  current primary replicas as its value. While under normal circumstances only a single
+  server will be serving as the primary replica for a given shard, there can temporarily
+  be multiple primary replicas during handover or while data is being transferred between
+  servers.
+* The possible values of the `state` field now are `"ready"`, `"transitioning"`,
+  `"backfilling"`, `"disconnected"`, `"waiting_for_primary"` and `"waiting_for_quorum"`.
+* Servers that are disconnected from the cluster are no longer included in the table.
 
-In the `"current_issues"` table, the issue types `"table_needs_primary"`, `"data_lost"`,
-`"write_acks"`, `"server_ghost"` and `"server_disconnected"` can no longer occur. Instead
-a new issue type `"table_availability"` was added and appears whenever a table is missing
-at least one server. Note that no issue is generated if a server which is not hosting any
-replicas disconnects.
+####Changes to `current_issues`:####
+
+* The issue types `"table_needs_primary"`, `"data_lost"`, `"write_acks"`,
+  `"server_ghost"` and `"server_disconnected"` can no longer occur.
+* A new issue type `"table_availability"` was added and appears whenever a table is
+  missing at least one server. Note that no issue is generated if a server which is not
+  hosting any replicas disconnects.
 
 ### Other API-breaking changes ###
 
@@ -102,7 +104,7 @@ replicas disconnects.
  * Reads can now be made against a majority of replicas (#3895)
  * Added an emergency read mode that extracts data directly from a given replica for data
    recovery purposes (#4388)
- * Servers with no responsibilities can now be remove from clusters without raising an
+ * Servers with no responsibilities can now be removed from clusters without raising an
    issue (#1790)
 * ReQL
  * Added `ceil`, `floor` and `round` (#866)
