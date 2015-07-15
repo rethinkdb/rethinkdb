@@ -44,6 +44,7 @@ print_debug = False
 # -- internal global variables
 
 testLock = threading.Lock()
+devNull = open(os.devnull)
 
 # -- signal and atexit handlers
 
@@ -264,7 +265,7 @@ class PyLang(SrcLang):
         self.interpreter_name_exe_names.append('python')
     
     def get_interpreter_version(self, executablePath):
-        versionCheckProcess = subprocess.Popen([executablePath, '--version'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        versionCheckProcess = subprocess.Popen([executablePath, '--version'], stdin=devNull, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=True)
         output, __ = versionCheckProcess.communicate()
         
         if versionCheckProcess.returncode != 0:
@@ -328,7 +329,7 @@ class JsLang(SrcLang):
         return re.sub('__', '_', name)
     
     def get_interpreter_version(self, executablePath):
-        versionCheckProcess = subprocess.Popen([executablePath, '--version'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        versionCheckProcess = subprocess.Popen([executablePath, '--version'], stdin=devNull, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=True)
         output, __ = versionCheckProcess.communicate()
         
         if versionCheckProcess.returncode != 0:
@@ -474,7 +475,7 @@ class RbLang(SrcLang):
     
     def get_interpreter_version(self, executablePath):
         '''Return the version string for this interpreter'''
-        versionCheckProcess = subprocess.Popen([executablePath, '--version'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        versionCheckProcess = subprocess.Popen([executablePath, '--version'], stdin=devNull, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=True)
         output, __ = versionCheckProcess.communicate()
         
         if versionCheckProcess.returncode != 0:
@@ -868,7 +869,8 @@ class Test(object):
     
     __status = 'queued' # queued, setting up, running, ended
     __result = None # None, failed setup, failed, crashed, crashed server, timed out, canceled, succeeded
-    testProcess = None
+    __testProcess = None
+    __consoleFile = None
     
     setupStartTime = None
     setupDuration = 0
@@ -934,6 +936,10 @@ class Test(object):
         self.__result = value
     
     @property
+    def duration(self):
+        return (self.setupDuration or 0) + (self.testDuration or 0)
+    
+    @property
     def console_output(self):
         errorReturn = self.errorMessage or ''
         if self.errorDetails:
@@ -943,11 +949,12 @@ class Test(object):
             if '\n' in self.errorDetails:
                 errorReturn += '\n'
         
-        if self.consoleFile is sys.stdout:
-            return errorReturn
-        else:
-            self.consoleFile.seek(0)
-            return (errorReturn + "\n" if errorReturn else '') + self.consoleFile.read()
+        if self.consoleFile is not sys.stdout:
+            try:
+                with open(self.consoleFile, 'r') as consoleFile:
+                    errorReturn += ("\n" if errorReturn else '') + consoleFile.read()
+            except Exception: pass
+        return errorReturn
     
     def queueTest(self):
         '''Called when the test is put (back) into the queue'''
@@ -1021,7 +1028,8 @@ class Test(object):
         # -- start the test process
         
         with testLock:
-            self.testProcess = subprocess.Popen(self.command, stdout=self.consoleFile, stderr=subprocess.STDOUT, preexec_fn=os.setpgrp, env=envVariables)
+            self.__consoleFile = self.consoleFile if self.consoleFile is sys.stdout else open(self.consoleFile, 'w+')
+            self.__testProcess = subprocess.Popen(self.command, stdin=devNull, stdout=self.__consoleFile, stderr=subprocess.STDOUT, preexec_fn=os.setpgrp, env=envVariables, close_fds=True)
     
     def checkTestDone(self):
         '''Check on a running test, reply with True if running, False if ended'''
@@ -1031,29 +1039,25 @@ class Test(object):
         
         # --
         
-        if self.testProcess.poll() is None:
+        if self.__testProcess.poll() is None:
             return False
         
-        elif self.testProcess.returncode == 0:
+        elif self.__testProcess.returncode == 0:
             self.result = 'succeeded'
-            self.returncode = self.testProcess.returncode
+            self.returncode = self.__testProcess.returncode
         
-        elif self.testProcess.returncode < 0:
+        elif self.__testProcess.returncode < 0:
             self.result = 'crashed'
-            self.returncode = self.testProcess.returncode
+            self.returncode = self.__testProcess.returncode
         
         else:
             self.result = 'failed'
-            self.returncode = self.testProcess.returncode
+            self.returncode = self.__testProcess.returncode
         
-        # -- kill everything in the process group, just in case
-        
-        utils.kill_process_group(self.testProcess.pid)
-        
-        # -- set the end markers
+        # -- set the end markers and clenaup
         
         self.testDuration = time.time() - self.testStartTime
-        self.__status = 'ended'
+        self.cleanupTest()
         
         # -- return True to signal it has ended
         
@@ -1068,12 +1072,7 @@ class Test(object):
         self.errorMessage = errorMessage
         self.errorDetails = errorDetails
         
-        # -- kill everything in the process group
-        
-        if self.testProcess is not None and self.testProcess.pid is not None:
-            utils.kill_process_group(self.testProcess.pid)
-        
-        # -- set the end markers
+        # -- set the end markers and cleanup
         
         if self.__status == 'setting up':
             self.setupDuration = time.time() - self.setupStartTime
@@ -1085,9 +1084,29 @@ class Test(object):
         if result == 'timed out':
             self.returncode = self.TIMED_OUT_EXIT_CODE
         
-        self.__status = 'ended'
+        self.cleanupTest()
         self.returncode = None
+    
+    def cleanupTest(self):
+        '''Perform after-test cleanup'''
         
+        # -- kill everything in the process group
+        
+        if self.__testProcess is not None and self.__testProcess.pid is not None:
+            utils.kill_process_group(self.__testProcess.pid)
+        
+        # -- close the output file
+        
+        if self.__consoleFile and self.__consoleFile is not sys.stdout:
+            self.__consoleFile.close()
+        
+        # -- toss the subprocess
+        
+        self.__testProcess = None
+        
+        # -- set the status to ended
+        
+        self.__status = 'ended'
 
 class YamlTest(Test):
     buildFolder = os.path.join(os.path.realpath(os.path.dirname(__file__)), 'build')
@@ -1440,7 +1459,7 @@ class WorkerThread(threading.Thread):
                 
                 # -- set consoleFile
                 
-                test.consoleFile = sys.stdout if self.writeToConsole else open(os.path.join(testOutputDir, 'console.txt'), 'w+')
+                test.consoleFile = sys.stdout if self.writeToConsole else os.path.join(testOutputDir, 'console.txt')
                 
                 # -- pre-process the test
                 
@@ -1795,7 +1814,7 @@ def main():
     for language in options.languages:
         outputFile = tempfile.NamedTemporaryFile(mode='w+')
         notificationDeadline = time.time() + 3
-        makeProcess = subprocess.Popen(['make', '-C', language.driver_source_path], stdout=outputFile, stderr=subprocess.STDOUT)
+        makeProcess = subprocess.Popen(['make', '-C', language.driver_source_path], stdin=devNull, stdout=outputFile, stderr=subprocess.STDOUT, close_fds=True)
         while makeProcess.poll() is None and time.time() < notificationDeadline:
             time.sleep(.1)
         if time.time() > notificationDeadline:
