@@ -572,6 +572,9 @@ void real_reql_cluster_interface_t::reconfigure_internal(
 
     table_config_and_shards_t new_config;
     new_config.config.basic = old_config.config.basic;
+    new_config.config.sindexes = old_config.config.sindexes;
+    new_config.config.write_ack_config = old_config.config.write_ack_config;
+    new_config.config.durability = old_config.config.durability;
 
     calculate_split_points_intelligently(
         table_id,
@@ -586,9 +589,6 @@ void real_reql_cluster_interface_t::reconfigure_internal(
         server_config_client, table_id, table_meta_client,
         params, new_config.shard_scheme, interruptor_on_home, &new_config.config.shards,
         &new_config.server_names);
-
-    new_config.config.write_ack_config = write_ack_config_t::MAJORITY;
-    new_config.config.durability = write_durability_t::HARD;
 
     if (!dry_run) {
         table_meta_client->set_config(table_id, new_config, interruptor_on_home);
