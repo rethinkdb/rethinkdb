@@ -56,8 +56,8 @@ $defines = binding
 
 def show(x)
   if x.is_a?(Err)
-    name = x.type.sub(/^RethinkDB::/, "")
-    return "<#{name} #{'~ ' if x.regex}#{show x.message}>"
+    name = x.type.name.sub(/^RethinkDB::/, "")
+    return "<#{name} #{'~ ' if x.message.is_a? Regexp}#{show x.message}>"
   end
   return (PP.pp x, "").chomp
 end
