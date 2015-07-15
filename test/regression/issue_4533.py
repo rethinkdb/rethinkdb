@@ -27,10 +27,25 @@ with driver.Process() as process:
     r.table("test").index_wait().run(conn)
     old_indexes = r.table("test").index_list().run(conn)
 
-    print("Modifying table configuration (%.2fs)" % (time.time() - startTime))
-    r.db("rethinkdb").table("table_config").get(table_uuid).update({"durability": "soft"}).run(conn)
+    print("Modifying table configuration through `rethinkdb.table_config` (%.2fs)" % (time.time() - startTime))
+    r.db("rethinkdb").table("table_config").get(table_uuid).update(
+            {"durability": "soft", "write_acks": "single"}
+        ).run(conn)
 
-    print("Verifying index (%.2fs)" % (time.time() - startTime))
+    print("Verifying configuration (%.2fs)" % (time.time() - startTime))
+    new_config = r.table("test").config().run(conn)
+    assert new_config["durability"] == "soft", new_config["durability"]
+    assert new_config["write_acks"] == "single", new_config["write_acks"]
+    new_indexes = r.table("test").index_list().run(conn)
+    assert new_indexes == old_indexes, (new_indexes, old_indexes)
+
+    print("Modifying table configuration through `.reconfigure` (%.2fs)" % (time.time() - startTime))
+    r.table("test").reconfigure(shards=2, replicas=1).run(conn)
+
+    print("Verifying configuration (%.2fs)" % (time.time() - startTime))
+    new_config = r.table("test").config().run(conn)
+    assert new_config["durability"] == "soft", new_config["durability"]
+    assert new_config["write_acks"] == "single", new_config["write_acks"]
     new_indexes = r.table("test").index_list().run(conn)
     assert new_indexes == old_indexes, (new_indexes, old_indexes)
 
