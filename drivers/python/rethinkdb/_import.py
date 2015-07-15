@@ -12,10 +12,8 @@ import rethinkdb as r
 # Used because of API differences in the csv module, taken from
 # http://python3porting.com/problems.html
 PY3 = sys.version > '3'
-
-#json parameters
 json_read_chunk_size = 32 * 1024
-json_max_buffer_size = 128 * 1024 * 1024
+
 try:
     import cPickle as pickle
 except ImportError:
@@ -56,10 +54,6 @@ def print_import_help():
     print("  --force                          import data even if a table already exists, and")
     print("                                   overwrite duplicate primary keys")
     print("  --fields                         limit which fields to use when importing one table")
-    print("  --change-read-chunk-size         to change the chunk size of the json import.")
-    print("                                   default in bytes :32768.")
-    print("  --change-max-buffer-size         to change the buffer size of the json import.")
-    print("                                   default in bytes:134217728.")
     print("")
     print("Import directory:")
     print("  -d [ --directory ] DIR           the directory to import data from")
@@ -111,8 +105,6 @@ def parse_options():
     parser.add_option("--hard-durability", dest="hard", action="store_true", default=False)
     parser.add_option("--force", dest="force", action="store_true", default=False)
     parser.add_option("--debug", dest="debug", action="store_true", default=False)
-    parser.add_option("--change-read-chunk-size", dest="change_read_chunk_size",  default=0,type="int")
-    parser.add_option("--change-max-buffer-size", dest="change_max_buffer_size",  default=0,type="int")
 
     # Directory import options
     parser.add_option("-d", "--directory", dest="directory", metavar="DIRECTORY", default=None, type="string")
@@ -158,15 +150,6 @@ def parse_options():
     res["no_header"] = False
     res["custom_header"] = None
 
-    #chunck size
-    if options.change_read_chunk_size > 0:
-        global json_read_chunk_size
-        print ("set chunk "+str(options.change_read_chunk_size))
-        json_read_chunk_size=options.change_read_chunk_size
-    if options.change_max_buffer_size > 0:
-        global json_max_buffer_size
-        print ("set max buffer "+str(options.change_max_buffer_size))
-        json_max_buffer_size=options.change_max_buffer_size
     if options.directory is not None:
         # Directory mode, verify directory import options
         if options.import_file is not None:
@@ -391,12 +374,12 @@ def read_json_array(json_data, file_in, callback, progress_info,
         except (ValueError, IndexError):
             before_len = len(json_data)
             to_read = max(json_read_chunk_size, before_len)
-            json_data += file_in.read(min(to_read, json_max_buffer_size - before_len))
+            json_data += file_in.read(to_read)
             if json_array and json_data[offset] == ",":
                 offset = json.decoder.WHITESPACE.match(json_data, offset + 1).end()
             elif (not json_array) and before_len == len(json_data):
                 break  # End of JSON
-            elif before_len == len(json_data) or len(json_data) >= json_max_buffer_size:
+            elif before_len == len(json_data):
                 raise
             progress_info[0].value = file_offset
 
@@ -848,6 +831,7 @@ def main():
 
     try:
         start_time = time.time()
+            
         if "directory" in options:
             import_directory(options)
         elif "import_file" in options:
