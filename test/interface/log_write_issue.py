@@ -29,19 +29,19 @@ with driver.Cluster(output_folder='.') as cluster:
     process = driver.Process(cluster, files, console_output="log", extra_options=serve_options)
     conn = r.connect(process.host, process.driver_port)
     server_uuid = r.db("rethinkdb").table("server_config").nth(0)["id"].run(conn)
-    log_file_path = os.path.join(files.db_path, "log_file")
+    log_file_path = os.path.join(files.db_path, "log_file.txt")
     
     print("Un-setting resource limit (%.2fs)" % (time.time() - startTime))
     resource.setrlimit(resource.RLIMIT_FSIZE, (resource.RLIM_INFINITY, resource.RLIM_INFINITY))
     
-    print("log size: %d" % os.path.getsize(os.path.join(files.db_path, "log_file")))
+    print("log size: %d" % os.path.getsize(log_file_path))
     
     print("Filling log file to %d bytes (%.2fs)" % (size_limit, time.time() - startTime))
     with open(log_file_path, "a") as f:
         while f.tell() < size_limit:
             f.write("X" * min(100, (size_limit - f.tell()) - 1) + "\n")
     
-    print("log size: %d" % os.path.getsize(os.path.join(files.db_path, "log_file")))
+    print("log size: %d" % os.path.getsize(log_file_path))
     
     # Get the server to write over the limit by toggling the server name
     
@@ -62,7 +62,7 @@ with driver.Cluster(output_folder='.') as cluster:
     last_error = None
     while time.time() < deadline:
         try:
-            print("log size: %d" % os.path.getsize(os.path.join(files.db_path, "log_file")))
+            print("log size: %d" % os.path.getsize(log_file_path))
             issues = list(r.db("rethinkdb").table("current_issues").run(conn))
             assert len(issues) == 1, "Wrong number of issues. Should have been one, was: % s" % pprint.pformat(issues)
             assert issues[0]["type"] == "log_write_error", pprint.pformat(issues)
@@ -89,7 +89,7 @@ with driver.Cluster(output_folder='.') as cluster:
     assert res["errors"] == 1, res
 
     print("Emptying log file (%.2fs)" % (time.time() - startTime))
-    open(os.path.join(files.db_path, "log_file"), "w").close()
+    open(log_file_path, "w").close()
 
     print("Making server try to write to log (%.2fs)" % (time.time() - startTime))
     make_server_write_to_log()

@@ -200,7 +200,7 @@ void check_keys_are_present(store_t *store,
         /* Unfortunately we don't have an easy way right now to tell if the
          * sindex has actually been postconstructed so we just need to
          * check by polling. */
-        nap(200);
+        nap(500);
     }
     ADD_FAILURE() << "Sindex still not available after many tries.";
 }
@@ -228,7 +228,7 @@ void check_keys_are_NOT_present(store_t *store,
         /* Unfortunately we don't have an easy way right now to tell if the
          * sindex has actually been postconstructed so we just need to
          * check by polling. */
-        nap(100);
+        nap(500);
     }
     ADD_FAILURE() << "Sindex still not available after many tries.";
 }

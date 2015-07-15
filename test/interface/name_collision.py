@@ -116,12 +116,8 @@ with driver.Metacluster() as metacluster:
     print("Checking for table name collision issue (%.2fs)" % (time.time() - startTime))
     issues = list(r.db("rethinkdb").table("current_issues").run(conn1c))
     try:
-        assert len(issues) == 2
-        if issues[0]["type"] == "table_name_collision":
-            table_issue, availability_issue = issues
-        else:
-            availability_issue, table_issue = issues
-        assert availability_issue["type"] == "table_availability"
+        assert len(issues) == 1
+        table_issue = issues[0]
 
         assert table_issue["type"] == "table_name_collision"
         assert table_issue["critical"]

@@ -107,6 +107,7 @@ with driver.Cluster(initial_servers=['a', 'x'], output_folder='.',
         # Make sure that the correct config was calculated and also applied
         assert eq_config(res["config_changes"][0]["new_val"]["shards"], expect), \
             "res=%s, expect=%s" % (res, expect)
+        time.sleep(0.1)
         new_config = r.table(name).config().run(conn)
         assert eq_config(new_config["shards"], expect), \
             "new_config=%s, expect=%s" % (new_config, expect)
