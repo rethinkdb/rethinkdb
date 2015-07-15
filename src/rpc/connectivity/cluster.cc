@@ -1,4 +1,4 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "rpc/connectivity/cluster.hpp"
 
 #include <netinet/in.h>
@@ -477,7 +477,7 @@ public:
         if (read_done) {
             /* `intervals_since_last_read_done` may be negative when transitioning
                between timeouts, we should't reset it to zero when it's doing so. */
-            if (intervals_since_last_read_done > 0) {
+            if (intervals_since_last_read_done >= 0) {
                 intervals_since_last_read_done = 0;
             } else {
                 intervals_since_last_read_done++;

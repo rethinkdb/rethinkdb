@@ -1,4 +1,4 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/administration/cluster_config.hpp"
 
 #include "clustering/administration/admin_op_exc.hpp"
@@ -254,9 +254,9 @@ bool cluster_config_artificial_table_backend_t::heartbeat_doc_t::write(
     if (!converter.get("heartbeat_timeout_secs", &heartbeat_timeout_datum, error_out)) {
         return false;
     }
-    int64_t heartbeat_timeout;
+    double heartbeat_timeout;
     if (heartbeat_timeout_datum.get_type() == ql::datum_t::R_NUM) {
-        heartbeat_timeout = heartbeat_timeout_datum.as_int();
+        heartbeat_timeout = heartbeat_timeout_datum.as_num();
         if (heartbeat_timeout < 2) {
             *error_out = "The heartbeat timeout must be at least two seconds";
             return false;

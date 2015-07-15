@@ -1,4 +1,4 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_CLUSTER_CONFIG_HPP_
 #define CLUSTERING_ADMINISTRATION_CLUSTER_CONFIG_HPP_
 
