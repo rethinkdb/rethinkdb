@@ -7,18 +7,28 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.SocketChannel;
+import java.net.StandardSocketOptions.TCP_NODELAY;
 
-public class SocketChannelFacade {
+public class SocketWrapper {
     private SocketChannel socketChannel;
 
     public void connect(String hostname, int port) {
         try {
-            socketChannel = SocketChannel.open();
-            socketChannel.configureBlocking(true);
+            socketChannel = SocketChannel.open()
+                .configureBlocking(true)
+                .setOption(TCP_NODELAY);
             socketChannel.connect(new InetSocketAddress(hostname, port));
         } catch (IOException e) {
             throw new RethinkDBException(e);
         }
+    }
+
+    public void setTimeout(int timeout) {
+        socketChannel.socket.setTimeout(timeout);
+    }
+
+    public ByteBuffer recvall(int length, int deadline) {
+        ByteBuffer res =
     }
 
     public void write(ByteBuffer buffer) {
