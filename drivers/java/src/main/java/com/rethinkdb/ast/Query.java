@@ -17,15 +17,19 @@ import org.json.simple.JSONArray;
 
 public class Query {
     public final QueryType type;
-    public final RqlAst term;
     public final long token;
-    public final OptArgs globalOptargs;
+    public final Optional<RqlAst> term;
+    public final Optional<OptArgs> globalOptargs;
 
     public Query(QueryType type, long token, RqlAst term, OptArgs globalOptargs) {
         this.type = type;
         this.token = token;
-        this.term = term;
-        this.globalOptargs = globalOptargs;
+        this.term = Optional.ofNullable(term);
+        this.globalOptargs = Optional.ofNullable(globalOptargs);
+    }
+
+    public Query(QueryType type, long token) {
+        this(type, token, null, null);
     }
 
     public static Query stop(long token) {
@@ -36,7 +40,7 @@ public class Query {
         return new Query(QueryType.CONTINUE, token, null, null);
     }
 
-    public static Query stop(long token, RqlAst term, OptArgs globalOptargs) {
+    public static Query start(long token, RqlAst term, OptArgs globalOptargs) {
         return new Query(QueryType.START, token, term, globalOptargs);
     }
 

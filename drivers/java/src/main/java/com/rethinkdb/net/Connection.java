@@ -15,8 +15,9 @@ import org.slf4j.LoggerFactory;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.*;
 
-public class RethinkDBConnection {
-    private static final Logger logger = LoggerFactory.getLogger(RethinkDBConnection.class);
+public class Connection {
+    private static final Logger logger =
+        LoggerFactory.getLogger(Connection.class);
 
     private static final AtomicLong tokenGenerator = new AtomicLong();
 
@@ -58,6 +59,7 @@ public class RethinkDBConnection {
         socket.connect(hostname, port);
         socket.writeLEInt(Version.V0_2.value);
         socket.writeStringWithLength(authKey);
+        socket.writeLEInt(Version.V0_2.value);
 
         String result = socket.readString();
         if (!result.startsWith(RethinkDBConstants.Protocol.SUCCESS)) {
@@ -110,7 +112,7 @@ public class RethinkDBConnection {
         // socket.write(query.toByteArray());
         // return socket.read();
         socket.write(query.serialize());
-
+        return socket.read();
     }
 
     void addToCache(long token, Cursor cursor) {

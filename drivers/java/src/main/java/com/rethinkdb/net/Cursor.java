@@ -11,6 +11,7 @@ import java.util.*;
 
 public class Cursor<T> implements Iterator<T> {
 
+    public final long token;
     protected final RethinkDBConnection connection;
     protected final Query query;
     protected List<T> items = new ArrayList<>();
@@ -21,6 +22,7 @@ public class Cursor<T> implements Iterator<T> {
     public Cursor(RethinkDBConnection connection, Query query) {
         this.connection = connection;
         this.query = query;
+        this.token = query.token;
         connection.addToCache(query.token, this);
     }
 
@@ -33,18 +35,7 @@ public class Cursor<T> implements Iterator<T> {
 
     @Override
     public boolean hasNext() {
-        // if (currentBatch.size() > 0) {
-        //     return true;
-        // } else if (!isClosed()) {
-        //     if (isFeed) {
-        //         return true;
-        //     } else if (response.isPartial()) {
-        //         loadNextBatch();
-        //         return hasNext();
-        //     }
-        // }
-        // return false;
-        throw new RuntimeException("not implemented yet");
+        throw new UnsupportedOperationException();
     }
 
     @Override

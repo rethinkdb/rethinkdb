@@ -69,7 +69,7 @@ def get_proto_def():
         return proto
     else:
         return json.load(
-            codecs.open("proto_basic.json", "r", "utf-8"),
+            codecs.open(PROTO_JSON, "r", "utf-8"),
             object_pairs_hook=OrderedDict,
         )
 
