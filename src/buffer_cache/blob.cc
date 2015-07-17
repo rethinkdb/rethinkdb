@@ -787,6 +787,7 @@ bool blob_t::remove_level(buf_parent_t parent, int *levels_ref) {
             }
         }
 
+        lock.write_acq_signal()->wait_lazily_unordered();
         lock.mark_deleted();
     }
 
