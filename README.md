@@ -43,9 +43,9 @@ Looking to explore what else RethinkDB offers or the specifics of ReQL? Check ou
 Need help?
 --------
 
-A great place to start is [rethinkdb.com/community](www.rethinkdb.com/community). Here you can find out how to ask us questions, reach out to us, or [report an issue](https://github.com/rethinkdb/rethinkdb/issues). You'll be able to find all the places we frequent online and at which conference or meetups you might be able to meet us next.
+A great place to start is [rethinkdb.com/community](http://rethinkdb.com/community). Here you can find out how to ask us questions, reach out to us, or [report an issue](https://github.com/rethinkdb/rethinkdb/issues). You'll be able to find all the places we frequent online and at which conference or meetups you might be able to meet us next.
 
-If you need help right now, you can also find us [on Twitter](http://twitter.com/rethinkdb), via IRC at [#rethinkdb](irc://chat.freenode.net/#rethinkdb) on Freenode, or at [gitter.im/rethinkdb/rethinkdb](https://gitter.im/rethinkdb/rethinkdb).
+If you need help right now, you can also find us [on Twitter](https://twitter.com/rethinkdb), via IRC at [#rethinkdb](irc://chat.freenode.net/#rethinkdb) on Freenode, or at [gitter.im/rethinkdb/rethinkdb](https://gitter.im/rethinkdb/rethinkdb).
 
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/rethinkdb/rethinkdb?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
