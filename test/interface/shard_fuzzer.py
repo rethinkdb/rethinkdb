@@ -135,8 +135,8 @@ with driver.Cluster(initial_servers=server_names, output_folder='.', command_pre
     create_tables(conn)
 
     random.seed(parsed_opts['random-seed'])
-    print("Fuzzing shards for %ds, random seed: %f (%.2fs)" %
-          (parsed_opts['duration'], parsed_opts['random-seed'], time.time() - startTime))
+    print("Fuzzing shards for %ds, random seed: %s (%.2fs)" %
+          (parsed_opts['duration'], repr(parsed_opts['random-seed']), time.time() - startTime))
     stop_event = threading.Event()
     table_threads = []
     for table in tables:
