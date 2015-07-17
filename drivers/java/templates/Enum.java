@@ -9,4 +9,15 @@ public enum ${classname} {
     private ${classname}(int value){
         this.value = value;
     }
+
+    public static ${classname} fromValue(int value) {
+        switch (value) {
+    % for key, val in items:
+            case ${val}: return ${classname}.${key};
+    % endfor
+            default:
+                throw new IllegalArgumentException(String.format(
+                "%s is not a legal value for ${classname}", value));
+        }
+    }
 }
