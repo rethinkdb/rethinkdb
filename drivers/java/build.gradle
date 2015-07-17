@@ -22,7 +22,7 @@ dependencies {
 }
 
 task generateProtocolFiles(type:Exec) {
-  commandLine 'python2', 'convert_protofile.py'
+  commandLine 'python2', 'metajava.py'
 }
 
 compileJava.dependsOn generateProtocolFiles
