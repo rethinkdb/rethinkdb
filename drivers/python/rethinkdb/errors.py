@@ -4,6 +4,14 @@ __all__ = ['RqlError',
            'RqlClientError',
            'RqlCompileError',
            'RqlRuntimeError',
+           'RqlInternalError',
+           'RqlResourceError',
+           'RqlLogicError',
+           'RqlNonExistenceError',
+           'RqlOpError',
+           'RqlOpFailedError',
+           'RqlOpIndeterminateError',
+           'RqlUserError',
            'RqlDriverError',
            'RqlTimeoutError',
            'RqlCursorEmpty']
@@ -38,7 +46,8 @@ class RqlError(Exception):
     def __repr__(self):
         return self.__class__.__name__ + "(" + repr(self.message) + ")"
 
-class RqlQueryError(RqlError):
+
+class RqlServerError(RqlError):
     def __init__(self, message, term, frames):
         RqlError.__init__(self, message)
         self.frames = frames
@@ -50,19 +59,51 @@ class RqlQueryError(RqlError):
                                '\n' + self.query_printer.print_carrots())
 
 
-class RqlClientError(RqlQueryError):
+class RqlClientError(RqlServerError):
     pass
 
 
-class RqlCompileError(RqlQueryError):
+class RqlCompileError(RqlServerError):
     pass
 
 
-class RqlRuntimeError(RqlQueryError):
+class RqlRuntimeError(RqlServerError):
     def __str__(self):
         return convertForPrint(self.message + " in:\n" +
                                self.query_printer.print_query() + '\n' +
                                self.query_printer.print_carrots())
+
+
+class RqlInternalError(RqlRuntimeError):
+    pass
+
+
+class RqlResourceError(RqlRuntimeError):
+    pass
+
+
+class RqlLogicError(RqlRuntimeError):
+    pass
+
+
+class RqlNonExistenceError(RqlLogicError):
+    pass
+
+
+class RqlOpError(RqlRuntimeError):
+    pass
+
+
+class RqlOpFailedError(RqlOpError):
+    pass
+
+
+class RqlOpIndeterminateError(RqlOpError):
+    pass
+
+
+class RqlUserError(RqlRuntimeError):
+    pass
 
 
 class RqlDriverError(RqlError):
@@ -74,9 +115,9 @@ class RqlTimeoutError(RqlError):
         RqlError.__init__(self, 'Operation timed out.')
 
 
-class RqlCursorEmpty(RqlQueryError):
+class RqlCursorEmpty(RqlServerError):
     def __init__(self, term):
-        RqlQueryError.__init__(self, 'Cursor is empty.', term, [])
+        RqlServerError.__init__(self, 'Cursor is empty.', term, [])
 
 
 class QueryPrinter(object):
