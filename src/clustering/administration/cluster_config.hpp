@@ -101,11 +101,11 @@ private:
         bool read(
                 signal_t *interruptor,
                 ql::datum_t *row_out,
-                std::string *error_out);
+                admin_err_t *error_out);
         bool write(
                 signal_t *interruptor,
                 ql::datum_t *row_out,
-                std::string *error_out);
+                admin_err_t *error_out);
         void set_notification_callback(const std::function<void()> &fun);
     private:
         boost::shared_ptr<

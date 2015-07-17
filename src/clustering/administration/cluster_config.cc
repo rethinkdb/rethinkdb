@@ -226,7 +226,7 @@ void cluster_config_artificial_table_backend_t::auth_doc_t::set_notification_cal
 bool cluster_config_artificial_table_backend_t::heartbeat_doc_t::read(
         UNUSED signal_t *interruptor,
         ql::datum_t *row_out,
-        UNUSED std::string *error_out) {
+        UNUSED admin_err_t *error_out) {
     on_thread_t thread_switcher(sl_view->home_thread());
     ql::datum_object_builder_t obj_builder;
     obj_builder.overwrite("id", ql::datum_t("heartbeat"));
@@ -239,9 +239,9 @@ bool cluster_config_artificial_table_backend_t::heartbeat_doc_t::read(
 bool cluster_config_artificial_table_backend_t::heartbeat_doc_t::write(
         UNUSED signal_t *interruptor,
         ql::datum_t *row_inout,
-        std::string *error_out) {
+        admin_err_t *error_out) {
     converter_from_datum_object_t converter;
-    std::string dummy_error;
+    admin_err_t dummy_error;
     if (!converter.init(*row_inout, &dummy_error)) {
         crash("artificial_table_t should guarantee input is an object");
     }
@@ -258,11 +258,15 @@ bool cluster_config_artificial_table_backend_t::heartbeat_doc_t::write(
     if (heartbeat_timeout_datum.get_type() == ql::datum_t::R_NUM) {
         heartbeat_timeout = heartbeat_timeout_datum.as_num();
         if (heartbeat_timeout < 2) {
-            *error_out = "The heartbeat timeout must be at least two seconds";
+            *error_out = admin_err_t{
+                "The heartbeat timeout must be at least two seconds",
+                query_state_t::FAILED};
             return false;
         }
     } else {
-        *error_out = "Expected a number; got " + heartbeat_timeout_datum.print();
+        *error_out = admin_err_t{
+            "Expected a number; got " + heartbeat_timeout_datum.print(),
+            query_state_t::FAILED};
         return false;
     }
 
