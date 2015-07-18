@@ -101,8 +101,7 @@ tests:
 
     - cd: db.table_create()
       ot:
-        rb: err("RqlRuntimeError", "Expected type DATUM but found DATABASE.", [])
-        py: err("RqlRuntimeError", "Expected type DATUM but found DATABASE.", [])
+        cd: err("RqlLogicError", "Expected type DATUM but found DATABASE.", [])
         js: err("RqlDriverError", "Expected 1 argument (not including options) but found 0.", [])
 
     - cd: r.js(1,2)

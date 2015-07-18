@@ -19,6 +19,7 @@ from . import ql2_pb2 as p
 
 __all__ = ['connect', 'set_loop_type', 'Connection', 'Cursor']
 
+pErrorType = p.Response.ErrorType
 pResponse = p.Response.ResponseType
 pQuery = p.Query.QueryType
 
@@ -93,6 +94,7 @@ class Response(object):
         self.data = full_response["r"]
         self.backtrace = full_response.get("b", None)
         self.profile = full_response.get("p", None)
+        self.error_type = full_response.get("e", None)
 
     def make_error(self, query):
         if self.type == pResponse.CLIENT_ERROR:
@@ -100,7 +102,16 @@ class Response(object):
         elif self.type == pResponse.COMPILE_ERROR:
             return RqlCompileError(self.data[0], query.term, self.backtrace)
         elif self.type == pResponse.RUNTIME_ERROR:
-            return RqlRuntimeError(self.data[0], query.term, self.backtrace)
+            return {
+                pErrorType.INTERNAL: RqlInternalError,
+                pErrorType.RESOURCE: RqlResourceError,
+                pErrorType.LOGIC: RqlLogicError,
+                pErrorType.NON_EXISTENCE: RqlNonExistenceError,
+                pErrorType.OP_FAILED: RqlOpFailedError,
+                pErrorType.OP_INDETERMINATE: RqlOpIndeterminateError,
+                pErrorType.USER: RqlUserError
+            }.get(self.error_type, RqlRuntimeError)(
+                self.data[0], query.term, self.backtrace)
         return RqlDriverError("Unknown Response type %d encountered" +
                               " in a response." % self.type)
 
