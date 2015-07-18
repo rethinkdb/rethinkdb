@@ -96,8 +96,8 @@ private:
 
     class heartbeat_doc_t : public doc_t {
     public:
-        heartbeat_doc_t(boost::shared_ptr<semilattice_readwrite_view_t<
-            heartbeat_semilattice_metadata_t> > _sl_view) : sl_view(_sl_view) { };
+        explicit heartbeat_doc_t(boost::shared_ptr<semilattice_readwrite_view_t<
+            heartbeat_semilattice_metadata_t> > _sl_view) : sl_view(_sl_view) { }
         bool read(
                 signal_t *interruptor,
                 ql::datum_t *row_out,
