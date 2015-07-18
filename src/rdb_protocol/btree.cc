@@ -971,7 +971,12 @@ rdb_modification_report_cb_t::rdb_modification_report_cb_t(
 rdb_modification_report_cb_t::~rdb_modification_report_cb_t() { }
 
 bool rdb_modification_report_cb_t::has_pkey_cfeeds() {
-    return store_->changefeed_server->has_limit(boost::optional<std::string>());
+    for (auto &&pair : store_->changefeed_servers) {
+        if (pair.second->has_limit(boost::optional<std::string>())) {
+            return true;
+        }
+    }
+    return false;
 }
 
 void rdb_modification_report_cb_t::finish(

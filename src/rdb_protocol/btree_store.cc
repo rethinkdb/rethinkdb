@@ -94,9 +94,6 @@ store_t::store_t(const region_t &region,
       io_backender_(io_backender), base_path_(base_path),
       perfmon_collection_membership(parent_perfmon_collection, &perfmon_collection, perfmon_name),
       ctx(_ctx),
-      changefeed_server((ctx == NULL || ctx->manager == NULL)
-                        ? NULL
-                        : new ql::changefeed::server_t(ctx->manager)),
       index_report(std::move(_index_report)),
       table_id(_table_id),
       write_superblock_acq_semaphore(WRITE_SUPERBLOCK_ACQ_WAITERS_LIMIT)

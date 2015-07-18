@@ -18,9 +18,8 @@
 #include "rdb_protocol/table_common.hpp"
 
 void store_t::note_reshard() {
-    if (changefeed_server.has()) {
-        changefeed_server->stop_all();
-    }
+    // RSI: make sure disconnects still work.
+    changefeed_servers.clear();
 }
 
 reql_version_t update_sindex_last_compatible_version(secondary_index_t *sindex,
@@ -265,13 +264,12 @@ void do_read(ql::env_t *env,
 // TODO: get rid of this extra response_t copy on the stack
 struct rdb_read_visitor_t : public boost::static_visitor<void> {
     void operator()(const changefeed_subscribe_t &s) {
-        guarantee(store->changefeed_server.has());
-        store->changefeed_server->add_client(s.addr, s.region);
+        store->changefeed_server(s.region)->add_client(s.addr, s.region);
         response->response = changefeed_subscribe_response_t();
         auto res = boost::get<changefeed_subscribe_response_t>(&response->response);
         guarantee(res != NULL);
-        res->server_uuids.insert(store->changefeed_server->get_uuid());
-        res->addrs.insert(store->changefeed_server->get_stop_addr());
+        res->server_uuids.insert(store->changefeed_server(s.region)->get_uuid());
+        res->addrs.insert(store->changefeed_server(s.region)->get_stop_addr());
     }
 
     void operator()(const changefeed_limit_subscribe_t &s) {
@@ -325,8 +323,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             s.spec.range.sorting,
             s.spec.limit);
 
-        guarantee(store->changefeed_server.has());
-        store->changefeed_server->add_limit_client(
+        store->changefeed_server(s.region)->add_limit_client(
             s.addr,
             s.region,
             s.table,
@@ -336,17 +333,16 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             s.spec,
             ql::changefeed::limit_order_t(s.spec.range.sorting),
             std::move(lvec));
-        auto addr = store->changefeed_server->get_limit_stop_addr();
+        auto addr = store->changefeed_server(s.region)->get_limit_stop_addr();
         std::vector<decltype(addr)> vec{addr};
         response->response = changefeed_limit_subscribe_response_t(1, std::move(vec));
     }
 
     boost::optional<changefeed_stamp_response_t> do_stamp(const changefeed_stamp_t &s) {
-        guarantee(store->changefeed_server.has());
         if (boost::optional<uint64_t> stamp
-            = store->changefeed_server->get_stamp(s.addr)) {
+            = store->changefeed_server(s.region)->get_stamp(s.addr)) {
             changefeed_stamp_response_t out;
-            out.stamps[store->changefeed_server->get_uuid()] = *stamp;
+            out.stamps[store->changefeed_server(s.region)->get_uuid()] = *stamp;
             return out;
         } else {
             return boost::none;
@@ -359,28 +355,33 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         } else {
             // The client was removed, so no future messages are coming.
             changefeed_stamp_response_t removed;
-            guarantee(store->changefeed_server.has());
-            removed.stamps[store->changefeed_server->get_uuid()]
+            removed.stamps[store->changefeed_server(s.region)->get_uuid()]
                 = std::numeric_limits<uint64_t>::max();
             response->response = removed;
         }
     }
 
     void operator()(const changefeed_point_stamp_t &s) {
-        guarantee(store->changefeed_server.has());
         response->response = changefeed_point_stamp_response_t();
         auto res = boost::get<changefeed_point_stamp_response_t>(&response->response);
-        if (boost::optional<uint64_t> stamp
-            = store->changefeed_server->get_stamp(s.addr)) {
-            res->stamp = std::make_pair(store->changefeed_server->get_uuid(), *stamp);
+        if (auto *changefeed_server = store->changefeed_server(s.key)) {
+            if (boost::optional<uint64_t> stamp = changefeed_server->get_stamp(s.addr)) {
+                res->stamp = std::make_pair(changefeed_server->get_uuid(), *stamp);
+            } else {
+                // The client was removed, so no future messages are coming.
+                res->stamp = std::make_pair(changefeed_server->get_uuid(),
+                                            std::numeric_limits<uint64_t>::max());
+            }
+            point_read_response_t val;
+            rdb_get(s.key, btree, superblock, &val, trace);
+            res->initial_val = val.data;
         } else {
-            // The client was removed, so no future messages are coming.
-            res->stamp = std::make_pair(store->changefeed_server->get_uuid(),
-                                        std::numeric_limits<uint64_t>::max());
+            // TODO: pick up here, do error reporting another way.
+            res->result = ql::exc_t(
+                base_exc_t::OP_FAILED,
+                "Changefeed was aborted before it could be stamped.  "
+                "(Did you just reshard?)");
         }
-        point_read_response_t val;
-        rdb_get(s.key, btree, superblock, &val, trace);
-        res->initial_val = val.data;
     }
 
     void operator()(const point_read_t &get) {

@@ -1774,6 +1774,7 @@ public:
         auto resp = boost::get<changefeed_stamp_response_t>(&read_resp.response);
         guarantee(resp != NULL);
         start_stamps = std::move(resp->stamps);
+        // RSI: is this true if we aborted?  I think this should be a user error.
         guarantee(start_stamps.size() != 0);
 
         env = make_env(outer_env);
