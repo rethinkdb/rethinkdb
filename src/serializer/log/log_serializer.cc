@@ -469,6 +469,7 @@ get_ls_block_token(const counted_t<scs_block_token_t<log_serializer_t> > &tok) {
 
 
 void log_serializer_t::index_write(new_mutex_in_line_t *mutex_acq,
+                                   const std::function<void()> &on_writes_reflected,
                                    const std::vector<index_write_op_t> &write_ops) {
     assert_thread();
     ticks_t pm_time;
@@ -522,6 +523,9 @@ void log_serializer_t::index_write(new_mutex_in_line_t *mutex_acq,
                                       index_writes_io_account.get(), &txn);
         }
     }
+
+    // All changes are now in the in-memory LBA
+    on_writes_reflected();
 
     index_write_finish(mutex_acq, &txn, index_writes_io_account.get());
 

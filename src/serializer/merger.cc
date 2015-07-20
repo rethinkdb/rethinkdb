@@ -23,18 +23,39 @@ merger_serializer_t::~merger_serializer_t() {
     rassert(outstanding_index_write_ops.empty());
 }
 
+counted_t<standard_block_token_t> merger_serializer_t::index_read(block_id_t block_id) {
+    // First check if there is an updated entry for the block id...
+    const auto write_op = outstanding_index_write_ops.find(block_id);
+    if (write_op != outstanding_index_write_ops.end()) {
+        if (static_cast<bool>(write_op->second.token)) {
+            return *write_op->second.token;
+        }
+    }
+
+    // ... otherwise pass this request on to the underlying serializer.
+    return inner->index_read(block_id);
+}
+
 void merger_serializer_t::index_write(new_mutex_in_line_t *mutex_acq,
+                                      const std::function<void()> &on_writes_reflected,
                                       const std::vector<index_write_op_t> &write_ops) {
     rassert(coro_t::self() != NULL);
     assert_thread();
 
     // Apply our set of write ops atomically
-    for (auto op = write_ops.begin(); op != write_ops.end(); ++op) {
-        push_index_write_op(*op);
+    {
+        new_mutex_acq_t outstanding_mutex_acq(&outstanding_index_write_mutex);
+        for (auto op = write_ops.begin(); op != write_ops.end(); ++op) {
+            push_index_write_op(*op);
+        }
     }
 
-    // The caller is definitely "in line" for this merger serializer -- subsequent
-    // index_write calls will get logically committed after ours.
+    // Changes are now visible for subsequent `index_read()` calls.
+    on_writes_reflected();
+
+    // The caller is "in line" for this merger serializer -- subsequent index_write
+    // calls will get logically committed after ours, and subsequent index_read
+    // calls are going to see the changes.
     mutex_acq->reset();
 
     // Wait for the write to complete
@@ -46,23 +67,32 @@ void merger_serializer_t::index_write(new_mutex_in_line_t *mutex_acq,
 void merger_serializer_t::do_index_write() {
     assert_thread();
 
+    // Pause changes to outstanding_index_write_ops
+    new_mutex_in_line_t outstanding_mutex_acq(&outstanding_index_write_mutex);
+    outstanding_mutex_acq.acq_signal()->wait_lazily_unordered();
+
     // Assemble the currently outstanding index writes into
     // a vector of index_write_op_t-s.
     std::vector<index_write_op_t> write_ops;
     write_ops.reserve(outstanding_index_write_ops.size());
-    {
-        ASSERT_NO_CORO_WAITING;
-        for (auto op_pair = outstanding_index_write_ops.begin();
-             op_pair != outstanding_index_write_ops.end();
-             ++op_pair) {
-            write_ops.push_back(op_pair->second);
-        }
-        outstanding_index_write_ops.clear();
+    for (auto op_pair = outstanding_index_write_ops.begin();
+         op_pair != outstanding_index_write_ops.end();
+         ++op_pair) {
+        write_ops.push_back(op_pair->second);
     }
 
     new_mutex_in_line_t mutex_acq(&inner_index_write_mutex);
     mutex_acq.acq_signal()->wait();
-    inner->index_write(&mutex_acq, write_ops);
+    inner->index_write(
+        &mutex_acq,
+        [&]() {
+            // Once the writes are reflected in future calls to `inner->index_read()`,
+            // we can reset outstanding_index_write_ops and allow new write ops to
+            // get in line.
+            outstanding_index_write_ops.clear();
+            outstanding_mutex_acq.reset();
+        },
+        write_ops);
 }
 
 void merger_serializer_t::merge_index_write_op(const index_write_op_t &to_be_merged,

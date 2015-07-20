@@ -82,13 +82,12 @@ public:
     bool get_delete_bit(block_id_t id) { return inner->get_delete_bit(id); }
 
     /* Reads the block's actual data */
-    counted_t<standard_block_token_t> index_read(block_id_t block_id) {
-        return inner->index_read(block_id);
-    }
+    counted_t<standard_block_token_t> index_read(block_id_t block_id);
 
     /* index_write() applies all given index operations in an atomic way */
     /* This is where merger_serializer_t merges operations */
     void index_write(new_mutex_in_line_t *mutex_acq,
+                     const std::function<void()> &on_writes_reflected,
                      const std::vector<index_write_op_t> &write_ops);
 
     // Returns block tokens in the same order as write_infos.
@@ -133,6 +132,12 @@ private:
 
     // A map of outstanding index write operations, indexed by block id
     std::map<block_id_t, index_write_op_t> outstanding_index_write_ops;
+
+    // Used to stop changes to outstanding_index_write_ops during the time where
+    // the outstanding_index_write_ops are being committed to the inner serializer,
+    // and before they have become visible to `index_read()` calls on the inner
+    // serializer.
+    new_mutex_t outstanding_index_write_mutex;
 
     pump_coro_t write_committer;
 
