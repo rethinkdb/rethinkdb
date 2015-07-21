@@ -213,8 +213,9 @@ class TestPrivateServer(TestCaseCompatible):
 
             if cls.authKey is not None:
                 conn = r.connect(host=cls.server.host, port=cls.server.driver_port)
-                result = r.db('rethinkdb').table('cluster_config').update({'auth_key':cls.authKey}).run(conn)
+                result = r.db('rethinkdb').table('cluster_config').get('auth').update({'auth_key':cls.authKey}).run(conn)
                 if result != {'skipped': 0, 'deleted': 0, 'unchanged': 0, 'errors': 0, 'replaced': 1, 'inserted': 0}:
+                    cls.server = None
                     raise Exception('Unable to set authkey, got: %s' % str(result))
 
     @classmethod
