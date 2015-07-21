@@ -109,11 +109,14 @@ class RqlUserError(RqlRuntimeError):
 class RqlDriverError(RqlError):
     pass
 
-
-class RqlTimeoutError(RqlError):
-    def __init__(self):
-        RqlError.__init__(self, 'Operation timed out.')
-
+try:
+    class RqlTimeoutError(RqlError, TimeoutError):
+        def __init__(self):
+            RqlError.__init__(self, 'Operation timed out.')
+except NameError:
+    class RqlTimeoutError(RqlError):
+        def __init__(self):
+            RqlError.__init__(self, 'Operation timed out.')
 
 class RqlCursorEmpty(RqlServerError):
     def __init__(self, term):
