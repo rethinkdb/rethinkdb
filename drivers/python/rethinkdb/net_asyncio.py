@@ -171,7 +171,7 @@ class ConnectionInstance(object):
     def close(self, noreply_wait, token, exception=None):
         self._closing = True
         if exception is not None:
-            err_message = "Connection is closed (%s)." + str(exception)
+            err_message = "Connection is closed (%s)." % str(exception)
         else:
             err_message = "Connection is closed."
 
