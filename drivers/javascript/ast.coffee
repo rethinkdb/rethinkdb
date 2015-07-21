@@ -52,12 +52,9 @@ hasImplicit = (args) ->
 class TermBase
     showRunWarning: true
     constructor: ->
-        if {}.__proto__ != undefined
-            self = (ar (field) -> self.bracket(field))
-            self.__proto__ = @.__proto__
-            self
-        else
-            @
+        self = (ar (field) -> self.bracket(field))
+        self.__proto__ = @.__proto__
+        return self
 
     run: (connection, options, callback) ->
         # Valid syntaxes are
