@@ -349,6 +349,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         }
     }
 
+    // RSI: how do range stamps after a reshard work?  Do we detect the error on
+    // the other end?
     void operator()(const changefeed_stamp_t &s) {
         if (boost::optional<changefeed_stamp_response_t> resp = do_stamp(s)) {
             response->response = *resp;
@@ -363,24 +365,22 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
 
     void operator()(const changefeed_point_stamp_t &s) {
         response->response = changefeed_point_stamp_response_t();
-        auto res = boost::get<changefeed_point_stamp_response_t>(&response->response);
+        auto *res = boost::get<changefeed_point_stamp_response_t>(&response->response);
         if (auto *changefeed_server = store->changefeed_server(s.key)) {
+            res->resp = changefeed_point_stamp_response_t::valid_response_t();
+            auto *vres = &*res->resp;
             if (boost::optional<uint64_t> stamp = changefeed_server->get_stamp(s.addr)) {
-                res->stamp = std::make_pair(changefeed_server->get_uuid(), *stamp);
+                vres->stamp = std::make_pair(changefeed_server->get_uuid(), *stamp);
             } else {
                 // The client was removed, so no future messages are coming.
-                res->stamp = std::make_pair(changefeed_server->get_uuid(),
-                                            std::numeric_limits<uint64_t>::max());
+                vres->stamp = std::make_pair(changefeed_server->get_uuid(),
+                                             std::numeric_limits<uint64_t>::max());
             }
             point_read_response_t val;
             rdb_get(s.key, btree, superblock, &val, trace);
-            res->initial_val = val.data;
+            vres->initial_val = val.data;
         } else {
-            // TODO: pick up here, do error reporting another way.
-            res->result = ql::exc_t(
-                base_exc_t::OP_FAILED,
-                "Changefeed was aborted before it could be stamped.  "
-                "(Did you just reshard?)");
+            res->resp = boost::none;
         }
     }
 

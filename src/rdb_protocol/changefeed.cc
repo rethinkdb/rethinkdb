@@ -290,9 +290,10 @@ server_t::client_info_t::client_info_t()
     : limit_clients(&opt_lt<std::string>),
       limit_clients_lock(new rwlock_t()) { }
 
-server_t::server_t(mailbox_manager_t *_manager)
+server_t::server_t(mailbox_manager_t *_manager, store_t *_parent)
     : uuid(generate_uuid()),
       manager(_manager),
+      parent(_parent),
       stop_mailbox(manager,
                    std::bind(&server_t::stop_mailbox_cb, this, ph::_1, ph::_2)),
       limit_stop_mailbox(manager, std::bind(&server_t::limit_stop_mailbox_cb,
@@ -481,7 +482,7 @@ void server_t::send_all(const msg_t &msg,
                         const store_key_t &key,
                         rwlock_in_line_t *stamp_spot) {
     auto_drainer_t::lock_t lock(&drainer);
-    stamp_spot->guarantee_is_for_lock(&stamp_lock);
+    stamp_spot->guarantee_is_for_lock(&parent->stamp_lock);
     stamp_spot->write_signal()->wait_lazily_unordered();
 
     rwlock_acq_t acq(&clients_lock, access_t::read);
@@ -522,7 +523,7 @@ server_t::limit_addr_t server_t::get_limit_stop_addr() {
 
 boost::optional<uint64_t> server_t::get_stamp(const client_t::addr_t &addr) {
     auto_drainer_t::lock_t lock(&drainer);
-    rwlock_acq_t stamp_acq(&stamp_lock, access_t::read);
+    rwlock_acq_t stamp_acq(&parent->stamp_lock, access_t::read);
     rwlock_acq_t client_acq(&clients_lock, access_t::read);
     auto it = clients.find(addr);
     if (it == clients.end()) {
@@ -1582,9 +1583,13 @@ public:
             &read_resp,
             order_token_t::ignore,
             env->interruptor);
-        auto resp = boost::get<changefeed_point_stamp_response_t>(
-            &read_resp.response);
-        guarantee(resp != NULL);
+        auto *res = boost::get<changefeed_point_stamp_response_t>(&read_resp.response);
+        guarantee(res != nullptr);
+        if (!res->resp) {
+            rfail_datum(base_exc_t::OP_FAILED,
+                        "%s", "Changefeed aborted (did you just reshard?).");
+        }
+        auto *resp = &*res->resp;
         uint64_t start_stamp = resp->stamp.second;
         initial_val = change_val_t(
                resp->stamp,

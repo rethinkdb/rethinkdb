@@ -482,6 +482,11 @@ new_mutex_in_line_t store_t::get_in_line_for_sindex_queue(buf_lock_t *sindex_blo
     return new_mutex_in_line_t(&sindex_queue_mutex);
 }
 
+rwlock_in_line_t store_t::get_in_line_for_stamp(access_t access) {
+    return rwlock_in_line_t(&stamp_lock, access);
+}
+
+
 void store_t::register_sindex_queue(
             internal_disk_backed_queue_t *disk_backed_queue,
             const new_mutex_in_line_t *acq) {

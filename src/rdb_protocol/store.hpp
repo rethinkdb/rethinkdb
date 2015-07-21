@@ -192,6 +192,7 @@ public:
             THROWS_ONLY(interrupted_exc_t);
 
     new_mutex_in_line_t get_in_line_for_sindex_queue(buf_lock_t *sindex_block);
+    rwlock_in_line_t get_in_line_for_stamp(access_t access);
 
     void register_sindex_queue(
             internal_disk_backed_queue_t *disk_backed_queue,
@@ -380,6 +381,10 @@ public:
 
     std::vector<internal_disk_backed_queue_t *> sindex_queues;
     new_mutex_t sindex_queue_mutex;
+    // Used to control access to stamps.  We need this so that `do_stamp` in
+    // `store.cc` can synchronize with with the `rdb_modification_report_cb_t`
+    // in `btree.cc`.
+    rwlock_t stamp_lock;
 
     rdb_context_t *ctx;
     // We store regions here even though we only really need the key ranges
@@ -394,7 +399,7 @@ public:
             it = changefeed_servers.insert(
                 std::make_pair(
                     region_t(region),
-                    make_scoped<ql::changefeed::server_t>(ctx->manager))).first;
+                    make_scoped<ql::changefeed::server_t>(ctx->manager, this))).first;
         }
         return it->second.get();
     }

@@ -981,27 +981,30 @@ bool rdb_modification_report_cb_t::has_pkey_cfeeds() {
 
 void rdb_modification_report_cb_t::finish(
     btree_slice_t *btree, real_superblock_t *superblock) {
-    store_->changefeed_server->foreach_limit(
-        boost::optional<std::string>(),
-        nullptr,
-        [&](rwlock_in_line_t *clients_spot,
-            rwlock_in_line_t *limit_clients_spot,
-            rwlock_in_line_t *lm_spot,
-            ql::changefeed::limit_manager_t *lm) {
-            if (!lm->drainer.is_draining()) {
-                auto lock = lm->drainer.lock();
-                guarantee(clients_spot->read_signal()->is_pulsed());
-                guarantee(limit_clients_spot->read_signal()->is_pulsed());
-                lm->commit(lm_spot, ql::changefeed::primary_ref_t{btree, superblock});
-            }
-        });
+    for (auto &&pair : store_->changefeed_servers) {
+        pair.second->foreach_limit(
+            boost::optional<std::string>(),
+            nullptr,
+            [&](rwlock_in_line_t *clients_spot,
+                rwlock_in_line_t *limit_clients_spot,
+                rwlock_in_line_t *lm_spot,
+                ql::changefeed::limit_manager_t *lm) {
+                if (!lm->drainer.is_draining()) {
+                    auto lock = lm->drainer.lock();
+                    guarantee(clients_spot->read_signal()->is_pulsed());
+                    guarantee(limit_clients_spot->read_signal()->is_pulsed());
+                    lm->commit(lm_spot,
+                               ql::changefeed::primary_ref_t{btree, superblock});
+                }
+            });
+    }
 }
 
 new_mutex_in_line_t rdb_modification_report_cb_t::get_in_line_for_sindex() {
     return store_->get_in_line_for_sindex_queue(sindex_block_);
 }
 rwlock_in_line_t rdb_modification_report_cb_t::get_in_line_for_stamp() {
-    return store_->changefeed_server->get_in_line_for_stamp(access_t::write);
+    return store_->get_in_line_for_stamp(access_t::write);
 }
 
 void rdb_modification_report_cb_t::on_mod_report(
@@ -1024,9 +1027,9 @@ void rdb_modification_report_cb_t::on_mod_report(
                       &sindexes_updated_cond,
                       &old_keys,
                       &new_keys));
-        guarantee(store_->changefeed_server.has());
-        if (update_pkey_cfeeds) {
-            store_->changefeed_server->foreach_limit(
+        auto *cserver = store_->changefeed_server(report.primary_key);
+        if (update_pkey_cfeeds && cserver != nullptr) {
+            cserver->foreach_limit(
                 boost::optional<std::string>(),
                 &report.primary_key,
                 [&](rwlock_in_line_t *clients_spot,
@@ -1050,16 +1053,18 @@ void rdb_modification_report_cb_t::on_mod_report(
                 });
         }
         keys_available_cond.wait_lazily_unordered();
-        store_->changefeed_server->send_all(
-            ql::changefeed::msg_t(
-                ql::changefeed::msg_t::change_t{
-                    old_keys,
-                    new_keys,
-                    report.primary_key,
-                    report.info.deleted.first,
-                    report.info.added.first}),
-            report.primary_key,
-            cfeed_stamp_spot);
+        if (cserver != nullptr) {
+            cserver->send_all(
+                ql::changefeed::msg_t(
+                    ql::changefeed::msg_t::change_t{
+                        old_keys,
+                            new_keys,
+                            report.primary_key,
+                            report.info.deleted.first,
+                            report.info.added.first}),
+                report.primary_key,
+                cfeed_stamp_spot);
+        }
         sindexes_updated_cond.wait_lazily_unordered();
     }
 }
@@ -1310,8 +1315,8 @@ void rdb_update_single_sindex(
 
     sindex_superblock_t *superblock = sindex->superblock.get();
 
-    ql::changefeed::server_t *server =
-        store->changefeed_server.has() ? store->changefeed_server.get() : NULL;
+    ql::changefeed::server_t *server
+        = store->changefeed_server(modification->primary_key);
 
     if (modification->info.deleted.first.has()) {
         guarantee(!modification->info.deleted.second.empty());

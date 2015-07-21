@@ -1184,8 +1184,12 @@ RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(
     changefeed_limit_subscribe_response_t, shards, limit_addrs);
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(changefeed_stamp_response_t, stamps);
+
 RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(
-    changefeed_point_stamp_response_t, stamp, initial_val);
+    changefeed_point_stamp_response_t::valid_response_t, stamp, initial_val);
+RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(
+    changefeed_point_stamp_response_t, resp);
+
 RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(read_response_t, response, event_log, n_shards);
 RDB_IMPL_SERIALIZABLE_0_FOR_CLUSTER(dummy_read_response_t);
 
