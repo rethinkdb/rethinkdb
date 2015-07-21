@@ -13,12 +13,12 @@ import re
 import sys
 import tempfile
 import time
-import traceback
 import unittest
-import functools
 import socket
-from tornado import gen, ioloop
-from tornado.concurrent import Future
+
+from twisted.internet import reactor, defer, threads
+from twisted.internet.defer import inlineCallbacks, returnValue
+from twisted.python.failure import Failure
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                 os.pardir, os.pardir, "common"))
@@ -34,9 +34,9 @@ except NameError:
 
 r = utils.import_python_driver()
 
-# -- use tornado subdriver
+# -- use asyncio subdriver
 
-r.set_loop_type("tornado")
+r.set_loop_type("twisted")
 
 # -- get settings
 
@@ -60,8 +60,13 @@ if 'RDB_DRIVER_PORT' in os.environ:
     else:
         sharedServerHost = 'localhost'
 
+def sleep(secs):
+    d = defer.Deferred()
+    reactor.callLater(secs, d.callback, None)
+    return d
 
-@gen.coroutine
+
+@inlineCallbacks
 def checkSharedServer():
     if sharedServerDriverPort is not None:
         conn = yield r.connect(host=sharedServerHost,
@@ -70,7 +75,6 @@ def checkSharedServer():
             yield r.db_create('test').run(conn)
 
 
-@gen.coroutine
 def closeSharedServer():
     global sharedServer, sharedServerOutput, sharedServerHost, \
         sharedServerDriverPort
@@ -87,150 +91,39 @@ def closeSharedServer():
     sharedServerDriverPort = None
 
 
-def just_do(coroutine, *args, **kwargs):
-    ioloop.IOLoop.instance()\
-                 .run_sync(functools.partial(coroutine, *args, **kwargs))
-
-
 # == Test Base Classes
 
 class TestCaseCompatible(unittest.TestCase):
-    '''Compatibility shim for Python 2.6'''
-
-    def __init__(self, *args, **kwargs):
-        super(TestCaseCompatible, self).__init__(*args, **kwargs)
-
-        if not hasattr(self, 'assertRaisesRegexp'):
-            self.assertRaisesRegexp = self.replacement_assertRaisesRegexp
-        if not hasattr(self, 'assertGreaterEqual'):
-            self.assertGreaterEqual = self.replacement_assertGreaterEqual
-        if not hasattr(self, 'assertLess'):
-            self.assertLess = self.replacement_assertLess
-        if not hasattr(self, 'assertIsNone'):
-            self.assertIsNone = self.replacement_assertIsNone
-        if not hasattr(self, 'assertIn'):
-            self.assertIn = self.replacement_assertIn
-
-    def replacement_assertGreaterEqual(self, greater, lesser):
-        if not greater >= lesser:
-            raise AssertionError('%s not greater than or equal to %s'
-                                 % (greater, lesser))
-
-    def replacement_assertLess(self, lesser, greater):
-        if not greater > lesser:
-            raise AssertionError('%s not less than %s' % (lesser, greater))
-
-    def replacement_assertIsNone(self, val):
-        if val is not None:
-            raise AssertionError('%s is not None' % val)
-
-    def replacement_assertIn(self, val, iterable):
-        if not val in iterable:
-            raise AssertionError('%s is not in %s' % (val, iterable))
-
-    def replacement_assertRaisesRegexp(self, exception, regexp,
-                                       callable_func, *args, **kwds):
-        try:
-            callable_func(*args, **kwds)
-        except Exception as e:
-            self.assertTrue(isinstance(e, exception),
-                            '%s expected to raise %s but '
-                            'instead raised %s: %s\n%s'
-                            % (repr(callable_func), repr(exception),
-                               e.__class__.__name__, str(e),
-                               traceback.format_exc()))
-            self.assertTrue(re.search(regexp, str(e)),
-                            '%s did not raise the expected '
-                            'message "%s", but rather: %s'
-                            % (repr(callable_func), str(regexp), str(e)))
-        else:
-            self.fail('%s failed to raise a %s'
-                      % (repr(callable_func), repr(exception)))
-
-    @gen.coroutine
-    def asyncAssertRaisesRegexp(self, exception, regexp, generator):
-        try:
-            yield generator
-        except Exception as e:
-            self.assertTrue(isinstance(e, exception),
-                            '%s expected to raise %s but '
-                            'instead raised %s: %s\n%s'
-                            % (repr(generator), repr(exception),
-                               e.__class__.__name__, str(e),
-                               traceback.format_exc()))
-            self.assertTrue(re.search(regexp, str(e)),
-                            '%s did not raise the expected '
-                            'message "%s", but rather: %s'
-                            % (repr(generator), str(regexp), str(e)))
-        else:
-            self.fail('%s failed to raise a %s'
-                      % (repr(generator), repr(exception)))
-
-    @gen.coroutine
-    def asyncAssertRaises(self, exception, generator):
-        try:
-            yield generator
-        except Exception as e:
-            self.assertTrue(isinstance(e, exception),
-                            '%s expected to raise %s but '
-                            'instead raised %s: %s\n%s'
-                            % (repr(generator), repr(exception),
-                               e.__class__.__name__, str(e),
-                               traceback.format_exc()))
-        else:
-            self.fail('%s failed to raise a %s'
-                      % (repr(generator), repr(exception)))
-
     # can't use standard TestCase run here because async.
-    def run(self, result=None):
-        return just_do(self.arun, result)
-
-    @gen.coroutine
     def setUp(self):
-        raise gen.Return(None)
+        return defer.succeed(None)
 
-    @gen.coroutine
     def tearDown(self):
-        raise gen.Return(None)
+        return defer.succeed(None)
 
-    @gen.coroutine
-    def arun(self, result=None):
+    def run(self, result=None):
         if result is None:
             result = self.defaultTestResult()
+
+        def treatFailure(failure, result):
+            if failure is KeyboardInterrupt:
+                raise failure
+            else:
+                result.addError(self, sys.exc_info())
+
+        def markSuccess(_, result=None):
+            result.addSuccess(self)
+            return result
+
         result.startTest(self)
         testMethod = getattr(self, self._testMethodName)
-
-        try:
-            try:
-                yield self.setUp()
-            except KeyboardInterrupt:
-                raise
-            except:
-                result.addError(self, sys.exc_info())
-                return
-
-            ok = False
-            try:
-                yield testMethod()
-                ok = True
-            except self.failureException:
-                result.addFailure(self, sys.exc_info())
-            except KeyboardInterrupt:
-                raise
-            except:
-                result.addError(self, sys.exc_info())
-
-            try:
-                yield self.tearDown()
-            except KeyboardInterrupt:
-                raise
-            except:
-                result.addError(self, sys.exc_info())
-                ok = False
-            if ok:
-                result.addSuccess(self)
-        finally:
-            result.stopTest(self)
+        d = defer.maybeDeferred(self.setUp)
+        d.addCallback(lambda x: defer.maybeDeferred(testMethod))
+        d.addCallback(lambda x: defer.maybeDeferred(self.tearDown))
+        d.addCallback(markSuccess, result=result)
+        d.addErrback(treatFailure, result)
+        d.addBoth(lambda x: result.stopTest(self))
+        return d
 
 
 class TestWithConnection(TestCaseCompatible):
@@ -239,7 +132,7 @@ class TestWithConnection(TestCaseCompatible):
     serverOutput = None
     ioloop = None
 
-    @gen.coroutine
+    @inlineCallbacks
     def setUp(self):
         global sharedServer, sharedServerOutput, sharedServerHost, \
             sharedServerDriverPort
@@ -248,8 +141,8 @@ class TestWithConnection(TestCaseCompatible):
             try:
                 yield sharedServer.check()
             except Exception:
-                # ToDo: figure out how to blame the last test
-                yield closeSharedServer()
+                # TODO: figure out how to blame the last test
+                closeSharedServer()
 
         if sharedServerDriverPort is None:
             sharedServerOutput = tempfile.NamedTemporaryFile('w+')
@@ -259,11 +152,11 @@ class TestWithConnection(TestCaseCompatible):
             sharedServerHost = sharedServer.host
             sharedServerDriverPort = sharedServer.driver_port
 
-        # - insure we are ready
+        # - ensure we are ready
 
         yield checkSharedServer()
 
-    @gen.coroutine
+    @inlineCallbacks
     def tearDown(self):
         global sharedServer, sharedServerOutput, sharedServerHost, \
             sharedServerDriverPort
@@ -272,41 +165,43 @@ class TestWithConnection(TestCaseCompatible):
             try:
                 yield checkSharedServer()
             except Exception:
-                yield closeSharedServer()
-                raise  # ToDo: figure out how to best give the server log
+                closeSharedServer()
+                raise  # TODO: figure out how to best give the server log
+        else:
+            returnValue(None)
 
 # == Test Classes
 
 
 class TestNoConnection(TestCaseCompatible):
     # No servers started yet so this should fail
-    @gen.coroutine
+    @inlineCallbacks
     def test_connect(self):
         if not use_default_port:
-            raise gen.Return(None)  # skipTest will not raise in this environment
-        yield self.asyncAssertRaisesRegexp(r.RqlDriverError,
+            returnValue(None)  # skipTest will not raise in this environment
+        with self.assertRaisesRegexp(r.RqlDriverError,
                                            "Could not connect to localhost:%d."
-                                           % DEFAULT_DRIVER_PORT,
-                                           r.connect())
+                                           % DEFAULT_DRIVER_PORT):
+            yield r.connect()
 
-    @gen.coroutine
+    @inlineCallbacks
     def test_connect_port(self):
         port = utils.get_avalible_port()
-        yield self.asyncAssertRaisesRegexp(r.RqlDriverError,
+        with self.assertRaisesRegexp(r.RqlDriverError,
                                            "Could not connect to localhost:%d."
-                                           % port,
-                                           r.connect(port=port))
+                                           % port):
+            yield r.connect(port=port)
 
-    @gen.coroutine
+    @inlineCallbacks
     def test_connect_host(self):
         if not use_default_port:
-            raise gen.Return(None)  # skipTest will not raise in this environment
-        yield self.asyncAssertRaisesRegexp(r.RqlDriverError,
+            returnValue(None)  # skipTest will not raise in this environment
+        with self.assertRaisesRegexp(r.RqlDriverError,
                                            "Could not connect to 0.0.0.0:%d."
-                                           % DEFAULT_DRIVER_PORT,
-                                           r.connect(host="0.0.0.0"))
+                                           % DEFAULT_DRIVER_PORT):
+            yield r.connect(host="0.0.0.0")
 
-    @gen.coroutine
+    @inlineCallbacks
     def test_connect_timeout(self):
         # Test that we get a ReQL error if we connect to a
         # non-responsive port
@@ -317,40 +212,38 @@ class TestNoConnection(TestCaseCompatible):
         host, port = useSocket.getsockname()
 
         try:
-            yield self.asyncAssertRaisesRegexp(r.RqlDriverError,
+            with self.assertRaisesRegexp(r.RqlDriverError,
                                                "Connection interrupted during"
                                                " handshake with %s:%d. "
                                                "Error: Operation timed out."
-                                               % (host, port),
-                                               r.connect(host=host, port=port,
-                                                         timeout=2))
+                                               % (host, port)):
+                yield r.connect(host=host, port=port, timeout=2)
         finally:
             useSocket.close()
 
-    @gen.coroutine
+    @inlineCallbacks
     def test_empty_run(self):
         # Test the error message when we pass nothing to run and
         # didn't call `repl`
-        self.assertRaisesRegexp(r.RqlDriverError,
+        with self.assertRaisesRegexp(r.RqlDriverError,
                                 "RqlQuery.run must be given"
-                                " a connection to run on.",
-                                r.expr(1).run)
+                                " a connection to run on."):
+             yield r.expr(1).run()
 
-    @gen.coroutine
+    @inlineCallbacks
     def test_auth_key(self):
         # Test that everything still doesn't work even with an auth key
         if not use_default_port:
-            raise gen.Return(None)  # skipTest will not raise in this environment
-        yield self.asyncAssertRaisesRegexp(r.RqlDriverError,
+            returnValue(None)  # skipTest will not raise in this environment
+        with self.assertRaisesRegexp(r.RqlDriverError,
                                            'Could not connect to 0.0.0.0:%d."'
-                                           % DEFAULT_DRIVER_PORT,
-                                           r.connect(host="0.0.0.0",
-                                                     port=DEFAULT_DRIVER_PORT,
-                                                     auth_key="hunter2"))
+                                           % DEFAULT_DRIVER_PORT):
+            yield r.connect(host="0.0.0.0", port=DEFAULT_DRIVER_PORT,
+                                 auth_key="hunter2")
 
 
 class TestConnection(TestWithConnection):
-    @gen.coroutine
+    @inlineCallbacks
     def test_connect_close_reconnect(self):
         c = yield r.connect(host=sharedServerHost,
                             port=sharedServerDriverPort)
@@ -360,17 +253,16 @@ class TestConnection(TestWithConnection):
         yield c.reconnect()
         yield r.expr(1).run(c)
 
-    @gen.coroutine
+    @inlineCallbacks
     def test_connect_close_expr(self):
         c = yield r.connect(host=sharedServerHost,
                             port=sharedServerDriverPort)
         yield r.expr(1).run(c)
         yield c.close()
-        yield self.asyncAssertRaisesRegexp(r.RqlDriverError,
-                                           "Connection is closed.",
-                                           r.expr(1).run(c))
+        with self.assertRaisesRegexp(r.RqlDriverError, "Connection is closed."):
+            yield r.expr(1).run(c)
 
-    @gen.coroutine
+    @inlineCallbacks
     def test_noreply_wait_waits(self):
         c = yield r.connect(host=sharedServerHost,
                             port=sharedServerDriverPort)
@@ -380,7 +272,7 @@ class TestConnection(TestWithConnection):
         duration = time.time() - t
         self.assertGreaterEqual(duration, 0.5)
 
-    @gen.coroutine
+    @inlineCallbacks
     def test_close_waits_by_default(self):
         c = yield r.connect(host=sharedServerHost,
                             port=sharedServerDriverPort)
@@ -390,7 +282,7 @@ class TestConnection(TestWithConnection):
         duration = time.time() - t
         self.assertGreaterEqual(duration, 0.5)
 
-    @gen.coroutine
+    @inlineCallbacks
     def test_reconnect_waits_by_default(self):
         c = yield r.connect(host=sharedServerHost,
                             port=sharedServerDriverPort)
@@ -400,7 +292,7 @@ class TestConnection(TestWithConnection):
         duration = time.time() - t
         self.assertGreaterEqual(duration, 0.5)
 
-    @gen.coroutine
+    @inlineCallbacks
     def test_close_does_not_wait_if_requested(self):
         c = yield r.connect(host=sharedServerHost,
                             port=sharedServerDriverPort)
@@ -410,7 +302,7 @@ class TestConnection(TestWithConnection):
         duration = time.time() - t
         self.assertLess(duration, 0.5)
 
-    @gen.coroutine
+    @inlineCallbacks
     def test_reconnect_does_not_wait_if_requested(self):
         c = yield r.connect(host=sharedServerHost,
                             port=sharedServerDriverPort)
@@ -420,7 +312,7 @@ class TestConnection(TestWithConnection):
         duration = time.time() - t
         self.assertLess(duration, 0.5)
 
-    @gen.coroutine
+    @inlineCallbacks
     def test_db(self):
         c = yield r.connect(host=sharedServerHost,
                             port=sharedServerDriverPort)
@@ -443,15 +335,15 @@ class TestConnection(TestWithConnection):
         # Use a new database
         c.use('db2')
         yield r.table('t2').run(c)
-        yield self.asyncAssertRaisesRegexp(r.RqlRuntimeError,
-                                           "Table `db2.t1` does not exist.",
-                                           r.table('t1').run(c))
+        with self.assertRaisesRegexp(r.RqlRuntimeError,
+                                           "Table `db2.t1` does not exist."):
+            yield r.table('t1').run(c)
 
         c.use('test')
         yield r.table('t1').run(c)
-        yield self.asyncAssertRaisesRegexp(r.RqlRuntimeError,
-                                           "Table `test.t2` does not exist.",
-                                           r.table('t2').run(c))
+        with self.assertRaisesRegexp(r.RqlRuntimeError,
+                                           "Table `test.t2` does not exist."):
+            yield r.table('t2').run(c)
 
         yield c.close()
 
@@ -460,9 +352,9 @@ class TestConnection(TestWithConnection):
                             port=sharedServerDriverPort)
         yield r.table('t2').run(c)
 
-        yield self.asyncAssertRaisesRegexp(r.RqlRuntimeError,
-                                           "Table `db2.t1` does not exist.",
-                                           r.table('t1').run(c))
+        with self.assertRaisesRegexp(r.RqlRuntimeError,
+                                           "Table `db2.t1` does not exist."):
+            yield r.table('t1').run(c)
 
         yield c.close()
 
@@ -471,22 +363,7 @@ class TestConnection(TestWithConnection):
                             port=sharedServerDriverPort)
         yield r.table('t2').run(c, db='db2')
 
-    @gen.coroutine
-    def test_outdated_read(self):
-        c = yield r.connect(host=sharedServerHost,
-                            port=sharedServerDriverPort)
-
-        if 't1' in (yield r.db('test').table_list().run(c)):
-            yield r.db('test').table_drop('t1').run(c)
-        yield r.db('test').table_create('t1').run(c)
-
-        # Use outdated is an option that can be passed to db.table or `run`
-        # We're just testing here if the server actually accepts the option.
-
-        yield r.table('t1', read_mode='outdated').run(c)
-        yield r.table('t1').run(c, read_mode='outdated')
-
-    @gen.coroutine
+    @inlineCallbacks
     def test_repl(self):
         # Calling .repl() should set this connection as global state
         # to be used when `run` is not otherwise passed a connection.
@@ -501,25 +378,23 @@ class TestConnection(TestWithConnection):
 
         yield c.close()
 
-        yield self.asyncAssertRaisesRegexp(r.RqlDriverError,
-                                           "Connection is closed.",
-                                           r.expr(1).run())
+        with self.assertRaisesRegexp(r.RqlDriverError, "Connection is closed."):
+            yield r.expr(1).run()
 
-    @gen.coroutine
+    @inlineCallbacks
     def test_port_conversion(self):
         c = yield r.connect(host=sharedServerHost,
                             port=str(sharedServerDriverPort))
         yield r.expr(1).run(c)
         yield c.close()
 
-        yield self.asyncAssertRaisesRegexp(r.RqlDriverError,
-                                           "Could not convert port abc to an integer.",
-                                           r.connect(port='abc',
-                                                     host=sharedServerHost))
+        with self.assertRaisesRegexp(r.RqlDriverError,
+                               "Could not convert port abc to an integer."):
+            yield r.connect(port='abc', host=sharedServerHost)
 
 
 class TestShutdown(TestWithConnection):
-    @gen.coroutine
+    @inlineCallbacks
     def setUp(self):
         if sharedServer is None:
             # we need to be able to kill the server, so can't use one
@@ -527,24 +402,24 @@ class TestShutdown(TestWithConnection):
             yield closeSharedServer()
         yield super(TestShutdown, self).setUp()
 
-    @gen.coroutine
+    @inlineCallbacks
     def test_shutdown(self):
         c = yield r.connect(host=sharedServerHost,
                             port=sharedServerDriverPort)
         yield r.expr(1).run(c)
 
-        yield closeSharedServer()
-        yield gen.sleep(0.2)
+        closeSharedServer()
+        yield sleep(0.02)
 
-        yield self.asyncAssertRaisesRegexp(r.RqlDriverError,
-                                           "Connection is closed.",
-                                           r.expr(1).run(c))
+        with self.assertRaisesRegexp(r.RqlDriverError,
+                               "Connection is closed."):
+            yield r.expr(1).run(c)
 
 
 # Another non-connection connection test. It's to test that get_intersecting()
 # batching works properly.
 class TestGetIntersectingBatching(TestWithConnection):
-    @gen.coroutine
+    @inlineCallbacks
     def runTest(self):
         c = yield r.connect(host=sharedServerHost,
                             port=sharedServerDriverPort)
@@ -604,7 +479,8 @@ class TestGetIntersectingBatching(TestWithConnection):
                 row = yield cursor.next()
                 self.assertEqual(reference.count(row), 1)
                 reference.remove(row)
-            yield self.asyncAssertRaises(r.RqlCursorEmpty, cursor.next())
+            with self.assertRaises(r.RqlCursorEmpty):
+                yield cursor.next()
 
         self.assertTrue(seen_lazy)
 
@@ -612,7 +488,7 @@ class TestGetIntersectingBatching(TestWithConnection):
 
 
 class TestBatching(TestWithConnection):
-    @gen.coroutine
+    @inlineCallbacks
     def runTest(self):
         c = yield r.connect(host=sharedServerHost,
                             port=sharedServerDriverPort)
@@ -632,18 +508,20 @@ class TestBatching(TestWithConnection):
         yield t1.insert([{'id': i} for i in ids]).run(c)
         cursor = yield t1.run(c, max_batch_rows=batch_size)
 
-        for i in xrange(0, count - 1):
+        for i in xrange(count - 1):
             row = yield cursor.next()
             self.assertTrue(row['id'] in ids)
             ids.remove(row['id'])
 
+
         self.assertEqual((yield cursor.next())['id'], ids.pop())
-        yield self.asyncAssertRaises(r.RqlCursorEmpty, cursor.next())
+        with self.assertRaises(r.RqlCursorEmpty):
+            yield cursor.next()
         yield r.db('test').table_drop('t1').run(c)
 
 
 class TestGroupWithTimeKey(TestWithConnection):
-    @gen.coroutine
+    @inlineCallbacks
     def runTest(self):
         c = yield r.connect(host=sharedServerHost,
                             port=sharedServerDriverPort)
@@ -673,7 +551,7 @@ class TestGroupWithTimeKey(TestWithConnection):
 
 
 class TestSuccessAtomFeed(TestWithConnection):
-    @gen.coroutine
+    @inlineCallbacks
     def runTest(self):
         c = yield r.connect(host=sharedServerHost,
                             port=sharedServerDriverPort)
@@ -698,85 +576,86 @@ class TestSuccessAtomFeed(TestWithConnection):
         self.assertEqual(len(changes.items), 1)
 
 class TestCursor(TestWithConnection):
-    @gen.coroutine
+    @inlineCallbacks
     def setUp(self):
         yield TestWithConnection.setUp(self)
         self.conn = yield r.connect(host=sharedServerHost,
                                     port=sharedServerDriverPort)
 
-    @gen.coroutine
+    @inlineCallbacks
     def tearDown(self):
         yield TestWithConnection.tearDown(self)
         yield self.conn.close()
         self.conn = None
 
-    @gen.coroutine
+    @inlineCallbacks
     def test_type(self):
         cursor = yield r.range().run(self.conn)
         self.assertTrue(isinstance(cursor, r.Cursor))
 
-    @gen.coroutine
+    @inlineCallbacks
     def test_cursor_after_connection_close(self):
         cursor = yield r.range().run(self.conn)
         yield self.conn.close()
 
-        @gen.coroutine
+        @inlineCallbacks
         def read_cursor(cursor):
             while (yield cursor.fetch_next()):
-                yield cursor.next()
+                item = yield cursor.next()
                 cursor.close()
 
-        yield self.asyncAssertRaisesRegexp(r.RqlRuntimeError,
-            "Connection is closed.", read_cursor(cursor))
+        with self.assertRaisesRegexp(r.RqlRuntimeError, "Connection is closed."):
+             yield read_cursor(cursor)
 
-    @gen.coroutine
+    @inlineCallbacks
     def test_cursor_after_cursor_close(self):
         cursor = yield r.range().run(self.conn)
         cursor.close()
         count = 0
         while (yield cursor.fetch_next()):
-            yield cursor.next()
+            item = yield cursor.next()
             count += 1
+
         self.assertNotEqual(count, 0, "Did not get any cursor results")
 
-    @gen.coroutine
+    @inlineCallbacks
     def test_cursor_close_in_each(self):
         cursor = yield r.range().run(self.conn)
         count = 0
 
         while (yield cursor.fetch_next()):
-            yield cursor.next()
+            item = yield cursor.next()
             count += 1
             if count == 2:
                 cursor.close()
 
         self.assertTrue(count >= 2, "Did not get enough cursor results")
 
-    @gen.coroutine
+    @inlineCallbacks
     def test_cursor_success(self):
         range_size = 10000
         cursor = yield r.range().limit(range_size).run(self.conn)
         count = 0
         while (yield cursor.fetch_next()):
-            yield cursor.next()
+            item = yield cursor.next()
             count += 1
         self.assertEqual(count, range_size,
              "Expected %d results on the cursor, but got %d" % (range_size, count))
 
-    @gen.coroutine
+    @inlineCallbacks
     def test_cursor_double_each(self):
         range_size = 10000
         cursor = yield r.range().limit(range_size).run(self.conn)
         count = 0
 
         while (yield cursor.fetch_next()):
-            yield cursor.next()
+            item = yield cursor.next()
             count += 1
         self.assertEqual(count, range_size,
              "Expected %d results on the cursor, but got %d" % (range_size, count))
 
         while (yield cursor.fetch_next()):
-            yield cursor.next()
+            item = yield cursor.next()
             count += 1
         self.assertEqual(count, range_size,
              "Expected no results on the second iteration of the cursor, but got %d" % (count - range_size))
@@ -784,7 +663,7 @@ class TestCursor(TestWithConnection):
     # Used in wait tests
     num_cursors=3
 
-    @gen.coroutine
+    @inlineCallbacks
     def do_wait_test(self, wait_time):
         cursors = [ ]
         cursor_counts = [ ]
@@ -799,7 +678,7 @@ class TestCursor(TestWithConnection):
             cursor_counts.append(0)
             cursor_timeouts.append(0)
 
-        @gen.coroutine
+        @inlineCallbacks
         def get_next(cursor_index):
             try:
                 if wait_time is None: # Special case to use the default
@@ -818,65 +697,74 @@ class TestCursor(TestWithConnection):
 
         [cursor.close() for cursor in cursors]
 
-        raise gen.Return((sum(cursor_counts), sum(cursor_timeouts)))
+        returnValue((sum(cursor_counts), sum(cursor_timeouts)))
 
-    @gen.coroutine
+    @inlineCallbacks
     def test_false_wait(self):
         reads, timeouts = yield self.do_wait_test(False)
         self.assertNotEqual(timeouts, 0,
             "Did not get timeouts using zero (false) wait.")
 
-    @gen.coroutine
+    @inlineCallbacks
     def test_zero_wait(self):
         reads, timeouts = yield self.do_wait_test(0)
         self.assertNotEqual(timeouts, 0,
             "Did not get timeouts using zero wait.")
 
-    @gen.coroutine
+    @inlineCallbacks
     def test_short_wait(self):
         reads, timeouts = yield self.do_wait_test(0.0001)
         self.assertNotEqual(timeouts, 0,
             "Did not get timeouts using short (100 microsecond) wait.")
 
-    @gen.coroutine
+    @inlineCallbacks
     def test_long_wait(self):
         reads, timeouts = yield self.do_wait_test(10)
         self.assertEqual(timeouts, 0,
             "Got timeouts using long (10 second) wait.")
 
-    @gen.coroutine
+    @inlineCallbacks
     def test_infinite_wait(self):
         reads, timeouts = yield self.do_wait_test(True)
         self.assertEqual(timeouts, 0,
             "Got timeouts using infinite wait.")
 
-    @gen.coroutine
+    @inlineCallbacks
     def test_default_wait(self):
         reads, timeouts = yield self.do_wait_test(None)
         self.assertEqual(timeouts, 0,
             "Got timeouts using default (infinite) wait.")
 
-    # This test relies on the internals of the TornadoCursor implementation
-    @gen.coroutine
+    # This test relies on the internals of the TwistedCursor implementation
+    @inlineCallbacks
     def test_rate_limit(self):
         # Get the first batch
         cursor = yield r.range().run(self.conn)
         cursor_initial_size = len(cursor.items)
 
         # Wait for the second (pre-fetched) batch to arrive
-        yield cursor.new_response
+        new_response = defer.Deferred()
+        reactor.callLater(2, lambda: new_response.cancel())
+        cursor.waiting.append(new_response)
+        yield new_response
+
         cursor_new_size = len(cursor.items)
 
         self.assertLess(cursor_initial_size, cursor_new_size)
 
+
         # Wait and observe that no third batch arrives
-        yield self.asyncAssertRaises(gen.TimeoutError,
-            gen.with_timeout(ioloop.IOLoop.current().time() + 2, cursor.new_response))
+        with self.assertRaises(defer.CancelledError):
+            new_response = defer.Deferred()
+            reactor.callLater(2, lambda: new_response.cancel())
+            cursor.waiting.append(new_response)
+            yield new_response
+
         self.assertEqual(cursor_new_size, len(cursor.items))
 
     # Test that an error on a cursor (such as from closing the connection)
     # properly wakes up waiters immediately
-    @gen.coroutine
+    @inlineCallbacks
     def test_cursor_error(self):
         cursor = yield r.range() \
             .map(lambda row:
@@ -885,30 +773,29 @@ class TestCursor(TestWithConnection):
                          r.js('while(true){ }'))) \
             .run(self.conn)
 
-        @gen.coroutine
+        @inlineCallbacks
         def read_cursor(cursor, hanging):
             try:
                 while True:
                     yield cursor.next(wait=1)
             except r.RqlTimeoutError:
                 pass
-            hanging.set_result(True)
+            hanging.callback(None)
             yield cursor.next()
 
-        @gen.coroutine
-        def read_wrapper(cursor, done, hanging):
+        @inlineCallbacks
+        def read_wrapper(cursor, hanging):
             try:
-                yield self.asyncAssertRaisesRegexp(r.RqlRuntimeError,
-                    'Connection is closed.', read_cursor(cursor, hanging))
-                done.set_result(None)
+                with self.assertRaisesRegexp(r.RqlRuntimeError,
+                                             'Connection is closed.'):
+                    yield read_cursor(cursor, hanging)
             except Exception as ex:
-                if cursor_hanging.running():
-                    cursor_hanging.set_exception(ex)
-                done.set_exception(ex)
+                if not cursor_hanging.called:
+                    cursor_hanging.errback(ex)
+                raise ex
 
-        cursor_hanging = Future()
-        done = Future()
-        ioloop.IOLoop.current().add_callback(read_wrapper, cursor, done, cursor_hanging)
+        cursor_hanging = defer.Deferred()
+        done = read_wrapper(cursor, cursor_hanging)
 
         # Wait for the cursor to hit the hang point before we close and cause an error
         yield cursor_hanging
@@ -916,7 +803,7 @@ class TestCursor(TestWithConnection):
         yield done
 
 class TestChangefeeds(TestWithConnection):
-    @gen.coroutine
+    @inlineCallbacks
     def setUp(self):
         yield TestWithConnection.setUp(self)
         self.conn = yield r.connect(host=sharedServerHost,
@@ -928,7 +815,7 @@ class TestChangefeeds(TestWithConnection):
             yield r.db('test').table_drop('b').run(self.conn)
         yield r.db('test').table_create('b').run(self.conn)
 
-    @gen.coroutine
+    @inlineCallbacks
     def tearDown(self):
         yield r.db('test').table_drop('b').run(self.conn)
         yield r.db('test').table_drop('a').run(self.conn)
@@ -936,57 +823,100 @@ class TestChangefeeds(TestWithConnection):
         yield self.conn.close()
         self.conn = None
 
-    @gen.coroutine
+    @inlineCallbacks
     def table_a_even_writer(self):
         for i in range(10):
             yield r.db('test').table("a").insert({"id": i * 2}).run(self.conn)
 
-    @gen.coroutine
+    @inlineCallbacks
     def table_a_odd_writer(self):
         for i in range(10):
             yield r.db('test').table("a").insert({"id": i * 2 + 1}).run(self.conn)
 
-    @gen.coroutine
+    @inlineCallbacks
     def table_b_writer(self):
         for i in range(10):
             yield r.db('test').table("b").insert({"id": i}).run(self.conn)
 
-    @gen.coroutine
-    def cfeed_noticer(self, table, ready, done, needed_values):
+    @inlineCallbacks
+    def cfeed_noticer(self, table, ready, needed_values):
         feed = yield r.db('test').table(table).changes(squash=False).run(self.conn)
-        try:
-            ready.set_result(None)
-            while len(needed_values) != 0 and (yield feed.fetch_next()):
-                item = yield feed.next()
-                self.assertIsNone(item['old_val'])
-                self.assertIn(item['new_val']['id'], needed_values)
-                needed_values.remove(item['new_val']['id'])
-            done.set_result(None)
-        except Exception as ex:
-            done.set_exception(ex)
+        ready.callback(None)
+        while len(needed_values) > 0:
+            item = yield feed.next()
+            self.assertIsNone(item['old_val'])
+            self.assertIn(item['new_val']['id'], needed_values)
+            needed_values.remove(item['new_val']['id'])
 
-    @gen.coroutine
+    @inlineCallbacks
     def test_multiple_changefeeds(self):
-        loop = ioloop.IOLoop.current()
-        feeds_ready = { }
-        feeds_done = { }
+        feeds_ready = {}
+        feeds_done = {}
         needed_values = { 'a': set(range(20)), 'b': set(range(10)) }
         for n in ('a', 'b'):
-            feeds_ready[n] = Future()
-            feeds_done[n] = Future()
-            loop.add_callback(self.cfeed_noticer, n, feeds_ready[n], feeds_done[n], needed_values[n])
+            feeds_ready[n] = defer.Deferred()
+            feeds_done[n] = self.cfeed_noticer(n, feeds_ready[n], needed_values[n])
 
-        yield list(feeds_ready.values())
-        yield [self.table_a_even_writer(),
+        yield defer.DeferredList(feeds_ready.values())
+        yield defer.DeferredList([self.table_a_even_writer(),
                self.table_a_odd_writer(),
-               self.table_b_writer()]
-        yield list(feeds_done.values())
+               self.table_b_writer()])
+        yield defer.DeferredList(feeds_done.values())
         self.assertTrue(all([len(x) == 0 for x in needed_values.values()]))
 
+class AsyncSuite(unittest.TestSuite):
+
+    def run(self, result):
+        def _runTest(res, test, result):
+            return test(result)
+
+        d = None
+        for test in self:
+            if d is None:
+                d = test(result)
+            else:
+                d = d.addCallback(_runTest, test, result)
+        d.addCallback(lambda x: defer.succeed(result))
+        return d
+
+class AsyncTestRunner(unittest.TextTestRunner):
+
+    def run(self, test):
+        result = self._makeResult()
+        startTime = time.time()
+        def finishTest(result):
+            stopTime = time.time()
+            timeTaken = stopTime - startTime
+            result.printErrors()
+            self.stream.writeln(result.separator2)
+            run = result.testsRun
+            self.stream.writeln("Ran %d test%s in %.3fs" %
+                                (run, run != 1 and "s" or "", timeTaken))
+            self.stream.writeln()
+            if not result.wasSuccessful():
+                self.stream.write("FAILED (")
+                failed, errored = map(len, (result.failures, result.errors))
+                if failed:
+                    self.stream.write("failures=%d" % failed)
+                if errored:
+                    if failed: self.stream.write(", ")
+                    self.stream.write("errors=%d" % errored)
+                self.stream.writeln(")")
+            else:
+                self.stream.writeln("OK")
+            return defer.succeed(result)
+        return test(result).addCallback(finishTest)
+
+class AsyncTestLoader(unittest.TestLoader):
+
+    suiteClass = AsyncSuite
+
+
 if __name__ == '__main__':
-    print("Running Tornado connection tests")
-    suite = unittest.TestSuite()
-    loader = unittest.TestLoader()
+    print("Running Twisted connection tests")
+    defer.setDebugging(True)
+    suite = AsyncSuite()
+    loader = AsyncTestLoader()
     suite.addTest(loader.loadTestsFromTestCase(TestCursor))
     suite.addTest(loader.loadTestsFromTestCase(TestChangefeeds))
     suite.addTest(loader.loadTestsFromTestCase(TestNoConnection))
@@ -997,16 +927,21 @@ if __name__ == '__main__':
     suite.addTest(TestSuccessAtomFeed())
     suite.addTest(loader.loadTestsFromTestCase(TestShutdown))
 
-    res = unittest.TextTestRunner(stream=sys.stdout, verbosity=2).run(suite)
+    def finishTests(res):
+        serverClosedCleanly = True
+        try:
+            if sharedServer is not None:
+                sharedServer.check_and_stop()
+        except Exception as e:
+            serverClosedCleanly = False
+            sys.stderr.write('The server did not close cleanly after testing: %s'
+                            % str(e))
 
-    serverClosedCleanly = True
-    try:
-        if sharedServer is not None:
-            sharedServer.check_and_stop()
-    except Exception as e:
-        serverClosedCleanly = False
-        sys.stderr.write('The server did not close cleanly after testing: %s'
-                         % str(e))
+        reactor.stop()
+        if not res.wasSuccessful() or not serverClosedCleanly:
+            sys.exit(1)
 
-    if not res.wasSuccessful() or not serverClosedCleanly:
-        sys.exit(1)
+    AsyncTestRunner(stream=sys.stdout, verbosity=2).run(suite).\
+        addCallback(finishTests)
+    reactor.run()
+
