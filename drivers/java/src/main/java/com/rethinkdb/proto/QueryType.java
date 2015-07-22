@@ -28,4 +28,5 @@ public enum QueryType {
                 "%s is not a legal value for QueryType", value));
         }
     }
+
 }

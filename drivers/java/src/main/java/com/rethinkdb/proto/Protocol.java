@@ -24,4 +24,5 @@ public enum Protocol {
                 "%s is not a legal value for Protocol", value));
         }
     }
+
 }
