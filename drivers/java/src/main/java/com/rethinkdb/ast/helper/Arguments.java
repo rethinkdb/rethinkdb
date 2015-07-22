@@ -22,7 +22,7 @@ public class Arguments extends ArrayList<RqlAst> {
 
     public Arguments(List<Object> args) {
         addAll(args.stream()
-               .map(x -> Util.toRqlAst(x))
+               .map(Util::toRqlAst)
                .collect(Collectors.toList()));
     }
 

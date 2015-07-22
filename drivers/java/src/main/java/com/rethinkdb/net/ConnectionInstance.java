@@ -1,9 +1,11 @@
+package com.rethinkdb.net;
+
 import java.util.*;
 
 import com.rethinkdb.proto.QueryType;
 import com.rethinkdb.proto.ResponseType;
 import com.rethinkdb.ast.Query;
-import com.rethinkdb.ast.Profile;
+import com.rethinkdb.response.Response;
 
 
 public class ConnectionInstance<C extends Connection> {
@@ -18,13 +20,15 @@ public class ConnectionInstance<C extends Connection> {
         this.parent = Optional.ofNullable(parent);
     }
 
-    public C connect(int timeout) {
-        socket = Optional.of(new SocketWrapper(this, timeout));
-        return parent;
+    public C connect(Optional<Integer> timeout) {
+        String parentHost = this.parent.get().hostname;
+        int parentPort = this.parent.get().port;
+        socket = Optional.of(new SocketWrapper(parentHost, parentPort, timeout));
+        return parent.get();
     }
 
-    public isOpen() {
-        return socket.map(s -> s.isOpen()).orElse(false);
+    public boolean isOpen() {
+        return socket.map(SocketWrapper::isOpen).orElse(false);
     }
 
     public void close(boolean noreplyWait, long token) {
@@ -35,41 +39,37 @@ public class ConnectionInstance<C extends Connection> {
         cursorCache.clear();
         try {
             if(noreplyWait) {
-                Query noreplyQuery = new Query(QueryType.NOREPLY_WAIT, token);
-                self.runQuery(noreplyQuery, false);
+                Query noreplyWaitQuery = new Query(QueryType.NOREPLY_WAIT, token);
+                runQuery(noreplyWaitQuery, false);
             }
         } finally {
-            socket.close();
+            socket.ifPresent(SocketWrapper::close);
         }
     }
 
-    public Response runQuery(Query query, boolean noreply) {
+    private Optional<Object> runQuery(Query query, boolean noreply) {
         socket.sendall(query.serialize());
         if(noreply){
-            return Response.empty();
+            return Optional.empty();
         }
 
-        SocketResponse res = readResponse(query.token);
+        Response res = readResponse(query.token);
 
         // TODO: This logic needs to move into the Response class
         if(res.isAtom()){
-            return Response.ofAtom(
-                convertPseudotypes(res.data[0], query),
-                res.profile);
+            return Optional.of((Object) convertPseudotypes(res.data[0], res.profile));
         } else if(res.isPartial() || res.isSequence()) {
-            Cursor cursor = new DefaultCursor(this, query);
+            Cursor cursor = Cursor.empty(this, query);
             cursor.extend(res);
-            return Response.ofCursor(cursor, res.profile);
+            return Optional.of((Object) cursor);
         } else if(res.isWaitComplete()) {
-            return Response.empty();
+            return Optional.empty();
         } else {
-            return Response.ofError(res.makeError(query))
+            throw res.makeError(query);
         }
     }
 
-    private Response readResponse(long token, deadline) {
-        while(true) {
-
-        }
+    private Response readResponse(long token) {
+        throw new RuntimeException("readResponse is not implemented");
     }
 }

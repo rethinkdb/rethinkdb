@@ -1,4 +1,4 @@
-package com.rethinkdb;
+package com.rethinkdb.net;
 
 import com.rethinkdb.proto.ResponseType;
 import com.rethinkdb.response.DBResultFactory;
@@ -12,14 +12,14 @@ import java.util.*;
 public class Cursor<T> implements Iterator<T> {
 
     public final long token;
-    protected final RethinkDBConnection connection;
+    protected final ConnectionInstance connection;
     protected final Query query;
     protected List<T> items = new ArrayList<>();
     protected int outstandingRequests = 1;
     protected int threshold = 0;
     protected RethinkDBException error = null;
 
-    public Cursor(RethinkDBConnection connection, Query query) {
+    public Cursor(ConnectionInstance connection, Query query) {
         this.connection = connection;
         this.query = query;
         this.token = query.token;
@@ -27,10 +27,11 @@ public class Cursor<T> implements Iterator<T> {
     }
 
     public void close() {
-        if (error == null && connection.isOpen()) {
-            outstandingRequests += 1;
-            connection.stop(this);
-        }
+        throw new RuntimeException("Cursor.close not implemented");
+        // if (error == null && connection.isOpen()) {
+        //     outstandingRequests += 1;
+        //     connection.stop(this);
+        // }
     }
 
     @Override
@@ -56,5 +57,13 @@ public class Cursor<T> implements Iterator<T> {
     @Override
     public void remove() {
         throw new UnsupportedOperationException();
+    }
+
+    void extend(Response more) {
+        throw new RuntimeException("extend not implemented yet");
+    }
+
+    public static Cursor empty(ConnectionInstance connection, Query query) {
+        return Cursor(connection, query);
     }
 }

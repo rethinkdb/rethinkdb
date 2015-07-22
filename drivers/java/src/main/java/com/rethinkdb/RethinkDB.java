@@ -1,6 +1,7 @@
 package com.rethinkdb;
 
 import com.rethinkdb.ast.gen.TopLevel;
+import com.rethinkdb.net.Connection;
 
 /**
  * The starting point for all interaction with RethinkDB. This singleton corresponds to r
@@ -29,8 +30,8 @@ public class RethinkDB extends TopLevel {
      *
      * @return connection
      */
-    public RethinkDBConnection connect() {
-        return new RethinkDBConnection();
+    public Connection connect() {
+        return new Connection();
     }
 
     /**
@@ -39,8 +40,8 @@ public class RethinkDB extends TopLevel {
      * @param hostname hostname
      * @return connection
      */
-    public RethinkDBConnection connect(String hostname) {
-        return new RethinkDBConnection(hostname);
+    public Connection connect(String hostname) {
+        return new Connection(hostname);
     }
 
     /**
@@ -50,8 +51,8 @@ public class RethinkDB extends TopLevel {
      * @param port     port
      * @return connection
      */
-    public RethinkDBConnection connect(String hostname, int port) {
-        return new RethinkDBConnection(hostname, port);
+    public Connection connect(String hostname, int port) {
+        return new Connection(hostname, port);
     }
 
     /**
@@ -62,8 +63,8 @@ public class RethinkDB extends TopLevel {
      * @param authKey  authentication key
      * @return connection
      */
-    public RethinkDBConnection connect(String hostname, int port, String authKey) {
-        return new RethinkDBConnection(hostname, port, authKey);
+    public Connection connect(String hostname, int port, String authKey) {
+        return new Connection(hostname, port, authKey);
     }
 
     /**
@@ -75,7 +76,7 @@ public class RethinkDB extends TopLevel {
      * @param timeout  the maximum time to wait attempting to connect
      * @return connection
      */
-    public RethinkDBConnection connect(String hostname, int port, String authKey, int timeout) {
-        return new RethinkDBConnection(hostname, port, authKey, timeout);
+    public Connection connect(String hostname, int port, String authKey, int timeout) {
+        return new Connection(hostname, port, authKey, timeout);
     }
 }

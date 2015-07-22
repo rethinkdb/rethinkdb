@@ -250,6 +250,14 @@ def render(template_name, output_dir, output_name=None, **kwargs):
         ))
         outfile.write(rendered)
 
+def get_template_name(classname, directory, default):
+    '''Returns the template for this class'''
+    override_template = '{}/{}.java'.format(directory, classname)
+    if TL.has_template(override_template):
+        print("    Found an override for {} at {}".format(classname, override_template))
+        return override_template
+    else:
+        return default
 
 def render_proto_enums(proto):
     '''Render protocol enums'''
@@ -264,24 +272,27 @@ def render_proto_enums(proto):
 
 
 def render_proto_enum(classname, mapping):
-    render("Enum.java",
-           PROTO_DIR,
+    template_name = get_template_name(
+        classname, directory='proto', default='Enum.java')
+    render(template_name,
+           output_dir=PROTO_DIR,
            output_name=classname+'.java',
            classname=classname,
            items=mapping.items(),
            )
 
 
-def render_ast_subclass(
-        term_type, include_in, meta, classname=None, superclass="RqlQuery"):
+def render_ast_subclass(term_type,
+                        include_in,
+                        meta,
+                        classname=None,
+                        superclass="RqlQuery"):
     '''Generates a RqlAst subclass. Either term_type or classname should
     be given'''
     classname = classname or camel(term_type)
     output_name = classname + '.java'
-    if TL.has_template("gen/" + output_name):
-        template_name = "gen/" + output_name
-    else:
-        template_name = 'AstSubclass.java'
+    template_name = get_template_name(
+        classname, directory='gen', default='AstSubclass.java')
     render(template_name,
            AST_GEN_DIR,
            output_name=output_name,

@@ -1,6 +1,6 @@
 package com.rethinkdb.ast;
 
-import com.rethinkdb.RethinkDBConnection;
+import com.rethinkdb.net.Connection;
 import com.rethinkdb.ast.helper.Arguments;
 import com.rethinkdb.ast.helper.OptArgs;
 import com.rethinkdb.proto.TermType;

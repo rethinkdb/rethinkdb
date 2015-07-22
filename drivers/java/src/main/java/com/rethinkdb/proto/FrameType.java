@@ -24,4 +24,5 @@ public enum FrameType {
                 "%s is not a legal value for FrameType", value));
         }
     }
+
 }

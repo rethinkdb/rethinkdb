@@ -34,4 +34,5 @@ public enum DatumType {
                 "%s is not a legal value for DatumType", value));
         }
     }
+
 }

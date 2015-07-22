@@ -20,4 +20,5 @@ public enum ${classname} {
                 "%s is not a legal value for ${classname}", value));
         }
     }
+<%block name="custom_methods"/>
 }

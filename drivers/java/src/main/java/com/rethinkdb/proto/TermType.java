@@ -370,4 +370,5 @@ public enum TermType {
                 "%s is not a legal value for TermType", value));
         }
     }
+
 }

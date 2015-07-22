@@ -1,22 +1,33 @@
-package com.rethinkdb;
+package com.rethinkdb.net;
 
 import com.rethinkdb.response.Response;
+import com.rethinkdb.RethinkDBException;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.SocketChannel;
-import java.net.StandardSocketOptions.TCP_NODELAY;
+import java.net.StandardSocketOptions;
+import java.net.SocketException;
+import java.util.*;
 
 public class SocketWrapper {
     private SocketChannel socketChannel;
+    private Optional<Integer> timeout = Optional.empty();
+    private Optional<ByteBuffer> readBuffer = Optional.empty();
 
-    public void connect(String hostname, int port) {
+    public final String hostname;
+    public final int port;
+
+    public SocketWrapper(String hostname, int port, Optional<Integer> timeout) {
+        this.hostname = hostname;
+        this.port = port;
+        this.timeout = timeout;
         try {
-            socketChannel = SocketChannel.open()
-                .configureBlocking(true)
-                .setOption(TCP_NODELAY);
+            socketChannel = SocketChannel.open();
+            socketChannel.configureBlocking(true);
+            socketChannel.setOption(StandardSocketOptions.TCP_NODELAY, true);
             socketChannel.connect(new InetSocketAddress(hostname, port));
         } catch (IOException e) {
             throw new RethinkDBException(e);
@@ -24,11 +35,15 @@ public class SocketWrapper {
     }
 
     public void setTimeout(int timeout) {
-        socketChannel.socket.setTimeout(timeout);
+        try {
+            socketChannel.socket().setSoTimeout(timeout);
+        } catch (SocketException se) {
+            throw new RethinkDBException(se);
+        }
     }
 
     public ByteBuffer recvall(int length, int deadline) {
-        ByteBuffer res =
+        throw new RuntimeException("recvall not implemented");
     }
 
     public void write(ByteBuffer buffer) {
@@ -90,32 +105,43 @@ public class SocketWrapper {
         write(ByteBuffer.wrap(bytes));
     }
 
-    public Response read() {
+    private ByteBuffer readToBuf(int bufsize, boolean keepReading) {
+        ByteBuffer buf = ByteBuffer.allocate(bufsize);
+        buf.order(ByteOrder.LITTLE_ENDIAN);
         try {
-            ByteBuffer datalen = ByteBuffer.allocate(4);
-            datalen.order(ByteOrder.LITTLE_ENDIAN);
-            int bytesRead = socketChannel.read(datalen);
-            if (bytesRead != 4) {
-                throw new RethinkDBException("Error receiving data, expected 4 bytes but received " + bytesRead);
+            int bytesRead = socketChannel.read(buf);
+            if (bytesRead != bufsize && !keepReading) {
+                if(!keepReading){
+                    throw new RethinkDBException(String.format(
+                        "Error receiving data, expected %d bytes but received %d",
+                        bufsize, bytesRead));
+                } else{
+                    do {
+                        bytesRead += socketChannel.read(buf);
+                    } while(bytesRead < bufsize);
+                }
             }
-            datalen.flip();
-            int len = datalen.getInt();
+        } catch(IOException ex) {
+            // TODO: Throw the correct exception here
+            throw new RethinkDBException("IO Exception ", ex);
+        }
+        buf.flip();
+        return buf;
+    }
 
-            ByteBuffer buf = ByteBuffer.allocate(len);
-            bytesRead = 0;
-            while (bytesRead != len) {
-                bytesRead += socketChannel.read(buf);
-            }
-            buf.flip();
-            return Response.parseFrom(buf.array());
-        }
-        catch (IOException ex) {
-            throw new RethinkDBException("IO Exception ",ex);
-        }
+    public Response read() {
+        long token = readToBuf(8, false).getLong();
+        int responseLength = readToBuf(4, false).getInt();
+        byte[] responseBytes = readToBuf(responseLength, true).array();
+        return Response.parseFrom(token, responseBytes);
     }
 
     public boolean isClosed(){
         return !socketChannel.isOpen();
+    }
+
+    public boolean isOpen() {
+        return socketChannel.isOpen();
     }
 
     public void close() {
