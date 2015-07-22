@@ -18,7 +18,6 @@
 #include "rdb_protocol/table_common.hpp"
 
 void store_t::note_reshard() {
-    // RSI: make sure disconnects still work.
     changefeed_servers.clear();
 }
 
@@ -264,12 +263,17 @@ void do_read(ql::env_t *env,
 // TODO: get rid of this extra response_t copy on the stack
 struct rdb_read_visitor_t : public boost::static_visitor<void> {
     void operator()(const changefeed_subscribe_t &s) {
-        store->changefeed_server(s.region)->add_client(s.addr, s.region);
+        auto *cserver = store->changefeed_server(s.region);
+        if (cserver == nullptr) {
+            cserver = store->make_changefeed_server(s.region);
+        }
+        guarantee(cserver);
+        cserver->add_client(s.addr, s.region);
         response->response = changefeed_subscribe_response_t();
         auto res = boost::get<changefeed_subscribe_response_t>(&response->response);
         guarantee(res != NULL);
-        res->server_uuids.insert(store->changefeed_server(s.region)->get_uuid());
-        res->addrs.insert(store->changefeed_server(s.region)->get_stop_addr());
+        res->server_uuids.insert(cserver->get_uuid());
+        res->addrs.insert(cserver->get_stop_addr());
     }
 
     void operator()(const changefeed_limit_subscribe_t &s) {
@@ -323,7 +327,12 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             s.spec.range.sorting,
             s.spec.limit);
 
-        store->changefeed_server(s.region)->add_limit_client(
+        auto *cserver = store->changefeed_server(s.region);
+        if (cserver == nullptr) {
+            cserver = store->make_changefeed_server(s.region);
+        }
+        guarantee(cserver);
+        cserver->add_limit_client(
             s.addr,
             s.region,
             s.table,
@@ -333,34 +342,25 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             s.spec,
             ql::changefeed::limit_order_t(s.spec.range.sorting),
             std::move(lvec));
-        auto addr = store->changefeed_server(s.region)->get_limit_stop_addr();
+        auto addr = cserver->get_limit_stop_addr();
         std::vector<decltype(addr)> vec{addr};
         response->response = changefeed_limit_subscribe_response_t(1, std::move(vec));
     }
 
-    boost::optional<changefeed_stamp_response_t> do_stamp(const changefeed_stamp_t &s) {
-        if (boost::optional<uint64_t> stamp
-            = store->changefeed_server(s.region)->get_stamp(s.addr)) {
-            changefeed_stamp_response_t out;
-            out.stamps[store->changefeed_server(s.region)->get_uuid()] = *stamp;
-            return out;
-        } else {
-            return boost::none;
+    changefeed_stamp_response_t do_stamp(const changefeed_stamp_t &s) {
+        if (auto *cserver = store->changefeed_server(s.region)) {
+            if (boost::optional<uint64_t> stamp = cserver->get_stamp(s.addr)) {
+                changefeed_stamp_response_t out;
+                out.stamps = decltype(out.stamps)();
+                (*out.stamps)[cserver->get_uuid()] = *stamp;
+                return out;
+            }
         }
+        return changefeed_stamp_response_t();
     }
 
-    // RSI: how do range stamps after a reshard work?  Do we detect the error on
-    // the other end?
     void operator()(const changefeed_stamp_t &s) {
-        if (boost::optional<changefeed_stamp_response_t> resp = do_stamp(s)) {
-            response->response = *resp;
-        } else {
-            // The client was removed, so no future messages are coming.
-            changefeed_stamp_response_t removed;
-            removed.stamps[store->changefeed_server(s.region)->get_uuid()]
-                = std::numeric_limits<uint64_t>::max();
-            response->response = removed;
-        }
+        response->response = do_stamp(s);
     }
 
     void operator()(const changefeed_point_stamp_t &s) {
@@ -495,7 +495,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
 
         if (rget.stamp) {
             res->stamp_response = changefeed_stamp_response_t();
-            if (boost::optional<changefeed_stamp_response_t> r = do_stamp(*rget.stamp)) {
+            changefeed_stamp_response_t r = do_stamp(*rget.stamp);
+            if (r.stamps) {
                 res->stamp_response = r;
             } else {
                 res->result = ql::exc_t(

@@ -83,6 +83,8 @@ public:
         const std::map<std::string, std::string> &name_changes) = 0;
 };
 
+enum class create_if_none_t { NO, YES };
+
 class store_t final : public store_view_t {
 public:
     using home_thread_mixin_t::assert_thread;
@@ -395,12 +397,17 @@ public:
     ql::changefeed::server_t *changefeed_server(const region_t &region) {
         auto it = changefeed_servers.find(region);
         if (it == changefeed_servers.end()) {
-            guarantee(ctx && ctx->manager);
-            it = changefeed_servers.insert(
-                std::make_pair(
-                    region_t(region),
-                    make_scoped<ql::changefeed::server_t>(ctx->manager, this))).first;
+            return nullptr;
+        } else {
+            return it->second.get();
         }
+    }
+    ql::changefeed::server_t *make_changefeed_server(const region_t &region) {
+        guarantee(ctx && ctx->manager);
+        it = changefeed_servers.insert(
+            std::make_pair(
+                region_t(region),
+                make_scoped<ql::changefeed::server_t>(ctx->manager, this))).first;
         return it->second.get();
     }
     ql::changefeed::server_t *changefeed_server(const store_key_t &key) {

@@ -118,7 +118,7 @@ struct changefeed_stamp_response_t {
     // The `uuid_u` below is the uuid of the changefeed `server_t`.  (We have
     // different timestamps for each `server_t` because they're on different
     // servers and don't synchronize with each other.)
-    std::map<uuid_u, uint64_t> stamps;
+    boost::optional<std::map<uuid_u, uint64_t> > stamps;
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(changefeed_stamp_response_t);
 
