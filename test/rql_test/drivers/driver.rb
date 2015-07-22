@@ -153,6 +153,8 @@ def float_cmp(value)
 end
 
 def cmp_test(expected, result, testopts={}, partial=false)
+  print_debug("\tCompare - expected: #{show(expected)} actual: #{show(result)}")
+  
   if expected.object_id == NoError.object_id
     if result.is_a?(Err)
       puts result
@@ -183,9 +185,9 @@ def cmp_test(expected, result, testopts={}, partial=false)
   case "#{expected.class}"
   when "Err"
     if expected.is_a?(result.class)
-      return result.message <=> result.message
+      return result.message <=> expected.message
     else
-      return result.class.name <=> result.class.name
+      return result.class.name <=> expected.class.name
     end
 
   when "Array"
