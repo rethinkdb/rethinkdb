@@ -1,0 +1,60 @@
+{
+    "global_optargs": {
+        "use_outdated": {
+            "type": "R_BOOL",
+            "default": false
+        },
+        "time_format": {
+            "type": ["raw", "native"],
+            "default": "native"
+        },
+        "profile": {
+            "type": "R_BOOL",
+            "default": false
+        },
+        "durability": {
+            "type": ["hard", "soft"],
+            "default": "hard"
+        },
+        "group_format": {
+            "type": ["raw", "native"],
+            "default": "native"
+        },
+        "noreply": {
+            "type": "R_BOOL",
+            "default": false
+        },
+        "db": {
+            "type": "R_STR",
+            "default": "test"
+        },
+        "array_limit": {
+            "type": "R_NUM",
+            "default": 100000
+        },
+        "binary_format": {
+            "type": ["raw", "native"],
+            "default": "native"
+        },
+        "min_batch_rows": {
+            "type": "R_NUM",
+            "default": 8
+        },
+        "max_batch_rows": {
+            "type": "R_NUM",
+            "default": null
+        },
+        "max_batch_bytes": {
+            "type": "R_NUM",
+            "default": 1024
+        },
+        "max_batch_seconds": {
+            "type": "R_NUM",
+            "default": 0.5
+        },
+        "first_batch_scaledown_factor": {
+            "type": "R_NUM",
+            "default": 4
+        }
+    }
+}
