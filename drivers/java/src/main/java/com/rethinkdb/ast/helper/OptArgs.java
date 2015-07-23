@@ -7,9 +7,6 @@ import java.util.HashMap;
 import java.util.List;
 
 public class OptArgs extends HashMap<String, RqlAst> {
-
-    public OptArgs() {}
-
     public OptArgs with(String key, Object value) {
         if (key != null) {
             put(key, Util.toRqlAst(value));
