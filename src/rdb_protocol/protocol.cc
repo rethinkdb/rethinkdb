@@ -424,6 +424,9 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
         if (do_read) {
             auto rg_out = boost::get<rget_read_t>(payload_out);
             rg_out->batchspec = rg_out->batchspec.scale_down(CPU_SHARDING_FACTOR);
+            if (rg_out->stamp) {
+                rg_out->stamp->region = rg_out->region;
+            }
         }
         return do_read;
     }

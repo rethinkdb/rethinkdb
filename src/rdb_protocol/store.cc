@@ -351,7 +351,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         if (auto *cserver = store->changefeed_server(s.region)) {
             if (boost::optional<uint64_t> stamp = cserver->get_stamp(s.addr)) {
                 changefeed_stamp_response_t out;
-                out.stamps = decltype(out.stamps)();
+                out.stamps = std::map<uuid_u, uint64_t>();
                 (*out.stamps)[cserver->get_uuid()] = *stamp;
                 return out;
             }

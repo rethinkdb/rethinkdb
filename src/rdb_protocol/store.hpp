@@ -393,12 +393,12 @@ public:
     // changefeed server.
     std::map<region_t, scoped_ptr_t<ql::changefeed::server_t> > changefeed_servers;
     ql::changefeed::server_t *changefeed_server(const region_t &region) {
-        auto it = changefeed_servers.find(region);
-        if (it == changefeed_servers.end()) {
-            return nullptr;
-        } else {
-            return it->second.get();
+        for (auto &&pair : changefeed_servers) {
+            if (pair.first.inner.is_superset(region.inner)) {
+                return pair.second.get();
+            }
         }
+        return nullptr;
     }
     ql::changefeed::server_t *make_changefeed_server(const region_t &region) {
         guarantee(ctx && ctx->manager);
