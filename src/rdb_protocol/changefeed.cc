@@ -1585,10 +1585,8 @@ public:
             env->interruptor);
         auto *res = boost::get<changefeed_point_stamp_response_t>(&read_resp.response);
         guarantee(res != nullptr);
-        if (!res->resp) {
-            rfail_datum(base_exc_t::OP_FAILED,
-                        "%s", "Changefeed aborted (did you just reshard?).");
-        }
+        rcheck_datum(res->resp, base_exc_t::OP_FAILED,
+                     "Changefeed aborted.  (Did you just reshard?)");
         auto *resp = &*res->resp;
         uint64_t start_stamp = resp->stamp.second;
         initial_val = change_val_t(
@@ -1776,10 +1774,12 @@ public:
                    profile_bool_t::DONT_PROFILE,
                    read_mode_t::SINGLE),
             &read_resp, order_token_t::ignore, outer_env->interruptor);
-        auto resp = boost::get<changefeed_stamp_response_t>(&read_resp.response);
-        guarantee(resp != NULL);
-        start_stamps = std::move(resp->stamps);
-        rcheck_datum(base_exc_t::OP_FAILED, start_stamps.size() != 0, "%s",
+        auto *resp = boost::get<changefeed_stamp_response_t>(&read_resp.response);
+        guarantee(resp != nullptr);
+        rcheck_datum(resp->stamps, base_exc_t::OP_FAILED,
+                     "Unable to retrieve the start stamps.  Did you just reshard?");
+        start_stamps = std::move(*resp->stamps);
+        rcheck_datum(start_stamps.size() != 0, base_exc_t::OP_FAILED,
                      "Unable to retrieve the start stamps.  Did you just reshard?");
 
         env = make_env(outer_env);

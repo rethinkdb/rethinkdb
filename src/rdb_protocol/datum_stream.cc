@@ -220,7 +220,9 @@ rget_reader_t::do_range_read(env_t *env, const read_t &read) {
     r_sanity_check(static_cast<bool>(stamp) == static_cast<bool>(rr->stamp));
     if (stamp) {
         r_sanity_check(res.stamp_response);
-        for (const auto &pair : (*res.stamp_response).stamps) {
+        rcheck_datum(res.stamp_response->stamps, base_exc_t::OP_FAILED,
+                     "Changefeed aborted.  (Did you just reshard?)");
+        for (const auto &pair : *res.stamp_response->stamps) {
             // It's OK to blow away old values.
             shard_stamps[pair.first] = pair.second;
         }

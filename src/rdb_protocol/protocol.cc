@@ -562,13 +562,19 @@ void rdb_r_unshard_visitor_t::operator()(const changefeed_limit_subscribe_t &) {
 
 void unshard_stamps(const std::vector<changefeed_stamp_response_t *> &resps,
                     changefeed_stamp_response_t *out) {
+    out->stamps = std::map<uuid_u, uint64_t>();
     for (auto &&resp : resps) {
-        for (auto &&stamp : resp->stamps) {
+        // In the error case abort early.
+        if (!resp->stamps) {
+            out->stamps = boost::none;
+            return;
+        }
+        for (auto &&stamp : *resp->stamps) {
             // Previously conflicts were resolved with `it_out->second =
             // std::max(it->second, it_out->second)`, but I don't think that
             // should ever happen and it isn't correct for
             // `include_initial_vals` changefeeds.
-            auto pair = out->stamps.insert(std::make_pair(stamp.first, stamp.second));
+            auto pair = out->stamps->insert(std::make_pair(stamp.first, stamp.second));
             guarantee(pair.second);
         }
     }
