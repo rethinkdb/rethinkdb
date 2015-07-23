@@ -71,8 +71,7 @@ def run_tests(build=None, data_dir='./'):
 
         print("Starting server with cache_size " + str(settings["cache_size"]) + " MB...", end=' ')
         sys.stdout.flush()
-        metacluster = driver.Metacluster()
-        serverFiles = driver.Files(metacluster, settings["name"], db_path=os.path.join(data_dir, settings["name"]))
+        serverFiles = driver.Files(server_name=settings["name"], db_path=os.path.join(data_dir, settings["name"]))
         
         with driver.Process(files=serverFiles, executable_path=executable_path, extra_options=['--cache-size', str(settings["cache_size"])]) as server:
             
