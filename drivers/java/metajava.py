@@ -57,9 +57,9 @@ def reql_to_java_type(reql_type):
         # for enums
         return 'String'
     elif reql_type == 'R_BOOL':
-        return 'boolean'
+        return 'Boolean'
     elif reql_type == 'R_NUM':
-        return 'double'
+        return 'Double'
     elif reql_type == 'R_STR':
         return 'String'
     else:

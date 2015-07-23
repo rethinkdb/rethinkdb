@@ -8,26 +8,23 @@ import java.util.*;
 public class GlobalOptions {
 
     % for arg, spec in global_optargs:
-    private ${reql_to_java_type(spec['type'])} _${dromedary(arg)};
+    private Optional<${reql_to_java_type(spec['type'])}> _${dromedary(arg)} = Optional.empty();
     % endfor
 
-    public GlobalOptions() {
-        % for arg, spec in global_optargs:
-        _${dromedary(arg)} = ${java_repr(spec['default'])};
-        % endfor
-    }
-
     public OptArgs toOptArgs() {
-        return (new OptArgs())
+        OptArgs ret = new OptArgs();
+
         %for arg, spec in global_optargs:
-            .with("${arg}", _${dromedary(arg)})
+        _${dromedary(arg)}.ifPresent(val ->
+            ret.with("${arg}", val));
         %endfor
-        ;
+
+        return ret;
     }
 
     % for arg, spec in global_optargs:
     public GlobalOptions ${dromedary(arg)}(${reql_to_java_type(spec['type'])} ${dromedary(arg)}) {
-        _${dromedary(arg)} = ${dromedary(arg)};
+        _${dromedary(arg)} = Optional.of(${dromedary(arg)});
         return this;
     }
 

@@ -30,15 +30,15 @@ public class Query {
     }
 
     public Query(QueryType type, long token) {
-        this(type, token, null, GlobalOptions.default_());
+        this(type, token, null, new GlobalOptions());
     }
 
     public static Query stop(long token) {
-        return new Query(QueryType.STOP, token, null, GlobalOptions.default_());
+        return new Query(QueryType.STOP, token, null, new GlobalOptions());
     }
 
     public static Query continue_(long token) {
-        return new Query(QueryType.CONTINUE, token, null, GlobalOptions.default_());
+        return new Query(QueryType.CONTINUE, token, null, new GlobalOptions());
     }
 
     public static Query start(long token, RqlAst term, GlobalOptions globalOptions) {
@@ -46,16 +46,14 @@ public class Query {
     }
 
     public static Query noreplyWait(long token) {
-        return new Query(QueryType.NOREPLY_WAIT, token, null, GlobalOptions.default_());
+        return new Query(QueryType.NOREPLY_WAIT, token, null, new GlobalOptions());
     }
 
     public ByteBuffer serialize() {
         JSONArray queryArr = new JSONArray();
         queryArr.add(type.value);
-        if (term != null) {
-            queryArr.add(term.build());
-        }
-        queryArr.add(globalOptions.toMap());
+        term.ifPresent(t -> queryArr.add(t.build()));
+        queryArr.add(globalOptions.toOptArgs());
         String queryJson = queryArr.toJSONString();
         return Util.leByteBuffer(8 + 4 + queryJson.length())
             .putLong(token)
