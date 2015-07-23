@@ -11,124 +11,123 @@ import java.util.*;
 
 public class GlobalOptions {
 
-    private double _arrayLimit;
-    private String _binaryFormat;
-    private String _db;
-    private String _durability;
-    private double _firstBatchScaledownFactor;
-    private String _groupFormat;
-    private double _maxBatchBytes;
-    private double _maxBatchRows;
-    private double _maxBatchSeconds;
-    private double _minBatchRows;
-    private boolean _noreply;
-    private boolean _profile;
-    private String _timeFormat;
-    private boolean _useOutdated;
-
-    public GlobalOptions() {
-        _arrayLimit = 100000;
-        _binaryFormat = "native";
-        _db = "test";
-        _durability = "hard";
-        _firstBatchScaledownFactor = 4;
-        _groupFormat = "native";
-        _maxBatchBytes = 1024;
-        _maxBatchRows = null;
-        _maxBatchSeconds = 0.5;
-        _minBatchRows = 8;
-        _noreply = false;
-        _profile = false;
-        _timeFormat = "native";
-        _useOutdated = false;
-    }
+    private Optional<Double> _arrayLimit = Optional.empty();
+    private Optional<String> _binaryFormat = Optional.empty();
+    private Optional<String> _db = Optional.empty();
+    private Optional<String> _durability = Optional.empty();
+    private Optional<Double> _firstBatchScaledownFactor = Optional.empty();
+    private Optional<String> _groupFormat = Optional.empty();
+    private Optional<Double> _maxBatchBytes = Optional.empty();
+    private Optional<Double> _maxBatchRows = Optional.empty();
+    private Optional<Double> _maxBatchSeconds = Optional.empty();
+    private Optional<Double> _minBatchRows = Optional.empty();
+    private Optional<Boolean> _noreply = Optional.empty();
+    private Optional<Boolean> _profile = Optional.empty();
+    private Optional<String> _timeFormat = Optional.empty();
+    private Optional<Boolean> _useOutdated = Optional.empty();
 
     public OptArgs toOptArgs() {
-        return (new OptArgs())
-            .with("array_limit", _arrayLimit)
-            .with("binary_format", _binaryFormat)
-            .with("db", _db)
-            .with("durability", _durability)
-            .with("first_batch_scaledown_factor", _firstBatchScaledownFactor)
-            .with("group_format", _groupFormat)
-            .with("max_batch_bytes", _maxBatchBytes)
-            .with("max_batch_rows", _maxBatchRows)
-            .with("max_batch_seconds", _maxBatchSeconds)
-            .with("min_batch_rows", _minBatchRows)
-            .with("noreply", _noreply)
-            .with("profile", _profile)
-            .with("time_format", _timeFormat)
-            .with("use_outdated", _useOutdated)
-        ;
+        OptArgs ret = new OptArgs();
+
+        _arrayLimit.ifPresent(val ->
+            ret.with("array_limit", val));
+        _binaryFormat.ifPresent(val ->
+            ret.with("binary_format", val));
+        _db.ifPresent(val ->
+            ret.with("db", val));
+        _durability.ifPresent(val ->
+            ret.with("durability", val));
+        _firstBatchScaledownFactor.ifPresent(val ->
+            ret.with("first_batch_scaledown_factor", val));
+        _groupFormat.ifPresent(val ->
+            ret.with("group_format", val));
+        _maxBatchBytes.ifPresent(val ->
+            ret.with("max_batch_bytes", val));
+        _maxBatchRows.ifPresent(val ->
+            ret.with("max_batch_rows", val));
+        _maxBatchSeconds.ifPresent(val ->
+            ret.with("max_batch_seconds", val));
+        _minBatchRows.ifPresent(val ->
+            ret.with("min_batch_rows", val));
+        _noreply.ifPresent(val ->
+            ret.with("noreply", val));
+        _profile.ifPresent(val ->
+            ret.with("profile", val));
+        _timeFormat.ifPresent(val ->
+            ret.with("time_format", val));
+        _useOutdated.ifPresent(val ->
+            ret.with("use_outdated", val));
+
+        return ret;
     }
 
-    public GlobalOptions arrayLimit(double arrayLimit) {
-        _arrayLimit = arrayLimit;
+    public GlobalOptions arrayLimit(Double arrayLimit) {
+        _arrayLimit = Optional.of(arrayLimit);
         return this;
     }
 
     public GlobalOptions binaryFormat(String binaryFormat) {
-        _binaryFormat = binaryFormat;
+        _binaryFormat = Optional.of(binaryFormat);
         return this;
     }
 
     public GlobalOptions db(String db) {
-        _db = db;
+        _db = Optional.of(db);
         return this;
     }
 
     public GlobalOptions durability(String durability) {
-        _durability = durability;
+        _durability = Optional.of(durability);
         return this;
     }
 
-    public GlobalOptions firstBatchScaledownFactor(double firstBatchScaledownFactor) {
-        _firstBatchScaledownFactor = firstBatchScaledownFactor;
+    public GlobalOptions firstBatchScaledownFactor(Double firstBatchScaledownFactor) {
+        _firstBatchScaledownFactor = Optional.of(firstBatchScaledownFactor);
         return this;
     }
 
     public GlobalOptions groupFormat(String groupFormat) {
-        _groupFormat = groupFormat;
+        _groupFormat = Optional.of(groupFormat);
         return this;
     }
 
-    public GlobalOptions maxBatchBytes(double maxBatchBytes) {
-        _maxBatchBytes = maxBatchBytes;
+    public GlobalOptions maxBatchBytes(Double maxBatchBytes) {
+        _maxBatchBytes = Optional.of(maxBatchBytes);
         return this;
     }
 
-    public GlobalOptions maxBatchRows(double maxBatchRows) {
-        _maxBatchRows = maxBatchRows;
+    public GlobalOptions maxBatchRows(Double maxBatchRows) {
+        _maxBatchRows = Optional.of(maxBatchRows);
         return this;
     }
 
-    public GlobalOptions maxBatchSeconds(double maxBatchSeconds) {
-        _maxBatchSeconds = maxBatchSeconds;
+    public GlobalOptions maxBatchSeconds(Double maxBatchSeconds) {
+        _maxBatchSeconds = Optional.of(maxBatchSeconds);
         return this;
     }
 
-    public GlobalOptions minBatchRows(double minBatchRows) {
-        _minBatchRows = minBatchRows;
+    public GlobalOptions minBatchRows(Double minBatchRows) {
+        _minBatchRows = Optional.of(minBatchRows);
         return this;
     }
 
-    public GlobalOptions noreply(boolean noreply) {
-        _noreply = noreply;
+    public GlobalOptions noreply(Boolean noreply) {
+        _noreply = Optional.of(noreply);
         return this;
     }
 
-    public GlobalOptions profile(boolean profile) {
-        _profile = profile;
+    public GlobalOptions profile(Boolean profile) {
+        _profile = Optional.of(profile);
         return this;
     }
 
     public GlobalOptions timeFormat(String timeFormat) {
-        _timeFormat = timeFormat;
+        _timeFormat = Optional.of(timeFormat);
         return this;
     }
 
-    public GlobalOptions useOutdated(boolean useOutdated) {
-        _useOutdated = useOutdated;
+    public GlobalOptions useOutdated(Boolean useOutdated) {
+        _useOutdated = Optional.of(useOutdated);
         return this;
     }
 

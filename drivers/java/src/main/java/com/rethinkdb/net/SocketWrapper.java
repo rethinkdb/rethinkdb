@@ -46,6 +46,10 @@ public class SocketWrapper {
         throw new RuntimeException("recvall not implemented");
     }
 
+    public void sendall(ByteBuffer buf) {
+        throw new RuntimeException("sendall not implemented");
+    }
+
     public void write(ByteBuffer buffer) {
         try {
             buffer.flip();

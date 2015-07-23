@@ -30,7 +30,6 @@ public class Connection {
     private final String authKey;
 
     private String dbName;
-    protected Map<Long, Cursor> cursorCache = new HashMap<>();
 
 
     public Connection() {

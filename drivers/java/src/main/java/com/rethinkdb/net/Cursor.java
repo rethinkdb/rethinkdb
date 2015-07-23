@@ -64,6 +64,10 @@ public class Cursor<T> implements Iterator<T> {
     }
 
     public static Cursor empty(ConnectionInstance connection, Query query) {
-        return Cursor(connection, query);
+        return new Cursor(connection, query);
+    }
+
+    void error(String err_msg) {
+        throw new RuntimeException("error not implemented.");
     }
 }

@@ -2,6 +2,7 @@ package com.rethinkdb.net;
 
 import java.util.*;
 
+import com.rethinkdb.RethinkDBException;
 import com.rethinkdb.proto.QueryType;
 import com.rethinkdb.proto.ResponseType;
 import com.rethinkdb.ast.Query;
@@ -48,7 +49,8 @@ public class ConnectionInstance<C extends Connection> {
     }
 
     private Optional<Object> runQuery(Query query, boolean noreply) {
-        socket.sendall(query.serialize());
+        socket.orElseThrow(() -> new RethinkDBException("No socket open."))
+            .sendall(query.serialize());
         if(noreply){
             return Optional.empty();
         }
@@ -57,7 +59,8 @@ public class ConnectionInstance<C extends Connection> {
 
         // TODO: This logic needs to move into the Response class
         if(res.isAtom()){
-            return Optional.of((Object) convertPseudotypes(res.data[0], res.profile));
+            return Optional.of(
+                (Object) Response.convertPseudotypes(res.data.get(), res.profile));
         } else if(res.isPartial() || res.isSequence()) {
             Cursor cursor = Cursor.empty(this, query);
             cursor.extend(res);
@@ -71,5 +74,9 @@ public class ConnectionInstance<C extends Connection> {
 
     private Response readResponse(long token) {
         throw new RuntimeException("readResponse is not implemented");
+    }
+
+    void addToCache(long token, Cursor cursor) {
+        cursorCache.put(token, cursor);
     }
 }
