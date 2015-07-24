@@ -14,7 +14,10 @@ import java.util.*;
 import java.nio.ByteBuffer;
 import java.io.ByteArrayInputStream;
 import java.io.InputStreamReader;
+import java.io.InputStream;
+import java.io.IOException;
 import java.util.stream.Collectors;
+
 
 public class Response {
     public final long token;
@@ -24,9 +27,30 @@ public class Response {
     public final Optional<Profile> profile;
     public final Optional<Backtrace> backtrace;
 
-    public static Response parseFrom(long token, byte[] buf) {
+
+    private static class ByteBufferInputStream extends InputStream {
+        ByteBuffer buf;
+        ByteBufferInputStream(ByteBuffer buf) {
+            this.buf = buf;
+        }
+
+        public synchronized int read() throws IOException {
+            if(!buf.hasRemaining()){
+                return -1;
+            }
+            return buf.get();
+        }
+
+        public synchronized int read(byte[] bytes, int off, int len) throws IOException {
+            len = Math.min(len, buf.remaining());
+            buf.get(bytes, off, len);
+            return len;
+        }
+    }
+
+    public static Response parseFrom(long token, ByteBuffer buf) {
         InputStreamReader codepointReader =
-            new InputStreamReader(new ByteArrayInputStream(buf));
+            new InputStreamReader(new ByteBufferInputStream(buf));
         JSONObject jsonResp = (JSONObject) JSONValue.parse(codepointReader);
         ResponseType responseType = ResponseType.fromValue((int)jsonResp.get("t"));
         ArrayList<Integer> responseNoteVals = (ArrayList) jsonResp

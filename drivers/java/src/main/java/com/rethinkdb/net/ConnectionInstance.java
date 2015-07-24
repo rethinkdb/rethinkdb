@@ -1,8 +1,10 @@
 package com.rethinkdb.net;
 
 import java.util.*;
+import java.nio.ByteBuffer;
 
 import com.rethinkdb.RethinkDBException;
+import com.rethinkdb.ReqlDriverError;
 import com.rethinkdb.proto.QueryType;
 import com.rethinkdb.proto.ResponseType;
 import com.rethinkdb.ast.Query;
@@ -15,7 +17,7 @@ public class ConnectionInstance<C extends Connection> {
     private HashMap<Long, Cursor> cursorCache = new HashMap<>();
     private Optional<SocketWrapper> socket = Optional.empty();
     private boolean closing = false;
-    // TODO: when adding async, _header_in_progress may be needed
+    private Optional<ByteBuffer> headerInProgress = Optional.empty();
 
     public ConnectionInstance(C parent) {
         this.parent = Optional.ofNullable(parent);
@@ -49,7 +51,7 @@ public class ConnectionInstance<C extends Connection> {
     }
 
     private Optional<Object> runQuery(Query query, boolean noreply) {
-        socket.orElseThrow(() -> new RethinkDBException("No socket open."))
+        socket.orElseThrow(() -> new ReqlDriverError("No socket open."))
             .sendall(query.serialize());
         if(noreply){
             return Optional.empty();
@@ -72,11 +74,37 @@ public class ConnectionInstance<C extends Connection> {
         }
     }
 
-    private Response readResponse(long token) {
-        throw new RuntimeException("readResponse is not implemented");
-    }
-
     void addToCache(long token, Cursor cursor) {
         cursorCache.put(token, cursor);
+    }
+
+    Response readResponse(long token) {
+        return readResponse(token, Optional.empty());
+    }
+
+    Response readResponse(long token, Optional<Integer> deadline) {
+        SocketWrapper sock = socket.orElseThrow(() ->
+            new RethinkDBException("Socket not open"));
+        while(true) {
+            if(!headerInProgress.isPresent()) {
+                headerInProgress = Optional.of(sock.recvall(12, deadline));
+            }
+            long resToken = headerInProgress.get().getLong();
+            int resLen = headerInProgress.get().getInt();
+            ByteBuffer resBuf = sock.recvall(resLen, deadline);
+            headerInProgress = Optional.empty();
+
+            Response res = Response.parseFrom(resToken, resBuf);
+
+            Optional<Cursor> cursor = Optional.ofNullable(cursorCache.get(resToken));
+            cursor.ifPresent(c -> c.extend(res));
+
+            if(res.token == token) {
+                return res;
+            }else if(closing || cursor.isPresent()) {
+                close(false, token);
+                throw new ReqlDriverError("Unexpected response received");
+            }
+        }
     }
 }
