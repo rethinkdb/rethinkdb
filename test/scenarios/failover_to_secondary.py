@@ -5,7 +5,7 @@ import os, sys, time
 from pprint import pformat
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import driver, workload_runner, rdb_unittest, scenario_common, utils, vcoptparse
+import workload_runner, rdb_unittest, scenario_common, utils, vcoptparse
 from utils import print_with_time
 
 op = vcoptparse.OptParser()
@@ -18,7 +18,6 @@ dbName, tableName = utils.get_test_db_table()
 
 numNodes = 3
 
-print_with_time("Starting cluster of %d servers" % numNodes)
 class FailoverToSecondary(rdb_unittest.RdbTestCase):
     
     shards = 1

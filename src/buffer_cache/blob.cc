@@ -685,6 +685,9 @@ struct deallocate_helper_t : public blob::traverse_helper_t {
     }
 
     void postprocess(buf_lock_t *lock) {
+        // mark_deleted() requires that we have already got the write lock.
+        // Make sure that's the case before we call it...
+        lock->write_acq_signal()->wait_lazily_unordered();
         lock->mark_deleted();
     }
 };
@@ -773,6 +776,9 @@ bool blob_t::remove_level(buf_parent_t parent, int *levels_ref) {
                                               0, bigsize,
                                               &lo, &hi);
 
+            // We must overwrite at least the first block ID, or we might end up
+            // processing it a second time when `remove_level` gets called again.
+            guarantee(lo == 0 && hi > 0);
 
             block_id_t *block_ids = blob::block_ids(ref_, maxreflen_);
             for (int i = lo; i < hi; ++i) {
@@ -781,6 +787,7 @@ bool blob_t::remove_level(buf_parent_t parent, int *levels_ref) {
             }
         }
 
+        lock.write_acq_signal()->wait_lazily_unordered();
         lock.mark_deleted();
     }
 

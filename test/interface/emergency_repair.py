@@ -105,11 +105,19 @@ with driver.Cluster(initial_servers=['a', 'x'], output_folder='.',
         assert res.get("repaired") == 1, res
 
         # Make sure that the correct config was calculated and also applied
-        assert eq_config(res["config_changes"][0]["new_val"]["shards"], expect), \
-            "res=%s, expect=%s" % (res, expect)
-        new_config = r.table(name).config().run(conn)
-        assert eq_config(new_config["shards"], expect), \
-            "new_config=%s, expect=%s" % (new_config, expect)
+        assert eq_config(res["config_changes"][0]["new_val"]["shards"], expect), "res=%s, expect=%s" % (res, expect)
+        deadline = time.time() + 5
+        lastError = None
+        while time.time() < deadline:
+            try:
+                new_config = r.table(name).config().run(conn)
+                assert eq_config(new_config["shards"], expect), "new_config=%s, expect=%s" % (new_config, expect)
+                break
+            except Exception as e:
+                lastError = e
+            time.sleep(0.05)
+        else:
+            raise (lastError or AssertionError('Should not get here without an error'))
 
     def bad_repair(name, repair_type, msg):
         """Runs an emergency repair on the given table, and expects it to fail. `msg`

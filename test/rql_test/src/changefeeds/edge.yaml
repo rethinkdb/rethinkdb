@@ -189,7 +189,7 @@ tests:
       testopts:
         reql-query: False
 
-    - ot: err('RqlRuntimeError', "No attribute `dummy` in object.")
+    - ot: err('RqlNonExistenceError', "No attribute `dummy` in object.")
       py: "sorted([int(x['new_val']['value']) for x in postmap_changes1])"
       rb: (postmap_changes1.map { |x| x['new_val']['value'].to_i }).sort
       js:
@@ -201,7 +201,7 @@ tests:
       testopts:
         reql-query: False
 
-    - ot: err('RqlRuntimeError', "Index out of bounds:" + " 1")
+    - ot: err('RqlNonExistenceError', "Index out of bounds:" + " 1")
       py: "sorted([int(x['new_val']['value']) for x in postmap_changes2])"
       rb: (postmap_changes2.map { |x| x['new_val']['value'].to_i }).sort
       js:
@@ -213,7 +213,7 @@ tests:
       testopts:
         reql-query: False
 
-    - ot: err('RqlRuntimeError', "dummy")
+    - ot: err('RqlUserError', "dummy")
       py: "sorted([int(x['new_val']['value']) for x in postmap_changes3])"
       rb: (postmap_changes3.map { |x| x['new_val']['value'].to_i }).sort
       js:

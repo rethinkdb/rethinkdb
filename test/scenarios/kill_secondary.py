@@ -5,7 +5,7 @@ import os, sys, time
 from pprint import pformat
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import driver, rdb_unittest, scenario_common, utils, vcoptparse, workload_runner
+import rdb_unittest, scenario_common, utils, vcoptparse, workload_runner
 from utils import print_with_time
 
 numNodes = 3
@@ -16,7 +16,6 @@ scenario_common.prepare_option_parser_mode_flags(op)
 opts = op.parse(sys.argv)
 _, command_prefix, server_options = scenario_common.parse_mode_flags(opts)
 
-print_with_time("Starting cluster of %d servers" % numNodes)
 class KillSecondary(rdb_unittest.RdbTestCase):
     
     shards = 1

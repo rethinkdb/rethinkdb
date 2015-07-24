@@ -116,7 +116,8 @@ class RdbTestCase(unittest.TestCase):
         if self.cluster is None:
             initalServers = max(self.shards * self.replicas, self.servers)
             if self.servers is not None and initalServers > self.servers:
-                raise ValueError('servers must always be >= shards * replicas. If you need another configureation you must set it up manually')
+                raise ValueError('servers must always be >= shards * replicas. If you need another configuration you must set it up manually')
+            utils.print_with_time("Starting cluster of %d servers" % initalServers)
             self.__class__.cluster = driver.Cluster(
                 initial_servers=initalServers,
                 wait_until_ready=True,

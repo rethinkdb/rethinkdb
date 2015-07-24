@@ -337,17 +337,17 @@ tests:
     # Missing 'data' field
     - py: r.expr({'$reql_type$':'BINARY'})
       rb: r.expr({'$reql_type$':'BINARY'})
-      ot: err('RqlRuntimeError','Invalid binary pseudotype:'+' lacking `data` key.',[])
+      ot: err('RqlLogicError','Invalid binary pseudotype:'+' lacking `data` key.',[])
 
     # Invalid base64 format
     - py: r.expr({'$reql_type$':'BINARY','data':'ABCDEFGH==AA'})
-      ot: err('RqlRuntimeError','Invalid base64 format, data found after padding character \'=\'.',[])
+      ot: err('RqlLogicError','Invalid base64 format, data found after padding character \'=\'.',[])
     - py: r.expr({'$reql_type$':'BINARY','data':'ABCDEF==$'})
-      ot: err('RqlRuntimeError','Invalid base64 format, data found after padding character \'=\'.',[])
+      ot: err('RqlLogicError','Invalid base64 format, data found after padding character \'=\'.',[])
     - py: r.expr({'$reql_type$':'BINARY','data':'A^CDEFGH'})
-      ot: err('RqlRuntimeError','Invalid base64 character found:'+' \'^\'.',[])
+      ot: err('RqlLogicError','Invalid base64 character found:'+' \'^\'.',[])
     - py: r.expr({'$reql_type$':'BINARY','data':'ABCDE'})
-      ot: err('RqlRuntimeError','Invalid base64 length:'+' 1 character remaining, cannot decode a full byte.',[])
+      ot: err('RqlLogicError','Invalid base64 length:'+' 1 character remaining, cannot decode a full byte.',[])
 
     # Invalid coercions
     - cd: r.binary(a).coerce_to('array')

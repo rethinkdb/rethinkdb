@@ -3020,7 +3020,7 @@ class ResultView extends Backbone.View
     setStackSize: =>
         # In some versions of firefox, the effective recursion
         # limit gets hit sometimes by the driver. Here we patch
-        # the driver's built in stackSize to 30 (normally it's
+        # the driver's built in stackSize to 12 (normally it's
         # 100). The driver will invoke callbacks with setImmediate
         # vs directly invoking themif the stackSize limit is
         # exceeded, which keeps the stack size manageable (but
@@ -3028,9 +3028,9 @@ class ResultView extends Backbone.View
         if @_patched_already
             return
         iterableProto = @query_result.cursor?.__proto__?.__proto__?.constructor?.prototype
-        if iterableProto?.stackSize > 20
-            console.log "Patching stack limit on cursors to 30"
-            iterableProto.stackSize = 20
+        if iterableProto?.stackSize > 12
+            console.log "Patching stack limit on cursors to 12"
+            iterableProto.stackSize = 12
             @_patched_already = true
 
 

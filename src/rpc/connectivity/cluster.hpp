@@ -24,9 +24,10 @@ namespace boost {
 template <class> class optional;
 }
 
-class co_semaphore_t;
-
 class cluster_message_handler_t;
+class co_semaphore_t;
+class heartbeat_semilattice_metadata_t;
+template <class> class semilattice_read_view_t;
 
 /* Uncomment this to enable message profiling. Message profiling will keep track of how
 many messages of each type are sent over the network; it will dump the results to a file
@@ -171,7 +172,10 @@ public:
         run_t(connectivity_cluster_t *parent,
               const std::set<ip_address_t> &local_addresses,
               const peer_address_t &canonical_addresses,
-              int port, int client_port)
+              int port,
+              int client_port,
+              boost::shared_ptr<semilattice_read_view_t<
+                  heartbeat_semilattice_metadata_t> > heartbeat_sl_view)
             THROWS_ONLY(address_in_use_exc_t, tcp_socket_exc_t);
 
         ~run_t();
@@ -277,6 +281,9 @@ public:
 
         /* For picking random threads */
         rng_t rng;
+
+        boost::shared_ptr<semilattice_read_view_t<heartbeat_semilattice_metadata_t> >
+            heartbeat_sl_view;
 
         auto_drainer_t drainer;
 

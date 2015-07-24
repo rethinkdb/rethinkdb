@@ -190,7 +190,9 @@ describe('JavaScript Promise style', function() {
             afterEach(function() {
 				return withConnection()
 				.then(function() {
-    				return r.db('rethinkdb').table('cluster_config').update({auth_key:null}).run(reqlConn);
+    				return r.db('rethinkdb').table('cluster_config').get('auth').update({auth_key:null}).run(reqlConn);
+                }).then(function(result) {
+                    assert.equal(result['errors'], 0, 'Failed setting auth key: ' + JSON.stringify(result))
                 })
             });
                         
@@ -203,7 +205,7 @@ describe('JavaScript Promise style', function() {
             });
             
             it("suceeds with correct key", function(){
-                return r.db('rethinkdb').table('cluster_config').update({auth_key: "hunter3"}).run(reqlConn)
+                return r.db('rethinkdb').table('cluster_config').get('auth').update({auth_key: "hunter3"}).run(reqlConn)
                 .then(function() {
                     return r.connect({host:serverHost, port:driverPort, authKey: "hunter3"});
                 }).then(function(authConn) {
@@ -212,7 +214,7 @@ describe('JavaScript Promise style', function() {
             });
             
             it("fails with wrong authorization key", function(){
-                return r.db('rethinkdb').table('cluster_config').update({auth_key: "hunter4"}).run(reqlConn)
+                return r.db('rethinkdb').table('cluster_config').get('auth').update({auth_key: "hunter4"}).run(reqlConn)
                 .then(function() {
                     return r.connect({host:serverHost, port:driverPort, authKey: "hunter-bad"});
                 })

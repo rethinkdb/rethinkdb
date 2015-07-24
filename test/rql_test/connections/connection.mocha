@@ -172,7 +172,9 @@ describe("JavaScript Callback style", function() {
             afterEach(function() {
 				return withConnection()
 				.then(function() {
-    				return r.db('rethinkdb').table('cluster_config').update({auth_key:null}).run(reqlConn);
+    				return r.db('rethinkdb').table('cluster_config').get('auth').update({auth_key:null}).run(reqlConn);
+                }).then(function(result) {
+                    assert.equal(result['errors'], 0, 'Failed setting auth key: ' + JSON.stringify(result))
                 })
             });
             
@@ -184,8 +186,9 @@ describe("JavaScript Callback style", function() {
             });
             
             it("suceeds with correct key", function(done){
-                r.db('rethinkdb').table('cluster_config').update({auth_key: "hunter3"}).run(reqlConn, function(err) {
+                r.db('rethinkdb').table('cluster_config').get('auth').update({auth_key: "hunter3"}).run(reqlConn, function(err, result) {
                     assert.ifError(err);
+                    assert.equal(result['errors'], 0, 'Failed setting auth key: ' + JSON.stringify(result))
                     r.connect({host:serverHost, port:driverPort, authKey: "hunter3"}, function(err, authConn) {
                         assert.ifError(err);
                         r.expr(1).run(authConn, function(err, value) {
@@ -198,8 +201,9 @@ describe("JavaScript Callback style", function() {
             });
             
             it("fails with wrong authorization key", function(done){
-                r.db('rethinkdb').table('cluster_config').update({auth_key: "hunter4"}).run(reqlConn, function(err) {
+                r.db('rethinkdb').table('cluster_config').get('auth').update({auth_key: "hunter4"}).run(reqlConn, function(err, result) {
                     assert.ifError(err);
+                    assert.equal(result['errors'], 0, 'Failed setting auth key: ' + JSON.stringify(result))
                     r.connect(
                         {host:serverHost, port:driverPort, authKey: "hunter-bad"},
                         givesError("RqlDriverError", "Server dropped connection with message: \"ERROR: Incorrect authorization key.\"", done)
@@ -246,6 +250,20 @@ describe("JavaScript Callback style", function() {
 
             it("does not wait if we want it not to", function(done){
                 var t = Date.now();
+                r.js('while(true);', {timeout: 0.2}).run(reqlConn, {noreply: true}, function() {
+                    reqlConn.close({'noreplyWait': false}, function (err) {
+                        assert.ifError(err);
+                        var duration = Date.now() - t;
+                        assert(duration < 200);
+                        done();
+                    });
+                });
+            });
+            
+            it("works even with noreply queries that are still in the transfer queue", function(done){
+                var t = Date.now();
+                r.js('while(true);', {timeout: 0.2}).run(reqlConn, {noreply: true}, function() {});
+                r.js('while(true);', {timeout: 0.2}).run(reqlConn, {noreply: true}, function() {});
                 r.js('while(true);', {timeout: 0.2}).run(reqlConn, {noreply: true}, function() {});
                 reqlConn.close({'noreplyWait': false}, function (err) {
                     assert.ifError(err);
@@ -280,6 +298,20 @@ describe("JavaScript Callback style", function() {
 
             it("does not wait if we want it not to", function(done){
                 var t = Date.now();
+                r.js('while(true);', {timeout: 0.2}).run(reqlConn, {noreply: true}, function() {
+                    reqlConn.reconnect({'noreplyWait': false}, function (err) {
+                        assert.ifError(err);
+                        var duration = Date.now() - t;
+                        assert(duration < 200);
+                        done();
+                    });
+                });
+            });
+            
+            it("works even with noreply queries that are still in the transfer queue", function(done){
+                var t = Date.now();
+                r.js('while(true);', {timeout: 0.2}).run(reqlConn, {noreply: true}, function() {});
+                r.js('while(true);', {timeout: 0.2}).run(reqlConn, {noreply: true}, function() {});
                 r.js('while(true);', {timeout: 0.2}).run(reqlConn, {noreply: true}, function() {});
                 reqlConn.reconnect({'noreplyWait': false}, function (err) {
                     assert.ifError(err);

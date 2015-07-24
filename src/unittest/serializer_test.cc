@@ -61,7 +61,7 @@ void run_AddDeleteRepeatedly(bool perform_index_write) {
 
                 // There are no other index_write operations to maintain ordering with.
                 new_mutex_in_line_t dummy_acq;
-                ser.index_write(&dummy_acq, write_ops);
+                ser.index_write(&dummy_acq, []{ }, write_ops);
             }
             // Now delete the only block token and delete the index reference.
             tokens.clear();
@@ -71,7 +71,7 @@ void run_AddDeleteRepeatedly(bool perform_index_write) {
 
                 // There are no other index_write operations to maintain ordering with.
                 new_mutex_in_line_t dummy_acq;
-                ser.index_write(&dummy_acq, write_ops);
+                ser.index_write(&dummy_acq, []{ }, write_ops);
             }
 
         } else {

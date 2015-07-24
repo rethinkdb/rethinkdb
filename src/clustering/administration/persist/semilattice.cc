@@ -24,4 +24,4 @@ void semilattice_persister_t<metadata_t>::persist(signal_t *interruptor) {
 
 template class semilattice_persister_t<cluster_semilattice_metadata_t>;
 template class semilattice_persister_t<auth_semilattice_metadata_t>;
-
+template class semilattice_persister_t<heartbeat_semilattice_metadata_t>;

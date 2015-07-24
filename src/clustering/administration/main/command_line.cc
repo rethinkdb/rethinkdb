@@ -661,6 +661,7 @@ void run_rethinkdb_create(const base_path_t &base_path,
 
     cluster_semilattice_metadata_t cluster_metadata;
     auth_semilattice_metadata_t auth_metadata;
+    heartbeat_semilattice_metadata_t heartbeat_metadata;
 
     server_config_versioned_t server_config;
     server_config.config.name = server_name;
@@ -688,6 +689,8 @@ void run_rethinkdb_create(const base_path_t &base_path,
                     cluster_metadata, interruptor);
                 write_txn->write(mdkey_auth_semilattices(),
                     auth_semilattice_metadata_t(), interruptor);
+                write_txn->write(mdkey_heartbeat_semilattices(),
+                    heartbeat_semilattice_metadata_t(), interruptor);
             },
             &non_interruptor);
         logINF("Created directory '%s' and a metadata file inside it.\n", base_path.path().c_str());
@@ -751,12 +754,14 @@ void run_rethinkdb_serve(const base_path_t &base_path,
                 [&](metadata_file_t::write_txn_t *write_txn, signal_t *interruptor) {
                     write_txn->write(mdkey_server_id(),
                         *our_server_id, interruptor);
-                    write_txn->write(mdkey_server_config(), 
+                    write_txn->write(mdkey_server_config(),
                         *server_config, interruptor);
                     write_txn->write(mdkey_cluster_semilattices(),
                         *cluster_metadata, interruptor);
                     write_txn->write(mdkey_auth_semilattices(),
                         auth_semilattice_metadata_t(), interruptor);
+                    write_txn->write(mdkey_heartbeat_semilattices(),
+                        heartbeat_semilattice_metadata_t(), interruptor);
                 },
                 &non_interruptor));
             guarantee(!static_cast<bool>(total_cache_size), "rethinkdb porcelain should "

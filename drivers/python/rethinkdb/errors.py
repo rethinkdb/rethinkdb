@@ -4,6 +4,14 @@ __all__ = ['RqlError',
            'RqlClientError',
            'RqlCompileError',
            'RqlRuntimeError',
+           'RqlInternalError',
+           'RqlResourceError',
+           'RqlLogicError',
+           'RqlNonExistenceError',
+           'RqlOpError',
+           'RqlOpFailedError',
+           'RqlOpIndeterminateError',
+           'RqlUserError',
            'RqlDriverError',
            'RqlTimeoutError',
            'RqlCursorEmpty']
@@ -38,7 +46,8 @@ class RqlError(Exception):
     def __repr__(self):
         return self.__class__.__name__ + "(" + repr(self.message) + ")"
 
-class RqlQueryError(RqlError):
+
+class RqlServerError(RqlError):
     def __init__(self, message, term, frames):
         RqlError.__init__(self, message)
         self.frames = frames
@@ -50,33 +59,68 @@ class RqlQueryError(RqlError):
                                '\n' + self.query_printer.print_carrots())
 
 
-class RqlClientError(RqlQueryError):
+class RqlClientError(RqlServerError):
     pass
 
 
-class RqlCompileError(RqlQueryError):
+class RqlCompileError(RqlServerError):
     pass
 
 
-class RqlRuntimeError(RqlQueryError):
+class RqlRuntimeError(RqlServerError):
     def __str__(self):
         return convertForPrint(self.message + " in:\n" +
                                self.query_printer.print_query() + '\n' +
                                self.query_printer.print_carrots())
 
 
-class RqlDriverError(RqlError):
+class RqlInternalError(RqlRuntimeError):
     pass
 
 
-class RqlTimeoutError(RqlError):
-    def __init__(self):
-        RqlError.__init__(self, 'Operation timed out.')
+class RqlResourceError(RqlRuntimeError):
+    pass
 
 
-class RqlCursorEmpty(RqlQueryError):
+class RqlLogicError(RqlRuntimeError):
+    pass
+
+
+class RqlNonExistenceError(RqlLogicError):
+    pass
+
+
+class RqlOpError(RqlRuntimeError):
+    pass
+
+
+class RqlOpFailedError(RqlOpError):
+    pass
+
+
+class RqlOpIndeterminateError(RqlOpError):
+    pass
+
+
+class RqlUserError(RqlRuntimeError):
+    pass
+
+
+class RqlDriverError(RqlError):
+    pass
+
+try:
+    class RqlTimeoutError(RqlError, TimeoutError):
+        def __init__(self):
+            RqlError.__init__(self, 'Operation timed out.')
+except NameError:
+    class RqlTimeoutError(RqlError):
+        def __init__(self):
+            RqlError.__init__(self, 'Operation timed out.')
+
+class RqlCursorEmpty(RqlServerError):
     def __init__(self, term):
-        RqlQueryError.__init__(self, 'Cursor is empty.', term, [])
+        RqlServerError.__init__(self, 'Cursor is empty.', term, [])
 
 
 class QueryPrinter(object):

@@ -82,7 +82,7 @@ class JobsTableTests(rdb_unittest.RdbTestCase):
     
     def test_index_construction(self):
         
-        valueDropsLimit = 3
+        valueDropsLimit = 10
         
         recordsToGenerate = 500
         fieldName = 'x'
@@ -156,6 +156,8 @@ class JobsTableTests(rdb_unittest.RdbTestCase):
                 self.fail('Timed out after %.1f seconds waiting for index_construction to be complete' % self.timeout)
     
     def test_backfill(self):
+    
+        valueDropsLimit = 10
         
         # - trigger a backfill with a reconfigure
         

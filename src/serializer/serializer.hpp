@@ -102,7 +102,11 @@ public:
     // Applies all given index operations in an atomic way.  The mutex_acq is for a
     // mutex belonging to the _caller_, used by the caller for pipelining, for
     // ensuring that different index write operations do not cross each other.
+    // Once `on_writes_reflected` is called, the serializer guarantees that any
+    // subsequent call to `index_read` is going to see the index changes, even
+    // though they might not have been persisted to disk yet.
     virtual void index_write(new_mutex_in_line_t *mutex_acq,
+                             const std::function<void()> &on_writes_reflected,
                              const std::vector<index_write_op_t> &write_ops) = 0;
 
     // Returns block tokens in the same order as write_infos.

@@ -56,8 +56,8 @@ $defines = binding
 
 def show(x)
   if x.is_a?(Err)
-    name = x.type.sub(/^RethinkDB::/, "")
-    return "<#{name} #{'~ ' if x.regex}#{show x.message}>"
+    name = x.type.name.sub(/^RethinkDB::/, "")
+    return "<#{name} #{'~ ' if x.message.is_a? Regexp}#{show x.message}>"
   end
   return (PP.pp x, "").chomp
 end
@@ -153,6 +153,8 @@ def float_cmp(value)
 end
 
 def cmp_test(expected, result, testopts={}, partial=false)
+  print_debug("\tCompare - expected: #{show(expected)} actual: #{show(result)}")
+  
   if expected.object_id == NoError.object_id
     if result.is_a?(Err)
       puts result
@@ -182,10 +184,11 @@ def cmp_test(expected, result, testopts={}, partial=false)
 
   case "#{expected.class}"
   when "Err"
-    # Don't try to be clever and rearrange this.  `<=` is used to
-    # check for subclasses, so swapping the arguments and using `>`
-    # will break this.  Likewise, `===` isn't symmetric.
-    return result.class <= expected.type && expected.message === result.message ? 0 : -1
+    if expected.is_a?(result.class)
+      return result.message <=> expected.message
+    else
+      return result.class.name <=> expected.class.name
+    end
 
   when "Array"
     if result.respond_to? :to_a

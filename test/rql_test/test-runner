@@ -483,30 +483,61 @@ class RbLang(SrcLang):
         
         versionNumber = str(output.decode('utf-8').split()[1]).strip()
         return distutils.version.LooseVersion(versionNumber)
+    
+class JrbLang(RbLang):
+    display_name = 'JRuby'
+    
+    def class_setup(self, version):
+        if self.instance_setup is True:
+            return
+        
+        self.display_name = self.display_name + ' ' + version
+        self.test_types = []
+        self.interpreter_name_exe_names = []
+        
+        self.minVersion = distutils.version.LooseVersion(version)
+        self.maxVersion = distutils.version.LooseVersion(version + '.999')
+        
+        if version != '':
+            lastVersion = None
+            workingVersion = version
+            while lastVersion != workingVersion:
+                self.test_types.append('jrb' + workingVersion)
+                self.interpreter_name_exe_names.append('jruby' + workingVersion)
+                
+                lastVersion = workingVersion
+                workingVersion = os.path.splitext(workingVersion)[0]
+        self.test_types.append('jrb')
+        self.test_types.append('rb')
+        self.interpreter_name_exe_names.append('jruby')
+    
 
 interpreters = {
-    'js': [JsLang()],
-    'py': [PyLang('2.6'), PyLang('2.7'), PyLang('3.0'), PyLang('3.1'), PyLang('3.2'), PyLang('3.3'), PyLang('3.4')],
-    'rb': [RbLang('1.9'), RbLang('2.0'), RbLang('2.1')],
+    'js':     [JsLang()],
+    'py':     [PyLang('2.6'), PyLang('2.7'), PyLang('3.0'), PyLang('3.1'), PyLang('3.2'), PyLang('3.3'), PyLang('3.4')],
+    'rb':     [RbLang('1.9'), RbLang('2.0'), RbLang('2.1'), JrbLang('9.0')],
+    'jrb':    [JrbLang('9.0')],
     
-    'py2': [PyLang('2.6'), PyLang('2.7')],
-    'py2.6': [PyLang('2.6')],
-    'py2.7': [PyLang('2.7')],
+    'py2':    [PyLang('2.6'), PyLang('2.7')],
+    'py2.6':  [PyLang('2.6')],
+    'py2.7':  [PyLang('2.7')],
     
-    'py3': [PyLang('3.0'), PyLang('3.1'), PyLang('3.2'), PyLang('3.3'), PyLang('3.4')],
-    'py3.0': [PyLang('3.0')],
-    'py3.1': [PyLang('3.1')],
-    'py3.2': [PyLang('3.2')],
-    'py3.3': [PyLang('3.3')],
-    'py3.4': [PyLang('3.4')],
+    'py3':    [PyLang('3.0'), PyLang('3.1'), PyLang('3.2'), PyLang('3.3'), PyLang('3.4')],
+    'py3.0':  [PyLang('3.0')],
+    'py3.1':  [PyLang('3.1')],
+    'py3.2':  [PyLang('3.2')],
+    'py3.3':  [PyLang('3.3')],
+    'py3.4':  [PyLang('3.4')],
     
-    'rb1': [RbLang('1.9')],
-    'rb1.9': [RbLang('1.9')],
+    'rb1':    [RbLang('1.9')],
+    'rb1.9':  [RbLang('1.9')],
     
-    'rb2': [RbLang('2.0'), RbLang('2.1'), RbLang('2.2')],
-    'rb2.0': [RbLang('2.0')],
-    'rb2.1': [RbLang('2.1')],
-    'rb2.2': [RbLang('2.2')]
+    'rb2':    [RbLang('2.0'), RbLang('2.1'), RbLang('2.2')],
+    'rb2.0':  [RbLang('2.0')],
+    'rb2.1':  [RbLang('2.1')],
+    'rb2.2':  [RbLang('2.2')],
+    
+    'jrb9.0': [JrbLang('9.0')]
 }
 
 # Abstracts a set of tests given in a single file

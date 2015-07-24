@@ -24,8 +24,11 @@ with driver.Cluster(initial_servers=1, output_folder='.', wait_until_ready=True,
     conn = r.connect(server.host, server.driver_port)
     
     print("Setting AuthKey (%.2fs)" % (time.time() - startTime))
-    
-    assert list(r.db("rethinkdb").table("cluster_config").run(conn)) == [{"id": "auth", "auth_key": None}]
+
+    assert list(r.db("rethinkdb").table("cluster_config").run(conn)) == [
+            {"id": "auth", "auth_key": None},
+            {"id": "heartbeat", "heartbeat_timeout_secs": 10}
+        ]
     
     res = r.db("rethinkdb").table("cluster_config").get("auth").update({"auth_key": "hunter2"}).run(conn)
     assert res["errors"] == 0
@@ -45,7 +48,7 @@ with driver.Cluster(initial_servers=1, output_folder='.', wait_until_ready=True,
     
     conn = r.connect(server.host, server.driver_port, auth_key="hunter2")
     
-    rows = list(r.db("rethinkdb").table("cluster_config").run(conn))
+    rows = list(r.db("rethinkdb").table("cluster_config").filter({"id": "auth"}).run(conn))
     assert rows == [{"id": "auth", "auth_key": {"hidden": True}}]
     
     print("Removing the AuthKey (%.2fs)" % (time.time() - startTime))
@@ -53,14 +56,14 @@ with driver.Cluster(initial_servers=1, output_folder='.', wait_until_ready=True,
     res = r.db("rethinkdb").table("cluster_config").get("auth").update({"auth_key": None}).run(conn)
     assert res["errors"] == 0
     
-    assert list(r.db("rethinkdb").table("cluster_config").run(conn)) == [{"id": "auth", "auth_key": None}]
+    assert list(r.db("rethinkdb").table("cluster_config").filter({"id": "auth"}).run(conn)) == [{"id": "auth", "auth_key": None}]
     
     conn.close()
     
     print("Verifying connection without an AuthKey (%.2fs)" % (time.time() - startTime))
     
     conn = r.connect(server.host, server.driver_port)
-    assert list(r.db("rethinkdb").table("cluster_config").run(conn)) == [{"id": "auth", "auth_key": None}]
+    assert list(r.db("rethinkdb").table("cluster_config").filter({"id": "auth"}).run(conn)) == [{"id": "auth", "auth_key": None}]
 
     # This is mostly to make sure the server doesn't crash in this case
     res = r.db("rethinkdb").table("cluster_config").get("auth").update({"auth_key": {"hidden": True}}).run(conn)
@@ -78,6 +81,21 @@ with driver.Cluster(initial_servers=1, output_folder='.', wait_until_ready=True,
     res = r.db("rethinkdb").table("cluster_config").get("auth") \
            .update({"auth_key": {"is_this_nonsense": "yes"}}).run(conn)
     assert res["errors"] == 1, res
+
+    print("Verifying heartbeat timeout interface")
+
+    res = r.db("rethinkdb").table("cluster_config").get("heartbeat").update({"heartbeat_timeout_secs": -1.0}).run(conn)
+    assert res["errors"] == 1, res
+    res = r.db("rethinkdb").table("cluster_config").get("heartbeat").update({"heartbeat_timeout_secs": 1.0}).run(conn)
+    assert res["errors"] == 1, res
+    res = r.db("rethinkdb").table("cluster_config").get("heartbeat").update({"heartbeat_timeout_secs": 2.0}).run(conn)
+    assert res["replaced"] == 1, res
+    res = r.db("rethinkdb").table("cluster_config").get("heartbeat").run(conn)
+    assert res["heartbeat_timeout_secs"] == 2
+    res = r.db("rethinkdb").table("cluster_config").get("heartbeat").update({"heartbeat_timeout_secs": 2.5}).run(conn)
+    assert res["replaced"] == 1, res
+    res = r.db("rethinkdb").table("cluster_config").get("heartbeat").run(conn)
+    assert res["heartbeat_timeout_secs"] == 2.5
 
     print("Cleaning up (%.2fs)" % (time.time() - startTime))
 print("Done. (%.2fs)" % (time.time() - startTime))
