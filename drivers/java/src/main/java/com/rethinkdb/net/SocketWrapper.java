@@ -42,10 +42,6 @@ public class SocketWrapper {
         }
     }
 
-    public ByteBuffer recvall(int length, int deadline) {
-        throw new RuntimeException("recvall not implemented");
-    }
-
     public void sendall(ByteBuffer buf) {
         throw new RuntimeException("sendall not implemented");
     }
@@ -61,7 +57,7 @@ public class SocketWrapper {
         }
     }
 
-    private ByteBuffer _read(int i, boolean strict) {
+    private ByteBuffer readBytes(int i, boolean strict) {
         ByteBuffer buffer = ByteBuffer.allocate(i);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
         try {
@@ -100,30 +96,25 @@ public class SocketWrapper {
         write(buffer);
     }
 
-    public String readString() {
-        return new String(_read(5000, false).array());
-    }
-
     public void write(byte[] bytes) {
         writeLEInt(bytes.length);
         write(ByteBuffer.wrap(bytes));
     }
 
-    private ByteBuffer readToBuf(int bufsize, boolean keepReading) {
+    public ByteBuffer recvall(int bufsize) {
+        return recvall(bufsize, Optional.empty());
+    }
+
+    public ByteBuffer recvall(int bufsize, Optional<Integer> deadline) {
+        // TODO: make deadline work
         ByteBuffer buf = ByteBuffer.allocate(bufsize);
         buf.order(ByteOrder.LITTLE_ENDIAN);
         try {
             int bytesRead = socketChannel.read(buf);
-            if (bytesRead != bufsize && !keepReading) {
-                if(!keepReading){
-                    throw new RethinkDBException(String.format(
-                        "Error receiving data, expected %d bytes but received %d",
-                        bufsize, bytesRead));
-                } else{
-                    do {
-                        bytesRead += socketChannel.read(buf);
-                    } while(bytesRead < bufsize);
-                }
+            if (bytesRead != bufsize) {
+                do {
+                    bytesRead += socketChannel.read(buf);
+                } while(bytesRead < bufsize);
             }
         } catch(IOException ex) {
             // TODO: Throw the correct exception here
@@ -134,9 +125,9 @@ public class SocketWrapper {
     }
 
     public Response read() {
-        long token = readToBuf(8, false).getLong();
-        int responseLength = readToBuf(4, false).getInt();
-        byte[] responseBytes = readToBuf(responseLength, true).array();
+        long token = recvall(8).getLong();
+        int responseLength = recvall(4).getInt();
+        ByteBuffer responseBytes = recvall(responseLength);
         return Response.parseFrom(token, responseBytes);
     }
 
