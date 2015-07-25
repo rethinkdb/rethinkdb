@@ -28,6 +28,10 @@ public class GlobalOptions {
         return this;
     }
 
+    public Optional<${reql_to_java_type(spec['type'])}> ${dromedary(arg)}() {
+        return _${dromedary(arg)};
+    }
+
     % endfor
 
 }
