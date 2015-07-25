@@ -11,23 +11,23 @@ import com.rethinkdb.ast.Query;
 import com.rethinkdb.response.Response;
 
 
-public class ConnectionInstance<C extends Connection> {
+public class ConnectionInstance {
 
-    private Optional<C> parent = Optional.empty();
+    private Connection<? extends ConnectionInstance> parent;
     private HashMap<Long, Cursor> cursorCache = new HashMap<>();
     private Optional<SocketWrapper> socket = Optional.empty();
     private boolean closing = false;
     private Optional<ByteBuffer> headerInProgress = Optional.empty();
 
-    public ConnectionInstance(C parent) {
-        this.parent = Optional.ofNullable(parent);
+    public ConnectionInstance(Connection<? extends ConnectionInstance> parent) {
+        this.parent = parent;
     }
 
-    public C connect(Optional<Integer> timeout) {
-        String parentHost = this.parent.get().hostname;
-        int parentPort = this.parent.get().port;
+    public Connection connect(Optional<Integer> timeout) {
+        String parentHost = this.parent.hostname;
+        int parentPort = this.parent.port;
         socket = Optional.of(new SocketWrapper(parentHost, parentPort, timeout));
-        return parent.get();
+        return parent;
     }
 
     public boolean isOpen() {
@@ -49,8 +49,15 @@ public class ConnectionInstance<C extends Connection> {
             socket.ifPresent(SocketWrapper::close);
         }
     }
+    Optional<Object> runQuery(Query query) {
+        return runQuery(query, false);
+    }
 
-    private Optional<Object> runQuery(Query query, boolean noreply) {
+    void runQueryNoreply(Query query) {
+        runQuery(query, true);
+    }
+
+    Optional<Object> runQuery(Query query, boolean noreply) {
         socket.orElseThrow(() -> new ReqlDriverError("No socket open."))
             .sendall(query.serialize());
         if(noreply){
@@ -62,11 +69,11 @@ public class ConnectionInstance<C extends Connection> {
         // TODO: This logic needs to move into the Response class
         if(res.isAtom()){
             return Optional.of(
-                (Object) Response.convertPseudotypes(res.data.get(), res.profile));
+                Response.convertPseudotypes(res.data.get(), res.profile));
         } else if(res.isPartial() || res.isSequence()) {
             Cursor cursor = Cursor.empty(this, query);
             cursor.extend(res);
-            return Optional.of((Object) cursor);
+            return Optional.of(cursor);
         } else if(res.isWaitComplete()) {
             return Optional.empty();
         } else {

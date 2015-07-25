@@ -82,6 +82,7 @@ public class SocketWrapper {
     }
 
     public void writeLEInt(int i) {
+        // TODO: use LEUByteBuffer
         ByteBuffer buffer = ByteBuffer.allocate(4);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
         buffer.putInt(i);
@@ -89,6 +90,7 @@ public class SocketWrapper {
     }
 
     public void writeStringWithLength(String s) {
+        // TODO: use LEUByteBuffer
         writeLEInt(s.length());
 
         ByteBuffer buffer = ByteBuffer.allocate(s.length());
