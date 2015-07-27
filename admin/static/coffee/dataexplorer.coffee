@@ -454,6 +454,7 @@ class Container extends Backbone.View
         any: ['number', 'bool', 'string', 'array', 'object', 'stream', 'selection', 'table', 'db', 'r', 'error', 'binary', 'line', 'point', 'polygon']
         geometry: ['line', 'point', 'polygon']
         sequence: ['table', 'selection', 'stream', 'array']
+        stream: ['table', 'selection']
         grouped_stream: ['stream', 'array']
 
     # Convert meta types (value, any or sequence) to an array of types or return an array composed of just the type
@@ -476,9 +477,9 @@ class Container extends Backbone.View
     # Once we are done moving the doc, we could generate a .js in the makefile file with the data so we don't have to do an ajax request+all this stuff
     set_doc_description: (command, tag, suggestions) =>
         if command['body']?
-            # The body of `getField` uses `()` and not `getField()`
+            # The body of `bracket` uses `()` and not `bracket()`
             # so we manually set the variables dont_need_parenthesis and full_tag
-            if tag is 'getField'
+            if tag is 'bracket'
                 dont_need_parenthesis = false
                 full_tag = tag+'('
             else
@@ -538,13 +539,13 @@ class Container extends Backbone.View
             tag = command['name']
             if tag of @ignored_commands
                 continue
-            if tag is '()' # The parentheses will be added later
+            if tag is '() (bracket)' # The parentheses will be added later
                 # Add `(attr)`
                 tag = ''
                 @set_doc_description command, tag, @suggestions
 
-                # Add `getField(sttr)`
-                tag = 'getField'
+                # Add `bracket(sttr)`
+                tag = 'bracket'
             else if tag is 'toJsonString, toJSON'
                 # Add the `toJsonString()` alias
                 tag = 'toJsonString'

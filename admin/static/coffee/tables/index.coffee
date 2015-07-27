@@ -134,10 +134,10 @@ class DatabasesListView extends Backbone.View
             @databases_view.push view
             @$el.append view.render().$el
 
-        if @container.loading
-            @$el.html @template.loading_databases()
-        else if @collection.length is 0
+        if @collection.length is 0
             @$el.html @template.no_databases()
+        else if @container.loading
+            @$el.html @template.loading_databases()
 
         @listenTo @collection, 'add', (database) =>
             new_view = new DatabaseView
