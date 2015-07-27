@@ -670,19 +670,6 @@ class RqlTzinfo(datetime.tzinfo):
         return datetime.timedelta(0)
 
 
-def reql_type_time_to_datetime(obj):
-    if 'epoch_time' not in obj:
-        raise ReqlDriverError(('pseudo-type TIME object %s does not ' +
-                               'have expected field "epoch_time".')
-                              % py_json.dumps(obj))
-
-    if 'timezone' in obj:
-        return datetime.datetime.fromtimestamp(obj['epoch_time'],
-                                               RqlTzinfo(obj['timezone']))
-    else:
-        return datetime.datetime.utcfromtimestamp(obj['epoch_time'])
-
-
 # Python only allows immutable built-in types to be hashed, such as
 # for keys in a dict This means we can't use lists or dicts as keys in
 # grouped data objects, so we convert them to tuples and frozensets,
@@ -698,22 +685,6 @@ def recursively_make_hashable(obj):
     return obj
 
 
-def reql_type_grouped_data_to_object(obj):
-    if 'data' not in obj:
-        raise ReqlDriverError(('pseudo-type GROUPED_DATA object' +
-                               ' %s does not have the expected field "data".')
-                              % py_json.dumps(obj))
-    return dict([(recursively_make_hashable(k), v) for k, v in obj['data']])
-
-
-def reql_type_binary_to_bytes(obj):
-    if 'data' not in obj:
-        raise ReqlDriverError(('pseudo-type BINARY object %s does not have ' +
-                               'the expected field "data".')
-                              % py_json.dumps(obj))
-    return RqlBinary(base64.b64decode(obj['data'].encode('utf-8')))
-
-
 class ReQLDecoder(py_json.JSONDecoder):
     """docstring for name"""
     def __init__(self, reql_format_opts, *args, **kw):
@@ -721,6 +692,31 @@ class ReQLDecoder(py_json.JSONDecoder):
             object_hook=self.convert_pseudotype, *args, **kw)
         self.reql_format_opts = reql_format_opts
 
+    def convert_type_time(self, obj):
+        if 'epoch_time' not in obj:
+            raise ReqlDriverError(('pseudo-type TIME object %s does not ' +
+                                   'have expected field "epoch_time".')
+                                  % py_json.dumps(obj))
+
+        if 'timezone' in obj:
+            return datetime.datetime.fromtimestamp(obj['epoch_time'],
+                                                   RqlTzinfo(obj['timezone']))
+        else:
+            return datetime.datetime.utcfromtimestamp(obj['epoch_time'])
+
+    def convert_grouped_data(self, obj):
+        if 'data' not in obj:
+            raise ReqlDriverError(('pseudo-type GROUPED_DATA object' +
+                                   ' %s does not have the expected field "data".')
+                                  % py_json.dumps(obj))
+        return dict([(recursively_make_hashable(k), v) for k, v in obj['data']])
+
+    def convert_binary(self, obj):
+        if 'data' not in obj:
+            raise ReqlDriverError(('pseudo-type BINARY object %s does not have ' +
+                                   'the expected field "data".')
+                                  % py_json.dumps(obj))
+        return RqlBinary(base64.b64decode(obj['data'].encode('utf-8')))
 
     def convert_pseudotype(self, obj):
         reql_type = obj.get('$reql_type$')
@@ -729,14 +725,14 @@ class ReQLDecoder(py_json.JSONDecoder):
                 time_format = self.reql_format_opts.get('time_format')
                 if time_format is None or time_format == 'native':
                     # Convert to native python datetime object
-                    return reql_type_time_to_datetime(obj)
+                    return self.convert_time(obj)
                 elif time_format != 'raw':
                     raise ReqlDriverError("Unknown time_format run option \"%s\"."
                                          % time_format)
             elif reql_type == 'GROUPED_DATA':
                 group_format = self.reql_format_opts.get('group_format')
                 if group_format is None or group_format == 'native':
-                    return reql_type_grouped_data_to_object(obj)
+                    return self.convert_grouped_data(obj)
                 elif group_format != 'raw':
                     raise ReqlDriverError("Unknown group_format run option \"%s\"."
                                          % group_format)
@@ -746,7 +742,7 @@ class ReQLDecoder(py_json.JSONDecoder):
             elif reql_type == 'BINARY':
                 binary_format = self.reql_format_opts.get('binary_format')
                 if binary_format is None or binary_format == 'native':
-                    return reql_type_binary_to_bytes(obj)
+                    return self.convert_binary(obj)
                 elif binary_format != 'raw':
                     raise ReqlDriverError("Unknown binary_format run option \"%s\"."
                                          % binary_format)
