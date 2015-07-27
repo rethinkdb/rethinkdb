@@ -714,50 +714,47 @@ def reql_type_binary_to_bytes(obj):
     return RqlBinary(base64.b64decode(obj['data'].encode('utf-8')))
 
 
-def convert_pseudotype(obj, format_opts):
-    reql_type = obj.get('$reql_type$')
-    if reql_type is not None:
-        if reql_type == 'TIME':
-            time_format = format_opts.get('time_format')
-            if time_format is None or time_format == 'native':
-                # Convert to native python datetime object
-                return reql_type_time_to_datetime(obj)
-            elif time_format != 'raw':
-                raise ReqlDriverError("Unknown time_format run option \"%s\"."
-                                      % time_format)
-        elif reql_type == 'GROUPED_DATA':
-            group_format = format_opts.get('group_format')
-            if group_format is None or group_format == 'native':
-                return reql_type_grouped_data_to_object(obj)
-            elif group_format != 'raw':
-                raise ReqlDriverError("Unknown group_format run option \"%s\"."
-                                      % group_format)
-        elif reql_type == 'GEOMETRY':
-            # No special support for this. Just return the raw object
-            return obj
-        elif reql_type == 'BINARY':
-            binary_format = format_opts.get('binary_format')
-            if binary_format is None or binary_format == 'native':
-                return reql_type_binary_to_bytes(obj)
-            elif binary_format != 'raw':
-                raise ReqlDriverError("Unknown binary_format run option \"%s\"."
-                                      % binary_format)
-        else:
-            raise ReqlDriverError("Unknown pseudo-type %s" % reql_type)
-    # If there was no pseudotype, or the time format is raw, return
-    # the original object
-    return obj
+class ReQLDecoder(py_json.JSONDecoder):
+    """docstring for name"""
+    def __init__(self, reql_format_opts, *args, **kw):
+        super(ReQLDecoder, self).__init__(
+            object_hook=self.convert_pseudotype, *args, **kw)
+        self.reql_format_opts = reql_format_opts
 
 
-def recursively_convert_pseudotypes(obj, format_opts):
-    if isinstance(obj, dict):
-        for key, value in dict_items(obj):
-            obj[key] = recursively_convert_pseudotypes(value, format_opts)
-        obj = convert_pseudotype(obj, format_opts)
-    elif isinstance(obj, list):
-        for i in xrange(len(obj)):
-            obj[i] = recursively_convert_pseudotypes(obj[i], format_opts)
-    return obj
+    def convert_pseudotype(self, obj):
+        reql_type = obj.get('$reql_type$')
+        if reql_type is not None:
+            if reql_type == 'TIME':
+                time_format = self.reql_format_opts.get('time_format')
+                if time_format is None or time_format == 'native':
+                    # Convert to native python datetime object
+                    return reql_type_time_to_datetime(obj)
+                elif time_format != 'raw':
+                    raise ReqlDriverError("Unknown time_format run option \"%s\"."
+                                         % time_format)
+            elif reql_type == 'GROUPED_DATA':
+                group_format = self.reql_format_opts.get('group_format')
+                if group_format is None or group_format == 'native':
+                    return reql_type_grouped_data_to_object(obj)
+                elif group_format != 'raw':
+                    raise ReqlDriverError("Unknown group_format run option \"%s\"."
+                                         % group_format)
+            elif reql_type == 'GEOMETRY':
+                # No special support for this. Just return the raw object
+                return obj
+            elif reql_type == 'BINARY':
+                binary_format = self.reql_format_opts.get('binary_format')
+                if binary_format is None or binary_format == 'native':
+                    return reql_type_binary_to_bytes(obj)
+                elif binary_format != 'raw':
+                    raise ReqlDriverError("Unknown binary_format run option \"%s\"."
+                                         % binary_format)
+            else:
+                raise ReqlDriverError("Unknown pseudo-type %s" % reql_type)
+        # If there was no pseudotype, or the relevant format is raw, return
+        # the original object
+        return obj
 
 
 # This class handles the conversion of RQL terminal types in both directions
