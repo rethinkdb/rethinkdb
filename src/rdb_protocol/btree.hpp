@@ -279,7 +279,7 @@ public:
     ~rdb_modification_report_cb_t();
 
     new_mutex_in_line_t get_in_line_for_sindex();
-    rwlock_in_line_t get_in_line_for_stamp();
+    rwlock_in_line_t get_in_line_for_cfeed_stamp();
 
     void on_mod_report(const rdb_modification_report_t &mod_report,
                        bool update_pkey_cfeeds,

@@ -347,7 +347,7 @@ void do_a_replace_from_batched_replace(
         batched_replaces_fifo_sink, batched_replaces_fifo_token);
     // We need to get in line for this while still holding the superblock so
     // that stamp read operations can't queue-skip.
-    rwlock_in_line_t stamp_spot = mod_cb->get_in_line_for_stamp();
+    rwlock_in_line_t stamp_spot = mod_cb->get_in_line_for_cfeed_stamp();
 
     rdb_live_deletion_context_t deletion_context;
     rdb_modification_report_t mod_report(*info.key);
@@ -1003,8 +1003,8 @@ void rdb_modification_report_cb_t::finish(
 new_mutex_in_line_t rdb_modification_report_cb_t::get_in_line_for_sindex() {
     return store_->get_in_line_for_sindex_queue(sindex_block_);
 }
-rwlock_in_line_t rdb_modification_report_cb_t::get_in_line_for_stamp() {
-    return store_->get_in_line_for_stamp(access_t::write);
+rwlock_in_line_t rdb_modification_report_cb_t::get_in_line_for_cfeed_stamp() {
+    return store_->get_in_line_for_cfeed_stamp(access_t::write);
 }
 
 void rdb_modification_report_cb_t::on_mod_report(

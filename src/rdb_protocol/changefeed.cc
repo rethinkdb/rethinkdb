@@ -482,7 +482,7 @@ void server_t::send_all(const msg_t &msg,
                         const store_key_t &key,
                         rwlock_in_line_t *stamp_spot) {
     auto_drainer_t::lock_t lock(&drainer);
-    stamp_spot->guarantee_is_for_lock(&parent->stamp_lock);
+    stamp_spot->guarantee_is_for_lock(&parent->cfeed_stamp_lock);
     stamp_spot->write_signal()->wait_lazily_unordered();
 
     rwlock_acq_t acq(&clients_lock, access_t::read);
@@ -523,7 +523,7 @@ server_t::limit_addr_t server_t::get_limit_stop_addr() {
 
 boost::optional<uint64_t> server_t::get_stamp(const client_t::addr_t &addr) {
     auto_drainer_t::lock_t lock(&drainer);
-    rwlock_acq_t stamp_acq(&parent->stamp_lock, access_t::read);
+    rwlock_acq_t stamp_acq(&parent->cfeed_stamp_lock, access_t::read);
     rwlock_acq_t client_acq(&clients_lock, access_t::read);
     auto it = clients.find(addr);
     if (it == clients.end()) {
