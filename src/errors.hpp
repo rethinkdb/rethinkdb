@@ -280,4 +280,6 @@ release mode. */
     #define final
 #endif
 
+template <class T> class TODO_ATN_delete_me;
+
 #endif /* ERRORS_HPP_ */

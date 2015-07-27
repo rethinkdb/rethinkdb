@@ -13,12 +13,12 @@
 
 const uint64_t METADATA_CACHE_SIZE = 32 * MEGABYTE;
 
-struct metadata_disk_superblock_t {
+ATTR_PACKED(struct metadata_disk_superblock_t {
     block_magic_t magic;
 
     block_id_t root_block;
     block_id_t stat_block;
-} __attribute__ ((packed));
+});
 
 // Etymology: In version 1.13, the magic was 'RDmd', for "(R)ethink(D)B (m)eta(d)ata".
 // Every subsequent version, the last character has been incremented.

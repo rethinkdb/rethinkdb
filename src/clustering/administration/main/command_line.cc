@@ -29,6 +29,7 @@
 #include "arch/os_signal.hpp"
 #include "arch/runtime/starter.hpp"
 #include "arch/filesystem.hpp"
+
 #include "extproc/extproc_spawner.hpp"
 #include "clustering/administration/main/cache_size.hpp"
 #include "clustering/administration/main/names.hpp"
@@ -875,7 +876,8 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
 }
 
 void run_rethinkdb_proxy(serve_info_t *serve_info, bool *const result_out) {
-    os_signal_cond_t sigint_cond;
+
+  os_signal_cond_t sigint_cond;
     guarantee(!serve_info->joins.empty());
 
     try {

@@ -2,10 +2,37 @@
 #ifndef CONTAINERS_ARCHIVE_SOCKET_STREAM_HPP_
 #define CONTAINERS_ARCHIVE_SOCKET_STREAM_HPP_
 
+#ifdef _WIN32
+
+#include "concurrency/signal.hpp"
+#include "containers/archive/archive.hpp"
+
+// TODO ATN
+
+class socket_stream_t :
+    public read_stream_t,
+    public write_stream_t {
+public:
+    socket_stream_t(int, bool);
+    int64_t read(void*, int64_t);
+    int64_t write(const void*, int64_t);
+    void set_interruptor(signal_t*);
+};
+
+class blocking_fd_watcher_t {
+
+};
+
+class fd_watcher_t
+/* TODO: : public home_thread_mixin_debug_only_t */ {
+
+};
+
+#else
+
 #include "arch/io/event_watcher.hpp"
 #include "arch/io/io_utils.hpp"
 #include "concurrency/cond_var.hpp"
-#include "containers/archive/archive.hpp"
 #include "containers/scoped.hpp"
 #include "errors.hpp"
 
@@ -145,5 +172,7 @@ private:
 
     DISABLE_COPYING(socket_stream_t);
 };
+
+#endif // _WIN32
 
 #endif  // CONTAINERS_ARCHIVE_SOCKET_STREAM_HPP_

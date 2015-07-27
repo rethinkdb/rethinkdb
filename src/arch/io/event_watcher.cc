@@ -1,4 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
+#ifndef _WIN32 // ATN TODO
+
 #include "arch/io/event_watcher.hpp"
 #include "arch/runtime/thread_pool.hpp"
 
@@ -132,3 +134,4 @@ void linux_event_watcher_t::on_event(int event) {
     }
 }
 
+#endif

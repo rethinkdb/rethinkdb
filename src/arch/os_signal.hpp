@@ -9,7 +9,7 @@
 
 // ATN TODO
 
-struct os_signal_cond_t : public cond_t {
+class os_signal_cond_t : public cond_t {
 	int get_source_signo() const;
 	pid_t get_source_pid() const;
 	uid_t get_source_uid() const;

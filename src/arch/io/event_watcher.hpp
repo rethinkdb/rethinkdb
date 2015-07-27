@@ -2,6 +2,16 @@
 #ifndef ARCH_IO_EVENT_WATCHER_HPP_
 #define ARCH_IO_EVENT_WATCHER_HPP_
 
+#ifdef _WIN32
+
+// TODO ATN
+
+class linux_event_watcher_t {
+  // TOD ATN remove all uses of this class in windows code
+};
+
+#else
+
 #include "arch/runtime/event_queue.hpp"
 #include "utils.hpp"
 #include "concurrency/signal.hpp"
@@ -53,5 +63,7 @@ private:
 
     DISABLE_COPYING(linux_event_watcher_t);
 };
+
+#endif // _WIN32
 
 #endif /* ARCH_IO_EVENT_WATCHER_HPP_ */

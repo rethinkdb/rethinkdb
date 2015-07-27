@@ -1,15 +1,22 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
+// TODO ATN #include "containers/archive/socket_stream.hpp"
+
+#ifdef _WIN32
+
 #include "containers/archive/socket_stream.hpp"
+#include "errors.hpp"
+
+
+int64_t socket_stream_t::read(void*, int64_t) {
+  rassert(false, "ATN TODO");
+  return 0;
+}
+
+#else
 
 #include <fcntl.h>
 #include <sys/types.h>
-#ifdef _WIN32
-// ATN TODO
-#define SHUT_RD SD_RECEIVE
-#define SHUT_WR SD_SEND
-#else
 #include <sys/socket.h>
-#endif
 #include <unistd.h>
 
 #include <cstring>
@@ -331,3 +338,4 @@ void socket_stream_t::on_event(int events) {
     if (fd_watcher_->is_read_open()) shutdown_read();
 }
 
+#endif

@@ -274,4 +274,6 @@ void serialize(write_message_t *wm, const in6_addr &addr);
 template <cluster_version_t W>
 MUST_USE archive_result_t deserialize(read_stream_t *s, in6_addr *addr);
 
+class TODO_ATN;
+
 #endif  // CONTAINERS_ARCHIVE_ARCHIVE_HPP_

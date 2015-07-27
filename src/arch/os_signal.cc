@@ -1,4 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
+#ifndef _WIN32 // TODO ATN
+
 #include "arch/os_signal.hpp"
 
 #include "arch/runtime/thread_pool.hpp"
@@ -37,3 +39,5 @@ void os_signal_cond_t::on_thread_switch() {
     // TODO: There's probably an outside chance of a use-after-free bug here.
     do_on_thread(home_thread(), std::bind(&os_signal_cond_t::pulse, this));
 }
+
+#endif

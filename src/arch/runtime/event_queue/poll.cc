@@ -1,4 +1,6 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
+#ifndef _WIN32 // TODO ATN
+
 #include "arch/runtime/event_queue/poll.hpp"
 
 #include <unistd.h>
@@ -189,3 +191,5 @@ void poll_event_queue_t::forget_resource(fd_t resource, DEBUG_VAR linux_event_ca
     }
 
 }
+
+#endif

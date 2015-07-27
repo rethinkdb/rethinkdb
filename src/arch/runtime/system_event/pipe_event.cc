@@ -1,4 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
+#ifndef _WIN32 // ATN TODO
+
 #include "arch/runtime/system_event/pipe_event.hpp"
 
 #include <fcntl.h>
@@ -61,3 +63,5 @@ void pipe_event_t::wakey_wakey() {
         guarantee_err(get_errno() == EAGAIN || get_errno() == EWOULDBLOCK, "Could not write to notification pipe");
     }
 }
+
+#endif

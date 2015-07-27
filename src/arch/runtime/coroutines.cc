@@ -386,6 +386,10 @@ bool is_coroutine_stack_overflow(void *addr) {
 }
 
 bool has_n_bytes_free_stack_space(size_t n) {
+#ifdef _WIN32
+    assert(false, "ATN TODO");
+    return true;
+#else
     // We assume that `tester` is going to be allocated on the stack.
     // Theoretically this is not guaranteed by the C++ standard, but in practice
     // it should work.
@@ -393,6 +397,7 @@ bool has_n_bytes_free_stack_space(size_t n) {
     const coro_t *current_coro = TLS_get_cglobals()->current_coro;
     guarantee(current_coro != nullptr);
     return current_coro->stack.free_space_below(&tester) >= n;
+#endif
 }
 
 bool coroutines_have_been_initialized() {

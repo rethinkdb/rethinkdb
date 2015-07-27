@@ -10,6 +10,7 @@
 #include "containers/object_buffer.hpp"
 #include "containers/scoped.hpp"
 #include "containers/archive/socket_stream.hpp"
+#include "containers/archive/archive.hpp"
 
 class extproc_spawner_t;
 

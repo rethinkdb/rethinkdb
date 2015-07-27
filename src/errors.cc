@@ -104,6 +104,7 @@ const char *errno_string_maybe_using_buffer(int errsv, char *buf, size_t buflen)
 
 /* Handlers for various signals and for unexpected exceptions or calls to std::terminate() */
 
+#ifndef _WIN32 // ATN TODO
 NORETURN void generic_crash_handler(int signum) {
     if (signum == SIGSEGV) {
         crash("Segmentation fault.");
@@ -113,6 +114,7 @@ NORETURN void generic_crash_handler(int signum) {
         crash("Unexpected signal: %d", signum);
     }
 }
+#endif
 
 #ifdef _WIN32 // ATN TODO
 #define terminate_handler terminate_handler_

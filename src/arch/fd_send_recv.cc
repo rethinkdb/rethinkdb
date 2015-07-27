@@ -1,4 +1,6 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
+#ifndef _WIN32 // ATN TODO
+
 #include "arch/fd_send_recv.hpp"
 
 #include <sys/types.h>
@@ -86,3 +88,5 @@ fd_recv_result_t recv_fds(int socket_fd, size_t num_fds, int *fds) {
     memcpy(fds, CMSG_DATA(cmsg), sizeof(int) * num_fds);
     return FD_RECV_OK;
 }
+
+#endif
