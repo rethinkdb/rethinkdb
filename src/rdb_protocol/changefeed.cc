@@ -504,15 +504,6 @@ void server_t::send_all(const msg_t &msg,
     }
 }
 
-void server_t::stop_all() {
-    auto_drainer_t::lock_t lock(&drainer);
-    rwlock_in_line_t spot(&clients_lock, access_t::read);
-    spot.read_signal()->wait_lazily_unordered();
-    for (auto it = clients.begin(); it != clients.end(); ++it) {
-        it->second.cond->pulse_if_not_already_pulsed();
-    }
-}
-
 server_t::addr_t server_t::get_stop_addr() {
     return stop_mailbox.get_address();
 }

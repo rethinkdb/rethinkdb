@@ -438,7 +438,6 @@ public:
     void send_all(const msg_t &msg,
                   const store_key_t &key,
                   rwlock_in_line_t *stamp_spot);
-    void stop_all();
     addr_t get_stop_addr();
     limit_addr_t get_limit_stop_addr();
     boost::optional<uint64_t> get_stamp(const client_t::addr_t &addr);
