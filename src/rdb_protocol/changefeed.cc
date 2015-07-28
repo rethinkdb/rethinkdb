@@ -187,6 +187,7 @@ class squashing_queue_t : public maybe_squashing_queue_t {
     virtual void add(change_val_t change_val) {
         auto it = queue.find(change_val.pkey);
         if (it == queue.end()) {
+            queue_order.push_back(change_val.pkey);
             auto pair = std::make_pair(std::move(change_val.pkey),
                                        std::move(change_val));
             it = queue.insert(std::move(pair)).first;
@@ -205,6 +206,7 @@ class squashing_queue_t : public maybe_squashing_queue_t {
         }
     }
     virtual size_t size() const {
+        guarantee(queue.size() == queue_order.size());
         return queue.size();
     }
     virtual void clear() {
@@ -217,12 +219,15 @@ class squashing_queue_t : public maybe_squashing_queue_t {
     }
     virtual change_val_t pop() {
         guarantee(size() != 0);
-        auto it = queue.begin();
+        auto it = queue.find(*queue_order.begin());
+        guarantee(it != queue.end());
         auto ret = std::move(it->second);
         queue.erase(it);
+        queue_order.pop_front();
         return ret;
     }
     std::map<store_key_t, change_val_t> queue;
+    std::deque<store_key_t> queue_order;
 };
 
 class nonsquashing_queue_t : public maybe_squashing_queue_t {
