@@ -404,7 +404,7 @@ batched_replace_response_t rdb_batched_replace(
         // We release the superblock either before or after draining on all the
         // write operations depending on the presence of limit changefeeds.
         scoped_ptr_t<real_superblock_t> current_superblock(superblock->release());
-        bool update_pkey_cfeeds = sindex_cb->has_pkey_cfeeds();
+        bool update_pkey_cfeeds = sindex_cb->has_pkey_cfeeds(keys);
         {
             auto_drainer_t drainer;
             for (size_t i = 0; i < keys.size(); ++i) {
@@ -970,10 +970,21 @@ rdb_modification_report_cb_t::rdb_modification_report_cb_t(
 
 rdb_modification_report_cb_t::~rdb_modification_report_cb_t() { }
 
-bool rdb_modification_report_cb_t::has_pkey_cfeeds() {
-    for (auto &&pair : store_->changefeed_servers) {
-        if (pair.second->has_limit(boost::optional<std::string>())) {
-            return true;
+bool rdb_modification_report_cb_t::has_pkey_cfeeds(
+    const std::vector<store_key_t> &keys) {
+    const store_key_t *min = nullptr, *max = nullptr;
+    for (const auto &key : keys) {
+        if (min == nullptr || key < *min) min = &key;
+        if (max == nullptr || key > *max) max = &key;
+    }
+    if (min != nullptr && max != nullptr) {
+        key_range_t range(key_range_t::closed, *min,
+                          key_range_t::closed, *max);
+        for (auto &&pair : store_->changefeed_servers) {
+            if (pair.first.inner.overlaps(range)
+                && pair.second->has_limit(boost::optional<std::string>())) {
+                return true;
+            }
         }
     }
     return false;
