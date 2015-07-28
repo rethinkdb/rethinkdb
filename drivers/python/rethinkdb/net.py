@@ -79,13 +79,13 @@ class Query(object):
 
 
 class Response(object):
-    def __init__(self, token, json_str, format_opts={}, reql_decoder=ReQLDecoder):
+    def __init__(self, token, json_str, reql_decoder=ReQLDecoder()):
         try:
             json_str = json_str.decode('utf-8')
         except AttributeError:
             pass               # Python3 str objects are already utf-8
         self.token = token
-        full_response = reql_decoder(format_opts).decode(json_str)
+        full_response = reql_decoder.decode(json_str)
         self.type = full_response["t"]
         self.data = full_response["r"]
         self.backtrace = full_response.get("b", None)
@@ -472,8 +472,8 @@ class ConnectionInstance(object):
             if cursor is not None:
                 # Construct response
                 res = Response(
-                    res_token, res_buf, cursor.query.global_optargs,
-                    self._parent.reql_decoder)
+                    res_token, res_buf,
+                    self._parent._get_json_decoder(cursor.query.global_optargs))
                 self._handle_cursor_response(cursor, res)
                 if res_token == token:
                     return res
@@ -507,7 +507,6 @@ class Connection(object):
         self._child_kwargs = kwargs
         self._instance = None
         self._next_token = 0
-        self.reql_decoder = ReQLDecoder
 
     def reconnect(self, noreply_wait=True, timeout=None):
         if timeout is None:
@@ -582,6 +581,9 @@ class Connection(object):
         self.check_open()
         q = Query(pQuery.STOP, cursor.query.token, None, None)
         return self._instance.run_query(q, True)
+
+    def _get_json_decoder(self, format_opts):
+        return ReQLDecoder(format_opts)
 
 class DefaultConnection(Connection):
     def __init__(self, *args, **kwargs):

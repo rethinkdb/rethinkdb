@@ -687,7 +687,7 @@ def recursively_make_hashable(obj):
 
 class ReQLDecoder(py_json.JSONDecoder):
     """docstring for name"""
-    def __init__(self, reql_format_opts, *args, **kw):
+    def __init__(self, reql_format_opts={}):
         py_json.JSONDecoder.__init__(self, object_hook=self.convert_pseudotype)
         self.reql_format_opts = reql_format_opts
 
