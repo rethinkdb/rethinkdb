@@ -94,9 +94,6 @@ store_t::store_t(const region_t &region,
       io_backender_(io_backender), base_path_(base_path),
       perfmon_collection_membership(parent_perfmon_collection, &perfmon_collection, perfmon_name),
       ctx(_ctx),
-      changefeed_server((ctx == NULL || ctx->manager == NULL)
-                        ? NULL
-                        : new ql::changefeed::server_t(ctx->manager)),
       index_report(std::move(_index_report)),
       table_id(_table_id),
       write_superblock_acq_semaphore(WRITE_SUPERBLOCK_ACQ_WAITERS_LIMIT)
@@ -484,6 +481,11 @@ new_mutex_in_line_t store_t::get_in_line_for_sindex_queue(buf_lock_t *sindex_blo
     }
     return new_mutex_in_line_t(&sindex_queue_mutex);
 }
+
+rwlock_in_line_t store_t::get_in_line_for_cfeed_stamp(access_t access) {
+    return rwlock_in_line_t(&cfeed_stamp_lock, access);
+}
+
 
 void store_t::register_sindex_queue(
             internal_disk_backed_queue_t *disk_backed_queue,

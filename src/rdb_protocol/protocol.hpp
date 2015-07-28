@@ -117,8 +117,9 @@ struct changefeed_stamp_response_t {
     changefeed_stamp_response_t() { }
     // The `uuid_u` below is the uuid of the changefeed `server_t`.  (We have
     // different timestamps for each `server_t` because they're on different
-    // servers and don't synchronize with each other.)
-    std::map<uuid_u, uint64_t> stamps;
+    // servers and don't synchronize with each other.)  If this is empty it
+    // means the feed was aborted.
+    boost::optional<std::map<uuid_u, uint64_t> > stamps;
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(changefeed_stamp_response_t);
 
@@ -203,8 +204,13 @@ struct changefeed_point_stamp_response_t {
     // The `uuid_u` below is the uuid of the changefeed `server_t`.  (We have
     // different timestamps for each `server_t` because they're on different
     // servers and don't synchronize with each other.)
-    std::pair<uuid_u, uint64_t> stamp;
-    ql::datum_t initial_val;
+    struct valid_response_t {
+        std::pair<uuid_u, uint64_t> stamp;
+        ql::datum_t initial_val;
+        RDB_DECLARE_ME_SERIALIZABLE(valid_response_t);
+    };
+    // If this is empty it means the feed was aborted.
+    boost::optional<valid_response_t> resp;
 };
 
 RDB_DECLARE_SERIALIZABLE(changefeed_point_stamp_response_t);
