@@ -1,4 +1,5 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
+// TODO ATN better guards
 #ifdef __linux
 #ifndef NO_EVENTFD
 #include "arch/runtime/system_event/eventfd_event.hpp"

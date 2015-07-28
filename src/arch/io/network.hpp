@@ -243,7 +243,7 @@ private:
         size_t size;
     };
 
-    struct write_queue_op_t : public intrusive_list_node_t<write_queue_op_t> {
+  struct write_queue_op_t : public intrusive_list_node_t<write_queue_op_t> {
         write_buffer_t *dealloc;
         const void *buffer;
         size_t size;

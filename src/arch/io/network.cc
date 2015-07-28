@@ -1,6 +1,4 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
-#ifndef _WIN32 // TODO ATN
-
 #include "arch/io/network.hpp"
 
 #include <arpa/inet.h>
@@ -1058,5 +1056,3 @@ std::vector<std::string> get_ips() {
 
     return ret;
 }
-
-#endif
