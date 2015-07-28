@@ -382,8 +382,8 @@ public:
     std::vector<internal_disk_backed_queue_t *> sindex_queues;
     new_mutex_t sindex_queue_mutex;
     // Used to control access to stamps.  We need this so that `do_stamp` in
-    // `store.cc` can synchronize with with the `rdb_modification_report_cb_t`
-    // in `btree.cc`.
+    // `store.cc` can synchronize with the `rdb_modification_report_cb_t` in
+    // `btree.cc`.
     rwlock_t cfeed_stamp_lock;
 
     rdb_context_t *ctx;
@@ -402,6 +402,9 @@ public:
     }
     ql::changefeed::server_t *make_changefeed_server(const region_t &region) {
         guarantee(ctx && ctx->manager);
+        for (auto &&pair : changefeed_servers) {
+            guarantee(!pair.first.inner.overlaps(region.inner));
+        }
         auto it = changefeed_servers.insert(
             std::make_pair(
                 region_t(region),
