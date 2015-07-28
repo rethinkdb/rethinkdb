@@ -512,7 +512,6 @@ class Connection(object):
         self._child_kwargs = kwargs
         self._instance = None
         self._next_token = 0
-        self.reql_decoder = ReQLDecoder
 
     def reconnect(self, noreply_wait=True, timeout=None):
         if timeout is None:
