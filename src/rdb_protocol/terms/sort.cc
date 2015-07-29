@@ -112,6 +112,13 @@ private:
     virtual scoped_ptr_t<val_t>
     eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         std::vector<std::pair<order_direction_t, counted_t<const func_t> > > comparisons;
+        for (int i = 0; i < get_src()->args_size(); ++i) {
+            // Abort if any of the arguments is `r.args`. We don't currently
+            // support that with `order_by`.
+            rcheck(get_src()->args(i).type() != Term::ARGS, base_exc_t::LOGIC,
+                   "r.args is not supported in an order_by command yet.");
+        }
+        r_sanity_check(static_cast<size_t>(get_src()->args_size()) == args->num_args());
         for (size_t i = 1; i < args->num_args(); ++i) {
             if (get_src()->args(i).type() == Term::DESC) {
                 comparisons.push_back(
