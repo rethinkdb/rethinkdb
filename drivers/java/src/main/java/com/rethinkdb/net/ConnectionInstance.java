@@ -12,22 +12,16 @@ import com.rethinkdb.response.Response;
 
 
 public class ConnectionInstance {
-
-    private Connection<? extends ConnectionInstance> parent;
     private HashMap<Long, Cursor> cursorCache = new HashMap<>();
     private Optional<SocketWrapper> socket = Optional.empty();
     private boolean closing = false;
     private Optional<ByteBuffer> headerInProgress = Optional.empty();
 
-    public ConnectionInstance(Connection<? extends ConnectionInstance> parent) {
-        this.parent = parent;
+    public ConnectionInstance() {
     }
 
-    public Connection connect(Optional<Integer> timeout) {
-        String parentHost = this.parent.hostname;
-        int parentPort = this.parent.port;
-        socket = Optional.of(new SocketWrapper(parentHost, parentPort, timeout));
-        return parent;
+    public void connect(String hostname, int port, Optional<Integer> timeout) {
+        socket = Optional.of(new SocketWrapper(hostname, port, timeout));
     }
 
     public boolean isOpen() {
