@@ -207,12 +207,11 @@ struct changefeed_point_stamp_response_t {
     struct valid_response_t {
         std::pair<uuid_u, uint64_t> stamp;
         ql::datum_t initial_val;
-        RDB_DECLARE_ME_SERIALIZABLE(valid_response_t);
     };
     // If this is empty it means the feed was aborted.
     boost::optional<valid_response_t> resp;
 };
-
+RDB_DECLARE_SERIALIZABLE(changefeed_point_stamp_response_t::valid_response_t);
 RDB_DECLARE_SERIALIZABLE(changefeed_point_stamp_response_t);
 
 struct dummy_read_response_t {
