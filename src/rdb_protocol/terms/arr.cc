@@ -184,7 +184,8 @@ public:
         op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        batchspec_t batchspec = batchspec_t::user(batch_type_t::NORMAL, env->env);
+        batchspec_t batchspec =
+            batchspec_t::user(batch_type_t::NORMAL, env->env).with_at_most(1);
         bool is_empty = !args->arg(env, 0)->as_seq(env->env)->next(env->env, batchspec).has();
         return new_val(datum_t::boolean(is_empty));
     }
