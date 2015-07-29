@@ -272,7 +272,10 @@ private:
         try {
             while (threshold != parent->full_region.inner.right) {
                 /* Wait until there's room in the semaphore for the chunk we're about to
-                process */
+                process.
+                We acquire the maximum size that we want to put in this chunk first,
+                and then adjust the semaphore acquisition to the actual size of the
+                chunk later. */
                 new_semaphore_acq_t sem_acq(
                     &parent->item_throttler, parent->intro.config.item_chunk_mem_size);
                 wait_interruptible(
@@ -293,7 +296,7 @@ private:
                 subregion.inner.left = threshold.key();
 
                 /* Copy items from the store into `chunk` until the total size hits
-                `ITEM_CHUNK_SIZE`; we finish the backfill range; or we run out of
+                `item_chunk_mem_size`; we finish the backfill range; or we run out of
                 pre-items. */
 
                 backfill_item_seq_t<backfill_item_t> chunk(
@@ -373,8 +376,9 @@ private:
                     } consumer(&chunk, &metainfo, &parent->intro.config);
 
                     parent->parent->store->send_backfill(
-                        parent->common_version.mask(subregion), &producer, &consumer,
-                        keepalive.get_drain_signal());
+                        parent->common_version.mask(subregion),
+                        parent->intro.config.item_chunk_mem_size,
+                        &producer, &consumer, keepalive.get_drain_signal());
 
                     /* `producer` goes out of scope here, so it restores `pre_items` to
                     what it was before */
@@ -387,7 +391,7 @@ private:
                 information for the backfillee to have. */
                 if (!chunk.empty_domain()) {
                     /* Adjust for the fact that `chunk.get_mem_size()` isn't precisely
-                    equal to `ITEM_CHUNK_SIZE`, and then transfer the semaphore
+                    equal to `item_chunk_mem_size`, and then transfer the semaphore
                     ownership. */
                     sem_acq.change_count(chunk.get_mem_size());
                     parent->item_throttler_acq.transfer_in(std::move(sem_acq));

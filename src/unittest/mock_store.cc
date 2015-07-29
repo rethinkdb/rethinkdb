@@ -314,6 +314,7 @@ ql::datum_t vector_to_datum(std::vector<char> &&vector) {
 
 continue_bool_t mock_store_t::send_backfill(
         const region_map_t<state_timestamp_t> &start_point,
+        size_t,
         backfill_pre_item_producer_t *pre_item_producer,
         backfill_item_consumer_t *item_consumer,
         signal_t *interruptor)

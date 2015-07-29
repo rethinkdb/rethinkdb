@@ -137,6 +137,7 @@ public:
 
     continue_bool_t send_backfill(
             const region_map_t<state_timestamp_t> &start_point,
+            size_t mem_usage_limit,
             backfill_pre_item_producer_t *pre_item_producer,
             backfill_item_consumer_t *item_consumer,
             signal_t *interruptor)
@@ -144,7 +145,11 @@ public:
         home_thread_mixin_t::assert_thread();
         rassert(region_is_superset(get_region(), start_point.get_domain()));
         return store_view->send_backfill(
-            start_point, pre_item_producer, item_consumer, interruptor);
+            start_point,
+            mem_usage_limit,
+            pre_item_producer,
+            item_consumer,
+            interruptor);
     }
 
     continue_bool_t receive_backfill(

@@ -197,6 +197,17 @@ public:
         }
         guarantee(offset == value_out->size());
     }
+    int64_t size_value(
+            buf_parent_t parent,
+            const void *value_in_leaf_node) {
+        const rdb_value_t *v =
+            static_cast<const rdb_value_t *>(value_in_leaf_node);
+        rdb_blob_wrapper_t blob_wrapper(
+            parent.cache()->max_block_size(),
+            const_cast<rdb_value_t *>(v)->value_ref(),
+            blob::btree_maxreflen);
+        return blob_wrapper.valuesize();
+    }
     bool inner_aborted;
     size_t remaining;
 private:
@@ -211,6 +222,7 @@ private:
 
 continue_bool_t store_t::send_backfill(
         const region_map_t<state_timestamp_t> &start_point,
+        size_t mem_usage_limit,
         backfill_pre_item_producer_t *pre_item_producer,
         backfill_item_consumer_t *item_consumer,
         signal_t *interruptor)
@@ -253,10 +265,16 @@ continue_bool_t store_t::send_backfill(
             rdb_value_sizer_t sizer(cache->max_block_size());
             key_range_t to_do = pair.first;
             to_do.left = threshold.key();
+            bool mem_usage_limit_hit;
             continue_bool_t cont = btree_send_backfill(sb.get(),
                 release_superblock_t::RELEASE, &sizer, to_do, pair.second,
-                &pre_item_adapter, &limiter, interruptor);
+                mem_usage_limit, &pre_item_adapter, &limiter, interruptor,
+                &mem_usage_limit_hit);
             if (limiter.inner_aborted || pre_item_adapter.aborted) {
+                guarantee(cont == continue_bool_t::ABORT);
+                return continue_bool_t::ABORT;
+            }
+            if (mem_usage_limit_hit) {
                 guarantee(cont == continue_bool_t::ABORT);
                 return continue_bool_t::ABORT;
             }

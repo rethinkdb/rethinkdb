@@ -200,6 +200,11 @@ public:
         const void *value_in_leaf_node,
         signal_t *interruptor,
         std::vector<char> *value_out) = 0;
+    /* Similarly `size_value()` is responsible for retrieving the size of a given
+    value in the leaf node. */
+    virtual int64_t size_value(
+        buf_parent_t buf_parent,
+        const void *value_in_leaf_node) = 0;
 protected:
     virtual ~btree_backfill_item_consumer_t() { }
 };
@@ -210,9 +215,11 @@ continue_bool_t btree_send_backfill(
     value_sizer_t *sizer,
     const key_range_t &range,
     repli_timestamp_t reference_timestamp,
+    size_t mem_usage_limit,
     btree_backfill_pre_item_producer_t *pre_item_producer,
     btree_backfill_item_consumer_t *item_consumer,
-    signal_t *interruptor);
+    signal_t *interruptor,
+    bool *mem_usage_limit_hit_out);
 
 /* There's no such thing as `btree_receive_backfill()`; the RDB protocol code is
 responsible for interpreting the `backfill_item_t`s and translating them into a series

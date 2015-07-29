@@ -503,7 +503,7 @@ void backfillee_t::send_pre_items(auto_drainer_t::lock_t keepalive) {
                 keepalive.get_drain_signal());
 
             /* Adjust for the fact that `chunk.get_mem_size()` isn't precisely equal to
-            `PRE_ITEM_CHUNK_SIZE`, and then transfer the semaphore ownership. */
+            `pre_item_chunk_mem_size`, and then transfer the semaphore ownership. */
             sem_acq.change_count(chunk.get_mem_size());
             pre_item_throttler_acq.transfer_in(std::move(sem_acq));
 
