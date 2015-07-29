@@ -20,7 +20,7 @@ import org.slf4j.LoggerFactory;
 import java.util.concurrent.atomic.AtomicLong;
 import java.nio.ByteBuffer;
 import java.util.*;
-import java.util.function.Function;
+import java.util.function.Supplier;
 import java.lang.InstantiationException;
 import java.lang.reflect.InvocationTargetException;
 
@@ -32,7 +32,7 @@ public class Connection<C extends ConnectionInstance> {
     // private immutable
     private final String authKey;
     private final AtomicLong nextToken = new AtomicLong();
-    private final Function<Connection<C>, C> makeInstance;
+    private final Supplier<C> instanceMaker;
 
     // private mutable
     private Optional<String> dbname;
@@ -52,12 +52,11 @@ public class Connection<C extends ConnectionInstance> {
         this.port = builder.port.orElse(28015);
         this.connectTimeout = builder.timeout;
 
-        this.makeInstance = builder.makeInstance;
+        this.instanceMaker = builder.instanceMaker;
     }
 
     public static Builder<ConnectionInstance> build() {
-        return new Builder(conn ->
-            new ConnectionInstance((Connection<ConnectionInstance>) conn));
+        return new Builder(ConnectionInstance::new);
     }
 
     public Optional<String> db() {
@@ -81,9 +80,10 @@ public class Connection<C extends ConnectionInstance> {
             timeout = connectTimeout;
         }
         close(noreplyWait);
-        C inst = makeInstance.apply(this);
+        C inst = instanceMaker.get();
         instance = Optional.of(inst);
-        return inst.connect(timeout);
+        inst.connect(hostname, port, timeout);
+        return this;
     }
 
     public boolean isOpen() {
@@ -135,15 +135,15 @@ public class Connection<C extends ConnectionInstance> {
     }
 
     public static class Builder<T extends ConnectionInstance> {
-        private final Function<Connection<T>, T> makeInstance;
+        private final Supplier<T> instanceMaker;
         private Optional<String> hostname = Optional.empty();
         private Optional<Integer> port = Optional.empty();
         private Optional<String> dbname = Optional.empty();
         private Optional<String> authKey = Optional.empty();
         private Optional<Integer> timeout = Optional.empty();
 
-        public Builder(Function<Connection<T>, T> makeInstance) {
-            this.makeInstance = makeInstance;
+        public Builder(Supplier<T> instanceMaker) {
+            this.instanceMaker = instanceMaker;
         }
         public Builder<T> hostname(String val)
             { hostname = Optional.of(val); return this; }
