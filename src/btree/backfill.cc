@@ -164,6 +164,11 @@ continue_bool_t btree_send_backfill_pre(
         FORWARD, release_superblock, interruptor);
 }
 
+struct keepalive_semaphore_acq_t {
+    auto_drainer_t::lock_t keepalive;
+    new_semaphore_acq_t sem_acq;
+};
+
 /* The `backfill_item_loader_t` gets backfill items from the `backfill_item_preparer_t`,
 but that the actual row values have not been loaded into the items yet. It loads the
 values from the cache and then passes the items on to the `backfill_item_consumer_t`. */
@@ -186,14 +191,15 @@ public:
     localized to these two types. */
     void on_item(
             backfill_item_t &&item,
-            new_semaphore_acq_t item_space_sem_acq,
+            keepalive_semaphore_acq_t item_space_sem_acq,
             const counted_t<counted_buf_lock_and_read_t> &buf,
             signal_t *interruptor) {
         new_semaphore_acq_t sem_acq(&semaphore, item.pairs.size());
         wait_interruptible(sem_acq.acquisition_signal(), interruptor);
         coro_t::spawn_sometime(std::bind(
             &backfill_item_loader_t::handle_item, this,
-            std::move(item), buf, std::move(sem_acq), std::move(item_space_sem_acq),
+            std::move(item), buf, std::move(sem_acq),
+            std::move(item_space_sem_acq),
             fifo_source.enter_write(), drainer.lock()));
     }
 
@@ -229,7 +235,7 @@ private:
             backfill_item_t &item,   // NOLINT runtime/references
             const counted_t<counted_buf_lock_and_read_t> &buf,
             const new_semaphore_acq_t &,
-            const new_semaphore_acq_t &,
+            const keepalive_semaphore_acq_t &,
             fifo_enforcer_write_token_t token,
             auto_drainer_t::lock_t keepalive) {
         try {
@@ -433,9 +439,10 @@ private:
                 });
 
             /* Cut the item off if it's too large. */
-            new_semaphore_acq_t value_space_acq;
+            keepalive_semaphore_acq_t value_space_acq;
+            value_space_acq.keepalive = drainer.lock();
             continue_bool_t cont = limit_item_space_usage(
-                buf_parent_t(&buf->lock), interruptor, &item, &value_space_acq);
+                buf_parent_t(&buf->lock), interruptor, &item, &value_space_acq.sem_acq);
 
             /* Note that `on_item()` may block, which will limit the rate at which we
             traverse the B-tree. */
@@ -557,9 +564,10 @@ private:
             /* Send the results to the loader */
             for (backfill_item_t &i : items_from_pre) {
                 /* Cut the item off if it's too large. */
-                new_semaphore_acq_t value_space_acq;
+                keepalive_semaphore_acq_t value_space_acq;
+                value_space_acq.keepalive = drainer.lock();
                 continue_bool_t cont = limit_item_space_usage(
-                    buf_parent_t(&buf->lock), interruptor, &i, &value_space_acq);
+                    buf_parent_t(&buf->lock), interruptor, &i, &value_space_acq.sem_acq);
                 loader->on_item(
                     std::move(i), std::move(value_space_acq), buf, interruptor);
                 if (cont == continue_bool_t::ABORT) {
@@ -637,7 +645,7 @@ private:
                 return continue_bool_t::ABORT;
             }
             for (backfill_item_t &i : items) {
-                new_semaphore_acq_t value_space_acq;
+                keepalive_semaphore_acq_t value_space_acq;
                 loader->on_item(
                     std::move(i),
                     std::move(value_space_acq),
@@ -659,6 +667,7 @@ private:
     Used to cut off a backfill item early if it would otherwise use too much memory. */
     new_semaphore_t item_value_size_semaphore;
     bool mem_usage_limit_hit;
+    auto_drainer_t drainer;
 };
 
 continue_bool_t btree_send_backfill(
