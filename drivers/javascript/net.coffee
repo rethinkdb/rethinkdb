@@ -543,17 +543,7 @@ class Connection extends events.EventEmitter
         # callback to the current promise
         if @_closePromise?
             return @_closePromise.nodeify(cb)
-        else if not @open
-            # if we're closed, we still need to return a promise. So
-            # we create a dummy promise that resolves on the next tick
-            # of the event loop and will invoke all of the callbacks
-            # attached to it.
-            return new Promise((resolve, reject) =>
-                if cb?
-                    cb(null , @)
-                else
-                process.nextTick(resolve)
-            )
+
         # Next we set `@closing` to true. It will be set false once
         # the promise that `.close` returns resolves (see below). The
         # `isOpen` method takes this variable into account.
@@ -604,7 +594,6 @@ class Connection extends events.EventEmitter
                 @open = false
                 @closing = false
                 @cancel()
-                @_closePromise = null
                 if err?
                     reject err
                 else
