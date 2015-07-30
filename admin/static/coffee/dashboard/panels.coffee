@@ -104,7 +104,7 @@ class IndexesModel extends Backbone.Model
             jobs.filter(type: 'index_construction')('info').map((row) ->
                 db: row('db')
                 table: row('table')
-                index: row('index_name')
+                index: row('index')
                 progress: row('progress')
             ).coerceTo('array')
 
