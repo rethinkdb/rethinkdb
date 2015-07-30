@@ -1,28 +1,17 @@
 package com.rethinkdb.net;
 
-import com.rethinkdb.proto.TermType;
 import com.rethinkdb.proto.Version;
-import com.rethinkdb.proto.QueryType;
 import com.rethinkdb.proto.Protocol;
 import com.rethinkdb.ast.Query;
-import com.rethinkdb.ast.helper.OptArgs;
 import com.rethinkdb.model.GlobalOptions;
-import com.rethinkdb.response.Response;
-import com.rethinkdb.response.DBResultFactory;
 import com.rethinkdb.ast.RqlAst;
 import com.rethinkdb.ast.Util;
-import com.rethinkdb.ast.gen.Db;
 import com.rethinkdb.ReqlDriverError;
-import com.rethinkdb.RethinkDBConstants;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.atomic.AtomicLong;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.function.Supplier;
-import java.lang.InstantiationException;
-import java.lang.reflect.InvocationTargetException;
 
 public class Connection<C extends ConnectionInstance> {
     // public immutable
@@ -56,7 +45,7 @@ public class Connection<C extends ConnectionInstance> {
     }
 
     public static Builder<ConnectionInstance> build() {
-        return new Builder(ConnectionInstance::new);
+        return new Builder<>(ConnectionInstance::new);
     }
 
     public Optional<String> db() {
@@ -87,7 +76,7 @@ public class Connection<C extends ConnectionInstance> {
     }
 
     public boolean isOpen() {
-        return instance.map(c -> c.isOpen()).orElse(false);
+        return instance.map(ConnectionInstance::isOpen).orElse(false);
     }
 
     public C checkOpen() {
@@ -111,16 +100,14 @@ public class Connection<C extends ConnectionInstance> {
         return nextToken.incrementAndGet();
     }
 
-    void noreplyWait() {
+    public void noreplyWait() {
         checkOpen().runQuery(Query.noreplyWait(newToken()));
     }
 
     Optional<Object> start(RqlAst term, GlobalOptions globalOpts) {
         C inst = checkOpen();
         if(!globalOpts.db().isPresent()){
-            dbname.ifPresent(db -> {
-              globalOpts.db(db);
-            });
+            dbname.ifPresent(globalOpts::db);
         }
         Query q = Query.start(newToken(), term, globalOpts);
         return inst.runQuery(q, globalOpts.noreply().orElse(false));
