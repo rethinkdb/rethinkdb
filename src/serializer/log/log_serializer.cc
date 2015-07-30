@@ -402,6 +402,7 @@ log_serializer_t::log_serializer_t(dynamic_config_t _dynamic_config, serializer_
 #endif
       dynamic_config(_dynamic_config),
       shutdown_callback(NULL),
+      shutdown_state(shutdown_not_started),
       state(state_unstarted),
       dbfile(NULL),
       extent_manager(NULL),
@@ -797,6 +798,7 @@ void log_serializer_t::shutdown(cond_t *cb) {
     rassert(state == state_ready);
     shutdown_callback = cb;
 
+    rassert(shutdown_state = shutdown_not_started);
     shutdown_state = shutdown_begin;
 
     // We must shutdown the LBA GC before we shut down
