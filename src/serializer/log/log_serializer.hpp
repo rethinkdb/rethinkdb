@@ -235,6 +235,7 @@ private:
     cond_t *shutdown_callback;
 
     enum shutdown_state_t {
+        shutdown_not_started,
         shutdown_begin,
         shutdown_waiting_on_serializer,
         shutdown_waiting_on_datablock_manager,
