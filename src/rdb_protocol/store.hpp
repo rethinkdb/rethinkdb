@@ -193,6 +193,7 @@ public:
             THROWS_ONLY(interrupted_exc_t);
 
     new_mutex_in_line_t get_in_line_for_sindex_queue(buf_lock_t *sindex_block);
+    rwlock_in_line_t get_in_line_for_cfeed_stamp(access_t access);
 
     void register_sindex_queue(
             internal_disk_backed_queue_t *disk_backed_queue,
@@ -381,9 +382,44 @@ public:
 
     std::vector<internal_disk_backed_queue_t *> sindex_queues;
     new_mutex_t sindex_queue_mutex;
+    // Used to control access to stamps.  We need this so that `do_stamp` in
+    // `store.cc` can synchronize with the `rdb_modification_report_cb_t` in
+    // `btree.cc`.
+    rwlock_t cfeed_stamp_lock;
 
     rdb_context_t *ctx;
-    scoped_ptr_t<ql::changefeed::server_t> changefeed_server;
+    // We store regions here even though we only really need the key ranges
+    // because it's nice to have a unique identifier across `store_t`s.  In the
+    // future we may use these `region_t`s instead of the `uuid_u`s in the
+    // changefeed server.
+    std::map<region_t, scoped_ptr_t<ql::changefeed::server_t> > changefeed_servers;
+    ql::changefeed::server_t *changefeed_server(const region_t &region) {
+        for (auto &&pair : changefeed_servers) {
+            if (pair.first.inner.is_superset(region.inner)) {
+                return pair.second.get();
+            }
+        }
+        return nullptr;
+    }
+    ql::changefeed::server_t *make_changefeed_server(const region_t &region) {
+        guarantee(ctx && ctx->manager);
+        for (auto &&pair : changefeed_servers) {
+            guarantee(!pair.first.inner.overlaps(region.inner));
+        }
+        auto it = changefeed_servers.insert(
+            std::make_pair(
+                region_t(region),
+                make_scoped<ql::changefeed::server_t>(ctx->manager, this))).first;
+        return it->second.get();
+    }
+    ql::changefeed::server_t *changefeed_server(const store_key_t &key) {
+        for (auto &&pair : changefeed_servers) {
+            if (pair.first.inner.contains_key(key)) {
+                return pair.second.get();
+            }
+        }
+        return nullptr;
+    }
 
     // This report is used by the outdated index issue tracker, and should be updated
     // any time the set of outdated indexes for this table changes

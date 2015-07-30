@@ -59,6 +59,8 @@ end
 $statelog = []
 
 r.table_create('test').run rescue nil
+r.table('test').reconfigure(shards: 2, replicas: 1).run
+r.table('test').wait.run
 r.table('test').index_create('a').run rescue nil
 r.table('test').index_wait('a').run
 ['id', 'a'].each {|field|

@@ -39,6 +39,13 @@ void debug_print(printf_buffer_t *buf, T *ptr) {
     buf->appendf("%p", ptr);
 }
 
+template<class T>
+std::string debug_str(const T &t) {
+    printf_buffer_t buf;
+    debug_print(&buf, t);
+    return buf.c_str();
+}
+
 #ifndef NDEBUG
 void debugf(const char *msg, ...) __attribute__((format (printf, 1, 2)));
 template <class T>
