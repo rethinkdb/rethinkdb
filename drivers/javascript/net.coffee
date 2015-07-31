@@ -1126,17 +1126,23 @@ class TcpConnection extends Connection
                         reject error
                     else
                         resolve result
+                cleanupSocket = =>
+                    # Resolve the promise, invoke all callbacks, then
+                    # destroy remaining listeners and remove our
+                    # reference to the socket.
+                    closeCb()
+                    @rawSocket?.removeAllListeners()
+                    @rawSocket = null
+                    @emit("close")
                 if @rawSocket?
-                    @rawSocket.once("close", =>
-                        closeCb()
-                        # In the case where we're actually being
-                        # called in response to the rawSocket 'close'
-                        # event, we need to additionally clean up the
-                        # rawSocket.
-                        @rawSocket?.removeAllListeners()
-                        @rawSocket = null
-                    )
-                    @rawSocket.end()
+                    if @rawSocket.readyState == 'closed'
+                        # Socket is already closed for some reason,
+                        # just clean up
+                        cleanupSocket()
+                    else
+                        # Otherwise, wait until we get the close event
+                        @rawSocket?.once("close", cleanupSocket)
+                        @rawSocket.end()
                 else
                     # If the rawSocket is already closed, there's no
                     # reason to wait for a 'close' event that will
