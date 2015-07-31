@@ -155,6 +155,7 @@ public:
     virtual datum_t get() = 0;
     virtual counted_t<datum_stream_t> read_changes(
         bool include_initial_vals,
+        configured_limits_t limits,
         const datum_t &squash,
         bool include_states) = 0;
     virtual datum_t replace(

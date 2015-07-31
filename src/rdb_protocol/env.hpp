@@ -110,7 +110,20 @@ public:
         return global_optargs_.get_optarg(env, key);
     }
 
-    configured_limits_t limits() const { return limits_; }
+    configured_limits_t limits() const {
+        return limits_;
+    }
+
+    configured_limits_t limits(scoped_ptr_t<val_t> changefeed_queue_size) {
+        if (changefeed_queue_size.has()) {
+            return configured_limits_t(
+                check_limit("changefeed queue size",
+                            changefeed_queue_size->as_int()),
+                limits_.array_size_limit());
+        } else {
+            return limits_;
+        }
+    }
 
     regex_cache_t &regex_cache() { return regex_cache_; }
 

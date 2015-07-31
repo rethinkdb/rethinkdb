@@ -751,6 +751,7 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
                           env,
                           true,
                           false,
+                          ql::configured_limits_t(),
                           keyspec_t::point_t{ql::datum_t(0.0)},
                           "id",
                           std::vector<ql::datum_t>(),
@@ -759,6 +760,7 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
                            env,
                            true,
                            false,
+                           ql::configured_limits_t(),
                            keyspec_t::point_t{ql::datum_t(10.0)},
                            "id",
                            std::vector<ql::datum_t>(),
@@ -767,6 +769,7 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
                         env,
                         true,
                         false,
+                        ql::configured_limits_t(),
                         keyspec_t::range_t{
                           std::vector<ql::transform_variant_t>(),
                           boost::optional<std::string>(),
