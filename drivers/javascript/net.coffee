@@ -511,17 +511,7 @@ class Connection extends events.EventEmitter
         # callback to the current promise
         if @_closePromise?
             return @_closePromise.nodeify(cb)
-        else if not @open
-            # if we're closed, we still need to return a promise. So
-            # we create a dummy promise that resolves on the next tick
-            # of the event loop and will invoke all of the callbacks
-            # attached to it.
-            return new Promise((resolve, reject) =>
-                if cb?
-                    cb(null , @)
-                else
-                process.nextTick(resolve)
-            )
+
         # Next we set `@closing` to true. It will be set false once
         # the promise that `.close` returns resolves (see below). The
         # `isOpen` method takes this variable into account.
@@ -572,7 +562,6 @@ class Connection extends events.EventEmitter
                 @open = false
                 @closing = false
                 @cancel()
-                @_closePromise = null
                 if err?
                     reject err
                 else
@@ -1105,17 +1094,23 @@ class TcpConnection extends Connection
                         reject error
                     else
                         resolve result
+                cleanupSocket = =>
+                    # Resolve the promise, invoke all callbacks, then
+                    # destroy remaining listeners and remove our
+                    # reference to the socket.
+                    closeCb()
+                    @rawSocket?.removeAllListeners()
+                    @rawSocket = null
+                    @emit("close")
                 if @rawSocket?
-                    @rawSocket.once("close", =>
-                        closeCb()
-                        # In the case where we're actually being
-                        # called in response to the rawSocket 'close'
-                        # event, we need to additionally clean up the
-                        # rawSocket.
-                        @rawSocket?.removeAllListeners()
-                        @rawSocket = null
-                    )
-                    @rawSocket.end()
+                    if @rawSocket.readyState == 'closed'
+                        # Socket is already closed for some reason,
+                        # just clean up
+                        cleanupSocket()
+                    else
+                        # Otherwise, wait until we get the close event
+                        @rawSocket?.once("close", cleanupSocket)
+                        @rawSocket.end()
                 else
                     # If the rawSocket is already closed, there's no
                     # reason to wait for a 'close' event that will
