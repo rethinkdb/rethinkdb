@@ -794,7 +794,7 @@ void log_serializer_t::shutdown(cond_t *cb) {
     rassert(state == state_ready);
     shutdown_callback = cb;
 
-    rassert(shutdown_state = shutdown_not_started);
+    rassert(shutdown_state == shutdown_not_started);
     shutdown_state = shutdown_begin;
 
     // We must shutdown the LBA GC before we shut down
