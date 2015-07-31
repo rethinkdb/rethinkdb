@@ -321,21 +321,12 @@ bool primary_execution_t::on_write(
     accept writes if we can't contact a majority of replicas because those writes might
     be lost during a failover. We do this even if the user set the ack threshold to
     "single". */
-    {
-        ack_counter_t counter(contract_snapshot->contract);
-        our_dispatcher->get_ready_dispatchees()->apply_read(
-            [&](const std::set<server_id_t> *servers) {
-                for (const server_id_t &s : *servers) {
-                    counter.note_ack(s);
-                }
-            });
-        if (!counter.is_safe()) {
-            *error_out = admin_err_t{
-                "The primary replica isn't connected to a quorum of replicas. "
-                "The write was not performed.",
-                query_state_t::FAILED};
-            return false;
-        }
+    if (!is_majority_available(contract_snapshot, our_dispatcher)) {
+        *error_out = admin_err_t{
+            "The primary replica isn't connected to a quorum of replicas. "
+            "The write was not performed.",
+            query_state_t::FAILED};
+        return false;
     }
 
     write_callback_t write_callback(response_out,
@@ -404,6 +395,30 @@ bool primary_execution_t::on_read(
         admin_err_t *error_out) {
     store->assert_thread();
     guarantee(our_dispatcher != nullptr);
+
+    counted_t<contract_info_t> contract_snapshot = latest_contract_store_thread;
+
+    switch (request.read_mode) {
+    case read_mode_t::SINGLE:
+    case read_mode_t::MAJORITY: // Fallthrough intentional
+        /* Make sure that we have contact with a majority of replicas, if we've lost
+        this we may no longer be able to do up-to-date reads. */
+        if (!is_majority_available(contract_snapshot, our_dispatcher)) {
+            *error_out = admin_err_t{
+                "The primary replica isn't connected to a quorum of replicas. "
+                "The read was not performed, you can do an outdated read using "
+                "`read_mode=\"outdated\"`.",
+                query_state_t::FAILED};
+            return false;
+        }
+        break;
+    case read_mode_t::OUTDATED: // Fallthrough intentional
+    case read_mode_t::DEBUG_DIRECT:
+    default:
+        // These read modes should not come through the `primary_exection_t`.
+        unreachable();
+    }
+
     try {
         our_dispatcher->read(
             request,
@@ -412,15 +427,10 @@ bool primary_execution_t::on_read(
             interruptor,
             response_out);
 
-        switch (request.read_mode) {
-        case read_mode_t::SINGLE:
-            return true;
-        case read_mode_t::MAJORITY:
+        if (request.read_mode == read_mode_t::MAJORITY) {
             return sync_committed_read(request, order_token, interruptor, error_out);
-        case read_mode_t::OUTDATED: // Fallthrough intentional
-        case read_mode_t::DEBUG_DIRECT:
-        default:
-            unreachable();
+        } else {
+            return true;
         }
     } catch (const cannot_perform_query_exc_t &e) {
         *error_out = admin_err_t{e.what(), e.get_query_state()};
@@ -559,3 +569,15 @@ bool primary_execution_t::is_contract_ackable(
     }
 }
 
+bool primary_execution_t::is_majority_available(
+        counted_t<contract_info_t> contract_info,
+        primary_dispatcher_t *dispatcher) {
+    ack_counter_t counter(contract_info->contract);
+    dispatcher->get_ready_dispatchees()->apply_read(
+        [&](const std::set<server_id_t> *servers) {
+            for (const server_id_t &s : *servers) {
+                counter.note_ack(s);
+            }
+        });
+    return counter.is_safe();
+}
