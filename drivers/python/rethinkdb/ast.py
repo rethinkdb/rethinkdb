@@ -693,7 +693,7 @@ class ReQLDecoder(py_json.JSONDecoder):
         py_json.JSONDecoder.__init__(self, object_hook=self.convert_pseudotype)
         self.reql_format_opts = reql_format_opts
 
-    def convert_type_time(self, obj):
+    def convert_time(self, obj):
         if 'epoch_time' not in obj:
             raise ReqlDriverError(('pseudo-type TIME object %s does not ' +
                                    'have expected field "epoch_time".')
