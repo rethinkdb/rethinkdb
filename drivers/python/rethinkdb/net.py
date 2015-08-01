@@ -238,7 +238,7 @@ class DefaultCursor(Cursor):
             self._maybe_fetch_batch()
             if self.error is not None:
                 raise self.error
-            self.conn._read_response(self.query.token, deadline)
+            self.conn._read_response(self.query, deadline)
         return self.items.pop(0)
 
 
@@ -431,7 +431,7 @@ class ConnectionInstance(object):
             return None
 
         # Get response
-        res = self._read_response(query.token)
+        res = self._read_response(query)
 
         if res.type == pResponse.SUCCESS_ATOM:
             return maybe_profile(res.data[0], res)
@@ -445,7 +445,8 @@ class ConnectionInstance(object):
         else:
             raise res.make_error(query)
 
-    def _read_response(self, token, deadline=None):
+    def _read_response(self, query, deadline=None):
+        token = query.token
         # We may get an async continue result, in which case we save
         # it and read the next response
         while True:
@@ -477,6 +478,10 @@ class ConnectionInstance(object):
                 self._handle_cursor_response(cursor, res)
                 if res_token == token:
                     return res
+            elif res_token == token:
+                return Response(
+                    res_token, res_buf,
+                    self._parent._get_json_decoder(query.global_optargs))
             elif not self._closing:
                 # This response is corrupted or not intended for us
                 self.close(False, None)
