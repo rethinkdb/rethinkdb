@@ -1,21 +1,25 @@
 package com.rethinkdb.net;
 
-import java.util.*;
-import java.nio.ByteBuffer;
-
-import com.rethinkdb.RethinkDBException;
 import com.rethinkdb.ReqlDriverError;
-import com.rethinkdb.proto.QueryType;
-import com.rethinkdb.proto.ResponseType;
+import com.rethinkdb.RethinkDBException;
 import com.rethinkdb.ast.Query;
+import com.rethinkdb.proto.QueryType;
 import com.rethinkdb.response.Response;
+
+import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.Optional;
+import java.util.function.Consumer;
 
 
 public class ConnectionInstance {
-    private HashMap<Long, Cursor> cursorCache = new HashMap<>();
-    private Optional<SocketWrapper> socket = Optional.empty();
-    private boolean closing = false;
-    private Optional<ByteBuffer> headerInProgress = Optional.empty();
+    // package private
+    Optional<SocketWrapper> socket = Optional.empty();
+
+    // protected members
+    protected HashMap<Long, Cursor> cursorCache = new HashMap<>();
+    protected boolean closing = false;
+    protected Optional<ByteBuffer> headerInProgress = Optional.empty();
 
     public ConnectionInstance() {
     }
@@ -28,55 +32,21 @@ public class ConnectionInstance {
         return socket.map(SocketWrapper::isOpen).orElse(false);
     }
 
-    public void close(boolean noreplyWait, long token) {
+    public <T> void close() {
         closing = true;
-        for(Cursor cursor: cursorCache.values()) {
-            cursor.error("Connection is closed.");
+        for (Cursor cursor : cursorCache.values()) {
+            cursor.setError("Connection is closed.");
         }
         cursorCache.clear();
-        try {
-            if(noreplyWait) {
-                Query noreplyWaitQuery = new Query(QueryType.NOREPLY_WAIT, token);
-                runQuery(noreplyWaitQuery, false);
-            }
-        } finally {
-            socket.ifPresent(SocketWrapper::close);
-        }
-    }
-    Optional<Object> runQuery(Query query) {
-        return runQuery(query, false);
-    }
-
-    void runQueryNoreply(Query query) {
-        runQuery(query, true);
-    }
-
-    Optional<Object> runQuery(Query query, boolean noreply) {
-        socket.orElseThrow(() -> new ReqlDriverError("No socket open."))
-            .sendall(query.serialize());
-        if(noreply){
-            return Optional.empty();
-        }
-
-        Response res = readResponse(query.token);
-
-        // TODO: This logic needs to move into the Response class
-        if(res.isAtom()){
-            return Optional.of(
-                Response.convertPseudotypes(res.data.get(), res.profile));
-        } else if(res.isPartial() || res.isSequence()) {
-            Cursor cursor = Cursor.empty(this, query);
-            cursor.extend(res);
-            return Optional.of(cursor);
-        } else if(res.isWaitComplete()) {
-            return Optional.empty();
-        } else {
-            throw res.makeError(query);
-        }
+        socket.ifPresent(SocketWrapper::close);
     }
 
     void addToCache(long token, Cursor cursor) {
         cursorCache.put(token, cursor);
+    }
+
+    void removeFromCache(long token){
+        cursorCache.remove(token);
     }
 
     Response readResponse(long token) {
@@ -97,13 +67,14 @@ public class ConnectionInstance {
 
             Response res = Response.parseFrom(resToken, resBuf);
 
-            Optional<Cursor> cursor = Optional.ofNullable(cursorCache.get(resToken));
+            Optional<Cursor> cursor = Optional.ofNullable(
+                    cursorCache.get(resToken));
             cursor.ifPresent(c -> c.extend(res));
 
             if(res.token == token) {
                 return res;
             }else if(closing || cursor.isPresent()) {
-                close(false, token);
+                close();
                 throw new ReqlDriverError("Unexpected response received");
             }
         }

@@ -1,25 +1,34 @@
 package com.rethinkdb.net;
 
-import com.rethinkdb.proto.ResponseType;
-import com.rethinkdb.response.DBResultFactory;
+import com.rethinkdb.ReqlDriverError;
 import com.rethinkdb.response.Response;
 import com.rethinkdb.ast.Query;
 import com.rethinkdb.RethinkDBException;
+import org.json.simple.JSONArray;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Optional;
 
 
-public class Cursor<T> implements Iterator<T> {
+public abstract class Cursor<T> implements Iterator<T> {
 
+    // public immutable members
     public final long token;
-    protected final ConnectionInstance connection;
+
+    // immutable members
+    protected final Connection connection;
     protected final Query query;
+
+    // mutable members
     protected List<T> items = new ArrayList<>();
     protected int outstandingRequests = 1;
     protected int threshold = 0;
-    protected RethinkDBException error = null;
+    protected Optional<RethinkDBException> error = Optional.empty();
 
-    public Cursor(ConnectionInstance connection, Query query) {
+    public Cursor(Connection connection, Query query) {
         this.connection = connection;
         this.query = query;
         this.token = query.token;
@@ -27,11 +36,13 @@ public class Cursor<T> implements Iterator<T> {
     }
 
     public void close() {
-        throw new RuntimeException("Cursor.close not implemented");
-        // if (error == null && connection.isOpen()) {
-        //     outstandingRequests += 1;
-        //     connection.stop(this);
-        // }
+        if(!error.isPresent()){
+            error = Optional.of(emptyError());
+            if(connection.isOpen()){
+                outstandingRequests += 1;
+                connection.stop(this);
+            }
+        }
     }
 
     @Override
@@ -39,35 +50,85 @@ public class Cursor<T> implements Iterator<T> {
         throw new UnsupportedOperationException();
     }
 
-    @Override
-    public T next() {
-        // if (currentBatch.size() > 0) {
-        //     return _next();
-        // } else if (!isClosed()){
-        //     while(!ended && currentBatch.size() == 0){
-        //         loadNextBatch();
-        //     }
-        //     if(currentBatch.size() != 0) {
-        //         return _next();
-        //     }
-        // }
-        throw new NoSuchElementException("There are no more elements to get");
-    }
+    abstract public T next(int timeout);
 
     @Override
     public void remove() {
         throw new UnsupportedOperationException();
     }
 
-    void extend(Response more) {
-        throw new RuntimeException("extend not implemented yet");
+    void extend(Response response) {
+        outstandingRequests -= 1;
+        threshold = response.data.map(JSONArray::size).orElse(0);
+        if(!error.isPresent()){
+            if(response.isPartial()){
+                items.addAll(response.data.orElse(new JSONArray()));
+            } else if(response.isSequence()) {
+                items.addAll(response.data.orElse(new JSONArray()));
+                error = Optional.of(emptyError());
+            } else {
+                error = Optional.of(response.makeError(query));
+            }
+        }
+        maybeFetchBatch();
+        if(outstandingRequests == 0 && error.isPresent()) {
+            connection.removeFromCache(response.token);
+        }
     }
 
-    public static Cursor empty(ConnectionInstance connection, Query query) {
-        return new Cursor(connection, query);
+    protected void maybeFetchBatch() {
+        if(!error.isPresent()
+                && items.size() <= threshold
+                && outstandingRequests == 0) {
+            outstandingRequests += 1;
+            connection.continue_(this);
+        }
     }
 
-    void error(String err_msg) {
-        throw new RuntimeException("error not implemented.");
+    void setError(String err_msg) {
+        if(!error.isPresent()){
+            error = Reth
+        }
+    }
+
+    public static Cursor empty(Connection connection, Query query) {
+        return new DefaultCursor(connection, query);
+    }
+
+    // Abstract methods
+    abstract RethinkDBException emptyError();
+    protected abstract T getNext();
+    protected abstract T getNext(int deadline);
+
+    private static class DefaultCursor extends Cursor {
+        public DefaultCursor(Connection connection, Query query) {
+            super(connection, query);
+        }
+
+        @Override
+        RethinkDBException emptyError() {
+            return null;
+        }
+
+        @Override
+        protected Object getNext() {
+            return null;
+        }
+
+        @Override
+        protected Object getNext(int deadline) {
+            return null;
+        }
+
+        @Override
+        public Object next() {
+            return null;
+        }
+
+        @Override
+        public Object next(int timeout) {
+            return null;
+        }
+
     }
 }

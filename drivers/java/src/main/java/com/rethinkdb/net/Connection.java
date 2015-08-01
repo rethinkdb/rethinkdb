@@ -7,6 +7,7 @@ import com.rethinkdb.model.GlobalOptions;
 import com.rethinkdb.ast.RqlAst;
 import com.rethinkdb.ast.Util;
 import com.rethinkdb.ReqlDriverError;
+import com.rethinkdb.response.Response;
 
 import java.util.concurrent.atomic.AtomicLong;
 import java.nio.ByteBuffer;
@@ -30,18 +31,18 @@ public class Connection<C extends ConnectionInstance> {
     private Optional<C> instance = Optional.empty();
 
     private Connection(Builder<C> builder) {
-        this.dbname = builder.dbname;
-        this.authKey = builder.authKey.orElse("");
-        this.handshake = Util.leByteBuffer(4 + 4 + this.authKey.length() + 4)
+        dbname = builder.dbname;
+        authKey = builder.authKey.orElse("");
+        handshake = Util.leByteBuffer(4 + 4 + this.authKey.length() + 4)
             .putInt(Version.V0_4.value)
-            .putInt(this.authKey.length())
-            .put(this.authKey.getBytes())
+            .putInt(authKey.length())
+            .put(authKey.getBytes())
             .putInt(Protocol.JSON.value);
-        this.hostname = builder.hostname.orElse("localhost");
-        this.port = builder.port.orElse(28015);
-        this.connectTimeout = builder.timeout;
+        hostname = builder.hostname.orElse("localhost");
+        port = builder.port.orElse(28015);
+        connectTimeout = builder.timeout;
 
-        this.instanceMaker = builder.instanceMaker;
+        instanceMaker = builder.instanceMaker;
     }
 
     public static Builder<ConnectionInstance> build() {
@@ -50,6 +51,17 @@ public class Connection<C extends ConnectionInstance> {
 
     public Optional<String> db() {
         return dbname;
+    }
+
+    void addToCache(long token, Cursor cursor){
+        instance.ifPresent(i -> i.addToCache(token, cursor));
+        instance.orElseThrow(() ->
+                new ReqlDriverError(
+                        "Can't add to cache when not connected."));
+    }
+
+    void removeFromCache(long token) {
+        instance.ifPresent(i -> i.removeFromCache(token));
     }
 
     public void use(String db) {
@@ -87,12 +99,17 @@ public class Connection<C extends ConnectionInstance> {
         }
     }
 
-    public void close(boolean noreplyWait) {
+    public void close(boolean shouldNoreplyWait) {
         instance.ifPresent(inst -> {
-            long noreplyToken = newToken();
-            instance = Optional.empty();
-            nextToken.set(0);
-            inst.close(noreplyWait, noreplyToken);
+            try {
+                if(shouldNoreplyWait) {
+                    noreplyWait();
+                }
+            }finally {
+                instance = Optional.empty();
+                nextToken.set(0);
+                inst.close();
+            }
         });
     }
 
@@ -100,25 +117,59 @@ public class Connection<C extends ConnectionInstance> {
         return nextToken.incrementAndGet();
     }
 
+    Optional<Object> runQuery(Query query, boolean noreply) {
+        ConnectionInstance inst = checkOpen();
+        inst.socket
+                .orElseThrow(() -> new ReqlDriverError("No socket open."))
+                .sendall(query.serialize());
+        if(noreply){
+            return Optional.empty();
+        }
+
+        Response res = inst.readResponse(query.token);
+
+        // TODO: This logic needs to move into the Response class
+        if(res.isAtom()){
+            return Optional.of(
+                    Response.convertPseudotypes(res.data.get(), res.profile));
+        } else if(res.isPartial() || res.isSequence()) {
+            Cursor cursor = Cursor.empty(this, query);
+            cursor.extend(res);
+            return Optional.of(cursor);
+        } else if(res.isWaitComplete()) {
+            return Optional.empty();
+        } else {
+            throw res.makeError(query);
+        }
+    }
+
+    Optional<Object> runQuery(Query query) {
+        return runQuery(query, false);
+    }
+
+    void runQueryNoreply(Query query) {
+        runQuery(query, true);
+    }
+
     public void noreplyWait() {
-        checkOpen().runQuery(Query.noreplyWait(newToken()));
+        runQuery(Query.noreplyWait(newToken()));
     }
 
     Optional<Object> start(RqlAst term, GlobalOptions globalOpts) {
         C inst = checkOpen();
-        if(!globalOpts.db().isPresent()){
+        if (!globalOpts.db().isPresent()) {
             dbname.ifPresent(globalOpts::db);
         }
         Query q = Query.start(newToken(), term, globalOpts);
-        return inst.runQuery(q, globalOpts.noreply().orElse(false));
+        return runQuery(q, globalOpts.noreply().orElse(false));
     }
 
     void continue_(Cursor cursor) {
-        checkOpen().runQueryNoreply(Query.continue_(cursor.token));
+        runQueryNoreply(Query.continue_(cursor.token));
     }
 
     void stop(Cursor cursor) {
-        checkOpen().runQueryNoreply(Query.stop(cursor.token));
+        runQueryNoreply(Query.stop(cursor.token));
     }
 
     public static class Builder<T extends ConnectionInstance> {
