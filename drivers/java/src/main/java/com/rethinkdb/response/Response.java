@@ -23,7 +23,7 @@ public class Response {
     public final long token;
     public final ResponseType type;
     public final ArrayList<ResponseNote> notes;
-    public final Optional<JSONObject> data;
+    public final Optional<JSONArray> data;
     public final Optional<Profile> profile;
     public final Optional<Backtrace> backtrace;
 
@@ -70,7 +70,7 @@ public class Response {
                     ArrayList<ResponseNote> responseNotes,
                     Optional<Profile> profile,
                     Optional<Backtrace> backtrace,
-                    Optional<JSONObject> data
+                    Optional<JSONArray> data
                     ) {
         this.token = token;
         this.type = responseType;
