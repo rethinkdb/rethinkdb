@@ -34,8 +34,8 @@ Besides our three official drivers, we also have many [third-party drivers](http
 * **Elixir:** [rethinkdb-elixir](https://github.com/hamiltop/rethinkdb-elixir)
 * **Go:** [GoRethink](https://github.com/dancannon/gorethink)
 * **Haskell:** [haskeel-rethinkdb](https://github.com/atnnn/haskell-rethinkdb)
-* **PHP:** [php-rql](https://github.com/danielmewes/php-rql) - [@danielmewes](https://github.com/danielmewes)
-* **Scala:** [rethink-scala](https://github.com/kclay/rethink-scala) - [@kclay](https://github.com/kclay)
+* **PHP:** [php-rql](https://github.com/danielmewes/php-rql) 
+* **Scala:** [rethink-scala](https://github.com/kclay/rethink-scala) 
 
 Looking to explore what else RethinkDB offers or the specifics of ReQL? Check out [our RethinkDB docs](http://rethinkdb.com/docs/) and [ReQL API](http://rethinkdb.com/api/).
 
