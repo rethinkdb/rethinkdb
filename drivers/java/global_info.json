@@ -56,5 +56,25 @@
             "type": "R_NUM",
             "default": 4
         }
+    },
+    "exception_hierarchy": {
+        "ReqlError": {
+            "ReqlCompileError": {},
+            "ReqlRuntimeError": {
+                "ReqlQueryLogicError": {
+                    "ReqlNonExistenceError": {}
+                }
+            },
+            "ReqlResourceLimitError": {},
+            "ReqlUserError": {},
+            "ReqlInternalError": {},
+            "ReqlAvailabilityError": {
+                "ReqlOpFailedError": {},
+                "ReqlOpIndeterminateError": {}
+            }
+        },
+        "ReqlDriverError": {
+            "ReqlAuthError": {}
+        }
     }
 }
