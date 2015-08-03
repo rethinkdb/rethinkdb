@@ -4,18 +4,18 @@
 // ../../../../../../../templates/Exception.java
 package com.rethinkdb;
 
-public class ReqlDriverError extends ReqlError {
-    public ReqlDriverError() {}
+public class ReqlCompileError extends ReqlError {
+    public ReqlCompileError() {}
 
-    public ReqlDriverError(String message) {
+    public ReqlCompileError(String message) {
         super(message);
     }
 
-    public ReqlDriverError(String message, Throwable cause) {
+    public ReqlCompileError(String message, Throwable cause) {
         super(message, cause);
     }
 
-    public ReqlDriverError(Throwable cause) {
+    public ReqlCompileError(Throwable cause) {
         super(cause);
     }
 }

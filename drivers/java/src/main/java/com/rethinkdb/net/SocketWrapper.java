@@ -1,7 +1,7 @@
 package com.rethinkdb.net;
 
+import com.rethinkdb.ReqlError;
 import com.rethinkdb.response.Response;
-import com.rethinkdb.RethinkDBException;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -30,7 +30,7 @@ public class SocketWrapper {
             socketChannel.setOption(StandardSocketOptions.TCP_NODELAY, true);
             socketChannel.connect(new InetSocketAddress(hostname, port));
         } catch (IOException e) {
-            throw new RethinkDBException(e);
+            throw new ReqlError(e);
         }
     }
 
@@ -38,7 +38,7 @@ public class SocketWrapper {
         try {
             socketChannel.socket().setSoTimeout(timeout);
         } catch (SocketException se) {
-            throw new RethinkDBException(se);
+            throw new ReqlError(se);
         }
     }
 
@@ -53,7 +53,7 @@ public class SocketWrapper {
                 socketChannel.write(buffer);
             }
         } catch (IOException e) {
-            throw new RethinkDBException(e);
+            throw new ReqlError(e);
         }
     }
 
@@ -71,13 +71,13 @@ public class SocketWrapper {
             }
 
             if (totalRead != i && strict) {
-                throw new RethinkDBException("Error receiving data, expected " + i + " bytes but received " + totalRead);
+                throw new ReqlError("Error receiving data, expected " + i + " bytes but received " + totalRead);
             }
 
             buffer.flip();
             return buffer;
         } catch (IOException e) {
-            throw new RethinkDBException(e);
+            throw new ReqlError(e);
         }
     }
 
@@ -120,7 +120,7 @@ public class SocketWrapper {
             }
         } catch(IOException ex) {
             // TODO: Throw the correct exception here
-            throw new RethinkDBException("IO Exception ", ex);
+            throw new ReqlError("IO Exception ", ex);
         }
         buf.flip();
         return buf;
@@ -145,7 +145,7 @@ public class SocketWrapper {
         try {
             socketChannel.close();
         } catch (IOException e) {
-            throw new RethinkDBException(e);
+            throw new ReqlError(e);
         }
     }
 }

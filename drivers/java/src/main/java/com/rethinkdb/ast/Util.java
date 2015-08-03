@@ -1,16 +1,13 @@
 package com.rethinkdb.ast;
 
-import com.rethinkdb.RethinkDB;
+import com.rethinkdb.ReqlError;
 import com.rethinkdb.ast.helper.Arguments;
-import com.rethinkdb.ast.helper.OptArgs;
-import com.rethinkdb.RethinkDBException;
 import com.rethinkdb.model.RqlFunction;
 import com.rethinkdb.ast.gen.Datum;
 import com.rethinkdb.ast.gen.Func;
 import com.rethinkdb.ast.gen.MakeArray;
 import com.rethinkdb.ast.gen.MakeObj;
 import com.rethinkdb.ast.gen.Iso8601;
-import com.rethinkdb.model.RqlFunction;
 import com.rethinkdb.model.RqlFunction2;
 
 
@@ -51,7 +48,7 @@ public class Util {
             Map<String, RqlAst> obj = new HashMap<>();
             for (Map.Entry<Object, Object> entry : (Set<Map.Entry>) ((Map) val).entrySet()) {
                 if (!(entry.getKey() instanceof String)) {
-                    throw new RethinkDBException("Object key can only be strings");
+                    throw new ReqlError("Object key can only be strings");
                 }
 
                 obj.put((String) entry.getKey(), toRqlAst(entry.getValue()));
@@ -160,7 +157,7 @@ public class Util {
 
     //     }
 
-    //     throw new RethinkDBException("Unknown Value can't create datatype for : " + value.getClass());
+    //     throw new ReqlError("Unknown Value can't create datatype for : " + value.getClass());
     // }
 
 }

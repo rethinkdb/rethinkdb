@@ -1,10 +1,6 @@
 package com.rethinkdb.response;
 
 
-import com.rethinkdb.RethinkDBException;
-import com.rethinkdb.response.Response;
-import com.rethinkdb.proto.ResponseType;
-
 public class DBResultFactory {
 
     private DBResultFactory() {
@@ -24,10 +20,10 @@ public class DBResultFactory {
         //     case CLIENT_ERROR:
         //     case COMPILE_ERROR:
         //     case RUNTIME_ERROR:
-        //         throw new RethinkDBException(response.getType() + ": " + response.getResponse(0).getRStr());
+        //         throw new ReqlError(response.getType() + ": " + response.getResponse(0).getRStr());
 
         //     default:
-        //         throw new RethinkDBException("Unknown Response Type: " + response.getType());
+        //         throw new ReqlError("Unknown Response Type: " + response.getType());
         // }
     }
 }
