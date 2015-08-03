@@ -4,18 +4,18 @@
 // ../../../../../../../templates/Exception.java
 package com.rethinkdb;
 
-public class ReqlDriverError extends ReqlError {
-    public ReqlDriverError() {}
+public class ReqlResourceLimitError extends ReqlRuntimeError {
+    public ReqlResourceLimitError() {}
 
-    public ReqlDriverError(String message) {
+    public ReqlResourceLimitError(String message) {
         super(message);
     }
 
-    public ReqlDriverError(String message, Throwable cause) {
+    public ReqlResourceLimitError(String message, Throwable cause) {
         super(message, cause);
     }
 
-    public ReqlDriverError(Throwable cause) {
+    public ReqlResourceLimitError(Throwable cause) {
         super(cause);
     }
 }

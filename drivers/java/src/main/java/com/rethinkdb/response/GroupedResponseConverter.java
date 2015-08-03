@@ -1,6 +1,6 @@
 package com.rethinkdb.response;
 
-import com.rethinkdb.RethinkDBException;
+import com.rethinkdb.ReqlError;
 
 import java.util.HashMap;
 import java.util.List;
@@ -9,7 +9,7 @@ import java.util.Map;
 public class GroupedResponseConverter {
     public static <K,V> Map<K, V>  convert(Map<String, Object> map) {
         if (!"GROUPED_DATA".equals(map.get("$reql_type$"))) {
-            throw new RethinkDBException("Expected grouped data but found something else");
+            throw new ReqlError("Expected grouped data but found something else");
         }
 
         Map<K, V> result = new HashMap<K, V>();

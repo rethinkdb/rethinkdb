@@ -1,15 +1,12 @@
 package com.rethinkdb.net;
 
 import com.rethinkdb.ReqlDriverError;
-import com.rethinkdb.RethinkDBException;
-import com.rethinkdb.ast.Query;
-import com.rethinkdb.proto.QueryType;
+import com.rethinkdb.ReqlError;
 import com.rethinkdb.response.Response;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Optional;
-import java.util.function.Consumer;
 
 
 public class ConnectionInstance {
@@ -55,7 +52,7 @@ public class ConnectionInstance {
 
     Response readResponse(long token, Optional<Integer> deadline) {
         SocketWrapper sock = socket.orElseThrow(() ->
-            new RethinkDBException("Socket not open"));
+            new ReqlError("Socket not open"));
         while(true) {
             if(!headerInProgress.isPresent()) {
                 headerInProgress = Optional.of(sock.recvall(12, deadline));

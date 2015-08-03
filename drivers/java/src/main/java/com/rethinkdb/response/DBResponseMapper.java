@@ -1,7 +1,6 @@
 package com.rethinkdb.response;
 
-import com.rethinkdb.RethinkDBException;
-import com.rethinkdb.ast.gen.Timezone;
+import com.rethinkdb.ReqlError;
 
 import java.lang.reflect.Field;
 import java.util.*;
@@ -37,7 +36,7 @@ public class DBResponseMapper {
         //     return (T)makeArray(datum.getArrayList());
         // }
 
-        // throw new RethinkDBException("Can't map datum to JavaObject for {}" + datum.getType());
+        // throw new ReqlError("Can't map datum to JavaObject for {}" + datum.getType());
     }
 
     private static Date asDate(Datum datum) {
@@ -63,7 +62,7 @@ public class DBResponseMapper {
         //     return calendar.getTime();
         // }
         // catch (Exception ex) {
-        //     throw new RethinkDBException("Error handling date",ex);
+        //     throw new ReqlError("Error handling date",ex);
         // }
     }
 
@@ -130,7 +129,7 @@ public class DBResponseMapper {
                 }
 
             } catch (IllegalAccessException e) {
-                throw new RethinkDBException("Error populating from DBObject: " + field.getName(), e);
+                throw new ReqlError("Error populating from DBObject: " + field.getName(), e);
             }
         }
         return to;
@@ -142,9 +141,9 @@ public class DBResponseMapper {
             try {
                 results.add(populateObject(clazz.newInstance(),stringObjectMap));
             } catch (InstantiationException e) {
-                throw new RethinkDBException("Error instantiating " + clazz, e);
+                throw new ReqlError("Error instantiating " + clazz, e);
             } catch (IllegalAccessException e) {
-                throw new RethinkDBException("Illegal access on " + clazz, e);
+                throw new ReqlError("Illegal access on " + clazz, e);
             }
         }
         return results;
