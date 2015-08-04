@@ -71,7 +71,7 @@ def mangle stream
   stream.to_a.sort{|x,y| cmp(x, y)}
 end
 
-puts 1
+puts "Testing eager unions."
 timeout(10) {
   $eager_canon = []
   $eager_pop.each{|pop|
@@ -84,7 +84,7 @@ timeout(10) {
   assert{$eager_res2 == $eager_canon}
 }
 
-puts 2
+puts "Constructing lazy unions."
 timeout(20) {
   $lazy_pop = $empty_infstreams + $eager_pop + $empty_infstreams
   $change_pop = $infstreams + $lazy_pop + $infstreams
@@ -95,7 +95,7 @@ timeout(20) {
   # TODO: .union.changes
 }
 
-puts 3
+puts "Testing lazy unions."
 timeout(10) {
   $lp1res = []
   $lp2res = []
@@ -117,7 +117,7 @@ timeout(10) {
   assert{$cp2res == $eager_canon}
 }
 
-puts 4
+puts "Testing updates on open changefeeds."
 timeout(10) {
   $t.get(0).update({a: 1}).run
   $t.get(5).update({a: 1}).run
