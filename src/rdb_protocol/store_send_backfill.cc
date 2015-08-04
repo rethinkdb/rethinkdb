@@ -149,29 +149,30 @@ public:
             store_view_t::backfill_item_consumer_t *_inner,
             key_range_t::right_bound_t *_threshold_ptr,
             const region_map_t<binary_blob_t> *_metainfo_ptr) :
-        inner_aborted(false), remaining(MAX_BACKFILL_ITEMS_PER_TXN), inner(_inner),
+        remaining(MAX_BACKFILL_ITEMS_PER_TXN), inner(_inner),
         threshold_ptr(_threshold_ptr), metainfo_ptr(_metainfo_ptr) { }
     continue_bool_t on_item(backfill_item_t &&item) {
-        rassert(!inner_aborted && remaining > 0);
+        rassert(remaining > 0);
         --remaining;
         rassert(key_range_t::right_bound_t(item.range.left) >=
             *threshold_ptr);
         *threshold_ptr = item.range.right;
-        inner_aborted = continue_bool_t::ABORT == inner->on_item(
-            *metainfo_ptr, std::move(item));
-        return (inner_aborted || remaining == 0)
+        inner->on_item(*metainfo_ptr, std::move(item));
+        return remaining == 0
             ? continue_bool_t::ABORT : continue_bool_t::CONTINUE;
     }
     continue_bool_t on_empty_range(
             const key_range_t::right_bound_t &new_threshold) {
-        rassert(!inner_aborted && remaining > 0);
+        rassert(remaining > 0);
         --remaining;
         rassert(new_threshold >= *threshold_ptr);
         *threshold_ptr = new_threshold;
-        inner_aborted = continue_bool_t::ABORT == inner->on_empty_range(
-            *metainfo_ptr, new_threshold);
-        return (inner_aborted || remaining == 0)
+        inner->on_empty_range(*metainfo_ptr, new_threshold);
+        return remaining == 0
             ? continue_bool_t::ABORT : continue_bool_t::CONTINUE;
+    }
+    continue_bool_t reserve_memory(size_t mem_size) {
+        return inner->reserve_memory(mem_size);
     }
     void copy_value(
             buf_parent_t parent,
@@ -208,7 +209,6 @@ public:
             blob::btree_maxreflen);
         return blob_wrapper.valuesize();
     }
-    bool inner_aborted;
     size_t remaining;
 private:
     store_view_t::backfill_item_consumer_t *const inner;
@@ -222,7 +222,6 @@ private:
 
 continue_bool_t store_t::send_backfill(
         const region_map_t<state_timestamp_t> &start_point,
-        size_t mem_usage_limit,
         backfill_pre_item_producer_t *pre_item_producer,
         backfill_item_consumer_t *item_consumer,
         signal_t *interruptor)
@@ -265,16 +264,11 @@ continue_bool_t store_t::send_backfill(
             rdb_value_sizer_t sizer(cache->max_block_size());
             key_range_t to_do = pair.first;
             to_do.left = threshold.key();
-            bool mem_usage_limit_hit;
+            bool mem_limit_hit;
             continue_bool_t cont = btree_send_backfill(sb.get(),
                 release_superblock_t::RELEASE, &sizer, to_do, pair.second,
-                mem_usage_limit, &pre_item_adapter, &limiter, interruptor,
-                &mem_usage_limit_hit);
-            if (limiter.inner_aborted || pre_item_adapter.aborted) {
-                guarantee(cont == continue_bool_t::ABORT);
-                return continue_bool_t::ABORT;
-            }
-            if (mem_usage_limit_hit) {
+                &pre_item_adapter, &limiter, interruptor, &mem_limit_hit);
+            if (mem_limit_hit || pre_item_adapter.aborted) {
                 guarantee(cont == continue_bool_t::ABORT);
                 return continue_bool_t::ABORT;
             }

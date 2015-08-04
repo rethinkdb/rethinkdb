@@ -136,21 +136,29 @@ public:
     `callback`. */
 
     /* The semantics of `on_item()` and `on_empty_range()` are the same as for
-    `send_backfill_pre()`. The metainfo blob that is passed to `on_item()` and
-    `on_empty_range()` is guaranteed to cover at least the region from the right-hand
-    edge of the previous item to the right-hand edge of the current item; it may or may
-    not cover a larger area as well. */
+    `send_backfill_pre()`. The only difference is that these functions don't return
+    a `continue_bool_t`. This is because enforcing a memory limit is handled
+    separately through `reserve_memory()`.
+    The metainfo blob that is passed to `on_item()` and `on_empty_range()` is
+    guaranteed to cover at least the region from the right-hand edge of the previous
+    item to the right-hand edge of the current item; it may or may not cover a
+    larger area as well. */
     class backfill_item_consumer_t {
     public:
         /* It's OK for `on_item()` and `on_empty_range()` to block, but they shouldn't
         block for very long, because the caller may hold B-tree locks while calling them.
         */
-        virtual continue_bool_t on_item(
+        virtual void on_item(
             const region_map_t<binary_blob_t> &metainfo,
             backfill_item_t &&item) THROWS_NOTHING = 0;
-        virtual continue_bool_t on_empty_range(
+        virtual void on_empty_range(
             const region_map_t<binary_blob_t> &metainfo,
             const key_range_t::right_bound_t &threshold) THROWS_NOTHING = 0;
+        /* Reserves a certain amount of memory to be used towards the next backfill
+        item. Returns continue_bool_t::ABORT if a memory size limit has been exceeded
+        and no more values should be added to the current item (and no more items
+        should be added to the current backfill chunk). */
+        virtual continue_bool_t reserve_memory(size_t mem_size) THROWS_NOTHING = 0;
     protected:
         virtual ~backfill_item_consumer_t() { }
     };
@@ -176,7 +184,6 @@ public:
 
     virtual continue_bool_t send_backfill(
             const region_map_t<state_timestamp_t> &start_point,
-            size_t mem_usage_limit,
             backfill_pre_item_producer_t *pre_item_producer,
             backfill_item_consumer_t *item_consumer,
             signal_t *interruptor)

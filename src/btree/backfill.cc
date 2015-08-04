@@ -164,11 +164,6 @@ continue_bool_t btree_send_backfill_pre(
         FORWARD, release_superblock, interruptor);
 }
 
-struct keepalive_semaphore_acq_t {
-    auto_drainer_t::lock_t keepalive;
-    new_semaphore_acq_t sem_acq;
-};
-
 /* The `backfill_item_loader_t` gets backfill items from the `backfill_item_preparer_t`,
 but that the actual row values have not been loaded into the items yet. It loads the
 values from the cache and then passes the items on to the `backfill_item_consumer_t`. */
@@ -191,7 +186,6 @@ public:
     localized to these two types. */
     void on_item(
             backfill_item_t &&item,
-            keepalive_semaphore_acq_t item_space_sem_acq,
             const counted_t<counted_buf_lock_and_read_t> &buf,
             signal_t *interruptor) {
         new_semaphore_acq_t sem_acq(&semaphore, item.pairs.size());
@@ -199,7 +193,6 @@ public:
         coro_t::spawn_sometime(std::bind(
             &backfill_item_loader_t::handle_item, this,
             std::move(item), buf, std::move(sem_acq),
-            std::move(item_space_sem_acq),
             fifo_source.enter_write(), drainer.lock()));
     }
 
@@ -228,6 +221,12 @@ public:
         return item_consumer->size_value(parent, value_in_leaf_node);
     }
 
+    /* The same as `backfill_item_consumer_t::reserve_memory()`.
+    Passed through for convenience. */
+    continue_bool_t reserve_memory(size_t mem_size) {
+        return item_consumer->reserve_memory(mem_size);
+    }
+
 private:
     void handle_item(
             /* Conceptually this is passed by move, but `std::bind()` isn't smart enough
@@ -235,7 +234,6 @@ private:
             backfill_item_t &item,   // NOLINT runtime/references
             const counted_t<counted_buf_lock_and_read_t> &buf,
             const new_semaphore_acq_t &,
-            const keepalive_semaphore_acq_t &,
             fifo_enforcer_write_token_t token,
             auto_drainer_t::lock_t keepalive) {
         try {
@@ -310,15 +308,14 @@ public:
             repli_timestamp_t _reference_timestamp,
             btree_backfill_pre_item_producer_t *_pre_item_producer,
             signal_t *_abort_cond,
-            backfill_item_loader_t *_loader,
-            size_t mem_usage_limit) :
+            backfill_item_loader_t *_loader) :
         sizer(_sizer), reference_timestamp(_reference_timestamp),
         pre_item_producer(_pre_item_producer), abort_cond(_abort_cond), loader(_loader),
-        item_value_size_semaphore(mem_usage_limit), mem_usage_limit_hit(false)
+        mem_limit_hit(false)
         { }
 
-        bool has_hit_mem_usage_limit() const {
-            return mem_usage_limit_hit;
+        bool has_hit_mem_limit() const {
+            return mem_limit_hit;
         }
 
 private:
@@ -439,15 +436,12 @@ private:
                 });
 
             /* Cut the item off if it's too large. */
-            keepalive_semaphore_acq_t value_space_acq;
-            value_space_acq.keepalive = drainer.lock();
-            continue_bool_t cont = limit_item_space_usage(
-                buf_parent_t(&buf->lock), interruptor, &item, &value_space_acq.sem_acq);
+            continue_bool_t cont =
+                limit_item_memory_usage(buf_parent_t(&buf->lock), &item);
 
             /* Note that `on_item()` may block, which will limit the rate at which we
             traverse the B-tree. */
-            loader->on_item(
-                std::move(item), std::move(value_space_acq), buf, interruptor);
+            loader->on_item(std::move(item), buf, interruptor);
 
             return cont;
 
@@ -564,12 +558,9 @@ private:
             /* Send the results to the loader */
             for (backfill_item_t &i : items_from_pre) {
                 /* Cut the item off if it's too large. */
-                keepalive_semaphore_acq_t value_space_acq;
-                value_space_acq.keepalive = drainer.lock();
-                continue_bool_t cont = limit_item_space_usage(
-                    buf_parent_t(&buf->lock), interruptor, &i, &value_space_acq.sem_acq);
-                loader->on_item(
-                    std::move(i), std::move(value_space_acq), buf, interruptor);
+                continue_bool_t cont =
+                    limit_item_memory_usage(buf_parent_t(&buf->lock), &i);
+                loader->on_item(std::move(i), buf, interruptor);
                 if (cont == continue_bool_t::ABORT) {
                     return continue_bool_t::ABORT;
                 }
@@ -580,46 +571,45 @@ private:
         }
     }
 
-    MUST_USE continue_bool_t limit_item_space_usage(
+    MUST_USE continue_bool_t limit_item_memory_usage(
             const buf_parent_t &parent,
-            signal_t *interruptor,
-            backfill_item_t *item,
-            new_semaphore_acq_t *acq_out) {
-        continue_bool_t result = continue_bool_t::CONTINUE;
-        /* Reserve space for the values from `item_value_size_semaphore` and cut
-        the item off once we have reached the limit. */
+            backfill_item_t *item) {
+        /* Reserve space for the item structure itself. */
+        loader->reserve_memory(sizeof(backfill_item_t));
+
+        /* Reserve space for the values and cut the item off once we have reached
+        the memory limit. */
         for (size_t i = 0; i < item->pairs.size(); ++i) {
-            int64_t item_size = 0;
+            /* Compute the amount of memory needed for the pair */
+            size_t pair_size = 0;
+            pair_size += sizeof(backfill_item_t::pair_t);
             if (static_cast<bool>(item->pairs[i].value)) {
                 /* It's not a deletion */
                 rassert(item->pairs[i].value->size() == sizeof(void *));
                 const void *value_ptr = *reinterpret_cast<void *const *>(
                     item->pairs[i].value->data());
-                item_size = loader->size_value(parent, value_ptr);
+                pair_size += static_cast<size_t>(loader->size_value(parent, value_ptr));
             }
-            /* We want to make sure to let at least one item through in order to
-            avoid empty `backfill_item_t`s. Hence we wait on the first item. */
-            if (i == 0) {
-                acq_out->init(&item_value_size_semaphore, item_size);
-                wait_interruptible(acq_out->acquisition_signal(), interruptor);
-            } else {
-                int64_t new_count = acq_out->count() + item_size;
-                if (new_count > item_value_size_semaphore.capacity()) {
-                    key_range_t mask_range = key_range_t(
-                        key_range_t::none, store_key_t(),
-                        key_range_t::open, item->pairs[i].key);
-                    item->mask_in_place(mask_range);
-                    /* If we mask the item, we must abort. Our caller might already
-                    have consumed some backfill pre item which we now end up not
-                    fully covering. So continuing would make us skip values. */
-                    result = continue_bool_t::ABORT;
-                    mem_usage_limit_hit = true;
-                    break;
-                }
-                acq_out->change_count(new_count);
+
+            /* Reserve the memory. */
+            continue_bool_t continue_loading = loader->reserve_memory(pair_size);
+
+            /* We want to make sure to let at least one pair through in order to
+            avoid empty `backfill_item_t`s. So we ignore the return value of
+            `reserve_memory()` on the first one.*/
+            if (i != 0 && continue_loading == continue_bool_t::ABORT) {
+                key_range_t mask_range = key_range_t(
+                    key_range_t::none, store_key_t(),
+                    key_range_t::open, item->pairs[i].key);
+                item->mask_in_place(mask_range);
+                /* If we mask the item, we must abort. Our caller might already
+                have consumed some backfill pre item which we now end up not
+                fully covering. So continuing would make us skip values. */
+                mem_limit_hit = true;
+                return continue_bool_t::ABORT;
             }
         }
-        return result;
+        return continue_bool_t::CONTINUE;
     }
 
     continue_bool_t handle_pair(scoped_key_value_t &&, signal_t *) {
@@ -645,10 +635,8 @@ private:
                 return continue_bool_t::ABORT;
             }
             for (backfill_item_t &i : items) {
-                keepalive_semaphore_acq_t value_space_acq;
                 loader->on_item(
                     std::move(i),
-                    std::move(value_space_acq),
                     counted_t<counted_buf_lock_and_read_t>(),
                     interruptor);
             }
@@ -663,11 +651,7 @@ private:
     btree_backfill_pre_item_producer_t *pre_item_producer;
     signal_t *abort_cond;
     backfill_item_loader_t *loader;
-    /* Keeps track of the size of loaded values in the current item.
-    Used to cut off a backfill item early if it would otherwise use too much memory. */
-    new_semaphore_t item_value_size_semaphore;
-    bool mem_usage_limit_hit;
-    auto_drainer_t drainer;
+    bool mem_limit_hit;
 };
 
 continue_bool_t btree_send_backfill(
@@ -676,22 +660,20 @@ continue_bool_t btree_send_backfill(
         value_sizer_t *sizer,
         const key_range_t &range,
         repli_timestamp_t reference_timestamp,
-        size_t mem_usage_limit,
         btree_backfill_pre_item_producer_t *pre_item_producer,
         btree_backfill_item_consumer_t *item_consumer,
         signal_t *interruptor,
-        bool *mem_usage_limit_hit_out) {
+        bool *mem_limit_hit_out) {
     backfill_debug_range(range, strprintf(
         "btree_send_backfill %" PRIu64, reference_timestamp.longtime));
     cond_t abort_cond;
     backfill_item_loader_t loader(item_consumer, &abort_cond);
     backfill_item_preparer_t preparer(
-        sizer, reference_timestamp, pre_item_producer, &abort_cond, &loader,
-        mem_usage_limit);
+        sizer, reference_timestamp, pre_item_producer, &abort_cond, &loader);
     continue_bool_t cont = btree_depth_first_traversal(
             superblock, range, &preparer, access_t::read, FORWARD, release_superblock,
             interruptor);
-    *mem_usage_limit_hit_out = preparer.has_hit_mem_usage_limit();
+    *mem_limit_hit_out = preparer.has_hit_mem_limit();
     /* Wait for `loader` to finish what it's doing, even if `pre_item_producer` aborted.
     This is important so that we can make progress even if `pre_item_producer` only gives
     us a couple of pre-items at a time. */

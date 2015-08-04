@@ -314,7 +314,6 @@ ql::datum_t vector_to_datum(std::vector<char> &&vector) {
 
 continue_bool_t mock_store_t::send_backfill(
         const region_map_t<state_timestamp_t> &start_point,
-        size_t,
         backfill_pre_item_producer_t *pre_item_producer,
         backfill_item_consumer_t *item_consumer,
         signal_t *interruptor)
@@ -362,6 +361,7 @@ continue_bool_t mock_store_t::send_backfill(
             if (!pre_items.empty()) {
                 /* The next thing in lexicographical order is a pre item, so handle it */
                 backfill_item_t item;
+                item_consumer->reserve_memory(sizeof(backfill_item_t));
                 item.range = pre_items.front().range;
                 /* Iterate over all keys in our local copy within `pre_item->range` and
                 copy them into `item`, whether or not they've changed since
@@ -369,16 +369,23 @@ continue_bool_t mock_store_t::send_backfill(
                 auto jt = table_.lower_bound(item.range.left);
                 auto end = item.range.right.unbounded
                     ? table_.end() : table_.upper_bound(item.range.right.key());
+                continue_bool_t continue_adding = continue_bool_t::CONTINUE;
                 for (; jt != end; ++jt) {
+                    std::vector<char> value = datum_to_vector(jt->second.second);
+                    size_t pair_size = sizeof(backfill_item_t::pair_t) + value.size();
+                    continue_adding = item_consumer->reserve_memory(pair_size);
+                    if (!item.pairs.empty()
+                        && continue_adding == continue_bool_t::ABORT) {
+                        break;
+                    }
                     backfill_item_t::pair_t pair;
                     pair.key = jt->first;
                     pair.recency = jt->second.first;
-                    pair.value =
-                        boost::make_optional(datum_to_vector(jt->second.second));
+                    pair.value = boost::make_optional(std::move(value));
                     item.pairs.push_back(std::move(pair));
                 }
-                if (continue_bool_t::ABORT ==
-                        item_consumer->on_item(metainfo_, std::move(item))) {
+                item_consumer->on_item(metainfo_, std::move(item));
+                if (continue_adding == continue_bool_t::ABORT) {
                     return continue_bool_t::ABORT;
                 }
                 table_cursor = pre_items.front().range.right;
@@ -387,10 +394,7 @@ continue_bool_t mock_store_t::send_backfill(
                 /* The next thing is a gap with no pre items in it. We call
                 `on_empty_range()` so that if `more_pre_items()` returns `ABORT`, at
                 least the callback will know that there were no items in this range. */
-                if (continue_bool_t::ABORT ==
-                        item_consumer->on_empty_range(metainfo_, pre_items_limit)) {
-                    return continue_bool_t::ABORT;
-                }
+                item_consumer->on_empty_range(metainfo_, pre_items_limit);
                 table_cursor = pre_items_limit;
                 if (continue_bool_t::ABORT == more_pre_items()) {
                     return continue_bool_t::ABORT;
@@ -403,15 +407,18 @@ continue_bool_t mock_store_t::send_backfill(
                     start_point.lookup(it->first).to_repli_timestamp()) {
                 /* The key has changed since `start_point`, so we'll transmit it. */
                 backfill_item_t item;
+                item_consumer->reserve_memory(sizeof(backfill_item_t));
                 item.range = key_range_t(
                     key_range_t::closed, it->first, key_range_t::closed, it->first);
+                std::vector<char> value = datum_to_vector(it->second.second);
+                size_t pair_size = sizeof(backfill_item_t::pair_t) + value.size();
                 backfill_item_t::pair_t pair;
                 pair.key = it->first;
                 pair.recency = it->second.first;
-                pair.value = boost::make_optional(datum_to_vector(it->second.second));
+                pair.value = boost::make_optional(std::move(value));
                 item.pairs.push_back(std::move(pair));
-                if (continue_bool_t::ABORT ==
-                        item_consumer->on_item(metainfo_, std::move(item))) {
+                item_consumer->on_item(metainfo_, std::move(item));
+                if (continue_bool_t::ABORT == item_consumer->reserve_memory(pair_size)) {
                     return continue_bool_t::ABORT;
                 }
             }

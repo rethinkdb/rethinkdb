@@ -326,9 +326,13 @@ private:
                         consumer_t(
                                 backfill_item_seq_t<backfill_item_t> *_chunk,
                                 region_map_t<version_t> *_metainfo,
-                                const backfill_config_t *_config) :
-                            chunk(_chunk), metainfo(_metainfo), config(_config) { }
-                        continue_bool_t on_item(
+                                const backfill_config_t *config) :
+                            chunk(_chunk), metainfo(_metainfo),
+                            remaining_mem_size(
+                                static_cast<ssize_t>(config->item_chunk_mem_size)) {
+                                guarantee(chunk->get_mem_size() == 0);
+                            }
+                        void on_item(
                                 const region_map_t<binary_blob_t> &item_metainfo,
                                 backfill_item_t &&item) THROWS_NOTHING {
                             rassert(key_range_t::right_bound_t(item.range.left) >=
@@ -336,20 +340,22 @@ private:
                             rassert(!item.range.is_empty());
                             on_metainfo(item_metainfo, item.range.right);
                             chunk->push_back(std::move(item));
-                            if (chunk->get_mem_size() < config->item_chunk_mem_size) {
-                                return continue_bool_t::CONTINUE;
-                            } else {
-                                return continue_bool_t::ABORT;
-                            }
                         }
-                        continue_bool_t on_empty_range(
+                        void on_empty_range(
                                 const region_map_t<binary_blob_t> &range_metainfo,
                                 const key_range_t::right_bound_t &new_threshold)
                                 THROWS_NOTHING {
                             rassert(new_threshold >= chunk->get_right_key());
                             on_metainfo(range_metainfo, new_threshold);
                             chunk->push_back_nothing(new_threshold);
-                            return continue_bool_t::CONTINUE;
+                        }
+                        continue_bool_t reserve_memory(size_t mem_size) THROWS_NOTHING {
+                            remaining_mem_size -= static_cast<ssize_t>(mem_size);
+                            if (remaining_mem_size <= 0) {
+                                return continue_bool_t::ABORT;
+                            } else {
+                                return continue_bool_t::CONTINUE;
+                            }
                         }
                     private:
                         void on_metainfo(
@@ -372,12 +378,11 @@ private:
                         }
                         backfill_item_seq_t<backfill_item_t> *const chunk;
                         region_map_t<version_t> *const metainfo;
-                        backfill_config_t const *const config;
+                        ssize_t remaining_mem_size;
                     } consumer(&chunk, &metainfo, &parent->intro.config);
 
                     parent->parent->store->send_backfill(
                         parent->common_version.mask(subregion),
-                        parent->intro.config.item_chunk_mem_size,
                         &producer, &consumer, keepalive.get_drain_signal());
 
                     /* `producer` goes out of scope here, so it restores `pre_items` to

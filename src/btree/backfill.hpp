@@ -56,18 +56,12 @@ public:
         return range;
     }
 
-    /* `get_mem_size()` estimates the size the `backfill_item_t` occupies in RAM or when
-    serialized over the network. Backfill batch sizes are defined in terms of the total
-    mem sizes of all the backfill items in the batch. */
+    /* `get_mem_size()` is a no-op for `backfill_item_t`. We call this method in
+    `backfill_item_seq_t` and use it for `backfill_pre_item_t`. However for
+    `backfill_item_t`s, we reserve memory differently in the
+    `backfill_item_preparer_t::limit_item_memory_usage()`. */
     size_t get_mem_size() const {
-        size_t s = sizeof(backfill_item_t);
-        for (const auto &pair : pairs) {
-            s += sizeof(pair_t);
-            if (static_cast<bool>(pair.value)) {
-                s += pair.value->size();
-            }
-        }
-        return s;
+        return 0;
     }
 
     void mask_in_place(const key_range_t &m);
@@ -191,6 +185,9 @@ public:
     virtual continue_bool_t on_empty_range(
         const key_range_t::right_bound_t &threshold) = 0;
 
+    /* See `store_view_t::backfill_item_consumer_t` for a description of this. */
+    virtual continue_bool_t reserve_memory(size_t mem_size) = 0;
+
     /* `copy_value()` is responsible for reading a value out of the leaf node, finding
     the corresponding blob pages (if it's a large value), and putting the contents into
     `value_out`. This is because the exact format of the leaf node values is opaque to
@@ -215,11 +212,10 @@ continue_bool_t btree_send_backfill(
     value_sizer_t *sizer,
     const key_range_t &range,
     repli_timestamp_t reference_timestamp,
-    size_t mem_usage_limit,
     btree_backfill_pre_item_producer_t *pre_item_producer,
     btree_backfill_item_consumer_t *item_consumer,
     signal_t *interruptor,
-    bool *mem_usage_limit_hit_out);
+    bool *mem_limit_hit_out);
 
 /* There's no such thing as `btree_receive_backfill()`; the RDB protocol code is
 responsible for interpreting the `backfill_item_t`s and translating them into a series
