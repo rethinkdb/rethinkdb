@@ -136,24 +136,26 @@ public:
         process_ref_t spawner_pid = current_process();
 
         while(true) {
+#ifdef _WIN32
+            rassert("TODO ATN: get worker_socket from socket? also test this.");
+            char path[MAX_PATH];
+            DWORD res = GetModuleFileName(NULL, path, sizeof(path));
+            guarantee_winerr(res != 0 && res != sizeof(path), "GetModuleFileName failed");
+            rassert("TODO ATN: rethinkdb start-worker");
+            std::string command_line = strprintf("rethinkdb start-worker " /* ATN TODO */);
+            std::vector<char> mutable_command_line(command_line.begin(), command_line.end());
+            mutable_command_line.push_back('\0');
+            PROCESS_INFORMATION process_info;
+            CreateProcess(path, &mutable_command_line[0], nullptr, nullptr, true, 0,
+                          nullptr, nullptr, nullptr, &process_info);
+            CloseHandle(process_info.hProcess);
+            CloseHandle(process_info.hThread);
+#else
             fd_t worker_socket;
             fd_recv_result_t recv_res = recv_fds(socket.get(), 1, &worker_socket);
             if (recv_res != FD_RECV_OK) {
                 break;
             }
-#ifdef _WIN32 // ATN TODO: test this
-			char path[MAX_PATH];
-			DWORD res = GetModuleFileName(NULL, path, sizeof(path));
-			guarantee_winerr(res != 0 && res != sizeof(path), "GetModuleFileName failed");
-			std::string command_line = strprintf("rethinkdb start-worker " /* ATN */);
-			std::vector<char> mutable_command_line(command_line.begin(), command_line.end());
-			mutable_command_line.push_back('\0');
-			PROCESS_INFORMATION process_info;
-			CreateProcess(path, &mutable_command_line[0], nullptr, nullptr, true, 0,
-						  nullptr, nullptr, nullptr, &process_info);
-			CloseHandle(process_info.hProcess);
-			CloseHandle(process_info.hThread);
-#else
             pid_t res = ::fork();
             if (res == 0) {
                 // Worker process here

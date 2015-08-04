@@ -8,6 +8,7 @@
 #include "concurrency/cond_var.hpp"
 #include "arch/runtime/runtime_utils.hpp"
 #include "arch/runtime/event_queue_types.hpp"
+#include "arch/io/event_watcher.hpp"
 
 class windows_event_watcher_t;
 

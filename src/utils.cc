@@ -578,6 +578,15 @@ std::string errno_string(int errsv) {
     return std::string(errstr);
 }
 
+#ifdef _WIN32
+std::string winerr_string(DWORD error) {
+  char *message;
+  FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+                 NULL, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&message, 0, NULL);
+  return std::string(message);
+}
+#endif
+
 int remove_directory_helper(const char *path, ...) {
     logNTC("In recursion: removing file %s\n", path);
     int res = ::remove(path);
@@ -611,25 +620,25 @@ void remove_directory_recursive(const char *dirpath) {
 base_path_t::base_path_t(const std::string &path) : path_(path) { }
 
 void base_path_t::make_absolute() {
-#ifndef _MSC_VER
+#ifndef _MSC_VER // TODO ATN
     char absolute_path[PATH_MAX];
     char *res = realpath(path_.c_str(), absolute_path);
     guarantee_err(res != NULL, "Failed to determine absolute path for '%s'", path_.c_str());
-	path_.assign(absolute_path);
+    path_.assign(absolute_path);
 #else
-	char absolute_path[MAX_PATH];
-	DWORD size = GetFullPathName(path_.c_str(), sizeof absolute_path, absolute_path, NULL);
-	guarantee_winerr(size != 0, "GetFullPathName failed");
-	if (size < sizeof absolute_path) {
-		path_.assign(absolute_path);
-		return;
-	}
-	std::string long_absolute_path;
-	long_absolute_path.resize(size);
-	DWORD new_size = GetFullPathName(path_.c_str(), size, &long_absolute_path[0], NULL);
-	guarantee_winerr(size != 0, "GetFullPathName failed");
-	guarantee(new_size < size, "GetFullPathName: name too long");
-	path_ = std::move(long_absolute_path);
+    char absolute_path[MAX_PATH];
+    DWORD size = GetFullPathName(path_.c_str(), sizeof absolute_path, absolute_path, NULL);
+    guarantee_winerr(size != 0, "GetFullPathName failed");
+    if (size < sizeof absolute_path) {
+      path_.assign(absolute_path);
+      return;
+    }
+    std::string long_absolute_path;
+    long_absolute_path.resize(size);
+    DWORD new_size = GetFullPathName(path_.c_str(), size, &long_absolute_path[0], NULL);
+    guarantee_winerr(size != 0, "GetFullPathName failed");
+    guarantee(new_size < size, "GetFullPathName: name too long");
+    path_ = std::move(long_absolute_path);
 #endif
 }
 

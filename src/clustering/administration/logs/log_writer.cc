@@ -315,14 +315,20 @@ void fallback_log_writer_t::install(const std::string &logfile_name) {
     guarantee(filename.path() == "-", "Attempted to install a fallback_log_writer_t that was already installed.");
     filename = base_path_t(logfile_name);
 
+#ifdef _WIN32
+    HANDLE h = CreateFile(filename.path().c_str(), FILE_APPEND_DATA, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    fd.reset(h);
+#else
     int res;
     do {
         res = open(filename.path().c_str(), O_WRONLY|O_APPEND|O_CREAT, 0644);
     } while (res == INVALID_FD && get_errno() == EINTR);
 
     fd.reset(res);
+#endif
 
     if (fd.get() == INVALID_FD) {
+        rassert(false, "ATN TODO: errno -- GetLastError");
         throw std::runtime_error(strprintf("Failed to open log file '%s': %s",
                                            logfile_name.c_str(),
                                            errno_string(errno).c_str()).c_str());
@@ -429,8 +435,8 @@ bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_o
             error_out->assign("cannot flush stdout/stderr: " + errno_string(get_errno()));
             return false;
         }
- 
-		funlockfile(write_stream);
+
+        funlockfile(write_stream);
 #endif
     }
 
@@ -446,11 +452,21 @@ bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_o
     }
 #endif
 
+#ifdef _WIN32
+    DWORD bytes_written;
+    BOOL res = WriteFile(fd.get(), formatted.data(), formatted.length(), NULL);
+    if (!res) {
+        error_out->assign("cannot write to log file: " + winerr_string(GetLastError()));
+        return false;
+    }
+#else
+    // TODO ATN: handle EINTR and partial writes?
     ssize_t write_res = ::write(fd.get(), formatted.data(), formatted.length());
     if (write_res != static_cast<ssize_t>(formatted.length())) {
         error_out->assign("cannot write to log file: " + errno_string(get_errno()));
         return false;
     }
+#endif
 
 #ifndef _WIN32
     fcntl_res = fcntl(fd.get(), F_SETLK, &fileunlock);

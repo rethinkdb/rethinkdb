@@ -70,7 +70,7 @@ directory_lock_t::directory_lock_t(const base_path_t &path, bool create, bool *c
         int mkdir_res;
         do {
 #ifdef _WIN32
-			mkdir_res = _mkdir(directory_path.path().c_str());
+            mkdir_res = _mkdir(directory_path.path().c_str());
 #else
             mkdir_res = mkdir(directory_path.path().c_str(), 0755);
 #endif
@@ -89,12 +89,19 @@ directory_lock_t::directory_lock_t(const base_path_t &path, bool create, bool *c
         *created_out = true;
     }
 
+#ifdef _WIN32
+    // TODO ATN: is this the correct way to lock a directory?
+    directory_fd.reset(CreateFile(directory_path.path().c_str(), GENERIC_READ, 0, NULL,
+                                  OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_BACKUP_SEMANTICS));
+    if (directory_fd.get() == INVALID_FD) {
+        rassert("ATN TODO: errno -- GetLastError");
+        throw directory_open_failed_exc_t(GetLastError(), directory_path);
+    }
+#else
     directory_fd.reset(::open(directory_path.path().c_str(), O_RDONLY));
     if (directory_fd.get() == INVALID_FD) {
         throw directory_open_failed_exc_t(get_errno(), directory_path);
     }
-
-#ifndef _WIN32 // TODO ATN
     if (flock(directory_fd.get(), LOCK_EX | LOCK_NB) != 0) {
         throw directory_locked_exc_t(directory_path);
     }

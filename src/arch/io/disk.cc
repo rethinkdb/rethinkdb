@@ -405,6 +405,40 @@ void verify_aligned_file_access(DEBUG_VAR int64_t file_size, DEBUG_VAR int64_t o
 
 file_open_result_t open_file(const char *path, const int mode, io_backender_t *backender,
                              scoped_ptr_t<file_t> *out) {
+    scoped_fd_t fd;
+#ifdef _WIN32
+    // Construct file flags
+
+    // Let's have a sanity check for our attempt to check whether O_DIRECT and O_NOATIME are
+    // available as preprocessor defines.
+#ifndef O_CREAT
+#error "O_CREAT and other open flags are apparently not defined in the preprocessor."
+#endif
+
+    DWORD create_mode;
+    if (mode & linux_file_t::mode_truncate) {
+        create_mode = CREATE_ALWAYS;
+    } else if (mode & linux_file_t::mode_create) {
+        create_mode = OPEN_ALWAYS;
+    } else {
+        create_mode = OPEN_EXISTING;
+    }
+
+    DWORD access_mode = 0;
+    if (mode & linux_file_t::mode_write) {
+        access_mode |= GENERIC_WRITE;
+    } else if (mode & linux_file_t::mode_read) {
+        access_mode |= GENERIC_READ;
+    } else {
+        crash("Bad file access mode.");
+    }
+
+    fd.reset(CreateFile(path, access_mode, 0, NULL, create_mode, FILE_ATTRIBUTE_NORMAL, NULL));
+    if (fd.get() == INVALID_FD) {
+        return file_open_result_t(file_open_result_t::ERROR, get_errno());
+    }
+
+#else
     // Construct file flags
 
     // Let's have a sanity check for our attempt to check whether O_DIRECT and O_NOATIME are
@@ -427,7 +461,7 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
 
     // For now, we have a whitelist of kernels that don't support O_LARGEFILE.  Linux is
     // the only known kernel that has (or may need) the O_LARGEFILE flag.
-#ifdef __linux__ // TODO ATN
+#ifdef __linux__
     flags |= O_LARGEFILE;
 #endif
 
@@ -448,7 +482,6 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
 
     // Open the file.
 
-    scoped_fd_t fd;
     {
         int res_open;
         do {
@@ -461,6 +494,7 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
     if (fd.get() == INVALID_FD) {
         return file_open_result_t(file_open_result_t::ERROR, get_errno());
     }
+#endif
 
     // When building, we must either support O_DIRECT or F_NOCACHE.  The former works on Linux,
     // the latter works on OS X.
@@ -543,26 +577,40 @@ void crash_due_to_inaccessible_database_file(const char *path, file_open_result_
         , path, errno_string(open_res.errsv).c_str());
 }
 
-linux_semantic_checking_file_t::linux_semantic_checking_file_t(int fd) : fd_(fd) { }
+linux_semantic_checking_file_t::linux_semantic_checking_file_t(fd_t fd) : fd_(fd) { }
 
 size_t linux_semantic_checking_file_t::semantic_blocking_read(void *buf,
                                                               size_t length) {
+#ifdef _WIN32
+    DWORD bytes_read;
+    BOOL res = ReadFile(fd_.get(), buf, length, &bytes_read, NULL);
+    guarantee_winerr(res != FALSE, "Could not read from the semantic checker file");
+    return bytes_read;
+#else
     ssize_t res;
     do {
         res = ::read(fd_.get(), buf, length);
     } while (res == -1 && get_errno() == EINTR);
     guarantee_err(res != -1, "Could not read from the semantic checker file");
     return res;
+#endif
 }
 
 size_t linux_semantic_checking_file_t::semantic_blocking_write(const void *buf,
                                                                size_t length) {
+#ifdef _WIN32
+    DWORD bytes_written;
+    BOOL res = WriteFile(fd_.get(), buf, length, &bytes_written, NULL);
+    guarantee_winerr(res != FALSE, "Could not write to the semantic checker file");
+    return bytes_written;
+#else
     ssize_t res;
     do {
         res = ::write(fd_.get(), buf, length);
     } while (res == -1 && get_errno() == EINTR);
     guarantee_err(res != -1, "Could not write to the semantic checker file");
     return res;
+#endif
 }
 
 

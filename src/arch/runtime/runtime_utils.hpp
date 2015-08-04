@@ -9,11 +9,25 @@
 #include "containers/intrusive_list.hpp"
 
 #ifdef _WIN32 // TODO ATN
-typedef HANDLE fd_t;
+
+class fd_t {
+public:
+    fd_t(HANDLE h) : handle(h) { }
+    fd_t(SOCKET s) : handle(s) { }
+    operator HANDLE() { return h; }
+    operator SOCKET() { return h; }
+
+private:
+    HANDLE handle;
+};
+
 #define INVALID_FD fd_t(INVALID_HANDLE_VALUE)
+
 #else
+
 typedef int fd_t;
 #define INVALID_FD fd_t(-1)
+
 #endif
 
 class linux_thread_message_t : public intrusive_list_node_t<linux_thread_message_t> {

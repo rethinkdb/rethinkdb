@@ -4,6 +4,7 @@
 
 #include "arch/runtime/event_queue/windows.hpp"
 #include "arch/runtime/thread_pool.hpp"
+#include "arch/io/event_watcher.hpp"
 
 windows_event_queue_t::windows_event_queue_t(linux_thread_t *thread_)
     : thread(thread_) {
@@ -30,11 +31,11 @@ void windows_event_queue_t::forget_event(windows_event_t& event, event_callback_
 void windows_event_queue_t::run() {
     while (!thread->should_shut_down()) {
         ULONG nb_bytes;
-        ULONG type;
+        ULONG_PTR key;
         OVERLAPPED *overlapped;
 
-        // TODO ATN : make sure QueueUserAPC works, if not maybe replace it with PostQueuedCompletionStatus
-        BOOL res = GetQueuedCompletionStatus(completion_port, &nb_bytes, &type, &overlapped, INFINITE);
+        // TODO ATN : make sure QueueUserAPC works, if not maybe replace it with PostQueuedCompletionStatus or use GQCSEx here
+        BOOL res = GetQueuedCompletionStatus(completion_port, &nb_bytes, &key, &overlapped, INFINITE);
         DWORD error = GetLastError();
         if (overlapped == NULL) {
             guarantee_xwinerr(res != 0, error, "GetQueuedCompletionStatus failed");

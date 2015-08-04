@@ -179,6 +179,10 @@ private:
 
 std::string errno_string(int errsv);
 
+#ifdef _WIN32
+std::string winerr_string(DWORD error);
+#endif
+
 std::string sanitize_for_logger(const std::string &s);
 static inline std::string time2str(const time_t &t) {
 	const int TIMEBUF_SIZE = 26; // As specified in man 3 ctime and by MSDN

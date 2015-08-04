@@ -30,7 +30,7 @@ public:
     };
 
     object_buffer_t() : state(EMPTY) { }
-    ~object_buffer_t() {
+~object_buffer_t() {
         // The buffer cannot be destroyed while an object is in the middle of
         //  constructing or destructing
         if (state == INSTANTIATED) {
