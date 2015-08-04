@@ -161,16 +161,21 @@ MUST_USE const char *errno_string_maybe_using_buffer(int errsv, char *buf, size_
 #define guarantee_err(cond, msg, ...) guarantee_xerr(cond, get_errno(), msg, ##__VA_ARGS__)
 
 #ifdef _WIN32
+
 // ATN TODO TEST
-#define guarantee_winerr(cond, msg, ...) do { \
-		if (!(cond)) { \
-			DWORD guarantee_winerr_err = GetLastError(); \
-			char *guarantee_winerr_errmsg; \
-			FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, \
-				NULL, guarantee_winerr_err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&guarantee_winerr_errmsg, 0, NULL); \
-            crash_or_trap(format_assert_message("Guarantee", cond) " (LastError %d - %s) " msg, guarantee_winerr_err, guarantee_winerr_errmsg, ##__VA_ARGS__); \
-		} \
-	} while (0);
+#define guarantee_winerr(cond, msg, ...) guarantee_xwinerr(cond, GetLastError(), msg, ##__VA_ARGS__)
+
+// ATN TODO TEST
+#define guarantee_xwinerr(cond, err, msg, ...) do {                     \
+        if (!(cond)) {                                                  \
+            DWORD guarantee_winerr_err = (err);                         \
+            char *guarantee_winerr_errmsg;                              \
+            FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, \
+                           NULL, guarantee_winerr_err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&guarantee_winerr_errmsg, 0, NULL); \
+            crash_or_trap(format_assert_message("Guarantee", (cond)) " (LastError %d - %s) " msg, guarantee_winerr_err, guarantee_winerr_errmsg, ##__VA_ARGS__); \
+        }                                                               \
+    } while (0);
+
 #endif
 
 #define unreachable(...) crash("Unreachable code: " __VA_ARGS__)    // can't use crash_or_trap since code needs to depend on its noreturn property

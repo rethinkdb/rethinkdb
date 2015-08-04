@@ -1,5 +1,45 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
-#ifndef _WIN32 // ATN TODO
+#ifdef _WIN32 // ATN TODO
+
+#include "arch/io/event_watcher.hpp"
+#include "arch/runtime/thread_pool.hpp"
+
+void async_operation_t::set_result(size_t nb_bytes_, DWORD error_) {
+    rassert(!completed.is_pulsed());
+    nb_bytes = nb_bytes_;
+    error = error_;
+    if (error != ERROR_SUCCESS) {
+        error_handler->on_error(error);
+    }
+    completed.pulse();
+}
+
+windows_event_watcher_t::windows_event_watcher_t(fd_t handle, event_callback_t *eh) {
+    error_handler = eh;
+    linux_thread_pool_t::get_thread()->queue.add_handle(handle);
+}
+
+void windows_event_watcher_t::stop_watching_for_errors() {
+    error_handler = nullptr;
+}
+
+void windows_event_watcher_t::on_error(DWORD error) {
+    if (error_handler != nullptr) {
+        event_callback_t *eh = error_handler;
+        error_handler = NULL;
+        // TODO ATN: what is the expected value of the argument to on_event?
+        eh->on_event(error);
+    }
+}
+
+windows_event_watcher_t::~windows_event_watcher_t() {
+    // ATN TODO: windows re-uses handles, so checking that a handle is closed or
+    // double-closing is impossible.
+    // It may be possible to remove the handle from the completion port, but I haven't
+    // figured out how yet.
+}
+
+#else
 
 #include "arch/io/event_watcher.hpp"
 #include "arch/runtime/thread_pool.hpp"

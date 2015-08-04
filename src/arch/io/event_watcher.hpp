@@ -4,11 +4,43 @@
 
 #ifdef _WIN32
 
-// TODO ATN
+#include "windows.hpp"
+#include "concurrency/cond_var.hpp"
+#include "arch/runtime/runtime_utils.hpp"
+#include "arch/runtime/event_queue_types.hpp"
 
-class linux_event_watcher_t {
-  // TOD ATN remove all uses of this class in windows code
+class windows_event_watcher_t;
+
+// An asynchronous operation
+struct async_operation_t {
+    async_operation_t(windows_event_watcher_t *ew) : error_handler(ew) { }
+
+    // should be called exactly once
+    void set_result(size_t nb_bytes_, DWORD error_);
+
+    OVERLAPPED overlapped;           // Used by Windows to track the queued operation
+    windows_event_watcher_t *error_handler; // On error, trigger this before signaling
+    cond_t completed;                 // Signaled when the operation completes or fails
+    size_t nb_bytes;                 // Number of bytes read or written
+    DWORD error;                     // Success indicator
+
+private:
+    DISABLE_COPYING(async_operation_t);
 };
+
+class windows_event_watcher_t {
+public:
+    windows_event_watcher_t(fd_t handle, event_callback_t *eh);
+    ~windows_event_watcher_t();
+    void stop_watching_for_errors();
+    async_operation_t make_overlapped();
+    void on_error(DWORD error);
+
+private:
+    event_callback_t *error_handler;
+};
+
+typedef windows_event_watcher_t event_watcher_t;
 
 #else
 
@@ -63,6 +95,8 @@ private:
 
     DISABLE_COPYING(linux_event_watcher_t);
 };
+
+typedef linux_event_watcher_t event_watcher_t;
 
 #endif // _WIN32
 

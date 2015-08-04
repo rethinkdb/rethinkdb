@@ -1,15 +1,21 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "arch/io/network.hpp"
 
+#ifndef _WIN32 // TODO ATN
 #include <arpa/inet.h>
-#include <errno.h>
-#include <fcntl.h>
 #include <net/if.h>
 #include <netdb.h>
 #include <netinet/tcp.h>
-#include <string.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
+#else
+#include "windows.hpp"
+#include <ws2tcpip.h>
+// typedef int socklen_t;
+#endif
+#include <errno.h>
+#include <fcntl.h>
+#include <string.h>
 #include <sys/types.h>
 
 #include "utils.hpp"
@@ -75,8 +81,9 @@ int connect_ipv6_internal(fd_t socket, int local_port, const in6_addr &addr, int
     return res;
 }
 
-int create_socket_wrapper(int address_family) {
-    int res = socket(address_family, SOCK_STREAM, 0);
+// TODO ATN: windows version of this using HANDLE and without get_errno
+fd_t create_socket_wrapper(int address_family) {
+    fd_t res = socket(address_family, SOCK_STREAM, 0);
     if (res == INVALID_FD) {
         // Let the user know something is wrong - except in the case where
         // TCP doesn't support AF_INET6, which may be fairly common and spammy
@@ -95,7 +102,7 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &peer,
                                    int local_port) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t) :
         write_perfmon(NULL),
         sock(create_socket_wrapper(peer.get_address_family())),
-        event_watcher(new linux_event_watcher_t(sock.get(), this)),
+        event_watcher(new event_watcher_t(sock.get(), this)),
         read_in_progress(false), write_in_progress(false),
         read_buffer(IO_BUFFER_SIZE),
         write_handler(this),
@@ -103,18 +110,20 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &peer,
         write_coro_pool(1, &write_queue, &write_handler),
         current_write_buffer(get_write_buffer()),
         drainer(new auto_drainer_t) {
+#ifndef _WIN32 // TODO ATN
     guarantee_err(fcntl(sock.get(), F_SETFL, O_NONBLOCK) == 0, "Could not make socket non-blocking");
+#endif
 
     if (local_port != 0) {
         // Set the socket to reusable so we don't block out other sockets from this port
         int reuse = 1;
-        if (setsockopt(sock.get(), SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) != 0)
+        if (setsockopt(sock.get(), SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<char*>(&reuse), sizeof(reuse)) != 0)
             logWRN("Failed to set socket reuse to true: %s", errno_string(get_errno()).c_str());
     }
     {
         // Disable Nagle algorithm just as in the listener case
         int sockoptval = 1;
-        int res = setsockopt(sock.get(), IPPROTO_TCP, TCP_NODELAY, &sockoptval, sizeof(sockoptval));
+        int res = setsockopt(sock.get(), IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<char*>(&sockoptval), sizeof(sockoptval));
         guarantee_err(res != -1, "Could not set TCP_NODELAY option");
     }
 

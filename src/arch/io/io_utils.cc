@@ -22,11 +22,16 @@ int _gettid() {
 
 fd_t scoped_fd_t::reset(fd_t f2) {
     if (fd != INVALID_FD) {
+#ifdef _WIN32 // ATN TODO
+        BOOL res = CloseHandle(fd);
+        guarantee_winerr(res != 0, "CloseHandle failed");
+#else
         int res;
         do {
             res = close(fd);
         } while (res != 0 && get_errno() == EINTR);
         guarantee_err(res == 0, "error returned by close(2)");
+#endif
     }
     fd = f2;
     return f2;

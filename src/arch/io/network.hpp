@@ -138,7 +138,7 @@ public:
 
     bool getpeername(ip_and_port_t *ip_and_port);
 
-    linux_event_watcher_t *get_event_watcher() {
+    event_watcher_t *get_event_watcher() {
         return event_watcher.get();
     }
 
@@ -209,7 +209,7 @@ private:
     };
 
     /* Note that this only gets called to handle error-events. Read and write
-    events are handled through the linux_event_watcher_t. */
+    events are handled through the event_watcher_t. */
     void on_event(int events);
 
     void on_shutdown_read();
@@ -219,7 +219,7 @@ private:
 
     /* Object that we use to watch for events. It's NULL when we are not registered on any
     thread, and otherwise is an object that's valid for the current thread. */
-    scoped_ptr_t<linux_event_watcher_t> event_watcher;
+    scoped_ptr_t<event_watcher_t> event_watcher;
 
     /* True if there is a pending read or write */
     bool read_in_progress, write_in_progress;
