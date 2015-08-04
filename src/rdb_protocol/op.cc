@@ -53,15 +53,16 @@ optargspec_t optargspec_t::with(std::initializer_list<const char *> args) const 
 
 class faux_term_t : public runtime_term_t {
 public:
-    faux_term_t(backtrace_id_t bt, datum_t _d)
-        : runtime_term_t(bt), d(std::move(_d)) { }
-    final bool is_deterministic() const { return true; }
+    faux_term_t(backtrace_id_t bt, datum_t _d, bool _deterministic)
+        : runtime_term_t(bt), d(std::move(_d)), deterministic(_deterministic) { }
+    final bool is_deterministic() const { return deterministic; }
     const char *name() const final { return "<EXPANDED FROM r.args>"; }
 private:
     scoped_ptr_t<val_t> term_eval(scope_env_t *, eval_flags_t) const final {
         return new_val(d);
     }
     datum_t d;
+    bool deterministic;
 };
 
 
@@ -108,10 +109,14 @@ argvec_t arg_terms_t::start_eval(scope_env_t *env, eval_flags_t flags) const {
     std::vector<counted_t<const runtime_term_t> > args;
     for (auto it = original_args.begin(); it != original_args.end(); ++it) {
         if ((*it)->get_src()->type() == Term::ARGS) {
+            bool det = (*it)->is_deterministic();
             scoped_ptr_t<val_t> v = (*it)->eval(env, new_flags);
             datum_t d = v->as_datum();
             for (size_t i = 0; i < d.arr_size(); ++i) {
-                args.push_back(make_counted<faux_term_t>(backtrace(), d.get(i)));
+                // This is a little hacky because the determinism flag is for
+                // all the arguments together and we attach it to each of them,
+                // but I think that's fine.
+                args.push_back(make_counted<faux_term_t>(backtrace(), d.get(i), det));
             }
         } else {
             args.push_back(counted_t<const runtime_term_t>(*it));
