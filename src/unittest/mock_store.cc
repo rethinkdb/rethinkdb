@@ -315,7 +315,7 @@ ql::datum_t vector_to_datum(std::vector<char> &&vector) {
 continue_bool_t mock_store_t::send_backfill(
         const region_map_t<state_timestamp_t> &start_point,
         backfill_pre_item_producer_t *pre_item_producer,
-        backfill_item_consumer_t *item_consumer,
+        store_backfill_item_consumer_t *item_consumer,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     key_range_t::right_bound_t table_cursor(start_point.get_domain().inner.left);
@@ -361,7 +361,7 @@ continue_bool_t mock_store_t::send_backfill(
             if (!pre_items.empty()) {
                 /* The next thing in lexicographical order is a pre item, so handle it */
                 backfill_item_t item;
-                item_consumer->reserve_memory(sizeof(backfill_item_t));
+                item_consumer->remaining_memory -= sizeof(backfill_item_t);
                 item.range = pre_items.front().range;
                 /* Iterate over all keys in our local copy within `pre_item->range` and
                 copy them into `item`, whether or not they've changed since
@@ -375,11 +375,13 @@ continue_bool_t mock_store_t::send_backfill(
                     pair.recency = jt->second.first;
                     pair.value =
                         boost::make_optional(datum_to_vector(jt->second.second));
-                    if (continue_bool_t::ABORT ==
-                            item_consumer->reserve_memory_at_least_one(
-                                pair.get_mem_size())) {
+                    item_consumer->remaining_memory -= pair.get_mem_size();
+                    if (item_consumer->had_at_least_one_item &&
+                            item_consumer->remaining_memory < 0) {
+                        item.range.right = key_range_t::right_bound_t(jt->first);
                         break;
                     }
+                    item_consumer->had_at_least_one_item = true;
                     item.pairs.push_back(std::move(pair));
                 }
                 if (!item.pairs.empty()) {
@@ -404,20 +406,21 @@ continue_bool_t mock_store_t::send_backfill(
                     start_point.lookup(it->first).to_repli_timestamp()) {
                 /* The key has changed since `start_point`, so we'll transmit it. */
                 backfill_item_t item;
-                item_consumer->reserve_memory(sizeof(backfill_item_t));
+                item_consumer->remaining_memory -= sizeof(backfill_item_t);
                 item.range = key_range_t(
                     key_range_t::closed, it->first, key_range_t::closed, it->first);
                 backfill_item_t::pair_t pair;
                 pair.key = it->first;
                 pair.recency = it->second.first;
                 pair.value = boost::make_optional(datum_to_vector(it->second.second));
-                item.pairs.push_back(std::move(pair));
-                item_consumer->on_item(metainfo_, std::move(item));
-                if (continue_bool_t::ABORT ==
-                        item_consumer->reserve_memory_at_least_one(
-                            pair.get_mem_size())) {
+                item_consumer->remaining_memory -= pair.get_mem_size();
+                if (item_consumer->had_at_least_one_item &&
+                        item_consumer->remaining_memory < 0) {
                     return continue_bool_t::ABORT;
                 }
+                item_consumer->had_at_least_one_item = true;
+                item.pairs.push_back(std::move(pair));
+                item_consumer->on_item(metainfo_, std::move(item));
             }
             table_cursor = key_range_t::right_bound_t(it->first);
             bool ok = table_cursor.increment();

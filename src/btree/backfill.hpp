@@ -13,6 +13,7 @@
 #include "btree/types.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/interruptor.hpp"
+#include "protocol_api.hpp"
 #include "repli_timestamp.hpp"
 #include "rpc/serialize_macros.hpp"
 
@@ -199,10 +200,6 @@ public:
     virtual continue_bool_t on_empty_range(
         const key_range_t::right_bound_t &threshold) = 0;
 
-    /* See `store_view_t::backfill_item_consumer_t` for a description of this. */
-    virtual void reserve_memory(size_t mem_size) = 0;
-    virtual continue_bool_t reserve_memory_at_least_one(size_t mem_size) = 0;
-
     /* `copy_value()` is responsible for reading a value out of the leaf node, finding
     the corresponding blob pages (if it's a large value), and putting the contents into
     `value_out`. This is because the exact format of the leaf node values is opaque to
@@ -227,10 +224,10 @@ continue_bool_t btree_send_backfill(
     value_sizer_t *sizer,
     const key_range_t &range,
     repli_timestamp_t reference_timestamp,
-    btree_backfill_pre_item_producer_t *pre_item_producer,
-    btree_backfill_item_consumer_t *item_consumer,
-    signal_t *interruptor,
-    bool *mem_limit_hit_out);
+    btree_backfill_pre_item_producer_t *btree_pre_item_producer,
+    btree_backfill_item_consumer_t *btree_item_consumer,
+    store_backfill_item_consumer_t *inner_consumer,
+    signal_t *interruptor);
 
 /* There's no such thing as `btree_receive_backfill()`; the RDB protocol code is
 responsible for interpreting the `backfill_item_t`s and translating them into a series

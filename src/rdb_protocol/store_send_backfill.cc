@@ -146,7 +146,7 @@ class limiting_btree_backfill_item_consumer_t :
     public btree_backfill_item_consumer_t {
 public:
     limiting_btree_backfill_item_consumer_t(
-            store_view_t::backfill_item_consumer_t *_inner,
+            store_backfill_item_consumer_t *_inner,
             key_range_t::right_bound_t *_threshold_ptr,
             const region_map_t<binary_blob_t> *_metainfo_ptr) :
         remaining(MAX_BACKFILL_ITEMS_PER_TXN), inner(_inner),
@@ -170,12 +170,6 @@ public:
         inner->on_empty_range(*metainfo_ptr, new_threshold);
         return remaining == 0
             ? continue_bool_t::ABORT : continue_bool_t::CONTINUE;
-    }
-    void reserve_memory(size_t mem_size) {
-        inner->reserve_memory(mem_size);
-    }
-    continue_bool_t reserve_memory_at_least_one(size_t mem_size) {
-        return inner->reserve_memory_at_least_one(mem_size);
     }
     void copy_value(
             buf_parent_t parent,
@@ -214,7 +208,7 @@ public:
     }
     size_t remaining;
 private:
-    store_view_t::backfill_item_consumer_t *const inner;
+    store_backfill_item_consumer_t *const inner;
     key_range_t::right_bound_t *const threshold_ptr;
 
     /* `metainfo_ptr` points to the metainfo that applies to the items we're handling.
@@ -226,7 +220,7 @@ private:
 continue_bool_t store_t::send_backfill(
         const region_map_t<state_timestamp_t> &start_point,
         backfill_pre_item_producer_t *pre_item_producer,
-        backfill_item_consumer_t *item_consumer,
+        store_backfill_item_consumer_t *item_consumer,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     /* Just like in `send_backfill_pre()`, we first break `start_point` up into regions
@@ -267,11 +261,13 @@ continue_bool_t store_t::send_backfill(
             rdb_value_sizer_t sizer(cache->max_block_size());
             key_range_t to_do = pair.first;
             to_do.left = threshold.key();
-            bool mem_limit_hit;
             continue_bool_t cont = btree_send_backfill(sb.get(),
                 release_superblock_t::RELEASE, &sizer, to_do, pair.second,
-                &pre_item_adapter, &limiter, interruptor, &mem_limit_hit);
-            if (mem_limit_hit || pre_item_adapter.aborted) {
+                &pre_item_adapter, &limiter, item_consumer, interruptor);
+            /* Check if the backfill was aborted because of exhausting the memory
+            limit, or because the pre_item_adapter aborted. */
+            if ((cont == continue_bool_t::ABORT && item_consumer->remaining_memory < 0)
+                || pre_item_adapter.aborted) {
                 guarantee(cont == continue_bool_t::ABORT);
                 return continue_bool_t::ABORT;
             }

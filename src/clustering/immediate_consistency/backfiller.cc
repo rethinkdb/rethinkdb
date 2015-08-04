@@ -321,16 +321,15 @@ private:
                     /* `consumer_t` is responsible for receiving backfill items and
                     the corresponding metainfo from `send_backfill()` and storing them in
                     `chunk` and in `metainfo`. */
-                    class consumer_t : public store_view_t::backfill_item_consumer_t {
+                    class consumer_t : public store_backfill_item_consumer_t {
                     public:
                         consumer_t(
                                 backfill_item_seq_t<backfill_item_t> *_chunk,
                                 region_map_t<version_t> *_metainfo,
                                 const backfill_config_t *config) :
-                            chunk(_chunk), metainfo(_metainfo),
-                            remaining_mem_size(
+                            store_backfill_item_consumer_t(
                                 static_cast<ssize_t>(config->item_chunk_mem_size)),
-                            no_memory_reserved(true) {
+                            chunk(_chunk), metainfo(_metainfo) {
                                 guarantee(chunk->get_mem_size() == 0);
                             }
                         void on_item(
@@ -349,20 +348,6 @@ private:
                             rassert(new_threshold >= chunk->get_right_key());
                             on_metainfo(range_metainfo, new_threshold);
                             chunk->push_back_nothing(new_threshold);
-                        }
-                        void reserve_memory(size_t mem_size) THROWS_NOTHING {
-                            remaining_mem_size -= static_cast<ssize_t>(mem_size);
-                        }
-                        continue_bool_t reserve_memory_at_least_one(
-                                size_t mem_size)
-                                THROWS_NOTHING {
-                            reserve_memory(mem_size);
-                            if (remaining_mem_size <= 0 && !no_memory_reserved) {
-                                return continue_bool_t::ABORT;
-                            } else {
-                                no_memory_reserved = false;
-                                return continue_bool_t::CONTINUE;
-                            }
                         }
                     private:
                         void on_metainfo(
@@ -385,8 +370,6 @@ private:
                         }
                         backfill_item_seq_t<backfill_item_t> *const chunk;
                         region_map_t<version_t> *const metainfo;
-                        ssize_t remaining_mem_size;
-                        bool no_memory_reserved;
                     } consumer(&chunk, &metainfo, &parent->intro.config);
 
                     parent->parent->store->send_backfill(

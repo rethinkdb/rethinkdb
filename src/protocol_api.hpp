@@ -25,6 +25,7 @@
 #include "timestamps.hpp"
 #include "version.hpp"
 
+class backfill_item_t;
 struct backfill_chunk_t;
 struct read_t;
 struct read_response_t;
@@ -132,5 +133,45 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(read_mode_t,
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         reql_version_t, int8_t,
         reql_version_t::EARLIEST, reql_version_t::LATEST);
+
+/* `store_backfill_item_consumer_t` is one type of callbacks used by
+`store_view_t::send_backfill()`.
+
+The semantics of `on_item()` and `on_empty_range()` are the same as for
+`store_view_t::send_backfill_pre()`. The only difference is that these functions
+don't return a `continue_bool_t`. This is because enforcing a memory limit is handled
+separately through the `remaining_memory` and `had_at_least_one_item` fields.
+The metainfo blob that is passed to `on_item()` and `on_empty_range()` is
+guaranteed to cover at least the region from the right-hand edge of the previous
+item to the right-hand edge of the current item; it may or may not cover a
+larger area as well.
+
+This could be a type inside of `store_view_t` in store_view.hpp like the other
+similar types, but we need to access this in `btree/backfill.hpp` and don't want
+to include the store_view.hpp header from the `rdb_protocol` directory there. */
+class store_backfill_item_consumer_t {
+public:
+    store_backfill_item_consumer_t(ssize_t memory_limit)
+        : remaining_memory(memory_limit), had_at_least_one_item(false) { }
+
+    /* It's OK for `on_item()` and `on_empty_range()` to block, but they shouldn't
+    block for very long, because the caller may hold B-tree locks while calling them.
+    */
+    virtual void on_item(
+        const region_map_t<binary_blob_t> &metainfo,
+        backfill_item_t &&item) THROWS_NOTHING = 0;
+    virtual void on_empty_range(
+        const region_map_t<binary_blob_t> &metainfo,
+        const key_range_t::right_bound_t &threshold) THROWS_NOTHING = 0;
+
+    /* These public fields are used by the backfilling logic to control the
+    memory usage on the backfill sender. They are updated whenever a
+    key/value pair is loaded, or a new backfill_item_t structure is allocated. */
+    ssize_t remaining_memory;
+    bool had_at_least_one_item;
+
+protected:
+    virtual ~store_backfill_item_consumer_t() { }
+};
 
 #endif /* PROTOCOL_API_HPP_ */
