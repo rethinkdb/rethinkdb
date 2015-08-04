@@ -385,7 +385,7 @@ private:
     size_t last_used_socket_index;
 
     // Sentries representing our registrations with the event loop, one per socket
-    scoped_array_t<scoped_ptr_t<linux_event_watcher_t> > event_watchers;
+    scoped_array_t<scoped_ptr_t<event_watcher_t> > event_watchers;
 
     bool log_next_error;
 };

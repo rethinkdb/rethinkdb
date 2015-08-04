@@ -157,7 +157,7 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &peer,
 linux_tcp_conn_t::linux_tcp_conn_t(fd_t s) :
         write_perfmon(NULL),
         sock(s),
-        event_watcher(new linux_event_watcher_t(sock.get(), this)),
+        event_watcher(new event_watcher_t(sock.get(), this)),
         read_in_progress(false), write_in_progress(false),
         read_buffer(IO_BUFFER_SIZE),
         write_handler(this),

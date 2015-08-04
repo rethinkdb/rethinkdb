@@ -3,6 +3,7 @@
 #include <sys/stat.h>
 
 #include "errors.hpp"
+#include "arch/runtime/runtime_utils.hpp"
 
 int64_t get_file_size(fd_t fd) {
     guarantee(fd != INVALID_FD);

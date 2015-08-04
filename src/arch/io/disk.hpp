@@ -116,7 +116,7 @@ private:
 
 class linux_semantic_checking_file_t : public semantic_checking_file_t {
 public:
-    explicit linux_semantic_checking_file_t(int fd);
+    explicit linux_semantic_checking_file_t(fd_t fd);
 
     virtual size_t semantic_blocking_read(void *buf, size_t length);
     virtual size_t semantic_blocking_write(const void *buf, size_t length);

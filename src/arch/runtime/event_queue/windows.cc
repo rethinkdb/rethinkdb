@@ -41,8 +41,8 @@ void windows_event_queue_t::run() {
             guarantee_xwinerr(res != 0, error, "GetQueuedCompletionStatus failed");
         }
 
-        async_operation_t *ao = reinterpret_cast<overlapped_waiter_t*>(overlapped);
-        ow->set_result(nb_bytes, error);
+        async_operation_t *ao = reinterpret_cast<async_operation_t*>(overlapped);
+        ao->set_result(nb_bytes, error);
 
         thread->pump();
     }

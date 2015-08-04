@@ -55,7 +55,7 @@ int64_t blocking_read_file_stream_t::read(void *p, int64_t n) {
 
 #ifdef _WIN32
     DWORD read_bytes;
-    BOOL res = ReadFile(df_.get(), p, n, read_bytes, NULL);
+    BOOL res = ReadFile(fd_.get(), p, n, &read_bytes, NULL);
     if (!res) {
         rassert(false, "TODO ATN: errno is not set");
         return -1;

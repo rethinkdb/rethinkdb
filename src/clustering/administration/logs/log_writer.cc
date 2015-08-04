@@ -454,7 +454,7 @@ bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_o
 
 #ifdef _WIN32
     DWORD bytes_written;
-    BOOL res = WriteFile(fd.get(), formatted.data(), formatted.length(), NULL);
+    BOOL res = WriteFile(fd.get(), formatted.data(), formatted.length(), &bytes_written, NULL);
     if (!res) {
         error_out->assign("cannot write to log file: " + winerr_string(GetLastError()));
         return false;
@@ -565,9 +565,13 @@ void thread_pool_log_writer_t::write_blocking(const log_message_t &msg, std::str
 void thread_pool_log_writer_t::tail_blocking(int max_lines, struct timespec min_timestamp, struct timespec max_timestamp, volatile bool *cancel, std::vector<log_message_t> *messages_out, std::string *error_out, bool *ok_out) {
     try {
         scoped_fd_t fd;
+#ifdef _WIN32
+        fd.reset(CreateFile(fallback_log_writer.filename.path().c_str(), GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL));
+#else
         do {
             fd.reset(open(fallback_log_writer.filename.path().c_str(), O_RDONLY));
         } while (fd.get() == INVALID_FD && get_errno() == EINTR);
+#endif
         throw_unless(fd.get() != INVALID_FD,
             strprintf("could not open '%s' for reading.",
                 fallback_log_writer.filename.path().c_str()));

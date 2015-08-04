@@ -165,8 +165,8 @@ public:
                 ::_exit(EXIT_FAILURE);
             }
 			guarantee_err(res != -1, "could not fork worker process");
-#endif
             scoped_fd_t closer(worker_socket);
+#endif
         }
     }
 

@@ -92,7 +92,7 @@ directory_lock_t::directory_lock_t(const base_path_t &path, bool create, bool *c
 #ifdef _WIN32
     // TODO ATN: is this the correct way to lock a directory?
     directory_fd.reset(CreateFile(directory_path.path().c_str(), GENERIC_READ, 0, NULL,
-                                  OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_BACKUP_SEMANTICS));
+                                  OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_BACKUP_SEMANTICS, NULL));
     if (directory_fd.get() == INVALID_FD) {
         rassert("ATN TODO: errno -- GetLastError");
         throw directory_open_failed_exc_t(GetLastError(), directory_path);
@@ -133,5 +133,5 @@ void directory_lock_t::change_ownership(gid_t group_id, const std::string &group
                                                errno_string(get_errno()).c_str()));
         }
 #endif
-	}
+    }
 }
