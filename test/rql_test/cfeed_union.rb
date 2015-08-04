@@ -20,14 +20,14 @@ $infstreams = [
   $t.get(0).changes().skip(1)
 ]
 
-# TODO: uncomment these once we increase the stack size.
+# TODO: uncomment these once we increase the stack size.  (Issue #4348.)
 $empty_streams = [
   $t.filter{false},
   #r([$t.get('a')]).filter{|x| x},
   #r([])
 ]
 
-# TODO: uncomment these once we increase the stack size.
+# TODO: uncomment these once we increase the stack size.  (Issue #4348.)
 $empty_infstreams = [
   $t.filter{false}.changes(),
   # $t.changes().filter{false},
