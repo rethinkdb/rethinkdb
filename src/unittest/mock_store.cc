@@ -371,17 +371,17 @@ continue_bool_t mock_store_t::send_backfill(
                     ? table_.end() : table_.upper_bound(item.range.right.key());
                 continue_bool_t continue_adding = continue_bool_t::CONTINUE;
                 for (; jt != end; ++jt) {
-                    std::vector<char> value = datum_to_vector(jt->second.second);
-                    size_t pair_size = sizeof(backfill_item_t::pair_t) + value.size();
-                    continue_adding = item_consumer->reserve_memory(pair_size);
+                    backfill_item_t::pair_t pair;
+                    pair.key = jt->first;
+                    pair.recency = jt->second.first;
+                    pair.value =
+                        boost::make_optional(datum_to_vector(jt->second.second));
+                    continue_adding =
+                        item_consumer->reserve_memory(pair.get_mem_size());
                     if (!item.pairs.empty()
                         && continue_adding == continue_bool_t::ABORT) {
                         break;
                     }
-                    backfill_item_t::pair_t pair;
-                    pair.key = jt->first;
-                    pair.recency = jt->second.first;
-                    pair.value = boost::make_optional(std::move(value));
                     item.pairs.push_back(std::move(pair));
                 }
                 item_consumer->on_item(metainfo_, std::move(item));
@@ -410,15 +410,14 @@ continue_bool_t mock_store_t::send_backfill(
                 item_consumer->reserve_memory(sizeof(backfill_item_t));
                 item.range = key_range_t(
                     key_range_t::closed, it->first, key_range_t::closed, it->first);
-                std::vector<char> value = datum_to_vector(it->second.second);
-                size_t pair_size = sizeof(backfill_item_t::pair_t) + value.size();
                 backfill_item_t::pair_t pair;
                 pair.key = it->first;
                 pair.recency = it->second.first;
-                pair.value = boost::make_optional(std::move(value));
+                pair.value = boost::make_optional(datum_to_vector(it->second.second));
                 item.pairs.push_back(std::move(pair));
                 item_consumer->on_item(metainfo_, std::move(item));
-                if (continue_bool_t::ABORT == item_consumer->reserve_memory(pair_size)) {
+                if (continue_bool_t::ABORT ==
+                        item_consumer->reserve_memory(pair.get_mem_size())) {
                     return continue_bool_t::ABORT;
                 }
             }

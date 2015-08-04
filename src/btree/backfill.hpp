@@ -50,18 +50,32 @@ public:
         store_key_t key;
         repli_timestamp_t recency;
         boost::optional<std::vector<char> > value;   /* empty indicates deletion */
+        size_t get_mem_size() const {
+            size_t s = sizeof(pair_t);
+            if (static_cast<bool>(value)) {
+                s += value->size();
+            }
+            return s;
+        }
+        /* The size of a `pair_t` assuming its value is set to the given size */
+        static size_t get_mem_size_with_value(size_t value_size) {
+            return sizeof(pair_t) + value_size;
+        }
     };
 
     key_range_t get_range() const {
         return range;
     }
 
-    /* `get_mem_size()` is a no-op for `backfill_item_t`. We call this method in
-    `backfill_item_seq_t` and use it for `backfill_pre_item_t`. However for
-    `backfill_item_t`s, we reserve memory differently in the
-    `backfill_item_preparer_t::limit_item_memory_usage()`. */
+    /* `get_mem_size()` estimates the size the `backfill_item_t` occupies in RAM or when
+    serialized over the network. Backfill batch sizes are defined in terms of the total
+    mem sizes of all the backfill items in the batch. */
     size_t get_mem_size() const {
-        return 0;
+        size_t s = sizeof(backfill_item_t);
+        for (const auto &pair : pairs) {
+            s += pair.get_mem_size();
+        }
+        return s;
     }
 
     void mask_in_place(const key_range_t &m);

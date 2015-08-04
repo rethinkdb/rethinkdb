@@ -580,15 +580,19 @@ private:
         /* Reserve space for the values and cut the item off once we have reached
         the memory limit. */
         for (size_t i = 0; i < item->pairs.size(); ++i) {
+            const auto &pair = item->pairs[i];
             /* Compute the amount of memory needed for the pair */
-            size_t pair_size = 0;
-            pair_size += sizeof(backfill_item_t::pair_t);
-            if (static_cast<bool>(item->pairs[i].value)) {
+            size_t pair_size;
+            if (static_cast<bool>(pair.value)) {
                 /* It's not a deletion */
-                rassert(item->pairs[i].value->size() == sizeof(void *));
+                rassert(pair.value->size() == sizeof(void *));
                 const void *value_ptr = *reinterpret_cast<void *const *>(
-                    item->pairs[i].value->data());
-                pair_size += static_cast<size_t>(loader->size_value(parent, value_ptr));
+                    pair.value->data());
+                size_t value_size =
+                    static_cast<size_t>(loader->size_value(parent, value_ptr));
+                pair_size = pair.get_mem_size_with_value(value_size);
+            } else {
+                pair_size = pair.get_mem_size();
             }
 
             /* Reserve the memory. */
