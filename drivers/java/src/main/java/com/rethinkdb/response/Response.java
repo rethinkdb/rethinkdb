@@ -6,13 +6,12 @@ package com.rethinkdb.response;
 
 import com.rethinkdb.proto.ResponseType;
 import com.rethinkdb.proto.ResponseNote;
-import com.rethinkdb.RethinkDBException;
+import com.rethinkdb.ReqlError;
 import com.rethinkdb.ast.Query;
 import org.json.simple.*;
 
 import java.util.*;
 import java.nio.ByteBuffer;
-import java.io.ByteArrayInputStream;
 import java.io.InputStreamReader;
 import java.io.InputStream;
 import java.io.IOException;
@@ -53,8 +52,8 @@ public class Response {
             new InputStreamReader(new ByteBufferInputStream(buf));
         JSONObject jsonResp = (JSONObject) JSONValue.parse(codepointReader);
         ResponseType responseType = ResponseType.fromValue((int)jsonResp.get("t"));
-        ArrayList<Integer> responseNoteVals = (ArrayList) jsonResp
-            .getOrDefault("n", new ArrayList());
+        ArrayList<Integer> responseNoteVals = (ArrayList<Integer>) jsonResp
+            .getOrDefault("n", new ArrayList<>());
         ArrayList<ResponseNote> responseNotes = responseNoteVals
             .stream()
             .map(ResponseNote::fromValue)
@@ -66,12 +65,12 @@ public class Response {
     }
 
     public Response(long token,
-                    ResponseType responseType,
-                    ArrayList<ResponseNote> responseNotes,
-                    Optional<Profile> profile,
-                    Optional<Backtrace> backtrace,
-                    Optional<JSONArray> data
-                    ) {
+             ResponseType responseType,
+             ArrayList<ResponseNote> responseNotes,
+             Optional<Profile> profile,
+             Optional<Backtrace> backtrace,
+             Optional<JSONArray> data
+    ) {
         this.token = token;
         this.type = responseType;
         this.notes = responseNotes;
@@ -80,7 +79,7 @@ public class Response {
         this.data = data;
     }
 
-    public RethinkDBException makeError(Query query) {
+    public ReqlError makeError(Query query) {
         throw new RuntimeException("makeError not implemented");
     }
 
@@ -98,8 +97,8 @@ public class Response {
         return type.isError();
     }
 
-    public static JSONObject convertPseudotypes(
-      JSONObject obj, Optional<Profile> profile) {
+    public static JSONArray convertPseudotypes(
+      JSONArray obj, Optional<Profile> profile) {
         throw new RuntimeException("convertPseudotypes not implemented");
     }
 
