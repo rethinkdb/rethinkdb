@@ -200,7 +200,8 @@ public:
         const key_range_t::right_bound_t &threshold) = 0;
 
     /* See `store_view_t::backfill_item_consumer_t` for a description of this. */
-    virtual continue_bool_t reserve_memory(size_t mem_size) = 0;
+    virtual void reserve_memory(size_t mem_size) = 0;
+    virtual continue_bool_t reserve_memory_at_least_one(size_t mem_size) = 0;
 
     /* `copy_value()` is responsible for reading a value out of the leaf node, finding
     the corresponding blob pages (if it's a large value), and putting the contents into

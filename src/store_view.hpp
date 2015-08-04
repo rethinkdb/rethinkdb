@@ -154,11 +154,16 @@ public:
         virtual void on_empty_range(
             const region_map_t<binary_blob_t> &metainfo,
             const key_range_t::right_bound_t &threshold) THROWS_NOTHING = 0;
-        /* Reserves a certain amount of memory to be used towards the next backfill
-        item. Returns continue_bool_t::ABORT if a memory size limit has been exceeded
-        and no more values should be added to the current item (and no more items
-        should be added to the current backfill chunk). */
-        virtual continue_bool_t reserve_memory(size_t mem_size) THROWS_NOTHING = 0;
+
+        /* These methods reserve a certain amount of memory to be used towards the
+        next backfill item.
+        `reserve_memory_at_least_one` returns continue_bool_t::ABORT if a memory
+        size limit has been exceeded AND this is not the first time it is called.
+        Previous calls to `reserve_memory()` do not change the result of the first
+        call to `reserve_memory_at_least_one()`. */
+        virtual void reserve_memory(size_t mem_size) THROWS_NOTHING = 0;
+        virtual continue_bool_t reserve_memory_at_least_one(size_t mem_size)
+            THROWS_NOTHING = 0;
     protected:
         virtual ~backfill_item_consumer_t() { }
     };

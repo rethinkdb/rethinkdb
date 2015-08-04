@@ -221,10 +221,13 @@ public:
         return item_consumer->size_value(parent, value_in_leaf_node);
     }
 
-    /* The same as `backfill_item_consumer_t::reserve_memory()`.
+    /* The same as `backfill_item_consumer_t::reserve_memory*()`.
     Passed through for convenience. */
-    continue_bool_t reserve_memory(size_t mem_size) {
-        return item_consumer->reserve_memory(mem_size);
+    void reserve_memory(size_t mem_size) {
+        item_consumer->reserve_memory(mem_size);
+    }
+    continue_bool_t reserve_memory_at_least_one(size_t mem_size) {
+        return item_consumer->reserve_memory_at_least_one(mem_size);
     }
 
 private:
@@ -439,9 +442,12 @@ private:
             continue_bool_t cont =
                 limit_item_memory_usage(buf_parent_t(&buf->lock), &item);
 
-            /* Note that `on_item()` may block, which will limit the rate at which we
-            traverse the B-tree. */
-            loader->on_item(std::move(item), buf, interruptor);
+            /* `limit_item_memory_usage()` might have left the item empty. */
+            if (!item.get_range().is_empty()) {
+                /* Note that `on_item()` may block, which will limit the rate at which
+                we traverse the B-tree. */
+                loader->on_item(std::move(item), buf, interruptor);
+            }
 
             return cont;
 
@@ -560,7 +566,10 @@ private:
                 /* Cut the item off if it's too large. */
                 continue_bool_t cont =
                     limit_item_memory_usage(buf_parent_t(&buf->lock), &i);
-                loader->on_item(std::move(i), buf, interruptor);
+                /* `limit_item_memory_usage()` might have left the item empty. */
+                if (!i.get_range().is_empty()) {
+                    loader->on_item(std::move(i), buf, interruptor);
+                }
                 if (cont == continue_bool_t::ABORT) {
                     return continue_bool_t::ABORT;
                 }
@@ -579,8 +588,7 @@ private:
 
         /* Reserve space for the values and cut the item off once we have reached
         the memory limit. */
-        for (size_t i = 0; i < item->pairs.size(); ++i) {
-            const auto &pair = item->pairs[i];
+        for (const auto &pair : item->pairs) {
             /* Compute the amount of memory needed for the pair */
             size_t pair_size;
             if (static_cast<bool>(pair.value)) {
@@ -596,15 +604,13 @@ private:
             }
 
             /* Reserve the memory. */
-            continue_bool_t continue_loading = loader->reserve_memory(pair_size);
+            continue_bool_t continue_loading =
+                loader->reserve_memory_at_least_one(pair_size);
 
-            /* We want to make sure to let at least one pair through in order to
-            avoid empty `backfill_item_t`s. So we ignore the return value of
-            `reserve_memory()` on the first one.*/
-            if (i != 0 && continue_loading == continue_bool_t::ABORT) {
+            if (continue_loading == continue_bool_t::ABORT) {
                 key_range_t mask_range = key_range_t(
                     key_range_t::none, store_key_t(),
-                    key_range_t::open, item->pairs[i].key);
+                    key_range_t::open, pair.key);
                 item->mask_in_place(mask_range);
                 /* If we mask the item, we must abort. Our caller might already
                 have consumed some backfill pre item which we now end up not

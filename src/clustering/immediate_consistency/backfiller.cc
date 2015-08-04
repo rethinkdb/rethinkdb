@@ -329,7 +329,8 @@ private:
                                 const backfill_config_t *config) :
                             chunk(_chunk), metainfo(_metainfo),
                             remaining_mem_size(
-                                static_cast<ssize_t>(config->item_chunk_mem_size)) {
+                                static_cast<ssize_t>(config->item_chunk_mem_size)),
+                            no_memory_reserved(true) {
                                 guarantee(chunk->get_mem_size() == 0);
                             }
                         void on_item(
@@ -349,11 +350,17 @@ private:
                             on_metainfo(range_metainfo, new_threshold);
                             chunk->push_back_nothing(new_threshold);
                         }
-                        continue_bool_t reserve_memory(size_t mem_size) THROWS_NOTHING {
+                        void reserve_memory(size_t mem_size) THROWS_NOTHING {
                             remaining_mem_size -= static_cast<ssize_t>(mem_size);
-                            if (remaining_mem_size <= 0) {
+                        }
+                        continue_bool_t reserve_memory_at_least_one(
+                                size_t mem_size)
+                                THROWS_NOTHING {
+                            reserve_memory(mem_size);
+                            if (remaining_mem_size <= 0 && !no_memory_reserved) {
                                 return continue_bool_t::ABORT;
                             } else {
+                                no_memory_reserved = false;
                                 return continue_bool_t::CONTINUE;
                             }
                         }
@@ -379,6 +386,7 @@ private:
                         backfill_item_seq_t<backfill_item_t> *const chunk;
                         region_map_t<version_t> *const metainfo;
                         ssize_t remaining_mem_size;
+                        bool no_memory_reserved;
                     } consumer(&chunk, &metainfo, &parent->intro.config);
 
                     parent->parent->store->send_backfill(

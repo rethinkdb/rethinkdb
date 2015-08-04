@@ -369,24 +369,21 @@ continue_bool_t mock_store_t::send_backfill(
                 auto jt = table_.lower_bound(item.range.left);
                 auto end = item.range.right.unbounded
                     ? table_.end() : table_.upper_bound(item.range.right.key());
-                continue_bool_t continue_adding = continue_bool_t::CONTINUE;
                 for (; jt != end; ++jt) {
                     backfill_item_t::pair_t pair;
                     pair.key = jt->first;
                     pair.recency = jt->second.first;
                     pair.value =
                         boost::make_optional(datum_to_vector(jt->second.second));
-                    continue_adding =
-                        item_consumer->reserve_memory(pair.get_mem_size());
-                    if (!item.pairs.empty()
-                        && continue_adding == continue_bool_t::ABORT) {
+                    if (continue_bool_t::ABORT ==
+                            item_consumer->reserve_memory_at_least_one(
+                                pair.get_mem_size())) {
                         break;
                     }
                     item.pairs.push_back(std::move(pair));
                 }
-                item_consumer->on_item(metainfo_, std::move(item));
-                if (continue_adding == continue_bool_t::ABORT) {
-                    return continue_bool_t::ABORT;
+                if (!item.pairs.empty()) {
+                    item_consumer->on_item(metainfo_, std::move(item));
                 }
                 table_cursor = pre_items.front().range.right;
                 pre_items.pop_front();
@@ -417,7 +414,8 @@ continue_bool_t mock_store_t::send_backfill(
                 item.pairs.push_back(std::move(pair));
                 item_consumer->on_item(metainfo_, std::move(item));
                 if (continue_bool_t::ABORT ==
-                        item_consumer->reserve_memory(pair.get_mem_size())) {
+                        item_consumer->reserve_memory_at_least_one(
+                            pair.get_mem_size())) {
                     return continue_bool_t::ABORT;
                 }
             }

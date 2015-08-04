@@ -171,8 +171,11 @@ public:
         return remaining == 0
             ? continue_bool_t::ABORT : continue_bool_t::CONTINUE;
     }
-    continue_bool_t reserve_memory(size_t mem_size) {
-        return inner->reserve_memory(mem_size);
+    void reserve_memory(size_t mem_size) {
+        inner->reserve_memory(mem_size);
+    }
+    continue_bool_t reserve_memory_at_least_one(size_t mem_size) {
+        return inner->reserve_memory_at_least_one(mem_size);
     }
     void copy_value(
             buf_parent_t parent,
