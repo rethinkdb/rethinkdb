@@ -381,6 +381,9 @@ tests:
       rb: r 5 + tbl
       ot: err('RqlLogicError', 'Expected type DATUM but found TABLE.', [0])
 
+    - cd: tbl.has_fields('field').type_of()
+      ot: ("SELECTION<STREAM>")
+
     # Clean up
     - cd: r.expr(['test2','test3','testpkey']).for_each(r.db('test').table_drop(r.row))
       rb: r.expr(['test2','test3','testpkey']).for_each{ |row| r.db('test').table_drop(row) }

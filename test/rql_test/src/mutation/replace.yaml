@@ -44,7 +44,6 @@ tests:
       js: tbl.between(10, 20, {'right_bound':'closed'}).replace(function(row) { return {'a':1}; })
       ot: ({'first_error':'Inserted object must have primary key `id`:\n{\n\t\"a\":\t1\n}','deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':10,'skipped':0.0,'inserted':0.0})
 
-
     - py: tbl.filter(lambda row:(row['id'] >= 10) & (row['id'] < 20)).replace(lambda row:{'id':row['id'], 'a':row['id']})
       js: tbl.filter(function(row) { return row('id').ge(10).and(row('id').lt(20))}).replace(function(row) { return {'id':row('id'), 'a':row('id')}; })
       rb: tbl.filter{ |row|
