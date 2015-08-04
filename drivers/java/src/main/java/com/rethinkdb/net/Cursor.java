@@ -1,15 +1,16 @@
 package com.rethinkdb.net;
 
-import com.rethinkdb.ReqlDriverError;
+import com.rethinkdb.ReqlError;
+import com.rethinkdb.ReqlRuntimeError;
+import com.rethinkdb.proto.ResponseType;
 import com.rethinkdb.response.Response;
 import com.rethinkdb.ast.Query;
-import com.rethinkdb.RethinkDBException;
 import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 
 
@@ -26,7 +27,7 @@ public abstract class Cursor<T> implements Iterator<T> {
     protected List<T> items = new ArrayList<>();
     protected int outstandingRequests = 1;
     protected int threshold = 0;
-    protected Optional<RethinkDBException> error = Optional.empty();
+    protected Optional<ReqlError> error = Optional.empty();
 
     public Cursor(Connection connection, Query query) {
         this.connection = connection;
@@ -85,9 +86,17 @@ public abstract class Cursor<T> implements Iterator<T> {
         }
     }
 
-    void setError(String err_msg) {
+    void setError(String errMsg) {
         if(!error.isPresent()){
-            error = Reth
+            error = Optional.of(new ReqlRuntimeError(errMsg));
+            Response dummyResponse = new Response(query.token,
+                    ResponseType.SUCCESS_SEQUENCE,
+                    new ArrayList<>(),
+                    Optional.empty(),
+                    Optional.empty(),
+                    Optional.of(new JSONArray())
+                    );
+            extend(dummyResponse);
         }
     }
 
@@ -96,7 +105,7 @@ public abstract class Cursor<T> implements Iterator<T> {
     }
 
     // Abstract methods
-    abstract RethinkDBException emptyError();
+    abstract ReqlError emptyError();
     protected abstract T getNext();
     protected abstract T getNext(int deadline);
 
@@ -106,7 +115,7 @@ public abstract class Cursor<T> implements Iterator<T> {
         }
 
         @Override
-        RethinkDBException emptyError() {
+        ReqlError emptyError() {
             return null;
         }
 

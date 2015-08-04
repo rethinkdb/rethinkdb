@@ -2,13 +2,12 @@ package com.rethinkdb.response;
 
 import com.rethinkdb.proto.ResponseType;
 import com.rethinkdb.proto.ResponseNote;
-import com.rethinkdb.RethinkDBException;
+import com.rethinkdb.ReqlError;
 import com.rethinkdb.ast.Query;
 import org.json.simple.*;
 
 import java.util.*;
 import java.nio.ByteBuffer;
-import java.io.ByteArrayInputStream;
 import java.io.InputStreamReader;
 import java.io.InputStream;
 import java.io.IOException;
@@ -76,7 +75,7 @@ public class Response {
         this.data = data;
     }
 
-    public RethinkDBException makeError(Query query) {
+    public ReqlError makeError(Query query) {
         throw new RuntimeException("makeError not implemented");
     }
 
