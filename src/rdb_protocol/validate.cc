@@ -224,6 +224,7 @@ static std::set<std::string> acceptable_keys = {
     "primary_replica_tag",
     "profile",
     "read_mode",
+    "use_outdated", // Only so we can detect it and error.
     "redirects",
     "replicas",
     "result_format",
