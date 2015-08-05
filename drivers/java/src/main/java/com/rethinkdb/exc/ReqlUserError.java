@@ -11,6 +11,10 @@ public class ReqlUserError extends ReqlRuntimeError {
         super(message);
     }
 
+    public ReqlUserError(String format, Object... args) {
+        super(String.format(format, args));
+    }
+
     public ReqlUserError(String message, Throwable cause) {
         super(message, cause);
     }

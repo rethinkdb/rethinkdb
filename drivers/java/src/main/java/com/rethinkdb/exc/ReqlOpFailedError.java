@@ -11,6 +11,10 @@ public class ReqlOpFailedError extends ReqlAvailabilityError {
         super(message);
     }
 
+    public ReqlOpFailedError(String format, Object... args) {
+        super(String.format(format, args));
+    }
+
     public ReqlOpFailedError(String message, Throwable cause) {
         super(message, cause);
     }

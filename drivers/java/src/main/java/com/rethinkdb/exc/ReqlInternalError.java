@@ -11,6 +11,10 @@ public class ReqlInternalError extends ReqlRuntimeError {
         super(message);
     }
 
+    public ReqlInternalError(String format, Object... args) {
+        super(String.format(format, args));
+    }
+
     public ReqlInternalError(String message, Throwable cause) {
         super(message, cause);
     }

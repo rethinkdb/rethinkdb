@@ -11,6 +11,10 @@ public class ReqlCompileError extends ReqlError {
         super(message);
     }
 
+    public ReqlCompileError(String format, Object... args) {
+        super(String.format(format, args));
+    }
+
     public ReqlCompileError(String message, Throwable cause) {
         super(message, cause);
     }

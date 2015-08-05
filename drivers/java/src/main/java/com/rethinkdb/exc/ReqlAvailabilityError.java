@@ -11,6 +11,10 @@ public class ReqlAvailabilityError extends ReqlRuntimeError {
         super(message);
     }
 
+    public ReqlAvailabilityError(String format, Object... args) {
+        super(String.format(format, args));
+    }
+
     public ReqlAvailabilityError(String message, Throwable cause) {
         super(message, cause);
     }

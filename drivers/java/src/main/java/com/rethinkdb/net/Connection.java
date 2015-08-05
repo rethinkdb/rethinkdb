@@ -9,6 +9,7 @@ import com.rethinkdb.ast.Util;
 import com.rethinkdb.ReqlDriverError;
 import com.rethinkdb.response.Response;
 
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.nio.ByteBuffer;
 import java.util.*;
@@ -72,11 +73,11 @@ public class Connection<C extends ConnectionInstance> {
         return connectTimeout;
     }
 
-    public Connection<C> reconnect() {
+    public Connection<C> reconnect() throws TimeoutException {
         return reconnect(false, Optional.empty());
     }
 
-    public Connection<C> reconnect(boolean noreplyWait, Optional<Integer> timeout) {
+    public Connection<C> reconnect(boolean noreplyWait, Optional<Integer> timeout) throws TimeoutException  {
         if(!timeout.isPresent()){
             timeout = connectTimeout;
         }
@@ -198,7 +199,7 @@ public class Connection<C extends ConnectionInstance> {
         public Builder<T> timeout(int val)
             { timeout  = Optional.of(val); return this; }
 
-        public Connection<T> connect() {
+        public Connection<T> connect() throws TimeoutException {
             Connection<T> conn = new Connection<>(this);
             conn.reconnect();
             return conn;

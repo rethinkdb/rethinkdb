@@ -11,6 +11,10 @@ public class ReqlResourceLimitError extends ReqlRuntimeError {
         super(message);
     }
 
+    public ReqlResourceLimitError(String format, Object... args) {
+        super(String.format(format, args));
+    }
+
     public ReqlResourceLimitError(String message, Throwable cause) {
         super(message, cause);
     }

@@ -11,6 +11,10 @@ public class ReqlNonExistenceError extends ReqlQueryLogicError {
         super(message);
     }
 
+    public ReqlNonExistenceError(String format, Object... args) {
+        super(String.format(format, args));
+    }
+
     public ReqlNonExistenceError(String message, Throwable cause) {
         super(message, cause);
     }

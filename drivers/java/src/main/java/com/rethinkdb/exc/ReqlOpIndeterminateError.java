@@ -11,6 +11,10 @@ public class ReqlOpIndeterminateError extends ReqlAvailabilityError {
         super(message);
     }
 
+    public ReqlOpIndeterminateError(String format, Object... args) {
+        super(String.format(format, args));
+    }
+
     public ReqlOpIndeterminateError(String message, Throwable cause) {
         super(message, cause);
     }

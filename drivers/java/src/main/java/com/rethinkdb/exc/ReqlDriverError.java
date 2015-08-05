@@ -11,6 +11,10 @@ public class ReqlDriverError extends ReqlError {
         super(message);
     }
 
+    public ReqlDriverError(String format, Object... args) {
+        super(String.format(format, args));
+    }
+
     public ReqlDriverError(String message, Throwable cause) {
         super(message, cause);
     }
