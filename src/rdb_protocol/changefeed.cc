@@ -184,25 +184,29 @@ public:
 };
 
 class squashing_queue_t : public maybe_squashing_queue_t {
+public:
     virtual void add(change_val_t change_val) {
         auto it = queue.find(change_val.pkey);
         if (it == queue.end()) {
-            queue_order.push_back(change_val.pkey);
-            auto pair = std::make_pair(std::move(change_val.pkey),
-                                       std::move(change_val));
+            auto order_it = queue_order.insert(queue_order.end(), change_val.pkey);
+            auto pair = std::make_pair(
+                std::move(change_val.pkey),
+                std::make_pair(std::move(change_val), order_it));
             auto res = queue.insert(std::move(pair));
             it = res.first;
             guarantee(res.second);
         } else {
-            change_val.old_val = std::move(it->second.old_val);
-            it->second = std::move(change_val);
-            bool has_old_val = it->second.old_val
-                && it->second.old_val->val.get_type() != datum_t::R_NULL;
-            bool has_new_val = it->second.new_val
-                && it->second.new_val->val.get_type() != datum_t::R_NULL;
+            change_val_t *change = &it->second.first;
+            change_val.old_val = std::move(change->old_val);
+            *change = std::move(change_val);
+            bool has_old_val = change->old_val
+                && change->old_val->val.get_type() != datum_t::R_NULL;
+            bool has_new_val = change->new_val
+                && change->new_val->val.get_type() != datum_t::R_NULL;
             if ((!has_old_val && !has_new_val)
-                || (it->second.old_val && it->second.new_val
-                    && it->second.old_val->val == it->second.new_val->val)) {
+                || (change->old_val && change->new_val
+                    && change->old_val->val == change->new_val->val)) {
+                queue_order.erase(it->second.second);
                 queue.erase(it);
             }
         }
@@ -217,20 +221,23 @@ class squashing_queue_t : public maybe_squashing_queue_t {
     }
     virtual const change_val_t &peek() {
         guarantee(size() != 0);
-        auto it = queue.begin();
-        return it->second;
+        auto it = queue.find(*queue_order.begin());
+        guarantee(it != queue.end());
+        return it->second.first;
     }
     virtual change_val_t pop() {
         guarantee(size() != 0);
         auto it = queue.find(*queue_order.begin());
         guarantee(it != queue.end());
-        auto ret = std::move(it->second);
+        auto ret = std::move(it->second.first);
         queue.erase(it);
         queue_order.pop_front();
         return ret;
     }
-    std::map<store_key_t, change_val_t> queue;
-    std::deque<store_key_t> queue_order;
+private:
+    std::map<store_key_t,
+             std::pair<change_val_t, std::list<store_key_t>::iterator> >queue;
+    std::list<store_key_t> queue_order;
 };
 
 class nonsquashing_queue_t : public maybe_squashing_queue_t {
