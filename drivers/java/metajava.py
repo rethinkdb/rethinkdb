@@ -9,7 +9,6 @@ import os
 import os.path
 import json
 import codecs
-import datetime
 
 from collections import OrderedDict
 from mako.lookup import TemplateLookup
@@ -38,8 +37,6 @@ def main():
 
     java_meta = java_specific_term_meta(term_meta)
     render_ast_subclasses(java_meta)
-    render_response_class(proto, java_meta)
-    render_datum_class(proto, java_meta)
 
     global_info = get_global_info()
     render_global_options(global_info['global_optargs'])
@@ -244,6 +241,7 @@ template_context = {
     'dromedary': dromedary,  # dromeDary case function
 }
 
+
 def dependent_templates(tpl):
     '''Returns filenames for all templates that are inherited from the
     given template'''
@@ -296,7 +294,8 @@ def get_template_name(classname, directory, default):
     '''Returns the template for this class'''
     override_template = '{}/{}.java'.format(directory, classname)
     if TL.has_template(override_template):
-        print("    Found an override for {} at {}".format(classname, override_template))
+        print("    Found an override for {} at {}".format(
+            classname, override_template))
         return override_template
     else:
         return default
@@ -376,27 +375,6 @@ def render_ast_subclasses(meta):
                 superclass=special_superclasses.get(term_name, "RqlQuery"),
                 classname=None,
             )
-
-
-def render_response_class(proto, meta):
-    '''Renders the com.rethinkdb.response.Response class'''
-    render(
-        "Response.java",
-        PACKAGE_DIR+'/response',
-        meta=meta,
-        proto=proto,
-    )
-
-
-def render_datum_class(proto, meta):
-    '''Renders the com.rethinkdb.response.Datum class'''
-    render(
-        "ResponseDatum.java",
-        PACKAGE_DIR+'/response',
-        output_name="Datum.java",  # TODO: obviate response Datum class!
-        meta=meta,
-        proto=proto,
-    )
 
 
 def render_global_options(global_optargs):
