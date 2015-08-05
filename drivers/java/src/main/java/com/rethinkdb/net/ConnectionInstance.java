@@ -21,8 +21,14 @@ public class ConnectionInstance {
     public ConnectionInstance() {
     }
 
-    public void connect(String hostname, int port, Optional<Integer> timeout) {
-        socket = Optional.of(new SocketWrapper(hostname, port, timeout));
+    public void connect(
+            String hostname,
+            int port,
+            ByteBuffer handshake,
+            Optional<Integer> timeout) {
+        SocketWrapper sock = new SocketWrapper(hostname, port, timeout);
+        sock.connect(handshake);
+        socket = Optional.of(sock);
     }
 
     public boolean isOpen() {
