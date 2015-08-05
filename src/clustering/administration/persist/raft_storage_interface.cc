@@ -3,37 +3,8 @@
 
 #include "clustering/administration/persist/file_keys.hpp"
 
-/* The raft state is stored as follows:
-- There is a single `table_raft_stored_header_t` which stores `current_term`,
-    `voted_for`, and `commit_index`.
-- There is a single `table_raft_stored_snapshot_t` which stores `snapshot_state`,
-    `snapshot_config`, `log.prev_index`, and `log.prev_term`.
-- There are zero or more `raft_log_entry_t`s, which use the log index as part of the
-    B-tree key. */
-
-class table_raft_stored_header_t {
-public:
-    static table_raft_stored_header_t from_state(
-            const raft_persistent_state_t<table_raft_state_t> &state) {
-        return table_raft_stored_header_t {
-            state.current_term, state.voted_for, state.commit_index };
-    }
-    raft_term_t current_term;
-    raft_member_id_t voted_for;
-    raft_log_index_t commit_index;
-};
-
 RDB_IMPL_SERIALIZABLE_3_SINCE_v2_1(table_raft_stored_header_t,
     current_term, voted_for, commit_index);
-
-class table_raft_stored_snapshot_t {
-public:
-    table_raft_state_t snapshot_state;
-    raft_complex_config_t snapshot_config;
-    raft_log_index_t log_prev_index;
-    raft_term_t log_prev_term;
-};
-
 RDB_IMPL_SERIALIZABLE_4_SINCE_v2_1(table_raft_stored_snapshot_t,
     snapshot_state, snapshot_config, log_prev_index, log_prev_term);
 

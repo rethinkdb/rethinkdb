@@ -141,6 +141,12 @@ private:
         counted_t<contract_info_t> contract,
         const std::set<server_id_t> &servers);
 
+    /* `is_majority_available()` is a helper function to determine whether a majority
+    of the replicas are available to acknowledge a read or write. */
+    static bool is_majority_available(
+        counted_t<contract_info_t> contract,
+        primary_dispatcher_t *dispatcher);
+
     boost::optional<branch_id_t> our_branch_id;
 
     /* `latest_contract_*` stores the latest contract we've received, along with its ack

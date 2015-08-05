@@ -279,13 +279,13 @@ public:
     ~rdb_modification_report_cb_t();
 
     new_mutex_in_line_t get_in_line_for_sindex();
-    rwlock_in_line_t get_in_line_for_stamp();
+    rwlock_in_line_t get_in_line_for_cfeed_stamp();
 
     void on_mod_report(const rdb_modification_report_t &mod_report,
                        bool update_pkey_cfeeds,
                        new_mutex_in_line_t *sindex_spot,
                        rwlock_in_line_t *stamp_spot);
-    bool has_pkey_cfeeds();
+    bool has_pkey_cfeeds(const std::vector<store_key_t> &keys);
     void finish(btree_slice_t *btree, real_superblock_t *superblock);
 
 private:

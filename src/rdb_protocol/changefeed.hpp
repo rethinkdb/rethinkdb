@@ -421,7 +421,7 @@ public:
     typedef server_addr_t addr_t;
     typedef mailbox_addr_t<void(client_t::addr_t, boost::optional<std::string>, uuid_u)>
         limit_addr_t;
-    explicit server_t(mailbox_manager_t *_manager);
+    explicit server_t(mailbox_manager_t *_manager, store_t *_parent);
     ~server_t();
     void add_client(const client_t::addr_t &addr, region_t region);
     void add_limit_client(
@@ -438,7 +438,6 @@ public:
     void send_all(const msg_t &msg,
                   const store_key_t &key,
                   rwlock_in_line_t *stamp_spot);
-    void stop_all();
     addr_t get_stop_addr();
     limit_addr_t get_limit_stop_addr();
     boost::optional<uint64_t> get_stamp(const client_t::addr_t &addr);
@@ -452,9 +451,6 @@ public:
                                           rwlock_in_line_t *,
                                           limit_manager_t *)> f) THROWS_NOTHING;
     bool has_limit(const boost::optional<std::string> &s);
-    rwlock_in_line_t get_in_line_for_stamp(access_t access) {
-        return rwlock_in_line_t(&stamp_lock, access);
-    }
 private:
     friend class limit_manager_t;
     void stop_mailbox_cb(signal_t *interruptor, client_t::addr_t addr);
@@ -497,10 +493,6 @@ private:
                             std::pair<const client_t::addr_t, client_info_t> *client,
                             msg_t msg);
 
-    // Used to control access to stamps.  We need this so that `do_stamp` in
-    // `store.cc` can synchronize with with the `rdb_modification_report_cb_t`
-    // in `btree.cc`.
-    rwlock_t stamp_lock;
     // Controls access to `clients`.  A `server_t` needs to read `clients` when:
     // * `send_all` is called
     // * `get_stamp` is called
@@ -512,6 +504,8 @@ private:
     // while looping over `clients`, and we need to make sure the map doesn't
     // change under it.
     rwlock_t clients_lock;
+    // We need access to the stamp lock that exists on the parent.
+    store_t *parent;
 
     auto_drainer_t drainer;
     // Clients send a message to this mailbox with their address when they want

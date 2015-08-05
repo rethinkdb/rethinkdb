@@ -187,6 +187,7 @@ class squashing_queue_t : public maybe_squashing_queue_t {
     virtual void add(change_val_t change_val) {
         auto it = queue.find(change_val.pkey);
         if (it == queue.end()) {
+            queue_order.push_back(change_val.pkey);
             auto pair = std::make_pair(std::move(change_val.pkey),
                                        std::move(change_val));
             it = queue.insert(std::move(pair)).first;
@@ -205,6 +206,7 @@ class squashing_queue_t : public maybe_squashing_queue_t {
         }
     }
     virtual size_t size() const {
+        guarantee(queue.size() == queue_order.size());
         return queue.size();
     }
     virtual void clear() {
@@ -217,12 +219,15 @@ class squashing_queue_t : public maybe_squashing_queue_t {
     }
     virtual change_val_t pop() {
         guarantee(size() != 0);
-        auto it = queue.begin();
+        auto it = queue.find(*queue_order.begin());
+        guarantee(it != queue.end());
         auto ret = std::move(it->second);
         queue.erase(it);
+        queue_order.pop_front();
         return ret;
     }
     std::map<store_key_t, change_val_t> queue;
+    std::deque<store_key_t> queue_order;
 };
 
 class nonsquashing_queue_t : public maybe_squashing_queue_t {
@@ -290,9 +295,10 @@ server_t::client_info_t::client_info_t()
     : limit_clients(&opt_lt<std::string>),
       limit_clients_lock(new rwlock_t()) { }
 
-server_t::server_t(mailbox_manager_t *_manager)
+server_t::server_t(mailbox_manager_t *_manager, store_t *_parent)
     : uuid(generate_uuid()),
       manager(_manager),
+      parent(_parent),
       stop_mailbox(manager,
                    std::bind(&server_t::stop_mailbox_cb, this, ph::_1, ph::_2)),
       limit_stop_mailbox(manager, std::bind(&server_t::limit_stop_mailbox_cb,
@@ -481,7 +487,7 @@ void server_t::send_all(const msg_t &msg,
                         const store_key_t &key,
                         rwlock_in_line_t *stamp_spot) {
     auto_drainer_t::lock_t lock(&drainer);
-    stamp_spot->guarantee_is_for_lock(&stamp_lock);
+    stamp_spot->guarantee_is_for_lock(&parent->cfeed_stamp_lock);
     stamp_spot->write_signal()->wait_lazily_unordered();
 
     rwlock_acq_t acq(&clients_lock, access_t::read);
@@ -503,15 +509,6 @@ void server_t::send_all(const msg_t &msg,
     }
 }
 
-void server_t::stop_all() {
-    auto_drainer_t::lock_t lock(&drainer);
-    rwlock_in_line_t spot(&clients_lock, access_t::read);
-    spot.read_signal()->wait_lazily_unordered();
-    for (auto it = clients.begin(); it != clients.end(); ++it) {
-        it->second.cond->pulse_if_not_already_pulsed();
-    }
-}
-
 server_t::addr_t server_t::get_stop_addr() {
     return stop_mailbox.get_address();
 }
@@ -522,7 +519,7 @@ server_t::limit_addr_t server_t::get_limit_stop_addr() {
 
 boost::optional<uint64_t> server_t::get_stamp(const client_t::addr_t &addr) {
     auto_drainer_t::lock_t lock(&drainer);
-    rwlock_acq_t stamp_acq(&stamp_lock, access_t::read);
+    rwlock_acq_t stamp_acq(&parent->cfeed_stamp_lock, access_t::read);
     rwlock_acq_t client_acq(&clients_lock, access_t::read);
     auto it = clients.find(addr);
     if (it == clients.end()) {
@@ -1582,9 +1579,11 @@ public:
             &read_resp,
             order_token_t::ignore,
             env->interruptor);
-        auto resp = boost::get<changefeed_point_stamp_response_t>(
-            &read_resp.response);
-        guarantee(resp != NULL);
+        auto *res = boost::get<changefeed_point_stamp_response_t>(&read_resp.response);
+        guarantee(res != nullptr);
+        rcheck_datum(res->resp, base_exc_t::OP_FAILED,
+                     "Changefeed aborted.  (Did you just reshard?)");
+        auto *resp = &*res->resp;
         uint64_t start_stamp = resp->stamp.second;
         initial_val = change_val_t(
                resp->stamp,
@@ -1771,10 +1770,13 @@ public:
                    profile_bool_t::DONT_PROFILE,
                    read_mode_t::SINGLE),
             &read_resp, order_token_t::ignore, outer_env->interruptor);
-        auto resp = boost::get<changefeed_stamp_response_t>(&read_resp.response);
-        guarantee(resp != NULL);
-        start_stamps = std::move(resp->stamps);
-        guarantee(start_stamps.size() != 0);
+        auto *resp = boost::get<changefeed_stamp_response_t>(&read_resp.response);
+        guarantee(resp != nullptr);
+        rcheck_datum(resp->stamps, base_exc_t::OP_FAILED,
+                     "Unable to retrieve the start stamps.  Did you just reshard?");
+        start_stamps = std::move(*resp->stamps);
+        rcheck_datum(start_stamps.size() != 0, base_exc_t::OP_FAILED,
+                     "Unable to retrieve the start stamps.  Did you just reshard?");
 
         env = make_env(outer_env);
         if (maybe_src) {
