@@ -114,7 +114,8 @@ public:
         return limits_;
     }
 
-    configured_limits_t limits(scoped_ptr_t<val_t> changefeed_queue_size) {
+    configured_limits_t limits_with_changefeed_queue_size(
+        scoped_ptr_t<val_t> changefeed_queue_size) {
         if (changefeed_queue_size.has()) {
             return configured_limits_t(
                 check_limit("changefeed queue size",

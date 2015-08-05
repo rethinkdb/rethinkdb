@@ -408,8 +408,8 @@ private:
             args->optarg(env, "include_initial_vals");
 
         scoped_ptr_t<val_t> v = args->arg(env, 0);
-        configured_limits_t limits
-            = env->env->limits(args->optarg(env, "changefeed_queue_size"));
+        configured_limits_t limits = env->env->limits_with_changefeed_queue_size(
+                args->optarg(env, "changefeed_queue_size"));
         if (v->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
             counted_t<datum_stream_t> seq = v->as_seq(env->env);
             std::vector<counted_t<datum_stream_t> > streams;
