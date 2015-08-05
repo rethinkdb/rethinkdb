@@ -384,6 +384,7 @@ continue_bool_t mock_store_t::send_backfill(
                     if (memory_tracker->is_limit_exceeded()) {
                         item.range.right = key_range_t::right_bound_t(jt->first);
                         exceeded_memory_limit = true;
+                        break;
                     }
                     memory_tracker->note_item();
                     item.pairs.push_back(std::move(pair));
