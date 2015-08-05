@@ -219,7 +219,9 @@ bool multi_table_manager_t::active_table_t::should_sync_assuming_no_name_change(
 }
 
 void multi_table_manager_t::help_construct() {
-    /* Whenever a server connects, we need to sync all of our tables to it. */
+    /* Whenever a server connects, we need to sync all of our tables to it.
+    Additionally: sync all of our existing tables with all servers that are
+    already connected. */
     multi_table_manager_directory_subs.init(
         new watchable_map_t<peer_id_t, multi_table_manager_bcard_t>::all_subs_t(
             multi_table_manager_directory,
@@ -230,7 +232,7 @@ void multi_table_manager_t::help_construct() {
                         schedule_sync(pair.first, pair.second.get(), peer);
                     }
                 }
-            }, initial_call_t::NO));
+            }, initial_call_t::YES));
 
     /* Whenever a server changes its entry for a table in the directory, we need to
     re-sync that table to that server. */
