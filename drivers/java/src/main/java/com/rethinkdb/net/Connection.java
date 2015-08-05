@@ -117,6 +117,10 @@ public class Connection<C extends ConnectionInstance> {
         return nextToken.incrementAndGet();
     }
 
+    Response readResponse(long token, Optional<Integer> deadline) {
+        return checkOpen().readResponse(token, deadline);
+    }
+
     Optional<Object> runQuery(Query query, boolean noreply) {
         ConnectionInstance inst = checkOpen();
         inst.socket

@@ -2,16 +2,13 @@ package com.rethinkdb.net;
 
 import com.rethinkdb.ReqlError;
 import com.rethinkdb.ReqlRuntimeError;
+import com.rethinkdb.ast.Query;
 import com.rethinkdb.proto.ResponseType;
 import com.rethinkdb.response.Response;
-import com.rethinkdb.ast.Query;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 
 public abstract class Cursor<T> implements Iterator<T> {
@@ -24,10 +21,10 @@ public abstract class Cursor<T> implements Iterator<T> {
     protected final Query query;
 
     // mutable members
-    protected List<T> items = new ArrayList<>();
+    protected Deque<T> items = new ArrayDeque<>();
     protected int outstandingRequests = 1;
     protected int threshold = 0;
-    protected Optional<ReqlError> error = Optional.empty();
+    protected Optional<RuntimeException> error = Optional.empty();
 
     public Cursor(Connection connection, Query query) {
         this.connection = connection;
@@ -38,7 +35,7 @@ public abstract class Cursor<T> implements Iterator<T> {
 
     public void close() {
         if(!error.isPresent()){
-            error = Optional.of(emptyError());
+            error = Optional.of(new NoSuchElementException());
             if(connection.isOpen()){
                 outstandingRequests += 1;
                 connection.stop(this);
@@ -50,8 +47,6 @@ public abstract class Cursor<T> implements Iterator<T> {
     public boolean hasNext() {
         throw new UnsupportedOperationException();
     }
-
-    abstract public T next(int timeout);
 
     @Override
     public void remove() {
@@ -66,7 +61,7 @@ public abstract class Cursor<T> implements Iterator<T> {
                 items.addAll(response.data.orElse(new JSONArray()));
             } else if(response.isSequence()) {
                 items.addAll(response.data.orElse(new JSONArray()));
-                error = Optional.of(emptyError());
+                error = Optional.of(new NoSuchElementException());
             } else {
                 error = Optional.of(response.makeError(query));
             }
@@ -104,39 +99,36 @@ public abstract class Cursor<T> implements Iterator<T> {
         return new DefaultCursor(connection, query);
     }
 
-    // Abstract methods
-    abstract ReqlError emptyError();
-    protected abstract T getNext();
-    protected abstract T getNext(int deadline);
+    @Override
+    public T next() {
+        return getNext(Optional.empty());
+    }
 
-    private static class DefaultCursor extends Cursor {
+    public T next(int timeout) {
+        return getNext(Optional.of(timeout));
+    }
+
+
+    // Abstract methods
+    abstract T getNext(Optional<Integer> timeout);
+
+    private static class DefaultCursor<T> extends Cursor<T> {
         public DefaultCursor(Connection connection, Query query) {
             super(connection, query);
         }
 
-        @Override
-        ReqlError emptyError() {
-            return null;
-        }
-
-        @Override
-        protected Object getNext() {
-            return null;
-        }
-
-        @Override
-        protected Object getNext(int deadline) {
-            return null;
-        }
-
-        @Override
-        public Object next() {
-            return null;
-        }
-
-        @Override
-        public Object next(int timeout) {
-            return null;
+        T getNext(Optional<Integer> timeout) {
+            while(items.size() == 0) {
+                maybeFetchBatch();
+                error.ifPresent(exc -> {
+                    throw exc;
+                });
+                connection.readResponse(query.token,
+                        timeout.map(to ->
+                                (int)(System.nanoTime() / 1_000_000L) + to));
+            }
+            Object element = items.pop();
+            return (T) Converter.convertPseudo(element, query.globalOptions);
         }
 
     }
