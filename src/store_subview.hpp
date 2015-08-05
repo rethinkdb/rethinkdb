@@ -138,7 +138,8 @@ public:
     continue_bool_t send_backfill(
             const region_map_t<state_timestamp_t> &start_point,
             backfill_pre_item_producer_t *pre_item_producer,
-            store_backfill_item_consumer_t *item_consumer,
+            backfill_item_consumer_t *item_consumer,
+            backfill_item_memory_tracker_t *memory_tracker,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
@@ -147,6 +148,7 @@ public:
             start_point,
             pre_item_producer,
             item_consumer,
+            memory_tracker,
             interruptor);
     }
 

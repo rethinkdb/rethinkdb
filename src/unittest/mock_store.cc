@@ -315,7 +315,8 @@ ql::datum_t vector_to_datum(std::vector<char> &&vector) {
 continue_bool_t mock_store_t::send_backfill(
         const region_map_t<state_timestamp_t> &start_point,
         backfill_pre_item_producer_t *pre_item_producer,
-        store_backfill_item_consumer_t *item_consumer,
+        backfill_item_consumer_t *item_consumer,
+        backfill_item_memory_tracker_t *memory_tracker,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     key_range_t::right_bound_t table_cursor(start_point.get_domain().inner.left);
@@ -361,7 +362,10 @@ continue_bool_t mock_store_t::send_backfill(
             if (!pre_items.empty()) {
                 /* The next thing in lexicographical order is a pre item, so handle it */
                 backfill_item_t item;
-                item_consumer->remaining_memory -= sizeof(backfill_item_t);
+                memory_tracker->reserve_memory(sizeof(backfill_item_t));
+                if (memory_tracker->is_limit_exceeded()) {
+                    return continue_bool_t::ABORT;
+                }
                 item.range = pre_items.front().range;
                 /* Iterate over all keys in our local copy within `pre_item->range` and
                 copy them into `item`, whether or not they've changed since
@@ -369,23 +373,27 @@ continue_bool_t mock_store_t::send_backfill(
                 auto jt = table_.lower_bound(item.range.left);
                 auto end = item.range.right.unbounded
                     ? table_.end() : table_.upper_bound(item.range.right.key());
+                bool exceeded_memory_limit = false;
                 for (; jt != end; ++jt) {
                     backfill_item_t::pair_t pair;
                     pair.key = jt->first;
                     pair.recency = jt->second.first;
                     pair.value =
                         boost::make_optional(datum_to_vector(jt->second.second));
-                    item_consumer->remaining_memory -= pair.get_mem_size();
-                    if (item_consumer->had_at_least_one_item &&
-                            item_consumer->remaining_memory < 0) {
+                    memory_tracker->reserve_memory(pair.get_mem_size());
+                    if (memory_tracker->is_limit_exceeded()) {
                         item.range.right = key_range_t::right_bound_t(jt->first);
-                        break;
+                        exceeded_memory_limit = true;
                     }
-                    item_consumer->had_at_least_one_item = true;
+                    memory_tracker->note_item();
                     item.pairs.push_back(std::move(pair));
                 }
-                if (!item.pairs.empty()) {
+                if (!item.get_range().is_empty()) {
+                    memory_tracker->note_item();
                     item_consumer->on_item(metainfo_, std::move(item));
+                }
+                if (exceeded_memory_limit) {
+                    return continue_bool_t::ABORT;
                 }
                 table_cursor = pre_items.front().range.right;
                 pre_items.pop_front();
@@ -406,19 +414,21 @@ continue_bool_t mock_store_t::send_backfill(
                     start_point.lookup(it->first).to_repli_timestamp()) {
                 /* The key has changed since `start_point`, so we'll transmit it. */
                 backfill_item_t item;
-                item_consumer->remaining_memory -= sizeof(backfill_item_t);
+                memory_tracker->reserve_memory(sizeof(backfill_item_t));
+                if (memory_tracker->is_limit_exceeded()) {
+                    return continue_bool_t::ABORT;
+                }
                 item.range = key_range_t(
                     key_range_t::closed, it->first, key_range_t::closed, it->first);
                 backfill_item_t::pair_t pair;
                 pair.key = it->first;
                 pair.recency = it->second.first;
                 pair.value = boost::make_optional(datum_to_vector(it->second.second));
-                item_consumer->remaining_memory -= pair.get_mem_size();
-                if (item_consumer->had_at_least_one_item &&
-                        item_consumer->remaining_memory < 0) {
+                memory_tracker->reserve_memory(pair.get_mem_size());
+                if (memory_tracker->is_limit_exceeded()) {
                     return continue_bool_t::ABORT;
                 }
-                item_consumer->had_at_least_one_item = true;
+                memory_tracker->note_item();
                 item.pairs.push_back(std::move(pair));
                 item_consumer->on_item(metainfo_, std::move(item));
             }

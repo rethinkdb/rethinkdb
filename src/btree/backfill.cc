@@ -304,10 +304,10 @@ public:
             btree_backfill_pre_item_producer_t *_pre_item_producer,
             signal_t *_abort_cond,
             backfill_item_loader_t *_loader,
-            store_backfill_item_consumer_t *_item_consumer) :
+            backfill_item_memory_tracker_t *_memory_tracker) :
         sizer(_sizer), reference_timestamp(_reference_timestamp),
         pre_item_producer(_pre_item_producer), abort_cond(_abort_cond), loader(_loader),
-        item_consumer(_item_consumer)
+        memory_tracker(_memory_tracker)
         { }
 
 private:
@@ -572,8 +572,15 @@ private:
     MUST_USE continue_bool_t limit_item_memory_usage(
             const buf_parent_t &parent,
             backfill_item_t *item) {
+
         /* Reserve space for the item structure itself. */
-        item_consumer->remaining_memory -= sizeof(backfill_item_t);
+        memory_tracker->reserve_memory(sizeof(backfill_item_t));
+        /* ...if that already exceeds the memory limit, make the item empty and
+        abort now. */
+        if (memory_tracker->is_limit_exceeded()) {
+            item->mask_in_place(key_range_t::empty());
+            return continue_bool_t::ABORT;
+        }
 
         /* Reserve space for the values and cut the item off once we have reached
         the memory limit. */
@@ -593,15 +600,13 @@ private:
             }
 
             /* Reserve the memory. */
-            item_consumer->remaining_memory -= pair_size;
-            bool continue_loading =
-                !item_consumer->had_at_least_one_item ||
-                item_consumer->remaining_memory >= 0;
-            item_consumer->had_at_least_one_item = true;
+            memory_tracker->reserve_memory(pair_size);
+            bool stop_loading = memory_tracker->is_limit_exceeded();
+            memory_tracker->note_item();
 
-            /* If !continue_loading, we cut the current and all subsequent keys out
-            of the item. */
-            if (!continue_loading) {
+            /* If `stop_loading` is set, we cut the current and all subsequent keys
+            out of the item. */
+            if (stop_loading) {
                 key_range_t mask_range = key_range_t(
                     key_range_t::none, store_key_t(),
                     key_range_t::open, pair.key);
@@ -611,6 +616,13 @@ private:
                 continuing would make us skip values. */
                 return continue_bool_t::ABORT;
             }
+        }
+
+        if (!item->get_range().is_empty()) {
+            /* If the item doesn't have any key/value pairs, we will get here
+            without telling the memory_tracker that we have made progress. Tell it
+            now. */
+            memory_tracker->note_item();
         }
         return continue_bool_t::CONTINUE;
     }
@@ -654,7 +666,7 @@ private:
     btree_backfill_pre_item_producer_t *pre_item_producer;
     signal_t *abort_cond;
     backfill_item_loader_t *loader;
-    store_backfill_item_consumer_t *item_consumer;
+    backfill_item_memory_tracker_t *memory_tracker;
 };
 
 continue_bool_t btree_send_backfill(
@@ -663,17 +675,17 @@ continue_bool_t btree_send_backfill(
         value_sizer_t *sizer,
         const key_range_t &range,
         repli_timestamp_t reference_timestamp,
-        btree_backfill_pre_item_producer_t *btree_pre_item_producer,
-        btree_backfill_item_consumer_t *btree_item_consumer,
-        store_backfill_item_consumer_t *store_consumer,
+        btree_backfill_pre_item_producer_t *pre_item_producer,
+        btree_backfill_item_consumer_t *item_consumer,
+        backfill_item_memory_tracker_t *memory_tracker,
         signal_t *interruptor) {
     backfill_debug_range(range, strprintf(
         "btree_send_backfill %" PRIu64, reference_timestamp.longtime));
     cond_t abort_cond;
-    backfill_item_loader_t loader(btree_item_consumer, &abort_cond);
+    backfill_item_loader_t loader(item_consumer, &abort_cond);
     backfill_item_preparer_t preparer(
-        sizer, reference_timestamp, btree_pre_item_producer, &abort_cond, &loader,
-        store_consumer);
+        sizer, reference_timestamp, pre_item_producer, &abort_cond, &loader,
+        memory_tracker);
     continue_bool_t cont = btree_depth_first_traversal(
             superblock, range, &preparer, access_t::read, FORWARD, release_superblock,
             interruptor);

@@ -224,9 +224,9 @@ continue_bool_t btree_send_backfill(
     value_sizer_t *sizer,
     const key_range_t &range,
     repli_timestamp_t reference_timestamp,
-    btree_backfill_pre_item_producer_t *btree_pre_item_producer,
-    btree_backfill_item_consumer_t *btree_item_consumer,
-    store_backfill_item_consumer_t *inner_consumer,
+    btree_backfill_pre_item_producer_t *pre_item_producer,
+    btree_backfill_item_consumer_t *item_consumer,
+    backfill_item_memory_tracker_t *memory_tracker,
     signal_t *interruptor);
 
 /* There's no such thing as `btree_receive_backfill()`; the RDB protocol code is

@@ -321,14 +321,11 @@ private:
                     /* `consumer_t` is responsible for receiving backfill items and
                     the corresponding metainfo from `send_backfill()` and storing them in
                     `chunk` and in `metainfo`. */
-                    class consumer_t : public store_backfill_item_consumer_t {
+                    class consumer_t : public store_view_t::backfill_item_consumer_t {
                     public:
                         consumer_t(
                                 backfill_item_seq_t<backfill_item_t> *_chunk,
-                                region_map_t<version_t> *_metainfo,
-                                const backfill_config_t *config) :
-                            store_backfill_item_consumer_t(
-                                static_cast<ssize_t>(config->item_chunk_mem_size)),
+                                region_map_t<version_t> *_metainfo) :
                             chunk(_chunk), metainfo(_metainfo) {
                                 guarantee(chunk->get_mem_size() == 0);
                             }
@@ -370,11 +367,15 @@ private:
                         }
                         backfill_item_seq_t<backfill_item_t> *const chunk;
                         region_map_t<version_t> *const metainfo;
-                    } consumer(&chunk, &metainfo, &parent->intro.config);
+                    } consumer(&chunk, &metainfo);
+
+                    backfill_item_memory_tracker_t memory_tracker(
+                        parent->intro.config.item_chunk_mem_size);
 
                     parent->parent->store->send_backfill(
                         parent->common_version.mask(subregion),
-                        &producer, &consumer, keepalive.get_drain_signal());
+                        &producer, &consumer, &memory_tracker,
+                        keepalive.get_drain_signal());
 
                     /* `producer` goes out of scope here, so it restores `pre_items` to
                     what it was before */

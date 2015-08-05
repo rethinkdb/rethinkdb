@@ -146,7 +146,7 @@ class limiting_btree_backfill_item_consumer_t :
     public btree_backfill_item_consumer_t {
 public:
     limiting_btree_backfill_item_consumer_t(
-            store_backfill_item_consumer_t *_inner,
+            store_view_t::backfill_item_consumer_t *_inner,
             key_range_t::right_bound_t *_threshold_ptr,
             const region_map_t<binary_blob_t> *_metainfo_ptr) :
         remaining(MAX_BACKFILL_ITEMS_PER_TXN), inner(_inner),
@@ -208,7 +208,7 @@ public:
     }
     size_t remaining;
 private:
-    store_backfill_item_consumer_t *const inner;
+    store_view_t::backfill_item_consumer_t *const inner;
     key_range_t::right_bound_t *const threshold_ptr;
 
     /* `metainfo_ptr` points to the metainfo that applies to the items we're handling.
@@ -220,7 +220,8 @@ private:
 continue_bool_t store_t::send_backfill(
         const region_map_t<state_timestamp_t> &start_point,
         backfill_pre_item_producer_t *pre_item_producer,
-        store_backfill_item_consumer_t *item_consumer,
+        store_view_t::backfill_item_consumer_t *item_consumer,
+        backfill_item_memory_tracker_t *memory_tracker,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     /* Just like in `send_backfill_pre()`, we first break `start_point` up into regions
@@ -263,10 +264,18 @@ continue_bool_t store_t::send_backfill(
             to_do.left = threshold.key();
             continue_bool_t cont = btree_send_backfill(sb.get(),
                 release_superblock_t::RELEASE, &sizer, to_do, pair.second,
-                &pre_item_adapter, &limiter, item_consumer, interruptor);
+                &pre_item_adapter, &limiter, memory_tracker, interruptor);
+
             /* Check if the backfill was aborted because of exhausting the memory
-            limit, or because the pre_item_adapter aborted. */
-            if ((cont == continue_bool_t::ABORT && item_consumer->remaining_memory < 0)
+            limit, or because the pre_item_adapter aborted.
+            Note that `memory_tracker->is_limit_exceeded()` can sometimes return
+            `true` even though that wasn't the reason for the backfill being aborted.
+            In particular this can happen if `memory_tracker->note_item()` was called
+            after the last time that `memory_tracker->is_limit_exceeded()` was checked
+            in the backfill. The next loop iteration would abort anyway because of
+            the exceeded limit, so aborting now even if that wasn't the reason for
+            `cont` being set to `continue_bool_t::ABORT` isn't a big deal. */
+            if ((cont == continue_bool_t::ABORT && memory_tracker->is_limit_exceeded())
                 || pre_item_adapter.aborted) {
                 guarantee(cont == continue_bool_t::ABORT);
                 return continue_bool_t::ABORT;
