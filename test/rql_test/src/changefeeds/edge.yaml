@@ -9,7 +9,7 @@ tests:
       rb: tbl.index_create('sindex'){ |row| common_prefix.append(row['value']) }
       ot: ({'created':1})
     - cd: tbl.index_wait('sindex')
-    
+
     # create target values
     - cd: pre = r.range(7).coerce_to('array').add(r.range(10,70).coerce_to('array')).append(100).map(r.row.coerce_to('string'))
       rb: pre = r.range(7).coerce_to('array').add(r.range(10,70).coerce_to('array')).append(100).map{ |row| row.coerce_to('string') }

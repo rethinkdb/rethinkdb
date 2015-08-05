@@ -4,7 +4,7 @@ tests:
     ot: err('RqlCompileError', "String `a` (truncated) contains NULL byte at offset 1.", [])
   # TODO: This should actually throw an RqlCompileError
   - rb: r({"a\000b" => ""})
-    ot: err('RqlRuntimeError', "String `a` (truncated) contains NULL byte at offset 1.", [])
+    ot: err('RqlLogicError', "String `a` (truncated) contains NULL byte at offset 1.", [])
   - rb: r({"" => "a\000b"})
     ot: err('RqlCompileError', "String `a` (truncated) contains NULL byte at offset 1.", [])
   - rb: r("aaaaaaaaaaaaaaaaaaaaaaaaa\000b")
