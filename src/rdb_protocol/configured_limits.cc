@@ -41,7 +41,7 @@ configured_limits_t from_optargs(
 size_t check_limit(const char *name, int64_t limit) {
     rcheck_datum(
         limit >= 1, base_exc_t::LOGIC,
-        strprintf("Illegal %s `%" PRIi64 "`.", name, limit));
+        strprintf("Illegal %s `%" PRIi64 "`.  (Must be >= 1.)", name, limit));
     return limit;
 }
 
