@@ -53,7 +53,7 @@ tests:
     runopts:
       max_batch_rows: "10"
     ot: vals.map{|x| x[:num]}.select{|x| x >= 150}
-  
+
   - rb: result = tbl.orderby('a', index:'idi')
     runopts:
       max_batch_rows: 100

@@ -98,6 +98,11 @@ private:
                     credits. */
                     send_ack_items();
 
+                    /* `send_ack_items()` could block, so we have to check again */
+                    if (!items.empty_domain()) {
+                        break;
+                    }
+
                     if (got_ack_end_session.is_pulsed()) {
                         /* The callback returned false, so we sent an end-session message
                         to the backfiller, and it replied; then we drained the `items`
@@ -105,11 +110,6 @@ private:
                         guarantee(callback_returned_false);
                         done_cond.pulse();
                         return;
-                    }
-
-                    /* `send_ack_items()` could block, so we have to check again */
-                    if (!items.empty_domain()) {
-                        break;
                     }
 
                     /* Wait for more items to arrive */

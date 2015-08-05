@@ -2,7 +2,6 @@ require 'pp'
 require 'set'
 
 $test_count = 0
-$failure_count = 0
 $success_count = 0
 
 DEBUG_ENABLED = ENV['VERBOSE'] ? ENV['VERBOSE'] == 'true' : false
@@ -50,23 +49,32 @@ begin
 rescue
 end
 
+# --
+
 $defines = binding
+
+NoError = "<no error>"
+AnyUUID = "<any uuid>"
+Err = Struct.new(:class, :message, :backtrace)
+Bag = Struct.new(:items, :partial)
+PartialHash = Struct.new(:hash)
 
 # --
 
 def show(x)
   if x.is_a?(Err)
-    name = x.type.name.sub(/^RethinkDB::/, "")
-    return "<#{name} #{'~ ' if x.message.is_a? Regexp}#{show x.message}>"
+    return "#{x.class.name.sub(/^RethinkDB::/, "")}: #{'~ ' if x.message.is_a? Regexp}#{show x.message}"
+  elsif x.is_a?(Exception)
+    message = String.new(x.message)
+    message.sub!(/^(?<message>[^\n]*?)\nFailed assertion:.*$/m, '\k<message>')
+    message.sub!(/^(?<message>[^\n]*?)\nBacktrace:\n.*$/m, '\k<message>')
+    message.sub!(/^(?<message>[^\n]*?):\n.*$/m, '\k<message>.')
+    return "#{x.class.name.sub(/^RethinkDB::/, "")}: #{message}"
+  elsif x.is_a?(String)
+    return x
   end
   return (PP.pp x, "").chomp
 end
-
-NoError = "<no error>"
-AnyUUID = "<any uuid>"
-Err = Struct.new(:type, :message, :backtrace)
-Bag = Struct.new(:items, :partial)
-PartialHash = Struct.new(:hash)
 
 def bag(list, partial=false)
   Bag.new(list, partial)
@@ -153,7 +161,7 @@ def float_cmp(value)
 end
 
 def cmp_test(expected, result, testopts={}, partial=false)
-  print_debug("\tCompare - expected: #{show(expected)} actual: #{show(result)}")
+  print_debug("\tCompare - expected: #{show(expected)} (#{expected.class}) actual: #{show(result)}")
   
   if expected.object_id == NoError.object_id
     if result.is_a?(Err)
@@ -184,8 +192,8 @@ def cmp_test(expected, result, testopts={}, partial=false)
 
   case "#{expected.class}"
   when "Err"
-    if expected.is_a?(result.class)
-      return result.message <=> expected.message
+    if result.is_a?(expected.class)
+      return show(result).sub(/^#{result.class.name.sub(/^RethinkDB::/, '')}: /, '') <=> expected.message
     else
       return result.class.name <=> expected.class.name
     end
@@ -462,14 +470,18 @@ def check_result(name, src, result, expected, testopts={})
         expected = NoError
       end
     rescue Exception => err
-      fail_test(name, src, err, expected, type="SETUP")
+      fail_test(name, src, err, expected, type="SETUP ERROR")
       successfulTest = false
     end
     if successfulTest
       # - read out cursors
 
       if (result.kind_of?(RethinkDB::Cursor) || result.kind_of?(Enumerator)) && expected != NoError
-        result = result.to_a
+        begin
+          result = result.to_a
+        rescue RethinkDB::RqlError => err
+          result = err
+        end
       end
 
       begin
@@ -486,29 +498,30 @@ def check_result(name, src, result, expected, testopts={})
       $success_count += 1
       return true
     else
-      $failure_count += 1
       return false
     end
-  rescue StandardError, SyntaxError => e
-     $stderr.puts("Check_result error: #{e}")
+  rescue StandardError, SyntaxError => err
+    fail_test(name, src, err, expected, type="UNEXPECTED ERROR")
   end
 end
 
 def fail_test(name, src, result, expected, type="TEST")
   $stderr.puts "TEST FAILURE: #{name}"
-  $stderr.puts "\tBODY: #{src}"
-  $stderr.puts "\tVALUE: #{show result}"
-  $stderr.puts "\tEXPECTED: #{show expected}"
-  if result && result.kind_of?(Exception)
-    $stderr.puts "\tEXCEPTION: #{result.message}"
-    $stderr.puts result.backtrace.join("\n")
+  $stderr.puts "     SOURCE:     #{src}"
+  $stderr.puts "     EXPECTED:   #{show expected}"
+  $stderr.puts "     RESULT:     #{show result}"
+  if result && result.respond_to?(:backtrace)
+    $stderr.puts "     BACKTRACE:\n<<<<<<<<<\n#{result.backtrace.join("\n")}\n>>>>>>>>"
+  end
+  if show(result) != result
+    $stderr.puts "     RAW RESULT:\n<<<<<<<<<\n#{result}\n>>>>>>>>"
   end
   $stderr.puts ""
 end
 
 def the_end
-  if $failure_count != 0 then
-    abort "Failed #{$failure_count} tests"
+  if $test_count != $success_count then
+    abort "Failed #{$test_count - $success_count} tests"
   end
 end
 

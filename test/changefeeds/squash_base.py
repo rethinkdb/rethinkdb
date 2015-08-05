@@ -143,9 +143,11 @@ class SquashBase(rdb_unittest.RdbTestCase):
                 # It depends on whether the initial limit was fulfilled whether the
                 # change has an "old_val" set to `None` or a document.
                 if len(initial) + x >= self.limit:
+                    # Note that the initial values are ordered descending, hence
+                    # the comparison with initial[-(x + 1)]
                     self.assertEqual(
                         feed_next["old_val"][self.field],
-                        initial[x]["new_val"][self.field])
+                        initial[-(x + 1)]["new_val"][self.field])
                 else:
                     self.assertEqual(feed_next["old_val"], None)
                 self.assertEqual(feed_next["new_val"]["id"], key)

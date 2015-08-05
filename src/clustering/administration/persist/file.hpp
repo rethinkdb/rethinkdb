@@ -143,11 +143,14 @@ public:
             signal_t *interruptor);
     };
 
+    // Used to open an existing metadata file
     metadata_file_t(
         io_backender_t *io_backender,
         const serializer_filepath_t &filename,
         perfmon_collection_t *perfmon_parent,
         signal_t *interruptor);
+
+    // Used top create a new metadata file
     metadata_file_t(
         io_backender_t *io_backender,
         const serializer_filepath_t &filename,

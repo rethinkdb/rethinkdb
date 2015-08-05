@@ -268,6 +268,11 @@ public:
     server_name_map_t server_names;
 };
 
+RDB_DECLARE_EQUALITY_COMPARABLE(table_raft_state_t::change_t::set_table_config_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(table_raft_state_t::change_t::new_contracts_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(table_raft_state_t::change_t::new_member_ids_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(table_raft_state_t::change_t::new_server_names_t);
+RDB_DECLARE_EQUALITY_COMPARABLE(table_raft_state_t::change_t);
 RDB_DECLARE_EQUALITY_COMPARABLE(table_raft_state_t);
 RDB_DECLARE_SERIALIZABLE(table_raft_state_t::change_t::set_table_config_t);
 RDB_DECLARE_SERIALIZABLE(table_raft_state_t::change_t::new_contracts_t);
