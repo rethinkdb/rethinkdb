@@ -134,8 +134,8 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         reql_version_t::EARLIEST, reql_version_t::LATEST);
 
 /* `backfill_item_memory_tracker_t` is used by the backfilling logic to control the
-memory usage on the backfill sender. They are updated whenever a
-key/value pair is loaded, or a new backfill_item_t structure is allocated. */
+memory usage on the backfill sender. It is updated whenever a key/value pair is
+loaded, or a new backfill_item_t structure is allocated. */
 class backfill_item_memory_tracker_t {
 public:
     backfill_item_memory_tracker_t(size_t memory_limit)
