@@ -7,6 +7,7 @@ import com.rethinkdb.response.Response;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Optional;
+import java.util.concurrent.TimeoutException;
 
 
 public class ConnectionInstance {
@@ -25,7 +26,7 @@ public class ConnectionInstance {
             String hostname,
             int port,
             ByteBuffer handshake,
-            Optional<Integer> timeout) {
+            Optional<Integer> timeout) throws TimeoutException {
         SocketWrapper sock = new SocketWrapper(hostname, port, timeout);
         sock.connect(handshake);
         socket = Optional.of(sock);

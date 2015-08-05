@@ -7,6 +7,10 @@ public class ${camel(classname)} extends ${camel(superclass)} {
         super(message);
     }
 
+    public ${camel(classname)}(String format, Object... args) {
+        super(String.format(format, args));
+    }
+
     public ${camel(classname)}(String message, Throwable cause) {
         super(message, cause);
     }

@@ -15,6 +15,7 @@ import java.net.StandardSocketOptions;
 import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.concurrent.TimeoutException;
 
 public class SocketWrapper {
     private SocketChannel socketChannel;
@@ -36,7 +37,7 @@ public class SocketWrapper {
         }
     }
 
-    public void connect(ByteBuffer handshake) {
+    public void connect(ByteBuffer handshake) throws TimeoutException {
         Optional<Integer> deadline = timeout.map(Util::deadline);
         try {
             socketChannel.configureBlocking(true);
@@ -47,11 +48,12 @@ public class SocketWrapper {
 
             socketChannel.write(handshake);
             String msg = readNullTerminatedString(deadline);
-            if(!msg.equals("SUCCESS")) {
-                throw new ReqlDriverError(String.format(
-                        "Server dropped connection with message: \"%s\"", msg));
+            if (!msg.equals("SUCCESS")) {
+                throw new ReqlDriverError(
+                        "Server dropped connection with message: \"%s\"", msg);
             }
-
+        } catch (SocketTimeoutException ste) {
+            throw new TimeoutException("Connect timed out.");
         } catch (IOException e) {
             throw new ReqlRuntimeError(e);
         }
