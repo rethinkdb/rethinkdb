@@ -138,7 +138,7 @@ memory usage on the backfill sender. It is updated whenever a key/value pair is
 loaded, or a new backfill_item_t structure is allocated. */
 class backfill_item_memory_tracker_t {
 public:
-    backfill_item_memory_tracker_t(size_t memory_limit)
+    explicit backfill_item_memory_tracker_t(size_t memory_limit)
         : remaining_memory(memory_limit), had_at_least_one_item(false) { }
 
     bool is_limit_exceeded() const {
