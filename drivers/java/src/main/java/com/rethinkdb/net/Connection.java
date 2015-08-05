@@ -83,7 +83,7 @@ public class Connection<C extends ConnectionInstance> {
         close(noreplyWait);
         C inst = instanceMaker.get();
         instance = Optional.of(inst);
-        inst.connect(hostname, port, timeout);
+        inst.connect(hostname, port, handshake, timeout);
         return this;
     }
 

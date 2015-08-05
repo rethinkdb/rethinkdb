@@ -124,8 +124,7 @@ public abstract class Cursor<T> implements Iterator<T> {
                     throw exc;
                 });
                 connection.readResponse(query.token,
-                        timeout.map(to ->
-                                (int)(System.nanoTime() / 1_000_000L) + to));
+                        timeout.map(Util::deadline));
             }
             Object element = items.pop();
             return (T) Converter.convertPseudo(element, query.globalOptions);

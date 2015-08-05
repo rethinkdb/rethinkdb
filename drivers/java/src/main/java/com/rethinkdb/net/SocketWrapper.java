@@ -1,15 +1,19 @@
 package com.rethinkdb.net;
 
+import com.rethinkdb.ReqlDriverError;
 import com.rethinkdb.ReqlError;
+import com.rethinkdb.ReqlRuntimeError;
 import com.rethinkdb.response.Response;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.SocketChannel;
 import java.net.StandardSocketOptions;
 import java.net.SocketException;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class SocketWrapper {
@@ -20,25 +24,36 @@ public class SocketWrapper {
     public final String hostname;
     public final int port;
 
-    public SocketWrapper(String hostname, int port, Optional<Integer> timeout) {
+    public SocketWrapper(String hostname, int port,
+                         Optional<Integer> timeout) {
         this.hostname = hostname;
         this.port = port;
         this.timeout = timeout;
         try {
-            socketChannel = SocketChannel.open();
-            socketChannel.configureBlocking(true);
-            socketChannel.setOption(StandardSocketOptions.TCP_NODELAY, true);
-            socketChannel.connect(new InetSocketAddress(hostname, port));
+            this.socketChannel = SocketChannel.open();
         } catch (IOException e) {
-            throw new ReqlError(e);
+            throw new ReqlRuntimeError(e);
         }
     }
 
-    public void setTimeout(int timeout) {
+    public void connect(ByteBuffer handshake) {
+        Optional<Integer> deadline = timeout.map(Util::deadline);
         try {
-            socketChannel.socket().setSoTimeout(timeout);
-        } catch (SocketException se) {
-            throw new ReqlError(se);
+            socketChannel.configureBlocking(true);
+            socketChannel.setOption(StandardSocketOptions.TCP_NODELAY, true);
+            socketChannel.socket().connect(
+                    new InetSocketAddress(hostname, port),
+                    timeout.orElse(0));
+
+            socketChannel.write(handshake);
+            String msg = readNullTerminatedString(deadline);
+            if(!msg.equals("SUCCESS")) {
+                throw new ReqlDriverError(String.format(
+                        "Server dropped connection with message: \"%s\"", msg));
+            }
+
+        } catch (IOException e) {
+            throw new ReqlRuntimeError(e);
         }
     }
 
@@ -54,6 +69,30 @@ public class SocketWrapper {
             }
         } catch (IOException e) {
             throw new ReqlError(e);
+        }
+    }
+
+    private String readNullTerminatedString(Optional<Integer> deadline)
+            throws IOException {
+        ByteBuffer byteBuf = ByteBuffer.allocate(1);
+        List<Byte> bytelist = new ArrayList<>();
+        while(true) {
+            socketChannel.read(byteBuf);
+            byteBuf.flip();
+            deadline.ifPresent(d -> {
+                if(d <= Util.getTimestamp()) {
+                    throw new ReqlDriverError("Connection timed out.");
+                }
+            });
+            if(byteBuf.get(0) == (byte)0) {
+                byte[] raw = new byte[bytelist.size()];
+                for(int i = 0; i < raw.length; i++) {
+                    raw[i] = bytelist.get(i);
+                }
+                return new String(raw, StandardCharsets.UTF_8);
+            } else {
+                bytelist.add(byteBuf.get());
+            }
         }
     }
 
@@ -82,7 +121,6 @@ public class SocketWrapper {
     }
 
     public void writeLEInt(int i) {
-        // TODO: use LEUByteBuffer
         ByteBuffer buffer = ByteBuffer.allocate(4);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
         buffer.putInt(i);
@@ -90,7 +128,6 @@ public class SocketWrapper {
     }
 
     public void writeStringWithLength(String s) {
-        // TODO: use LEUByteBuffer
         writeLEInt(s.length());
 
         ByteBuffer buffer = ByteBuffer.allocate(s.length());
@@ -119,8 +156,7 @@ public class SocketWrapper {
                 } while(bytesRead < bufsize);
             }
         } catch(IOException ex) {
-            // TODO: Throw the correct exception here
-            throw new ReqlError("IO Exception ", ex);
+            throw new ReqlDriverError(ex);
         }
         buf.flip();
         return buf;
