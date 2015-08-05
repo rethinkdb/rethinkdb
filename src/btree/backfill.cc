@@ -618,12 +618,12 @@ private:
             }
         }
 
-        if (!item->get_range().is_empty()) {
-            /* If the item doesn't have any key/value pairs, we will get here
-            without telling the memory_tracker that we have made progress. Tell it
-            now. */
-            memory_tracker->note_item();
-        }
+        /* If the item doesn't have any key/value pairs, we will get here
+        without telling the memory_tracker that we have made progress. Tell it
+        now. */
+        guarantee(!item->get_range().is_empty());
+        memory_tracker->note_item();
+
         return continue_bool_t::CONTINUE;
     }
 
