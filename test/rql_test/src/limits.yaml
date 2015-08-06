@@ -22,12 +22,12 @@ tests:
   - cd: r.expr([1,2,3,4,5,6,7,8])
     runopts:
       array_limit: '-1'
-    ot: err("ReqlLogicError", "Illegal array size limit `-1`.  (Must be >= 1.)", [])
+    ot: err("ReqlQueryLogicError", "Illegal array size limit `-1`.  (Must be >= 1.)", [])
 
   - cd: r.expr([1,2,3,4,5,6,7,8])
     runopts:
       array_limit: '0'
-    ot: err("ReqlLogicError", "Illegal array size limit `0`.  (Must be >= 1.)", [])
+    ot: err("ReqlQueryLogicError", "Illegal array size limit `0`.  (Must be >= 1.)", [])
 
   # make enormous > 100,000 element array
   - def: ten_l = r.expr([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])

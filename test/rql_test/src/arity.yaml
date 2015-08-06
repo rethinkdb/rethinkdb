@@ -44,7 +44,7 @@ tests:
       - r.round()
 
     - cd: r.error()
-      ot: err("ReqlLogicError", "Empty ERROR term outside a default block.", [])
+      ot: err("ReqlQueryLogicError", "Empty ERROR term outside a default block.", [])
 
     - cd: r.js()
       ot:
