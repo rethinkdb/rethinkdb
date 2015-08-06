@@ -7,4 +7,4 @@ tests:
   - cd: r.expr(1)
     runopts:
       obviously_bogus: "16"
-    ot: err("RqlCompileError", "Unrecognized global optional argument `obviously_bogus`.", [])
+    ot: err("ReqlCompileError", "Unrecognized global optional argument `obviously_bogus`.", [])

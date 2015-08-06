@@ -81,7 +81,7 @@ tests:
     - rb: tbl.map(nondetermmap).changes(squash:false)
       js: tbl.map(nondetermmap).changes({squash:false})
       py: tbl.map(nondetermmap).changes(squash=False)
-      ot: err('RqlLogicError', 'Cannot call `changes` after a non-deterministic function.')
+      ot: err('ReqlQueryLogicError', 'Cannot call `changes` after a non-deterministic function.')
 
     - rb: postmap_changes3 = tbl.changes(squash:false).map(nondetermmap).limit(100)
       js: postmap_changes3 = tbl.changes({squash:false}).map(nondetermmap).limit(100)
@@ -90,7 +90,7 @@ tests:
     - rb: tbl.filter(nondetermfilter).changes(squash:false)
       js: tbl.filter(nondetermfilter).changes({squash:false})
       py: tbl.filter(nondetermfilter).changes(squash=False)
-      ot: err('RqlLogicError', 'Cannot call `changes` after a non-deterministic function.')
+      ot: err('ReqlQueryLogicError', 'Cannot call `changes` after a non-deterministic function.')
 
     - rb: postfilter_changes3 = tbl.changes(squash:false).filter(nondetermfilter).limit(4)
       js: postfilter_changes3 = tbl.changes({squash:false}).filter(nondetermfilter).limit(4)
@@ -118,13 +118,13 @@ tests:
       ot: bag(erroredres)
 
     - cd: postmap_changes1
-      ot: err('RqlNonExistenceError', "No attribute `dummy` in object.")
+      ot: err('ReqlNonExistenceError', "No attribute `dummy` in object.")
 
     - cd: postmap_changes2
-      ot: err('RqlNonExistenceError', "Index out of bounds:" + " 1")
+      ot: err('ReqlNonExistenceError', "Index out of bounds:" + " 1")
 
     - cd: postmap_changes3
-      ot: err('RqlUserError', "dummy")
+      ot: err('ReqlUserError', "dummy")
 
     - cd: prefilter_changes1
       ot: bag(erroredres)

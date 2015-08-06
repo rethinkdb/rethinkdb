@@ -42,7 +42,7 @@ tests:
     # - order by
 
     - cd: ordered = tbl.changes().order_by('id')
-      ot: err('RqlLogicError', "Cannot call a terminal (`reduce`, `count`, etc.) on an infinite stream (such as a changefeed).")
+      ot: err('ReqlQueryLogicError', "Cannot call a terminal (`reduce`, `count`, etc.) on an infinite stream (such as a changefeed).")
 #
 # ToDo: enable this when #4067 is done
 #
@@ -64,7 +64,7 @@ tests:
 #      py: tbl.insert(r.range(100,002).map(lambda x: {}), durability="soft")
 #      rb: tbl.insert(r.range(100,002).map(|x| {}), :durability=>"soft")
 #    - cd: overflow
-#      ot: error(RqlDriverError, 'Changefeed cache over array size limit, skipped 1 elements.')
+#      ot: error(ReqlDriverError, 'Changefeed cache over array size limit, skipped 1 elements.')
 
     # ==== virtual tables
 
