@@ -401,7 +401,7 @@ def render_exception(classname, superclass):
     '''Renders a single exception class'''
     render(
         'Exception.java',
-        output_dir=EXCEPTION_DIR,
+        output_dir=PACKAGE_DIR,
         output_name=camel(classname)+'.java',
         classname=classname,
         superclass=superclass,
