@@ -81,6 +81,7 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_all(
 counted_t<ql::datum_stream_t> artificial_table_t::read_changes(
     ql::env_t *env,
     counted_t<ql::datum_stream_t> maybe_src,
+    ql::configured_limits_t limits,
     const ql::datum_t &,
     bool include_states,
     ql::changefeed::keyspec_t::spec_t &&spec,
@@ -93,6 +94,7 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_changes(
             env,
             maybe_src.has(),
             include_states,
+            std::move(limits),
             bt,
             std::move(spec),
             env->interruptor,
