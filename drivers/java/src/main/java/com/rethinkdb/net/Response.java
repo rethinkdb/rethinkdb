@@ -1,8 +1,14 @@
 package com.rethinkdb.net;
 
+import com.rethinkdb.*;
+import com.rethinkdb.ReqlClientError;
+import com.rethinkdb.ReqlCompileError;
+import com.rethinkdb.ReqlError;
+import com.rethinkdb.ReqlQueryLogicError;
+import com.rethinkdb.ast.RqlAst;
+import com.rethinkdb.proto.ErrorType;
 import com.rethinkdb.proto.ResponseType;
 import com.rethinkdb.proto.ResponseNote;
-import com.rethinkdb.ReqlError;
 import com.rethinkdb.ast.Query;
 import com.rethinkdb.response.Backtrace;
 import com.rethinkdb.response.Profile;
@@ -13,16 +19,20 @@ import java.nio.ByteBuffer;
 import java.io.InputStreamReader;
 import java.io.InputStream;
 import java.io.IOException;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 
-public class Response {
+class Response {
     public final long token;
     public final ResponseType type;
     public final ArrayList<ResponseNote> notes;
-    public final Optional<JSONObject> data;
+
+    public final Optional<JSONArray> data;
     public final Optional<Profile> profile;
     public final Optional<Backtrace> backtrace;
+    public final Optional<ErrorType> errorType;
 
 
     private static class ByteBufferInputStream extends InputStream {
@@ -56,29 +66,86 @@ public class Response {
             .stream()
             .map(ResponseNote::fromValue)
             .collect(Collectors.toCollection(ArrayList::new));
-        return new Response(token, responseType, responseNotes,
-                            Optional.empty(),
-                            Optional.empty(),
-                            Optional.empty());
+        ErrorType et = (ErrorType) jsonResp.getOrDefault("e", null);
+        ResponseBuilder res = new ResponseBuilder(token, responseType);
+        if(jsonResp.containsKey("e")){
+            res.setErrorType((int) jsonResp.get("e"));
+        }
+        return res.setProfile((JSONObject) jsonResp.getOrDefault("p", null))
+                .setBacktrace((JSONObject) jsonResp.getOrDefault("b", null))
+                .setData((JSONArray) jsonResp.getOrDefault("r", null))
+                .build();
     }
 
-    public Response(long token,
-                    ResponseType responseType,
-                    ArrayList<ResponseNote> responseNotes,
-                    Optional<Profile> profile,
-                    Optional<Backtrace> backtrace,
-                    Optional<JSONObject> data
-                    ) {
+    private Response(long token,
+             ResponseType responseType,
+             ArrayList<ResponseNote> responseNotes,
+             Optional<Profile> profile,
+             Optional<Backtrace> backtrace,
+             Optional<JSONArray> data,
+             Optional<ErrorType> errorType
+    ) {
         this.token = token;
         this.type = responseType;
         this.notes = responseNotes;
         this.profile = profile;
         this.backtrace = backtrace;
         this.data = data;
+        this.errorType = errorType;
     }
 
-    public ReqlError makeError(Query query) {
-        throw new RuntimeException("makeError not implemented");
+    static class ResponseBuilder {
+        long token;
+        ResponseType responseType;
+        ArrayList<ResponseNote> notes = new ArrayList<>();
+
+        Optional<JSONArray> data;
+        Optional<Profile> profile;
+        Optional<Backtrace> backtrace;
+        Optional<ErrorType> errorType;
+
+        ResponseBuilder(long token, ResponseType responseType){
+            this.token = token;
+            this.responseType = responseType;
+        }
+
+        ResponseBuilder setNotes(ArrayList<ResponseNote> notes){
+            this.notes.addAll(notes);
+            return this;
+        }
+
+        ResponseBuilder setData(JSONArray data){
+            this.data = Optional.ofNullable(data);
+            return this;
+        }
+
+        ResponseBuilder setProfile(JSONObject profile) {
+            this.profile = Optional.of(Profile.fromJSONObject(profile));
+            return this;
+        }
+
+        ResponseBuilder setBacktrace(JSONObject backtrace) {
+            this.backtrace = Optional.of(
+                    Backtrace.fromJSONObject(backtrace));
+            return this;
+        }
+
+        ResponseBuilder setErrorType(int value) {
+            this.errorType = Optional.of(ErrorType.fromValue(value));
+            return this;
+        }
+
+        Response build() {
+            return new Response(
+                    token,
+                    responseType,
+                    notes,
+                    profile,
+                    backtrace,
+                    data,
+                    errorType
+            );
+        }
     }
 
     public boolean isWaitComplete() {
@@ -96,7 +163,7 @@ public class Response {
     }
 
     public static JSONObject convertPseudotypes(
-      JSONObject obj, Optional<Profile> profile) {
+            JSONObject obj, Optional<Profile> profile) {
         throw new RuntimeException("convertPseudotypes not implemented");
     }
 
@@ -111,5 +178,84 @@ public class Response {
 
     public boolean isPartial() {
         return type == ResponseType.SUCCESS_PARTIAL;
+    }
+
+    static class ErrorBuilder {
+        final String msg;
+        final ResponseType responseType;
+        Optional<Backtrace> backtrace = Optional.empty();
+        Optional<ErrorType> errorType = Optional.empty();
+        Optional<RqlAst> term = Optional.empty();
+
+        ErrorBuilder(String msg, ResponseType responseType){
+            this.msg = msg;
+            this.responseType = responseType;
+        }
+
+        ErrorBuilder setBacktrace(Optional<Backtrace> backtrace) {
+            this.backtrace = backtrace;
+            return this;
+        }
+
+        ErrorBuilder setErrorType(Optional<ErrorType> errorType){
+            this.errorType = errorType;
+            return this;
+        }
+
+        ErrorBuilder setTerm(Query query){
+            this.term = query.term;
+            return this;
+        }
+
+        ReqlError build(){
+            assert(msg != null);
+            assert(responseType != null);
+            Supplier<ReqlError> con;
+            switch(responseType) {
+                case CLIENT_ERROR:
+                    con = ReqlClientError::new;
+                    break;
+                case COMPILE_ERROR:
+                    con = ReqlCompileError::new;
+                    break;
+                case RUNTIME_ERROR: {
+                    con = errorType.<Supplier<ReqlError>>map(et -> {
+                        switch (et) {
+                            case INTERNAL:
+                                return ReqlInternalError::new;
+                            case RESOURCE:
+                                return ReqlResourceLimitError::new;
+                            case LOGIC:
+                                return ReqlQueryLogicError::new;
+                            case NON_EXISTENCE:
+                                return ReqlNonExistenceError::new;
+                            case OP_FAILED:
+                                return ReqlOpFailedError::new;
+                            case OP_INDETERMINATE:
+                                return ReqlOpIndeterminateError::new;
+                            case USER:
+                                return ReqlUserError::new;
+                            default:
+                                return ReqlRuntimeError::new;
+                        }
+                    }).orElse(ReqlRuntimeError::new);
+                }
+                default:
+                    con = ReqlError::new;
+            }
+            ReqlError res = con.get();
+            backtrace.ifPresent(res::setBacktrace);
+            term.ifPresent(res::setTerm);
+            return res;
+        }
+    }
+
+    ReqlError makeError(Query query) {
+        return new ErrorBuilder(data.map(d -> (String) d.get(0))
+                .orElse("Unknown error message"), type)
+                .setBacktrace(backtrace)
+                .setErrorType(errorType)
+                .setTerm(query)
+                .build();
     }
 }

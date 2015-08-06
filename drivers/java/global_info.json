@@ -52,6 +52,7 @@
     "exception_hierarchy": {
         "reql_error": {
             "reql_compile_error": {},
+            "reql_client_error": {},
             "reql_runtime_error": {
                 "reql_query_logic_error": {
                     "reql_non_existence_error": {}

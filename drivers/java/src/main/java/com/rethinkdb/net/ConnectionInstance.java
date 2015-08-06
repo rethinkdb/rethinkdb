@@ -58,10 +58,6 @@ public class ConnectionInstance {
         return readResponse(token, Optional.empty());
     }
 
-    ReqlError makeError(Query query) {
-        switch()
-    }
-
     Response readResponse(long token, Optional<Integer> deadline) {
         SocketWrapper sock = socket.orElseThrow(() ->
             new ReqlError("Socket not open"));
