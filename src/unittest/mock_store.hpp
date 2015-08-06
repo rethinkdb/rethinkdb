@@ -76,6 +76,7 @@ public:
             const region_map_t<state_timestamp_t> &start_point,
             backfill_pre_item_producer_t *pre_item_producer,
             backfill_item_consumer_t *item_consumer,
+            backfill_item_memory_tracker_t *memory_tracker,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
     continue_bool_t receive_backfill(

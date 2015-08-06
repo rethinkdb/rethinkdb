@@ -9,7 +9,7 @@ tests:
     - def: array = r.expr([1])
     - cd: db.table_create('test1')
       ot: partial({'tables_created':1})
-      def: tbl = db.table('test1')
+    - def: tbl = db.table('test1')
 
     - ot: err("RqlCompileError", "Expected 0 arguments but found 1.", [])
       cd: r.db_list(1)

@@ -12,7 +12,7 @@ try:
 except ImportError:
     sys.exit('%s requires that PyYAML be installed: https://pypi.python.org/pypi/PyYAML' % os.path.basename(__file__))
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, "common"))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), "common"))
 import driver, test_exceptions, utils
 
 try:
@@ -1951,12 +1951,13 @@ def main():
                     elif test.result == 'timed out':
                         extraMessage = ' after %d seconds' % test.duration
                     
-                    if options.verbose is True:
-                        sys.stderr.write('>>> %s %s%s after %s (%s) <<<\n' % (test.result.capitalize(), test.name, extraMessage, durationString, timeString))
-                    else:
+                    consoleOutput = test.console_output.strip()
+                    if consoleOutput:
                         sys.stderr.write('>>> %s %s%s after %s (%s)\n\n' % (test.result.capitalize(), test.name, extraMessage, durationString, timeString))
-                        sys.stderr.write(test.console_output)
+                        sys.stderr.write(consoleOutput)
                         sys.stderr.write('\n<<< end %s: %s\n' % (test.result.capitalize(), test.name))
+                    else:
+                        sys.stderr.write('>>> %s %s%s after %s (%s) <<<\n' % (test.result.capitalize(), test.name, extraMessage, durationString, timeString))
             sys.stderr.flush()
             sys.stdout.flush()
         

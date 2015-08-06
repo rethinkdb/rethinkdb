@@ -243,9 +243,15 @@ private:
         const durability_requirement_t durability_requirement
             = parse_durability_optarg(args->optarg(env, "durability"));
 
+        if (!nondet_ok) {
+            rcheck(args->arg_is_deterministic(1), base_exc_t::LOGIC,
+                   "Could not prove argument deterministic.  "
+                   "Maybe you want to use the non_atomic flag?");
+        }
         counted_t<const func_t> f = args->arg(env, 1)->as_func(CONSTANT_SHORTCUT);
         if (!nondet_ok) {
-            f->assert_deterministic("Maybe you want to use the non_atomic flag?");
+            // If this isn't true we should have caught it in the `rcheck` above.
+            rassert(f->is_deterministic());
         }
 
         scoped_ptr_t<val_t> v0 = args->arg(env, 0);

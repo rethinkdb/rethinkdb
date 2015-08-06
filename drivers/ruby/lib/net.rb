@@ -163,6 +163,12 @@ module RethinkDB
         handle(:on_close)
       end
     end
+    def handle_force_close
+      if !@closed
+        handle(:on_error, RqlRuntimeError.new("Connection is closed."))
+      end
+      handle_close
+    end
     def safe_next_tick(&b)
       EM.next_tick {
         b.call if !@closed
@@ -718,7 +724,7 @@ module RethinkDB
         @waiters.each {|k,v|
           case v
           when QueryHandle
-            v.handle_close
+            v.handle_force_close
           when MonitorMixin::ConditionVariable
             @waiters[k] = nil
             v.signal
@@ -757,7 +763,7 @@ module RethinkDB
       @mon.synchronize {
         @waiters.each {|k,v|
           if v.is_a? QueryHandle
-            v.handle_close
+            v.handle_force_close
             @waiters.delete(k)
           end
         }

@@ -98,6 +98,11 @@ private:
                     credits. */
                     send_ack_items();
 
+                    /* `send_ack_items()` could block, so we have to check again */
+                    if (!items.empty_domain()) {
+                        break;
+                    }
+
                     if (got_ack_end_session.is_pulsed()) {
                         /* The callback returned false, so we sent an end-session message
                         to the backfiller, and it replied; then we drained the `items`
@@ -105,11 +110,6 @@ private:
                         guarantee(callback_returned_false);
                         done_cond.pulse();
                         return;
-                    }
-
-                    /* `send_ack_items()` could block, so we have to check again */
-                    if (!items.empty_domain()) {
-                        break;
                     }
 
                     /* Wait for more items to arrive */
@@ -503,7 +503,7 @@ void backfillee_t::send_pre_items(auto_drainer_t::lock_t keepalive) {
                 keepalive.get_drain_signal());
 
             /* Adjust for the fact that `chunk.get_mem_size()` isn't precisely equal to
-            `PRE_ITEM_CHUNK_SIZE`, and then transfer the semaphore ownership. */
+            `pre_item_chunk_mem_size`, and then transfer the semaphore ownership. */
             sem_acq.change_count(chunk.get_mem_size());
             pre_item_throttler_acq.transfer_in(std::move(sem_acq));
 

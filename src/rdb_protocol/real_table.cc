@@ -109,13 +109,22 @@ counted_t<ql::datum_stream_t> real_table_t::read_all(
 counted_t<ql::datum_stream_t> real_table_t::read_changes(
     ql::env_t *env,
     counted_t<ql::datum_stream_t> maybe_src,
+    ql::configured_limits_t limits,
     const ql::datum_t &squash,
     bool include_states,
     ql::changefeed::keyspec_t::spec_t &&spec,
     ql::backtrace_id_t bt,
     const std::string &table_name) {
     return changefeed_client->new_stream(
-        env, maybe_src, squash, include_states, uuid, bt, table_name, std::move(spec));
+        env,
+        maybe_src,
+        std::move(limits),
+        squash,
+        include_states,
+        uuid,
+        bt,
+        table_name,
+        std::move(spec));
 }
 
 counted_t<ql::datum_stream_t> real_table_t::read_intersecting(
