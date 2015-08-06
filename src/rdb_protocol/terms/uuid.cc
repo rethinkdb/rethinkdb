@@ -11,14 +11,26 @@
 
 namespace ql {
 
+const uuid_u base_key_id =
+    str_to_uuid("91461c99-f89d-49d2-af96-d8e2e14e9b58");
+
 class uuid_term_t : public op_term_t {
 public:
     uuid_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(0)) { }
+        : op_term_t(env, term, argspec_t(0, 1)) { }
 
 private:
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *, args_t *, eval_flags_t) const {
-        return new_val(datum_t(datum_string_t(uuid_to_str(generate_uuid()))));
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        uuid_u id;
+
+        if (args->num_args() == 1) {
+            std::string name = args->arg(env, 0)->as_str().to_std();
+            id = uuid_u::from_hash(base_key_id, name);
+        } else {
+            id = generate_uuid();
+        }
+
+        return new_val(datum_t(datum_string_t(uuid_to_str(id))));
     }
     virtual const char *name() const { return "uuid"; }
 
