@@ -87,7 +87,7 @@ scoped_ptr_t<query_cache_t::ref_t> query_cache_t::create(
     if (queries.find(token) != queries.end()) {
         throw bt_exc_t(
             Response::CLIENT_ERROR,
-            Response::LOGIC,
+            Response::QUERY_LOGIC,
             strprintf("ERROR: duplicate token %" PRIi64, token),
             backtrace_registry_t::EMPTY_BACKTRACE);
     }
@@ -136,7 +136,7 @@ scoped_ptr_t<query_cache_t::ref_t> query_cache_t::get(
     if (it == queries.end()) {
         throw bt_exc_t(
             Response::CLIENT_ERROR,
-            Response::LOGIC,
+            Response::QUERY_LOGIC,
             strprintf("Token %" PRIi64 " not in stream cache.", token),
             backtrace_registry_t::EMPTY_BACKTRACE);
     }
@@ -155,7 +155,7 @@ void query_cache_t::noreply_wait(const query_id_t &query_id,
     if (it != queries.end()) {
         throw bt_exc_t(
             Response::CLIENT_ERROR,
-            Response::LOGIC,
+            Response::QUERY_LOGIC,
             strprintf("ERROR: duplicate token %" PRIi64, token),
             backtrace_registry_t::EMPTY_BACKTRACE);
     }
@@ -231,7 +231,7 @@ void query_cache_t::ref_t::fill_response(Response *res) {
         // In this case, just pretend it's a duplicate token issue
         throw bt_exc_t(
             Response::CLIENT_ERROR,
-            Response::LOGIC,
+            Response::QUERY_LOGIC,
             strprintf("ERROR: duplicate token %" PRIi64, token),
             backtrace_registry_t::EMPTY_BACKTRACE);
     }
