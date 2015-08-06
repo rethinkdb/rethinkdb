@@ -55,7 +55,7 @@ class faux_term_t : public runtime_term_t {
 public:
     faux_term_t(backtrace_id_t bt, datum_t _d, bool _deterministic)
         : runtime_term_t(bt), d(std::move(_d)), deterministic(_deterministic) { }
-    final bool is_deterministic() const { return deterministic; }
+    bool is_deterministic() const final { return deterministic; }
     const char *name() const final { return "<EXPANDED FROM r.args>"; }
 private:
     scoped_ptr_t<val_t> term_eval(scope_env_t *, eval_flags_t) const final {

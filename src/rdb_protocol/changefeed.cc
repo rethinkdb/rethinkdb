@@ -2581,20 +2581,20 @@ subscription_t::get_els(batcher_t *batcher,
     // We wait for data if we don't have any or if we're squashing and not
     // in the middle of a logical batch.
     if (!exc && skipped == 0 && (!has_el() || (!mid_batch && min_interval > 0.0))) {
-        scoped_ptr_t<signal_timer_t> timer;
+        scoped_ptr_t<signal_timer_t> batch_timer;
         if (batcher->get_batch_type() == batch_type_t::NORMAL_FIRST) {
-            timer = make_scoped<signal_timer_t>(0);
+            batch_timer = make_scoped<signal_timer_t>(0);
         } else if (return_empty_normal_batches == return_empty_normal_batches_t::YES) {
-            timer = make_scoped<signal_timer_t>(batcher->microtime_left() / 1000);
+            batch_timer = make_scoped<signal_timer_t>(batcher->microtime_left() / 1000);
         }
         // If we have to wait, wait.
         if (min_interval > 0.0
             && batcher->get_batch_type() != batch_type_t::NORMAL_FIRST) {
-            signal_timer_t timer(min_interval * 1000);
+            signal_timer_t squash_timer(min_interval * 1000);
             cond_t wait_for_nearly_full_queue;
             queue_nearly_full_cond = &wait_for_nearly_full_queue;
             try {
-                wait_any_t any_interruptor(interruptor, &timer);
+                wait_any_t any_interruptor(interruptor, &squash_timer);
                 // Make sure to wait on `wait_for_nearly_full_queue` because we
                 // don't trust `queue_nearly_full_cond` to not be `NULL`
                 // already(although I'm not sure why we don't trust that).
@@ -2602,7 +2602,7 @@ subscription_t::get_els(batcher_t *batcher,
             } catch (const interrupted_exc_t &e) {
                 queue_nearly_full_cond = NULL;
                 // If we were really interrupted, rethrow.
-                if (!timer.is_pulsed()) throw e;
+                if (!squash_timer.is_pulsed()) throw e;
             }
             r_sanity_check(queue_nearly_full_cond == NULL);
         }
@@ -2618,15 +2618,15 @@ subscription_t::get_els(batcher_t *batcher,
                 // will be pulsed if we're shutting down.  Not that `cond` might
                 // already be reset by the time we get here, so make sure to wait on
                 // `&wait_for_data`.
-                if (timer.has()) {
-                    wait_any_t any_interruptor(interruptor, timer.get());
+                if (batch_timer.has()) {
+                    wait_any_t any_interruptor(interruptor, batch_timer.get());
                     wait_interruptible(&wait_for_data, &any_interruptor);
                 } else {
                     wait_interruptible(&wait_for_data, interruptor);
                 }
             } catch (const interrupted_exc_t &e) {
                 cond = NULL;
-                if (timer.has() && timer->is_pulsed()) {
+                if (batch_timer.has() && batch_timer->is_pulsed()) {
                     r_sanity_check(ret.size() == 0);
                     return ret;
                 }
