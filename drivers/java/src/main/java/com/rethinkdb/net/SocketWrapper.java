@@ -12,7 +12,6 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.SocketChannel;
 import java.net.StandardSocketOptions;
-import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.TimeoutException;
@@ -57,10 +56,6 @@ public class SocketWrapper {
         } catch (IOException e) {
             throw new ReqlRuntimeError(e);
         }
-    }
-
-    public void sendall(ByteBuffer buf) {
-        throw new RuntimeException("sendall not implemented");
     }
 
     public void write(ByteBuffer buffer) {

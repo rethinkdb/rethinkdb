@@ -126,7 +126,7 @@ public class Connection<C extends ConnectionInstance> {
         ConnectionInstance inst = checkOpen();
         inst.socket
                 .orElseThrow(() -> new ReqlDriverError("No socket open."))
-                .sendall(query.serialize());
+                .write(query.serialize());
         if(noreply){
             return Optional.empty();
         }
