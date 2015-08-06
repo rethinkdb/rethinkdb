@@ -88,7 +88,7 @@ module RethinkDB
                 "This is almost always a precedence error.\n" +
                 "Note that `a < b | b < c` <==> `a < (b | b) < c`.\n" +
                 "If you really want this behavior, use `.or` or `.and` instead."
-              raise RqlDriverError, err
+              raise ReqlDriverError, err
             end
           }
         end
@@ -151,7 +151,7 @@ module RethinkDB
     def do(*args, &b)
       a = ((@body != RQL) ? [self] : []) + args.dup
       if a == [] && !b
-        raise RqlDriverError, "Expected 1 or more arguments but found 0."
+        raise ReqlDriverError, "Expected 1 or more arguments but found 0."
       end
       funcall_args = (b ? [new_func(&b)] : [a.pop]) + a
       # PP.pp funcall_args
