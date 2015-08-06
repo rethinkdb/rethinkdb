@@ -157,8 +157,11 @@ void table_meta_client_t::get_sindex_status(
     table_config_and_shards_t config;
     get_config(table_id, &interruptor, &config);
     for (const auto &pair : config.config.sindexes) {
-        (*sindex_statuses_out)[pair.first] =
-            std::make_pair(pair.second, sindex_status_t());
+        auto it = sindex_statuses_out->insert(
+            std::make_pair(pair.first, std::make_pair(pair.second,
+                                                      sindex_status_t()))).first;
+        it->second.second.outdated =
+            (pair.second.func_version != reql_version_t::LATEST);
     }
     table_status_request_t request;
     request.want_sindexes = true;
