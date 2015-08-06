@@ -92,7 +92,15 @@ scoped_ptr_t<val_t> obj_or_seq_op_impl_t::eval_impl_dereferenced(
             = make_counted<func_term_t>(&compile_env, func);
         counted_t<const func_t> f = func_term->eval_to_func(env->scope);
 
-        counted_t<datum_stream_t> stream = v0->as_seq(env->env);
+        counted_t<datum_stream_t> stream;
+        counted_t<selection_t> sel; // may be empty
+        if (poly_type == FILTER
+            && v0->get_type().is_convertible(val_t::type_t::SELECTION)) {
+            sel = v0->as_selection(env->env);
+            stream = sel->seq;
+        } else {
+            stream = v0->as_seq(env->env);
+        }
         switch (poly_type) {
         case MAP:
             stream->add_transformation(map_wire_func_t(f), target->backtrace());
@@ -109,7 +117,11 @@ scoped_ptr_t<val_t> obj_or_seq_op_impl_t::eval_impl_dereferenced(
         default: unreachable();
         }
 
-        return target->new_val(env->env, stream);
+        if (sel) {
+            return target->new_val(sel);
+        } else {
+            return target->new_val(env->env, stream);
+        }
     }
 
     rfail_typed_target(
