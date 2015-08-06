@@ -37,6 +37,15 @@
       "COMPILE_ERROR": 17,
       "RUNTIME_ERROR": 18
     },
+    "ErrorType": {
+      "INTERNAL": 1000000,
+      "RESOURCE": 2000000,
+      "LOGIC": 3000000,
+      "NON_EXISTENCE": 3100000,
+      "OP_FAILED": 4100000,
+      "OP_INDETERMINATE": 4200000,
+      "USER": 5000000
+    },
     "ResponseNote": {
       "SEQUENCE_FEED": 1,
       "ATOM_FEED": 2,
@@ -235,6 +244,6 @@
       "MINVAL": 180,
       "MAXVAL": 181
     },
-      "AssocPair": {}
+    "AssocPair": {}
   }
 }
