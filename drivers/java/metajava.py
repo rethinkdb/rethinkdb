@@ -96,8 +96,8 @@ def get_proto_def():
         print("proto_basic.json doesn't exist. creating from scratch")
         with open(PROTO_FILE) as ql2:
             proto = Proto2Dict(ql2)()
-        with codecs.open(PROTO_JSON) as pb:
-            json.dump(proto, pb, indent=2)
+        with codecs.open(PROTO_JSON, "w") as pb:
+            json.dump(proto, pb, separators=(",", ": "), indent=2)
         return proto
     else:
         return json.load(
@@ -309,6 +309,7 @@ def render_proto_enums(proto):
     render_proto_enum("FrameType", proto["Frame"]["FrameType"])
     render_proto_enum("ResponseType", proto["Response"]["ResponseType"])
     render_proto_enum("ResponseNote", proto["Response"]["ResponseNote"])
+    render_proto_enum("ErrorType", proto["Response"]["ErrorType"])
     render_proto_enum("DatumType", proto["Datum"]["DatumType"])
     render_proto_enum("TermType", proto["Term"]["TermType"])
 
