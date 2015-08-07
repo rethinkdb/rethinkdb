@@ -20,10 +20,6 @@ As with any major release, back up your data files before performing the upgrade
 If you're upgrading directly from RethinkDB 1.13 or earlier, you will need to manually
 upgrade using `rethinkdb dump`.
 
-(TODO: Is this true?)
-Note that files from the RethinkDB 2.1.0 beta release are not compatible with this
-version.
-
 ### Changed handling of server failures ###
 This release introduces a new system for dealing with server failures and network
 partitions based on the Raft consensus algorithm.
@@ -87,7 +83,15 @@ the `rethinkdb` database changed.
   intracluster connections.
 
 ### New ReQL error types ###
-TODO
+RethinkDB 2.1 introduces new error types that allow you to handle different error classes
+separately in your application if you need to. You can find the
+[complete list][error-types] of new error types in the documentation.
+
+As part of this change, ReQL error types now use the `Reql` name prefix instead of `Rql`
+(for example `ReqlRuntimeError` instead of `RqlRuntimeError`).
+The old type names are still supported in our drivers for backwards compatiblity.
+
+[error-types]: http://rethinkdb.com/docs/error-types/
 
 ### Other API-breaking changes ###
 
