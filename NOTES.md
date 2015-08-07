@@ -163,10 +163,14 @@ with RethinkDB 2.2.
 * JavaScript driver
  * The version of bluebird was updated to 2.9.32 (#4178, #4475)
  * Improved compatibility with Internet Explorer 10 (#4534)
+ * TCP keepalive is now enabled for all connections (#4572)
 * Python driver
  * Added a new `--max-document-size` option to the `rethinkdb import` script to handle
    very large JSON documents (#4452)
  * Added an `r.__version__` property (#3100)
+ * TCP keepalive is now enabled for all connections (#4572)
+* Ruby driver
+ * TCP keepalive is now enabled for all connections (#4572)
 
 ## Bug fixes ##
 
@@ -175,6 +179,8 @@ with RethinkDB 2.2.
 * Updated the OS X uninstall script to avoid spurious error messages (#3773)
 * Fixed a starvation issue with squashing changefeeds (#3903)
 * `has_fields` now returns a selection when called on a table (#2609)
+* Fixed a bug that caused intermittent server crashes with the message
+  `Guarantee failed: [fn_id != __null]` in combination with the `r.js` command (#4611)
 * Web UI
   * Fixed an issue in the table list that caused it to get stuck showing
     "Loading tables..." if no database existed (#4464)
@@ -211,7 +217,7 @@ us ship RethinkDB 2.1. In no particular order:
 * Lowe Thiderman (@thiderman)
 * Andy Wilson (@wilsaj)
 * Nicolas Viennot (@nviennot)
-* @bnosrat (TODO: Do we have his real name?)
+* bnosrat (@bnosrat)
 * Mike Mintz (@mikemintz)
 * Lahfa Ryan (@raitobezarius)
 * Sebastien Diaz (@sebadiaz)
