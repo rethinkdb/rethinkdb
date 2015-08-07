@@ -4,6 +4,7 @@ import com.rethinkdb.proto.QueryType;
 import com.rethinkdb.ast.RqlAst;
 import com.rethinkdb.ast.helper.OptArgs;
 import com.rethinkdb.model.GlobalOptions;
+import com.rethinkdb.net.Util;
 
 import java.nio.ByteBuffer;
 import java.util.*;

@@ -72,12 +72,6 @@ public class Util {
 
         return new Datum(val);
     }
-
-    public static ByteBuffer leByteBuffer(int capacity) {
-        return ByteBuffer.allocate(capacity)
-            .order(ByteOrder.LITTLE_ENDIAN);
-    }
-
     // /*
     //     Called on arguments that should be functions
     //  */

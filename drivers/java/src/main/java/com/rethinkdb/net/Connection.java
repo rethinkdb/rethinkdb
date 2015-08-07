@@ -5,7 +5,6 @@ import com.rethinkdb.proto.Protocol;
 import com.rethinkdb.ast.Query;
 import com.rethinkdb.model.GlobalOptions;
 import com.rethinkdb.ast.RqlAst;
-import com.rethinkdb.ast.Util;
 import com.rethinkdb.ReqlDriverError;
 import com.rethinkdb.response.Response;
 
