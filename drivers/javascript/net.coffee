@@ -916,6 +916,9 @@ class TcpConnection extends Connection
         # latency.
         @rawSocket.setNoDelay()
 
+        # Enable TCP keepalive so we can detect dead connections.
+        @rawSocket.setKeepAlive(true)
+
         # Here we use the `@timeout` value passed to `.connect` to
         # destroy the socket and emit a timeout error. The timer will
         # be cancelled upon successful connection.
