@@ -6,7 +6,7 @@
 #include "buffer_cache/blob.hpp"
 #include "buffer_cache/cache_balancer.hpp"
 #include "buffer_cache/serialize_onto_blob.hpp"
-#include "clustering/administration/persist/migrate_v1_16.hpp"
+#include "clustering/administration/persist/migrate/migrate_v1_16.hpp"
 #include "config/args.hpp"
 #include "serializer/log/log_serializer.hpp"
 #include "serializer/merger.hpp"
@@ -33,14 +33,19 @@ void init_metadata_superblock(void *sb_void, size_t block_size) {
 }
 
 
-enum class superblock_version_t { pre_1_16 = 0, from_1_16_to_2_0 = 1, post_2_1 = 2 };
+enum class superblock_version_t {
+    pre_1_14 = 0,
+    pre_1_16 = 1,
+    from_1_16_to_2_0 = 2,
+    post_2_1 = 3,
+};
 
 superblock_version_t magic_to_version(block_magic_t magic) {
     guarantee(magic.bytes[0] == metadata_sb_magic.bytes[0]);
     guarantee(magic.bytes[1] == metadata_sb_magic.bytes[1]);
     guarantee(magic.bytes[2] == metadata_sb_magic.bytes[2]);
     switch (magic.bytes[3]) {
-        case 'd': return superblock_version_t::pre_1_16;
+        case 'd': return superblock_version_t::pre_1_14;
         case 'e': return superblock_version_t::pre_1_16;
         case 'f': return superblock_version_t::pre_1_16;
         case 'g': return superblock_version_t::from_1_16_to_2_0;
@@ -284,12 +289,13 @@ void metadata_file_t::write_txn_t::write_bin(
 
 metadata_file_t::metadata_file_t(
         io_backender_t *io_backender,
-        const serializer_filepath_t &filename,
+        const base_path_t &base_path,
+        bool migrate_inconsistent_data,
         perfmon_collection_t *perfmon_parent,
         signal_t *interruptor) :
     btree_stats(perfmon_parent, "metadata")
 {
-    filepath_file_opener_t file_opener(filename, io_backender);
+    filepath_file_opener_t file_opener(get_filename(base_path), io_backender);
     init_serializer(&file_opener, perfmon_parent);
     balancer.init(new dummy_cache_balancer_t(METADATA_CACHE_SIZE));
     cache.init(new cache_t(serializer.get(), balancer.get(), perfmon_parent));
@@ -305,19 +311,22 @@ metadata_file_t::metadata_file_t(
     superblock_version_t metadata_version =
         magic_to_version(*static_cast<block_magic_t *>(sb_data));
     switch (metadata_version) {
-        case superblock_version_t::pre_1_16: {
+        case superblock_version_t::pre_1_14: {
             crash("This version of RethinkDB cannot migrate in place from databases "
-                "created by versions older than RethinkDB 1.16.");
+                "created by versions older than RethinkDB 1.14.");
             break;
         }
+        case superblock_version_t::pre_1_16: // fallthrough intentional
         case superblock_version_t::from_1_16_to_2_0: {
             scoped_malloc_t<void> sb_copy(cache->max_block_size().value());
             memcpy(sb_copy.get(), sb_data, cache->max_block_size().value());
             init_metadata_superblock(sb_data, cache->max_block_size().value());
             sb_write.reset();
             sb_lock.reset();
-            migrate_v1_16::migrate_cluster_metadata(
-                &write_txn.txn, buf_parent_t(&write_txn.txn), sb_copy.get(), &write_txn);
+            migrate_cluster_metadata_to_v2_1(
+                io_backender, base_path, migrate_inconsistent_data,
+                buf_parent_t(&write_txn.txn), sb_copy.get(), &write_txn,
+                interruptor);
             break;
         }
         case superblock_version_t::post_2_1: {
@@ -330,13 +339,13 @@ metadata_file_t::metadata_file_t(
 
 metadata_file_t::metadata_file_t(
         io_backender_t *io_backender,
-        const serializer_filepath_t &filename,
+        const base_path_t &base_path,
         perfmon_collection_t *perfmon_parent,
         const std::function<void(write_txn_t *, signal_t *)> &initializer,
         signal_t *interruptor) :
     btree_stats(perfmon_parent, "metadata")
 {
-    filepath_file_opener_t file_opener(filename, io_backender);
+    filepath_file_opener_t file_opener(get_filename(base_path), io_backender);
     standard_serializer_t::create(
         &file_opener,
         standard_serializer_t::static_config_t());
@@ -373,6 +382,10 @@ void metadata_file_t::init_serializer(
     serializer.init(new merger_serializer_t(
         std::move(standard_ser),
         MERGER_SERIALIZER_MAX_ACTIVE_WRITES));
+}
+
+serializer_filepath_t metadata_file_t::get_filename(const base_path_t &path) {
+    return serializer_filepath_t(path, "metadata");
 }
 
 metadata_file_t::~metadata_file_t() {

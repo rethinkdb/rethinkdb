@@ -8,7 +8,6 @@
 #include "concurrency/cross_thread_watchable.hpp"
 #include "concurrency/wait_any.hpp"
 #include "containers/archive/vector_stream.hpp"
-#include "containers/cow_ptr.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/env.hpp"

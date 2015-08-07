@@ -178,8 +178,8 @@ public:
 
     /* `emergency_repair()` performs an emergency repair operation on the given table,
     creating a new table epoch. If all of the replicas for a given shard are missing, it
-    will leave the shard alone if `allow_data_loss` is `true`, or replace the shard with
-    a new empty shard if `allow_data_loss` is `false`. If `dry_run` is `true` it will
+    will leave the shard alone if `allow_erase` is `false`, or replace the shard with
+    a new empty shard if `allow_erase` is `true`. If `dry_run` is `true` it will
     compute the repair operation but not actually apply it. `simple_errors_found_out`
     and `data_loss_found_out` will indicate whether the two types of errors were
     detected. */

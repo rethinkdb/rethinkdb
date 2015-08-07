@@ -8,7 +8,7 @@
 namespace unittest {
 
 TPTEST(BtreeMetadata, MetadataTest) {
-    temp_file_t temp_file;
+    temp_directory_t temp_dir;
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
     cond_t non_interruptor;
 
@@ -19,7 +19,7 @@ TPTEST(BtreeMetadata, MetadataTest) {
     {
         metadata_file_t file(
             &io_backender,
-            temp_file.name(),
+            temp_dir.path(),
             &get_global_perfmon_collection(),
             [&](metadata_file_t::write_txn_t *txn, signal_t *interruptor) {
                 txn->write(big_string_key, std::string("small string"), interruptor);
@@ -34,7 +34,8 @@ TPTEST(BtreeMetadata, MetadataTest) {
     {
         metadata_file_t file(
             &io_backender,
-            temp_file.name(),
+            temp_dir.path(),
+            false,
             &get_global_perfmon_collection(),
             &non_interruptor);
         metadata_file_t::read_txn_t txn(&file, &non_interruptor);
@@ -63,7 +64,7 @@ TPTEST(BtreeMetadata, MetadataTest) {
 }
 
 TPTEST(BtreeMetadata, ManyKeysBigValues) {
-    temp_file_t temp_file;
+    temp_directory_t temp_dir;
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
     cond_t non_interruptor;
 
@@ -78,7 +79,7 @@ TPTEST(BtreeMetadata, ManyKeysBigValues) {
     {
         metadata_file_t file(
             &io_backender,
-            temp_file.name(),
+            temp_dir.path(),
             &get_global_perfmon_collection(),
             [&](metadata_file_t::write_txn_t *, signal_t *) { },
             &non_interruptor);
@@ -91,7 +92,8 @@ TPTEST(BtreeMetadata, ManyKeysBigValues) {
     {
         metadata_file_t file(
             &io_backender,
-            temp_file.name(),
+            temp_dir.path(),
+            false,
             &get_global_perfmon_collection(),
             &non_interruptor);
         metadata_file_t::read_txn_t txn(&file, &non_interruptor);

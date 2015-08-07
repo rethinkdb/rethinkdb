@@ -56,6 +56,10 @@ public:
         return v;
     }
 
+    // This getter is only used when migrating from v1.16 metadata to v2.1
+    const time_t &get_timestamp() const { return timestamp; }
+    const uuid_u &get_tiebreaker() const { return tiebreaker; }
+
     const T &get_ref() const {
         return value;
     }
