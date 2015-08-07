@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.channels.SocketChannel;
 import java.net.StandardSocketOptions;
 import java.nio.charset.StandardCharsets;
@@ -71,7 +70,7 @@ public class SocketWrapper {
 
     private String readNullTerminatedString(Optional<Integer> deadline)
             throws IOException {
-        ByteBuffer byteBuf = ByteBuffer.allocate(1);
+        ByteBuffer byteBuf = Util.leByteBuffer(1);
         List<Byte> bytelist = new ArrayList<>();
         while(true) {
             socketChannel.read(byteBuf);
@@ -94,8 +93,7 @@ public class SocketWrapper {
     }
 
     private ByteBuffer readBytes(int i, boolean strict) {
-        ByteBuffer buffer = ByteBuffer.allocate(i);
-        buffer.order(ByteOrder.LITTLE_ENDIAN);
+        ByteBuffer buffer = Util.leByteBuffer(i);
         try {
             int totalRead = 0;
             int read = socketChannel.read(buffer);
@@ -118,8 +116,7 @@ public class SocketWrapper {
     }
 
     public void writeLEInt(int i) {
-        ByteBuffer buffer = ByteBuffer.allocate(4);
-        buffer.order(ByteOrder.LITTLE_ENDIAN);
+        ByteBuffer buffer = Util.leByteBuffer(4);
         buffer.putInt(i);
         write(buffer);
     }
@@ -127,7 +124,7 @@ public class SocketWrapper {
     public void writeStringWithLength(String s) {
         writeLEInt(s.length());
 
-        ByteBuffer buffer = ByteBuffer.allocate(s.length());
+        ByteBuffer buffer = Util.leByteBuffer(s.length());
         buffer.put(s.getBytes());
         write(buffer);
     }
@@ -143,8 +140,7 @@ public class SocketWrapper {
 
     public ByteBuffer recvall(int bufsize, Optional<Integer> deadline) {
         // TODO: make deadline work
-        ByteBuffer buf = ByteBuffer.allocate(bufsize);
-        buf.order(ByteOrder.LITTLE_ENDIAN);
+        ByteBuffer buf = Util.leByteBuffer(bufsize);
         try {
             int bytesRead = socketChannel.read(buf);
             if (bytesRead != bufsize) {
