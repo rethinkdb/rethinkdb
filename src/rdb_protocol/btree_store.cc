@@ -1185,6 +1185,38 @@ void store_t::set_metainfo(const region_map_t<binary_blob_t> &new_metainfo,
     metainfo->update(superblock.get(), new_metainfo);
 }
 
+cluster_version_t store_t::metainfo_version(read_token_t *token,
+                                            signal_t *interruptor) {
+    assert_thread();
+    scoped_ptr_t<txn_t> txn;
+    scoped_ptr_t<real_superblock_t> superblock;
+    acquire_superblock_for_read(token,
+                                &txn, &superblock,
+                                interruptor,
+                                false /* KSI: christ */);
+    return metainfo->get_version(superblock.get());
+}
+
+void store_t::migrate_metainfo(
+        UNUSED order_token_t order_token, // TODO
+        write_token_t *token,
+        cluster_version_t from,
+        cluster_version_t to,
+        const std::function<binary_blob_t(const binary_blob_t &)> &cb,
+        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    assert_thread();
+
+    scoped_ptr_t<txn_t> txn;
+    scoped_ptr_t<real_superblock_t> superblock;
+    acquire_superblock_for_write(1,
+                                 write_durability_t::HARD,
+                                 token,
+                                 &txn,
+                                 &superblock,
+                                 interruptor);
+    metainfo->migrate(superblock.get(), from, to, get_region(), cb);
+}
+
 void store_t::acquire_superblock_for_read(
         read_token_t *token,
         scoped_ptr_t<txn_t> *txn_out,

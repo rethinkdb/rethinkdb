@@ -9,7 +9,6 @@
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
 #include "containers/archive/boost_types.hpp"
-#include "containers/cow_ptr.hpp"
 #include "containers/disk_backed_queue.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/changefeed.hpp"

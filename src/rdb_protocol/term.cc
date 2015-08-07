@@ -3,7 +3,6 @@
 
 #include "arch/address.hpp"
 #include "clustering/administration/jobs/report.hpp"
-#include "containers/cow_ptr.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
 #include "rdb_protocol/backtrace.hpp"
 #include "rdb_protocol/counted_term.hpp"

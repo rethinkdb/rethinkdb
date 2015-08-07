@@ -32,14 +32,15 @@ table_config_and_shards_t make_table_config_and_shards() {
 }
 
 raft_persistent_state_t<table_raft_state_t> raft_persistent_state_from_metadata_file(
-        const temp_file_t &temp_file,
+        const temp_directory_t &temp_dir,
         const namespace_id_t &table_id) {
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
     cond_t non_interruptor;
 
     metadata_file_t metadata_file(
         &io_backender,
-        temp_file.name(),
+        temp_dir.path(),
+        false,
         &get_global_perfmon_collection(),
         &non_interruptor);
     metadata_file_t::read_txn_t read_txn(&metadata_file, &non_interruptor);
@@ -49,7 +50,7 @@ raft_persistent_state_t<table_raft_state_t> raft_persistent_state_from_metadata_
 }
 
 TPTEST(ClusteringRaft, StorageRoundtrip) {
-    temp_file_t temp_file;
+    temp_directory_t temp_dir;
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
     cond_t non_interruptor;
     namespace_id_t table_id = generate_uuid();
@@ -66,7 +67,7 @@ TPTEST(ClusteringRaft, StorageRoundtrip) {
     {
         metadata_file_t metadata_file(
             &io_backender,
-            temp_file.name(),
+            temp_dir.path(),
             &get_global_perfmon_collection(),
             [&](metadata_file_t::write_txn_t *, signal_t *) { },
             &non_interruptor);
@@ -80,12 +81,12 @@ TPTEST(ClusteringRaft, StorageRoundtrip) {
     }
 
     EXPECT_EQ(
-        raft_persistent_state_from_metadata_file(temp_file, table_id),
+        raft_persistent_state_from_metadata_file(temp_dir, table_id),
         raft_persistent_state);
 }
 
 TPTEST(ClusteringRaft, StorageErase) {
-    temp_file_t temp_file;
+    temp_directory_t temp_dir;
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
     cond_t non_interruptor;
     namespace_id_t table_id = generate_uuid();
@@ -102,7 +103,7 @@ TPTEST(ClusteringRaft, StorageErase) {
     {
         metadata_file_t metadata_file(
             &io_backender,
-            temp_file.name(),
+            temp_dir.path(),
             &get_global_perfmon_collection(),
             [&](metadata_file_t::write_txn_t *, signal_t *) { },
             &non_interruptor);
@@ -120,7 +121,8 @@ TPTEST(ClusteringRaft, StorageErase) {
     {
         metadata_file_t metadata_file(
             &io_backender,
-            temp_file.name(),
+            temp_dir.path(),
+            false,
             &get_global_perfmon_collection(),
             &non_interruptor);
         metadata_file_t::read_txn_t read_txn(&metadata_file, &non_interruptor);
@@ -135,7 +137,7 @@ TPTEST(ClusteringRaft, StorageErase) {
 }
 
 TPTEST(ClusteringRaft, StorageWriteCurrentTermAndVotedFor) {
-    temp_file_t temp_file;
+    temp_directory_t temp_dir;
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
     cond_t non_interruptor;
     namespace_id_t table_id = generate_uuid();
@@ -155,7 +157,7 @@ TPTEST(ClusteringRaft, StorageWriteCurrentTermAndVotedFor) {
         scoped_ptr_t<table_raft_storage_interface_t> table_raft_storage_interface;
         metadata_file_t metadata_file(
             &io_backender,
-            temp_file.name(),
+            temp_dir.path(),
             &get_global_perfmon_collection(),
             [&](metadata_file_t::write_txn_t *, signal_t *) { },
             &non_interruptor);
@@ -177,12 +179,12 @@ TPTEST(ClusteringRaft, StorageWriteCurrentTermAndVotedFor) {
     raft_persistent_state.voted_for = raft_member_id_voted_for;
 
     EXPECT_EQ(
-        raft_persistent_state_from_metadata_file(temp_file, table_id),
+        raft_persistent_state_from_metadata_file(temp_dir, table_id),
         raft_persistent_state);
 }
 
 TPTEST(ClusteringRaft, StorageWriteCommitIndex) {
-    temp_file_t temp_file;
+    temp_directory_t temp_dir;
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
     cond_t non_interruptor;
     namespace_id_t table_id = generate_uuid();
@@ -200,7 +202,7 @@ TPTEST(ClusteringRaft, StorageWriteCommitIndex) {
         scoped_ptr_t<table_raft_storage_interface_t> table_raft_storage_interface;
         metadata_file_t metadata_file(
             &io_backender,
-            temp_file.name(),
+            temp_dir.path(),
             &get_global_perfmon_collection(),
             [&](metadata_file_t::write_txn_t *, signal_t *) { },
             &non_interruptor);
@@ -220,12 +222,12 @@ TPTEST(ClusteringRaft, StorageWriteCommitIndex) {
     raft_persistent_state.commit_index = 1;
 
     EXPECT_EQ(
-        raft_persistent_state_from_metadata_file(temp_file, table_id),
+        raft_persistent_state_from_metadata_file(temp_dir, table_id),
         raft_persistent_state);
 }
 
 TPTEST(ClusteringRaft, StorageWriteLogReplaceTail) {
-    temp_file_t temp_file;
+    temp_directory_t temp_dir;
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
     cond_t non_interruptor;
     namespace_id_t table_id = generate_uuid();
@@ -253,7 +255,7 @@ TPTEST(ClusteringRaft, StorageWriteLogReplaceTail) {
         scoped_ptr_t<table_raft_storage_interface_t> table_raft_storage_interface;
         metadata_file_t metadata_file(
             &io_backender,
-            temp_file.name(),
+            temp_dir.path(),
             &get_global_perfmon_collection(),
             [&](metadata_file_t::write_txn_t *, signal_t *) { },
             &non_interruptor);
@@ -273,12 +275,12 @@ TPTEST(ClusteringRaft, StorageWriteLogReplaceTail) {
     raft_persistent_state.log = raft_log;
 
     EXPECT_EQ(
-        raft_persistent_state_from_metadata_file(temp_file, table_id),
+        raft_persistent_state_from_metadata_file(temp_dir, table_id),
         raft_persistent_state);
 }
 
 TPTEST(ClusteringRaft, StorageWriteLogAppendOne) {
-    temp_file_t temp_file;
+    temp_directory_t temp_dir;
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
     cond_t non_interruptor;
     namespace_id_t table_id = generate_uuid();
@@ -303,7 +305,7 @@ TPTEST(ClusteringRaft, StorageWriteLogAppendOne) {
         scoped_ptr_t<table_raft_storage_interface_t> table_raft_storage_interface;
         metadata_file_t metadata_file(
             &io_backender,
-            temp_file.name(),
+            temp_dir.path(),
             &get_global_perfmon_collection(),
             [&](metadata_file_t::write_txn_t *, signal_t *) { },
             &non_interruptor);
@@ -323,12 +325,12 @@ TPTEST(ClusteringRaft, StorageWriteLogAppendOne) {
     raft_persistent_state.log.append(raft_log_entry);
 
     EXPECT_EQ(
-        raft_persistent_state_from_metadata_file(temp_file, table_id),
+        raft_persistent_state_from_metadata_file(temp_dir, table_id),
         raft_persistent_state);
 }
 
 TPTEST(ClusteringRaft, StorageWriteSnapshot) {
-    temp_file_t temp_file;
+    temp_directory_t temp_dir;
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
     cond_t non_interruptor;
     namespace_id_t table_id = generate_uuid();
@@ -349,7 +351,7 @@ TPTEST(ClusteringRaft, StorageWriteSnapshot) {
         scoped_ptr_t<table_raft_storage_interface_t> table_raft_storage_interface;
         metadata_file_t metadata_file(
             &io_backender,
-            temp_file.name(),
+            temp_dir.path(),
             &get_global_perfmon_collection(),
             [&](metadata_file_t::write_txn_t *, signal_t *) { },
             &non_interruptor);
@@ -373,7 +375,7 @@ TPTEST(ClusteringRaft, StorageWriteSnapshot) {
     raft_persistent_state.log.delete_entries_to(1, 1);
 
     EXPECT_EQ(
-        raft_persistent_state_from_metadata_file(temp_file, table_id),
+        raft_persistent_state_from_metadata_file(temp_dir, table_id),
         raft_persistent_state);
 }
 

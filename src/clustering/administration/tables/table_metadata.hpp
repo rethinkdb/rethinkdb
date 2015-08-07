@@ -12,7 +12,6 @@
 #include "clustering/administration/servers/server_metadata.hpp"
 #include "clustering/administration/tables/database_metadata.hpp"
 #include "clustering/generic/nonoverlapping_regions.hpp"
-#include "containers/cow_ptr.hpp"
 #include "containers/name_string.hpp"
 #include "containers/uuid.hpp"
 #include "rdb_protocol/protocol.hpp"

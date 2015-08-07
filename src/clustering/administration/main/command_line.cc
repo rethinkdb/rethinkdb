@@ -40,7 +40,7 @@
 #include "clustering/administration/main/path.hpp"
 #include "clustering/administration/persist/file.hpp"
 #include "clustering/administration/persist/file_keys.hpp"
-#include "clustering/administration/persist/migrate_v1_16.hpp"
+#include "clustering/administration/persist/migrate/migrate_v1_16.hpp"
 #include "clustering/administration/servers/server_metadata.hpp"
 #include "logger.hpp"
 
@@ -373,10 +373,6 @@ bool handle_help_or_version_option(const std::map<std::string, options::values_t
     return false;
 }
 
-serializer_filepath_t get_cluster_metadata_filename(const base_path_t& dirpath) {
-    return serializer_filepath_t(dirpath, "metadata");
-}
-
 void initialize_logfile(const std::map<std::string, options::values_t> &opts,
                         const base_path_t& dirpath) {
     std::string filename;
@@ -678,7 +674,7 @@ void run_rethinkdb_create(const base_path_t &base_path,
         cond_t non_interruptor;
         metadata_file_t metadata_file(
             &io_backender,
-            get_cluster_metadata_filename(base_path),
+            base_path,
             &metadata_perfmon_collection,
             [&](metadata_file_t::write_txn_t *write_txn, signal_t *interruptor) {
                 write_txn->write(mdkey_server_id(),
@@ -727,6 +723,7 @@ void run_rethinkdb_serve(const base_path_t &base_path,
                          const int max_concurrent_io_requests,
                          const boost::optional<boost::optional<uint64_t> >
                             &total_cache_size,
+                         const bool migrate_inconsistent_data,
                          const server_id_t *our_server_id,
                          const server_config_versioned_t *server_config,
                          const cluster_semilattice_metadata_t *cluster_metadata,
@@ -749,7 +746,7 @@ void run_rethinkdb_serve(const base_path_t &base_path,
         if (our_server_id != nullptr && cluster_metadata != nullptr) {
             metadata_file.init(new metadata_file_t(
                 &io_backender,
-                get_cluster_metadata_filename(base_path),
+                base_path,
                 &metadata_perfmon_collection,
                 [&](metadata_file_t::write_txn_t *write_txn, signal_t *interruptor) {
                     write_txn->write(mdkey_server_id(),
@@ -769,7 +766,8 @@ void run_rethinkdb_serve(const base_path_t &base_path,
         } else {
             metadata_file.init(new metadata_file_t(
                 &io_backender,
-                get_cluster_metadata_filename(base_path),
+                base_path,
+                migrate_inconsistent_data,
                 &metadata_perfmon_collection,
                 &non_interruptor));
             /* The `metadata_file_t` constructor will migrate the main metadata if it
@@ -779,7 +777,8 @@ void run_rethinkdb_serve(const base_path_t &base_path,
                 {
                     metadata_file_t::write_txn_t txn(metadata_file.get(),
                                                      &non_interruptor);
-                    migrate_v1_16::migrate_auth_file(auth_path, &txn);
+                    migrate_auth_metadata_to_v2_1(&io_backender, auth_path, &txn,
+                                                  &non_interruptor);
                     /* End the inner scope here so we flush the new metadata file before
                     we delete the old auth file */
                 }
@@ -825,6 +824,7 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
                              const int max_concurrent_io_requests,
                              const boost::optional<boost::optional<uint64_t> >
                                 &total_cache_size,
+                             const bool migrate_inconsistent_data,
                              const bool new_directory,
                              serve_info_t *serve_info,
                              directory_lock_t *data_directory_lock,
@@ -832,6 +832,7 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
     if (!new_directory) {
         run_rethinkdb_serve(base_path, serve_info, direct_io_mode,
                             max_concurrent_io_requests, total_cache_size,
+                            migrate_inconsistent_data,
                             NULL, NULL, NULL, data_directory_lock,
                             result_out);
     } else {
@@ -869,6 +870,7 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
         run_rethinkdb_serve(base_path, serve_info, direct_io_mode,
                             max_concurrent_io_requests,
                             boost::optional<boost::optional<uint64_t> >(),
+                            migrate_inconsistent_data,
                             &our_server_id, &server_config, &cluster_metadata,
                             data_directory_lock, result_out);
     }
@@ -937,6 +939,10 @@ options::help_section_t get_file_options(std::vector<options::option_t> *options
                                              options::OPTIONAL));
     help.add("--cache-size mb", "total cache size (in megabytes) for the process. Can "
         "be 'auto'.");
+    options_out->push_back(options::option_t(options::names_t("--migrate-inconsistent-data"),
+                                             options::OPTIONAL_NO_PARAMETER));
+    help.add("--migrate-inconsistent-data", "discard inconsistent data when migrating "
+             "from an older version.");
     return help;
 }
 
@@ -1439,6 +1445,9 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
         boost::optional<boost::optional<uint64_t> > total_cache_size =
             parse_total_cache_size_option(opts);
 
+        bool migrate_inconsistent_data =
+            exists_option(opts, "--migrate-inconsistent-data");
+
         // Open and lock the directory, but do not create it
         bool is_new_directory = false;
         directory_lock_t data_directory_lock(base_path, false, &is_new_directory);
@@ -1481,6 +1490,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
                                      direct_io_mode,
                                      max_concurrent_io_requests,
                                      total_cache_size,
+                                     migrate_inconsistent_data,
                                      static_cast<server_id_t*>(NULL),
                                      static_cast<server_config_versioned_t *>(NULL),
                                      static_cast<cluster_semilattice_metadata_t*>(NULL),
@@ -1697,6 +1707,9 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         boost::optional<boost::optional<uint64_t> > total_cache_size =
             parse_total_cache_size_option(opts);
 
+        bool migrate_inconsistent_data =
+            exists_option(opts, "--migrate-inconsistent-data");
+
         if (check_pid_file(opts) != EXIT_SUCCESS) {
             return EXIT_FAILURE;
         }
@@ -1733,6 +1746,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
                                      direct_io_mode,
                                      max_concurrent_io_requests,
                                      total_cache_size,
+                                     migrate_inconsistent_data,
                                      is_new_directory,
                                      &serve_info,
                                      &data_directory_lock,

@@ -146,14 +146,15 @@ public:
     // Used to open an existing metadata file
     metadata_file_t(
         io_backender_t *io_backender,
-        const serializer_filepath_t &filename,
+        const base_path_t &base_path,
+        bool migrate_inconsistent_data,
         perfmon_collection_t *perfmon_parent,
         signal_t *interruptor);
 
     // Used top create a new metadata file
     metadata_file_t(
         io_backender_t *io_backender,
-        const serializer_filepath_t &filename,
+        const base_path_t &base_path,
         perfmon_collection_t *perfmon_parent,
         const std::function<void(write_txn_t *, signal_t *)> &initializer,
         signal_t *interruptor);
@@ -163,6 +164,8 @@ private:
     void init_serializer(
         filepath_file_opener_t *file_opener,
         perfmon_collection_t *perfmon_parent);
+
+    static serializer_filepath_t get_filename(const base_path_t &path);
 
     scoped_ptr_t<merger_serializer_t> serializer;
     scoped_ptr_t<cache_balancer_t> balancer;

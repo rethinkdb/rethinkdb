@@ -122,6 +122,18 @@ public:
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
+    cluster_version_t metainfo_version(read_token_t *token,
+                                       signal_t *interruptor);
+
+    void migrate_metainfo(
+            order_token_t order_token,
+            write_token_t *token,
+            cluster_version_t from,
+            cluster_version_t to,
+            const std::function<binary_blob_t(const binary_blob_t &)> &cb,
+            signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t);
+
     void read(
             DEBUG_ONLY(const metainfo_checker_t& metainfo_checker, )
             const read_t &read,

@@ -30,6 +30,18 @@ private:
     DISABLE_COPYING(temp_file_t);
 };
 
+class temp_directory_t {
+public:
+    temp_directory_t();
+    ~temp_directory_t();
+    base_path_t path() const;
+
+private:
+    base_path_t directory;
+
+    DISABLE_COPYING(temp_directory_t);
+};
+
 void let_stuff_happen();
 
 std::set<ip_address_t> get_unittest_addresses();

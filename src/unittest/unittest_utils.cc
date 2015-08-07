@@ -93,6 +93,20 @@ serializer_filepath_t temp_file_t::name() const {
     return manual_serializer_filepath(filename, filename + temp_file_create_suffix);
 }
 
+temp_directory_t::temp_directory_t() {
+    char tmpl[] = "/tmp/rdb_unittest.XXXXXX";
+    char *res = mkdtemp(tmpl);
+    guarantee_err(res != nullptr, "Couldn't create a temporary directory");
+    directory = base_path_t(std::string(res));
+}
+
+temp_directory_t::~temp_directory_t() {
+    remove_directory_recursive(directory.path().c_str());
+}
+
+base_path_t temp_directory_t::path() const {
+    return directory;
+}
 
 void let_stuff_happen() {
 #ifdef VALGRIND
