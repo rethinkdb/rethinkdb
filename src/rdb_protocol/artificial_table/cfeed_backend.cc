@@ -53,6 +53,7 @@ bool cfeed_artificial_table_backend_t::read_changes(
     ql::env_t *env,
     bool include_initial_vals,
     bool include_states,
+    ql::configured_limits_t limits,
     ql::backtrace_id_t bt,
     ql::changefeed::keyspec_t::spec_t &&spec,
     signal_t *interruptor,
@@ -100,8 +101,10 @@ bool cfeed_artificial_table_backend_t::read_changes(
     on_thread_t thread_switcher_2(request_thread);
     try {
         *cfeed_out = machinery->subscribe(
-            env, include_initial_vals,
+            env,
+            include_initial_vals,
             include_states,
+            std::move(limits),
             std::move(spec),
             get_primary_key_name(),
             initial_values,

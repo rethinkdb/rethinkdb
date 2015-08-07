@@ -118,10 +118,10 @@ tests:
 
     # test atomicity constraints (positive and negative test)
     - cd: tbl.get(1).update({'d':r.js('5')})
-      ot: err('RqlLogicError', 'Could not prove function deterministic.  Maybe you want to use the non_atomic flag?', [0])
+      ot: err('RqlLogicError', 'Could not prove argument deterministic.  Maybe you want to use the non_atomic flag?', [0])
 
     - cd: tbl.get(1).update({'d':tbl.nth(0)})
-      ot: err('RqlLogicError', 'Could not prove function deterministic.  Maybe you want to use the non_atomic flag?', [0])
+      ot: err('RqlLogicError', 'Could not prove argument deterministic.  Maybe you want to use the non_atomic flag?', [0])
 
     - py: tbl.get(1).update({'d':r.js('5')}, non_atomic=True)
       js: tbl.get(1).update({'d':r.js('5')}, {'nonAtomic':true})

@@ -1,4 +1,9 @@
 err = require('./errors')
+protodef = require('./proto-def')
+
+# The server can respond with several different error types. These are the
+# definitions for the error types.
+protoErrorType = protodef.Response.ErrorType
 
 plural = (number) -> if number == 1 then "" else "s"
 
@@ -117,7 +122,20 @@ mkSeq = (response, opts) -> recursivelyConvertPseudotype(response.r, opts)
 mkErr = (ErrClass, response, root) ->
     new ErrClass(mkAtom(response), root, response.b)
 
+errorClass = (errorType) =>
+    switch errorType
+        when protoErrorType.INTERNAL            then err.RqlInternalError
+        when protoErrorType.RESOURCE            then err.RqlResourceError
+        when protoErrorType.LOGIC               then err.RqlLogicError
+        when protoErrorType.NON_EXISTENCE       then err.RqlNonExistenceError
+        when protoErrorType.OP_FAILED           then err.RqlOpFailedError
+        when protoErrorType.OP_INDETERMINATE    then err.RqlOpIndeterminateError
+        when protoErrorType.USER                then err.RqlUserError
+        else                                    err.RqlRuntimeError
+
+
 module.exports.recursivelyConvertPseudotype = recursivelyConvertPseudotype
 module.exports.mkAtom = mkAtom
 module.exports.mkSeq = mkSeq
 module.exports.mkErr = mkErr
+module.exports.errorClass = errorClass

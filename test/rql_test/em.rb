@@ -10,7 +10,9 @@ class DefaultHandler < RethinkDB::Handler
   attr_accessor :state
   def initialize; @state = []; end
   def on_error(err)
-    @state << [:err, err]
+    if err != RethinkDB::RqlRuntimeError.new("Connection is closed.")
+      @state << [:err, err]
+    end
   end
   def on_val(val)
     @state << [:val, val]
@@ -21,7 +23,9 @@ class ValTypeHandler < RethinkDB::Handler
   attr_accessor :state
   def initialize; @state = []; end
   def on_error(err)
-    @state << [:err, err]
+    if err != RethinkDB::RqlRuntimeError.new("Connection is closed.")
+      @state << [:err, err]
+    end
   end
   def on_atom(val)
     @state << [:atom, val]
@@ -41,7 +45,9 @@ class ChangeOnlyHandler < RethinkDB::Handler
   attr_accessor :state
   def initialize; @state = []; end
   def on_error(err)
-    @state << [:err, err]
+    if err != RethinkDB::RqlRuntimeError.new("Connection is closed.")
+      @state << [:err, err]
+    end
   end
   def on_change(old_val, new_val)
     @state << [:change, old_val, new_val]
@@ -97,7 +103,11 @@ r.table('test').delete.run
 r.table('test').insert({id: 0}).run
 EM.run {
   $lambda_state = []
-  $lambda = lambda {|err, row| $lambda_state << [err, row]}
+  $lambda = lambda {|err, row|
+    if err != RethinkDB::RqlRuntimeError.new("Connection is closed.")
+      $lambda_state << [err, row]
+    end
+  }
   $handlers = [DefaultHandler.new, ValTypeHandler.new, ValTypeHandler2.new,
                ChangeOnlyHandler.new, ChangeHandler.new, CleverChangeHandler.new]
 

@@ -72,10 +72,6 @@ protoQueryType = protodef.Query.QueryType
 # definitions for the response types.
 protoResponseType = protodef.Response.ResponseType
 
-# The server can respond with several different error types. These are the
-# definitions for the error types.
-protoErrorType = protodef.Response.ErrorType
-
 # The [ast module](ast.html) contains the bulk of the api exposed by
 # the driver. It defines how you can create ReQL queries, and handles
 # serializing those queries into JSON to be transmitted over the wire
@@ -389,16 +385,7 @@ class Connection extends events.EventEmitter
                         # query. For example, if you try to get the
                         # value of a field in an object that doesn't
                         # exist.
-                        errType = switch response.e
-                            when protoErrorType.INTERNAL            then err.RqlInternalError
-                            when protoErrorType.RESOURCE            then err.RqlResourceError
-                            when protoErrorType.LOGIC               then err.RqlLogicError
-                            when protoErrorType.NON_EXISTENCE       then err.RqlNonExistenceError
-                            when protoErrorType.OP_FAILED           then err.RqlOpFailedError
-                            when protoErrorType.OP_INDETERMINATE    then err.RqlOpIndeterminateError
-                            when protoErrorType.USER                then err.RqlUserError
-                            else                                    err.RqlRuntimeError
-
+                        errType = util.errorClass(response.e)
                         cb mkErr(errType, response, root)
                         @_delQuery(token)
                     # ##### Success responses
@@ -928,6 +915,9 @@ class TcpConnection extends Connection
         # on the socket because it can impose unnecessary
         # latency.
         @rawSocket.setNoDelay()
+
+        # Enable TCP keepalive so we can detect dead connections.
+        @rawSocket.setKeepAlive(true)
 
         # Here we use the `@timeout` value passed to `.connect` to
         # destroy the socket and emit a timeout error. The timer will

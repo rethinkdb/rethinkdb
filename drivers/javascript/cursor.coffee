@@ -140,7 +140,8 @@ class IterableResult
                     when protoResponseType.RUNTIME_ERROR
                         @_responses.shift()
                         cb = @_getCallback()
-                        cb mkErr(err.RqlRuntimeError, response, @_root)
+                        errType = util.errorClass(response.e)
+                        cb mkErr(errType, response, @_root)
                     else
                         @_responses.shift()
                         cb = @_getCallback()

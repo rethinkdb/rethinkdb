@@ -679,6 +679,7 @@ module RethinkDB
     def base_socket
       socket = TCPSocket.open(@host, @port)
       socket.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1)
+      socket.setsockopt(Socket::SOL_SOCKET, Socket::SO_KEEPALIVE, 1)
       socket
     end
 
