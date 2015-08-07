@@ -277,11 +277,17 @@ void query_cache_t::ref_t::fill_response(Response *res) {
                        ex.get_error_type(),
                        ex.what(),
                        entry->bt_reg.datum_backtrace(ex));
+    } catch (const datum_exc_t &ex) {
+        query_cache->terminate_internal(entry);
+        throw bt_exc_t(Response::RUNTIME_ERROR,
+                       ex.get_error_type(),
+                       ex.what(),
+                       entry->bt_reg.datum_backtrace(backtrace_id_t::empty(), 0));
     } catch (const std::exception &ex) {
         query_cache->terminate_internal(entry);
         throw bt_exc_t(Response::RUNTIME_ERROR,
                        Response::INTERNAL,
-                       ex.what(),
+                       strprintf("Unexpected exception: %s", ex.what()).c_str(),
                        backtrace_registry_t::EMPTY_BACKTRACE);
     }
 }
