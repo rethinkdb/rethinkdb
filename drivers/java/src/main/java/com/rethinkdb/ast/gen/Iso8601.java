@@ -4,15 +4,15 @@
 // ../../../../../../../../templates/gen/Iso8601.java
 package com.rethinkdb.ast.gen;
 
+import java.util.Optional;
+import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.ast.helper.Arguments;
 import com.rethinkdb.ast.helper.OptArgs;
-import com.rethinkdb.ast.RqlAst;
 import com.rethinkdb.proto.TermType;
-import java.util.*;
 
 
 
-public class Iso8601 extends RqlQuery {
+public class Iso8601 extends ReqlQuery {
 
 
     public Iso8601(java.lang.Object arg) {
@@ -21,10 +21,10 @@ public class Iso8601 extends RqlQuery {
     public Iso8601(Arguments args, OptArgs optargs) {
         this(null, args, optargs);
     }
-    public Iso8601(RqlAst prev, Arguments args, OptArgs optargs) {
+    public Iso8601(ReqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.ISO8601, args, optargs);
     }
-    protected Iso8601(RqlAst previous, TermType termType, Arguments args, OptArgs optargs){
+    protected Iso8601(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
         super(previous, termType, args, optargs);
     }
 

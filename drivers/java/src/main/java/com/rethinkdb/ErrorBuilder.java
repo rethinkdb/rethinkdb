@@ -1,7 +1,7 @@
 package com.rethinkdb;
 
 import com.rethinkdb.ast.Query;
-import com.rethinkdb.ast.RqlAst;
+import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.proto.ErrorType;
 import com.rethinkdb.proto.ResponseType;
 import com.rethinkdb.response.Backtrace;
@@ -14,7 +14,7 @@ public class ErrorBuilder {
     final ResponseType responseType;
     Optional<Backtrace> backtrace = Optional.empty();
     Optional<ErrorType> errorType = Optional.empty();
-    Optional<RqlAst> term = Optional.empty();
+    Optional<ReqlAst> term = Optional.empty();
 
     public ErrorBuilder(String msg, ResponseType responseType) {
         this.msg = msg;

@@ -4,15 +4,15 @@
 // ../../../../../../../../templates/AstSubclass.java
 package com.rethinkdb.ast.gen;
 
+import java.util.Optional;
+import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.ast.helper.Arguments;
 import com.rethinkdb.ast.helper.OptArgs;
-import com.rethinkdb.ast.RqlAst;
 import com.rethinkdb.proto.TermType;
-import java.util.*;
 
 
 
-public class IsEmpty extends RqlQuery {
+public class IsEmpty extends ReqlQuery {
 
 
     public IsEmpty(java.lang.Object arg) {
@@ -21,10 +21,10 @@ public class IsEmpty extends RqlQuery {
     public IsEmpty(Arguments args, OptArgs optargs) {
         this(null, args, optargs);
     }
-    public IsEmpty(RqlAst prev, Arguments args, OptArgs optargs) {
+    public IsEmpty(ReqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.IS_EMPTY, args, optargs);
     }
-    protected IsEmpty(RqlAst previous, TermType termType, Arguments args, OptArgs optargs){
+    protected IsEmpty(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
         super(previous, termType, args, optargs);
     }
 

@@ -4,15 +4,15 @@
 // ../../../../../../../../templates/AstSubclass.java
 package com.rethinkdb.ast.gen;
 
+import java.util.Optional;
+import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.ast.helper.Arguments;
 import com.rethinkdb.ast.helper.OptArgs;
-import com.rethinkdb.ast.RqlAst;
 import com.rethinkdb.proto.TermType;
-import java.util.*;
 
 
 
-public class Merge extends RqlQuery {
+public class Merge extends ReqlQuery {
 
 
     public Merge(java.lang.Object arg) {
@@ -21,10 +21,10 @@ public class Merge extends RqlQuery {
     public Merge(Arguments args, OptArgs optargs) {
         this(null, args, optargs);
     }
-    public Merge(RqlAst prev, Arguments args, OptArgs optargs) {
+    public Merge(ReqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.MERGE, args, optargs);
     }
-    protected Merge(RqlAst previous, TermType termType, Arguments args, OptArgs optargs){
+    protected Merge(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
         super(previous, termType, args, optargs);
     }
 

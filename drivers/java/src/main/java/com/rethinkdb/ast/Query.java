@@ -1,15 +1,12 @@
 package com.rethinkdb.ast;
 
 import com.rethinkdb.proto.QueryType;
-import com.rethinkdb.ast.RqlAst;
-import com.rethinkdb.ast.helper.OptArgs;
 import com.rethinkdb.model.GlobalOptions;
 import com.rethinkdb.net.Util;
 
 import java.nio.ByteBuffer;
 import java.util.*;
 
-import org.json.simple.JSONObject;
 import org.json.simple.JSONArray;
 
 /* An instance for a query that has been sent to the server. Keeps
@@ -20,10 +17,10 @@ import org.json.simple.JSONArray;
 public class Query {
     public final QueryType type;
     public final long token;
-    public final Optional<RqlAst> term;
+    public final Optional<ReqlAst> term;
     public final GlobalOptions globalOptions;
 
-    public Query(QueryType type, long token, RqlAst term, GlobalOptions globalOptions) {
+    public Query(QueryType type, long token, ReqlAst term, GlobalOptions globalOptions) {
         this.type = type;
         this.token = token;
         this.term = Optional.ofNullable(term);
@@ -42,7 +39,7 @@ public class Query {
         return new Query(QueryType.CONTINUE, token, null, new GlobalOptions());
     }
 
-    public static Query start(long token, RqlAst term, GlobalOptions globalOptions) {
+    public static Query start(long token, ReqlAst term, GlobalOptions globalOptions) {
         return new Query(QueryType.START, token, term, globalOptions);
     }
 

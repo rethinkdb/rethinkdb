@@ -2,65 +2,63 @@ package com.rethinkdb.ast;
 
 import com.rethinkdb.ReqlError;
 import com.rethinkdb.ast.helper.Arguments;
-import com.rethinkdb.model.RqlFunction;
+import com.rethinkdb.model.ReqlFunction;
 import com.rethinkdb.ast.gen.Datum;
 import com.rethinkdb.ast.gen.Func;
 import com.rethinkdb.ast.gen.MakeArray;
 import com.rethinkdb.ast.gen.MakeObj;
 import com.rethinkdb.ast.gen.Iso8601;
-import com.rethinkdb.model.RqlFunction2;
+import com.rethinkdb.model.ReqlFunction2;
 
 
 import java.lang.*;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 
 
 public class Util {
     private Util(){}
     /**
-     * Coerces objects from their native type to RqlAst
+     * Coerces objects from their native type to ReqlAst
      *
      * @param val val
-     * @return RqlAst
+     * @return ReqlAst
      */
-    public static RqlAst toRqlAst(java.lang.Object val) {
-        return toRqlAst(val, 20);
+    public static ReqlAst toReqlAst(java.lang.Object val) {
+        return toReqlAst(val, 20);
     }
 
-    private static RqlAst toRqlAst(java.lang.Object val, int remainingDepth) {
-        if (val instanceof RqlAst) {
-            return (RqlAst) val;
+    private static ReqlAst toReqlAst(java.lang.Object val, int remainingDepth) {
+        if (val instanceof ReqlAst) {
+            return (ReqlAst) val;
         }
 
         if (val instanceof List) {
             Arguments innerValues = new Arguments();
             for (java.lang.Object innerValue : (List) val) {
-                innerValues.add(toRqlAst(innerValue, remainingDepth - 1));
+                innerValues.add(toReqlAst(innerValue, remainingDepth - 1));
             }
             return new MakeArray(innerValues, null);
         }
 
         if (val instanceof Map) {
-            Map<String, RqlAst> obj = new HashMap<>();
+            Map<String, ReqlAst> obj = new HashMap<>();
             for (Map.Entry<Object, Object> entry : (Set<Map.Entry>) ((Map) val).entrySet()) {
                 if (!(entry.getKey() instanceof String)) {
                     throw new ReqlError("Object key can only be strings");
                 }
 
-                obj.put((String) entry.getKey(), toRqlAst(entry.getValue()));
+                obj.put((String) entry.getKey(), toReqlAst(entry.getValue()));
             }
             return MakeObj.fromMap(obj);
         }
 
-        if (val instanceof RqlFunction) {
-            return new Func((RqlFunction) val);
+        if (val instanceof ReqlFunction) {
+            return new Func((ReqlFunction) val);
         }
-        if (val instanceof RqlFunction2) {
-            return new Func((RqlFunction2) val);
+        if (val instanceof ReqlFunction2) {
+            return new Func((ReqlFunction2) val);
         }
 
         if (val instanceof Date) {
@@ -75,32 +73,32 @@ public class Util {
     // /*
     //     Called on arguments that should be functions
     //  */
-    // public static RqlAst funcWrap(java.lang.Object o) {
-    //     final RqlAst rqlQuery = toRqlAst(o);
+    // public static ReqlAst funcWrap(java.lang.Object o) {
+    //     final ReqlAst ReqlQuery = toReqlAst(o);
 
-    //     if (hasImplicitVar(rqlQuery)) {
-    //         return new Func(new RqlFunction() {
+    //     if (hasImplicitVar(ReqlQuery)) {
+    //         return new Func(new ReqlFunction() {
     //             @Override
-    //             public RqlAst apply(RqlAst row) {
-    //                 return rqlQuery;
+    //             public ReqlAst apply(ReqlAst row) {
+    //                 return ReqlQuery;
     //             }
     //         });
     //     } else {
-    //         return rqlQuery;
+    //         return ReqlQuery;
     //     }
     // }
 
 
-    // public static boolean hasImplicitVar(RqlAst node) {
+    // public static boolean hasImplicitVar(ReqlAst node) {
     //     if (node.getTermType() == Q2L.Term.TermType.IMPLICIT_VAR) {
     //         return true;
     //     }
-    //     for (RqlAst arg : node.getArgs()) {
+    //     for (ReqlAst arg : node.getArgs()) {
     //         if (hasImplicitVar(arg)) {
     //             return true;
     //         }
     //     }
-    //     for (Map.Entry<String, RqlAst> kv : node.getOptionalArgs().entrySet()) {
+    //     for (Map.Entry<String, ReqlAst> kv : node.getOptionalArgs().entrySet()) {
     //         if (hasImplicitVar(kv.getValue())) {
     //             return true;
     //         }

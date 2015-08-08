@@ -4,32 +4,32 @@
 // ../../../../../../../../templates/gen/Func.java
 package com.rethinkdb.ast.gen;
 
+import java.util.Optional;
+import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.ast.helper.Arguments;
 import com.rethinkdb.ast.helper.OptArgs;
-import com.rethinkdb.ast.RqlAst;
 import com.rethinkdb.proto.TermType;
-import java.util.*;
 
 
-import com.rethinkdb.model.RqlFunction2;
-import com.rethinkdb.model.RqlFunction;
-import com.rethinkdb.model.RqlLambda;
+import com.rethinkdb.model.ReqlFunction2;
+import com.rethinkdb.model.ReqlFunction;
+import com.rethinkdb.model.ReqlLambda;
 import com.rethinkdb.ast.Util;
 
 
-public class Func extends RqlQuery {
+public class Func extends ReqlQuery {
 
 
-    public Func(RqlFunction function) {
+    public Func(ReqlFunction function) {
         this(Arguments.make(
             new MakeArray(new Arguments(1), null),
-                Util.toRqlAst(function.apply(new Var(1)))));
+                Util.toReqlAst(function.apply(new Var(1)))));
     }
 
-    public Func(RqlFunction2 function) {
+    public Func(ReqlFunction2 function) {
         this(Arguments.make(
             new MakeArray(Arguments.make(1, 2)),
-                Util.toRqlAst(function.apply(new Var(1), new Var(1)))));
+                Util.toReqlAst(function.apply(new Var(1), new Var(1)))));
     }
 
     protected Func(Arguments args) {

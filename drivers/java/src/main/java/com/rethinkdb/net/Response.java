@@ -142,35 +142,35 @@ class Response {
         }
     }
 
-    public boolean isWaitComplete() {
+    boolean isWaitComplete() {
         return type == ResponseType.WAIT_COMPLETE;
     }
 
     /* Whether the response is any kind of feed */
-    public boolean isFeed() {
+    boolean isFeed() {
         return notes.stream().allMatch(ResponseNote::isFeed);
     }
 
     /* Whether the response is any kind of error */
-    public boolean isError() {
+    boolean isError() {
         return type.isError();
     }
 
-    public static JSONObject convertPseudotypes(
+    static JSONObject convertPseudotypes(
             JSONObject obj, Optional<Profile> profile) {
         throw new RuntimeException("convertPseudotypes not implemented");
     }
 
     /* What type of success the response contains */
-    public boolean isAtom() {
+    boolean isAtom() {
         return type == ResponseType.SUCCESS_ATOM;
     }
 
-    public boolean isSequence() {
+    boolean isSequence() {
         return type == ResponseType.SUCCESS_SEQUENCE;
     }
 
-    public boolean isPartial() {
+    boolean isPartial() {
         return type == ResponseType.SUCCESS_PARTIAL;
     }
 

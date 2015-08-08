@@ -4,15 +4,15 @@
 // ../../../../../../../../templates/gen/MakeObj.java
 package com.rethinkdb.ast.gen;
 
+import java.util.Optional;
+import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.ast.helper.Arguments;
 import com.rethinkdb.ast.helper.OptArgs;
-import com.rethinkdb.ast.RqlAst;
 import com.rethinkdb.proto.TermType;
-import java.util.*;
 
 
 
-public class MakeObj extends RqlQuery {
+public class MakeObj extends ReqlQuery {
 
 
     public MakeObj(java.lang.Object arg) {
@@ -21,10 +21,10 @@ public class MakeObj extends RqlQuery {
     public MakeObj(Arguments args, OptArgs optargs) {
         this(null, args, optargs);
     }
-    public MakeObj(RqlAst prev, Arguments args, OptArgs optargs) {
+    public MakeObj(ReqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.MAKE_OBJ, args, optargs);
     }
-    protected MakeObj(RqlAst previous, TermType termType, Arguments args, OptArgs optargs){
+    protected MakeObj(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
         super(previous, termType, args, optargs);
     }
 
@@ -35,7 +35,7 @@ public class MakeObj extends RqlQuery {
     }
 
 
-    public static MakeObj fromMap(java.util.Map<String, RqlAst> map){
+    public static MakeObj fromMap(java.util.Map<String, ReqlAst> map){
         return new MakeObj(OptArgs.fromMap(map));
     }
 

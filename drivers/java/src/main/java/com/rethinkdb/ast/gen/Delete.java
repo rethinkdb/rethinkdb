@@ -4,15 +4,15 @@
 // ../../../../../../../../templates/AstSubclass.java
 package com.rethinkdb.ast.gen;
 
+import java.util.Optional;
+import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.ast.helper.Arguments;
 import com.rethinkdb.ast.helper.OptArgs;
-import com.rethinkdb.ast.RqlAst;
 import com.rethinkdb.proto.TermType;
-import java.util.*;
 
 
 
-public class Delete extends RqlQuery {
+public class Delete extends ReqlQuery {
 
 
     public Delete(java.lang.Object arg) {
@@ -21,10 +21,10 @@ public class Delete extends RqlQuery {
     public Delete(Arguments args, OptArgs optargs) {
         this(null, args, optargs);
     }
-    public Delete(RqlAst prev, Arguments args, OptArgs optargs) {
+    public Delete(ReqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.DELETE, args, optargs);
     }
-    protected Delete(RqlAst previous, TermType termType, Arguments args, OptArgs optargs){
+    protected Delete(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
         super(previous, termType, args, optargs);
     }
 

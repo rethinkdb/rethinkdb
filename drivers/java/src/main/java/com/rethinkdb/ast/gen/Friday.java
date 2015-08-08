@@ -4,15 +4,15 @@
 // ../../../../../../../../templates/AstSubclass.java
 package com.rethinkdb.ast.gen;
 
+import java.util.Optional;
+import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.ast.helper.Arguments;
 import com.rethinkdb.ast.helper.OptArgs;
-import com.rethinkdb.ast.RqlAst;
 import com.rethinkdb.proto.TermType;
-import java.util.*;
 
 
 
-public class Friday extends RqlQuery {
+public class Friday extends ReqlQuery {
 
 
     public Friday(java.lang.Object arg) {
@@ -21,10 +21,10 @@ public class Friday extends RqlQuery {
     public Friday(Arguments args, OptArgs optargs) {
         this(null, args, optargs);
     }
-    public Friday(RqlAst prev, Arguments args, OptArgs optargs) {
+    public Friday(ReqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.FRIDAY, args, optargs);
     }
-    protected Friday(RqlAst previous, TermType termType, Arguments args, OptArgs optargs){
+    protected Friday(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
         super(previous, termType, args, optargs);
     }
 

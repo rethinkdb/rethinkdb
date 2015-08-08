@@ -1,4 +1,4 @@
 package com.rethinkdb.model;
 
-public interface RqlLambda {
+public interface ReqlLambda {
 }

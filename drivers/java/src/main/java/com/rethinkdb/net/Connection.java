@@ -4,7 +4,7 @@ import com.rethinkdb.proto.Version;
 import com.rethinkdb.proto.Protocol;
 import com.rethinkdb.ast.Query;
 import com.rethinkdb.model.GlobalOptions;
-import com.rethinkdb.ast.RqlAst;
+import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.ReqlDriverError;
 import com.rethinkdb.response.Response;
 
@@ -159,7 +159,7 @@ public class Connection<C extends ConnectionInstance> {
         runQuery(Query.noreplyWait(newToken()));
     }
 
-    Optional<Object> start(RqlAst term, GlobalOptions globalOpts) {
+    Optional<Object> start(ReqlAst term, GlobalOptions globalOpts) {
         C inst = checkOpen();
         if (!globalOpts.db().isPresent()) {
             dbname.ifPresent(globalOpts::db);

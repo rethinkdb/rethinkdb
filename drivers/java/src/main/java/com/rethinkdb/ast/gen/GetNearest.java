@@ -4,15 +4,15 @@
 // ../../../../../../../../templates/AstSubclass.java
 package com.rethinkdb.ast.gen;
 
+import java.util.Optional;
+import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.ast.helper.Arguments;
 import com.rethinkdb.ast.helper.OptArgs;
-import com.rethinkdb.ast.RqlAst;
 import com.rethinkdb.proto.TermType;
-import java.util.*;
 
 
 
-public class GetNearest extends RqlQuery {
+public class GetNearest extends ReqlQuery {
 
 
     public GetNearest(java.lang.Object arg) {
@@ -21,10 +21,10 @@ public class GetNearest extends RqlQuery {
     public GetNearest(Arguments args, OptArgs optargs) {
         this(null, args, optargs);
     }
-    public GetNearest(RqlAst prev, Arguments args, OptArgs optargs) {
+    public GetNearest(ReqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.GET_NEAREST, args, optargs);
     }
-    protected GetNearest(RqlAst previous, TermType termType, Arguments args, OptArgs optargs){
+    protected GetNearest(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
         super(previous, termType, args, optargs);
     }
 

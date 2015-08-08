@@ -4,15 +4,15 @@
 // ../../../../../../../../templates/AstSubclass.java
 package com.rethinkdb.ast.gen;
 
+import java.util.Optional;
+import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.ast.helper.Arguments;
 import com.rethinkdb.ast.helper.OptArgs;
-import com.rethinkdb.ast.RqlAst;
 import com.rethinkdb.proto.TermType;
-import java.util.*;
 
 
 
-public class Distinct extends RqlQuery {
+public class Distinct extends ReqlQuery {
 
 
     public Distinct(java.lang.Object arg) {
@@ -21,10 +21,10 @@ public class Distinct extends RqlQuery {
     public Distinct(Arguments args, OptArgs optargs) {
         this(null, args, optargs);
     }
-    public Distinct(RqlAst prev, Arguments args, OptArgs optargs) {
+    public Distinct(ReqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.DISTINCT, args, optargs);
     }
-    protected Distinct(RqlAst previous, TermType termType, Arguments args, OptArgs optargs){
+    protected Distinct(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
         super(previous, termType, args, optargs);
     }
 
