@@ -98,6 +98,9 @@ temp_directory_t::temp_directory_t() {
     char *res = mkdtemp(tmpl);
     guarantee_err(res != nullptr, "Couldn't create a temporary directory");
     directory = base_path_t(std::string(res));
+
+    // Some usages of this directory may require an internal temporary directory
+    recreate_temporary_directory(directory);
 }
 
 temp_directory_t::~temp_directory_t() {
