@@ -20,6 +20,9 @@ As with any major release, back up your data files before performing the upgrade
 If you're upgrading directly from RethinkDB 1.13 or earlier, you will need to manually
 upgrade using `rethinkdb dump`.
 
+Note that files from the RethinkDB 2.1.0 beta release are not compatible with this
+version.
+
 ### Changed handling of server failures ###
 This release introduces a new system for dealing with server failures and network
 partitions based on the Raft consensus algorithm.
