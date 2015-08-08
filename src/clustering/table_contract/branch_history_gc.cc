@@ -5,6 +5,7 @@ void copy_branch_history_for_branch(
         const branch_id_t &root,
         const branch_history_t &source,
         const table_raft_state_t &old_state,
+        bool ignore_missing,
         branch_history_t *add_branches_out) {
     const branch_history_t &existing = old_state.branch_history;
     std::set<branch_id_t> todo;
@@ -15,7 +16,12 @@ void copy_branch_history_for_branch(
     while (!todo.empty()) {
         branch_id_t b = *todo.begin();
         todo.erase(todo.begin());
-        const branch_birth_certificate_t &bc = source.branches.at(b);
+        const auto bc_it = source.branches.find(b);
+        if (ignore_missing && bc_it == source.branches.end()) {
+            continue;
+        }
+        guarantee(bc_it != source.branches.end());
+        const branch_birth_certificate_t &bc = bc_it->second;
         add_branches_out->branches.insert(std::make_pair(b, bc));
         bc.origin.visit(bc.origin.get_domain(),
         [&](const region_t &, const version_t &version) {

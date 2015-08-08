@@ -548,11 +548,21 @@ void calculate_all_contracts(
                         auto res = register_current_branches_out->insert(
                             std::make_pair(reg, to_register));
                         guarantee(res.second);
+                        // TODO! How is this even supposed to work after
+                        // branch history GC followed by an emergency_repair?
+                        // I guess we only GC if we already have some predecessor
+                        // in the old_state. But what if the old_state is then
+                        // replaced due to emergency repair?
+                        // TODO! Document the issue properly, and why we need
+                        // this flag.
+                        bool ignore_missing_branches
+                            = old_contract.after_emergency_repair;
                         copy_branch_history_for_branch(
                             to_register,
                             this_contract_acks->at(
                                 old_contract.primary->server).branch_history,
                             old_state,
+                            ignore_missing_branches,
                             add_branches_out);
                         registered_new_branch = boost::make_optional(to_register);
                     }
