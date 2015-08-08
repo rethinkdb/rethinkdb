@@ -4,15 +4,15 @@
 // ../../../../../../../../templates/AstSubclass.java
 package com.rethinkdb.ast.gen;
 
+import java.util.Optional;
+import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.ast.helper.Arguments;
 import com.rethinkdb.ast.helper.OptArgs;
-import com.rethinkdb.ast.RqlAst;
 import com.rethinkdb.proto.TermType;
-import java.util.*;
 
 
 
-public class Uuid extends RqlQuery {
+public class Uuid extends ReqlQuery {
 
 
     public Uuid(java.lang.Object arg) {
@@ -21,10 +21,10 @@ public class Uuid extends RqlQuery {
     public Uuid(Arguments args, OptArgs optargs) {
         this(null, args, optargs);
     }
-    public Uuid(RqlAst prev, Arguments args, OptArgs optargs) {
+    public Uuid(ReqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.UUID, args, optargs);
     }
-    protected Uuid(RqlAst previous, TermType termType, Arguments args, OptArgs optargs){
+    protected Uuid(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
         super(previous, termType, args, optargs);
     }
 

@@ -4,15 +4,15 @@
 // ../../../../../../../../templates/AstSubclass.java
 package com.rethinkdb.ast.gen;
 
+import java.util.Optional;
+import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.ast.helper.Arguments;
 import com.rethinkdb.ast.helper.OptArgs;
-import com.rethinkdb.ast.RqlAst;
 import com.rethinkdb.proto.TermType;
-import java.util.*;
 
 
 
-public class Bracket extends RqlQuery {
+public class Bracket extends ReqlQuery {
 
 
     public Bracket(java.lang.Object arg) {
@@ -21,10 +21,10 @@ public class Bracket extends RqlQuery {
     public Bracket(Arguments args, OptArgs optargs) {
         this(null, args, optargs);
     }
-    public Bracket(RqlAst prev, Arguments args, OptArgs optargs) {
+    public Bracket(ReqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.BRACKET, args, optargs);
     }
-    protected Bracket(RqlAst previous, TermType termType, Arguments args, OptArgs optargs){
+    protected Bracket(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
         super(previous, termType, args, optargs);
     }
 

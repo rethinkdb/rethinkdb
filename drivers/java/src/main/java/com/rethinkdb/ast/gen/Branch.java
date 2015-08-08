@@ -4,15 +4,15 @@
 // ../../../../../../../../templates/AstSubclass.java
 package com.rethinkdb.ast.gen;
 
+import java.util.Optional;
+import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.ast.helper.Arguments;
 import com.rethinkdb.ast.helper.OptArgs;
-import com.rethinkdb.ast.RqlAst;
 import com.rethinkdb.proto.TermType;
-import java.util.*;
 
 
 
-public class Branch extends RqlQuery {
+public class Branch extends ReqlQuery {
 
 
     public Branch(java.lang.Object arg) {
@@ -21,10 +21,10 @@ public class Branch extends RqlQuery {
     public Branch(Arguments args, OptArgs optargs) {
         this(null, args, optargs);
     }
-    public Branch(RqlAst prev, Arguments args, OptArgs optargs) {
+    public Branch(ReqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.BRANCH, args, optargs);
     }
-    protected Branch(RqlAst previous, TermType termType, Arguments args, OptArgs optargs){
+    protected Branch(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
         super(previous, termType, args, optargs);
     }
 

@@ -4,15 +4,15 @@
 // ../../../../../../../../templates/AstSubclass.java
 package com.rethinkdb.ast.gen;
 
+import java.util.Optional;
+import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.ast.helper.Arguments;
 import com.rethinkdb.ast.helper.OptArgs;
-import com.rethinkdb.ast.RqlAst;
 import com.rethinkdb.proto.TermType;
-import java.util.*;
 
 
 
-public class Group extends RqlQuery {
+public class Group extends ReqlQuery {
 
 
     public Group(java.lang.Object arg) {
@@ -21,10 +21,10 @@ public class Group extends RqlQuery {
     public Group(Arguments args, OptArgs optargs) {
         this(null, args, optargs);
     }
-    public Group(RqlAst prev, Arguments args, OptArgs optargs) {
+    public Group(ReqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.GROUP, args, optargs);
     }
-    protected Group(RqlAst previous, TermType termType, Arguments args, OptArgs optargs){
+    protected Group(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
         super(previous, termType, args, optargs);
     }
 

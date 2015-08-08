@@ -329,8 +329,8 @@ def render_ast_subclass(term_type,
                         include_in,
                         meta,
                         classname=None,
-                        superclass="RqlQuery"):
-    '''Generates a RqlAst subclass. Either term_type or classname should
+                        superclass="ReqlQuery"):
+    '''Generates a ReqlAst subclass. Either term_type or classname should
     be given'''
     classname = classname or camel(term_type)
     output_name = classname + '.java'
@@ -349,16 +349,16 @@ def render_ast_subclass(term_type,
 
 def render_ast_subclasses(meta):
     special_superclasses = {
-        "DB": "RqlAst",
-        "RqlQuery": "RqlAst",
-        "TopLevel": "RqlAst",
+        "DB": "ReqlAst",
+        "ReqlQuery": "ReqlAst",
+        "TopLevel": "ReqlAst",
     }
     render_ast_subclass(
         term_type=None,
         include_in="query",
         meta=meta,
-        classname="RqlQuery",
-        superclass=special_superclasses["RqlQuery"],
+        classname="ReqlQuery",
+        superclass=special_superclasses["ReqlQuery"],
     )
     render_ast_subclass(
         term_type=None,
@@ -373,7 +373,7 @@ def render_ast_subclasses(meta):
                 term_type=term_name,
                 include_in=term_name.lower(),
                 meta=meta,
-                superclass=special_superclasses.get(term_name, "RqlQuery"),
+                superclass=special_superclasses.get(term_name, "ReqlQuery"),
                 classname=None,
             )
 

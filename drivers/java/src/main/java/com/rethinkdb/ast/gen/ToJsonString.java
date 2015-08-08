@@ -4,15 +4,15 @@
 // ../../../../../../../../templates/AstSubclass.java
 package com.rethinkdb.ast.gen;
 
+import java.util.Optional;
+import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.ast.helper.Arguments;
 import com.rethinkdb.ast.helper.OptArgs;
-import com.rethinkdb.ast.RqlAst;
 import com.rethinkdb.proto.TermType;
-import java.util.*;
 
 
 
-public class ToJsonString extends RqlQuery {
+public class ToJsonString extends ReqlQuery {
 
 
     public ToJsonString(java.lang.Object arg) {
@@ -21,10 +21,10 @@ public class ToJsonString extends RqlQuery {
     public ToJsonString(Arguments args, OptArgs optargs) {
         this(null, args, optargs);
     }
-    public ToJsonString(RqlAst prev, Arguments args, OptArgs optargs) {
+    public ToJsonString(ReqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.TO_JSON_STRING, args, optargs);
     }
-    protected ToJsonString(RqlAst previous, TermType termType, Arguments args, OptArgs optargs){
+    protected ToJsonString(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
         super(previous, termType, args, optargs);
     }
 

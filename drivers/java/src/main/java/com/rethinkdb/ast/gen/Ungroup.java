@@ -4,15 +4,15 @@
 // ../../../../../../../../templates/AstSubclass.java
 package com.rethinkdb.ast.gen;
 
+import java.util.Optional;
+import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.ast.helper.Arguments;
 import com.rethinkdb.ast.helper.OptArgs;
-import com.rethinkdb.ast.RqlAst;
 import com.rethinkdb.proto.TermType;
-import java.util.*;
 
 
 
-public class Ungroup extends RqlQuery {
+public class Ungroup extends ReqlQuery {
 
 
     public Ungroup(java.lang.Object arg) {
@@ -21,10 +21,10 @@ public class Ungroup extends RqlQuery {
     public Ungroup(Arguments args, OptArgs optargs) {
         this(null, args, optargs);
     }
-    public Ungroup(RqlAst prev, Arguments args, OptArgs optargs) {
+    public Ungroup(ReqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.UNGROUP, args, optargs);
     }
-    protected Ungroup(RqlAst previous, TermType termType, Arguments args, OptArgs optargs){
+    protected Ungroup(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
         super(previous, termType, args, optargs);
     }
 

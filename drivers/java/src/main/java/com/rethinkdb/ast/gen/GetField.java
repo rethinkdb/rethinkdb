@@ -4,15 +4,15 @@
 // ../../../../../../../../templates/AstSubclass.java
 package com.rethinkdb.ast.gen;
 
+import java.util.Optional;
+import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.ast.helper.Arguments;
 import com.rethinkdb.ast.helper.OptArgs;
-import com.rethinkdb.ast.RqlAst;
 import com.rethinkdb.proto.TermType;
-import java.util.*;
 
 
 
-public class GetField extends RqlQuery {
+public class GetField extends ReqlQuery {
 
 
     public GetField(java.lang.Object arg) {
@@ -21,10 +21,10 @@ public class GetField extends RqlQuery {
     public GetField(Arguments args, OptArgs optargs) {
         this(null, args, optargs);
     }
-    public GetField(RqlAst prev, Arguments args, OptArgs optargs) {
+    public GetField(ReqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.GET_FIELD, args, optargs);
     }
-    protected GetField(RqlAst previous, TermType termType, Arguments args, OptArgs optargs){
+    protected GetField(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
         super(previous, termType, args, optargs);
     }
 

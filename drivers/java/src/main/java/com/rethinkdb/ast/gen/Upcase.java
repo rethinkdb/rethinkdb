@@ -4,15 +4,15 @@
 // ../../../../../../../../templates/AstSubclass.java
 package com.rethinkdb.ast.gen;
 
+import java.util.Optional;
+import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.ast.helper.Arguments;
 import com.rethinkdb.ast.helper.OptArgs;
-import com.rethinkdb.ast.RqlAst;
 import com.rethinkdb.proto.TermType;
-import java.util.*;
 
 
 
-public class Upcase extends RqlQuery {
+public class Upcase extends ReqlQuery {
 
 
     public Upcase(java.lang.Object arg) {
@@ -21,10 +21,10 @@ public class Upcase extends RqlQuery {
     public Upcase(Arguments args, OptArgs optargs) {
         this(null, args, optargs);
     }
-    public Upcase(RqlAst prev, Arguments args, OptArgs optargs) {
+    public Upcase(ReqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.UPCASE, args, optargs);
     }
-    protected Upcase(RqlAst previous, TermType termType, Arguments args, OptArgs optargs){
+    protected Upcase(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
         super(previous, termType, args, optargs);
     }
 

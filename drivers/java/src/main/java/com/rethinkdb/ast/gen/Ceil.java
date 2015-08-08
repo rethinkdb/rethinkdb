@@ -4,15 +4,15 @@
 // ../../../../../../../../templates/AstSubclass.java
 package com.rethinkdb.ast.gen;
 
+import java.util.Optional;
+import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.ast.helper.Arguments;
 import com.rethinkdb.ast.helper.OptArgs;
-import com.rethinkdb.ast.RqlAst;
 import com.rethinkdb.proto.TermType;
-import java.util.*;
 
 
 
-public class Ceil extends RqlQuery {
+public class Ceil extends ReqlQuery {
 
 
     public Ceil(java.lang.Object arg) {
@@ -21,10 +21,10 @@ public class Ceil extends RqlQuery {
     public Ceil(Arguments args, OptArgs optargs) {
         this(null, args, optargs);
     }
-    public Ceil(RqlAst prev, Arguments args, OptArgs optargs) {
+    public Ceil(ReqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.CEIL, args, optargs);
     }
-    protected Ceil(RqlAst previous, TermType termType, Arguments args, OptArgs optargs){
+    protected Ceil(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
         super(previous, termType, args, optargs);
     }
 

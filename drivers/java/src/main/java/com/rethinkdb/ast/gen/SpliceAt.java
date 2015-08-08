@@ -4,15 +4,15 @@
 // ../../../../../../../../templates/AstSubclass.java
 package com.rethinkdb.ast.gen;
 
+import java.util.Optional;
+import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.ast.helper.Arguments;
 import com.rethinkdb.ast.helper.OptArgs;
-import com.rethinkdb.ast.RqlAst;
 import com.rethinkdb.proto.TermType;
-import java.util.*;
 
 
 
-public class SpliceAt extends RqlQuery {
+public class SpliceAt extends ReqlQuery {
 
 
     public SpliceAt(java.lang.Object arg) {
@@ -21,10 +21,10 @@ public class SpliceAt extends RqlQuery {
     public SpliceAt(Arguments args, OptArgs optargs) {
         this(null, args, optargs);
     }
-    public SpliceAt(RqlAst prev, Arguments args, OptArgs optargs) {
+    public SpliceAt(ReqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.SPLICE_AT, args, optargs);
     }
-    protected SpliceAt(RqlAst previous, TermType termType, Arguments args, OptArgs optargs){
+    protected SpliceAt(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
         super(previous, termType, args, optargs);
     }
 

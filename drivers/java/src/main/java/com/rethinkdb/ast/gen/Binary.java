@@ -4,15 +4,15 @@
 // ../../../../../../../../templates/AstSubclass.java
 package com.rethinkdb.ast.gen;
 
+import java.util.Optional;
+import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.ast.helper.Arguments;
 import com.rethinkdb.ast.helper.OptArgs;
-import com.rethinkdb.ast.RqlAst;
 import com.rethinkdb.proto.TermType;
-import java.util.*;
 
 
 
-public class Binary extends RqlQuery {
+public class Binary extends ReqlQuery {
 
 
     public Binary(java.lang.Object arg) {
@@ -21,10 +21,10 @@ public class Binary extends RqlQuery {
     public Binary(Arguments args, OptArgs optargs) {
         this(null, args, optargs);
     }
-    public Binary(RqlAst prev, Arguments args, OptArgs optargs) {
+    public Binary(ReqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.BINARY, args, optargs);
     }
-    protected Binary(RqlAst previous, TermType termType, Arguments args, OptArgs optargs){
+    protected Binary(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
         super(previous, termType, args, optargs);
     }
 

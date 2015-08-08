@@ -4,14 +4,14 @@
 // ../../../../../../templates/Exception.java
 package com.rethinkdb;
 
-import com.rethinkdb.ast.RqlAst;
+import java.util.Optional;
+import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.response.Backtrace;
-import java.util.*;
 
 public class ReqlRuntimeError extends ReqlError {
 
     Optional<Backtrace> backtrace = Optional.empty();
-    Optional<RqlAst> term = Optional.empty();
+    Optional<ReqlAst> term = Optional.empty();
 
     public ReqlRuntimeError() {
     }
@@ -32,7 +32,7 @@ public class ReqlRuntimeError extends ReqlError {
         super(cause);
     }
 
-    public ReqlRuntimeError(String msg, RqlAst term, Backtrace bt) {
+    public ReqlRuntimeError(String msg, ReqlAst term, Backtrace bt) {
         super(msg);
         this.backtrace = Optional.ofNullable(bt);
         this.term = Optional.ofNullable(term);
@@ -47,12 +47,12 @@ public class ReqlRuntimeError extends ReqlError {
         return backtrace;
     }
 
-    public ReqlRuntimeError setTerm(RqlAst term) {
+    public ReqlRuntimeError setTerm(ReqlAst term) {
         this.term = Optional.ofNullable(term);
         return this;
     }
 
-    public Optional<RqlAst> getTerm() {
+    public Optional<ReqlAst> getTerm() {
         return this.term;
     }
 }

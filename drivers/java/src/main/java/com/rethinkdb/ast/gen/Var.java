@@ -4,15 +4,15 @@
 // ../../../../../../../../templates/AstSubclass.java
 package com.rethinkdb.ast.gen;
 
+import java.util.Optional;
+import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.ast.helper.Arguments;
 import com.rethinkdb.ast.helper.OptArgs;
-import com.rethinkdb.ast.RqlAst;
 import com.rethinkdb.proto.TermType;
-import java.util.*;
 
 
 
-public class Var extends RqlQuery {
+public class Var extends ReqlQuery {
 
 
     public Var(java.lang.Object arg) {
@@ -21,10 +21,10 @@ public class Var extends RqlQuery {
     public Var(Arguments args, OptArgs optargs) {
         this(null, args, optargs);
     }
-    public Var(RqlAst prev, Arguments args, OptArgs optargs) {
+    public Var(ReqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.VAR, args, optargs);
     }
-    protected Var(RqlAst previous, TermType termType, Arguments args, OptArgs optargs){
+    protected Var(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
         super(previous, termType, args, optargs);
     }
 

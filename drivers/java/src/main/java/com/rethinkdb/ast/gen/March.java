@@ -4,15 +4,15 @@
 // ../../../../../../../../templates/AstSubclass.java
 package com.rethinkdb.ast.gen;
 
+import java.util.Optional;
+import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.ast.helper.Arguments;
 import com.rethinkdb.ast.helper.OptArgs;
-import com.rethinkdb.ast.RqlAst;
 import com.rethinkdb.proto.TermType;
-import java.util.*;
 
 
 
-public class March extends RqlQuery {
+public class March extends ReqlQuery {
 
 
     public March(java.lang.Object arg) {
@@ -21,10 +21,10 @@ public class March extends RqlQuery {
     public March(Arguments args, OptArgs optargs) {
         this(null, args, optargs);
     }
-    public March(RqlAst prev, Arguments args, OptArgs optargs) {
+    public March(ReqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.MARCH, args, optargs);
     }
-    protected March(RqlAst previous, TermType termType, Arguments args, OptArgs optargs){
+    protected March(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
         super(previous, termType, args, optargs);
     }
 

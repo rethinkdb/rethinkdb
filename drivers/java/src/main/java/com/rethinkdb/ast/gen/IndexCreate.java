@@ -4,15 +4,15 @@
 // ../../../../../../../../templates/AstSubclass.java
 package com.rethinkdb.ast.gen;
 
+import java.util.Optional;
+import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.ast.helper.Arguments;
 import com.rethinkdb.ast.helper.OptArgs;
-import com.rethinkdb.ast.RqlAst;
 import com.rethinkdb.proto.TermType;
-import java.util.*;
 
 
 
-public class IndexCreate extends RqlQuery {
+public class IndexCreate extends ReqlQuery {
 
 
     public IndexCreate(java.lang.Object arg) {
@@ -21,10 +21,10 @@ public class IndexCreate extends RqlQuery {
     public IndexCreate(Arguments args, OptArgs optargs) {
         this(null, args, optargs);
     }
-    public IndexCreate(RqlAst prev, Arguments args, OptArgs optargs) {
+    public IndexCreate(ReqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.INDEX_CREATE, args, optargs);
     }
-    protected IndexCreate(RqlAst previous, TermType termType, Arguments args, OptArgs optargs){
+    protected IndexCreate(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
         super(previous, termType, args, optargs);
     }
 

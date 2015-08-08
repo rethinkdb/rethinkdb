@@ -4,15 +4,15 @@
 // ../../../../../../../../templates/AstSubclass.java
 package com.rethinkdb.ast.gen;
 
+import java.util.Optional;
+import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.ast.helper.Arguments;
 import com.rethinkdb.ast.helper.OptArgs;
-import com.rethinkdb.ast.RqlAst;
 import com.rethinkdb.proto.TermType;
-import java.util.*;
 
 
 
-public class Count extends RqlQuery {
+public class Count extends ReqlQuery {
 
 
     public Count(java.lang.Object arg) {
@@ -21,10 +21,10 @@ public class Count extends RqlQuery {
     public Count(Arguments args, OptArgs optargs) {
         this(null, args, optargs);
     }
-    public Count(RqlAst prev, Arguments args, OptArgs optargs) {
+    public Count(ReqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.COUNT, args, optargs);
     }
-    protected Count(RqlAst previous, TermType termType, Arguments args, OptArgs optargs){
+    protected Count(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
         super(previous, termType, args, optargs);
     }
 

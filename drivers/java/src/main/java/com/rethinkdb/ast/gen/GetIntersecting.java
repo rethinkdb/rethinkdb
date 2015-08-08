@@ -4,15 +4,15 @@
 // ../../../../../../../../templates/AstSubclass.java
 package com.rethinkdb.ast.gen;
 
+import java.util.Optional;
+import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.ast.helper.Arguments;
 import com.rethinkdb.ast.helper.OptArgs;
-import com.rethinkdb.ast.RqlAst;
 import com.rethinkdb.proto.TermType;
-import java.util.*;
 
 
 
-public class GetIntersecting extends RqlQuery {
+public class GetIntersecting extends ReqlQuery {
 
 
     public GetIntersecting(java.lang.Object arg) {
@@ -21,10 +21,10 @@ public class GetIntersecting extends RqlQuery {
     public GetIntersecting(Arguments args, OptArgs optargs) {
         this(null, args, optargs);
     }
-    public GetIntersecting(RqlAst prev, Arguments args, OptArgs optargs) {
+    public GetIntersecting(ReqlAst prev, Arguments args, OptArgs optargs) {
         this(prev, TermType.GET_INTERSECTING, args, optargs);
     }
-    protected GetIntersecting(RqlAst previous, TermType termType, Arguments args, OptArgs optargs){
+    protected GetIntersecting(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
         super(previous, termType, args, optargs);
     }
 
