@@ -548,13 +548,16 @@ void calculate_all_contracts(
                         auto res = register_current_branches_out->insert(
                             std::make_pair(reg, to_register));
                         guarantee(res.second);
-                        // TODO! How is this even supposed to work after
-                        // branch history GC followed by an emergency_repair?
-                        // I guess we only GC if we already have some predecessor
-                        // in the old_state. But what if the old_state is then
-                        // replaced due to emergency repair?
-                        // TODO! Document the issue properly, and why we need
-                        // this flag.
+                        /* Due to branch garbage collection on the executor,
+                        the branch history in the contract_ack might be incomplete.
+                        Usually this isn't a problem, because the executor is
+                        only going to garbage collect branches when it is sure
+                        that the current branches are already present in the Raft
+                        state. In that case `copy_branch_history_for_branch()` is
+                        not going to traverse to the GCed branches.
+                        However this assumption no longer holds if the Raft state
+                        has just been overwritten by an emergency repair operation.
+                        Hence we ignore missing branches in the copy operation. */
                         bool ignore_missing_branches
                             = old_contract.after_emergency_repair;
                         copy_branch_history_for_branch(

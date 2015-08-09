@@ -1,6 +1,8 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/table_contract/branch_history_gc.hpp"
 
+#include "logger.hpp"
+
 void copy_branch_history_for_branch(
         const branch_id_t &root,
         const branch_history_t &source,
@@ -17,10 +19,19 @@ void copy_branch_history_for_branch(
         branch_id_t b = *todo.begin();
         todo.erase(todo.begin());
         const auto bc_it = source.branches.find(b);
-        if (ignore_missing && bc_it == source.branches.end()) {
+        if (bc_it == source.branches.end()) {
+            rassert(ignore_missing);
+            if (!ignore_missing) {
+                /* In release mode we just log a message if a birth certificate
+                is missing, and hope that we can recover from this by ignoring
+                the branch. */
+                logERR("Ignoring missing branch `%s`. This probably means that "
+                       "there is a bug in RethinkDB. Please report this at "
+                       "https://github.com/rethinkdb/rethinkdb/issues/",
+                       uuid_to_str(b).c_str());
+            }
             continue;
         }
-        guarantee(bc_it != source.branches.end());
         const branch_birth_certificate_t &bc = bc_it->second;
         add_branches_out->branches.insert(std::make_pair(b, bc));
         bc.origin.visit(bc.origin.get_domain(),
