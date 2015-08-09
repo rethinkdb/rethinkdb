@@ -30,6 +30,7 @@ void copy_branch_history_for_branch(
         const branch_id_t &new_branch,
         const branch_history_t &source,
         const table_raft_state_t &old_state,
+        bool ignore_missing,
         branch_history_t *add_branches_out);
 
 /* `mark_all_ancestors_live()` removes `branch` and all of its ancestors in the given

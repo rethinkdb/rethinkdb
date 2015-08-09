@@ -272,6 +272,12 @@ void migrate_table(const server_id_t &this_server_id,
     raft_state.branch_history = branch_history;
     auto own_membership = raft_state.member_ids.find(this_server_id);
 
+    /* Set the `after_emergency_repair` flag for each contract in the config.
+    This is important to maintain certain invariants about the branch history. */
+    for (auto &contract : raft_state.contracts) {
+        contract.second.second.after_emergency_repair = true;
+    }
+
     if (own_membership == raft_state.member_ids.end()) {
         // This server is not involved in the table - write an inactive state
         table_inactive_persistent_state_t state;
