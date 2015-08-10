@@ -63,6 +63,8 @@ public:
         boost::optional<server_id_t> hand_over;
     };
 
+    contract_t() : after_emergency_repair(false) { }
+
 #ifndef NDEBUG
     void sanity_check() const;
 #endif /* NDEBUG */
