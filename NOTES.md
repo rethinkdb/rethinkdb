@@ -1,15 +1,6 @@
-# Release 2.1.0-beta (Forbidden Planet)
+# Release 2.1.0 (Forbidden Planet)
 
-Released on 2015-07-16
-
-This is a beta release for RethinkDB 2.1. **It is not for production use and has known
-bugs.** Please do not use this version for production data.
-
-We are looking forward to your bug reports on [GitHub][github-issues]
-or on our [mailing list][mailing-list].
-
-[github-issues]: http://github.com/rethinkdb/rethinkdb/issues/
-[mailing-list]: https://groups.google.com/forum/#!forum/rethinkdb
+Released on 2015-08-11
 
 Release highlights:
 
@@ -17,18 +8,20 @@ Release highlights:
 * More flexible administration for servers and tables
 * Advanced recovery features
 
-Read the [blog post][2.1-beta] for more details.
+Read the [blog post][2.1-release] for more details.
 
-[2.1-beta]: http://rethinkdb.com/blog/2.1-beta/
+[2.1-release]: http://rethinkdb.com/blog/2.1-release/
 
 ## Compatibility ##
 
-This beta release does not include automatic migration of data
-directories from older versions of RethinkDB. The final release of RethinkDB 2.1 will
-automatically migrate data from RethinkDB 1.14 and up.
+Data files from RethinkDB versions 1.14.0 onward will be automatically migrated.
+As with any major release, back up your data files before performing the upgrade.
 
 If you're upgrading directly from RethinkDB 1.13 or earlier, you will need to manually
 upgrade using `rethinkdb dump`.
+
+Note that files from the RethinkDB 2.1.0 beta release are not compatible with this
+version.
 
 ### Changed handling of server failures ###
 This release introduces a new system for dealing with server failures and network
@@ -52,7 +45,6 @@ availability of a given table after a server failure:
 * A majority of servers for the table are unavailable. The new `emergency_repair` option
   to `table.reconfigure` can be used to restore table availability in this case.
 
-
 ### System table changes ###
 To reflect changes in the underlying cluster administration logic, some of the tables in
 the `rethinkdb` database changed.
@@ -67,6 +59,7 @@ the `rethinkdb` database changed.
 * Tables that have all of their replicas disconnected are now listed as special documents
   with an `"error"` field.
 * Servers that are disconnected from the cluster are no longer included in the table.
+* The new `indexes` field lists the secondary indexes on the given table.
 
 **Changes to `table_status`:**
 
@@ -87,11 +80,35 @@ the `rethinkdb` database changed.
   missing at least one server. Note that no issue is generated if a server which is not
   hosting any replicas disconnects.
 
+**Changes to `cluster_config`:**
+
+* A new document with the `id` `"heartbeat"` allows configuring the heartbeat timeout for
+  intracluster connections.
+
+### New ReQL error types ###
+RethinkDB 2.1 introduces new error types that allow you to handle different error classes
+separately in your application if you need to. You can find the
+[complete list][error-types] of new error types in the documentation.
+
+As part of this change, ReQL error types now use the `Reql` name prefix instead of `Rql`
+(for example `ReqlRuntimeError` instead of `RqlRuntimeError`).
+The old type names are still supported in our drivers for backwards compatiblity.
+
+[error-types]: http://rethinkdb.com/docs/error-types/
+
 ### Other API-breaking changes ###
 
 * `.split('')` now treats the input as UTF-8 instead of an array of bytes
 * `null` values in compound index are no longer discarded
 * The new `read_mode="outdated"` optional argument replaces `use_outdated=True`
+
+### Deprecated functionality ###
+The older protocol-buffer-based client protocol is deprecated in this release. RethinkDB
+2.2 will no longer support clients that still use it. All "current" drivers listed on
+the [drivers page][drivers] use the new JSON-based protocol and will continue to work
+with RethinkDB 2.2.
+
+[drivers]: http://rethinkdb.com/docs/install-drivers/
 
 ## New features ##
 
@@ -107,13 +124,16 @@ the `rethinkdb` database changed.
    recovery purposes (#4388)
  * Servers with no responsibilities can now be removed from clusters without raising an
    issue (#1790)
+ * Made the intracluster heartbeat timeout configurable (#4449)
 * ReQL
  * Added `ceil`, `floor` and `round` (#866)
+ * Extended the ReQL error type hierarchy to be more fine-grained (#4544)
 * All drivers
  * Added driver-side support for SSL connections and CA verification (#4075, #4076,
    #4080)
 * Python driver
- * Added asyncio support (#4071)
+ * Added Python 3 asyncio support (#4071)
+ * Added Twisted support (#4096)
  * `rethinkdb export` now supports the `--delimiter` option for CSV files (#3916)
 
 ## Improvements ##
@@ -128,13 +148,20 @@ the `rethinkdb` database changed.
  * Replaced cJSON with rapidjson (#3844)
  * Failed meta operations are now transparently retried (#4199)
  * Added more detailed logging of cluster events (#3878)
- * Improved unsaved data limit throttling (#4441)
+ * Improved unsaved data limit throttling to increase write performance (#4441)
+ * Improved the performance of the `is_empty` term (#4592)
+ * Small backfills are now prioritized to make tables available more quickly after a
+   server restart (#4383)
+ * Reduced the memory requirements when backfilling large documents (#4474)
+ * Changefeeds using the `squash` option now send batches early if the changefeed queue
+   gets too full (#3942)
 * ReQL
  * `.split('')` is now UTF-8 aware (#2518)
  * Improved the behaviour of compound index values containing `null` (#4146)
  * Errors now distinguish failed writes from indeterminate writes (#4296)
  * `r.union` is now a top-level term (#4030)
  * `condition.branch(...)` now works just like `r.branch(condition, ...)` (#4438)
+ * Improved the detection of non-atomic `update` and `replace` arguments (#4582)
 * Web UI
  * Added new dependency and namespace management system to the web UI (#3465, #3660)
  * Improved the information visible on the dashboard (#4461)
@@ -142,18 +169,38 @@ the `rethinkdb` database changed.
  * Updated to reflect the new clustering features and changes (#4283, #4330, #4288, ...)
 * JavaScript driver
  * The version of bluebird was updated to 2.9.32 (#4178, #4475)
+ * Improved compatibility with Internet Explorer 10 (#4534)
+ * TCP keepalive is now enabled for all connections (#4572)
 * Python driver
+ * Added a new `--max-document-size` option to the `rethinkdb import` script to handle
+   very large JSON documents (#4452)
  * Added an `r.__version__` property (#3100)
+ * TCP keepalive is now enabled for all connections (#4572)
+* Ruby driver
+ * TCP keepalive is now enabled for all connections (#4572)
 
 ## Bug fixes ##
 
 * `time_of_date` and `date` now respect timezones (#4149)
 * Added code to work around a bug in some versions of GLIBC and EGLIBC (#4470)
+* Updated the OS X uninstall script to avoid spurious error messages (#3773)
+* Fixed a starvation issue with squashing changefeeds (#3903)
+* `has_fields` now returns a selection when called on a table (#2609)
+* Fixed a bug that caused intermittent server crashes with the message
+  `Guarantee failed: [fn_id != __null]` in combination with the `r.js` command (#4611)
+* Web UI
+  * Fixed an issue in the table list that caused it to get stuck showing
+    "Loading tables..." if no database existed (#4464)
+  * Fixed the tick marks in the shard distribution graph (#4294)
 * Python driver
  * Fixed a missing argument error (#4402)
 * JavaScript driver
  * Made the handling of the `db` optional argument to `run` consistent with the Ruby and
    Python drivers (#4347)
+ * Fixed a problem that could cause connections to not be closed correctly (#4526)
+* Ruby driver
+ * Made the EventMachine API raise an error when a connection is closed while handlers
+   are active (#4626)
 
 ## Contributors ##
 
@@ -176,6 +223,11 @@ us ship RethinkDB 2.1. In no particular order:
 * Ed Costello (@epc)
 * Lowe Thiderman (@thiderman)
 * Andy Wilson (@wilsaj)
+* Nicolas Viennot (@nviennot)
+* bnosrat (@bnosrat)
+* Mike Mintz (@mikemintz)
+* Lahfa Ryan (@raitobezarius)
+* Sebastien Diaz (@sebadiaz)
 
 --
 
