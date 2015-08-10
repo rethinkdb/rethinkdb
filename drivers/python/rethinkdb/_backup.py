@@ -64,7 +64,7 @@ def rdb_call_wrapper(conn_fn, context, fn, *args, **kwargs):
             i = i + 1 if progress[0] == last_progress else 0
             if i == max_attempts:
                 raise RuntimeError("Connection error during '%s': %s" % (context, ex.message))
-        except (r.RqlError, r.RqlDriverError) as ex:
+        except (r.ReqlError, r.ReqlDriverError) as ex:
             raise RuntimeError("ReQL error during '%s': %s" % (context, ex.message))
 
 def print_progress(ratio):
@@ -85,7 +85,7 @@ def check_minimum_version(progress, conn, minimum_version):
         parsed_version = tuple(int(num) for num in matches.groups())
         if parsed_version < minimum_version:
             raise RuntimeError("incompatible version")
-    except (RuntimeError, TypeError, r.RqlRuntimeError):
+    except (RuntimeError, TypeError, r.ReqlRuntimeError):
         if parsed_version is None:
             message = "Error: Incompatible server version found, expected >= %s" % \
                 stringify_version(minimum_version)

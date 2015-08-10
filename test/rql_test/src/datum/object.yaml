@@ -48,27 +48,27 @@ tests:
     # Error cases
     - py: r.expr({12:'a'})
       rb: r({12 => 'a'})
-      ot: err_regex("RqlDriverError", "Object keys must be strings")
+      ot: err_regex("ReqlDriverError", "Object keys must be strings")
 
     - py: r.expr({'a':{12:'b'}})
       rb: r({:a => {12 => 'b'} })
-      ot: err_regex("RqlDriverError", "Object keys must be strings")
+      ot: err_regex("ReqlDriverError", "Object keys must be strings")
 
     - js: r({'a':undefined})
-      ot: err("RqlDriverError", "Object field 'a' may not be undefined")
+      ot: err("ReqlDriverError", "Object field 'a' may not be undefined")
 
     - js: r({'a':{'b':undefined}})
-      ot: err("RqlDriverError", "Object field 'b' may not be undefined")
+      ot: err("ReqlDriverError", "Object field 'b' may not be undefined")
 
     - js:
         cd: r.expr({}, "foo")
-        ot: err("RqlDriverError", "Second argument to `r.expr` must be a number or undefined.")
+        ot: err("ReqlDriverError", "Second argument to `r.expr` must be a number or undefined.")
       py:
         cd: r.expr({}, "foo")
-        ot: err("RqlDriverError", "Second argument to `r.expr` must be a number.")
+        ot: err("ReqlDriverError", "Second argument to `r.expr` must be a number.")
 
     - js: r.expr({}, NaN)
-      ot: err("RqlDriverError", "Second argument to `r.expr` must be a number or undefined.")
+      ot: err("ReqlDriverError", "Second argument to `r.expr` must be a number or undefined.")
 
     # r.object
     - cd: r.object()
@@ -81,13 +81,13 @@ tests:
       ot: ({'cd':3})
 
     - cd: r.object('o','d','d')
-      ot: err("RqlLogicError", "OBJECT expects an even number of arguments (but found 3).", [])
+      ot: err("ReqlQueryLogicError", "OBJECT expects an even number of arguments (but found 3).", [])
 
     - cd: r.object(1, 1)
-      ot: err("RqlLogicError","Expected type STRING but found NUMBER.",[])
+      ot: err("ReqlQueryLogicError","Expected type STRING but found NUMBER.",[])
 
     - cd: r.object('e', 4, 'e', 5)
-      ot: err("RqlLogicError","Duplicate key `e` in object.  (got `4` and `5` as values)",[])
+      ot: err("ReqlQueryLogicError","Duplicate key `e` in object.  (got `4` and `5` as values)",[])
 
     - cd: r.object('g', r.db('test'))
-      ot: err("RqlLogicError","Expected type DATUM but found DATABASE.",[])
+      ot: err("ReqlQueryLogicError","Expected type DATUM but found DATABASE.",[])

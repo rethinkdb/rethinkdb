@@ -101,7 +101,7 @@ def init_tables(connection):
     sys.stdout.flush()
     try:
         r.db_drop("test").run(connection)
-    except r.errors.RqlRuntimeError as e:
+    except r.errors.ReqlRuntimeError as e:
         pass
 
     r.db_create("test").run(connection)

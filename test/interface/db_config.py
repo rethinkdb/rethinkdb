@@ -58,7 +58,7 @@ with driver.Process(files='a', output_folder='.', command_prefix=command_prefix,
 
     try:
         rows = r.db("not_a_database").config().run(conn)
-    except r.RqlRuntimeError:
+    except r.ReqlRuntimeError:
         pass
     else:
         raise ValueError("r.db().config() should fail if argument does not exist.")

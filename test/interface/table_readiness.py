@@ -54,7 +54,7 @@ def do_async_wait(query, expected_success, error_event):
         if not expected_success:
             error_event.set()
             assert False, 'Query should have failed but did not: %s' % str(query)
-    except r.RqlRuntimeError as ex:
+    except r.ReqlRuntimeError as ex:
         if expected_success:
             error_event.set()
             raise

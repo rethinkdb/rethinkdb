@@ -58,7 +58,7 @@ def translate_timeout_errors():
     try:
         yield
     except asyncio.TimeoutError:
-        raise RqlTimeoutError
+        raise ReqlTimeoutError()
 
 
 # The asyncio implementation of the Cursor object:
@@ -93,7 +93,7 @@ class AsyncioCursor(Cursor):
     def _empty_error(self):
         # We do not have RqlCursorEmpty inherit from StopIteration as that interferes
         # with mechanisms to return from a coroutine.
-        return RqlCursorEmpty(self.query.term)
+        return RqlCursorEmpty()
 
     @asyncio.coroutine
     def _get_next(self, timeout):
@@ -137,7 +137,7 @@ class ConnectionInstance(object):
             self._streamwriter.get_extra_info('socket').setsockopt(
                                 socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         except Exception as err:
-            raise RqlDriverError('Could not connect to %s:%s. Error: %s' %
+            raise ReqlDriverError('Could not connect to %s:%s. Error: %s' %
                     (self._parent.host, self._parent.port, str(err)))
 
         try:
@@ -148,7 +148,7 @@ class ConnectionInstance(object):
                     timeout, loop=self._io_loop,
                 )
         except Exception as err:
-            raise RqlDriverError(
+            raise ReqlDriverError(
                 'Connection interrupted during handshake with %s:%s. Error: %s' %
                     (self._parent.host, self._parent.port, str(err)))
 
@@ -156,8 +156,11 @@ class ConnectionInstance(object):
 
         if message != 'SUCCESS':
             self.close(False, None)
-            raise RqlDriverError('Server dropped connection with message: "%s"' %
-                               message)
+            if message == "ERROR: Incorrect authorization key":
+                raise ReqlAuthError(self._parent.host, self._parent.port)
+            else:
+                raise ReqlDriverError('Server dropped connection with message: "%s"' %
+                    (message, ))
 
         # Start a parallel function to perform reads
         #  store a reference to it so it doesn't get destroyed
@@ -180,7 +183,7 @@ class ConnectionInstance(object):
             cursor._error(err_message)
 
         for query, future in iter(self._user_queries.values()):
-            future.set_exception(RqlDriverError(err_message))
+            future.set_exception(ReqlDriverError(err_message))
 
         self._user_queries = { }
         self._cursor_cache = { }
@@ -238,7 +241,7 @@ class ConnectionInstance(object):
                         future.set_exception(res.make_error(query))
                     del self._user_queries[token]
                 elif not self._closing:
-                    raise RqlDriverError("Unexpected response received.")
+                    raise ReqlDriverError("Unexpected response received.")
         except Exception as ex:
             if not self._closing:
                 yield from self.close(False, None, ex)
@@ -250,7 +253,7 @@ class Connection(ConnectionBase):
         try:
             self.port = int(self.port)
         except ValueError:
-            raise RqlDriverError("Could not convert port %s to an integer." % self.port)
+            raise ReqlDriverError("Could not convert port %s to an integer." % self.port)
 
     @asyncio.coroutine
     def reconnect(self, noreply_wait=True, timeout=None):

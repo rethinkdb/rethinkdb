@@ -38,13 +38,13 @@ tests:
         - r.expr(4.0) / 0.0
         - r.expr(0) / 0
         - r.expr(0.0) / 0.0
-      ot: err('RqlLogicError', 'Cannot divide by zero.', [1])
+      ot: err('ReqlQueryLogicError', 'Cannot divide by zero.', [1])
 
     # Type errors
     - py: r.expr('a') / 0.8
       cd: r('a').div(0.8)
-      ot: err('RqlLogicError', 'Expected type NUMBER but found STRING.', [0])
+      ot: err('ReqlQueryLogicError', 'Expected type NUMBER but found STRING.', [0])
 
     - py: r.expr(1) / 'a'
       cd: r(1).div('a')
-      ot: err('RqlLogicError', 'Expected type NUMBER but found STRING.', [1])
+      ot: err('ReqlQueryLogicError', 'Expected type NUMBER but found STRING.', [1])

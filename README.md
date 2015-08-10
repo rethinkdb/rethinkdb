@@ -33,7 +33,7 @@ Besides our three official drivers, we also have many [third-party drivers](http
 * **Clojure:** [clj-rethinkdb](https://github.com/apa512/clj-rethinkdb)
 * **Elixir:** [rethinkdb-elixir](https://github.com/hamiltop/rethinkdb-elixir)
 * **Go:** [GoRethink](https://github.com/dancannon/gorethink)
-* **Haskell:** [haskeel-rethinkdb](https://github.com/atnnn/haskell-rethinkdb)
+* **Haskell:** [haskell-rethinkdb](https://github.com/atnnn/haskell-rethinkdb)
 * **PHP:** [php-rql](https://github.com/danielmewes/php-rql) 
 * **Scala:** [rethink-scala](https://github.com/kclay/rethink-scala) 
 

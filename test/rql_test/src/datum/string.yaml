@@ -41,14 +41,14 @@ tests:
     - cd: r.expr('-1.2').coerce_to('NUMBER')
       ot: -1.2
     - cd: r.expr('--1.2').coerce_to('NUMBER')
-      ot: err("RqlLogicError", "Could not coerce `--1.2` to NUMBER.", [])
+      ot: err("ReqlQueryLogicError", "Could not coerce `--1.2` to NUMBER.", [])
     - cd: r.expr('-1.2-').coerce_to('NUMBER')
-      ot: err("RqlLogicError", "Could not coerce `-1.2-` to NUMBER.", [])
+      ot: err("ReqlQueryLogicError", "Could not coerce `-1.2-` to NUMBER.", [])
     - cd: r.expr('0xa').coerce_to('NUMBER')
       ot: 10
     - cd: r.expr('inf').coerce_to('NUMBER')
       ot: |
-        err("RqlLogicError", "Non-finite number: inf", [])
+        err("ReqlQueryLogicError", "Non-finite number: inf", [])
 
     # This is how these edge cases are handled in Python.
     - cd: r.expr('').split()

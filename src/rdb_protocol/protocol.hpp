@@ -479,7 +479,7 @@ struct read_t {
                  signal_t *interruptor) const
         THROWS_ONLY(interrupted_exc_t);
 
-    read_t() { }
+    read_t() : profile(profile_bool_t::DONT_PROFILE), read_mode(read_mode_t::SINGLE) { }
     template<class T>
     read_t(T &&_read, profile_bool_t _profile, read_mode_t _read_mode)
         : read(std::forward<T>(_read)), profile(_profile), read_mode(_read_mode) { }
@@ -680,7 +680,10 @@ struct write_t {
             ql::configured_limits_t());
     }
 
-    write_t() : durability_requirement(DURABILITY_REQUIREMENT_DEFAULT), limits() {}
+    write_t() :
+        durability_requirement(DURABILITY_REQUIREMENT_DEFAULT),
+        profile(profile_bool_t::DONT_PROFILE),
+        limits() {}
     /*  Note that for durability != DURABILITY_REQUIREMENT_HARD, sync might
      *  not have the desired effect (of writing unsaved data to disk).
      *  However there are cases where we use sync internally (such as when

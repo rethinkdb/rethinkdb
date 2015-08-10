@@ -84,13 +84,13 @@ with driver.Metacluster() as metacluster:
     print("Checking that table is available for writes (%.2fs)" % (time.time() - startTime))
     try:
         r.table("test").wait(wait_for="ready_for_writes", timeout=10).run(conn_a)
-    except r.RqlRuntimeError, e:
+    except r.ReqlRuntimeError, e:
         status = r.db("rethinkdb").table("_debug_table_status").nth(0).run(conn_a)
         pprint.pprint(status)
         raise
     try:
         r.table("test").wait(wait_for="ready_for_writes", timeout=3).run(conn_b)
-    except r.RqlRuntimeError, e:
+    except r.ReqlRuntimeError, e:
         status = r.db("rethinkdb").table("_debug_table_status").nth(0).run(conn_b)
         pprint.pprint(status)
         raise

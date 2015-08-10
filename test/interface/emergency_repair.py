@@ -126,7 +126,7 @@ with driver.Cluster(initial_servers=['a', 'x'], output_folder='.',
             (name, repair_type, time.time() - startTime))
         try:
             r.table(name).reconfigure(emergency_repair=repair_type).run(conn)
-        except r.RqlRuntimeError, e:
+        except r.ReqlRuntimeError, e:
             print("As expected, it failed:", repr(str(e).split(" in:")[0]))
             assert msg in str(e), e
         else:
@@ -137,7 +137,7 @@ with driver.Cluster(initial_servers=['a', 'x'], output_folder='.',
         try:
             res = r.table(name).wait(wait_for=wait_for, timeout=10).run(conn)
             assert res["ready"] == 1
-        except r.RqlRuntimeError, e:
+        except r.ReqlRuntimeError, e:
             pprint.pprint(r.table(name).status().run(conn))
             raise
 

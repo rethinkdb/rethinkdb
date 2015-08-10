@@ -39,7 +39,7 @@ with driver.Cluster(initial_servers=1, output_folder='.', wait_until_ready=True,
     
     try:
         r.connect(server.host, server.driver_port)
-    except r.RqlDriverError:
+    except r.ReqlDriverError:
         pass
     else:
         assert False, "the change to the auth key doesn't seem to have worked"

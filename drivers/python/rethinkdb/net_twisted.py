@@ -54,11 +54,11 @@ class DatabaseProtocol(Protocol):
 
     def _handleHandshakeTimeout(self):
         # If we are here, we failed to do the handshake before the timeout.
-        # We close the connection and raise an RqlTimeoutError in the
+        # We close the connection and raise an ReqlTimeoutError in the
         # wait_for_handshake deferred.
         self._open = False
         self.transport.loseConnection()
-        self.wait_for_handshake.errback(RqlTimeoutError())
+        self.wait_for_handshake.errback(ReqlTimeoutError())
 
     def _handleHandshake(self, data):
         try:
@@ -70,7 +70,7 @@ class DatabaseProtocol(Protocol):
                 if message != b'SUCCESS':
                     # If there is some problem with the handshake, we errback
                     # our deferred.
-                    self.wait_for_handshake.errback(RqlDriverError('Server'
+                    self.wait_for_handshake.errback(ReqlDriverError('Server'
                         'dropped connection with message'
                         '"{msg}"'.format(msg=decodeUTF(message))))
                 else:
@@ -114,8 +114,8 @@ class DatabaseProtocol(Protocol):
             if self._open:
                 self._handlers[self.state](data)
         except Exception as e:
-            raise RqlDriverError('Driver failed to handle received data.'
-            'Error: {exc}. Dropping the connection.'.format(exc=str(e)))
+            raise ReqlDriverError('Driver failed to handle received data.'
+                'Error: {exc}. Dropping the connection.'.format(exc=str(e)))
             self.transport.loseConnection()
 
 class DatabaseProtoFactory(ClientFactory):
@@ -177,7 +177,7 @@ class TwistedCursor(Cursor):
             self.waiting.remove(d)
 
     def _empty_error(self):
-        return RqlCursorEmpty(self.query.term)
+        return RqlCursorEmpty()
 
     @inlineCallbacks
     def fetch_next(self, wait=True):
@@ -185,7 +185,7 @@ class TwistedCursor(Cursor):
         deadline = None if timeout is None else time.time() + timeout
 
         def wait_canceller(d):
-            d.errback(RqlTimeoutError())
+            d.errback(ReqlTimeoutError())
 
         while len(self.items) == 0 and self.error is None:
             self._maybe_fetch_batch()
@@ -211,7 +211,7 @@ class TwistedCursor(Cursor):
 
         def raise_timeout(errback):
             if isinstance(errback.value, CancelledError):
-                raise RqlTimeoutError()
+                raise ReqlTimeoutError()
             else:
                 raise errback.value
 
@@ -262,7 +262,7 @@ class ConnectionInstance(object):
                     deferred.errback(res.make_error(query))
                 del self._user_queries[token]
             elif not self._closing:
-                raise RqlDriverError("Unexpected response received.")
+                raise ReqlDriverError("Unexpected response received.")
         except Exception as e:
             if not self._closing:
                 self.close(False, None, e)
@@ -275,7 +275,7 @@ class ConnectionInstance(object):
             p = yield endpoint.connect(factory)
             returnValue(p)
         except TimeoutError:
-            raise RqlTimeoutError()
+            raise ReqlTimeoutError()
 
     @inlineCallbacks
     def connect(self, timeout):
@@ -287,15 +287,15 @@ class ConnectionInstance(object):
         try:
             pConnection = yield self._connectTimeout(factory, timeout)
         except Exception as e:
-            raise RqlDriverError('Could not connect to {p.host}:{p.port}. Error: {exc}'
-                    .format(p=self._parent, exc=str(e)))
+            raise ReqlDriverError('Could not connect to {p.host}:{p.port}. Error: {exc}'
+                                  .format(p=self._parent, exc=str(e)))
 
         # Now, we need to wait for the handshake.
         try:
             yield pConnection.wait_for_handshake
         except Exception as e:
-            raise RqlDriverError('Connection interrupted during handshake with {p.host}:{p.port}. Error: {exc}'
-                                 .format(p=self._parent, exc=str(e)))
+            raise ReqlDriverError('Connection interrupted during handshake with {p.host}:{p.port}. Error: {exc}'
+                                  .format(p=self._parent, exc=str(e)))
 
         self._connection = pConnection
 
@@ -316,7 +316,7 @@ class ConnectionInstance(object):
 
         for query, deferred in iter(self._user_queries.values()):
             if not deferred.called:
-                deferred.errback(fail=RqlDriverError(error_message))
+                deferred.errback(fail=ReqlDriverError(error_message))
 
         self._user_queries = {}
         self._cursor_cache = {}

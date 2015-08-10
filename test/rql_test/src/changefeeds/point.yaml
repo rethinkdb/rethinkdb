@@ -122,7 +122,7 @@ tests:
 #    - py: r.db('rethinkdb').table('table_status').changes(squash=False)
 #      rb: r.db('rethinkdb').table('table_status').changes(squash:False)
 #      js: r.db('rethinkdb').table('table_status').changes({squash:False})
-#      ot: err('RqlRuntimeError', 'replace with error message decided in \#3725')
+#      ot: err('ReqlRuntimeError', 'replace with error message decided in \#3725')
 
     # - rethinkdb.table_status
 

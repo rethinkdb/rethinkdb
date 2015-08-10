@@ -114,6 +114,6 @@ tests:
     ot: 1
   # Wrong geometry type arguments (the first one must be a polygon)
   - cd: r.point(0,0).includes(r.point(0,0))
-    ot: err('RqlLogicError', 'Expected geometry of type `Polygon` but found `Point`.')
+    ot: err('ReqlQueryLogicError', 'Expected geometry of type `Polygon` but found `Point`.')
   - cd: r.line([0,0], [0,1]).includes(r.point(0,0))
-    ot: err('RqlLogicError', 'Expected geometry of type `Polygon` but found `LineString`.')
+    ot: err('ReqlQueryLogicError', 'Expected geometry of type `Polygon` but found `LineString`.')

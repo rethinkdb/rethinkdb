@@ -113,7 +113,7 @@ with driver.Cluster(initial_servers=['a', 'b'], output_folder='.', command_prefi
         try:
             r.db(db).table(table).wait().run(c)
             raise RuntimeError("`table_wait` did not error when waiting on a deleted table.")
-        except r.RqlRuntimeError as ex:
+        except r.ReqlRuntimeError as ex:
             assert ex.message == "Table `%s.%s` does not exist." % (db, table), \
                 "Unexpected error when waiting for a deleted table: %s" % ex.message
 

@@ -50,9 +50,9 @@ public:
     Response::ErrorType get_error_type() const {
         switch (type) {
         case EMPTY_USER:       // fallthru (this only bubbles up here if misused)
-        case LOGIC:            return Response::LOGIC;
+        case LOGIC:            return Response::QUERY_LOGIC;
         case INTERNAL:         return Response::INTERNAL;
-        case RESOURCE:         return Response::RESOURCE;
+        case RESOURCE:         return Response::RESOURCE_LIMIT;
         case OP_FAILED:        return Response::OP_FAILED;
         case OP_INDETERMINATE: return Response::OP_INDETERMINATE;
         case USER:             return Response::USER;

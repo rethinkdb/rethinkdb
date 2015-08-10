@@ -49,15 +49,15 @@ tests:
     ot: (10000)
   - cd: r.epoch_time(253430000000).to_iso8601()
     js: r.epochTime(253430000000).toISO8601()
-    ot: err("RqlLogicError", "Year `10000` out of valid ISO 8601 range [0, 9999].", [])
+    ot: err("ReqlQueryLogicError", "Year `10000` out of valid ISO 8601 range [0, 9999].", [])
   - cd: r.epoch_time(253440000000).year()
-    ot: "err(\"RqlLogicError\", \"Error in time logic: Year is out of valid range: 1400..10000.\", [])"
+    ot: "err(\"ReqlQueryLogicError\", \"Error in time logic: Year is out of valid range: 1400..10000.\", [])"
   - cd: r.epoch_time(253440000000).to_epoch_time()
     ot: (253440000000)
   - cd: r.epoch_time(-17980000000).year()
     ot: (1400)
   - cd: r.epoch_time(-17990000000).year()
-    ot: "err(\"RqlLogicError\", \"Error in time logic: Year is out of valid range: 1400..10000.\", [])"
+    ot: "err(\"ReqlQueryLogicError\", \"Error in time logic: Year is out of valid range: 1400..10000.\", [])"
   - cd: r.epoch_time(-17990000000).to_epoch_time()
     ot: (-17990000000)
 
@@ -87,10 +87,10 @@ tests:
   - rb:  bad_dts3 = dates.map{|d| times.map{|t| bad_tzs.map{|tz| d+"T"+t+tz}}}.flatten
   - rb:  bad_dts = bad_dts1 + bad_dts2 + bad_dts3
 
-  - rb: bad_dts.map{|x| begin; r.expr({:s => x, :d => r.iso8601(x)}).run($reql_conn); rescue RethinkDB::RqlLogicError => e; nil; end}.select{|x| x != nil};
+  - rb: bad_dts.map{|x| begin; r.expr({:s => x, :d => r.iso8601(x)}).run($reql_conn); rescue RethinkDB::ReqlQueryLogicError => e; nil; end}.select{|x| x != nil};
     ot: ([])
 
 # Check that we can't put a valid date into any invalid timezone.
   - rb: bad_dts_in_tz = r.expr(dts.map{|dt| bad_tzs.map{|tz| {:dt => dt, :tz => tz}}}.flatten)
-  - rb: bad_dts_in_tz.map{ |x| begin; r.expr({:dt => x[:dt], :tz => x[:tz], :s => r.iso8601(x[:dt]).to_epoch_time.epoch_time.in_timezone(x[:tz]).to_iso8601.run($reql_conn)}); rescue RethinkDB::RqlLogicError => e; nil; end }.select{|x| x != nil}
+  - rb: bad_dts_in_tz.map{ |x| begin; r.expr({:dt => x[:dt], :tz => x[:tz], :s => r.iso8601(x[:dt]).to_epoch_time.epoch_time.in_timezone(x[:tz]).to_iso8601.run($reql_conn)}); rescue RethinkDB::ReqlQueryLogicError => e; nil; end }.select{|x| x != nil}
     ot: ([])

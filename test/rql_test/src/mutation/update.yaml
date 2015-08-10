@@ -61,7 +61,7 @@ tests:
     - py: tbl.get(12).update(lambda row:{'a':row['id'] + 3}, durability='wrong')
       js: tbl.get(12).update(function(row) { return {'a':row('id').add(3)}; }, {durability:'wrong'})
       rb: tbl.get(12).update({ :durability => 'wrong' }) { |row| { :a => row[:id] + 3 } }
-      ot: err('RqlLogicError', 'Durability option `wrong` unrecognized (options are "hard" and "soft").', [0])
+      ot: err('ReqlQueryLogicError', 'Durability option `wrong` unrecognized (options are "hard" and "soft").', [0])
 
     - cd: tbl.get(12)
       ot: ({'id':12, 'a':14})
@@ -118,10 +118,10 @@ tests:
 
     # test atomicity constraints (positive and negative test)
     - cd: tbl.get(1).update({'d':r.js('5')})
-      ot: err('RqlLogicError', 'Could not prove argument deterministic.  Maybe you want to use the non_atomic flag?', [0])
+      ot: err('ReqlQueryLogicError', 'Could not prove argument deterministic.  Maybe you want to use the non_atomic flag?', [0])
 
     - cd: tbl.get(1).update({'d':tbl.nth(0)})
-      ot: err('RqlLogicError', 'Could not prove argument deterministic.  Maybe you want to use the non_atomic flag?', [0])
+      ot: err('ReqlQueryLogicError', 'Could not prove argument deterministic.  Maybe you want to use the non_atomic flag?', [0])
 
     - py: tbl.get(1).update({'d':r.js('5')}, non_atomic=True)
       js: tbl.get(1).update({'d':r.js('5')}, {'nonAtomic':true})
@@ -130,11 +130,11 @@ tests:
 
     - js: tbl.get(1).update({}, 'foo')
       cd: []
-      ot: err('RqlDriverError', 'Expected 1 argument (not including options) but found 2.')
+      ot: err('ReqlDriverError', 'Expected 1 argument (not including options) but found 2.')
 
     - js: tbl.get(1).update({}, {'foo':'bar'})
       cd: []
-      ot: err('RqlCompileError', 'Unrecognized optional argument `foo`.')
+      ot: err('ReqlCompileError', 'Unrecognized optional argument `foo`.')
 
     # Update whole table
     - py: tbl.update(lambda row:{'a':row['id']})

@@ -69,7 +69,7 @@ class FailoverToSecondary(rdb_unittest.RdbTestCase):
             timeout = 30
             try:
                 self.table.wait(wait_for='ready_for_writes', timeout=timeout).run(stableConn)
-            except self.r.RqlRuntimeError as e:
+            except self.r.ReqlRuntimeError as e:
                 raise AssertionError('Table did not become available after %d seconds.' % timeout)
             
             print_with_time("Running workload after")

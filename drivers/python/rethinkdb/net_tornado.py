@@ -29,7 +29,7 @@ def with_absolute_timeout(deadline, generator, **kwargs):
         try:
             res = yield gen.with_timeout(deadline, generator, **kwargs)
         except gen.TimeoutError:
-            raise RqlTimeoutError()
+            raise ReqlTimeoutError()
     raise gen.Return(res)
 
 
@@ -59,12 +59,12 @@ class TornadoCursor(Cursor):
             yield with_absolute_timeout(deadline, self.new_response)
         # If there is a (non-empty) error to be received, we return True, so the
         # user will receive it on the next `next` call.
-        raise gen.Return(len(self.items) != 0 or not isinstance(self.error, RqlCursorEmpty))
+        raise gen.Return(len(self.items) != 0 or not isinstance(self.error, ReqlCursorEmpty))
 
     def _empty_error(self):
-        # We do not have RqlCursorEmpty inherit from StopIteration as that interferes
+        # We do not have ReqlCursorEmpty inherit from StopIteration as that interferes
         # with Tornado's gen.coroutine and is the equivalent of gen.Return(None).
-        return RqlCursorEmpty(self.query.term)
+        return ReqlCursorEmpty()
 
     @gen.coroutine
     def _get_next(self, timeout):
@@ -112,7 +112,7 @@ class ConnectionInstance(object):
                 io_loop=self._io_loop,
                 quiet_exceptions=(iostream.StreamClosedError))
         except Exception as err:
-            raise RqlDriverError('Could not connect to %s:%s. Error: %s' %
+            raise ReqlDriverError('Could not connect to %s:%s. Error: %s' %
                     (self._parent.host, self._parent.port, str(err)))
 
         try:
@@ -123,7 +123,7 @@ class ConnectionInstance(object):
                 io_loop=self._io_loop,
                 quiet_exceptions=(iostream.StreamClosedError))
         except Exception as err:
-            raise RqlDriverError(
+            raise ReqlDriverError(
                 'Connection interrupted during handshake with %s:%s. Error: %s' %
                     (self._parent.host, self._parent.port, str(err)))
 
@@ -131,8 +131,11 @@ class ConnectionInstance(object):
 
         if message != 'SUCCESS':
             self.close(False, None)
-            raise RqlDriverError('Server dropped connection with message: "%s"' %
-                               message)
+            if message == "ERROR: Incorrect authorization key":
+                raise ReqlAuthError(self._parent.host, self._parent.port)
+            else:
+                raise ReqlDriverError('Server dropped connection with message: "%s"' %
+                    (message, ))
 
         # Start a parallel function to perform reads
         self._io_loop.add_callback(self._reader)
@@ -154,7 +157,7 @@ class ConnectionInstance(object):
             cursor._error(err_message)
 
         for query, future in iter(self._user_queries.values()):
-            future.set_exception(RqlDriverError(err_message))
+            future.set_exception(ReqlDriverError(err_message))
 
         self._user_queries = { }
         self._cursor_cache = { }
@@ -217,7 +220,7 @@ class ConnectionInstance(object):
                         future.set_exception(res.make_error(query))
                     del self._user_queries[token]
                 elif not self._closing:
-                    raise RqlDriverError("Unexpected response received.")
+                    raise ReqlDriverError("Unexpected response received.")
         except Exception as ex:
             if not self._closing:
                 self.close(False, None, ex)
