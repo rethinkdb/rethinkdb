@@ -246,7 +246,7 @@ with driver.Cluster(initial_servers=['a', 'b', 'never_used'], output_folder='.',
         for i in xrange(10):
             try:
                 r.db(dbName).table(doc["name"]).insert({}).run(conn)
-            except r.RqlRuntimeError:
+            except r.ReqlRuntimeError:
                 time.sleep(1)
             else:
                 break

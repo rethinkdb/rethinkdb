@@ -333,7 +333,7 @@ def export_table(host, port, auth_key, db, table, directory, fields, delimiter, 
 
             rdb_call_wrapper(conn_fn, "table scan", read_table_into_queue, db, table,
                              table_info["primary_key"], task_queue, progress_info, exit_event)
-    except (r.RqlError, r.RqlDriverError) as ex:
+    except (r.ReqlError, r.ReqlDriverError) as ex:
         error_queue.put((RuntimeError, RuntimeError(ex.message), traceback.extract_tb(sys.exc_info()[2])))
     except:
         ex_type, ex_class, tb = sys.exc_info()

@@ -76,7 +76,7 @@ with driver.Metacluster() as metacluster:
         try:
             query.run()
             print("Failed to error in query (%s)" % r.errors.QueryPrinter(query).print_query())
-        except r.RqlError as e:
+        except r.ReqlError as e:
             pass
         check_stats_internal(query, reads, writes)
 

@@ -79,7 +79,7 @@ def print_progress(ratio):
 def do_connect(options):
     try:
         return r.connect(options['host'], options['port'], auth_key=options['auth_key'])
-    except (r.RqlError, r.RqlDriverError) as ex:
+    except (r.ReqlError, r.ReqlDriverError) as ex:
         raise RuntimeError("Error when connecting: %s" % ex.message)
 
 def new_connection(conn_store, options):
@@ -198,7 +198,7 @@ def rebuild_indexes(options):
                 try:
                     rdb_call_wrapper(conn_fn, "rename `%s.%s` index `%s`" % (index['db'], index['table'], index['name']),
                                      rename_index, index)
-                except r.RqlRuntimeError as ex:
+                except r.ReqlRuntimeError as ex:
                     # This may be caused by a spurious failure (see github issue #2904), check if it actually succeeded
                     if ex.message != "ReQL error during 'rename `%s.%s` index `%s`': Index `%s` does not exist on table `%s.%s`." % \
                                      (index['db'], index['table'], index['name'], index['temp_name'], index['db'], index['table']):

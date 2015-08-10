@@ -48,7 +48,7 @@ def read_write_workload(port, table, stop_event):
             r.db(db).table(table).insert({'id':random.choice(ids), 'value': counter},
                                          conflict='replace').run(conn)
             time.sleep(0.05)
-        except r.RqlRuntimeError:
+        except r.ReqlRuntimeError:
             # Ignore runtime errors and keep going until stopped
             pass
 

@@ -170,8 +170,8 @@ class TestHttpTerm(WithServer):
     def test_redirects(self):
         url = self.getHttpBinURL('redirect', '2')
         
-        self.assertRaisesRegex(r.RqlRuntimeError, self.err_string('GET', url, 'status code 302'), r.http(url, redirects=0).run, self.conn)
-        self.assertRaisesRegex(r.RqlRuntimeError, self.err_string('GET', url, 'Number of redirects hit maximum amount'), r.http(url, redirects=1).run, self.conn)
+        self.assertRaisesRegex(r.ReqlRuntimeError, self.err_string('GET', url, 'status code 302'), r.http(url, redirects=0).run, self.conn)
+        self.assertRaisesRegex(r.ReqlRuntimeError, self.err_string('GET', url, 'Number of redirects hit maximum amount'), r.http(url, redirects=1).run, self.conn)
         res = r.http(url, redirects=2).run(self.conn)
         self.assertEqual(res['headers']['Host'], '%s:%d' % (self.host, self.targetServer.httpbinPort))
     
@@ -185,7 +185,7 @@ class TestHttpTerm(WithServer):
         url = self.getHttpBinURL('robots.txt')
         
         self.assertRaisesRegex(
-            r.RqlRuntimeError, self.err_string('GET', url, 'failed to parse JSON response: Invalid value.'),
+            r.ReqlRuntimeError, self.err_string('GET', url, 'failed to parse JSON response: Invalid value.'),
             r.http(url, result_format='json').run, self.conn
         )
     
@@ -194,19 +194,19 @@ class TestHttpTerm(WithServer):
         
         # Wrong password
         self.assertRaisesRegex(
-            r.RqlRuntimeError, self.err_string('GET', url, 'status code 401'), 
+            r.ReqlRuntimeError, self.err_string('GET', url, 'status code 401'), 
             r.http(url, auth={'type':'basic','user':'azure','pass':'wrong'}).run, self.conn
         )
                 
         # Wrong username
         self.assertRaisesRegex(
-            r.RqlRuntimeError, self.err_string('GET', url, 'status code 401'),
+            r.ReqlRuntimeError, self.err_string('GET', url, 'status code 401'),
             r.http(url, auth={'type':'basic','user':'fake','pass':'hunter2'}).run, self.conn
         )
         
         # Wrong authentication type
         self.assertRaisesRegex(
-            r.RqlRuntimeError, self.err_string('GET', url, 'status code 401'),
+            r.ReqlRuntimeError, self.err_string('GET', url, 'status code 401'),
             r.http(url, auth={'type':'digest','user':'azure','pass':'hunter2'}).run, self.conn
         )
         
@@ -223,19 +223,19 @@ class TestHttpTerm(WithServer):
         
         # Wrong password
         self.assertRaisesRegex(
-            r.RqlRuntimeError, self.err_string('GET', url, 'status code 401'),
+            r.ReqlRuntimeError, self.err_string('GET', url, 'status code 401'),
             r.http(url, redirects=5, auth={'type':'digest','user':'azure','pass':'wrong'}).run, self.conn
         )
         
         # Wrong username
         self.assertRaisesRegex(
-           r.RqlRuntimeError, self.err_string('GET', url, 'status code 401'),
+           r.ReqlRuntimeError, self.err_string('GET', url, 'status code 401'),
            r.http(url, redirects=5, auth={'type':'digest','user':'fake','pass':'hunter2'}).run, self.conn
         )
         
         # Wrong authentication type
         self.assertRaisesRegex(
-           r.RqlRuntimeError, self.err_string('GET', url, 'status code 401'),
+           r.ReqlRuntimeError, self.err_string('GET', url, 'status code 401'),
            r.http(url, redirects=5, auth={'type':'basic','user':'azure','pass':'hunter2'}).run, self.conn
         )
         
@@ -247,7 +247,7 @@ class TestHttpTerm(WithServer):
         '''file:// urls should be rejected'''
         url = 'file:///bad/path'
         self.assertRaisesRegex(
-            r.errors.RqlRuntimeError,
+            r.errors.ReqlRuntimeError,
             self.err_string('GET', url, 'Unsupported protocol.'),
             r.http(url).run, self.conn
         )
@@ -265,7 +265,7 @@ class TestHttpTerm(WithServer):
     
     def bad_https_helper(self, url):
         self.assertRaisesRegex(
-            r.RqlRuntimeError,
+            r.ReqlRuntimeError,
             self.err_string('HEAD', url, 'Peer certificate cannot be authenticated with given CA certificates'),
             r.http(url, method='HEAD', verify=True, redirects=5).run,
             self.conn

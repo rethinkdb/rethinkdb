@@ -4,31 +4,31 @@ tests:
 # Note that JS Date comparison doesn't work, these are implemented in the connection tests
   - cd: r.expr(r.epoch_time(896571240))
     ot:
-      py: datetime.fromtimestamp(896571240, r.ast.ReqlTzinfo('00:00'))
+      py: datetime.fromtimestamp(896571240, r.ast.RqlTzinfo('00:00'))
       rb: (Time.at(896571240))
       js: 0
 
   - cd: r.expr({'stuff':r.epoch_time(896571240), 'more':[r.epoch_time(996571240)]})
     ot:
-      py: ({'stuff':datetime.fromtimestamp(896571240, r.ast.ReqlTzinfo('00:00')), 'more':[datetime.fromtimestamp(996571240, r.ast.ReqlTzinfo('00:00'))]})
+      py: ({'stuff':datetime.fromtimestamp(896571240, r.ast.RqlTzinfo('00:00')), 'more':[datetime.fromtimestamp(996571240, r.ast.RqlTzinfo('00:00'))]})
       rb: ({'stuff'=>Time.at(896571240), 'more'=>[Time.at(996571240)]})
       js: 0
 
   - cd: r.expr([r.epoch_time(796571240), r.epoch_time(896571240), {'stuff':r.epoch_time(996571240)}])
     ot:
-      py: ([datetime.fromtimestamp(796571240, r.ast.ReqlTzinfo('00:00')), datetime.fromtimestamp(896571240, r.ast.ReqlTzinfo('00:00')), {'stuff':datetime.fromtimestamp(996571240, r.ast.ReqlTzinfo('00:00'))}])
+      py: ([datetime.fromtimestamp(796571240, r.ast.RqlTzinfo('00:00')), datetime.fromtimestamp(896571240, r.ast.RqlTzinfo('00:00')), {'stuff':datetime.fromtimestamp(996571240, r.ast.RqlTzinfo('00:00'))}])
       rb: ([Time.at(796571240), Time.at(896571240), {'stuff'=>Time.at(996571240)}])
       js: 0
 
   - cd: r.expr({'nested':{'time':r.epoch_time(896571240)}})
     ot:
-      py: ({'nested':{'time':datetime.fromtimestamp(896571240, r.ast.ReqlTzinfo('00:00'))}})
+      py: ({'nested':{'time':datetime.fromtimestamp(896571240, r.ast.RqlTzinfo('00:00'))}})
       rb: ({'nested'=>{'time'=>Time.at(896571240)}})
       js: 0
 
   - cd: r.expr([1, "two", ["a", r.epoch_time(896571240), 3]])
     ot:
-      py: ([1, "two", ["a", datetime.fromtimestamp(896571240, r.ast.ReqlTzinfo('00:00')), 3]])
+      py: ([1, "two", ["a", datetime.fromtimestamp(896571240, r.ast.RqlTzinfo('00:00')), 3]])
       rb: ([1, "two", ["a", Time.at(896571240), 3]])
       js: 0
 

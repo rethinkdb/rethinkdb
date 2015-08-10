@@ -49,7 +49,7 @@ with driver.Process(output_folder='.', command_prefix=command_prefix, extra_opti
     
     print("Trying to set impossible goals with reconfigure (%.2fs)" % (time.time() - startTime))
     
-    assertRaises(r.RqlRuntimeError, r.db(dbName).table(tableName).reconfigure(shards=1, replicas=4).run, conn)
+    assertRaises(r.ReqlRuntimeError, r.db(dbName).table(tableName).reconfigure(shards=1, replicas=4).run, conn)
     
     print("Trying to set impossible goals through table.config (%.2fs)" % (time.time() - startTime))
 
