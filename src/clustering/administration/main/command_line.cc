@@ -723,7 +723,6 @@ void run_rethinkdb_serve(const base_path_t &base_path,
                          const int max_concurrent_io_requests,
                          const boost::optional<boost::optional<uint64_t> >
                             &total_cache_size,
-                         const bool migrate_inconsistent_data,
                          const server_id_t *our_server_id,
                          const server_config_versioned_t *server_config,
                          const cluster_semilattice_metadata_t *cluster_metadata,
@@ -767,7 +766,6 @@ void run_rethinkdb_serve(const base_path_t &base_path,
             metadata_file.init(new metadata_file_t(
                 &io_backender,
                 base_path,
-                migrate_inconsistent_data,
                 &metadata_perfmon_collection,
                 &non_interruptor));
             /* The `metadata_file_t` constructor will migrate the main metadata if it
@@ -824,7 +822,6 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
                              const int max_concurrent_io_requests,
                              const boost::optional<boost::optional<uint64_t> >
                                 &total_cache_size,
-                             const bool migrate_inconsistent_data,
                              const bool new_directory,
                              serve_info_t *serve_info,
                              directory_lock_t *data_directory_lock,
@@ -832,7 +829,6 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
     if (!new_directory) {
         run_rethinkdb_serve(base_path, serve_info, direct_io_mode,
                             max_concurrent_io_requests, total_cache_size,
-                            migrate_inconsistent_data,
                             NULL, NULL, NULL, data_directory_lock,
                             result_out);
     } else {
@@ -870,7 +866,6 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
         run_rethinkdb_serve(base_path, serve_info, direct_io_mode,
                             max_concurrent_io_requests,
                             boost::optional<boost::optional<uint64_t> >(),
-                            migrate_inconsistent_data,
                             &our_server_id, &server_config, &cluster_metadata,
                             data_directory_lock, result_out);
     }
@@ -1445,9 +1440,6 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
         boost::optional<boost::optional<uint64_t> > total_cache_size =
             parse_total_cache_size_option(opts);
 
-        bool migrate_inconsistent_data =
-            exists_option(opts, "--migrate-inconsistent-data");
-
         // Open and lock the directory, but do not create it
         bool is_new_directory = false;
         directory_lock_t data_directory_lock(base_path, false, &is_new_directory);
@@ -1490,7 +1482,6 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
                                      direct_io_mode,
                                      max_concurrent_io_requests,
                                      total_cache_size,
-                                     migrate_inconsistent_data,
                                      static_cast<server_id_t*>(NULL),
                                      static_cast<server_config_versioned_t *>(NULL),
                                      static_cast<cluster_semilattice_metadata_t*>(NULL),
@@ -1707,9 +1698,6 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         boost::optional<boost::optional<uint64_t> > total_cache_size =
             parse_total_cache_size_option(opts);
 
-        bool migrate_inconsistent_data =
-            exists_option(opts, "--migrate-inconsistent-data");
-
         if (check_pid_file(opts) != EXIT_SUCCESS) {
             return EXIT_FAILURE;
         }
@@ -1746,7 +1734,6 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
                                      direct_io_mode,
                                      max_concurrent_io_requests,
                                      total_cache_size,
-                                     migrate_inconsistent_data,
                                      is_new_directory,
                                      &serve_info,
                                      &data_directory_lock,

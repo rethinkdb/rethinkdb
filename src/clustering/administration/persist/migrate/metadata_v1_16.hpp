@@ -43,6 +43,9 @@ RDB_DECLARE_EQUALITY_COMPARABLE(version_t);
    version that the backfiller is at. */
 
 struct version_range_t {
+    bool is_coherent() const {
+        return earliest == latest;
+    }
     version_t earliest;
     version_t latest;
 };

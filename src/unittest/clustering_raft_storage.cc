@@ -40,7 +40,6 @@ raft_persistent_state_t<table_raft_state_t> raft_persistent_state_from_metadata_
     metadata_file_t metadata_file(
         &io_backender,
         temp_dir.path(),
-        false,
         &get_global_perfmon_collection(),
         &non_interruptor);
     metadata_file_t::read_txn_t read_txn(&metadata_file, &non_interruptor);
@@ -122,7 +121,6 @@ TPTEST(ClusteringRaft, StorageErase) {
         metadata_file_t metadata_file(
             &io_backender,
             temp_dir.path(),
-            false,
             &get_global_perfmon_collection(),
             &non_interruptor);
         metadata_file_t::read_txn_t read_txn(&metadata_file, &non_interruptor);

@@ -107,6 +107,23 @@ cluster_version_t auth_superblock_version(const auth_metadata_superblock_t *sb) 
     }
 }
 
+struct regioned_version_t {
+    regioned_version_t(const region_t &r, const ::version_t &v) :
+        region(r), version(v) { }
+    const region_t region;
+    const ::version_t version;
+};
+
+bool operator <(const regioned_version_t &a, const regioned_version_t &b) {
+    if (a.version.branch == b.version.branch) {
+        if (a.version.timestamp == b.version.timestamp) {
+            return a.region < b.region;
+        }
+        return a.version.timestamp < b.version.timestamp;
+    }
+    return a.version.branch < b.version.branch;
+}
+
 static void read_blob(buf_parent_t parent, const char *ref, int maxreflen,
                       const std::function<archive_result_t(read_stream_t *)> &reader) {
     blob_t blob(parent.cache()->max_block_size(),
@@ -172,40 +189,55 @@ void migrate_databases(const metadata_v1_16::cluster_semilattice_metadata_t &met
 
 ::branch_history_t migrate_branch_ids(
         const namespace_id_t &table_id,
-        std::set<branch_id_t> seen_branches,
+        std::set<regioned_version_t> seen_versions,
         const metadata_v1_16::branch_history_t &branch_history,
         metadata_file_t::write_txn_t *out,
         signal_t *interruptor) {
     branch_history_t result;
-    std::deque<branch_id_t> branches_to_save(seen_branches.begin(), seen_branches.end());
+    std::deque<regioned_version_t> versions_to_save(seen_versions.begin(), seen_versions.end());
 
-    while (!branches_to_save.empty()) {
-        auto branch_it = branch_history.branches.find(branches_to_save.front());
-        guarantee(branch_it != branch_history.branches.end());
-        branches_to_save.pop_front();
-
-        region_t region = branch_it->second.region;
+    while (!versions_to_save.empty()) {
+        auto const &regioned_version = versions_to_save.front();
+        auto const branch_it = branch_history.branches.find(regioned_version.version.branch);
         branch_birth_certificate_t new_birth_certificate;
 
-        new_birth_certificate.initial_timestamp = branch_it->second.initial_timestamp;
-        new_birth_certificate.origin = branch_it->second.origin.map(region,
-            [&] (const metadata_v1_16::version_range_t &v) -> ::version_t {
-                guarantee(v.earliest == v.latest);
-                if (!v.earliest.branch.is_nil() &&
-                    seen_branches.count(v.earliest.branch) == 0) {
-                    seen_branches.insert(v.earliest.branch);
-                    branches_to_save.push_back(v.earliest.branch);
-                }
-                return ::version_t(v.earliest.branch, v.earliest.timestamp);
-            });
+        // If we don't find the branch, we assume that it is referencing a dummy branch
+        // that we created to replace an incoherent version_range_t.  In this case, we
+        // want the dummy branch to inherit directly from version_t::zero().  This will
+        // leave the data as-is until such time that a raft cluster is established for
+        // the table and a more-recent coherent replica is found.  At that point the
+        // incoherent data shall be erased and backfilled from the coherent replica.
+        if (branch_it == branch_history.branches.end()) {
+            guarantee(regioned_version.region != region_t::empty());
+            new_birth_certificate.initial_timestamp =
+                version_t::zero().timestamp;
+            new_birth_certificate.origin.update(regioned_version.region,
+                                                version_t::zero());
+        } else {
+            new_birth_certificate.initial_timestamp =
+                branch_it->second.initial_timestamp;
+            new_birth_certificate.origin =
+                branch_it->second.origin.map(branch_it->second.region,
+                [&] (const metadata_v1_16::version_range_t &v) -> ::version_t {
+                    ::version_t res(v.earliest.branch, v.earliest.timestamp);
+                    regioned_version_t regioned_res(region_t::empty(), res);
+                    guarantee(v.is_coherent());
+                    if (!res.branch.is_nil() && seen_versions.count(regioned_res) == 0) {
+                        seen_versions.insert(regioned_res);
+                        versions_to_save.push_back(regioned_res);
+                    }
+                    return res;
+                });
+        }
 
-        result.branches.insert(std::make_pair(branch_it->first, new_birth_certificate));
+        result.branches.insert(std::make_pair(regioned_version.version.branch, new_birth_certificate));
 
         out->write(mdprefix_branch_birth_certificate().suffix(
-                       uuid_to_str(table_id) + "/" + uuid_to_str(branch_it->first)),
+                       uuid_to_str(table_id) + "/" + uuid_to_str(regioned_version.version.branch)),
                    new_birth_certificate, interruptor);
-    }
 
+        versions_to_save.pop_front();
+    }
     return result;
 }
 
@@ -357,7 +389,6 @@ void check_for_obsolete_sindexes(io_backender_t *io_backender,
 
 void migrate_tables(io_backender_t *io_backender,
                     const base_path_t &base_path,
-                    bool migrate_inconsistent_data,
                     const server_id_t &this_server_id,
                     const metadata_v1_16::cluster_semilattice_metadata_t &metadata,
                     const metadata_v1_16::branch_history_t &old_branch_history,
@@ -381,7 +412,7 @@ void migrate_tables(io_backender_t *io_backender,
                 std::vector<serializer_t *> underlying({ &merger_serializer });
                 serializer_multiplexer_t multiplexer(underlying);
 
-                std::set<branch_id_t> seen_branches;
+                std::set<regioned_version_t> seen_versions;
                 std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > sindex_list;
 
                 pmap(CPU_SHARDING_FACTOR, [&] (int index) {
@@ -402,7 +433,6 @@ void migrate_tables(io_backender_t *io_backender,
                             sindex_list = store.sindex_list(interruptor);
                         }
 
-                        bool reset_data = false;
                         read_token_t read_token;
                         if (store.metainfo_version(&read_token,
                                                    interruptor) == cluster_version_t::v2_0) {
@@ -411,28 +441,17 @@ void migrate_tables(io_backender_t *io_backender,
                             store.migrate_metainfo(
                                 order_token_t::ignore, &write_token,
                                 cluster_version_t::v2_0, cluster_version_t::v2_1,
-                                [&] (const binary_blob_t &blob) -> binary_blob_t {
-                                    auto const &v = binary_blob_t::get<metadata_v1_16::version_range_t>(blob);
+                                [&] (const region_t &r, const binary_blob_t &blob) -> binary_blob_t {
+                                    auto const &v =
+                                        binary_blob_t::get<metadata_v1_16::version_range_t>(blob);
                                     ::version_t res(v.earliest.branch, v.earliest.timestamp);
-                                    if (v.earliest == v.latest) {
-                                        if (!v.earliest.branch.is_nil()) {
-                                            seen_branches.insert(v.earliest.branch);
-                                        }
-                                    } else if (!migrate_inconsistent_data) {
-                                        fail_due_to_user_error("This node's data for the table with ID %s is "
-                                                               "in an inconsistent state because a resharding "
-                                                               "or rebalancing operation was in progress when "
-                                                               "the node was shut down.  To continue, some or "
-                                                               "all local data for the table will need to be "
-                                                               "cleared.  Please back up your data files and "
-                                                               "retry with the --migrate-inconsistent-data flag.",
-                                                               uuid_to_str(info.first).c_str());
-                                    } else {
-                                        // The data is in an unrecoverable state, but
-                                        // there should be coherent data elsewhere in
-                                        // in the cluster, this may be reset later.
-                                        reset_data = true;
-                                        res = version_t::zero();
+                                    if (!v.is_coherent()) {
+                                        // Create a dummy branch that will be assigned a birth
+                                        // certificate off of version_t::zero
+                                        res = ::version_t(generate_uuid(), v.latest.timestamp);
+                                    }
+                                    if (!res.branch.is_nil()) {
+                                        seen_versions.insert(regioned_version_t(r, res));
                                     }
                                     return binary_blob_t::make<version_t>(res);
                                 }, interruptor);
@@ -440,19 +459,12 @@ void migrate_tables(io_backender_t *io_backender,
 
                         guarantee(store.metainfo_version(&read_token,
                                                          interruptor) == cluster_version_t::v2_1);
-
-                        if (reset_data) {
-                            guarantee(migrate_inconsistent_data);
-                            store.reset_data(binary_blob_t::make<version_t>(version_t::zero()),
-                                             cpu_sharding_subspace(index),
-                                             write_durability_t::HARD,
-                                             interruptor);
-                        }
                     });
 
+                debugf("migrating %zu branch ids\n", seen_versions.size());
                 branch_history_t new_branch_history =
                     migrate_branch_ids(info.first,
-                                       std::move(seen_branches),
+                                       std::move(seen_versions),
                                        old_branch_history,
                                        out,
                                        interruptor);
@@ -472,12 +484,11 @@ void migrate_tables(io_backender_t *io_backender,
 
 void migrate_cluster_metadata_to_v2_1(io_backender_t *io_backender,
                                       const base_path_t &base_path,
-                                      bool migrate_inconsistent_data,
                                       buf_parent_t buf_parent,
                                       const void *old_superblock,
                                       metadata_file_t::write_txn_t *out,
                                       signal_t *interruptor) {
-    logINF("Migrating cluster metadata");
+    logNTC("Migrating cluster metadata");
     const cluster_metadata_superblock_t *sb =
         static_cast<const cluster_metadata_superblock_t *>(old_superblock);
     cluster_version_t v = cluster_superblock_version(sb);
@@ -535,7 +546,7 @@ void migrate_cluster_metadata_to_v2_1(io_backender_t *io_backender,
     migrate_heartbeat(out, interruptor);
     migrate_server(sb->server_id, metadata, out, interruptor);
     migrate_databases(metadata, out, interruptor);
-    migrate_tables(io_backender, base_path, migrate_inconsistent_data,
+    migrate_tables(io_backender, base_path,
                    sb->server_id, metadata, branch_history, out, interruptor);
 }
 
@@ -543,7 +554,7 @@ void migrate_auth_metadata_to_v2_1(io_backender_t *io_backender,
                                    const serializer_filepath_t &path,
                                    metadata_file_t::write_txn_t *out,
                                    signal_t *interruptor) {
-    logINF("Migrating auth metadata");
+    logNTC("Migrating auth metadata");
     perfmon_collection_t dummy_stats;
     filepath_file_opener_t file_opener(path, io_backender);
     standard_serializer_t serializer(standard_serializer_t::dynamic_config_t(), &file_opener, &dummy_stats);
