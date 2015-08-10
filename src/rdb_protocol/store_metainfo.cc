@@ -85,7 +85,7 @@ void store_metainfo_manager_t::migrate(
         cluster_version_t from,
         cluster_version_t to,
         const region_t &region, // This should be for all valid ranges for this hash shard
-        const std::function<binary_blob_t(const binary_blob_t &)> &cb) {
+        const std::function<binary_blob_t(const region_t &, const binary_blob_t &)> &cb) {
     guarantee(superblock != nullptr);
     superblock->get()->write_acq_signal()->wait_lazily_unordered();
 
@@ -93,8 +93,11 @@ void store_metainfo_manager_t::migrate(
     region_map_t<binary_blob_t> new_metainfo;
     {
         ASSERT_NO_CORO_WAITING;
-        new_metainfo = cache.map(region, cb);
+        cache.visit(region, [&] (const region_t &r, const binary_blob_t &b) {
+                        new_metainfo.update(r, cb(r, b));
+                    });
     }
+
     cache_version = to;
     update(superblock, new_metainfo);
 }

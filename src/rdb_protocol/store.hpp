@@ -130,7 +130,8 @@ public:
             write_token_t *token,
             cluster_version_t from,
             cluster_version_t to,
-            const std::function<binary_blob_t(const binary_blob_t &)> &cb,
+            const std::function<binary_blob_t(const region_t &,
+                                              const binary_blob_t &)> &cb,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 

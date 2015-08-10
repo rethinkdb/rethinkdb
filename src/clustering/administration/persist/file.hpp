@@ -147,7 +147,6 @@ public:
     metadata_file_t(
         io_backender_t *io_backender,
         const base_path_t &base_path,
-        bool migrate_inconsistent_data,
         perfmon_collection_t *perfmon_parent,
         signal_t *interruptor);
 

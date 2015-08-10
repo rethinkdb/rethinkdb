@@ -290,7 +290,6 @@ void metadata_file_t::write_txn_t::write_bin(
 metadata_file_t::metadata_file_t(
         io_backender_t *io_backender,
         const base_path_t &base_path,
-        bool migrate_inconsistent_data,
         perfmon_collection_t *perfmon_parent,
         signal_t *interruptor) :
     btree_stats(perfmon_parent, "metadata")
@@ -324,7 +323,7 @@ metadata_file_t::metadata_file_t(
             sb_write.reset();
             sb_lock.reset();
             migrate_cluster_metadata_to_v2_1(
-                io_backender, base_path, migrate_inconsistent_data,
+                io_backender, base_path,
                 buf_parent_t(&write_txn.txn), sb_copy.get(), &write_txn,
                 interruptor);
             break;

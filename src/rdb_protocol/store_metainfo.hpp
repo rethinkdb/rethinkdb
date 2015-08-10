@@ -30,7 +30,8 @@ public:
                  cluster_version_t from,
                  cluster_version_t to,
                  const region_t &region,
-                 const std::function<binary_blob_t(const binary_blob_t &)> &cb);
+                 const std::function<binary_blob_t(const region_t &,
+                                                   const binary_blob_t &)> &cb);
 
     cluster_version_t get_version(real_superblock_t *superblock) const;
 
