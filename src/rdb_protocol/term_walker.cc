@@ -84,7 +84,7 @@ public:
             if (prev_frame != nullptr && prev_frame->term_type != Term::ORDER_BY) {
                 throw bt_exc_t(
                     Response::COMPILE_ERROR,
-                    Response::LOGIC,
+                    Response::QUERY_LOGIC,
                     strprintf("%s may only be used as an argument to ORDER_BY.",
                               (t->type() == Term::ASC ? "ASC" : "DESC")),
                     bt_reg->datum_backtrace(this_frame->bt));
@@ -94,7 +94,7 @@ public:
         if (term_is_write_or_meta(t->type()) && !this_frame->writes_legal) {
             throw bt_exc_t(
                 Response::COMPILE_ERROR,
-                Response::LOGIC,
+                Response::QUERY_LOGIC,
                 strprintf("Cannot nest writes or meta ops in stream operations.  Use "
                           "FOR_EACH instead."),
                 bt_reg->datum_backtrace(this_frame->bt));

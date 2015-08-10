@@ -219,7 +219,7 @@ public:
             error_response.set_token(token);
             ql::fill_error(&error_response,
                            Response::CLIENT_ERROR,
-                           Response::RESOURCE,
+                           Response::RESOURCE_LIMIT,
                            too_large_query_message(size),
                            ql::backtrace_registry_t::EMPTY_BACKTRACE);
             send_response(error_response, handler, conn, interruptor);
@@ -236,7 +236,7 @@ public:
                 error_response.set_token(token);
                 ql::fill_error(&error_response,
                                Response::CLIENT_ERROR,
-                               Response::LOGIC,
+                               Response::QUERY_LOGIC,
                                unparseable_query_message,
                                ql::backtrace_registry_t::EMPTY_BACKTRACE);
                 send_response(error_response, handler, conn, interruptor);
@@ -266,7 +266,7 @@ public:
             error_response.set_token(response.token());
             ql::fill_error(&error_response,
                            Response::RUNTIME_ERROR,
-                           Response::RESOURCE,
+                           Response::RESOURCE_LIMIT,
                            too_large_response_message(str.GetSize() - prefix_size),
                            ql::backtrace_registry_t::EMPTY_BACKTRACE);
             send_response(error_response, handler, conn, interruptor);
@@ -302,7 +302,7 @@ public:
             error_response.set_token(0); // We don't actually know the token
             ql::fill_error(&error_response,
                            Response::CLIENT_ERROR,
-                           Response::RESOURCE,
+                           Response::RESOURCE_LIMIT,
                            too_large_query_message(size),
                            ql::backtrace_registry_t::EMPTY_BACKTRACE);
             send_response(error_response, handler, conn, interruptor);
@@ -317,7 +317,7 @@ public:
                                          query_out->get()->token() : 0);
                 ql::fill_error(&error_response,
                                Response::CLIENT_ERROR,
-                               Response::LOGIC,
+                               Response::QUERY_LOGIC,
                                unparseable_query_message,
                                ql::backtrace_registry_t::EMPTY_BACKTRACE);
                 send_response(error_response, handler, conn, interruptor);
@@ -337,7 +337,7 @@ public:
             error_response.set_token(response.token());
             ql::fill_error(&error_response,
                            Response::RUNTIME_ERROR,
-                           Response::RESOURCE,
+                           Response::RESOURCE_LIMIT,
                            too_large_response_message(data_size),
                            ql::backtrace_registry_t::EMPTY_BACKTRACE);
             send_response(error_response, handler, conn, interruptor);
@@ -729,7 +729,7 @@ void query_server_t::handle(const http_req_t &req,
     if (!parse_succeeded) {
         ql::fill_error(&response,
                        Response::CLIENT_ERROR,
-                       Response::LOGIC,
+                       Response::QUERY_LOGIC,
                        unparseable_query_message,
                        ql::backtrace_registry_t::EMPTY_BACKTRACE);
     } else {
@@ -799,7 +799,7 @@ void query_server_t::handle(const http_req_t &req,
         error_response.set_token(response.token());
         ql::fill_error(&error_response,
                        Response::RUNTIME_ERROR,
-                       Response::RESOURCE,
+                       Response::RESOURCE_LIMIT,
                        too_large_response_message(str.GetSize()),
                        ql::backtrace_registry_t::EMPTY_BACKTRACE);
         str.Clear();

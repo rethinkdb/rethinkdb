@@ -11,4 +11,4 @@ tests:
 
     # Error cases
     - js: r(null).typeOf(1)
-      ot: err('RqlCompileError', 'Expected 1 argument but found 2.', [0])
+      ot: err('ReqlCompileError', 'Expected 1 argument but found 2.', [0])

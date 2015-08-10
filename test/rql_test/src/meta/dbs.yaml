@@ -42,10 +42,10 @@ tests:
       ot: partial({'dbs_created':1})
 
     - cd: r.db_create('bar')
-      ot: err('RqlOpFailedError', 'Database `bar` already exists.', [0])
+      ot: err('ReqlOpFailedError', 'Database `bar` already exists.', [0])
 
     - cd: r.db_drop('bar')
       ot: partial({'dbs_dropped':1})
 
     - cd: r.db_drop('bar')
-      ot: err('RqlOpFailedError', 'Database `bar` does not exist.', [0])
+      ot: err('ReqlOpFailedError', 'Database `bar` does not exist.', [0])

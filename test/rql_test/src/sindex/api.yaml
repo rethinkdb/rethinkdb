@@ -26,16 +26,16 @@ tests:
     ot: ({'created':1})
 
   - cd: tbl.index_rename('rename-foo','rename-bar')
-    ot: err_regex('RqlOpFailedError','Index `rename-bar` already exists on table `[a-zA-Z0-9_]+.[a-zA-Z0-9_]+`[.]',[])
+    ot: err_regex('ReqlOpFailedError','Index `rename-bar` already exists on table `[a-zA-Z0-9_]+.[a-zA-Z0-9_]+`[.]',[])
 
   - cd: tbl.index_rename('rename-fake','rename-stuff')
-    ot: err_regex('RqlOpFailedError','Index `rename-fake` does not exist on table `[a-zA-Z0-9_]+.[a-zA-Z0-9_]+`[.]',[])
+    ot: err_regex('ReqlOpFailedError','Index `rename-fake` does not exist on table `[a-zA-Z0-9_]+.[a-zA-Z0-9_]+`[.]',[])
 
   - cd: tbl.index_rename('id','rename-stuff')
-    ot: err('RqlLogicError','Index name conflict:'+' `id` is the name of the primary key.',[])
+    ot: err('ReqlQueryLogicError','Index name conflict:'+' `id` is the name of the primary key.',[])
 
   - cd: tbl.index_rename('rename-stuff','id')
-    ot: err('RqlLogicError','Index name conflict:'+' `id` is the name of the primary key.',[])
+    ot: err('ReqlQueryLogicError','Index name conflict:'+' `id` is the name of the primary key.',[])
 
   - cd: tbl.index_rename('rename-foo','rename-foo')
     ot: ({'renamed':0})
@@ -124,7 +124,7 @@ tests:
   - rb: tbl.index_create('ai') {|row| row[:a]}
     py: tbl.index_create('ai', r.row['a'])
     js: tbl.indexCreate('ai', r.row('a'))
-    ot: err_regex("RqlOpFailedError", "Index `ai` already exists on table `[a-zA-Z0-9_]+.[a-zA-Z0-9_]+`[.]", [])
+    ot: err_regex("ReqlOpFailedError", "Index `ai` already exists on table `[a-zA-Z0-9_]+.[a-zA-Z0-9_]+`[.]", [])
   - rb: tbl.index_create('bi') {|row| row[:b]}
     py: tbl.index_create('bi', r.row['b'])
     js: tbl.indexCreate('bi', r.row('b'))
@@ -174,7 +174,7 @@ tests:
     ot: ({'replaced':0,'skipped':0,'deleted':0,'unchanged':1,'errors':0,'inserted':0})
   - rb: tbl.get(1, :ai)
     cd: tbl.get(1, 'ai')
-    ot: err("RqlCompileError", "Expected 2 arguments but found 3.", [])
+    ot: err("ReqlCompileError", "Expected 2 arguments but found 3.", [])
 
   - rb: tbl.get_all(true, :index => :id)
     py: tbl.get_all(True, index='id')
@@ -237,15 +237,15 @@ tests:
   - rb: tbl.get_all(0, :index => :fake)
     py: tbl.get_all(0, index='fake')
     js: tbl.getAll(0, {index:'fake'})
-    ot: err_regex("RqlOpFailedError", "Index `fake` was not found on table `[a-zA-Z0-9_]+.[a-zA-Z0-9_]+`[.]", [])
+    ot: err_regex("ReqlOpFailedError", "Index `fake` was not found on table `[a-zA-Z0-9_]+.[a-zA-Z0-9_]+`[.]", [])
 
   - cd: tbl.get_all(r.point(0, 0))
-    ot: err("RqlLogicError", "Cannot use a geospatial index with `get_all`. Use `get_intersecting` instead.", [])
+    ot: err("ReqlQueryLogicError", "Cannot use a geospatial index with `get_all`. Use `get_intersecting` instead.", [])
 
   - rb: tbl.get_all(0, :index => false)
     py: tbl.get_all(0, index=False)
     js: tbl.getAll(0, {index:false})
-    ot: err("RqlLogicError", "Expected type STRING but found BOOL.", [])
+    ot: err("ReqlQueryLogicError", "Expected type STRING but found BOOL.", [])
 
   - rb: tbl.get_all(true, :index => :id)
     py: tbl.get_all(True, index='id')
@@ -285,11 +285,11 @@ tests:
   - rb: tbl.get_all(1, :index => :bi).orderby(:index => :id).map{|x| x[:id]}
     py: tbl.get_all(1, index='bi').order_by(index='id').map(lambda x:x['id'])
     js: tbl.getAll(1, {index:'bi'}).orderBy({index:'id'}).map(function(x) { return x('id'); })
-    ot: err('RqlLogicError', 'Indexed order_by can only be performed on a TABLE or TABLE_SLICE.', [0])
+    ot: err('ReqlQueryLogicError', 'Indexed order_by can only be performed on a TABLE or TABLE_SLICE.', [0])
   - rb: tbl.get_all(1, :index => :bi).between(1, 1, :index => :id).map{|x| x[:id]}
     py: tbl.get_all(1, index='bi').between(1, 1, index='id').map(lambda x:x['id'])
     js: tbl.getAll(1, {index:'bi'}).between(1, 1, {index:'id'}).map(function(x) { return x('id'); })
-    ot: err('RqlLogicError', 'Expected type TABLE_SLICE but found SELECTION.', [0])
+    ot: err('ReqlQueryLogicError', 'Expected type TABLE_SLICE but found SELECTION.', [0])
   - rb: tbl.get_all(1, :index => :ci).orderby(:id).map{|x| x[:id]}
     py: tbl.get_all(1, index='ci').order_by('id').map(lambda x:x['id'])
     js: tbl.getAll(1, {index:'ci'}).orderBy('id').map(function(x) { return x('id'); })
@@ -330,11 +330,11 @@ tests:
   - rb: tbl.eq_join(:id, tbl, :index => :fake)
     py: tbl.eq_join('id', tbl, index='fake')
     js: tbl.eqJoin('id', tbl, {index:'fake'})
-    ot: err_regex("RqlOpFailedError", "Index `fake` was not found on table `[a-zA-Z0-9_]+.[a-zA-Z0-9_]+`[.]", [])
+    ot: err_regex("ReqlOpFailedError", "Index `fake` was not found on table `[a-zA-Z0-9_]+.[a-zA-Z0-9_]+`[.]", [])
   - rb: tbl.eq_join(:id, tbl, :index => false)
     py: tbl.eq_join('id', tbl, index=False)
     js: tbl.eqJoin('id', tbl, {index:false})
-    ot: err("RqlLogicError", "Expected type STRING but found BOOL.", [])
+    ot: err("ReqlQueryLogicError", "Expected type STRING but found BOOL.", [])
 
   - rb: tbl.filter({:id => 1}).eq_join(:id, tbl, :index => :mi)
     py: tbl.filter({'id':1}).eq_join('id', tbl, index='mi')
@@ -407,7 +407,7 @@ tests:
           {'left':rows[3],'right':rows[3]}])
 
   - cd: tbl.index_create('id')
-    ot: 'err("RqlLogicError", "Index name conflict: `id` is the name of the primary key.", [])'
+    ot: 'err("ReqlQueryLogicError", "Index name conflict: `id` is the name of the primary key.", [])'
 
   - cd: tbl.index_create('c')
     ot: ({'created':1})
@@ -435,9 +435,9 @@ tests:
     py: tbl.get_all(null, index='nil')
     js: tbl.getAll(null, {index:'nil'})
     ot:
-      py: err("RqlNonExistenceError", "Secondary keys must be a number, string, bool, pseudotype, or array (got nu""ll of type NULL).", [])
-      rb: err("RqlNonExistenceError", "Secondary keys must be a number, string, bool, pseudotype, or array (got nu""ll of type NULL).", [])
-      js: err("RqlNonExistenceError", "Secondary keys must be a number, string, bool, pseudotype, or array (got null of type NULL).", [])
+      py: err("ReqlNonExistenceError", "Secondary keys must be a number, string, bool, pseudotype, or array (got nu""ll of type NULL).", [])
+      rb: err("ReqlNonExistenceError", "Secondary keys must be a number, string, bool, pseudotype, or array (got nu""ll of type NULL).", [])
+      js: err("ReqlNonExistenceError", "Secondary keys must be a number, string, bool, pseudotype, or array (got null of type NULL).", [])
 
   - rb: tbl.insert({:id => 4, :a => 4, :b => 4, :c => 4, :m => [14,15,16]})
     cd: tbl.insert({'id':4, 'a':4, 'b':4, 'c':4, 'm':[14,15,16]})
@@ -477,7 +477,7 @@ tests:
       - tbl.between(null, 2, :index => 'id').count()
       - tbl.between(2, null, :index => 'id').count()
       - tbl.between(null, null, :index => 'id').count()
-    ot: err('RqlLogicError', 'Cannot use `nu' + 'll` in BETWEEN, use `r.minval` or `r.maxval` to denote unboundedness.')
+    ot: err('ReqlQueryLogicError', 'Cannot use `nu' + 'll` in BETWEEN, use `r.minval` or `r.maxval` to denote unboundedness.')
 
   - rb: tbl.between(r.minval, r.maxval).orderby(:id).map{|x| x[:id]}
     py: tbl.between(r.minval, r.maxval).order_by('id').map(lambda x:x['id'])
@@ -490,7 +490,7 @@ tests:
   - rb: tbl.between(r.minval, r.maxval).between(r.minval, r.maxval).map{|x| x[:id]}
     py: tbl.between(r.minval, r.maxval).between(r.minval, r.maxval).map(lambda x:x['id'])
     js: tbl.between(r.minval, r.maxval).between(r.minval, r.maxval).map(function(x) { return x('id'); })
-    ot: err('RqlLogicError', 'Cannot perform multiple BETWEENs on the same table.', [0])
+    ot: err('ReqlQueryLogicError', 'Cannot perform multiple BETWEENs on the same table.', [0])
   - rb: tbl.order_by(index:'id').between(r.minval, 3).map{|x| x[:id]}
     py: tbl.order_by(index='id').between(r.minval, 3).map(lambda x:x['id'])
     js: tbl.orderBy({index:'id'}).between(r.minval, 3).map(function(x) { return x('id'); })

@@ -8,13 +8,13 @@ tests:
       ot: [3,4,5]
 
     - cd: arr.skip('a')
-      ot: err("RqlLogicError", "Expected type NUMBER but found STRING.", [1])
+      ot: err("ReqlQueryLogicError", "Expected type NUMBER but found STRING.", [1])
 
     - cd: arr.skip([1,2,3])
-      ot: err("RqlLogicError", "Expected type NUMBER but found ARRAY.", [1])
+      ot: err("ReqlQueryLogicError", "Expected type NUMBER but found ARRAY.", [1])
 
     - cd: arr.skip({}).count()
-      ot: err("RqlLogicError", "Expected type NUMBER but found OBJECT.", [0, 1])
+      ot: err("ReqlQueryLogicError", "Expected type NUMBER but found OBJECT.", [0, 1])
 
     - cd: arr.skip(null)
-      ot: err("RqlNonExistenceError", "Expected type NUMBER but found NULL.", [1])
+      ot: err("ReqlNonExistenceError", "Expected type NUMBER but found NULL.", [1])

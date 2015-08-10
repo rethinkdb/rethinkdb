@@ -76,11 +76,11 @@ tests:
     # test atomicity constraints
     - cd: tbl.get(1).replace(r.row.merge({'c':r.js('5')}))
       rb: tbl.get(1).replace{ |row| row.merge({'c':r.js('5')}) }
-      ot: err('RqlLogicError', 'Could not prove argument deterministic.  Maybe you want to use the non_atomic flag?', [0])
+      ot: err('ReqlQueryLogicError', 'Could not prove argument deterministic.  Maybe you want to use the non_atomic flag?', [0])
 
     - cd: tbl.get(1).replace(r.row.merge({'c':tbl.nth(0)}))
       rb: tbl.get(1).replace{ |row| row.merge({'c':tbl.nth(0)}) }
-      ot: err('RqlLogicError', 'Could not prove argument deterministic.  Maybe you want to use the non_atomic flag?', [0])
+      ot: err('ReqlQueryLogicError', 'Could not prove argument deterministic.  Maybe you want to use the non_atomic flag?', [0])
 
     - py: tbl.get(1).replace(r.row.merge({'c':r.js('5')}), non_atomic=True)
       js: tbl.get(1).replace(r.row.merge({'c':r.js('5')}), {'nonAtomic':true})
@@ -89,11 +89,11 @@ tests:
 
     - js: tbl.get(1).replace({}, 'foo')
       cd: []
-      ot: err('RqlDriverError', 'Expected 1 argument (not including options) but found 2.')
+      ot: err('ReqlDriverError', 'Expected 1 argument (not including options) but found 2.')
 
     - js: tbl.get(1).replace({}, {'foo':'bar'})
       cd: []
-      ot: err('RqlCompileError', 'Unrecognized optional argument `foo`.')
+      ot: err('ReqlCompileError', 'Unrecognized optional argument `foo`.')
 
     # Replace whole table
 

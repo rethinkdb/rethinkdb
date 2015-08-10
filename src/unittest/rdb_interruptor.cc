@@ -287,7 +287,7 @@ public:
         res->set_token(query->token());
         ql::fill_error(res,
                        Response::RUNTIME_ERROR,
-                       Response::LOGIC,
+                       Response::QUERY_LOGIC,
                        stop_query_message,
                        ql::backtrace_registry_t::EMPTY_BACKTRACE);
     }

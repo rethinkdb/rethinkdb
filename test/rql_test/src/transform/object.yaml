@@ -99,13 +99,13 @@ tests:
 
     # errors
     - cd: "r.literal('foo')"
-      ot: err("RqlLogicError", errmsg, [])
+      ot: err("ReqlQueryLogicError", errmsg, [])
 
     - cd: "obj.merge(r.literal('foo'))"
-      ot: err("RqlLogicError", errmsg, [])
+      ot: err("ReqlQueryLogicError", errmsg, [])
 
     - cd: "obj.merge({'foo':r.literal(r.literal('foo'))})"
-      ot: err("RqlLogicError", errmsg, [])
+      ot: err("ReqlQueryLogicError", errmsg, [])
 
     - def: o = r.expr({'a':{'b':1, 'c':2}, 'd':3})
 

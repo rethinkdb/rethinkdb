@@ -302,7 +302,7 @@ tests:
         - tbl.reduce(function(a,b){return a+b}).group(function(row){})
         - tbl.reduce(function(a,b){return a+b}).map(function(row){})
         - tbl.reduce(function(a,b){return a+b}).reduce(function(row){})
-      ot: err('RqlDriverError', 'Anonymous function returned `undefined`. Did you forget a `return`?', [0])
+      ot: err('ReqlDriverError', 'Anonymous function returned `undefined`. Did you forget a `return`?', [0])
 
     # GroupBy
 
@@ -445,7 +445,7 @@ tests:
       ot: 4
 
     - cd: tbl.group()
-      ot: err('RqlLogicError', 'Cannot group by nothing.', [])
+      ot: err('ReqlQueryLogicError', 'Cannot group by nothing.', [])
 
     - py: tbl.group(index='id').count()
       js: tbl.group({index:'id'}).count()
