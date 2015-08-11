@@ -1,7 +1,5 @@
 package com.rethinkdb;
 
-import com.rethinkdb.ast.Query;
-import com.rethinkdb.model.GlobalOptions;
 import com.rethinkdb.net.Connection;
 import junit.framework.TestCase;
 
@@ -13,11 +11,11 @@ public class RethinkDBTest extends TestCase {
 
     public void setUp() throws Exception {
         super.setUp();
-        System.out.println("Set up!");
+        System.out.println("Set up!"); //RSI
     }
 
     public void tearDown() throws Exception {
-        System.out.println("Tear down!");
+        System.out.println("Tear down!"); //RSI
     }
 
     public void testBuildConnection() throws Exception {
@@ -25,7 +23,7 @@ public class RethinkDBTest extends TestCase {
                 .hostname("newton")
                 .port(31157)
                 .connect();
-        Optional<Object> res = r.random().run(conn);
-
+        Optional<Object> res = r.uuid().run(conn);
+        assertEquals(res.get().getClass(), String.class);
     }
 }

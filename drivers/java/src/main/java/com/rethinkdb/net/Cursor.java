@@ -55,12 +55,12 @@ public abstract class Cursor<T> implements Iterator<T> {
 
     void extend(Response response) {
         outstandingRequests -= 1;
-        threshold = response.data.map(JSONArray::size).orElse(0);
+        threshold = response.data.size();
         if(!error.isPresent()){
             if(response.isPartial()){
-                items.addAll(response.data.orElse(new JSONArray()));
+                items.addAll(response.data);
             } else if(response.isSequence()) {
-                items.addAll(response.data.orElse(new JSONArray()));
+                items.addAll(response.data);
                 error = Optional.of(new NoSuchElementException());
             } else {
                 error = Optional.of(response.makeError(query));
@@ -86,10 +86,10 @@ public abstract class Cursor<T> implements Iterator<T> {
             error = Optional.of(new ReqlRuntimeError(errMsg));
             Response dummyResponse = new Response(query.token,
                     ResponseType.SUCCESS_SEQUENCE,
+                    new JSONArray(),
                     new ArrayList<>(),
                     Optional.empty(),
-                    Optional.empty(),
-                    Optional.of(new JSONArray())
+                    Optional.empty()
                     );
             extend(dummyResponse);
         }

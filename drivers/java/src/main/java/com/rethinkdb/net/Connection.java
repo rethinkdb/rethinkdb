@@ -134,9 +134,16 @@ public class Connection<C extends ConnectionInstance> {
         Response res = inst.readResponse(query.token);
 
         // TODO: This logic needs to move into the Response class
-        if(res.isAtom()){
-            return Optional.of(
-                    Response.convertPseudotypes(res.data.get(), res.profile));
+        System.out.println(res.toString()); //RSI
+        if(res.isAtom()) {
+            try {
+                return Optional.of(Response.convertPseudotypes(
+                        res.data,
+                        res.profile
+                ).get(0));
+            } catch (IndexOutOfBoundsException ex){
+                throw new ReqlDriverError("Atom response was empty!", ex);
+            }
         } else if(res.isPartial() || res.isSequence()) {
             Cursor cursor = Cursor.empty(this, query);
             cursor.extend(res);
