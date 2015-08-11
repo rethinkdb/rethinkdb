@@ -78,7 +78,9 @@ continue_bool_t store_t::send_backfill_pre(
     std::sort(reference_timestamps.begin(), reference_timestamps.end(),
         [](const std::pair<key_range_t, repli_timestamp_t> &p1,
                 const std::pair<key_range_t, repli_timestamp_t> &p2) -> bool {
-            guarantee(!p1.first.overlaps(p2.first));
+            /* Note that the OS X std::sort implementation sometimes calls the
+            comparison operator on an element itself. */
+            guarantee(&p1 == &p2 || !p1.first.overlaps(p2.first));
             return p1.first.left < p2.first.left;
         });
     for (const auto &pair : reference_timestamps) {
