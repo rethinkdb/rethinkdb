@@ -934,10 +934,6 @@ options::help_section_t get_file_options(std::vector<options::option_t> *options
                                              options::OPTIONAL));
     help.add("--cache-size mb", "total cache size (in megabytes) for the process. Can "
         "be 'auto'.");
-    options_out->push_back(options::option_t(options::names_t("--migrate-inconsistent-data"),
-                                             options::OPTIONAL_NO_PARAMETER));
-    help.add("--migrate-inconsistent-data", "discard inconsistent data when migrating "
-             "from an older version.");
     return help;
 }
 
