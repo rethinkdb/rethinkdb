@@ -6,15 +6,14 @@ import com.rethinkdb.proto.ErrorType;
 import com.rethinkdb.proto.ResponseType;
 import com.rethinkdb.proto.ResponseNote;
 import com.rethinkdb.ast.Query;
-import com.rethinkdb.response.Backtrace;
-import com.rethinkdb.response.Profile;
+import com.rethinkdb.model.Backtrace;
+import com.rethinkdb.model.Profile;
 import org.json.simple.*;
 
+import java.io.ByteArrayInputStream;
 import java.util.*;
 import java.nio.ByteBuffer;
 import java.io.InputStreamReader;
-import java.io.InputStream;
-import java.io.IOException;
 import java.util.stream.Collectors;
 
 
@@ -23,37 +22,20 @@ class Response {
     public final ResponseType type;
     public final ArrayList<ResponseNote> notes;
 
-    public final Optional<JSONArray> data;
+    public final JSONArray data;
     public final Optional<Profile> profile;
     public final Optional<Backtrace> backtrace;
     public final Optional<ErrorType> errorType;
 
 
-    private static class ByteBufferInputStream extends InputStream {
-        ByteBuffer buf;
-        ByteBufferInputStream(ByteBuffer buf) {
-            this.buf = buf;
-        }
-
-        public synchronized int read() throws IOException {
-            if(!buf.hasRemaining()){
-                return -1;
-            }
-            return buf.get();
-        }
-
-        public synchronized int read(byte[] bytes, int off, int len) throws IOException {
-            len = Math.min(len, buf.remaining());
-            buf.get(bytes, off, len);
-            return len;
-        }
-    }
-
     public static Response parseFrom(long token, ByteBuffer buf) {
+        System.out.println("Received: "+Util.bufferToString(buf));
         InputStreamReader codepointReader =
-            new InputStreamReader(new ByteBufferInputStream(buf));
+            new InputStreamReader(new ByteArrayInputStream(buf.array()));
         JSONObject jsonResp = (JSONObject) JSONValue.parse(codepointReader);
-        ResponseType responseType = ResponseType.fromValue((int)jsonResp.get("t"));
+        ResponseType responseType = ResponseType.fromValue(
+                ((Long) jsonResp.get("t")).intValue()
+        );
         ArrayList<Integer> responseNoteVals = (ArrayList<Integer>) jsonResp
             .getOrDefault("n", new ArrayList());
         ArrayList<ResponseNote> responseNotes = responseNoteVals
@@ -61,70 +43,70 @@ class Response {
             .map(ResponseNote::fromValue)
             .collect(Collectors.toCollection(ArrayList::new));
         ErrorType et = (ErrorType) jsonResp.getOrDefault("e", null);
-        ResponseBuilder res = new ResponseBuilder(token, responseType);
+        Builder res = new Builder(token, responseType);
         if(jsonResp.containsKey("e")){
             res.setErrorType((int) jsonResp.get("e"));
         }
-        return res.setProfile((JSONObject) jsonResp.getOrDefault("p", null))
-                .setBacktrace((JSONObject) jsonResp.getOrDefault("b", null))
-                .setData((JSONArray) jsonResp.getOrDefault("r", null))
+        return res.setProfile((JSONArray) jsonResp.getOrDefault("p", null))
+                .setBacktrace((JSONArray) jsonResp.getOrDefault("b", null))
+                .setData((JSONArray) jsonResp.getOrDefault("r", new JSONArray()))
                 .build();
     }
 
     private Response(long token,
-             ResponseType responseType,
-             ArrayList<ResponseNote> responseNotes,
-             Optional<Profile> profile,
-             Optional<Backtrace> backtrace,
-             Optional<JSONArray> data,
-             Optional<ErrorType> errorType
+                     ResponseType responseType,
+                     JSONArray data,
+                     ArrayList<ResponseNote> responseNotes,
+                     Optional<Profile> profile,
+                     Optional<Backtrace> backtrace,
+                     Optional<ErrorType> errorType
     ) {
         this.token = token;
         this.type = responseType;
+        this.data = data;
         this.notes = responseNotes;
         this.profile = profile;
         this.backtrace = backtrace;
-        this.data = data;
         this.errorType = errorType;
     }
 
-    static class ResponseBuilder {
+    static class Builder {
         long token;
         ResponseType responseType;
         ArrayList<ResponseNote> notes = new ArrayList<>();
-
-        Optional<JSONArray> data;
+        JSONArray data = new JSONArray();
         Optional<Profile> profile;
         Optional<Backtrace> backtrace;
         Optional<ErrorType> errorType;
 
-        ResponseBuilder(long token, ResponseType responseType){
+        Builder(long token, ResponseType responseType){
             this.token = token;
             this.responseType = responseType;
         }
 
-        ResponseBuilder setNotes(ArrayList<ResponseNote> notes){
+        Builder setNotes(ArrayList<ResponseNote> notes){
             this.notes.addAll(notes);
             return this;
         }
 
-        ResponseBuilder setData(JSONArray data){
-            this.data = Optional.ofNullable(data);
+        Builder setData(JSONArray data){
+            if(data != null){
+                this.data = data;
+            }
             return this;
         }
 
-        ResponseBuilder setProfile(JSONObject profile) {
-            this.profile = Optional.of(Profile.fromJSONObject(profile));
+        Builder setProfile(JSONArray profile) {
+            this.profile = Profile.fromJSONArray(profile);
             return this;
         }
 
-        ResponseBuilder setBacktrace(JSONObject backtrace) {
-            this.backtrace = Optional.of(
-                    Backtrace.fromJSONObject(backtrace));
+        Builder setBacktrace(JSONArray backtrace) {
+            this.backtrace = Backtrace.fromJSONArray(backtrace);
             return this;
         }
 
-        ResponseBuilder setErrorType(int value) {
+        Builder setErrorType(int value) {
             this.errorType = Optional.of(ErrorType.fromValue(value));
             return this;
         }
@@ -133,13 +115,17 @@ class Response {
             return new Response(
                     token,
                     responseType,
+                    data,
                     notes,
                     profile,
                     backtrace,
-                    data,
                     errorType
             );
         }
+    }
+
+    static Builder make(long token, ResponseType type){
+        return new Builder(token, type);
     }
 
     boolean isWaitComplete() {
@@ -156,9 +142,9 @@ class Response {
         return type.isError();
     }
 
-    static JSONObject convertPseudotypes(
-            JSONObject obj, Optional<Profile> profile) {
-        throw new RuntimeException("convertPseudotypes not implemented");
+    public static JSONArray convertPseudotypes(
+            JSONArray obj, Optional<Profile> profile) {
+        return obj; // TODO remove pass-through
     }
 
     /* What type of success the response contains */
@@ -175,11 +161,25 @@ class Response {
     }
 
     ReqlError makeError(Query query) {
-        return new ErrorBuilder(data.map(d -> (String) d.get(0))
-                .orElse("Unknown error message"), type)
+        String msg = data.size() > 0 ?
+                (String) data.get(0)
+                : "Unknown error message";
+        return new ErrorBuilder(msg, type)
                 .setBacktrace(backtrace)
                 .setErrorType(errorType)
                 .setTerm(query)
                 .build();
+    }
+
+    @Override
+    public String toString() {
+        return "Response{" +
+                "token=" + token +
+                ", type=" + type +
+                ", notes=" + notes +
+                ", data=" + data +
+                ", profile=" + profile +
+                ", backtrace=" + backtrace +
+                '}';
     }
 }

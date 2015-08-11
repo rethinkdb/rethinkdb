@@ -4,7 +4,7 @@ import com.rethinkdb.ast.Query;
 import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.proto.ErrorType;
 import com.rethinkdb.proto.ResponseType;
-import com.rethinkdb.response.Backtrace;
+import com.rethinkdb.model.Backtrace;
 
 import java.util.Optional;
 import java.util.function.Supplier;

@@ -2,8 +2,6 @@ package com.rethinkdb.net;
 
 import com.rethinkdb.ReqlDriverError;
 import com.rethinkdb.ReqlError;
-import com.rethinkdb.ast.Query;
-import com.rethinkdb.response.Response;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
