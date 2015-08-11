@@ -118,7 +118,7 @@ tests:
       ot: bag(erroredres)
 
     - cd: postmap_changes1
-      ot: err('ReqlNonExistenceError', "No attribute `dummy` in object.")
+      ot: err('ReqlNonExistenceError', "No attribute `dummy` in object:")
 
     - cd: postmap_changes2
       ot: err('ReqlNonExistenceError', "Index out of bounds:" + " 1")

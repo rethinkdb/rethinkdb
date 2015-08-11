@@ -62,7 +62,7 @@ function printTestFailure(test, result) {
         console.log("     BACKTRACE:\n<<<<<<<<<\n" + result.stack.toString() + "\n>>>>>>>>")
     }
     if (result.cmpMsg) {
-        console.log("     RAW RESULT:\n<<<<<<<<<\n" + result.msg.replace(/^\s+|\s+$/g, '') + "\n>>>>>>>>")
+        console.log("     RAW RESULT:\n<<<<<<<<<\n" + (result.msg || result.message).replace(/^\s+|\s+$/g, '') + "\n>>>>>>>>")
     }
     console.log('')
 }
@@ -343,7 +343,7 @@ function runTest() {
                 
                 test.exp_fun = exp_fun;
                 
-                TRACE('expected value: ' + stringValue(test.exp_fun) + ' from ' + stringValue(test.expectedSrc))
+                TRACE('expected value: <<' + stringValue(test.exp_fun) + '>> from <<' + stringValue(test.expectedSrc) + '>>')
                 
                 // - evaluate the test
                 
@@ -389,8 +389,7 @@ function runTest() {
                         }
                     }
                 } catch (result) {
-                    TRACE("querry error - " + stringValue(result))
-                    TRACE("stack: " + String(result.stack));
+                    TRACE("error result: " + stringValue(result))
                     processResult(result, null, test); // will go on to next test
                     return;
                 }
@@ -837,10 +836,11 @@ function err_predicate(err_name, err_pred, err_frames, desc) {
     var fun = function err_predicate_return (other) {
         if (other instanceof Error) {
             // Strip out "offending object" from err message
-            other.cmpMsg = other.msg
-            other.cmpMsg = other.cmpMsg.replace(/^([^\n]*):\n[\s\S]*$/, '$1.');
+            other.cmpMsg = other.msg || other.message
+            other.cmpMsg = other.cmpMsg.replace(/^([^\n]*?)(?: in)?:\n[\s\S]*$/, '$1:');
             other.cmpMsg = other.cmpMsg.replace(/\nFailed assertion: .*/, "");
             other.cmpMsg = other.cmpMsg.replace(/\nStack:\n[\s\S]*$/, "");
+            TRACE("Translate msg: <<" + (other.message || other.msg) + ">> => <<" + other.cmpMsg + ">>")
         }
         
         if (!(other instanceof err_class)) return false;

@@ -60,7 +60,7 @@ with driver.Cluster(initial_servers=2, console_output=True) as cluster:
     try:
         next(changefeed)
         sys.exit('Failure: did not get a exception on the changefeed as expected!')
-    except r.errors.RqlRuntimeError:
+    except r.errors.ReqlRuntimeError:
         pass
     
     # == check that the first server can close gracefully

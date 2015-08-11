@@ -8,7 +8,7 @@ tests:
       ot: err("ReqlDriverError", "Expected between 1 and 3 arguments but found 4.")
 
     - js: tbl.indexCreate('a', 'b')
-      ot: err("ReqlQueryLogicError", "Expected type FUNCTION but found DATUM.")
+      ot: err("ReqlQueryLogicError", "Expected type FUNCTION but found DATUM:")
 
     - js: tbl.indexCreate('a')
       ot: ({'created':1})

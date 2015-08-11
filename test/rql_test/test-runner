@@ -1385,7 +1385,7 @@ class WorkerThread(threading.Thread):
                 self.reqlConnection = r.connect(host=self.server.host, port=self.server.driver_port)
             r.db_list().run(self.reqlConnection)
         
-        except (RuntimeError, r.RqlDriverError):
+        except (RuntimeError, r.ReqlDriverError):
             if self.existingServer:
                 raise Exception('External server stopped responding while testing') # ToDo: make this a better error
             else:

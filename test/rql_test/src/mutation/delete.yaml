@@ -47,4 +47,4 @@ tests:
 
     # test deletion on a non-deletable object
     - cd: r.expr([1, 2]).delete()
-      ot: err('ReqlQueryLogicError', 'Expected type SELECTION but found DATUM.', [0])
+      ot: err('ReqlQueryLogicError', 'Expected type SELECTION but found DATUM:', [0])

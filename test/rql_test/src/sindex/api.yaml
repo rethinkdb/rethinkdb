@@ -289,7 +289,7 @@ tests:
   - rb: tbl.get_all(1, :index => :bi).between(1, 1, :index => :id).map{|x| x[:id]}
     py: tbl.get_all(1, index='bi').between(1, 1, index='id').map(lambda x:x['id'])
     js: tbl.getAll(1, {index:'bi'}).between(1, 1, {index:'id'}).map(function(x) { return x('id'); })
-    ot: err('ReqlQueryLogicError', 'Expected type TABLE_SLICE but found SELECTION.', [0])
+    ot: err('ReqlQueryLogicError', 'Expected type TABLE_SLICE but found SELECTION:', [0])
   - rb: tbl.get_all(1, :index => :ci).orderby(:id).map{|x| x[:id]}
     py: tbl.get_all(1, index='ci').order_by('id').map(lambda x:x['id'])
     js: tbl.getAll(1, {index:'ci'}).orderBy('id').map(function(x) { return x('id'); })

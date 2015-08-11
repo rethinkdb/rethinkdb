@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-import atexit, itertools, os, re, sys, time
+import atexit, itertools, os, re, sys, time, warnings
 from datetime import datetime, tzinfo, timedelta
 
 stashedPath = sys.path
@@ -68,7 +68,7 @@ DEBUG_ENABLED = os.environ.get('VERBOSE', 'false').lower() == 'true'
 
 def print_debug(message):
     if DEBUG_ENABLED:
-        sys.stderr.write('DEBUG (%.2f):\t %s\n' % (time.time() - start_time, message.rstrip()))
+        print('DEBUG (%.2f):\t %s' % (time.time() - start_time, message.rstrip()))
 
 DRIVER_PORT = int(sys.argv[1] if len(sys.argv) > 1 else os.environ.get('RDB_DRIVER_PORT'))
 print_debug('Using driver port: %d' % DRIVER_PORT)
@@ -203,7 +203,7 @@ class Dct:
         return repr(self.dct)
 
 class Err:
-    inRegex = re.compile('^(?P<message>[^\n]*?):\n.*$', flags=re.DOTALL)
+    inRegex = re.compile('^(?P<message>[^\n]*?)(?: in)?:\n.*$', flags=re.DOTALL)
     assertionRegex = re.compile('^(?P<message>[^\n]*?)\nFailed assertion:.*$', flags=re.DOTALL)
     
     def __init__(self, err_type=None, message=None, err_frames=None, regex=False, **kwargs):
@@ -230,14 +230,19 @@ class Err:
         
         # -- message
         
-        otherMessage = str(other.message)
-        
         # Strip details from output message
-        otherMessage = re.sub(self.inRegex, '\g<message>.', otherMessage)
+        otherMessage = None
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            if hasattr(other, 'message'):
+                otherMessage = str(other.message)
+            else:
+                otherMessage = str(other)
+        otherMessage = re.sub(self.inRegex, '\g<message>:', otherMessage)
         otherMessage = re.sub(self.assertionRegex, '\g<message>', otherMessage)
         
         if self.regex:
-            if not re.match(self.message, otherMessage):
+            if not re.match(unicode(self.message), otherMessage):
                 return False
         else:
             if not self.message == otherMessage:

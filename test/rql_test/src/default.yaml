@@ -55,7 +55,7 @@ tests:
       ot: (null)
     - cd: r.expr({})['b'].default(r.error())
       js: r.expr({})('b').default(r.error())
-      ot: err("ReqlNonExistenceError", "No attribute `b` in object.", [])
+      ot: err("ReqlNonExistenceError", "No attribute `b` in object:", [])
     - rb: r.expr([]).reduce{|a,b| a+b}.default(r.error)
       py: r.expr([]).reduce(lambda a,b:a+b).default(r.error)
       js: r.expr([]).reduce(function(a,b){return a+b}).default(r.error)
@@ -139,7 +139,7 @@ tests:
     - cd: arr.filter(:default => r.error){|x| x['a'].eq(1)}
       py: arr.filter(lambda x:x['a'].eq(1), default=r.error())
       js: arr.filter(function(x){return x('a').eq(1)}, {'default':r.error()})
-      ot: err("ReqlNonExistenceError", "No attribute `a` in object.", [])
+      ot: err("ReqlNonExistenceError", "No attribute `a` in object:", [])
 
     - cd: r.expr(false).do{|d| arr.filter(:default => d){|x| x['a'].eq(1)}}
       py: r.expr(False).do(lambda d:arr.filter(lambda x:x['a'].eq(1), default=d))
@@ -187,7 +187,7 @@ tests:
     - cd: arr.filter(:default => r.error){|x| x['a'].eq(1).or(x['a']['b'].eq(2))}
       py: arr.filter(lambda x:r.or_(x['a'].eq(1), x['a']['b'].eq(2)), default=r.error())
       js: arr.filter(function(x){return x('a').eq(1).or(x('a')('b').eq(2))}, {default:r.error()})
-      ot: err("ReqlNonExistenceError", "No attribute `a` in object.", [])
+      ot: err("ReqlNonExistenceError", "No attribute `a` in object:", [])
 
     - cd: r.table_create('default_test')
       ot: partial({'tables_created':1})
@@ -212,7 +212,7 @@ tests:
     - cd: tbl.filter(:default => r.error){|x| x['a'].eq(1)}
       py: tbl.filter(lambda x:x['a'].eq(1), default=r.error())
       js: tbl.filter(function(x){return x('a').eq(1)}, {'default':r.error()})
-      ot: err("ReqlNonExistenceError", "No attribute `a` in object.", [])
+      ot: err("ReqlNonExistenceError", "No attribute `a` in object:", [])
 
     - cd: r.expr(false).do{|d| tbl.filter(:default => d){|x| x['a'].eq(1)}}
       py: r.expr(False).do(lambda d:tbl.filter(lambda x:x['a'].eq(1), default=d))
@@ -260,7 +260,7 @@ tests:
     - cd: tbl.filter(:default => r.error){|x| x['a'].eq(1).or(x['a']['b'].eq(2))}
       py: tbl.filter(lambda x:r.or_(x['a'].eq(1), x['a']['b'].eq(2)), default=r.error())
       js: tbl.filter(function(x){return x('a').eq(1).or(x('a')('b').eq(2))}, {default:r.error()})
-      ot: err("ReqlNonExistenceError", "No attribute `a` in object.", [])
+      ot: err("ReqlNonExistenceError", "No attribute `a` in object:", [])
 
     - cd: r.table_drop('default_test')
       ot: partial({'tables_dropped':1})

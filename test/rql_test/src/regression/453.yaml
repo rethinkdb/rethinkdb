@@ -8,7 +8,7 @@ tests:
   - js: tbl.map(function(x) { return tbl; })
     py: "tbl.map(lambda x: tbl)"
     rb: tbl.map{ |x| tbl }
-    ot: err("ReqlQueryLogicError", 'Expected type DATUM but found TABLE.', [0])
+    ot: err("ReqlQueryLogicError", 'Expected type DATUM but found TABLE:', [0])
 
   - js: tbl.map(function(x) { return tbl.coerceTo('array'); }).count()
     py: "tbl.map(lambda x: tbl.coerce_to('array')).count()"

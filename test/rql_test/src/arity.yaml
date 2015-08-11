@@ -33,7 +33,6 @@ tests:
     - rb: db.table_list(1)
       ot: err("ReqlCompileError", "Expected between 0 and 1 arguments but found 2.", [])
 
-
     - ot: err("ReqlCompileError", "Expected 1 argument but found 0.", [])
       cd:
       - r.db_create()
@@ -53,13 +52,11 @@ tests:
 
     - cd: r.expr()
       ot:
-        py3: err_regex('TypeError', '.* missing 1 required positional argument.*', [])
-        py3.0: err_regex('TypeError', '.*takes at least 1 positional argument \(0 given\)', [])
-        py3.1: err_regex('TypeError', '.*takes at least 1 positional argument \(0 given\)', [])
-        py3.2: err_regex('TypeError', '.*takes at least 1 argument \(0 given\)', [])
-        py: err_regex('TypeError', ".*takes at least 1 argument \(0 given\)", [])
+        py3.3: err_regex('TypeError', '.* missing 1 required positional argument.*', [])
+        py3.4: err_regex('TypeError', '.* missing 1 required positional argument.*', [])
+        py: err_regex('TypeError', ".* takes at least 1 (?:positional )?argument \(0 given\)", [])
         js: err("ReqlDriverError", "Expected between 1 and 2 arguments but found 0.", [])
-        rb: err_regex("ArgumentError", '.*wrong number of arguments \(0 for 1.*\)', [])
+        rb: err("ArgumentError", 'wrong number of arguments (0 for 1)', [])
 
     - ot: err("ReqlCompileError", "Expected 2 arguments but found 1.", [])
       cd:
@@ -96,18 +93,17 @@ tests:
       ot: err("ReqlCompileError", "Expected between 0 and 1 arguments but found 2.", [])
 
     - cd: db.table_drop()
-      ot: err("ReqlQueryLogicError", "Expected type DATUM but found DATABASE.", [])
+      ot: err("ReqlQueryLogicError", "Expected type DATUM but found DATABASE:", [])
 
 
     - cd: db.table_create()
       ot:
-        cd: err("ReqlQueryLogicError", "Expected type DATUM but found DATABASE.", [])
+        cd: err("ReqlQueryLogicError", "Expected type DATUM but found DATABASE:", [])
         js: err("ReqlDriverError", "Expected 1 argument (not including options) but found 0.", [])
 
     - cd: r.js(1,2)
       ot:
-        py: err("ReqlCompileError", "Expected 1 argument but found 2.", [])
-        rb: err("ReqlCompileError", "Expected 1 argument but found 2.", [])
+        cd: err("ReqlCompileError", "Expected 1 argument but found 2.", [])
         js: err("ReqlDriverError", "Expected 1 argument (not including options) but found 2.", [])
 
     - ot: err("ReqlCompileError", "Expected 2 arguments but found 3.", [])
@@ -141,8 +137,7 @@ tests:
 
     - cd: db.table_create(1,2)
       ot:
-        py: err("ReqlCompileError", "Expected between 1 and 2 arguments but found 3.", [])
-        rb: err("ReqlCompileError", "Expected between 1 and 2 arguments but found 3.", [])
+        cd: err("ReqlCompileError", "Expected between 1 and 2 arguments but found 3.", [])
         js: err("ReqlDriverError", "Expected 1 argument (not including options) but found 2.", [])
 
     - cd: tbl.count(1,2)
@@ -155,7 +150,7 @@ tests:
       - tbl.update()
       - tbl.replace()
       - tbl.insert()
-      # - db.table() # TODO: theerror message for this in ruby is wrong
+      - db.table()
 
     - cd: tbl.reduce()
       ot: err("ReqlCompileError", "Expected 2 arguments but found 1.", [])
@@ -176,8 +171,7 @@ tests:
     - cd:
       - tbl.eq_join(1)
       ot:
-        py: err("ReqlCompileError", "Expected 3 arguments but found 2.", [])
-        rb: err("ReqlCompileError", "Expected 3 arguments but found 2.", [])
+        cd: err("ReqlCompileError", "Expected 3 arguments but found 2.", [])
         js: err("ReqlDriverError", "Expected 2 arguments (not including options) but found 1.", [])
 
     - ot: err("ReqlCompileError", "Expected 3 arguments but found 2.", [])
@@ -216,12 +210,8 @@ tests:
 
     - ot: err("ReqlDriverError", "Expected 1 argument but found 2.", [])
       js: r.expr({})(1,2)
-      py: []
-      rb: []
 
-    - rb: tbl.insert((0...10).map{|i| {:id => i}}).get_field('inserted')
-      py: tbl.insert([{'id':i} for i in range(10)]).get_field('inserted')
-      js: tbl.insert([{'id':0},{'id':1},{'id':2},{'id':3},{'id':4},{'id':5},{'id':6},{'id':7},{'id':8},{'id':9},]).get_field('inserted')
+    - cd: tbl.insert([{'id':0},{'id':1},{'id':2},{'id':3},{'id':4},{'id':5},{'id':6},{'id':7},{'id':8},{'id':9}]).get_field('inserted')
       ot: 10
 
     - cd: tbl.get_all(0, 1, 2).get_field('id')
@@ -260,12 +250,12 @@ tests:
 
     - rb: tbl.group{|row| row['id'] % 2}.count({'id':0}).ungroup()
       py: tbl.group(lambda row:row['id'].mod(2)).count({'id':0}).ungroup()
-      js: [] # TODO
+      js: tbl.group(r.row('id').mod(2)).count({'id':0}).ungroup()
       ot: ([{'group':0, 'reduction':1}])
 
     - rb: tbl.group{|row| row['id'] % 2}.count(r.args([{'id':0}])).ungroup()
-      py: tbl.group(lambda row:row['id'].mod(2)).count(r.args([{'id':0}])).ungroup()
-      js: [] # TODO
+      py: tbl.group(r.row['id'].mod(2)).count(r.args([{'id':0}])).ungroup()
+      js: tbl.group(r.row('id').mod(2)).count(r.args([{'id':0}])).ungroup()
       ot: ([{'group':0, 'reduction':1}])
 
     # Make sure `r.literal` still works

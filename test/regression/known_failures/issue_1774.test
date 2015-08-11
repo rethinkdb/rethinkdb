@@ -49,7 +49,7 @@ class WaitForTable(utils.PerformContinuousAction):
             try:
                 r.db(dbName).table(tableName).limit(1).run(self.connection)
                 break
-            except r.RqlRuntimeError:
+            except r.ReqlRuntimeError:
                 pass
             except Exception as e:
                 self.recordError(e)
@@ -116,7 +116,7 @@ for errorMessage, errorCount in readTableProcess.errorSummary().items():
 try:
 	r.db_list().run(conn)
 	print('Success: conection is still valid')
-except r.errors.RqlDriverError:
+except r.errors.ReqlDriverError:
 	allPassed = False
 	sys.stderr.write('Failure: The database connnection went stale\n')
 	r.connect(host=server.host, port=server.driver_port)
