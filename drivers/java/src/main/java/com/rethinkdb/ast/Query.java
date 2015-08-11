@@ -57,7 +57,7 @@ public class Query {
             .putLong(token)
             .putInt(queryJson.length())
             .put(queryJson.getBytes());
-        System.out.println("Sending: "+ Util.bufferToString(bb));
+        System.out.println("Sending: "+ Util.bufferToString(bb)); //RSI
         return bb;
     }
 }
