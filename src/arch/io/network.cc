@@ -11,7 +11,7 @@
 #else
 #include "windows.hpp"
 #include <ws2tcpip.h>
-// typedef int socklen_t;
+#include <mswsock.h>
 #endif
 #include <errno.h>
 #include <fcntl.h>
@@ -32,7 +32,63 @@
 #include "logger.hpp"
 #include "perfmon/perfmon.hpp"
 
-int connect_ipv4_internal(fd_t socket, int local_port, const in_addr &addr, int port) {
+LPFN_CONNECTEX get_ConnectEx(SOCKET s) {
+    LPFN_CONNECTEX ConnectEx = nullptr;
+    if (!ConnectEx) {
+        DWORD size = 0;
+        GUID id = WSAID_CONNECTEX;
+        guarantee_winerr(WSAIoctl(s, SIO_GET_EXTENSION_FUNCTION_POINTER,
+                                  &id, sizeof(id), &ConnectEx, sizeof(ConnectEx),
+                                  &size, nullptr, nullptr));
+    }
+    return ConnectEx;
+}
+
+void async_connect(fd_t socket, sockaddr *sa, size_t sa_len,
+                   event_watcher_t *event_watcher, signal_t *interuptor) {
+#ifdef _WIN32
+    async_operation_t op(event_watcher);
+    BOOL res = get_ConnectEx(socket)(socket, sa, sa_len, nullptr, 0, nullptr, &op.overlapped);
+    if (res) {
+        return;
+    }
+    DWORD error = GetLastError();
+    if (error != ERROR_IO_PENDING) {
+        rassert(false, "ATN TODO : errno -- GetLastError");
+        throw linux_tcp_conn_t::connect_failed_exc_t(error);
+    }
+    wait_interruptible(&op.completed, interuptor);
+    if (op.error) {
+        rassert(false, "ATN TODO : errno -- GetLastError");
+        throw linux_tcp_conn_t::connect_failed_exc_t(op.error);
+    }
+#else
+    int res;
+    do {
+        res = connect(socket, sa, sa_len);
+    } while (res == -1 && get_errno() == EINTR);
+
+    if (res != 0) {
+        if (get_errno() == EINPROGRESS) {
+            linux_event_watcher_t::watch_t watch(event_watcher, poll_event_out);
+            wait_interruptible(&watch, interruptor);
+            int error;
+            socklen_t error_size = sizeof(error);
+            int getsockoptres = getsockopt(sock.get(), SOL_SOCKET, SO_ERROR, &error, &error_size);
+            if (getsockoptres != 0) {
+                throw linux_tcp_conn_t::connect_failed_exc_t(error);
+            }
+            if (error != 0) {
+                throw linux_tcp_conn_t::connect_failed_exc_t(error);
+            }
+        } else {
+            throw linux_tcp_conn_t::connect_failed_exc_t(get_errno());
+        }
+    }
+#endif
+}
+
+void connect_ipv4_internal(fd_t socket, int local_port, const in_addr &addr, int port, event_watcher_t *event_watcher, signal_t *interuptor) {
     struct sockaddr_in sa;
     socklen_t sa_len(sizeof(sa));
     memset(&sa, 0, sa_len);
@@ -41,6 +97,7 @@ int connect_ipv4_internal(fd_t socket, int local_port, const in_addr &addr, int 
     if (local_port != 0) {
         sa.sin_port = htons(local_port);
         sa.sin_addr.s_addr = INADDR_ANY;
+        // TODO ATN: on Windows at least, bind can block. Can it block in this use case?
         if (bind(socket, reinterpret_cast<sockaddr *>(&sa), sa_len) != 0)
             logWRN("Failed to bind to local port %d: %s", local_port, errno_string(get_errno()).c_str());
     }
@@ -48,15 +105,10 @@ int connect_ipv4_internal(fd_t socket, int local_port, const in_addr &addr, int 
     sa.sin_port = htons(port);
     sa.sin_addr = addr;
 
-    int res;
-    do {
-        res = connect(socket, reinterpret_cast<sockaddr *>(&sa), sa_len);
-    } while (res == -1 && get_errno() == EINTR);
-
-    return res;
+    async_connect(socket, reinterpret_cast<sockaddr *>(&sa), sa_len, event_watcher, interuptor);
 }
 
-int connect_ipv6_internal(fd_t socket, int local_port, const in6_addr &addr, int port, uint32_t scope_id) {
+void connect_ipv6_internal(fd_t socket, int local_port, const in6_addr &addr, int port, uint32_t scope_id, event_watcher_t *event_watcher, signal_t *interuptor) {
     struct sockaddr_in6 sa;
     socklen_t sa_len(sizeof(sa));
     memset(&sa, 0, sa_len);
@@ -73,12 +125,7 @@ int connect_ipv6_internal(fd_t socket, int local_port, const in6_addr &addr, int
     sa.sin6_addr = addr;
     sa.sin6_scope_id = scope_id;
 
-    int res;
-    do {
-        res = connect(socket, reinterpret_cast<sockaddr *>(&sa), sa_len);
-    } while (res == -1 && get_errno() == EINTR);
-
-    return res;
+    async_connect(socket, reinterpret_cast<sockaddr *>(&sa), sa_len, event_watcher, interuptor);
 }
 
 // TODO ATN: windows version of this using HANDLE and without get_errno
@@ -129,28 +176,10 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &peer,
 
     int res;
     if (peer.is_ipv4()) {
-        res = connect_ipv4_internal(sock.get(), local_port, peer.get_ipv4_addr(), port);
+        connect_ipv4_internal(sock.get(), local_port, peer.get_ipv4_addr(), port, event_watcher.get(), interruptor);
     } else {
-        res = connect_ipv6_internal(sock.get(), local_port, peer.get_ipv6_addr(), port,
-                                    peer.get_ipv6_scope_id());
-    }
-
-    if (res != 0) {
-        if (get_errno() == EINPROGRESS) {
-            linux_event_watcher_t::watch_t watch(event_watcher.get(), poll_event_out);
-            wait_interruptible(&watch, interruptor);
-            int error;
-            socklen_t error_size = sizeof(error);
-            int getsockoptres = getsockopt(sock.get(), SOL_SOCKET, SO_ERROR, &error, &error_size);
-            if (getsockoptres != 0) {
-                throw linux_tcp_conn_t::connect_failed_exc_t(error);
-            }
-            if (error != 0) {
-                throw linux_tcp_conn_t::connect_failed_exc_t(error);
-            }
-        } else {
-            throw linux_tcp_conn_t::connect_failed_exc_t(get_errno());
-        }
+        connect_ipv6_internal(sock.get(), local_port, peer.get_ipv6_addr(), port,
+                              peer.get_ipv6_scope_id(), event_watcher.get(), interruptor);
     }
 }
 
@@ -167,13 +196,19 @@ linux_tcp_conn_t::linux_tcp_conn_t(fd_t s) :
         drainer(new auto_drainer_t) {
     rassert(sock.get() != INVALID_FD);
 
+#ifndef _WIN32 // TODO ATN
     int res = fcntl(sock.get(), F_SETFL, O_NONBLOCK);
     guarantee_err(res == 0, "Could not make socket non-blocking");
+#endif
 }
 
 void linux_tcp_conn_t::enable_keepalive() {
     int optval = 1;
+#ifdef _WIN32 // TODO ATN
+    int res = setsockopt(sock.get(), SOL_SOCKET, SO_KEEPALIVE, reinterpret_cast<char*>(&optval), sizeof(optval));
+#else
     int res = setsockopt(sock.get(), SOL_SOCKET, SO_KEEPALIVE, &optval, sizeof(optval));
+#endif
     guarantee(res != -1, "Could not set SO_KEEPALIVE option.");
 }
 
@@ -215,6 +250,31 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) THROWS_ONLY(tc
     assert_thread();
     rassert(!read_closed.is_pulsed());
 
+#ifdef _WIN32
+    // TODO ATN: handle all cases
+    async_operation_t op(event_watcher.get());
+    DWORD sync_bytes;
+    BOOL res = ReadFile(sock.get(), buffer, size, &sync_bytes, &op.overlapped);
+    if (res) {
+        return sync_bytes;
+    }
+    DWORD error = GetLastError();
+    if (error == ERROR_IO_PENDING) {
+        wait_any_t waiter(&op.completed, &read_closed);
+        waiter.wait_lazily_unordered();
+        if (read_closed.is_pulsed()) {
+            throw tcp_conn_read_closed_exc_t();
+        }
+        error = op.error;
+    }
+    if (error != ERROR_SUCCESS) {
+        logERR("Could not read from socket: %s", winerr_string(error).c_str());
+        on_shutdown_read();
+        throw tcp_conn_read_closed_exc_t();
+    } else {
+        return op.nb_bytes;
+    }
+#else
     while (true) {
         ssize_t res = ::read(sock.get(), buffer, size);
 
@@ -252,6 +312,7 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) THROWS_ONLY(tc
             return res;
         }
     }
+#endif
 }
 
 size_t linux_tcp_conn_t::read_some(void *buf, size_t size, signal_t *closer) THROWS_ONLY(tcp_conn_read_closed_exc_t) {
@@ -325,10 +386,17 @@ void linux_tcp_conn_t::pop(size_t len, signal_t *closer) THROWS_ONLY(tcp_conn_re
 
 void linux_tcp_conn_t::shutdown_read() {
     assert_thread();
+#ifdef _WIN32 // TODO ATN
+    int res = ::shutdown(sock.get(), SD_RECEIVE);
+    if (res != 0 && GetLastError() != WSAENOTCONN) {
+        logERR("Could not shutdown socket for reading: %s", winerr_string(GetLastError()).c_str());
+    }
+#else
     int res = ::shutdown(sock.get(), SHUT_RD);
     if (res != 0 && get_errno() != ENOTCONN) {
         logERR("Could not shutdown socket for reading: %s", errno_string(get_errno()).c_str());
     }
+#endif
     on_shutdown_read();
 }
 
@@ -397,6 +465,39 @@ void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {
         return;
     }
 
+#ifdef _WIN32 // TODO ATN
+    // TODO ATN
+    async_operation_t op(event_watcher.get());
+    DWORD sync_bytes;
+    BOOL res = WriteFile(sock.get(), buf, size, &sync_bytes, &op.overlapped);
+    if (res) {
+        return;
+    }
+    DWORD error = GetLastError();
+    if (error == ERROR_IO_PENDING) {
+        wait_any_t waiter(&op.completed, &write_closed);
+        waiter.wait_lazily_unordered();
+        if (write_closed.is_pulsed()) {
+            throw tcp_conn_write_closed_exc_t();
+        }
+        error = op.error;
+    }
+    /* ATN TODO:
+       if (res == -1 && (get_errno() == EPIPE || get_errno() == ENOTCONN || get_errno() == EHOSTUNREACH ||
+                         get_errno() == ENETDOWN || get_errno() == EHOSTDOWN || get_errno() == ECONNRESET)) {
+            on_shutdown_write();
+    */
+    if (error != ERROR_SUCCESS) {
+        logERR("Could not write to socket: %s", winerr_string(error).c_str());
+        on_shutdown_write();
+    } else if (op.nb_bytes == 0) {
+        logERR("Didn't expect WriteEx to write 0 bytes.");
+        on_shutdown_write();
+    } else {
+        if (write_perfmon) write_perfmon->record(op.nb_bytes);
+        rassert(op.nb_bytes == size);  // TODO ATN: does windows guarantee this?
+    }
+#else
     while (size > 0) {
         ssize_t res = ::write(sock.get(), buf, size);
 
@@ -442,6 +543,7 @@ void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {
             if (write_perfmon) write_perfmon->record(res);
         }
     }
+#endif
 }
 
 void linux_tcp_conn_t::write(const void *buf, size_t size, signal_t *closer) THROWS_ONLY(tcp_conn_write_closed_exc_t) {
@@ -538,10 +640,17 @@ void linux_tcp_conn_t::flush_buffer_eventually(signal_t *closer) THROWS_ONLY(tcp
 void linux_tcp_conn_t::shutdown_write() {
     assert_thread();
 
+#ifdef _WIN32 // TODO ATN
+    int res = ::shutdown(sock.get(), SD_SEND);
+    if (res != 0 && GetLastError() != WSAENOTCONN) {
+        logERR("Could not shutdown socket for writing: %s", winerr_string(GetLastError()).c_str());
+    }
+#else
     int res = ::shutdown(sock.get(), SHUT_WR);
     if (res != 0 && get_errno() != ENOTCONN) {
         logERR("Could not shutdown socket for writing: %s", errno_string(get_errno()).c_str());
     }
+#endif
 
     on_shutdown_write();
 }
@@ -572,14 +681,16 @@ linux_tcp_conn_t::~linux_tcp_conn_t() THROWS_NOTHING {
 
 void linux_tcp_conn_t::rethread(threadnum_t new_thread) {
     if (home_thread() == get_thread_id() && new_thread == INVALID_THREAD) {
+        rassert(false, "ATN TODO");
         rassert(!read_in_progress);
         rassert(!write_in_progress);
         rassert(event_watcher.has());
         event_watcher.reset();
 
     } else if (home_thread() == INVALID_THREAD && new_thread == get_thread_id()) {
+        rassert(false, "ATN TODO");
         rassert(!event_watcher.has());
-        event_watcher.init(new linux_event_watcher_t(sock.get(), this));
+        event_watcher.init(new event_watcher_t(sock.get(), this));
 
     } else {
         crash("linux_tcp_conn_t can be rethread()ed from no thread to the current thread or "
@@ -631,11 +742,11 @@ void linux_tcp_conn_t::on_event(int /* events */) {
 }
 
 linux_tcp_conn_descriptor_t::linux_tcp_conn_descriptor_t(fd_t fd) : fd_(fd) {
-    rassert(fd != -1);
+    rassert(fd != INVALID_FD);
 }
 
 linux_tcp_conn_descriptor_t::~linux_tcp_conn_descriptor_t() {
-    rassert(fd_ == -1);
+    rassert(fd_ == INVALID_FD);
 }
 
 void linux_tcp_conn_descriptor_t::make_overcomplicated(scoped_ptr_t<linux_tcp_conn_t> *tcp_conn) {
@@ -683,8 +794,10 @@ bool linux_nonthrowing_tcp_listener_t::begin_listening() {
         int res = listen(socks[i].get(), RDB_LISTEN_BACKLOG);
         guarantee_err(res == 0, "Couldn't listen to the socket");
 
+#ifndef _WIN32 // TODO ATN
         res = fcntl(socks[i].get(), F_SETFL, O_NONBLOCK);
         guarantee_err(res == 0, "Could not make socket non-blocking");
+#endif
     }
 
     // Start the accept loop
@@ -720,13 +833,14 @@ int linux_nonthrowing_tcp_listener_t::init_sockets() {
             return get_errno();
         }
 
-        event_watchers[i].init(new linux_event_watcher_t(socks[i].get(), this));
+        event_watchers[i].init(new event_watcher_t(socks[i].get(), this));
 
         int sock_fd = socks[i].get();
         guarantee_err(sock_fd != INVALID_FD, "Couldn't create socket");
 
         int sockoptval = 1;
-        int res = setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, &sockoptval, sizeof(sockoptval));
+#ifndef _WIN32 // TODO ATN
+        int res = setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, &sockoptval, sizeof(sockoptval)); 
         guarantee_err(res != -1, "Could not set REUSEADDR option");
 
         /* XXX Making our socket NODELAY prevents the problem where responses to
@@ -742,6 +856,7 @@ int linux_nonthrowing_tcp_listener_t::init_sockets() {
          */
         res = setsockopt(sock_fd, IPPROTO_TCP, TCP_NODELAY, &sockoptval, sizeof(sockoptval));
         guarantee_err(res != -1, "Could not set TCP_NODELAY option");
+#undef
     }
     return 0;
 }
@@ -860,6 +975,7 @@ void linux_nonthrowing_tcp_listener_t::bind_sockets() {
     throw tcp_socket_exc_t(EADDRINUSE, port);
 }
 
+#ifndef _WIN32
 fd_t linux_nonthrowing_tcp_listener_t::wait_for_any_socket(const auto_drainer_t::lock_t &lock) {
     scoped_array_t<scoped_ptr_t<linux_event_watcher_t::watch_t> > watches(event_watchers.size());
     wait_any_t waiter(lock.get_drain_signal());
@@ -888,6 +1004,7 @@ fd_t linux_nonthrowing_tcp_listener_t::wait_for_any_socket(const auto_drainer_t:
     // This should never happen, but it shouldn't be much of a problem
     return -1;
 }
+#endif
 
 void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) {
     exponential_backoff_t backoff(10, 160, 2.0, 0.5);
