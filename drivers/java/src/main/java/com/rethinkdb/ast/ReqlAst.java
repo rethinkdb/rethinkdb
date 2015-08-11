@@ -7,6 +7,7 @@ import com.rethinkdb.net.Connection;
 import com.rethinkdb.proto.TermType;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -23,32 +24,27 @@ public class ReqlAst {
     protected ReqlAst(ReqlAst prev, TermType termType, Arguments args, OptArgs optargs) {
         this.prev = prev;
         this.termType = termType;
-        if (args != null) {
-            this.args = args;
-        } else {
-            this.args = new Arguments();
-        }
-        if (optargs != null) {
-            this.optargs = optargs;
-        } else {
-            this.optargs = new OptArgs();
-        }
+        this.args = args != null ? args : new Arguments();
+        this.optargs = optargs != null ? optargs : new OptArgs();
     }
 
     protected ReqlAst(TermType termType, Arguments args) {
         this(null, termType, args, null);
     }
 
-    protected JSONArray build() {
+    protected java.lang.Object build() {
         // Create a JSON object from the Ast
         JSONArray list = new JSONArray();
         list.add(termType.value);
-        if (args != null) {
-            for(ReqlAst arg: args){
-                list.add(arg.build());
-            }
+        if (args.size() > 0) {
+            JSONArray arglist = args.stream()
+                    .map(ReqlAst::build)
+                    .collect(Collectors.toCollection(JSONArray::new));
+            list.add(arglist);
+        }else {
+            list.add(new JSONArray());
         }
-        if (optargs != null) {
+        if (optargs.size() > 0) {
             JSONObject joptargs = new JSONObject();
             for(Map.Entry<String, ReqlAst> entry: optargs.entrySet()){
                 joptargs.put(entry.getKey(), entry.getValue().build());

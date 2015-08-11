@@ -15,7 +15,7 @@ public class RethinkDB extends TopLevel {
         super(null, null, null, null);
     }
 
-    public Connection.Builder<ConnectionInstance> buildConnection() {
+    public Connection.Builder<ConnectionInstance> connection() {
         return Connection.build();
     }
 }

@@ -19,11 +19,11 @@ public class RethinkDBTest extends TestCase {
     }
 
     public void testBuildConnection() throws Exception {
-        Connection conn = r.buildConnection()
+        Connection conn = r.connection()
                 .hostname("newton")
                 .port(31157)
                 .connect();
         Optional<Object> res = r.random(1,2).run(conn);
-        assertEquals(res.get().getClass(), String.class);
+        assertEquals(new Long(1L), res.get());
     }
 }
