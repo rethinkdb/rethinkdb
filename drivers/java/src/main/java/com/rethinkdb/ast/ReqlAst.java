@@ -1,5 +1,6 @@
 package com.rethinkdb.ast;
 
+import com.rethinkdb.ReqlDriverError;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.GlobalOptions;
 import com.rethinkdb.model.OptArgs;
@@ -16,15 +17,24 @@ import org.json.simple.JSONObject;
  */
 public class ReqlAst {
 
-    protected final ReqlAst prev;
+    protected final Optional<ReqlAst> prev;
     protected final TermType termType;
     protected final Arguments args;
     protected final OptArgs optargs;
 
     protected ReqlAst(ReqlAst prev, TermType termType, Arguments args, OptArgs optargs) {
-        this.prev = prev;
+        this.prev = Optional.ofNullable(prev);
+        if(termType == null){
+            throw new ReqlDriverError("termType can't be null!");
+        }
         this.termType = termType;
-        this.args = args != null ? args : new Arguments();
+        this.args = new Arguments();
+        if(prev != null){
+            this.args.add(prev);
+        }
+        if(args != null){
+            this.args.addAll(args);
+        }
         this.optargs = optargs != null ? optargs : new OptArgs();
     }
 
@@ -37,10 +47,9 @@ public class ReqlAst {
         JSONArray list = new JSONArray();
         list.add(termType.value);
         if (args.size() > 0) {
-            JSONArray arglist = args.stream()
+            list.add(args.stream()
                     .map(ReqlAst::build)
-                    .collect(Collectors.toCollection(JSONArray::new));
-            list.add(arglist);
+                    .collect(Collectors.toCollection(JSONArray::new)));
         }else {
             list.add(new JSONArray());
         }
@@ -60,5 +69,15 @@ public class ReqlAst {
 
     public Optional<Object> run(Connection conn) {
         return conn.run(this, new GlobalOptions());
+    }
+
+    @Override
+    public String toString() {
+        return "ReqlAst{" +
+                "prev=" + prev +
+                ", termType=" + termType +
+                ", args=" + args +
+                ", optargs=" + optargs +
+                '}';
     }
 }

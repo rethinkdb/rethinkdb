@@ -3,6 +3,7 @@ package com.rethinkdb;
 import com.rethinkdb.ast.gen.TopLevel;
 import com.rethinkdb.net.Connection;
 import com.rethinkdb.net.ConnectionInstance;
+import com.rethinkdb.proto.TermType;
 
 public class RethinkDB extends TopLevel {
 
@@ -12,7 +13,7 @@ public class RethinkDB extends TopLevel {
     public static final RethinkDB r = new RethinkDB();
 
     private RethinkDB() {
-        super(null, null, null, null);
+        super(null, TermType.DATUM, null, null);
     }
 
     public Connection.Builder<ConnectionInstance> connection() {
