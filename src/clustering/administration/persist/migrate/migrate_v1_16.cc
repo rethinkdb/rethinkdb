@@ -314,6 +314,47 @@ void migrate_table(const server_id_t &this_server_id,
     }
 }
 
+void check_for_obsolete_sindexes(io_backender_t *io_backender,
+                                 const base_path_t &base_path,
+                                 const metadata_v1_16::cluster_semilattice_metadata_t &metadata,
+                                 signal_t *interruptor) {
+    dummy_cache_balancer_t balancer(GIGABYTE);
+    auto &tables = metadata.rdb_namespaces.namespaces;
+    pmap(tables.begin(), tables.end(),
+         [&] (std::pair<const namespace_id_t,
+                        deletable_t<metadata_v1_16::namespace_semilattice_metadata_t> > &info) {
+            if (!info.second.is_deleted()) {
+                perfmon_collection_t dummy_stats;
+                serializer_filepath_t table_path(base_path, uuid_to_str(info.first));
+                filepath_file_opener_t file_opener(table_path, io_backender);
+                scoped_ptr_t<standard_serializer_t> inner_serializer(
+                    new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
+                                              &file_opener, &dummy_stats));
+                merger_serializer_t merger_serializer(std::move(inner_serializer),
+                                                      MERGER_SERIALIZER_MAX_ACTIVE_WRITES);
+                std::vector<serializer_t *> underlying({ &merger_serializer });
+                serializer_multiplexer_t multiplexer(underlying);
+
+                pmap(CPU_SHARDING_FACTOR, [&] (int index) {
+                        perfmon_collection_t inner_dummy_stats;
+                        store_t store(cpu_sharding_subspace(index),
+                                      multiplexer.proxies[index],
+                                      &balancer,
+                                      "table_migration",
+                                      false,
+                                      &inner_dummy_stats,
+                                      nullptr,
+                                      io_backender,
+                                      base_path,
+                                      scoped_ptr_t<outdated_index_report_t>(),
+                                      info.first);
+
+                        store.sindex_list(interruptor);
+                    });
+            }
+        });
+}
+
 void migrate_tables(io_backender_t *io_backender,
                     const base_path_t &base_path,
                     bool migrate_inconsistent_data,
@@ -479,6 +520,10 @@ void migrate_cluster_metadata_to_v2_1(io_backender_t *io_backender,
     } else {
         unreachable();
     }
+
+    // Check for obsolete sindexes before anything else because we don't want to
+    // migrate half the tables and leave the user with an unusable directory.
+    check_for_obsolete_sindexes(io_backender, base_path, metadata, interruptor);
 
     metadata_v1_16::branch_history_t branch_history;
     read_blob(buf_parent, sb->rdb_branch_history_blob,

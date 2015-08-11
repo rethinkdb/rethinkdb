@@ -40,6 +40,26 @@ inline MUST_USE archive_result_t deserialize_cluster_version(
     return res;
 }
 
+inline MUST_USE archive_result_t deserialize_reql_version(
+    read_stream_t *s, reql_version_t *thing, const char *v1_13_msg) {
+    // Initialize `thing` to *something* because GCC 4.6.3 thinks that `thing`
+    // could be used uninitialized, even when the return value of this function
+    // is checked through `guarantee_deserialization()`.
+    // See https://github.com/rethinkdb/rethinkdb/issues/2640
+    *thing = reql_version_t::LATEST;
+    int8_t raw;
+    archive_result_t res = deserialize_universal(s, &raw);
+    if (raw == static_cast<int8_t>(obsolete_reql_version_t::v1_13)) {
+        fail_due_to_user_error("%s", v1_13_msg);
+    } else {
+        // This is the same rassert in `ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE`.
+        rassert(raw >= static_cast<int8_t>(reql_version_t::v1_14)
+                && raw <= static_cast<int8_t>(reql_version_t::v2_1_is_latest));
+        *thing = static_cast<reql_version_t>(raw);
+    }
+    return res;
+}
+
 
 // Serializes a value for a given version.  DOES NOT SERIALIZE THE VERSION NUMBER!
 template <class T>
