@@ -249,6 +249,8 @@ TPTEST(ClusteringRaft, StorageWriteLogReplaceTail) {
     raft_log_entry.change = set_table_config;
 
     raft_log_t<table_raft_state_t> raft_log;
+    raft_log.prev_index = 0;
+    raft_log.prev_term = 0;
     raft_log.append(raft_log_entry);
 
     {
