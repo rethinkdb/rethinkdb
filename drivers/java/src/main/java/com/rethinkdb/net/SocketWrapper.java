@@ -3,7 +3,6 @@ package com.rethinkdb.net;
 import com.rethinkdb.ReqlDriverError;
 import com.rethinkdb.ReqlError;
 import com.rethinkdb.ReqlRuntimeError;
-import com.rethinkdb.response.Response;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;

@@ -1,5 +1,7 @@
-package com.rethinkdb.response;
+package com.rethinkdb.net;
 
+
+import com.rethinkdb.net.Response;
 
 public class DBResultFactory {
 

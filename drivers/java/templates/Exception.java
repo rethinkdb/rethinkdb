@@ -2,7 +2,7 @@ package com.rethinkdb;
 
 import java.util.Optional;
 import com.rethinkdb.ast.ReqlAst;
-import com.rethinkdb.response.Backtrace;
+import com.rethinkdb.model.Backtrace;
 
 public class ${camel(classname)} extends ${camel(superclass)} {
 

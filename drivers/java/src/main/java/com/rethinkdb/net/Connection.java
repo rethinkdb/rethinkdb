@@ -1,17 +1,16 @@
 package com.rethinkdb.net;
 
-import com.rethinkdb.proto.Version;
-import com.rethinkdb.proto.Protocol;
-import com.rethinkdb.ast.Query;
-import com.rethinkdb.model.GlobalOptions;
-import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.ReqlDriverError;
-import com.rethinkdb.response.Response;
+import com.rethinkdb.ast.Query;
+import com.rethinkdb.ast.ReqlAst;
+import com.rethinkdb.model.GlobalOptions;
+import com.rethinkdb.proto.Protocol;
+import com.rethinkdb.proto.Version;
 
+import java.nio.ByteBuffer;
+import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
-import java.nio.ByteBuffer;
-import java.util.*;
 import java.util.function.Supplier;
 
 public class Connection<C extends ConnectionInstance> {

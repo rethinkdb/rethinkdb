@@ -1,12 +1,9 @@
 package com.rethinkdb.net;
 
-import com.rethinkdb.ReqlError;
 import com.rethinkdb.ReqlRuntimeError;
 import com.rethinkdb.ast.Query;
 import com.rethinkdb.proto.ResponseType;
-import com.rethinkdb.response.Response;
 import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
 
 import java.util.*;
 
@@ -84,13 +81,9 @@ public abstract class Cursor<T> implements Iterator<T> {
     void setError(String errMsg) {
         if(!error.isPresent()){
             error = Optional.of(new ReqlRuntimeError(errMsg));
-            Response dummyResponse = new Response(query.token,
-                    ResponseType.SUCCESS_SEQUENCE,
-                    new JSONArray(),
-                    new ArrayList<>(),
-                    Optional.empty(),
-                    Optional.empty()
-                    );
+            Response dummyResponse = Response
+                    .make(query.token, ResponseType.SUCCESS_SEQUENCE)
+                    .build();
             extend(dummyResponse);
         }
     }
