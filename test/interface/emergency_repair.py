@@ -158,12 +158,12 @@ with driver.Cluster(initial_servers=['a', 'x'], output_folder='.',
     # `no_repair_1` is hosted only on server "a"
     check_table("no_repair_1")
     bad_repair("no_repair_1", "unsafe_rollback",
-        "This table doesn't need to be repaired.")
+        "This table doesn't need to be repaired")
 
     # `no_repair_2` has a nonvoting replica on server "b", but nothing else
     check_table("no_repair_2")
     bad_repair("no_repair_2", "unsafe_rollback",
-        "This table doesn't need to be repaired.")
+        "This table doesn't need to be repaired")
 
     # `rollback` is the classic emergency repair scenario: at least one voting replica is
     # still available, but there is no quorum.
@@ -179,7 +179,7 @@ with driver.Cluster(initial_servers=['a', 'x'], output_folder='.',
 
     # `erase` has lost all of the replicas for one shard but not the other.
     bad_repair("erase", "unsafe_rollback",
-        "One or more shards of this table have no available replicas.")
+        "One or more shards of this table have no available replicas")
     repair("erase", "unsafe_rollback_or_erase", [
         {"primary_replica": "a", "replicas": ["a"]}])
     check_table_half("erase")
@@ -191,7 +191,7 @@ with driver.Cluster(initial_servers=['a', 'x'], output_folder='.',
         {"primary_replica": "a", "replicas": ["a", "x"], "nonvoting_replicas": ["x"]},
         {"primary_replica": "x", "replicas": ["x"]}])
     bad_repair("rollback_then_erase", "unsafe_rollback",
-        "One or more shards of this table have no available replicas.")
+        "One or more shards of this table have no available replicas")
     repair("rollback_then_erase", "unsafe_rollback_or_erase", [
         {"primary_replica": "a", "replicas": ["a", "x"], "nonvoting_replicas": ["x"]},
         {"primary_replica": "a", "replicas": ["a"]}])
@@ -199,7 +199,7 @@ with driver.Cluster(initial_servers=['a', 'x'], output_folder='.',
 
     # `total_loss` has lost all replicas for all shards.
     bad_repair("total_loss", "unsafe_rollback_or_erase",
-        "At least one of a table's replicas must be accessible in order to repair it.")
+        "At least one of a table's replicas must be accessible in order to repair it")
     print("Dropping table 'total_loss' (%.2fs)" % (time.time() - startTime))
     res = r.table_drop("total_loss").run(conn)
     assert res["tables_dropped"] == 1
