@@ -1,4 +1,4 @@
-package com.rethinkdb.ast.helper;
+package com.rethinkdb.model;
 
 
 import com.rethinkdb.ast.ReqlAst;
@@ -14,6 +14,9 @@ public class Arguments extends ArrayList<ReqlAst> {
     public Arguments() {}
     public Arguments(Object arg1) {
         add(Util.toReqlAst(arg1));
+    }
+    public Arguments(ReqlAst arg1) {
+        add(arg1);
     }
 
     public Arguments(Object[] args) {

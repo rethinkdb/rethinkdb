@@ -8,7 +8,7 @@ import java.util.Map;
 
 
 public class ${dromedary(term)} extends ReqlQuery {
-    public ${camel(term)}(ReqlQuery prev, List<Object> args, Map<String, Object> kwargs){
+    public ${camel(term)}(ReqlQuery prev, List<java.lang.Object> args, Map<String, java.lang.Object> kwargs){
         super(prev, TermType.${term}, args, kwargs);
     }
 }

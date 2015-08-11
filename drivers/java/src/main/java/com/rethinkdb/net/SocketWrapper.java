@@ -43,7 +43,6 @@ public class SocketWrapper {
             socketChannel.socket().connect(
                     new InetSocketAddress(hostname, port),
                     timeout.orElse(0));
-
             socketChannel.write(handshake);
             String msg = readNullTerminatedString(deadline);
             if (!msg.equals("SUCCESS")) {
@@ -73,8 +72,12 @@ public class SocketWrapper {
         ByteBuffer byteBuf = Util.leByteBuffer(1);
         List<Byte> bytelist = new ArrayList<>();
         while(true) {
-            socketChannel.read(byteBuf);
-            byteBuf.flip();
+            int bytesRead = socketChannel.read(byteBuf);
+            if(bytesRead == 0){
+                continue;
+            }
+            // Maybe we read -1? Throw an error
+
             deadline.ifPresent(d -> {
                 if(d <= Util.getTimestamp()) {
                     throw new ReqlDriverError("Connection timed out.");
@@ -87,8 +90,9 @@ public class SocketWrapper {
                 }
                 return new String(raw, StandardCharsets.UTF_8);
             } else {
-                bytelist.add(byteBuf.get());
+                bytelist.add(byteBuf.get(0));
             }
+            byteBuf.flip();
         }
     }
 

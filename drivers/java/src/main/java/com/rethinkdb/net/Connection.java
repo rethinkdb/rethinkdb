@@ -38,6 +38,7 @@ public class Connection<C extends ConnectionInstance> {
             .putInt(authKey.length())
             .put(authKey.getBytes())
             .putInt(Protocol.JSON.value);
+        handshake.flip();
         hostname = builder.hostname.orElse("localhost");
         port = builder.port.orElse(28015);
         connectTimeout = builder.timeout;
@@ -159,8 +160,7 @@ public class Connection<C extends ConnectionInstance> {
         runQuery(Query.noreplyWait(newToken()));
     }
 
-    Optional<Object> start(ReqlAst term, GlobalOptions globalOpts) {
-        C inst = checkOpen();
+    public Optional<Object> run(ReqlAst term, GlobalOptions globalOpts) {
         if (!globalOpts.db().isPresent()) {
             dbname.ifPresent(globalOpts::db);
         }

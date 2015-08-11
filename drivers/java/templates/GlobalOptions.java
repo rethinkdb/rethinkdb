@@ -1,7 +1,5 @@
 package com.rethinkdb.model;
 
-import com.rethinkdb.ast.helper.OptArgs;
-
 import java.util.*;
 
 
@@ -23,6 +21,10 @@ public class GlobalOptions {
     }
 
     % for arg, spec in global_optargs:
+    public static GlobalOptions with${camel(arg)}(${reql_to_java_type(spec['type'])} ${dromedary(arg)}) {
+        return new GlobalOptions().${dromedary(arg)}(${dromedary(arg)});
+    }
+
     public GlobalOptions ${dromedary(arg)}(${reql_to_java_type(spec['type'])} ${dromedary(arg)}) {
         _${dromedary(arg)} = Optional.of(${dromedary(arg)});
         return this;

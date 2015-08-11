@@ -4,12 +4,10 @@
 // ../../../../../../../../templates/AstSubclass.java
 package com.rethinkdb.ast.gen;
 
-import java.util.Optional;
+import com.rethinkdb.model.Arguments;
+import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
-import com.rethinkdb.ast.helper.Arguments;
-import com.rethinkdb.ast.helper.OptArgs;
 import com.rethinkdb.proto.TermType;
-
 
 
 public class Distinct extends ReqlQuery {
@@ -30,7 +28,7 @@ public class Distinct extends ReqlQuery {
 
 
     /* Static factories */
-    public static Distinct fromArgs(Object... args){
+    public static Distinct fromArgs(java.lang.Object... args){
         return new Distinct(new Arguments(args), null);
     }
 

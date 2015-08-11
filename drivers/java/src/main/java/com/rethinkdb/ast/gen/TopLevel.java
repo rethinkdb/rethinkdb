@@ -4,12 +4,10 @@
 // ../../../../../../../../templates/AstSubclass.java
 package com.rethinkdb.ast.gen;
 
-import java.util.Optional;
+import com.rethinkdb.model.Arguments;
+import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
-import com.rethinkdb.ast.helper.Arguments;
-import com.rethinkdb.ast.helper.OptArgs;
 import com.rethinkdb.proto.TermType;
-
 
 
 public class TopLevel extends ReqlAst {
@@ -23,299 +21,299 @@ public class TopLevel extends ReqlAst {
     /* Static factories */
 
 
-    public Javascript js(Object... fields) {
+    public Javascript js(java.lang.Object... fields) {
         return new Javascript(this, new Arguments(fields), new OptArgs());
     }
 
-    public Uuid uuid(Object... fields) {
+    public Uuid uuid(java.lang.Object... fields) {
         return new Uuid(this, new Arguments(fields), new OptArgs());
     }
 
-    public Http http(Object... fields) {
+    public Http http(java.lang.Object... fields) {
         return new Http(this, new Arguments(fields), new OptArgs());
     }
 
-    public Error error(Object... fields) {
+    public Error error(java.lang.Object... fields) {
         return new Error(this, new Arguments(fields), new OptArgs());
     }
 
-    public Db db(Object... fields) {
+    public Db db(java.lang.Object... fields) {
         return new Db(this, new Arguments(fields), new OptArgs());
     }
 
-    public Table table(Object... fields) {
+    public Table table(java.lang.Object... fields) {
         return new Table(this, new Arguments(fields), new OptArgs());
     }
 
-    public Eq eq(Object... fields) {
+    public Eq eq(java.lang.Object... fields) {
         return new Eq(this, new Arguments(fields), new OptArgs());
     }
 
-    public Ne ne(Object... fields) {
+    public Ne ne(java.lang.Object... fields) {
         return new Ne(this, new Arguments(fields), new OptArgs());
     }
 
-    public Lt lt(Object... fields) {
+    public Lt lt(java.lang.Object... fields) {
         return new Lt(this, new Arguments(fields), new OptArgs());
     }
 
-    public Le le(Object... fields) {
+    public Le le(java.lang.Object... fields) {
         return new Le(this, new Arguments(fields), new OptArgs());
     }
 
-    public Gt gt(Object... fields) {
+    public Gt gt(java.lang.Object... fields) {
         return new Gt(this, new Arguments(fields), new OptArgs());
     }
 
-    public Ge ge(Object... fields) {
+    public Ge ge(java.lang.Object... fields) {
         return new Ge(this, new Arguments(fields), new OptArgs());
     }
 
-    public Not not(Object... fields) {
+    public Not not(java.lang.Object... fields) {
         return new Not(this, new Arguments(fields), new OptArgs());
     }
 
-    public Add add(Object... fields) {
+    public Add add(java.lang.Object... fields) {
         return new Add(this, new Arguments(fields), new OptArgs());
     }
 
-    public Sub sub(Object... fields) {
+    public Sub sub(java.lang.Object... fields) {
         return new Sub(this, new Arguments(fields), new OptArgs());
     }
 
-    public Mul mul(Object... fields) {
+    public Mul mul(java.lang.Object... fields) {
         return new Mul(this, new Arguments(fields), new OptArgs());
     }
 
-    public Div div(Object... fields) {
+    public Div div(java.lang.Object... fields) {
         return new Div(this, new Arguments(fields), new OptArgs());
     }
 
-    public Mod mod(Object... fields) {
+    public Mod mod(java.lang.Object... fields) {
         return new Mod(this, new Arguments(fields), new OptArgs());
     }
 
-    public Object object(Object... fields) {
+    public Object object(java.lang.Object... fields) {
         return new Object(this, new Arguments(fields), new OptArgs());
     }
 
-    public Map map(Object... fields) {
+    public Map map(java.lang.Object... fields) {
         return new Map(this, new Arguments(fields), new OptArgs());
     }
 
-    public Range range(Object... fields) {
+    public Range range(java.lang.Object... fields) {
         return new Range(this, new Arguments(fields), new OptArgs());
     }
 
-    public TypeOf typeOf(Object... fields) {
+    public TypeOf typeOf(java.lang.Object... fields) {
         return new TypeOf(this, new Arguments(fields), new OptArgs());
     }
 
-    public DbCreate dbCreate(Object... fields) {
+    public DbCreate dbCreate(java.lang.Object... fields) {
         return new DbCreate(this, new Arguments(fields), new OptArgs());
     }
 
-    public DbDrop dbDrop(Object... fields) {
+    public DbDrop dbDrop(java.lang.Object... fields) {
         return new DbDrop(this, new Arguments(fields), new OptArgs());
     }
 
-    public DbList dbList(Object... fields) {
+    public DbList dbList(java.lang.Object... fields) {
         return new DbList(this, new Arguments(fields), new OptArgs());
     }
 
-    public TableCreate tableCreate(Object... fields) {
+    public TableCreate tableCreate(java.lang.Object... fields) {
         return new TableCreate(this, new Arguments(fields), new OptArgs());
     }
 
-    public TableDrop tableDrop(Object... fields) {
+    public TableDrop tableDrop(java.lang.Object... fields) {
         return new TableDrop(this, new Arguments(fields), new OptArgs());
     }
 
-    public TableList tableList(Object... fields) {
+    public TableList tableList(java.lang.Object... fields) {
         return new TableList(this, new Arguments(fields), new OptArgs());
     }
 
-    public Wait wait(Object... fields) {
+    public Wait wait(java.lang.Object... fields) {
         return new Wait(this, new Arguments(fields), new OptArgs());
     }
 
-    public Reconfigure reconfigure(Object... fields) {
+    public Reconfigure reconfigure(java.lang.Object... fields) {
         return new Reconfigure(this, new Arguments(fields), new OptArgs());
     }
 
-    public Rebalance rebalance(Object... fields) {
+    public Rebalance rebalance(java.lang.Object... fields) {
         return new Rebalance(this, new Arguments(fields), new OptArgs());
     }
 
-    public Funcall do_(Object... fields) {
+    public Funcall do_(java.lang.Object... fields) {
         return new Funcall(this, new Arguments(fields), new OptArgs());
     }
 
-    public Branch branch(Object... fields) {
+    public Branch branch(java.lang.Object... fields) {
         return new Branch(this, new Arguments(fields), new OptArgs());
     }
 
-    public Or or(Object... fields) {
+    public Or or(java.lang.Object... fields) {
         return new Or(this, new Arguments(fields), new OptArgs());
     }
 
-    public And and(Object... fields) {
+    public And and(java.lang.Object... fields) {
         return new And(this, new Arguments(fields), new OptArgs());
     }
 
-    public Asc asc(Object... fields) {
+    public Asc asc(java.lang.Object... fields) {
         return new Asc(this, new Arguments(fields), new OptArgs());
     }
 
-    public Desc desc(Object... fields) {
+    public Desc desc(java.lang.Object... fields) {
         return new Desc(this, new Arguments(fields), new OptArgs());
     }
 
-    public Info info(Object... fields) {
+    public Info info(java.lang.Object... fields) {
         return new Info(this, new Arguments(fields), new OptArgs());
     }
 
-    public Json json(Object... fields) {
+    public Json json(java.lang.Object... fields) {
         return new Json(this, new Arguments(fields), new OptArgs());
     }
 
-    public Iso8601 iso8601(Object... fields) {
+    public Iso8601 iso8601(java.lang.Object... fields) {
         return new Iso8601(this, new Arguments(fields), new OptArgs());
     }
 
-    public EpochTime epochTime(Object... fields) {
+    public EpochTime epochTime(java.lang.Object... fields) {
         return new EpochTime(this, new Arguments(fields), new OptArgs());
     }
 
-    public Now now(Object... fields) {
+    public Now now(java.lang.Object... fields) {
         return new Now(this, new Arguments(fields), new OptArgs());
     }
 
-    public Time time(Object... fields) {
+    public Time time(java.lang.Object... fields) {
         return new Time(this, new Arguments(fields), new OptArgs());
     }
 
-    public Monday monday(Object... fields) {
+    public Monday monday(java.lang.Object... fields) {
         return new Monday(this, new Arguments(fields), new OptArgs());
     }
 
-    public Tuesday tuesday(Object... fields) {
+    public Tuesday tuesday(java.lang.Object... fields) {
         return new Tuesday(this, new Arguments(fields), new OptArgs());
     }
 
-    public Wednesday wednesday(Object... fields) {
+    public Wednesday wednesday(java.lang.Object... fields) {
         return new Wednesday(this, new Arguments(fields), new OptArgs());
     }
 
-    public Thursday thursday(Object... fields) {
+    public Thursday thursday(java.lang.Object... fields) {
         return new Thursday(this, new Arguments(fields), new OptArgs());
     }
 
-    public Friday friday(Object... fields) {
+    public Friday friday(java.lang.Object... fields) {
         return new Friday(this, new Arguments(fields), new OptArgs());
     }
 
-    public Saturday saturday(Object... fields) {
+    public Saturday saturday(java.lang.Object... fields) {
         return new Saturday(this, new Arguments(fields), new OptArgs());
     }
 
-    public Sunday sunday(Object... fields) {
+    public Sunday sunday(java.lang.Object... fields) {
         return new Sunday(this, new Arguments(fields), new OptArgs());
     }
 
-    public January january(Object... fields) {
+    public January january(java.lang.Object... fields) {
         return new January(this, new Arguments(fields), new OptArgs());
     }
 
-    public February february(Object... fields) {
+    public February february(java.lang.Object... fields) {
         return new February(this, new Arguments(fields), new OptArgs());
     }
 
-    public March march(Object... fields) {
+    public March march(java.lang.Object... fields) {
         return new March(this, new Arguments(fields), new OptArgs());
     }
 
-    public May may(Object... fields) {
+    public May may(java.lang.Object... fields) {
         return new May(this, new Arguments(fields), new OptArgs());
     }
 
-    public June june(Object... fields) {
+    public June june(java.lang.Object... fields) {
         return new June(this, new Arguments(fields), new OptArgs());
     }
 
-    public July july(Object... fields) {
+    public July july(java.lang.Object... fields) {
         return new July(this, new Arguments(fields), new OptArgs());
     }
 
-    public August august(Object... fields) {
+    public August august(java.lang.Object... fields) {
         return new August(this, new Arguments(fields), new OptArgs());
     }
 
-    public September september(Object... fields) {
+    public September september(java.lang.Object... fields) {
         return new September(this, new Arguments(fields), new OptArgs());
     }
 
-    public October october(Object... fields) {
+    public October october(java.lang.Object... fields) {
         return new October(this, new Arguments(fields), new OptArgs());
     }
 
-    public November november(Object... fields) {
+    public November november(java.lang.Object... fields) {
         return new November(this, new Arguments(fields), new OptArgs());
     }
 
-    public December december(Object... fields) {
+    public December december(java.lang.Object... fields) {
         return new December(this, new Arguments(fields), new OptArgs());
     }
 
-    public Literal literal(Object... fields) {
+    public Literal literal(java.lang.Object... fields) {
         return new Literal(this, new Arguments(fields), new OptArgs());
     }
 
-    public Random random(Object... fields) {
+    public Random random(java.lang.Object... fields) {
         return new Random(this, new Arguments(fields), new OptArgs());
     }
 
-    public Args args(Object... fields) {
+    public Args args(java.lang.Object... fields) {
         return new Args(this, new Arguments(fields), new OptArgs());
     }
 
-    public Binary binary(Object... fields) {
+    public Binary binary(java.lang.Object... fields) {
         return new Binary(this, new Arguments(fields), new OptArgs());
     }
 
-    public Geojson geojson(Object... fields) {
+    public Geojson geojson(java.lang.Object... fields) {
         return new Geojson(this, new Arguments(fields), new OptArgs());
     }
 
-    public Point point(Object... fields) {
+    public Point point(java.lang.Object... fields) {
         return new Point(this, new Arguments(fields), new OptArgs());
     }
 
-    public Line line(Object... fields) {
+    public Line line(java.lang.Object... fields) {
         return new Line(this, new Arguments(fields), new OptArgs());
     }
 
-    public Polygon polygon(Object... fields) {
+    public Polygon polygon(java.lang.Object... fields) {
         return new Polygon(this, new Arguments(fields), new OptArgs());
     }
 
-    public Distance distance(Object... fields) {
+    public Distance distance(java.lang.Object... fields) {
         return new Distance(this, new Arguments(fields), new OptArgs());
     }
 
-    public Intersects intersects(Object... fields) {
+    public Intersects intersects(java.lang.Object... fields) {
         return new Intersects(this, new Arguments(fields), new OptArgs());
     }
 
-    public Circle circle(Object... fields) {
+    public Circle circle(java.lang.Object... fields) {
         return new Circle(this, new Arguments(fields), new OptArgs());
     }
 
-    public Minval minval(Object... fields) {
+    public Minval minval(java.lang.Object... fields) {
         return new Minval(this, new Arguments(fields), new OptArgs());
     }
 
-    public Maxval maxval(Object... fields) {
+    public Maxval maxval(java.lang.Object... fields) {
         return new Maxval(this, new Arguments(fields), new OptArgs());
     }
 

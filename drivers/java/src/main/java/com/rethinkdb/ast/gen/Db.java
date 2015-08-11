@@ -4,12 +4,10 @@
 // ../../../../../../../../templates/AstSubclass.java
 package com.rethinkdb.ast.gen;
 
-import java.util.Optional;
+import com.rethinkdb.model.Arguments;
+import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
-import com.rethinkdb.ast.helper.Arguments;
-import com.rethinkdb.ast.helper.OptArgs;
 import com.rethinkdb.proto.TermType;
-
 
 
 public class Db extends ReqlAst {
@@ -30,40 +28,40 @@ public class Db extends ReqlAst {
 
 
     /* Static factories */
-    public static Db fromArgs(Object... args){
+    public static Db fromArgs(java.lang.Object... args){
         return new Db(new Arguments(args), null);
     }
 
 
-    public Table table(Object... fields) {
+    public Table table(java.lang.Object... fields) {
         return new Table(this, new Arguments(fields), new OptArgs());
     }
 
-    public TableCreate tableCreate(Object... fields) {
+    public TableCreate tableCreate(java.lang.Object... fields) {
         return new TableCreate(this, new Arguments(fields), new OptArgs());
     }
 
-    public TableDrop tableDrop(Object... fields) {
+    public TableDrop tableDrop(java.lang.Object... fields) {
         return new TableDrop(this, new Arguments(fields), new OptArgs());
     }
 
-    public TableList tableList(Object... fields) {
+    public TableList tableList(java.lang.Object... fields) {
         return new TableList(this, new Arguments(fields), new OptArgs());
     }
 
-    public Config config(Object... fields) {
+    public Config config(java.lang.Object... fields) {
         return new Config(this, new Arguments(fields), new OptArgs());
     }
 
-    public Wait wait(Object... fields) {
+    public Wait wait(java.lang.Object... fields) {
         return new Wait(this, new Arguments(fields), new OptArgs());
     }
 
-    public Reconfigure reconfigure(Object... fields) {
+    public Reconfigure reconfigure(java.lang.Object... fields) {
         return new Reconfigure(this, new Arguments(fields), new OptArgs());
     }
 
-    public Rebalance rebalance(Object... fields) {
+    public Rebalance rebalance(java.lang.Object... fields) {
         return new Rebalance(this, new Arguments(fields), new OptArgs());
     }
 
