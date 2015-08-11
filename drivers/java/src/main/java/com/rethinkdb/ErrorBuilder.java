@@ -7,6 +7,7 @@ import com.rethinkdb.proto.ResponseType;
 import com.rethinkdb.model.Backtrace;
 
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class ErrorBuilder {
@@ -39,7 +40,7 @@ public class ErrorBuilder {
     public ReqlError build() {
         assert (msg != null);
         assert (responseType != null);
-        Supplier<ReqlError> con;
+        Function<String,ReqlError> con;
         switch (responseType) {
             case CLIENT_ERROR:
                 con = ReqlClientError::new;
@@ -48,7 +49,7 @@ public class ErrorBuilder {
                 con = ReqlCompileError::new;
                 break;
             case RUNTIME_ERROR: {
-                con = errorType.<Supplier<ReqlError>>map(et -> {
+                con = errorType.<Function<String,ReqlError>>map(et -> {
                     switch (et) {
                         case INTERNAL:
                             return ReqlInternalError::new;
@@ -72,7 +73,7 @@ public class ErrorBuilder {
             default:
                 con = ReqlError::new;
         }
-        ReqlError res = con.get();
+        ReqlError res = con.apply(msg);
         backtrace.ifPresent(res::setBacktrace);
         term.ifPresent(res::setTerm);
         return res;
