@@ -110,8 +110,8 @@ cluster_version_t auth_superblock_version(const auth_metadata_superblock_t *sb) 
 struct regioned_version_t {
     regioned_version_t(const region_t &r, const ::version_t &v) :
         region(r), version(v) { }
-    const region_t region;
-    const ::version_t version;
+    region_t region;
+    ::version_t version;
 };
 
 bool operator <(const regioned_version_t &a, const regioned_version_t &b) {
@@ -189,17 +189,16 @@ void migrate_databases(const metadata_v1_16::cluster_semilattice_metadata_t &met
 
 ::branch_history_t migrate_branch_ids(
         const namespace_id_t &table_id,
-        std::set<regioned_version_t> seen_versions,
+        const std::vector<regioned_version_t> &table_versions,
         const metadata_v1_16::branch_history_t &branch_history,
         metadata_file_t::write_txn_t *out,
         signal_t *interruptor) {
     branch_history_t result;
-    std::deque<regioned_version_t> versions_to_save(seen_versions.begin(), seen_versions.end());
+    std::set<branch_id_t> seen_branches{ nil_uuid() };
+    std::deque<branch_id_t> branches_to_save;
 
-    while (!versions_to_save.empty()) {
-        auto const &regioned_version = versions_to_save.front();
-        auto const branch_it = branch_history.branches.find(regioned_version.version.branch);
-        branch_birth_certificate_t new_birth_certificate;
+    for (auto const &rv : table_versions) {
+        auto const branch_it = branch_history.branches.find(rv.version.branch);
 
         // If we don't find the branch, we assume that it is referencing a dummy branch
         // that we created to replace an incoherent version_range_t.  In this case, we
@@ -208,36 +207,52 @@ void migrate_databases(const metadata_v1_16::cluster_semilattice_metadata_t &met
         // the table and a more-recent coherent replica is found.  At that point the
         // incoherent data shall be erased and backfilled from the coherent replica.
         if (branch_it == branch_history.branches.end()) {
-            guarantee(regioned_version.region != region_t::empty());
+            branch_birth_certificate_t new_birth_certificate;
             new_birth_certificate.initial_timestamp =
                 version_t::zero().timestamp;
-            new_birth_certificate.origin.update(regioned_version.region,
-                                                version_t::zero());
-        } else {
-            new_birth_certificate.initial_timestamp =
-                branch_it->second.initial_timestamp;
             new_birth_certificate.origin =
-                branch_it->second.origin.map(branch_it->second.region,
-                [&] (const metadata_v1_16::version_range_t &v) -> ::version_t {
-                    ::version_t res(v.earliest.branch, v.earliest.timestamp);
-                    regioned_version_t regioned_res(region_t::empty(), res);
-                    guarantee(v.is_coherent());
-                    if (!res.branch.is_nil() && seen_versions.count(regioned_res) == 0) {
-                        seen_versions.insert(regioned_res);
-                        versions_to_save.push_back(regioned_res);
-                    }
-                    return res;
-                });
-        }
+                region_map_t<version_t>(rv.region, version_t::zero());
 
-        result.branches.insert(std::make_pair(regioned_version.version.branch, new_birth_certificate));
+            result.branches.insert(std::make_pair(rv.version.branch,
+                                                  new_birth_certificate));
+
+            out->write(mdprefix_branch_birth_certificate().suffix(
+                           uuid_to_str(table_id) + "/" +
+                           uuid_to_str(rv.version.branch)),
+                       new_birth_certificate, interruptor);
+        } else if (seen_branches.count(rv.version.branch) == 0) {
+            seen_branches.insert(rv.version.branch);
+            branches_to_save.push_back(rv.version.branch);
+        }
+    }
+
+    while (!branches_to_save.empty()) {
+        auto const branch_it = branch_history.branches.find(branches_to_save.front());
+        guarantee(branch_it != branch_history.branches.end());
+        branches_to_save.pop_front();
+
+        branch_birth_certificate_t new_birth_certificate;
+
+        new_birth_certificate.initial_timestamp = branch_it->second.initial_timestamp;
+        new_birth_certificate.origin =
+            branch_it->second.origin.map(branch_it->second.region,
+            [&] (const metadata_v1_16::version_range_t &v) -> ::version_t {
+                ::version_t res(v.earliest.branch, v.earliest.timestamp);
+                guarantee(v.is_coherent());
+                if (seen_branches.count(res.branch) == 0) {
+                    seen_branches.insert(res.branch);
+                    branches_to_save.push_back(res.branch);
+                }
+                return res;
+            });
+
+        result.branches.insert(std::make_pair(branch_it->first, new_birth_certificate));
 
         out->write(mdprefix_branch_birth_certificate().suffix(
-                       uuid_to_str(table_id) + "/" + uuid_to_str(regioned_version.version.branch)),
+                       uuid_to_str(table_id) + "/" + uuid_to_str(branch_it->first)),
                    new_birth_certificate, interruptor);
-
-        versions_to_save.pop_front();
     }
+
     return result;
 }
 
@@ -258,6 +273,13 @@ multi_table_manager_timestamp_t max_versioned_timestamp(const versioned_t<Args> 
     return res;
 }
 
+bool is_server_deleted(const server_id_t &server_id,
+                       const metadata_v1_16::servers_semilattice_metadata_t &servers_metadata) {
+    auto serv_it = servers_metadata.servers.find(server_id);
+    return (serv_it == servers_metadata.servers.end()) ||
+           serv_it->second.is_deleted();
+}
+
 void migrate_table(const server_id_t &this_server_id,
                    const namespace_id_t &table_id,
                    const metadata_v1_16::namespace_semilattice_metadata_t &table_metadata,
@@ -266,7 +288,7 @@ void migrate_table(const server_id_t &this_server_id,
                    const ::branch_history_t &branch_history,
                    metadata_file_t::write_txn_t *out,
                    signal_t *interruptor) {
-    const metadata_v1_16::table_replication_info_t &old_config = table_metadata.replication_info.get_ref();
+    metadata_v1_16::table_replication_info_t old_config = table_metadata.replication_info.get_ref();
 
     table_config_and_shards_t config;
     config.config.basic.name = table_metadata.name.get_ref();
@@ -278,6 +300,27 @@ void migrate_table(const server_id_t &this_server_id,
                 ::write_ack_config_t::SINGLE : ::write_ack_config_t::MAJORITY;
     config.config.durability = old_config.config.durability;
     config.shard_scheme.split_points = old_config.shard_scheme.split_points;
+
+    // Scan the servers in the old shard config - need to remove deleted and nil servers
+    for (size_t i = 0; i < old_config.config.shards.size(); ++i) {
+        metadata_v1_16::table_config_t::shard_t &s = old_config.config.shards[i];
+        std::set<server_id_t> replicas_copy = s.replicas;
+        for (auto const &serv : replicas_copy) {
+            if (is_server_deleted(serv, servers_metadata)) {
+                s.replicas.erase(serv);
+            }
+        }
+        if (is_server_deleted(s.primary_replica, servers_metadata)) {
+            if (s.replicas.empty()) {
+                logWRN("Table %s has no replicas for the region %s\n",
+                       uuid_to_str(table_id).c_str(),
+                       old_config.shard_scheme.get_shard_range(i).print().c_str());
+                s.replicas.insert(s.primary_replica);
+            } else {
+                s.primary_replica = *s.replicas.begin();
+            }
+        }
+    }
 
     std::set<server_id_t> used_servers;
     for (auto const &s : old_config.config.shards) {
@@ -297,6 +340,10 @@ void migrate_table(const server_id_t &this_server_id,
         if (serv_it != servers_metadata.servers.end() && !serv_it->second.is_deleted()) {
             config.server_names.names.insert(std::make_pair(
                 serv_id, std::make_pair(1, serv_it->second.get_ref().name.get_ref())));
+        } else {
+            config.server_names.names.insert(std::make_pair(
+                serv_id,
+                std::make_pair(1, name_string_t::guarantee_valid("__deleted_server__"))));
         }
     }
 
@@ -412,7 +459,7 @@ void migrate_tables(io_backender_t *io_backender,
                 std::vector<serializer_t *> underlying({ &merger_serializer });
                 serializer_multiplexer_t multiplexer(underlying);
 
-                std::set<regioned_version_t> seen_versions;
+                std::vector<regioned_version_t> table_versions;
                 std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > sindex_list;
 
                 pmap(CPU_SHARDING_FACTOR, [&] (int index) {
@@ -448,10 +495,11 @@ void migrate_tables(io_backender_t *io_backender,
                                     if (!v.is_coherent()) {
                                         // Create a dummy branch that will be assigned a birth
                                         // certificate off of version_t::zero
-                                        res = ::version_t(generate_uuid(), v.latest.timestamp);
+                                        res = ::version_t(generate_uuid(),
+                                                          state_timestamp_t::zero());
                                     }
                                     if (!res.branch.is_nil()) {
-                                        seen_versions.insert(regioned_version_t(r, res));
+                                        table_versions.push_back(regioned_version_t(r, res));
                                     }
                                     return binary_blob_t::make<version_t>(res);
                                 }, interruptor);
@@ -461,10 +509,9 @@ void migrate_tables(io_backender_t *io_backender,
                                                          interruptor) == cluster_version_t::v2_1);
                     });
 
-                debugf("migrating %zu branch ids\n", seen_versions.size());
                 branch_history_t new_branch_history =
                     migrate_branch_ids(info.first,
-                                       std::move(seen_versions),
+                                       table_versions,
                                        old_branch_history,
                                        out,
                                        interruptor);
