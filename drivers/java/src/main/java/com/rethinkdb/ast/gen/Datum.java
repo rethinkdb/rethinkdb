@@ -25,12 +25,10 @@ public class Datum extends ReqlQuery {
 
 
     @Override
-    protected JSONArray build() {
+    protected java.lang.Object build() {
         // Overridden because Datums are leaf-nodes and therefore
         // don't contain lower ReqlAst objects.
-        JSONArray list = new JSONArray();
-        list.add(datum);
-        return list;
+        return datum;
     }
 
 }
