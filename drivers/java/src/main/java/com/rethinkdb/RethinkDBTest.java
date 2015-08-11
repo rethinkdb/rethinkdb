@@ -23,7 +23,8 @@ public class RethinkDBTest extends TestCase {
                 .hostname("newton")
                 .port(31157)
                 .connect();
-        Optional<Object> res = r.random(1,2).run(conn);
-        assertEquals(new Long(1L), res.get());
+        Optional<Object> res = r.table("foo").limit(1).run(conn);
+        Long val = (Long) res.get();
+        assert(val >= 3 && val <= 6);
     }
 }
