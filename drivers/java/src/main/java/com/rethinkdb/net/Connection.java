@@ -18,8 +18,6 @@ public class Connection<C extends ConnectionInstance> {
     public final String hostname;
     public final int port;
 
-    // private immutable
-    private final String authKey;
     private final AtomicLong nextToken = new AtomicLong();
     private final Supplier<C> instanceMaker;
 
@@ -31,8 +29,8 @@ public class Connection<C extends ConnectionInstance> {
 
     private Connection(Builder<C> builder) {
         dbname = builder.dbname;
-        authKey = builder.authKey.orElse("");
-        handshake = Util.leByteBuffer(4 + 4 + this.authKey.length() + 4)
+        String authKey = builder.authKey.orElse("");
+        handshake = Util.leByteBuffer(4 + 4 + authKey.length() + 4)
             .putInt(Version.V0_4.value)
             .putInt(authKey.length())
             .put(authKey.getBytes())

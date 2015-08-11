@@ -4,6 +4,9 @@
 // ../../../../../../../templates/GlobalOptions.java
 package com.rethinkdb.model;
 
+import com.rethinkdb.RethinkDB;
+import com.rethinkdb.ast.gen.Db;
+
 import java.util.*;
 
 
@@ -11,7 +14,7 @@ public class GlobalOptions {
 
     private Optional<Double> _arrayLimit = Optional.empty();
     private Optional<String> _binaryFormat = Optional.empty();
-    private Optional<String> _db = Optional.empty();
+    private Optional<Db> _db = Optional.empty();
     private Optional<String> _durability = Optional.empty();
     private Optional<Double> _firstBatchScaledownFactor = Optional.empty();
     private Optional<String> _groupFormat = Optional.empty();
@@ -90,11 +93,11 @@ public class GlobalOptions {
     }
 
     public GlobalOptions db(String db) {
-        _db = Optional.of(db);
+        _db = Optional.of(RethinkDB.r.db(db));
         return this;
     }
 
-    public Optional<String> db() {
+    public Optional<Db> db() {
         return _db;
     }
 
