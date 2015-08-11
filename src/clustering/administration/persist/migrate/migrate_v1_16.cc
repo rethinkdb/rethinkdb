@@ -265,9 +265,10 @@ void migrate_databases(const metadata_v1_16::cluster_semilattice_metadata_t &met
 template <typename... Args>
 multi_table_manager_timestamp_t max_versioned_timestamp(const versioned_t<Args> &...args) {
     std::vector<time_t> times = { args.get_timestamp()... };
+    time_t ts = *std::max_element(times.begin(), times.end());
 
     multi_table_manager_timestamp_t res;
-    res.epoch.timestamp = *std::max_element(times.begin(), times.end());
+    res.epoch.timestamp = static_cast<microtime_t>(ts < 0 ? 0 : ts);
     res.epoch.id = generate_uuid();
     res.log_index = 0;
     return res;
