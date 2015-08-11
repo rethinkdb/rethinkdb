@@ -169,7 +169,7 @@ tests:
     - py: tbl.order_by('a', index='id').between(5, r.maxval, index='id')[0]
       js: tbl.orderBy('a', {index:'id'}).between(5, r.maxval, {index:'id'}).nth(0)
       rb: tbl.order_by('a', :index => :id).between(5, r.maxval, :index => :id)[0]
-      ot: err('ReqlQueryLogicError', 'Expected type TABLE_SLICE but found SELECTION.', [0])
+      ot: err('ReqlQueryLogicError', 'Expected type TABLE_SLICE but found SELECTION:', [0])
 
     - py: "tbl.order_by(lambda x: x['id'])[0]"
       js: tbl.orderBy(function (x) { return x('id'); }).nth(0)
@@ -505,7 +505,7 @@ tests:
       ot: [2]
 
     - cd: r.expr([1]).offsets_of(tbl)
-      ot: err('ReqlQueryLogicError', 'Expected type DATUM but found TABLE.', [])
+      ot: err('ReqlQueryLogicError', 'Expected type DATUM but found TABLE:', [])
 
     - py: "r.expr(1).do(lambda x: r.expr([2,1,0]).offsets_of(x))"
       js: r.expr(1).do(function(x){ return r.expr([2,1,0]).offsets_of(x); })

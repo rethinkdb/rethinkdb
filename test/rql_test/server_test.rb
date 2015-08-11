@@ -19,8 +19,8 @@ $port = (ARGV[0] || ENV['RDB_DRIVER_PORT'] || raise('driver port not supplied'))
 ARGV.clear
 $c = r.connect(port: $port).repl
 
-$run_exc = RethinkDB::RqlRuntimeError
-$comp_exc = RethinkDB::RqlCompileError
+$run_exc = RethinkDB::ReqlRuntimeError
+$comp_exc = RethinkDB::ReqlCompileError
 
 $s1 = r((0...10).map{|i| {a: i, b: i%2, c: i%3, d: i%5}})
 $tbl1 = r.db('test').table('1')
@@ -121,11 +121,11 @@ Query: #{PP.pp(query, "")}\nBatch Conf: #{bc}
     end
 
     begin
-      assert_raises(RethinkDB::RqlDriverError) {
+      assert_raises(RethinkDB::ReqlDriverError) {
         $dispatch_hook = lambda {|x| x.gsub('[', '{')}
         eq(r(1), 1)
       }
-      assert_raises(RethinkDB::RqlDriverError) {
+      assert_raises(RethinkDB::ReqlDriverError) {
         $dispatch_hook = lambda {|x| x.gsub('1', '\u0000')}
         eq(r(1), 1)
       }

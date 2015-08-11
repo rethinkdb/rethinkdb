@@ -165,7 +165,7 @@ begin
   timeout(2) {
     $lp1.next
   }
-rescue RethinkDB::RqlRuntimeError => e
+rescue RethinkDB::ReqlRuntimeError => e
   $errored = true
 end
 assert{$errored}

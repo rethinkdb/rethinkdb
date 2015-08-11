@@ -94,9 +94,9 @@ tests:
       ot: ([])
 
     - cd: r.branch(r.db('test'), 1, 2)
-      ot: err("ReqlQueryLogicError", "Expected type DATUM but found DATABASE.", [])
+      ot: err("ReqlQueryLogicError", "Expected type DATUM but found DATABASE:", [])
     - cd: r.branch(tbl, 1, 2)
-      ot: err("ReqlQueryLogicError", "Expected type DATUM but found TABLE.", [])
+      ot: err("ReqlQueryLogicError", "Expected type DATUM but found TABLE:", [])
     - cd: r.branch(r.error("a"), 1, 2)
       ot: err("ReqlUserError", "a", [])
 
@@ -169,14 +169,14 @@ tests:
       ot: ([2, 3, 4])
 
     - cd: r.expr([1, 2, 3]).map(r.js('1'))
-      ot: err("ReqlQueryLogicError", "Expected type FUNCTION but found DATUM.", [0])
+      ot: err("ReqlQueryLogicError", "Expected type FUNCTION but found DATUM:", [0])
 
     - cd: r.expr([1, 2, 3]).filter(r.js('(function(a) {})'))
       ot: err("ReqlQueryLogicError", "Cannot convert javascript `undefined` to ql::datum_t.", [0])
 
     # What happens if we pass static values to things that expect functions
     - cd: r.expr([1, 2, 3]).map(1)
-      ot: err("ReqlQueryLogicError", "Expected type FUNCTION but found DATUM.", [0])
+      ot: err("ReqlQueryLogicError", "Expected type FUNCTION but found DATUM:", [0])
 
     - cd: r.expr([1, 2, 3]).filter('foo')
       ot: ([1, 2, 3])

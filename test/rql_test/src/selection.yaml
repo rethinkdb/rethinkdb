@@ -166,8 +166,7 @@ tests:
       ot: err("ReqlQueryLogicError", 'Read mode `fake` unrecognized (options are "majority", "single", and "outdated").')
 
     - cd: tbl.get(20).count()
-      py: [] # Handled by native Python error
-      ot: err("ReqlQueryLogicError", 'Expected type SEQUENCE but found SINGLE_SELECTION.', [0])
+      ot: err("ReqlQueryLogicError", 'Expected type SEQUENCE but found SINGLE_SELECTION:', [0])
 
     # Get a document that exists
     - cd: tbl.get(20)
@@ -179,13 +178,9 @@ tests:
 
     # Make sure get only takes one arg (since we used to be able to pass id)
     - cd: tbl.get()
-      py: [] # Handled by native Python error
-      rb: []
       ot: err("ReqlCompileError", 'Expected 2 arguments but found 1.', [1])
 
     - cd: tbl.get(10, 20)
-      py: [] # Handled by native Python error
-      rb: []
       ot: err("ReqlCompileError", 'Expected 2 arguments but found 3.', [1])
 
     # Create a table with a non-id primary key
@@ -267,7 +262,7 @@ tests:
 
     # Between shouldn't work on arrays
     - cd: r.expr([1, 2, 3]).between(-1, 2)
-      ot: err('ReqlQueryLogicError', 'Expected type TABLE_SLICE but found DATUM.', [0])
+      ot: err('ReqlQueryLogicError', 'Expected type TABLE_SLICE but found DATUM:', [0])
 
     # test between on open intervals
     - cd: tbl.between(r.minval, 2).count()
@@ -379,7 +374,7 @@ tests:
     - py: r.expr(5) + tbl
       js: r.expr(5).add(tbl)
       rb: r 5 + tbl
-      ot: err('ReqlQueryLogicError', 'Expected type DATUM but found TABLE.', [0])
+      ot: err('ReqlQueryLogicError', 'Expected type DATUM but found TABLE:', [0])
 
     - cd: tbl.has_fields('field').type_of()
       ot: ("SELECTION<STREAM>")

@@ -197,7 +197,7 @@ class QueryThrottler:
         result = {"timestamp": start_time}
         try:
             result.update(self.workload.run(conn))
-        except (r.RqlError, r.RqlDriverError) as ex:
+        except (r.ReqlError, r.ReqlDriverError) as ex:
             result["errors"] = result.get('errors', []) + [ex.message]
         except (IOError, OSError) as ex:
             if ex.errno != errno.EINTR:

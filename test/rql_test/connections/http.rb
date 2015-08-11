@@ -155,9 +155,9 @@ end
 def test_redirects()
     url = 'http://' + $httpbinAddress + '/redirect/2'
     expect_error(r.http(url, {:redirects => 0}),
-                 RethinkDB::RqlRuntimeError, err_string('GET', url, 'status code 302'))
+                 RethinkDB::ReqlRuntimeError, err_string('GET', url, 'status code 302'))
     expect_error(r.http(url, {:redirects => 1}),
-                 RethinkDB::RqlRuntimeError, err_string('GET', url, 'Number of redirects hit maximum amount'))
+                 RethinkDB::ReqlRuntimeError, err_string('GET', url, 'Number of redirects hit maximum amount'))
     res = r.http(url, {:redirects => 2}).run()
     expect_eq(res['headers']['Host'], $httpbinAddress)
 end
@@ -170,7 +170,7 @@ end
 def test_failed_json_parse()
     url = 'http://' + $httpbinAddress + '/html'
     expect_error(r.http(url, {:result_format => 'json'}),
-                 RethinkDB::RqlRuntimeError, err_string('GET', url, 'failed to parse JSON response: Invalid value.'))
+                 RethinkDB::ReqlRuntimeError, err_string('GET', url, 'failed to parse JSON response: Invalid value.'))
 end
 
 def test_basic_auth()
@@ -178,15 +178,15 @@ def test_basic_auth()
 
     # Wrong password
     expect_error(r.http(url, {:auth => {:type => 'basic', :user => 'azure', :pass => 'wrong'}}),
-                 RethinkDB::RqlRuntimeError, err_string('GET', url, 'status code 401'))
+                 RethinkDB::ReqlRuntimeError, err_string('GET', url, 'status code 401'))
 
     # Wrong username
     expect_error(r.http(url, {:auth => {:type => 'basic', :user => 'fake', :pass => 'hunter2'}}),
-                 RethinkDB::RqlRuntimeError, err_string('GET', url, 'status code 401'))
+                 RethinkDB::ReqlRuntimeError, err_string('GET', url, 'status code 401'))
 
     # Wrong authentication type
     expect_error(r.http(url, {:auth => {:type => 'digest', :user => 'azure', :pass => 'hunter2'}}),
-                 RethinkDB::RqlRuntimeError, err_string('GET', url, 'status code 401'))
+                 RethinkDB::ReqlRuntimeError, err_string('GET', url, 'status code 401'))
 
     # Correct credentials
     res = r.http(url, {:auth => {:type => 'basic', :user => 'azure', :pass => 'hunter2'}}).run()
@@ -203,17 +203,17 @@ def test_digest_auth()
     # Wrong password
     expect_error(r.http(url, {:redirects => 5,
                               :auth => {:type => 'digest', :user => 'azure', :pass => 'wrong'}}),
-                 RethinkDB::RqlRuntimeError, err_string('GET', url, 'status code 401'))
+                 RethinkDB::ReqlRuntimeError, err_string('GET', url, 'status code 401'))
 
     # Wrong username
     expect_error(r.http(url, {:redirects => 5,
                               :auth => {:type => 'digest', :user => 'fake', :pass => 'hunter2'}}),
-                 RethinkDB::RqlRuntimeError, err_string('GET', url, 'status code 401'))
+                 RethinkDB::ReqlRuntimeError, err_string('GET', url, 'status code 401'))
 
     # Wrong authentication type
     expect_error(r.http(url, {:redirects => 5,
                               :auth => {:type => 'basic', :user => 'azure', :pass => 'hunter2'}}),
-                 RethinkDB::RqlRuntimeError, err_string('GET', url, 'status code 401'))
+                 RethinkDB::ReqlRuntimeError, err_string('GET', url, 'status code 401'))
 
     # Correct credentials
     res = r.http(url, {:redirects => 5,
@@ -224,7 +224,7 @@ end
 def test_verify()
     def test_part(url)
         expect_error(r.http(url, {:method => 'HEAD', :verify => true, :redirects => 5}),
-                     RethinkDB::RqlRuntimeError, err_string('HEAD', url, 'Peer certificate cannot be authenticated with given CA certificates'))
+                     RethinkDB::ReqlRuntimeError, err_string('HEAD', url, 'Peer certificate cannot be authenticated with given CA certificates'))
 
         res = r.http(url, {:method => 'HEAD', :verify => false, :redirects => 5}).run()
         expect_eq(res, nil)

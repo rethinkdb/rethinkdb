@@ -46,13 +46,17 @@ tests:
       ot: [['a',1]]
 
     # Error cases
-    - py: r.expr({12:'a'})
-      rb: r({12 => 'a'})
-      ot: err_regex("ReqlDriverError", "Object keys must be strings")
+    - cd: r.expr({12:'a'})
+      js: r.expr({12:'a'})
+      ot:
+        cd: err_regex("ReqlDriverError", "Object keys must be strings.*")
+        js: [] # our auto-translation is killing this #4653
 
-    - py: r.expr({'a':{12:'b'}})
-      rb: r({:a => {12 => 'b'} })
-      ot: err_regex("ReqlDriverError", "Object keys must be strings")
+    - cd: r.expr({'a':{12:'b'}})
+      js: r.expr({'a':{12:'b'}})
+      ot:
+        cd: err_regex("ReqlDriverError", "Object keys must be strings.*")
+        js: [] # our auto-translation is killing this #4653
 
     - js: r({'a':undefined})
       ot: err("ReqlDriverError", "Object field 'a' may not be undefined")
@@ -60,12 +64,10 @@ tests:
     - js: r({'a':{'b':undefined}})
       ot: err("ReqlDriverError", "Object field 'b' may not be undefined")
 
-    - js:
-        cd: r.expr({}, "foo")
-        ot: err("ReqlDriverError", "Second argument to `r.expr` must be a number or undefined.")
-      py:
-        cd: r.expr({}, "foo")
-        ot: err("ReqlDriverError", "Second argument to `r.expr` must be a number.")
+    - cd: r.expr({}, "foo")
+      ot:
+        cd: err("ReqlDriverError", "Second argument to `r.expr` must be a number.")
+        js: err("ReqlDriverError", "Second argument to `r.expr` must be a number or undefined.")
 
     - js: r.expr({}, NaN)
       ot: err("ReqlDriverError", "Second argument to `r.expr` must be a number or undefined.")
@@ -90,4 +92,4 @@ tests:
       ot: err("ReqlQueryLogicError","Duplicate key `e` in object.  (got `4` and `5` as values)",[])
 
     - cd: r.object('g', r.db('test'))
-      ot: err("ReqlQueryLogicError","Expected type DATUM but found DATABASE.",[])
+      ot: err("ReqlQueryLogicError","Expected type DATUM but found DATABASE:",[])

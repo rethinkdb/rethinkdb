@@ -68,7 +68,7 @@ def show(x)
     message = String.new(x.message)
     message.sub!(/^(?<message>[^\n]*?)\nFailed assertion:.*$/m, '\k<message>')
     message.sub!(/^(?<message>[^\n]*?)\nBacktrace:\n.*$/m, '\k<message>')
-    message.sub!(/^(?<message>[^\n]*?):\n.*$/m, '\k<message>.')
+    message.sub!(/^(?<message>[^\n]*?):\n.*$/m, '\k<message>:')
     return "#{x.class.name.sub(/^RethinkDB::/, "")}: #{message}"
   elsif x.is_a?(String)
     return x
@@ -161,7 +161,7 @@ def float_cmp(value)
 end
 
 def cmp_test(expected, result, testopts={}, partial=false)
-  print_debug("\tCompare - expected: #{show(expected)} (#{expected.class}) actual: #{show(result)}")
+  print_debug("\tCompare - expected: <<#{show(expected)}>> (#{expected.class}) actual: <<#{show(result)}>>")
   
   if expected.object_id == NoError.object_id
     if result.is_a?(Err)
@@ -189,16 +189,21 @@ def cmp_test(expected, result, testopts={}, partial=false)
   if result.is_a?(String) then
     result = result.sub(/\nFailed assertion:(.|\n)*/, "")
   end
-
-  case "#{expected.class}"
-  when "Err"
+  
+  case
+  when expected.is_a?(Err) || expected.is_a?(Exception)
     if result.is_a?(expected.class)
-      return show(result).sub(/^#{result.class.name.sub(/^RethinkDB::/, '')}: /, '') <=> expected.message
+      cmpMessage = show(result).sub(/^#{result.class.name.sub(/^RethinkDB::/, '')}: /, '')
+      if expected.message.is_a?(Regexp)
+        return expected.message.match(cmpMessage) ? 0 : 1 
+      else
+        return cmpMessage <=> expected.message
+      end
     else
       return result.class.name <=> expected.class.name
     end
 
-  when "Array"
+  when expected.is_a?(Array)
     if result.respond_to? :to_a
       result = result.to_a
     end
@@ -228,10 +233,10 @@ def cmp_test(expected, result, testopts={}, partial=false)
     end
     return 0
 
-  when "PartialHash"
+  when expected.is_a?(PartialHash)
     return cmp_test(expected.hash, result, testopts, true)
 
-  when "Hash"
+  when expected.is_a?(Hash)
     cmp = result.class.name <=> expected.class.name
     return cmp if cmp != 0
     result = Hash[ result.map{ |k,v| [k.to_s, v] } ]
@@ -250,7 +255,7 @@ def cmp_test(expected, result, testopts={}, partial=false)
     }
     return 0
 
-  when "Bag"
+  when expected.is_a?(Bag)
     return cmp_test(
       expected.items.sort{ |a, b| cmp_test(a, b, testopts) },
       result.sort{ |a, b| cmp_test(a, b, testopts) },
@@ -258,7 +263,7 @@ def cmp_test(expected, result, testopts={}, partial=false)
       expected.partial
     )
 
-  when "Float", "Fixnum", "Number"
+  when expected.is_a?(Float) || expected.is_a?(Fixnum) || expected.is_a?(Number)
     if not (result.kind_of? Float or result.kind_of? Fixnum)
       cmp = result.class.name <=> expected.class.name
       return cmp if cmp != 0
@@ -389,7 +394,7 @@ def test(src, expected, name, opthash=nil, testopts=nil)
       end
 
     rescue StandardError, SyntaxError => e
-      result = err(e.class.name.sub(/^RethinkDB::/, ""), e.message.split("\n")[0], e.backtrace)
+      result = e
     end
 
     if testopts && testopts.key?(:noreply_wait) && testopts[:noreply_wait]
@@ -412,7 +417,7 @@ def setup_table(table_variable_name, table_name, db_name="test")
     db_name, table_name = $required_external_tables.pop
     begin
         r.db(db_name).table(table_name).info().run($reql_conn)
-    rescue RethinkDB::RqlRuntimeError
+    rescue RethinkDB::ReqlRuntimeError
       "External table #{db_name}.#{table_name} did not exist"
     end
 
@@ -479,7 +484,7 @@ def check_result(name, src, result, expected, testopts={})
       if (result.kind_of?(RethinkDB::Cursor) || result.kind_of?(Enumerator)) && expected != NoError
         begin
           result = result.to_a
-        rescue RethinkDB::RqlError => err
+        rescue RethinkDB::ReqlError => err
           result = err
         end
       end

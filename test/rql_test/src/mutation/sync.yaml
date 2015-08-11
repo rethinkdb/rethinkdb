@@ -31,17 +31,18 @@ tests:
 
     # This is of type table, but sync should still fail (because it makes little sense)
     - cd: tbl.between(1, 2).sync()
-      py: [] # Case handled by native python error
-      ot: err("ReqlQueryLogicError", 'Expected type TABLE but found TABLE_SLICE.', [1])
+      ot:
+        cd: err('ReqlQueryLogicError', 'Expected type TABLE but found TABLE_SLICE:', [1])
+        py: err('AttributeError', "'Between' object has no attribute 'sync'")
 
     # These are not even a table. Sync should fail with a different error message
     - cd: r.expr(1).sync()
-      py: [] # Case handled by native python error
-      ot: err("ReqlQueryLogicError", 'Expected type TABLE but found DATUM.', [1])
+      ot:
+        cd: err("ReqlQueryLogicError", 'Expected type TABLE but found DATUM:', [1])
+        py: err('AttributeError', "'Datum' object has no attribute 'sync'")
     - js: tbl.order_by({index:'x'}).sync()
       rb: tbl.order_by({:index => 'soft'}).sync()
-      py: [] # Case handled by native python error
-      ot: err("ReqlQueryLogicError", 'Expected type TABLE but found TABLE_SLICE.', [1])
+      ot: err("ReqlQueryLogicError", 'Expected type TABLE but found TABLE_SLICE:', [1])
 
     # clean up
     - cd: r.db('test').table_drop('test1')
