@@ -46,6 +46,13 @@ public:
         }
 
         bool supersedes(const epoch_t &other) const {
+            // Workaround for issue #4668 - handle invalid timestamps from migration
+            if (timestamp == special_timestamp) {
+                return false;
+            } else if (other.timestamp == special_timestamp) {
+                return true;
+            }
+
             if (timestamp > other.timestamp) {
                 return true;
             } else if (timestamp < other.timestamp) {
@@ -67,6 +74,12 @@ public:
         example. */
         microtime_t timestamp;
         uuid_u id;
+
+    private:
+        // Workaround for issue #4668 - invalid timestamps that were migrated
+        // These timestamps should never supercede any other timestamps
+        static const microtime_t special_timestamp =
+            static_cast<microtime_t>(std::numeric_limits<time_t>::min());
     };
 
     static multi_table_manager_timestamp_t min() {
