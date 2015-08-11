@@ -2,6 +2,7 @@ package com.rethinkdb;
 
 import com.rethinkdb.net.Connection;
 import junit.framework.TestCase;
+import org.json.simple.JSONArray;
 
 import java.util.Optional;
 
@@ -23,8 +24,8 @@ public class RethinkDBTest extends TestCase {
                 .hostname("newton")
                 .port(31157)
                 .connect();
-        Optional<Object> res = r.table("foo").limit(1).run(conn);
-        Long val = (Long) res.get();
-        assert(val >= 3 && val <= 6);
+        Optional<Object> res =
+                r.table("foo").limit(1).coerceTo("array").run(conn);
+        assert(res.get().equals(new JSONArray()));
     }
 }
