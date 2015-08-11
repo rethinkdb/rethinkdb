@@ -4,12 +4,10 @@
 // ../../../../../../../../templates/AstSubclass.java
 package com.rethinkdb.ast.gen;
 
-import java.util.Optional;
+import com.rethinkdb.model.Arguments;
+import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
-import com.rethinkdb.ast.helper.Arguments;
-import com.rethinkdb.ast.helper.OptArgs;
 import com.rethinkdb.proto.TermType;
-
 
 
 public class Minval extends ReqlQuery {
@@ -30,7 +28,7 @@ public class Minval extends ReqlQuery {
 
 
     /* Static factories */
-    public static Minval fromArgs(Object... args){
+    public static Minval fromArgs(java.lang.Object... args){
         return new Minval(new Arguments(args), null);
     }
 

@@ -1,7 +1,9 @@
 package com.rethinkdb.ast;
 
-import com.rethinkdb.ast.helper.Arguments;
-import com.rethinkdb.ast.helper.OptArgs;
+import com.rethinkdb.model.Arguments;
+import com.rethinkdb.model.GlobalOptions;
+import com.rethinkdb.model.OptArgs;
+import com.rethinkdb.net.Connection;
 import com.rethinkdb.proto.TermType;
 
 import java.util.*;
@@ -20,9 +22,6 @@ public class ReqlAst {
 
     protected ReqlAst(ReqlAst prev, TermType termType, Arguments args, OptArgs optargs) {
         this.prev = prev;
-        if (termType == null) {
-            throw new RuntimeException("termType can't be null.");
-        }
         this.termType = termType;
         if (args != null) {
             this.args = args;
@@ -57,5 +56,13 @@ public class ReqlAst {
             list.add(joptargs);
         }
         return list;
+    }
+
+    public Optional<Object> run(Connection conn, GlobalOptions g) {
+        return conn.run(this, g);
+    }
+
+    public Optional<Object> run(Connection conn) {
+        return conn.run(this, new GlobalOptions());
     }
 }

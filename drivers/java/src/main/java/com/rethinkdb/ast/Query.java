@@ -53,9 +53,11 @@ public class Query {
         term.ifPresent(t -> queryArr.add(t.build()));
         queryArr.add(globalOptions.toOptArgs());
         String queryJson = queryArr.toJSONString();
-        return Util.leByteBuffer(8 + 4 + queryJson.length())
+        ByteBuffer bb = Util.leByteBuffer(8 + 4 + queryJson.length())
             .putLong(token)
             .putInt(queryJson.length())
             .put(queryJson.getBytes());
+        System.out.println("Sending: "+ Util.bufferToString(bb));
+        return bb;
     }
 }

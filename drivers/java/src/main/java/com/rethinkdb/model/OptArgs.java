@@ -1,4 +1,4 @@
-package com.rethinkdb.ast.helper;
+package com.rethinkdb.model;
 
 import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.ast.Util;

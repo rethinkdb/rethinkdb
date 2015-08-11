@@ -4,8 +4,6 @@
 // ../../../../../../../templates/GlobalOptions.java
 package com.rethinkdb.model;
 
-import com.rethinkdb.ast.helper.OptArgs;
-
 import java.util.*;
 
 
@@ -61,6 +59,10 @@ public class GlobalOptions {
         return ret;
     }
 
+    public static GlobalOptions withArrayLimit(Double arrayLimit) {
+        return new GlobalOptions().arrayLimit(arrayLimit);
+    }
+
     public GlobalOptions arrayLimit(Double arrayLimit) {
         _arrayLimit = Optional.of(arrayLimit);
         return this;
@@ -68,6 +70,10 @@ public class GlobalOptions {
 
     public Optional<Double> arrayLimit() {
         return _arrayLimit;
+    }
+
+    public static GlobalOptions withBinaryFormat(String binaryFormat) {
+        return new GlobalOptions().binaryFormat(binaryFormat);
     }
 
     public GlobalOptions binaryFormat(String binaryFormat) {
@@ -79,6 +85,10 @@ public class GlobalOptions {
         return _binaryFormat;
     }
 
+    public static GlobalOptions withDb(String db) {
+        return new GlobalOptions().db(db);
+    }
+
     public GlobalOptions db(String db) {
         _db = Optional.of(db);
         return this;
@@ -86,6 +96,10 @@ public class GlobalOptions {
 
     public Optional<String> db() {
         return _db;
+    }
+
+    public static GlobalOptions withDurability(String durability) {
+        return new GlobalOptions().durability(durability);
     }
 
     public GlobalOptions durability(String durability) {
@@ -97,6 +111,10 @@ public class GlobalOptions {
         return _durability;
     }
 
+    public static GlobalOptions withFirstBatchScaledownFactor(Double firstBatchScaledownFactor) {
+        return new GlobalOptions().firstBatchScaledownFactor(firstBatchScaledownFactor);
+    }
+
     public GlobalOptions firstBatchScaledownFactor(Double firstBatchScaledownFactor) {
         _firstBatchScaledownFactor = Optional.of(firstBatchScaledownFactor);
         return this;
@@ -104,6 +122,10 @@ public class GlobalOptions {
 
     public Optional<Double> firstBatchScaledownFactor() {
         return _firstBatchScaledownFactor;
+    }
+
+    public static GlobalOptions withGroupFormat(String groupFormat) {
+        return new GlobalOptions().groupFormat(groupFormat);
     }
 
     public GlobalOptions groupFormat(String groupFormat) {
@@ -115,6 +137,10 @@ public class GlobalOptions {
         return _groupFormat;
     }
 
+    public static GlobalOptions withMaxBatchBytes(Double maxBatchBytes) {
+        return new GlobalOptions().maxBatchBytes(maxBatchBytes);
+    }
+
     public GlobalOptions maxBatchBytes(Double maxBatchBytes) {
         _maxBatchBytes = Optional.of(maxBatchBytes);
         return this;
@@ -122,6 +148,10 @@ public class GlobalOptions {
 
     public Optional<Double> maxBatchBytes() {
         return _maxBatchBytes;
+    }
+
+    public static GlobalOptions withMaxBatchRows(Double maxBatchRows) {
+        return new GlobalOptions().maxBatchRows(maxBatchRows);
     }
 
     public GlobalOptions maxBatchRows(Double maxBatchRows) {
@@ -133,6 +163,10 @@ public class GlobalOptions {
         return _maxBatchRows;
     }
 
+    public static GlobalOptions withMaxBatchSeconds(Double maxBatchSeconds) {
+        return new GlobalOptions().maxBatchSeconds(maxBatchSeconds);
+    }
+
     public GlobalOptions maxBatchSeconds(Double maxBatchSeconds) {
         _maxBatchSeconds = Optional.of(maxBatchSeconds);
         return this;
@@ -140,6 +174,10 @@ public class GlobalOptions {
 
     public Optional<Double> maxBatchSeconds() {
         return _maxBatchSeconds;
+    }
+
+    public static GlobalOptions withMinBatchRows(Double minBatchRows) {
+        return new GlobalOptions().minBatchRows(minBatchRows);
     }
 
     public GlobalOptions minBatchRows(Double minBatchRows) {
@@ -151,6 +189,10 @@ public class GlobalOptions {
         return _minBatchRows;
     }
 
+    public static GlobalOptions withNoreply(Boolean noreply) {
+        return new GlobalOptions().noreply(noreply);
+    }
+
     public GlobalOptions noreply(Boolean noreply) {
         _noreply = Optional.of(noreply);
         return this;
@@ -158,6 +200,10 @@ public class GlobalOptions {
 
     public Optional<Boolean> noreply() {
         return _noreply;
+    }
+
+    public static GlobalOptions withProfile(Boolean profile) {
+        return new GlobalOptions().profile(profile);
     }
 
     public GlobalOptions profile(Boolean profile) {
@@ -169,6 +215,10 @@ public class GlobalOptions {
         return _profile;
     }
 
+    public static GlobalOptions withTimeFormat(String timeFormat) {
+        return new GlobalOptions().timeFormat(timeFormat);
+    }
+
     public GlobalOptions timeFormat(String timeFormat) {
         _timeFormat = Optional.of(timeFormat);
         return this;
@@ -176,6 +226,10 @@ public class GlobalOptions {
 
     public Optional<String> timeFormat() {
         return _timeFormat;
+    }
+
+    public static GlobalOptions withUseOutdated(Boolean useOutdated) {
+        return new GlobalOptions().useOutdated(useOutdated);
     }
 
     public GlobalOptions useOutdated(Boolean useOutdated) {

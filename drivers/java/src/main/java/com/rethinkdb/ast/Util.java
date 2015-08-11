@@ -1,7 +1,8 @@
 package com.rethinkdb.ast;
 
+import com.rethinkdb.ReqlDriverError;
 import com.rethinkdb.ReqlError;
-import com.rethinkdb.ast.helper.Arguments;
+import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.ReqlFunction;
 import com.rethinkdb.ast.gen.Datum;
 import com.rethinkdb.ast.gen.Func;
@@ -12,6 +13,8 @@ import com.rethinkdb.model.ReqlFunction2;
 
 
 import java.lang.*;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -68,8 +71,22 @@ public class Util {
             return Iso8601.fromString(df.format((Date) val));
         }
 
-        return new Datum(val);
+        if (val instanceof Integer) {
+            return new Datum((Integer) val);
+        }
+        if (val instanceof Number) {
+            return new Datum((Number) val);
+        }
+        if (val instanceof Boolean) {
+            return new Datum((Boolean) val);
+        }
+        if (val instanceof String) {
+            return new Datum((String) val);
+        }
+
+        throw new ReqlDriverError("Can't convert %s to a ReqlAst", val);
     }
+
     // /*
     //     Called on arguments that should be functions
     //  */

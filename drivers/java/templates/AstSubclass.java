@@ -1,11 +1,9 @@
 package com.rethinkdb.ast.gen;
 
-import java.util.Optional;
+import com.rethinkdb.model.Arguments;
+import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
-import com.rethinkdb.ast.helper.Arguments;
-import com.rethinkdb.ast.helper.OptArgs;
 import com.rethinkdb.proto.TermType;
-
 <%block name="add_imports" />
 
 public class ${classname} extends ${superclass} {
@@ -29,7 +27,7 @@ public class ${classname} extends ${superclass} {
 <%block name="static_factories">
     /* Static factories */
 % if term_type is not None:
-    public static ${classname} fromArgs(Object... args){
+    public static ${classname} fromArgs(java.lang.Object... args){
         return new ${classname}(new Arguments(args), null);
     }
 %endif
@@ -37,7 +35,7 @@ public class ${classname} extends ${superclass} {
 <%block name="special_methods" />
 % for term, info in meta.iteritems():
     % if include_in in info.get('include_in', ['query']):
-    public ${camel(term)} ${info.get('alias', dromedary(term))}(Object... fields) {
+    public ${camel(term)} ${info.get('alias', dromedary(term))}(java.lang.Object... fields) {
         return new ${camel(term)}(this, new Arguments(fields), new OptArgs());
     }
 
