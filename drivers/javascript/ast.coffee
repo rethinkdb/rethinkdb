@@ -75,7 +75,7 @@ class TermBase
                     options = {}
                 else
                     #options is a function here
-                    return Promise.reject(new err.RqlDriverError("Second argument to `run` cannot be a function if a third argument is provided.")).nodeify options
+                    return Promise.reject(new err.ReqlDriverError("Second argument to `run` cannot be a function if a third argument is provided.")).nodeify options
             # else we suppose that we have run(connection[, options][, callback])
         else if connection?.constructor is Object
             if @showRunWarning is true
@@ -90,10 +90,10 @@ class TermBase
         options = {} if not options?
 
         if callback? and typeof callback isnt 'function'
-            return Promise.reject(new err.RqlDriverError("If provided, the callback must be a function. Please use `run(connection[, options][, callback])"))
+            return Promise.reject(new err.ReqlDriverError("If provided, the callback must be a function. Please use `run(connection[, options][, callback])"))
 
         if net.isConnection(connection) is false
-            return Promise.reject(new err.RqlDriverError("First argument to `run` must be an open connection.")).nodeify callback
+            return Promise.reject(new err.ReqlDriverError("First argument to `run` must be an open connection.")).nodeify callback
 
         # if `noreply` is `true`, the callback will be immediately called without error
         # so we do not have to worry about bluebird complaining about errors not being
@@ -413,7 +413,7 @@ class RDBOp extends RDBVal
                 if arg isnt undefined
                     rethinkdb.expr arg
                 else
-                    throw new err.RqlDriverError "Argument #{i} to #{@st || @mt} may not be `undefined`."
+                    throw new err.ReqlDriverError "Argument #{i} to #{@st || @mt} may not be `undefined`."
         self.optargs = translateOptargs(optargs)
         return self
 
@@ -486,7 +486,7 @@ class MakeObject extends RDBOp
         self.optargs = {}
         for own key,val of obj
             if typeof val is 'undefined'
-                throw new err.RqlDriverError "Object field '#{key}' may not be undefined"
+                throw new err.ReqlDriverError "Object field '#{key}' may not be undefined"
             self.optargs[key] = rethinkdb.expr val, nestingDepth-1
         return self
 
@@ -1005,7 +1005,7 @@ class Func extends RDBOp
 
         body = func(args...)
         if body is undefined
-            throw new err.RqlDriverError "Anonymous function returned `undefined`. Did you forget a `return`?"
+            throw new err.ReqlDriverError "Anonymous function returned `undefined`. Did you forget a `return`?"
 
         argsArr = new MakeArray({}, argNums...)
         return super(optargs, argsArr, body)
@@ -1172,13 +1172,13 @@ class UUID extends RDBOp
 # Wrap a native JS value in an ReQL datum
 rethinkdb.expr = varar 1, 2, (val, nestingDepth=20) ->
     if val is undefined
-        throw new err.RqlDriverError "Cannot wrap undefined with r.expr()."
+        throw new err.ReqlDriverError "Cannot wrap undefined with r.expr()."
 
     if nestingDepth <= 0
-        throw new err.RqlDriverError "Nesting depth limit exceeded"
+        throw new err.ReqlDriverError "Nesting depth limit exceeded"
 
     if typeof nestingDepth isnt "number" or isNaN(nestingDepth)
-        throw new err.RqlDriverError "Second argument to `r.expr` must be a number or undefined."
+        throw new err.ReqlDriverError "Second argument to `r.expr` must be a number or undefined."
 
     else if val instanceof TermBase
         val

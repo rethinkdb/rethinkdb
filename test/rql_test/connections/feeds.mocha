@@ -54,14 +54,14 @@ var withConnection = function(fnct) {
             return reqlConn;
         })
         // re-establish the connection if it was bad
-        .catch(r.Error.RqlDriverError, r.Error.RqlRuntimeError, function(err) {
-        	reqlConn = null;
-        	return r.connect({host:serverHost, port:driverPort})
-        	.then(function(conn) {
+        .catch(r.Error.ReqlDriverError, r.Error.ReqlRuntimeError, function(err) {
+                reqlConn = null;
+                return r.connect({host:serverHost, port:driverPort})
+                .then(function(conn) {
                 // cache the new connection
                 reqlConn = conn;
                 return reqlConn;
-        	});
+                });
         });
     }
 }
@@ -87,7 +87,7 @@ var withTableFeed = function() {
             tableFeed.removeAllListeners();
             tableFeed.close(); // just so we don't get cross-test contamination
         } catch (err) {}
-        
+
         return tbl.changes().run(reqlConn).then(function(newFeed) {
             tableFeed = newFeed;
         });
@@ -109,12 +109,12 @@ describe('JavaScript changefeed', function() {
                         // (like table creation) may take a moment
 
     before(cleanTable); // clean before the tests, some tests require continuity
-    
+
     // ensure validity of reqlConn, tbl, and tableFeed
     beforeEach(withTableFeed);
-    
+
     describe('on a table', function() {
-        
+
         it('generates a change when inserting a document', function() {
             return tbl.insert({'id':idValue, value:'insert'}).run(reqlConn)
             .then(function(value) {
@@ -130,7 +130,7 @@ describe('JavaScript changefeed', function() {
                 });
             });
         });
-        
+
         it('generates a change when updating a document', function() {
             return tbl.get(idValue).update({value: 'update'}).run(reqlConn)
             .then(function(value) {
@@ -146,7 +146,7 @@ describe('JavaScript changefeed', function() {
                 });
             });
         });
-        
+
         it('generates a change when replacing a document', function() {
             return tbl.get(idValue).replace({id: idValue, value: 'replace'}).run(reqlConn)
             .then(function(value) {
@@ -162,7 +162,7 @@ describe('JavaScript changefeed', function() {
                 });
             });
         });
-        
+
         it('generates a change when deleting a document', function() {
             return tbl.get(idValue).delete().run(reqlConn)
             .then(function(value) {
@@ -178,7 +178,7 @@ describe('JavaScript changefeed', function() {
                 });
             });
         });
-        
+
         describe('each', function() {
             it('yields change events correctly', function(done) {
                 var numItems = 3;
@@ -186,13 +186,13 @@ describe('JavaScript changefeed', function() {
                 .then(function(value) {
                     assert.equal(value.errors, 0);
                     assert.equal(value.inserted, numItems);
-                    
+
                     var counter = 0;
                     tableFeed.each(function(err, row) {
                         try {
                             assert.ifError(err);
                             assert.equal(row.new_val.fromEach, true);
-                            
+
                             counter += 1;
                             if(counter >= numItems) {
                                 done();
@@ -207,7 +207,7 @@ describe('JavaScript changefeed', function() {
                     });
                 });
             });
-            
+
             // Deactivated, waiting on https://github.com/rethinkdb/rethinkdb/issues/4421
             /*it('errors with an onFinishedCallback', function() {
                 return tbl.changes().run(reqlConn)
@@ -217,12 +217,12 @@ describe('JavaScript changefeed', function() {
                 .then(function() {
                     throw new Error("Expected error on each with an onFinishedCallback was not thrown");
                 })
-                .catch(r.Error.RqlRuntimeError, function(err) {
+                .catch(r.Error.ReqlRuntimeError, function(err) {
                     return true;
                 });
             });*/
         });
-        
+
         it('errors on hasNext', function() {
             return tbl.changes().run(reqlConn)
             .then(function(tableFeed) {
@@ -231,9 +231,9 @@ describe('JavaScript changefeed', function() {
             .then(function() {
                 throw new Error("Expected error on next was not thrown");
             })
-            .catch(r.Error.RqlDriverError, function() {})
+            .catch(r.Error.ReqlDriverError, function() {})
         });
-        
+
         it('errors on toArray', function() {
             return tbl.changes().run(reqlConn)
             .then(function(tableFeed) {
@@ -242,14 +242,14 @@ describe('JavaScript changefeed', function() {
             .then(function() {
                 throw new Error("Expected error on toArray was not thrown");
             })
-            .catch(r.Error.RqlDriverError, function() {})
+            .catch(r.Error.ReqlDriverError, function() {})
         });
-        
+
         it('errors on next after close', function(done) {
             tbl.changes().run(reqlConn, function(err, tableFeed) {
                 assert.ifError(err);
                 tableFeed.close();
-            
+
                 // wait a moment then ensure it is closed
                 setTimeout(function() {
                     tableFeed.next()
@@ -257,14 +257,14 @@ describe('JavaScript changefeed', function() {
                         err = new Error("Expected error when closed cursor used was not thrown");
                         done(err);
                     })
-                    .catch(r.Error.RqlDriverError, function(err) {
+                    .catch(r.Error.ReqlDriverError, function(err) {
                         done();
                     })
                     .catch(function(err) { done(err); })
                 }, 100);
             });
         });
-        
+
         it('errors on dropped table', function() {
             var tableFeed = null;
             return tbl.changes().run(reqlConn)
@@ -280,32 +280,32 @@ describe('JavaScript changefeed', function() {
             .then(function() {
                 throw new Error("Expected error when table was dropped was not thrown");
             })
-            .catch(r.Error.RqlRuntimeError, function() {})
+            .catch(r.Error.ReqlRuntimeError, function() {})
         });
     });
-    
+
     describe('EventEmitter interface', function() {
         var shortTimeout = 200;
-        
+
         // ensure we have a clean reqlConn for the next test
         afterEach(function() { reqlConn.removeAllListeners; reqlConn = null; });
-        
+
         it('allows adding listener', function() {
             var listener = function() {};
             tableFeed.addListener('data', listener);
             assert.deepEqual(tableFeed.listeners('data'), [listener])
         });
-        
+
         it('emits an event when data is inserted', function(done) {
             var eventCounter = 0;
             var expectedEvents = 3;
-            
+
             // set the event receiver
             tableFeed.on('data', function() { eventCounter += 1; });
-            
+
             // do the inserts
             r.range(0, expectedEvents).forEach(function() { return tbl.insert({'test':'data on'}); }).run(reqlConn);
-            
+
             // set a timeout to check on the result
             setTimeout(function() {
                 if(eventCounter == expectedEvents) {
@@ -316,19 +316,19 @@ describe('JavaScript changefeed', function() {
                 }
             }, shortTimeout);
         });
-        
+
         it('emits an event to two receivers when data is inserted', function(done) {
             var eventCounterA = 0;
             var eventCounterB = 0;
             var expectedEvents = 3;
-            
+
             // set the event receivers
             tableFeed.on('data', function() { eventCounterA += 1; });
             tableFeed.on('data', function() { eventCounterB += 1; });
-            
+
             // do the inserts
             r.range(0, expectedEvents).forEach(function() { return tbl.insert({'test':'data on with two receivers'}); }).run(reqlConn);
-            
+
             // set a timeout to check on the result
             setTimeout(function() {
                 if(eventCounterA == expectedEvents) {
@@ -339,18 +339,18 @@ describe('JavaScript changefeed', function() {
                 }
             }, shortTimeout);
         });
-        
+
         describe('once', function() {
             it('emits only one event', function(done) {
                 var eventCounter = 0;
-                
+
                 // set the event receiver
                 tableFeed.once('data', function(row) {
                     if(row.new_val.test == 'data once') {
                         eventCounter += 1;
                     }
                 });
-                
+
                 // insert 2 events
                 tbl.insert([{'test':'data once'}, {'test':'data once'}]).run(reqlConn);
 
@@ -370,17 +370,17 @@ describe('JavaScript changefeed', function() {
                 }, shortTimeout);
             });
         });
-        
+
         it('emits error events', function(done) {
             var eventCounter = 0;
             var expectedEvents = 1;
-            
+
             // set the event receiver
             tableFeed.on('error', function(error) { eventCounter += 1; });
-            
+
             // drop the table to generate an error in the feed
             r.db(dbName).tableDrop(tableName).run(reqlConn)
-            
+
             // set a timeout to check on the result
             setTimeout(function() {
                 if(eventCounter == expectedEvents) {
@@ -391,56 +391,56 @@ describe('JavaScript changefeed', function() {
                 }
             }, shortTimeout);
         });
-        
+
         it('supports removeListener', function() {
             var listener = function() {};
-            
+
             // add a listener twice
             tableFeed.addListener('data', listener).addListener('data', listener);
             assert.deepEqual(tableFeed.listeners('data'), [listener, listener])
-            
+
             // remove the first
             tableFeed.removeListener('data', listener);
             assert.deepEqual(tableFeed.listeners('data'), [listener])
-            
+
             // remove the second
             tableFeed.removeListener('data', listener);
             assert.deepEqual(tableFeed.listeners('data'), [])
         });
-        
+
         it('supports removeAllListeners', function() {
             var listener = function() {};
-            
+
             // add a listener twice
             tableFeed.addListener('data', listener).addListener('data', listener);
             assert.deepEqual(tableFeed.listeners('data'), [listener, listener])
-            
+
             // remove them
             tableFeed.removeAllListeners('data');
             assert.deepEqual(tableFeed.listeners('data'), [])
         });
-        
+
         it('supports setMaxListeners', function() {
             // just checking for no errors, since only a warning is printed if we exceed it
             tableFeed.setMaxListeners(40);
         });
-        
+
         it('supports defaultMaxListeners', function() {
             // just checking it is there, since only a warning is printed if we exceed it
             tableFeed.defaultMaxListeners;
         });
-        
+
         it('errors on cursor + EventEmitter interface', function(done) {
             // enable EventEmitter interface
             tableFeed.on('data', function() {});
-            
+
             assert.throws(
                 function() { tableFeed.each(); },
                 function(err) {
                     return err.message === "You cannot use the cursor interface and the EventEmitter interface at the same time."
                 }
             );
-            
+
             assert.throws(
                 function() { tableFeed.next(); },
                 function(err) {
@@ -449,19 +449,19 @@ describe('JavaScript changefeed', function() {
             );
             done();
         });
-        
+
         it("doesn't emit events after close", function(done) {
             var counter = 0;
-            
+
             // set the event receiver
             tableFeed.on('data', function() { counter += 1; });
-            
+
             // close the cursor
             tableFeed.close();
-            
+
             // insert an item
             tbl.insert({}).run(reqlConn);
-            
+
             // after a short timeout check that counter is still 0
             setTimeout(function() {
                 if(counter == 0) {
@@ -471,7 +471,7 @@ describe('JavaScript changefeed', function() {
                     done(err);
                 }
             }, shortTimeout);
-            
+
         });
     });
 });
