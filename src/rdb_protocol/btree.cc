@@ -1251,10 +1251,11 @@ void deserialize_sindex_info(const std::vector<char> &data,
     case cluster_version_t::v1_16:
     case cluster_version_t::v2_0:
     case cluster_version_t::v2_1_is_latest:
-        success = deserialize_for_version(
-                cluster_version,
+        success = deserialize_reql_version(
                 &read_stream,
-                &info_out->mapping_version_info.original_reql_version);
+                &info_out->mapping_version_info.original_reql_version,
+                "Encountered a RethinkDB 1.13 secondary index, which is no longer supported.  "
+                "You can use RethinkDB 2.0 to upgrade your secondary index.");
         throw_if_bad_deserialization(success, "original_reql_version");
         success = deserialize_for_version(
                 cluster_version,
