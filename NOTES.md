@@ -1,3 +1,19 @@
+# Release 2.1.1 (Forbidden Planet)
+
+Released on 2015-08-12
+
+Bug fix release
+
+* Fixed a problem where after migration, some replicas remained unavailable when
+  reconfiguring a table (#4668)
+* Removed the defunct `--migrate-inconsistent-data` command line argument (#4665)
+* Fixed the slider for setting write durability during table creation in the web UI
+  (#4660)
+* Fixed a race condition in the clustering subsystem (#4670)
+* Improved the handling of error messages in the testing system (#4657)
+
+--
+
 # Release 2.1.0 (Forbidden Planet)
 
 Released on 2015-08-11
