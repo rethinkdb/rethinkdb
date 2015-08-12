@@ -208,8 +208,12 @@ tests:
     - ot: err("ReqlCompileError", "Expected 3 arguments but found 4.", [])
       cd: r.branch(1,2,3,4)
 
-    - ot: err("ReqlDriverError", "Expected 1 argument but found 2.", [])
+    - cd: r.expr({})[1,2]
       js: r.expr({})(1,2)
+      ot:
+        js: err('ReqlDriverError', "Expected 1 argument but found 2.", [])
+        py: err('ReqlCompileError', 'Expected NUMBER or STRING as second argument to `bracket` but found ARRAY.')
+        rb: err('ArgumentError', 'wrong number of arguments (2 for 1)')
 
     - cd: tbl.insert([{'id':0},{'id':1},{'id':2},{'id':3},{'id':4},{'id':5},{'id':6},{'id':7},{'id':8},{'id':9}]).get_field('inserted')
       ot: 10

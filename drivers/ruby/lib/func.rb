@@ -83,7 +83,7 @@ module RethinkDB
         if [:<, :<=, :>, :>=, :+, :-, :*, :/, :%].include?(__method__)
           a.each {|arg|
             if arg.is_a?(RQL) && arg.bitop
-              err = "Calling #{__method__} on result of infix bitwise operator:\n" +
+              err = "Calling '#{__method__}' on result of infix bitwise operator:\n" +
                 "#{arg.inspect}.\n" +
                 "This is almost always a precedence error.\n" +
                 "Note that `a < b | b < c` <==> `a < (b | b) < c`.\n" +

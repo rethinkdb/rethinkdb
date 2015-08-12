@@ -39,17 +39,15 @@ tests:
       ot: 1
 
     - js: r.do(1, function(x) {})
-      cd: []
       ot: err("ReqlDriverError", 'Anonymous function returned `undefined`. Did you forget a `return`?', [1])
 
     - js: r.do(1, function(x) { return undefined; })
-      cd: []
       ot: err("ReqlDriverError", 'Anonymous function returned `undefined`. Did you forget a `return`?', [1])
 
     - cd: r.do()
-      py: [] # Case handled by native python error
-      ot: err("ReqlDriverError", 'Expected 1 or more arguments but found 0.', [1])
-
+      ot:
+        cd: err("ReqlCompileError", 'Expected 1 or more arguments but found 0.', [1])
+        js: err("ReqlDriverError", 'Expected 1 or more arguments but found 0.', [1])
 
     # FunCall errors
 
@@ -116,13 +114,15 @@ tests:
     - cd: r.error(5) # we might want to allow this eventually
       ot: err("ReqlQueryLogicError", "Expected type STRING but found NUMBER.", [0])
 
-    # For kicks, let's test arity checking in map and filter (Python driver doesn't require this)
-    - js: r.expr([1, 2, 3]).filter()
-      cd: []
-      ot: err("ReqlDriverError", "Expected 1 argument (not including options) but found 0.", [0])
-    - js: r.expr([1, 2, 3]).filter(1, 2)
-      cd: []
-      ot: err("ReqlDriverError", "Expected 1 argument (not including options) but found 2.", [0])
+    # r.filter
+    - cd: r.expr([1, 2, 3]).filter()
+      ot:
+        cd: err("ReqlCompileError", "Expected 2 arguments but found 1.", [0])
+        js: err("ReqlDriverError", "Expected 1 argument (not including options) but found 0.", [0])
+    - cd: r.expr([1, 2, 3]).filter(1, 2)
+      ot:
+        cd: err("ReqlCompileError", "Expected 2 arguments but found 3.", [0])
+        js: err("ReqlDriverError", "Expected 1 argument (not including options) but found 2.", [0])
 
     # r.js()
     - cd: r.js('1 + 1')
@@ -141,8 +141,8 @@ tests:
       ot: "'foobar'"
 
     # js timeout optarg shouldn't be triggered
-    - py: r.js('1 + 2', timeout=1.2)
-      js: r.js('1 + 2', {timeout:1.2})
+    - cd: r.js('1 + 2', {timeout:1.2})
+      py: r.js('1 + 2', timeout=1.2)
       ot: 3
 
     # js error cases
@@ -185,8 +185,7 @@ tests:
     - cd: r.expr([1, 2, 3]).filter(null)
       ot: ([])
 
-    - py: r.expr([1, 2, 4]).filter(False)
-      js: r.expr([1, 2, 4]).filter(false)
+    - cd: r.expr([1, 2, 4]).filter(False)
       rb: r([1, 2, 4]).filter(false)
       ot: ([])
 
@@ -233,7 +232,7 @@ tests:
 
     # forEach negative cases
     - cd: r.expr([1, 2, 3]).for_each( tbl2.insert({ 'id':r.row }) )
-      rb: []
+      rb: r([1, 2, 3]).for_each{ |row| tbl2.insert({ 'id':row }) }
       ot: ({'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':3})
 
     - cd: r.expr([1, 2, 3]).for_each(1)
@@ -245,7 +244,7 @@ tests:
       ot: 'err("ReqlQueryLogicError", "FOR_EACH expects one or more basic write queries.  Expected type ARRAY but found NUMBER.", [1, 1])'
 
     - cd: r.expr([1, 2, 3]).for_each(r.row)
-      rb: []
+      rb: r([1, 2, 3]).for_each{ |row| row }
       ot: 'err("ReqlQueryLogicError", "FOR_EACH expects one or more basic write queries.  Expected type ARRAY but found NUMBER.", [1, 1])'
 
     - js: r([1, 2, 3]).forEach(function (row) { return tbl; })
@@ -255,7 +254,6 @@ tests:
 
       # This is only relevant in JS -- what happens when we return undefined
     - js: "r([1, 2, 3]).forEach(function (row) {})"
-      cd: []
       ot: err("ReqlDriverError", 'Anonymous function returned `undefined`. Did you forget a `return`?', [1])
 
     # Make sure write queries can't be nested into stream ops
@@ -288,5 +286,3 @@ tests:
 
     - cd: r.expr(1).do(r.db('test').table_create('nested_table'))
       ot: partial({'tables_created':1})
-
-    - cd: r.db('test').table_drop('nested_table')
