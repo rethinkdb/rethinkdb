@@ -279,9 +279,10 @@ tests:
     - cd: tbl.between(2, r.maxval).count()
       ot: 98
 
-    - js: tbl.between(2).count()
-      cd: []
-      ot: err('ReqlDriverError', 'Expected 2 arguments (not including options) but found 1.', '[]')
+    - cd: tbl.between(2).count()
+      ot:
+        cd: err('ReqlCompileError', 'Expected 3 arguments but found 2.', '[]')
+        js: err('ReqlDriverError', 'Expected 2 arguments (not including options) but found 1.', '[]')
 
     # test between with null bounds (allowed in old versions, now an error)
     - cd:

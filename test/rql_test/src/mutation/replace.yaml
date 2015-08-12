@@ -53,15 +53,13 @@ tests:
       ot: ({'deleted':0.0,'replaced':8,'unchanged':1,'errors':0.0,'skipped':0.0,'inserted':0.0})
 
     # trying to change pkey of a document
-    - py: tbl.get(1).replace({'id':2,'a':1})
-      ot:
-        cd: ({'first_error':'Primary key `id` cannot be changed (`{\n\t"id":\t1\n}` -> `{\n\t"a":\t1,\n\t"id":\t2\n}`).','deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':1,'skipped':0.0,'inserted':0.0})
+    - cd: tbl.get(1).replace({'id':2,'a':1})
+      ot: ({'first_error':"Primary key `id` cannot be changed (`{\n\t\"id\":\t1\n}` -> `{\n\t\"a\":\t1,\n\t\"id\":\t2\n}`).",'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':1,'skipped':0.0,'inserted':0.0})
 
 
     # not passing a pkey in the first place
     - cd: tbl.get(1).replace({'a':1})
-      rb: [] # the ruby test driver cannot parse the expected error message
-      ot: ({'first_error':'Inserted object must have primary key `id`:\n{\n\t"a":\t1\n}','deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':1,'skipped':0.0,'inserted':0.0})
+      ot: ({'first_error':"Inserted object must have primary key `id`:\n{\n\t\"a\":\t1\n}",'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':1,'skipped':0.0,'inserted':0.0})
 
     # check r.row, static value and otherwise
     - py: tbl.get(1).replace({'id':r.row['id'],'a':'b'})
@@ -87,12 +85,13 @@ tests:
       rb: tbl.get(1).replace({ :non_atomic => true }){ |row| row.merge({ :c => r.js('5') })}
       ot: ({'deleted':0.0,'replaced':1,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':0.0})
 
-    - js: tbl.get(1).replace({}, 'foo')
-      cd: []
-      ot: err('ReqlDriverError', 'Expected 1 argument (not including options) but found 2.')
+    - cd: tbl.get(1).replace({}, 'foo')
+      ot:
+        cd: err('ReqlCompileError', 'Expected 2 arguments but found 3.')
+        js: err('ReqlDriverError', 'Expected 1 argument (not including options) but found 2.')
 
-    - js: tbl.get(1).replace({}, {'foo':'bar'})
-      cd: []
+    - cd: tbl.get(1).replace({}, {'foo':'bar'})
+      py: tbl.get(1).replace({}, foo='bar')
       ot: err('ReqlCompileError', 'Unrecognized optional argument `foo`.')
 
     # Replace whole table
