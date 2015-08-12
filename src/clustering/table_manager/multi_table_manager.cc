@@ -327,7 +327,16 @@ void multi_table_manager_t::on_action(
             case table_t::status_t::SHUTTING_DOWN:   /* fall through */
             default: unreachable();
         }
-        if (!timestamp.supersedes(current_timestamp)) {
+        /* If we are inactive and are told to become active, we ignore the
+        timestamp. The `base_table_config_t` in our inactive state might be
+        a left-over from an emergency repair that none of the currently active
+        servers has seen. In that case we would have no chance to become active
+        again for this table until another emergency repair happened
+        (which might be impossible, if the table is otherwise still available). */
+        bool ignore_timestamp =
+            table->status == table_t::status_t::INACTIVE
+            && action_status == action_status_t::ACTIVE;
+        if (!ignore_timestamp && !timestamp.supersedes(current_timestamp)) {
             if (!ack_addr.is_nil()) {
                 send(mailbox_manager, ack_addr);
             }
