@@ -20,10 +20,7 @@ public:
             parent->multistore->get_cpu_sharded_store(
                 get_cpu_shard_number(key.region)),
             key.region),
-        perfmon_membership(
-            parent->perfmons,
-            &perfmon_collection,
-            strprintf("%s-%d", key.role_name().c_str(), ++parent->perfmon_counter))
+        perfmon_name(strprintf("%s-%d", key.role_name().c_str(), ++parent->perfmon_counter))
     {
         switch (key.role) {
         case execution_key_t::role_t::primary:
@@ -72,8 +69,12 @@ public:
     boost::optional<branch_id_t> enable_gc_branch;
 
 private:
-    perfmon_collection_t *get_perfmon_collection() {
-        return &perfmon_collection;
+    perfmon_collection_t *get_parent_perfmon_collection() const {
+        return parent->perfmons;
+    }
+
+    const std::string &get_perfmon_name() const {
+        return perfmon_name;
     }
 
     store_view_t *get_store() {
@@ -107,9 +108,9 @@ private:
     store_subview_t store_subview;
 
     /* We create a new perfmon category for each execution. This way the executions
-    themselves don't have to think about perfmon key collisions. */
-    perfmon_collection_t perfmon_collection;
-    perfmon_membership_t perfmon_membership;
+    themselves don't have to think about perfmon key collisions. This does not construct
+    the perfmons itself, but provides the name so they may be added later */
+    std::string perfmon_name;
 
     /* The execution itself */
     scoped_ptr_t<execution_t> execution;

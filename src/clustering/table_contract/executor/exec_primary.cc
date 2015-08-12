@@ -120,8 +120,12 @@ void primary_execution_t::run(auto_drainer_t::lock_t keepalive) {
             order_source.check_in("primary_t").with_read_mode(),
             &token, region, &interruptor_store_thread));
 
-        primary_dispatcher_t primary_dispatcher(
-            params->get_perfmon_collection(), initial_version);
+        perfmon_collection_t perfmon_collection;
+        perfmon_membership_t perfmon_membership(params->get_parent_perfmon_collection(),
+                                                &perfmon_collection,
+                                                params->get_perfmon_name());
+
+        primary_dispatcher_t primary_dispatcher(&perfmon_collection, initial_version);
 
         direct_query_server_t direct_query_server(
             context->mailbox_manager,
