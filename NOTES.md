@@ -4,10 +4,8 @@ Released on 2015-08-12
 
 Bug fix release
 
-* Fixed a problem that made replicas get stuck when reconfiguring a table after migration
-  (#4668)
-* Fixed a problem that caused the "outdated index" warning to persist after all indexes
-  had been updated (#4664)
+* Fixed a problem where after migration, some replicas remained unavailable when
+  reconfiguring a table (#4668)
 * Removed the defunct `--migrate-inconsistent-data` command line argument (#4665)
 * Fixed the slider for setting write durability during table creation in the web UI
   (#4660)
