@@ -331,6 +331,16 @@
         "id": 52
     },
     "UPDATE": {
+        "signatures": [
+            {"args": ["R_OBJECT"], "returns": "R_OBJECT"},
+            {"args": ["R_FUNC"], "returns": "R_OBJECT"},
+            {"args": ["R_EXPR"], "returns": "R_OBJECT"}
+        ],
+        "optargs": {
+            "durability": ["soft", "hard"],
+            "return_changes": "R_BOOL",
+            "non_atomic": "R_BOOL"
+        },
         "id": 53
     },
     "DELETE": {
@@ -343,24 +353,36 @@
         "include_in": [
             "table"
         ],
+        "signatures": [
+            {"args": ["R_OBJECT"], "returns": "R_OBJECT"},
+            {"args": ["R_ARRAY"], "returns": "R_OBJECT"}
+        ],
+        "optargs": {
+            "durability": ["hard", "soft"],
+            "return_changes": "R_BOOL",
+            "conflict": "R_STR"
+        },
         "id": 56
     },
     "DB_CREATE": {
         "include_in": [
             "top"
         ],
+        "signatures": [{"args": ["R_STR"], "returns": "R_OBJECT"}],
         "id": 57
     },
     "DB_DROP": {
         "include_in": [
             "top"
         ],
+        "signatures": [{"args": ["R_STR"], "returns": "R_OBJECT"}],
         "id": 58
     },
     "DB_LIST": {
         "include_in": [
             "top"
         ],
+        "signatures": [{"args": [], "returns": "R_ARRAY"}],
         "id": 59
     },
     "TABLE_CREATE": {
@@ -368,6 +390,14 @@
             "top",
             "db"
         ],
+        "signatures": [{"args": ["R_STR"], "returns": "R_OBJECT"}],
+        "optargs": {
+            "primary_key": "R_STR",
+            "durability": ["soft","hard"],
+            "shards": "R_NUM",
+            "replicas": ["R_NUM", "R_OBJECT"],
+            "primary_replica_tag": "R_STR"
+        },
         "id": 60
     },
     "TABLE_DROP": {
@@ -375,6 +405,7 @@
             "top",
             "db"
         ],
+        "signatures": [{"args": ["R_STR"], "returns": "R_OBJECT"}],
         "id": 61
     },
     "TABLE_LIST": {
@@ -382,6 +413,7 @@
             "top",
             "db"
         ],
+        "signatures": [{"args": [], "returns": "R_ARRAY"}],
         "id": 62
     },
     "CONFIG": {
@@ -431,36 +463,52 @@
         "include_in": [
             "table"
         ],
+        "signatures": [
+            {"args": ["R_STR"], "returns": "R_OBJECT"},
+            {"args": ["R_STR", "R_FUNC"], "returns": "R_OBJECT"}
+        ],
+        "optargs": {
+            "multi": "R_BOOL",
+            "geo": "R_BOOL"
+        },
         "id": 75
     },
     "INDEX_DROP": {
         "include_in": [
             "table"
         ],
+        "signatures": [{"args": ["R_STR"], "returns": "R_OBJECT"}],
         "id": 76
     },
     "INDEX_LIST": {
         "include_in": [
             "table"
         ],
+        "signatures": [{"args": [], "returns": "R_ARRAY"}],
         "id": 77
     },
     "INDEX_STATUS": {
         "include_in": [
             "table"
         ],
+        "signatures": [{"args": ["R_STR*"], "returns": "R_ARRAY"}],
         "id": 139
     },
     "INDEX_WAIT": {
         "include_in": [
             "table"
         ],
+        "signatures": [{"args": ["R_STR*"], "returns": "R_ARRAY"}],
         "id": 140
     },
     "INDEX_RENAME": {
         "include_in": [
             "table"
         ],
+        "signatures": [{"args": ["R_STR", "R_STR"], "returns": "R_OBJECT"}],
+        "optargs": {
+            "overwrite": "R_BOOL"
+        },
         "id": 156
     },
     "FUNCALL": {
@@ -757,6 +805,11 @@
         "id": 151
     },
     "CHANGES": {
+        "signatures": [{"args": [], "returns": "R_STREAM"}],
+        "optargs": {
+            "squash": "R_BOOL",
+            "include_states": "R_BOOL"
+        },
         "id": 152
     },
     "ARGS": {
