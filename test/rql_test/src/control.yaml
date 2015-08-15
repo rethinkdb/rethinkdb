@@ -28,12 +28,12 @@ tests:
     - py: "r.do(1, 2, lambda x: x)"
       js: r.do(1, 2, function(x) { return x; })
       rb: r.do(1, 2) {|x| x}
-      ot: err("ReqlQueryLogicError", 'Expected 1 argument but found 2.', [1])
+      ot: err("ReqlQueryLogicError", 'Expected function with 2 arguments but found function with 1 argument.', [1])
 
     - py: "r.do(1, 2, 3, lambda x, y: x + y)"
       js: r.do(1, 2, 3, function(x, y) { return x.add(y); })
       rb: r.do(1, 2, 3) {|x, y| x + y}
-      ot: err("ReqlQueryLogicError", 'Expected 2 arguments but found 3.', [1])
+      ot: err("ReqlQueryLogicError", 'Expected function with 3 arguments but found function with 2 arguments.', [1])
 
     - cd: "r.do(1)"
       ot: 1
@@ -69,12 +69,12 @@ tests:
     - py: "r.expr(0).do(lambda a,b: a + b)"
       js: r(0).do(function(a,b) { return a.add(b); })
       rb: r(0).do{ |a, b| a + b }
-      ot: err("ReqlQueryLogicError", 'Expected 2 arguments but found 1.', [1])
+      ot: err("ReqlQueryLogicError", 'Expected function with 1 argument but found function with 2 arguments.', [1])
 
     - py: "r.do(1, 2, lambda a: a)"
       js: r.do(1,2, function(a) { return a; })
       rb: r.do(1, 2) { |a| a }
-      ot: err("ReqlQueryLogicError", 'Expected 1 argument but found 2.', [1])
+      ot: err("ReqlQueryLogicError", 'Expected function with 2 arguments but found function with 1 argument.', [1])
 
     - cd: r.expr(5).do(r.row)
       rb: r(5).do{ |row| row }
