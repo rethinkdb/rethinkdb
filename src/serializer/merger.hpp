@@ -8,6 +8,7 @@
 
 #include "buffer_cache/types.hpp"
 #include "concurrency/new_mutex.hpp"
+#include "concurrency/pump_coro.hpp"
 #include "containers/scoped.hpp"
 #include "serializer/buf_ptr.hpp"
 #include "serializer/serializer.hpp"
@@ -21,6 +22,10 @@
  * hash shards) can be merged together, improving efficiency and significantly
  * reducing the number of disk seeks on rotational drives.
  *
+ * As an additional optimization, merger_serializer_t uses a common file account
+ * for all block_writes, so reduce the amount of random disk seeks that can
+ * occur when writes from multiple different accounts get interleaved (see
+ * https://github.com/rethinkdb/rethinkdb/issues/3348 )
  */
 
 class merger_serializer_t : public serializer_t {
@@ -84,16 +89,18 @@ public:
     /* index_write() applies all given index operations in an atomic way */
     /* This is where merger_serializer_t merges operations */
     void index_write(new_mutex_in_line_t *mutex_acq,
-                     const std::vector<index_write_op_t> &write_ops,
-                     file_account_t *io_account);
+                     const std::vector<index_write_op_t> &write_ops);
 
     // Returns block tokens in the same order as write_infos.
     std::vector<counted_t<standard_block_token_t> >
     block_writes(const std::vector<buf_write_info_t> &write_infos,
-                 file_account_t *io_account,
+                 UNUSED file_account_t *io_account,
                  iocallback_t *cb) {
         // Currently, we do not merge block writes, only index writes.
-        return inner->block_writes(write_infos, io_account, cb);
+        // However we do use a common file account for all of them, which
+        // reduces random disk seeks that would arise from trying to interleave
+        // writes from the individual accounts further down in the i/o layer.
+        return inner->block_writes(write_infos, block_writes_io_account.get(), cb);
     }
 
     /* The size, in bytes, of each serializer block */
@@ -102,6 +109,10 @@ public:
     /* Return true if no other processes have the file locked */
     bool coop_lock_and_check() { return inner->coop_lock_and_check(); }
 
+    /* Return true if the garbage collector is active */
+    bool is_gc_active() const {
+        return inner->is_gc_active();
+    }
 
 private:
     // Adds `op` to `outstanding_index_write_ops`, using `merge_index_write_op()` if
@@ -111,8 +122,10 @@ private:
     void merge_index_write_op(const index_write_op_t &to_be_merged,
                               index_write_op_t *into_out) const;
 
+    void do_index_write();
+
     const scoped_ptr_t<serializer_t> inner;
-    const scoped_ptr_t<file_account_t> index_writes_io_account;
+    const scoped_ptr_t<file_account_t> block_writes_io_account;
 
     // Used to obey the index_write API and make sure we can't possibly make
     // simultaneous racing index_write calls.
@@ -121,18 +134,7 @@ private:
     // A map of outstanding index write operations, indexed by block id
     std::map<block_id_t, index_write_op_t> outstanding_index_write_ops;
 
-    // Index writes which are currently outstanding keep a pointer to this condition.
-    // It is pulsed once the write completes.
-    class counted_cond_t : public cond_t,
-                           public single_threaded_countable_t<counted_cond_t> {
-    };
-    counted_t<counted_cond_t> on_inner_index_write_complete;
-    bool unhandled_index_write_waiter_exists;
-
-    int num_active_writes;
-    int max_active_writes;
-
-    void do_index_write();
+    pump_coro_t write_committer;
 
     DISABLE_COPYING(merger_serializer_t);
 };

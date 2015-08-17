@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include "rdb_protocol/datum_string.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "utils.hpp"
 
@@ -15,12 +16,12 @@ class term_t;
 class pathspec_t {
 public:
     pathspec_t(const pathspec_t &other);
-    pathspec_t& operator=(const pathspec_t &other);
-    pathspec_t(const std::string &str, term_t *creator);
-    pathspec_t(const std::map<std::string, pathspec_t> &map, term_t *creator);
-    pathspec_t(counted_t<const datum_t> datum, term_t *creator);
+    pathspec_t &operator=(const pathspec_t &other);
+    pathspec_t(const datum_string_t &str, const term_t *creator);
+    pathspec_t(const std::map<datum_string_t, pathspec_t> &map, const term_t *creator);
+    pathspec_t(datum_t datum, const term_t *creator);
     ~pathspec_t();
-    const std::string *as_str() const {
+    const datum_string_t *as_str() const {
         return (type == STR ? str : NULL);
     }
 
@@ -28,7 +29,7 @@ public:
         return (type == VEC ? vec: NULL);
     }
 
-    const std::map<std::string, pathspec_t> *as_map() const {
+    const std::map<datum_string_t, pathspec_t> *as_map() const {
         return (type == MAP ? map : NULL);
     }
 
@@ -36,7 +37,8 @@ public:
         std::string res;
         switch (type) {
         case STR:
-            res += std::string(tabs * 2, ' ') + strprintf("STR: %s\n", str->c_str());
+            res += std::string(tabs * 2, ' ') + strprintf("STR: %s\n",
+                                                          str->to_std().c_str());
             break;
         case VEC:
             res += std::string(tabs * 2, ' ') + strprintf("VEC:\n");
@@ -47,7 +49,8 @@ public:
         case MAP:
             res += std::string(tabs * 2, ' ') + strprintf("MAP:\n");
             for (auto it = map->begin(); it != map->end(); ++it) {
-                res += std::string(tabs * 2, ' ') + strprintf("%s:\n", it->first.c_str());
+                res += std::string(tabs * 2, ' ')
+                    + strprintf("%s:\n", it->first.to_std().c_str());
                 res += it->second.print(tabs + 2);
             }
             break;
@@ -68,12 +71,12 @@ private:
     } type;
 
     union {
-        std::string *str;
+        datum_string_t *str;
         std::vector<pathspec_t> *vec;
-        std::map<std::string, pathspec_t> *map;
+        std::map<datum_string_t, pathspec_t> *map;
     };
 
-    term_t *creator;
+    const term_t *creator;
 };
 
 enum recurse_flag_t {
@@ -82,13 +85,15 @@ enum recurse_flag_t {
 };
 
 /* Limit the datum to only the paths specified by the pathspec. */
-counted_t<const datum_t> project(counted_t<const datum_t> datum,
-        const pathspec_t &pathspec, recurse_flag_t recurse);
+datum_t project(datum_t datum,
+                const pathspec_t &pathspec, recurse_flag_t recurse,
+                const configured_limits_t &limits);
 /* Limit the datum to only the paths not specified by the pathspec. */
-counted_t<const datum_t> unproject(counted_t<const datum_t> datum,
-        const pathspec_t &pathspec, recurse_flag_t recurse);
+datum_t unproject(datum_t datum,
+                  const pathspec_t &pathspec, recurse_flag_t recurse,
+                  const configured_limits_t &limits);
 /* Return whether or not ALL of the paths in the pathspec exist in the datum. */
-bool contains(counted_t<const datum_t> datum,
+bool contains(datum_t datum,
         const pathspec_t &pathspec);
 
 } // namespace ql

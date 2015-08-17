@@ -1,4 +1,3 @@
-require 'pp'
 require 'prettyprint'
 
 module RethinkDB
@@ -9,6 +8,31 @@ module RethinkDB
 
     def self.bt_consume(bt, el)
       (bt && bt[0] == el) ? bt[1..-1] : nil
+    end
+
+    def self.pp_pseudotype(q, pt, bt)
+      if not pt.has_key?('$reql_type$')
+        return false
+      end
+
+      case pt['$reql_type$']
+      when 'TIME' then
+        if not (pt.has_key?('epoch_time') and pt.has_key?('timezone'))
+          return false
+        end
+        t = Time.at(pt['epoch_time'])
+        tz = pt['timezone']
+        t = (tz && tz != "" && tz != "Z") ? t.getlocal(tz) : t.utc
+        q.text("r.expr(#{t.inspect})")
+      when 'BINARY' then
+        if not (pt.has_key?('data'))
+          return false
+        end
+        q.text("<data>")
+      else return false
+      end
+
+      return true
     end
 
     def self.pp_int_optargs(q, optargs, bt, pre_dot = false)
@@ -50,11 +74,8 @@ module RethinkDB
     end
 
     def self.pp_int_func(q, func, bt)
-      # PP.pp [:func, func.to_json, bt]
       begin
-        # PP.pp func
         func_args = func[1][0][1].map{|x| x.to_pb}
-        # PP.pp JSON.parse(func_args.to_json)
         func_body = func[1][1]
         q.text(" ")
         q.group(0, "{", "}") {
@@ -73,16 +94,30 @@ module RethinkDB
     end
 
     def self.can_prefix (name, args)
-      return !["db", "table", "funcall", "args", "branch"].include?(name)
+      if (name == "table" ||
+          name == "table_drop" ||
+          name == "table_create") &&
+          (!args.is_a?(Array) ||
+               !args[0].is_a?(Array) ||
+               args[0][0] != Term::TermType::DB)
+        return false
+      else
+        return !["db", "db_create", "db_drop", "json", "funcall",
+                 "args", "branch", "http", "binary", "javascript", "random",
+                 "time", "iso8601", "epoch_time", "now", "geojson", "point",
+                 "circle", "line", "polygon", "asc", "desc", "literal",
+                 "range", "error"].include?(name)
+      end
     end
     def self.pp_int(q, term, bt, pre_dot=false)
       q.text("\x7", 0) if bt == []
 
-      term = term.to_pb if term.class == RQL
-      # PP.pp [:pp_int, term.to_json, bt]
+      term = term.to_pb if term.is_a?(RQL)
       if term.class != Array
-        if term.class == Hash
-          pp_int_optargs(q, term, bt, pre_dot)
+        if term.is_a?(Hash)
+          if not pp_pseudotype(q, term, bt)
+            pp_int_optargs(q, term, bt, pre_dot)
+          end
         else
           pp_int_datum(q, term, pre_dot)
         end
@@ -144,7 +179,7 @@ module RethinkDB
         q.text("r")
         arg_offset = 0
       end
-      if name == "getattr"
+      if name == "bracket"
         argstart, argstop = "[", "]"
       else
         q.text(".")
@@ -152,10 +187,9 @@ module RethinkDB
         argstart, argstop = "(", ")"
       end
 
-      if args[-1] && args[-1].class == Array && args[-1][0] == Term::TermType::FUNC
+      if args[-1] && args[-1].is_a?(Array) && args[-1][0] == Term::TermType::FUNC
         func_bt = bt_consume(bt, args.size() - 1 + arg_offset)
         func = args.pop
-        # PP.pp [:func_bt, bt, arg_offset, (args.size() - 1) + arg_offset, func_bt]
       end
 
       if args != [] || optargs != {}
@@ -170,7 +204,6 @@ module RethinkDB
                 q.text(",")
                 q.breakable
               end
-              # PP.pp [:int, arg.to_json, bt_consume(bt, index)]
               pp_int(q, arg, bt_consume(bt, index + arg_offset))
             }
             if optargs != {}
@@ -190,7 +223,6 @@ module RethinkDB
     end
 
     def self.pp(term, bt=nil)
-      # PP.pp bt
       begin
         q = PrettyPrint.new
         pp_int(q, term, bt, true)

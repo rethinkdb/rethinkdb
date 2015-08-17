@@ -121,12 +121,36 @@ void metablock_manager_t<metablock_t>::create(file_t *dbfile, int64_t extent_siz
     callback.wait();
 
     /* Write the first metablock */
-    // We use cluster_version_t::ONLY_VERSION.  Maybe we'd want to decouple cluster
+    // We use cluster_version_t::LATEST_DISK.  Maybe we'd want to decouple cluster
     // versions from disk format versions?  We can do that later if we want.
-    buffer->prepare(static_cast<uint32_t>(cluster_version_t::ONLY_VERSION), initial, MB_START_VERSION);
+    buffer->prepare(static_cast<uint32_t>(cluster_version_t::LATEST_DISK), initial,
+                                          MB_START_VERSION);
     co_write(dbfile, metablock_offsets[0], METABLOCK_SIZE, buffer.get(),
              DEFAULT_DISK_ACCOUNT, file_t::WRAP_IN_DATASYNCS);
 }
+
+bool disk_format_version_is_recognized(uint32_t disk_format_version) {
+    // Someday, we might have to do more than recognize a disk format version to be
+    // valid -- the block structure of LBAs or extents might require us to look at
+    // the current metablock's version number more closely.  If you have a new
+    // cluster_version_t value and such changes have not happened, it is correct to
+    // add the new cluster_version_t value to this list of recognized ones.
+    if (disk_format_version
+        == static_cast<uint32_t>(obsolete_cluster_version_t::v1_13)) {
+        fail_due_to_user_error(
+            "Data directory is from version 1.13 of RethinkDB, "
+            "which is no longer supported.  "
+            "You can migrate by launching RethinkDB 2.0 with this data directory "
+            "and rebuilding your secondary indexes.");
+    }
+    return disk_format_version == static_cast<uint32_t>(cluster_version_t::v1_14)
+        || disk_format_version == static_cast<uint32_t>(cluster_version_t::v1_15)
+        || disk_format_version == static_cast<uint32_t>(cluster_version_t::v1_16)
+        || disk_format_version == static_cast<uint32_t>(cluster_version_t::v2_0)
+        || disk_format_version
+            == static_cast<uint32_t>(cluster_version_t::v2_1_is_latest);
+}
+
 
 template<class metablock_t>
 void metablock_manager_t<metablock_t>::co_start_existing(file_t *file, bool *mb_found, metablock_t *mb_out) {
@@ -172,6 +196,7 @@ void metablock_manager_t<metablock_t>::co_start_existing(file_t *file, bool *mb_
                            DEFAULT_DISK_ACCOUNT, &callback);
     }
     callback.wait();
+    extent_manager->stats->bytes_read(METABLOCK_SIZE * metablock_offsets.size());
 
     // TODO: we can parallelize this code even further by doing crc
     // checks as soon as a block is ready, as opposed to waiting for
@@ -183,7 +208,18 @@ void metablock_manager_t<metablock_t>::co_start_existing(file_t *file, bool *mb_
     for (unsigned i = 0; i < metablock_offsets.size(); i++) {
         crc_metablock_t *mb_temp = lbm.get_metablock(i);
         if (mb_temp->check_crc()) {
-            guarantee(mb_temp->disk_format_version == static_cast<uint32_t>(cluster_version_t::ONLY_VERSION));
+            // Right now we don't have anything super-special between disk format
+            // versions, just some per-block serialization versioning (which is
+            // derived from the 4 bytes block_magic_t at the front of the block), so
+            // we don't need to remember the version number -- we just assert it's
+            // ok.
+            if (!disk_format_version_is_recognized(mb_temp->disk_format_version)) {
+                fail_due_to_user_error(
+                        "Data version not recognized. Is the data "
+                        "directory from a newer version of RethinkDB? "
+                        "(version on disk: %" PRIu32 ")",
+                        mb_temp->disk_format_version);
+            }
             if (mb_temp->version > latest_version) {
                 /* this metablock is good, maybe there are more? */
                 latest_version = mb_temp->version;
@@ -243,7 +279,8 @@ void metablock_manager_t<metablock_t>::co_write_metablock(metablock_t *mb, file_
     rassert(state == state_ready);
     rassert(!mb_buffer_in_use);
 
-    mb_buffer->prepare(static_cast<uint32_t>(cluster_version_t::ONLY_VERSION), mb, next_version_number++);
+    mb_buffer->prepare(static_cast<uint32_t>(cluster_version_t::LATEST_DISK), mb,
+                                             next_version_number++);
     rassert(mb_buffer->check_crc());
 
     mb_buffer_in_use = true;
@@ -256,6 +293,7 @@ void metablock_manager_t<metablock_t>::co_write_metablock(metablock_t *mb, file_
 
     state = state_ready;
     mb_buffer_in_use = false;
+    extent_manager->stats->bytes_written(METABLOCK_SIZE);
 }
 
 template<class metablock_t>

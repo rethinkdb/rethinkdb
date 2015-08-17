@@ -8,6 +8,8 @@
 #include <utility>
 #include <vector>
 
+#include "utils.hpp"
+
 #include "buffer_cache/types.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/fifo_enforcer.hpp"
@@ -15,12 +17,13 @@
 #include "concurrency/signal.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "containers/binary_blob.hpp"
-#include "containers/scoped.hpp"
 #include "containers/object_buffer.hpp"
+#include "containers/scoped.hpp"
 #include "region/region.hpp"
 #include "region/region_map.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "timestamps.hpp"
+#include "version.hpp"
 
 struct backfill_chunk_t;
 struct read_t;
@@ -31,15 +34,33 @@ class traversal_progress_combiner_t;
 struct write_t;
 struct write_response_t;
 
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
+        query_state_t, int8_t, query_state_t::FAILED, query_state_t::INDETERMINATE);
 class cannot_perform_query_exc_t : public std::exception {
 public:
-    explicit cannot_perform_query_exc_t(const std::string &s) : message(s) { }
+    // SHOULD ONLY BE USED FOR SERIALIZATION
+    cannot_perform_query_exc_t()
+        : message("UNINITIALIZED"), query_state(query_state_t::FAILED) { }
+    cannot_perform_query_exc_t(const std::string &s, query_state_t _query_state)
+        : message(s), query_state(_query_state) { }
     ~cannot_perform_query_exc_t() throw () { }
     const char *what() const throw () {
         return message.c_str();
     }
+    query_state_t get_query_state() const throw () { return query_state; }
 private:
+    RDB_DECLARE_ME_SERIALIZABLE(cannot_perform_query_exc_t);
     std::string message;
+    query_state_t query_state;
+};
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(cannot_perform_query_exc_t);
+
+enum class table_readiness_t {
+    unavailable,
+    outdated_reads,
+    reads,
+    writes,
+    finished
 };
 
 /* `namespace_interface_t` is the interface that the protocol-agnostic database
@@ -47,9 +68,16 @@ logic for query routing exposes to the protocol-specific query parser. */
 
 class namespace_interface_t {
 public:
-    virtual void read(const read_t &, read_response_t *response, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
-    virtual void read_outdated(const read_t &, read_response_t *response, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
-    virtual void write(const write_t &, write_response_t *response, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
+    virtual void read(const read_t &,
+                      read_response_t *response,
+                      order_token_t tok,
+                      signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
+    virtual void write(const write_t &,
+                       write_response_t *response,
+                       order_token_t tok,
+                       signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
 
     /* These calls are for the sole purpose of optimizing queries; don't rely
     on them for correctness. They should not block. */
@@ -58,106 +86,26 @@ public:
 
     virtual signal_t *get_initial_ready_signal() { return NULL; }
 
+    virtual bool check_readiness(table_readiness_t readiness,
+                                 signal_t *interruptor) = 0;
+
 protected:
     virtual ~namespace_interface_t() { }
 };
 
+// Specifies the desired behavior for insert operations, upon discovering a
+// conflict.
+//  - conflict_behavior_t::ERROR: Signal an error upon conflicts.
+//  - conflict_behavior_t::REPLACE: Replace the old row with the new row if a
+//    conflict occurs.
+//  - conflict_behavior_t::UPDATE: Merge the old and new rows if a conflict
+//    occurs.
+enum class conflict_behavior_t { ERROR, REPLACE, UPDATE };
 
-// At some point the region maps become a binary_blob_t before being stored.  It
-// keeps the raw btree code abstract.  That doesn't mean you couldn't redefine
-// metainfo_t (used in interfaces above the btree code) to be whatever
-// region_map_t<version...> it actually is, pushing the region_map_transform calls to
-// a different API layer.  You are welcome to do so.
-typedef region_map_t<binary_blob_t> metainfo_t;
-
-#ifndef NDEBUG
-// Checks that the metainfo has a certain value, or certain kind of value.
-class metainfo_checker_callback_t {
-public:
-    virtual void check_metainfo(const region_map_t<binary_blob_t>& metainfo,
-                                const region_t& domain) const = 0;
-protected:
-    metainfo_checker_callback_t() { }
-    virtual ~metainfo_checker_callback_t() { }
-private:
-    DISABLE_COPYING(metainfo_checker_callback_t);
-};
-
-
-struct trivial_metainfo_checker_callback_t : public metainfo_checker_callback_t {
-
-    trivial_metainfo_checker_callback_t() { }
-    void check_metainfo(UNUSED const region_map_t<binary_blob_t>& metainfo, UNUSED const region_t& region) const {
-        /* do nothing */
-    }
-
-private:
-    DISABLE_COPYING(trivial_metainfo_checker_callback_t);
-};
-
-class metainfo_checker_t {
-public:
-    metainfo_checker_t(const metainfo_checker_callback_t *callback,
-                       const region_t& region) : callback_(callback), region_(region) { }
-
-    void check_metainfo(const region_map_t<binary_blob_t>& metainfo) const {
-        callback_->check_metainfo(metainfo, region_);
-    }
-    const region_t& get_domain() const { return region_; }
-    const metainfo_checker_t mask(const region_t& region) const {
-        return metainfo_checker_t(callback_, region_intersection(region, region_));
-    }
-
-private:
-    const metainfo_checker_callback_t *const callback_;
-    const region_t region_;
-
-    // This _is_ copyable because of mask, but all copies' lifetimes
-    // are limited by that of callback_.
-};
-
-#endif  // NDEBUG
-
-class chunk_fun_callback_t {
-public:
-    virtual void send_chunk(const backfill_chunk_t &, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
-
-protected:
-    chunk_fun_callback_t() { }
-    virtual ~chunk_fun_callback_t() { }
-private:
-    DISABLE_COPYING(chunk_fun_callback_t);
-};
-
-class send_backfill_callback_t : public chunk_fun_callback_t {
-public:
-    bool should_backfill(const metainfo_t &metainfo) {
-        guarantee(!should_backfill_was_called_);
-        should_backfill_was_called_ = true;
-        return should_backfill_impl(metainfo);
-    }
-
-protected:
-    virtual bool should_backfill_impl(const metainfo_t &metainfo) = 0;
-
-    send_backfill_callback_t() : should_backfill_was_called_(false) { }
-    virtual ~send_backfill_callback_t() { }
-private:
-    bool should_backfill_was_called_;
-
-    DISABLE_COPYING(send_backfill_callback_t);
-};
-
-/* {read,write}_token_pair_t hold the lock held when getting in line for the
-   superblock. */
-// KSI: Rename these to {read,write}_token_t or get rid of them altogether.
-struct read_token_pair_t {
-    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> main_read_token;
-};
-
-struct write_token_pair_t {
-    object_buffer_t<fifo_enforcer_sink_t::exit_write_t> main_write_token;
-};
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(conflict_behavior_t,
+                                      int8_t,
+                                      conflict_behavior_t::ERROR,
+                                      conflict_behavior_t::UPDATE);
 
 // Specifies the durability requirements of a write operation.
 //  - DURABILITY_REQUIREMENT_DEFAULT: Use the table's durability settings.
@@ -174,5 +122,15 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(durability_requirement_t,
                                       DURABILITY_REQUIREMENT_DEFAULT,
                                       DURABILITY_REQUIREMENT_SOFT);
 
+enum class read_mode_t { MAJORITY, SINGLE, OUTDATED, DEBUG_DIRECT };
+
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(read_mode_t,
+                                      int8_t,
+                                      read_mode_t::MAJORITY,
+                                      read_mode_t::DEBUG_DIRECT);
+
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
+        reql_version_t, int8_t,
+        reql_version_t::EARLIEST, reql_version_t::LATEST);
 
 #endif /* PROTOCOL_API_HPP_ */

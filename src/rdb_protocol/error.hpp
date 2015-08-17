@@ -1,9 +1,11 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_ERROR_HPP_
 #define RDB_PROTOCOL_ERROR_HPP_
 
 #include <list>
 #include <string>
+
+#include "errors.hpp"
 
 #include "containers/archive/archive.hpp"
 #include "rdb_protocol/counted_term.hpp"
@@ -13,34 +15,69 @@
 
 namespace ql {
 
+class backtrace_id_t {
+public:
+    // The 0 ID corresponds to an empty backtrace
+    backtrace_id_t() : id(0) { }
+    explicit backtrace_id_t(uint32_t _id) : id(_id) { }
+    explicit backtrace_id_t(const Term *t) :
+        id(t->GetExtension(ql2::extension::backtrace_id)) { }
+    static backtrace_id_t empty() {
+        return backtrace_id_t();
+    }
+    uint32_t get() const { return id; }
+private:
+    uint32_t id;
+    RDB_DECLARE_ME_SERIALIZABLE(backtrace_id_t);
+};
+
 // Catch this if you want to handle either `exc_t` or `datum_exc_t`.
 class base_exc_t : public std::exception {
 public:
     enum type_t {
-        GENERIC, // All errors except those below.
-
-        // The only thing that cares about these is `default`.
+        LOGIC, // An error in ReQL logic.
+        INTERNAL, // An internal error.
+        RESOURCE, // Exceeded a resource limit (e.g. the array size limit).
+        OP_FAILED, // An operation is known to have failed.
+        OP_INDETERMINATE, // It is unknown whether an operation failed or not.
+        USER, // An error caused by `r.error` with arguments.
         EMPTY_USER, // An error caused by `r.error` with no arguments.
         NON_EXISTENCE // An error related to the absence of an expected value.
     };
-    explicit base_exc_t(type_t type) : type_(type) { }
+    explicit base_exc_t(type_t _type) : type(_type) { }
     virtual ~base_exc_t() throw () { }
-    type_t get_type() const { return type_; }
+    type_t get_type() const { return type; }
+    Response::ErrorType get_error_type() const {
+        switch (type) {
+        case LOGIC:            return Response::LOGIC;
+        case INTERNAL:         return Response::INTERNAL;
+        case RESOURCE:         return Response::RESOURCE;
+        case OP_FAILED:        return Response::OP_FAILED;
+        case OP_INDETERMINATE: return Response::OP_INDETERMINATE;
+        case USER:             // fallthru
+        case EMPTY_USER:       return Response::USER;
+        case NON_EXISTENCE:    return Response::NON_EXISTENCE;
+        default: unreachable();
+        }
+        unreachable();
+    }
+
 protected:
-    type_t type_;
+    type_t type;
 };
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
-    base_exc_t::type_t, int8_t, base_exc_t::GENERIC, base_exc_t::NON_EXISTENCE);
+    base_exc_t::type_t, int8_t, base_exc_t::LOGIC, base_exc_t::NON_EXISTENCE);
 
 // NOTE: you usually want to inherit from `rcheckable_t` instead of calling this
 // directly.
 void runtime_fail(base_exc_t::type_t type,
                   const char *test, const char *file, int line,
-                  std::string msg, const Backtrace *bt_src) NORETURN;
+                  std::string msg, backtrace_id_t bt) NORETURN;
 void runtime_fail(base_exc_t::type_t type,
                   const char *test, const char *file, int line,
                   std::string msg) NORETURN;
-void runtime_sanity_check_failed() NORETURN;
+void runtime_sanity_check_failed(
+    const char *file, int line, const char *test, const std::string &msg) NORETURN;
 
 // Inherit from this in classes that wish to use `rcheck`.  If a class is
 // rcheckable, it means that you can call `rcheck` from within it or use it as a
@@ -53,43 +90,37 @@ public:
                               std::string msg) const = 0;
 };
 
-protob_t<const Backtrace> get_backtrace(const protob_t<const Term> &t);
-
-// This is a particular type of rcheckable.  A `pb_rcheckable_t` corresponds to
+// This is a particular type of rcheckable.  A `bt_rcheckable_t` corresponds to
 // a part of the protobuf source tree, and can be used to produce a useful
 // backtrace.  (By contrast, a normal rcheckable might produce an error with no
 // backtrace, e.g. if we some constraint that doesn't involve the user's code
 // is violated.)
-class pb_rcheckable_t : public rcheckable_t {
+class bt_rcheckable_t : public rcheckable_t {
 public:
     virtual void runtime_fail(base_exc_t::type_t type,
                               const char *test, const char *file, int line,
                               std::string msg) const {
-        ql::runtime_fail(type, test, file, line, msg, bt_src.get());
+        ql::runtime_fail(type, test, file, line, msg, bt);
     }
 
-    // Propagate the associated backtrace through the rewrite term.
-    void propagate(Term *t) const;
-
-    protob_t<const Backtrace> backtrace() const { return bt_src; }
+    backtrace_id_t backtrace() const { return bt; }
 
 protected:
-    explicit pb_rcheckable_t(const protob_t<const Backtrace> &_bt_src)
-        : bt_src(_bt_src) { }
+    explicit bt_rcheckable_t(backtrace_id_t _bt)
+        : bt(_bt) { }
 
-    protob_t<const Backtrace> update_bt(const protob_t<const Backtrace> &new_bt) {
-        protob_t<const Backtrace> ret(new_bt);
-        ret.swap(bt_src);
-        return std::move(ret);
+    backtrace_id_t update_bt(backtrace_id_t new_bt) {
+        std::swap(new_bt, bt);
+        return new_bt;
     }
 
 private:
-    protob_t<const Backtrace> bt_src;
+    backtrace_id_t bt;
 };
 
 // Use these macros to return errors to users.
 // TODO: all these arguments should be in parentheses inside the expansion.
-#define rcheck_target(target, type, pred, msg) do {                  \
+#define rcheck_target(target, pred, type, msg) do {                  \
         (pred)                                                       \
         ? (void)0                                                    \
         : (target)->runtime_fail(type, stringify(pred),              \
@@ -101,7 +132,7 @@ private:
         : (target)->runtime_fail(exc_type(target), stringify(pred),     \
                                  __FILE__, __LINE__, (msg));            \
     } while (0)
-#define rcheck_src(src, type, pred, msg) do {                         \
+#define rcheck_src(src, pred, type, msg) do {                         \
         (pred)                                                        \
         ? (void)0                                                     \
         : ql::runtime_fail(type, stringify(pred),                     \
@@ -113,28 +144,38 @@ private:
         : ql::runtime_fail(type, stringify(pred),                     \
                            __FILE__, __LINE__, (msg));                \
     } while (0)
-#define rcheck_array_size(arr, type) do {                               \
-        rcheck((arr).size() <= array_size_limit(), type,                 \
-               strprintf("Array over size limit `%zu`.", array_size_limit()).c_str()); \
+#define rcheck_array_size_datum(arr, limit) do {                        \
+        auto _limit = (limit);                                          \
+        rcheck_datum((arr).size() <= _limit.array_size_limit(),         \
+                     ql::base_exc_t::RESOURCE,                          \
+                     strprintf("Array over size limit `%zu`.",          \
+                               _limit.array_size_limit()).c_str());     \
     } while (0)
-
-#define rcheck(pred, type, msg) rcheck_target(this, type, pred, msg)
-#define rcheck_typed(pred, typed_arg, msg) \
-    rcheck_target(this, exc_type(typed_arg), typed_arg, pred, msg)
+#define rcheck_array_size(arr, limit) do {                              \
+        auto _limit = (limit);                                          \
+        rcheck((arr).size() <= _limit.array_size_limit(), ql::base_exc_t::RESOURCE, \
+               strprintf("Array over size limit `%zu`.",                \
+                         _limit.array_size_limit()).c_str());           \
+    } while (0)
+#define rcheck(pred, type, msg) rcheck_target(this, pred, type, msg)
 #define rcheck_toplevel(pred, type, msg) \
-    rcheck_src(NULL, type, pred, msg)
+    rcheck_src(ql::backtrace_id_t::empty(), pred, type, msg)
 
 #define rfail_datum(type, args...) do {                          \
         rcheck_datum(false, type, strprintf(args));              \
         unreachable();                                           \
     } while (0)
 #define rfail_target(target, type, args...) do {                 \
-        rcheck_target(target, type, false, strprintf(args));     \
+        rcheck_target(target, false, type, strprintf(args));     \
         unreachable();                                           \
     } while (0)
 #define rfail_typed_target(target, args...) do {                  \
         rcheck_typed_target(target, false, strprintf(args));      \
         unreachable();                                            \
+    } while (0)
+#define rfail_src(src, type, args...) do {                       \
+        rcheck_src(src, false, type, strprintf(args));            \
+        unreachable();                                           \
     } while (0)
 #define rfail(type, args...) do {                                       \
         rcheck(false, type, strprintf(args));                           \
@@ -144,137 +185,57 @@ private:
         rcheck_toplevel(false, type, strprintf(args));   \
         unreachable();                                   \
     } while (0)
-#define rfail_typed(typed_arg, args...) do {                            \
-        rcheck_typed(false, typed_arg, strprintf(args));                \
-        unreachable();                                                  \
+#define r_sanity_fail() do {                        \
+        r_sanity_check(false);                      \
+        unreachable();                              \
     } while (0)
 
 
 class datum_t;
 class val_t;
 base_exc_t::type_t exc_type(const datum_t *d);
-base_exc_t::type_t exc_type(const counted_t<const datum_t> &d);
+base_exc_t::type_t exc_type(const datum_t &d);
 base_exc_t::type_t exc_type(const val_t *d);
-base_exc_t::type_t exc_type(const counted_t<val_t> &v);
+base_exc_t::type_t exc_type(const scoped_ptr_t<val_t> &v);
 
 // r_sanity_check should be used in place of guarantee if you think the
 // guarantee will almost always fail due to an error in the query logic rather
 // than memory corruption.
 #ifndef NDEBUG
-#define r_sanity_check(test) guarantee(test)
+#define r_sanity_check(test, msg...) guarantee(test, ##msg)
 #else
-#define r_sanity_check(test) do {                       \
-        if (!(test)) {                                  \
-            ::ql::runtime_sanity_check_failed();        \
-        }                                               \
+#define r_sanity_check(test, msg...) do {                      \
+        if (!(test)) {                                         \
+            ::ql::runtime_sanity_check_failed(                 \
+                __FILE__, __LINE__, stringify(test),           \
+                strprintf(" " msg).substr(1));                 \
+        }                                                      \
     } while (0)
 #endif // NDEBUG
-
-// A backtrace we return to the user.  Pretty self-explanatory.
-class backtrace_t {
-public:
-    explicit backtrace_t(const Backtrace *bt) {
-        if (!bt) return;
-        for (int i = 0; i < bt->frames_size(); ++i) {
-            frame_t f(bt->frames(i));
-            r_sanity_check(f.is_valid());
-            frames.push_back(f);
-        }
-    }
-    backtrace_t() { }
-
-    class frame_t {
-    public:
-        explicit frame_t() : type(OPT), opt("UNITIALIZED") { }
-        explicit frame_t(int32_t _pos) : type(POS), pos(_pos) { }
-        explicit frame_t(const std::string &_opt) : type(OPT), opt(_opt) { }
-        explicit frame_t(const char *_opt) : type(OPT), opt(_opt) { }
-        explicit frame_t(const Frame &f);
-        Frame toproto() const;
-
-        static frame_t invalid() { return frame_t(INVALID); }
-        bool is_invalid() const { return type == POS && pos == INVALID; }
-        static frame_t head() { return frame_t(HEAD); }
-        bool is_head() const { return type == POS && pos == HEAD; }
-        static frame_t skip() { return frame_t(SKIP); }
-        bool is_skip() const { return type == POS && pos == SKIP; }
-        bool is_valid() { // -1 is the classic "invalid" frame
-            return is_head() || is_skip()
-                || (type == POS && pos >= 0)
-                || (type == OPT && opt != "UNINITIALIZED");
-        }
-        bool is_stream_funcall_frame() {
-            return type == POS && pos != 0;
-        }
-    private:
-        enum special_frames {
-            INVALID = -1,
-            HEAD = -2,
-            SKIP = -3
-        };
-        enum type_t { POS = 0, OPT = 1 };
-        int32_t type; // serialize macros didn't like `type_t` for some reason
-        int32_t pos;
-        std::string opt;
-
-    public:
-        RDB_DECLARE_ME_SERIALIZABLE;
-    };
-
-    void fill_bt(Backtrace *bt) const;
-    // Write out the backtrace to return it to the user.
-    void fill_error(Response *res, Response_ResponseType type, std::string msg) const;
-
-    bool is_empty() { return frames.size() == 0; }
-
-    void delete_frames(int num_frames) {
-        for (int i = 0; i < num_frames; ++i) {
-            if (frames.size() == 0) {
-                rassert(false);
-            } else {
-                frames.pop_back();
-            }
-        }
-    }
-
-    RDB_DECLARE_ME_SERIALIZABLE;
-private:
-    std::list<frame_t> frames;
-};
-
-const backtrace_t::frame_t head_frame = backtrace_t::frame_t::head();
 
 // A RQL exception.
 class exc_t : public base_exc_t {
 public:
     // We have a default constructor because these are serialized.
-    exc_t() : base_exc_t(base_exc_t::GENERIC), exc_msg_("UNINITIALIZED") { }
-    exc_t(base_exc_t::type_t type, const std::string &exc_msg,
-          const Backtrace *bt_src)
-        : base_exc_t(type), exc_msg_(exc_msg) {
-        if (bt_src != NULL) {
-            backtrace_ = backtrace_t(bt_src);
-        }
-    }
-    exc_t(const base_exc_t &e, const Backtrace *bt_src, int dummy_frames = 0)
-        : base_exc_t(e.get_type()), exc_msg_(e.what()) {
-        if (bt_src != NULL) {
-            backtrace_ = backtrace_t(bt_src);
-        }
-        backtrace_.delete_frames(dummy_frames);
-    }
-    exc_t(base_exc_t::type_t type, const std::string &exc_msg,
-          const backtrace_t &backtrace)
-        : base_exc_t(type), backtrace_(backtrace), exc_msg_(exc_msg) { }
+    exc_t() : base_exc_t(base_exc_t::LOGIC), message("UNINITIALIZED") { }
+    exc_t(base_exc_t::type_t type, const std::string &_message,
+          backtrace_id_t _bt, size_t _dummy_frames = 0)
+        : base_exc_t(type), message(_message), bt(_bt), dummy_frames_(_dummy_frames) { }
+    exc_t(const base_exc_t &e, backtrace_id_t _bt, size_t _dummy_frames = 0)
+        : base_exc_t(e.get_type()), message(e.what()),
+          bt(_bt), dummy_frames_(_dummy_frames) { }
     virtual ~exc_t() throw () { }
 
-    const char *what() const throw () { return exc_msg_.c_str(); }
-    const backtrace_t &backtrace() const { return backtrace_; }
+    const char *what() const throw () { return message.c_str(); }
 
-    RDB_DECLARE_ME_SERIALIZABLE;
+    backtrace_id_t backtrace() const { return bt; }
+    size_t dummy_frames() const { return dummy_frames_; }
+
+    RDB_DECLARE_ME_SERIALIZABLE(exc_t);
 private:
-    backtrace_t backtrace_;
-    std::string exc_msg_;
+    std::string message;
+    backtrace_id_t bt;
+    size_t dummy_frames_;
 };
 
 // A datum exception is like a normal RQL exception, except it doesn't
@@ -283,19 +244,17 @@ private:
 // turned into a normal `exc_t`.
 class datum_exc_t : public base_exc_t {
 public:
-    datum_exc_t() : base_exc_t(base_exc_t::GENERIC), exc_msg("UNINITIALIZED") { }
-    explicit datum_exc_t(base_exc_t::type_t type, const std::string &_exc_msg)
-        : base_exc_t(type), exc_msg(_exc_msg) { }
+    datum_exc_t() : base_exc_t(base_exc_t::LOGIC), message("UNINITIALIZED") { }
+    explicit datum_exc_t(base_exc_t::type_t type, const std::string &_message)
+        : base_exc_t(type), message(_message) { }
     virtual ~datum_exc_t() throw () { }
-    const char *what() const throw () { return exc_msg.c_str(); }
 
-    RDB_DECLARE_ME_SERIALIZABLE;
+    const char *what() const throw () { return message.c_str(); }
+
+    RDB_DECLARE_ME_SERIALIZABLE(datum_exc_t);
 private:
-    std::string exc_msg;
+    std::string message;
 };
-
-void fill_error(Response *res, Response_ResponseType type, std::string msg,
-                const backtrace_t &bt = backtrace_t());
 
 } // namespace ql
 

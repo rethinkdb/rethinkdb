@@ -1,10 +1,6 @@
 desc: Tests that manipulation data in tables
+table_variable_name: tbl
 tests:
-
-    # Set up some data
-    - cd: r.db('test').table_create('test1')
-      ot: ({'created':1})
-      def: tbl = r.db('test').table('test1')
 
     - def: obj = r.expr({'id':0,'a':0})
 
@@ -35,9 +31,4 @@ tests:
         - tbl.pluck('a').nth(0)
         - obj.pluck('a')
       ot: ({'a':0})
-
-    # Cleanup
-    - cd: r.db('test').table_list().for_each(r.db('test').table_drop(r.row))
-      rb: r.db('test').table_list().for_each{ |row| r.db('test').table_drop(row) }
-      ot: ({'dropped':1})
 

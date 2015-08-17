@@ -12,12 +12,14 @@
 
 enum region_join_result_t { REGION_JOIN_OK, REGION_JOIN_BAD_JOIN, REGION_JOIN_BAD_REGION };
 
-struct key_range_t;
+struct btree_key_t;
+class key_range_t;
 struct store_key_t;
 
 // Returns a value in [0, HASH_REGION_HASH_SIZE).
 const uint64_t HASH_REGION_HASH_SIZE = 1ULL << 63;
-uint64_t hash_region_hasher(const uint8_t *s, ssize_t len);
+uint64_t hash_region_hasher(const btree_key_t *key);
+uint64_t hash_region_hasher(const store_key_t &key);
 
 // Forms a region that shards an inner_region_t by a different
 // dimension: hash values, which are computed by the function
@@ -56,15 +58,23 @@ public:
         return hash_region_t();
     }
 
+    std::string print() {
+        return strprintf("{beg: %zu, end: %zu, inner: %s}\n",
+                         beg, end, inner.print().c_str());
+    }
+
     // beg < end unless 0 == end and 0 == beg.
     uint64_t beg, end;
     inner_region_t inner;
-
-private:
-    RDB_MAKE_ME_SERIALIZABLE_3(beg, end, inner);
-
-    // This is a copyable type.
 };
+
+// Stable serialization functions that must not change.
+void serialize_for_metainfo(write_message_t *wm, const hash_region_t<key_range_t> &h);
+MUST_USE archive_result_t deserialize_for_metainfo(read_stream_t *s,
+                                                   hash_region_t<key_range_t> *out);
+
+RDB_DECLARE_SERIALIZABLE(hash_region_t<key_range_t>);
+
 
 template <class inner_region_t>
 bool region_is_empty(const hash_region_t<inner_region_t> &r) {

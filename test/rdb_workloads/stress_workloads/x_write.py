@@ -2,8 +2,9 @@
 import md5, sys, os, random, string, x_stress_util
 import multiprocessing
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'drivers', 'python')))
-import rethinkdb as r
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
+import utils
+r = utils.import_python_driver()
 
 class Workload:
     def __init__(self, options):
@@ -65,7 +66,7 @@ class Workload:
         return new_key
 
     def generate_nested(self, levels):
-        nested = { }
+        nested = {}
         nested["foo"] = "".join(random.choice(string.letters + string.digits) for i in xrange(10))
         nested["bar"] = "".join(random.choice(string.letters + string.digits) for i in xrange(10))
 
@@ -77,23 +78,23 @@ class Workload:
         return nested
 
     def generate_row(self):
-        row = { }
+        row = {}
         row["id"] = md5.new(str(self.get_key())).hexdigest()
         row["customer_id"] = "customer%03d" % self.cid_dist.get()
         row["type"] = "type%d" % self.typ_dist.get()
         row["datetime"] = r.now()
         row["nested"] = self.generate_nested(2)
-        row["arr"] = [ random.randint(0, 100000) for i in xrange(86) ]
-        row["arr2"] = [ "".join(random.sample(string.letters + string.digits, 2)) for i in xrange(86) ]
+        row["arr"] = [random.randint(0, 100000) for i in xrange(86)]
+        row["arr2"] = ["".join(random.sample(string.letters + string.digits, 2)) for i in xrange(86)]
         row["flat"] = "".join(random.choice(string.letters + string.digits) for i in xrange(463))
         return row
 
     def run(self, conn):
-        row_data = [ self.generate_row() for i in xrange(self.batch_size) ]
+        row_data = [self.generate_row() for i in xrange(self.batch_size)]
         rql_res = r.db(self.db).table(self.table).insert(row_data).run(conn)
 
-        result = { }
+        result = {}
         if rql_res["errors"] > 0:
-            result["errors"] = [ rql_res["first_error"] ]
+            result["errors"] = [rql_res["first_error"]]
 
         return result

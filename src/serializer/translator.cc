@@ -80,7 +80,7 @@ void prep_serializer(
 
         new_mutex_in_line_t dummy_acq;  // We don't have ordering concerns between
                                         // this and any other index_write call.
-        ser->index_write(&dummy_acq, ops, DEFAULT_DISK_ACCOUNT);
+        ser->index_write(&dummy_acq, ops);
     }
 }
 
@@ -224,14 +224,14 @@ file_account_t *translator_serializer_t::make_io_account(int priority, int outst
     return inner->make_io_account(priority, outstanding_requests_limit);
 }
 
-void translator_serializer_t::index_write(new_mutex_in_line_t *mutex_acq,
-                                          const std::vector<index_write_op_t> &write_ops,
-                                          file_account_t *io_account) {
+void translator_serializer_t::index_write(
+        new_mutex_in_line_t *mutex_acq,
+        const std::vector<index_write_op_t> &write_ops) {
     std::vector<index_write_op_t> translated_ops(write_ops);
     for (auto it = translated_ops.begin(); it < translated_ops.end(); ++it) {
         it->block_id = translate_block_id(it->block_id);
     }
-    inner->index_write(mutex_acq, translated_ops, io_account);
+    inner->index_write(mutex_acq, translated_ops);
 }
 
 std::vector<counted_t<standard_block_token_t> >
@@ -264,6 +264,10 @@ max_block_size_t translator_serializer_t::max_block_size() const {
 
 bool translator_serializer_t::coop_lock_and_check() {
     return inner->coop_lock_and_check();
+}
+
+bool translator_serializer_t::is_gc_active() const {
+    return inner->is_gc_active();
 }
 
 block_id_t translator_serializer_t::max_block_id() {

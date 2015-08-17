@@ -123,6 +123,10 @@ log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *parent)
       pm_serializer_block_writes(),
       pm_serializer_index_writes(secs_to_ticks(1)),
       pm_serializer_index_writes_size(secs_to_ticks(1), false),
+      pm_serializer_read_bytes_per_sec(secs_to_ticks(1)),
+      pm_serializer_read_bytes_total(),
+      pm_serializer_written_bytes_per_sec(secs_to_ticks(1)),
+      pm_serializer_written_bytes_total(),
       pm_extents_in_use(),
       pm_bytes_in_use(),
       pm_serializer_lba_extents(),
@@ -139,6 +143,10 @@ log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *parent)
           &pm_serializer_block_writes, "serializer_block_writes",
           &pm_serializer_index_writes, "serializer_index_writes",
           &pm_serializer_index_writes_size, "serializer_index_writes_size",
+          &pm_serializer_read_bytes_per_sec, "serializer_read_bytes_per_sec",
+          &pm_serializer_read_bytes_total, "serializer_read_bytes_total",
+          &pm_serializer_written_bytes_per_sec, "serializer_written_bytes_per_sec",
+          &pm_serializer_written_bytes_total, "serializer_written_bytes_total",
           &pm_extents_in_use, "serializer_extents_in_use",
           &pm_bytes_in_use, "serializer_bytes_in_use",
           &pm_serializer_lba_extents, "serializer_lba_extents",
@@ -149,6 +157,16 @@ log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *parent)
           &pm_serializer_old_total_block_bytes, "serializer_old_total_block_bytes",
           &pm_serializer_lba_gcs, "serializer_lba_gcs")
 { }
+
+void log_serializer_stats_t::bytes_read(size_t count) {
+    pm_serializer_read_bytes_per_sec.record(count);
+    pm_serializer_read_bytes_total += count;
+}
+
+void log_serializer_stats_t::bytes_written(size_t count) {
+    pm_serializer_written_bytes_per_sec.record(count);
+    pm_serializer_written_bytes_total += count;
+}
 
 void log_serializer_t::create(serializer_file_opener_t *file_opener, static_config_t static_config) {
     log_serializer_on_disk_static_config_t *on_disk_config = &static_config;
@@ -196,6 +214,8 @@ struct ls_start_existing_fsm_t :
         scoped_ptr_t<file_t> dbfile;
         file_opener->open_serializer_file_existing(&dbfile);
         ser->dbfile = dbfile.release();
+        ser->index_writes_io_account.init(
+            new file_account_t(ser->dbfile, INDEX_WRITE_IO_PRIORITY));
 
         start_existing_state = state_read_static_header;
         // STATE A above implies STATE B here
@@ -398,8 +418,10 @@ log_serializer_t::log_serializer_t(dynamic_config_t _dynamic_config, serializer_
 
 log_serializer_t::~log_serializer_t() {
     assert_thread();
+
     cond_t cond;
-    if (!shutdown(&cond)) cond.wait();
+    shutdown(&cond);
+    cond.wait();
 
     rassert(state == state_unstarted || state == state_shut_down);
     rassert(metablock_waiter_queue.empty());
@@ -447,8 +469,7 @@ get_ls_block_token(const counted_t<scs_block_token_t<log_serializer_t> > &tok) {
 
 
 void log_serializer_t::index_write(new_mutex_in_line_t *mutex_acq,
-                                   const std::vector<index_write_op_t> &write_ops,
-                                   file_account_t *io_account) {
+                                   const std::vector<index_write_op_t> &write_ops) {
     assert_thread();
     ticks_t pm_time;
     stats->pm_serializer_index_writes.begin(&pm_time);
@@ -498,11 +519,11 @@ void log_serializer_t::index_write(new_mutex_in_line_t *mutex_acq,
 
             lba_index->set_block_info(op.block_id, recency,
                                       offset, ser_block_size,
-                                      io_account, &txn);
+                                      index_writes_io_account.get(), &txn);
         }
     }
 
-    index_write_finish(mutex_acq, &txn, io_account);
+    index_write_finish(mutex_acq, &txn, index_writes_io_account.get());
 
     stats->pm_serializer_index_writes.end(&pm_time);
 }
@@ -720,6 +741,10 @@ bool log_serializer_t::coop_lock_and_check() {
     return dbfile->coop_lock_and_check();
 }
 
+bool log_serializer_t::is_gc_active() const {
+    return data_block_manager->is_gc_active() || lba_index->is_any_gc_active();
+}
+
 // TODO: Should be called end_block_id I guess (or should subtract 1 frim end_block_id?
 block_id_t log_serializer_t::max_block_id() {
     assert_thread();
@@ -760,7 +785,7 @@ log_serializer_t::get_all_recencies(block_id_t first, block_id_t step) {
     return lba_index->get_block_recencies(first, step);
 }
 
-bool log_serializer_t::shutdown(cond_t *cb) {
+void log_serializer_t::shutdown(cond_t *cb) {
     assert_thread();
     rassert(coro_t::self());
 
@@ -769,7 +794,6 @@ bool log_serializer_t::shutdown(cond_t *cb) {
     shutdown_callback = cb;
 
     shutdown_state = shutdown_begin;
-    shutdown_in_one_shot = true;
 
     // We must shutdown the LBA GC before we shut down
     // the data_block_manager or metablock_manager, because the LBA GC
@@ -778,10 +802,16 @@ bool log_serializer_t::shutdown(cond_t *cb) {
     // to most of the remaining shutdown process which is still FSM-based.
     lba_index->shutdown_gc();
 
-    return next_shutdown_step();
+    // Additionally we tell the data block manager to stop GCing.
+    // Not doing this doesn't hurt correctness, but it will delay the shutdown
+    // process because GC writes are contributing to `active_write_count` that
+    // stops us from getting through the remaining shutdown process quickly.
+    data_block_manager->disable_gc();
+
+    next_shutdown_step();
 }
 
-bool log_serializer_t::next_shutdown_step() {
+void log_serializer_t::next_shutdown_step() {
     assert_thread();
 
     if (shutdown_state == shutdown_begin) {
@@ -789,8 +819,7 @@ bool log_serializer_t::next_shutdown_step() {
         shutdown_state = shutdown_waiting_on_serializer;
         if (!metablock_waiter_queue.empty() || active_write_count > 0) {
             state = state_shutting_down;
-            shutdown_in_one_shot = false;
-            return false;
+            return;
         }
         state = state_shutting_down;
     }
@@ -798,8 +827,7 @@ bool log_serializer_t::next_shutdown_step() {
     if (shutdown_state == shutdown_waiting_on_serializer) {
         shutdown_state = shutdown_waiting_on_datablock_manager;
         if (!data_block_manager->shutdown(this)) {
-            shutdown_in_one_shot = false;
-            return false;
+            return;
         }
     }
 
@@ -807,8 +835,7 @@ bool log_serializer_t::next_shutdown_step() {
     if (shutdown_state == shutdown_waiting_on_datablock_manager) {
         shutdown_state = shutdown_waiting_on_block_tokens;
         if (!offset_tokens.empty()) {
-            shutdown_in_one_shot = false;
-            return false;
+            return;
         } else {
 #ifndef NDEBUG
             expecting_no_more_tokens = true;
@@ -838,10 +865,7 @@ bool log_serializer_t::next_shutdown_step() {
         shutdown_state = shutdown_waiting_on_dbfile_destruction;
         coro_t::spawn_sometime(std::bind(&log_serializer_t::delete_dbfile_and_continue_shutdown,
                                          this));
-        // TODO: Get rid of the useless shutdown_in_one_shot variable -- we never
-        // shut down in one shot.
-        shutdown_in_one_shot = false;
-        return false;
+        return;
     }
 
     rassert(dbfile == NULL);
@@ -849,20 +873,17 @@ bool log_serializer_t::next_shutdown_step() {
     if (shutdown_state == shutdown_waiting_on_dbfile_destruction) {
         state = state_shut_down;
 
-        // Don't call the callback if we went through the entire
-        // shutdown process in one synchronous shot.
-        if (!shutdown_in_one_shot && shutdown_callback) {
+        if (shutdown_callback) {
             shutdown_callback->pulse();
         }
-
-        return true;
+        return;
     }
 
     unreachable("Invalid state.");
-    return true; // make compiler happy
 }
 
 void log_serializer_t::delete_dbfile_and_continue_shutdown() {
+    index_writes_io_account.reset();
     rassert(dbfile != NULL);
     delete dbfile;
     dbfile = NULL;
@@ -902,17 +923,9 @@ void log_serializer_t::register_read_ahead_cb(serializer_read_ahead_callback_t *
 void log_serializer_t::unregister_read_ahead_cb(serializer_read_ahead_callback_t *cb) {
     assert_thread();
 
-    // KSI: read_ahead_callbacks should be an intrusive list.
-
-    for (std::vector<serializer_read_ahead_callback_t*>::iterator cb_it = read_ahead_callbacks.begin(); cb_it != read_ahead_callbacks.end(); ++cb_it) {
-        if (*cb_it == cb) {
-            read_ahead_callbacks.erase(cb_it);
-            break;
-        }
-    }
-
-    // KSI: This should not allow spurious unregister operations the way it currently
-    // does (it should crash here).
+    auto it = std::find(read_ahead_callbacks.begin(), read_ahead_callbacks.end(), cb);
+    guarantee(it != read_ahead_callbacks.end());
+    read_ahead_callbacks.erase(it);
 }
 
 void log_serializer_t::offer_buf_to_read_ahead_callbacks(

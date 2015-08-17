@@ -14,28 +14,24 @@
 #include "containers/counted.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "concurrency/signal.hpp"
+#include "extproc/extproc_job.hpp"
 
 // http calls result either in a DATUM return value or an error string
 struct http_result_t {
-    counted_t<const ql::datum_t> header;
-    counted_t<const ql::datum_t> body;
-    std::string error;
+    ql::datum_t header;
+    ql::datum_t body;
 
-    RDB_DECLARE_ME_SERIALIZABLE;
+    // Cookies are not used in the query language, but they should be passed to any
+    // subsequent HTTP requests for the query (e.g. if performing depagination).
+    std::vector<std::string> cookies;
+    std::string error;
 };
+
+RDB_DECLARE_SERIALIZABLE(http_result_t);
 
 class extproc_pool_t;
 class http_runner_t;
 class http_job_t;
-
-class http_worker_exc_t : public std::exception {
-public:
-    explicit http_worker_exc_t(const std::string& data) : info(data) { }
-    ~http_worker_exc_t() throw () { }
-    const char *what() const throw () { return info.c_str(); }
-private:
-    std::string info;
-};
 
 enum class http_method_t {
     GET,
@@ -56,7 +52,8 @@ enum class http_result_format_t {
     AUTO,
     TEXT,
     JSON,
-    JSONP
+    JSONP,
+    BINARY
 };
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
@@ -69,7 +66,7 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         http_result_format_t, int8_t,
-        http_result_format_t::AUTO, http_result_format_t::JSONP);
+        http_result_format_t::AUTO, http_result_format_t::BINARY);
 
 std::string http_method_to_str(http_method_t method);
 
@@ -92,32 +89,41 @@ struct http_opts_t {
         http_auth_type_t type;
         std::string username;
         std::string password;
+    };
 
-        RDB_DECLARE_ME_SERIALIZABLE;
-    } auth;
+    http_auth_t auth;
 
     http_method_t method;
     http_result_format_t result_format;
 
     std::string proxy;
     std::string url;
-    counted_t<const ql::datum_t> url_params;
+    ql::datum_t url_params;
     std::vector<std::string> header;
+    std::vector<std::string> cookies;
 
     // These will be used based on the method specified
     std::string data;
     std::map<std::string, std::string> form_data;
+
+    // Limits on execution size
+    ql::configured_limits_t limits;
+
+    // ReQL version in use
+    reql_version_t version;
 
     uint64_t timeout_ms;
     uint64_t attempts;
     uint32_t max_redirects;
 
     bool verify;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
 
-// A handle to a running "javascript evaluator" job.
+RDB_DECLARE_SERIALIZABLE(http_opts_t);
+RDB_DECLARE_SERIALIZABLE(http_opts_t::http_auth_t);
+
+
+// A handle to a running "HTTP fetcher" job.
 class http_runner_t : public home_thread_mixin_t {
 public:
     explicit http_runner_t(extproc_pool_t *_pool);

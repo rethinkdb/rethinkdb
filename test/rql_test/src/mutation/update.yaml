@@ -1,17 +1,8 @@
 desc: Tests updates of selections
+table_variable_name: tbl, tbl2
 tests:
 
     # Set up some data
-    - cd: r.db('test').table_create('test1')
-      ot: ({'created':1})
-
-    - def: tbl = r.db('test').table('test1')
-
-    - cd: r.db('test').table_create('test2')
-      ot: ({'created':1})
-
-    - def: tbl2 = r.db('test').table('test2')
-
     - py: tbl.insert([{'id':i} for i in xrange(100)])
       js: |
         tbl.insert(function(){
@@ -139,7 +130,7 @@ tests:
 
     - js: tbl.get(1).update({}, 'foo')
       cd: []
-      ot: err('RqlDriverError', 'Expected 1 argument(s) but found 2.')
+      ot: err('RqlDriverError', 'Expected 1 argument (not including options) but found 2.')
 
     - js: tbl.get(1).update({}, {'foo':'bar'})
       cd: []
@@ -179,10 +170,4 @@ tests:
 
     - cd: tbl2.order_by('id').nth(0)
       ot: ({'id':0,'foo':1})
-
-    # clean up
-    - cd: r.db('test').table_drop('test1')
-      ot: ({'dropped':1})
-    - cd: r.db('test').table_drop('test2')
-      ot: ({'dropped':1})
 

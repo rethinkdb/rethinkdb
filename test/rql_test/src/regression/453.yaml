@@ -1,20 +1,17 @@
 desc: Sanity Check Fails, with r.table() expression inside a map (#453)
+table_variable_name: tbl
 tests:
-
-  - cd: r.db('test').table_create('foo')
-    def: tbl = r.db('test').table('foo')
 
   - cd: tbl.insert([{'a':1},{'a':2}])
     rb: tbl.insert([{:a=>1},{:a=>2}])
 
-  - js: r.table('foo').map(function(x) { return r.table('foo'); })
-    py: "r.table('foo').map(lambda x: r.table('foo'))"
-    rb: r.table('foo').map{ |x| r.table 'foo' }
+  - js: tbl.map(function(x) { return tbl; })
+    py: "tbl.map(lambda x: tbl)"
+    rb: tbl.map{ |x| tbl }
     ot: err("RqlRuntimeError", 'Expected type DATUM but found TABLE.', [0])
 
-  - js: r.table('foo').map(function(x) { return r.table('foo').coerceTo('array'); }).count()
-    py: "r.table('foo').map(lambda x: r.table('foo').coerce_to('array')).count()"
-    rb: r.table('foo').map{ |x| r.table('foo').coerce_to('array') }.count
+  - js: tbl.map(function(x) { return tbl.coerceTo('array'); }).count()
+    py: "tbl.map(lambda x: tbl.coerce_to('array')).count()"
+    rb: tbl.map{ |x| tbl.coerce_to('array') }.count
     ot: 2
 
-  - cd: r.db('test').table_drop('foo')

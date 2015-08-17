@@ -46,7 +46,7 @@ void debug_print_quoted_string(printf_buffer_t *buf, const uint8_t *s, size_t n)
 void debugf_prefix_buf(printf_buffer_t *buf) {
     struct timespec t = clock_realtime();
 
-    format_time(t, buf);
+    format_time(t, buf, local_or_utc_time_t::local);
 
     buf->appendf(" Thread %" PRIi32 ": ", get_thread_id().threadnum);
 }
@@ -78,10 +78,6 @@ void debugf(const char *msg, ...) {
 }
 
 #endif  // NDEBUG
-
-void debug_print(printf_buffer_t *buf, uint64_t x) {
-    buf->appendf("%" PRIu64, x);
-}
 
 void debug_print(printf_buffer_t *buf, const std::string& s) {
     const char *data = s.data();

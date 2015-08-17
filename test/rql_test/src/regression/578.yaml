@@ -1,20 +1,18 @@
-desc: reject non-deterministic secondary indexes (#578)
+desc: Catch obvious sindex creation/dropping errors (#578)
+table_variable_name: tbl
 tests:
-
-  - cd: r.db('test').table_create('578')
-    def: tbl = r.table('578')
 
   - js: tbl.index_create("578", function(rec){return 1})
     py: tbl.index_create("578", lambda rec:1)
     rb: tbl.index_create("578") {|rec| 1}
     ot: ({'created':1})
-  - cd: tbl.index_wait("578")
+  - cd: tbl.index_wait("578").pluck('index', 'ready')
     ot: ([{'ready':True, 'index':'578'}])
 
   - js: tbl.index_create("578", function(rec){return 1})
     py: tbl.index_create("578", lambda rec:1)
     rb: tbl.index_create("578") {|rec| 1}
-    ot: 'err("RqlRuntimeError", "Index `578` already exists on table `test.578`.", [])'
+    ot: 'err_regex("RqlRuntimeError", "Index `578` already exists on table `[a-zA-Z0-9_]+.[a-zA-Z0-9_]+`[.]", [])'
 
   - js: tbl.index_drop("578")
     py: tbl.index_drop("578")
@@ -24,6 +22,5 @@ tests:
   - js: tbl.index_drop("578")
     py: tbl.index_drop("578")
     rb: tbl.index_drop("578")
-    ot: 'err("RqlRuntimeError", "Index `578` does not exist on table `test.578`.", [])'
+    ot: 'err_regex("RqlRuntimeError", "Index `578` does not exist on table `[a-zA-Z0-9_]+.[a-zA-Z0-9_]+`[.]", [])'
 
-  - cd: r.db('test').table_drop('578')

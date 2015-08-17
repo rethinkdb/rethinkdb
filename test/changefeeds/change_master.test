@@ -1,0 +1,96 @@
+#!/usr/bin/env python
+
+'''Changing masters for a shard closes open changefeeds on that table'''
+
+# issue-url: https://github.com/rethinkdb/rethinkdb/issues/2757
+# issue-description: Changing masters for a shard closes open changefeeds on that table
+# issue-discussion: This will need to change the last sections for: #3549 and #3547
+
+from __future__ import print_function
+
+import os, sys, time
+
+startTime = time.time()
+
+sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common'))
+import utils, rdb_unittest
+
+# --
+
+class Changefeeds_Master(rdb_unittest.RdbTestCase):
+    
+    recordsToGenerate = 100
+    shards = 2
+    replicas = 2
+    destructiveTest = True
+    
+    def test_change_master(self):
+    
+        print("Establishing ReQL connections (%.2fs)" % (time.time() - startTime))
+        
+        shardA, shardB = self.table.config()['shards'][:2].run(self.conn)
+        
+        serverA1 = [x for x in self.cluster if x.name == shardA['primary_replica']][0]
+        serverA2 = [x for x in self.cluster if x.name in shardA['replicas'] and x.name != serverA1.name][0]
+        
+        serverB1 = [x for x in self.cluster if x.name == shardB['primary_replica']][0]
+        serverB2 = [x for x in self.cluster if x.name in shardB['replicas'] and x.name != serverB1.name][0]
+        
+        connA1 = self.r.connect(host=serverA1.host, port=serverA1.driver_port)
+        connA2 = self.r.connect(host=serverA2.host, port=serverA2.driver_port)
+        
+        connB1 = self.r.connect(host=serverA2.host, port=serverA2.driver_port)
+        
+        print("Opening changefeeds (%.2fs)" % (time.time() - startTime))
+        
+        rangeA, rangeB = utils.getShardRanges(self.conn, self.tableName)[:2]
+        
+        sampleA_ID = self.table.between(rangeA[0], rangeA[1]).sample(1).nth(0)['id'].run(connA1)
+        sampleB_ID = self.table.between(rangeB[0], rangeB[1]).sample(1).nth(0)['id'].run(connB1)
+        
+        feedA1 = self.table.between(rangeA[0], rangeA[1]).changes(include_initial_vals=False).run(connA1)
+        feedA2 = self.table.between(rangeA[0], rangeA[1]).changes(include_initial_vals=False).run(connA2)
+        
+        feedB = self.table.between(rangeB[0], rangeB[1]).changes(include_initial_vals=False).run(connB1)
+        pointFeed = self.table.get(sampleB_ID).changes(include_initial_vals=False).run(connB1)
+        
+        print("Check that the changefeeds work (%.2fs)" % (time.time() - startTime))
+        
+        self.table.get(sampleA_ID).update({'update':'a'}).run(self.conn)
+        self.table.get(sampleB_ID).update({'update':'a'}).run(self.conn)
+        
+        
+        feedA1.next(wait=.2)
+        feedA2.next(wait=.2)
+        
+        feedB.next(wait=.2)
+        pointFeed.next(wait=.2)
+        
+        print("Reverse the server assignments (%.2fs)" % (time.time() - startTime))
+        
+        result = self.table.config().update({'shards':[
+            {'primary_replica': serverA2.name, 'replicas':[serverA2.name, serverA1.name]}, # swapped
+            {'primary_replica': serverB1.name, 'replicas':[serverB1.name, serverB2.name]}  # unchanged
+        ]}).run(self.conn)
+        self.assertTrue(result['errors'] == 0, msg='Failed updating table config: %s' % repr(result))
+        self.table.wait(timeout=20).run(self.conn)
+        
+        print("Check that feeds are indeed disconnected on a changed shard (%.2fs)" % (time.time() - startTime))
+        
+        self.table.get(sampleA_ID).update({'update':'b'}).run(self.conn)
+
+        self.assertRaises(self.r.RqlRuntimeError, feedA1.next, wait=.2)
+        self.assertRaises(self.r.RqlRuntimeError, feedA2.next, wait=.2)
+        
+        print("Check that feeds are also disconnected on an unchanged shard (%.2fs)" % (time.time() - startTime))
+        
+        self.table.get(sampleB_ID).update({'update':'b'}).run(self.conn)
+        
+        self.assertRaises(self.r.RqlRuntimeError, feedB.next, wait=.2)
+        self.assertRaises(self.r.RqlRuntimeError, pointFeed.next, wait=.2)
+
+# ===== main
+
+if __name__ == '__main__':
+    import unittest
+    unittest.main()

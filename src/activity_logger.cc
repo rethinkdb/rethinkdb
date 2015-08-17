@@ -22,7 +22,7 @@ void activity_logger_t::add(const std::string &msg) {
     return add(msg, log_bt_);
 }
 void activity_logger_t::add(const std::string &msg, bool log_bt) {
-    events.push_back(new log_event_t(msg, log_bt));
+    events.push_back(make_scoped<log_event_t>(msg, log_bt));
 }
 
 size_t activity_logger_t::size() { return events.size(); }
@@ -34,7 +34,7 @@ std::string activity_logger_t::print_range(size_t start, size_t end, bool print_
     std::string s;
     for (size_t i = start; i < end; ++i) {
         if (i >= events.size()) break;
-        s += events[i].print(print_bt);
+        s += events[i]->print(print_bt);
     }
     return s;
 }

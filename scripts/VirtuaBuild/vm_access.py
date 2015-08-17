@@ -57,7 +57,7 @@ debian = VM('debian', 'cc76e2a5-92c0-4208-be08-5c02429c2c50', 'root@192.168.0.17
 centos5_5 = VM('centos5_5', '7595c315-9be0-4e6d-a757-33f018182937', 'root@192.168.0.177', control_user)
 centos6 = VM('centos6', '3f9e9d18-dccb-40b9-ba31-5a68f627b258', 'root@192.168.0.178', control_user)
 
-vm_list = {"suse2": suse2, "suse" : suse, "redhat5_1" : redhat5_1, "ubuntu" : ubuntu, "debian" : debian, "centos5_5" : centos5_5, "centos6" : centos6}
+vm_list = {"suse2": suse2, "suse": suse, "redhat5_1": redhat5_1, "ubuntu": ubuntu, "debian": debian, "centos5_5": centos5_5, "centos6": centos6}
 
 def help():
     print "VM Access:"
@@ -115,8 +115,8 @@ print "***Will be working in directory " + dir_name
 print "***Transferring files to virtual machine..."
 if "RETHINKDB" in os.environ:
     print "*****(debug: we are currently running a test)"
-subprocess.Popen(" ".join((["cd", os.environ["RETHINKDB"] + "/..", "&&"] if "RETHINKDB" in os.environ else []) + ["tar", "czf", "tmp.tar.gz", "--exclude", "tmp.tar.gz", "*", "&&", "scp", "tmp.tar.gz", "%s:%s/tmp.tar.gz" % (target.host, dir_name)]), shell = True).wait()
-target.command(" ".join(["cd", dir_name, "&&", "tar", "xzf", "tmp.tar.gz"]), output = True)
+subprocess.Popen(" ".join((["cd", os.environ["RETHINKDB"] + "/..", "&&"] if "RETHINKDB" in os.environ else []) + ["tar", "czf", "tmp.tar.gz", "--exclude", "tmp.tar.gz", "*", "&&", "scp", "tmp.tar.gz", "%s:%s/tmp.tar.gz" % (target.host, dir_name)]), shell=True).wait()
+target.command(" ".join(["cd", dir_name, "&&", "tar", "xzf", "tmp.tar.gz"]), output=True)
 
 # Execute command
 print "***Executing command..."

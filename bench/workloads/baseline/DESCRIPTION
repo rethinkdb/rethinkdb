@@ -1,8 +1,0 @@
-echo "[h]Overview[/h]"
-echo "Baseline measures RethinkDB performance using a rethinkdb binary built from the branch bench_baseline."
-echo ""
-echo "[h]Rationale[/h]"
-echo "The baseline performance allows us to identify changes in the benchmarking environment (e.g. changes in the hardware configuration or changes in the stress client) by providing a reference metric."
-echo ""
-echo "[h]Notes about the results[/h]"
-echo "-"

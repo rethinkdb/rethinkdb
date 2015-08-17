@@ -4,37 +4,41 @@
 #include <stdio.h>
 
 #include "arch/arch.hpp"
-#include "arch/os_signal.hpp"
 #include "arch/io/network.hpp"
-#include "clustering/administration/admin_tracker.hpp"
-#include "clustering/administration/auto_reconnect.hpp"
+#include "arch/os_signal.hpp"
+#include "buffer_cache/cache_balancer.hpp"
+#include "clustering/administration/artificial_reql_cluster_interface.hpp"
 #include "clustering/administration/http/server.hpp"
 #include "clustering/administration/issues/local.hpp"
-#include "clustering/administration/logger.hpp"
-#include "clustering/administration/main/file_based_svs_by_namespace.hpp"
+#include "clustering/administration/issues/outdated_index.hpp"
+#include "clustering/administration/jobs/manager.hpp"
+#include "clustering/administration/logs/log_writer.hpp"
 #include "clustering/administration/main/initial_join.hpp"
 #include "clustering/administration/main/ports.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
-#include "containers/incremental_lenses.hpp"
+#include "clustering/administration/main/version_check.hpp"
 #include "clustering/administration/metadata.hpp"
-#include "clustering/administration/namespace_interface_repository.hpp"
-#include "clustering/administration/network_logger.hpp"
 #include "clustering/administration/perfmon_collection_repo.hpp"
-#include "clustering/administration/persist.hpp"
-#include "clustering/administration/proc_stats.hpp"
-#include "clustering/administration/reactor_driver.hpp"
-#include "clustering/administration/sys_stats.hpp"
+#include "clustering/administration/persist/file_keys.hpp"
+#include "clustering/administration/persist/semilattice.hpp"
+#include "clustering/administration/persist/table_interface.hpp"
+#include "clustering/administration/real_reql_cluster_interface.hpp"
+#include "clustering/administration/servers/auto_reconnect.hpp"
+#include "clustering/administration/servers/config_server.hpp"
+#include "clustering/administration/servers/config_client.hpp"
+#include "clustering/administration/servers/network_logger.hpp"
+#include "clustering/table_manager/table_meta_client.hpp"
+#include "clustering/table_manager/multi_table_manager.hpp"
+#include "containers/incremental_lenses.hpp"
 #include "extproc/extproc_pool.hpp"
 #include "rdb_protocol/query_server.hpp"
-#include "rdb_protocol/protocol.hpp"
 #include "rpc/connectivity/cluster.hpp"
-#include "rpc/connectivity/multiplexer.hpp"
-#include "rpc/connectivity/heartbeat.hpp"
+#include "rpc/directory/map_read_manager.hpp"
+#include "rpc/directory/map_write_manager.hpp"
 #include "rpc/directory/read_manager.hpp"
 #include "rpc/directory/write_manager.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
 #include "rpc/semilattice/view/field.hpp"
-#include "buffer_cache/alt/cache_balancer.hpp"
 
 peer_address_set_t look_up_peers_addresses(const std::vector<host_and_port_t> &names) {
     peer_address_set_t peers;
@@ -57,7 +61,8 @@ std::string service_address_ports_t::get_addresses_string() const {
 
     // Get the actual list for printing if we're listening on all addresses.
     if (is_bind_all()) {
-        actual_addresses = get_local_ips(std::set<ip_address_t>(), true);
+        actual_addresses = get_local_ips(std::set<ip_address_t>(),
+                                         local_ip_filter_t::ALL);
     }
 
     for (std::set<ip_address_t>::const_iterator i = actual_addresses.begin(); i != actual_addresses.end(); ++i) {
@@ -73,110 +78,130 @@ bool service_address_ports_t::is_bind_all() const {
     return local_addresses.empty();
 }
 
+// Defined in command_line.cc; not in any header, because it is not
+// safe to run in general.
+std::string run_uname(const std::string &flags);
+
 bool do_serve(io_backender_t *io_backender,
               bool i_am_a_server,
               // NB. filepath & persistent_file are used only if i_am_a_server is true.
               const base_path_t &base_path,
-              metadata_persistence::cluster_persistent_file_t *cluster_metadata_file,
-              metadata_persistence::auth_persistent_file_t *auth_metadata_file,
-              uint64_t total_cache_size,
+              metadata_file_t *metadata_file,
               const serve_info_t &serve_info,
               os_signal_cond_t *stop_cond) {
+    /* This coroutine is responsible for creating and destroying most of the important
+    components of the server. */
+
+    // Do this here so we don't block on popen while pretending to serve.
+    std::string uname = run_uname("ms");
     try {
+        /* `extproc_pool` spawns several subprocesses that can be used to run tasks that
+        we don't want to run in the main RethinkDB process, such as Javascript
+        evaluations. */
         extproc_pool_t extproc_pool(get_num_threads());
 
-        local_issue_tracker_t local_issue_tracker;
-
-        thread_pool_log_writer_t log_writer(&local_issue_tracker);
+        /* `thread_pool_log_writer_t` automatically registers itself. While it exists,
+        log messages will be written using the event loop instead of blocking. */
+        thread_pool_log_writer_t log_writer;
 
         cluster_semilattice_metadata_t cluster_metadata;
         auth_semilattice_metadata_t auth_metadata;
-        machine_id_t machine_id = generate_uuid();
+        server_id_t server_id = generate_uuid();
+        if (metadata_file != NULL) {
+            cond_t non_interruptor;
+            metadata_file_t::read_txn_t txn(metadata_file, &non_interruptor);
+            cluster_metadata = txn.read(mdkey_cluster_semilattices(), &non_interruptor);
+            auth_metadata = txn.read(mdkey_auth_semilattices(), &non_interruptor);
+            server_id = txn.read(mdkey_server_id(), &non_interruptor);
+        }
 
-        if (cluster_metadata_file != NULL) {
-            machine_id = cluster_metadata_file->read_machine_id();
-            cluster_metadata = cluster_metadata_file->read_metadata();
-        }
-        if (auth_metadata_file != NULL) {
-            auth_metadata = auth_metadata_file->read_metadata();
-        }
 #ifndef NDEBUG
-        logINF("Our machine ID is %s", uuid_to_str(machine_id).c_str());
+        logNTC("Our server ID is %s", uuid_to_str(server_id).c_str());
 #endif
 
+        /* The `connectivity_cluster_t` maintains TCP connections to other servers in the
+        cluster. */
         connectivity_cluster_t connectivity_cluster;
-        message_multiplexer_t message_multiplexer(&connectivity_cluster);
 
-        message_multiplexer_t::client_t heartbeat_manager_client(&message_multiplexer, 'H', SEMAPHORE_NO_LIMIT);
-        heartbeat_manager_t heartbeat_manager(&heartbeat_manager_client);
-        message_multiplexer_t::client_t::run_t heartbeat_manager_client_run(&heartbeat_manager_client, &heartbeat_manager);
+        /* The `mailbox_manager_t` maintains a local index of mailboxes that exist on
+        this server, and routes mailbox messages received from other servers. */
+        mailbox_manager_t mailbox_manager(&connectivity_cluster, 'M');
 
-        message_multiplexer_t::client_t mailbox_manager_client(&message_multiplexer, 'M');
-        mailbox_manager_t mailbox_manager(&mailbox_manager_client);
-        message_multiplexer_t::client_t::run_t mailbox_manager_client_run(&mailbox_manager_client, &mailbox_manager);
+        /* `semilattice_manager_cluster` and `semilattice_manager_auth` are responsible
+        for syncing the semilattice metadata between servers over the network. */
+        semilattice_manager_t<cluster_semilattice_metadata_t>
+            semilattice_manager_cluster(&connectivity_cluster, 'S', cluster_metadata);
+        semilattice_manager_t<auth_semilattice_metadata_t>
+            semilattice_manager_auth(&connectivity_cluster, 'A', auth_metadata);
 
-        message_multiplexer_t::client_t semilattice_manager_client(&message_multiplexer, 'S');
-        semilattice_manager_t<cluster_semilattice_metadata_t> semilattice_manager_cluster(&semilattice_manager_client, cluster_metadata);
-        message_multiplexer_t::client_t::run_t semilattice_manager_client_run(&semilattice_manager_client, &semilattice_manager_cluster);
+        /* The `directory_*_read_manager_t`s are responsible for receiving directory
+        updates over the network from other servers. */
 
-        message_multiplexer_t::client_t auth_manager_client(&message_multiplexer, 'A');
-        semilattice_manager_t<auth_semilattice_metadata_t> auth_manager_cluster(&auth_manager_client, auth_metadata);
-        message_multiplexer_t::client_t::run_t auth_manager_client_run(&auth_manager_client, &auth_manager_cluster);
+        /* The `cluster_directory_metadata_t` contains basic information about each
+        server (such as its name, server ID, version, PID, command line arguments, etc.)
+        and also many singleton mailboxes for various purposes. */
+        directory_read_manager_t<cluster_directory_metadata_t>
+            directory_read_manager(&connectivity_cluster, 'D');
 
+        /* The `table_manager_bcard_t`s contain the mailboxes that allow the Raft members
+        on different servers to communicate with each other. */
+        directory_map_read_manager_t<namespace_id_t, table_manager_bcard_t>
+            table_directory_read_manager(&connectivity_cluster, 'T');
+
+        /* The `table_query_bcard_t`s contain mailboxes that execute `read_t`s or
+        `write_t`s. The `table_query_client_t` reads this directory to know how to route
+        queries. */
+        directory_map_read_manager_t<
+                std::pair<namespace_id_t, branch_id_t>,
+                table_query_bcard_t>
+            table_query_directory_read_manager(&connectivity_cluster, 'Q');
+
+        /* `server_connection_read_manager` gives us second-order connectivity
+        information; we can figure out which of the servers we're connected to are
+        connected to which other servers. */
+        directory_map_read_manager_t<server_id_t, empty_value_t>
+            server_connection_read_manager(&connectivity_cluster, 'C');
+
+        /* `log_server` retrieves pieces of our local log file and sends them out over
+        the network via its mailbox. */
         log_server_t log_server(&mailbox_manager, &log_writer);
 
-        // Initialize the stat manager before the directory manager so that we
-        // could initialize the cluster directory metadata with the proper
-        // stat_manager mailbox address
-        stat_manager_t stat_manager(&mailbox_manager);
+        /* `server_config_server` tracks this server's name, tags, etc. It takes care of
+        loading and persisting that information to disk, and also distributing it over
+        the network via the `cluster_directory_metadata_t`. */
+        scoped_ptr_t<server_config_server_t> server_config_server;
+        if (i_am_a_server) {
+            server_config_server.init(new server_config_server_t(
+                &mailbox_manager, metadata_file));
+        }
 
-        metadata_change_handler_t<cluster_semilattice_metadata_t> metadata_change_handler(&mailbox_manager, semilattice_manager_cluster.get_root_view());
-        metadata_change_handler_t<auth_semilattice_metadata_t> auth_change_handler(&mailbox_manager, auth_manager_cluster.get_root_view());
+        /* `server_config_client` is used to get a list of all connected servers and
+        request information about their names and tags. It can also be used to change
+        servers' names and tags over the network by sending messages to the servers'
+        `server_config_server_t`s. */
+        server_config_client_t server_config_client(
+            &mailbox_manager,
+            directory_read_manager.get_root_map_view(),
+            server_connection_read_manager.get_root_view());
 
-        scoped_ptr_t<cluster_directory_metadata_t> initial_directory(
-            new cluster_directory_metadata_t(machine_id,
-                                             connectivity_cluster.get_me(),
-                                             total_cache_size,
-                                             get_ips(),
-                                             stat_manager.get_address(),
-                                             metadata_change_handler.get_request_mailbox_address(),
-                                             auth_change_handler.get_request_mailbox_address(),
-                                             log_server.get_business_card(),
-                                             i_am_a_server ? SERVER_PEER : PROXY_PEER));
-
-        watchable_variable_t<cluster_directory_metadata_t> our_root_directory_variable(*initial_directory);
-
-        message_multiplexer_t::client_t directory_manager_client(&message_multiplexer, 'D');
-        directory_write_manager_t<cluster_directory_metadata_t> directory_write_manager(&directory_manager_client, our_root_directory_variable.get_watchable());
-        directory_read_manager_t<cluster_directory_metadata_t> directory_read_manager(connectivity_cluster.get_connectivity_service());
-        message_multiplexer_t::client_t::run_t directory_manager_client_run(&directory_manager_client, &directory_read_manager);
-
+        /* `network_logger` writes to the log file when another server connects or
+        disconnects. */
         network_logger_t network_logger(
             connectivity_cluster.get_me(),
-            directory_read_manager.get_root_view(),
-            metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()));
+            directory_read_manager.get_root_map_view());
 
-        message_multiplexer_t::run_t message_multiplexer_run(&message_multiplexer);
+        /* `connectivity_cluster_run` is the other half of the `connectivity_cluster_t`.
+        Before it's created, the `connectivity_cluster_t` won't process any connections
+        or messages. So it's only safe to create now that we've set up all of our message
+        handlers. */
         scoped_ptr_t<connectivity_cluster_t::run_t> connectivity_cluster_run;
-
         try {
             connectivity_cluster_run.init(new connectivity_cluster_t::run_t(
                 &connectivity_cluster,
                 serve_info.ports.local_addresses,
                 serve_info.ports.canonical_addresses,
                 serve_info.ports.port,
-                &message_multiplexer_run,
-                serve_info.ports.client_port,
-                &heartbeat_manager));
-
-            // Update the directory with the ip addresses that we are passing to peers
-            std::set<ip_and_port_t> ips = connectivity_cluster_run->get_ips();
-            initial_directory->ips.clear();
-            for (auto it = ips.begin(); it != ips.end(); ++it) {
-                initial_directory->ips.push_back(it->ip().to_string());
-            }
-            our_root_directory_variable.set_value(*initial_directory);
-            initial_directory.reset();
+                serve_info.ports.client_port));
         } catch (const address_in_use_exc_t &ex) {
             throw address_in_use_exc_t(strprintf("Could not bind to cluster port: %s", ex.what()));
         }
@@ -185,42 +210,18 @@ bool do_serve(io_backender_t *io_backender,
         if (serve_info.ports.port != 0) {
             guarantee(serve_info.ports.port == connectivity_cluster_run->get_port());
         }
-        logINF("Listening for intracluster connections on port %d\n", connectivity_cluster_run->get_port());
+        logNTC("Listening for intracluster connections on port %d\n",
+            connectivity_cluster_run->get_port());
 
+        /* `auto_reconnector` tries to reconnect to other servers if we lose the
+        connection to them. */
         auto_reconnector_t auto_reconnector(
             &connectivity_cluster,
             connectivity_cluster_run.get(),
-            directory_read_manager.get_root_view()->incremental_subview(
-                incremental_field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
-            metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()));
+            &server_config_client);
 
-        field_copier_t<std::list<local_issue_t>, cluster_directory_metadata_t> copy_local_issues_to_cluster(
-            &cluster_directory_metadata_t::local_issues,
-            local_issue_tracker.get_issues_watchable(),
-            &our_root_directory_variable);
-
-        admin_tracker_t admin_tracker(semilattice_manager_cluster.get_root_view(),
-                                      auth_manager_cluster.get_root_view(),
-                                      directory_read_manager.get_root_view());
-
-        perfmon_collection_t proc_stats_collection;
-        perfmon_membership_t proc_stats_membership(&get_global_perfmon_collection(), &proc_stats_collection, "proc");
-
-        proc_stats_collector_t proc_stats_collector(&proc_stats_collection);
-
-        scoped_ptr_t<perfmon_collection_t> sys_stats_collection;
-        scoped_ptr_t<perfmon_membership_t> sys_stats_membership;
-        scoped_ptr_t<sys_stats_collector_t> sys_stats_collector;
-        if (i_am_a_server) {
-            sys_stats_collection.init(new perfmon_collection_t);
-            sys_stats_membership.init(new perfmon_membership_t(
-                &get_global_perfmon_collection(),
-                sys_stats_collection.get(),
-                "sys"));
-            sys_stats_collector.init(new sys_stats_collector_t(
-                base_path, sys_stats_collection.get()));
-        }
-
+        /* `initial_joiner` sets up the initial connections to the peers that were
+        specified with the `--join` flag on the command line. */
         scoped_ptr_t<initial_joiner_t> initial_joiner;
         if (!serve_info.peers.empty()) {
             initial_joiner.init(new initial_joiner_t(&connectivity_cluster,
@@ -233,98 +234,282 @@ bool do_serve(io_backender_t *io_backender,
             }
         }
 
-        perfmon_collection_repo_t perfmon_repo(&get_global_perfmon_collection());
+        perfmon_collection_repo_t perfmon_collection_repo(
+            &get_global_perfmon_collection());
 
-        // Namespace repo
+        /* We thread the `rdb_context_t` through every function that evaluates ReQL
+        terms. It contains pointers to all the things that the ReQL term evaluation code
+        needs. */
         rdb_context_t rdb_ctx(&extproc_pool,
                               &mailbox_manager,
-                              NULL,
-                              semilattice_manager_cluster.get_root_view(),
-                              auth_manager_cluster.get_root_view(),
-                              &directory_read_manager,
-                              machine_id,
+                              NULL,   /* we'll fill this in later */
+                              semilattice_manager_auth.get_root_view(),
                               &get_global_perfmon_collection(),
                               serve_info.reql_http_proxy);
-
-        namespace_repo_t rdb_namespace_repo(&mailbox_manager,
-            metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces,
-                           semilattice_manager_cluster.get_root_view()),
-            directory_read_manager.get_root_view()->incremental_subview(
-                incremental_field_getter_t<namespaces_directory_metadata_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::rdb_namespaces)),
-            &rdb_ctx);
-
-        //This is an annoying chicken and egg problem here
-        rdb_ctx.ns_repo = &rdb_namespace_repo;
-
         {
-            scoped_ptr_t<cache_balancer_t> cache_balancer;
+            /* Extract a subview of the directory with all the table meta manager
+            business cards. */
+            watchable_map_value_transform_t<peer_id_t, cluster_directory_metadata_t,
+                    multi_table_manager_bcard_t>
+                multi_table_manager_directory(
+                    directory_read_manager.get_root_map_view(),
+                    [](const cluster_directory_metadata_t *cluster_md) {
+                        return &cluster_md->multi_table_manager_bcard;
+                    });
 
+            /* The `multi_table_manager_t` takes care of the actual business of setting
+            up tables and handling queries for them. The `table_persistence_interface_t`
+            helps it by constructing the B-trees and serializers, and also persisting
+            table-related metadata to disk. */
+            scoped_ptr_t<cache_balancer_t> cache_balancer;
+            scoped_ptr_t<outdated_index_issue_tracker_t> outdated_index_issue_tracker;
+            scoped_ptr_t<real_table_persistence_interface_t>
+                table_persistence_interface;
+            scoped_ptr_t<multi_table_manager_t> multi_table_manager;
             if (i_am_a_server) {
-                // Proxies do not have caches to balance
-                cache_balancer.init(new alt_cache_balancer_t(total_cache_size));
+                cache_balancer.init(new alt_cache_balancer_t(
+                    server_config_server->get_actual_cache_size_bytes()));
+                outdated_index_issue_tracker.init(new outdated_index_issue_tracker_t);
+                table_persistence_interface.init(
+                    new real_table_persistence_interface_t(
+                        io_backender,
+                        cache_balancer.get(),
+                        base_path,
+                        outdated_index_issue_tracker.get(),
+                        &rdb_ctx,
+                        metadata_file));
+                multi_table_manager.init(new multi_table_manager_t(
+                    server_id,
+                    &mailbox_manager,
+                    &server_config_client,
+                    &multi_table_manager_directory,
+                    table_directory_read_manager.get_root_view(),
+                    server_config_client.get_connections_map(),
+                    table_persistence_interface.get(),
+                    base_path,
+                    io_backender,
+                    &perfmon_collection_repo));
+            } else {
+                /* Proxies still need a `multi_table_manager_t` because it takes care of
+                receiving table names, databases, and primary keys from other servers and
+                providing them to the `table_meta_client_t`. */
+                multi_table_manager.init(new multi_table_manager_t(
+                    &mailbox_manager,
+                    &multi_table_manager_directory,
+                    table_directory_read_manager.get_root_view()));
             }
 
-            // Reactor drivers
+            /* The `table_meta_client_t` sends messages to the `multi_table_manager_t`s
+            on the other servers in the cluster to create, drop, and reconfigure tables,
+            as well as request information about them. */
+            table_meta_client_t table_meta_client(
+                &mailbox_manager,
+                multi_table_manager.get(),
+                &multi_table_manager_directory,
+                table_directory_read_manager.get_root_view(),
+                &server_config_client);
 
-            // RDB
-            scoped_ptr_t<file_based_svs_by_namespace_t> rdb_svs_source;
-            scoped_ptr_t<reactor_driver_t> rdb_reactor_driver;
-            scoped_ptr_t<field_copier_t<namespaces_directory_metadata_t, cluster_directory_metadata_t> >
-                rdb_reactor_directory_copier;
+            /* The `real_reql_cluster_interface_t` is the interface that the ReQL logic
+            uses to create, destroy, and reconfigure databases and tables. */
+            real_reql_cluster_interface_t real_reql_cluster_interface(
+                &mailbox_manager,
+                semilattice_manager_cluster.get_root_view(),
+                &rdb_ctx,
+                &server_config_client,
+                &table_meta_client,
+                multi_table_manager.get(),
+                table_query_directory_read_manager.get_root_view());
 
+            /* `admin_artificial_tables_t` is a container for all of the tables in the
+            `rethinkdb` system database. */
+            admin_artificial_tables_t admin_tables(
+                &real_reql_cluster_interface,
+                semilattice_manager_cluster.get_root_view(),
+                semilattice_manager_auth.get_root_view(),
+                directory_read_manager.get_root_view(),
+                directory_read_manager.get_root_map_view(),
+                &table_meta_client,
+                &server_config_client,
+                real_reql_cluster_interface.get_namespace_repo(),
+                &mailbox_manager);
+
+            /* `jobs_manager_t` keeps track of all of the running jobs on this server.
+            When the user reads the `rethinkdb.jobs` table, it sends messages to the
+            `jobs_manager_t` on each server to get information about running jobs. */
+            jobs_manager_t jobs_manager(
+                &mailbox_manager,
+                server_id,
+                &rdb_ctx,
+                /* A `table_persistence_interface` is only instantiated when
+                `i_am_a_server` is true, and a `nullptr` otherwise. */
+                table_persistence_interface.get_or_null(),
+                multi_table_manager.get());
+
+            /* When the user reads the `rethinkdb.stats` table, it sends messages to the
+            `stat_manager_t` on each server to get the stats information. */
+            stat_manager_t stat_manager(&mailbox_manager, server_id);
+
+            /* `real_reql_cluster_interface_t` needs access to the admin tables so that
+            it can return rows from the `table_status` and `table_config` artificial
+            tables when the user calls the corresponding porcelains. But
+            `admin_artificial_tables_t` needs access to the
+            `real_reql_cluster_interface_t` because `table_config` needs to be able to
+            run distribution queries. The simplest solution is for them to have
+            references to each other. This is the place where we "close the loop". */
+            real_reql_cluster_interface.admin_tables = &admin_tables;
+
+            /* `rdb_context_t` needs access to the `reql_cluster_interface_t` so that it
+            can find tables and run meta-queries, but the `real_reql_cluster_interface_t`
+            needs access to the `rdb_context_t` so that it can construct instances of
+            `cluster_namespace_interface_t`. Again, we solve this problem by having a
+            circular reference. */
+            rdb_ctx.cluster_interface = admin_tables.get_reql_cluster_interface();
+
+            /* When the user reads the `rethinkdb.current_issues` table, it sends
+            messages to the `local_issue_server` on each server to get the issues
+            information. */
+            scoped_ptr_t<local_issue_server_t> local_issue_server;
             if (i_am_a_server) {
-                rdb_svs_source.init(new file_based_svs_by_namespace_t(
-                    io_backender, cache_balancer.get(), base_path));
-                rdb_reactor_driver.init(new reactor_driver_t(
-                        base_path,
-                        io_backender,
-                        &mailbox_manager,
-                        directory_read_manager.get_root_view()->incremental_subview(
-                            incremental_field_getter_t<namespaces_directory_metadata_t,
-                                                       cluster_directory_metadata_t>(&cluster_directory_metadata_t::rdb_namespaces)),
-                        cluster_metadata_file->get_rdb_branch_history_manager(),
-                        metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces,
-                                       semilattice_manager_cluster.get_root_view()),
-                        metadata_field(&cluster_semilattice_metadata_t::machines,
-                                       semilattice_manager_cluster.get_root_view()),
-                        directory_read_manager.get_root_view()->incremental_subview(
-                            incremental_field_getter_t<machine_id_t,
-                                                       cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
-                        rdb_svs_source.get(),
-                        &perfmon_repo,
-                        &rdb_ctx));
-                rdb_reactor_directory_copier.init(new field_copier_t<namespaces_directory_metadata_t, cluster_directory_metadata_t>(
-                    &cluster_directory_metadata_t::rdb_namespaces,
-                    rdb_reactor_driver->get_watchable(),
-                    &our_root_directory_variable));
+                local_issue_server.init(new local_issue_server_t(
+                    &mailbox_manager,
+                    log_writer.get_log_write_issue_tracker(),
+                    outdated_index_issue_tracker.get()));
+            }
+
+            proc_directory_metadata_t initial_proc_directory {
+                RETHINKDB_VERSION_STR,
+                current_microtime(),
+                getpid(),
+                str_gethostname(),
+                /* Note we'll update `reql_port` and `http_port` later, once final values
+                are available */
+                static_cast<uint16_t>(connectivity_cluster_run->get_port()),
+                static_cast<uint16_t>(serve_info.ports.reql_port),
+                serve_info.ports.http_admin_is_disabled
+                    ? boost::optional<uint16_t>()
+                    : boost::optional<uint16_t>(serve_info.ports.http_port),
+                connectivity_cluster_run->get_canonical_addresses(),
+                serve_info.argv };
+            cluster_directory_metadata_t initial_directory(
+                server_id,
+                connectivity_cluster.get_me(),
+                initial_proc_directory,
+                0,   /* we'll fill `actual_cache_size_bytes` in later */
+                multi_table_manager->get_multi_table_manager_bcard(),
+                jobs_manager.get_business_card(),
+                stat_manager.get_address(),
+                log_server.get_business_card(),
+                i_am_a_server
+                    ? local_issue_server->get_bcard()
+                    : local_issue_bcard_t(),
+                i_am_a_server
+                    ? server_config_server->get_config()->get()
+                    : server_config_versioned_t(),
+                i_am_a_server
+                    ? boost::make_optional(server_config_server->get_business_card())
+                    : boost::optional<server_config_business_card_t>(),
+                i_am_a_server ? SERVER_PEER : PROXY_PEER);
+
+            /* `our_root_directory_variable` is the value we'll send out over the network
+            in our directory to all the other servers. */
+            watchable_variable_t<cluster_directory_metadata_t>
+                our_root_directory_variable(initial_directory);
+
+            /* These will take care of updating the directory every time our cache size
+            or server config changes. They also fill in the initial values. */
+            scoped_ptr_t<watchable_field_copier_t<
+                    uint64_t, cluster_directory_metadata_t> >
+                actual_cache_size_directory_copier;
+            scoped_ptr_t<watchable_field_copier_t<
+                    server_config_versioned_t, cluster_directory_metadata_t> >
+                server_config_directory_copier;
+            if (i_am_a_server) {
+                actual_cache_size_directory_copier.init(
+                    new watchable_field_copier_t<
+                            uint64_t, cluster_directory_metadata_t>(
+                        &cluster_directory_metadata_t::actual_cache_size_bytes,
+                        server_config_server->get_actual_cache_size_bytes(),
+                        &our_root_directory_variable));
+                server_config_directory_copier.init(
+                    new watchable_field_copier_t<
+                            server_config_versioned_t, cluster_directory_metadata_t>(
+                        &cluster_directory_metadata_t::server_config,
+                        server_config_server->get_config(),
+                        &our_root_directory_variable));
+            }
+
+            /* These `directory_*_write_manager_t`s are the counterparts to the
+            `directory_*_read_manager_t`s earlier in this file. These are responsible for
+            sending directory information over the network; the `read_manager_t`s are
+            responsible for receiving the transmissions. */
+
+            directory_write_manager_t<cluster_directory_metadata_t> directory_write_manager(
+                &connectivity_cluster, 'D', our_root_directory_variable.get_watchable());
+
+            directory_map_write_manager_t<server_id_t, empty_value_t> server_connection_write_manager(
+                &connectivity_cluster, 'C', network_logger.get_local_connections_map());
+
+            scoped_ptr_t<directory_map_write_manager_t<
+                    namespace_id_t, table_manager_bcard_t> >
+                table_directory_write_manager;
+            scoped_ptr_t<directory_map_write_manager_t<
+                    std::pair<namespace_id_t, uuid_u>, table_query_bcard_t> >
+                table_query_directory_write_manager;
+            if (i_am_a_server) {
+                table_directory_write_manager.init(
+                    new directory_map_write_manager_t<
+                            namespace_id_t, table_manager_bcard_t>(
+                        &connectivity_cluster, 'T',
+                        multi_table_manager->get_table_manager_bcards()));
+                table_query_directory_write_manager.init(
+                    new directory_map_write_manager_t<
+                            std::pair<namespace_id_t, uuid_u>, table_query_bcard_t>(
+                        &connectivity_cluster, 'Q',
+                        multi_table_manager->get_table_query_bcards()));
             }
 
             {
+                /* The `rdb_query_server_t` listens for client requests and processes the
+                queries it receives. */
                 rdb_query_server_t rdb_query_server(
                     serve_info.ports.local_addresses,
                     serve_info.ports.reql_port,
                     &rdb_ctx);
-                logINF("Listening for client driver connections on port %d\n",
+                logNTC("Listening for client driver connections on port %d\n",
                        rdb_query_server.get_port());
+                /* If `serve_info.ports.reql_port` was zero then the OS assigned us a
+                port, so we need to update the directory. */
+                our_root_directory_variable.apply_atomic_op(
+                    [&](cluster_directory_metadata_t *md) -> bool {
+                        md->proc.reql_port = rdb_query_server.get_port();
+                        return (md->proc.reql_port != serve_info.ports.reql_port);
+                    });
 
-                scoped_ptr_t<metadata_persistence::semilattice_watching_persister_t<cluster_semilattice_metadata_t> >
+                /* `cluster_metadata_persister` and `auth_metadata_persister` are
+                responsible for syncing the two pieces of semilattice metadata to disk.
+                */
+                scoped_ptr_t<semilattice_persister_t<cluster_semilattice_metadata_t> >
                     cluster_metadata_persister;
-                scoped_ptr_t<metadata_persistence::semilattice_watching_persister_t<auth_semilattice_metadata_t> >
+                scoped_ptr_t<semilattice_persister_t<auth_semilattice_metadata_t> >
                     auth_metadata_persister;
-
                 if (i_am_a_server) {
-                    cluster_metadata_persister.init(new metadata_persistence::semilattice_watching_persister_t<cluster_semilattice_metadata_t>(
-                        cluster_metadata_file,
-                        semilattice_manager_cluster.get_root_view()));
-                    auth_metadata_persister.init(new metadata_persistence::semilattice_watching_persister_t<auth_semilattice_metadata_t>(
-                        auth_metadata_file,
-                        auth_manager_cluster.get_root_view()));
+                    cluster_metadata_persister.init(
+                        new semilattice_persister_t<cluster_semilattice_metadata_t>(
+                            metadata_file,
+                            mdkey_cluster_semilattices(),
+                            semilattice_manager_cluster.get_root_view()));
+                    auth_metadata_persister.init(
+                        new semilattice_persister_t<auth_semilattice_metadata_t>(
+                            metadata_file,
+                            mdkey_auth_semilattices(),
+                            semilattice_manager_auth.get_root_view()));
                 }
 
                 {
+                    /* The `administrative_http_server_manager_t` serves the web UI. */
                     scoped_ptr_t<administrative_http_server_manager_t> admin_server_ptr;
                     if (serve_info.ports.http_admin_is_disabled) {
-                        logINF("Administrative HTTP connections are disabled.\n");
+                        logNTC("Administrative HTTP connections are disabled.\n");
                     } else {
                         // TODO: Pardon me what, but is this how we fail here?
                         guarantee(serve_info.ports.http_port < 65536);
@@ -332,51 +517,72 @@ bool do_serve(io_backender_t *io_backender,
                             new administrative_http_server_manager_t(
                                 serve_info.ports.local_addresses,
                                 serve_info.ports.http_port,
-                                &mailbox_manager,
-                                &metadata_change_handler,
-                                &auth_change_handler,
-                                semilattice_manager_cluster.get_root_view(),
-                                directory_read_manager.get_root_view(),
-                                &rdb_namespace_repo,
-                                &admin_tracker,
+                                server_id,
                                 rdb_query_server.get_http_app(),
-                                machine_id,
                                 serve_info.web_assets));
-                        logINF("Listening for administrative HTTP connections on port %d\n",
+                        logNTC("Listening for administrative HTTP connections on port %d\n",
                                admin_server_ptr->get_port());
+                        /* If `serve_info.ports.http_port` was zero then the OS assigned
+                        us a port, so we need to update the directory. */
+                        our_root_directory_variable.apply_atomic_op(
+                            [&](cluster_directory_metadata_t *md) -> bool {
+                                *md->proc.http_admin_port = admin_server_ptr->get_port();
+                                return (*md->proc.http_admin_port !=
+                                    serve_info.ports.http_port);
+                            });
                     }
 
                     const std::string addresses_string = serve_info.ports.get_addresses_string();
-                    logINF("Listening on addresses: %s\n", addresses_string.c_str());
+                    logNTC("Listening on address%s: %s\n",
+                           serve_info.ports.local_addresses.size() == 1 ? "" : "es",
+                           addresses_string.c_str());
 
                     if (!serve_info.ports.is_bind_all()) {
-                        logINF("To fully expose RethinkDB on the network, bind to all addresses");
                         if(serve_info.config_file) {
-                            logINF("by adding `bind=all' to the config file (%s).",
-                                   (*serve_info.config_file).c_str());
+                            logNTC("To fully expose RethinkDB on the network, bind to "
+                                   "all addresses by adding `bind=all' to the config "
+                                   "file (%s).", (*serve_info.config_file).c_str());
                         } else {
-                            logINF("by running rethinkdb with the `--bind all` command line option.");
+                            logNTC("To fully expose RethinkDB on the network, bind to "
+                                   "all addresses by running rethinkdb with the `--bind "
+                                   "all` command line option.");
                         }
                     }
 
-                    logINF("Server ready\n");
+                    if (i_am_a_server) {
+                        logNTC("Server ready, \"%s\" %s\n",
+                               server_config_server->get_config()
+                                   ->get().config.name.c_str(),
+                               uuid_to_str(server_id).c_str());
+                    } else {
+                        logNTC("Proxy ready");
+                    }
 
+                    /* `checker` periodically phones home to RethinkDB HQ to check if
+                    there are later versions of RethinkDB available. */
+                    scoped_ptr_t<version_checker_t> checker;
+                    if (i_am_a_server
+                        && serve_info.do_version_checking == update_check_t::perform) {
+                        checker.init(new version_checker_t(
+                            &rdb_ctx, uname, &table_meta_client, &server_config_client));
+                    }
+
+                    /* This is the end of the startup process. `stop_cond` will be pulsed
+                    when it's time for the server to shut down. */
                     stop_cond->wait_lazily_unordered();
 
-
                     if (stop_cond->get_source_signo() == SIGINT) {
-                        logINF("Server got SIGINT from pid %d, uid %d; shutting down...\n",
+                        logNTC("Server got SIGINT from pid %d, uid %d; shutting down...\n",
                                stop_cond->get_source_pid(), stop_cond->get_source_uid());
                     } else if (stop_cond->get_source_signo() == SIGTERM) {
-                        logINF("Server got SIGTERM from pid %d, uid %d; shutting down...\n",
+                        logNTC("Server got SIGTERM from pid %d, uid %d; shutting down...\n",
                                stop_cond->get_source_pid(), stop_cond->get_source_uid());
 
                     } else {
-                        logINF("Server got signal %d from pid %d, uid %d; shutting down...\n",
+                        logNTC("Server got signal %d from pid %d, uid %d; shutting down...\n",
                                stop_cond->get_source_signo(),
                                stop_cond->get_source_pid(), stop_cond->get_source_uid());
                     }
-
                 }
 
                 cond_t non_interruptor;
@@ -385,13 +591,12 @@ bool do_serve(io_backender_t *io_backender,
                     auth_metadata_persister->stop_and_flush(&non_interruptor);
                 }
 
-                logINF("Shutting down client connections...\n");
+                logNTC("Shutting down client connections...\n");
             }
-            logINF("All client connections closed.\n");
-
-            logINF("Shutting down storage engine... (This may take a while if you had a lot of unflushed data in the writeback cache.)\n");
+            logNTC("All client connections closed.\n");
+            logNTC("Shutting down storage engine... (This may take a while if you had a lot of unflushed data in the writeback cache.)\n");
         }
-        logINF("Storage engine shut down.\n");
+        logNTC("Storage engine shut down.\n");
 
     } catch (const address_in_use_exc_t &ex) {
         logERR("%s.\n", ex.what());
@@ -406,17 +611,13 @@ bool do_serve(io_backender_t *io_backender,
 
 bool serve(io_backender_t *io_backender,
            const base_path_t &base_path,
-           metadata_persistence::cluster_persistent_file_t *cluster_persistent_file,
-           metadata_persistence::auth_persistent_file_t *auth_persistent_file,
-           uint64_t total_cache_size,
+           metadata_file_t *metadata_file,
            const serve_info_t &serve_info,
            os_signal_cond_t *stop_cond) {
     return do_serve(io_backender,
                     true,
                     base_path,
-                    cluster_persistent_file,
-                    auth_persistent_file,
-                    total_cache_size,
+                    metadata_file,
                     serve_info,
                     stop_cond);
 }
@@ -428,9 +629,7 @@ bool serve_proxy(const serve_info_t &serve_info,
     return do_serve(NULL,
                     false,
                     base_path_t(""),
-                    NULL,
-                    NULL,
-                    0,
+                    nullptr,
                     serve_info,
                     stop_cond);
 }

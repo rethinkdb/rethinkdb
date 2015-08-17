@@ -37,8 +37,8 @@ void debug_print_iterators(printf_buffer_t *buf, It beg, It end) {
     }
 }
 
-template <class K, class V>
-void debug_print(printf_buffer_t *buf, const std::map<K, V> &map) {
+template <class K, class V, class C>
+void debug_print(printf_buffer_t *buf, const std::map<K, V, C> &map) {
     buf->appendf("{");
     debug_print_iterators(buf, map.begin(), map.end());
     buf->appendf("}");

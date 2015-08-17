@@ -1,80 +1,75 @@
 #!/usr/bin/env python
-# Copyright 2010-2012 RethinkDB, all rights reserved.
+# Copyright 2010-2014 RethinkDB, all rights reserved.
+
+from __future__ import print_function
+
 import sys, os, time
+
+startTime = time.time()
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import http_admin, driver, workload_runner, scenario_common
-from vcoptparse import *
-import rdb_workload_common
+import driver, rdb_workload_common, scenario_common, utils, vcoptparse
 
-op = OptParser()
-op["fast-workload"] = BoolFlag("--fast-workload")
+op = vcoptparse.OptParser()
 scenario_common.prepare_option_parser_mode_flags(op)
-opts = op.parse(sys.argv)
+_, command_prefix, serve_options = scenario_common.parse_mode_flags(op.parse(sys.argv))
 
-with driver.Metacluster() as metacluster:
-    print "Starting cluster..."
-    cluster = driver.Cluster(metacluster)
-    executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
-    files1 = driver.Files(metacluster, db_path = "db-1", log_path = "create-output-1", executable_path = executable_path, command_prefix = command_prefix)
-    files2 = driver.Files(metacluster, db_path = "db-2", log_path = "create-output-2", executable_path = executable_path, command_prefix = command_prefix)
-    if opts["fast-workload"]:
-        print "Fast workload mode--starting processes in release mode."
-        process1 = driver.Process(cluster, files1, log_path = "serve-output-1-fast",
-            executable_path = driver.find_rethinkdb_executable())
-        process2 = driver.Process(cluster, files2, log_path = "serve-output-2-fast",
-            executable_path = driver.find_rethinkdb_executable())
-    else:
-        process1 = driver.Process(cluster, files1, log_path = "serve-output-1",
-            executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
-        process2 = driver.Process(cluster, files2, log_path = "serve-output-2",
-            executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
-    process1.wait_until_started_up()
-    process2.wait_until_started_up()
+numNodes = 2
 
-    print "Creating namespace..."
-    http = http_admin.ClusterAccess([("localhost", p.http_port) for p in [process1, process2]])
-    dc = http.add_datacenter()
-    http.move_server_to_datacenter(process1.files.machine_name, dc)
-    http.move_server_to_datacenter(process2.files.machine_name, dc)
-    db = http.add_database()
-    ns = http.add_table(primary = dc,
-                        affinities = {dc: 1}, ack_expectations = {dc: 2}, database=db.name)
-    http.do_query("POST", "/ajax/semilattice/rdb_namespaces/%s/primary_pinnings" % ns.uuid,
-        {"[\"\",null]": http.find_machine(process1.files.machine_name).uuid})
-    http.wait_until_blueprint_satisfied(ns)
+r = utils.import_python_driver()
+dbName, tableName = utils.get_test_db_table()
+
+print("Starting cluster of %d servers (%.2fs)" % (numNodes, time.time() - startTime))
+with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_ready=True, command_prefix=command_prefix, extra_options=serve_options) as cluster:
+    
+    server1 = cluster[0]
+    server2 = cluster[1]
+    conn = r.connect(host=server1.host, port=server1.driver_port)
+    
+    print("Creating db/table %s/%s (%.2fs)" % (dbName, tableName, time.time() - startTime))
+    
+    if dbName not in r.db_list().run(conn):
+        r.db_create(dbName).run(conn)
+    
+    if tableName in r.db(dbName).table_list().run(conn):
+        r.db(dbName).table_drop(tableName).run(conn)
+    r.db(dbName).table_create(tableName).run(conn)
+
+    print("Inserting some data (%.2fs)" % (time.time() - startTime))
+    rdb_workload_common.insert_many(host=server1.host, port=server1.driver_port, database=dbName, table=tableName, count=10000)
     cluster.check()
-    http.check_no_issues()
-    host, port = driver.get_table_host([process1, process2])
+    
+    print("Splitting into two shards (%.2fs)" % (time.time() - startTime))
+    shards = [
+        {'primary_replica':server1.name, 'replicas':[server1.name, server2.name]},
+        {'primary_replica':server2.name, 'replicas':[server2.name, server1.name]}
+    ]
+    res = r.db(dbName).table(tableName).config().update({'shards':shards}).run(conn)
+    assert res['errors'] == 0, 'Errors after splitting into two shards: %s' % repr(res)
+    r.db(dbName).wait().run(conn)
+    cluster.check()
 
-    rdb_workload_common.insert_many(host=host, port=port, database=db.name, table=ns.name, count=10000)
+    print("Changing the primary replica (%.2fs)" % (time.time() - startTime))
+    shards = [
+        {'primary_replica':server2.name, 'replicas':[server2.name, server1.name]},
+        {'primary_replica':server1.name, 'replicas':[server1.name, server2.name]}
+    ]
+    assert r.db(dbName).table(tableName).config().update({'shards':shards}).run(conn)['errors'] == 0
+    r.db(dbName).wait().run(conn)
+    cluster.check()
 
-    if opts["fast-workload"]:
-        print "Stopping release-mode processes."
-        process1.check_and_stop()
-        process2.check_and_stop()
-        print "Starting original-mode processes."
-        process1 = driver.Process(cluster, files1, log_path = "serve-output-1",
-            executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
-        process2 = driver.Process(cluster, files2, log_path = "serve-output-2",
-            executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
-        process1.wait_until_started_up()
-        process2.wait_until_started_up()
-        http = http_admin.ClusterAccess([("localhost", p.http_port) for p in [process1, process2]])
-        ns = http.find_namespace(ns.name)
-        print "OK, fast workload logic has done its job."
+    print("Changing it back (%.2fs)" % (time.time() - startTime))
+    shards = [
+        {'primary_replica':server2.name, 'replicas':[server2.name, server1.name]},
+        {'primary_replica':server1.name, 'replicas':[server1.name, server2.name]}
+    ]
+    assert r.db(dbName).table(tableName).config().update({'shards':shards}).run(conn)['errors'] == 0
 
-    print "Changing the primary..."
-    http.do_query("POST", "/ajax/semilattice/rdb_namespaces/%s/primary_pinnings" % ns.uuid,
-        {"[\"\",null]": http.find_machine(process2.files.machine_name).uuid})
+    print("Waiting for it to take effect (%.2fs)" % (time.time() - startTime))
+    r.db(dbName).wait().run(conn)
+    cluster.check()
 
-    time.sleep(1)
-
-    print "Changing it back..."
-    http.do_query("POST", "/ajax/semilattice/rdb_namespaces/%s/primary_pinnings" % ns.uuid,
-        {"[\"\",null]": http.find_machine(process1.files.machine_name).uuid})
-
-    print "Waiting for it to take effect..."
-    http.wait_until_blueprint_satisfied(ns)
-
-    http.check_no_issues()
-    cluster.check_and_stop()
+    assert len(list(r.db('rethinkdb').table('current_issues').run(conn))) == 0
+    
+    print("Cleaning up (%.2fs)" % (time.time() - startTime))
+print("Done. (%.2fs)" % (time.time() - startTime))

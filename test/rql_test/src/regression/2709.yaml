@@ -1,0 +1,21 @@
+desc: 2709 -- Guarantee failed with [max_els >= min_els]
+table_variable_name: tbl
+tests:
+  - py: tbl.insert([{'result':i} for i in range(1,1000)]).pluck('first_error', 'inserted')
+    runopts:
+      min_batch_rows: 10
+      max_batch_rows: 13
+    ot: ({'inserted':999})
+
+  - py: tbl.map(lambda thing:'key').count()
+    runopts:
+      min_batch_rows: 10
+      max_batch_rows: 13
+    ot: (999)
+
+  - py: tbl.map(lambda thing:'key').count()
+    runopts:
+      min_batch_rows: 10
+      max_batch_rows: 13
+    ot: (999)
+

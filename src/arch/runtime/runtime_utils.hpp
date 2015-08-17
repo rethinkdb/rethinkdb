@@ -52,7 +52,8 @@ int get_cpu_count();
 /* If `ASSERT_NO_CORO_WAITING;` appears at the top of a block, then it is illegal
 to call `coro_t::wait()`, `coro_t::spawn_now_dangerously()`, or `coro_t::notify_now()`
 within that block and any attempt to do so will be a fatal error. */
-#define ASSERT_NO_CORO_WAITING assert_no_coro_waiting_t assert_no_coro_waiting_var(__FILE__, __LINE__)
+#define ASSERT_NO_CORO_WAITING \
+    assert_no_coro_waiting_t assert_no_coro_waiting_var(__FILE__, __LINE__)
 
 /* If `ASSERT_FINITE_CORO_WAITING;` appears at the top of a block, then code
 within that block may call `coro_t::spawn_now_dangerously()` or `coro_t::notify_now()` but

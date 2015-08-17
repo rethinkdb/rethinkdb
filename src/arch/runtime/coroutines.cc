@@ -16,6 +16,7 @@
 #include "arch/runtime/runtime.hpp"
 #include "arch/runtime/thread_pool.hpp"
 #include "config/args.hpp"
+#include "debug.hpp"
 #include "do_on_thread.hpp"
 #include "perfmon/perfmon.hpp"
 #include "rethinkdb_backtrace.hpp"
@@ -47,6 +48,9 @@ struct coro_globals_t {
 
     /* An integer counting the number of coros on this thread */
     int coro_count;
+    /* Have we printed a warning about too many coroutines? We only want to
+    print it once. */
+    bool printed_high_coro_count_warning;
 
     /* These variables are used in the implementation of
     `ASSERT_NO_CORO_WAITING` and `ASSERT_FINITE_CORO_WAITING`. They record the
@@ -70,6 +74,7 @@ struct coro_globals_t {
         , prev_coro(NULL)
 #ifndef NDEBUG
         , coro_count(0)
+        , printed_high_coro_count_warning(false)
         , assert_no_coro_waiting_counter(0)
         , assert_finite_coro_waiting_counter(0)
 #endif
@@ -142,9 +147,12 @@ coro_t::coro_t() :
 
 #ifndef NDEBUG
     TLS_get_cglobals()->coro_count++;
-    rassert(TLS_get_cglobals()->coro_count < MAX_COROS_PER_THREAD, "Too many "
-            "coroutines allocated on this thread. This is problem due to a "
-            "misuse of the coroutines\n");
+    if (TLS_get_cglobals()->coro_count > COROS_PER_THREAD_WARN_LEVEL
+        && !TLS_get_cglobals()->printed_high_coro_count_warning) {
+        TLS_get_cglobals()->printed_high_coro_count_warning = true;
+        debugf("A lot of coroutines are allocated on this thread. This could "
+               "indicate a misuse of coroutines.\n");
+    }
 #endif
 }
 
@@ -361,12 +369,22 @@ coro_stack_t* coro_t::get_stack() {
     return &stack;
 }
 
-/* Called by SIGSEGV handler to identify segfaults that come from overflowing a coroutine's
-stack. Could also in theory be used by a function to check if it's about to overflow
-the stack. */
+/* Called by SIGSEGV/SIGBUS handler to identify segfaults that come from overflowing
+a coroutine's stack. Could also in theory be used by a function to check if it's
+about to overflow the stack. */
 
 bool is_coroutine_stack_overflow(void *addr) {
     return TLS_get_cglobals()->current_coro && TLS_get_cglobals()->current_coro->stack.address_is_stack_overflow(addr);
+}
+
+bool has_n_bytes_free_stack_space(size_t n) {
+    // We assume that `tester` is going to be allocated on the stack.
+    // Theoretically this is not guaranteed by the C++ standard, but in practice
+    // it should work.
+    char tester;
+    const coro_t *current_coro = TLS_get_cglobals()->current_coro;
+    guarantee(current_coro != nullptr);
+    return current_coro->stack.free_space_below(&tester) >= n;
 }
 
 bool coroutines_have_been_initialized() {

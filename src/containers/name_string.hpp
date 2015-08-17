@@ -4,8 +4,7 @@
 
 #include <string>
 
-#include "containers/wire_string.hpp"
-#include "http/json/json_adapter.hpp"
+#include "rdb_protocol/datum_string.hpp"
 #include "rpc/serialize_macros.hpp"
 
 // The kind of string that can only contain either the empty string or acceptable names for
@@ -18,7 +17,10 @@ public:
 
     // Succeeds on valid non-empty strings.
     MUST_USE bool assign_value(const std::string &s);
-    MUST_USE bool assign_value(const wire_string_t &s);
+    MUST_USE bool assign_value(const datum_string_t &s);
+
+    // Meant for use with hard-coded names.
+    static name_string_t guarantee_valid(const char *name);
 
     const std::string& str() const { return str_; }
 
@@ -26,7 +28,7 @@ public:
     bool empty() const { return str_.empty(); }
     const char *c_str() const { return str_.c_str(); }
 
-    RDB_DECLARE_ME_SERIALIZABLE;
+    RDB_DECLARE_ME_SERIALIZABLE(name_string_t);
 
     static const char *const valid_char_msg;
 
@@ -46,13 +48,6 @@ inline bool operator<(const name_string_t& x, const name_string_t& y) {
     return x.str() < y.str();
 }
 
-// ctx-less json adapter concept for name_string_t
-json_adapter_if_t::json_adapter_map_t get_json_subfields(name_string_t *target);
-cJSON *render_as_json(name_string_t *target);
-void apply_json_to(cJSON *change, name_string_t *target);
-
 void debug_print(printf_buffer_t *buf, const name_string_t& s);
-
-
 
 #endif  // CONTAINERS_NAME_STRING_HPP_

@@ -10,11 +10,10 @@
 
 #include "containers/counted.hpp"
 #include "containers/archive/archive.hpp"
+#include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/sym.hpp"
 
 namespace ql {
-
-class datum_t;
 
 class var_visibility_t {
 public:
@@ -57,12 +56,12 @@ public:
 
     var_scope_t with_func_arg_list(
         const std::vector<sym_t> &arg_names,
-        const std::vector<counted_t<const datum_t> > &arg_values) const;
+        const std::vector<datum_t> &arg_values) const;
 
     var_scope_t filtered_by_captures(const var_captures_t &captures) const;
 
-    counted_t<const datum_t> lookup_var(sym_t varname) const;
-    counted_t<const datum_t> lookup_implicit() const;
+    datum_t lookup_var(sym_t varname) const;
+    datum_t lookup_implicit() const;
 
     // Dumps a complete "human readable" description of the var_scope_t.  Is used by
     // info_term_t via reql_func_t::print_source().
@@ -70,20 +69,20 @@ public:
 
     var_visibility_t compute_visibility() const;
 
-    void rdb_serialize(write_message_t *wm) const;
-    archive_result_t rdb_deserialize(read_stream_t *s);
+    template <cluster_version_t W>
+    friend void serialize(write_message_t *wm, const var_scope_t &);
+    template <cluster_version_t W>
+    friend archive_result_t deserialize(read_stream_t *s, var_scope_t *);
 
 private:
-    std::map<sym_t, counted_t<const datum_t> > vars;
+    std::map<sym_t, datum_t> vars;
 
     uint32_t implicit_depth;
 
     // If non-empty, implicit_depth == 1.  Might be empty (when implicit_depth == 1),
     // if the value got filtered out (where the body of a func doesn't use it).
-    counted_t<const datum_t> maybe_implicit;
+    datum_t maybe_implicit;
 };
-
-
 
 }  // namespace ql
 

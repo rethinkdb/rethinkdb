@@ -66,45 +66,45 @@ const boost::local_time::local_date_time epoch(raw_epoch, utc);
 // parsing errors, and we don't use streams anywhere else.)
 #define HANDLE_BOOST_ERRORS(TARGET)                                     \
       catch (const boost::gregorian::bad_year &e) {                     \
-        rfail_target(TARGET, base_exc_t::GENERIC,                       \
+        rfail_target(TARGET, base_exc_t::LOGIC,                       \
                      "Error in time logic: %s.", e.what());             \
     } catch (const boost::gregorian::bad_month &e) {                    \
-        rfail_target(TARGET, base_exc_t::GENERIC,                       \
+        rfail_target(TARGET, base_exc_t::LOGIC,                       \
                      "Error in time logic: %s.", e.what());             \
     } catch (const boost::gregorian::bad_day_of_month &e) {             \
-        rfail_target(TARGET, base_exc_t::GENERIC,                       \
+        rfail_target(TARGET, base_exc_t::LOGIC,                       \
                      "Error in time logic: %s.", e.what());             \
     } catch (const boost::gregorian::bad_weekday &e) {                  \
-        rfail_target(TARGET, base_exc_t::GENERIC,                       \
+        rfail_target(TARGET, base_exc_t::LOGIC,                       \
                      "Error in time logic: %s.", e.what());             \
     } catch (const boost::local_time::bad_offset &e) {                  \
-        rfail_target(TARGET, base_exc_t::GENERIC,                       \
+        rfail_target(TARGET, base_exc_t::LOGIC,                       \
                      "Error in time logic: %s.", e.what());             \
     } catch (const boost::local_time::bad_adjustment &e) {              \
-        rfail_target(TARGET, base_exc_t::GENERIC,                       \
+        rfail_target(TARGET, base_exc_t::LOGIC,                       \
                      "Error in time logic: %s.", e.what());             \
     } catch (const boost::local_time::time_label_invalid &e) {          \
-        rfail_target(TARGET, base_exc_t::GENERIC,                       \
+        rfail_target(TARGET, base_exc_t::LOGIC,                       \
                      "Error in time logic: %s.", e.what());             \
     } catch (const boost::local_time::dst_not_valid &e) {               \
-        rfail_target(TARGET, base_exc_t::GENERIC,                       \
+        rfail_target(TARGET, base_exc_t::LOGIC,                       \
                      "Error in time logic: %s.", e.what());             \
     } catch (const boost::local_time::ambiguous_result &e) {            \
-        rfail_target(TARGET, base_exc_t::GENERIC,                       \
+        rfail_target(TARGET, base_exc_t::LOGIC,                       \
                      "Error in time logic: %s.", e.what());             \
     } catch (const boost::local_time::data_not_accessible &e) {         \
-        rfail_target(TARGET, base_exc_t::GENERIC,                       \
+        rfail_target(TARGET, base_exc_t::LOGIC,                       \
                      "Error in time logic: %s.", e.what());             \
     } catch (const boost::local_time::bad_field_count &e) {             \
-        rfail_target(TARGET, base_exc_t::GENERIC,                       \
+        rfail_target(TARGET, base_exc_t::LOGIC,                       \
                      "Error in time logic: %s.", e.what());             \
     } catch (const std::ios_base::failure &e) {                         \
-        rfail_target(TARGET, base_exc_t::GENERIC,                       \
+        rfail_target(TARGET, base_exc_t::LOGIC,                       \
                      "Error in time logic: %s.", e.what());             \
     }                                                                   \
 
 // Produces a datum_exc_t instead
-const datum_t dummy_datum;
+static const datum_t dummy_datum((datum_t::construct_null_t()));
 #define HANDLE_BOOST_ERRORS_NO_TARGET HANDLE_BOOST_ERRORS(&dummy_datum)
 
 enum date_format_t { UNSET, MONTH_DAY, WEEKCOUNT, DAYCOUNT };
@@ -117,10 +117,10 @@ namespace sanitize {
 void mandatory_digits(const std::string &s, size_t n, size_t *p_at, std::string *p_out) {
     for (size_t i = 0; i < n; ++i) {
         size_t at = (*p_at)++;
-        rcheck_datum(at < s.size(), base_exc_t::GENERIC,
+        rcheck_datum(at < s.size(), base_exc_t::LOGIC,
                      strprintf("Truncated date string `%s`.", s.c_str()));
         char c = s[at];
-        rcheck_datum('0' <= c && c <= '9', base_exc_t::GENERIC,
+        rcheck_datum('0' <= c && c <= '9', base_exc_t::LOGIC,
                      strprintf(
                          "Invalid date string `%s` (got `%c` but expected a digit).",
                          s.c_str(), c));
@@ -181,11 +181,11 @@ std::string date(const std::string &s, date_format_t *df_out) {
             return out + "-01";
         }
         bool second_hyphen = optional_char(s, '-', &at, &out);
-        rcheck_datum(!(first_hyphen ^ second_hyphen), base_exc_t::GENERIC,
+        rcheck_datum(!(first_hyphen ^ second_hyphen), base_exc_t::LOGIC,
                      strprintf("Date string `%s` must have 0 or 2 hyphens.", s.c_str()));
         mandatory_digits(s, 2, &at, &out);
     }
-    rcheck_datum(at == s.size(), base_exc_t::GENERIC,
+    rcheck_datum(at == s.size(), base_exc_t::LOGIC,
                  strprintf("Garbage characters `%s` at end of date string `%s`.",
                            s.substr(at).c_str(), s.c_str()));
     return out;
@@ -205,7 +205,7 @@ std::string time(const std::string &s) {
         return out + ":00.000";
     }
     bool second_colon = optional_char(s, ':', &at, &out);
-    rcheck_datum(!(first_colon ^ second_colon), base_exc_t::GENERIC,
+    rcheck_datum(!(first_colon ^ second_colon), base_exc_t::LOGIC,
                  strprintf("Time string `%s` must have 0 or 2 colons.", s.c_str()));
     mandatory_digits(s, 2, &at, &out);
     if (optional_char(s, '.', &at, &out)) {
@@ -223,7 +223,7 @@ std::string time(const std::string &s) {
     } else {
         out += "000";
     }
-    rcheck_datum(at == s.size(), base_exc_t::GENERIC,
+    rcheck_datum(at == s.size(), base_exc_t::LOGIC,
                  strprintf("Garbage characters `%s` at end of time string `%s`.",
                            s.substr(at).c_str(), s.c_str()));
     return out;
@@ -239,7 +239,7 @@ bool minutes_valid(char l, char r) {
 
 // Sanitize a timezone.
 std::string tz(const std::string &s) {
-    rcheck_datum(s != "-00" && s != "-00:00", base_exc_t::GENERIC,
+    rcheck_datum(s != "-00" && s != "-00:00", base_exc_t::LOGIC,
                  strprintf("`%s` is not a valid time offset.", s.c_str()));
     if (s == "Z") {
         return "+00:00";
@@ -248,7 +248,7 @@ std::string tz(const std::string &s) {
     size_t at = 0;
     bool sign_prefix = optional_char(s, '-', &at, &out, EXCLUDE)
         || optional_char(s, '+', &at, &out, EXCLUDE);
-    rcheck_datum(sign_prefix, base_exc_t::GENERIC,
+    rcheck_datum(sign_prefix, base_exc_t::LOGIC,
                  strprintf("Timezone `%s` does not start with `-` or `+`.", s.c_str()));
     mandatory_digits(s, 2, &at, &out);
     if (at == s.size()) {
@@ -256,14 +256,14 @@ std::string tz(const std::string &s) {
     }
     optional_char(s, ':', &at, &out);
     mandatory_digits(s, 2, &at, &out);
-    rcheck_datum(at == s.size(), base_exc_t::GENERIC,
+    rcheck_datum(at == s.size(), base_exc_t::LOGIC,
                  strprintf("Garbage characters `%s` at end of timezone string `%s`.",
                            s.substr(at).c_str(), s.c_str()));
 
     r_sanity_check(out.size() == 6);
-    rcheck_datum(hours_valid(out[1], out[2]), base_exc_t::GENERIC,
+    rcheck_datum(hours_valid(out[1], out[2]), base_exc_t::LOGIC,
                  strprintf("Hours out of range in `%s`.", s.c_str()));
-    rcheck_datum(minutes_valid(out[4], out[5]), base_exc_t::GENERIC,
+    rcheck_datum(minutes_valid(out[4], out[5]), base_exc_t::LOGIC,
                  strprintf("Minutes out of range in `%s`.", s.c_str()));
     return out;
 }
@@ -314,7 +314,9 @@ std::string sanitize_boost_tz(std::string tz, const rcheckable_t *target) {
     if (colpos != std::string::npos && (colpos + 1) < tz.size() && tz[colpos+1] == '-') {
         tz = tz.substr(0, colpos + 1) + tz.substr(colpos + 2, std::string::npos);
     }
-    rcheck_target(target,  base_exc_t::GENERIC, tz != "UTC+00" && tz != "",
+    rcheck_target(target,
+                  tz != "UTC+00" && tz != "",
+                  base_exc_t::LOGIC,
                   "ISO 8601 string has no time zone, and no default time "
                   "zone was provided.");
 
@@ -324,11 +326,11 @@ std::string sanitize_boost_tz(std::string tz, const rcheckable_t *target) {
     } else if (tz_valid(tz, &tz_out)) {
         return tz_out;
     }
-    rfail_target(target, base_exc_t::GENERIC,
+    rfail_target(target, base_exc_t::LOGIC,
                  "Invalid ISO 8601 timezone: `%s`.", tz.c_str());
 }
 
-counted_t<const datum_t> boost_to_time(time_t t, const rcheckable_t *target) {
+datum_t boost_to_time(time_t t, const rcheckable_t *target) {
     dur_t dur(t - epoch);
     double seconds = dur.total_microseconds() / 1000000.0;
     std::string tz = t.zone_as_posix_string();
@@ -337,7 +339,7 @@ counted_t<const datum_t> boost_to_time(time_t t, const rcheckable_t *target) {
     return make_time(seconds, tz);
 }
 
-counted_t<const datum_t> iso8601_to_time(
+datum_t iso8601_to_time(
     const std::string &s, const std::string &default_tz, const rcheckable_t *target) {
     try {
         date_format_t df = UNSET;
@@ -345,7 +347,7 @@ counted_t<const datum_t> iso8601_to_time(
         try {
             sanitized = sanitize::iso8601(s, default_tz, &df);
         } catch (const datum_exc_t &e) {
-            rfail_target(target, base_exc_t::GENERIC, "%s", e.what());
+            rfail_target(target, base_exc_t::LOGIC, "%s", e.what());
         }
 
         std::istringstream ss(sanitized);
@@ -354,7 +356,7 @@ counted_t<const datum_t> iso8601_to_time(
         case UNSET: r_sanity_check(false); break;
         case MONTH_DAY: ss.imbue(month_day_format); break;
         case WEEKCOUNT: {
-            rfail_target(target, base_exc_t::GENERIC, "%s",
+            rfail_target(target, base_exc_t::LOGIC, "%s",
                          "Due to limitations in the boost time library we use for "
                          "parsing, we cannot support ISO week dates right now.  "
                          "Sorry about that!  Please use years, calendar dates, or "
@@ -365,10 +367,12 @@ counted_t<const datum_t> iso8601_to_time(
         }
         time_t t(boost::date_time::not_a_date_time);
         ss >> t;
-        rcheck_target(
-            target, base_exc_t::GENERIC, !t.is_special(),
-            strprintf("Failed to parse `%s` (`%s`) as ISO 8601 time.",
-                      s.c_str(), sanitized.c_str()));
+        rcheck_target(target,
+                      !t.is_special(),
+                      base_exc_t::LOGIC,
+                      strprintf("Failed to parse `%s` (`%s`) as ISO 8601 time.",
+                                s.c_str(),
+                                sanitized.c_str()));
         return boost_to_time(t, target);
     } HANDLE_BOOST_ERRORS(target);
 }
@@ -393,14 +397,15 @@ void add_seconds_to_ptime(ptime_t *t, double raw_sec) {
     *t += boost::posix_time::microseconds(microsec);
 }
 
-time_t time_to_boost(counted_t<const datum_t> d) {
-    double raw_sec = d->get(epoch_time_key)->as_num();
+time_t time_to_boost(datum_t d) {
+    double raw_sec = d.get_field(epoch_time_key).as_num();
     ptime_t t(date_t(1970, 1, 1));
     add_seconds_to_ptime(&t, raw_sec);
 
-    if (counted_t<const datum_t> tz = d->get(timezone_key, NOTHROW)) {
+    const datum_t tz = d.get_field(timezone_key, NOTHROW);
+    if (tz.has()) {
         boost::local_time::time_zone_ptr zone(
-            new boost::local_time::posix_time_zone(sanitize::tz(tz->as_str().to_std())));
+            new boost::local_time::posix_time_zone(sanitize::tz(tz.as_str().to_std())));
         return time_t(t, zone);
     } else {
         return time_t(t, utc);
@@ -411,18 +416,19 @@ const std::locale tz_format =
     std::locale(std::locale::classic(), new output_timefmt_t("%Y-%m-%dT%H:%M:%S%F%Q"));
 const std::locale no_tz_format =
     std::locale(std::locale::classic(), new output_timefmt_t("%Y-%m-%dT%H:%M:%S%F"));
-std::string time_to_iso8601(counted_t<const datum_t> d) {
+std::string time_to_iso8601(datum_t d) {
     try {
         time_t t = time_to_boost(d);
         int year = t.date().year();
         // Boost also accepts year 10000.  I don't think any real users will hit
         // that edge case, but better safe than sorry.
-        rcheck_datum(year >= 0 && year <= 9999, base_exc_t::GENERIC,
+        rcheck_datum(year >= 0 && year <= 9999, base_exc_t::LOGIC,
                      strprintf("Year `%d` out of valid ISO 8601 range [0, 9999].",
                                year));
         std::ostringstream ss;
         ss.exceptions(std::ios_base::failbit);
-        if (counted_t<const datum_t> tz = d->get(timezone_key, NOTHROW)) {
+        const datum_t tz = d.get_field(timezone_key, NOTHROW);
+        if (tz.has()) {
             ss.imbue(tz_format);
         } else {
             ss.imbue(no_tz_format);
@@ -435,11 +441,11 @@ std::string time_to_iso8601(counted_t<const datum_t> d) {
     } HANDLE_BOOST_ERRORS_NO_TARGET;
 }
 
-double time_to_epoch_time(counted_t<const datum_t> d) {
-    return d->get(epoch_time_key)->as_num();
+double time_to_epoch_time(datum_t d) {
+    return d.get_field(epoch_time_key).as_num();
 }
 
-counted_t<const datum_t> time_now() {
+datum_t time_now() {
     try {
         ptime_t t = boost::posix_time::microsec_clock::universal_time();
         return make_time((t - raw_epoch).total_microseconds() / 1000000.0, "+00:00");
@@ -449,7 +455,10 @@ counted_t<const datum_t> time_now() {
 int time_cmp(const datum_t &x, const datum_t &y) {
     r_sanity_check(x.is_ptype(time_string));
     r_sanity_check(y.is_ptype(time_string));
-    return x.get(epoch_time_key)->cmp(*y.get(epoch_time_key));
+    // We know that these are both nums, so the reql_version doesn't actually affect
+    // anything (between v1_13 and v2_1_is_latest).  But it's safer not to have to
+    // prove that, so we take it and pass it anyway.
+    return x.get_field(epoch_time_key).cmp(y.get_field(epoch_time_key));
 }
 
 double sanitize_epoch_sec(double d) {
@@ -462,53 +471,50 @@ void sanitize_time(datum_t *time) {
     std::string msg;
     bool has_epoch_time = false;
     bool has_timezone = false;
-    for (auto it = time->as_object().begin(); it != time->as_object().end(); ++it) {
-        if (it->first == epoch_time_key) {
-            if (it->second->get_type() == datum_t::R_NUM) {
+    for (size_t i = 0; i < time->obj_size(); ++i) {
+        auto pair = time->get_pair(i);
+        if (pair.first == epoch_time_key) {
+            if (pair.second.get_type() == datum_t::R_NUM) {
                 has_epoch_time = true;
-                double d = it->second->as_num();
+                double d = pair.second.as_num();
                 double d2 = sanitize_epoch_sec(d);
                 if (d2 != d) {
-                    bool b = time->add(epoch_time_key,
-                                       make_counted<const datum_t>(d2),
-                                       CLOBBER);
-                    r_sanity_check(b);
+                    time->replace_field(datum_string_t(epoch_time_key),
+                                        datum_t(d2));
                 }
             } else {
                 msg = strprintf("field `%s` must be a number (got `%s` of type %s)",
-                                epoch_time_key, it->second->trunc_print().c_str(),
-                                it->second->get_type_name().c_str());
+                                epoch_time_key, pair.second.trunc_print().c_str(),
+                                pair.second.get_type_name().c_str());
                 break;
             }
-        } else if (it->first == timezone_key) {
-            if (it->second->get_type() == datum_t::R_STR) {
-                const std::string raw_tz = it->second->as_str().to_std();
+        } else if (pair.first == timezone_key) {
+            if (pair.second.get_type() == datum_t::R_STR) {
+                const std::string raw_tz = pair.second.as_str().to_std();
                 std::string tz;
                 if (tz_valid(raw_tz, &tz)) {
                     has_timezone = true;
                     tz = (tz == "Z") ? "+00:00" : tz;
                     if (tz != raw_tz) {
-                        bool b = time->add(timezone_key,
-                                           make_counted<const datum_t>(std::move(tz)),
-                                           CLOBBER);
-                        r_sanity_check(b);
+                        time->replace_field(datum_string_t(timezone_key),
+                                            datum_t(datum_string_t(tz)));
                     }
                     continue;
                 } else {
                     msg = strprintf("invalid timezone string `%s`",
-                                    it->second->trunc_print().c_str());
+                                    pair.second.trunc_print().c_str());
                     break;
                 }
             } else {
                 msg = strprintf("field `%s` must be a string (got `%s` of type %s)",
-                                timezone_key, it->second->trunc_print().c_str(),
-                                it->second->get_type_name().c_str());
+                                timezone_key, pair.second.trunc_print().c_str(),
+                                pair.second.get_type_name().c_str());
                 break;
             }
-        } else if (it->first == datum_t::reql_type_string) {
+        } else if (pair.first == datum_t::reql_type_string) {
             continue;
         } else {
-            msg = strprintf("unrecognized field `%s`", it->first.c_str());
+            msg = strprintf("unrecognized field `%s`", pair.first.to_std().c_str());
             break;
         }
     }
@@ -520,47 +526,44 @@ void sanitize_time(datum_t *time) {
     }
 
     if (msg != "") {
-        rfail_target(time, base_exc_t::GENERIC,
+        rfail_target(time, base_exc_t::LOGIC,
                      "Invalid time object constructed (%s):\n%s",
                      msg.c_str(), time->trunc_print().c_str());
     }
 }
 
-counted_t<const datum_t> time_tz(counted_t<const datum_t> time) {
-    r_sanity_check(time->is_ptype(time_string));
-    if (counted_t<const datum_t> tz = time->get(timezone_key, NOTHROW)) {
+datum_t time_tz(datum_t time) {
+    r_sanity_check(time.is_ptype(time_string));
+    const datum_t tz = time.get_field(timezone_key, NOTHROW);
+    if (tz.has()) {
         return tz;
     } else {
-        return make_counted<const datum_t>(datum_t::R_NULL);
+        return datum_t::null();
     }
 }
 
-counted_t<const datum_t> time_in_tz(counted_t<const datum_t> t,
-                                    counted_t<const datum_t> tz) {
-    r_sanity_check(t->is_ptype(time_string));
-    datum_ptr_t t2(t->as_object());
-    std::string raw_new_tzs = tz->as_str().to_std();
+datum_t time_in_tz(datum_t t, datum_t tz) {
+    r_sanity_check(t.is_ptype(time_string));
+    datum_object_builder_t t2(t);
+    std::string raw_new_tzs = tz.as_str().to_std();
     std::string new_tzs = sanitize::tz(raw_new_tzs);
     if (raw_new_tzs == new_tzs) {
-        UNUSED bool b = t2.add(timezone_key, tz, CLOBBER);
+        t2.overwrite(timezone_key, tz);
     } else {
-        UNUSED bool b =
-            t2.add(timezone_key, make_counted<const datum_t>(std::move(new_tzs)), CLOBBER);
+        t2.overwrite(timezone_key, datum_t(datum_string_t(new_tzs)));
     }
-    return t2.to_counted();
+    return std::move(t2).to_datum();
 }
 
-counted_t<const datum_t> make_time(double epoch_time, std::string tz) {
-    datum_ptr_t res(datum_t::R_OBJECT);
-    bool clobber = res.add(datum_t::reql_type_string,
-                           make_counted<const datum_t>(time_string));
-    clobber |= res.add(epoch_time_key, make_counted<const datum_t>(epoch_time));
-    clobber |= res.add(timezone_key, make_counted<const datum_t>(std::move(tz)));
-    r_sanity_check(!clobber);
-    return res.to_counted();
+datum_t make_time(double epoch_time, std::string tz) {
+    std::map<datum_string_t, datum_t> map
+        = { { datum_string_t(datum_t::reql_type_string), datum_t(time_string) },
+            { datum_string_t(epoch_time_key), datum_t(epoch_time) },
+            { datum_string_t(timezone_key), datum_t(datum_string_t(tz)) } };
+    return datum_t(std::move(map));
 }
 
-counted_t<const datum_t> make_time(
+datum_t make_time(
     int year, int month, int day, int hours, int minutes, double seconds,
     std::string tz, const rcheckable_t *target) {
     try {
@@ -569,7 +572,7 @@ counted_t<const datum_t> make_time(
         try {
             tz = sanitize::tz(tz);
         } catch (const datum_exc_t &e) {
-            rfail_target(target, base_exc_t::GENERIC, "%s", e.what());
+            rfail_target(target, base_exc_t::LOGIC, "%s", e.what());
         }
         boost::local_time::time_zone_ptr zone(
             new boost::local_time::posix_time_zone(tz));
@@ -577,50 +580,44 @@ counted_t<const datum_t> make_time(
     } HANDLE_BOOST_ERRORS(target);
 }
 
-counted_t<const datum_t> time_add(counted_t<const datum_t> x,
-                                  counted_t<const datum_t> y) {
-    counted_t<const datum_t> time, duration;
-    if (x->is_ptype(time_string)) {
+datum_t time_add(datum_t x, datum_t y) {
+    datum_t time, duration;
+    if (x.is_ptype(time_string)) {
         time = x;
         duration = y;
     } else {
-        r_sanity_check(y->is_ptype(time_string));
+        r_sanity_check(y.is_ptype(time_string));
         time = y;
         duration = x;
     }
 
-    datum_ptr_t res(time->as_object());
-    bool clobbered = res.add(
+    datum_object_builder_t res(time);
+    res.overwrite(
         epoch_time_key,
-        make_counted<const datum_t>(res->get(epoch_time_key)->as_num() +
-                                    duration->as_num()),
-        CLOBBER);
-    r_sanity_check(clobbered);
+        datum_t(time.get_field(epoch_time_key).as_num() +
+                               duration.as_num()));
 
-    return res.to_counted();
+    return std::move(res).to_datum();
 }
 
-counted_t<const datum_t> time_sub(counted_t<const datum_t> time,
-                                  counted_t<const datum_t> time_or_duration) {
-    r_sanity_check(time->is_ptype(time_string));
+datum_t time_sub(datum_t time, datum_t time_or_duration) {
+    r_sanity_check(time.is_ptype(time_string));
 
-    if (time_or_duration->is_ptype(time_string)) {
-        return make_counted<const datum_t>(sanitize_epoch_sec(
-            time->get(epoch_time_key)->as_num()
-            - time_or_duration->get(epoch_time_key)->as_num()));
+    if (time_or_duration.is_ptype(time_string)) {
+        return datum_t(sanitize_epoch_sec(
+            time.get_field(epoch_time_key).as_num()
+            - time_or_duration.get_field(epoch_time_key).as_num()));
     } else {
-        datum_ptr_t res(time->as_object());
-        bool clobbered = res.add(
+        datum_object_builder_t res(time);
+        res.overwrite(
             epoch_time_key,
-            make_counted<const datum_t>(res->get(epoch_time_key)->as_num() -
-                                        time_or_duration->as_num()),
-            CLOBBER);
-        r_sanity_check(clobbered);
-        return res.to_counted();
+            datum_t(time.get_field(epoch_time_key).as_num() -
+                    time_or_duration.as_num()));
+        return std::move(res).to_datum();
     }
 }
 
-double time_portion(counted_t<const datum_t> time, time_component_t c) {
+double time_portion(datum_t time, time_component_t c) {
     try {
         ptime_t ptime = time_to_boost(time).local_time();
         switch (c) {
@@ -636,7 +633,7 @@ double time_portion(counted_t<const datum_t> time, time_component_t c) {
         case HOURS: return ptime.time_of_day().hours();
         case MINUTES: return ptime.time_of_day().minutes();
         case SECONDS: {
-            double frac = modf(time->get(epoch_time_key)->as_num(), &frac);
+            double frac = modf(time.get_field(epoch_time_key).as_num(), &frac);
             frac = round(frac * 1000) / 1000;
             return ptime.time_of_day().seconds() + frac;
         } break;
@@ -651,20 +648,20 @@ time_t boost_date(time_t boost_time) {
     return time_t(ptime_t(d), boost_time.zone());
 }
 
-counted_t<const datum_t> time_date(counted_t<const datum_t> time,
+datum_t time_date(datum_t time,
                                    const rcheckable_t *target) {
     try {
         return boost_to_time(boost_date(time_to_boost(time)), target);
     } HANDLE_BOOST_ERRORS(target);
 }
 
-counted_t<const datum_t> time_of_day(counted_t<const datum_t> time) {
+datum_t time_of_day(datum_t time) {
     try {
         time_t boost_time = time_to_boost(time);
         double sec =
             (boost_time - boost_date(boost_time)).total_microseconds() / 1000000.0;
         sec = round(sec * 1000) / 1000;
-        return make_counted<const datum_t>(sec);
+        return datum_t(sec);
     } HANDLE_BOOST_ERRORS_NO_TARGET;
 }
 
@@ -672,7 +669,7 @@ void time_to_str_key(const datum_t &d, std::string *str_out) {
     // We need to prepend "P" and append a character less than [a-zA-Z] so that
     // different pseudotypes sort correctly.
     str_out->append(std::string("P") + time_string + ":");
-    d.get(epoch_time_key)->num_to_str_key(str_out);
+    d.get_field(epoch_time_key).num_to_str_key(str_out);
 }
 
 } // namespace pseudo

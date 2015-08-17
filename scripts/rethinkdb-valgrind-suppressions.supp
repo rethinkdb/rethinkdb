@@ -159,3 +159,23 @@
     fun:_GLOBAL__sub_I_scopes.cc
     fun:call_init
 }
+
+{
+   sscanf cond
+   Memcheck:Cond
+   fun:__GI___strncasecmp_l
+   fun:____strtod_l_internal
+   fun:_IO_vfscanf
+   fun:vsscanf
+   fun:sscanf
+}
+
+{
+   sscanf read
+   Memcheck:Value8
+   fun:__GI___strncasecmp_l
+   fun:____strtod_l_internal
+   fun:_IO_vfscanf
+   fun:vsscanf
+   fun:sscanf
+}

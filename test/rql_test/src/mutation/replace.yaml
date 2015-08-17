@@ -1,17 +1,8 @@
 desc: Tests replacement of selections
+table_variable_name: tbl
 tests:
 
     # Set up some data
-    - cd: r.db('test').table_create('test1')
-      ot: ({'created':1})
-
-    - def: tbl = r.db('test').table('test1')
-
-    - cd: r.db('test').table_create('test2')
-      ot: ({'created':1})
-
-    - def: tbl2 = r.db('test').table('test2')
-      cd: []
 
     - py: tbl.insert([{'id':i} for i in xrange(100)])
       js: |
@@ -42,9 +33,9 @@ tests:
       rb: tbl.get(12).replace{ |row| { :id => row[:id], :a => row[:id] } }
       ot: ({'deleted':0.0,'replaced':1,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':0.0})
 
-    - py: tbl.get(13).replace(lambda row:None)
+    - py: tbl.get(13).replace(lambda row:null)
       js: tbl.get(13).replace(function(row) { return null; })
-      rb: tbl.get(13).replace{ |row| nil }
+      rb: tbl.get(13).replace{ |row| null }
       ot: ({'deleted':1,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':0.0})
 
     # Replace selection of table
@@ -99,7 +90,7 @@ tests:
 
     - js: tbl.get(1).replace({}, 'foo')
       cd: []
-      ot: err('RqlDriverError', 'Expected 1 argument(s) but found 2.')
+      ot: err('RqlDriverError', 'Expected 1 argument (not including options) but found 2.')
 
     - js: tbl.get(1).replace({}, {'foo':'bar'})
       cd: []
@@ -107,20 +98,15 @@ tests:
 
     # Replace whole table
 
-    - py: tbl.replace(lambda row:None)
+    - py: tbl.replace(lambda row:null)
       js: tbl.replace(function(row) { return null; })
-      rb: tbl.replace{ |row| nil }
+      rb: tbl.replace{ |row| null }
       ot: ({'deleted':99,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':0.0})
 
-    - cd: r.table('test1').get('sdfjk').replace({'id':'sdfjk'})['inserted']
-      js: r.table('test1').get('sdfjk').replace({'id':'sdfjk'})('inserted')
+    - cd: tbl.get('sdfjk').replace({'id':'sdfjk'})['inserted']
+      js: tbl.get('sdfjk').replace({'id':'sdfjk'})('inserted')
       ot: 1
-    - cd: r.table('test1').get('sdfjki').replace({'id':'sdfjk'})['errors']
-      js: r.table('test1').get('sdfjki').replace({'id':'sdfjk'})('errors')
+    - cd: tbl.get('sdfjki').replace({'id':'sdfjk'})['errors']
+      js: tbl.get('sdfjki').replace({'id':'sdfjk'})('errors')
       ot: 1
 
-    # clean up
-    - cd: r.db('test').table_drop('test1')
-      ot: "({'dropped':1})"
-    - cd: r.db('test').table_drop('test2')
-      ot: "({'dropped':1})"

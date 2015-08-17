@@ -1,9 +1,12 @@
-# This test framework is responsible for running the test suite
+#/usr/bin/env python
+
+'''This test framework is responsible for running the test suite'''
+
+from __future__ import print_function
 
 from argparse import ArgumentParser
 from os.path import abspath, join, dirname, pardir, getmtime, relpath
 import curses
-import Queue
 import fcntl
 import fnmatch
 import math
@@ -19,12 +22,15 @@ import termios
 import threading
 import time
 import traceback
-import traceback
 
-from utils import guess_is_text_file
-import test_report
+try:
+    import Queue
+except ImportError:
+    import queue as Queue
 
-default_test_results_dir = join(dirname(__file__), pardir, 'results')
+import test_report, utils
+
+default_test_results_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), os.pardir, 'results'))
 
 argparser = ArgumentParser(description='Run RethinkDB tests', add_help=False)
 argparser.add_argument('-j', '--jobs', type=int, default=1,
@@ -84,7 +90,7 @@ def run(all_tests, all_groups, configure, args):
     conf = configure(reqs)
     if args.print_config:
         for k in conf:
-            print k, '=', conf[k]
+            print(k, '=', conf[k])
     tests = tests.configure(conf)
     filter.check_use()
     if args.list:
@@ -104,11 +110,13 @@ def run(all_tests, all_groups, configure, args):
         testrunner.run()
         if args.html_report:
             test_report.gen_report(testrunner.dir, load_test_results_as_tests(testrunner.dir))
+        if testrunner.failed():
+            return 'FAILED'
 
 # This mode just lists the tests
 def list_tests_mode(tests, verbose, all_groups):
     if all_groups:
-        groups = { name: TestFilter.parse(patterns, all_groups) for name, patterns in all_groups.items() }
+        groups = {name: TestFilter.parse(patterns, all_groups) for name, patterns in all_groups.items()}
     else:
         groups = False
     for name, test in tests:
@@ -119,11 +127,11 @@ def list_tests_mode(tests, verbose, all_groups):
         else:
             group_list = ''
         if verbose:
-            print name + group_list + ':'
+            print(name + group_list + ':')
             for line in str(test).split('\n'):
-                print "  " + line
+                print("  " + line)
         else:
-            print name + group_list
+            print(name + group_list)
 
 # This mode lists the groups
 def list_groups_mode(groups, filters, verbose):
@@ -131,11 +139,11 @@ def list_groups_mode(groups, filters, verbose):
         raise Exception('Cannot combine --groups with positional arguments')
     for name, patterns in groups.items():
         if not verbose:
-            print name
+            print(name)
         else:
-            print name + ':'
+            print(name + ':')
             for pattern in patterns:
-                print ' ', pattern
+                print(' ', pattern)
 
 # This mode loads previously run tests instead of running any tests
 def old_tests_mode(all_tests, load, filter, verbose, list_tests, only_failed, tree, examine, html_report):
@@ -144,7 +152,7 @@ def old_tests_mode(all_tests, load, filter, verbose, list_tests, only_failed, tr
     else:
         all_dirs = [join(default_test_results_dir, d) for d in os.listdir(default_test_results_dir)]
         load_path = max([d for d in all_dirs if os.path.isdir(d)], key=getmtime)
-        print "Loading tests from", load_path
+        print("Loading tests from", load_path)
     tests = load_test_results_as_tests(load_path).filter(filter)
     filter.check_use()
     if only_failed:
@@ -153,7 +161,7 @@ def old_tests_mode(all_tests, load, filter, verbose, list_tests, only_failed, tr
         test_report.gen_report(load_path, tests)
         return
     if list_tests:
-        list_tests_mode(tests, verbose)
+        list_tests_mode(tests, verbose, False)
         return
     view = TextView()
     for name, test in tests:
@@ -169,12 +177,12 @@ def old_tests_mode(all_tests, load, filter, verbose, list_tests, only_failed, tr
         if tree:
             for name in test.list_files():
                 if tree:
-                    print "  " + name
+                    print("  " + name)
         if examine:
             for glob in examine:
                 for name in test.list_files(glob):
-                    print
-                    print '===', name, '==='
+                    print()
+                    print('===', name, '===')
                     test.dump_file(name)
 
 def redirect_fd_to_file(fd, file, tee=False):
@@ -205,6 +213,7 @@ class TestRunner(object):
         self.failed_set = set()
         self.aborting = False
         self.abort_fast = abort_fast
+        self.all_passed = False
 
         timestamp = time.strftime('%Y-%m-%dT%H:%M:%S.')
 
@@ -213,8 +222,7 @@ class TestRunner(object):
             try:
                 os.mkdir(output_dir)
             except OSError as e:
-                print >> sys.stderr, "Could not create output directory (" + output_dir + "):", e
-                sys.exit(1)
+                sys.exit("Could not create output directory (%s): %s" % (output_dir, str(e)))
         else:
             tr_dir = default_test_results_dir
             try:
@@ -240,7 +248,7 @@ class TestRunner(object):
         tests_launched = set()
         tests_killed = set()
         try:
-            print "Running %d tests (output_dir: %s)" % (tests_count, self.dir)
+            print("Running %d tests (output_dir: %s)" % (tests_count, self.dir))
 
             for i in range(0, self.repeat):
                 if len(self.failed_set) == tests_count:
@@ -254,7 +262,7 @@ class TestRunner(object):
                         break
                     if self.kontinue or name not in self.failed_set:
                         id = (name, i)
-                        subdir = name if self.repeat == 1 else name + '.' + str(i+1)
+                        subdir = name if self.repeat == 1 else name + '.' + str(i + 1)
                         dir = join(self.dir, subdir)
                         run_dir = join(self.run_dir, subdir) if self.run_dir else None
                         process = TestProcess(self, id, test, dir, run_dir)
@@ -272,13 +280,13 @@ class TestRunner(object):
         except:
             self.aborting = True
             (exc_type, exc_value, exc_trace) = sys.exc_info()
-            print
-            print '\n'.join(traceback.format_exception(exc_type, exc_value, exc_trace))
-            print >>sys.stderr, "\nWaiting for tests to finish..."
+            print()
+            print('\n'.join(traceback.format_exception(exc_type, exc_value, exc_trace)))
+            print("\nWaiting for tests to finish...", file=sys.stderr)
             self.wait_for_running_tests()
         running = self.running.copy()
         if running:
-            print "\nKilling remaining tasks..."
+            print("\nKilling remaining tasks...")
             for id, process in running.iteritems():
                 tests_killed.add(id)
                 process.terminate(gracefull_kill=True)
@@ -288,15 +296,16 @@ class TestRunner(object):
         self.view.close()
         if len(tests_launched) != tests_count or tests_killed:
             if len(self.failed_set):
-                print "%d tests failed" % (len(self.failed_set),)
+                print("%d tests failed" % len(self.failed_set))
             if tests_killed:
-                print "%d tests killed" % (len(tests_killed),)
-            print "%d tests skipped" % (tests_count - len(tests_launched),)
+                print("%d tests killed" % len(tests_killed))
+            print("%d tests skipped" % (tests_count - len(tests_launched)))
         elif len(self.failed_set):
-            print "%d of %d tests failed" % (len(self.failed_set), tests_count)
+            print("%d of %d tests failed" % (len(self.failed_set), tests_count))
         else:
-            print "All tests passed successfully"
-        print "Saved test results to %s" % (self.dir,)
+            self.all_passed = True
+            print("All tests passed successfully")
+        print("Saved test results to %s" % self.dir)
 
     def wait_for_running_tests(self):
         # loop through the remaining TestProcesses and wait for them to finish
@@ -312,8 +321,7 @@ class TestRunner(object):
                 except KeyError:
                     pass
                 else:
-                    process.write_fail_message("Test failed to report success or"
-                                               " failure status")
+                    process.write_fail_message("Test failed to report success or failure status")
                     self.tell(self.FAILED, id)
 
     def tell(self, status, id, testprocess):
@@ -337,22 +345,33 @@ class TestRunner(object):
         with self.running as running:
             return len(running)
 
+    def failed(self):
+        return not self.all_passed
+
 # For printing the status of TestRunner to stdout
 class TextView(object):
+    
+    red = ''
+    green = ''
+    yellow = ''
+    nocolor = ''
+    
     def __init__(self):
-        self.use_color = sys.stdout.isatty()
+        self.use_color = utils.supportsTerminalColors()
         if self.use_color:
-            curses.setupterm()
-            setf = curses.tigetstr('setaf')
-            bold = curses.tigetstr('bold')
-            self.red = curses.tparm(setf, 1) + bold
-            self.green = curses.tparm(setf, 2) + bold
-            self.yellow = curses.tparm(setf, 3) + bold
-            self.nocolor = curses.tigetstr('sgr0')
+            try:
+                curses.setupterm()
+                setf = curses.tigetstr('setaf') or ''
+                bold = curses.tigetstr('bold') or ''
+                self.red = (curses.tparm(setf, 1) if setf != '' else '') + bold 
+                self.green = (curses.tparm(setf, 2) if setf != '' else '') + bold
+                self.yellow = (curses.tparm(setf, 3) if setf != '' else '') + bold
+                self.nocolor = curses.tigetstr('sgr0') or ''
+            except Exception: pass
 
     def tell(self, event, name, **args):
         if event not in ['STARTED', 'CANCEL']:
-            print self.format_event(event, name, **args)
+            print(self.format_event(event, name, **args))
 
     def format_event(self, str, name, error=None):
         if str == 'LOG':
@@ -377,9 +396,13 @@ class TextView(object):
 
 # For printing the status to a terminal
 class TermView(TextView):
-
+    
+    statusPadding = 5 # some padding to the right of the status lines to allow for a little buffer for window resizing
+    columns = 80
+    clear_line = "\n"
+    
     def __init__(self, total):
-        TextView.__init__(self)
+        super(TermView, self).__init__()
         self.running_list = []
         self.buffer = ''
         self.passed = 0
@@ -387,9 +410,14 @@ class TermView(TextView):
         self.total = total
         self.start_time = time.time()
         self.printingQueue = Queue.Queue()
-        self.columns = curses.tigetnum('cols')
-        self.clear_line = curses.tparm(curses.tigetstr('cub'), self.columns) + curses.tigetstr('dl1')
-        signal.signal(signal.SIGWINCH, lambda *args: self.tell('SIGWINCH', args))
+        
+        try:
+            # curses.setupterm is already called in super's init
+            self.columns = struct.unpack('hh', fcntl.ioctl(1, termios.TIOCGWINSZ, '1234'))[1]
+            signal.signal(signal.SIGWINCH, lambda *args: self.tell('SIGWINCH', args))
+            self.clear_line = curses.tigetstr('cr') + (curses.tigetstr('dl1') or curses.tigetstr('el'))
+        except Exception: pass
+        
         self.thread = threading.Thread(target=self.run, name='TermView')
         self.thread.daemon = True
         self.thread.start()
@@ -406,8 +434,9 @@ class TermView(TextView):
             try:
                 args, kwargs = self.printingQueue.get(timeout=1)
             except Queue.Empty:
-                self.update_status()
-                self.flush()
+                if self.clear_line != self.__class__.clear_line: # if we can't clear the line, don't print every second
+                    self.update_status()
+                    self.flush()
             else:
                 if args == 'EXIT':
                     break
@@ -441,23 +470,32 @@ class TermView(TextView):
     def show_status(self):
         if self.running_list:
             running = len(self.running_list)
-            passed = self.passed
-            failed = self.failed
-            remaining = self.total - passed - failed - running
+            
+            remaining = self.total - self.passed - self.failed - running
             duration = self.format_duration(time.time() - self.start_time)
-            def format(names):
-                return '[%s/%s/%d/%d %s %s]' % (passed, failed, running, remaining, duration, names)
+            
+            def format(names, useColor=self.use_color):
+                strPassed = str(self.passed)
+                strFailed = str(self.failed)
+                if useColor:
+                    if self.passed:
+                        strPassed = self.green + strPassed + self.nocolor
+                    if self.failed:
+                        strFailed = self.red + strFailed + self.nocolor
+                
+                return '[%s/%s/%d/%d %s%s]' % (strPassed, strFailed, running, remaining, duration, names)
+            
             names = ''
-            for i in range(running + 1):
-                next = self.format_running(i)
-                if len(format(next)) > self.columns - 1:
-                    break
-                names = next
-            if self.use_color:
-                if passed:
-                    passed = self.green + str(passed) + self.nocolor
-                if failed:
-                    failed = self.red + str(failed) + self.nocolor
+            charsAvailable = self.columns - self.statusPadding - len(format('', useColor=False))
+            testsToList = 0
+            while testsToList <= running:
+                canidateNames = ' ' + self.format_running(testsToList)
+                if len(canidateNames) <= charsAvailable:
+                    names = canidateNames
+                else:
+                    break 
+                testsToList += 1
+            
             self.buffer += format(names)
 
     def format_duration(self, elapsed):
@@ -480,7 +518,9 @@ class TermView(TextView):
                 ret += ', '
             ret += self.running_list[i]
         if len(self.running_list) > max:
-            ret += ", ..."
+            if max > 0:
+                ret += ', '
+            ret += "..."
         return ret
 
     def show(self, line):
@@ -534,15 +574,16 @@ class TestProcess(object):
             with open(join(self.dir, "description"), 'w') as file:
                 file.write(str(self.test))
 
-            self.supervisor = threading.Thread(target=self.supervise,
-                                               name="supervisor:"+self.name)
+            self.supervisor = threading.Thread(target=self.supervise, name="supervisor:" + self.name)
             self.supervisor.daemon = True
             self.supervisor.start()
         except Exception:
             raise
 
     def run(self, write_pipe):
-        signal.signal(signal.SIGINT, signal.SIG_IGN)
+        def recordSignal(signum, frame):
+            print('Ignored signal SIGINT')
+        signal.signal(signal.SIGINT, recordSignal) # avoiding a problem where signal.SIG_IGN would cause the test to never stop
         sys.stdin.close()
         redirect_fd_to_file(1, join(self.dir, "stdout"), tee=self.runner.verbose)
         redirect_fd_to_file(2, join(self.dir, "stderr"), tee=self.runner.verbose)
@@ -581,8 +622,7 @@ class TestProcess(object):
 
     def supervise(self):
         read_pipe, write_pipe = multiprocessing.Pipe(False)
-        self.process = multiprocessing.Process(target=self.run, args=[write_pipe],
-                                               name="subprocess:"+self.name)
+        self.process = multiprocessing.Process(target=self.run, args=[write_pipe], name="subprocess:" + self.name)
         self.process.start()
         self.process.join(self.timeout + 5)
         if self.terminate_thread:
@@ -594,12 +634,10 @@ class TestProcess(object):
         elif self.process.is_alive():
             self.terminate()
             self.terminate_thread.join()
-            self.write_fail_message("Test failed to exit after timeout of %d seconds"
-                                        % (self.timeout,))
+            self.write_fail_message("Test failed to exit after timeout of %d seconds" % self.timeout)
             self.runner.tell(TestRunner.FAILED, self.id, self)
         elif self.process.exitcode:
-            self.write_fail_message("Test exited abnormally with error code %d"
-                                        % (self.process.exitcode,))
+            self.write_fail_message("Test exited abnormally with error code %d" % self.process.exitcode)
             self.runner.tell(TestRunner.FAILED, self.id, self)
         else:
             try:
@@ -637,8 +675,7 @@ class TestProcess(object):
             self.gracefull_kill = True
         if self.terminate_thread:
             return
-        self.terminate_thread = threading.Thread(target=self.terminate_thorough,
-                                  name='terminate:'+self.name)
+        self.terminate_thread = threading.Thread(target=self.terminate_thorough, name='terminate:' + self.name)
         self.terminate_thread.start()
 
     def pid(self):
@@ -708,7 +745,7 @@ class TestFilter(object):
                 type = self.EXCLUDE
             else:
                 type = self.INCLUDE
-            if groups.has_key(arg):
+            if arg in groups:
                 group = self.parse(groups[arg], groups, group=arg)
                 filter.combine(type, group)
             else:
@@ -753,7 +790,7 @@ class TestFilter(object):
         if not self.was_matched:
             message = 'No such test ' + '.'.join(path) + ' (from ' + self.group.show() + ')'
             if self.group.group:
-                print 'Warning: ' + message
+                print('Warning: ' + message)
             else:
                 raise Exception(message)
         for name, filter in self.tree.iteritems():
@@ -871,11 +908,7 @@ class TestTree(Test):
                 yield req
 
     def configure(self, conf):
-        return TestTree((
-            (name, test.configure(conf))
-            for name, test
-            in self.tests.iteritems()
-        ))
+        return TestTree({test: self.tests[test].configure(conf) for test in self.tests})
 
     def __len__(self):
         count = 0
@@ -884,7 +917,7 @@ class TestTree(Test):
         return count
 
     def has_test(self, name):
-        return self.tests.has_key(name)
+        return name in self.tests
 
 # Used with `--load' to load old test results
 def load_test_results_as_tests(path):
@@ -930,24 +963,24 @@ class OldTest(Test):
     def dump_file(self, name):
         with file(join(self.dir, name)) as f:
             for line in f:
-                print line,
+                print(line, end=' ')
 
     def dump_log(self):
         self.dump_file("stdout")
         self.dump_file("stderr")
-        print
+        print()
 
     def list_files(self, glob=None, text_only=True):
         for root, dirs, files in os.walk(self.dir):
             for file in files:
                 name = relpath(join(root, file), self.dir)
                 if not glob or fnmatch.fnmatch(name, glob):
-                    if not text_only or name == glob or guess_is_text_file(join(root, file)):
+                    if not text_only or name == glob or utils.guess_is_text_file(join(root, file)):
                         yield name
 
 def group_from_file(path):
     patterns = []
-    with file(path) as f:
+    with open(path) as f:
         for line in f:
             line = line.split('#')[0]
             if line:

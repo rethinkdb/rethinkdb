@@ -36,7 +36,7 @@ private:
 
 class tcp_socket_exc_t : public std::exception {
 public:
-    explicit tcp_socket_exc_t(int err);
+    explicit tcp_socket_exc_t(int err, int port);
 
     ~tcp_socket_exc_t() throw () { }
 
@@ -100,8 +100,6 @@ enum class file_direct_io_mode_t {
     direct_desired,
     buffered_desired
 };
-
-
 
 class semantic_checking_file_t {
 public:

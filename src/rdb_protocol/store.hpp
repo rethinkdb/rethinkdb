@@ -9,16 +9,14 @@
 
 #include "errors.hpp"
 #include <boost/optional.hpp>
-#include <boost/ptr_container/ptr_map.hpp>
-#include <boost/ptr_container/ptr_vector.hpp>
 
-#include "btree/erase_range.hpp"
-#include "btree/operations.hpp"
+#include "btree/node.hpp"
 #include "btree/parallel_traversal.hpp"
 #include "btree/secondary_operations.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/new_mutex.hpp"
+#include "concurrency/new_semaphore.hpp"
 #include "concurrency/rwlock.hpp"
 #include "containers/map_sentries.hpp"
 #include "containers/scoped.hpp"
@@ -26,6 +24,7 @@
 #include "protocol_api.hpp"
 #include "rdb_protocol/changefeed.hpp"
 #include "rdb_protocol/protocol.hpp"
+#include "rdb_protocol/store_metainfo.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "store_view.hpp"
 #include "utils.hpp"
@@ -37,6 +36,7 @@ class cache_t;
 class internal_disk_backed_queue_t;
 class io_backender_t;
 class real_superblock_t;
+class sindex_superblock_t;
 class superblock_t;
 class txn_t;
 class cache_balancer_t;
@@ -69,37 +69,56 @@ public:
     virtual const value_deleter_t *post_deleter() const = 0;
 };
 
-class store_t : public store_view_t {
+class outdated_index_report_t {
+public:
+    outdated_index_report_t() { }
+    virtual ~outdated_index_report_t() { }
+
+    // Called during store_t instantiation
+    virtual void set_outdated_indexes(std::set<std::string> &&indexes) = 0;
+
+    // Called when indexes change during store_t lifetime
+    virtual void index_dropped(const std::string &index_name) = 0;
+    virtual void indexes_renamed(
+        const std::map<std::string, std::string> &name_changes) = 0;
+};
+
+class store_t final : public store_view_t {
 public:
     using home_thread_mixin_t::assert_thread;
 
-    store_t(serializer_t *serializer,
+    store_t(const region_t &region,
+            serializer_t *serializer,
             cache_balancer_t *balancer,
             const std::string &perfmon_name,
             bool create,
             perfmon_collection_t *parent_perfmon_collection,
-            rdb_context_t *,
+            rdb_context_t *_ctx,
             io_backender_t *io_backender,
-            const base_path_t &base_path);
+            const base_path_t &base_path,
+            scoped_ptr_t<outdated_index_report_t> &&_index_report,
+            namespace_id_t table_id);
     ~store_t();
 
     void note_reshard();
 
     /* store_view_t interface */
-    void new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out);
-    void new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out);
 
-    void do_get_metainfo(
+    void new_read_token(read_token_t *token_out);
+    void new_write_token(write_token_t *token_out);
+
+    region_map_t<binary_blob_t> get_metainfo(
             order_token_t order_token,
-            object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
-            signal_t *interruptor,
-            metainfo_t *out)
+            read_token_t *token,
+            const region_t &region,
+            signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
     void set_metainfo(
-            const metainfo_t &new_metainfo,
+            const region_map_t<binary_blob_t> &new_metainfo,
             order_token_t order_token,
-            object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
+            write_token_t *token,
+            write_durability_t durability,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -107,49 +126,72 @@ public:
             DEBUG_ONLY(const metainfo_checker_t& metainfo_checker, )
             const read_t &read,
             read_response_t *response,
-            order_token_t order_token,
-            read_token_pair_t *token_pair,
+            read_token_t *token,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
     void write(
             DEBUG_ONLY(const metainfo_checker_t& metainfo_checker, )
-            const metainfo_t& new_metainfo,
+            const region_map_t<binary_blob_t>& new_metainfo,
             const write_t &write,
             write_response_t *response,
             write_durability_t durability,
-            transition_timestamp_t timestamp,
+            state_timestamp_t timestamp,
             order_token_t order_token,
-            write_token_pair_t *token_pair,
+            write_token_t *token,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
-    bool send_backfill(
+    continue_bool_t send_backfill_pre(
             const region_map_t<state_timestamp_t> &start_point,
-            send_backfill_callback_t *send_backfill_cb,
-            traversal_progress_combiner_t *progress,
-            read_token_pair_t *token_pair,
+            backfill_pre_item_consumer_t *pre_item_consumer,
+            signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t);
+    continue_bool_t send_backfill(
+            const region_map_t<state_timestamp_t> &start_point,
+            backfill_pre_item_producer_t *pre_item_producer,
+            backfill_item_consumer_t *item_consumer,
+            signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t);
+    continue_bool_t receive_backfill(
+            const region_t &region,
+            backfill_item_producer_t *item_producer,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
-    void receive_backfill(
-            const backfill_chunk_t &chunk,
-            write_token_pair_t *token_pair,
-            signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t);
-
-    // Preserves ordering
-    void throttle_backfill_chunk(signal_t *interruptor)
+    void wait_until_ok_to_receive_backfill(signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
     void reset_data(
+            const binary_blob_t &zero_version,
             const region_t &subregion,
             write_durability_t durability,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
-    scoped_ptr_t<new_mutex_in_line_t> get_in_line_for_sindex_queue(
-            buf_lock_t *sindex_block);
+    /* End of `store_view_t` interface */
+
+    std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > sindex_list(
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
+
+    void sindex_create(
+            const std::string &name,
+            const sindex_config_t &config,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
+
+    void sindex_rename_multi(
+            const std::map<std::string, std::string> &name_changes,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
+
+    void sindex_drop(
+            const std::string &id,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
+
+    new_mutex_in_line_t get_in_line_for_sindex_queue(buf_lock_t *sindex_block);
 
     void register_sindex_queue(
             internal_disk_backed_queue_t *disk_backed_queue,
@@ -171,36 +213,18 @@ public:
             bool release_sindex_block);
 
     void sindex_queue_push(
-            const write_message_t &value,
+            const rdb_modification_report_t &mod_report,
             const new_mutex_in_line_t *acq);
     void sindex_queue_push(
-            const scoped_array_t<write_message_t> &values,
+            const std::vector<rdb_modification_report_t> &mod_reports,
             const new_mutex_in_line_t *acq);
 
-    void add_progress_tracker(
-        map_insertion_sentry_t<uuid_u, const parallel_traversal_progress_t *> *sentry,
-        uuid_u id, const parallel_traversal_progress_t *p);
-
-    progress_completion_fraction_t get_progress(uuid_u id);
-
-    MUST_USE buf_lock_t acquire_sindex_block_for_read(
-            buf_parent_t parent,
-            block_id_t sindex_block_id);
-
-    MUST_USE buf_lock_t acquire_sindex_block_for_write(
-            buf_parent_t parent,
-            block_id_t sindex_block_id);
-
-    MUST_USE bool add_sindex(
+    MUST_USE bool add_sindex_internal(
         const sindex_name_t &name,
-        const secondary_index_t::opaque_definition_t &definition,
+        const std::vector<char> &opaque_definition,
         buf_lock_t *sindex_block);
 
-    void set_sindexes(
-        const std::map<sindex_name_t, secondary_index_t> &sindexes,
-        buf_lock_t *sindex_block,
-        std::set<sindex_name_t> *created_sindexes_out)
-    THROWS_ONLY(interrupted_exc_t);
+    std::map<sindex_name_t, secondary_index_t> get_sindexes() const;
 
     bool mark_index_up_to_date(
         const sindex_name_t &name,
@@ -212,41 +236,39 @@ public:
         buf_lock_t *sindex_block)
     THROWS_NOTHING;
 
-    bool drop_sindex(
-        const sindex_name_t &name,
-        buf_lock_t sindex_block)
-    THROWS_ONLY(interrupted_exc_t);
+    void update_outdated_sindex_list(buf_lock_t *sindex_block);
 
     MUST_USE bool acquire_sindex_superblock_for_read(
             const sindex_name_t &name,
             const std::string &table_name,
-            superblock_t *superblock,  // releases this.
-            scoped_ptr_t<real_superblock_t> *sindex_sb_out,
-            std::vector<char> *opaque_definition_out, // Optional, may be NULL
+            real_superblock_t *superblock,  // releases this.
+            scoped_ptr_t<sindex_superblock_t> *sindex_sb_out,
+            std::vector<char> *opaque_definition_out,
             uuid_u *sindex_uuid_out)
         THROWS_ONLY(sindex_not_ready_exc_t);
 
     MUST_USE bool acquire_sindex_superblock_for_write(
             const sindex_name_t &name,
             const std::string &table_name,
-            superblock_t *superblock,  // releases this.
-            scoped_ptr_t<real_superblock_t> *sindex_sb_out,
+            real_superblock_t *superblock,  // releases this.
+            scoped_ptr_t<sindex_superblock_t> *sindex_sb_out,
             uuid_u *sindex_uuid_out)
         THROWS_ONLY(sindex_not_ready_exc_t);
 
     struct sindex_access_t {
-        sindex_access_t(btree_slice_t *_btree, secondary_index_t _sindex,
-                real_superblock_t *_super_block)
-            : btree(_btree), sindex(_sindex),
-              super_block(_super_block)
-        { }
+        sindex_access_t(btree_slice_t *_btree,
+                        sindex_name_t _name,
+                        secondary_index_t _sindex,
+                        scoped_ptr_t<sindex_superblock_t> _superblock);
+        ~sindex_access_t();
 
         btree_slice_t *btree;
+        sindex_name_t name;
         secondary_index_t sindex;
-        scoped_ptr_t<real_superblock_t> super_block;
+        scoped_ptr_t<sindex_superblock_t> superblock;
     };
 
-    typedef boost::ptr_vector<sindex_access_t> sindex_access_vector_t;
+    typedef std::vector<scoped_ptr_t<sindex_access_t> > sindex_access_vector_t;
 
     void acquire_all_sindex_superblocks_for_write(
             block_id_t sindex_block_id,
@@ -277,56 +299,32 @@ public:
     THROWS_ONLY(sindex_not_ready_exc_t);
 
     btree_slice_t *get_sindex_slice(const uuid_u &id) {
-        return &(secondary_index_slices.at(id));
+        return secondary_index_slices.at(id).get();
     }
 
     void protocol_read(const read_t &read,
                        read_response_t *response,
-                       superblock_t *superblock,
+                       real_superblock_t *superblock,
                        signal_t *interruptor);
 
     void protocol_write(const write_t &write,
                         write_response_t *response,
-                        transition_timestamp_t timestamp,
-                        scoped_ptr_t<superblock_t> *superblock,
+                        state_timestamp_t timestamp,
+                        scoped_ptr_t<real_superblock_t> *superblock,
                         signal_t *interruptor);
 
-    void protocol_send_backfill(const region_map_t<state_timestamp_t> &start_point,
-                                chunk_fun_callback_t *chunk_fun_cb,
-                                superblock_t *superblock,
-                                buf_lock_t *sindex_block,
-                                traversal_progress_combiner_t *progress,
-                                signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t);
-
-    void protocol_receive_backfill(scoped_ptr_t<superblock_t> &&superblock,
-                                   signal_t *interruptor,
-                                   const backfill_chunk_t &chunk);
-
-    void get_metainfo_internal(buf_lock_t *sb_buf,
-                               region_map_t<binary_blob_t> *out)
-        const THROWS_NOTHING;
-
     void acquire_superblock_for_read(
-            object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
+            read_token_t *token,
             scoped_ptr_t<txn_t> *txn_out,
             scoped_ptr_t<real_superblock_t> *sb_out,
             signal_t *interruptor,
             bool use_snapshot)
             THROWS_ONLY(interrupted_exc_t);
 
-    void acquire_superblock_for_backfill(
-            object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
-            scoped_ptr_t<txn_t> *txn_out,
-            scoped_ptr_t<real_superblock_t> *sb_out,
-            signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t);
-
     void acquire_superblock_for_write(
-            repli_timestamp_t timestamp,
             int expected_change_count,
             write_durability_t durability,
-            write_token_pair_t *token_pair,
+            write_token_t *token,
             scoped_ptr_t<txn_t> *txn_out,
             scoped_ptr_t<real_superblock_t> *sb_out,
             signal_t *interruptor)
@@ -349,35 +347,20 @@ private:
 
     void help_construct_bring_sindexes_up_to_date();
 
-    void acquire_superblock_for_write(
-            repli_timestamp_t timestamp,
-            int expected_change_count,
-            write_durability_t durability,
-            object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
-            scoped_ptr_t<txn_t> *txn_out,
-            scoped_ptr_t<real_superblock_t> *sb_out,
-            signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t);
-
     MUST_USE bool mark_secondary_index_deleted(
             buf_lock_t *sindex_block,
             const sindex_name_t &name);
 
 public:
-    void check_and_update_metainfo(
-        DEBUG_ONLY(const metainfo_checker_t &metainfo_checker, )
-        const metainfo_t &new_metainfo,
-        real_superblock_t *superblock) const
-        THROWS_NOTHING;
+    namespace_id_t const &get_table_id() const;
 
-    metainfo_t check_metainfo(
-        DEBUG_ONLY(const metainfo_checker_t &metainfo_checker, )
-        real_superblock_t *superblock) const
-        THROWS_NOTHING;
+    typedef std::map<
+        uuid_u, std::pair<microtime_t, parallel_traversal_progress_t const *>
+    > sindex_context_map_t;
+    sindex_context_map_t *get_sindex_context_map();
 
-    void update_metainfo(const metainfo_t &old_metainfo,
-                         const metainfo_t &new_metainfo,
-                         real_superblock_t *superblock) const THROWS_NOTHING;
+    progress_completion_fraction_t get_sindex_progress(uuid_u const &id);
+    microtime_t get_sindex_start_time(uuid_u const &id);
 
     fifo_enforcer_source_t main_token_source, sindex_token_source;
     fifo_enforcer_sink_t main_token_sink, sindex_token_sink;
@@ -391,16 +374,33 @@ public:
     io_backender_t *io_backender_;
     base_path_t base_path_;
     perfmon_membership_t perfmon_collection_membership;
+    scoped_ptr_t<store_metainfo_manager_t> metainfo;
 
-    boost::ptr_map<const uuid_u, btree_slice_t> secondary_index_slices;
+    std::map<uuid_u, scoped_ptr_t<btree_slice_t> > secondary_index_slices;
 
     std::vector<internal_disk_backed_queue_t *> sindex_queues;
     new_mutex_t sindex_queue_mutex;
-    std::map<uuid_u, const parallel_traversal_progress_t *> progress_trackers;
 
     rdb_context_t *ctx;
     scoped_ptr_t<ql::changefeed::server_t> changefeed_server;
 
+    // This report is used by the outdated index issue tracker, and should be updated
+    // any time the set of outdated indexes for this table changes
+    scoped_ptr_t<outdated_index_report_t> index_report;
+
+private:
+    namespace_id_t table_id;
+
+    sindex_context_map_t sindex_context;
+
+    // Having a lot of writes queued up waiting for the superblock to become available
+    // can stall reads for unacceptably long time periods.
+    // We use this semaphore to limit the number of writes that can be in line for a
+    // superblock acquisition at a time (including the write that's currently holding
+    // the superblock, if any).
+    new_semaphore_t write_superblock_acq_semaphore;
+
+public:
     // This lock is used to pause backfills while secondary indexes are being
     // post constructed. Secondary index post construction gets in line for a write
     // lock on this and stays there for as long as it's running. It does not

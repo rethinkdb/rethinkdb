@@ -24,18 +24,18 @@ struct start_t {
     explicit start_t(const std::string &description);
     std::string description_;
     ticks_t when_;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(start_t);
 
 struct split_t {
     split_t();
     explicit split_t(size_t n_parallel_jobs);
 
     size_t n_parallel_jobs_;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(split_t);
 
 struct sample_t {
     sample_t();
@@ -44,16 +44,16 @@ struct sample_t {
     std::string description_;
     ticks_t mean_duration_;
     size_t n_samples_;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(sample_t);
 
 struct stop_t {
     stop_t();
     ticks_t when_;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(stop_t);
 
 typedef boost::variant<start_t, split_t, sample_t, stop_t> event_t;
 
@@ -64,7 +64,7 @@ typedef std::vector<event_t> event_log_t;
 class trace_t {
 public:
     trace_t();
-    counted_t<const ql::datum_t> as_datum();
+    ql::datum_t as_datum() const;
     event_log_t extract_event_log() RVALUE_THIS;
 private:
     friend class starter_t;
@@ -88,8 +88,10 @@ private:
     /* redirected_event_log_ is used during sampling to send the events to the
      * sampler to be processed. */
     event_log_t *redirected_event_log_;
-    size_t disabled_ref_count;
+    size_t disabled_ref_count_;
     bool disabled();
+
+    DISABLE_COPYING(trace_t);
 };
 
 /* These are the instruments for adding profiling to code. You construct this
@@ -150,7 +152,7 @@ private:
  * between samples you should call the new_sample method. Example:
  * {
  *     sampler_t sampler("Reduce elements", trace);
- *     counted_t<const datum_t> res = stream.next();
+ *     datum_t res = stream.next();
  *     sampler.new_sample();
  *
  *     while (auto v = stream.next()) {

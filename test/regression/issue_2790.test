@@ -1,0 +1,84 @@
+#!/usr/bin/env python
+# Copyright 2014 RethinkDB, all rights reserved.
+
+# issue-url: https://github.com/rethinkdb/rethinkdb/issues/2790
+# issue-description: when stderr/stdout are pipes the server hangs in startup
+
+from __future__ import print_function
+
+import atexit, os, shutil, subprocess, sys, tempfile, threading, time
+
+try:
+    import Queue
+except ImportError:
+    import queue as Queue
+
+sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.path.pardir, 'common'))
+import utils
+
+# --
+
+bufferSize = 4096
+waitSeconds = 5
+serverExecutable = utils.find_rethinkdb_executable()
+
+containingFolder = tempfile.mkdtemp()
+serverFolder = os.path.join(containingFolder, 'rethinkdb_data')
+logFilePath = os.path.join(serverFolder, 'log_file')
+
+@atexit.register
+def cleanupAtExit():
+    shutil.rmtree(containingFolder)
+
+# -- setup server folder
+
+subprocess.check_call([serverExecutable, 'create', '-d', serverFolder], stdout=tempfile.TemporaryFile('w+'), stderr=subprocess.STDOUT)
+
+# -- start the server
+
+serverCommand = [serverExecutable, '-d', serverFolder, '--http-port', '0', '--cluster-port', '0', '--driver-port', '0', '--no-update-check']
+serverProcess = subprocess.Popen(serverCommand, bufsize=bufferSize, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+# --  wait, then check for the "Server ready" message
+
+isDone = False
+doneLock = threading.Lock()
+
+def lineReader(inputFile, outputQueue):
+    while True:
+        with doneLock:
+            if isDone: return
+        currentPosition = inputFile.tell()
+        line = inputFile.readline()
+        if not line:
+            inputFile.seek(currentPosition)
+        else:
+            outputQueue.put(line)
+
+lineQueue = Queue.Queue()
+readerThread = threading.Thread(target=lineReader, args=(open(logFilePath, 'r'), lineQueue))
+readerThread.start()
+
+deadline = time.time() + waitSeconds
+while time.time() < deadline and serverProcess.poll() is None:
+    try:
+        line = lineQueue.get_nowait()
+        if 'Server ready' in line:
+            print('Server reported ready')
+            with doneLock:
+                isDone = True
+            sys.exit()
+    except Queue.Empty:
+        pass
+
+with doneLock:
+    isDone = True
+serverProcess.kill()
+
+sys.stderr.write('Failure: server did not report ready after %d seconds\n' % waitSeconds)
+print('========= Stdout/Stderr: =========\n')
+sys.stdout.write(serverProcess.stdout.read())
+print('\n========= Log file: =========\n')
+sys.stdout.write(open(logFilePath, 'r').read())
+print('\n=========')
+sys.exit(1)

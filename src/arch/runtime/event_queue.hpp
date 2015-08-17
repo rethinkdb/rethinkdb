@@ -28,7 +28,13 @@ struct pm_eventloop_singleton_t {
 };
 
 /* Pick the queue now*/
-#if !defined(__linux) || defined(NO_EPOLL)
+#if defined(__MACH__)
+
+// Use kqueue, which is much faster than poll on OS X
+#include "arch/runtime/event_queue/kqueue.hpp"
+typedef kqueue_event_queue_t linux_event_queue_t;
+
+#elif !defined(__linux) || defined(NO_EPOLL)
 
 // Use poll instead of epoll
 #include "arch/runtime/event_queue/poll.hpp"

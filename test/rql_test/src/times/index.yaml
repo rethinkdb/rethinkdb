@@ -1,8 +1,6 @@
-desc: sindex api (#602)
+desc: secondary indexes on times
+table_variable_name: tbl
 tests:
-
-  - cd: r.db('test').table_create('times_api')
-    def: tbl = r.table('times_api')
 
   - def:
       rb: ts={"timezone"=>"-07:00","epoch_time"=>1375445162.0872,"$reql_type$"=>"TIME"}
@@ -43,7 +41,7 @@ tests:
   - def: bad_insert = [{'id':r.expr(t1).in_timezone("Z")}]
   - cd: tbl.insert(bad_insert)['first_error']
     js: tbl.insert(badInsert)('first__error')
-    ot: ("Duplicate primary key `id`:\n{\n\t\"id\":\t{\n\t\t\"$reql_type$\":\t\"TIME\",\n\t\t\"epoch_time\":\t1375445163.0869998932,\n\t\t\"timezone\":\t\"-07:00\"\n\t}\n}\n{\n\t\"id\":\t{\n\t\t\"$reql_type$\":\t\"TIME\",\n\t\t\"epoch_time\":\t1375445163.0869998932,\n\t\t\"timezone\":\t\"+00:00\"\n\t}\n}")
+    ot: ("Duplicate primary key `id`:\n{\n\t\"id\":\t{\n\t\t\"$reql_type$\":\t\"TIME\",\n\t\t\"epoch_time\":\t1375445163.087,\n\t\t\"timezone\":\t\"-07:00\"\n\t}\n}\n{\n\t\"id\":\t{\n\t\t\"$reql_type$\":\t\"TIME\",\n\t\t\"epoch_time\":\t1375445163.087,\n\t\t\"timezone\":\t\"+00:00\"\n\t}\n}")
 
   - cd: tbl.between(ts, te).count()
     ot: 5
@@ -96,7 +94,7 @@ tests:
     js: tbl.between(r.expr(t1).inTimezone("Z"), t4, {rightBound:'closed', index:'a'}).count()
     ot: 4
 
-  - cd: tbl.index_create('b'){|row| r.branch(row[:id] < t4, row[:a], nil)}
+  - cd: tbl.index_create('b'){|row| r.branch(row[:id] < t4, row[:a], null)}
     py: tbl.index_create('b', lambda row:r.branch(row['id'] < t4, row['a'], null))
     js: tbl.indexCreate('b', function(row) { return r.branch(row('id').lt(t4), row('a'), null); })
     ot: ({'created':1})
@@ -134,7 +132,7 @@ tests:
 
   - def:
       rb: oldtime = Time.at(1375147296.681)
-      py: oldtime = datetime.fromtimestamp(1375147296.681, pytz.timezone('US/Pacific'))
+      py: oldtime = datetime.fromtimestamp(1375147296.681, PacificTimeZone())
       js: oldtime = (new Date(1375147296.681*1000))
   - def:
       rb: curtime = Time.now
@@ -151,4 +149,3 @@ tests:
     js: tbl.get(oldtime)('id').typeOf()
     ot: ("PTYPE<TIME>")
 
-  - cd: r.db('test').table_drop('times_api')

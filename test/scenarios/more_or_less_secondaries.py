@@ -1,9 +1,14 @@
 #!/usr/bin/env python
-# Copyright 2010-2012 RethinkDB, all rights reserved.
-import sys, os, time
+# Copyright 2010-2014 RethinkDB, all rights reserved.
+
+from __future__ import print_function
+
+import os, sys, time
+
+startTime = time.time()
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import http_admin, driver, workload_runner, scenario_common
-from vcoptparse import *
+import driver, scenario_common, utils, vcoptparse, workload_runner
 
 class ReplicaSequence(object):
     def __init__(self, string):
@@ -26,60 +31,86 @@ class ReplicaSequence(object):
     def __repr__(self):
         return str(self.initial) + "".join(("+" if s > 0 else "-") + str(abs(x)) for x in self.steps)
 
-op = OptParser()
-workload_runner.prepare_option_parser_for_split_or_continuous_workload(op, allow_between = True)
+op = vcoptparse.OptParser()
+workload_runner.prepare_option_parser_for_split_or_continuous_workload(op, allow_between=True)
 scenario_common.prepare_option_parser_mode_flags(op)
-op["sequence"] = PositionalArg(converter = ReplicaSequence)
+op["sequence"] = vcoptparse.PositionalArg(converter=ReplicaSequence)
 opts = op.parse(sys.argv)
+_, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
 
-with driver.Metacluster() as metacluster:
-    print "Starting cluster..."
-    cluster = driver.Cluster(metacluster)
-    executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
-    primary_files = driver.Files(metacluster, db_path = "db-primary", log_path = "create-db-primary-output",
-                                 executable_path = executable_path, command_prefix = command_prefix)
-    primary_process = driver.Process(cluster, primary_files, log_path = "serve-output-primary",
-        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
-    replica_processes = [driver.Process(cluster,
-                                        driver.Files(metacluster, db_path = "db-%d" % i, log_path = "create-output-%d" % i,
-                                                     executable_path = executable_path, command_prefix = command_prefix),
-                                        log_path = "serve_output-%d" % i,
-                                        executable_path = executable_path, command_prefix = command_prefix,
-                                        extra_options = serve_options)
-                         for i in xrange(opts["sequence"].peak())]
-    primary_process.wait_until_started_up()
-    for replica_process in replica_processes:
-        replica_process.wait_until_started_up()
+r = utils.import_python_driver()
+dbName, tableName = utils.get_test_db_table()
 
-    print "Creating table..."
-    http = http_admin.ClusterAccess([("localhost", p.http_port) for p in [primary_process] + replica_processes])
-    primary_dc = http.add_datacenter()
-    http.move_server_to_datacenter(primary_process.files.machine_name, primary_dc)
-    replica_dc = http.add_datacenter()
-    for replica_process in replica_processes:
-        http.move_server_to_datacenter(replica_process.files.machine_name, replica_dc)
-    ns = scenario_common.prepare_table_for_workload(http, primary = primary_dc, affinities = {primary_dc: 0, replica_dc: opts["sequence"].initial})
-    http.wait_until_blueprint_satisfied(ns)
+numReplicas = opts["sequence"].peak()
+
+print('Starting cluster (%.2fs)' % (time.time() - startTime))
+with driver.Cluster(output_folder='.') as cluster:
+    
+    print('Starting primary server (%.2fs)' % (time.time() - startTime))
+    
+    primary_files = driver.Files(cluster.metacluster, db_path="db-primary", console_output=True, command_prefix=command_prefix)
+    primary_process = driver.Process(cluster, primary_files, console_output=True, command_prefix=command_prefix, extra_options=serve_options)
+    
+    print('Starting %d replicas (%.2fs)' % (numReplicas, time.time() - startTime))
+    
+    replica_processes = [driver.Process(cluster=cluster, console_output=True, command_prefix=command_prefix, extra_options=serve_options) for i in xrange(numReplicas)]
+    cluster.wait_until_ready()
+    primary = cluster[0]
+    replicaPool = cluster[1:]
+    
+    print('Establishing ReQL connection (%.2fs)' % (time.time() - startTime))
+    
+    conn = r.connect(host=primary.host, port=primary.driver_port)
+    
+    print('Creating db/table %s/%s (%.2fs)' % (dbName, tableName, time.time() - startTime))
+    
+    if dbName not in r.db_list().run(conn):
+        r.db_create(dbName).run(conn)
+    if tableName in r.db(dbName).table_list().run(conn):
+        r.db(dbName).table_drop(tableName).run(conn)
+    r.db(dbName).table_create(tableName).run(conn)
+    
+    print('Setting inital table replication settings (%.2fs)' % (time.time() - startTime))
+    assert r.db(dbName).table(tableName).config() \
+        .update({'shards':[
+            {'primary_replica':primary.name, 'replicas':[primary.name, replicaPool[0].name]}
+        ]}).run(conn)['errors'] == 0
+    
+    r.db(dbName).wait().run(conn)
     cluster.check()
-    http.check_no_issues()
-
-    workload_ports = scenario_common.get_workload_ports(ns, [primary_process] + replica_processes)
+    issues = list(r.db('rethinkdb').table('current_issues').run(conn))
+    assert len(issues) == 0, 'There were issues on the server: %s' % str(issues)
+    
+    print('Starting workload (%.2fs)' % (time.time() - startTime))
+    
+    workload_ports = workload_runner.RDBPorts(host=primary.host, http_port=primary.http_port, rdb_port=primary.driver_port, db_name=dbName, table_name=tableName)
     with workload_runner.SplitOrContinuousWorkload(opts, workload_ports) as workload:
+        
         workload.run_before()
+        
         cluster.check()
-        http.check_no_issues()
+        assert list(r.db('rethinkdb').table('current_issues').run(conn)) == []
         workload.check()
+        
         current = opts["sequence"].initial
         for i, s in enumerate(opts["sequence"].steps):
             if i != 0:
                 workload.run_between()
-            print "Changing the number of secondaries from %d to %d..." % (current, current + s)
+            print("Changing the number of secondaries from %d to %d (%.2fs)" % (current, current + s, time.time() - startTime))
             current += s
-            http.set_table_affinities(ns, {primary_dc: 0, replica_dc: current})
-            http.wait_until_blueprint_satisfied(ns, timeout = 3600)
+            
+            assert r.db(dbName).table(tableName).config() \
+                .update({'shards':[
+                    {'primary_replica':primary.name,
+                     'replicas':[primary.name] + [x.name for x in replicaPool[:current]]}
+                ]}).run(conn)['errors'] == 0
+            r.db(dbName).wait().run(conn) # ToDo: add timeout when avalible
+            
             cluster.check()
-            http.check_no_issues()
+            assert list(r.db('rethinkdb').table('current_issues').run(conn)) == []
         workload.run_after()
 
-    http.check_no_issues()
-    cluster.check_and_stop()
+    assert list(r.db('rethinkdb').table('current_issues').run(conn)) == []
+    
+    print('Cleaning up (%.2fs)' % (time.time() - startTime))
+print('Done. (%.2fs)' % (time.time() - startTime))

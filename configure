@@ -20,22 +20,24 @@ init () {
     min_browserify_version=3.0.0
     max_browserify_version=3.24.13
     min_python_version=2.6.0
-    max_python_version=2.9.99
 
-    must_fetch_list='bluebird'
+    must_fetch_list='bluebird v8'
     please_fetch_list="handlebars gtest re2 $must_fetch_list"
 
-    required_libs="protobuf v8 re2 z curl"
-    optional_libs="gtest termcap boost_system"
-    other_libs="unwind tcmalloc_minimal"
+    optional_libs="gtest termcap boost_system ssl"
+    required_libs="protobuf icui18n icuuc icudata v8 re2 z crypto curl"
+    other_libs="unwind tcmalloc jemalloc"
     all_libs="$required_libs $optional_libs $other_libs"
-    default_static="tcmalloc_minimal"
+    default_static="tcmalloc jemalloc"
 
-    web_assets_deps="npm lessc coffee handlebars browserify bluebird"
+    web_assets_deps="npm coffee browserify bluebird"
     required_bin_deps="protoc python"
     optional_bin_deps="wget curl"
     bin_deps="cxx $web_assets_deps $required_bin_deps $optional_bin_deps"
     all_deps="$bin_deps $all_libs boost"
+
+    default_allocator_linux=jemalloc
+    default_allocator_osx=system
 
     allowed_arg_vars="CXXFLAGS LDFLAGS"
 }
@@ -66,23 +68,26 @@ configure () {
     case "${MACHINE#*-}" in
         *apple-darwin*)
             var OS "Darwin"
-            with_tcmalloc=false ;
+            default_allocator=$default_allocator_osx
             var PTHREAD_LIBS "" ;
             var RT_LIBS "" ;;
         *linux*)
             var OS "Linux"
+            default_allocator=$default_allocator_linux
             var PTHREAD_LIBS -pthread ;
             var RT_LIBS -lrt ;;
         *) error "unsupported operating system: $MACHINE" ;;
     esac
     case "${MACHINE%%-*}" in
-        x86_64|i?86) true ;;
-        arm*) final_warning="ARM support is still experimental";;
-        *) error "unsopported architecture: $MACHINE"
+        x86_64|i?86)
+            true ;;
+        arm*)
+            var_append LDFLAGS -ldl
+            final_warning="ARM support is still experimental" ;;
+        *)
+            error "unsupported architecture: $MACHINE"
     esac
     var M_LIBS -lm
-    require "Without tcmalloc"
-    boolvar NO_TCMALLOC not $with_tcmalloc
     require "Build Architecture"
     var GCC_ARCH $(uname -m | grep '^[A-Za-z0-9_]*$' | head -n 1)
     var GCC_ARCH_REDUCED $(echo "$GCC_ARCH" | sed -e 's/^i[56]86$$/i486/g')
@@ -116,24 +121,34 @@ configure () {
         fi
         check_bin $bin
     done
+    check_admin_deps
     for bin in $optional_bin_deps; do
         optional_dep $bin
         check_bin $bin
     done
     build_try_lib_paths
-    for lib in $required_libs; do
-        check_lib $lib require
-    done
     for lib in $optional_libs; do
         check_lib $lib optional
     done
+    for lib in $required_libs; do
+        check_lib $lib require
+    done
     check_v8_pre_3_19
-    if [[ $NO_TCMALLOC = 0 ]] ; then
-        check_lib tcmalloc_minimal require
+
+    require malloc
+    var ALLOCATOR "${custom_allocator:-$default_allocator}"
+    var DEFAULT_ALLOCATOR "$default_allocator"
+    if [[ "$ALLOCATOR" = system ]]; then
+        var MALLOC_LIBS ""
+        var MALLOC_LIBS_DEP ""
+        boolvar STATIC_MALLOC false
     else
-        var TCMALLOC_MINIMAL_LIBS ""
-        empty_deps_lib tcmalloc_minimal false
+        check_lib "$ALLOCATOR" require
+        boolvar STATIC_MALLOC contains "$static_libs" "$ALLOCATOR"
+        macro MALLOC_LIBS     "\$($(uc $ALLOCATOR)_LIBS)"
+        macro MALLOC_LIBS_DEP "\$($(uc $ALLOCATOR)_LIBS_DEP)"
     fi
+
     test_protobuf
     check_boost
     boolvar STATIC_V8 contains "$static_libs" v8
@@ -204,7 +219,7 @@ read_args () {
     failed=false
 
     allow_fetch=false
-    force_paths='= '
+    force_paths='=|'
     can_show=false
     required=false
     arg_vars=$'\1\2'
@@ -213,7 +228,7 @@ read_args () {
     arg_prefix=
     arg_sysconfdir=
     arg_localstatedir=
-    with_tcmalloc=true
+    custom_allocator=
     enable_precompiled_web=
     use_ccache=false
 
@@ -240,8 +255,8 @@ read_args () {
             --fetch) $has_arg
                 if [[ "$arg" = "all" ]]; then
                     please_fetch_list="$(all_fetch_deps)"
-                elif can_fetch "$arg"; then
-                    please_fetch_list="$please_fetch_list $(pkg_name "$arg")"
+                elif can_fetch $(guess_pkg_name "$arg"); then
+                    please_fetch_list="$please_fetch_list $(guess_pkg_name "$arg")"
                 else
                     die "Don't know how to fetch '$arg'"
                 fi ;;
@@ -262,12 +277,14 @@ read_args () {
                     static_libs=
                 elif contains "$all_libs" "$arg"; then
                     static_libs=$(remove "$static_libs" "$arg")
+                    please_fetch_list=$(remove "$please_fetch_list" $(guess_pkg_name "$arg"))
                 else
                     die "Unknown library: $arg"
                 fi ;;
             --lib-path) $has_arg; lib_paths="$lib_paths $arg" ;;
-            --with-tcmalloc) $no_arg; with_tcmalloc=true ;;
-            --without-tcmalloc) $no_arg; with_tcmalloc=false ;;
+            --with-tcmalloc) $no_arg; set_custom_allocator tcmalloc ;;
+            --with-jemalloc) $no_arg; set_custom_allocator jemalloc ;;
+            --with-system-malloc) $no_arg; set_custom_allocator system ;;
             --enable-precompiled-web) $no_arg; enable_precompiled_web=true ;;
             --disable-precompiled-web) $no_arg; enable_precompiled_web=false ;;
             --ccache) $no_arg; use_ccache=true ;;
@@ -278,7 +295,7 @@ read_args () {
             -*) die "Unknown option '$option'" ;;
             *) if contains "$all_deps" "$(lc $option)"; then
                  $has_arg
-                 force_paths="$force_paths $(lc $option)=$arg "
+                 force_paths="$force_paths|$(lc $option)=$arg|"
                elif contains "$allowed_arg_vars" "$option"; then
                  $has_arg
                  arg_vars="$arg_vars"$'\2'"$option"$'\1'"$arg"
@@ -289,16 +306,19 @@ read_args () {
     done
 }
 
+set_custom_allocator () {
+    if [[ -n "$custom_allocator" ]]; then
+        die "incompatible options: --with-$custom_allocator and --with-$1"
+    fi
+    custom_allocator=$1
+}
+
 # Description of some of the dependencies
 dep_descrs=':
 cxx:C++ Compiler
 protoc:Protobuf compiler
 npm:Node.js package manager
-lessc:LESS css
-coffee:CoffeeScript
-handlebars:Handlebars
 unwind:libunwind
-tcmalloc_minimal:Google Perf Tools library
 v8:v8 javascript engine
 protobuf:Protobuf library
 browserify:Browserify
@@ -338,12 +358,11 @@ EOF
   --prefix <dir>          Installation prefix. Defaults to /usr/local
   --sysconfdir <dir>      Configuration prefix. Defaults to /usr/local/etc
   --localstatedir <dir>   Runtime data prefix. Defaults to /usr/local/var
-  --with-<module>
-  --without-<module>      Enable or disable <module>. <module> can be one of
-                            tcmalloc     Build with tcmalloc. (Default: enabled)
-  --enable-<option>
-  --disable-<option>      Enable or disable a build option
-                            precompiled-web  Use precompiled web assets located in precompiled/web (default: autodetect)
+  --with-tcmalloc         Use TCMalloc
+  --with-jemalloc         Use jemalloc (default on Linux)
+  --with-system-malloc    Use the system malloc (default on OS X)
+  --enable-precompiled-web
+  --disable-precompiled-web Use precompiled web assets located in precompiled/web (default: autodetect)
   --ccache                Speed up the build using ccache
 EOF
 }
@@ -401,7 +420,7 @@ die () {
 # Generate a not found error
 not_found () {
     if $required; then
-        if can_fetch "`lc $1`"; then
+        if can_fetch $(guess_pkg_name "`lc $1`"); then
             error "missing $1. Install it, specify the full path with $(uc $1)= or run ./configure with --allow-fetch"
         else
             error "missing $1. Install it or specify the full path with $(uc $1)="
@@ -431,6 +450,7 @@ show_descr () {
     error_details=
 }
 
+# show_no [package_descr] [package_name]
 # Like 'show no', but show the delayed error if there is one
 show_no () {
     local req=$required
@@ -438,8 +458,8 @@ show_no () {
     local info=""
     show no
     if $req; then
-        if can_fetch "${1:-}"; then
-            info=" Try running ./configure with the --fetch ${1:-} or --allow-fetch flags."
+        if can_fetch "$(guess_pkg_name "${2:-$1}")"; then
+            info=" Try running ./configure with the --fetch ${2:-$1} or --allow-fetch flags."
         fi
         error "${err:-${1:-} not found.$info}"
     elif [[ -n "$delayed_error" ]]; then
@@ -521,20 +541,19 @@ check_cxx () {
     require "C++ Compiler"
     local force_CXX
     lookup "$force_paths" cxx force_CXX || :
-    local test_CXX="${force_CXX:-${CXX:-c++}}"
-    local full_CXX="$(which "$test_CXX" 2>/dev/null)"
-    if [[ ! -x "$full_CXX" ]]; then
+    CXX="${force_CXX:-${CXX:-}}"
+    if test -z "$CXX" || ! $CXX --version >/dev/null 2>&1; then
         if [[ -n "${force_CXX:-}" ]]; then
             error "unable to run $force_CXX"
             return
         fi
-        full_CXX=$(which g++ 2>/dev/null || which clang 2>/dev/null || which icc 2>/dev/null)
-        if [[ -z "$full_CXX" ]]; then
+        CXX=$(command -v c++ 2>/dev/null || command -v g++ 2>/dev/null || command -v clang 2>/dev/null || command -v icc 2>/dev/null)
+        if [[ -z "$CXX" ]]; then
             not_found CXX
             return
         fi
     fi
-    local description=$($full_CXX --version 2>/dev/null)$($full_CXX --help 2>/dev/null)
+    local description=$($CXX --version 2>/dev/null)$($CXX --help 2>/dev/null)
     local version_string=$(echo "$description" | extract_version_string)
     local type=$(echo "$description" | egrep -io 'gcc|g\+\+|clang|icc' | head -n 1)
     case "$(uc $type)" in
@@ -544,7 +563,7 @@ check_cxx () {
         ICC) min_version=$min_icc_version
              type=INTEL ;;
         *) show "unknown"
-           error "Could not determine C++ compiler type of $full_CXX (gcc, clang or icc is required)"
+           error "Could not determine C++ compiler type of $CXX (gcc, clang or icc is required)"
            return
     esac
     if [[ -z "$version_string" ]]; then
@@ -552,12 +571,12 @@ check_cxx () {
         error "Could not determine C++ compiler version (>= $(write_version $min_version) required)"
         return
     else
-        show "$(uc $type) $version_string ($full_CXX)"
+        show "$(uc $type) $version_string ($CXX)"
         test_version_ge $(uc $type) $(read_version "$version_string") $min_version || return
     fi
 
     var COMPILER "$(uc $type)"
-    var CXX "$full_CXX"
+    var CXX "$CXX"
 }
 
 # foo --version | extract_version_string
@@ -589,16 +608,24 @@ write_version () {
 
 # test_version_ge <name> <version> <min version>
 test_version_ge () {
+    local fetch_message=
     if ! [[ $2 -ge $3 ]]; then
-        error "$1 $(write_version $2) is too old. At least $1 $(write_version $3) is required"
+        if can_fetch "$(bin_pkg_name "$1")"; then
+            fetch_message=" Try running ./configure with --allow-fetch"
+        fi
+        error "$1 $(write_version $2) is too old. At least $1 $(write_version $3) is required.$fetch_message"
         return 1
     fi
 }
 
 # test_version_le <name> <version> <max version>
 test_version_le () {
-    if ! [[ $2 -le $3 ]]; then 
-       error "$1 $(write_version $2) is too recent. At most $1 $(write_version $3) is required"
+    local fetch_message=
+    if ! [[ $2 -le $3 ]]; then
+        if can_fetch "$(bin_pkg_name "$1")"; then
+            fetch_message=" Try running ./configure with --allow-fetch"
+        fi
+        error "$1 $(write_version $2) is too recent. At most $1 $(write_version $3) is required.$fetch_message"
         return 1
     fi
 }
@@ -643,8 +670,17 @@ contains () {
 # remove an item from a space-separated list
 remove () {
     if contains "$1" "$2"; then
-        local d=" $1 "
-        echo -n "${d%% $2 *} ${d#* $2 }"
+        local outputlist=""
+        for item in $1; do
+            if [ "$item" != "$2" ]; then
+                if [ -z "$outputlist" ]; then
+                    outputlist="$item"
+                else
+                    outputlist="$outputlist $item"
+                fi
+            fi
+        done
+        echo -n "$outputlist"
     else
         echo -n "$1"
     fi
@@ -680,17 +716,17 @@ lookup () {
 check_bin () {
     local force_bin
     lookup "$force_paths" $1 force_bin || force_bin=
-    if test -z "$force_bin" && contains "$please_fetch_list" $(pkg_name "$1"); then
+    if test -z "$force_bin" && contains "$please_fetch_list" $(bin_pkg_name "$1"); then
         fetch_bin $1
         return
     fi
     local ucbin=$(uc $1)
     local bin=${force_bin:-${!ucbin:-$1}}
-    bin=$(which "$bin" 2>/dev/null)
+    bin=$(command -v "$bin" 2>/dev/null)
     if [[ ! -x "$bin" ]]; then
         if [[ -n "${force_bin:-}" ]]; then
             bin=$force_bin
-        elif fetch_allowed $1; then
+        elif fetch_allowed $(bin_pkg_name $1); then
             fetch_bin $1
             return
         else
@@ -701,11 +737,11 @@ check_bin () {
     local version
     delay_errors=true
     if ! test_bin_version $1 "$bin"; then
-        if fetch_allowed $1; then
+        if fetch_allowed $(bin_pkg_name $1); then
             fetch_bin $1
             return
         else
-            show_no
+            show_no "$1"
             return
         fi
     fi
@@ -718,18 +754,20 @@ pkg () {
     FETCH_LIST="$FETCH_LIST" bash $root/mk/support/pkg/pkg.sh "$@"
 }
 
-# add_fetch <name> ["lib"]
+# add_fetch <name>
 # Instruct make to fetch and build the dependency
-# Sets the pkg and version variables
+# Sets the version variable
 add_fetch () {
-    pkg=$(pkg_name "$1")
+    local pkg
+    pkg="$1"
     if ! version=$(pkg version "$pkg"); then
         error "Internal error: cannot fetch $pkg"
         return 1
     fi
     show external/${pkg}_$version
     if ! contains "$FETCH_LIST" "$pkg"; then
-        local depends=$(pkg depends "$pkg")
+        local depends
+        depends=$(pkg depends "$pkg")
         for dep in $depends; do
             fetch_pkg $dep
         done
@@ -737,23 +775,19 @@ add_fetch () {
         var "${pkg}_VERSION" "$version"
         var "${pkg}_DEPENDS" "$depends"
     fi
-    if [[ "${2:-}" = lib ]]; then
-        var "$pkg"_LIB_NAME "$(uc "$1")"
-    fi
 }
 
 # Wrapper around add_fetch
 fetch_pkg () {
-    local pkg
     local version
     add_fetch "$1"
 }
 
 # Chose to fetch the given binary
 fetch_bin () {
-    local pkg
     local version
-    add_fetch "$1"
+    pkg=$(bin_pkg_name "$1")
+    add_fetch "$pkg"
     macro "$(uc "$1")"         "\$(abspath \$(SUPPORT_BUILD_DIR)/${pkg}_$version/bin/$1)"
     macro "$(uc "$1")_BIN_DEP" "\$(SUPPORT_BUILD_DIR)/${pkg}_$version/bin/$1"
 }
@@ -762,11 +796,14 @@ fetch_bin () {
 fetch_lib () {
     local pkg
     local version
-    add_fetch "$1" lib
+    pkg=$(lib_pkg_name "$1")
+    add_fetch "$pkg"
+    var_append "$pkg"_LIB_NAME "$(uc "$1")"
     var "HAS_$(uc "$1")" 1
     macro "$(uc "$1")_LIBS_DEP"         "\$(SUPPORT_BUILD_DIR)/${pkg}_$version/lib/lib$1.a"
     macro "$(uc "$1")_INCLUDE" "-isystem \$(SUPPORT_BUILD_DIR)/${pkg}_$version/include"
     macro "$(uc "$1")_INCLUDE_DEP"      "\$(SUPPORT_BUILD_DIR)/${pkg}_$version/include"
+    static_libs="$static_libs $1"
 }
 
 # require_dep <name>
@@ -813,15 +850,25 @@ int main() {
     m.insert(std::make_pair(0, C()));
 }
 
+~jemalloc:
+
+#include <jemalloc/jemalloc.h>
+
+int main(){
+    static_assert(JEMALLOC_VERSION_MAJOR >= 3, "jemalloc version 3 or above is required");
+}
+
 ~'
 
 # An assoc-list of possible library aliases
-lib_alias=':~termcap:tinfo ncurses'
+lib_alias=':
+termcap:termcap tinfo ncurses
+tcmalloc:tcmalloc_minimal'
 
 # List the paths where static libraries can be found into the try_lib_paths variable
 build_try_lib_paths () {
     cc_paths=$($CXX -print-search-dirs 2>/dev/null | grep ^libraries | sed -e 's/^libraries[: =]*//; s/:/ /g')
-    LDCONFIG=$(PATH="$PATH:/sbin:/usr/sbin" which ldconfig 2>/dev/null)
+    LDCONFIG=$(PATH="$PATH:/sbin:/usr/sbin" command -v ldconfig 2>/dev/null)
     if [[ -n "$LDCONFIG" ]]; then
         ld_paths=$($LDCONFIG -v -N -X 2>/dev/null | grep -v '^	' | sed -e 's/:$//' )
     else
@@ -840,7 +887,7 @@ build_try_lib_paths () {
 check_lib () {
     local info=$2
     local path
-    if contains "$please_fetch_list $FETCH_LIST" $(pkg_name "$1"); then
+    if contains "$please_fetch_list $FETCH_LIST" $(lib_pkg_name "$1"); then
         ${info}_dep $1
         fetch_lib $1
         return
@@ -849,7 +896,7 @@ check_lib () {
         ${info}_dep $1
         check_lib_compile "$path" $1
         if $can_show; then
-            show_no "$path"
+            show_no "$path" "$1"
             empty_deps_lib $1 false
         fi
         return
@@ -865,18 +912,18 @@ check_lib () {
     $info "$1$static_info"
     delay_errors=true
     local aliases
-    lookup "$lib_alias" $1 aliases || aliases=
-    for lib in $1 $aliases; do
+    lookup "$lib_alias" $1 aliases || aliases=$1
+    for lib in $aliases; do
         $check $lib $1
         if ! $can_show; then
             empty_deps_lib $1 true
             return
         fi
     done
-    if fetch_allowed $1; then
+    if fetch_allowed $(lib_pkg_name $1); then
         fetch_lib $1
     else
-        show_no "lib$1$static_info"
+        show_no "lib$1$static_info" "$1"
         empty_deps_lib $1 false
     fi
 }
@@ -905,7 +952,7 @@ check_lib_compile () {
         code='int main(){ return 0; }'
     fi
     echo "$code" > "$bfile.cc"
-    if "$CXX" -std=gnu++0x ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} "$bfile.cc" $1 -o "$bfile.out" 1>"$bfile.log" 2>&1; then
+    if $CXX -std=gnu++0x ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} "$bfile.cc" $1 -o "$bfile.out" 1>"$bfile.log" 2>&1; then
         show "${1:-ok}"
         var_append $(uc $2)_LIBS "$1"
         var HAS_$(uc $2) 1
@@ -919,7 +966,7 @@ check_cross_compiling () {
     require "Cross-compiling"
     local bfile="$root/mk/gen/check_cross_compile"
     echo "int main(){ return 0; }" > "$bfile.cc"
-    if ! "$CXX" ${CXXFLAGS:-} ${LDFLAGS:-} "$bfile.cc" -o "$bfile.out" 1>"$bfile.log" 2>&1; then
+    if ! $CXX ${CXXFLAGS:-} ${LDFLAGS:-} "$bfile.cc" -o "$bfile.out" 1>"$bfile.log" 2>&1; then
         error_details=$(cat "$bfile.log")
         error "Failed to compile"
     else
@@ -932,13 +979,20 @@ check_cross_compiling () {
 }
 
 check_static_lib () {
+    local found=false
     for path in $try_lib_paths; do
         local l=$path/lib$1.a
-        check_lib_compile "$l" "$2"
-        if ! $can_show; then
-            return 0
+        if test -e "$l"; then
+            found=true
+            check_lib_compile "$l" "$2"
+            if ! $can_show; then
+                return 0
+            fi
         fi
     done
+    if ! $found; then
+        error_details="${error_details:-}"$"lib$1.a not found\n"
+    fi
 }
 
 # Some utility functions
@@ -991,7 +1045,7 @@ test_protobuf () {
     local out
     if ! out=$(
             "$PROTOC" "$pbdir/test.proto" --cpp_out=. 2>&1 &&
-            "$CXX" "$pbdir/test.pb.cc" "$pbdir/main.cc" -I "$root" $PROTOBUF_LIBS $PTHREAD_LIBS $M_LIBS ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} -o "$pbdir/a.out" 2>&1)
+            $CXX "$pbdir/test.pb.cc" "$pbdir/main.cc" -I "$root" $PROTOBUF_LIBS $PTHREAD_LIBS $M_LIBS ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} -o "$pbdir/a.out" 2>&1)
     then
         error_details="$out"
         error "Unable to compile sample protobuf file. Try running ./configure with the --fetch protoc option"
@@ -1000,10 +1054,10 @@ test_protobuf () {
     show ok
 }
 
-# fetch_allowed <dep>
-# Fails if the dependency cannot be fetched
+# fetch_allowed <pkg>
+# Fails if the package cannot be fetched
 fetch_allowed () {
-     { contains "$please_fetch_list" $(pkg_name $1)||
+     { contains "$please_fetch_list" $1 ||
          { can_fetch $1 && $allow_fetch ; } ; } || return 1
 }
 
@@ -1025,7 +1079,7 @@ int main() {
 }
 EOF
     if
-        "$CXX" ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} "$tmpfile.cc" \
+        $CXX ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} "$tmpfile.cc" \
             ${V8_LIBS:-} $PTHREAD_LIBS $M_LIBS $RT_LIBS -o "$tmpfile.out" 1>"$tmpfile.log" 2>&1;
     then
         boolvar V8_PRE_3_19 false
@@ -1053,38 +1107,68 @@ check_boost () {
     fi
 }
 
-# pkg_name <dep>
-# The support package name that contains dep
-pkg_name () {
+# bin_pkg_name <bin>
+# The support package name that contains the application
+bin_pkg_name () {
     case "$1" in
         protoc) echo protobuf ;;
-        tcmalloc_minimal) echo gperftools ;;
-        tcmalloc) echo gperftools ;;
-        lessc) echo less ;;
         coffee) echo coffee-script ;;
         npm) echo node ;;
-        z) echo zlib ;;
-        boost_system) echo boost ;;
+        # The curl-bin package doesn't exist. It is placed here to avoid
+        # the circular dependency of curl being used to fetch curl.
+        curl) echo curl-bin ;;
         *) echo "$1" ;;
     esac
 }
 
-# can_fetch <dep>
-# Check if we know how to fetch dep
+# lib_pkg_name <lib>
+# The support package name that contains the library
+lib_pkg_name () {
+    case "$1" in
+        tcmalloc) echo gperftools ;;
+        z) echo zlib ;;
+        boost_system) echo boost ;;
+        crypto) echo openssl ;;
+        ssl) echo openssl ;;
+        icui18n) echo icu ;;
+        icuuc) echo icu ;;
+        icudata) echo icu ;;
+        *) echo "$1" ;;
+    esac
+}
+
+# guess_pkg_name <name>
+# Find the name of a package associated with the given name
+guess_pkg_name () {
+    local pkg
+    case "$1" in
+        # Assume that curl here means libcurl, not curl itself
+        curl) echo curl ; return ;;
+    esac
+    pkg=$(lib_pkg_name "$1")
+    if [[ "$pkg" != "$1" ]]; then
+        echo "$pkg"
+    else
+        bin_pkg_name "$1"
+    fi
+}
+
+# can_fetch <pkg>
+# Check if we know how to fetch pkg
 can_fetch () {
-    local pkg=$(pkg_name $1)
-    test -e $root/mk/support/pkg/"$pkg".sh
+    test -e $root/mk/support/pkg/"$1".sh
 }
 
 # List all the packages that can be fetched
 all_fetch_deps () {
     local ret=
+    local pkg
     for dep in $all_deps; do
-        if can_fetch $dep; then
-            ret="$ret $(pkg_name "$dep")"
+        pkg=$(guess_pkg_name "$dep")
+        if can_fetch $pkg; then
+            ret="$ret $pkg"
         fi
     done
-    echo ret: $ret >&2
     echo "$ret"
 }
 
@@ -1094,6 +1178,15 @@ check_cxx11 () {
     if $can_show; then
         show_no "C++11"
     fi
+}
+
+check_admin_deps () {
+    require "web UI dependencies"
+    local version
+    version=$(pkg version admin-deps)
+    add_fetch admin-deps
+    macro "GULP"         "\$(abspath \$(SUPPORT_BUILD_DIR)/admin-deps_$version/bin/gulp)"
+    macro "GULP_BIN_DEP" "\$(SUPPORT_BUILD_DIR)/admin-deps_$version/bin/gulp"
 }
 
 # The root of the source tree

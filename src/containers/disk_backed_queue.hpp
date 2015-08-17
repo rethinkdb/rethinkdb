@@ -45,11 +45,9 @@ public:
     internal_disk_backed_queue_t(io_backender_t *io_backender, const serializer_filepath_t& filename, perfmon_collection_t *stats_parent);
     ~internal_disk_backed_queue_t();
 
-    // TODO: order_token_t::ignore.  This should take an order token and store it.
     void push(const write_message_t &value);
     void push(const scoped_array_t<write_message_t> &values);
 
-    // TODO: order_token_t::ignore.  This should output an order token (that was passed in to push).
     void pop(buffer_group_viewer_t *viewer);
 
     bool empty();
@@ -74,6 +72,8 @@ private:
     block_id_t head_block_id;
     // The end we pop from.
     block_id_t tail_block_id;
+
+    scoped_ptr_t<serializer_file_opener_t> file_opener;
     scoped_ptr_t<standard_serializer_t> serializer;
     scoped_ptr_t<cache_balancer_t> balancer;
     scoped_ptr_t<cache_t> cache;
@@ -89,7 +89,12 @@ public:
     virtual ~deserializing_viewer_t() { }
 
     virtual void view_buffer_group(const const_buffer_group_t *group) {
-        deserialize_from_group(group, value_out_);
+        // TODO: We assume here that the data was serialized by _other_ code using
+        // LATEST -- some in disk_backed_queue_t::push, but also in btree_store.cc,
+        // which uses internal_disk_backed_queue_t directly.  (There's no good reason
+        // for this today: it needed to be generic when that code was templatized on
+        // protocol_t.)
+        deserialize_from_group<cluster_version_t::LATEST_OVERALL>(group, value_out_);
     }
 
 private:
@@ -107,8 +112,12 @@ public:
     void push(const T &t) {
         // TODO: There's an unnecessary copying of data here (which would require a
         // serialization_size overloaded function to be implemented in order to eliminate).
+        // TODO: We have such a serialization_size function.
         write_message_t wm;
-        serialize(&wm, t);
+        // Despite that we are serializing this *to disk* disk backed
+        // queues are not intended to persist across restarts, so this
+        // is safe.
+        serialize<cluster_version_t::LATEST_OVERALL>(&wm, t);
         internal_.push(wm);
     }
 

@@ -15,7 +15,7 @@
 #include "rdb_protocol/datum.hpp"
 #include "concurrency/wait_any.hpp"
 #include "arch/timing.hpp"
-#include "http/json.hpp"
+#include "extproc/extproc_job.hpp"
 
 // Unique ids used to refer to objects on the JS side.
 typedef uint64_t js_id_t;
@@ -23,21 +23,12 @@ const js_id_t INVALID_ID = 0;
 
 // JS calls result either in a DATUM return value, a function id (which we can
 // use to call the function later), or an error string
-typedef boost::variant<counted_t<const ql::datum_t>, js_id_t, std::string> js_result_t;
+typedef boost::variant<ql::datum_t, js_id_t, std::string> js_result_t;
 
 class extproc_pool_t;
 class js_runner_t;
 class js_job_t;
 class js_timeout_sentry_t;
-
-class js_worker_exc_t : public std::exception {
-public:
-    explicit js_worker_exc_t(const std::string& data) : info(data) { }
-    ~js_worker_exc_t() throw () { }
-    const char *what() const throw () { return info.c_str(); }
-private:
-    std::string info;
-};
 
 // A handle to a running "javascript evaluator" job.
 class js_runner_t : public home_thread_mixin_t {
@@ -53,7 +44,10 @@ public:
     };
 
     void begin(extproc_pool_t *pool,
-               signal_t *interruptor);
+               signal_t *interruptor,
+               const ql::configured_limits_t &limits);
+
+    void end();
 
     // Evalute JS source string to either a value or a function ID to call later
     js_result_t eval(const std::string &source,
@@ -61,7 +55,7 @@ public:
 
     // Calls a previously compiled function.
     js_result_t call(const std::string &source,
-                     const std::vector<counted_t<const ql::datum_t> > &args,
+                     const std::vector<ql::datum_t> &args,
                      const req_config_t &config);
 
 private:

@@ -1,25 +1,33 @@
-import uuid
+from __future__ import print_function
+
+import os
 import random
 import time
+import uuid
+
+try:
+	xrange
+except NameError:
+	xrange = range
 
 def gen_doc(size_doc, i):
     if size_doc == "small":
         return {
-            "field0": str(i/1000),
+            "field0": str(i // 1000),
             "field1": str(i),
         }
     elif size_doc == "big":
         # Size between 17 and 18k
         return {
-            "field0": str(i/1000),
+            "field0": str(i // 1000),
             "field1": str(i),
             "string": str(uuid.uuid1()),
             "int": i,
-            "float": i/3.,
-            "boolean": (random.random()>0.5),
+            "float": i / 3.,
+            "boolean": (random.random() > 0.5),
             "null": None,
-            "array_num": [int(random.random()*10000) for i in range(int(random.random()*100))],
-            "array_str": [str(uuid.uuid1()) for i in range(int(random.random()*100))],
+            "array_num": [int(random.random() * 10000) for i in xrange(int(random.random() * 100))],
+            "array_str": [str(uuid.uuid1()) for i in xrange(int(random.random() * 100))],
             "obj": {
                 "nested0": str(uuid.uuid1()),
                 "nested1": str(uuid.uuid1()),
@@ -32,58 +40,106 @@ def gen_doc(size_doc, i):
 
 def gen_num_docs(size_doc):
     if size_doc == "small":
-        #335.000 fits in memory for the table with the small cache
-        #21.000.000 fits in memory for the table with the big cache
+        # 335.000 fits in memory for the table with the small cache
+        # 21.000.000 fits in memory for the table with the big cache
         return 1000000
     else:
-        #1000 fits in memory for the table with the small cache
-        #58000 fits in memory for the table with the big cache
+        # 1000 fits in memory for the table with the small cache
+        # 58000 fits in memory for the table with the big cache
         return 30000
 
 def compare(new_results, previous_results):
     str_date = time.strftime("%y.%m.%d-%H:%M:%S")
+    
+    if not os.path.exists('comparisons'):
+        os.mkdir('comparisons')
+    elif not os.path.isdir('comparisons'):
+        raise Exception('Unable to write the results as there is a non-folder named "comparisons"')
+    
+    f = open("comparisons/comparison_" + str_date + ".html", "w")
+    f.write('''<html>
+<head>
+	<style>
+		table {padding: 0px; margin: 0px;border-collapse:collapse;}
+		th {cursor: hand}
+		td, th {border: 1px solid #000; padding: 5px 8px; margin: 0px; text-align: right;}
+	</style>
+	<script type='text/javascript' src='jquery-latest.js'></script>
+	<script type='text/javascript' src='jquery.tablesorter.js'></script>
+	<script type='text/javascript' src='main.js'></script>
+</head>
+<body>
+	%(previous_hash)s
+	Current hash: %(current_hash)s</br>
+	</br>
+	<table>
+		<thead><tr>
+			<th>Query</th>
+			<th>Previous avg q/s</th>
+			<th>Avg q/s</th>
+			<th>Previous 1st centile q/s</th>
+			<th>1st centile q/s</th>
+			<th>Previous 99 centile q/s</th>
+			<th>99 centile q/s</th>
+			<th>Diff</th>
+			<th>Status</th>
+		</tr></thead>
+		<tbody>
+''' % {
+        'previous_hash': "Previous hash: " + previous_results["hash"] + "<br/>" if "hash" in previous_results else '',
+        'current_hash': new_results["hash"]
+    })
 
-    f = open("comparisons/comparison_"+str_date+".html", "w")
-    f.write("<html><head><style>table{padding: 0px; margin: 0px;border-collapse:collapse;}\nth{cursor: hand} td, th{border: 1px solid #000; padding: 5px 8px; margin: 0px; text-align: right;}</style><script type='text/javascript' src='jquery-latest.js'></script><script type='text/javascript' src='jquery.tablesorter.js'></script><script type='text/javascript' src='main.js'></script></head><body>")
-    if "hash" in previous_results:
-        f.write("Previous hash: "+previous_results["hash"]+"<br/>")
-    f.write("Current hash: "+new_results["hash"]+"<br/><br/>")
-
-    f.write("<table><thead><tr><th>Query</th><th>Previous avg q/s</th><th>Avg q/s</th><th>Previous 1st centile q/s</th><th>1st centile q/s</th><th>Previous 99 centile q/s</th><th>99 centile q/s</th><th>Diff</th><th>Status</th></tr></thead><tbody>")
     for key in new_results:
         if key != "hash":
+            
+            reportValues = {
+                'key50': str(key)[:50], 'status_color':'gray', 'status': 'Unknown', 'diff': 'undefined',
+                'inverse_prev_average': 'Unknown',       'inverse_new_average': "%.2f" % (1 / new_results[key]["average"]),
+                'inverse_prev_first_centile': 'Unknown', 'inverse_new_first_centile': "%.2f" % (1 / new_results[key]["first_centile"]),
+                'inverse_prev_last_centile': 'Unknown',  'inverse_new_last_centile': "%.2f" % (1 / new_results[key]["last_centile"])
+            }
+            
             if key in previous_results:
                 if new_results[key]["average"] > 0:
-                    diff = 1.*(1/previous_results[key]["average"]-1/new_results[key]["average"])/(1/new_results[key]["average"])
-                else:
-                    diff = "undefined"
-
-                if (type(diff) == type(0.)):
-                    if(diff < 0.2):
-                        status = "Success"
-                        color = "green"
+                    reportValues['diff'] = 1.0 * (1 / previous_results[key]["average"] - 1 / new_results[key]["average"]) / (1 / new_results[key]["average"])
+                    print(reportValues['diff'], type(reportValues['diff']))
+                    if type(reportValues['diff']) == type(0.):
+                        if(reportValues['diff'] < 0.2):
+                            reportValues['status'] = "Success"
+                            reportValues['status_color'] = "green"
+                        else:
+                            reportValues['status'] = "Fail"
+                            reportValues['status_color'] = "red"
+                        reportValues['diff'] = "%.4f" % reportValues['diff']
                     else:
-                        status = "Fail"
-                        color = "red"
-                else:
-                    status = "Bug"
-                    color = "gray"
-                try:
-                    f.write("<tr><td>"+str(key)[:50]+"</td><td>%.2f</td><td>%.2f</td><td>%.2f</td><td>%.2f</td><td>%.2f</td><td>%.2f</td><td>%.4f</td>"%(1/previous_results[key]["average"], 1/new_results[key]["average"], 1/previous_results[key]["first_centile"], 1/new_results[key]["first_centile"], 1/previous_results[key]["last_centile"], 1/new_results[key]["last_centile"], diff)+"<td style='background: "+str(color)+"'>"+str(status)+"</td></tr>")
-                except:
-                    print key
+                        reportValues['status'] = "Bug"
+                    
+                    reportValues['inverse_prev_average'] = "%.2f" % (1 / previous_results[key]["average"])
+                    reportValues['inverse_prev_first_centile'] =  "%.2f" % (1 / previous_results[key]["first_centile"])
+                    reportValues['inverse_prev_last_centile'] = "%.2f" % (1 / previous_results[key]["last_centile"])
+            
+            try:
+                f.write('''			<tr>
+				<td>%(key50)s</td>
+				<td>%(inverse_prev_average)s</td>
+				<td>%(inverse_new_average)s</td>
+				<td>%(inverse_prev_first_centile)s</td>
+				<td>%(inverse_new_first_centile)s</td>
+				<td>%(inverse_prev_last_centile)s</td>
+				<td>%(inverse_new_last_centile)s</td>
+				<td>%(diff)s</td>
+				<td style='background: %(status_color)s'>%(status)s</td>
+			</tr>
+''' % reportValues)
+            except Exception as e:
+                print(key, str(e))
 
-            else:
-                status = "Unknown"
-                color = "gray"
-
-                try:
-                    f.write("<tr><td>"+str(key)[:50]+"</td><td>Unknown</td><td>%.2f</td><td>Unknown</td><td>%.2f</td><td>Unknown</td><td>%.2f</td><td>%.4f</td>"%(1/new_results[key]["average"], 1/new_results[key]["first_centile"], 1/new_results[key]["last_centile"], diff)+"<td style='background: "+str(color)+"'>"+str(status)+"</td></tr>")
-                except:
-                    print key
-
-
-    f.write("</tbody></table></body></html>")
+    f.write('''		</tbody>
+	</table>
+</body>
+</html>
+''')
     f.close()
 
-    print "HTML file saved in comparisons/comparison_"+str_date+".html"
+    print("HTML file saved in comparisons/comparison_" + str_date + ".html")

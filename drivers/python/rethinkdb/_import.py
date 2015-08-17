@@ -1,11 +1,34 @@
 #!/usr/bin/env python
+from __future__ import print_function
+
 import signal
 
-import sys, os, datetime, time, json, traceback, csv, cPickle
-import multiprocessing, multiprocessing.queues, subprocess, re, ctypes
+import sys, os, datetime, time, json, traceback, csv
+import multiprocessing, multiprocessing.queues, subprocess, re, ctypes, codecs
 from optparse import OptionParser
 from ._backup import *
 import rethinkdb as r
+
+# Used because of API differences in the csv module, taken from
+# http://python3porting.com/problems.html
+PY3 = sys.version > '3'
+
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
+try:
+    from itertools import imap
+except ImportError:
+    imap = map
+try:
+    xrange
+except NameError:
+    xrange = range
+try:
+    from multiprocessing import SimpleQueue
+except ImportError:
+    from multiprocessing.queues import SimpleQueue
 
 info = "'rethinkdb import` loads data into a RethinkDB cluster"
 usage = "\
@@ -16,60 +39,61 @@ usage = "\
       [--delimiter CHARACTER] [--custom-header FIELD,FIELD... [--no-header]]"
 
 def print_import_help():
-    print info
-    print usage
-    print ""
-    print "  -h [ --help ]                    print this help"
-    print "  -c [ --connect ] HOST:PORT       host and client port of a rethinkdb node to connect"
-    print "                                   to (defaults to localhost:28015)"
-    print "  -a [ --auth ] AUTH_KEY           authorization key for rethinkdb clients"
-    print "  --clients NUM_CLIENTS            the number of client connections to use (defaults"
-    print "                                   to 8)"
-    print "  --hard-durability                use hard durability writes (slower, but less memory"
-    print "                                   consumption on the server)"
-    print "  --force                          import data even if a table already exists, and"
-    print "                                   overwrite duplicate primary keys"
-    print "  --fields                         limit which fields to use when importing one table"
-    print ""
-    print "Import directory:"
-    print "  -d [ --directory ] DIR           the directory to import data from"
-    print "  -i [ --import ] (DB | DB.TABLE)  limit restore to the given database or table (may"
-    print "                                   be specified multiple times)"
-    print ""
-    print "Import file:"
-    print "  -f [ --file ] FILE               the file to import data from"
-    print "  --table DB.TABLE                 the table to import the data into"
-    print "  --format (csv | json)            the format of the file (defaults to json)"
-    print "  --pkey PRIMARY_KEY               the field to use as the primary key in the table"
-    print ""
-    print "Import CSV format:"
-    print "  --delimiter CHARACTER            character separating fields, or '\\t' for tab"
-    print "  --no-header                      do not read in a header of field names"
-    print "  --custom-header FIELD,FIELD...   header to use (overriding file header), must be"
-    print "                                   specified if --no-header"
-    print ""
-    print "EXAMPLES:"
-    print ""
-    print "rethinkdb import -d rdb_export -c mnemosyne:39500 --clients 128"
-    print "  Import data into a cluster running on host 'mnemosyne' with a client port at 39500,"
-    print "  using 128 client connections and the named export directory."
-    print ""
-    print "rethinkdb import -f site_history.csv --format csv --table test.history --pkey count"
-    print "  Import data into a local cluster and the table 'history' in the 'test' database,"
-    print "  using the named CSV file, and using the 'count' field as the primary key."
-    print ""
-    print "rethinkdb import -d rdb_export -c hades -a hunter2 -i test"
-    print "  Import data into a cluster running on host 'hades' which requires authorization,"
-    print "  using only the database 'test' from the named export directory."
-    print ""
-    print "rethinkdb import -f subscriber_info.json --fields id,name,hashtag --force"
-    print "  Import data into a local cluster using the named JSON file, and only the fields"
-    print "  'id', 'name', and 'hashtag', overwriting any existing rows with the same primary key."
-    print ""
-    print "rethinkdb import -f user_data.csv --delimiter ';' --no-header --custom-header id,name,number"
-    print "  Import data into a local cluster using the named CSV file with no header and instead"
-    print "  use the fields 'id', 'name', and 'number', the delimiter is a semicolon (rather than"
-    print "  a comma)."
+    print(info)
+    print(usage)
+    print("")
+    print("  -h [ --help ]                    print this help")
+    print("  -c [ --connect ] HOST:PORT       host and client port of a rethinkdb node to connect")
+    print("                                   to (defaults to localhost:28015)")
+    print("  -a [ --auth ] AUTH_KEY           authorization key for rethinkdb clients")
+    print("  --clients NUM_CLIENTS            the number of client connections to use (defaults")
+    print("                                   to 8)")
+    print("  --hard-durability                use hard durability writes (slower, but less memory")
+    print("                                   consumption on the server)")
+    print("  --force                          import data even if a table already exists, and")
+    print("                                   overwrite duplicate primary keys")
+    print("  --fields                         limit which fields to use when importing one table")
+    print("")
+    print("Import directory:")
+    print("  -d [ --directory ] DIR           the directory to import data from")
+    print("  -i [ --import ] (DB | DB.TABLE)  limit restore to the given database or table (may")
+    print("                                   be specified multiple times)")
+    print("  --no-secondary-indexes           do not create secondary indexes for the imported tables")
+    print("")
+    print("Import file:")
+    print("  -f [ --file ] FILE               the file to import data from")
+    print("  --table DB.TABLE                 the table to import the data into")
+    print("  --format (csv | json)            the format of the file (defaults to json)")
+    print("  --pkey PRIMARY_KEY               the field to use as the primary key in the table")
+    print("")
+    print("Import CSV format:")
+    print("  --delimiter CHARACTER            character separating fields, or '\\t' for tab")
+    print("  --no-header                      do not read in a header of field names")
+    print("  --custom-header FIELD,FIELD...   header to use (overriding file header), must be")
+    print("                                   specified if --no-header")
+    print("")
+    print("EXAMPLES:")
+    print("")
+    print("rethinkdb import -d rdb_export -c mnemosyne:39500 --clients 128")
+    print("  Import data into a cluster running on host 'mnemosyne' with a client port at 39500,")
+    print("  using 128 client connections and the named export directory.")
+    print("")
+    print("rethinkdb import -f site_history.csv --format csv --table test.history --pkey count")
+    print("  Import data into a local cluster and the table 'history' in the 'test' database,")
+    print("  using the named CSV file, and using the 'count' field as the primary key.")
+    print("")
+    print("rethinkdb import -d rdb_export -c hades -a hunter2 -i test")
+    print("  Import data into a cluster running on host 'hades' which requires authorization,")
+    print("  using only the database 'test' from the named export directory.")
+    print("")
+    print("rethinkdb import -f subscriber_info.json --fields id,name,hashtag --force")
+    print("  Import data into a local cluster using the named JSON file, and only the fields")
+    print("  'id', 'name', and 'hashtag', overwriting any existing rows with the same primary key.")
+    print("")
+    print("rethinkdb import -f user_data.csv --delimiter ';' --no-header --custom-header id,name,number")
+    print("  Import data into a local cluster using the named CSV file with no header and instead")
+    print("  use the fields 'id', 'name', and 'number', the delimiter is a semicolon (rather than")
+    print("  a comma).")
 
 def parse_options():
     parser = OptionParser(add_help_option=False, usage=usage)
@@ -84,15 +108,16 @@ def parse_options():
     # Directory import options
     parser.add_option("-d", "--directory", dest="directory", metavar="DIRECTORY", default=None, type="string")
     parser.add_option("-i", "--import", dest="tables", metavar="DB | DB.TABLE", default=[], action="append", type="string")
+    parser.add_option("--no-secondary-indexes", dest="create_sindexes", action="store_false", default=True)
 
     # File import options
     parser.add_option("-f", "--file", dest="import_file", metavar="FILE", default=None, type="string")
     parser.add_option("--format", dest="import_format", metavar="json | csv", default=None, type="string")
     parser.add_option("--table", dest="import_table", metavar="DB.TABLE", default=None, type="string")
-    parser.add_option("--pkey", dest="primary_key", metavar="KEY", default = None, type="string")
-    parser.add_option("--delimiter", dest="delimiter", metavar="CHARACTER", default = None, type="string")
-    parser.add_option("--no-header", dest="no_header", action="store_true", default = False)
-    parser.add_option("--custom-header", dest="custom_header", metavar="FIELD,FIELD...", default = None, type="string")
+    parser.add_option("--pkey", dest="primary_key", metavar="KEY", default=None, type="string")
+    parser.add_option("--delimiter", dest="delimiter", metavar="CHARACTER", default=None, type="string")
+    parser.add_option("--no-header", dest="no_header", action="store_true", default=False)
+    parser.add_option("--custom-header", dest="custom_header", metavar="FIELD,FIELD...", default=None, type="string")
     parser.add_option("-h", "--help", dest="help", default=False, action="store_true")
     (options, args) = parser.parse_args()
 
@@ -104,7 +129,7 @@ def parse_options():
         print_import_help()
         exit(0)
 
-    res = { }
+    res = {}
 
     # Verify valid host:port --connect option
     (res["host"], res["port"]) = parse_connect_option(options.host)
@@ -117,6 +142,7 @@ def parse_options():
     res["durability"] = "hard" if options.hard else "soft"
     res["force"] = options.force
     res["debug"] = options.debug
+    res["create_sindexes"] = options.create_sindexes
 
     # Default behavior for csv files - may be changed by options
     res["delimiter"] = ","
@@ -232,55 +258,58 @@ def parse_options():
 # This is called through rdb_call_wrapper so reattempts can be tried as long as progress
 # is being made, but connection errors occur.  We save a failed task in the progress object
 # so it can be resumed later on a new connection.
-def import_from_queue(progress, conn, task_queue, error_queue, use_upsert, durability):
-    if progress[0] is None:
-        progress[0] = 0
-        progress.append(None)
-    elif not use_upsert:
+def import_from_queue(progress, conn, task_queue, error_queue, replace_conflicts, durability, write_count):
+    if progress[0] is not None and not replace_conflicts:
         # We were interrupted and it's not ok to overwrite rows, check that the batch either:
         # a) does not exist on the server
         # b) is exactly the same on the server
-        task = progress[1]
+        task = progress[0]
         pkey = r.db(task[0]).table(task[1]).info().run(conn)["primary_key"]
-        for i in reversed(xrange(len(task[2]))):
-            obj = cPickle.loads(task[2][i])
+        for i in reversed(range(len(task[2]))):
+            obj = pickle.loads(task[2][i])
             if pkey not in obj:
                 raise RuntimeError("Connection error while importing.  Current row has no specified primary key, so cannot guarantee absence of duplicates")
             row = r.db(task[0]).table(task[1]).get(obj[pkey]).run(conn)
             if row == obj:
-                progress[0] += 1
+                write_count[0] += 1
                 del task[2][i]
             else:
                 raise RuntimeError("Duplicate primary key `%s`:\n%s\n%s" % (pkey, str(obj), str(row)))
 
-    task = task_queue.get() if progress[1] is None else progress[1]
-    while len(task) == 3:
+    task = task_queue.get() if progress[0] is None else progress[0]
+    while not isinstance(task, StopIteration):
         try:
             # Unpickle objects (TODO: super inefficient, would be nice if we could pass down json)
-            objs = [cPickle.loads(obj) for obj in task[2]]
-            res = r.db(task[0]).table(task[1]).insert(objs, durability=durability, upsert=use_upsert).run(conn)
+            objs = [pickle.loads(obj) for obj in task[2]]
+            conflict_action = 'replace' if replace_conflicts else 'error'
+            res = r.db(task[0]).table(task[1]).insert(objs, durability=durability, conflict=conflict_action).run(conn)
         except:
-            progress[1] = task
+            progress[0] = task
             raise
 
         if res["errors"] > 0:
             raise RuntimeError("Error when importing into table '%s.%s': %s" %
                                (task[0], task[1], res["first_error"]))
 
-        progress[0] += len(objs)
+        write_count[0] += len(objs)
         task = task_queue.get()
-    return progress[0]
 
 # This is run for each client requested, and accepts tasks from the reader processes
-def client_process(host, port, auth_key, task_queue, error_queue, rows_written, use_upsert, durability):
+def client_process(host, port, auth_key, task_queue, error_queue, rows_written, replace_conflicts, durability):
     try:
         conn_fn = lambda: r.connect(host, port, auth_key=auth_key)
-        res = rdb_call_wrapper(conn_fn, "import", import_from_queue, task_queue, error_queue, use_upsert, durability)
-        with rows_written.get_lock():
-            rows_written.value += res
+        write_count = [0]
+        rdb_call_wrapper(conn_fn, "import", import_from_queue, task_queue, error_queue, replace_conflicts, durability, write_count)
     except:
         ex_type, ex_class, tb = sys.exc_info()
         error_queue.put((ex_type, ex_class, traceback.extract_tb(tb)))
+
+        # Read until the exit event so the readers do not hang on pushing onto the queue
+        while not isinstance(task_queue.get(), StopIteration):
+            pass
+
+    with rows_written.get_lock():
+        rows_written.value += write_count[0]
 
 batch_length_limit = 200
 batch_size_limit = 500000
@@ -303,12 +332,12 @@ def object_callback(obj, db, table, task_queue, object_buffers, buffer_sizes, fi
 
     # filter out fields
     if fields is not None:
-        for key in list(obj.iterkeys()):
+        for key in list(obj.keys()):
             if key not in fields:
                 del obj[key]
 
     # Pickle the object here because we want an accurate size, and it'll pickle anyway for IPC
-    object_buffers.append(cPickle.dumps(obj))
+    object_buffers.append(pickle.dumps(obj))
     buffer_sizes.append(len(object_buffers[-1]))
     if len(object_buffers) >= batch_length_limit or sum(buffer_sizes) > batch_size_limit:
         task_queue.put((db, table, object_buffers))
@@ -317,24 +346,10 @@ def object_callback(obj, db, table, task_queue, object_buffers, buffer_sizes, fi
     return obj
 
 json_read_chunk_size = 32 * 1024
-json_max_buffer_size = 16 * 1024 * 1024
+json_max_buffer_size = 128 * 1024 * 1024
 
-def read_json_single_object(json_data, file_in, callback):
-    decoder = json.JSONDecoder()
-    while True:
-        try:
-            (obj, offset) = decoder.raw_decode(json_data)
-            json_data = json_data[offset:]
-            callback(obj)
-            break
-        except ValueError:
-            before_len = len(json_data)
-            json_data += file_in.read(json_read_chunk_size)
-            if before_len == len(json_data):
-                raise
-    return json_data
-
-def read_json_array(json_data, file_in, callback, progress_info):
+def read_json_array(json_data, file_in, callback, progress_info,
+                    json_array=True):
     decoder = json.JSONDecoder()
     file_offset = 0
     offset = 0
@@ -342,8 +357,8 @@ def read_json_array(json_data, file_in, callback, progress_info):
         try:
             offset = json.decoder.WHITESPACE.match(json_data, offset).end()
 
-            if json_data[offset] == "]": # End of JSON
-                break
+            if json_array and json_data[offset] == "]":
+                break  # End of JSON
 
             (obj, offset) = decoder.raw_decode(json_data, idx=offset)
             callback(obj)
@@ -353,18 +368,21 @@ def read_json_array(json_data, file_in, callback, progress_info):
             json_data = json_data[offset:]
             offset = json.decoder.WHITESPACE.match(json_data, 0).end()
 
-            if json_data[offset] == ",":
+            if json_array and json_data[offset] == ",":
                 # Read past the comma
                 offset = json.decoder.WHITESPACE.match(json_data, offset + 1).end()
-            elif json_data[offset] != "]":
+            elif json_array and json_data[offset] != "]":
                 raise ValueError("Error: JSON format not recognized - expected ',' or ']' after object")
 
         except (ValueError, IndexError):
             before_len = len(json_data)
-            json_data += file_in.read(json_read_chunk_size)
-            if json_data[offset] == ",":
+            to_read = max(json_read_chunk_size, before_len)
+            json_data += file_in.read(min(to_read, json_max_buffer_size - before_len))
+            if json_array and json_data[offset] == ",":
                 offset = json.decoder.WHITESPACE.match(json_data, offset + 1).end()
-            elif before_len == len(json_data) or len(json_data) > json_max_buffer_size:
+            elif (not json_array) and before_len == len(json_data):
+                break  # End of JSON
+            elif before_len == len(json_data) or len(json_data) >= json_max_buffer_size:
                 raise
             progress_info[0].value = file_offset
 
@@ -387,10 +405,11 @@ def json_reader(task_queue, filename, db, table, fields, progress_info, exit_eve
         progress_info[1].value = os.path.getsize(filename)
 
         offset = json.decoder.WHITESPACE.match(json_data, 0).end()
-        if json_data[offset] == "[":
-            json_data = read_json_array(json_data[offset + 1:], file_in, callback, progress_info)
-        elif json_data[offset] == "{":
-            json_data = read_json_single_object(json_data[offset:], file_in, callback)
+        if json_data[offset] in "[{":
+            json_data = read_json_array(
+                json_data[offset + (1 if json_data[offset] == "[" else 0):],
+                file_in, callback, progress_info,
+                json_data[offset] == "[")
         else:
             raise RuntimeError("Error: JSON format not recognized - file does not begin with an object or array")
 
@@ -405,6 +424,38 @@ def json_reader(task_queue, filename, db, table, fields, progress_info, exit_eve
     if len(object_buffers) > 0:
         task_queue.put((db, table, object_buffers))
 
+# Wrapper classes for the handling of unicode csv files
+# Taken from https://docs.python.org/2/library/csv.html
+class Utf8Recoder:
+    def __init__(self, f):
+        self.reader = codecs.getreader('utf-8')(f)
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        return self.reader.next().encode("utf-8")
+
+class Utf8CsvReader:
+    def __init__(self, f, **kwargs):
+        f = Utf8Recoder(f)
+        self.reader = csv.reader(f, **kwargs)
+        self.line_num = self.reader.line_num
+
+    def next(self):
+        row = self.reader.next()
+        self.line_num = self.reader.line_num
+        return [unicode(s, 'utf-8') for s in row]
+
+    def __iter__(self):
+        return self
+
+def open_csv_file(filename):
+    if PY3:
+        return open(filename, 'r', encoding='utf-8', newline='')
+    else:
+        return open(filename, 'r')
+
 def csv_reader(task_queue, filename, db, table, options, progress_info, exit_event):
     object_buffers = []
     buffer_sizes = []
@@ -412,23 +463,26 @@ def csv_reader(task_queue, filename, db, table, options, progress_info, exit_eve
     # Count the lines so we can report progress
     # TODO: this requires us to make two passes on csv files
     line_count = 0
-    with open(filename, "r") as file_in:
+    with open_csv_file(filename) as file_in:
         for i, l in enumerate(file_in):
             pass
         line_count = i + 1
 
     progress_info[1].value = line_count
 
-    with open(filename, "r") as file_in:
-        reader = csv.reader(file_in, delimiter=options["delimiter"])
+    with open_csv_file(filename) as file_in:
+        if PY3:
+            reader = csv.reader(file_in, delimiter=options["delimiter"])
+        else:
+            reader = Utf8CsvReader(file_in, delimiter=options["delimiter"])
 
         if not options["no_header"]:
-            fields_in = reader.next()
+            fields_in = next(reader)
 
         # Field names may override fields from the header
         if options["custom_header"] is not None:
             if not options["no_header"]:
-                print "Ignoring header row: %s" % str(fields_in)
+                print("Ignoring header row: %s" % str(fields_in))
             fields_in = options["custom_header"]
         elif options["no_header"]:
             raise RuntimeError("Error: No field name information available")
@@ -440,7 +494,7 @@ def csv_reader(task_queue, filename, db, table, options, progress_info, exit_eve
                 raise RuntimeError("Error: File '%s' line %d has an inconsistent number of columns" % (filename, file_line))
             # We import all csv fields as strings (since we can't assume the type of the data)
             obj = dict(zip(fields_in, row))
-            for key in list(obj.iterkeys()): # Treat empty fields as no entry rather than empty string
+            for key in list(obj.keys()): # Treat empty fields as no entry rather than empty string
                 if len(obj[key]) == 0:
                     del obj[key]
             object_callback(obj, db, table, task_queue, object_buffers, buffer_sizes, options["fields"], exit_event)
@@ -449,10 +503,23 @@ def csv_reader(task_queue, filename, db, table, options, progress_info, exit_eve
         task_queue.put((db, table, object_buffers))
 
 # This function is called through rdb_call_wrapper, which will reattempt if a connection
-# error occurs.  Progress is not used as this will either succeed or fail.
-def create_table(progress, conn, db, table, pkey):
+# error occurs.  Progress will resume where it left off.
+def create_table(progress, conn, db, table, pkey, sindexes):
     if table not in r.db(db).table_list().run(conn):
         r.db(db).table_create(table, primary_key=pkey).run(conn)
+
+    if progress[0] is None:
+        progress[0] = 0
+
+    # Recreate secondary indexes - assume that any indexes that already exist are wrong
+    # and create them from scratch
+    indexes = r.db(db).table(table).index_list().run(conn)
+    for sindex in sindexes[progress[0]:]:
+        if isinstance(sindex, dict) and all(k in sindex for k in ('index', 'function')):
+            if sindex['index'] in indexes:
+                r.db(db).table(table).index_drop(sindex['index']).run(conn)
+            r.db(db).table(table).index_create(sindex['index'], sindex['function']).run(conn)
+        progress[0] += 1
 
 def table_reader(options, file_info, task_queue, error_queue, progress_info, exit_event):
     try:
@@ -461,7 +528,8 @@ def table_reader(options, file_info, task_queue, error_queue, progress_info, exi
         primary_key = file_info["info"]["primary_key"]
 
         conn_fn = lambda: r.connect(options["host"], options["port"], auth_key=options["auth_key"])
-        rdb_call_wrapper(conn_fn, "create table", create_table, db, table, primary_key)
+        rdb_call_wrapper(conn_fn, "create table", create_table, db, table, primary_key,
+                         file_info["info"]["indexes"] if options["create_sindexes"] else [])
 
         if file_info["format"] == "json":
             json_reader(task_queue,
@@ -491,22 +559,16 @@ def abort_import(signum, frame, parent_pid, exit_event, task_queue, clients, int
         interrupt_event.set()
         exit_event.set()
 
-        alive_clients = sum([client.is_alive() for client in clients])
-        for i in xrange(alive_clients):
-            # TODO: this could theoretically block indefinitely if
-            #   the queue is full and clients aren't reading
-            task_queue.put("exit")
-
 def print_progress(ratio):
     total_width = 40
     done_width = int(ratio * total_width)
     undone_width = total_width - done_width
-    print "\r[%s%s] %3d%%" % ("=" * done_width, " " * undone_width, int(100 * ratio)),
+    print("\r[%s%s] %3d%%" % ("=" * done_width, " " * undone_width, int(100 * ratio)), end=' ')
     sys.stdout.flush()
 
 def update_progress(progress_info):
     lowest_completion = 1.0
-    for (current, max_count) in progress_info:
+    for current, max_count in progress_info:
         curr_val = current.value
         max_val = max_count.value
         if curr_val < 0:
@@ -520,8 +582,8 @@ def update_progress(progress_info):
 
 def spawn_import_clients(options, files_info):
     # Spawn one reader process for each db.table, as well as many client processes
-    task_queue = multiprocessing.queues.SimpleQueue()
-    error_queue = multiprocessing.queues.SimpleQueue()
+    task_queue = SimpleQueue()
+    error_queue = SimpleQueue()
     exit_event = multiprocessing.Event()
     interrupt_event = multiprocessing.Event()
     errors = []
@@ -529,13 +591,13 @@ def spawn_import_clients(options, files_info):
     client_procs = []
 
     parent_pid = os.getpid()
-    signal.signal(signal.SIGINT, lambda a,b: abort_import(a, b, parent_pid, exit_event, task_queue, client_procs, interrupt_event))
+    signal.signal(signal.SIGINT, lambda a, b: abort_import(a, b, parent_pid, exit_event, task_queue, client_procs, interrupt_event))
 
     try:
-        progress_info = [ ]
+        progress_info = []
         rows_written = multiprocessing.Value(ctypes.c_longlong, 0)
 
-        for i in range(options["clients"]):
+        for i in xrange(options["clients"]):
             client_procs.append(multiprocessing.Process(target=client_process,
                                                         args=(options["host"],
                                                               options["port"],
@@ -563,53 +625,50 @@ def spawn_import_clients(options, files_info):
         while len(reader_procs) > 0:
             time.sleep(0.1)
             # If an error has occurred, exit out early
-            if not error_queue.empty():
+            while not error_queue.empty():
                 exit_event.set()
+                errors.append(error_queue.get())
             reader_procs = [proc for proc in reader_procs if proc.is_alive()]
             update_progress(progress_info)
 
         # Wait for all clients to finish
         alive_clients = sum([client.is_alive() for client in client_procs])
         for i in xrange(alive_clients):
-            task_queue.put("exit")
+            task_queue.put(StopIteration())
 
         while len(client_procs) > 0:
             time.sleep(0.1)
             client_procs = [client for client in client_procs if client.is_alive()]
 
         # If we were successful, make sure 100% progress is reported
-        if error_queue.empty() and not interrupt_event.is_set():
+        if len(errors) == 0 and not interrupt_event.is_set():
             print_progress(1.0)
 
         def plural(num, text):
             return "%d %s%s" % (num, text, "" if num == 1 else "s")
 
         # Continue past the progress output line
-        print ""
-        print "%s imported in %s" % (plural(rows_written.value, "row"),
-                                     plural(len(files_info), "table"))
+        print("")
+        print("%s imported in %s" % (plural(rows_written.value, "row"),
+                                     plural(len(files_info), "table")))
     finally:
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
     if interrupt_event.is_set():
         raise RuntimeError("Interrupted")
 
-    if not task_queue.empty():
-        error_queue.put((RuntimeError, RuntimeError("Error: Items remaining in the task queue"), None))
-
-    if not error_queue.empty():
+    if len(errors) != 0:
         # multiprocessing queues don't handling tracebacks, so they've already been stringified in the queue
-        while not error_queue.empty():
-            error = error_queue.get()
-            print >> sys.stderr, "%s" % (error[1])
+        for error in errors:
+            print("%s" % error[1], file=sys.stderr)
             if options["debug"]:
-                print >> sys.stderr, "%s traceback: %s" % (error[0].__name__, error[2])
+                print("%s traceback: %s" % (error[0].__name__, error[2]), file=sys.stderr)
             if len(error) == 4:
-                print >> sys.stderr, "In file: %s" % (error[3])
+                print("In file: %s" % error[3], file=sys.stderr)
         raise RuntimeError("Errors occurred during import")
 
 def get_import_info_for_file(filename, db_table_filter):
-    file_info = { }
+    file_info = {}
     file_info["file"] = filename
     file_info["format"] = os.path.split(filename)[1].split(".")[-1]
     file_info["db"] = os.path.split(os.path.split(filename)[0])[1]
@@ -630,6 +689,8 @@ def tables_check(progress, conn, files_info, force):
     # Ensure that all needed databases exist and tables don't
     db_list = r.db_list().run(conn)
     for db in set([file_info["db"] for file_info in files_info]):
+        if db == "rethinkdb":
+            raise RuntimeError("Error: Cannot import tables into the system database: 'rethinkdb'")
         if db not in db_list:
             r.db_create(db).run(conn)
 
@@ -654,7 +715,7 @@ def import_directory(options):
     db_filter = set([db_table[0] for db_table in options["db_tables"]])
     files_to_import = []
     files_ignored = []
-    for (root, dirs, files) in os.walk(options["directory"]):
+    for root, dirs, files in os.walk(options["directory"]):
         if not dbs:
             files_ignored.extend([os.path.join(root, f) for f in files])
             # The first iteration through should be the top-level directory, which contains the db folders
@@ -696,6 +757,9 @@ def import_directory(options):
         db_tables.add((file_info["db"], file_info["table"]))
 
     conn_fn = lambda: r.connect(options["host"], options["port"], auth_key=options["auth_key"])
+    # Make sure this isn't a pre-`reql_admin` cluster - which could result in data loss
+    # if the user has a database named 'rethinkdb'
+    rdb_call_wrapper(conn_fn, "version check", check_minimum_version, (1, 16, 0))
     already_exist = rdb_call_wrapper(conn_fn, "tables check", tables_check, files_info, options["force"])
 
     if len(already_exist) == 1:
@@ -707,15 +771,18 @@ def import_directory(options):
 
     # Warn the user about the files that were ignored
     if len(files_ignored) > 0:
-        print >> sys.stderr, "Unexpected files found in the specified directory.  Importing a directory expects"
-        print >> sys.stderr, " a directory from `rethinkdb export`.  If you want to import individual tables"
-        print >> sys.stderr, " import them as single files.  The following files were ignored:"
+        print("Unexpected files found in the specified directory.  Importing a directory expects", file=sys.stderr)
+        print(" a directory from `rethinkdb export`.  If you want to import individual tables", file=sys.stderr)
+        print(" import them as single files.  The following files were ignored:", file=sys.stderr)
         for f in files_ignored:
-            print >> sys.stderr, "%s" % str(f)
+            print("%s" % str(f), file=sys.stderr)
 
     spawn_import_clients(options, files_info)
 
 def table_check(progress, conn, db, table, pkey, force):
+    if db == "rethinkdb":
+        raise RuntimeError("Error: Cannot import a table into the system database: 'rethinkdb'")
+
     if db not in r.db_list().run(conn):
         r.db_create(db).run(conn)
 
@@ -729,7 +796,7 @@ def table_check(progress, conn, db, table, pkey, force):
         pkey = extant_pkey
     else:
         if pkey is None:
-            print "no primary key specified, using default primary key when creating table"
+            print("no primary key specified, using default primary key when creating table")
             r.db(db).table_create(table).run(conn)
         else:
             r.db(db).table_create(table, primary_key=pkey).run(conn)
@@ -742,6 +809,9 @@ def import_file(options):
 
     # Ensure that the database and table exist with the right primary key
     conn_fn = lambda: r.connect(options["host"], options["port"], auth_key=options["auth_key"])
+    # Make sure this isn't a pre-`reql_admin` cluster - which could result in data loss
+    # if the user has a database named 'rethinkdb'
+    rdb_call_wrapper(conn_fn, "version check", check_minimum_version, (1, 16, 0))
     pkey = rdb_call_wrapper(conn_fn, "table check", table_check, db, table, pkey, options["force"])
 
     # Make this up so we can use the same interface as with an import directory
@@ -750,7 +820,7 @@ def import_file(options):
     file_info["format"] = options["import_format"]
     file_info["db"] = db
     file_info["table"] = table
-    file_info["info"] = { "primary_key": pkey }
+    file_info["info"] = {"primary_key": pkey, "indexes": []}
 
     spawn_import_clients(options, [file_info])
 
@@ -758,8 +828,8 @@ def main():
     try:
         options = parse_options()
     except RuntimeError as ex:
-        print >> sys.stderr, "Usage:\n%s" % usage
-        print >> sys.stderr, ex
+        print("Usage:\n%s" % usage, file=sys.stderr)
+        print(ex, file=sys.stderr)
         return 1
 
     try:
@@ -771,9 +841,9 @@ def main():
         else:
             raise RuntimeError("Error: Neither --directory or --file specified")
     except RuntimeError as ex:
-        print >> sys.stderr, ex
+        print(ex, file=sys.stderr)
         return 1
-    print "  Done (%d seconds)" % (time.time() - start_time)
+    print("  Done (%d seconds)" % (time.time() - start_time))
     return 0
 
 if __name__ == "__main__":

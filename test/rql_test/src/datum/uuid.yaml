@@ -1,0 +1,12 @@
+desc: Test that UUIDs work
+tests:
+  - cd: r.uuid()
+  - cd: r.expr(r.uuid())
+  - cd: r.type_of(r.uuid())
+    ot: ('STRING')
+  - cd: r.uuid().ne(r.uuid())
+    ot: (true)
+  - py: r.expr([1,2,3,4,5,6,7,8,9,10]).map(lambda u:r.uuid()).distinct().count()
+    js: r([1,2,3,4,5,6,7,8,9,10]).map(function(u) {return r.uuid();}).distinct().count()
+    rb: r.expr([1,2,3,4,5,6,7,8,9,10]).map {|u| r.uuid()}.distinct().count()
+    ot: (10)

@@ -1,16 +1,8 @@
 desc: Tests deletes of selections
+table_variable_name: tbl
 tests:
 
     # Set up some data
-    - cd: r.db('test').table_create('test1')
-      ot: ({'created':1})
-
-    - def: tbl = r.db('test').table('test1')
-
-    - cd: r.db('test').table_create('test2')
-      ot: ({'created':1})
-
-    - def: tbl2 = r.db('test').table('test2')
 
     - py: tbl.insert([{'id':i} for i in xrange(100)])
       js: |
@@ -52,12 +44,6 @@ tests:
       rb: tbl.delete({ :durability => 'hard' })
       py: tbl.delete(durability='hard')
       ot: ({'deleted':50,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':0.0})
-
-    # clean up
-    - cd: r.db('test').table_drop('test1')
-      ot: "({'dropped':1})"
-    - cd: r.db('test').table_drop('test2')
-      ot: "({'dropped':1})"
 
     # test deletion on a non-deletable object
     - cd: r.expr([1, 2]).delete()

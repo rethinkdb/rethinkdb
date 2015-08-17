@@ -12,8 +12,6 @@ reql_t::reql_t(const std::string &val) { set_datum(datum_t(val.c_str())); }
 
 reql_t::reql_t(const datum_t &d) { set_datum(d); }
 
-reql_t::reql_t(const counted_t<const datum_t> &d) { set_datum(*d.get()); }
-
 reql_t::reql_t(const Datum &d) : term(make_scoped<Term>()) {
     term->set_type(Term::DATUM);
     *term->mutable_datum() = d;
@@ -40,17 +38,17 @@ reql_t::reql_t(pb::dummy_var_t var) : term(make_scoped<Term>()) {
 }
 
 reql_t boolean(bool b) {
-    return reql_t(datum_t(datum_t::R_BOOL, b));
+    return reql_t(datum_t(datum_t::construct_boolean_t(), b));
 }
 
-void reql_t::copy_optargs_from_term(const Term &from){
+void reql_t::copy_optargs_from_term(const Term &from) {
     for (int i = 0; i < from.optargs_size(); ++i) {
         const Term_AssocPair &o = from.optargs(i);
         add_arg(r::optarg(o.key(), o.val()));
     }
 }
 
-void reql_t::copy_args_from_term(const Term &from, size_t start_index){
+void reql_t::copy_args_from_term(const Term &from, size_t start_index) {
     for (int i = start_index; i < from.args_size(); ++i) {
         add_arg(from.args(i));
     }

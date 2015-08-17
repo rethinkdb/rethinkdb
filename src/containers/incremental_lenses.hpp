@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CONTAINERS_INCREMENTAL_LENSES_HPP_
 #define CONTAINERS_INCREMENTAL_LENSES_HPP_
 
@@ -8,18 +8,24 @@
 #include "errors.hpp"
 #include <boost/utility/result_of.hpp>
 
+#include "containers/scoped.hpp"
+#include "containers/uuid.hpp"
+
 /* `change_tracking_map_t` is like an `std::map`. However it keeps track
  * of which keys have been modified.
  * You can get access to the map's data through `get_inner()`.
  * Before changing any of the values, you must call `begin_version()`.
  * This resets the set of changed keys. It is therefore important that whatever
  * processes the changes to the change_tracking_map is called once per call to
- * begin_version, because it could otherwise miss some changes.
+ * begin_version. The subscription_t interface keeps track of the last processed
+ * version and detects cases where a version has been skipped, but
+ * this effectively degrades the change_tracking_map_t to a regular map if it
+ * happens frequently.
  */
 template <class key_type, class inner_type>
 class change_tracking_map_t {
 public:
-    change_tracking_map_t() : current_version(0) { }
+    change_tracking_map_t() : current_version(0), uuid(generate_uuid()) { }
 
     // Write operations
     void begin_version() {
@@ -27,26 +33,26 @@ public:
         ++current_version;
     }
     void set_value(const key_type &key, const inner_type &value) {
-        rassert (current_version > 0, "You must call begin_version() before "
+        rassert(current_version > 0, "You must call begin_version() before "
             "performing any changes.");
         changed_keys.insert(key);
         inner[key] = value;
     }
     // Same as above but with move semantics
     void set_value(const key_type &key, inner_type &&value) {
-        rassert (current_version > 0, "You must call begin_version() before "
+        rassert(current_version > 0, "You must call begin_version() before "
             "performing any changes.");
         changed_keys.insert(key);
         inner[key] = std::move(value);
     }
     void delete_value(const key_type &key) {
-        rassert (current_version > 0, "You must call begin_version() before "
+        rassert(current_version > 0, "You must call begin_version() before "
             "performing any changes.");
         changed_keys.insert(key);
         inner.erase(key);
     }
     void clear() {
-        rassert (current_version > 0, "You must call begin_version() before "
+        rassert(current_version > 0, "You must call begin_version() before "
             "performing any changes.");
         for (auto it = inner.begin(); it != inner.end(); ++it) {
             changed_keys.insert(it->first);
@@ -55,24 +61,58 @@ public:
     }
 
     // Getters
+    class subscription_t {
+    public:
+        bool is_valid(const change_tracking_map_t &source) {
+            if (source.get_uuid() != source_id) {
+                return false;
+            }
+            // Check if we have missed any changes.
+            const bool missed_version =
+                source.get_current_version() != at_version + 1;
+            return !missed_version;
+        }
+        const std::set<key_type> &get_changed_keys(
+                const change_tracking_map_t &source) {
+            guarantee(is_valid(source));
+            ++at_version;
+            return source.get_changed_keys();
+        }
+    private:
+        friend class change_tracking_map_t;
+        DISABLE_COPYING(subscription_t);
+        explicit subscription_t(const change_tracking_map_t &_source)
+            : source_id(_source.get_uuid()),
+              at_version(_source.get_current_version()) { }
+        const uuid_u source_id;
+        unsigned int at_version;
+    };
+    scoped_ptr_t<subscription_t> subscribe() const {
+        return scoped_ptr_t<subscription_t>(new subscription_t(*this));
+    }
     const std::map<key_type, inner_type> &get_inner() const { return inner; }
-    const std::set<key_type> &get_changed_keys() const { return changed_keys; }
     unsigned int get_current_version() const { return current_version; }
 
     // Operators
     bool operator==(const change_tracking_map_t &o) const {
         return o.current_version == current_version
             && o.changed_keys == changed_keys
-            && o.inner == inner;
+            && o.inner == inner
+            && o.uuid == uuid;
     }
     bool operator!=(const change_tracking_map_t &o) const {
         return !(o == *this);
     }
 
 private:
+    // Use subscription_t to access this information in a safe way
+    const std::set<key_type> &get_changed_keys() const { return changed_keys; }
+    uuid_u get_uuid() const { return uuid; }
+
     std::map<key_type, inner_type> inner;
     std::set<key_type> changed_keys;
     unsigned int current_version;
+    uuid_u uuid;
 };
 
 
@@ -94,25 +134,43 @@ public:
         inner_lens(_inner_lens) {
     }
 
+    // Copy operators
+    incremental_map_lens_t(const incremental_map_lens_t &_other) :
+        inner_lens(_other.inner_lens) /* Don't copy subscription */ { }
+    incremental_map_lens_t &operator=(const incremental_map_lens_t &_other) {
+        inner_lens = _other.inner_lens;
+        subscription.reset();
+        return *this;
+    }
+
     bool operator()(const change_tracking_map_t<key_type, inner_type> &input,
                     result_type *current_out) {
         guarantee(current_out != NULL);
 
+        bool do_init = false;
+        if (!subscription.has() || !subscription->is_valid(input)) {
+            subscription = input.subscribe();
+            do_init = true;
+        }
+        guarantee(current_out->get_current_version() != 0 || do_init);
+
         bool anything_changed = false;
 
-        const bool do_init = current_out->get_current_version() == 0;
         // Begin a new version
         current_out->begin_version();
 
         if (do_init) {
             // Compute all values
+            current_out->clear();
             for (auto it = input.get_inner().begin(); it != input.get_inner().end(); ++it) {
                 current_out->set_value(it->first, inner_lens(it->second));
             }
             anything_changed = true;
         } else {
             // Update changed values only
-            for (auto it = input.get_changed_keys().begin(); it != input.get_changed_keys().end(); ++it) {
+            const std::set<key_type> &changed_keys =
+                subscription->get_changed_keys(input);
+            for (auto it = changed_keys.begin(); it != changed_keys.end(); ++it) {
                 auto input_value_it = input.get_inner().find(*it);
                 auto existing_it = current_out->get_inner().find(*it);
                 if (input_value_it == input.get_inner().end()) {
@@ -151,6 +209,8 @@ public:
     }
 
 private:
+    scoped_ptr_t<typename change_tracking_map_t<key_type, inner_type>::subscription_t>
+        subscription;
     callable_type inner_lens;
 };
 

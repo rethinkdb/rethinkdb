@@ -1,8 +1,6 @@
 desc: reject non-deterministic secondary indexes (#579)
+table_variable_name: tbl
 tests:
-
-  - cd: r.db('test').table_create('579')
-    def: tbl = r.table('579')
 
   - cd: tbl.insert({'name':'Jim Brown'})
 
@@ -16,4 +14,3 @@ tests:
     rb: tbl.index_create("579") {|rec| tbl.get(0)}
     ot: err("RqlRuntimeError", "Could not prove function deterministic.  Index functions must be deterministic.", [])
 
-  - cd: r.db('test').table_drop('579')

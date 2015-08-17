@@ -75,8 +75,12 @@ include $(TOP)/mk/check-env.mk
 include $(TOP)/mk/pipe-stderr.mk
 
 # The cached list of phony targets
-PHONY_LIST =
+PHONY_LIST = var-%
 -include $(TOP)/mk/gen/phony-list.mk
+
+# Explicitely add `deps' to the phony list, which was not being rebuilt properly (see review 1773).
+# This line can be removed after #2700 is fixed.
+PHONY_LIST += deps
 
 .PHONY: debug-count
 debug-count:
@@ -96,8 +100,8 @@ $(TOP)/mk/gen/phony-list.mk: $(CONFIG)
 	  | egrep '^.PHONY: |^MAKEFILE_LIST = ' \
 	  | egrep -v '\$$' \
 	  | sed 's/^.PHONY:/PHONY_LIST +=/' \
-	  | sed 's|^MAKEFILE_LIST = \(.*\)$$|$$(TOP)/mk/gen/phony-list.mk: $$(patsubst $(TOP)/%,$$(TOP)/%,$$(filter-out %.d,\1))|' \
-	  > $@
+	  | sed 's|^MAKEFILE_LIST =|$$(TOP)/mk/gen/phony-list.mk: $$(patsubst $(TOP)/%,$$(TOP)/%,$$(filter-out %.d,|;s|$$|))|' \
+	  > $@ 2>/dev/null
 
 # Don't try to rebuild any of the Makefiles
 Makefile:

@@ -1,0 +1,26 @@
+desc: 1179 -- BRACKET term
+table_variable_name: tbl
+tests:
+  - js: r.expr([1])(r.expr(0))
+    py: r.expr([1])[r.expr(0)]
+    rb: r.expr([1])[r.expr(0)]
+    ot: 1
+  - js: r.expr({"foo":1})('foo')
+    ot: 1
+  - js: r.expr([1])(0)
+    ot: 1
+  - js: tbl.insert([{'id':42},{'id':4},{'id':89},{'id':6},{'id':43}]).pluck('inserted','first_error')
+    ot: ({'inserted':5})
+
+  # test [] grouped data semantics
+  - js: tbl.group('id')(0)
+    ot: ([{"group":4,"reduction":{"id":4}},{"group":6,"reduction":{"id":6}},{"group":42,"reduction":{"id":42}},{"group":43,"reduction":{"id":43}},{"group":89,"reduction":{"id":89}}] )
+  - js: tbl.coerce_to('array').group('id')(0)
+    ot: ([{"group":4,"reduction":{"id":4}},{"group":6,"reduction":{"id":6}},{"group":42,"reduction":{"id":42}},{"group":43,"reduction":{"id":43}},{"group":89,"reduction":{"id":89}}] )
+
+  # test nth grouped data semantics
+  - js: tbl.group('id').nth(0)
+    ot: ([{"group":4,"reduction":{"id":4}},{"group":6,"reduction":{"id":6}},{"group":42,"reduction":{"id":42}},{"group":43,"reduction":{"id":43}},{"group":89,"reduction":{"id":89}}] )
+  - js: tbl.coerce_to('array').group('id').nth(0)
+    ot: ([{"group":4,"reduction":{"id":4}},{"group":6,"reduction":{"id":6}},{"group":42,"reduction":{"id":42}},{"group":43,"reduction":{"id":43}},{"group":89,"reduction":{"id":89}}] )
+

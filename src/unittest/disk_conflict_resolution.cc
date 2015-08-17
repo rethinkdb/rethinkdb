@@ -2,9 +2,6 @@
 #include <functional>
 #include <vector>
 
-#include "errors.hpp"
-#include <boost/ptr_container/ptr_vector.hpp>
-
 #include "arch/io/disk/conflict_resolving.hpp"
 #include "arch/io/disk/accounting.hpp"
 #include "arch/runtime/thread_pool.hpp"
@@ -24,7 +21,7 @@ struct test_driver_t {
 
     // We avoid deallocating actions during the test to make sure that each action
     // has a unique pointer value.
-    boost::ptr_vector<action_t> allocated_actions;
+    std::vector<scoped_ptr_t<action_t> > allocated_actions;
 
     std::set<accounting_diskmgr_action_t *> running_actions;
     std::vector<char> data;
@@ -56,9 +53,8 @@ struct test_driver_t {
     }
 
     action_t *make_action() {
-        action_t *ret = new action_t;
-        allocated_actions.push_back(ret);
-        return ret;
+        allocated_actions.push_back(make_scoped<action_t>());
+        return allocated_actions.back().get();
     }
 
     bool action_has_begun(accounting_diskmgr_action_t *action) const {
@@ -418,7 +414,7 @@ void cause_test_failure() {
 
 TEST(DiskConflictTest, MetaTest) {
     EXPECT_NONFATAL_FAILURE(cause_test_failure(), "Read returned wrong data.");
-};
+}
 
 TEST(DiskConflictTest, FillBufsFromSource) {
     // A 27-element array.

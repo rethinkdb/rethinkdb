@@ -10,56 +10,57 @@
 
 namespace ql {
 
-func_t::func_t(const protob_t<const Backtrace> &bt_source)
-  : pb_rcheckable_t(bt_source) { }
+func_t::func_t(backtrace_id_t bt)
+  : bt_rcheckable_t(bt) { }
 func_t::~func_t() { }
 
-counted_t<val_t> func_t::call(env_t *env, eval_flags_t eval_flags) const {
-    std::vector<counted_t<const datum_t> > args;
+scoped_ptr_t<val_t> func_t::call(env_t *env, eval_flags_t eval_flags) const {
+    std::vector<datum_t> args;
     return call(env, args, eval_flags);
 }
 
-counted_t<val_t> func_t::call(env_t *env,
-                              counted_t<const datum_t> arg,
-                              eval_flags_t eval_flags) const {
+scoped_ptr_t<val_t> func_t::call(env_t *env,
+                                 datum_t arg,
+                                 eval_flags_t eval_flags) const {
     return call(env, make_vector(arg), eval_flags);
 }
 
-counted_t<val_t> func_t::call(env_t *env,
-                              counted_t<const datum_t> arg1,
-                              counted_t<const datum_t> arg2,
+scoped_ptr_t<val_t> func_t::call(env_t *env,
+                              datum_t arg1,
+                              datum_t arg2,
                               eval_flags_t eval_flags) const {
     return call(env, make_vector(arg1, arg2), eval_flags);
 }
 
 void func_t::assert_deterministic(const char *extra_msg) const {
     rcheck(is_deterministic(),
-           base_exc_t::GENERIC,
+           base_exc_t::LOGIC,
            strprintf("Could not prove function deterministic.  %s", extra_msg));
 }
 
-reql_func_t::reql_func_t(const protob_t<const Backtrace> backtrace,
+reql_func_t::reql_func_t(backtrace_id_t backtrace,
                          const var_scope_t &_captured_scope,
                          std::vector<sym_t> _arg_names,
-                         counted_t<term_t> _body)
+                         counted_t<const term_t> _body)
     : func_t(backtrace), captured_scope(_captured_scope),
       arg_names(std::move(_arg_names)), body(std::move(_body)) { }
 
 reql_func_t::~reql_func_t() { }
 
-counted_t<val_t> reql_func_t::call(
-    env_t *env,
-    const std::vector<counted_t<const datum_t> > &args,
-    eval_flags_t eval_flags) const {
+scoped_ptr_t<val_t> reql_func_t::call(env_t *env,
+                                      const std::vector<datum_t> &args,
+                                      eval_flags_t eval_flags) const {
     try {
         // We allow arg_names.size() == 0 to specifically permit users (Ruby users
         // especially) to use zero-arity functions without the drivers to know anything
         // about that.  Some server-created functions might also be constructed this
         // way (thanks to entropy).  TODO: This is bad.
         rcheck(arg_names.size() == args.size() || arg_names.size() == 0,
-               base_exc_t::GENERIC,
-               strprintf("Expected %zd argument(s) but found %zu.",
-                         arg_names.size(), args.size()));
+               base_exc_t::LOGIC,
+               strprintf("Expected %zd argument%s but found %zu.",
+                         arg_names.size(),
+                         (arg_names.size() == 1 ? "" : "s"),
+                         args.size()));
 
         var_scope_t new_scope = arg_names.size() == 0
             ? captured_scope
@@ -73,22 +74,26 @@ counted_t<val_t> reql_func_t::call(
     }
 }
 
+boost::optional<size_t> reql_func_t::arity() const {
+    return arg_names.size();
+}
+
 bool reql_func_t::is_deterministic() const {
     return body->is_deterministic();
 }
 
 js_func_t::js_func_t(const std::string &_js_source,
                      uint64_t timeout_ms,
-                     protob_t<const Backtrace> backtrace)
+                     backtrace_id_t backtrace)
     : func_t(backtrace),
       js_source(_js_source),
       js_timeout_ms(timeout_ms) { }
 
 js_func_t::~js_func_t() { }
 
-counted_t<val_t> js_func_t::call(
+scoped_ptr_t<val_t> js_func_t::call(
     env_t *env,
-    const std::vector<counted_t<const datum_t> > &args,
+    const std::vector<datum_t> &args,
     UNUSED eval_flags_t eval_flags) const {
     try {
         js_runner_t::req_config_t config;
@@ -99,23 +104,28 @@ counted_t<val_t> js_func_t::call(
 
         try {
             result = env->get_js_runner()->call(js_source, args, config);
-        } catch (const js_worker_exc_t &e) {
-            rfail(base_exc_t::GENERIC,
+        } catch (const extproc_worker_exc_t &e) {
+            rfail(base_exc_t::INTERNAL,
                   "Javascript query `%s` caused a crash in a worker process.",
                   js_source.c_str());
         } catch (const interrupted_exc_t &e) {
-            rfail(base_exc_t::GENERIC,
+            rfail(base_exc_t::LOGIC,
                   "JavaScript query `%s` timed out after "
                   "%" PRIu64 ".%03" PRIu64 " seconds.",
                   js_source.c_str(), js_timeout_ms / 1000, js_timeout_ms % 1000);
         }
 
-        return boost::apply_visitor(
-            js_result_visitor_t(js_source, js_timeout_ms, this), result);
+        return scoped_ptr_t<val_t>(
+                boost::apply_visitor(
+                        js_result_visitor_t(js_source, js_timeout_ms, this), result));
     } catch (const datum_exc_t &e) {
         rfail(e.get_type(), "%s", e.what());
         unreachable();
     }
+}
+
+boost::optional<size_t> js_func_t::arity() const {
+    return boost::none;
 }
 
 bool js_func_t::is_deterministic() const {
@@ -131,14 +141,14 @@ void js_func_t::visit(func_visitor_t *visitor) const {
 }
 
 func_term_t::func_term_t(compile_env_t *env, const protob_t<const Term> &t)
-    : term_t(t) {
+        : term_t(t) {
     r_sanity_check(t.has());
     r_sanity_check(t->type() == Term_TermType_FUNC);
     rcheck(t->optargs_size() == 0,
-           base_exc_t::GENERIC,
+           base_exc_t::LOGIC,
            "FUNC takes no optional arguments.");
     rcheck(t->args_size() == 2,
-           base_exc_t::GENERIC,
+           base_exc_t::LOGIC,
            strprintf("Func takes exactly two arguments (got %d)", t->args_size()));
 
     std::vector<sym_t> args;
@@ -146,12 +156,12 @@ func_term_t::func_term_t(compile_env_t *env, const protob_t<const Term> &t)
     if (vars->type() == Term_TermType_DATUM) {
         const Datum *d = &vars->datum();
         rcheck(d->type() == Datum_DatumType_R_ARRAY,
-               base_exc_t::GENERIC,
+               base_exc_t::LOGIC,
                "CLIENT ERROR: FUNC variables must be a literal *array* of numbers.");
         for (int i = 0; i < d->r_array_size(); ++i) {
             const Datum *dnum = &d->r_array(i);
             rcheck(dnum->type() == Datum_DatumType_R_NUM,
-                   base_exc_t::GENERIC,
+                   base_exc_t::LOGIC,
                    "CLIENT ERROR: FUNC variables must be a literal array of *numbers*.");
             // this is fucking retarded
             args.push_back(sym_t(dnum->r_num()));
@@ -160,17 +170,17 @@ func_term_t::func_term_t(compile_env_t *env, const protob_t<const Term> &t)
         for (int i = 0; i < vars->args_size(); ++i) {
             const Term *arg = &vars->args(i);
             rcheck(arg->type() == Term_TermType_DATUM,
-                   base_exc_t::GENERIC,
+                   base_exc_t::LOGIC,
                    "CLIENT ERROR: FUNC variables must be a *literal* array of numbers.");
             const Datum *dnum = &arg->datum();
             rcheck(dnum->type() == Datum_DatumType_R_NUM,
-                   base_exc_t::GENERIC,
+                   base_exc_t::LOGIC,
                    "CLIENT ERROR: FUNC variables must be a literal array of *numbers*.");
             // this is fucking retarded
             args.push_back(sym_t(dnum->r_num()));
         }
     } else {
-        rfail(base_exc_t::GENERIC,
+        rfail(base_exc_t::LOGIC,
               "CLIENT ERROR: FUNC variables must be a *literal array of numbers*.");
     }
 
@@ -179,7 +189,7 @@ func_term_t::func_term_t(compile_env_t *env, const protob_t<const Term> &t)
     compile_env_t body_env(std::move(varname_visibility));
 
     protob_t<const Term> body_source = t.make_child(&t->args(1));
-    counted_t<term_t> compiled_body = compile_term(&body_env, body_source);
+    counted_t<const term_t> compiled_body = compile_term(&body_env, body_source);
     r_sanity_check(compiled_body.has());
 
     var_captures_t captures;
@@ -202,12 +212,13 @@ void func_term_t::accumulate_captures(var_captures_t *captures) const {
     captures->implicit_is_captured |= external_captures.implicit_is_captured;
 }
 
-counted_t<val_t> func_term_t::term_eval(scope_env_t *env, UNUSED eval_flags_t flags) {
+scoped_ptr_t<val_t> func_term_t::term_eval(scope_env_t *env,
+                                           UNUSED eval_flags_t flags) const {
     return new_val(eval_to_func(env->scope));
 }
 
-counted_t<func_t> func_term_t::eval_to_func(const var_scope_t &env_scope) {
-    return make_counted<reql_func_t>(get_backtrace(get_src()),
+counted_t<const func_t> func_term_t::eval_to_func(const var_scope_t &env_scope) const {
+    return make_counted<reql_func_t>(backtrace(),
                                      env_scope.filtered_by_captures(external_captures),
                                      arg_names, body);
 }
@@ -218,23 +229,22 @@ bool func_term_t::is_deterministic() const {
 
 /* The predicate here is the datum which defines the predicate and the value is
  * the object which we check to make sure matches the predicate. */
-bool filter_match(counted_t<const datum_t> predicate, counted_t<const datum_t> value,
+bool filter_match(datum_t predicate, datum_t value,
                   const rcheckable_t *parent) {
-    if (predicate->is_ptype(pseudo::literal_string)) {
-        return *predicate->get(pseudo::value_key) == *value;
+    if (predicate.is_ptype(pseudo::literal_string)) {
+        return predicate.get_field(pseudo::value_key) == value;
     } else {
-        const std::map<std::string, counted_t<const datum_t> > &obj
-            = predicate->as_object();
-        for (auto it = obj.begin(); it != obj.end(); ++it) {
-            r_sanity_check(it->second.has());
-            counted_t<const datum_t> elt = value->get(it->first, NOTHROW);
+        for (size_t i = 0; i < predicate.obj_size(); ++i) {
+            auto pair = predicate.get_pair(i);
+            r_sanity_check(pair.second.has());
+            datum_t elt = value.get_field(pair.first, NOTHROW);
             if (!elt.has()) {
                 rfail_target(parent, base_exc_t::NON_EXISTENCE,
-                        "No attribute `%s` in object.", it->first.c_str());
-            } else if (it->second->get_type() == datum_t::R_OBJECT &&
-                       elt->get_type() == datum_t::R_OBJECT) {
-                if (!filter_match(it->second, elt, parent)) { return false; }
-            } else if (*elt != *it->second) {
+                        "No attribute `%s` in object.", pair.first.to_std().c_str());
+            } else if (pair.second.get_type() == datum_t::R_OBJECT &&
+                       elt.get_type() == datum_t::R_OBJECT) {
+                if (!filter_match(pair.second, elt, parent)) { return false; }
+            } else if (elt != pair.second) {
                 return false;
             }
         }
@@ -242,14 +252,14 @@ bool filter_match(counted_t<const datum_t> predicate, counted_t<const datum_t> v
     }
 }
 
-bool reql_func_t::filter_helper(env_t *env, counted_t<const datum_t> arg) const {
-    counted_t<const datum_t> d = call(env, make_vector(arg), NO_FLAGS)->as_datum();
-    if (d->get_type() == datum_t::R_OBJECT &&
+bool reql_func_t::filter_helper(env_t *env, datum_t arg) const {
+    datum_t d = call(env, make_vector(arg), NO_FLAGS)->as_datum();
+    if (d.get_type() == datum_t::R_OBJECT &&
         (body->get_src()->type() == Term::MAKE_OBJ ||
          body->get_src()->type() == Term::DATUM)) {
         return filter_match(d, arg, this);
     } else {
-        return d->as_bool();
+        return d.as_bool();
     }
 }
 
@@ -272,12 +282,12 @@ std::string js_func_t::print_source() const {
     return ret;
 }
 
-bool js_func_t::filter_helper(env_t *env, counted_t<const datum_t> arg) const {
-    counted_t<const datum_t> d = call(env, make_vector(arg), NO_FLAGS)->as_datum();
-    return d->as_bool();
+bool js_func_t::filter_helper(env_t *env, datum_t arg) const {
+    datum_t d = call(env, make_vector(arg), NO_FLAGS)->as_datum();
+    return d.as_bool();
 }
 
-bool func_t::filter_call(env_t *env, counted_t<const datum_t> arg, counted_t<func_t> default_filter_val) const {
+bool func_t::filter_call(env_t *env, datum_t arg, counted_t<const func_t> default_filter_val) const {
     // We have to catch every exception type and save it so we can rethrow it later
     // So we don't trigger a coroutine wait in a catch statement
     std::exception_ptr saved_exception;
@@ -321,10 +331,9 @@ bool func_t::filter_call(env_t *env, counted_t<const datum_t> arg, counted_t<fun
     std::rethrow_exception(saved_exception);
 }
 
-counted_t<func_t> new_constant_func(counted_t<const datum_t> obj,
-                                    const protob_t<const Backtrace> &bt_src) {
+counted_t<const func_t> new_constant_func(datum_t obj, backtrace_id_t bt) {
     protob_t<Term> twrap = r::fun(r::expr(obj)).release_counted();
-    propagate_backtrace(twrap.get(), bt_src.get());
+    propagate_backtrace(twrap.get(), bt);
 
     compile_env_t empty_compile_env((var_visibility_t()));
     counted_t<func_term_t> func_term = make_counted<func_term_t>(&empty_compile_env,
@@ -332,12 +341,10 @@ counted_t<func_t> new_constant_func(counted_t<const datum_t> obj,
     return func_term->eval_to_func(var_scope_t());
 }
 
-counted_t<func_t> new_get_field_func(counted_t<const datum_t> key,
-                                     const protob_t<const Backtrace> &bt_src) {
+counted_t<const func_t> new_get_field_func(datum_t key, backtrace_id_t bt) {
     pb::dummy_var_t obj = pb::dummy_var_t::FUNC_GETFIELD;
     protob_t<Term> twrap = r::fun(obj, r::var(obj)[key]).release_counted();
-
-    propagate_backtrace(twrap.get(), bt_src.get());
+    propagate_backtrace(twrap.get(), bt);
 
     compile_env_t empty_compile_env((var_visibility_t()));
     counted_t<func_term_t> func_term = make_counted<func_term_t>(&empty_compile_env,
@@ -345,11 +352,10 @@ counted_t<func_t> new_get_field_func(counted_t<const datum_t> key,
     return func_term->eval_to_func(var_scope_t());
 }
 
-counted_t<func_t> new_pluck_func(counted_t<const datum_t> obj,
-                                 const protob_t<const Backtrace> &bt_src) {
+counted_t<const func_t> new_pluck_func(datum_t obj, backtrace_id_t bt) {
     pb::dummy_var_t var = pb::dummy_var_t::FUNC_PLUCK;
     protob_t<Term> twrap = r::fun(var, r::var(var).pluck(obj)).release_counted();
-    propagate_backtrace(twrap.get(), bt_src.get());
+    propagate_backtrace(twrap.get(), bt);
 
     compile_env_t empty_compile_env((var_visibility_t()));
     counted_t<func_term_t> func_term = make_counted<func_term_t>(&empty_compile_env,
@@ -357,11 +363,10 @@ counted_t<func_t> new_pluck_func(counted_t<const datum_t> obj,
     return func_term->eval_to_func(var_scope_t());
 }
 
-counted_t<func_t> new_eq_comparison_func(counted_t<const datum_t> obj,
-                                         const protob_t<const Backtrace> &bt_src) {
+counted_t<const func_t> new_eq_comparison_func(datum_t obj, backtrace_id_t bt) {
     pb::dummy_var_t var = pb::dummy_var_t::FUNC_EQCOMPARISON;
     protob_t<Term> twrap = r::fun(var, r::var(var) == obj).release_counted();
-    propagate_backtrace(twrap.get(), bt_src.get());
+    propagate_backtrace(twrap.get(), bt);
 
     compile_env_t empty_compile_env((var_visibility_t()));
     counted_t<func_term_t> func_term = make_counted<func_term_t>(&empty_compile_env,
@@ -369,10 +374,9 @@ counted_t<func_t> new_eq_comparison_func(counted_t<const datum_t> obj,
     return func_term->eval_to_func(var_scope_t());
 }
 
-counted_t<func_t> new_page_func(counted_t<const datum_t> method,
-                                const protob_t<const Backtrace> &bt_src) {
-    if (method->get_type() != datum_t::R_NULL) {
-        std::string name = method->as_str().to_std();
+counted_t<const func_t> new_page_func(datum_t method, backtrace_id_t bt) {
+    if (method.get_type() != datum_t::R_NULL) {
+        std::string name = method.as_str().to_std();
         if (name == "link-next") {
             pb::dummy_var_t info = pb::dummy_var_t::FUNC_PAGE;
             protob_t<Term> twrap =
@@ -380,8 +384,7 @@ counted_t<func_t> new_page_func(counted_t<const datum_t> method,
                        r::var(info)["header"]["link"]["rel=\"next\""]
                            .default_(r::null()))
                 .release_counted();
-
-            propagate_backtrace(twrap.get(), bt_src.get());
+            propagate_backtrace(twrap.get(), bt);
 
             compile_env_t empty_compile_env((var_visibility_t()));
             counted_t<func_term_t> func_term =
@@ -390,27 +393,27 @@ counted_t<func_t> new_page_func(counted_t<const datum_t> method,
         } else {
             std::string msg = strprintf("`page` method '%s' not recognized, "
                                         "only 'link-next' is available.", name.c_str());
-            rcheck_src(bt_src.get(), base_exc_t::GENERIC, false, msg);
+            rcheck_src(bt, false, base_exc_t::LOGIC, msg);
         }
     }
-    return counted_t<func_t>();
+    return counted_t<const func_t>();
 }
 
 
-counted_t<val_t> js_result_visitor_t::operator()(const std::string &err_val) const {
-    rfail_target(parent, base_exc_t::GENERIC, "%s", err_val.c_str());
+val_t *js_result_visitor_t::operator()(const std::string &err_val) const {
+    rfail_target(parent, base_exc_t::LOGIC, "%s", err_val.c_str());
     unreachable();
 }
-counted_t<val_t> js_result_visitor_t::operator()(
-    const counted_t<const ql::datum_t> &datum) const {
-    return make_counted<val_t>(datum, parent->backtrace());
+val_t *js_result_visitor_t::operator()(
+    const ql::datum_t &datum) const {
+    return new val_t(datum, parent->backtrace());
 }
 // This JS evaluation resulted in an id for a js function
-counted_t<val_t> js_result_visitor_t::operator()(UNUSED const id_t id_val) const {
-    counted_t<func_t> func = make_counted<js_func_t>(code,
-                                                     timeout_ms,
-                                                     parent->backtrace());
-    return make_counted<val_t>(func, parent->backtrace());
+val_t *js_result_visitor_t::operator()(UNUSED const id_t id_val) const {
+    counted_t<const func_t> func = make_counted<js_func_t>(code,
+                                                           timeout_ms,
+                                                           parent->backtrace());
+    return new val_t(func, parent->backtrace());
 }
 
 } // namespace ql

@@ -9,7 +9,7 @@
         auto const &check_has_tmp = (pb);                               \
         rcheck_toplevel(                                                \
             check_has_tmp.has_field(),                                  \
-            ql::base_exc_t::GENERIC,                                    \
+            ql::base_exc_t::LOGIC,                                    \
             strprintf("MALFORMED PROTOBUF (missing field `%s`):\n%s",   \
                       (field), check_has_tmp.DebugString().c_str()));   \
     } while (0)
@@ -18,7 +18,7 @@
         auto const &check_not_has_tmp = (pb);                           \
         rcheck_toplevel(                                                \
             !check_not_has_tmp.has_field(),                             \
-            ql::base_exc_t::GENERIC,                                    \
+            ql::base_exc_t::LOGIC,                                    \
             strprintf("MALFORMED PROTOBUF (spurious field `%s`):\n%s",  \
                       (field),                                          \
                       check_not_has_tmp.DebugString().c_str()));        \
@@ -29,7 +29,7 @@
         const int check_size_expected = (expected_size);                \
         rcheck_toplevel(                                                \
             check_size_tmp.field_size() == check_size_expected,         \
-            ql::base_exc_t::GENERIC,                                    \
+            ql::base_exc_t::LOGIC,                                    \
             strprintf("MALFORMED PROTOBUF (expected field `%s` "        \
                       "to have size %d):\n%s",                          \
                       (field), check_size_expected,                     \
@@ -42,7 +42,7 @@
         check_has(pb, has_type, "type");                        \
         rcheck_toplevel(                                                \
             pbname##_##pbname##Type_IsValid(pb.type()),                 \
-            ql::base_exc_t::GENERIC,                                    \
+            ql::base_exc_t::LOGIC,                                    \
             strprintf("MALFORMED PROTOBUF (Illegal " #pbname " type %d).", \
                       pb.type()));                                      \
     } while (0)
@@ -73,12 +73,6 @@ void validate_pb(const Frame &f) {
         check_has(f, has_pos, "pos");
     } else {
         check_has(f, has_opt, "opt");
-    }
-}
-
-void validate_pb(const Backtrace &bt) {
-    for (int i = 0; i < bt.frames_size(); ++i) {
-        validate_pb(bt.frames(i));
     }
 }
 
@@ -143,14 +137,14 @@ void validate_var_term(const Term &t) {
     rcheck_toplevel(arg0.type() == Term::DATUM && arg0.has_datum() &&
                     arg0.datum().type() == Datum::R_NUM &&
                     arg0.datum().has_r_num(),
-                    ql::base_exc_t::GENERIC,
+                    ql::base_exc_t::LOGIC,
                     strprintf("MALFORMED PROTOBUF (expected VAR term "
                               "to have DATUM of type R_NUM):\n%s",
                               t.DebugString().c_str()));
     double number = arg0.datum().r_num();
     int64_t i;
     if (!ql::number_as_integer(number, &i) || i < 0) {
-        rfail_toplevel(ql::base_exc_t::GENERIC,
+        rfail_toplevel(ql::base_exc_t::LOGIC,
                        "MALFORMED PROTOBUF (VAR term should have "
                        "a positive integer value):\n%s",
                        t.DebugString().c_str());
@@ -180,4 +174,82 @@ void validate_pb(const Term::AssocPair &ap) {
     check_has(ap, has_key, "key");
     check_has(ap, has_val, "val");
     validate_pb(ap.val());
+}
+
+static std::set<std::string> acceptable_keys = {
+    "_EVAL_FLAGS_",
+    "_NO_RECURSE_",
+    "_SHORTCUT_",
+    "array_limit",
+    "attempts",
+    "auth",
+    "base",
+    "binary_format",
+    "conflict",
+    "data",
+    "db",
+    "default",
+    "default_timezone",
+    "dry_run",
+    "durability",
+    "emergency_repair",
+    "fill",
+    "first_batch_scaledown_factor",
+    "float",
+    "geo",
+    "geo_system",
+    "group_format",
+    "header",
+    "identifier_format",
+    "include_states",
+    "index",
+    "left_bound",
+    "max_batch_bytes",
+    "max_batch_rows",
+    "max_batch_seconds",
+    "max_dist",
+    "max_results",
+    "method",
+    "min_batch_rows",
+    "multi",
+    "non_atomic",
+    "nonvoting_replica_tags",
+    "noreply",
+    "num_vertices",
+    "overwrite",
+    "page",
+    "page_limit",
+    "params",
+    "primary_key",
+    "primary_replica_tag",
+    "profile",
+    "read_mode",
+    "redirects",
+    "replicas",
+    "result_format",
+    "return_changes",
+    "include_initial_vals",
+    "return_vals",
+    "right_bound",
+    "shards",
+    "squash",
+    "time_format",
+    "timeout",
+    "unit",
+    "verify",
+    "wait_for",
+};
+
+void validate_optargs(const Query &q) {
+    for (int i = 0; i < q.global_optargs_size(); ++i) {
+        rcheck_toplevel(
+            acceptable_keys.find(q.global_optargs(i).key()) != acceptable_keys.end(),
+            ql::base_exc_t::LOGIC,
+            strprintf("Unrecognized global optional argument `%s`.",
+                      q.global_optargs(i).key().c_str()));
+    }
+}
+
+bool optarg_is_valid(const std::string &potential_argument) {
+    return acceptable_keys.find(potential_argument) != acceptable_keys.end();
 }

@@ -1,27 +1,16 @@
 desc: Tests of conversion to and from the RQL null type
 tests:
-    - py:
-        cd: r.expr(None)
-        ot: None
-      js:
-        cd: [r(null), r.expr(null)]
-        ot: "null"
-      rb:
-        cd: r nil
-        ot: nil
+    - cd: [r(null), r.expr(null)]
+      py: r.expr(null)
+      ot: (null)
 
-    - py: r.expr(None).type_of()
-      js: r.expr(null).typeOf()
-      rb: r(nil).type_of()
+    - cd: r.expr(null).type_of()
+      rb: r(null).type_of()
       ot: "'NULL'"
 
     # test coercions
     - cd: r.expr(null).coerce_to('string')
-      ot:
-        cd: "'null'"
-        rb: "'nu'+'ll'"
+      ot: "'null'"
       
     - cd: r.expr(null).coerce_to('null')
-      rb: r.expr(nil).coerce_to('nu'+'ll')
       ot: (null)
-      

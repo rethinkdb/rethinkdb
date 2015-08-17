@@ -5,7 +5,6 @@
 #include <vector>
 
 #include "arch/types.hpp"
-#include "containers/bitset.hpp"
 #include "containers/intrusive_list.hpp"
 #include "containers/priority_queue.hpp"
 #include "containers/scoped.hpp"
@@ -70,6 +69,10 @@ public:
     void prepare_metablock(data_block_manager::metablock_mixin_t *metablock);
     bool do_we_want_to_start_gcing() const;
 
+    // This stops further GC rounds from starting, but it doesn't wait for all
+    // GC activity to finish before returning.
+    void disable_gc();
+
     // The shutdown_callback_t may destroy the data_block_manager.
     bool shutdown(data_block_manager::shutdown_callback_t *cb);
 
@@ -84,6 +87,7 @@ public:
     std::vector<std::vector<counted_t<ls_block_token_pointee_t> > >
     gimme_some_new_offsets(const std::vector<buf_write_info_t> &writes);
 
+    bool is_gc_active() const;
 
 private:
     void actually_shutdown();
@@ -160,6 +164,8 @@ private:
     };
 
     state_t state;
+
+    bool gc_enabled;
 
     const log_serializer_on_disk_static_config_t* const static_config;
 

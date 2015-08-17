@@ -1,14 +1,6 @@
 desc: Tests RQL control flow structures
+table_variable_name: tbl, tbl2
 tests:
-
-    # Setup
-    - cd: r.db('test').table_create('test1')
-      ot: ({'created':1})
-      def: tbl = r.db('test').table('test1')
-
-    - cd: r.db('test').table_create('test2')
-      ot: ({'created':1})
-      def: tbl2 = r.db('test').table('test2')
 
     ## FunCall
 
@@ -36,12 +28,12 @@ tests:
     - py: "r.do(1, 2, lambda x: x)"
       js: r.do(1, 2, function(x) { return x; })
       rb: r.do(1, 2) {|x| x}
-      ot: err("RqlRuntimeError", 'Expected 1 argument(s) but found 2.', [1])
+      ot: err("RqlRuntimeError", 'Expected 1 argument but found 2.', [1])
 
     - py: "r.do(1, 2, 3, lambda x, y: x + y)"
       js: r.do(1, 2, 3, function(x, y) { return x.add(y); })
       rb: r.do(1, 2, 3) {|x, y| x + y}
-      ot: err("RqlRuntimeError", 'Expected 2 argument(s) but found 3.', [1])
+      ot: err("RqlRuntimeError", 'Expected 2 arguments but found 3.', [1])
 
     - cd: "r.do(1)"
       ot: 1
@@ -56,7 +48,7 @@ tests:
 
     - cd: r.do()
       py: [] # Case handled by native python error
-      ot: err("RqlDriverError", 'Expected 1 or more argument(s) but found 0.', [1])
+      ot: err("RqlDriverError", 'Expected 1 or more arguments but found 0.', [1])
 
 
     # FunCall errors
@@ -79,12 +71,12 @@ tests:
     - py: "r.expr(0).do(lambda a,b: a + b)"
       js: r(0).do(function(a,b) { return a.add(b); })
       rb: r(0).do{ |a, b| a + b }
-      ot: err("RqlRuntimeError", 'Expected 2 argument(s) but found 1.', [1])
+      ot: err("RqlRuntimeError", 'Expected 2 arguments but found 1.', [1])
 
     - py: "r.do(1, 2, lambda a: a)"
       js: r.do(1,2, function(a) { return a; })
       rb: r.do(1, 2) { |a| a }
-      ot: err("RqlRuntimeError", 'Expected 1 argument(s) but found 2.', [1])
+      ot: err("RqlRuntimeError", 'Expected 1 argument but found 2.', [1])
 
     - cd: r.expr(5).do(r.row)
       rb: r(5).do{ |row| row }
@@ -103,7 +95,7 @@ tests:
 
     - cd: r.branch(r.db('test'), 1, 2)
       ot: err("RqlRuntimeError", "Expected type DATUM but found DATABASE.", [])
-    - cd: r.branch(r.db('test').table('test1'), 1, 2)
+    - cd: r.branch(tbl, 1, 2)
       ot: err("RqlRuntimeError", "Expected type DATUM but found TABLE.", [])
     - cd: r.branch(r.error("a"), 1, 2)
       ot: err("RqlRuntimeError", "a", [])
@@ -127,10 +119,10 @@ tests:
     # For kicks, let's test arity checking in map and filter (Python driver doesn't require this)
     - js: r.expr([1, 2, 3]).filter()
       cd: []
-      ot: err("RqlDriverError", "Expected 1 argument(s) but found 0.", [0])
+      ot: err("RqlDriverError", "Expected 1 argument (not including options) but found 0.", [0])
     - js: r.expr([1, 2, 3]).filter(1, 2)
       cd: []
-      ot: err("RqlDriverError", "Expected 1 argument(s) but found 2.", [0])
+      ot: err("RqlDriverError", "Expected 1 argument (not including options) but found 2.", [0])
 
     # r.js()
     - cd: r.js('1 + 1')
@@ -225,10 +217,14 @@ tests:
 
     - cd: tbl.count()
       ot: 6
-
+    
+    - cd: tableCount = tbl2.count()
     - cd: r.expr([1, 2, 3]).for_each( tbl2.insert({}) )
       ot: ({'deleted':0.0,'replaced':0.0,'generated_keys':arrlen(3,uuid()),'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':3})
-
+      # inserts only a single document per #3700
+    - cd: tbl2.count()
+      ot: tableCount + 1
+    
     # We have six elements, update them 6*2*3=36 times
     - js: r([1, 2, 3]).forEach(function (row) { return [tbl.update({ foo:row }), tbl.update({ bar:row })] })
       py: r.expr([1,2,3]).for_each(lambda row:[tbl.update({'foo':row}), tbl.update({'bar':row})])
@@ -241,21 +237,21 @@ tests:
       ot: ({'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':3})
 
     - cd: r.expr([1, 2, 3]).for_each(1)
-      ot: 'err("RqlRuntimeError", "FOREACH expects one or more basic write queries.  Expected type ARRAY but found NUMBER.", [0])'
+      ot: 'err("RqlRuntimeError", "FOR_EACH expects one or more basic write queries.  Expected type ARRAY but found NUMBER.", [0])'
 
     - py: r.expr([1, 2, 3]).for_each(lambda x:x)
       js: r([1, 2, 3]).forEach(function (x) { return x; })
       rb: r([1, 2, 3]).for_each{ |x| x }
-      ot: 'err("RqlRuntimeError", "FOREACH expects one or more basic write queries.  Expected type ARRAY but found NUMBER.", [1, 1])'
+      ot: 'err("RqlRuntimeError", "FOR_EACH expects one or more basic write queries.  Expected type ARRAY but found NUMBER.", [1, 1])'
 
     - cd: r.expr([1, 2, 3]).for_each(r.row)
       rb: []
-      ot: 'err("RqlRuntimeError", "FOREACH expects one or more basic write queries.  Expected type ARRAY but found NUMBER.", [1, 1])'
+      ot: 'err("RqlRuntimeError", "FOR_EACH expects one or more basic write queries.  Expected type ARRAY but found NUMBER.", [1, 1])'
 
     - js: r([1, 2, 3]).forEach(function (row) { return tbl; })
       py: r.expr([1, 2, 3]).for_each(lambda row:tbl)
       rb: r([1, 2, 3]).for_each{ |row| tbl }
-      ot: 'err("RqlRuntimeError", "FOREACH expects one or more basic write queries.", [1, 1])'
+      ot: 'err("RqlRuntimeError", "FOR_EACH expects one or more basic write queries.", [1, 1])'
 
       # This is only relevant in JS -- what happens when we return undefined
     - js: "r([1, 2, 3]).forEach(function (row) {})"
@@ -274,20 +270,23 @@ tests:
 
     - cd: r.expr([1, 2]).map(tbl.insert({'foo':r.row}))
       rb: r([1, 2]).map{ |row| tbl.insert({ :foo => row }) }
-      ot: err('RqlCompileError', 'Cannot nest writes or meta ops in stream operations.  Use FOREACH instead.', [0])
+      ot: err('RqlCompileError', 'Cannot nest writes or meta ops in stream operations.  Use FOR_EACH instead.', [0])
 
     - cd: r.expr([1, 2]).map(r.db('test').table_create('nested_table'))
-      ot: err('RqlCompileError', 'Cannot nest writes or meta ops in stream operations.  Use FOREACH instead.', [0])
+      ot: err('RqlCompileError', 'Cannot nest writes or meta ops in stream operations.  Use FOR_EACH instead.', [0])
+
+    - cd: r.expr([1, 2]).map(r.db('test').table_create('nested_table'))
+      ot: err('RqlCompileError', 'Cannot nest writes or meta ops in stream operations.  Use FOR_EACH instead.', [0])
+
+    - cd: r.expr([1, 2]).map(tbl.insert({'foo':r.row}).get_field('inserted'))
+      rb: r.expr([1, 2]).map{|x| tbl.insert({'foo':x}).get_field('inserted')}
+      ot: err('RqlCompileError', 'Cannot nest writes or meta ops in stream operations.  Use FOR_EACH instead.', [0])
+
+    - cd: r.expr([1, 2]).map(tbl.insert({'foo':r.row}).get_field('inserted').add(5))
+      rb: r.expr([1, 2]).map{|x| tbl.insert({'foo':x}).get_field('inserted').add(5)}
+      ot: err('RqlCompileError', 'Cannot nest writes or meta ops in stream operations.  Use FOR_EACH instead.', [0])
 
     - cd: r.expr(1).do(r.db('test').table_create('nested_table'))
-      ot: ({'created':1})
-
-    # Cleanup
-    - cd: r.db('test').table_drop('test1')
-      ot: ({'dropped':1})
-
-    - cd: r.db('test').table_drop('test2')
-      ot: ({'dropped':1})
+      ot: partial({'tables_created':1})
 
     - cd: r.db('test').table_drop('nested_table')
-      ot: ({'dropped':1})

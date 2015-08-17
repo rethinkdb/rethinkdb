@@ -34,14 +34,16 @@ public:
 
     uint64_t run() {
         write_message_t wm;
-        serialize(&wm, iterations);
+        serialize<cluster_version_t::LATEST_OVERALL>(&wm, iterations);
         {
             int res = send_write_message(extproc_job.write_stream(), &wm);
             guarantee(res == 0);
         }
 
         uint64_t result;
-        archive_result_t res = deserialize(extproc_job.read_stream(), &result);
+        archive_result_t res
+            = deserialize<cluster_version_t::LATEST_OVERALL>(extproc_job.read_stream(),
+                                                             &result);
         guarantee(res == archive_result_t::SUCCESS);
         return result;
     }
@@ -50,13 +52,14 @@ private:
     static bool worker_fn(read_stream_t *stream_in, write_stream_t *stream_out) {
         size_t count;
         {
-            archive_result_t res = deserialize(stream_in, &count);
+            archive_result_t res
+                = deserialize<cluster_version_t::LATEST_OVERALL>(stream_in, &count);
             guarantee(res == archive_result_t::SUCCESS);
         }
 
         uint64_t result = fib(count);
         write_message_t wm;
-        serialize(&wm, result);
+        serialize<cluster_version_t::LATEST_OVERALL>(&wm, result);
         int res = send_write_message(stream_out, &wm);
         guarantee(res == 0);
         return true;
@@ -78,7 +81,7 @@ public:
         last_value(n) {
         // Kick off the worker with the initial value
         write_message_t wm;
-        serialize(&wm, last_value);
+        serialize<cluster_version_t::LATEST_OVERALL>(&wm, last_value);
         int res = send_write_message(extproc_job.write_stream(), &wm);
         guarantee(res == 0);
     }
@@ -86,26 +89,30 @@ public:
     ~collatz_job_t() {
         // Read out the last number
         {
-            archive_result_t res = deserialize(extproc_job.read_stream(), &last_value);
+            archive_result_t res
+                = deserialize<cluster_version_t::LATEST_OVERALL>(extproc_job.read_stream(),
+                                                                 &last_value);
             guarantee(res == archive_result_t::SUCCESS);
         }
 
         // Tell the worker to exit
         write_message_t wm;
-        serialize(&wm, 'q');
+        serialize<cluster_version_t::LATEST_OVERALL>(&wm, 'q');
         int res = send_write_message(extproc_job.write_stream(), &wm);
         guarantee(res == 0);
     }
 
     uint64_t step() {
         {
-            archive_result_t res = deserialize(extproc_job.read_stream(), &last_value);
+            archive_result_t res
+                = deserialize<cluster_version_t::LATEST_OVERALL>(extproc_job.read_stream(),
+                                                                 &last_value);
             guarantee(res == archive_result_t::SUCCESS);
         }
 
         // Send the notification to continue
         write_message_t wm;
-        serialize(&wm, 'c');
+        serialize<cluster_version_t::LATEST_OVERALL>(&wm, 'c');
         int res = send_write_message(extproc_job.write_stream(), &wm);
         guarantee(res == 0);
         return last_value;
@@ -116,7 +123,9 @@ private:
         char command;
         uint64_t current_value;
         {
-            archive_result_t res = deserialize(stream_in, &current_value);
+            archive_result_t res
+                = deserialize<cluster_version_t::LATEST_OVERALL>(stream_in,
+                                                                 &current_value);
             guarantee(res == archive_result_t::SUCCESS);
         }
 
@@ -125,14 +134,15 @@ private:
 
             // Send current value.
             write_message_t wm;
-            serialize(&wm, current_value);
+            serialize<cluster_version_t::LATEST_OVERALL>(&wm, current_value);
             {
                 int res = send_write_message(stream_out, &wm);
                 guarantee(res == 0);
             }
 
             // Wait for signal to proceed.
-            archive_result_t res = deserialize(stream_in, &command);
+            archive_result_t res
+                = deserialize<cluster_version_t::LATEST_OVERALL>(stream_in, &command);
             guarantee(res == archive_result_t::SUCCESS);
         } while (command == 'c');
 
@@ -213,7 +223,9 @@ public:
 
     void read() {
         int data;
-        archive_result_t res = deserialize(extproc_job.read_stream(), &data);
+        archive_result_t res
+            = deserialize<cluster_version_t::LATEST_OVERALL>(extproc_job.read_stream(),
+                                                             &data);
         if (bad(res)) {
             throw std::runtime_error("read failed");
         }
@@ -221,7 +233,7 @@ public:
 
     void write() {
         write_message_t wm;
-        serialize(&wm, 100);
+        serialize<cluster_version_t::LATEST_OVERALL>(&wm, 100);
         int res = send_write_message(extproc_job.write_stream(), &wm);
         if (res != 0) {
             throw std::runtime_error("read failed");
@@ -356,7 +368,8 @@ private:
     static bool worker_fn(read_stream_t *stream_in, write_stream_t *) {
         while (true) {
             int data;
-            UNUSED archive_result_t res = deserialize(stream_in, &data);
+            UNUSED archive_result_t res
+                = deserialize<cluster_version_t::LATEST_OVERALL>(stream_in, &data);
         }
         guarantee(false, "worker should hang");
         return true;
@@ -388,7 +401,7 @@ public:
 
     void corrupt(bool direction) {
         write_message_t wm;
-        serialize(&wm, direction);
+        serialize<cluster_version_t::LATEST_OVERALL>(&wm, direction);
         int res = send_write_message(extproc_job.write_stream(), &wm);
         guarantee(res == 0);
 
@@ -403,13 +416,14 @@ private:
     static bool worker_fn(read_stream_t *stream_in, write_stream_t *stream_out) {
         bool send_data = false;
         {
-            archive_result_t res = deserialize(stream_in, &send_data);
+            archive_result_t res
+                = deserialize<cluster_version_t::LATEST_OVERALL>(stream_in, &send_data);
             guarantee(res == archive_result_t::SUCCESS);
         }
 
         if (send_data) {
             write_message_t wm;
-            serialize(&wm, send_data);
+            serialize<cluster_version_t::LATEST_OVERALL>(&wm, send_data);
             int res = send_write_message(stream_out, &wm);
             guarantee(res == 0);
         }

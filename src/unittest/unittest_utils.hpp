@@ -13,6 +13,8 @@
 
 namespace unittest {
 
+std::string rand_string(int len);
+
 serializer_filepath_t make_unittest_filepaths(const std::string &permanent_path,
                                               const std::string &temporary_path);
 
@@ -35,7 +37,18 @@ std::set<ip_address_t> get_unittest_addresses();
 void run_in_thread_pool(const std::function<void()> &fun, int num_workers = 1);
 
 read_t make_sindex_read(
-    counted_t<const ql::datum_t> key, const std::string &id);
+    ql::datum_t key, const std::string &id);
+
+/* Easy way to make shard ranges. Examples:
+ - `quick_range("A-Z")` contains any key starting with a capital letter.
+ - `quick_range("A-M")` includes "Aardvark" and "Mammoth" but not "Quail".
+ - `quick_range("*-*")` is `key_range_t::universe()`.
+ - `quick_range("*-M")` and `quick_range("N-*")` are adjacent but do not overlap.
+The `quick_region()` variant just wraps the `key_range_t` in a `region_t`. */
+key_range_t quick_range(const char *bounds);
+region_t quick_region(const char *bounds);
+
+state_timestamp_t make_state_timestamp(int n);
 
 }  // namespace unittest
 

@@ -1,5 +1,0 @@
-#!/bin/bash
-
-if [ $DATABASE == "rethinkdb" ]; then
-    ../../build/release/rethinkdb create -c 24 $SSD_DRIVES --force
-fi

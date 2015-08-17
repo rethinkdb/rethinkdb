@@ -1,78 +1,151 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
-render_body = ->
-    template = Handlebars.templates['body-structure-template']
 
-    $('body').html template()
+app = require('./app.coffee')
+driver = app.driver
+system_db = app.system_db
+topbar = require('./topbar.coffee')
+navbar = require('./navbar.coffee')
+models = require('./models.coffee')
+modals = require('./modals.coffee')
+router = require('./router.coffee')
+VERSION = require('rethinkdb-version')
+
+r = require('rethinkdb')
+
+class MainContainer extends Backbone.View
+    template: require('../handlebars/body-structure.hbs')
+    id: 'main_view'
+
+    initialize: =>
+        @fetch_ajax_data()
+
+        @databases = new models.Databases
+        @tables = new models.Tables
+        @servers = new models.Servers
+        @issues = new models.Issues
+        @dashboard = new models.Dashboard
+
+        @alert_update_view = new AlertUpdates
+
+        @options_view = new OptionsView
+            alert_update_view: @alert_update_view
+        @options_state = 'hidden'
+
+        @navbar = new navbar.NavBarView
+            databases: @databases
+            tables: @tables
+            servers: @servers
+            options_view: @options_view
+            container: @
+
+        @topbar = new topbar.Container
+            model: @dashboard
+            issues: @issues
+
+    # Should be started after the view is injected in the DOM tree
+    start_router: =>
+        @router = new router.BackboneCluster
+            navbar: @navbar
+        Backbone.history.start()
+
+        @navbar.init_typeahead()
+
+    fetch_ajax_data: =>
+        $.ajax({
+            contentType: 'application/json'
+            url: 'ajax/me'
+            dataType: 'json'
+            success: (response) =>
+                @fetch_data(response)
+            error: (response) =>
+                @fetch_data(null)
+        })
+
+    fetch_data: (server_uuid) =>
+        query = r.expr
+            tables: r.db(system_db).table('table_config').pluck('db', 'name', 'id').coerceTo("ARRAY")
+            servers: r.db(system_db).table('server_config').pluck('name', 'id').coerceTo("ARRAY")
+            issues: driver.queries.issues_with_ids()
+            num_issues: r.db(system_db).table('current_issues').count()
+            num_servers: r.db(system_db).table('server_config').count()
+            num_tables: r.db(system_db).table('table_config').count()
+            num_available_tables: r.db(system_db).table('table_status')('status').filter( (status) ->
+                status("all_replicas_ready")
+            ).count()
+            me: r.db(system_db).table('server_status').get(server_uuid)('name')
 
 
+        @timer = driver.run query, 5000, (error, result) =>
+            if error?
+                console.log(error)
+            else
+                for table in result.tables
+                    @tables.add new models.Table(table), {merge: true}
+                    delete result.tables
+                for server in result.servers
+                    @servers.add new models.Server(server), {merge: true}
+                    delete result.servers
+                @issues.set(result.issues)
+                delete result.issues
 
-    options_view_container = $('.options_background')
-    window.options_view = new OptionsView options_view_container
-    options_view_container.html options_view.render().$el
+                @dashboard.set result
 
+    render: =>
+        @$el.html @template()
+        @$('#updates_container').html @alert_update_view.render().$el
+        @$('#options_container').html @options_view.render().$el
+        @$('#topbar').html @topbar.render().$el
+        @$('#navbar-container').html @navbar.render().$el
 
-    window.alert_update_view = new AlertUpdates
-    $('.updates_container').html window.alert_update_view.render().$el
+        @
 
+    hide_options: =>
+        @$('#options_container').slideUp 'fast'
 
-    # Set up common DOM behavior
-    $('.modal').modal
-        backdrop: true
-        keyboard: true
+    toggle_options: (event) =>
+        event.preventDefault()
 
-    # Set actions on developer tools
-    $('#dev-tools #pause-application').on 'click', (event) -> debugger
+        if @options_state is 'visible'
+            @options_state = 'hidden'
+            @hide_options event
+        else
+            @options_state = 'visible'
+            @$('#options_container').slideDown 'fast'
+
+    remove: =>
+        driver.stop_timer @timer
+        @alert_update_view.remove()
+        @options_view.remove()
+        @navbar.remove()
 
 class OptionsView extends Backbone.View
-    className: 'options_full_container'
-    template: Handlebars.templates['options_view-template']
+    className: 'options_background'
+    template: require('../handlebars/options_view.hbs')
 
     events:
-        'click .close': 'toggle_options'
         'click label[for=updates_yes]': 'turn_updates_on'
         'click label[for=updates_no]': 'turn_updates_off'
 
-    initialize: (main_container) ->
-        @main_container = main_container
+    initialize: (data) =>
+        @alert_update_view = data.alert_update_view
 
     render: =>
         @$el.html @template
             check_update: if window.localStorage?.check_updates? then JSON.parse window.localStorage.check_updates else true
-            version: window.VERSION
-        return @
-
-
-    # Hide the options view
-    hide: (event) =>
-        event.preventDefault()
-        @options_state = 'hidden'
-        $('.options_container_arrow_overlay').hide()
-        @main_container.slideUp 'fast', ->
-            $('.options_background').hide()
-        @$('.cog_icon').removeClass 'active'
-
-    # Show/hide the options view
-    toggle_options: (event) =>
-        event.preventDefault()
-        if @options_state is 'visible'
-            @hide event
-        else
-            @options_state = 'visible'
-            $('.options_container_arrow_overlay').show()
-            @main_container.slideDown 'fast'
-            @delegateEvents()
+            version: VERSION
+        @
 
     turn_updates_on: (event) =>
         window.localStorage.check_updates = JSON.stringify true
         window.localStorage.removeItem('ignore_version')
-        window.alert_update_view.check()
+        @alert_update_view.check()
 
     turn_updates_off: (event) =>
         window.localStorage.check_updates = JSON.stringify false
-        window.alert_update_view.hide()
+        @alert_update_view.hide()
 
 class AlertUpdates extends Backbone.View
-    has_update_template: Handlebars.templates['has_update-template']
+    has_update_template: require('../handlebars/has_update.hbs')
     className: 'settings alert'
 
     events:
@@ -92,7 +165,7 @@ class AlertUpdates extends Backbone.View
         else
             # No localstorage, let's just check for updates
             @check()
-    
+
     # If the user close the alert, we hide the alert + save the version so we can ignore it
     close: (event) =>
         event.preventDefault()
@@ -105,7 +178,7 @@ class AlertUpdates extends Backbone.View
 
     check: =>
         # If it's fail, it's fine - like if the user is just on a local network without access to the Internet.
-        $.getJSON "http://update.rethinkdb.com/update_for/#{window.VERSION}?callback=?", @render_updates
+        $.getJSON "http://update.rethinkdb.com/update_for/#{VERSION}?callback=?", @render_updates
 
     # Callback on the ajax request
     render_updates: (data) =>
@@ -139,7 +212,7 @@ class AlertUpdates extends Backbone.View
                 return 1
         return 0
 
-   
+
     render: =>
         return @
 
@@ -148,74 +221,42 @@ class AlertUpdates extends Backbone.View
         if window.localStorage?
             window.localStorage.check_updates = JSON.stringify false
 
-class Settings extends Backbone.View
-    settings_template: Handlebars.templates['settings-template']
-    events:
-        'click .check_updates_btn': 'change_settings'
-        'click .close': 'close'
-
-    close: (event) =>
-        event.preventDefault()
-        @$el.parent().hide()
-        @$el.remove()
-
-    initialize: (args) =>
-        @alert_view = args.alert_view
-        if window.localStorage?.check_updates?
-            @check_updates = JSON.parse window.localStorage.check_updates
-        else
-            @check_updates = true
-
-
-    change_settings: (event) =>
-        update = @$(event.target).data('update')
-        if update is 'on'
-            @check_updates = true
-            if window.localStorage?
-                window.localStorage.check_updates = JSON.stringify true
-            @alert_view.check()
-        else if update is 'off'
-            @check_updates = false
-            @alert_view.hide()
-            if window.localStorage?
-                window.localStorage.check_updates = JSON.stringify false
-                window.localStorage.removeItem('ignore_version')
-        @render()
-
-    render: =>
-        @$el.html @settings_template
-            check_value: if @check_updates then 'off' else 'on'
-        @delegateEvents()
-        return @
- 
 
 class IsDisconnected extends Backbone.View
     el: 'body'
     className: 'is_disconnected_view'
-    template: Handlebars.templates['is_disconnected-template']
-    message: Handlebars.templates['is_disconnected_message-template']
+    template: require('../handlebars/is_disconnected.hbs')
+    message: require('../handlebars/is_disconnected_message.hbs')
     initialize: =>
-        log_initial '(initializing) sidebar view:'
         @render()
+        setInterval ->
+            driver.run_once r.expr(1)
+        , 2000
 
     render: =>
-        @.$('#modal-dialog > .modal').css('z-index', '1')
-        @.$('.modal-backdrop').remove()
-        @.$el.append @template
-        @.$('.is_disconnected').modal
+        @$('#modal-dialog > .modal').css('z-index', '1')
+        @$('.modal-backdrop').remove()
+        @$el.append @template()
+        @$('.is_disconnected').modal
             'show': true
             'backdrop': 'static'
         @animate_loading()
 
     animate_loading: =>
-        if @.$('.three_dots_connecting')
-            if @.$('.three_dots_connecting').html() is '...'
-                @.$('.three_dots_connecting').html ''
+        if @$('.three_dots_connecting')
+            if @$('.three_dots_connecting').html() is '...'
+                @$('.three_dots_connecting').html ''
             else
-                @.$('.three_dots_connecting').append '.'
+                @$('.three_dots_connecting').append '.'
             setTimeout(@animate_loading, 300)
 
     display_fail: =>
-        @.$('.animation_state').fadeOut 'slow', =>
+        @$('.animation_state').fadeOut 'slow', =>
             $('.reconnecting_state').html(@message)
             $('.animation_state').fadeIn('slow')
+
+
+exports.MainContainer = MainContainer
+exports.OptionsView = OptionsView
+exports.AlertUpdates = AlertUpdates
+exports.IsDisconnected = IsDisconnected

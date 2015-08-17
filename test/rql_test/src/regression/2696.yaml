@@ -1,0 +1,6 @@
+desc: Regression test for issue 2696, delete_at with end bounds.
+tests:
+    - cd: r.expr([1,2,3,4]).delete_at(4,4)
+      ot: [1,2,3,4]
+    - cd: r.expr([]).delete_at(0,0)
+      ot: []

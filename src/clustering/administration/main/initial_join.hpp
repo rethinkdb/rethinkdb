@@ -15,7 +15,7 @@ At that point, it stops trying to connect to the other addresses and pulses
 successfully connected to one of the other addresses, it calls `logWRN()` with
 a warning message. */
 
-class initial_joiner_t : private peers_list_callback_t {
+class initial_joiner_t {
 public:
     initial_joiner_t(
             connectivity_cluster_t *cluster,
@@ -32,16 +32,19 @@ public:
     }
 
 private:
-    void main_coro(connectivity_cluster_t::run_t *cluster_run, auto_drainer_t::lock_t keepalive);
-    void on_connect(peer_id_t peer);
-    void on_disconnect(UNUSED peer_id_t peer) { }
+    void main_coro(connectivity_cluster_t::run_t *cluster_run,
+                   auto_drainer_t::lock_t keepalive);
+    void on_connection_change(
+        const peer_id_t &peer,
+        const connectivity_cluster_t::connection_pair_t *pair);
 
     connectivity_cluster_t *cluster;
     peer_address_set_t peers_not_heard_from;
     cond_t done_signal;
     signal_timer_t grace_period_timer;
     auto_drainer_t drainer;
-    connectivity_service_t::peers_list_subscription_t subs;
+    watchable_map_t<peer_id_t, connectivity_cluster_t::connection_pair_t>
+        ::all_subs_t subs;
     bool successful_connection;
 
     DISABLE_COPYING(initial_joiner_t);

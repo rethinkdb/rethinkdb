@@ -16,33 +16,33 @@ public:
     sample_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2)) { }
 
-    counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-        int64_t num_int = arg(env, 1)->as_int();
+    scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        int64_t num_int = args->arg(env, 1)->as_int();
         rcheck(num_int >= 0,
-               base_exc_t::GENERIC,
+               base_exc_t::LOGIC,
                strprintf("Number of items to sample must be non-negative, got `%"
                          PRId64 "`.", num_int));
         const size_t num = num_int;
         counted_t<table_t> t;
         counted_t<datum_stream_t> seq;
-        counted_t<val_t> v = arg(env, 0);
+        scoped_ptr_t<val_t> v = args->arg(env, 0);
 
         if (v->get_type().is_convertible(val_t::type_t::SELECTION)) {
-            std::pair<counted_t<table_t>, counted_t<datum_stream_t> > t_seq
-                = v->as_selection(env->env);
-            t = t_seq.first;
-            seq = t_seq.second;
+            counted_t<selection_t> t_seq = v->as_selection(env->env);
+            t = t_seq->table;
+            seq = t_seq->seq;
         } else {
             seq = v->as_seq(env->env);
         }
 
-        std::vector<counted_t<const datum_t> > result;
+        std::vector<datum_t> result;
         result.reserve(num);
         size_t element_number = 0;
         batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
         {
             profile::sampler_t sampler("Sampling elements.", env->env->trace);
-            while (counted_t<const datum_t> row = seq->next(env->env, batchspec)) {
+            datum_t row;
+            while (row = seq->next(env->env, batchspec), row.has()) {
                 element_number++;
                 if (result.size() < num) {
                     result.push_back(row);
@@ -61,10 +61,12 @@ public:
         std::random_shuffle(result.begin(), result.end());
 
         counted_t<datum_stream_t> new_ds(
-            new array_datum_stream_t(make_counted<const datum_t>(std::move(result)),
+            new array_datum_stream_t(datum_t(std::move(result), env->env->limits()),
                                      backtrace()));
 
-        return t.has() ? new_val(new_ds, t) : new_val(env->env, new_ds);
+        return t.has()
+            ? new_val(make_counted<selection_t>(t, new_ds))
+            : new_val(env->env, new_ds);
     }
 
     bool is_deterministic() const {
@@ -76,9 +78,8 @@ public:
 
 class random_term_t : public op_term_t {
 public:
-    random_term_t(compile_env_t *env, const protob_t<const Term> &term) :
-        op_term_t(env, term, argspec_t(0, 2), optargspec_t({"float"})) {
-    }
+    random_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : op_term_t(env, term, argspec_t(0, 2), optargspec_t({"float"})) { }
 private:
     virtual bool is_deterministic() const {
         return false;
@@ -89,31 +90,31 @@ private:
         UPPER
     };
 
-    int64_t convert_bound(double bound, bound_type_t type) {
+    int64_t convert_bound(double bound, bound_type_t type) const {
         int64_t res;
         bool success = number_as_integer(bound, &res);
-        rcheck(success, base_exc_t::GENERIC,
+        rcheck(success, base_exc_t::LOGIC,
                strprintf("%s bound (%" PR_RECONSTRUCTABLE_DOUBLE ") could not be safely converted to an integer.",
                          type == bound_type_t::LOWER ? "Lower" : "Upper", bound));
         return res;
     }
 
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-        counted_t<val_t> use_float_arg = optarg(env, "float");
-        bool use_float = use_float_arg ? use_float_arg->as_bool() : num_args() == 0;
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        scoped_ptr_t<val_t> use_float_arg = args->optarg(env, "float");
+        bool use_float = use_float_arg ? use_float_arg->as_bool() : args->num_args() == 0;
 
         if (use_float) {
             double lower = 0.0;
             double upper = 1.0;
 
-            if (num_args() == 0) {
+            if (args->num_args() == 0) {
                 // Use default bounds
-            } else if (num_args() == 1) {
-                upper = arg(env, 0)->as_num();
+            } else if (args->num_args() == 1) {
+                upper = args->arg(env, 0)->as_num();
             } else {
-                r_sanity_check(num_args() == 2);
-                lower = arg(env, 0)->as_num();
-                upper = arg(env, 1)->as_num();
+                r_sanity_check(args->num_args() == 2);
+                lower = args->arg(env, 0)->as_num();
+                upper = args->arg(env, 1)->as_num();
             }
 
             bool range_scaled = false;
@@ -141,25 +142,25 @@ private:
                 result = result * 4.0;
             }
 
-            return new_val(make_counted<const datum_t>(result));
+            return new_val(datum_t(result));
         } else {
-            rcheck(num_args() > 0, base_exc_t::GENERIC,
+            rcheck(args->num_args() > 0, base_exc_t::LOGIC,
                    "Generating a random integer requires one or two bounds.");
             int64_t lower;
             int64_t upper;
 
             // Load the lower and upper values, and reject the query if we could
             // lose precision when putting the result in a datum_t (double)
-            if (num_args() == 1) {
+            if (args->num_args() == 1) {
                 lower = 0;
-                upper = convert_bound(arg(env, 0)->as_num(), bound_type_t::UPPER);
+                upper = convert_bound(args->arg(env, 0)->as_num(), bound_type_t::UPPER);
             } else {
-                r_sanity_check(num_args() == 2);
-                lower = convert_bound(arg(env, 0)->as_num(), bound_type_t::LOWER);
-                upper = convert_bound(arg(env, 1)->as_num(), bound_type_t::UPPER);
+                r_sanity_check(args->num_args() == 2);
+                lower = convert_bound(args->arg(env, 0)->as_num(), bound_type_t::LOWER);
+                upper = convert_bound(args->arg(env, 1)->as_num(), bound_type_t::UPPER);
             }
 
-            rcheck(lower < upper, base_exc_t::GENERIC,
+            rcheck(lower < upper, base_exc_t::LOGIC,
                    strprintf("Lower bound (%" PRIi64 ") is not less than upper bound (%" PRIi64 ").",
                              lower, upper));
 
@@ -176,17 +177,19 @@ private:
             int64_t signed_result = lower;
             signed_result += result;
 
-            return new_val(make_counted<const datum_t>(safe_to_double(signed_result)));
+            return new_val(datum_t(safe_to_double(signed_result)));
         }
     }
 
     virtual const char *name() const { return "random"; }
 };
 
-counted_t<term_t> make_sample_term(compile_env_t *env, const protob_t<const Term> &term) {
-    return counted_t<sample_term_t>(new sample_term_t(env, term));
+counted_t<term_t> make_sample_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<sample_term_t>(env, term);
 }
-counted_t<term_t> make_random_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_random_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<random_term_t>(env, term);
 }
 

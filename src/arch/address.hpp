@@ -8,8 +8,10 @@
 #include <netinet/in.h>
 #include <sys/ioctl.h>
 
+#include <algorithm>
 #include <string>
 #include <set>
+#include <vector>
 
 #include "containers/archive/archive.hpp"
 #include "containers/archive/stl_types.hpp"
@@ -22,14 +24,15 @@ class printf_buffer_t;
 
 class host_lookup_exc_t : public std::exception {
 public:
-    host_lookup_exc_t(const std::string &_host, int _errno_val);
+    host_lookup_exc_t(const std::string &_host, int _res, int _errno_res);
     ~host_lookup_exc_t() throw () { }
     const char *what() const throw () {
         return error_string.c_str();
     }
     const std::string host;
-    const int errno_val;
-    const std::string error_string;
+    const int res;
+    const int errno_res;
+    std::string error_string;
 };
 
 class invalid_address_exc_t : public std::exception {
@@ -80,31 +83,51 @@ public:
     const struct in6_addr &get_ipv6_addr() const;
     uint32_t get_ipv6_scope_id() const;
 
+    RDB_MAKE_ME_SERIALIZABLE_4(ip_address_t,
+        addr_type, ipv4_addr, ipv6_addr, ipv6_scope_id);
+
 private:
     addr_type_t addr_type;
     in_addr ipv4_addr;
     in6_addr ipv6_addr;
     uint32_t ipv6_scope_id;
-
-    RDB_MAKE_ME_SERIALIZABLE_4(addr_type, ipv4_addr, ipv6_addr, ipv6_scope_id);
 };
 
+std::string str_gethostname();
+
 std::set<ip_address_t> hostname_to_ips(const std::string &host);
-std::set<ip_address_t> get_local_ips(const std::set<ip_address_t> &filter, bool get_all);
+
+enum class local_ip_filter_t {
+    MATCH_FILTER,
+    MATCH_FILTER_OR_LOOPBACK,
+    ALL
+};
+
+std::set<ip_address_t> get_local_ips(const std::set<ip_address_t> &filter,
+                                     local_ip_filter_t filter_type);
 
 class port_t {
 public:
+    static constexpr int max_port = 65535;
+
     explicit port_t(int _port);
+    explicit port_t(sockaddr const *);
+
     int value() const;
+
+    std::string to_string() const;
+
+    RDB_MAKE_ME_SERIALIZABLE_1(port_t, value_);
+
 private:
     int value_;
-    RDB_MAKE_ME_SERIALIZABLE_1(value_);
 };
 
 class ip_and_port_t {
 public:
     ip_and_port_t();
     ip_and_port_t(const ip_address_t &_ip, port_t _port);
+    explicit ip_and_port_t(sockaddr const *);
 
     bool operator < (const ip_and_port_t &other) const;
     bool operator == (const ip_and_port_t &other) const;
@@ -112,12 +135,19 @@ public:
     const ip_address_t &ip() const;
     port_t port() const;
 
+    std::string to_string() const;
+
+    RDB_MAKE_ME_SERIALIZABLE_2(ip_and_port_t, ip_, port_);
+
 private:
     ip_address_t ip_;
     port_t port_;
-
-    RDB_MAKE_ME_SERIALIZABLE_2(ip_, port_);
 };
+
+// This implementation is used over operator == because we want to ignore different scope
+// ids in the case of IPv6
+bool is_similar_ip_address(const ip_and_port_t &left,
+                           const ip_and_port_t &right);
 
 class host_and_port_t {
 public:
@@ -132,11 +162,11 @@ public:
     const std::string &host() const;
     port_t port() const;
 
+    RDB_MAKE_ME_SERIALIZABLE_2(host_and_port_t, host_, port_);
+
 private:
     std::string host_;
     port_t port_;
-
-    RDB_MAKE_ME_SERIALIZABLE_2(host_, port_);
 };
 
 class peer_address_t {
@@ -157,6 +187,44 @@ public:
 private:
     std::set<host_and_port_t> hosts_;
     std::set<ip_and_port_t> resolved_ips;
+};
+
+void serialize_universal(write_message_t *wm, const std::set<host_and_port_t> &x);
+archive_result_t deserialize_universal(read_stream_t *s,
+                                       std::set<host_and_port_t> *thing);
+
+bool is_similar_peer_address(const peer_address_t &left,
+                             const peer_address_t &right);
+
+/* TODO: This should either be a `std::set<peer_address_t>` with a custom comparator, or
+a generic container type that contains a set of anything equality-comparable. */
+class peer_address_set_t {
+public:
+    size_t erase(const peer_address_t &addr) {
+        size_t erased = 0;
+        for (auto it = vec.begin(); it != vec.end(); ++it) {
+            if (*it == addr) {
+                vec.erase(it);
+                ++erased;
+                break;
+            }
+        }
+        return erased;
+    }
+    size_t size() const { return vec.size(); }
+    typedef std::vector<peer_address_t>::const_iterator iterator;
+    iterator begin() const { return vec.begin(); }
+    iterator end() const { return vec.end(); }
+    iterator find(const peer_address_t &addr) const {
+        return std::find(vec.begin(), vec.end(), addr);
+    }
+    iterator insert(const peer_address_t &addr) {
+        guarantee(find(addr) == vec.end());
+        return vec.insert(vec.end(), addr);
+    }
+    bool empty() const { return vec.empty(); }
+private:
+    std::vector<peer_address_t> vec;
 };
 
 void debug_print(printf_buffer_t *buf, const ip_address_t &addr);

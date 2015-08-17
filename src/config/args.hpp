@@ -51,12 +51,22 @@
 // useful.
 #define DEFAULT_IO_BATCH_FACTOR                   1
 
-// Currently, each cache uses two IO accounts:
-// one account for writes, and one account for reads.
-// By adjusting the priorities of these accounts, reads
-// can be prioritized over writes or the other way around.
+// I/O priority of index writes in the log serializer
+#define INDEX_WRITE_IO_PRIORITY                   128
+
+// Each cache uses its own I/O account for reads.
+// Writes use the default I/O account, which in practice is going to be overridden
+// by a common account in the merger_serializer_t.
+//
+// By adjusting the priority of the read account, relative to
+// MERGER_BLOCK_WRITE_IO_PRIORITY below, reads can be prioritized over writes
+// or the other way around.
+//
+// In practice we want to prioritize reads, so reads can pass ahead of
+// flushes.  The rationale behind this is that reads are almost always blocking
+// operations.  Writes, on the other hand, can be non-blocking (from the user's
+// perspective) if they are soft-durability or noreply writes.
 #define CACHE_READS_IO_PRIORITY                   (512 / CPU_SHARDING_FACTOR)
-#define CACHE_WRITES_IO_PRIORITY                  (64 / CPU_SHARDING_FACTOR)
 
 // The cache priority to use for secondary index post construction
 // 100 = same priority as all other read operations in the cache together.
@@ -92,10 +102,8 @@
 // small values of this variable.
 #define MERGER_SERIALIZER_MAX_ACTIVE_WRITES       1
 
-// I/O priority of (merged) index writes used by the
-// merger serializer.
-#define MERGED_INDEX_WRITE_IO_PRIORITY            128
-
+// I/O priority of block writes in the merger_serializer_t
+#define MERGER_BLOCK_WRITE_IO_PRIORITY            64
 
 // Maximum number of threads we support
 // TODO: make this dynamic where possible
@@ -164,14 +172,9 @@
 // freed. This value is per thread.
 #define COROUTINE_FREE_LIST_SIZE                  64
 
-#define MAX_COROS_PER_THREAD                      10000
-
-
-// Minimal time we nap before re-checking if a goal is satisfied in the reactor (in ms).
-// This is an optimization to save CPU time. Checking for whether the goal is
-// satisfied can be an expensive operation. By napping we increase our chances
-// that the event we are waiting for has occurred in the meantime.
-#define REACTOR_RUN_UNTIL_SATISFIED_NAP           100
+// In debug mode, we print a warning if more than this many coroutines have been
+// allocated on one thread.
+#define COROS_PER_THREAD_WARN_LEVEL               10000
 
 
 /**
@@ -211,7 +214,6 @@
 #define CORO_PRIORITY_REACTOR                   (-1)
 #define CORO_PRIORITY_DIRECTORY_CHANGES         (-2)
 #define CORO_PRIORITY_LBA_GC                    (-2)
-
 
 #endif  // CONFIG_ARGS_HPP_
 

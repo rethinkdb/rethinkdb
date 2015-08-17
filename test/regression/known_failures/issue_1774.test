@@ -5,31 +5,26 @@
 
 import os, sys, time
 
-# import our testing common
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, 'common')))
-import driver, http_admin, utils
+import driver, utils
 
-# -- constants
-
-databaseName = 'test'
-tableName = os.path.splitext(os.path.basename(__file__))[0]
+r = utils.import_python_driver()
 
 # -- setup
 
-r = utils.import_pyton_driver()
-server = driver.Process()
-connection = r.connect(host=server.host, port=server.driver_port)
+dbName, tableName = utils.get_test_db_table()
+
+server = driver.Process(console_output=True)
+conn = r.connect(host=server.host, port=server.driver_port)
 
 # make sure we have a clean table with no shards
 
-if databaseName not in r.db_list().run(connection):
-	r.db_create(databaseName).run(connection)
+if dbName not in r.db_list().run(conn):
+	r.db_create(dbName).run(conn)
 
-try:
-	r.table_create(tableName).run(connection)
-except r.RqlRuntimeError:
-	r.table_drop(tableName).run(connection)
-	r.table_create(tableName).run(connection)
+if tableName in r.db(dbName).table_list().run(conn):
+    r.db(dbName).table_drop(tableName).run(conn)
+r.db(dbName).table_create(tableName).run(conn)
 
 # -- thread methods
 
@@ -38,7 +33,7 @@ class FillTable(utils.PerformContinuousAction):
 		tableName = os.path.splitext(os.path.basename(__file__))[0]
 		if 'tableName' in self.kwargs:
 			tableName = self.kwargs['tableName']
-		r.table(tableName).insert({'id':self.sucessCount + 1, 'data':self.sucessCount + 1}, durability='hard', upsert=False).run(self.connection)
+		r.db(dbName).table(tableName).insert({'id':self.successCount + 1, 'data':self.successCount + 1}, durability='hard', conflict='error').run(self.connection)
 
 class WaitForTable(utils.PerformContinuousAction):
     def runAction(self):
@@ -52,11 +47,11 @@ class WaitForTable(utils.PerformContinuousAction):
         
         while time.time() < deadline:
             try:
-                r.table(tableName).limit(1).run(self.connection)
+                r.db(dbName).table(tableName).limit(1).run(self.connection)
                 break
             except r.RqlRuntimeError:
                 pass
-            except Exception, e:
+            except Exception as e:
                 self.recordError(e)
                 break
         if time.time() >= deadline:
@@ -71,25 +66,26 @@ time.sleep(3) # give it a moment to have something
 
 # - start reading the table
 
-readTableProcess = utils.PerformContinuousAction(connection=r.connect(host=server.host, port=server.driver_port), action=r.table(tableName).sample(1))
+readTableProcess = utils.PerformContinuousAction(connection=r.connect(host=server.host, port=server.driver_port), action=r.db(dbName).table(tableName).sample(1))
 
 # - perform the shard
 
 shardStartTime = time.time()
-admin = http_admin.ClusterAccess(addresses=[(server.host, server.http_port)])
-admin.add_table_shard(tableName, '4')
+tableId = r.db(dbName).table(tableName).config()['id'].run(conn)
+shardsArray = [{'primary_replica':server.name, 'replicas':[server.name]} for _ in range(4)]
+assert r.db('rethinkdb').table('table_config').get(tableId).update({'shards':shardsArray}).run(conn)['errors'] == 0
 
 # -- wait for the table to be ready
 
 waitTableTimeout = 10
-waitTableProcess = WaitForTable(connection=r.connect(host=server.host, port=server.driver_port), database=databaseName, timeout=waitTableTimeout)
+waitTableProcess = WaitForTable(connection=r.connect(host=server.host, port=server.driver_port), database=dbName, timeout=waitTableTimeout)
 waitTableProcess.join(timeout=waitTableTimeout)
 if waitTableProcess.errorCount != 0:
     allPassed = False
     for errorMessage in waitTableProcess.recordedErrors:
     	sys.stderr.write('Failure waiting for table to shard: %s\n' % errorMessage)
 else:
-    print('Success: %.2f seconds after shard command the table was ready' % ((waitTableProcess.startTime - shardStartTime) + waitTableProcess.durration))
+    print('Success: %.2f seconds after shard command the table was ready' % ((waitTableProcess.startTime - shardStartTime) + waitTableProcess.duration))
 
 # -- wind down the processes
 
@@ -100,7 +96,7 @@ readTableProcess.stop()
 
 # -- report on errors
 
-print('Created %d records, %d read, in %.2f seconds' % (fillTableProcess.sucessCount, readTableProcess.sucessCount, fillTableProcess.durration))
+print('Created %d records, %d read, in %.2f seconds' % (fillTableProcess.successCount, readTableProcess.successCount, fillTableProcess.duration))
 allPassed = True;
 
 # - fill
@@ -118,7 +114,7 @@ for errorMessage, errorCount in readTableProcess.errorSummary().items():
 # - connection is still valid
 
 try:
-	r.db_list().run(connection)
+	r.db_list().run(conn)
 	print('Success: conection is still valid')
 except r.errors.RqlDriverError:
 	allPassed = False
@@ -128,21 +124,21 @@ except r.errors.RqlDriverError:
 # - everything made it to the database that we expected
 
 try:
-    actualRecordCount = r.table(tableName).count().run(connection)
-    if actualRecordCount != fillTableProcess.sucessCount:
+    actualRecordCount = r.db(dbName).table(tableName).count().run(conn)
+    if actualRecordCount != fillTableProcess.successCount:
         allPassed = False
-        sys.stderr.write('Failure: The count of records in the table (%d) does not match the number we added (%d)\n' % (actualRecordCount, fillTableProcess.sucessCount))
+        sys.stderr.write('Failure: The count of records in the table (%d) does not match the number we added (%d)\n' % (actualRecordCount, fillTableProcess.successCount))
     else:
         print('Success: correct number of records: %d' % actualRecordCount)
     
-    expectedSum = (fillTableProcess.sucessCount * (fillTableProcess.sucessCount + 1))/2
-    actualSum = r.table(tableName).sum('data').run(connection)
+    expectedSum = (fillTableProcess.successCount * (fillTableProcess.successCount + 1)) / 2
+    actualSum = r.db(dbName).table(tableName).sum('data').run(conn)
     if expectedSum != actualSum:
         allPassed = False
         sys.stderr.write('Failure: The sum of the data in the table (%d) does not match the number we expected (%d)\n' % (actualSum, expectedSum))
     else:
         print('Success: correct sum of records: %d' % expectedSum)
-except Exception, e:
+except Exception as e:
     allPassed = False
     sys.stderr.write('Failure: unable to connect to the table to review data: %s %s' % (e.__class__.__name__, str(e)))
     time.sleep(600)

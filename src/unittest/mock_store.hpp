@@ -22,61 +22,73 @@ class mock_store_t : public store_view_t {
 public:
     explicit mock_store_t(binary_blob_t universe_metainfo = binary_blob_t());
     ~mock_store_t();
+    void rethread(threadnum_t new_thread) {
+        home_thread_mixin_t::real_home_thread = new_thread;
+        token_source_.rethread(new_thread);
+        token_sink_.rethread(new_thread);
+        order_sink_.rethread(new_thread);
+    }
 
     void note_reshard() { }
 
-    void new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out);
-    void new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out);
+    void new_read_token(read_token_t *token_out);
+    void new_write_token(write_token_t *token_out);
 
-    void do_get_metainfo(order_token_t order_token,
-                         object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
-                         signal_t *interruptor,
-                         metainfo_t *out) THROWS_ONLY(interrupted_exc_t);
+    region_map_t<binary_blob_t> get_metainfo(
+            order_token_t order_token,
+            read_token_t *token,
+            const region_t &region,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
 
-    void set_metainfo(const metainfo_t &new_metainfo,
+    void set_metainfo(const region_map_t<binary_blob_t> &new_metainfo,
                       order_token_t order_token,
-                      object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
+                      write_token_t *token,
+                      write_durability_t durability,
                       signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
     void read(
             DEBUG_ONLY(const metainfo_checker_t &metainfo_checker, )
             const read_t &read,
             read_response_t *response,
-            order_token_t order_token,
-            read_token_pair_t *token,
+            read_token_t *token,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
     void write(
             DEBUG_ONLY(const metainfo_checker_t &metainfo_checker, )
-            const metainfo_t& new_metainfo,
+            const region_map_t<binary_blob_t> &new_metainfo,
             const write_t &write,
             write_response_t *response,
             write_durability_t durability,
-            transition_timestamp_t timestamp,
+            state_timestamp_t timestamp,
             order_token_t order_token,
-            write_token_pair_t *token,
+            write_token_t *token,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
-    bool send_backfill(
+    continue_bool_t send_backfill_pre(
             const region_map_t<state_timestamp_t> &start_point,
-            send_backfill_callback_t *send_backfill_cb,
-            traversal_progress_combiner_t *progress,
-            read_token_pair_t *token,
+            backfill_pre_item_consumer_t *pre_item_consumer,
             signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t);
-
-    void receive_backfill(
-            const backfill_chunk_t &chunk,
-            write_token_pair_t *token,
+            THROWS_ONLY(interrupted_exc_t);
+    continue_bool_t send_backfill(
+            const region_map_t<state_timestamp_t> &start_point,
+            backfill_pre_item_producer_t *pre_item_producer,
+            backfill_item_consumer_t *item_consumer,
             signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t);
+            THROWS_ONLY(interrupted_exc_t);
+    continue_bool_t receive_backfill(
+            const region_t &region,
+            backfill_item_producer_t *item_producer,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
 
-    void throttle_backfill_chunk(signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t);
+    void wait_until_ok_to_receive_backfill(signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
 
     void reset_data(
+            const binary_blob_t &zero_version,
             const region_t &subregion,
             write_durability_t durability,
             signal_t *interruptor)
@@ -93,8 +105,8 @@ private:
     order_sink_t order_sink_;
 
     rng_t rng_;
-    metainfo_t metainfo_;
-    std::map<store_key_t, std::pair<repli_timestamp_t, counted_t<const ql::datum_t> > > table_;
+    region_map_t<binary_blob_t> metainfo_;
+    std::map<store_key_t, std::pair<repli_timestamp_t, ql::datum_t> > table_;
 
     DISABLE_COPYING(mock_store_t);
 };

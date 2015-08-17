@@ -1,45 +1,70 @@
 #!/usr/bin/env python
-# Copyright 2010-2012 RethinkDB, all rights reserved.
-import sys, os, time
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import driver, http_admin, scenario_common
-from vcoptparse import *
+# Copyright 2010-2014 RethinkDB, all rights reserved.
 
-op = OptParser()
+from __future__ import print_function
+
+import os, sys, time
+
+startTime = time.time()
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
+import driver, scenario_common, utils, vcoptparse
+
+op = vcoptparse.OptParser()
 scenario_common.prepare_option_parser_mode_flags(op)
 opts = op.parse(sys.argv)
+_, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
 
-with driver.Metacluster() as metacluster:
-    cluster = driver.Cluster(metacluster)
-    executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
-    print "Spinning up a process..."
-    files = driver.Files(metacluster, db_path = "db", log_path = "create-output",
-                         executable_path = executable_path, command_prefix = command_prefix)
-    process = driver.Process(cluster, files, log_path = "log",
-        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
-    process.wait_until_started_up()
-    cluster.check()
-    access = http_admin.ClusterAccess([("localhost", process.http_port)])
-    assert access.get_issues() == []
-    print "Creating a table with impossible goals..."
-    datacenter = access.add_datacenter()
-    namespace = access.add_table(primary = datacenter, check = False)
+r = utils.import_python_driver()
+dbName, tableName = utils.get_test_db_table()    
 
-    # Make sure there are no unexpected problems with the namespace
+def assertRaises(exception, funct, *args, **kwds):
+    assert issubclass(exception, Exception)
+    result = None
     try:
-        access.get_distribution(namespace)
-    except http_admin.BadServerResponse as ex:
-        # A 500 server error indicates that the namespace master isn't available, which is expected
-        if ex.status != 500:
-            raise
+        result = funct(*args, **kwds)
+    except exception:
+        pass
+    else:
+        if result is None:
+            raise Exception('Should have raised %s, but did not' % exception.__class__.__name__)
+        else:
+            raise Exception('Should have raised %s, but rather returned: %s' % (exception.__class__.__name__, repr(result)))
 
-    cluster.check()
-    print "Checking that there is an issue about this..."
-    issues = access.get_issues()
-    assert len(issues) == 1
-    assert issues[0]["type"] == "UNSATISFIABLE_GOALS"
-    assert issues[0]["namespace_id"] == namespace.uuid
-    assert issues[0]["primary_datacenter"] == datacenter.uuid
-    cluster.check_and_stop()
-print "Done."
+print("Starting a server (%.2fs)" % (time.time() - startTime))
+with driver.Process(output_folder='.', command_prefix=command_prefix, extra_options=serve_options, wait_until_ready=True) as server:
+    
+    print("Establishing ReQL Connection (%.2fs)" % (time.time() - startTime))
+    
+    conn = r.connect(host=server.host, port=server.driver_port)
+    
+    print("Creating db/table %s/%s (%.2fs)" % (dbName, tableName, time.time() - startTime))
+    
+    if dbName not in r.db_list().run(conn):
+        r.db_create(dbName).run(conn)
+    
+    if tableName in r.db(dbName).table_list().run(conn):
+        r.db(dbName).table_drop(tableName).run(conn)
+    r.db(dbName).table_create(tableName).run(conn)
+    
+    print("Trying to set impossible goals with reconfigure (%.2fs)" % (time.time() - startTime))
+    
+    assertRaises(r.RqlRuntimeError, r.db(dbName).table(tableName).reconfigure(shards=1, replicas=4).run, conn)
+    
+    print("Trying to set impossible goals through table.config (%.2fs)" % (time.time() - startTime))
 
+    assert r.db(dbName).table(tableName).config().update({'shards':[{'primary_replica':server.name, 'replicas':[server.name, server.name, server.name, server.name]}]})['errors'].run(conn) == 1
+    assert r.db(dbName).table(tableName).config().update({'write_acks':[{'acks':'majority', 'replicas':['larkost_local_kxj', 'alpha']}]})['errors'].run(conn) == 1
+    
+    print("Trying to set impossible goals through rethinkdb.table_config (%.2fs)" % (time.time() - startTime))
+    
+    assert r.db('rethinkdb').table('table_config').filter({'name':tableName}).nth(0).update({'shards':[{'primary_replica':server.name, 'replicas':[server.name, server.name, server.name, server.name]}]})['errors'].run(conn) == 1
+    
+    print("Checking server up (%.2fs)" % (time.time() - startTime))
+    
+    server.check()
+    issues = list(r.db('rethinkdb').table('current_issues').run(conn))
+    assert [] == issues, 'The issues list was not empty: %s' % repr(issues)
+    
+    print("Cleaning up (%.2fs)" % (time.time() - startTime))
+print("Done. (%.2fs)" % (time.time() - startTime))

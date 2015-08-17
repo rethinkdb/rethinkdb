@@ -7,9 +7,6 @@
 #include <string>
 #include <vector>
 
-#include "errors.hpp"
-#include <boost/ptr_container/ptr_vector.hpp>
-
 #include "backtrace.hpp"
 #include "containers/scoped.hpp"
 #include "threading.hpp"
@@ -40,7 +37,7 @@ public:
 
 private:
     bool log_bt_;
-    boost::ptr_vector<log_event_t> events;
+    std::vector<scoped_ptr_t<log_event_t> > events;
 
     DISABLE_COPYING(activity_logger_t);
 };

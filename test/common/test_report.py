@@ -1,8 +1,9 @@
-# Copyright 2010-2012 RethinkDB, all rights reserved.
+# Copyright 2010-2014 RethinkDB, all rights reserved.
 
-import json, os, subprocess, re
+from __future__ import print_function
 
-import test_framework
+import json, os, re, subprocess
+
 import utils
 
 def format_tests(test_root, test_tree):
@@ -35,7 +36,7 @@ def generate_html(output_file, reportData):
   file_out = open(output_file, 'w')
   mustachePath = os.path.realpath(os.path.join(os.path.dirname(__file__), 'mustache', 'mustache.js'))
   mustacheContent = open(mustachePath).read()
-  pageHTML = test_report_template % { "pagedata":json.dumps(reportData, separators=(',',':')), 'mustacheContents': mustacheContent }
+  pageHTML = test_report_template % {"pagedata": json.dumps(reportData, separators=(',', ':')), 'mustacheContents': mustacheContent}
   file_out.write(pageHTML)
 
 def gen_report(test_root, tests):
@@ -69,7 +70,7 @@ def gen_report(test_root, tests):
   }
   
   generate_html(test_root + "/test_results.html", reportData)
-  print 'Wrote test report to "%s/test_results.html"' % os.path.realpath(test_root)
+  print('Wrote test report to "%s/test_results.html"' % os.path.realpath(test_root))
 
 test_report_template = """
 <html>
@@ -87,8 +88,8 @@ test_report_template = """
         function toggleVisibility(targetId) {
             var target = document.getElementById(targetId);
             if (target != null) {
-                if (target.style.display != "inline") {
-                    target.style.display = "inline";
+                if (target.style.display == "none") {
+                    target.style.display = null;
                 } else {
                     target.style.display = "none";
                 }

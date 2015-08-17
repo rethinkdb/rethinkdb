@@ -42,6 +42,7 @@ pkg_environment () {
     if [[ -d "$install_dir/lib" ]]; then
         echo "export LDFLAGS=\"\${LDFLAGS:-} -L$(niceabspath "$install_dir/lib")\""
         echo "export LD_LIBRARY_PATH=\"$(niceabspath "$install_dir/lib")\${LD_LIBRARY_PATH:+:}\${LD_LIBRARY_PATH:-}\""
+        echo "export DYLD_LIBRARY_PATH=\"$(niceabspath "$install_dir/lib")\${DYLD_LIBRARY_PATH:+:}\${DYLD_LIBRARY_PATH:-}\""
     fi
     test -d "$install_dir/bin" && echo "export PATH=\"$(niceabspath "$install_dir/bin"):\$PATH\"" || :
     local pcdir="$install_dir/lib/pkgconfig"
@@ -116,7 +117,7 @@ pkg_install-include () {
     test -e "$install_dir/include" && rm -rf "$install_dir/include"
     if [[ -e "$src_dir/include" ]]; then
         mkdir -p "$install_dir/include"
-        cp -a "$src_dir/include/." "$install_dir/include"
+        cp -RL "$src_dir/include/." "$install_dir/include"
     fi
 }
 
@@ -133,7 +134,7 @@ pkg_install () {
         error "cannot install package, it has not been fetched"
     fi
     pkg_copy_src_to_build
-    pkg_configure
+    pkg_configure ${configure_flags:-}
     pkg_make install
 }
 
@@ -208,8 +209,15 @@ in_dir () {
 
 # Load a package and set related variables
 load_pkg () {
-    pkg=$1
+    pkg=${1%%_*}
+    local requested_version="${1#*_}"
     include "$pkg.sh"
+
+    if [[ "$requested_version" != "$1" ]] && [[ "$requested_version" != "$version" ]]; then
+        echo "Error: Version mismatch. Asked for ${pkg}_$requested_version but only $version is available" >&2
+        echo "Error: Please re-run ./configure" >&2
+        exit 1
+    fi
 
     src_dir=$(niceabspath "$external_dir/$pkg""_$version")
     install_dir=$(niceabspath "$root_build_dir/external/$pkg""_$version")
@@ -266,6 +274,7 @@ pkg () {
 
 # Configure some default paths
 pkg_dir=$(niceabspath "$(dirname $0)")
+root_dir=$(niceabspath "$pkg_dir/../../..")
 conf_dir=$(niceabspath "$pkg_dir/../config")
 external_dir=$(niceabspath "$pkg_dir/../../../external")
 root_build_dir=${BUILD_ROOT_DIR:-$(niceabspath "$pkg_dir/../../../build")}
@@ -286,6 +295,11 @@ shift
 # Load the package
 load_pkg "$1"
 shift
+
+# Trace commands
+if [[ "${TRACE:-}" = 1 ]]; then
+    set -x
+fi
 
 # Prepare the environment
 pkg_depends_env

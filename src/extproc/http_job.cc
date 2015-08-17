@@ -12,20 +12,29 @@
 #include "containers/archive/stl_types.hpp"
 #include "extproc/extproc_job.hpp"
 #include "http/http_parser.hpp"
+#include "rapidjson/document.h"
+#include "rapidjson/error/en.h"
+#include "rdb_protocol/env.hpp"
 
 #define RETHINKDB_USER_AGENT (SOFTWARE_NAME_STRING "/" RETHINKDB_VERSION)
 
 void parse_header(const std::string &header,
                   http_result_t *res_out);
 
+void save_cookies(CURL *curl_handle,
+                  http_result_t *res_out);
+
+enum class attach_json_to_error_t { YES, NO };
 void json_to_datum(const std::string &json,
-                   http_result_t *res_out);
-void json_to_datum(std::string &&json,
+                   const ql::configured_limits_t &limits,
+                   reql_version_t reql_version,
+                   attach_json_to_error_t attach_json,
                    http_result_t *res_out);
 
 void jsonp_to_datum(const std::string &jsonp,
-                    http_result_t *res_out);
-void jsonp_to_datum(std::string &&jsonp,
+                    const ql::configured_limits_t &limits,
+                    reql_version_t reql_version,
+                    attach_json_to_error_t attach_json,
                     http_result_t *res_out);
 
 void perform_http(http_opts_t *opts,
@@ -45,19 +54,19 @@ public:
 class scoped_curl_handle_t {
 public:
     scoped_curl_handle_t() :
-        handle(curl_easy_init()) {
+        curl_handle(curl_easy_init()) {
     }
 
     ~scoped_curl_handle_t() {
-        curl_easy_cleanup(handle);
+        curl_easy_cleanup(curl_handle);
     }
 
     CURL *get() {
-        return handle;
+        return curl_handle;
     }
 
 private:
-    CURL *handle;
+    CURL *curl_handle;
 };
 
 // Used for adding headers, which cannot be freed until after the request is done
@@ -135,19 +144,19 @@ size_t curl_data_t::write_header(char *ptr, size_t size, size_t nmemb, void* ins
     return self->write_header_internal(ptr,
                                        multiply_with_overflow_check(size, nmemb,
                                                                     "write header"));
-};
+}
 
 size_t curl_data_t::write_body(char *ptr, size_t size, size_t nmemb, void* instance) {
     curl_data_t *self = static_cast<curl_data_t *>(instance);
     return self->write_body_internal(ptr,
                                      multiply_with_overflow_check(size, nmemb,
                                                                   "write body"));
-};
+}
 
 size_t curl_data_t::read(char *ptr, size_t size, size_t nmemb, void* instance) {
     curl_data_t *self = static_cast<curl_data_t *>(instance);
     return self->read_internal(ptr, multiply_with_overflow_check(size, nmemb, "read"));
-};
+}
 
 size_t curl_data_t::write_header_internal(char *ptr, size_t size) {
     header_data.append(ptr, size);
@@ -174,16 +183,20 @@ http_job_t::http_job_t(extproc_pool_t *pool, signal_t *interruptor) :
 void http_job_t::http(const http_opts_t &opts,
                       http_result_t *res_out) {
     write_message_t msg;
-    serialize(&msg, opts);
+    serialize<cluster_version_t::LATEST_OVERALL>(&msg, opts);
     {
         int res = send_write_message(extproc_job.write_stream(), &msg);
-        if (res != 0) { throw http_worker_exc_t("failed to send data to the worker"); }
+        if (res != 0) {
+            throw extproc_worker_exc_t("failed to send data to the worker");
+        }
     }
 
-    archive_result_t res = deserialize(extproc_job.read_stream(), res_out);
+    archive_result_t res
+        = deserialize<cluster_version_t::LATEST_OVERALL>(extproc_job.read_stream(),
+                                                         res_out);
     if (bad(res)) {
-        throw http_worker_exc_t(strprintf("failed to deserialize result from worker "
-                                          "(%s)", archive_result_as_str(res)));
+        throw extproc_worker_exc_t(strprintf("failed to deserialize result from worker "
+                                             "(%s)", archive_result_as_str(res)));
     }
 }
 
@@ -195,11 +208,14 @@ bool http_job_t::worker_fn(read_stream_t *stream_in, write_stream_t *stream_out)
     static bool curl_initialized(false);
     http_opts_t opts;
     {
-        archive_result_t res = deserialize(stream_in, &opts);
+        archive_result_t res
+            = deserialize<cluster_version_t::LATEST_OVERALL>(stream_in, &opts);
         if (bad(res)) { return false; }
     }
 
     http_result_t result;
+    result.header = ql::datum_t::null();
+    result.body = ql::datum_t::null();
 
     CURLcode curl_res = CURLE_OK;
     if (!curl_initialized) {
@@ -221,7 +237,7 @@ bool http_job_t::worker_fn(read_stream_t *stream_in, write_stream_t *stream_out)
     }
 
     write_message_t msg;
-    serialize(&msg, result);
+    serialize<cluster_version_t::LATEST_OVERALL>(&msg, result);
     int res = send_write_message(stream_out, &msg);
     if (res != 0) { return false; }
 
@@ -241,6 +257,19 @@ std::string exc_encode(CURL *curl_handle, const std::string &str) {
     }
 
     return res;
+}
+
+// We may get multiple headers due to authentication or redirection.  Filter out all but
+// the last response's header, which is all we care about.
+void truncate_header_data(std::string *header_data) {
+    size_t last_crlf = header_data->rfind("\r\n\r\n");
+
+    if (last_crlf != std::string::npos || last_crlf > 0) {
+        size_t second_to_last_crlf = header_data->rfind("\r\n\r\n", last_crlf - 1);
+        if (second_to_last_crlf != std::string::npos) {
+            header_data->erase(0, second_to_last_crlf + 4);
+        }
+    }
 }
 
 template <class T>
@@ -309,31 +338,30 @@ std::string url_encode_fields(CURL *curl_handle,
 }
 
 std::string url_encode_fields(CURL *curl_handle,
-                              const counted_t<const ql::datum_t> &fields) {
+                              const ql::datum_t &fields) {
     // Convert to a common format
     if (!fields.has()) {
         return std::string();
     }
 
-    const std::map<std::string, counted_t<const ql::datum_t> > &fields_map =
-        fields->as_object();
     std::map<std::string, std::string> translated_fields;
 
-    for (auto it = fields_map.begin(); it != fields_map.end(); ++it) {
+    for (size_t field_idx = 0; field_idx < fields.obj_size(); ++field_idx) {
+        auto pair = fields.get_pair(field_idx);
         std::string val;
-        if (it->second->get_type() == ql::datum_t::R_NUM) {
+        if (pair.second.get_type() == ql::datum_t::R_NUM) {
             val = strprintf("%" PR_RECONSTRUCTABLE_DOUBLE,
-                            it->second->as_num());
-        } else if (it->second->get_type() == ql::datum_t::R_STR) {
-            val = it->second->as_str().to_std();
-        } else if (it->second->get_type() != ql::datum_t::R_NULL) {
+                            pair.second.as_num());
+        } else if (pair.second.get_type() == ql::datum_t::R_STR) {
+            val = pair.second.as_str().to_std();
+        } else if (pair.second.get_type() != ql::datum_t::R_NULL) {
             // This shouldn't happen because we check this in the main process anyway
             throw curl_exc_t(strprintf("expected `params.%s` to be a NUMBER, STRING, "
                                        "or NULL, but found %s",
-                                       it->first.c_str(),
-                                       it->second->get_type_name().c_str()));
+                                       pair.first.to_std().c_str(),
+                                       pair.second.get_type_name().c_str()));
         }
-        translated_fields[it->first] = val;
+        translated_fields[pair.first.to_std()] = val;
     }
 
     return url_encode_fields(curl_handle, translated_fields);
@@ -387,7 +415,7 @@ void transfer_method_opt(http_opts_t *opts,
 }
 
 void transfer_url_opt(const std::string &url,
-        const counted_t<const ql::datum_t> &url_params,
+        const ql::datum_t &url_params,
         CURL *curl_handle) {
     std::string full_url = url;
     std::string params = url_encode_fields(curl_handle, url_params);
@@ -453,6 +481,12 @@ void transfer_verify_opt(bool verify, CURL *curl_handle) {
     exc_setopt(curl_handle, CURLOPT_SSL_VERIFYHOST, val, "SSL VERIFY HOST");
 }
 
+void transfer_cookies(const std::vector<std::string> &cookies, CURL *curl_handle) {
+    for (auto const &cookie : cookies) {
+        exc_setopt(curl_handle, CURLOPT_COOKIELIST, cookie.c_str(), "COOKIELIST");
+    }
+}
+
 void transfer_opts(http_opts_t *opts,
                    CURL *curl_handle,
                    curl_data_t *curl_data) {
@@ -465,6 +499,9 @@ void transfer_opts(http_opts_t *opts,
 
     // Set method last as it may override some options libcurl automatically sets
     transfer_method_opt(opts, curl_handle, curl_data);
+
+    // Copy any saved cookies from a previous request (e.g. in the case of depagination)
+    transfer_cookies(opts->cookies, curl_handle);
 }
 
 void set_default_opts(CURL *curl_handle,
@@ -484,9 +521,12 @@ void set_default_opts(CURL *curl_handle,
 
     exc_setopt(curl_handle, CURLOPT_USERAGENT, RETHINKDB_USER_AGENT, "USER AGENT");
 
-    exc_setopt(curl_handle, CURLOPT_ENCODING, "deflate=1;gzip=0.5", "PROTOCOLS");
+    exc_setopt(curl_handle, CURLOPT_ENCODING, "deflate;q=1, gzip;q=0.5", "PROTOCOLS");
 
     exc_setopt(curl_handle, CURLOPT_NOSIGNAL, 1, "NOSIGNAL");
+
+    // Enable cookies - needed for multiple requests like redirects or digest auth
+    exc_setopt(curl_handle, CURLOPT_COOKIEFILE, "", "COOKIEFILE");
 
     // Use the proxy set when launched
     if (!proxy.empty()) {
@@ -504,13 +544,8 @@ void perform_http(http_opts_t *opts, http_result_t *res_out) {
         return;
     }
 
-    try {
-        set_default_opts(curl_handle.get(), opts->proxy, curl_data);
-        transfer_opts(opts, curl_handle.get(), &curl_data);
-    } catch (const curl_exc_t &ex) {
-        res_out->error.assign(ex.what());
-        return;
-    }
+    set_default_opts(curl_handle.get(), opts->proxy, curl_data);
+    transfer_opts(opts, curl_handle.get(), &curl_data);
 
     CURLcode curl_res = CURLE_OK;
     long response_code = 0; // NOLINT(runtime/int)
@@ -546,6 +581,7 @@ void perform_http(http_opts_t *opts, http_result_t *res_out) {
 
     std::string body_data(curl_data.steal_body_data());
     std::string header_data(curl_data.steal_header_data());
+    truncate_header_data(&header_data);
 
     if (opts->attempts == 0) {
         res_out->error.assign("could not perform, no attempts allowed");
@@ -563,16 +599,17 @@ void perform_http(http_opts_t *opts, http_result_t *res_out) {
             parse_header(header_data, res_out);
         }
         if (!body_data.empty()) {
-            res_out->body = make_counted<const ql::datum_t>(std::move(body_data));
+            res_out->body = ql::datum_t(datum_string_t(body_data));
         }
         res_out->error = strprintf("status code %ld", response_code);
     } else {
         parse_header(header_data, res_out);
+        save_cookies(curl_handle.get(), res_out);
 
         // If this was a HEAD request, we should not be handling data, just return R_NULL
         // so the user knows the request succeeded
         if (opts->method == http_method_t::HEAD) {
-            res_out->body = make_counted<const ql::datum_t>(ql::datum_t::R_NULL);
+            res_out->body = ql::datum_t::null();
             return;
         }
 
@@ -596,36 +633,50 @@ void perform_http(http_opts_t *opts, http_result_t *res_out) {
                 }
 
                 if (content_type.find("application/json") == 0) {
-                    json_to_datum(std::move(body_data), res_out);
+                    json_to_datum(body_data, opts->limits, opts->version,
+                                  attach_json_to_error_t::YES, res_out);
                 } else if (content_type.find("text/javascript") == 0 ||
                            content_type.find("application/json-p") == 0 ||
                            content_type.find("text/json-p") == 0) {
                     // Try to parse the result as JSON, then as JSONP, then plaintext
                     // Do not use move semantics here, as we retry on errors
-                    json_to_datum(body_data, res_out);
+                    json_to_datum(body_data, opts->limits, opts->version,
+                                  attach_json_to_error_t::NO, res_out);
                     if (!res_out->error.empty()) {
                         res_out->error.clear();
-                        jsonp_to_datum(body_data, res_out);
+                        jsonp_to_datum(body_data, opts->limits, opts->version,
+                                       attach_json_to_error_t::NO, res_out);
                         if (!res_out->error.empty()) {
                             res_out->error.clear();
                             res_out->body =
-                                make_counted<const ql::datum_t>(std::move(body_data));
+                                ql::datum_t(datum_string_t(body_data));
                         }
                     }
+                } else if (content_type.find("audio/") == 0 ||
+                           content_type.find("image/") == 0 ||
+                           content_type.find("video/") == 0 ||
+                           content_type.find("application/octet-stream") == 0) {
+                    res_out->body = ql::datum_t::binary(datum_string_t(body_data));
+
                 } else {
                     res_out->body =
-                        make_counted<const ql::datum_t>(std::move(body_data));
+                        ql::datum_t(datum_string_t(body_data));
                 }
             }
             break;
         case http_result_format_t::JSON:
-            json_to_datum(std::move(body_data), res_out);
+            json_to_datum(body_data, opts->limits, opts->version,
+                          attach_json_to_error_t::YES, res_out);
             break;
         case http_result_format_t::JSONP:
-            jsonp_to_datum(std::move(body_data), res_out);
+            jsonp_to_datum(body_data, opts->limits, opts->version,
+                           attach_json_to_error_t::YES, res_out);
             break;
         case http_result_format_t::TEXT:
-            res_out->body = make_counted<const ql::datum_t>(std::move(body_data));
+            res_out->body = ql::datum_t(datum_string_t(body_data));
+            break;
+        case http_result_format_t::BINARY:
+            res_out->body = ql::datum_t::binary(datum_string_t(body_data));
             break;
         default:
             unreachable();
@@ -635,8 +686,8 @@ void perform_http(http_opts_t *opts, http_result_t *res_out) {
 
 class header_parser_singleton_t {
 public:
-    static counted_t<const ql::datum_t> parse(const std::string &header);
-    
+    static ql::datum_t parse(const std::string &header);
+
 private:
     static void initialize();
     static header_parser_singleton_t *instance;
@@ -655,8 +706,8 @@ private:
     http_parser parser;
 
     RE2 link_parser;
-    std::map<std::string, counted_t<const ql::datum_t> > header_fields;
-    std::map<std::string, counted_t<const ql::datum_t> > link_headers;
+    std::map<datum_string_t, ql::datum_t> header_fields;
+    std::map<datum_string_t, ql::datum_t> link_headers;
     std::string current_field;
 };
 header_parser_singleton_t *header_parser_singleton_t::instance = NULL;
@@ -673,7 +724,7 @@ header_parser_singleton_t *header_parser_singleton_t::instance = NULL;
 //  - for the second, there is only one string, the link 'http://example.org',
 //     this will be stored in the result with an empty key.  If more than one of
 //     these is given in the response, the last one will take precedence.
-// 
+//
 // The link_parser regular expression consists of two main chunks, with gratuitous
 // whitespace padding:
 // <([^>]*)> - this is the first capture group, for the link portion.  Since the URL
@@ -684,14 +735,14 @@ header_parser_singleton_t *header_parser_singleton_t::instance = NULL;
 //     a comma or the end of the line.  Like before, the capture group is configured
 //     to only capture the param. Note: this will fail if the param contains a comma.
 header_parser_singleton_t::header_parser_singleton_t() :
-    link_parser("^\\s*<([^>]*)>\\s*(?:;\\s*([^,]+)\\s*(?:,|$))")
+    link_parser("^\\s*<([^>]*)>\\s*(?:;\\s*([^,]+)\\s*(?:,|$))", RE2::Quiet)
 {
     memset(&settings, 0, sizeof(settings));
     settings.on_header_field = &header_parser_singleton_t::on_header_field;
     settings.on_header_value = &header_parser_singleton_t::on_header_value;
     settings.on_headers_complete = &header_parser_singleton_t::on_headers_complete;
 }
-    
+
 void header_parser_singleton_t::initialize() {
     if (instance == NULL) {
         instance = new header_parser_singleton_t();
@@ -702,7 +753,7 @@ void header_parser_singleton_t::initialize() {
     instance->parser.data = instance;
 }
 
-counted_t<const ql::datum_t>
+ql::datum_t
 header_parser_singleton_t::parse(const std::string &header) {
     initialize();
     size_t res = http_parser_execute(&instance->parser,
@@ -714,20 +765,23 @@ header_parser_singleton_t::parse(const std::string &header) {
         // Upgrade header was present - error
         throw curl_exc_t("upgrade header present in response headers");
     } else if (res != header.length()) {
-        throw curl_exc_t("unknown error when parsing response headers");
+        throw curl_exc_t(strprintf("unknown error when parsing response headers:\n%s\n",
+                                   header.c_str()));
     }
 
     // Return an empty object if we didn't receive any headers
     if (instance->header_fields.size() == 0 &&
         instance->link_headers.size() == 0) {
-        return counted_t<const ql::datum_t>();
+        return ql::datum_t();
     } else if (instance->link_headers.size() > 0) {
         // Include the specially-parsed link header field
-        instance->header_fields["link"] =
-            make_counted<const ql::datum_t>(std::move(instance->link_headers));
+        instance->header_fields[datum_string_t("link")] =
+            ql::datum_t(std::move(instance->link_headers));
     }
 
-    return make_counted<const ql::datum_t>(std::move(instance->header_fields));
+    ql::datum_t parsed_header = ql::datum_t(std::move(instance->header_fields));
+    instance->header_fields.clear();
+    return parsed_header;
 }
 
 int header_parser_singleton_t::on_headers_complete(UNUSED http_parser *parser) {
@@ -756,8 +810,8 @@ int header_parser_singleton_t::on_header_value(http_parser *parser,
     if (instance->current_field == "link") {
         instance->add_link_header(std::string(value, length));
     } else {
-        instance->header_fields[instance->current_field] =
-            make_counted<const ql::datum_t>(std::string(value, length));
+        instance->header_fields[datum_string_t(instance->current_field)] =
+            ql::datum_t(datum_string_t(length, value));
     }
     return 0;
 }
@@ -768,7 +822,8 @@ void header_parser_singleton_t::add_link_header(const std::string &line) {
     std::string value;
     std::string param;
     while (RE2::FindAndConsume(&line_re2, link_parser, &value, &param)) {
-        link_headers[param] = make_counted<const ql::datum_t>(std::move(value));
+        link_headers[datum_string_t(param)] =
+            ql::datum_t(datum_string_t(value));
     }
 
     if (line_re2.length() != 0) {
@@ -783,28 +838,40 @@ void parse_header(const std::string &header,
     res_out->header = header_parser_singleton_t::parse(header);
 }
 
-// This version will not use move semantics for the body data, to be used in
-// result_format="auto", where we may fallback to jsonp
-void json_to_datum(const std::string &json,
-                   http_result_t *res_out) {
-    scoped_cJSON_t cjson(cJSON_Parse(json.c_str()));
-    if (cjson.get() != NULL) {
-        res_out->body = make_counted<const ql::datum_t>(cjson);
-    } else {
-        res_out->error.assign("failed to parse JSON response");
+void save_cookies(CURL *curl_handle, http_result_t *res_out) {
+    struct curl_slist *cookies;
+    CURLcode curl_res = curl_easy_getinfo(curl_handle, CURLINFO_COOKIELIST, &cookies);
+
+    if (curl_res != CURLE_OK) {
+        throw curl_exc_t("failed to get a list of cookies from the session");
+    }
+
+    res_out->cookies.clear();
+    for (curl_slist *current = cookies; current != NULL; current = current->next) {
+        res_out->cookies.push_back(std::string(current->data));
+    }
+
+    if (cookies != NULL) {
+        curl_slist_free_all(cookies);
     }
 }
 
-// This version uses move semantics and includes the body as a string when a
-// parsing error occurs.
-void json_to_datum(std::string &&json,
+void json_to_datum(const std::string &json,
+                   const ql::configured_limits_t &limits,
+                   reql_version_t reql_version,
+                   attach_json_to_error_t attach_json,
                    http_result_t *res_out) {
-    scoped_cJSON_t cjson(cJSON_Parse(json.c_str()));
-    if (cjson.get() != NULL) {
-        res_out->body = make_counted<const ql::datum_t>(cjson);
+    rapidjson::Document doc;
+    doc.Parse(json.c_str());
+    if (!doc.HasParseError()) {
+        res_out->body = ql::to_datum(doc, limits, reql_version);
     } else {
-        res_out->error.assign("failed to parse JSON response");
-        res_out->body = make_counted<const ql::datum_t>(std::move(json));
+        res_out->error.assign(
+            strprintf("failed to parse JSON response: %s",
+                      rapidjson::GetParseError_En(doc.GetParseError())));
+        if (attach_json == attach_json_to_error_t::YES) {
+            res_out->body = ql::datum_t(datum_string_t(json));
+        }
     }
 }
 
@@ -826,10 +893,10 @@ private:
     // 3. obj["function-name"](JSON);
     // The following regular expressions will parse out the JSON section from each format
     jsonp_parser_singleton_t() :
-        parser1(std::string(js_ident) + fn_call + expr_end),
-        parser2(std::string(js_ident) + "\\." + js_ident + fn_call + expr_end),
+        parser1(std::string(js_ident) + fn_call + expr_end, RE2::Quiet),
+        parser2(std::string(js_ident) + "\\." + js_ident + fn_call + expr_end, RE2::Quiet),
         parser3(std::string(js_ident) + "\\[\\s*['\"].*['\"]\\s*\\]\\s*" +
-                fn_call + expr_end)
+                fn_call + expr_end, RE2::Quiet)
     { }
 
     static void initialize_if_needed() {
@@ -861,26 +928,17 @@ const char *jsonp_parser_singleton_t::js_ident =
     "[$_\\p{Ll}\\p{Lt}\\p{Lu}\\p{Lm}\\p{Lo}\\p{Nl}\\p{Mn}\\p{Mc}\\p{Nd}\\p{Pc}]*"
     "\\s*";
 
-// This version will not use move semantics for the body data, to be used in
-// result_format="auto", where we may fallback to passing back the body as a string
-void jsonp_to_datum(const std::string &jsonp, http_result_t *res_out) {
+void jsonp_to_datum(const std::string &jsonp, const ql::configured_limits_t &limits,
+                    reql_version_t reql_version,
+                    attach_json_to_error_t attach_json,
+                    http_result_t *res_out) {
     std::string json_string;
     if (jsonp_parser_singleton_t::parse(jsonp, &json_string)) {
-        json_to_datum(json_string, res_out);
+        json_to_datum(json_string, limits, reql_version, attach_json, res_out);
     } else {
         res_out->error.assign("failed to parse JSONP response");
-    }
-}
-
-
-// This version uses move semantics and includes the body as a string when a
-// parsing error occurs.
-void jsonp_to_datum(std::string &&jsonp, http_result_t *res_out) {
-    std::string json_string;
-    if (jsonp_parser_singleton_t::parse(jsonp, &json_string)) {
-        json_to_datum(std::move(json_string), res_out);
-    } else {
-        res_out->error.assign("failed to parse JSONP response");
-        res_out->body = make_counted<const ql::datum_t>(std::move(jsonp));
+        if (attach_json == attach_json_to_error_t::YES) {
+            res_out->body = ql::datum_t(datum_string_t(jsonp));
+        }
     }
 }

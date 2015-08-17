@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 import md5, sys, os, errno, x_stress_util
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'drivers', 'python')))
-import rethinkdb as r
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
+import utils
+r = utils.import_python_driver()
 
 class Workload:
     def __init__(self, options):
@@ -54,6 +55,6 @@ class Workload:
         rql_res = r.db(self.db).table(self.table).get(key).run(conn)
 
         if rql_res is None:
-            return { "errors": [ "key not found: %d" % original_key ] }
+            return {"errors": ["key not found: %d" % original_key]}
 
-        return { }
+        return {}

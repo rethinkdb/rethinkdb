@@ -1,14 +1,10 @@
 desc: Tests insertion into tables
+table_variable_name: tbl
 tests:
 
-    # Set up our test tables
-    - cd: r.db('test').table_create('test1')
-      ot: ({'created':1})
-
-    - def: tbl = r.db('test').table('test1')
-
+    # Set up our secondary test table
     - cd: r.db('test').table_create('test2')
-      ot: ({'created':1})
+      ot: partial({'tables_created':1})
 
     - def: tbl2 = r.db('test').table('test2')
 
@@ -58,29 +54,68 @@ tests:
     - cd: tbl.insert({'id':2,'b':20})
       ot: ({'first_error':"Duplicate primary key `id`:\n{\n\t\"a\":\t2,\n\t\"id\":\t2\n}\n{\n\t\"b\":\t20,\n\t\"id\":\t2\n}",'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':1,'skipped':0.0,'inserted':0.0})
 
-    # test upsert option (object exists)
-    - py: tbl.insert({'id':2,'b':20}, upsert=True)
-      js: tbl.insert({'id':2,'b':20}, {upsert:true})
-      rb: tbl.insert({:id => 2, :b => 20}, { :upsert => true })
+    # test error conflict option (object exists)
+    - py: tbl.insert({'id':2,'b':20}, conflict='error')
+      js: tbl.insert({'id':2,'b':20}, {conflict:'error'})
+      rb: tbl.insert({:id => 2, :b => 20}, { :conflict => 'error' })
+      ot: ({'first_error':"Duplicate primary key `id`:\n{\n\t\"a\":\t2,\n\t\"id\":\t2\n}\n{\n\t\"b\":\t20,\n\t\"id\":\t2\n}",'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':1,'skipped':0.0,'inserted':0.0})
+
+    # test error conflict option (object doesn't exist)
+    - py: tbl.insert({'id':15,'b':20}, conflict='error')
+      js: tbl.insert({'id':15,'b':20}, {conflict:'error'})
+      rb: tbl.insert({:id => 15, :b => 20}, { :conflict => 'error' })
+      ot: ({'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':1})
+
+    - cd: tbl.get(15)
+      ot: ({'id':15,'b':20})
+
+    # test replace conflict option (object exists)
+    - py: tbl.insert({'id':2,'b':20}, conflict='replace')
+      js: tbl.insert({'id':2,'b':20}, {conflict:'replace'})
+      rb: tbl.insert({:id => 2, :b => 20}, { :conflict => 'replace' })
       ot: ({'deleted':0.0,'replaced':1,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':0.0})
 
     - cd: tbl.get(2)
       ot: ({'id':2,'b':20})
 
-    # test upsert option (object doesn't exit)
-    - py: tbl.insert({'id':20,'b':20}, upsert=True)
-      js: tbl.insert({'id':20,'b':20}, {upsert:true})
-      rb: tbl.insert({:id => 20, :b => 20}, { :upsert => true })
+    # test replace conflict option (object doesn't exist)
+    - py: tbl.insert({'id':20,'b':20}, conflict='replace')
+      js: tbl.insert({'id':20,'b':20}, {conflict:'replace'})
+      rb: tbl.insert({:id => 20, :b => 20}, { :conflict => 'replace' })
       ot: ({'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':1})
 
     - cd: tbl.get(20)
       ot: ({'id':20,'b':20})
 
+    # test update conflict option (object exists)
+    - py: tbl.insert({'id':2,'c':30}, conflict='update')
+      js: tbl.insert({'id':2,'c':30}, {conflict:'update'})
+      rb: tbl.insert({:id => 2, :c => 30}, { :conflict => 'update' })
+      ot: ({'deleted':0.0,'replaced':1,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':0.0})
+
+    - cd: tbl.get(2)
+      ot: ({'id':2, 'b':20, 'c':30})
+
+    # test update conflict option (object doesn't exist)
+    - py: tbl.insert({'id':30,'b':20}, conflict='update')
+      js: tbl.insert({'id':30,'b':20}, {conflict:'update'})
+      rb: tbl.insert({:id => 30, :b => 20}, { :conflict => 'update' })
+      ot: ({'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':1})
+
+    - cd: tbl.get(30)
+      ot: ({'id':30,'b':20})
+
+    # test incorrect conflict option
+    - py: tbl.insert({'id':3, 'a':3}, conflict='wrong')
+      js: tbl.insert({id:3, a:3}, {conflict:'wrong'})
+      rb: tbl.insert({ :id => 3, :a => 3 }, { :conflict => 'wrong' })
+      ot: err('RqlRuntimeError', 'Conflict option `wrong` unrecognized (options are "error", "replace" and "update").', [0])
+
     # test auto pkey generation
     - py: r.db('test').table_create('testpkey', primary_key='foo')
       js: r.db('test').tableCreate('testpkey', {primaryKey:'foo'})
       rb: r.db('test').table_create('testpkey', { :primary_key => 'foo' })
-      ot: ({'created':1})
+      ot: partial({'tables_created':1})
 
       def: tblpkey = r.db('test').table('testpkey')
 
@@ -90,24 +125,43 @@ tests:
     - cd: tblpkey
       ot: ([{'foo':uuid()}])
 
-    # test upsert pkey generation
-    - py: tblpkey.insert({'b':20}, upsert=True)
-      js: tblpkey.insert({'b':20}, {upsert:true})
-      rb: tblpkey.insert({:b => 20}, { :upsert => true })
+    # test replace conflict pkey generation
+    - py: tblpkey.insert({'b':20}, conflict='replace')
+      js: tblpkey.insert({'b':20}, {conflict:'replace'})
+      rb: tblpkey.insert({:b => 20}, { :conflict => 'replace' })
+      ot: ({'deleted':0.0,'replaced':0.0,'generated_keys':arrlen(1,uuid()),'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':1})
+
+    # test update conflict pkey generation
+    - py: tblpkey.insert({'b':20}, conflict='update')
+      js: tblpkey.insert({'b':20}, {conflict:'update'})
+      rb: tblpkey.insert({:b => 20}, { :conflict => 'update' })
       ot: ({'deleted':0.0,'replaced':0.0,'generated_keys':arrlen(1,uuid()),'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':1})
 
     - cd: r.db('test').table_drop('testpkey')
-      ot: "({'dropped':1})"
+      ot: "partial({'tables_dropped':1})"
 
     # Insert within for each
     - py: "tbl.for_each(lambda  row:          tbl2.insert(row.merge({'id':row['id']  +  100 }))   )"
       js: "tbl.forEach(function(row) { return tbl2.insert(row.merge({'id':row('id').add(100)})); })"
       rb: tbl.for_each(proc {  |row|          tbl2.insert(row.merge({'id'=>row['id']  +  100 }))  })
-      ot: ({'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':5})
+      ot: ({'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':7})
+
+    # Insert unwritable data
+    - cd: tbl.insert({'value':r.minval})
+      rb: tbl.insert({:value => r.minval})
+      ot: partial({'errors':1,'first_error':'`r.minval` and `r.maxval` cannot be written to disk.'})
+
+    - cd: tbl.insert({'value':r.maxval})
+      rb: tbl.insert({:value => r.maxval})
+      ot: partial({'errors':1,'first_error':'`r.minval` and `r.maxval` cannot be written to disk.'})
+
+    # Get unreturnable data
+    - cd: r.minval
+      ot: err('RqlRuntimeError','Cannot convert `r.minval` to JSON.')
+
+    - cd: r.maxval
+      ot: err('RqlRuntimeError','Cannot convert `r.maxval` to JSON.')
 
     # clean up
-    - cd: r.db('test').table_drop('test1')
-      ot: "({'dropped':1})"
     - cd: r.db('test').table_drop('test2')
-      ot: "({'dropped':1})"
-
+      ot: "partial({'tables_dropped':1})"

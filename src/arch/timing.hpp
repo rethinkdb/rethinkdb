@@ -2,6 +2,8 @@
 #ifndef ARCH_TIMING_HPP_
 #define ARCH_TIMING_HPP_
 
+#include <functional>
+
 #include "arch/timer.hpp"
 #include "concurrency/interruptor.hpp"
 #include "concurrency/signal.hpp"
@@ -13,7 +15,7 @@ void nap(int64_t ms) THROWS_NOTHING;
 /* This variant takes an interruptor, and throws `interrupted_exc_t` if the
 interruptor is pulsed before the timeout is up */
 
-void nap(int64_t ms, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+void nap(int64_t ms, const signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
 class timer_token_t;
 
@@ -23,7 +25,8 @@ timer "rings". */
 
 class signal_timer_t : public signal_t, private timer_callback_t {
 public:
-    explicit signal_timer_t();
+    signal_timer_t();
+    explicit signal_timer_t(int64_t ms); // Calls `start` for you.
     ~signal_timer_t();
 
     // Starts the timer, cannot be called if the timer is already running
@@ -44,6 +47,8 @@ private:
 /* Construct a repeating_timer_t to start a repeating timer. It will call its function
 when the timer "rings". */
 
+/* `repeating_timer_callback_t` is deprecated; prefer passing a function to
+`repeating_timer_t`. */
 class repeating_timer_callback_t {
 public:
     virtual void on_ring() = 0;
@@ -53,13 +58,14 @@ protected:
 
 class repeating_timer_t : private timer_callback_t {
 public:
-    repeating_timer_t(int64_t frequency_ms, repeating_timer_callback_t *ringee);
+    repeating_timer_t(int64_t interval_ms, const std::function<void()> &ringee);
+    repeating_timer_t(int64_t interval_ms, repeating_timer_callback_t *ringee);
     ~repeating_timer_t();
 
 private:
     void on_timer();
     timer_token_t *timer;
-    repeating_timer_callback_t *ringee;
+    std::function<void()> ringee;
 
     DISABLE_COPYING(repeating_timer_t);
 };

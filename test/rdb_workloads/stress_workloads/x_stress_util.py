@@ -75,4 +75,3 @@ class Pareto:
         r = random.random()
         f = 1 - math.pow(1 - r, self.exponent)
         return min(self.num_values - 1, int(self.num_values * f))
-

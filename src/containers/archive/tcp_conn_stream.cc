@@ -19,10 +19,31 @@ int64_t tcp_conn_stream_t::read(void *p, int64_t n) {
     // Right now this function cannot "error".
     try {
         cond_t non_closer;
-        size_t result = conn_->read_some(p, n, &non_closer);
-        rassert(result > 0);
-        rassert(int64_t(result) <= n);
-        return result;
+        const_charslice read_data = conn_->peek();
+        if (read_data.end == read_data.beg) {
+            // We didn't get anything from the read buffer. Get some data from
+            // the underlying socket...
+            // For large reads, we read directly into p to avoid an additional copy
+            // and additional round trips.
+            // For smaller reads, we use `read_more_buffered` to read into the
+            // connection's internal buffer and then copy out whatever we can use
+            // to satisfy the current request.
+            if (n >= IO_BUFFER_SIZE) {
+                return conn_->read_some(p, n, &non_closer);
+            } else {
+                conn_->read_more_buffered(&non_closer);
+                read_data = conn_->peek();
+            }
+        }
+        size_t num_read = read_data.end - read_data.beg;
+        if (num_read > static_cast<size_t>(n)) {
+            num_read = static_cast<size_t>(n);
+        }
+        rassert(num_read > 0);
+        memcpy(p, read_data.beg, num_read);
+        // Remove the consumed data from the read buffer
+        conn_->pop(num_read, &non_closer);
+        return num_read;
     } catch (const tcp_conn_read_closed_exc_t &) {
         return 0;
     }
@@ -36,6 +57,26 @@ int64_t tcp_conn_stream_t::write(const void *p, int64_t n) {
         return n;
     } catch (const tcp_conn_write_closed_exc_t &) {
         return -1;
+    }
+}
+
+int64_t tcp_conn_stream_t::write_buffered(const void *p, int64_t n) {
+    try {
+        cond_t non_closer;
+        conn_->write_buffered(p, n, &non_closer);
+        return n;
+    } catch (const tcp_conn_write_closed_exc_t &) {
+        return -1;
+    }
+}
+
+bool tcp_conn_stream_t::flush_buffer() {
+    try {
+        cond_t non_closer;
+        conn_->flush_buffer(&non_closer);
+        return true;
+    } catch (const tcp_conn_write_closed_exc_t &) {
+        return false;
     }
 }
 
@@ -61,6 +102,15 @@ bool tcp_conn_stream_t::is_read_open() {
 
 bool tcp_conn_stream_t::is_write_open() {
     return conn_->is_write_open();
+}
+
+
+make_buffered_tcp_conn_stream_wrapper_t::make_buffered_tcp_conn_stream_wrapper_t(
+        tcp_conn_stream_t *inner)
+     : inner_(inner) { }
+
+int64_t make_buffered_tcp_conn_stream_wrapper_t::write(const void *p, int64_t n) {
+    return inner_->write_buffered(p, n);
 }
 
 
@@ -96,6 +146,22 @@ int64_t keepalive_tcp_conn_stream_t::write(const void *p, int64_t n) {
     }
 
     return tcp_conn_stream_t::write(p, n);
+}
+
+int64_t keepalive_tcp_conn_stream_t::write_buffered(const void *p, int64_t n) {
+    if (keepalive_callback != NULL) {
+        keepalive_callback->keepalive_write();
+    }
+
+    return tcp_conn_stream_t::write_buffered(p, n);
+}
+
+bool keepalive_tcp_conn_stream_t::flush_buffer() {
+    if (keepalive_callback != NULL) {
+        keepalive_callback->keepalive_write();
+    }
+
+    return tcp_conn_stream_t::flush_buffer();
 }
 
 rethread_tcp_conn_stream_t::rethread_tcp_conn_stream_t(tcp_conn_stream_t *conn, threadnum_t thread)

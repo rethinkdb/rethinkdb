@@ -3,10 +3,10 @@
 
 #include "arch/io/disk.hpp"
 #include "btree/operations.hpp"
-#include "btree/slice.hpp"
-#include "buffer_cache/alt/alt.hpp"
-#include "buffer_cache/alt/blob.hpp"
-#include "buffer_cache/alt/cache_balancer.hpp"
+#include "btree/reql_specific.hpp"
+#include "buffer_cache/alt.hpp"
+#include "buffer_cache/blob.hpp"
+#include "buffer_cache/cache_balancer.hpp"
 #include "containers/uuid.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "rdb_protocol/btree.hpp"
@@ -36,11 +36,11 @@ TPTEST(BTreeSindex, LowLevelOps) {
     cache_conn_t cache_conn(&cache);
 
     {
-        txn_t txn(&cache_conn, write_durability_t::HARD, repli_timestamp_t::invalid, 1);
-        buf_lock_t superblock(&txn, SUPERBLOCK_ID, alt_create_t::create);
-        buf_write_t sb_write(&superblock);
-        btree_slice_t::init_superblock(&superblock,
-                                       std::vector<char>(), binary_blob_t());
+        txn_t txn(&cache_conn, write_durability_t::HARD, 1);
+        buf_lock_t sb_lock(&txn, SUPERBLOCK_ID, alt_create_t::create);
+        real_superblock_t superblock(std::move(sb_lock));
+        btree_slice_t::init_real_superblock(&superblock,
+                                            std::vector<char>(), binary_blob_t());
     }
 
     order_source_t order_source;
@@ -50,10 +50,10 @@ TPTEST(BTreeSindex, LowLevelOps) {
     {
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
-        get_btree_superblock_and_txn(&cache_conn, write_access_t::write, 1,
-                                     repli_timestamp_t::invalid,
-                                     write_durability_t::SOFT,
-                                     &superblock, &txn);
+        get_btree_superblock_and_txn_for_writing(&cache_conn, nullptr,
+                                                 write_access_t::write, 1,
+                                                 write_durability_t::SOFT,
+                                                 &superblock, &txn);
 
         buf_lock_t sindex_block(superblock->expose_buf(),
                                 superblock->get_sindex_block_id(),
@@ -75,10 +75,10 @@ TPTEST(BTreeSindex, LowLevelOps) {
 
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
-        get_btree_superblock_and_txn(&cache_conn, write_access_t::write, 1,
-                                     repli_timestamp_t::invalid,
-                                     write_durability_t::SOFT,
-                                     &superblock, &txn);
+        get_btree_superblock_and_txn_for_writing(&cache_conn, nullptr,
+                                                 write_access_t::write, 1,
+                                                 write_durability_t::SOFT,
+                                                 &superblock, &txn);
         buf_lock_t sindex_block(superblock->expose_buf(),
                                 superblock->get_sindex_block_id(),
                                 access_t::write);
@@ -89,10 +89,10 @@ TPTEST(BTreeSindex, LowLevelOps) {
     {
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
-        get_btree_superblock_and_txn(&cache_conn, write_access_t::write, 1,
-                                     repli_timestamp_t::invalid,
-                                     write_durability_t::SOFT,
-                                     &superblock, &txn);
+        get_btree_superblock_and_txn_for_writing(&cache_conn, nullptr,
+                                                 write_access_t::write, 1,
+                                                 write_durability_t::SOFT,
+                                                 &superblock, &txn);
         buf_lock_t sindex_block(superblock->expose_buf(),
                                 superblock->get_sindex_block_id(),
                                 access_t::write);
@@ -100,7 +100,22 @@ TPTEST(BTreeSindex, LowLevelOps) {
         std::map<sindex_name_t, secondary_index_t> sindexes;
         get_secondary_indexes(&sindex_block, &sindexes);
 
-        ASSERT_TRUE(sindexes == mirror);
+        auto it = sindexes.begin();
+        auto jt = mirror.begin();
+
+        for (;;) {
+            if (it == sindexes.end()) {
+                ASSERT_TRUE(jt == mirror.end());
+                break;
+            }
+            ASSERT_TRUE(jt != mirror.end());
+
+            ASSERT_TRUE(it->first == jt->first);
+            ASSERT_TRUE(it->second.superblock == jt->second.superblock &&
+                        it->second.opaque_definition == jt->second.opaque_definition);
+            ++it;
+            ++jt;
+        }
     }
 }
 
@@ -121,6 +136,7 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
         &get_global_perfmon_collection());
 
     store_t store(
+            region_t::universe(),
             &serializer,
             &balancer,
             "unit_test_store",
@@ -128,7 +144,9 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
             &get_global_perfmon_collection(),
             NULL,
             &io_backender,
-            base_path_t("."));
+            base_path_t("."),
+            scoped_ptr_t<outdated_index_report_t>(),
+            generate_uuid());
 
     cond_t dummy_interruptor;
 
@@ -138,56 +156,56 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
         sindex_name_t name = sindex_name_t(uuid_to_str(generate_uuid()));
         created_sindexs.insert(name);
         {
-            write_token_pair_t token_pair;
-            store.new_write_token_pair(&token_pair);
+            write_token_t token;
+            store.new_write_token(&token);
 
             scoped_ptr_t<txn_t> txn;
             scoped_ptr_t<real_superblock_t> super_block;
 
-            store.acquire_superblock_for_write(repli_timestamp_t::invalid,
-                    1, write_durability_t::SOFT, &token_pair,
+            store.acquire_superblock_for_write(
+                    1, write_durability_t::SOFT, &token,
                     &txn, &super_block, &dummy_interruptor);
 
-            buf_lock_t sindex_block
-                = store.acquire_sindex_block_for_write(super_block->expose_buf(),
-                                                       super_block->get_sindex_block_id());
+            buf_lock_t sindex_block(super_block->expose_buf(),
+                                    super_block->get_sindex_block_id(),
+                                    access_t::write);
 
-            UNUSED bool b = store.add_sindex(name, std::vector<char>(), &sindex_block);
+            bool b = store.add_sindex_internal(
+                name, std::vector<char>(), &sindex_block);
+            guarantee(b);
         }
 
         {
-            write_token_pair_t token_pair;
-            store.new_write_token_pair(&token_pair);
+            write_token_t token;
+            store.new_write_token(&token);
 
             scoped_ptr_t<txn_t> txn;
             scoped_ptr_t<real_superblock_t> super_block;
 
-            store.acquire_superblock_for_write(repli_timestamp_t::invalid,
-                                               1, write_durability_t::SOFT, &token_pair,
+            store.acquire_superblock_for_write(1, write_durability_t::SOFT, &token,
                                                &txn, &super_block, &dummy_interruptor);
 
-            buf_lock_t sindex_block
-                = store.acquire_sindex_block_for_write(
-                    super_block->expose_buf(),
-                    super_block->get_sindex_block_id());
+            buf_lock_t sindex_block(super_block->expose_buf(),
+                                    super_block->get_sindex_block_id(),
+                                    access_t::write);
 
             store.mark_index_up_to_date(name, &sindex_block);
         }
 
         {
             //Insert a piece of data in to the btree.
-            write_token_pair_t token_pair;
-            store.new_write_token_pair(&token_pair);
+            write_token_t token;
+            store.new_write_token(&token);
 
             scoped_ptr_t<txn_t> txn;
             scoped_ptr_t<real_superblock_t> super_block;
 
             store.acquire_superblock_for_write(
-                    repli_timestamp_t::invalid, 1, write_durability_t::SOFT,
-                    &token_pair, &txn, &super_block,
+                    1, write_durability_t::SOFT,
+                    &token, &txn, &super_block,
                     &dummy_interruptor);
 
-            scoped_ptr_t<real_superblock_t> sindex_super_block;
+            scoped_ptr_t<sindex_superblock_t> sindex_super_block;
             uuid_u sindex_uuid;
 
             bool sindex_exists = store.acquire_sindex_superblock_for_write(
@@ -198,7 +216,7 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
                     &sindex_uuid);
             ASSERT_TRUE(sindex_exists);
 
-            counted_t<const ql::datum_t> data = make_counted<ql::datum_t>(1.0);
+            ql::datum_t data = ql::datum_t(1.0);
 
             point_write_response_t response;
             rdb_modification_info_t mod_info;
@@ -206,62 +224,52 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
             store_key_t key("foo");
             rdb_live_deletion_context_t deletion_context;
             rdb_set(key, data, true, store.get_sindex_slice(sindex_uuid),
-                    repli_timestamp_t::invalid,
+                    repli_timestamp_t::distant_past,
                     sindex_super_block.get(), &deletion_context, &response,
                     &mod_info, static_cast<profile::trace_t *>(NULL));
         }
 
         {
             //Read that data
-            read_token_pair_t token_pair;
-            store.new_read_token_pair(&token_pair);
+            read_token_t token;
+            store.new_read_token(&token);
 
             scoped_ptr_t<txn_t> txn;
             scoped_ptr_t<real_superblock_t> main_sb;
-            scoped_ptr_t<real_superblock_t> sindex_super_block;
+            scoped_ptr_t<sindex_superblock_t> sindex_super_block;
             uuid_u sindex_uuid;
 
             store.acquire_superblock_for_read(
-                    &token_pair.main_read_token, &txn, &main_sb,
+                    &token, &txn, &main_sb,
                     &dummy_interruptor, true);
 
             store_key_t key("foo");
 
-            bool sindex_exists = store.acquire_sindex_superblock_for_read(
-                    name,
-                    "",
-                    main_sb.get(),
-                    &sindex_super_block,
-                    static_cast<std::vector<char>*>(NULL),
-                    &sindex_uuid);
-            ASSERT_TRUE(sindex_exists);
+            {
+                std::vector<char> opaque_definition;
+                bool sindex_exists = store.acquire_sindex_superblock_for_read(
+                        name,
+                        "",
+                        main_sb.get(),
+                        &sindex_super_block,
+                        &opaque_definition,
+                        &sindex_uuid);
+                ASSERT_TRUE(sindex_exists);
+            }
 
             point_read_response_t response;
 
             rdb_get(key, store.get_sindex_slice(sindex_uuid),
                     sindex_super_block.get(), &response, NULL);
 
-            ASSERT_EQ(ql::datum_t(1.0), *response.data);
+            ASSERT_EQ(ql::datum_t(1.0), response.data);
         }
     }
 
     for (auto it  = created_sindexs.begin(); it != created_sindexs.end(); ++it) {
         /* Drop the sindex */
-        write_token_pair_t token_pair;
-        store.new_write_token_pair(&token_pair);
-
-        scoped_ptr_t<txn_t> txn;
-        scoped_ptr_t<real_superblock_t> super_block;
-
-        store.acquire_superblock_for_write(repli_timestamp_t::invalid,
-                                           1, write_durability_t::SOFT, &token_pair,
-                                           &txn, &super_block, &dummy_interruptor);
-
-        buf_lock_t sindex_block
-            = store.acquire_sindex_block_for_write(super_block->expose_buf(),
-                                                   super_block->get_sindex_block_id());
-
-        store.drop_sindex(*it, std::move(sindex_block));
+        cond_t non_interruptor;
+        store.sindex_drop(it->name, &non_interruptor);
     }
 }
 

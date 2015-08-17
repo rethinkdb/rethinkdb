@@ -64,11 +64,17 @@ initial_joiner_t::initial_joiner_t(
         int timeout_ms) :
     cluster(cluster_),
     peers_not_heard_from(peers),
-    subs(this),
+    subs(cluster->get_connections(),
+        std::bind(&initial_joiner_t::on_connection_change, this, ph::_1, ph::_2),
+        initial_call_t::YES),
     successful_connection(false) {
     guarantee(!peers.empty());
 
-    peer_address_t self_addr = cluster->get_peer_address(cluster->get_me());
+    auto_drainer_t::lock_t connection_keepalive;
+    connectivity_cluster_t::connection_t *loopback =
+        cluster->get_connection(cluster->get_me(), &connection_keepalive);
+    guarantee(loopback != NULL);
+    peer_address_t self_addr = loopback->get_peer_address();
     for (peer_address_set_t::iterator join_self_it = find_peer_address_in_set(peers_not_heard_from, self_addr);
          join_self_it != peers_not_heard_from.end();
          join_self_it = find_peer_address_in_set(peers_not_heard_from, self_addr)) {
@@ -81,13 +87,6 @@ initial_joiner_t::initial_joiner_t(
     }
 
     coro_t::spawn_sometime(boost::bind(&initial_joiner_t::main_coro, this, cluster_run, auto_drainer_t::lock_t(&drainer)));
-
-    connectivity_service_t::peers_list_freeze_t freeze(cluster);
-    subs.reset(cluster, &freeze);
-    std::set<peer_id_t> already_connected = cluster->get_peers_list();
-    for (std::set<peer_id_t>::iterator it = already_connected.begin(); it != already_connected.end(); it++) {
-        on_connect(*it);
-    }
 }
 
 static const int initial_retry_interval_ms = 200;
@@ -95,7 +94,8 @@ static const int max_retry_interval_ms = 1000 * 15;
 static const double retry_interval_growth_rate = 1.5;
 static const int grace_period_before_warn_ms = 1000 * 5;
 
-void initial_joiner_t::main_coro(connectivity_cluster_t::run_t *cluster_run, auto_drainer_t::lock_t keepalive) {
+void initial_joiner_t::main_coro(connectivity_cluster_t::run_t *cluster_run,
+                                 auto_drainer_t::lock_t keepalive) {
     try {
         int retry_interval_ms = initial_retry_interval_ms;
         logINF("Attempting connection to %zu peer%s...",
@@ -131,23 +131,27 @@ void initial_joiner_t::main_coro(connectivity_cluster_t::run_t *cluster_run, aut
         done_signal.pulse();
 }
 
-void initial_joiner_t::on_connect(peer_id_t peer) {
-    if (peer != cluster->get_me()) {
-        successful_connection = true;
-        peer_address_t peer_addr = cluster->get_peer_address(peer);
+void initial_joiner_t::on_connection_change(
+        const peer_id_t &peer,
+        const connectivity_cluster_t::connection_pair_t *pair) {
+    if (peer == cluster->get_me() || pair == nullptr) {
+        return;
+    }
+    successful_connection = true;
+    peer_address_t peer_addr = pair->first->get_peer_address();
+    // We want to remove a peer address, find it in the set (if it's there at all, and
+    // remove it)
+    peer_address_set_t::iterator join_addr =
+        find_peer_address_in_set(peers_not_heard_from, peer_addr);
+    if (join_addr != peers_not_heard_from.end()) {
+        peers_not_heard_from.erase(*join_addr);
+    }
 
-        // We want to remove a peer address, find it in the set (if it's there at all, and remove it)
-        peer_address_set_t::iterator join_addr = find_peer_address_in_set(peers_not_heard_from, peer_addr);
-        if (join_addr != peers_not_heard_from.end()) {
-            peers_not_heard_from.erase(*join_addr);
-        }
+    if (!done_signal.is_pulsed()) {
+        done_signal.pulse();
 
-        if (!done_signal.is_pulsed()) {
-            done_signal.pulse();
-
-            if (!grace_period_timer.is_running()) {
-                grace_period_timer.start(grace_period_before_warn_ms);
-            }
+        if (!grace_period_timer.is_running()) {
+            grace_period_timer.start(grace_period_before_warn_ms);
         }
     }
 }

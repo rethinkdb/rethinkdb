@@ -5,8 +5,6 @@
 #include "concurrency/cond_var.hpp"
 #include "containers/intrusive_list.hpp"
 
-// KSI: This is a horrible name, fix it.
-
 // This semaphore obeys first-in-line/first-acquisition semantics.  The
 // new_semaphore_acq_t's will receive access to the semaphore in the same order that
 // such access was requested.  Also, there aren't problems with starvation.  Also, it
@@ -14,7 +12,7 @@
 
 class new_semaphore_acq_t;
 
-class new_semaphore_t {
+class new_semaphore_t : public home_thread_mixin_debug_only_t {
 public:
     explicit new_semaphore_t(int64_t capacity);
     ~new_semaphore_t();
@@ -47,7 +45,7 @@ private:
 class new_semaphore_acq_t : public intrusive_list_node_t<new_semaphore_acq_t> {
 public:
     // Construction is non-blocking, it gets you in line for the semaphore.  You need
-    // to call acquisition()->wait() in order to wait for your acquisition of the
+    // to call acquisition_signal()->wait() in order to wait for your acquisition of the
     // semaphore.  Acquirers receive the semaphore in the same order that they've
     // acquired it.
     ~new_semaphore_acq_t();
@@ -64,6 +62,13 @@ public:
     // semaphore "overfull", meaning that current_ > capacity_.  That's not ideal,
     // but it's O.K.
     void change_count(int64_t new_count);
+
+    // Transfers the "semaphore credits" that `other` owns to `this` and resets `other`.
+    // `other` and `this` must both already own the semaphore.
+    //
+    // For example, if `this->count() == 1` and `other->count() == 2` before the call,
+    // then after the call `this->count() == 3` and `other` is invalid.
+    void transfer_in(new_semaphore_acq_t &&other);
 
     // Initializes the object.
     void init(new_semaphore_t *semaphore, int64_t count);

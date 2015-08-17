@@ -27,12 +27,15 @@ class IterableResult
 
         @_responses = []
         @_responseIndex = 0
-        @_outstandingRequests = 1 # Because we haven't add the response yet
+        @_outstandingRequests = 1 # Because we haven't added the response yet
         @_iterations = 0
         @_endFlag = false
         @_contFlag = false
+        @_closeAsap = false
         @_cont = null
         @_cbQueue = []
+        @_closeCb = null
+        @_closeCbPromise = null
 
         @next = @_next
         @each = @_each
@@ -47,9 +50,26 @@ class IterableResult
 
 
         @_outstandingRequests -= 1
-        @_endFlag = !(response.t is @_type)
+        if response.t isnt @_type
+            # We got an error or a SUCCESS_SEQUENCE
+            @_endFlag = true
+
+            if @_closeCb?
+                switch response.t
+                    when protoResponseType.COMPILE_ERROR
+                        @_closeCb mkErr(err.RqlRuntimeError, response, @_root)
+                    when protoResponseType.CLIENT_ERROR
+                        @_closeCb mkErr(err.RqlRuntimeError, response, @_root)
+                    when protoResponseType.RUNTIME_ERROR
+                        @_closeCb mkErr(err.RqlRuntimeError, response, @_root)
+                    else
+                        @_closeCb()
+
         @_contFlag = false
-        @_promptNext()
+        if @_closeAsap is false
+            @_promptNext()
+        else
+            @close @_closeCb
         @
 
     _getCallback: ->
@@ -100,16 +120,9 @@ class IterableResult
                     # We're low on data, prebuffer
                     @_promptCont()
 
-                    if !@_endFlag && response.r? && @_responseIndex is response.r.length - 1
-                        # Only one row left and we aren't at the end of the stream, we have to hold
-                        #  onto this so we know if there's more data for hasNext
-                        return
-
                 # Error responses are not discarded, and the error will be sent to all future callbacks
                 switch response.t
                     when protoResponseType.SUCCESS_PARTIAL
-                        @_handleRow()
-                    when protoResponseType.SUCCESS_FEED
                         @_handleRow()
                     when protoResponseType.SUCCESS_SEQUENCE
                         if response.r.length is 0
@@ -135,7 +148,7 @@ class IterableResult
 
     _promptCont: ->
         # Let's ask the server for more data if we haven't already
-        if !@_contFlag && !@_endFlag
+        if (not @_contFlag) and (not @_endFlag) and @_conn.isOpen()
             @_contFlag = true
             @_outstandingRequests += 1
             @_conn._continueQuery(@_token)
@@ -165,10 +178,45 @@ class IterableResult
             throw new err.RqlDriverError "First argument to `next` must be a function or undefined."
 
 
-    close: ar () ->
-        unless @_endFlag
-            @_outstandingRequests += 1
-            @_conn._endQuery(@_token)
+    close: varar 0, 1, (cb) ->
+        if @_closeCbPromise?
+            if @_closeCbPromise.isPending()
+                # There's an existing promise and it hasn't resolved
+                # yet, so we chain this callback onto it.
+                @_closeCbPromise = @_closeCbPromise.nodeify(cb)
+            else
+                # The existing promise has been fulfilled, so we chuck
+                # it out and replace it with a Promise that resolves
+                # immediately with the callback.
+                @_closeCbPromise = Promise.resolve().nodeify(cb)
+        else # @_closeCbPromise not set
+            if @_endFlag
+                # We are ended and this is the first time close() was
+                # called. Just return a promise that resolves
+                # immediately.
+                @_closeCbPromise = Promise.resolve().nodeify(cb)
+            else
+                # We aren't ended, and we need to. Create a promise
+                # that's resolved when the END query is acknowledged.
+                @_closeCbPromise = new Promise((resolve, reject) =>
+                    @_closeCb = (err) =>
+                        # Clear all callbacks for outstanding requests
+                        while @_cbQueue.length > 0
+                            @_cbQueue.shift()
+                        # The connection uses _outstandingRequests to see
+                        # if it should remove the token for this
+                        # cursor. This states unambiguously that we don't
+                        # care whatever responses return now.
+                        @_outstandingRequests = 0
+                        if (err)
+                            reject(err)
+                        else
+                            resolve()
+                    @_closeAsap = true
+                    @_outstandingRequests += 1
+                    @_conn._endQuery(@_token)
+                ).nodeify(cb)
+        return @_closeCbPromise
 
     _each: varar(1, 2, (cb, onFinished) ->
         unless typeof cb is 'function'
@@ -208,19 +256,17 @@ class IterableResult
 
             @each eachCb, onFinish
 
-        if typeof cb is 'function'
-            fn(cb)
-        else if cb is undefined
-            p = new Promise (resolve, reject) =>
-                cb = (err, result) ->
-                    if err?
-                        reject(err)
-                    else
-                        resolve(result)
-                fn(cb)
-            return p
-        else
+        if cb? and typeof cb isnt 'function'
             throw new err.RqlDriverError "First argument to `toArray` must be a function or undefined."
+
+        new Promise( (resolve, reject) =>
+            toArrayCb = (err, result) ->
+                if err?
+                    reject(err)
+                else
+                    resolve(result)
+            fn(toArrayCb)
+        ).nodeify cb
 
     _makeEmitter: ->
         @emitter = new EventEmitter
@@ -230,50 +276,49 @@ class IterableResult
             throw new err.RqlDriverError "You cannot use the cursor interface and the EventEmitter interface at the same time."
 
 
-    addListener: (args...) ->
+    addListener: (event, listener) ->
         if not @emitter?
             @_makeEmitter()
             setImmediate => @_each @_eachCb
-        @emitter.addListener(args...)
+        @emitter.addListener(event, listener)
 
-    on: (args...) ->
+    on: (event, listener) ->
         if not @emitter?
             @_makeEmitter()
             setImmediate => @_each @_eachCb
-        @emitter.on(args...)
+        @emitter.on(event, listener)
 
-
-    once: ->
+    once: (event, listener) ->
         if not @emitter?
             @_makeEmitter()
             setImmediate => @_each @_eachCb
-        @emitter.once(args...)
+        @emitter.once(event, listener)
 
-    removeListener: ->
+    removeListener: (event, listener) ->
         if not @emitter?
             @_makeEmitter()
             setImmediate => @_each @_eachCb
-        @emitter.removeListener(args...)
+        @emitter.removeListener(event, listener)
 
-    removeAllListeners: ->
+    removeAllListeners: (event) ->
         if not @emitter?
             @_makeEmitter()
             setImmediate => @_each @_eachCb
-        @emitter.removeAllListeners(args...)
+        @emitter.removeAllListeners(event)
 
-    setMaxListeners: ->
+    setMaxListeners: (n) ->
         if not @emitter?
             @_makeEmitter()
             setImmediate => @_each @_eachCb
-        @emitter.setMaxListeners(args...)
+        @emitter.setMaxListeners(n)
 
-    listeners: ->
+    listeners: (event) ->
         if not @emitter?
             @_makeEmitter()
             setImmediate => @_each @_eachCb
-        @emitter.listeners(args...)
+        @emitter.listeners(event)
 
-    emit: ->
+    emit: (args...) ->
         if not @emitter?
             @_makeEmitter()
             setImmediate => @_each @_eachCb
@@ -285,8 +330,6 @@ class IterableResult
         else
             @emitter.emit('data', data)
 
-
-
 class Cursor extends IterableResult
     constructor: ->
         @_type = protoResponseType.SUCCESS_PARTIAL
@@ -296,7 +339,7 @@ class Cursor extends IterableResult
 
 class Feed extends IterableResult
     constructor: ->
-        @_type = protoResponseType.SUCCESS_FEED
+        @_type = protoResponseType.SUCCESS_PARTIAL
         super
 
     hasNext: ->
@@ -306,6 +349,41 @@ class Feed extends IterableResult
 
     toString: ar () -> "[object Feed]"
 
+class UnionedFeed extends IterableResult
+    constructor: ->
+        @_type = protoResponseType.SUCCESS_PARTIAL
+        super
+
+    hasNext: ->
+        throw new err.RqlDriverError "`hasNext` is not available for feeds."
+    toArray: ->
+        throw new err.RqlDriverError "`toArray` is not available for feeds."
+
+    toString: ar () -> "[object UnionedFeed]"
+
+class AtomFeed extends IterableResult
+    constructor: ->
+        @_type = protoResponseType.SUCCESS_PARTIAL
+        super
+
+    hasNext: ->
+        throw new err.RqlDriverError "`hasNext` is not available for feeds."
+    toArray: ->
+        throw new err.RqlDriverError "`toArray` is not available for feeds."
+
+    toString: ar () -> "[object AtomFeed]"
+
+class OrderByLimitFeed extends IterableResult
+    constructor: ->
+        @_type = protoResponseType.SUCCESS_PARTIAL
+        super
+
+    hasNext: ->
+        throw new err.RqlDriverError "`hasNext` is not available for feeds."
+    toArray: ->
+        throw new err.RqlDriverError "`toArray` is not available for feeds."
+
+    toString: ar () -> "[object OrderByLimitFeed]"
 
 # Used to wrap array results so they support the same iterable result
 # API as cursors.
@@ -330,16 +408,14 @@ class ArrayResult extends IterableResult
             else
                 cb new err.RqlDriverError "No more rows in the cursor."
 
-        if typeof cb is "function"
-            fn(cb)
-        else
-            p = new Promise (resolve, reject) ->
-                cb = (err, result) ->
-                    if (err)
-                        reject(err)
-                    else
-                        resolve(result)
-                fn(cb)
+        new Promise( (resolve, reject) ->
+            nextCb = (err, result) ->
+                if (err)
+                    reject(err)
+                else
+                    resolve(result)
+            fn(nextCb)
+        ).nodeify cb
 
 
     toArray: varar 0, 1, (cb) ->
@@ -350,17 +426,14 @@ class ArrayResult extends IterableResult
             else
                 cb(null, @)
 
-        if typeof cb is "function"
-            fn(cb)
-        else
-            p = new Promise (resolve, reject) ->
-                cb = (err, result) ->
-                    if (err)
-                        reject(err)
-                    else
-                        resolve(result)
-                fn(cb)
-            return p
+        new Promise( (resolve, reject) ->
+            toArrayCb = (err, result) ->
+                if (err)
+                    reject(err)
+                else
+                    resolve(result)
+            fn(toArrayCb)
+        ).nodeify cb
 
 
     close: ->
@@ -384,4 +457,6 @@ class ArrayResult extends IterableResult
 
 module.exports.Cursor = Cursor
 module.exports.Feed = Feed
+module.exports.AtomFeed = AtomFeed
+module.exports.OrderByLimitFeed = OrderByLimitFeed
 module.exports.makeIterable = ArrayResult::makeIterable

@@ -8,7 +8,6 @@ from test_common import *
 
 def test_function(opts, server, test_dir):
     
-
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect(("localhost", server.port))
     
@@ -57,11 +56,10 @@ if __name__ == "__main__":
 
     try:
         run_with_timeout(test_function, args=(opts, server), timeout = adjust_timeout(opts, 60), test_dir=test_dir)
-    except Exception, e:
+    except Exception as e:
         test_failure = e
     else:
         test_failure = None
 
     server.shutdown()
     if test_failure: raise test_failure
-

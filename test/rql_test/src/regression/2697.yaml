@@ -1,0 +1,31 @@
+desc: 2697 -- Array insert and splice operations don't check array size limit.
+table_variable_name: tbl
+tests:
+  # make enormous > 100,000 element array
+  - def: ten_l = r.expr([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+  - js: tbl.insert({'id':1, 'a':r.expr(ten_l).concatMap(function(l) { return ten_l }).concatMap(function(l) { return ten_l }).concatMap(function(l) { return ten_l }).concatMap(function(l) { return ten_l })}).pluck('first_error', 'inserted')
+    py: tbl.insert({'id':1, 'a':r.expr(ten_l).concat_map(lambda l:list(range(1,11))).concat_map(lambda l:list(range(1,11))).concat_map(lambda l:list(range(1,11))).concat_map(lambda l:list(range(1,11)))}).pluck('first_error', 'inserted')
+    rb: tbl.insert({'id':1, 'a':r.expr(ten_l).concat_map {|l| ten_l}.concat_map {|l| ten_l}.concat_map {|l| ten_l}.concat_map {|l| ten_l}}).pluck('first_error', 'inserted')
+    ot: ({'inserted':1})
+  - cd: tbl.get(1).replace({'id':1, 'a':r.row['a'].splice_at(0, [2])}).pluck('first_error')
+    js: tbl.get(1).replace({'id':1, 'a':r.row('a').spliceAt(0, [2])}).pluck('first__error')
+    rb: tbl.get(1).replace{|old| {:id => 1, :a => old['a'].splice_at(0, [2])}}.pluck('first_error')
+    ot: ({'first_error':'Array over size limit `100000`.'})
+  - cd: tbl.get(1)['a'].count()
+    js: tbl.get(1)('a').count()
+    ot: 100000
+  - cd: tbl.get(1).replace({'id':1, 'a':r.row['a'].insert_at(0, [2])}).pluck('first_error')
+    js: tbl.get(1).replace({'id':1, 'a':r.row('a').insertAt(0, [2])}).pluck('first__error')
+    rb: tbl.get(1).replace{|old| {:id => 1, :a => old['a'].insert_at(0, [2])}}.pluck('first_error')
+    ot: ({'first_error':'Array over size limit `100000`.'})
+  - cd: tbl.get(1)['a'].count()
+    js: tbl.get(1)('a').count()
+    ot: 100000
+  - js: r.expr([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).concatMap(function(l) { return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] }).concatMap(function(l) { return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] }).concatMap(function(l) { return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] }).concatMap(function(l) { return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] }).spliceAt(0, [1]).count()
+    py: r.expr(ten_l).concat_map(lambda l:list(range(1,11))).concat_map(lambda l:list(range(1,11))).concat_map(lambda l:list(range(1,11))).concat_map(lambda l:list(range(1,11))).splice_at(0, [1]).count()
+    rb: r.expr(ten_l).concat_map {|l| ten_l}.concat_map {|l| ten_l}.concat_map {|l| ten_l}.concat_map {|l| ten_l}.splice_at(0, [1]).count()
+    ot: err("RqlRuntimeError", "Array over size limit `100000`.", [])
+  - js: r.expr([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).concatMap(function(l) { return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] }).concatMap(function(l) { return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] }).concatMap(function(l) { return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] }).concatMap(function(l) { return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] }).insertAt(0, [1]).count()
+    py: r.expr(ten_l).concat_map(lambda l:list(range(1,11))).concat_map(lambda l:list(range(1,11))).concat_map(lambda l:list(range(1,11))).concat_map(lambda l:list(range(1,11))).insert_at(0, [1]).count()
+    rb: r.expr(ten_l).concat_map {|l| ten_l}.concat_map {|l| ten_l}.concat_map {|l| ten_l}.concat_map {|l| ten_l}.insert_at(0, [1]).count()
+    ot: err("RqlRuntimeError", "Array over size limit `100000`.", [])

@@ -1,6 +1,36 @@
 #ifndef STORE_VIEW_HPP_
 #define STORE_VIEW_HPP_
 
+#include "protocol_api.hpp"
+#include "region/region_map.hpp"
+
+class backfill_item_t;
+class backfill_pre_item_t;
+
+#ifndef NDEBUG
+// Checks that the metainfo has a certain value, or certain kind of value.
+class metainfo_checker_t {
+public:
+    metainfo_checker_t(
+            const region_t &r,
+            const std::function<void(const region_t &, const binary_blob_t &)> &cb) :
+        region(r), callback(cb) { }
+    region_t region;
+    std::function<void(const region_t &, const binary_blob_t &)> callback;
+};
+
+#endif  // NDEBUG
+
+/* {read,write}_token_t hold the lock held when getting in line for the
+   superblock. */
+struct read_token_t {
+    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> main_read_token;
+};
+
+struct write_token_t {
+    object_buffer_t<fifo_enforcer_sink_t::exit_write_t> main_write_token;
+};
+
 /* `store_view_t` is an abstract class that represents a region of a key-value store
 for some protocol.  It covers some `region_t`, which is returned by `get_region()`.
 
@@ -12,110 +42,201 @@ binary blob (`binary_blob_t`).
 class store_view_t : public home_thread_mixin_t {
 public:
     virtual ~store_view_t() {
-        assert_thread();
+        home_thread_mixin_t::assert_thread();
     }
 
     region_t get_region() {
+        /* Safe to call on any thread */
         return region;
     }
 
     virtual void note_reshard() = 0;
 
-    virtual void new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out) = 0;
-    virtual void new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out) = 0;
+    virtual void new_read_token(read_token_t *token_out) = 0;
+    virtual void new_write_token(write_token_t *token_out) = 0;
 
-    void new_read_token_pair(read_token_pair_t *token_pair_out) {
-        new_read_token(&token_pair_out->main_read_token);
-    }
-    void new_write_token_pair(write_token_pair_t *token_pair_out) {
-        new_write_token(&token_pair_out->main_write_token);
-    }
+    /* Gets the metainfo. */
+    virtual region_map_t<binary_blob_t> get_metainfo(
+            order_token_t order_token,
+            read_token_t *token,
+            const region_t &region,
+            signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t) = 0;
 
-    /* Gets the metainfo.
-    [Postcondition] return_value.get_domain() == view->get_region()
-    [May block] */
-    virtual void do_get_metainfo(order_token_t order_token,
-                                 object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
-                                 signal_t *interruptor,
-                                 metainfo_t *out) THROWS_ONLY(interrupted_exc_t) = 0;
+    /* Replaces the metainfo in `new_metainfo`'s domain with `new_metainfo`. */
+    virtual void set_metainfo(
+            const region_map_t<binary_blob_t> &new_metainfo,
+            order_token_t order_token,
+            write_token_t *token,
+            write_durability_t durability,
+            signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
 
-    /* Replaces the metainfo over the view's entire range with the given metainfo.
-    [Precondition] region_is_superset(view->get_region(), new_metainfo.get_domain())
-    [Postcondition] this->get_metainfo() == new_metainfo
-    [May block] */
-    virtual void set_metainfo(const metainfo_t &new_metainfo,
-                              order_token_t order_token,
-                              object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
-                              signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
-
-    /* Performs a read.
-    [Precondition] region_is_superset(view->get_region(), expected_metainfo.get_domain())
-    [Precondition] region_is_superset(expected_metainfo.get_domain(), read.get_region())
-    [May block] */
+    /* Performs a read. The read's region must be a subset of the store's region. */
     virtual void read(
             DEBUG_ONLY(const metainfo_checker_t& metainfo_expecter, )
             const read_t &read,
             read_response_t *response,
-            order_token_t order_token,
-            read_token_pair_t *token,
+            read_token_t *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
-
-    /* Performs a write.
-    [Precondition] region_is_superset(view->get_region(), expected_metainfo.get_domain())
-    [Precondition] new_metainfo.get_domain() == expected_metainfo.get_domain()
-    [Precondition] region_is_superset(expected_metainfo.get_domain(), write.get_region())
-    [May block] */
+    /* Performs a write. `new_metainfo`'s region must be a subset of the store's region,
+    and the write's region must be a subset of `new_metainfo`'s region. */
     virtual void write(
             DEBUG_ONLY(const metainfo_checker_t& metainfo_expecter, )
-            const metainfo_t& new_metainfo,
+            const region_map_t<binary_blob_t> &new_metainfo,
             const write_t &write,
             write_response_t *response,
             write_durability_t durability,
-            transition_timestamp_t timestamp,
+            state_timestamp_t timestamp,
             order_token_t order_token,
-            write_token_pair_t *token,
+            write_token_t *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
-    /* Expresses the changes that have happened since `start_point` as a
-    series of `backfill_chunk_t` objects.
-    [Precondition] start_point.get_domain() <= view->get_region()
-    [Side-effect] `should_backfill` must be called exactly once
-    [Return value] Value equal to the value returned by should_backfill
-    [May block]
-    */
-    virtual bool send_backfill(
+    /* `send_backfill_pre()` expresses the keys that have changed since `start_point` as
+    a series of `backfill_pre_item_t` objects, ignoring the values of the changed keys.
+    It passes the items to `callback`. The pre-items will not overlap, and the calls to
+    `on_pre_item()` are guaranteed to go in lexicographical order from left to right.
+    `on_empty_range()` indicates that there won't be any pre-items between the end of the
+    last pre-item and the threshold passed to `on_empty_range()`.
+
+    If the callback returns `ABORT`, then the callback will not be called again and
+    `send_backfill_pre()` will return `ABORT`. If the callback never returns `ABORT`,
+    then `send_backfill_pre()` will backfill the entire range, ending with a call to
+    `on_pre_item()` or `on_empty_rang()` that ends exactly on the right-hand edge of
+    `start_point`. Then it will return `CONTINUE`.
+
+    This callback is pretty much exactly the same as the corresponding type in
+    `backfill.hpp`. The only reason they aren't merged is because I didn't want to
+    include `backfill.hpp` from here, and because the rest of the interface is
+    different. */
+    class backfill_pre_item_consumer_t {
+    public:
+        /* It's OK for `on_pre_item()` and `on_empty_range()` to block, but they
+        shouldn't block for very long, because the caller may hold B-tree locks during
+        the call. */
+        virtual continue_bool_t on_pre_item(
+            backfill_pre_item_t &&item) THROWS_NOTHING = 0;
+        virtual continue_bool_t on_empty_range(
+            const key_range_t::right_bound_t &threshold) THROWS_NOTHING = 0;
+    protected:
+        virtual ~backfill_pre_item_consumer_t() { }
+    };
+    virtual continue_bool_t send_backfill_pre(
             const region_map_t<state_timestamp_t> &start_point,
-            send_backfill_callback_t *send_backfill_cb,
-            traversal_progress_combiner_t *progress,
-            read_token_pair_t *token_pair,
+            backfill_pre_item_consumer_t *pre_item_consumer,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
+    /* `send_backfill()` consumes a sequence of `backfill_pre_item_t`s and it produces a
+    sequence of `backfill_item_t`s. The `backfill_item_t`s will include values for
+    everything that is listed in the `backfill_pre_item_t`s and also for everything that
+    changed since `start_point`. It passes the items and their associated metainfo to
+    `callback`. */
 
-    /* Applies a backfill data chunk sent by `send_backfill()`. If
-    `interrupted_exc_t` is thrown, the state of the database is undefined
-    except that doing a second backfill must put it into a valid state.
-    [May block]
-    */
-    virtual void receive_backfill(
-            const backfill_chunk_t &chunk,
-            write_token_pair_t *token,
+    /* The semantics of `on_item()` and `on_empty_range()` are the same as for
+    `send_backfill_pre()`. The metainfo blob that is passed to `on_item()` and
+    `on_empty_range()` is guaranteed to cover at least the region from the right-hand
+    edge of the previous item to the right-hand edge of the current item; it may or may
+    not cover a larger area as well. */
+    class backfill_item_consumer_t {
+    public:
+        /* It's OK for `on_item()` and `on_empty_range()` to block, but they shouldn't
+        block for very long, because the caller may hold B-tree locks while calling them.
+        */
+        virtual continue_bool_t on_item(
+            const region_map_t<binary_blob_t> &metainfo,
+            backfill_item_t &&item) THROWS_NOTHING = 0;
+        virtual continue_bool_t on_empty_range(
+            const region_map_t<binary_blob_t> &metainfo,
+            const key_range_t::right_bound_t &threshold) THROWS_NOTHING = 0;
+    protected:
+        virtual ~backfill_item_consumer_t() { }
+    };
+
+    /* `send_backfill()` receives pre-items via `backfill_pre_item_producer_t`. The
+    semantics are the same as in `btree_backfill_pre_item_producer_t` except for the
+    addition of the `rewind()` method. `send_backfill()` will never try to rewind to a
+    point to the left of the rightmost `on_item()` or `on_empty_range()` call, so it's
+    safe for the `backfill_pre_item_producer_t` to discard the pre-items in response to
+    calls to `on_item()` or `on_empty_range()` on the `backfill_item_consumer_t`. */
+    class backfill_pre_item_producer_t {
+    public:
+        virtual continue_bool_t consume_range(
+            key_range_t::right_bound_t *cursor_inout,
+            const key_range_t::right_bound_t &limit,
+            const std::function<void(const backfill_pre_item_t &)> &callback) = 0;
+        virtual bool try_consume_empty_range(
+            const key_range_t &range) = 0;
+        virtual void rewind(const key_range_t::right_bound_t &point) = 0;
+    protected:
+        virtual ~backfill_pre_item_producer_t() { }
+    };
+
+    virtual continue_bool_t send_backfill(
+            const region_map_t<state_timestamp_t> &start_point,
+            backfill_pre_item_producer_t *pre_item_producer,
+            backfill_item_consumer_t *item_consumer,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
-    /* Throttles an individual backfill chunk. Preserves ordering.
-    [May block] */
-    virtual void throttle_backfill_chunk(signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t) = 0;
+    /* `receive_backfill()` applies backfill item(s) generated by `send_backfill()` to
+    the B-tree. It receives the items from `next_item()`, which works just like
+    `next_pre_item()` on `backfill_pre_item_producer_t` except that it returns the item
+    by value instead of by reference. It periodically calls `on_commit()` with increasing
+    values of `threshold` to describe its progress.
 
-    /* Deletes every key in the region.
-    [Precondition] region_is_superset(region, subregion)
-    [May block]
-     */
+    `receive_backfill()` is required to apply every item it receives from `next_item()`,
+    even if `next_item()` returns `ABORT` at some point. It's also required to call
+    `on_commit()` for item it applies to the B-tree by the time it returns. For example,
+    if `next_item()` generates item A and then the next call to `next_item()` returns
+    `ABORT`, then `receive_backfill()` would apply item A to the B-tree, then call
+    `on_commit()` (*after* the call to `next_item()` that returned `ABORT`), then return
+    `ABORT`.
+
+    Durability guarantees: The data is not necessarily durable on disk when `on_commit()`
+    is called, but it's definitely durable on disk by the time `receive_backfill()`
+    returns. */
+    class backfill_item_producer_t {
+    public:
+        /* These callbacks may block, but they shouldn't block for very long because
+        `receive_backfill()` might hold B-tree locks while running the callbacks. */
+
+        /* `next_item()` can generate either an item or an empty range. In the former
+        case, it sets `*is_item_out` to `true`, then fills `item_out` and ignores
+        `empty_range_out`; in the latter case, it does the opposite. */
+        virtual continue_bool_t next_item(
+            bool *is_item_out,
+            backfill_item_t *item_out,
+            key_range_t::right_bound_t *empty_range_out) THROWS_NOTHING = 0;
+
+        /* Returns the metainfo corresponding to the item stream. The returned pointer
+        may be invalidated if the calling coroutine yields, calls `next_item()`, or calls
+        `on_commit()`. The metainfo is only guaranteed to be complete up to the
+        right-hand side of the last item (or empty range) returned by `next_item()`. */
+        virtual const region_map_t<binary_blob_t> *get_metainfo() THROWS_NOTHING = 0;
+
+        virtual void on_commit(
+            const key_range_t::right_bound_t &threshold) THROWS_NOTHING = 0;
+    protected:
+        virtual ~backfill_item_producer_t() { }
+    };
+    virtual continue_bool_t receive_backfill(
+            const region_t &region,
+            backfill_item_producer_t *item_producer,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t) = 0;
+
+    /* Blocks if a secondary index is post-constructing so it's not a good time to
+    perform a backfill. */
+    virtual void wait_until_ok_to_receive_backfill(signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t) = 0;
+
+    /* Deletes every key in the region, and sets the metainfo for that region to
+    `zero_version`. */
     virtual void reset_data(
+            const binary_blob_t &zero_version,
             const region_t &subregion,
             write_durability_t durability,
             signal_t *interruptor)
@@ -130,166 +251,5 @@ private:
     DISABLE_COPYING(store_view_t);
 };
 
-
-/* The query-routing logic provides the following ordering guarantees:
-
-1.  All the replicas of each individual key will see writes in the same order.
-
-    Example: Suppose K = "x". You send (append "a" to K) and (append "b" to K)
-    concurrently from different nodes. Either every copy of K will become "xab",
-    or every copy of K will become "xba", but the different copies of K will
-    never disagree.
-
-2.  Queries from the same origin will be performed in same order they are sent.
-
-    Example: Suppose K = "a". You send (set K to "b") and (read K) from the same
-    thread on the same node, in that order. The read will return "b".
-
-3.  Arbitrary atomic single-key operations can be performed, as long as they can
-    be expressed as `write_t` objects.
-
-4.  There are no other atomicity or ordering guarantees.
-
-    Example: Suppose K1 = "x" and K2 = "x". You send (append "a" to every key)
-    and (append "b" to every key) concurrently. Every copy of K1 will agree with
-    every other copy of K1, and every copy of K2 will agree with every other
-    copy of K2, but K1 and K2 may disagree.
-
-    Example: Suppose K = "a". You send (set K to "b"). As soon as it's sent, you
-    send (set K to "c") from a different node. K may end up being either "b" or
-    "c".
-
-    Example: Suppose K1 = "a" and K2 = "a". You send (set K1 to "b") and (set K2
-    to "b") from the same node, in that order. Then you send (read K1 and K2)
-    from a different node. The read may return (K1 = "a", K2 = "b").
-
-5.  There is no simple way to perform an atomic multikey transaction. You might
-    be able to fake it by using a key as a "lock".
-*/
-
-#include "debug.hpp"
-
-class store_subview_t : public store_view_t
-{
-public:
-    store_subview_t(store_view_t *_store_view, region_t region)
-        : store_view_t(region), store_view(_store_view) {
-        rassert(region_is_superset(_store_view->get_region(), region));
-    }
-
-    ~store_subview_t() {
-        store_view->note_reshard();
-    }
-    void note_reshard() {
-        store_view->note_reshard();
-    }
-
-    using store_view_t::get_region;
-
-    void new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out) {
-        home_thread_mixin_t::assert_thread();
-        store_view->new_read_token(token_out);
-    }
-
-    void new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out) {
-        home_thread_mixin_t::assert_thread();
-        store_view->new_write_token(token_out);
-    }
-
-    void do_get_metainfo(order_token_t order_token,
-                         object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
-                         signal_t *interruptor,
-                         metainfo_t *out) THROWS_ONLY(interrupted_exc_t) {
-        home_thread_mixin_t::assert_thread();
-        metainfo_t tmp;
-        store_view->do_get_metainfo(order_token, token, interruptor, &tmp);
-        *out = tmp.mask(get_region());
-    }
-
-    void set_metainfo(const metainfo_t &new_metainfo,
-                      order_token_t order_token,
-                      object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
-                      signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        home_thread_mixin_t::assert_thread();
-        rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
-        store_view->set_metainfo(new_metainfo, order_token, token, interruptor);
-    }
-
-    void read(
-            DEBUG_ONLY(const metainfo_checker_t& metainfo_checker, )
-            const read_t &read,
-            read_response_t *response,
-            order_token_t order_token,
-            read_token_pair_t *token_pair,
-            signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t) {
-        home_thread_mixin_t::assert_thread();
-        rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
-
-        store_view->read(DEBUG_ONLY(metainfo_checker, ) read, response, order_token, token_pair, interruptor);
-    }
-
-    void write(
-            DEBUG_ONLY(const metainfo_checker_t& metainfo_checker, )
-            const metainfo_t& new_metainfo,
-            const write_t &write,
-            write_response_t *response,
-            write_durability_t durability,
-            transition_timestamp_t timestamp,
-            order_token_t order_token,
-            write_token_pair_t *token_pair,
-            signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t) {
-        home_thread_mixin_t::assert_thread();
-        rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
-        rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
-
-        store_view->write(DEBUG_ONLY(metainfo_checker, ) new_metainfo, write, response, durability, timestamp, order_token, token_pair, interruptor);
-    }
-
-    bool send_backfill(
-            const region_map_t<state_timestamp_t> &start_point,
-            send_backfill_callback_t *send_backfill_cb,
-            traversal_progress_combiner_t *p,
-            read_token_pair_t *token_pair,
-            signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t) {
-        home_thread_mixin_t::assert_thread();
-        rassert(region_is_superset(get_region(), start_point.get_domain()));
-
-        return store_view->send_backfill(start_point, send_backfill_cb, p, token_pair, interruptor);
-    }
-
-    void receive_backfill(
-            const backfill_chunk_t &chunk,
-            write_token_pair_t *token_pair,
-            signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t) {
-        home_thread_mixin_t::assert_thread();
-        store_view->receive_backfill(chunk, token_pair, interruptor);
-    }
-
-    void throttle_backfill_chunk(signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t) {
-        home_thread_mixin_t::assert_thread();
-        store_view->throttle_backfill_chunk(interruptor);
-    }
-
-    void reset_data(
-            const region_t &subregion,
-            write_durability_t durability,
-            signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t) {
-        home_thread_mixin_t::assert_thread();
-        rassert(region_is_superset(get_region(), subregion));
-
-        store_view->reset_data(subregion, durability, interruptor);
-    }
-
-private:
-    store_view_t *store_view;
-
-    DISABLE_COPYING(store_subview_t);
-};
 
 #endif  // STORE_VIEW_HPP_

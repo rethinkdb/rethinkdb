@@ -53,7 +53,7 @@ var_scope_t::var_scope_t() : implicit_depth(0) { }
 
 var_scope_t var_scope_t::with_func_arg_list(
     const std::vector<sym_t> &arg_names,
-    const std::vector<counted_t<const datum_t> > &arg_values) const {
+    const std::vector<datum_t> &arg_values) const {
     r_sanity_check(arg_names.size() == arg_values.size());
     var_scope_t ret = *this;
     if (function_emits_implicit_variable(arg_names)) {
@@ -87,7 +87,7 @@ var_scope_t var_scope_t::filtered_by_captures(const var_captures_t &captures) co
     return ret;
 }
 
-counted_t<const datum_t> var_scope_t::lookup_var(sym_t varname) const {
+datum_t var_scope_t::lookup_var(sym_t varname) const {
     auto it = vars.find(varname);
     // This is a sanity check because we should never have constructed an expression
     // with an invalid variable name.
@@ -95,7 +95,7 @@ counted_t<const datum_t> var_scope_t::lookup_var(sym_t varname) const {
     return it->second;
 }
 
-counted_t<const datum_t> var_scope_t::lookup_implicit() const {
+datum_t var_scope_t::lookup_implicit() const {
     r_sanity_check(implicit_depth == 1 && maybe_implicit.has());
     return maybe_implicit;
 }
@@ -107,7 +107,7 @@ std::string var_scope_t::print() const {
     } else if (implicit_depth == 1) {
         ret += "implicit: ";
         if (maybe_implicit.has()) {
-            ret += maybe_implicit->print();
+            ret += maybe_implicit.print();
         } else {
             ret += "(not stored)";
         }
@@ -118,7 +118,7 @@ std::string var_scope_t::print() const {
     for (auto it = vars.begin(); it != vars.end(); ++it) {
         ret += ", ";
         ret += strprintf("%" PRIi64 ": ", it->first.value);
-        ret += it->second->print();
+        ret += it->second.print();
     }
     ret += "]";
     return ret;
@@ -133,44 +133,58 @@ var_visibility_t var_scope_t::compute_visibility() const {
     return ret;
 }
 
-void var_scope_t::rdb_serialize(write_message_t *wm) const {
-    serialize(wm, vars);
-    serialize(wm, implicit_depth);
-    if (implicit_depth == 1) {
-        const bool has = maybe_implicit.has();
-        serialize(wm, has);
+template <cluster_version_t W>
+void serialize(write_message_t *wm, const var_scope_t &vs) {
+    serialize<W>(wm, vs.vars);
+    serialize<W>(wm, vs.implicit_depth);
+    if (vs.implicit_depth == 1) {
+        const bool has = vs.maybe_implicit.has();
+        serialize<W>(wm, has);
         if (has) {
-            serialize(wm, maybe_implicit);
+            serialize<W>(wm, vs.maybe_implicit);
         }
     }
 }
 
-archive_result_t var_scope_t::rdb_deserialize(read_stream_t *s) {
-    std::map<sym_t, counted_t<const datum_t> > local_vars;
-    archive_result_t res = deserialize(s, &local_vars);
+template <cluster_version_t W>
+archive_result_t deserialize(read_stream_t *s, var_scope_t *vs) {
+    std::map<sym_t, datum_t> local_vars;
+    archive_result_t res = deserialize<W>(s, &local_vars);
     if (bad(res)) { return res; }
 
     uint32_t local_implicit_depth;
-    res = deserialize(s, &local_implicit_depth);
+    res = deserialize<W>(s, &local_implicit_depth);
     if (bad(res)) { return res; }
 
-    counted_t<const datum_t> local_maybe_implicit;
+    datum_t local_maybe_implicit;
     if (local_implicit_depth == 1) {
         bool has;
-        res = deserialize(s, &has);
+        res = deserialize<W>(s, &has);
         if (bad(res)) { return res; }
 
         if (has) {
-            res = deserialize(s, &local_maybe_implicit);
+            res = deserialize<W>(s, &local_maybe_implicit);
             if (bad(res)) { return res; }
         }
     }
 
-    vars = std::move(local_vars);
-    implicit_depth = local_implicit_depth;
-    maybe_implicit = std::move(local_maybe_implicit);
+    vs->vars = std::move(local_vars);
+    vs->implicit_depth = local_implicit_depth;
+    vs->maybe_implicit = std::move(local_maybe_implicit);
     return archive_result_t::SUCCESS;
 }
 
+INSTANTIATE_SERIALIZE_FOR_CLUSTER_AND_DISK(var_scope_t);
+
+template archive_result_t
+deserialize<cluster_version_t::v1_14>(read_stream_t *s, var_scope_t *);
+template archive_result_t
+deserialize<cluster_version_t::v1_15>(read_stream_t *s, var_scope_t *);
+template archive_result_t
+deserialize<cluster_version_t::v1_16>(read_stream_t *s, var_scope_t *);
+template archive_result_t
+deserialize<cluster_version_t::v2_0>(read_stream_t *s, var_scope_t *);
+template archive_result_t
+deserialize<cluster_version_t::v2_1_is_latest>(read_stream_t *s, var_scope_t *);
 
 }  // namespace ql

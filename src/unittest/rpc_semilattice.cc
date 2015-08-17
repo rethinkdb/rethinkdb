@@ -3,14 +3,14 @@
 #include <boost/shared_ptr.hpp>
 
 #include "containers/archive/archive.hpp"
-#include "unittest/unittest_utils.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
 #include "rpc/semilattice/joins/map.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/view/member.hpp"
+#include "unittest/clustering_utils.hpp"
 #include "unittest/dummy_metadata_controller.hpp"
 #include "unittest/gtest.hpp"
-
+#include "unittest/unittest_utils.hpp"
 
 
 namespace unittest {
@@ -20,9 +20,9 @@ public:
     sl_int_t() { }
     explicit sl_int_t(uint64_t initial) : i(initial) { }
     uint64_t i;
-
-    RDB_MAKE_ME_SERIALIZABLE_1(i);
 };
+
+RDB_MAKE_SERIALIZABLE_1(sl_int_t, i);
 
 inline void semilattice_join(sl_int_t *a, sl_int_t b) {
     a->i |= b.i;
@@ -47,8 +47,9 @@ void assign(T *target, T value) {
 /* `SingleMetadata` tests metadata's properties on a single node. */
 TPTEST(RPCSemilatticeTest, SingleMetadata, 2) {
     connectivity_cluster_t c;
-    semilattice_manager_t<sl_int_t> slm(&c, sl_int_t(2));
-    connectivity_cluster_t::run_t cr(&c, get_unittest_addresses(), peer_address_t(), ANY_PORT, &slm, 0, NULL);
+    semilattice_manager_t<sl_int_t> slm(&c, 'S', sl_int_t(2));
+    connectivity_cluster_t::run_t cr(&c, get_unittest_addresses(), peer_address_t(),
+        ANY_PORT, 0);
 
     /* Make sure that metadata works properly when passed to the constructor */
     EXPECT_EQ(2u, slm.get_root_view()->get().i);
@@ -63,37 +64,25 @@ TPTEST(RPCSemilatticeTest, SingleMetadata, 2) {
 nodes. */
 TPTEST(RPCSemilatticeTest, MetadataExchange, 2) {
     connectivity_cluster_t cluster1, cluster2;
-    semilattice_manager_t<sl_int_t> slm1(&cluster1, sl_int_t(1)), slm2(&cluster2, sl_int_t(2));
-    connectivity_cluster_t::run_t run1(&cluster1, get_unittest_addresses(), peer_address_t(), ANY_PORT, &slm1, 0, NULL);
-    connectivity_cluster_t::run_t run2(&cluster2, get_unittest_addresses(), peer_address_t(), ANY_PORT, &slm2, 0, NULL);
+    semilattice_manager_t<sl_int_t> slm1(&cluster1, 'S', sl_int_t(1)),
+                                    slm2(&cluster2, 'S', sl_int_t(2));
+    connectivity_cluster_t::run_t run1(&cluster1, get_unittest_addresses(),
+        peer_address_t(), ANY_PORT, 0);
+    connectivity_cluster_t::run_t run2(&cluster2, get_unittest_addresses(),
+        peer_address_t(), ANY_PORT, 0);
 
     EXPECT_EQ(1u, slm1.get_root_view()->get().i);
     EXPECT_EQ(2u, slm2.get_root_view()->get().i);
 
-    run1.join(cluster2.get_peer_address(cluster2.get_me()));
+    run1.join(get_cluster_local_address(&cluster2));
 
     /* Block until the connection is established */
-    {
-        struct : public cond_t, public peers_list_callback_t {
-            void on_connect(UNUSED peer_id_t peer) {
-                pulse();
-            }
-            void on_disconnect(UNUSED peer_id_t peer) { }
-        } connection_established;
-        connectivity_service_t::peers_list_subscription_t subs(&connection_established);
-
-        {
-            ASSERT_FINITE_CORO_WAITING;
-            connectivity_service_t::peers_list_freeze_t freeze(&cluster1);
-            if (!cluster1.get_peer_connected(cluster2.get_me())) {
-                subs.reset(&cluster1, &freeze);
-            } else {
-                connection_established.pulse();
-            }
-        }
-
-        connection_established.wait_lazily_unordered();
-    }
+    signal_timer_t timeout;
+    timeout.start(1000);
+    cluster1.get_connections()->run_all_until_satisfied(
+        [](watchable_map_t<peer_id_t, connectivity_cluster_t::connection_pair_t> *map) {
+            return map->get_all().size() == 2;
+        }, &timeout);
 
     cond_t non_interruptor;
     slm1.get_root_view()->sync_from(cluster2.get_me(), &non_interruptor);
@@ -111,9 +100,12 @@ TPTEST(RPCSemilatticeTest, MetadataExchange, 2) {
 
 TPTEST(RPCSemilatticeTest, SyncFrom, 2) {
     connectivity_cluster_t cluster1, cluster2;
-    semilattice_manager_t<sl_int_t> slm1(&cluster1, sl_int_t(1)), slm2(&cluster2, sl_int_t(2));
-    connectivity_cluster_t::run_t run1(&cluster1, get_unittest_addresses(), peer_address_t(), ANY_PORT, &slm1, 0, NULL);
-    connectivity_cluster_t::run_t run2(&cluster2, get_unittest_addresses(), peer_address_t(), ANY_PORT, &slm2, 0, NULL);
+    semilattice_manager_t<sl_int_t> slm1(&cluster1, 'S', sl_int_t(1)),
+                                    slm2(&cluster2, 'S', sl_int_t(2));
+    connectivity_cluster_t::run_t run1(&cluster1, get_unittest_addresses(),
+        peer_address_t(), ANY_PORT, 0);
+    connectivity_cluster_t::run_t run2(&cluster2, get_unittest_addresses(),
+        peer_address_t(), ANY_PORT, 0);
 
     EXPECT_EQ(1u, slm1.get_root_view()->get().i);
     EXPECT_EQ(2u, slm2.get_root_view()->get().i);
@@ -123,31 +115,15 @@ TPTEST(RPCSemilatticeTest, SyncFrom, 2) {
     EXPECT_THROW(slm1.get_root_view()->sync_from(cluster2.get_me(), &non_interruptor), sync_failed_exc_t);
     EXPECT_THROW(slm1.get_root_view()->sync_to(cluster2.get_me(), &non_interruptor), sync_failed_exc_t);
 
-    run1.join(cluster2.get_peer_address(cluster2.get_me()));
+    run1.join(get_cluster_local_address(&cluster2));
 
     /* Block until the connection is established */
-    {
-        struct : public cond_t, public peers_list_callback_t {
-            void on_connect(UNUSED peer_id_t peer) {
-                pulse();
-            }
-            void on_disconnect(UNUSED peer_id_t peer) { }
-        } connection_established;
-
-        connectivity_service_t::peers_list_subscription_t subs(&connection_established);
-
-        {
-            ASSERT_FINITE_CORO_WAITING;
-            connectivity_service_t::peers_list_freeze_t freeze(&cluster1);
-            if (!cluster1.get_peer_connected(cluster2.get_me())) {
-                subs.reset(&cluster1, &freeze);
-            } else {
-                connection_established.pulse();
-            }
-        }
-
-        connection_established.wait_lazily_unordered();
-    }
+    signal_timer_t timeout;
+    timeout.start(1000);
+    cluster1.get_connections()->run_all_until_satisfied(
+        [](watchable_map_t<peer_id_t, connectivity_cluster_t::connection_pair_t> *map) {
+            return map->get_all().size() == 2;
+        }, &timeout);
 
     slm1.get_root_view()->sync_from(cluster2.get_me(), &non_interruptor);
     slm2.get_root_view()->sync_from(cluster1.get_me(), &non_interruptor);
@@ -161,8 +137,9 @@ changes. */
 
 TPTEST(RPCSemilatticeTest, Watcher, 2) {
     connectivity_cluster_t cluster;
-    semilattice_manager_t<sl_int_t> slm(&cluster, sl_int_t(2));
-    connectivity_cluster_t::run_t run(&cluster, get_unittest_addresses(), peer_address_t(), ANY_PORT, &slm, 0, NULL);
+    semilattice_manager_t<sl_int_t> slm(&cluster, 'S', sl_int_t(2));
+    connectivity_cluster_t::run_t run(&cluster, get_unittest_addresses(),
+        peer_address_t(), ANY_PORT, 0);
 
     bool have_been_notified = false;
     semilattice_read_view_t<sl_int_t>::subscription_t watcher(

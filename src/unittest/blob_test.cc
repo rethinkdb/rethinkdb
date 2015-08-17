@@ -1,7 +1,7 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "buffer_cache/alt/alt.hpp"
-#include "buffer_cache/alt/blob.hpp"
-#include "buffer_cache/alt/cache_balancer.hpp"
+#include "buffer_cache/alt.hpp"
+#include "buffer_cache/blob.hpp"
+#include "buffer_cache/cache_balancer.hpp"
 #include "containers/buffer_group.hpp"
 #include "containers/scoped.hpp"
 #include "math.hpp"
@@ -143,8 +143,7 @@ private:
 void small_value_test(cache_t *cache) {
     SCOPED_TRACE("small_value_test");
     cache_conn_t cache_conn(cache);
-    txn_t txn(&cache_conn, write_durability_t::SOFT,
-              repli_timestamp_t::distant_past, 0);
+    txn_t txn(&cache_conn, write_durability_t::SOFT, 0);
 
     blob_tracker_t tk(251);
 
@@ -169,8 +168,7 @@ void small_value_boundary_test(cache_t *cache) {
     max_block_size_t block_size = cache->max_block_size();
 
     cache_conn_t cache_conn(cache);
-    txn_t txn(&cache_conn, write_durability_t::SOFT,
-              repli_timestamp_t::distant_past, 0);
+    txn_t txn(&cache_conn, write_durability_t::SOFT, 0);
 
     blob_tracker_t tk(251);
 
@@ -220,8 +218,7 @@ void small_value_boundary_test(cache_t *cache) {
 
 void general_journey_test(cache_t *cache, const std::vector<int64_t>& steps) {
     cache_conn_t cache_conn(cache);
-    txn_t txn(&cache_conn, write_durability_t::SOFT,
-              repli_timestamp_t::distant_past, 0);
+    txn_t txn(&cache_conn, write_durability_t::SOFT, 0);
     blob_tracker_t tk(251);
 
     char v = 'A';

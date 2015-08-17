@@ -1,22 +1,8 @@
 desc: Tests that manipulation data in tables
+table_variable_name: tbl tbl2 tbl3 tbl4
 tests:
 
     # Set up some data
-    - cd: r.db('test').table_create('test1')
-      ot: ({'created':1})
-      def: tbl = r.db('test').table('test1')
-
-    - cd: r.db('test').table_create('test2')
-      ot: ({'created':1})
-      def: tbl2 = r.db('test').table('test2')
-
-    - cd: r.db('test').table_create('test3')
-      ot: ({'created':1})
-      def: tbl3 = r.db('test').table('test3')
-
-    - cd: r.db('test').table_create('test4')
-      ot: ({'created':1})
-      def: tbl4 = r.db('test').table('test4')
 
     - py: tbl.insert([{'id':i, 'a':i%4} for i in xrange(100)])
       js: |
@@ -77,9 +63,8 @@ tests:
       ot: 150
     - cd: tbl.group('a').sum('id')
       ot:
-        py: ({0:1200, 1:1225, 2:1250, 3:1275})
+        cd: ({0:1200, 1:1225, 2:1250, 3:1275})
         js: ([{'group':0,'reduction':1200},{'group':1,'reduction':1225},{'group':2,'reduction':1250},{'group':3,'reduction':1275}])
-        rb: ({0=>1200, 1=>1225, 2=>1250, 3=>1275})
     - cd: tbl.avg('a')
       ot: 1.5
     - rb: tbl.map{|row| row['a']}.avg()
@@ -88,9 +73,8 @@ tests:
       ot: 1.5
     - cd: tbl.group('a').avg('id')
       ot:
-        py: ({0:48, 1:49, 2:50, 3:51})
+        cd: ({0:48, 1:49, 2:50, 3:51})
         js: ([{'group':0,'reduction':48},{'group':1,'reduction':49},{'group':2,'reduction':50},{'group':3,'reduction':51}])
-        rb: ({0=>48, 1=>49, 2=>50, 3=>51})
     - cd: tbl.min('a')['a']
       js: tbl.min('a')('a')
       ot: 0
@@ -102,9 +86,8 @@ tests:
       ot: 0
     - cd: tbl.group('a').min('id')
       ot:
-        py: ({0:{'a':0, 'id':0}, 1:{'a':1, 'id':1}, 2:{'a':2, 'id':2}, 3:{'a':3, 'id':3}})
+        cd: ({0:{'a':0, 'id':0}, 1:{'a':1, 'id':1}, 2:{'a':2, 'id':2}, 3:{'a':3, 'id':3}})
         js: ([{'group':0,'reduction':{'a':0, 'id':0}},{'group':1,'reduction':{'a':1, 'id':1}},{'group':2,'reduction':{'a':2, 'id':2}},{'group':3,'reduction':{'a':3, 'id':3}}])
-        rb: ({0 => {'a':0, 'id':0}, 1 => {'a':1, 'id':1}, 2 => {'a':2, 'id':2}, 3 => {'a':3, 'id':3}})
     - cd: tbl.order_by('id').max('a')
       ot: ({'a':3, 'id':3})
     - rb: tbl.map{|row| row['a']}.max()
@@ -113,33 +96,23 @@ tests:
       ot: 3
     - cd: tbl.group('a').max('id')
       ot:
-        py: ({0:{'a':0, 'id':96}, 1:{'a':1, 'id':97}, 2:{'a':2, 'id':98}, 3:{'a':3, 'id':99}})
+        cd: ({0:{'a':0, 'id':96}, 1:{'a':1, 'id':97}, 2:{'a':2, 'id':98}, 3:{'a':3, 'id':99}})
         js: ([{'group':0,'reduction':{'a':0, 'id':96}},{'group':1,'reduction':{'a':1, 'id':97}},{'group':2,'reduction':{'a':2, 'id':98}},{'group':3,'reduction':{'a':3, 'id':99}}])
-        rb: ({0=>{'a':0, 'id':96}, 1=>{'a':1, 'id':97}, 2=>{'a':2, 'id':98}, 3=>{'a':3, 'id':99}})
 
     - cd: tbl.min()
-      ot:
-        py: ({"a":0, "id":0})
-        js: ({"a":0, "id":0})
-        rb: ({"a"=>0, "id"=>0})
+      ot: ({"a":0, "id":0})
     - cd: tbl.group('a').min()
       ot:
-        py: ({0:{"a":0, "id":0}, 1:{"a":1, "id":1}, 2:{"a":2, "id":2}, 3:{"a":3, "id":3}})
+        cd: ({0:{"a":0, "id":0}, 1:{"a":1, "id":1}, 2:{"a":2, "id":2}, 3:{"a":3, "id":3}})
         js: ([{'group':0,'reduction':{"a":0,"id":0}},{'group':1,'reduction':{"a":1,"id":1}},{'group':2,'reduction':{"a":2,"id":2}},{'group':3,'reduction':{"a":3,"id":3}}])
-        rb: ({0=>{"a"=>0, "id"=>0}, 1=>{"a"=>1, "id"=>1}, 2=>{"a"=>2, "id"=>2}, 3=>{"a"=>3, "id"=>3}})
     - cd: tbl.max()
-      ot:
-        py: ({"a":3, "id":99})
-        js: ({"a":3, "id":99})
-        rb: ({"a"=>3, "id"=>99})
+      ot: ({"a":3, "id":99})
     - cd: tbl.group('a').max()
       ot:
-        py: ({0:{'a':0, 'id':96}, 1:{'a':1, 'id':97}, 2:{'a':2, 'id':98}, 3:{'a':3, 'id':99}})
+        cd: ({0:{'a':0, 'id':96}, 1:{'a':1, 'id':97}, 2:{'a':2, 'id':98}, 3:{'a':3, 'id':99}})
         js: ([{'group':0,'reduction':{"a":0,"id":96}},{'group':1,'reduction':{"a":1,"id":97}},{'group':2,'reduction':{"a":2,"id":98}},{'group':3,'reduction':{"a":3,"id":99}}])
-        rb: ({0=>{'a':0, 'id':96}, 1=>{'a':1, 'id':97}, 2=>{'a':2, 'id':98}, 3=>{'a':3, 'id':99}})
 
-    - rb:
-        - tbl.sum{|row| row['a']}
+    - rb: tbl.sum{|row| row['a']}
       py:
         - tbl.sum(lambda row:row['a'])
         - tbl.sum(r.row['a'])
@@ -155,9 +128,8 @@ tests:
       py: tbl.group(lambda row:row['a']).sum(lambda row:row['id'])
       js: tbl.group(function(row){return row('a')}).sum(function(row){return row('id')})
       ot:
-        py: ({0:1200, 1:1225, 2:1250, 3:1275})
+        cd: ({0:1200, 1:1225, 2:1250, 3:1275})
         js: ([{'group':0,'reduction':1200},{'group':1,'reduction':1225},{'group':2,'reduction':1250},{'group':3,'reduction':1275}])
-        rb: ({0=>1200, 1=>1225, 2=>1250, 3=>1275})
     - rb:
         - tbl.avg{|row| row['a']}
       py:
@@ -175,11 +147,9 @@ tests:
       py: tbl.group(lambda row:row['a']).avg(lambda row:row['id'])
       js: tbl.group(function(row){return row('a')}).avg(function(row){return row('id')})
       ot:
-        py: ({0:48, 1:49, 2:50, 3:51})
+        cd: ({0:48, 1:49, 2:50, 3:51})
         js: ([{'group':0,'reduction':48},{'group':1,'reduction':49},{'group':2,'reduction':50},{'group':3,'reduction':51}])
-        rb: ({0=>48, 1=>49, 2=>50, 3=>51})
-    - rb:
-        - tbl.order_by(r.desc('id')).min{|row| row['a']}
+    - rb: tbl.order_by(r.desc('id')).min{|row| row['a']}
       py:
         - tbl.order_by(r.desc('id')).min(lambda row:row['a'])
         - tbl.order_by(r.desc('id')).min(r.row['a'])
@@ -204,9 +174,8 @@ tests:
       py: tbl.group(lambda row:row['a']).min(lambda row:row['id'])['id']
       js: tbl.group(function(row){return row('a')}).min(function(row){return row('id')})('id')
       ot:
-        py: ({0:0, 1:1, 2:2, 3:3})
+        cd: ({0:0, 1:1, 2:2, 3:3})
         js: ([{'group':0,'reduction':0},{'group':1,'reduction':1},{'group':2,'reduction':2},{'group':3,'reduction':3}])
-        rb: ({0=>0, 1=>1, 2=>2, 3=>3})
     - rb:
         - tbl.max{|row| row['a']}['a']
       py:
@@ -224,17 +193,15 @@ tests:
       py: tbl.group(lambda row:row['a']).max(lambda row:row['id'])['id']
       js: tbl.group(function(row){return row('a')}).max(function(row){return row('id')})('id')
       ot:
-        py: ({0:96, 1:97, 2:98, 3:99})
+        cd: ({0:96, 1:97, 2:98, 3:99})
         js: ([{'group':0,'reduction':96},{'group':1,'reduction':97},{'group':2,'reduction':98},{'group':3,'reduction':99}])
-        rb: ({0=>96, 1=>97, 2=>98, 3=>99})
 
     - rb: tbl.group{|row| row[:a]}.map{|row| row[:id]}.reduce{|a,b| a+b}
       py: tbl.group(lambda row:row['a']).map(lambda row:row['id']).reduce(lambda a,b:a+b)
       js: tbl.group(function(row){return row('a')}).map(function(row){return row('id')}).reduce(function(a,b){return a.add(b)})
       ot:
-        py: ({0:1200, 1:1225, 2:1250, 3:1275})
+        cd: ({0:1200, 1:1225, 2:1250, 3:1275})
         js: ([{'group':0,'reduction':1200},{'group':1,'reduction':1225},{'group':2,'reduction':1250},{'group':3,'reduction':1275}])
-        rb: ({0=>1200, 1=>1225, 2=>1250, 3=>1275})
 
     - rb: tbl.group{|row| row[:a]}.map{|row| row[:id]}.reduce{|a,b| a+b}
       runopts:
@@ -264,17 +231,15 @@ tests:
       py: tbl.order_by(index='id').filter(lambda row:row['id'] < 10).group('a').map(lambda row:row['id']).coerce_to('ARRAY')
       js: tbl.orderBy({index:'id'}).filter(function(row){return row('id').lt(10)}).group('a').map(function(row){return row('id')}).coerce_to('ARRAY')
       ot:
-        py: ({0:[0,4,8],1:[1,5,9],2:[2,6],3:[3,7]})
+        cd: ({0:[0,4,8],1:[1,5,9],2:[2,6],3:[3,7]})
         js: ([{'group':0,'reduction':[0,4,8]},{'group':1,'reduction':[1,5,9]},{'group':2,'reduction':[2,6]},{'group':3,'reduction':[3,7]}])
-        rb: ({0=>[0,4,8],1=>[1,5,9],2=>[2,6],3=>[3,7]})
 
     - rb: tbl.filter{|row| row['id'].lt(10)}.group('a').count().do{|x| x*x}
       py: tbl.filter(lambda row:row['id'] < 10).group('a').count().do(lambda x:x*x)
       js: tbl.filter(function(row){return row('id').lt(10)}).group('a').count().do(function(x){return x.mul(x)})
       ot:
-        py: ({0:9,1:9,2:4,3:4})
+        cd: ({0:9,1:9,2:4,3:4})
         js: ([{'group':0,'reduction':9},{'group':1,'reduction':9},{'group':2,'reduction':4},{'group':3,'reduction':4}])
-        rb: ({0=>9,1=>9,2=>4,3=>4})
 
     - rb: tbl.union(tbl).group('a').map{|x| x['id']}.reduce{|a,b| a+b}
       runopts:
@@ -337,7 +302,6 @@ tests:
         - tbl.reduce(function(a,b){return a+b}).group(function(row){})
         - tbl.reduce(function(a,b){return a+b}).map(function(row){})
         - tbl.reduce(function(a,b){return a+b}).reduce(function(row){})
-      cd: []
       ot: err('RqlDriverError', 'Anonymous function returned `undefined`. Did you forget a `return`?', [0])
 
     # GroupBy
@@ -399,11 +363,86 @@ tests:
       rb: tbl.map{ |row| row[:a] }.distinct.count
       ot: 4
 
+    - cd: tbl.distinct().type_of()
+      ot: ("STREAM")
+
+    - cd: tbl.distinct().count()
+      ot: 100
+
+    - cd: tbl.distinct({index:'id'}).type_of()
+      py: tbl.distinct(index='id').type_of()
+      ot: ("STREAM")
+
+    - cd: tbl.distinct({index:'id'}).count()
+      py: tbl.distinct(index='id').count()
+      ot: 100
+
     - cd: tbl.index_create('a')
       ot: ({'created':1})
 
-    - cd: tbl.index_wait('a')
+    - rb: tbl.index_create('m', multi:true){|row| [row['a'], row['a']]}
+      ot: ({'created':1})
+
+    - rb: tbl.index_create('m2', multi:true){|row| [1, 2]}
+      ot: ({'created':1})
+
+    - cd: tbl.index_wait('a').pluck('index', 'ready')
       ot: ([{'index':'a','ready':true}])
+
+    - rb: tbl.index_wait('m').pluck('index', 'ready')
+      ot: ([{'index':'m','ready':true}])
+
+    - rb: tbl.index_wait('m2').pluck('index', 'ready')
+      ot: ([{'index':'m2','ready':true}])
+
+    - cd: tbl.between(0, 1, {index:'a'}).distinct().count()
+      py: tbl.between(0, 1, index='a').distinct().count()
+      ot: 25
+
+    - cd: tbl.between(0, 1, {index:'a'}).distinct({index:'id'}).count()
+      py: tbl.between(0, 1, index='a').distinct(index='id').count()
+      ot: 25
+
+    - rb: tbl.between(0, 1, {index:'m'}).count()
+      ot: 50
+
+    - rb: tbl.between(0, 1, {index:'m'}).distinct().count()
+      ot: 25
+
+    - rb: tbl.orderby({index:'m'}).count()
+      ot: 200
+
+    - rb: tbl.orderby({index:'m'}).distinct().count()
+      ot: 100
+
+    - rb: tbl.orderby({index:r.desc('m')}).count()
+      ot: 200
+
+    - rb: tbl.orderby({index:r.desc('m')}).distinct().count()
+      ot: 100
+
+    - rb: tbl.between(1, 3, {index:'m2'}).count()
+      ot: 200
+
+    - rb: tbl.between(1, 3, {index:'m2'}).distinct().count()
+      ot: 100
+
+    - rb: tbl.between(1, 3, {index:'m2'}).orderby(index:r.desc('m2')).distinct().count()
+      ot: 100
+
+    - rb: tbl.between(0, 1, {index:'m'}).count()
+      ot: 50
+
+    - rb: tbl.between(0, 1, {index:'m'}).distinct().count()
+      ot: 25
+
+    - cd: tbl.distinct({index:'a'}).type_of()
+      py: tbl.distinct(index='a').type_of()
+      ot: ("STREAM")
+
+    - cd: tbl.distinct({index:'a'}).count()
+      py: tbl.distinct(index='a').count()
+      ot: 4
 
     - cd: tbl.group()
       ot: err('RqlRuntimeError', 'Cannot group by nothing.', [])
@@ -436,7 +475,7 @@ tests:
         group_format: '"raw"'
       ot: ({'$reql_type$':'GROUPED_DATA', 'data':[[[0, 0], 25], [[1, 1], 25], [[2, 2], 25], [[3, 3], 25]]})
 
-    - rb: tbl.group('a', lambda {|row| 'f'}, lambda {|row| []}, lambda {|row| [{}, [0], nil, 0]}, multi:true).count
+    - rb: tbl.group('a', lambda {|row| 'f'}, lambda {|row| []}, lambda {|row| [{}, [0], null, 0]}, multi:true).count
       py: tbl.group('a', lambda row:'f', lambda row:[], lambda row:[{}, [0], null, 0], multi=True).count()
       js: tbl.group('a', function(row){return 'f';}, function(row){return [];}, function(row){return [{}, [0], null, 0];}, {multi:true}).count()
       runopts:
@@ -467,11 +506,11 @@ tests:
     - cd: tbl.count()
       ot: 100
 
-    - rb: tbl.filter{|row| row['a'].ne(1).and(row['id'].gt(10))}.update{|row| {b:row['a'] * 10}}['replaced']
-      ot: 67
+    - rb: tbl.filter{|row| row['a'].ne(1).and(row['id'].gt(10))}.update{|row| {'b'=>row['a'] * 10}}
+      ot: partial({'errors':0, 'replaced':67})
 
     - rb: tbl.group('b').count
-      ot: ({nil=>33, 0=>22, 20=>22, 30=>23})
+      ot: ({null=>33, 0=>22, 20=>22, 30=>23})
 
     - rb: tbl.group('a').sum('b')
       ot: ({0=>0, 2=>440, 3=>690})
@@ -488,12 +527,24 @@ tests:
     - rb: tbl.order_by('id').group('a').max('b')
       ot: ({0=>{"a"=>0, "b"=>0, "id"=>12}, 2=>{"a"=>2, "b"=>20, "id"=>14}, 3=>{"a"=>3, "b"=>30, "id"=>11}})
 
-    # Clean up
-    - cd: r.db('test').table_drop('test1')
-      ot: ({'dropped':1})
-    - cd: r.db('test').table_drop('test2')
-      ot: ({'dropped':1})
-    - cd: r.db('test').table_drop('test3')
-      ot: ({'dropped':1})
-    - cd: r.db('test').table_drop('test4')
-      ot: ({'dropped':1})
+    - cd: tbl.min()
+      ot: ({'a':0,'id':0})
+    - py: tbl.min(index='id')
+      rb: tbl.min(index:'id')
+      js: tbl.min({index:'id'})
+      ot: ({'a':0,'id':0})
+    - py: tbl.min(index='a')
+      rb: tbl.min(index:'a')
+      js: tbl.min({index:'a'})
+      ot: ({'a':0,'id':0})
+
+    - cd: tbl.max().without('b')
+      ot: ({'a':3,'id':99})
+    - py: tbl.max(index='id').without('b')
+      rb: tbl.max(index:'id').without('b')
+      js: tbl.max({index:'id'}).without('b')
+      ot: ({'a':3,'id':99})
+    - py: tbl.max(index='a').without('b')
+      rb: tbl.max(index:'a').without('b')
+      js: tbl.max({index:'a'}).without('b')
+      ot: ({'a':3,'id':99})

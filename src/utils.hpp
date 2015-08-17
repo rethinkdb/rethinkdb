@@ -6,10 +6,9 @@
 #include <stdlib.h>
 
 #include <functional>
-#include <stdexcept>
 #include <string>
 
-#include "errors.hpp"
+#include "debug.hpp"
 #include "config/args.hpp"
 
 class printf_buffer_t;
@@ -40,8 +39,10 @@ void *rmalloc(size_t size);
 /* Calls `realloc()` and checks its return value to crash if the allocation fails. */
 void *rrealloc(void *ptr, size_t size);
 
+/* Forwards to the isfinite macro, or std::isfinite. */
+bool risfinite(double);
 
-
+enum class query_state_t { FAILED, INDETERMINATE };
 
 class rng_t {
 public:
@@ -63,7 +64,6 @@ int randint(int n);
 uint64_t randuint64(uint64_t n);
 size_t randsize(size_t n);
 double randdouble();
-std::string rand_string(int len);
 
 bool begins_with_minus(const char *string);
 // strtoul() and strtoull() will for some reason not fail if the input begins
@@ -85,10 +85,13 @@ std::string vstrprintf(const char *format, va_list ap) __attribute__((format (pr
 // yyyy-mm-ddThh:mm:ss.nnnnnnnnn   (29 characters)
 const size_t formatted_time_length = 29;    // not including null
 
-void format_time(struct timespec time, printf_buffer_t *buf);
-std::string format_time(struct timespec time);
+enum class local_or_utc_time_t { local, utc };
+void format_time(struct timespec time, printf_buffer_t *buf, local_or_utc_time_t zone);
+std::string format_time(struct timespec time, local_or_utc_time_t zone);
 
-struct timespec parse_time(const std::string &str) THROWS_ONLY(std::runtime_error);
+bool parse_time(
+    const std::string &str, local_or_utc_time_t zone,
+    struct timespec *out, std::string *errmsg_out);
 
 /* Printing binary data to stderr in a nice format */
 void print_hd(const void *buf, size_t offset, size_t length);
@@ -134,12 +137,25 @@ bool blocking_read_file(const char *path, std::string *contents_out);
 template <class T>
 class assignment_sentry_t {
 public:
+    assignment_sentry_t() : var(nullptr), old_value() { }
     assignment_sentry_t(T *v, const T &value) :
-        var(v), old_value(*var) {
+            var(v), old_value(*var) {
         *var = value;
     }
     ~assignment_sentry_t() {
-        *var = old_value;
+        reset();
+    }
+    void reset(T *v, const T &value) {
+        reset();
+        var = v;
+        old_value = *var;
+        *var = value;
+    }
+    void reset() {
+        if (var != nullptr) {
+            *var = old_value;
+            var = nullptr;
+        }
     }
 private:
     T *var;
@@ -158,6 +174,8 @@ std::string errno_string(int errsv);
 // Contains the name of the directory in which all data is stored.
 class base_path_t {
 public:
+    // Constructs an empty path.
+    base_path_t() { }
     explicit base_path_t(const std::string& path);
     const std::string& path() const;
 
@@ -195,8 +213,8 @@ public:
 private:
     friend serializer_filepath_t unittest::manual_serializer_filepath(const std::string& permanent_path,
                                                                       const std::string& temporary_path);
-    serializer_filepath_t(const std::string& permanent_path, const std::string& temporary_path)
-        : permanent_path_(permanent_path), temporary_path_(temporary_path) { }
+    serializer_filepath_t(const std::string& _permanent_path, const std::string& _temporary_path)
+        : permanent_path_(_permanent_path), temporary_path_(_temporary_path) { }
 
     const std::string permanent_path_;
     const std::string temporary_path_;
@@ -204,41 +222,21 @@ private:
 
 void recreate_temporary_directory(const base_path_t& base_path);
 
-// This will be thrown by remove_directory_recursive if a file cannot be removed
-class remove_directory_exc_t : public std::exception {
-public:
-    remove_directory_exc_t(const std::string &path, int errsv) {
-        char buf[512];
-        info = strprintf("Fatal error: failed to delete file '%s': %s.",
-                         path.c_str(),
-                         errno_string_maybe_using_buffer(errsv, buf, sizeof(buf)));
-    }
-    ~remove_directory_exc_t() throw () { }
-    const char *what() const throw () {
-        return info.c_str();
-    }
-private:
-    std::string info;
-};
-
-void remove_directory_recursive(const char *path) THROWS_ONLY(remove_directory_exc_t);
-
-bool ptr_in_byte_range(const void *p, const void *range_start, size_t size_in_bytes);
-bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range_start, size_t size_in_bytes);
+void remove_directory_recursive(const char *path);
 
 #define MSTR(x) stringify(x) // Stringify a macro
 #if defined __clang__
-#define COMPILER "CLANG " __clang_version__
+#define COMPILER_STR "CLANG " __clang_version__
 #elif defined __GNUC__
-#define COMPILER "GCC " MSTR(__GNUC__) "." MSTR(__GNUC_MINOR__) "." MSTR(__GNUC_PATCHLEVEL__)
+#define COMPILER_STR "GCC " MSTR(__GNUC__) "." MSTR(__GNUC_MINOR__) "." MSTR(__GNUC_PATCHLEVEL__)
 #else
-#define COMPILER "UNKNOWN COMPILER"
+#define COMPILER_STR "UNKNOWN COMPILER"
 #endif
 
 #ifndef NDEBUG
-#define RETHINKDB_VERSION_STR "rethinkdb " RETHINKDB_VERSION " (debug)" " (" COMPILER ")"
+#define RETHINKDB_VERSION_STR "rethinkdb " RETHINKDB_VERSION " (debug)" " (" COMPILER_STR ")"
 #else
-#define RETHINKDB_VERSION_STR "rethinkdb " RETHINKDB_VERSION " (" COMPILER ")"
+#define RETHINKDB_VERSION_STR "rethinkdb " RETHINKDB_VERSION " (" COMPILER_STR ")"
 #endif
 
 #define ANY_PORT 0

@@ -3,8 +3,9 @@ import sys, os, time, signal, random, traceback, errno
 import multiprocessing, multiprocessing.queues
 from optparse import OptionParser
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'drivers', 'python')))
-import rethinkdb as r
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
+import utils
+r = utils.import_python_driver()
 
 def call_ignore_interrupt(fun):
     while True:
@@ -14,7 +15,7 @@ def call_ignore_interrupt(fun):
             if ex.errno != errno.EINTR:
                 raise
 
-def stress_client_proc(options, start_event, exit_event, stat_queue, host_offset, random_seed) :
+def stress_client_proc(options, start_event, exit_event, stat_queue, host_offset, random_seed):
     host_offset = host_offset % len(options["hosts"])
     host = options["hosts"][host_offset][0]
     port = options["hosts"][host_offset][1]
@@ -45,7 +46,7 @@ def stress_client_proc(options, start_event, exit_event, stat_queue, host_offset
 
 def spawn_clients(options, start_event, exit_event, stat_queue):
     num_clients = options["clients"]
-    client_procs = [ ]
+    client_procs = []
     host_offset = 0
 
     random_seed = options["seed"]
@@ -193,15 +194,15 @@ class QueryThrottler:
                 time.sleep(-time_overdue)
 
         start_time = time.time()
-        result = { "timestamp": start_time }
+        result = {"timestamp": start_time}
         try:
             result.update(self.workload.run(conn))
         except (r.RqlError, r.RqlDriverError) as ex:
-            result["errors"] = result.get('errors', []) + [ ex.message ]
+            result["errors"] = result.get('errors', []) + [ex.message]
         except (IOError, OSError) as ex:
             if ex.errno != errno.EINTR:
                 raise
-            result["errors"] = result.get('errors', []) + [ "Interrupted system call" ]
+            result["errors"] = result.get('errors', []) + ["Interrupted system call"]
         result["latency"] = time.time() - start_time
 
         self.stat_queue.put(result)
@@ -211,21 +212,16 @@ def stress_controller(options):
     stat_queue = multiprocessing.queues.SimpleQueue()
     start_event = multiprocessing.Event()
     exit_event = multiprocessing.Event()
-    child_procs = [ ]
+    child_procs = []
     op_count = options["op_count"]
 
     # Register interrupt, now that we're spawning client processes
     parent_pid = os.getpid()
-    signal.signal(signal.SIGINT, lambda a,b: interrupt_handler(a, b,
-                                                               exit_event,
-                                                               parent_pid))
+    signal.signal(signal.SIGINT, lambda a, b: interrupt_handler(a, b, exit_event, parent_pid))
 
-    child_procs.extend(spawn_clients(options,
-                                     start_event,
-                                     exit_event,
-                                     stat_queue))
+    child_procs.extend(spawn_clients(options, start_event, exit_event, stat_queue))
 
-    stats = { "count": 0, "latency": 0.0, "errors": { } }
+    stats = {"count": 0, "latency": 0.0, "errors": {}}
     start_time = time.time()
 
     try:
@@ -243,7 +239,7 @@ def stress_controller(options):
 
                 stats["count"] += 1
                 stats["latency"] += stat["latency"]
-                for error in stat.get("errors", [ ]):
+                for error in stat.get("errors", []):
                     if not options["ignore_errors"]:
                         print "  - %s" % error
                     stats["errors"][error] = stats["errors"].get(error, 0) + 1
@@ -269,7 +265,7 @@ def stress_controller(options):
             stat = call_ignore_interrupt(stat_queue.get)
             stats["count"] += 1
             stats["latency"] += stat["latency"]
-            for error in stat.get("errors", [ ]):
+            for error in stat.get("errors", []):
                 stats["errors"][error] = stats["errors"].get(error, 0) + 1
 
         print_stats(stats, start_time, end_time, options["clients"])
@@ -277,7 +273,7 @@ def stress_controller(options):
 if __name__ == "__main__":
     parser = OptionParser()
     parser.add_option("--seed", dest="seed", metavar="FLOAT", default=None, type="float")
-    parser.add_option("--table", dest="db_table", metavar="DB.TABLE", default='test.stress', type="string")
+    parser.add_option("--table", dest="db_table", metavar="DB.TABLE", default=None, type="string")
     parser.add_option("--ops-per-sec", dest="ops_per_sec", metavar="NUMBER", default=100, type="float")
     parser.add_option("--ops-per-conn", dest="ops_per_conn", metavar="NUMBER", default=0, type="int")
     parser.add_option("--clients", dest="clients", metavar="CLIENTS", default=64, type="int")
@@ -288,14 +284,16 @@ if __name__ == "__main__":
     parser.add_option("--op-count", dest="op_count", type="int", default=0)
     parser.add_option("--ignore-errors", dest="ignore_errors", action="store_true", default=False)
     (parsed_options, args) = parser.parse_args()
-    options = { "clients": parsed_options.clients,
-                "ops_per_sec": parsed_options.ops_per_sec,
-                "ops_per_conn": parsed_options.ops_per_conn,
-                "quiet": parsed_options.quiet,
-                "hosts": [ ],
-                "duration": parsed_options.duration,
-                "op_count": parsed_options.op_count,
-                "ignore_errors": parsed_options.ignore_errors}
+    options = {
+        "clients": parsed_options.clients,
+        "ops_per_sec": parsed_options.ops_per_sec,
+        "ops_per_conn": parsed_options.ops_per_conn,
+        "quiet": parsed_options.quiet,
+        "hosts": [],
+        "duration": parsed_options.duration,
+        "op_count": parsed_options.op_count,
+        "ignore_errors": parsed_options.ignore_errors
+    }
 
     if len(args) != 0:
         print "no positional arguments supported"
@@ -314,10 +312,10 @@ if __name__ == "__main__":
 
     # Get table name, and make sure it exists on the server
     if parsed_options.db_table is None:
-        print "no table specified"
-        exit(1)
-
-    (options["db"], options["table"]) = parsed_options.db_table.split(".")
+        options["db"] = os.environ.get('DB_NAME', 'test')
+        options["table"] = os.environ.get('TABLE_NAME', 'stress')
+    else:
+        options["db"], options["table"] = parsed_options.db_table.split(".")
 
     with r.connect(options["hosts"][0][0], options["hosts"][0][1]) as connection:
         if options["db"] not in r.db_list().run(connection):

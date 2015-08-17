@@ -1,0 +1,18 @@
+
+    {{#if no_value}}
+        { } 
+    {{else}}
+        <span class="jt_arrow"></span>
+        <span class="jt_b">{</span>
+        <span class="jt_points">...</span>
+        <ul class="jt_object jt_collapsible">
+            {{#each values}}
+            <li>
+                    "{{this.key}}": {{print_safe this.value}}{{#unless no_comma}}, {{/unless}}
+            </li>
+            {{/each}}
+        </ul>
+        <span class="jt_b jt_close">}</span>
+    {{/if}}
+
+

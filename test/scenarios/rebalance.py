@@ -1,86 +1,92 @@
 #!/usr/bin/env python
-# Copyright 2010-2012 RethinkDB, all rights reserved.
-import sys, os, time, shlex, random
+# Copyright 2010-2014 RethinkDB, all rights reserved.
+
+from __future__ import print_function
+
+import os, sys, time
+
+startTime = time.time()
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import http_admin, driver, workload_runner, scenario_common
-from vcoptparse import *
+import driver, rdb_workload_common, scenario_common, utils, vcoptparse, workload_runner
 
-class Sequence(object):
-    """A Sequence is a plan for a sequence of rebalancing operations. It
-    consists of an initial number of shards and then a series of steps that
-    remove one or more existing shard boundaries and add one or more new shard
-    boundaries."""
-    def __init__(self, initial, steps):
-        assert isinstance(initial, int)
-        for num_adds, num_removes in steps:
-            assert isinstance(num_adds, int)
-            assert isinstance(num_removes, int)
-        self.initial = initial
-        self.steps = steps
-    @classmethod
-    def from_string(cls, string):
-        parts = string.split(",")
-        initial = int(parts[0])
-        steps = []
-        for step in parts[1:]:
-            assert set(step) <= set("+-")
-            steps.append((step.count("+"), step.count("-")))
-        return cls(initial, steps)
+def sequence_from_string(string):
+    returnValue = tuple()
+    for step in string.split(","):
+        try:
+            returnValue += (int(step),)
+        except:
+            workingValue = returnValue[-1]
+            for char in step:
+                if char == '-':
+                    workingValue -= 1
+                elif char == '+':
+                    workingValue += 1
+                else:
+                    raise ValueError('Got a bad step value: %s' % repr(char))
+                assert char in ('-', '+')
+            returnValue += (workingValue,)
+    return returnValue
 
-op = OptParser()
+op = vcoptparse.OptParser()
 scenario_common.prepare_option_parser_mode_flags(op)
 workload_runner.prepare_option_parser_for_split_or_continuous_workload(op, allow_between = True)
-op["num-nodes"] = IntFlag("--num-nodes", 3)
-op["sequence"] = ValueFlag("--sequence", converter = Sequence.from_string, default = Sequence(2, [(1, 1)]))
+op["num-nodes"] = vcoptparse.IntFlag("--num-nodes", 3)
+op["sequence"] = vcoptparse.ValueFlag("--sequence", converter=sequence_from_string, default=(2, 3))
 opts = op.parse(sys.argv)
+_, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
 
-alphanum = "0123456789abcdefghijklmnopqrstuvwxyz"
-candidate_shard_boundaries = set(alphanum).union([x + "9" for x in alphanum]).union([x + "i" for x in alphanum]).union([x + "r" for x in alphanum])
+numNodes = opts["num-nodes"]
 
-with driver.Metacluster() as metacluster:
-    cluster = driver.Cluster(metacluster)
-    executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
-    print "Starting cluster..."
-    processes = [driver.Process(cluster,
-                                driver.Files(metacluster, db_path = "db-%d" % i, log_path = "create-output-%d" % i,
-                                             executable_path = executable_path, command_prefix = command_prefix),
-                                log_path = "serve-output-%d" % i,
-                                executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
-                 for i in xrange(opts["num-nodes"])]
-    for process in processes:
-        process.wait_until_started_up()
+r = utils.import_python_driver()
+dbName, tableName = utils.get_test_db_table()
 
-    print "Creating table..."
-    http = http_admin.ClusterAccess([("localhost", p.http_port) for p in processes])
-    primary_dc = http.add_datacenter()
-    secondary_dc = http.add_datacenter()
-    machines = http.machines.keys()
-    http.move_server_to_datacenter(machines[0], primary_dc)
-    http.move_server_to_datacenter(machines[1], primary_dc)
-    http.move_server_to_datacenter(machines[2], secondary_dc)
-    ns = scenario_common.prepare_table_for_workload(http, primary = primary_dc,
-        affinities = {primary_dc.uuid: 1, secondary_dc.uuid: 1})
-    shard_boundaries = set(random.sample(candidate_shard_boundaries, opts["sequence"].initial))
-    print "Split points are:", list(shard_boundaries)
-    http.change_table_shards(ns, adds = list(shard_boundaries))
-    http.wait_until_blueprint_satisfied(ns)
-    cluster.check()
-
-    workload_ports = scenario_common.get_workload_ports(ns, processes)
+print("Starting cluster of %d servers (%.2fs)" % (numNodes, time.time() - startTime))
+with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_ready=True, command_prefix=command_prefix, extra_options=serve_options) as cluster:
+    
+    print("Establishing ReQL connection (%.2fs)" % (time.time() - startTime))
+    
+    server = cluster[0]
+    conn = r.connect(host=server.host, port=server.driver_port)
+    
+    print("Creating db/table %s/%s (%.2fs)" % (dbName, tableName, time.time() - startTime))
+    
+    if dbName not in r.db_list().run(conn):
+        r.db_create(dbName).run(conn)
+    
+    if tableName in r.db(dbName).table_list().run(conn):
+        r.db(dbName).table_drop(tableName).run(conn)
+    r.db(dbName).table_create(tableName).run(conn)
+    
+    print("Inserting data (%.2fs)" % (time.time() - startTime))
+    
+    rdb_workload_common.insert_many(host=server.host, port=server.driver_port, database=dbName, table=tableName, count=10000, conn=conn)
+    
+    print("Sharding table (%.2fs)" % (time.time() - startTime))
+    
+    r.db(dbName).reconfigure(shards=numNodes, replicas=numNodes).run(conn)
+    r.db(dbName).wait().run(conn)
+    
+    print("Starting workload (%.2fs)" % (time.time() - startTime))
+    
+    workload_ports = workload_runner.RDBPorts(host=server.host, http_port=server.http_port, rdb_port=server.driver_port, db_name=dbName, table_name=tableName)
     with workload_runner.SplitOrContinuousWorkload(opts, workload_ports) as workload:
+        
+        print("Running workload before (%.2fs)" % (time.time() - startTime))
         workload.run_before()
         cluster.check()
-        for i, (num_adds, num_removes) in enumerate(opts["sequence"].steps):
-            if i != 0:
-                workload.run_between()
-            adds = set(random.sample(candidate_shard_boundaries - shard_boundaries, num_adds))
-            removes = set(random.sample(shard_boundaries, num_removes))
-            print "Splitting at", list(adds), "and merging at", list(removes)
-            http.change_table_shards(ns, adds = list(adds), removes = list(removes))
-            shard_boundaries = (shard_boundaries - removes) | adds
-            http.wait_until_blueprint_satisfied(ns, timeout = 3600)
+        
+        currentShards = numNodes
+        for currentShards in opts["sequence"]:
+            print("Sharding table to %d shards (%.2fs)" % (currentShards, time.time() - startTime))
+            
+            r.db(dbName).reconfigure(shards=currentShards, replicas=numNodes).run(conn)
+            r.db(dbName).wait().run(conn)
             cluster.check()
-            http.check_no_issues()
+            assert [] == list(r.db('rethinkdb').table('current_issues').run(conn))
+        
+        print("Running workload after (%.2fs)" % (time.time() - startTime))
         workload.run_after()
-
-    cluster.check_and_stop()
+    
+    print("Cleaning up (%.2fs)" % (time.time() - startTime))
+print("Done. (%.2fs)" % (time.time() - startTime))

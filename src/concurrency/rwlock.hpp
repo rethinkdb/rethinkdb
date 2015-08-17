@@ -41,6 +41,8 @@ public:
     // before the lock has been acquired.
     ~rwlock_in_line_t();
 
+    MOVABLE_BUT_NOT_COPYABLE(rwlock_in_line_t);
+
     const signal_t *read_signal() const { return &read_cond_; }
     const signal_t *write_signal() const {
         guarantee(access_ == access_t::write);
@@ -49,14 +51,16 @@ public:
 
     void reset();
 
+    void guarantee_is_for_lock(const rwlock_t *lock) const {
+        guarantee(lock_ == lock);
+    }
+
 private:
     friend class rwlock_t;
     rwlock_t *lock_;
     access_t access_;
     cond_t read_cond_;
     cond_t write_cond_;
-
-    DISABLE_COPYING(rwlock_in_line_t);
 };
 
 class rwlock_acq_t : private rwlock_in_line_t {
@@ -64,11 +68,19 @@ public:
     // Acquires the lock.  The constructor blocks the coroutine, it doesn't return
     // until the lock is acquired.
     rwlock_acq_t(rwlock_t *lock, access_t access);
+    rwlock_acq_t(rwlock_t *lock, access_t access, signal_t *interruptor);
     ~rwlock_acq_t();
+
+    void reset() {
+        rwlock_in_line_t::reset();
+    }
+
+    void guarantee_is_holding(rwlock_t *lock) {
+        rwlock_in_line_t::guarantee_is_for_lock(lock);
+    }
 
 private:
     DISABLE_COPYING(rwlock_acq_t);
 };
-
 
 #endif  // CONCURRENCY_RWLOCK_HPP_

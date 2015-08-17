@@ -45,10 +45,12 @@ enum class dummy_var_t {
     FUNC_PLUCK,
     FUNC_EQCOMPARISON,
     FUNC_PAGE,
+    DISTINCT_ROW,
+    REPLACE_HELPER_ROW
 };
 
-// Don't use this!  r::var and map_wire_func_t::make_safely use this.  Returns the
-// sym_t corresponding to a dummy_var_t.
+// Don't use this!  The minidriver uses this.  Returns the sym_t corresponding to a
+// dummy_var_t.
 sym_t dummy_var_to_sym(dummy_var_t dummy_var);
 
 } // namespace pb

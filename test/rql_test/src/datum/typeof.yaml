@@ -2,17 +2,13 @@ desc: These tests test the type of command
 tests:
 
     # Method form
-    - py: r.expr(None).type_of()
-      js: r(null).typeOf()
-      rb: r(nil).type_of()
+    - cd: r.expr(null).type_of()
       ot: "'NULL'"
 
     # Prefix form
-    - py: r.type_of(None)
-      js: r.typeOf(null)
-      rb: r.type_of(nil)
+    - cd: r.type_of(null)
       ot: "'NULL'"
 
     # Error cases
     - js: r(null).typeOf(1)
-      ot: err('RqlCompileError', 'Expected 1 argument(s) but found 2.', [0])
+      ot: err('RqlCompileError', 'Expected 1 argument but found 2.', [0])

@@ -343,7 +343,9 @@ bool fsck(value_sizer_t *sizer, const btree_key_t *left_exclusive_or_null, const
 
     int i = 0;
     bool seen_tstamp_cutpoint = false;
-    repli_timestamp_t earliest_so_far = repli_timestamp_t::invalid;
+    static_assert(std::is_same<uint64_t, decltype(repli_timestamp_t::longtime)>::value,
+                  "This code assumes repli_timestamp_t is a uint64_t.");
+    uint64_t earliest_so_far = UINT64_MAX;
     while (!iter.done(sizer)) {
         int offset = iter.offset;
 
@@ -362,11 +364,11 @@ bool fsck(value_sizer_t *sizer, const btree_key_t *left_exclusive_or_null, const
 
         if (offset < node->tstamp_cutpoint) {
             repli_timestamp_t tstamp = get_timestamp(node, offset);
-            if (tstamp > earliest_so_far) {
-                *msg_out = strprintf("timestamps out of order (%" PRIu64 " after %" PRIu64 ")\n", tstamp.longtime, earliest_so_far.longtime);
+            if (tstamp.longtime > earliest_so_far) {
+                *msg_out = strprintf("timestamps out of order (%" PRIu64 " after %" PRIu64 ")\n", tstamp.longtime, earliest_so_far);
                 return false;
             }
-            earliest_so_far = tstamp;
+            earliest_so_far = tstamp.longtime;
         }
 
         const entry_t *ent = get_entry(node, offset);
@@ -385,8 +387,13 @@ bool fsck(value_sizer_t *sizer, const btree_key_t *left_exclusive_or_null, const
             }
 
             observed_live_size += sizeof(uint16_t) + entry_size(sizer, ent);
-            if (failed(i < node->num_pairs, "missing entry offsets")
-                || failed(offset == offs[i], "missing live entries or entry offsets")) {
+            if (failed(i < node->num_pairs, "missing entry offsets")) {
+                return false;
+            }
+            if (offset != offs[i]) {
+                *msg_out = strprintf("missing live entries or entry offsets (next "
+                    "offset in offsets table is %d, but in node is %d)",
+                    offs[i], offset);
                 return false;
             }
 
@@ -415,7 +422,7 @@ bool fsck(value_sizer_t *sizer, const btree_key_t *left_exclusive_or_null, const
     const btree_key_t *last = left_exclusive_or_null;
     for (int k = 0; k < node->num_pairs; ++k) {
         const btree_key_t *key = entry_key(get_entry(node, node->pair_offsets[k]));
-        if (failed(last == NULL || sized_strcmp(last->contents, last->size, key->contents, key->size) < 0,
+        if (failed(last == NULL || btree_key_cmp(last, key) < 0,
                    "keys out of order")) {
             return false;
         }
@@ -423,8 +430,7 @@ bool fsck(value_sizer_t *sizer, const btree_key_t *left_exclusive_or_null, const
     }
 
     if (failed(last == NULL || right_inclusive_or_null == NULL
-               || sized_strcmp(last->contents, last->size,
-                               right_inclusive_or_null->contents, right_inclusive_or_null->size) <= 0,
+               || btree_key_cmp(last, right_inclusive_or_null) <= 0,
                "keys out of order (with right_inclusive key)")) {
         return false;
     }
@@ -1165,7 +1171,7 @@ bool find_key(const leaf_node_t *node, const btree_key_t *key, int *index_out) {
 
         const btree_key_t *ek = entry_key(get_entry(node, node->pair_offsets[test_point]));
 
-        int res = sized_strcmp(key->contents, key->size, ek->contents, ek->size);
+        int res = btree_key_cmp(key, ek);
 
         if (res < 0) {
             // key < *test_point.
@@ -1223,8 +1229,15 @@ entry, `prepare_space_for_new_entry()` will return false. It will still remove
 any preexisting entry that was in the leaf node. If the entry would go before
 `tstamp_cutpoint` or `allow_after_tstamp_cutpoint` is true, then the return
 value will be true. */
-MUST_USE bool prepare_space_for_new_entry(value_sizer_t *sizer, leaf_node_t *node,
-        const btree_key_t *key, int new_entry_size, repli_timestamp_t tstamp,
+MUST_USE bool prepare_space_for_new_entry(
+        value_sizer_t *sizer,
+        leaf_node_t *node,
+        const btree_key_t *key,
+        int new_entry_size,
+        repli_timestamp_t tstamp,
+        /* Used to derive the highest possible timestamp that non-timestamped
+        entries might have. Usually the recency of the buf_t that node is in. */
+        repli_timestamp_t maximum_existing_tstamp,
         bool allow_after_tstamp_cutpoint,
         char **space_out) {
 
@@ -1313,10 +1326,12 @@ MUST_USE bool prepare_space_for_new_entry(value_sizer_t *sizer, leaf_node_t *nod
         if (end_of_where_new_entry_should_go == node->tstamp_cutpoint &&
                 node->tstamp_cutpoint != sizer->block_size().value()) {
             /* We are after all of the timestamped entries, but before at least
-            one non-timestamped entry. Since we don't know what the timestamp
-            would have been on the non-timestamped entry, we mustn't put a
-            timestamp on ourself. */
-            new_entry_should_have_timestamp = false;
+            one non-timestamped entry. We know that the non-timestamped entries
+            have a timestamp of at most maximum_existing_tstamp. If our own timestamp
+            is higher than that, we can put a timestamp on ourself. Otherwise, we
+            don't know what the timestamp would have been on the non-timestamped entry,
+            so we mustn't put a timestamp on ourself. */
+            new_entry_should_have_timestamp = tstamp > maximum_existing_tstamp;
         } else {
             new_entry_should_have_timestamp = true;
         }
@@ -1412,14 +1427,21 @@ MUST_USE bool prepare_space_for_new_entry(value_sizer_t *sizer, leaf_node_t *nod
 
 // Inserts a key/value pair into the node.  Hopefully you've already
 // cleaned up the old value, if there is one.
-void insert(value_sizer_t *sizer, leaf_node_t *node, const btree_key_t *key, const void *value, repli_timestamp_t tstamp, UNUSED key_modification_proof_t km_proof) {
+void insert(
+        value_sizer_t *sizer,
+        leaf_node_t *node,
+        const btree_key_t *key,
+        const void *value,
+        repli_timestamp_t tstamp,
+        repli_timestamp_t maximum_existing_tstamp,
+        UNUSED key_modification_proof_t km_proof) {
     rassert(!is_full(sizer, node, key, value));
 
     /* Make space for the entry itself */
 
     char *location_to_write_data;
     DEBUG_VAR bool should_write = prepare_space_for_new_entry(sizer, node,
-        key, key->full_size() + sizer->size(value), tstamp,
+        key, key->full_size() + sizer->size(value), tstamp, maximum_existing_tstamp,
         true,
         &location_to_write_data);
     rassert(should_write);
@@ -1435,15 +1457,13 @@ void insert(value_sizer_t *sizer, leaf_node_t *node, const btree_key_t *key, con
     validate(sizer, node);
 }
 
-// This asserts that the key is in the node.  TODO: This means we're
-// already sure the key is in the node, which means we're doing an
-// unnecessary binary search.
-void remove(value_sizer_t *sizer, leaf_node_t *node, const btree_key_t *key, repli_timestamp_t tstamp, UNUSED key_modification_proof_t km_proof) {
-    /* Confirm that the key is already in the node */
-    DEBUG_VAR int index;
-    rassert(find_key(node, key, &index), "remove() called on key that's not in node");
-    rassert(entry_is_live(get_entry(node, node->pair_offsets[index])), "remove() called on key with dead entry");
-
+void remove(
+        value_sizer_t *sizer,
+        leaf_node_t *node,
+        const btree_key_t *key,
+        repli_timestamp_t tstamp,
+        repli_timestamp_t maximum_existing_tstamp,
+        UNUSED key_modification_proof_t km_proof) {
     /* If the deletion entry would fall after `tstamp_cutpoint`, then it
     shouldn't be written at all. If that's the case, then
     `prepare_space_for_new_entry()` will return false because we pass false for
@@ -1454,6 +1474,7 @@ void remove(value_sizer_t *sizer, leaf_node_t *node, const btree_key_t *key, rep
             key,
             1 + key->full_size(),   /* 1 for `DELETE_ENTRY_CODE` */
             tstamp,
+            maximum_existing_tstamp,
             false,
             &location_to_write_data)) {
         *location_to_write_data = static_cast<char>(DELETE_ENTRY_CODE);
@@ -1468,8 +1489,6 @@ void remove(value_sizer_t *sizer, leaf_node_t *node, const btree_key_t *key, rep
 void erase_presence(value_sizer_t *sizer, leaf_node_t *node, const btree_key_t *key, UNUSED key_modification_proof_t km_proof) {
     int index;
     bool found = find_key(node, key, &index);
-
-    rassert(found);
     if (found) {
         int offset = node->pair_offsets[index];
         entry_t *ent = get_entry(node, offset);
@@ -1485,80 +1504,134 @@ void erase_presence(value_sizer_t *sizer, leaf_node_t *node, const btree_key_t *
         node->num_pairs -= 1;
     }
 
-
     validate(sizer, node);
 }
 
+repli_timestamp_t min_deletion_timestamp(
+        value_sizer_t *sizer,
+        const leaf_node_t *node,
+        repli_timestamp_t maximum_existing_timestamp) {
+    repli_timestamp_t earliest_so_far = maximum_existing_timestamp;
+    entry_iter_t iter = entry_iter_t::make(node);
+    while (!iter.done(sizer) && iter.offset < node->tstamp_cutpoint) {
+        repli_timestamp_t tstamp = get_timestamp(node, iter.offset);
+        rassert(earliest_so_far >= tstamp,
+            "asserted earliest_so_far (%" PRIu64 ") >= tstamp (%" PRIu64 ")",
+            earliest_so_far.longtime, tstamp.longtime);
+        earliest_so_far = tstamp;
+        iter.step(sizer, node);
+    }
+    /* It's possible for us to forget a deletion with timestamp equal to the olddest
+    timestamped entry, so the min deletion timestamp is one time unit newer than the
+    oldest timestamped entry. */
+    return earliest_so_far.next();
+}
 
-void dump_entries_since_time(value_sizer_t *sizer, const leaf_node_t *node, repli_timestamp_t minimum_tstamp, repli_timestamp_t maximum_possible_timestamp,  entry_reception_callback_t *cb) {
-    int stop_offset = 0;
+void erase_deletions(
+        value_sizer_t *sizer, leaf_node_t *node, repli_timestamp_t min_del_timestamp) {
+    int old_tstamp_cutpoint = node->tstamp_cutpoint;
+    entry_iter_t iter = entry_iter_t::make(node);
 
-    // First, determine stop_offset: offset of the first [tstamp][entry] which has tstamp < minimum_tstamp
-    {
-        repli_timestamp_t earliest_so_far = repli_timestamp_t::invalid;
+    /* Advance `iter` to the first entry with a timestamp that's lower than
+    `min_del_timestamp - 1`. */
+    while (true) {
+        if (iter.done(sizer) || iter.offset >= old_tstamp_cutpoint) {
+            return;
+        }
+        if (get_timestamp(node, iter.offset).next() < min_del_timestamp) {
+            break;
+        }
+        iter.step(sizer, node);
+    }
 
-        entry_iter_t iter = entry_iter_t::make(node);
-        while (!iter.done(sizer) && iter.offset < node->tstamp_cutpoint) {
-            repli_timestamp_t tstamp = get_timestamp(node, iter.offset);
-            rassert(earliest_so_far >= tstamp, "asserted earliest_so_far (%" PRIu64 ") >= tstamp (%" PRIu64 ")", earliest_so_far.longtime, tstamp.longtime);
-            earliest_so_far = tstamp;
+    /* We'll remove timestamps from all of the entries between `old_tstamp_cutpoint` and
+    `new_tstamp_cutpoint`. But we won't update `leaf->tstamp_cutpoint` until the end of
+    the function because we want `iter` to continue iterating according to the old value.
+    */
+    int new_tstamp_cutpoint = iter.offset;
 
-            if (tstamp < minimum_tstamp) {
-                stop_offset = iter.offset;
-                break;
-            }
-
-            iter.step(sizer, node);
+    /* Step until we reach `old_tstamp_cutpoint`, erasing timestamps and deletions as we
+    go. Make a note of each deletion's offset so we can remove them from the
+    `pair_offsets` array later. */
+    std::set<int> deletion_offsets;
+    while (!iter.done(sizer) && iter.offset != old_tstamp_cutpoint) {
+        int off = iter.offset;
+        guarantee(off >= new_tstamp_cutpoint && off < old_tstamp_cutpoint);
+        const entry_t *ent = get_entry(node, off);
+        /* Move `iter` before we modify `ent`, to avoid confusion */
+        iter.step(sizer, node);
+        if (entry_is_deletion(ent)) {
+            clean_entry(
+                get_at_offset(node, off),
+                sizeof(repli_timestamp_t) + entry_size(sizer, ent));
+            deletion_offsets.insert(off);
+        } else {
+            /* This is the code path for both skip entries and live entries, because skip
+            entries have timestamps too. */
+            clean_entry(get_at_offset(node, off), sizeof(repli_timestamp_t));
         }
     }
 
-    bool include_deletions = true;
-
-    // If we haven't found a [tstamp][entry] pair such that tstamp < minimum_tstamp, then we are missing some deletion history
-    if (stop_offset == 0) {
-        stop_offset = sizer->block_size().value();
-        cb->lost_deletions();
-        include_deletions = false;
-    }
-
-    // Walk through all the entries starting with the the frontmost and finishing right before the one which has tstamp < minimum_tstamp
-    // (if it exists). If it doesn't exist, we also walk through the non-timestamped entries.
-    {
-        entry_iter_t iter = entry_iter_t::make(node);
-        repli_timestamp_t last_seen_tstamp = maximum_possible_timestamp;
-
-        // Collect key_value pairs so we can send a bunch of them at a time.
-        std::vector<const btree_key_t *> keys;
-        std::vector<const void *> values;
-        std::vector<repli_timestamp_t> tstamps;
-        keys.reserve(node->num_pairs);
-        values.reserve(node->num_pairs);
-        tstamps.reserve(node->num_pairs);
-        while (iter.offset < stop_offset) {
-            repli_timestamp_t tstamp;
-            if (iter.offset < node->tstamp_cutpoint) {
-                tstamp = get_timestamp(node, iter.offset);
-            } else {
-                tstamp = last_seen_tstamp;
+    /* If a pointer in `pair_offsets` was pointing to a timestamp that's been erased on
+    a key-value pair, we need to move it forward by `sizeof(repli_timestamp_t)`. If it
+    was pointing to a deletion entry that's been erased, we need to remove that entry
+    from `pair_offsets`. */
+    int src = 0, dst = 0;
+    int num_deleted = deletion_offsets.size();
+    for (; src < node->num_pairs; ++src) {
+        uint16_t off = node->pair_offsets[src];
+        auto it = deletion_offsets.find(off);
+        if (it == deletion_offsets.end()) {
+            if (off >= new_tstamp_cutpoint && off < old_tstamp_cutpoint) {
+                off += sizeof(repli_timestamp_t);
             }
-            last_seen_tstamp = tstamp;
-
-            const entry_t *ent = get_entry(node, iter.offset);
-
-            if (entry_is_live(ent)) {
-                keys.push_back(entry_key(ent));
-                values.push_back(entry_value(ent));
-                tstamps.push_back(tstamp);
-            } else if (entry_is_deletion(ent) && include_deletions) {
-                cb->deletion(entry_key(ent), tstamp);
-            }
-
-            iter.step(sizer, node);
-        }
-        if (!keys.empty()) {
-            cb->keys_values(keys, values, tstamps);
+            node->pair_offsets[dst++] = off;
+        } else {
+            guarantee(off >= new_tstamp_cutpoint && off < old_tstamp_cutpoint);
+            deletion_offsets.erase(it);
         }
     }
+    guarantee(deletion_offsets.empty());
+    node->num_pairs -= num_deleted;
+
+    /* Finally, update `node->tstamp_cutpoint` */
+    node->tstamp_cutpoint = new_tstamp_cutpoint;
+}
+
+/* Calls `cb` on every entry in the node, whether a real entry or a deletion. The calls
+will be in order from most recent to least recent. For entries with no timestamp, the
+callback will get `min_deletion_timestamp() - 1`. */
+continue_bool_t visit_entries(
+        value_sizer_t *sizer,
+        const leaf_node_t *node,
+        repli_timestamp_t maximum_existing_timestamp,
+        const std::function<continue_bool_t(
+            const btree_key_t *key,
+            repli_timestamp_t timestamp,
+            const void *value   /* null for deletion */
+            )> &cb) {
+    repli_timestamp_t earliest_so_far = maximum_existing_timestamp;
+    for (entry_iter_t iter = entry_iter_t::make(node);
+            !iter.done(sizer); iter.step(sizer, node)) {
+        repli_timestamp_t tstamp;
+        if (iter.offset < node->tstamp_cutpoint) {
+            tstamp = get_timestamp(node, iter.offset);
+        } else {
+            tstamp = earliest_so_far;
+        }
+        earliest_so_far = tstamp;
+
+        const entry_t *ent = get_entry(node, iter.offset);
+
+        if (entry_is_skip(ent)) {
+            continue;
+        }
+
+        if (continue_bool_t::ABORT == cb(entry_key(ent), tstamp, entry_value(ent))) {
+            return continue_bool_t::ABORT;
+        }
+    }
+    return continue_bool_t::CONTINUE;
 }
 
 iterator::iterator()
@@ -1624,10 +1697,10 @@ reverse_iterator &reverse_iterator::operator--() {
 
 bool reverse_iterator::operator==(const reverse_iterator &other) const { return inner_ == other.inner_; }
 bool reverse_iterator::operator!=(const reverse_iterator &other) const { return inner_ != other.inner_; }
-bool reverse_iterator::operator<(const reverse_iterator &other) const { return inner_ >= other.inner_; }
-bool reverse_iterator::operator>(const reverse_iterator &other) const { return inner_ <= other.inner_; }
-bool reverse_iterator::operator<=(const reverse_iterator &other) const { return inner_ > other.inner_; }
-bool reverse_iterator::operator>=(const reverse_iterator &other) const { return inner_ < other.inner_; }
+bool reverse_iterator::operator<(const reverse_iterator &other) const { return inner_ > other.inner_; }
+bool reverse_iterator::operator>(const reverse_iterator &other) const { return inner_ < other.inner_; }
+bool reverse_iterator::operator<=(const reverse_iterator &other) const { return inner_ >= other.inner_; }
+bool reverse_iterator::operator>=(const reverse_iterator &other) const { return inner_ <= other.inner_; }
 
 
 leaf_node_t::iterator begin(const leaf_node_t &leaf_node) {
@@ -1657,15 +1730,17 @@ leaf::iterator inclusive_lower_bound(const btree_key_t *key, const leaf_node_t &
     }
 }
 
-leaf::reverse_iterator inclusive_upper_bound(const btree_key_t *key, const leaf_node_t &leaf_node) {
+leaf::reverse_iterator exclusive_upper_bound(const btree_key_t *key, const leaf_node_t &leaf_node) {
     int index;
     leaf::find_key(&leaf_node, key, &index);
     if (index < leaf_node.num_pairs) {
         const leaf::entry_t *entry = leaf::get_entry(&leaf_node, leaf_node.pair_offsets[index]);
         const btree_key_t *ekey = leaf::entry_key(entry);
         if (entry_is_live(entry) &&
-            sized_strcmp(ekey->contents, ekey->size, key->contents, key->size) == 0) {
-            return leaf_node_t::reverse_iterator(&leaf_node, index);
+            btree_key_cmp(ekey, key) == 0) {
+            // We have to skip this entry to make the iterator exclusive,
+            // hence the ++.
+            return ++leaf_node_t::reverse_iterator(&leaf_node, index);
         }
     }
 

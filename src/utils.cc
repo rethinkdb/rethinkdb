@@ -1,6 +1,7 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "utils.hpp"
 
+#include <math.h>
 #include <ftw.h>
 #include <fcntl.h>
 #include <limits.h>
@@ -19,9 +20,13 @@
 
 #include <google/protobuf/stubs/common.h>
 
+#include "errors.hpp"
+#include <boost/date_time.hpp>
+
 #include "arch/io/disk.hpp"
 #include "arch/runtime/coroutines.hpp"
 #include "arch/runtime/runtime.hpp"
+#include "clustering/administration/main/directory_lock.hpp"
 #include "config/args.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/archive/file_stream.hpp"
@@ -81,6 +86,10 @@ startup_shutdown_t::~startup_shutdown_t() {
 void print_hd(const void *vbuf, size_t offset, size_t ulength) {
     flockfile(stderr);
 
+    if (ulength == 0) {
+        fprintf(stderr, "(data length is zero)\n");
+    }
+
     const char *buf = reinterpret_cast<const char *>(vbuf);
     ssize_t length = ulength;
 
@@ -136,10 +145,16 @@ void print_hd(const void *vbuf, size_t offset, size_t ulength) {
     funlockfile(stderr);
 }
 
-void format_time(struct timespec time, printf_buffer_t *buf) {
+void format_time(struct timespec time, printf_buffer_t *buf, local_or_utc_time_t zone) {
     struct tm t;
-    struct tm *res1 = localtime_r(&time.tv_sec, &t);
-    guarantee_err(res1 == &t, "gmtime_r() failed.");
+    if (zone == local_or_utc_time_t::utc) {
+        boost::posix_time::ptime as_ptime = boost::posix_time::from_time_t(time.tv_sec);
+        t = boost::posix_time::to_tm(as_ptime);
+    } else {
+        struct tm *res1;
+        res1 = localtime_r(&time.tv_sec, &t);
+        guarantee_err(res1 == &t, "localtime_r() failed.");
+    }
     buf->appendf(
         "%04d-%02d-%02dT%02d:%02d:%02d.%09ld",
         t.tm_year+1900,
@@ -151,13 +166,14 @@ void format_time(struct timespec time, printf_buffer_t *buf) {
         time.tv_nsec);
 }
 
-std::string format_time(struct timespec time) {
+std::string format_time(struct timespec time, local_or_utc_time_t zone) {
     printf_buffer_t buf;
-    format_time(time, &buf);
+    format_time(time, &buf, zone);
     return std::string(buf.c_str());
 }
 
-struct timespec parse_time(const std::string &str) THROWS_ONLY(std::runtime_error) {
+bool parse_time(const std::string &str, local_or_utc_time_t zone,
+                struct timespec *out, std::string *errmsg_out) {
     struct tm t;
     struct timespec time;
     int res1 = sscanf(str.c_str(),
@@ -170,16 +186,29 @@ struct timespec parse_time(const std::string &str) THROWS_ONLY(std::runtime_erro
         &t.tm_sec,
         &time.tv_nsec);
     if (res1 != 7) {
-        throw std::runtime_error("badly formatted time");
+        *errmsg_out = "badly formatted time";
+        return false;
     }
     t.tm_year -= 1900;
     t.tm_mon -= 1;
     t.tm_isdst = -1;
-    time.tv_sec = mktime(&t);
-    if (time.tv_sec == -1) {
-        throw std::runtime_error("invalid time");
+    if (zone == local_or_utc_time_t::utc) {
+        boost::posix_time::ptime as_ptime = boost::posix_time::ptime_from_tm(t);
+        boost::posix_time::ptime epoch(boost::gregorian::date(1970, 1, 1));
+        /* Apparently `(x-y).total_seconds()` is returning the numeric difference in the
+        POSIX timestamps, which approximates the difference in solar time. This is weird
+        (I'd expect it to return the difference in atomic time) but it turns out to give
+        the correct behavior in this case. */
+        time.tv_sec = (as_ptime - epoch).total_seconds();
+    } else {
+        time.tv_sec = mktime(&t);
+        if (time.tv_sec == -1) {
+            *errmsg_out = "invalid time";
+            return false;
+        }
     }
-    return time;
+    *out = time;
+    return true;
 }
 
 with_priority_t::with_priority_t(int priority) {
@@ -223,6 +252,12 @@ void *rrealloc(void *ptr, size_t size) {
     return res;
 }
 
+bool risfinite(double arg) {
+    // isfinite is a macro on OS X in math.h, so we can't just say std::isfinite.
+    using namespace std; // NOLINT(build/namespaces) due to platform variation
+    return isfinite(arg);
+}
+
 rng_t::rng_t(int seed) {
 #ifndef NDEBUG
     if (seed == -1) {
@@ -245,6 +280,7 @@ int rng_t::randint(int n) {
 }
 
 uint64_t rng_t::randuint64(uint64_t n) {
+    guarantee(n > 0, "non-positive argument for randint's [0,n) interval");
     uint32_t x_low = jrand48(xsubi);  // NOLINT(runtime/int)
     uint32_t x_high = jrand48(xsubi);  // NOLINT(runtime/int)
     uint64_t x = x_high;
@@ -274,6 +310,7 @@ void get_dev_urandom(void *out, int64_t nbytes) {
 }
 
 int randint(int n) {
+    guarantee(n > 0, "non-positive argument for randint's [0,n) interval");
     nrand_xsubi_t buffer;
     if (!TLS_get_rng_initialized()) {
         CT_ASSERT(sizeof(buffer.xsubi) == 6);
@@ -288,6 +325,7 @@ int randint(int n) {
 }
 
 uint64_t randuint64(uint64_t n) {
+    guarantee(n > 0, "non-positive argument for randint's [0,n) interval");
     nrand_xsubi_t buffer;
     if (!TLS_get_rng_initialized()) {
         CT_ASSERT(sizeof(buffer.xsubi) == 6);
@@ -306,6 +344,7 @@ uint64_t randuint64(uint64_t n) {
 }
 
 size_t randsize(size_t n) {
+    guarantee(n > 0, "non-positive argument for randint's [0,n) interval");
     size_t ret = 0;
     size_t i = SIZE_MAX;
     while (i != 0) {
@@ -320,21 +359,6 @@ double randdouble() {
     uint64_t x = randuint64(1LL << 53);
     double res = x;
     return res / (1LL << 53);
-}
-
-std::string rand_string(int len) {
-    std::string res;
-
-    int seed = randint(RAND_MAX);
-
-    while (len --> 0) {
-        res.push_back((seed % 26) + 'A');
-        seed ^= seed >> 17;
-        seed += seed << 11;
-        seed ^= seed >> 29;
-    }
-
-    return res;
 }
 
 bool begins_with_minus(const char *string) {
@@ -502,19 +526,22 @@ std::string errno_string(int errsv) {
     return std::string(errstr);
 }
 
-int remove_directory_helper(const char *path, UNUSED const struct stat *ptr, UNUSED const int flag, UNUSED FTW *ftw) {
+int remove_directory_helper(const char *path, UNUSED const struct stat *ptr,
+                            UNUSED const int flag, UNUSED FTW *ftw) {
+    logNTC("In recursion: removing file %s\n", path);
     int res = ::remove(path);
-    if (res != 0) {
-        throw remove_directory_exc_t(path, get_errno());
-    }
+    guarantee_err(res == 0, "Fatal error: failed to delete '%s'.", path);
     return 0;
 }
 
-void remove_directory_recursive(const char *path) THROWS_ONLY(remove_directory_exc_t) {
-    // max_openfd is ignored on OS X (which claims the parameter specifies the maximum traversal
-    // depth) and used by Linux to limit the number of file descriptors that are open (by opening
-    // and closing directories extra times if it needs to go deeper than that).
+void remove_directory_recursive(const char *path) {
+    // max_openfd is ignored on OS X (which claims the parameter
+    // specifies the maximum traversal depth) and used by Linux to
+    // limit the number of file descriptors that are open (by opening
+    // and closing directories extra times if it needs to go deeper
+    // than that).
     const int max_openfd = 128;
+    logNTC("Recursively removing directory %s\n", path);
     int res = nftw(path, remove_directory_helper, max_openfd, FTW_PHYS | FTW_MOUNT | FTW_DEPTH);
     guarantee_err(res == 0 || get_errno() == ENOENT, "Trouble while traversing and destroying temporary directory %s.", path);
 }
@@ -537,32 +564,32 @@ std::string temporary_directory_path(const base_path_t& base_path) {
     return base_path.path() + "/tmp";
 }
 
-void recreate_temporary_directory(const base_path_t& base_path) {
-    const std::string path = temporary_directory_path(base_path);
+bool is_rw_directory(const base_path_t& path) {
+    if (access(path.path().c_str(), R_OK | F_OK | W_OK) != 0)
+        return false;
+    struct stat details;
+    if (stat(path.path().c_str(), &details) != 0)
+        return false;
+    return (details.st_mode & S_IFDIR) > 0;
+}
 
-    remove_directory_recursive(path.c_str());
+void recreate_temporary_directory(const base_path_t& base_path) {
+    const base_path_t path(temporary_directory_path(base_path));
+
+    if (is_rw_directory(path) && check_dir_emptiness(path))
+        return;
+    remove_directory_recursive(path.path().c_str());
 
     int res;
     do {
-        res = mkdir(path.c_str(), 0755);
+        res = mkdir(path.path().c_str(), 0755);
     } while (res == -1 && get_errno() == EINTR);
-    guarantee_err(res == 0, "mkdir of temporary directory %s failed", path.c_str());
+    guarantee_err(res == 0, "mkdir of temporary directory %s failed",
+                  path.path().c_str());
 
     // Call fsync() on the parent directory to guarantee that the newly
     // created directory's directory entry is persisted to disk.
-    warn_fsync_parent_directory(path.c_str());
-}
-
-bool ptr_in_byte_range(const void *p, const void *range_start, size_t size_in_bytes) {
-    const uint8_t *p8 = static_cast<const uint8_t *>(p);
-    const uint8_t *range8 = static_cast<const uint8_t *>(range_start);
-    return range8 <= p8 && p8 < range8 + size_in_bytes;
-}
-
-bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range_start, size_t size_in_bytes) {
-    const uint8_t *p8 = static_cast<const uint8_t *>(p);
-    return ptr_in_byte_range(p, range_start, size_in_bytes) &&
-        (n_bytes == 0 || ptr_in_byte_range(p8 + n_bytes - 1, range_start, size_in_bytes));
+    warn_fsync_parent_directory(path.path().c_str());
 }
 
 // GCC and CLANG are smart enough to optimize out strlen(""), so this works.
@@ -573,4 +600,3 @@ bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range
 // * RETHINKDB_VERSION=1.2
 // (the correct case is something like RETHINKDB_VERSION="1.2")
 UNUSED static const char _assert_RETHINKDB_VERSION_nonempty = 1/(!!strlen(RETHINKDB_VERSION));
-

@@ -1,16 +1,13 @@
 set -ex
 
 # install applications and libraries
-add-apt-repository -y ppa:rethinkdb/ppa
-add-apt-repository -y ppa:chris-lea/node.js
+export DEBIAN_FRONTEND=noninteractive
+source /etc/lsb-release && echo "deb http://download.rethinkdb.com/apt $DISTRIB_CODENAME main" | sudo tee /etc/apt/sources.list.d/rethinkdb.list
+wget -O- http://download.rethinkdb.com/apt/pubkey.gpg | sudo apt-key add -
 aptitude -y update
 aptitude -y upgrade
 aptitude install -y rethinkdb nginx-light apache2-utils python-twisted \
-    rubygems python-pip npm nodejs ruby1.9.1 rubygems1.9.1 python-dev ruby1.9.1-dev \
-    build-essential
-update-alternatives --set ruby /usr/bin/ruby1.9.1
-update-alternatives --set gem /usr/bin/gem1.9.1
-# aptitude -y safe-upgrade
+    python-pip npm nodejs ruby python-dev ruby-dev build-essential
 npm install -g rethinkdb
 pip install rethinkdb
 gem install rethinkdb

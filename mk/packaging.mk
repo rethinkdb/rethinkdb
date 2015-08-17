@@ -12,23 +12,12 @@ DEBIAN_PKG_DIR := $(PACKAGING_DIR)/debian
 SUPPRESSED_LINTIAN_TAGS := new-package-should-close-itp-bug
 DEB_CONTROL_ROOT := $(DEB_PACKAGE_DIR)/DEBIAN
 
-DIST_FILE_LIST_REL := admin bench demos docs drivers mk packaging scripts src test
+DIST_FILE_LIST_REL := admin demos drivers mk packaging scripts src test
 DIST_FILE_LIST_REL += configure COPYRIGHT Makefile NOTES.md README.md
 
 DIST_FILE_LIST := $(foreach x,$(DIST_FILE_LIST_REL),$/$x)
 
-# Ubuntu quantal and later require nodejs-legacy.
-ifeq ($(shell echo $(UBUNTU_RELEASE) | grep '^[q-zQ-Z]'),)
-  NODEJS_NEW := 0
-else
-  NODEJS_NEW := 1
-endif
-
-ifneq (,$(UBUNTU_RELEASE))
-  RETHINKDB_VERSION_DEB := $(RETHINKDB_VERSION)-$(PACKAGE_BUILD_NUMBER)ubuntu1~$(UBUNTU_RELEASE)
-else
-  RETHINKDB_VERSION_DEB := $(RETHINKDB_VERSION)-$(PACKAGE_BUILD_NUMBER)
-endif
+RETHINKDB_VERSION_DEB := $(subst -,+,$(RETHINKDB_VERSION))~$(PACKAGE_BUILD_NUMBER)$(UBUNTU_RELEASE)$(DEB_RELEASE)
 
 .PHONY: prepare_deb_package_dirs
 prepare_deb_package_dirs:
@@ -39,7 +28,7 @@ prepare_deb_package_dirs:
 DIST_SUPPORT_PACKAGES := re2 gtest handlebars v8
 DIST_CUSTOM_MK_LINES :=
 ifeq ($(BUILD_PORTABLE),1)
-  DIST_SUPPORT_PACKAGES += protobuf gperftools libunwind boost
+  DIST_SUPPORT_PACKAGES += protobuf jemalloc boost icu
   DIST_CUSTOM_MK_LINES += 'BUILD_PORTABLE := 1'
 
   ifneq ($(CWD),$(TOP))
@@ -50,16 +39,14 @@ endif
 MISSING_DIST_SUPPORT_PACKAGES := $(filter-out $(FETCH_LIST), $(DIST_SUPPORT_PACKAGES))
 DIST_SUPPORT_PACKAGES := $(filter $(FETCH_LIST), $(DIST_SUPPORT_PACKAGES))
 DSC_CONFIGURE_DEFAULT = --prefix=/usr --sysconfdir=/etc --localstatedir=/var
-DIST_CONFIGURE_DEFAULT = $(foreach pkg, $(DIST_SUPPORT_PACKAGES), --fetch $(pkg))
+DIST_CONFIGURE_DEFAULT_FETCH = $(foreach pkg, $(DIST_SUPPORT_PACKAGES), --fetch $(pkg))
 DIST_SUPPORT = $(foreach pkg, $(DIST_SUPPORT_PACKAGES), $(SUPPORT_SRC_DIR)/$(pkg)_$($(pkg)_VERSION))
 
-DEB_BUILD_DEPENDS := g++, libboost-dev, libssl-dev, curl, m4, debhelper
-DEB_BUILD_DEPENDS += , fakeroot, python, libncurses5-dev, libcurl4-gnutls-dev
-ifneq ($(shell echo $(UBUNTU_RELEASE) | grep '^[q-zQ-Z]'),)
-  DEB_BUILD_DEPENDS += , nodejs-legacy
-endif
+DEB_BUILD_DEPENDS := g++, libboost-dev, libssl-dev, curl, m4, debhelper, libicu-dev
+DEB_BUILD_DEPENDS += , fakeroot, python, libncurses5-dev, libcurl4-openssl-dev, libssl-dev
+
 ifneq (1,$(BUILD_PORTABLE))
-  DEB_BUILD_DEPENDS += , protobuf-compiler, libprotobuf-dev, npm, libgoogle-perftools-dev
+  DEB_BUILD_DEPENDS += , protobuf-compiler, libprotobuf-dev, libjemalloc-dev
 endif
 
 ifeq ($(BUILD_PORTABLE),1)
@@ -113,32 +100,31 @@ build-deb: deb-src-dir
 	cd $(DSC_PACKAGE_DIR) && dpkg-buildpackage -rfakeroot $(DEBUILD_SIGN_OPTIONS)
 
 .PHONY: install-osx
-install-osx: install-binaries install-web
+install-osx: install-binaries
 
 ifneq (Darwin,$(OS))
-  PRODUCT_BUILD = $(error MacOS package can only be built on that OS)
-else ifneq ("","$(findstring $(SIGNATURE_NAME),$(shell /usr/bin/security find-identity -p macappstore -v | /usr/bin/awk '/[:blank:]+[:digit:]+[:graph:][:blank:]/'))")
-  PRODUCT_BUILD = /usr/bin/productbuild --distribution $(OSX_PACKAGING_DIR)/Distribution.xml --package-path $(OSX_PACKAGE_DIR)/install/ $(OSX_PACKAGE_DIR)/dmg/rethinkdb-$(RETHINKDB_VERSION).pkg --sign "$(SIGNATURE_NAME)"
+  OSX_DMG_BUILD = $(error MacOS package can only be built on that OS)
+else ifneq ("","$(findstring $(OSX_SIGNATURE_NAME),$(shell /usr/bin/security find-identity -p macappstore -v | /usr/bin/awk '/[:blank:]+[:digit:]+[:graph:][:blank:]/'))")
+  OSX_DMG_BUILD = $(TOP)/packaging/osx/create_dmg.py --server-root "$(OSX_PACKAGE_DIR)/pkg" --ouptut-location "$(OSX_PACKAGE_DIR)/rethinkdb.dmg" --signing-name "$(OSX_SIGNATURE_NAME)"
 else ifeq ($(REQUIRE_SIGNED),1)
-  PRODUCT_BUILD = $(error Certificate not found: $(SIGNITURE_NAME))
+  OSX_DMG_BUILD = $(error Certificate not found: $(OSX_SIGNATURE_NAME))
 else
-  PRODUCT_BUILD = /usr/bin/productbuild --distribution $(OSX_PACKAGING_DIR)/Distribution.xml --package-path $(OSX_PACKAGE_DIR)/install/ $(OSX_PACKAGE_DIR)/dmg/rethinkdb-$(RETHINKDB_VERSION).pkg
+  OSX_DMG_BUILD = $(TOP)/packaging/osx/create_dmg.py --server-root "$(OSX_PACKAGE_DIR)/pkg" --ouptut-location "$(OSX_PACKAGE_DIR)/rethinkdb.dmg"
 endif
 
 .PHONY: build-osx
 build-osx: DESTDIR = $(OSX_PACKAGE_DIR)/pkg
 build-osx: SPLIT_SYMBOLS = 1
 build-osx: install-osx
-	mkdir -p $(OSX_PACKAGE_DIR)/install
-	pkgbuild --root $(OSX_PACKAGE_DIR)/pkg --identifier rethinkdb $(OSX_PACKAGE_DIR)/install/rethinkdb.pkg
-	mkdir $(OSX_PACKAGE_DIR)/dmg
-	$(PRODUCT_BUILD)
-# TODO: the PREFIX should not be hardcoded in the uninstall script 
-	cp $(OSX_PACKAGING_DIR)/uninstall-rethinkdb.sh $(OSX_PACKAGE_DIR)/dmg/uninstall-rethinkdb.sh
-	chmod +x $(OSX_PACKAGE_DIR)/dmg/uninstall-rethinkdb.sh
-	cp $(TOP)/NOTES.md $(OSX_PACKAGE_DIR)/dmg/
-	cp $(TOP)/COPYRIGHT $(OSX_PACKAGE_DIR)/dmg/
-	hdiutil create -volname RethinkDB-$(RETHINKDB_VERSION) -srcfolder $(OSX_PACKAGE_DIR)/dmg -ov $(OSX_PACKAGE_DIR)/rethinkdb.dmg
+	set -e; /usr/bin/otool -L $(OSX_PACKAGE_DIR)/pkg/$(FULL_SERVER_EXEC_NAME) | \
+		awk '/^\t/ { sub(/ \(.+\)/, ""); print }' | while read LINE; do \
+			case "$$LINE" in $(BUILD_DIR_ABS)/*) \
+				echo '***' rethinkdb binary links to non-system dylib: $$LINE; \
+				exit 1;; \
+			esac \
+		done
+	$P CREATE $(OSX_PACKAGE_DIR)/rethinkdb.dmg
+	$(OSX_DMG_BUILD)
 
 ##### Source distribution
 
@@ -158,6 +144,7 @@ $(DIST_DIR)/custom.mk: FORCE | reset-dist-dir
 $(DIST_DIR)/configure.default: FORCE | reset-dist-dir
 	$P ECHO "> $@"
 	echo $(DIST_CONFIGURE_DEFAULT) >> $(DIST_DIR)/configure.default
+	echo $(DIST_CONFIGURE_DEFAULT_FETCH) >> $(DIST_DIR)/configure.default
 
 $(DIST_DIR)/precompiled/web: web-assets | reset-dist-dir
 	$P CP $(WEB_ASSETS_BUILD_DIR) $@

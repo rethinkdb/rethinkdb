@@ -8,38 +8,35 @@
 # DB_NAME: database to look for test table in (default = "Welcome-db")
 # TABLE_NAME: table to run tests against (default = "Welcome-rdb")
 
-import json
 import os
 import sys
 import unittest
 import sys
-import traceback
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'drivers', 'python2')))
-
-from rethinkdb import *
-import rethinkdb.internal
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
+import utils
+r = utils.import_python_driver()
 
 class PrettyPrintTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.conn = connect(
+        cls.conn = r.connect(
             os.environ.get('HOST', 'localhost'),
-            int(os.environ.get('PORT', 28015+2010))
-            )
+            int(os.environ.get('PORT', 28015 + 2010))
+        )
         cls.table = table(os.environ.get('DB_NAME', 'Welcome-db') + "." + os.environ.get('TABLE_NAME', 'Welcome-rdb'))
 
     def test_pretty_print(self):
-        self.assertEqual(str(expr(44)), "expr(44)")
-        self.assertEqual(str(expr([expr(2)])), "expr([2])")
+        self.assertEqual(str(r.expr(44)), "expr(44)")
+        self.assertEqual(str(r.expr([expr(2)])), "expr([2])")
 
         # Make sure this doesn't crash
-        str(expr([1,2,3]).array_to_stream().map(fn("x", R("$x") * 2)))
+        str(r.expr([1, 2, 3]).array_to_stream().map(fn("x", R("$x") * 2)))
 
     def test_backtraces(self):
         try:
-            self.conn.run(expr({"a": 1})["floop"])
-        except ExecutionError, e:
+            self.conn.run(r.expr({"a": 1})["floop"])
+        except ExecutionError as e:
             self.assertIn("floop", e.location())
         else:
             raise ValueError("that was supposed to fail")

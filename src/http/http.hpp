@@ -1,7 +1,8 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef HTTP_HTTP_HPP_
 #define HTTP_HTTP_HPP_
 
+#include <map>
 #include <string>
 #include <stdexcept>
 #include <vector>
@@ -12,13 +13,13 @@
 #include <boost/shared_array.hpp>
 #include <boost/optional.hpp>
 
-#include "arch/types.hpp"
 #include "arch/address.hpp"
+#include "arch/types.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "containers/scoped.hpp"
 #include "parsing/util.hpp"
 
-enum http_method_t {
+enum class http_method_t {
     HEAD = 0,
     GET,
     POST,
@@ -28,16 +29,6 @@ enum http_method_t {
     OPTIONS,
     CONNECT,
     PATCH
-};
-
-struct query_parameter_t {
-    std::string key;
-    std::string val;
-};
-
-struct header_line_t {
-    std::string key;
-    std::string val;
 };
 
 struct http_req_t {
@@ -69,10 +60,12 @@ struct http_req_t {
         iterator e;
     } resource;
 
+    ip_and_port_t peer;
+
     http_method_t method;
-    std::vector<query_parameter_t> query_params;
+    std::map<std::string, std::string> query_params;
     std::string version;
-    std::vector<header_line_t> header_lines;
+    std::map<std::string, std::string> header_lines;
     std::string body;
     std::string get_sanitized_body() const;
 
@@ -82,28 +75,26 @@ struct http_req_t {
 
     boost::optional<std::string> find_query_param(const std::string&) const;
     boost::optional<std::string> find_header_line(const std::string&) const;
+    void add_header_line(const std::string&, const std::string&);
     bool has_header_line(const std::string&) const;
 };
 
 int content_length(const http_req_t&);
 
-enum http_status_code_t {
-    HTTP_OK = 200,
-    HTTP_NO_CONTENT = 204,
-    HTTP_BAD_REQUEST = 400,
-    HTTP_FORBIDDEN = 403,
-    HTTP_NOT_FOUND = 404,
-    HTTP_METHOD_NOT_ALLOWED = 405,
-    HTTP_GONE = 410,
-    HTTP_UNSUPPORTED_MEDIA_TYPE = 415,
-    HTTP_INTERNAL_SERVER_ERROR = 500
+enum class http_status_code_t {
+    OK = 200,
+    BAD_REQUEST = 400,
+    FORBIDDEN = 403,
+    NOT_FOUND = 404,
+    METHOD_NOT_ALLOWED = 405,
+    INTERNAL_SERVER_ERROR = 500
 };
 
 class http_res_t {
 public:
     std::string version;
-    int code;
-    std::vector<header_line_t> header_lines;
+    http_status_code_t code;
+    std::map<std::string, std::string> header_lines;
     std::string body;
 
     void add_header_line(const std::string&, const std::string&);
@@ -119,7 +110,7 @@ public:
 bool maybe_gzip_response(const http_req_t &req, http_res_t *res);
 
 http_res_t http_error_res(const std::string &content,
-                          http_status_code_t rescode = HTTP_BAD_REQUEST);
+    http_status_code_t rescode = http_status_code_t::BAD_REQUEST);
 
 class tcp_http_msg_parser_t {
 public:
@@ -134,7 +125,7 @@ private:
 
     struct resource_string_parser_t {
         std::string resource;
-        std::vector<query_parameter_t> query_params;
+        std::map<std::string, std::string> query_params;
 
         bool parse(const std::string &src);
     };
@@ -154,13 +145,6 @@ public:
                         signal_t *interruptor) = 0;
 protected:
     virtual ~http_app_t() { }
-};
-
-class scoped_cJSON_t;
-
-class http_json_app_t : public http_app_t {
-public:
-    virtual void get_root(scoped_cJSON_t *json_out) = 0;
 };
 
 /* creating an http server will bind to the specified port and listen for http

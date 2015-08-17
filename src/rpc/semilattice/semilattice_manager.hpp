@@ -33,9 +33,14 @@ Currently it's not thread-safe at all; all accesses to the metadata must be on
 the home thread of the `semilattice_manager_t`. */
 
 template<class metadata_t>
-class semilattice_manager_t : public home_thread_mixin_t, public message_handler_t, private peers_list_callback_t {
+class semilattice_manager_t :
+    public home_thread_mixin_t,
+    public cluster_message_handler_t
+{
 public:
-    semilattice_manager_t(message_service_t *service, const metadata_t &initial_metadata);
+    semilattice_manager_t(connectivity_cluster_t *connectivity_cluster,
+                          connectivity_cluster_t::message_tag_t message_tag,
+                          const metadata_t &initial_metadata);
     ~semilattice_manager_t() THROWS_NOTHING;
 
     boost::shared_ptr<semilattice_readwrite_view_t<metadata_t> > get_root_view();
@@ -62,11 +67,12 @@ private:
     class sync_to_query_writer_t;
     class sync_to_reply_writer_t;
 
-    /* These are called in a blocking fashion by the message service or by the
-    `connectivity_service_t`. */
-    void on_message(peer_id_t, cluster_version_t, read_stream_t *);
-    void on_connect(peer_id_t);
-    void on_disconnect(peer_id_t);
+    /* These are called by the `connectivity_cluster_t`. They shouldn't block. */
+    void on_message(connectivity_cluster_t::connection_t *, auto_drainer_t::lock_t,
+                    read_stream_t *);
+    void on_connection_change(
+        const peer_id_t &peer_id,
+        const connectivity_cluster_t::connection_pair_t *pair);
 
     /* These are spawned in new coroutines. */
     void send_metadata_to_peer(peer_id_t, metadata_t, metadata_version_t, auto_drainer_t::lock_t);
@@ -76,17 +82,17 @@ private:
     void deliver_sync_to_query_on_home_thread(peer_id_t sender, sync_to_query_id_t query_id, metadata_version_t version, auto_drainer_t::lock_t);
     void deliver_sync_to_reply_on_home_thread(peer_id_t sender, sync_to_query_id_t query_id, auto_drainer_t::lock_t);
 
-    static void call_function_with_no_args(const std::function<void()> &);
     void join_metadata_locally(metadata_t);
     void wait_for_version_from_peer(peer_id_t peer, metadata_version_t version, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, sync_failed_exc_t);
 
-    message_service_t *const message_service;
     const boost::shared_ptr<root_view_t> root_view;
 
     metadata_version_t metadata_version;
     metadata_t metadata;
     publisher_controller_t<std::function<void()> > metadata_publisher;
     rwi_lock_assertion_t metadata_mutex;
+
+    std::map<peer_id_t, connectivity_cluster_t::connection_pair_t> last_connections;
 
     std::map<peer_id_t, metadata_version_t> last_versions_seen;
     std::multimap<std::pair<peer_id_t, metadata_version_t>, cond_t *> version_waiters;
@@ -98,9 +104,22 @@ private:
     sync_to_query_id_t next_sync_to_query_id;
     std::map<sync_to_query_id_t, cond_t *> sync_to_waiters;
 
+    /* Any time we want to send a message over the network, we acquire this semaphore
+    first. */
+    new_semaphore_t semaphore;
+
+    /* Destructor order is important here. First we destroy the
+    `connection_change_subscription`, so that we don't spawn any more coroutines. (We
+    rely on the code that constructed us to make sure to delete the
+    `connectivity_cluster_t::run_t` before deleting us, so `on_message()` won't get
+    called.) Then we destroy `drainers`, which blocks until all of the coroutines are
+    done. Only once all the coroutines are done is it safe to desstroy the member
+    variables. */
+
     one_per_thread_t<auto_drainer_t> drainers;
 
-    connectivity_service_t::peers_list_subscription_t event_watcher;
+    watchable_map_t<peer_id_t, connectivity_cluster_t::connection_pair_t>::all_subs_t
+        connection_change_subscription;
 };
 
 #endif /* RPC_SEMILATTICE_SEMILATTICE_MANAGER_HPP_ */

@@ -58,12 +58,13 @@ ifeq ($(BUILD_DIR),)
     BUILD_DIR += coro-prof
   endif
 
-  ifeq (1,$(NO_TCMALLOC))
-    BUILD_DIR += notcmalloc
+  ifneq ($(DEFAULT_ALLOCATOR),$(ALLOCATOR))
+    BUILD_DIR += $(ALLOCATOR)
   endif
 
   BUILD_DIR := $(subst $(space),_,$(BUILD_DIR))
 endif
+BUILD_DIR_ABS = $(realpath $(BUILD_DIR))
 
 GDB_FUNCTIONS_NAME := rethinkdb-gdb.py
 
@@ -81,15 +82,25 @@ PROTO_DIR := $(BUILD_DIR)/proto
 DEP_DIR := $(BUILD_DIR)/dep
 OBJ_DIR := $(BUILD_DIR)/obj
 
-WEB_ASSETS_DIR_NAME := rethinkdb_web_assets
-WEB_ASSETS_BUILD_DIR := $(BUILD_DIR)/$(WEB_ASSETS_DIR_NAME)
+WEB_ASSETS_DIR_NAME := web_assets
+WEB_ASSETS_BUILD_DIR := $(BUILD_ROOT_DIR)/$(WEB_ASSETS_DIR_NAME)
 
 PRECOMPILED_DIR := $(TOP)/precompiled
 
 ##### To rebuild when Makefiles change
 
 ifeq ($(IGNORE_MAKEFILE_CHANGES),1)
-  MAKEFILE_DEPENDENCY := 
+  MAKEFILE_DEPENDENCY :=
 else
   MAKEFILE_DEPENDENCY = $(filter %Makefile,$(MAKEFILE_LIST)) $(filter %.mk,$(MAKEFILE_LIST))
 endif
+
+##### Paths occasionally left undefined by the configure script
+
+NPM ?= false
+NPM_BIN_DEP ?= requires-missing-npm
+COFFEE_BIN_DEP ?= requires-missing-coffee
+BROWSERIFY_BIN_DEP ?= requires-missing-browserify
+
+requires-missing-%:
+	$(error '$*' is required but was not found)

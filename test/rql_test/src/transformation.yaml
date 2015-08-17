@@ -1,17 +1,14 @@
 desc: Tests that manipulation data in tables
+table_variable_name: tbl
 tests:
 
     # Set up some data
-    - cd: r.db('test').table_create('test1')
-      ot: ({'created':1})
-      def: tbl = r.db('test').table('test1')
-
     - cd: r.db('test').table_create('test2')
-      ot: ({'created':1})
+      ot: partial({'tables_created':1})
       def: tbl2 = r.db('test').table('test2')
 
     - cd: r.db('test').table_create('test3')
-      ot: ({'created':1})
+      ot: partial({'tables_created':1})
       def: tbl3 = r.db('test').table('test3')
 
     - py: tbl.insert([{'id':i, 'a':i%4} for i in xrange(100)])
@@ -35,8 +32,8 @@ tests:
     - py: "tbl.index_create('error_prone', lambda x: 1/x['a'])"
       ot: ({'created':1})
 
-    - cd: tbl.index_wait()
-    
+    - cd: tbl.index_wait().pluck('index', 'ready')
+
     - py: tbl2.insert([{'id':i, 'b':i%4} for i in xrange(100)])
       js: |
         tbl2.insert(function(){
@@ -146,33 +143,33 @@ tests:
     - py: tbl.order_by(index='id').order_by(index='id')[0]
       js: tbl.orderBy({index:'id'}).orderBy({index:'id'}).nth(0)
       rb: tbl.order_by(:index => :id).order_by(:index => :id)[0]
-      ot: err('RqlRuntimeError', 'Indexed order_by can only be performed on a TABLE.', [0])
+      ot: err('RqlRuntimeError', 'Cannot perform multiple indexed ORDER_BYs on the same table.', [0])
 
 
     - py: tbl.order_by(index='id').order_by(index='id')[0]
       js: tbl.orderBy({index:'id'}).orderBy({index:'id'}).nth(0)
       rb: tbl.order_by(:index => :id).order_by(:index => :id)[0]
-      ot: err('RqlRuntimeError', 'Indexed order_by can only be performed on a TABLE.', [0])
+      ot: err('RqlRuntimeError', 'Cannot perform multiple indexed ORDER_BYs on the same table.', [0])
 
     - py: tbl.order_by('id').order_by(index='id')[0]
       js: tbl.orderBy('id').orderBy({index:'id'}).nth(0)
       rb: tbl.order_by(:id).order_by(:index => :id)[0]
-      ot: err('RqlRuntimeError', 'Indexed order_by can only be performed on a TABLE.', [0])
+      ot: err('RqlRuntimeError', 'Indexed order_by can only be performed on a TABLE or TABLE_SLICE.', [0])
 
     - py: tbl.order_by('id').order_by(index='a')[0]
       js: tbl.orderBy('id').orderBy({index:'a'}).nth(0)
       rb: tbl.order_by(:id).order_by(:index => :a)[0]
-      ot: err('RqlRuntimeError', 'Indexed order_by can only be performed on a TABLE.', [0])
+      ot: err('RqlRuntimeError', 'Indexed order_by can only be performed on a TABLE or TABLE_SLICE.', [0])
 
-    - py: tbl.between(5, None, index='id').order_by(index='id')[0]
-      js: tbl.between(5, null, {index:'id'}).orderBy({index:'id'}).nth(0)
-      rb: tbl.between(5, nil, :index => :id).order_by('a', :index => :id)[0]
+    - py: tbl.between(5, r.maxval, index='id').order_by(index='id')[0]
+      js: tbl.between(5, r.maxval, {index:'id'}).orderBy({index:'id'}).nth(0)
+      rb: tbl.between(5, r.maxval, :index => :id).order_by('a', :index => :id)[0]
       ot: ({'id':5, 'a':1})
 
-    - py: tbl.order_by(index='id').between(5, None, index='id')[0]
-      js: tbl.orderBy({index:'id'}).between(5, null, {index:'id'}).nth(0)
-      rb: tbl.order_by('a', :index => :id).between(5, nil, :index => :id)[0]
-      ot: err('RqlRuntimeError', 'Expected type TABLE but found SELECTION.', [0])
+    - py: tbl.order_by('a', index='id').between(5, r.maxval, index='id')[0]
+      js: tbl.orderBy('a', {index:'id'}).between(5, r.maxval, {index:'id'}).nth(0)
+      rb: tbl.order_by('a', :index => :id).between(5, r.maxval, :index => :id)[0]
+      ot: err('RqlRuntimeError', 'Expected type TABLE_SLICE but found SELECTION.', [0])
 
     - py: "tbl.order_by(lambda x: x['id'])[0]"
       js: tbl.orderBy(function (x) { return x('id'); }).nth(0)
@@ -228,7 +225,7 @@ tests:
     - py: tbl.order_by('missing').order_by(index='id').nth(0)
       js: tbl.order_by('missing').order_by({index:'id'}).nth(0)
       rb: tbl.order_by('missing').order_by(:index => :id).nth(0)
-      ot: err('RqlRuntimeError', 'Indexed order_by can only be performed on a TABLE.', [0])
+      ot: err('RqlRuntimeError', 'Indexed order_by can only be performed on a TABLE or TABLE_SLICE.', [0])
 
     - cd: tbl.order_by('id', 'missing').nth(0)
       ot: ({'id':0, 'a':0})
@@ -497,22 +494,22 @@ tests:
     - cd: r.expr([1,2,3]).union(tbl2).count()
       ot: 103
 
-    ## Indexes Of
+    ## Offsets Of
     - def: ord = tbl.order_by('id')
-      js: ord.indexesOf(r.row('id').lt(2))
-      py: ord.indexes_of(r.row['id'] < 2)
-      rb: ord.indexes_of{ |row| row['id'] < 2 }
+      js: ord.offsetsOf(r.row('id').lt(2))
+      py: ord.offsets_of(r.row['id'] < 2)
+      rb: ord.offsets_of{ |row| row['id'] < 2 }
       ot: [0,1]
 
-    - cd: r.expr([1,2,3,4]).indexes_of(3)
+    - cd: r.expr([1,2,3,4]).offsets_of(3)
       ot: [2]
 
-    - cd: r.expr([1]).indexes_of(tbl)
+    - cd: r.expr([1]).offsets_of(tbl)
       ot: err('RqlRuntimeError', 'Expected type DATUM but found TABLE.', [])
 
-    - py: "r.expr(1).do(lambda x: r.expr([2,1,0]).indexes_of(x))"
-      js: r.expr(1).do(function(x){ return r.expr([2,1,0]).indexes_of(x); })
-      rb: r(1).do{ |x| r([2,1,0]).indexes_of x }
+    - py: "r.expr(1).do(lambda x: r.expr([2,1,0]).offsets_of(x))"
+      js: r.expr(1).do(function(x){ return r.expr([2,1,0]).offsets_of(x); })
+      rb: r(1).do{ |x| r([2,1,0]).offsets_of x }
       ot: [1]
 
     # Contains
@@ -544,9 +541,7 @@ tests:
       ot: ({'id':0})
 
     # Clean up
-    - cd: r.db('test').table_drop('test1')
-      ot: ({'dropped':1})
     - cd: r.db('test').table_drop('test2')
-      ot: ({'dropped':1})
+      ot: partial({'tables_dropped':1})
     - cd: r.db('test').table_drop('test3')
-      ot: ({'dropped':1})
+      ot: partial({'tables_dropped':1})

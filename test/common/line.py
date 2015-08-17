@@ -2,7 +2,7 @@
 import re
 class line():
     regex = ""
-    fields = [] #tuples of form name, type
+    fields = [] # tuples of form name, type
     def __init__(self, _regex, _fields):
         self.regex = _regex
         self.fields = _fields

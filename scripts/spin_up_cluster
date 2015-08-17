@@ -84,7 +84,7 @@ def usage():
     print os.sys.argv[0], "p N [data_root_directory] [--keep] [--dir <build_dir>] [--cores <thread_count>] [--cache-size <MB>]"
     print """Where:
     p is the port you want the cluster to use
-    N is the number of machines you want in the cluster
+    N is the number of servers you want in the cluster
     data_root_directory is the directory where RethinkDB will store each server data
     --keep preserve the data directories between runs (by default, they are deleted)
     --dir tells which build directory to use (by default, 'debug')
@@ -98,7 +98,7 @@ if len(args) < 2 or len(args) > 3:
 
 # Determine launch options
 port = int(args[0])
-n_machines = int(args[1])
+n_servers = int(args[1])
 parent_dir = ''
 valgrind = ("valgrind" in options.build_dir)
 build_dir = options.build_dir
@@ -112,13 +112,13 @@ valgrind_options = ["valgrind", "--leak-check=full", "--track-origins=yes", "--s
 if len(args) == 3:
     parent_dir = args[2]
 
-if n_machines < 1:
+if n_servers < 1:
     usage()
     exit(1)
 
 kids = []
-machine_names = random.sample(names, n_machines)
-for i, machine_name in enumerate(machine_names):
+server_names = random.sample(names, n_servers)
+for i, server_name in enumerate(server_names):
     directory = os.path.join(parent_dir, "cluster_directory_%d" % i)
     # cleanup the directory
     if not keep_data:
@@ -128,8 +128,8 @@ for i, machine_name in enumerate(machine_names):
 
     rdb_options = [binary]
     rdb_options.extend(["--directory", directory])
-    rdb_options.extend(["--machine-name", machine_name])
-    rdb_options.extend(["--port-offset", str(i+port)])
+    rdb_options.extend(["--server-name", server_name])
+    rdb_options.extend(["--port-offset", str(i + port)])
     rdb_options.extend(["--bind", "all"])
     rdb_options.extend(["--cache-size", str(cache_size)])
 
@@ -148,7 +148,7 @@ for i, machine_name in enumerate(machine_names):
 
 time.sleep(1)
 print "CTRL-C to kill me http requests can be sent to ports:",
-for i in range(n_machines):
+for i in range(n_servers):
     if i != 0:
         print ",",
 

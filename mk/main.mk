@@ -9,9 +9,9 @@
 .PHONY: default-goal
 default-goal: real-default-goal
 
-# Build the webui, drivers and executable
+# Build the drivers and executable
 .PHONY: all
-all: $(TOP)/src/all $(TOP)/admin/all $(TOP)/drivers/all
+all: $(TOP)/src/all $(TOP)/drivers/all
 
 # $/ is a shorthand for $(TOP)/, without the leading ./
 / := $(patsubst ./%,%,$(TOP)/)
@@ -41,7 +41,7 @@ include $(TOP)/mk/install.mk
 include $(TOP)/drivers/build.mk
 
 # Build the web assets
-include $(TOP)/mk/webui.mk
+include $(TOP)/admin/build.mk
 
 # Building the rethinkdb executable
 include $(TOP)/src/build.mk

@@ -5,13 +5,10 @@
 # We assemble path directives.
 LDFLAGS ?=
 CXXFLAGS ?=
-RT_LDFLAGS = $(LDFLAGS) $(RE2_LIBS) $(TERMCAP_LIBS) $(Z_LIBS) $(CURL_LIBS)
-RT_LDFLAGS += $(V8_LIBS) $(PROTOBUF_LIBS) $(PTHREAD_LIBS)
-RT_CXXFLAGS := $(CXXFLAGS) $(RE2_INCLUDE) $(V8_INCLUDE) $(PROTOBUF_INCLUDE) $(BOOST_INCLUDE) $(Z_INCLUDE) $(CURL_INCLUDE)
-
-ifneq ($(NO_TCMALLOC),1)
-  RT_LDFLAGS += $(TCMALLOC_MINIMAL_LIBS)
-endif
+RT_LDFLAGS = $(LDFLAGS) $(RE2_LIBS) $(TERMCAP_LIBS) $(Z_LIBS) $(CURL_LIBS) $(CRYPTO_LIBS)
+RT_LDFLAGS += $(V8_LIBS) $(PROTOBUF_LIBS) $(PTHREAD_LIBS) $(MALLOC_LIBS) $(ICUI18N_LIBS) $(ICUUC_LIBS) $(ICUDATA_LIBS)
+RT_CXXFLAGS := $(CXXFLAGS) $(RE2_INCLUDE) $(V8_INCLUDE) $(PROTOBUF_INCLUDE) $(BOOST_INCLUDE) $(Z_INCLUDE) $(CURL_INCLUDE) $(CRYPTO_INCLUDE) $(ICUI18N_INCLUDE)
+ALL_INCLUDE_DEPS := $(RE2_INCLUDE_DEP) $(V8_INCLUDE_DEP) $(PROTOBUF_INCLUDE_DEP) $(BOOST_INCLUDE_DEP) $(Z_INCLUDE_DEP) $(CURL_INCLUDE_DEP) $(CRYPTO_INCLUDE_DEP) $(ICUI18N_INCLUDE_DEP)
 
 ifeq ($(USE_CCACHE),1)
   RT_CXX := ccache $(CXX)
@@ -94,8 +91,12 @@ RT_CXXFLAGS += -pthread
 RT_CXXFLAGS += "-DPRODUCT_NAME=\"$(PRODUCT_NAME)\""
 RT_CXXFLAGS += "-D__STDC_LIMIT_MACROS"
 RT_CXXFLAGS += "-D__STDC_FORMAT_MACROS"
-RT_CXXFLAGS += -DWEB_ASSETS_DIR_NAME='"$(WEB_ASSETS_DIR_NAME)"'
 RT_CXXFLAGS += -Wall -Wextra
+
+# Enable RapidJSON std::string functions
+RT_CXXFLAGS += "-DRAPIDJSON_HAS_STDSTRING"
+# Set RapidJSON to exact double parsing mode
+RT_CXXFLAGS += "-DRAPIDJSON_PARSE_DEFAULT_FLAGS=kParseFullPrecisionFlag"
 
 # Force 64-bit off_t size on Linux -- also, sizeof(off_t) will be
 # checked by a compile-time assertion.
@@ -138,8 +139,6 @@ endif
 ifeq ($(AGRESSIVE_BUF_UNLOADING),1)
   RT_CXXFLAGS += -DAGRESSIVE_BUF_UNLOADING=1
 endif
-
-RT_CXXFLAGS += -DWEBRESDIR='"$(web_res_dir)"'
 
 # TODO: >() only works on bash >= 4
 LD_OUTPUT_FILTER ?=
@@ -232,8 +231,8 @@ ifeq ($(THREADED_COROUTINES),1)
 endif
 
 ifeq ($(VALGRIND),1)
-  ifneq (1,$(NO_TCMALLOC))
-    $(error cannot build with VALGRIND=1 when NO_TCMALLOC=0)
+  ifneq (system,$(ALLOCATOR))
+    $(error cannot build with VALGRIND=1 when using a custom allocator)
   endif
   RT_CXXFLAGS += -DVALGRIND
 endif
@@ -262,7 +261,7 @@ RT_CXXFLAGS += -I$(PROTO_DIR)
 
 #### Finding what to build
 
-SOURCES := $(shell find $(SOURCE_DIR) -name '*.cc' | grep -v '/\.')
+SOURCES := $(shell find $(SOURCE_DIR) -name '*.cc' -not -name '\.*')
 
 SERVER_EXEC_SOURCES := $(filter-out $(SOURCE_DIR)/unittest/%,$(SOURCES))
 
@@ -274,13 +273,21 @@ QL2_PROTO_OBJS := $(foreach _,$(QL2_PROTO_NAMES),$(OBJ_DIR)/$_.pb.o)
 
 PROTOCFLAGS_CXX := --proto_path=$(SOURCE_DIR)
 
+ifeq (/,$(firstword $(subst /,/ ,$(CWD))))
+  DEPS_POSTFIX := .abs
+else ifeq (.,$(CWD))
+  DEPS_POSTFIX :=
+else
+  DEPS_POSTFIX := .$(subst /,_,$(subst ../,,$(CWD)))
+endif
+
 NAMES := $(patsubst $(SOURCE_DIR)/%.cc,%,$(SOURCES))
-DEPS := $(patsubst %,$(DEP_DIR)/%.d,$(NAMES))
+DEPS := $(patsubst %,$(DEP_DIR)/%$(DEPS_POSTFIX).d,$(NAMES))
 OBJS := $(QL2_PROTO_OBJS) $(patsubst %,$(OBJ_DIR)/%.o,$(NAMES))
 
-SERVER_EXEC_OBJS := $(QL2_PROTO_OBJS) $(patsubst $(SOURCE_DIR)/%.cc,$(OBJ_DIR)/%.o,$(SERVER_EXEC_SOURCES))
+SERVER_EXEC_OBJS := $(OBJ_DIR)/web_assets/web_assets.o $(QL2_PROTO_OBJS) $(patsubst $(SOURCE_DIR)/%.cc,$(OBJ_DIR)/%.o,$(SERVER_EXEC_SOURCES))
 
-SERVER_NOMAIN_OBJS := $(QL2_PROTO_OBJS) $(patsubst $(SOURCE_DIR)/%.cc,$(OBJ_DIR)/%.o,$(filter-out %/main.cc,$(SOURCES)))
+SERVER_NOMAIN_OBJS := $(OBJ_DIR)/web_assets/web_assets.o $(QL2_PROTO_OBJS) $(patsubst $(SOURCE_DIR)/%.cc,$(OBJ_DIR)/%.o,$(filter-out %/main.cc,$(SOURCES)))
 
 SERVER_UNIT_TEST_OBJS := $(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/unittest/main.o
 
@@ -308,8 +315,11 @@ unit: $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
 
 $(PROTO_DIR)/%.pb.h $(PROTO_DIR)/%.pb.cc: $(SOURCE_DIR)/%.proto $(PROTOC_BIN_DEP) | $(PROTO_DIR)/.
 	$P PROTOC[CPP] $^
+
+#	# See issue #2965
+	+rm -f $(PROTO_DIR)/$*.pb.h $(PROTO_DIR)/$*.pb.cc
+
 	$(PROTOC) $(PROTOCFLAGS_CXX) --cpp_out $(PROTO_DIR) $<
-	touch $@
 
 rpc/semilattice/joins/macros.hpp: $(TOP)/scripts/generate_join_macros.py
 rpc/serialize_macros.hpp: $(TOP)/scripts/generate_serialize_macros.py
@@ -321,30 +331,42 @@ rpc/semilattice/joins/macros.hpp rpc/serialize_macros.hpp rpc/mailbox/typed.hpp:
 .PHONY: rethinkdb
 rethinkdb: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 
-RETHINKDB_DEPENDENCIES_LIBS := $(TCMALLOC_MINIMAL_LIBS_DEP) $(V8_LIBS_DEP) $(PROTOBUF_LIBS_DEP) $(RE2_LIBS_DEP) $(Z_LIBS_DEP) $(CURL_LIBS_DEP)
+RETHINKDB_DEPENDENCIES_LIBS := $(MALLOC_LIBS_DEP) $(V8_LIBS_DEP) $(PROTOBUF_LIBS_DEP) $(RE2_LIBS_DEP) $(Z_LIBS_DEP) $(CURL_LIBS_DEP) $(CRYPTO_LIBS_DEP) $(ICUI18N_LIBS_DEP)
+
+MAYBE_CHECK_STATIC_MALLOC =
+ifeq ($(STATIC_MALLOC),1) # if the allocator is statically linked
+  ifeq (tcmalloc,$(ALLOCATOR))
+    MAYBE_CHECK_STATIC_MALLOC = objdump -T $@ | c++filt | grep -q 'tcmalloc::\|google_malloc' ||
+    MAYBE_CHECK_STATIC_MALLOC += (echo "Failed to link in TCMalloc." >&2 && false)
+  else ifeq (jemalloc,$(ALLOCATOR))
+    RT_LDFLAGS += -ldl
+    MAYBE_CHECK_STATIC_MALLOC = objdump -T $@ | grep -w -q 'mallctlnametomib' ||
+    MAYBE_CHECK_STATIC_MALLOC += (echo "Failed to link in jemalloc." >&2 && false)
+  endif
+endif
+
+ifneq (1,$(SYMBOLS))
+  ifeq (1,$(SPLIT_SYMBOLS))
+    $(error Conflicting build flags: SYMBOLS=0 and SPLIT_SYMBOLS=1)
+  endif
+endif
 
 $(BUILD_DIR)/$(SERVER_EXEC_NAME): $(SERVER_EXEC_OBJS) | $(BUILD_DIR)/. $(RETHINKDB_DEPENDENCIES_LIBS)
 	$P LD $@
 	$(RT_CXX) $(SERVER_EXEC_OBJS) $(RT_LDFLAGS) -o $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(LD_OUTPUT_FILTER)
-ifeq ($(NO_TCMALLOC),0) # if we link to tcmalloc
-ifeq ($(filter -l%, $(value TCMALLOC_MINIMAL_LIBS)),) # and it's not dynamic
-# TODO: c++filt may not be installed
-	@objdump -T $(BUILD_DIR)/$(SERVER_EXEC_NAME) | c++filt | grep -q 'tcmalloc::\|google_malloc' || \
-		(echo "    Failed to link in TCMalloc. You may have to run ./configure with the --without-tcmalloc flag." && \
-		false)
-endif
-endif
+	$(MAYBE_CHECK_STATIC_MALLOC)
+
 ifeq (1,$(SPLIT_SYMBOLS))
-ifeq (Darwin,$(OS))
+  ifeq (Darwin,$(OS))
 	$P STRIP $@.dSYM
 	cd $(BUILD_DIR) && dsymutil --out=$(notdir $@.dSYM) $(notdir $@)
 	strip $@
-else
+  else
 	$P STRIP $@.debug
 	objcopy --only-keep-debug $@ $@.debug
 	objcopy --strip-debug $@
 	cd $(BUILD_DIR) && objcopy --add-gnu-debuglink=$(notdir $@.debug) $(notdir $@)
-endif
+  endif
 endif
 
 # The unittests use gtest, which uses macros that expand into switch statements which don't contain
@@ -361,20 +383,38 @@ $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME): | $(BUILD_DIR)/.
 	$P CP $@
 	cp $(SCRIPTS_DIR)/$(GDB_FUNCTIONS_NAME) $@
 
+$(BUILD_DIR)/web_assets/web_assets.cc: $(TOP)/scripts/compile-web-assets.py $(ALL_WEB_ASSETS) | $(BUILD_DIR)/web_assets/.
+	$P GENERATE
+	$(TOP)/scripts/compile-web-assets.py $(WEB_ASSETS_BUILD_DIR) > $@
+
+$(OBJ_DIR)/web_assets/web_assets.o: $(BUILD_DIR)/web_assets/web_assets.cc $(MAKEFILE_DEPENDENCY)
+	mkdir -p $(dir $@)
+	$P CC
+	$(RT_CXX) $(RT_CXXFLAGS) -c -o $@ $<
+
 $(OBJ_DIR)/%.pb.o: $(PROTO_DIR)/%.pb.cc $(MAKEFILE_DEPENDENCY) $(QL2_PROTO_HEADERS)
 	mkdir -p $(dir $@)
 	$P CC
 	$(RT_CXX) $(RT_CXXFLAGS) -c -o $@ $<
 
-$(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cc $(MAKEFILE_DEPENDENCY) $(V8_INCLUDE_DEP) $(RE2_INCLUDE_DEP) $(Z_INCLUDE_DEP) $(BOOST_INCLUDE_DEP) $(CURL_INCLUDE_DEP) | $(QL2_PROTO_OBJS)
+$(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cc $(MAKEFILE_DEPENDENCY) $(ALL_INCLUDE_DEPS) | $(QL2_PROTO_OBJS)
 	mkdir -p $(dir $@) $(dir $(DEP_DIR)/$*)
 	$P CC
 	$(RT_CXX) $(RT_CXXFLAGS) -c -o $@ $< \
-	          -MP -MQ $@ -MD -MF $(DEP_DIR)/$*.d
-	test $(DEP_DIR)/$*.d -nt $< || ( \
-	  echo 'Warning: Missing dep file: `$(DEP_DIR)/$*.d` should have been generated by $(RT_CXX)' ; \
+	          -MP -MQ $@ -MD -MF $(DEP_DIR)/$*$(DEPS_POSTFIX).d
+	test $(DEP_DIR)/$*$(DEPS_POSTFIX).d -nt $< || ( \
+	  echo 'Warning: Missing dep file: `$(DEP_DIR)/$*$(DEPS_POSTFIX).d` should have been generated by $(RT_CXX)' ; \
 	  sleep 1; touch $< \
 	)
+
+FORCE_ALL_DEPS := $(patsubst %,force-dep/%,$(NAMES))
+force-dep/%: $(SOURCE_DIR)/%.cc $(QL2_PROTO_HEADERS) $(ALL_INCLUDE_DEPS)
+	$P CXX_DEPS $(DEP_DIR)/$*$(DEPS_POSTFIX).d
+	mkdir -p $(dir $(DEP_DIR)/$*)
+	$(RT_CXX) $(RT_CXXFLAGS) $(SOURCE_DIR)/$*.cc -MP -MQ $(OBJ_DIR)/$*.o -M -MF $(DEP_DIR)/$*$(DEPS_POSTFIX).d
+
+.PHONY: deps
+deps: $(FORCE_ALL_DEPS)
 
 -include $(DEPS)
 

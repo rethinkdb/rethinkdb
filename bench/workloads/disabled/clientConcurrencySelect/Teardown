@@ -1,5 +1,0 @@
-#!/bin/bash
-
-# Delete temporary key file.
-ssh puzzler -- rm -f "$TMP_KEY_FILE"
-

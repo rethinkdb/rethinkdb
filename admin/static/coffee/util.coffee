@@ -1,14 +1,7 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
-Handlebars.registerHelper 'debug', (inputs..., options) ->
-    console.log @, "Current Context"
-    console.log options, 'Options'
-    if input
-        for input in inputs
-            console.log input, 'Input ##{_i}'
-
 # Prettifies a date given in Unix time (ms since epoch)
-Handlebars.registerHelper 'prettify_date', (date) ->
-    return new XDate(date*1000).toString("HH:mm - MMMM dd, yyyy")
+
+Handlebars = require('hbsfy/runtime');
 
 # Returns a comma-separated list of the provided array
 Handlebars.registerHelper 'comma_separated', (context, block) ->
@@ -26,59 +19,20 @@ Handlebars.registerHelper 'comma_separated_simple', (context) ->
         out += ", " if i isnt context.length-1
     return out
 
-# Returns an html list
-Handlebars.registerHelper 'html_list', (context) ->
-    out = "<ul>"
-    for i in [0...context.length]
-        out += '<li>'+context[i]+'</li>'
-    out += '</ul>'
-    return new Handlebars.SafeString(out)
-
-# Returns a list to links to machine
-Handlebars.registerHelper 'links_to_machines', (machines, safety) ->
+# Returns a list to links to servers
+Handlebars.registerHelper 'links_to_servers', (servers, safety) ->
     out = ""
-    for i in [0...machines.length]
-        if machines[i].exists
-            out += '<a href="#servers/'+machines[i].id+'" class="links_to_other_view">'+machines[i].name+'</a>'
+    for i in [0...servers.length]
+        if servers[i].exists
+            out += '<a href="#servers/'+servers[i].id+'" class="links_to_other_view">'+servers[i].name+'</a>'
         else
-            out += machines[i].name
-        out += ", " if i isnt machines.length-1
+            out += servers[i].name
+        out += ", " if i isnt servers.length-1
     if safety? and safety is false
         return out
     return new Handlebars.SafeString(out)
 
-Handlebars.registerHelper 'links_to_machines_inline', (machines) ->
-    out = ""
-    for i in [0...machines.length]
-        out += '<a href="#servers/'+machines[i].uid+'" class="links_to_other_view">'+machines[i].name+'</a>'
-        out += ", " if i isnt machines.length-1
-    return new Handlebars.SafeString(out)
-
-#Returns a list of links to namespaces
-Handlebars.registerHelper 'links_to_namespaces', (namespaces) ->
-    out = ""
-    for i in [0...namespaces.length]
-        out += '<p><a href="#tables/'+namespaces[i].id+'" class="links_to_other_view">'+namespaces[i].name+'</a></p>'
-    return out
-
-#Returns a list of links to namespaces on one line
-Handlebars.registerHelper 'links_to_namespaces_inline', (namespaces) ->
-    out = ""
-    for i in [0...namespaces.length]
-        out += '<a href="#tables/'+namespaces[i].id+'" class="links_to_other_view">'+namespaces[i].name+'</a>'
-        out += ", " if i isnt namespaces.length-1
-    return new Handlebars.SafeString(out)
-
 #Returns a list of links to datacenters on one line
-Handlebars.registerHelper 'links_to_datacenters_inline', (datacenters) ->
-    out = ""
-    for i in [0...datacenters.length]
-        out += '<a href="#datacenters/'+datacenters[i].id+'" class="links_to_other_view">'+datacenters[i].name+'</a>'
-        out += ", " if i isnt datacenters.length-1
-    return new Handlebars.SafeString(out)
-
-#Returns a list of links to datacenters on one line
-#TODO create links that will open the appropriate tab.
 Handlebars.registerHelper 'links_to_datacenters_inline_for_replica', (datacenters) ->
     out = ""
     for i in [0...datacenters.length]
@@ -86,64 +40,9 @@ Handlebars.registerHelper 'links_to_datacenters_inline_for_replica', (datacenter
         out += ", " if i isnt datacenters.length-1
     return new Handlebars.SafeString(out)
 
-#Returns a list of links to machines and namespaces
-Handlebars.registerHelper 'links_to_masters_and_namespaces', (machines) ->
-    out = ""
-    for i in [0...machines.length]
-        out += '<p><a href="#tables/'+machines[i].namespace_id+'" class="links_to_other_view">'+machines[i].namespace_name+'</a> (<a href="#servers/'+machines[i].machine_id+'" class="links_to_other_view">'+machines[i].machine_name+'</a>)</p>'
-    return out
-
-
-#Returns a list of links to machines and namespace
-#TODO make thinkgs prettier
-Handlebars.registerHelper 'links_to_replicas_and_namespaces', (machines) ->
-    out = ""
-    for i in [0...machines.length]
-        out += '<p><a href="#tables/'+machines[i].get('namespace_uuid')+'" class="links_to_other_view">'+machines[i].get('namespace_name')+'</a> (<a href="#servers/'+machines[i].get('machine_id')+'" class="links_to_other_view">'+machines[i].get('machine_name')+'</a>)</p>'
-        out += '<ul><li>Shard: '+machines[i].get('shard')+'</li>'
-        out += '<li>Blueprint: '+machines[i].get('blueprint')+'</li>'
-        out += '<li>Directory: '+machines[i].get('directory')+'</li></ul>'
-    return out
-
-Handlebars.registerHelper 'display_reasons_cannot_move', (reasons) ->
-    out = ""
-    for machine_id of reasons
-        if reasons[machine_id]['master']?.length > 0
-            out += '<li>The server <a href="#servers/'+machine_id+'">'+machines.get(machine_id).get('name')+'</a> is master for some shards of the tables '
-            is_first = true
-            for reason in reasons[machine_id]['master']
-                namespace_id = reason.namespace_id
-                namespace_name = namespaces.get(namespace_id).get('name')
-                if is_first
-                    out += '<a href="#tables/'+namespace_id+'">'+namespace_name+'</a>'
-                    is_first = false
-                else
-                    out += ', <a href="#tables/'+namespace_id+'">'+namespace_name+'</a>'
-            out += '</li>'
-        if reasons[machine_id]['goals']?.length > 0
-            out += '<li>Moving the table <a href="#servers/'+machine_id+'">'+machines.get(machine_id).get('name')+'</a> will result in unsatisfiable goals for the tables '
-            is_first = true
-            for reason in reasons[machine_id]['goals']
-                namespace_id = reason.namespace_id
-                namespace_name = namespaces.get(namespace_id).get('name')
-                if is_first
-                    out += '<a href="#tables/'+namespace_id+'">'+namespace_name+'</a>'
-                    is_first = false
-                else
-                    out += ', <a href="#tables/'+namespace_id+'">'+namespace_name+'</a>'
-            out += '.</li>'
-
-    return new Handlebars.SafeString(out)
-
-# If the two arguments are equal, show the inner block; else block is available
-Handlebars.registerHelper 'ifequal', (val_a, val_b, if_block, else_block) ->
-    if val_a is val_b
-        if_block()
-    else if else_block?
-        else_block()
-
 # Helpers for pluralization of nouns and verbs
-Handlebars.registerHelper 'pluralize_noun', (noun, num, capitalize) ->
+pluralize_noun = (noun, num, capitalize) ->
+    return 'NOUN_NULL' unless noun?
     ends_with_y = noun.substr(-1) is 'y'
     if num is 1
         result = noun
@@ -152,113 +51,122 @@ Handlebars.registerHelper 'pluralize_noun', (noun, num, capitalize) ->
             result = noun.slice(0, noun.length - 1) + "ies"
         else if noun.substr(-1) is 's'
             result = noun + "es"
+        else if noun.substr(-1) is 'x'
+            result = noun + "es"
         else
             result = noun + "s"
     if capitalize is true
         result = result.charAt(0).toUpperCase() + result.slice(1)
     return result
 
-Handlebars.registerHelper 'pluralize_verb_to_be', (num) -> if num is 1 then 'is' else 'are'
+Handlebars.registerHelper 'pluralize_noun', pluralize_noun
 Handlebars.registerHelper 'pluralize_verb_to_have', (num) -> if num is 1 then 'has' else 'have'
-Handlebars.registerHelper 'pluralize_verb', (verb, num) -> if num is 1 then verb+'s' else verb
-Handlebars.registerHelper 'pluralize_its', (num) -> if num is 1 then 'its' else 'their'
-Handlebars.registerHelper 'pluralize_this', (num) -> if num is 1 then 'this' else 'these'
+pluralize_verb = (verb, num) -> if num is 1 then "#{verb}s" else verb
+Handlebars.registerHelper 'pluralize_verb', pluralize_verb
+#
 # Helpers for capitalization
-Handlebars.registerHelper 'capitalize', (str) -> str.charAt(0).toUpperCase() + str.slice(1)
+capitalize = (str) ->
+    if str?
+        str.charAt(0).toUpperCase() + str.slice(1)
+    else
+        "NULL"
+Handlebars.registerHelper 'capitalize', capitalize
 
 # Helpers for shortening uuids
-Handlebars.registerHelper 'humanize_uuid', (str) -> str.substr(0, 6)
+humanize_uuid = (str) -> if str? then str.substr(0, 6) else "NULL"
+Handlebars.registerHelper 'humanize_uuid', humanize_uuid
 
-# Helpers for printing roles
-Handlebars.registerHelper 'humanize_role', (role) ->
-    if role is 'role_primary'
-        return new Handlebars.SafeString('<span class="master responsability master">Master</span>')
-    if role is 'role_secondary'
-        return new Handlebars.SafeString('<span class="secondary responsability secondary">Secondary</span>')
-    if role is 'role_nothing'
-        return new Handlebars.SafeString('<span class="secondary responsability nothing">Nothing</span>')
-
-    return role
-
-# Helpers for printing reachability
-Handlebars.registerHelper 'humanize_machine_reachability', (status) ->
+# Helpers for printing connectivity
+Handlebars.registerHelper 'humanize_server_connectivity', (status) ->
     if not status?
-        result = 'N/A'
+        status = 'N/A'
+    success = if status == 'connected' then 'success' else 'failure'
+    connectivity = "<span class='label label-#{success}'>#{capitalize(status)}</span>"
+    return new Handlebars.SafeString(connectivity)
+
+humanize_table_status = (status) ->
+    if not status
+        ""
+    else if status.all_replicas_ready or status.ready_for_writes
+        "Ready"
+    else if status.ready_for_reads
+        'Reads only'
+    else if status.ready_for_outdated_reads
+        'Outdated reads'
     else
-        if status.reachable
-            result = "<span class='label label-success'>Reachable</span>"
+        'Unavailable'
+
+Handlebars.registerHelper 'humanize_table_readiness', (status, num, denom) ->
+    if status is undefined
+        label = 'failure'
+        value = 'unknown'
+    else if status.all_replicas_ready
+        label = 'success'
+        value = "#{humanize_table_status(status)} #{num}/#{denom}"
+    else if status.ready_for_writes
+        label = 'partial-success'
+        value = "#{humanize_table_status(status)} #{num}/#{denom}"
+    else
+        label = 'failure'
+        value = humanize_table_status(status)
+    return new Handlebars.SafeString(
+        "<div class='status label label-#{label}'>#{value}</div>")
+
+Handlebars.registerHelper 'humanize_table_status', humanize_table_status
+
+approximate_count = (num) ->
+    # 0 => 0
+    # 1 - 5 => 5
+    # 5 - 10 => 10
+    # 11 - 99 => Rounded to _0
+    # 100 - 999 => Rounded to _00
+    # 1,000 - 9,999 => _._K
+    # 10,000 - 10,000 => __K
+    # 100,000 - 1,000,000 => __0K
+    # Millions and billions have the same behavior as thousands
+    # If num>1000B, then we just print the number of billions
+    if num is 0
+        return '0'
+    else if num <= 5
+        return '5'
+    else if num <= 10
+        return '10'
+    else
+        # Approximation to 2 significant digit
+        approx = Math.round(num/Math.pow(10, num.toString().length-2)) *
+            Math.pow(10, num.toString().length-2);
+        if approx < 100 # We just want one digit
+            return (Math.floor(approx/10)*10).toString()
+        else if approx < 1000 # We just want one digit
+            return (Math.floor(approx/100)*100).toString()
+        else if approx < 1000000
+            result = (approx/1000).toString()
+            if result.length is 1 # In case we have 4 for 4000, we want 4.0
+                result = result + '.0'
+            return result+'K'
+        else if approx < 1000000000
+            result = (approx/1000000).toString()
+            if result.length is 1 # In case we have 4 for 4000, we want 4.0
+                result = result + '.0'
+            return result+'M'
         else
-            result = "<span class='label label-failure'>Unreachable</span>"
-    return new Handlebars.SafeString(result)
+            result = (approx/1000000000).toString()
+            if result.length is 1 # In case we have 4 for 4000, we want 4.0
+                result = result + '.0'
+            return result+'B'
 
-Handlebars.registerHelper 'humanize_datacenter_reachability', (status) ->
-    if status.reachable > 0
-        result = "<span class='label label-success'>Live</span>"
-    else
-        if status.total > 0
-            result = "<span class='label label-important'>Down</span>"
-        else
-            result = "<span class='label'>Empty</span>"
-    if status.reachable == 0 and status.total > 0
-        result += "<br/><span class='timeago' title='#{status.last_seen}'>since #{status.last_seen}</abbr>"
+Handlebars.registerHelper 'approximate_count', approximate_count
 
-    return new Handlebars.SafeString(result)
-
-Handlebars.registerHelper 'humanize_namespace_reachability', (reachability) ->
-    if reachability is 'Live'
-        result = "<span class='label label-success'>Live</span>"
-    else
-        result = "<span class='label label-failure'>Down</span>"
-
-    return new Handlebars.SafeString(result)
-
-
-Handlebars.registerHelper 'display_datacenter_in_namespace', (datacenter, role) ->
-    result = '<tr>'
-    result += '<td class="role">'+role+'</td>'
-    result += '<td class="datacenter_name"><a href="#datacenters/'+datacenter.id+'">'+datacenter.name+'</a></td>'
-    result += '<td>Replicas: '+datacenter.replicas+'</td>'
-    result += '<td>/</td>'
-    result += '<td>Machines '+datacenter.total_machines+'</td>'
-    result += '</tr>'
-    return new Handlebars.SafeString(result)
-
-
-
-Handlebars.registerHelper 'display_primary_and_secondaries', (primary, secondaries) ->
-    result = '<table class="datacenter_list">'
-    if primary.id? and primary.id isnt ''
-        result += new Handlebars.helpers.display_datacenter_in_namespace(primary, "Primary")
-    else
-        result += '<tr><td class="role" colspan="5">No primary was found</td></tr>'
-    display_role = true
-    for secondary in secondaries
-        if display_role
-            display_role = false
-            result += new Handlebars.helpers.display_datacenter_in_namespace(secondary, "Secondaries")
-        else
-            result += new Handlebars.helpers.display_datacenter_in_namespace(secondary, "")
-
-    result += '</table>'
-
-    return new Handlebars.SafeString(result)
-
-Handlebars.registerHelper 'display_truncated_machines', (data) ->
-    machines = data.machines
-    out = ''
-    num_displayed_machine = 0
-    more_link_should_be_displayed = data.more_link_should_be_displayed
-    for machine in machines
-        out += '<li><a href="#servers/'+machine.id+'">'+machine.name+'</a>'+Handlebars.helpers.humanize_machine_reachability(machine.status)+'</li>'
-        num_displayed_machine++
-        if machine.status.reachable isnt true
-            num_displayed_machine++
-
-        if more_link_should_be_displayed is true and num_displayed_machine > 6
-            more_link_should_be_displayed = false
-            out += '<li class="more_machines"><a href="#" class="display_more_machines">» More</a></li>'
-
-    return new Handlebars.SafeString(out)
+# formatBytes
+# from http://stackoverflow.com/a/18650828/180718
+format_bytes = (bytes, decimals=2) ->
+    if bytes == 0
+        return '0 Byte'
+    k = 1024;
+    dm = decimals + 1
+    sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
+    i = Math.floor(Math.log(bytes) / Math.log(k))
+    (bytes / Math.pow(k, i)).toPrecision(dm) + ' ' + sizes[i]
 
 # Safe string
 Handlebars.registerHelper 'print_safe', (str) ->
@@ -267,39 +175,12 @@ Handlebars.registerHelper 'print_safe', (str) ->
     else
         return ""
 
+# Increment a number
+Handlebars.registerHelper 'inc', (num) -> num + 1
 
-# Register some useful partials
-Handlebars.registerPartial 'backfill_progress_summary', $('#backfill_progress_summary-partial').html()
-Handlebars.registerPartial 'backfill_progress_details', $('#backfill_progress_details-partial').html()
-
-# Dev utility functions and variables
-window.pause_live_data = false
-window.log_initial = (msg) -> #console.log msg
-window.log_render = (msg) ->  #console.log msg
-window.log_action = (msg) ->  #console.log msg
-window.log_router = (msg) ->  #console.log '-- router -- ' + msg
-window.log_binding = (msg) -> #console.log msg
-window.log_ajax = (msg) -> #console.log msg
-window.class_name = (obj) ->  obj.__proto__.constructor.name
-
-# Date utility functions
-# -------------------------------------------
-# Taken from the Mozilla Developer Center, quick function to generate ISO 8601 dates in Javascript for these sample alerts
-ISODateString = (d) ->
-    pad = (n) -> if n<10 then '0'+n else n
-    d.getUTCFullYear() + '-' +
-        pad(d.getUTCMonth()+1)+'-' +
-        pad(d.getUTCDate())+'T' +
-        pad(d.getUTCHours())+':' +
-        pad(d.getUTCMinutes())+':' +
-        pad(d.getUTCSeconds())+'Z'
-
-# Choose a random model from the given collection
-# -----------------------------------------------
-random_model_from = (collection) ->_.shuffle(collection.models)[0]
-
-# Generate ISO 8601 timestamps from Unix timestamps
-iso_date_from_unix_time = (unix_time) -> ISODateString new Date(unix_time * 1000)
+# if-like block to check whether a value is defined (i.e. not undefined).
+Handlebars.registerHelper 'if_defined', (condition, options) ->
+    if typeof condition != 'undefined' then return options.fn(this) else return options.inverse(this)
 
 # Extract form data as an object
 form_data_as_object = (form) ->
@@ -310,199 +191,289 @@ form_data_as_object = (form) ->
     return formdata
 
 
-# Awful things because ajax/distribution/ is bad. We should feel bad too.
-pretty_key = (s) ->
-    if s is null
-        return "+∞"
-    else if s is ""
-        return "-∞"
-    else if typeof s is "string" and s[0]? and s[0] is 'N'
-        s = s.slice(s.indexOf("%23")+3)
-        if _.isNaN(parseFloat(s)) is false
-            return parseFloat(s)
+stripslashes = (str) ->
+    str=str.replace(/\\'/g,'\'')
+    str=str.replace(/\\"/g,'"')
+    str=str.replace(/\\0/g,"\x00")
+    str=str.replace(/\\\\/g,'\\')
+    return str
+
+is_integer = (data) ->
+    return data.search(/^\d+$/) isnt -1
+
+# Deep copy. We do not copy prototype.
+deep_copy = (data) ->
+    if typeof data is 'boolean' or typeof data is 'number' or typeof data is 'string' or typeof data is 'number' or data is null or data is undefined
+        return data
+    else if typeof data is 'object' and Object.prototype.toString.call(data) is '[object Array]'
+        result = []
+        for value in data
+            result.push deep_copy value
+        return result
+    else if typeof data is 'object'
+        result = {}
+        for key, value of data
+            result[key] = deep_copy value
+        return result
+
+
+# JavaScript doesn't let us set a timezone
+# So we create a date shifted of the timezone difference
+# Then replace the timezone of the JS date with the one from the ReQL object
+date_to_string = (date) ->
+    timezone = date.timezone
+
+    # Extract data from the timezone
+    timezone_array = date.timezone.split(':')
+    sign = timezone_array[0][0] # Keep the sign
+    timezone_array[0] = timezone_array[0].slice(1) # Remove the sign
+
+    # Save the timezone in minutes
+    timezone_int = (parseInt(timezone_array[0])*60+parseInt(timezone_array[1]))*60
+    if sign is '-'
+        timezone_int = -1*timezone_int
+
+    # d = real date with user's timezone
+    d = new Date(date.epoch_time*1000)
+
+    # Add the user local timezone
+    timezone_int += d.getTimezoneOffset()*60
+
+    # d_shifted = date shifted with the difference between the two timezones
+    # (user's one and the one in the ReQL object)
+    d_shifted = new Date((date.epoch_time+timezone_int)*1000)
+
+    # If the timezone between the two dates is not the same,
+    # it means that we changed time between (e.g because of daylight savings)
+    if d.getTimezoneOffset() isnt d_shifted.getTimezoneOffset()
+        # d_shifted_bis = date shifted with the timezone of d_shifted and not d
+        d_shifted_bis = new Date((date.epoch_time+timezone_int-(d.getTimezoneOffset()-d_shifted.getTimezoneOffset())*60)*1000)
+
+        if d_shifted.getTimezoneOffset() isnt d_shifted_bis.getTimezoneOffset()
+            # We moved the clock forward -- and therefore cannot generate the appropriate time with JS
+            # Let's create the date outselves...
+            str_pieces = d_shifted_bis.toString().match(/([^ ]* )([^ ]* )([^ ]* )([^ ]* )(\d{2})(.*)/)
+            hours = parseInt(str_pieces[5])
+            hours++
+            if hours.toString().length is 1
+                hours = "0"+hours.toString()
+            else
+                hours = hours.toString()
+            #Note str_pieces[0] is the whole string
+            raw_date_str = str_pieces[1]+" "+str_pieces[2]+" "+str_pieces[3]+" "+str_pieces[4]+" "+hours+str_pieces[6]
         else
-            return NaN
-    else if typeof s is "string" and s[0]? and s[0] is 'S'
-        s = s.slice(1)
-        s = s.replace(/%21/g, '!')
-        s = s.replace(/%22/g, '"')
-        s = s.replace(/%23/g, '#')
-        s = s.replace(/%24/g, '$')
-        s = s.replace(/%25/g, '%')
-        s = s.replace(/%26/g, '&')
-        s = s.replace(/%27/g, '\'')
-        s = s.replace(/%28/g, '(')
-        s = s.replace(/%29/g, ')')
-        s = s.replace(/%2A/g, '*')
-        s = s.replace(/%2B/g, '+')
-        s = s.replace(/%2C/g, ',')
-        s = s.replace(/%2D/g, '-')
-        s = s.replace(/%2E/g, '.')
-        s = s.replace(/%2F/g, '/')
-        s = s.replace(/%3A/g, ':')
-        s = s.replace(/%3B/g, ';')
-        s = s.replace(/%3C/g, '<')
-        s = s.replace(/%3D/g, '=')
-        s = s.replace(/%3E/g, '>')
-        s = s.replace(/%3F/g, '?')
-        s = s.replace(/%40/g, '@')
-        s = s.replace(/%5B/g, '[')
-        s = s.replace(/%5C/g, '\\')
-        s = s.replace(/%5D/g, ']')
-        s = s.replace(/%60/g, '`')
-        s = s.replace(/%7B/g, '{')
-        s = s.replace(/%7C/g, '|')
-        s = s.replace(/%7D/g, '}')
-        s = s.replace(/%7E/g, '}')
-        s = s.replace(/%7F/g, '}')
-        return s
+            raw_date_str = d_shifted_bis.toString()
     else
-        return s
+        raw_date_str = d_shifted.toString()
 
-human_readable_shard_obj = (shard) ->
-    name_len = 8
-    json_shard = $.parseJSON(shard)
-    from = pretty_key(json_shard[0]).toString()
-    to = pretty_key(json_shard[1]).toString()
-    # Returns an object with shard names truncated to name_len characters, and
-    # appends ellipses if the shard name was longer
-    return {
-        from: "#{from.slice(0,8)}#{if from.length > name_len then '...' else ''}"
-        to: "#{to.slice(0,8)}#{if to.length > name_len then '...' else ''}"
-    }
+    # Remove the timezone and replace it with the good one
+    return raw_date_str.slice(0, raw_date_str.indexOf('GMT')+3)+timezone
 
-human_readable_shard = (shard) ->
-    shard = human_readable_shard_obj shard
-    return "#{shard.from} to #{shard.to}"
+prettify_duration = (duration) ->
+    if duration < 1
+        return '<1ms'
+    else if duration < 1000
+        return duration.toFixed(0)+"ms"
+    else if duration < 60*1000
+        return (duration/1000).toFixed(2)+"s"
+    else # We do not expect query to last one hour.
+        minutes = Math.floor(duration/(60*1000))
+        return minutes+"min "+((duration-minutes*60*1000)/1000).toFixed(2)+"s"
 
-# Utils to print units
-units_space = ["B", "KB", "MB", "GB", "TB", "PB"]
-human_readable_units = (num, units) ->
-    if not num?
-        return "N/A"
-    index = 0
-    loop
-        _tmp = num / 1024
-        if _tmp < 1
-            break
-        else
-            index += 1
-            num /= 1024
-        if index > units_space.length - 1
-            return "N/A"
-    num_str = num.toFixed(1)
-    if ("" + num_str)[num_str.length - 1] is '0'
-        num_str = num.toFixed(0)
+binary_to_string = (bin) ->
+    # We print the size of the binary, not the size of the base 64 string
+    # We suppose something stronger than the RFC 2045:
+    # We suppose that there is ONLY one CRLF every 76 characters
+    blocks_of_76 = Math.floor(bin.data.length/78) # 78 to count \r\n
+    leftover = bin.data.length-blocks_of_76*78
 
-    return "" + num_str + units_space[index]
+    base64_digits = 76*blocks_of_76+leftover
 
-# Binds actions to the dev tools (accessible through alt+d)
-bind_dev_tools = ->
-    # Development tools
-    $('body').bind 'keydown', 'alt+d', ->
-        $('#dev-tools').toggle()
+    blocks_of_4 = Math.floor(base64_digits/4)
 
-    $('#live-data').click (e) ->
-        $(this).text if $(this).text() == 'Pause live data feed' then 'Resume live data feed' else 'Pause live data feed'
-        pause_live_data = not pause_live_data
-        return false
-
-    $('#reset-simulation-data').click (e) ->
-        $.ajax
-            contentType: 'application/json'
-            url: 'ajax/reset_data',
-            success: ->
-                console.log 'Reset simulation data.'
-        return false
-
-    $('#reset-session').click (e) ->
-        $.ajax
-            contentType: 'application/json'
-            url: 'ajax/reset_session',
-            success: ->
-                console.log 'Reset session.'
-        return false
-
-    $('#fetch-backbone-data').click (e) ->
-        collection.fetch() for collection in [datacenters, namespaces, machines]
-
-    $('#make-diff').click (e) ->
-        $.ajax
-            contentType: 'application/json'
-            url: 'ajax/make_diff',
-            success: ->
-                console.log 'Made diff to simulation data.'
-        return false
-
-    $('#visit_bad_route').click (e) ->
-        $.get('/fakeurl')
-        return false
-
-objects_are_equal = (a, b) ->
-    for key of a
-        if not key of b
-            return false
-    for key of b
-        if not key of a
-            return false
-
-    # They have the same set of keys
-    for key of a
-        if not key of b
-            return false
-        else
-            if typeof a[key] isnt typeof b[key]
-                return false
-            else if a[key].constructor? and a[key].constructor is Array
-                if b[key].constructor? and b[key].constructor is Array
-                    if a[key].length isnt b[key].length
-                        return false
-                    else
-                        for i in [0..a[key].length-1]
-                            if a[key][i] isnt b[key][i]
-                                return false
-                else
-                    return false
-            else if typeof a[key] is 'object'
-                if objects_are_equal(a[key], b[key]) is false
-                    return false
-            else if a[key] isnt b[key]
-                return false
-    return true
-
-
-###
-    Taken from "Namespacing and modules with Coffeescript"
-    https://github.com/jashkenas/coffee-script/wiki/Easy-modules-with-coffeescript
-
-    Introduces module function that allows namespaces by enclosing classes in anonymous functions.
-
-    Usage:
-    ------------------------------
-        @module "foo", ->
-          @module "bar", ->
-            class @Amazing
-              toString: "ain't it"
-    ------------------------------
-
-    Or, more simply:
-    ------------------------------
-        @module "foo.bar", ->
-          class @Amazing
-            toString: "ain't it"
-    ------------------------------
-
-    Which can then be accessed with:
-    ------------------------------
-        x = new foo.bar.Amazing
-    ------------------------------
-###
-
-@module = (names, fn) ->
-    names = names.split '.' if typeof names is 'string'
-    space = @[names.shift()] ||= {}
-    space.module ||= @module
-    if names.length
-        space.module names, fn
+    end = bin.data.slice(-2)
+    if end is '=='
+        number_of_equals = 2
+    else if end.slice(-1) is '='
+        number_of_equals = 1
     else
-        fn.call space
+        number_of_equals = 0
+
+    size = 3*blocks_of_4-number_of_equals
+
+    if size >= 1073741824
+        sizeStr = (size/1073741824).toFixed(1)+'GB'
+    else if size >= 1048576
+        sizeStr = (size/1048576).toFixed(1)+'MB'
+    else if size >= 1024
+        sizeStr = (size/1024).toFixed(1)+'KB'
+    else if size is 1
+        sizeStr = size+' byte'
+    else
+        sizeStr = size+' bytes'
+
+
+    # Compute a snippet and return the <binary, size, snippet> result
+    if size is 0
+        return "<binary, #{sizeStr}>"
+    else
+        str = atob bin.data.slice(0, 8)
+        snippet = ''
+        for char, i  in str
+            next = str.charCodeAt(i).toString(16)
+            if next.length is 1
+                next = "0" + next
+            snippet += next
+
+            if i isnt str.length-1
+                snippet += " "
+        if size > str.length
+            snippet += "..."
+
+        return "<binary, #{sizeStr}, \"#{snippet}\">"
+
+# Render a datum as a pretty tree
+json_to_node = do ->
+    template =
+        span: require('../handlebars/dataexplorer_result_json_tree_span.hbs')
+        span_with_quotes: require('../handlebars/dataexplorer_result_json_tree_span_with_quotes.hbs')
+        url: require('../handlebars/dataexplorer_result_json_tree_url.hbs')
+        email: require('../handlebars/dataexplorer_result_json_tree_email.hbs')
+        object: require('../handlebars/dataexplorer_result_json_tree_object.hbs')
+        array: require('../handlebars/dataexplorer_result_json_tree_array.hbs')
+
+    # We build the tree in a recursive way
+    return json_to_node = (value) ->
+        value_type = typeof value
+
+        output = ''
+        if value is null
+            return template.span
+                classname: 'jt_null'
+                value: 'null'
+        else if Object::toString.call(value) is '[object Array]'
+            if value.length is 0
+                return '[ ]'
+            else
+                sub_values = []
+                for element in value
+                    sub_values.push
+                        value: json_to_node element
+                    if typeof element is 'string' and (/^(http|https):\/\/[^\s]+$/i.test(element) or  /^[a-z0-9._-]+@[a-z0-9]+.[a-z0-9._-]{2,4}/i.test(element))
+                        sub_values[sub_values.length-1]['no_comma'] = true
+
+
+                sub_values[sub_values.length-1]['no_comma'] = true
+                return template.array
+                    values: sub_values
+        else if Object::toString.call(value) is '[object Object]' and value.$reql_type$ is 'TIME'
+            return template.span
+                classname: 'jt_date'
+                value: date_to_string(value)
+        else if Object::toString.call(value) is '[object Object]' and value.$reql_type$ is 'BINARY'
+            return template.span
+                classname: 'jt_bin'
+                value: binary_to_string(value)
+
+        else if value_type is 'object'
+            sub_keys = []
+            for key of value
+                sub_keys.push key
+            sub_keys.sort()
+
+            sub_values = []
+            for key in sub_keys
+                last_key = key
+                sub_values.push
+                    key: key
+                    value: json_to_node value[key]
+                # We don't add a coma for url and emails, because we put it in value (value = url, >>)
+                if typeof value[key] is 'string' and ((/^(http|https):\/\/[^\s]+$/i.test(value[key]) or /^[a-z0-9._-]+@[a-z0-9]+.[a-z0-9._-]{2,4}/i.test(value[key])))
+                    sub_values[sub_values.length-1]['no_comma'] = true
+
+            if sub_values.length isnt 0
+                sub_values[sub_values.length-1]['no_comma'] = true
+
+            data =
+                no_values: false
+                values: sub_values
+
+            if sub_values.length is 0
+                data.no_value = true
+
+            return template.object data
+        else if value_type is 'number'
+            return template.span
+                classname: 'jt_num'
+                value: value
+        else if value_type is 'string'
+            if /^(http|https):\/\/[^\s]+$/i.test(value)
+                return template.url
+                    url: value
+            else if /^[-0-9a-z.+_]+@[-0-9a-z.+_]+\.[a-z]{2,4}/i.test(value) # We don't handle .museum extension and special characters
+                return template.email
+                    email: value
+            else
+                return template.span_with_quotes
+                    classname: 'jt_string'
+                    value: value
+        else if value_type is 'boolean'
+            return template.span
+                classname: 'jt_bool'
+                value: if value then 'true' else 'false'
+
+
+replica_rolename = ({configured_primary: configured, \
+                     currently_primary: currently, \
+                     nonvoting: nonvoting, \
+                     }) ->
+    if configured and currently
+        "Primary replica"
+    else if configured and not currently
+        "Goal primary replica"
+    else if not configured and currently
+        "Acting primary replica"
+    else if nonvoting
+        "Non-voting secondary replica"
+    else
+        "Secondary replica"
+
+replica_roleclass = ({configured_primary: configured, \
+                      currently_primary: currently}) ->
+    if configured and currently
+        "primary"
+    else if configured and not currently
+        "goal.primary"
+    else if not configured and currently
+        "acting.primary"
+    else
+        "secondary"
+
+state_color = (state) ->
+  switch state
+      when "ready"        then "green"
+      when "disconnected" then "red"
+      else                     "yellow"
+
+humanize_state_string = (state_string) ->
+    state_string.replace(/_/g, ' ')
+
+exports.capitalize = capitalize
+exports.humanize_table_status = humanize_table_status
+exports.form_data_as_object = form_data_as_object
+exports.stripslashes = stripslashes
+exports.is_integer = is_integer
+exports.deep_copy = deep_copy
+exports.date_to_string = date_to_string
+exports.prettify_duration = prettify_duration
+exports.binary_to_string = binary_to_string
+exports.json_to_node = json_to_node
+exports.approximate_count = approximate_count
+exports.pluralize_noun = pluralize_noun
+exports.pluralize_verb = pluralize_verb
+exports.humanize_uuid = humanize_uuid
+exports.replica_rolename = replica_rolename
+exports.replica_roleclass = replica_roleclass
+exports.state_color = state_color
+exports.humanize_state_string = humanize_state_string
+exports.format_bytes = format_bytes

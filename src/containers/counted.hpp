@@ -7,6 +7,7 @@
 
 #include <utility>
 
+#include "containers/scoped.hpp"
 #include "errors.hpp"
 #include "threading.hpp"
 
@@ -24,23 +25,28 @@ public:
 
     counted_t() : p_(NULL) { }
     explicit counted_t(T *p) : p_(p) {
-        if (p_) { counted_add_ref(p_); }
+        if (p_ != nullptr) { counted_add_ref(p_); }
+    }
+
+    explicit counted_t(scoped_ptr_t<T> &&p) : p_(p.release()) {
+        if (p_ != nullptr) { counted_add_ref(p_); }
     }
 
     counted_t(const counted_t &copyee) : p_(copyee.p_) {
-        if (p_) { counted_add_ref(p_); }
+        if (p_ != nullptr) { counted_add_ref(p_); }
     }
 
-    // TODO: Add noexcept on versions of compilers that support it.  noexcept is
-    // good to have because types like std::vectors use it to see whether to
-    // call the copy constructor or move constructor.
-    counted_t(counted_t &&movee) : p_(movee.p_) {
+    template <class U>
+    counted_t(const counted_t<U> &copyee) : p_(copyee.p_) {
+        if (p_ != nullptr) { counted_add_ref(p_); }
+    }
+
+    counted_t(counted_t &&movee) noexcept : p_(movee.p_) {
         movee.p_ = NULL;
     }
 
-    // TODO: Add noexcept on versions of compilers that support it.
     template <class U>
-    counted_t(counted_t<U> &&movee) : p_(movee.p_) {
+    counted_t(counted_t<U> &&movee) noexcept : p_(movee.p_) {
         movee.p_ = NULL;
     }
 
@@ -58,22 +64,20 @@ public:
 #pragma GCC diagnostic pop
 #endif
 
-    void swap(counted_t &other) {
+    void swap(counted_t &other) noexcept {
         T *tmp = p_;
         p_ = other.p_;
         other.p_ = tmp;
     }
 
-    // TODO: Add noexcept on versions of compilers that support it.
-    counted_t &operator=(counted_t &&other) {
+    counted_t &operator=(counted_t &&other) noexcept {
         counted_t tmp(std::move(other));
         swap(tmp);
         return *this;
     }
 
-    // TODO: Add noexcept on versions of compilers that support it.
     template <class U>
-    counted_t &operator=(counted_t<U> &&other) {
+    counted_t &operator=(counted_t<U> &&other) noexcept {
         counted_t tmp(std::move(other));
         swap(tmp);
         return *this;
@@ -92,7 +96,7 @@ public:
 
     void reset(T *other) {
         counted_t tmp(other);
-        swap(tmp);  // NOLINT
+        swap(tmp);
     }
 
     T *operator->() const {
@@ -115,24 +119,11 @@ public:
         return counted_use_count(p_) == 1;
     }
 
-    class hidden_t {
-        hidden_t() = delete;
-    };
-    typedef void booleanesque_t(hidden_t);
-
-    operator booleanesque_t *() const {
-        return p_ != NULL ? &counted_t<T>::dummy_method : NULL;
-    }
-
-    bool operator <(const counted_t<T> &other) const {
-        return (p_ == NULL)
-            ? (other.p_ != NULL ? true : false)
-            : (other.p_ != NULL ? (*p_ < *other.p_) : false);
+    explicit operator bool() const {
+        return p_ != NULL;
     }
 
 private:
-    static void dummy_method(hidden_t) { }
-
     T *p_;
 };
 
@@ -272,8 +263,8 @@ template <class T>
 class movable_t {
 public:
     explicit movable_t(const counted_t<T> &copyee) : ptr_(copyee) { }
-    movable_t(movable_t &&movee) : ptr_(std::move(movee.ptr_)) { }
-    movable_t &operator=(movable_t &&movee) {
+    movable_t(movable_t &&movee) noexcept : ptr_(std::move(movee.ptr_)) { }
+    movable_t &operator=(movable_t &&movee) noexcept {
         ptr_ = std::move(movee.ptr_);
         return *this;
     }
@@ -289,6 +280,16 @@ public:
 private:
     counted_t<T> ptr_;
     DISABLE_COPYING(movable_t);
+};
+
+// Extends an arbitrary object with a slow_atomic_countable_t
+template<class T>
+class countable_wrapper_t : public T,
+                            public slow_atomic_countable_t<countable_wrapper_t<T> > {
+public:
+    template <class... Args>
+    explicit countable_wrapper_t(Args &&... args)
+        : T(std::forward<Args>(args)...) { }
 };
 
 #endif  // CONTAINERS_COUNTED_HPP_

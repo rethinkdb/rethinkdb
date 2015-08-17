@@ -6,8 +6,8 @@ import socket
 
 # pythonic discriminated union I guess, this is kind of retarded.
 
-#actually 0 need for a base class it's really more like a comment
-#that happens to be runable code
+# actually 0 need for a base class it's really more like a comment
+# that happens to be runable code
 
 class RunError(Exception):
     def __init__(self, str):
@@ -53,7 +53,7 @@ def rpm_install(path):
 def rpm_get_binary(path):
     return "rpm -qpil %s | grep /usr/bin" % path
 
-def rpm_uninstall(cmd_name): 
+def rpm_uninstall(cmd_name):
     return "which %s | xargs readlink -f | xargs rpm -qf | xargs rpm -e" % cmd_name
 
 def deb_install(path):
@@ -62,7 +62,7 @@ def deb_install(path):
 def deb_get_binary(path):
     return "dpkg -c %s | grep /usr/bin/rethinkdb-.* | sed 's/^.*\(\/usr.*\)$/\\1/'" % path
 
-def deb_uninstall(cmd_name): 
+def deb_uninstall(cmd_name):
     return "which %s | xargs readlink -f | xargs dpkg -S | sed 's/^\(.*\):.*$/\\1/' | xargs dpkg -r" % cmd_name
 
 class VM():
@@ -89,7 +89,7 @@ class VM():
         print str
         return os.system(str)
 
-    #send a file into the tmp directory of the vm
+    # send a file into the tmp directory of the vm
     def copy_to_tmp(self, path):
         str = "scp %s %s@%s:/tmp/" % (path, self.username, self.hostname)
         assert(os.system(str) == 0)
@@ -101,11 +101,11 @@ class VM():
 
 class target():
     def __init__(self, build_uuid, build_hostname, username, build_cl, res_ext, install_cl_f, uninstall_cl_f, get_binary_f, vbox_username, vbox_hostname):
-        self.build_uuid = build_uuid 
-        self.build_hostname = build_hostname 
+        self.build_uuid = build_uuid
+        self.build_hostname = build_hostname
         self.username = username
         self.build_cl = build_cl
-        self.res_ext = res_ext 
+        self.res_ext = res_ext
         self.install_cl_f = install_cl_f # path -> install cmd
         self.uninstall_cl_f = uninstall_cl_f
         self.get_binary_f = get_binary_f
@@ -113,10 +113,10 @@ class target():
         self.vbox_hostname = vbox_hostname
 
     def start_vm(self):
-        return VM(self.build_uuid, self.build_hostname, self.username, vbox_username = self.vbox_username, vbox_hostname = self.vbox_hostname) # startup = True
+        return VM(self.build_uuid, self.build_hostname, self.username, vbox_username=self.vbox_username, vbox_hostname=self.vbox_hostname) # startup = True
 
     def get_vm(self):
-        return VM(self.build_uuid, self.build_hostname, self.username, vbox_username = self.vbox_username, vbox_hostname = self.vbox_hostname, startup = False)
+        return VM(self.build_uuid, self.build_hostname, self.username, vbox_username=self.vbox_username, vbox_hostname=self.vbox_hostname, startup=False)
 
     def interact(self, short_name):
         build_vm = self.start_vm()
@@ -135,7 +135,7 @@ class target():
             for old_binary in old_binaries:
                 build_vm.command(self.uninstall_cl_f(old_binary), True)
 
-        if (not os.path.exists("Built_Packages")): 
+        if (not os.path.exists("Built_Packages")):
             os.mkdir("Built_Packages")
 
         build_vm = self.start_vm()
@@ -156,7 +156,7 @@ class target():
         else:
             raise RunError("Invalid refspec type, must be branch or tag.")
 
-        run_checked("cd rethinkdb/src &&"+self.build_cl)
+        run_checked("cd rethinkdb/src &&" + self.build_cl)
 
         dir = build_vm.popen("pwd", 'r').readline().strip('\n')
         p = build_vm.popen("find rethinkdb/build/packages -regex .*\\\\\\\\.%s" % self.res_ext, 'r')
@@ -168,20 +168,18 @@ class target():
         for path in res_paths:
             purge_installed_packages()
 
-            if (not os.path.exists(os.path.join(dest, short_name))): 
+            if (not os.path.exists(os.path.join(dest, short_name))):
                 os.mkdir(os.path.join(dest, short_name))
 
-            """
-            #install antiquated packages here
-            if os.path.exists('old_versions'):
-            	for old_version in os.listdir('old_versions'):
-                	pkg = os.listdir(os.path.join('old_versions', old_version, short_name))[0]
-                	build_vm.copy_to_tmp(os.path.join('old_versions', old_version, short_name, pkg))
-                	run_checked(self.install_cl_f(os.path.join('/tmp', pkg)), True)
-                	print "Installed: ", old_version
-            """
+            # install antiquated packages here
+            # if os.path.exists('old_versions'):
+            #     for old_version in os.listdir('old_versions'):
+            #       	pkg = os.listdir(os.path.join('old_versions', old_version, short_name))[0]
+            #       	build_vm.copy_to_tmp(os.path.join('old_versions', old_version, short_name, pkg))
+            #       	run_checked(self.install_cl_f(os.path.join('/tmp', pkg)), True)
+            #       	print "Installed: ", old_version
 
-            #install current versions
+            # install current versions
             target_binary_name = build_vm.popen(self.get_binary_f(path), "r").readlines()[0].strip('\n')
             print "Target binary name: ", target_binary_name
             run_checked(self.install_cl_f(path), True)
@@ -199,45 +197,43 @@ class target():
             print scp_string
             os.system(scp_string)
 
-            """
             # the code below is not updated
             # find legacy binaries
-            leg_binaries_raw = build_vm.popen("ls /usr/bin/rethinkdb*", "r").readlines()
-            leg_binaries = map(lambda x: x.strip('\n'), leg_binaries_raw)
-            leg_binaries.remove('/usr/bin/rethinkdb') #remove the symbolic link
-            leg_binaries.remove(target_binary_name)
+            # leg_binaries_raw = build_vm.popen("ls /usr/bin/rethinkdb*", "r").readlines()
+            # leg_binaries = map(lambda x: x.strip('\n'), leg_binaries_raw)
+            # leg_binaries.remove('/usr/bin/rethinkdb') #remove the symbolic link
+            # leg_binaries.remove(target_binary_name)
 
-            for leg_binary in leg_binaries:
-                print "Testing migration %s --> %s..." % (leg_binary, target_binary_name)
-                file_name = leg_binary.replace('/', '_').replace('-','_').replace('.', '_')
+            # for leg_binary in leg_binaries:
+            #     print "Testing migration %s --> %s..." % (leg_binary, target_binary_name)
+            #     file_name = leg_binary.replace('/', '_').replace('-','_').replace('.', '_')
 
-                #create the old data
-                run_unchecked("rm %s_1 %s_2" % (file_name, file_name))
-                run_checked("%s -p 11211 -f %s_1 -f %s_2" % (leg_binary, file_name, file_name), bg = True)
-                s = ensure_socket(build_vm.hostname, 11211)
-                from smoke_install_test import throw_migration_data
-                throw_migration_data(build_vm.hostname, 11211)
-                s.send("rethinkdb shutdown\r\n")
+            #     # create the old data
+            #     run_unchecked("rm %s_1 %s_2" % (file_name, file_name))
+            #     run_checked("%s -p 11211 -f %s_1 -f %s_2" % (leg_binary, file_name, file_name), bg = True)
+            #     s = ensure_socket(build_vm.hostname, 11211)
+            #     from smoke_install_test import throw_migration_data
+            #     throw_migration_data(build_vm.hostname, 11211)
+            #     s.send("rethinkdb shutdown\r\n")
 
-                #run migration
-                run_unchecked("rm %s_mig_1 %s_mig_2 %s_intermediate" % ((file_name, ) * 3))
-                run_checked("%s migrate --in -f %s_1 -f %s_2 --out -f %s_mig_1 -f %s_mig_2 --intermediate %s_intermediate" % ((target_binary_name,) + ((file_name,) * 5)))
+            #     # run migration
+            #     run_unchecked("rm %s_mig_1 %s_mig_2 %s_intermediate" % ((file_name, ) * 3))
+            #     run_checked("%s migrate --in -f %s_1 -f %s_2 --out -f %s_mig_1 -f %s_mig_2 --intermediate %s_intermediate" % ((target_binary_name,) + ((file_name,) * 5)))
 
-                #check to see if the data is there
-                run_checked("%s -p 11211 -f %s_mig_1 -f %s_mig_2" % (target_binary_name, file_name, file_name), bg = True)
-                s = ensure_socket(build_vm.hostname, 11211)
-                from smoke_install_test import check_migration_data
-                check_migration_data(build_vm.hostname, 11211)
-                s.send("rethinkdb shutdown\r\n")
-                print "Done"
-            """
+            #     # check to see if the data is there
+            #     run_checked("%s -p 11211 -f %s_mig_1 -f %s_mig_2" % (target_binary_name, file_name, file_name), bg = True)
+            #     s = ensure_socket(build_vm.hostname, 11211)
+            #     from smoke_install_test import check_migration_data
+            #     check_migration_data(build_vm.hostname, 11211)
+            #     s.send("rethinkdb shutdown\r\n")
+            #     print "Done"
 
             purge_installed_packages()
 
-        #clean up is used to just shutdown the machine, kind of a hack but oh well
+        # clean up is used to just shutdown the machine, kind of a hack but oh well
     def clean_up(self):
         build_vm = get_vm()
-        return #this calls the build_vms __del__ method which shutsdown the machine
+        return # this calls the build_vms __del__ method which shutsdown the machine
 
 def build(targets):
     os.mkdir("Built_Packages")

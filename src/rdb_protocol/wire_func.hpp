@@ -25,46 +25,53 @@ class env_t;
 class wire_func_t {
 public:
     wire_func_t();
-    explicit wire_func_t(const counted_t<func_t> &f);
-    virtual ~wire_func_t();
+    explicit wire_func_t(const counted_t<const func_t> &f);
+    ~wire_func_t();
     wire_func_t(const wire_func_t &copyee);
     wire_func_t &operator=(const wire_func_t &assignee);
 
     // Constructs a wire_func_t with a body and arglist and backtrace, but no scope.  I
     // hope you remembered to propagate the backtrace to body!
     wire_func_t(protob_t<const Term> body, std::vector<sym_t> arg_names,
-                protob_t<const Backtrace> backtrace);
+                backtrace_id_t backtrace);
 
-    counted_t<func_t> compile_wire_func() const;
-    protob_t<const Backtrace> get_bt() const;
+    counted_t<const func_t> compile_wire_func() const;
+    backtrace_id_t get_bt() const;
 
-    void rdb_serialize(write_message_t *wm) const;
-    archive_result_t rdb_deserialize(read_stream_t *s);
+    template <cluster_version_t W>
+    friend void serialize(write_message_t *wm, const wire_func_t &);
+    template <cluster_version_t W>
+    friend archive_result_t deserialize(read_stream_t *s, wire_func_t *);
 
 private:
-    virtual bool func_can_be_null() const { return false; }
-    counted_t<func_t> func;
+    friend class maybe_wire_func_t;  // for has().
+    bool has() const { return func.has(); }
+
+    counted_t<const func_t> func;
 };
 
-class maybe_wire_func_t : public wire_func_t {
+class maybe_wire_func_t {
 protected:
     template<class... Args>
-    explicit maybe_wire_func_t(Args... args) : wire_func_t(args...) { }
+    explicit maybe_wire_func_t(Args... args) : wrapped(args...) { }
+
+public:
+    template <cluster_version_t W>
+    friend void serialize(write_message_t *wm, const maybe_wire_func_t &);
+    template <cluster_version_t W>
+    friend archive_result_t deserialize(read_stream_t *s, maybe_wire_func_t *);
+
+    counted_t<const func_t> compile_wire_func_or_null() const;
+
 private:
-    virtual bool func_can_be_null() const { return true; }
+    bool has() const { return wrapped.has(); }
+    wire_func_t wrapped;
 };
 
 class map_wire_func_t : public wire_func_t {
 public:
     template <class... Args>
     explicit map_wire_func_t(Args... args) : wire_func_t(args...) { }
-
-    // Safely constructs a map wire func, that couldn't possibly capture any surprise
-    // variables.
-    static map_wire_func_t make_safely(
-        pb::dummy_var_t dummy_var,
-        const std::function<protob_t<Term>(sym_t argname)> &body_generator,
-        protob_t<const Backtrace> backtrace);
 };
 
 class filter_wire_func_t {
@@ -74,7 +81,7 @@ public:
                        const boost::optional<ql::wire_func_t> &_default_filter_val)
         : filter_func(_filter_func),
           default_filter_val(_default_filter_val) { }
-    filter_wire_func_t(const counted_t<func_t> &_filter_func,
+    filter_wire_func_t(const counted_t<const func_t> &_filter_func,
                        const boost::optional<ql::wire_func_t> &_default_filter_val)
         : filter_func(_filter_func),
           default_filter_val(_default_filter_val) { }
@@ -90,45 +97,51 @@ public:
     explicit reduce_wire_func_t(Args... args) : wire_func_t(args...) { }
 };
 
+enum class result_hint_t { NO_HINT, AT_MOST_ONE };
 class concatmap_wire_func_t : public wire_func_t {
 public:
+    concatmap_wire_func_t() { }
     template <class... Args>
-    explicit concatmap_wire_func_t(Args... args) : wire_func_t(args...) { }
+    explicit concatmap_wire_func_t(result_hint_t _result_hint, Args... args)
+        : wire_func_t(args...), result_hint(_result_hint) { }
+    // We use this so that terms which rewrite to a `concat_map` but can never
+    // produce more than one result can be handled correctly by `changes`.
+    result_hint_t result_hint;
 };
 
 // These are fake functions because we don't need to send anything.
 // TODO: make `count` behave like `sum`, `avg`, etc.
 struct count_wire_func_t {
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+RDB_DECLARE_SERIALIZABLE(count_wire_func_t);
 
-class bt_wire_func_t {
-public:
-    bt_wire_func_t() : bt(make_counted_backtrace()) { }
-    explicit bt_wire_func_t(const protob_t<const Backtrace> &_bt) : bt(_bt) { }
-
-    void rdb_serialize(write_message_t *wm) const;
-    archive_result_t rdb_deserialize(read_stream_t *s);
-    protob_t<const Backtrace> get_bt() const { return bt; }
-private:
-    protob_t<const Backtrace> bt;
+class zip_wire_func_t {
 };
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(zip_wire_func_t);
 
 class group_wire_func_t {
 public:
-    group_wire_func_t() : bt(make_counted_backtrace()) { }
-    group_wire_func_t(std::vector<counted_t<func_t> > &&_funcs,
+    group_wire_func_t() : bt(backtrace_id_t::empty()) { }
+    group_wire_func_t(std::vector<counted_t<const func_t> > &&_funcs,
                       bool _append_index, bool _multi);
-    std::vector<counted_t<func_t> > compile_funcs() const;
+    std::vector<counted_t<const func_t> > compile_funcs() const;
     bool should_append_index() const;
     bool is_multi() const;
-    protob_t<const Backtrace> get_bt() const;
-    RDB_DECLARE_ME_SERIALIZABLE;
+    backtrace_id_t get_bt() const;
+    RDB_DECLARE_ME_SERIALIZABLE(group_wire_func_t);
 private:
     std::vector<wire_func_t> funcs;
     bool append_index, multi;
-    bt_wire_func_t bt;
+    backtrace_id_t bt;
 };
+
+class distinct_wire_func_t {
+public:
+    distinct_wire_func_t() : use_index(false) { }
+    explicit distinct_wire_func_t(bool _use_index) : use_index(_use_index) { }
+    bool use_index;
+};
+RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(distinct_wire_func_t);
 
 template <class T>
 class skip_terminal_t;
@@ -137,12 +150,12 @@ class skip_wire_func_t : public maybe_wire_func_t {
 protected:
     skip_wire_func_t() { }
     template <class... Args>
-    explicit skip_wire_func_t(const protob_t<const Backtrace> &_bt, Args... args)
+    explicit skip_wire_func_t(backtrace_id_t _bt, Args... args)
         : maybe_wire_func_t(args...), bt(_bt) { }
 private:
     template <class T>
     friend class skip_terminal_t;
-    bt_wire_func_t bt;
+    backtrace_id_t bt;
 };
 
 class sum_wire_func_t : public skip_wire_func_t {

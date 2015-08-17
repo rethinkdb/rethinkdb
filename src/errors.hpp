@@ -22,7 +22,7 @@
 #define BREAKPOINT
 #endif /* DISABLE_BREAKPOINTS */
 
-#define CT_ASSERT(e) do { enum { compile_time_assert_error = 1/(!!(e)) }; } while (0)
+#define CT_ASSERT(e) static_assert(e, #e)
 
 #ifndef NDEBUG
 #define DEBUG_ONLY(...) __VA_ARGS__
@@ -179,6 +179,11 @@ void assertion_failed(char const * expr, char const * function, char const * fil
     T(const T&) = delete;                       \
     T& operator=(const T&) = delete
 
+#define MOVABLE_BUT_NOT_COPYABLE(T) \
+    DISABLE_COPYING(T);             \
+    T(T &&) = default;              \
+    T &operator=(T &&) = default
+
 
 /* Put these after functions to indicate what they throw. In release mode, they
 turn into noops so that the compiler doesn't have to generate exception-checking
@@ -198,6 +203,10 @@ release mode. */
 #if (BOOST_VERSION >= 104200) && (BOOST_VERSION <= 104399)
 #include <boost/config.hpp> // NOLINT(build/include_order)
 #undef BOOST_HAS_RVALUE_REFS
+#endif
+
+#ifdef __GNUC__
+#define GNUC_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
 #endif
 
 
@@ -225,5 +234,15 @@ release mode. */
 #define RVALUE_THIS
 #endif
 
+
+#if defined(__clang__)
+    #if !__has_extension(cxx_override_control)
+        #define override
+        #define final
+    #endif
+#elif GNUC_VERSION < 40700
+    #define override
+    #define final
+#endif
 
 #endif /* ERRORS_HPP_ */

@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "containers/archive/vector_stream.hpp"
 
 #include <string.h>
@@ -49,24 +49,4 @@ void vector_read_stream_t::swap(std::vector<char> *other_vec, int64_t *other_pos
 
     guarantee(pos_ >= 0);
     guarantee(static_cast<uint64_t>(pos_) <= vec_.size());
-}
-
-
-inplace_vector_read_stream_t::inplace_vector_read_stream_t(
-        const std::vector<char> *vector, int64_t offset)
-    : pos_(offset), vec_(vector) {
-    guarantee(pos_ >= 0);
-    guarantee(static_cast<uint64_t>(pos_) <= vec_->size());
-}
-inplace_vector_read_stream_t::~inplace_vector_read_stream_t() { }
-
-int64_t inplace_vector_read_stream_t::read(void *p, int64_t n) {
-    int64_t num_left = vec_->size() - pos_;
-    int64_t num_to_read = n < num_left ? n : num_left;
-
-    memcpy(p, vec_->data() + pos_, num_to_read);
-
-    pos_ += num_to_read;
-
-    return num_to_read;
 }

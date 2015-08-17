@@ -12,25 +12,25 @@
 #include "rpc/serialize_macros.hpp"
 #include "serializer/types.hpp"
 
+/* This file contains code for working with the sindex block, which is a child of the
+table's primary superblock.
+
+`btree/secondary_operations.*` and `btree/reql_specific.*` are the only files in the
+`btree/` directory that know about ReQL-specific concepts such as metainfo and sindexes.
+They should probably be moved out of the `btree/` directory. */
+
 class buf_lock_t;
 
 struct secondary_index_t {
     secondary_index_t()
-        : superblock(NULL_BLOCK_ID), post_construction_complete(false),
-          being_deleted(false), id(generate_uuid())
-    { }
+        : superblock(NULL_BLOCK_ID),
+          post_construction_complete(false),
+          being_deleted(false),
+          /* TODO(2014-08): This generate_uuid() is weird. */
+          id(generate_uuid()) { }
 
     /* A virtual superblock. */
     block_id_t superblock;
-
-    /* An opaque_definition_t is a serializable description of the secondary
-     * index. Values which are stored in the B-Tree (template parameters to
-     * `find_keyvalue_location_for_[read,write]`) must support the following
-     * method:
-     * store_key_t index(const opaque_definition_t &);
-     * Which returns the value of the secondary index.
-     */
-    typedef std::vector<char> opaque_definition_t;
 
     /* Whether the index is has completed post construction, and/or is being deleted.
      * Note that an index can be in any combination of those states. */
@@ -40,23 +40,20 @@ struct secondary_index_t {
         return post_construction_complete && !being_deleted;
     }
 
-    /* An opaque blob that describes the index */
-    opaque_definition_t opaque_definition;
+    /* An opaque blob that describes the index.  See serialize_sindex_info and
+     deserialize_sindex_info.  At one point it contained a serialized map_wire_func_t
+     and a sindex_multi_bool_t.  Now it also contains reql version info.  (This being
+     a std::vector<char> is a holdover from when we had multiple protocols.) */
+    std::vector<char> opaque_definition;
 
     /* Sindexes contain a uuid_u to prevent a rapid deletion and recreation of
      * a sindex with the same name from tricking a post construction in to
      * switching targets. This issue is described in more detail here:
      * https://github.com/rethinkdb/rethinkdb/issues/657 */
     uuid_u id;
-
-    /* Used in unit tests. */
-    bool operator==(const secondary_index_t &other) const {
-        return superblock == other.superblock &&
-               opaque_definition == other.opaque_definition;
-    }
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(secondary_index_t);
 
 struct sindex_name_t {
     sindex_name_t()
@@ -77,9 +74,9 @@ struct sindex_name_t {
     // of an index that's being deleted can never conflict with any newly created
     // index.
     bool being_deleted;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_DECLARE_SERIALIZABLE(sindex_name_t);
 
 //Secondary Index functions
 

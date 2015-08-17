@@ -1,4 +1,5 @@
 desc: Tests for match
+table_variable_name: tbl
 tests:
     - cd: r.expr("abcdefg").match("a(b.e)|b(c.e)")
       ot: ({'str':'bcde','groups':[null,{'start':2,'str':'cde','end':5}],'start':1,'end':5})
@@ -7,15 +8,10 @@ tests:
     - cd: r.expr("abcdefg").match("(?i)a(b.e)|B(c.e)")
       ot: ({'str':'bcde','groups':[null,{'start':2,'str':'cde','end':5}],'start':1,'end':5})
 
-    - cd: r.table_create('test_match')
-      ot: ({'created':1})
-
     - cd: r.expr(["aba", "aca", "ada", "aea"]).filter{|row| row.match("a(.)a")[:groups][0][:str].match("[cd]")}
       py: r.expr(["aba", "aca", "ada", "aea"]).filter(lambda row:row.match("a(.)a")['groups'][0]['str'].match("[cd]"))
       js: r.expr(["aba", "aca", "ada", "aea"]).filter(function(row){return row.match("a(.)a")('groups').nth(0)('str').match("[cd]")})
       ot: (["aca", "ada"])
-
-    - def: tbl = r.table('test_match')
 
     - cd: tbl.insert([{'id':0,'a':'abc'},{'id':1,'a':'ab'},{'id':2,'a':'bc'}])
       ot: ({'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':3})
@@ -41,5 +37,3 @@ tests:
       ot: |
          err("RqlRuntimeError", "Error in regexp `ab\\9` (portion `\\9`): invalid escape sequence: \\9", [])
 
-    - cd: r.table_drop('test_match')
-      ot: ({'dropped':1})

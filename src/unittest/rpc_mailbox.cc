@@ -2,6 +2,7 @@
 #include "unittest/gtest.hpp"
 
 #include "arch/timing.hpp"
+#include "unittest/clustering_utils.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/mailbox/typed.hpp"
@@ -25,6 +26,11 @@ private:
         void write(cluster_version_t cluster_version, write_message_t *wm) {
             serialize_for_version(cluster_version, wm, arg);
         }
+#ifdef ENABLE_MESSAGE_PROFILER
+        const char *message_profiler_tag() const {
+            return "unittest";
+        }
+#endif
     private:
         friend class read_impl_t;
         int32_t arg;
@@ -33,9 +39,9 @@ private:
     class read_impl_t : public mailbox_read_callback_t {
     public:
         explicit read_impl_t(dummy_mailbox_t *_parent) : parent(_parent) { }
-        void read(cluster_version_t cluster_version, read_stream_t *stream) {
+        void read(read_stream_t *stream, UNUSED signal_t *interruptor) {
             int i;
-            archive_result_t res = deserialize_for_version(cluster_version, stream, &i);
+            archive_result_t res = deserialize<cluster_version_t::CLUSTER>(stream, &i);
             if (bad(res)) { throw fake_archive_exc_t(); }
             parent->inbox.insert(i);
         }
@@ -66,8 +72,9 @@ void send(mailbox_manager_t *c, raw_mailbox_t::address_t dest, int message) {
 /* `MailboxStartStop` creates and destroys some mailboxes. */
 TPTEST(RPCMailboxTest, MailboxStartStop, 2) {
     connectivity_cluster_t c;
-    mailbox_manager_t m(&c);
-    connectivity_cluster_t::run_t r(&c, get_unittest_addresses(), peer_address_t(), ANY_PORT, &m, 0, NULL);
+    mailbox_manager_t m(&c, 'M');
+    connectivity_cluster_t::run_t r(&c, get_unittest_addresses(), peer_address_t(),
+        ANY_PORT, 0);
 
     /* Make sure we can create a mailbox */
     dummy_mailbox_t mbox1(&m);
@@ -80,10 +87,12 @@ TPTEST(RPCMailboxTest, MailboxStartStop, 2) {
 /* `MailboxMessage` sends messages to some mailboxes */
 TPTEST_MULTITHREAD(RPCMailboxTest, MailboxMessage, 3) {
     connectivity_cluster_t c1, c2;
-    mailbox_manager_t m1(&c1), m2(&c2);
-    connectivity_cluster_t::run_t r1(&c1, get_unittest_addresses(), peer_address_t(), ANY_PORT, &m1, 0, NULL);
-    connectivity_cluster_t::run_t r2(&c2, get_unittest_addresses(), peer_address_t(), ANY_PORT, &m2, 0, NULL);
-    r1.join(c2.get_peer_address(c2.get_me()));
+    mailbox_manager_t m1(&c1, 'M'), m2(&c2, 'M');
+    connectivity_cluster_t::run_t r1(&c1, get_unittest_addresses(), peer_address_t(),
+        ANY_PORT, 0);
+    connectivity_cluster_t::run_t r2(&c2, get_unittest_addresses(), peer_address_t(),
+        ANY_PORT, 0);
+    r1.join(get_cluster_local_address(&c2));
     let_stuff_happen();
 
     /* Create a mailbox and send it three messages */
@@ -105,9 +114,11 @@ TPTEST_MULTITHREAD(RPCMailboxTest, MailboxMessage, 3) {
 for the message to be silently ignored. */
 TPTEST_MULTITHREAD(RPCMailboxTest, DeadMailbox, 3) {
     connectivity_cluster_t c1, c2;
-    mailbox_manager_t m1(&c1), m2(&c2);
-    connectivity_cluster_t::run_t r1(&c1, get_unittest_addresses(), peer_address_t(), ANY_PORT, &m1, 0, NULL);
-    connectivity_cluster_t::run_t r2(&c2, get_unittest_addresses(), peer_address_t(), ANY_PORT, &m2, 0, NULL);
+    mailbox_manager_t m1(&c1, 'M'), m2(&c2, 'M');
+    connectivity_cluster_t::run_t r1(&c1, get_unittest_addresses(), peer_address_t(),
+        ANY_PORT, 0);
+    connectivity_cluster_t::run_t r2(&c2, get_unittest_addresses(), peer_address_t(),
+        ANY_PORT, 0);
 
     /* Create a mailbox, take its address, then destroy it. */
     raw_mailbox_t::address_t address;
@@ -128,8 +139,9 @@ TPTEST_MULTITHREAD(RPCMailboxTest, MailboxAddressSemantics, 3) {
     EXPECT_TRUE(nil_addr.is_nil());
 
     connectivity_cluster_t c;
-    mailbox_manager_t m(&c);
-    connectivity_cluster_t::run_t r(&c, get_unittest_addresses(), peer_address_t(), ANY_PORT, &m, 0, NULL);
+    mailbox_manager_t m(&c, 'M');
+    connectivity_cluster_t::run_t r(&c, get_unittest_addresses(), peer_address_t(),
+        ANY_PORT, 0);
 
     dummy_mailbox_t mbox(&m);
     raw_mailbox_t::address_t mbox_addr = mbox.mailbox.get_address();
@@ -145,11 +157,15 @@ void string_push_back(std::vector<std::string> *v, const std::string &pushee) {
 
 TPTEST_MULTITHREAD(RPCMailboxTest, TypedMailbox, 3) {
     connectivity_cluster_t c;
-    mailbox_manager_t m(&c);
-    connectivity_cluster_t::run_t r(&c, get_unittest_addresses(), peer_address_t(), ANY_PORT, &m, 0, NULL);
+    mailbox_manager_t m(&c, 'M');
+    connectivity_cluster_t::run_t r(&c, get_unittest_addresses(), peer_address_t(),
+        ANY_PORT, 0);
 
     std::vector<std::string> inbox;
-    mailbox_t<void(std::string)> mbox(&m, std::bind(&string_push_back, &inbox, ph::_1));
+    mailbox_t<void(std::string)> mbox(&m,
+        [&](signal_t *, const std::string &str) {
+            inbox.push_back(str);
+        });
 
     mailbox_addr_t<void(std::string)> addr = mbox.get_address();
 

@@ -69,8 +69,7 @@ tests:
   - def: ctz = "+00:00"
   - def: tzs = ["Z", "+00", "+0000", "+00:00"]
   - def: cdt = [cdate+"T"+ctime+ctz]
-  - def:
-      rb: dts = dates.map{|d| times.map{|t| tzs.map{|tz| d+"T"+t+tz}}}.flatten
+  - rb: dts = dates.map{|d| times.map{|t| tzs.map{|tz| d+"T"+t+tz}}}.flatten
   - rb: r(dts).map{|x| r.iso8601(x).to_iso8601}.distinct
     ot: (cdt)
 
@@ -82,29 +81,16 @@ tests:
   - def: bad_dates = ["201301", "2013-0101", "2a13", "2013+01", "2013-01-01.1"]
   - def: bad_times = ["a3", "13:0000", "13:000", "13:00.00", "130000.00000000a"]
   - def: bad_tzs = ["X", "-7", "-07:-1", "+07+01", "PST", "UTC", "Z+00"]
-  - def:
-      rb:  bad_dts1 = bad_dates.map{|d| times.map{|t| tzs.map{|tz| d+"T"+t+tz}}}.flatten
-  - def:
-      rb:  bad_dts2 = dates.map{|d| bad_times.map{|t| tzs.map{|tz| d+"T"+t+tz}}}.flatten
-  - def:
-      rb:  bad_dts3 = dates.map{|d| times.map{|t| bad_tzs.map{|tz| d+"T"+t+tz}}}.flatten
-  - def:
-      rb:  bad_dts = bad_dts1 + bad_dts2 + bad_dts3
-# We have to hack this because we have no way to handle exceptions
-# inside of ReQL, and the easiest way to access the connection object
-# is by stealing the arguments the test framework provides to `run`.
-  - def:
-      rb:  subrunner = class << bad_dts; def run(*args); self.map{|x| begin; RethinkDB::RQL.new.expr({:s => x, :d => RethinkDB::RQL.new.iso8601(x)}).run(*args); rescue RethinkDB::RqlRuntimeError => e; nil; end}.select{|x| x != nil}; end; end
-  - rb: bad_dts
+  
+  - rb:  bad_dts1 = bad_dates.map{|d| times.map{|t| tzs.map{|tz| d+"T"+t+tz}}}.flatten
+  - rb:  bad_dts2 = dates.map{|d| bad_times.map{|t| tzs.map{|tz| d+"T"+t+tz}}}.flatten
+  - rb:  bad_dts3 = dates.map{|d| times.map{|t| bad_tzs.map{|tz| d+"T"+t+tz}}}.flatten
+  - rb:  bad_dts = bad_dts1 + bad_dts2 + bad_dts3
+
+  - rb: bad_dts.map{|x| begin; r.expr({:s => x, :d => r.iso8601(x)}).run($reql_conn); rescue RethinkDB::RqlRuntimeError => e; nil; end}.select{|x| x != nil};
     ot: ([])
 
 # Check that we can't put a valid date into any invalid timezone.
-  - def:
-      rb:  bad_dts_in_tz = dts.map{|dt| bad_tzs.map{|tz| {:dt => dt, :tz => tz}}}.flatten
-# We have to hack this because we have no way to handle exceptions
-# inside of ReQL, and the easiest way to access the connection object
-# is by stealing the arguments the test framework provides to `run`.
-  - def:
-      rb:  subrunner = class << bad_dts_in_tz; def run(*args); self.map{|x| begin; RethinkDB::RQL.new.expr({:dt => x[:dt], :tz => x[:tz], :s => RethinkDB::RQL.new.iso8601(x[:dt]).to_epoch_time.epoch_time.in_timezone(x[:tz]).to_iso8601.run(*args)}); rescue RethinkDB::RqlRuntimeError => e; nil; end}.select{|x| x != nil}; end; end
-  - rb: bad_dts_in_tz
+  - rb: bad_dts_in_tz = r.expr(dts.map{|dt| bad_tzs.map{|tz| {:dt => dt, :tz => tz}}}.flatten)
+  - rb: bad_dts_in_tz.map{ |x| begin; r.expr({:dt => x[:dt], :tz => x[:tz], :s => r.iso8601(x[:dt]).to_epoch_time.epoch_time.in_timezone(x[:tz]).to_iso8601.run($reql_conn)}); rescue RethinkDB::RqlRuntimeError => e; nil; end }.select{|x| x != nil}
     ot: ([])

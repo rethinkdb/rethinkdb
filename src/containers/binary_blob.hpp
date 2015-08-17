@@ -50,7 +50,6 @@ public:
 
 private:
     std::vector<uint8_t> storage;
-    RDB_DECLARE_ME_SERIALIZABLE;
 };
 
 inline bool operator==(const binary_blob_t &left, const binary_blob_t &right) {

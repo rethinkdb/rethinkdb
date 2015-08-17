@@ -10,38 +10,78 @@ pathspec_t::pathspec_t(const pathspec_t &other) {
 }
 
 pathspec_t& pathspec_t::operator=(const pathspec_t &other) {
+    // Delay freeing the memory we allocated in case &other == this or other
+    // is a field inside of *this.
+    type_t type_old = type;
+    union {
+        datum_string_t *str_old;
+        std::vector<pathspec_t> *vec_old;
+        std::map<datum_string_t, pathspec_t> *map_old;
+    };
+    switch (type) {
+    case STR:
+        str_old = str;
+        break;
+    case VEC:
+        vec_old = vec;
+        break;
+    case MAP:
+        map_old = map;
+        break;
+    default:
+        unreachable();
+    }
+
     init_from(other);
+
+    switch (type_old) {
+    case STR:
+        delete str_old;
+        break;
+    case VEC:
+        delete vec_old;
+        break;
+    case MAP:
+        delete map_old;
+        break;
+    default:
+        unreachable();
+    }
+
     return *this;
 }
 
-pathspec_t::pathspec_t(const std::string &_str, term_t *_creator)
-    : type(STR), str(new std::string(_str)), creator(_creator) { }
+pathspec_t::pathspec_t(const datum_string_t &_str, const term_t *_creator)
+    : type(STR), str(new datum_string_t(_str)), creator(_creator) { }
 
-pathspec_t::pathspec_t(const std::map<std::string, pathspec_t> &_map, term_t *_creator)
-    : type(MAP), map(new std::map<std::string, pathspec_t>(_map)), creator(_creator) { }
+pathspec_t::pathspec_t(const std::map<datum_string_t, pathspec_t> &_map,
+                       const term_t *_creator)
+    : type(MAP), map(new std::map<datum_string_t, pathspec_t>(_map)), creator(_creator) { }
 
-pathspec_t::pathspec_t(counted_t<const datum_t> datum, term_t *_creator)
+pathspec_t::pathspec_t(datum_t datum, const term_t *_creator)
     : creator(_creator)
 {
-    if (datum->get_type() == datum_t::R_STR) {
+    if (datum.get_type() == datum_t::R_STR) {
         type = STR;
-        str = new std::string(datum->as_str().to_std());
-    } else if (datum->get_type() == datum_t::R_ARRAY) {
+        str = new datum_string_t(datum.as_str());
+    } else if (datum.get_type() == datum_t::R_ARRAY) {
         type = VEC;
         vec = new std::vector<pathspec_t>;
-        for (size_t i = 0; i < datum->size(); ++i) {
-            vec->push_back(pathspec_t(datum->get(i), creator));
+        for (size_t i = 0; i < datum.arr_size(); ++i) {
+            vec->push_back(pathspec_t(datum.get(i), creator));
         }
-    } else if (datum->get_type() == datum_t::R_OBJECT) {
+    } else if (datum.get_type() == datum_t::R_OBJECT) {
         scoped_ptr_t<std::vector<pathspec_t> > local_vec(new std::vector<pathspec_t>);
-        scoped_ptr_t<std::map<std::string, pathspec_t> > local_map(new std::map<std::string, pathspec_t>);
-        for (auto it = datum->as_object().begin();
-             it != datum->as_object().end(); ++it) {
-            if (it->second->get_type() == datum_t::R_BOOL &&
-                it->second->as_bool() == true) {
-                local_vec->push_back(pathspec_t(it->first, creator));
+        scoped_ptr_t<std::map<datum_string_t, pathspec_t> >
+            local_map(new std::map<datum_string_t, pathspec_t>);
+        for (size_t i = 0; i < datum.obj_size(); ++i) {
+            auto pair = datum.get_pair(i);
+            if (pair.second.get_type() == datum_t::R_BOOL &&
+                pair.second.as_bool() == true) {
+                local_vec->push_back(pathspec_t(pair.first, creator));
             } else {
-                local_map->insert(std::make_pair(it->first, pathspec_t(it->second, creator)));
+                local_map->insert(std::make_pair(pair.first,
+                                                 pathspec_t(pair.second, creator)));
             }
         }
 
@@ -56,8 +96,8 @@ pathspec_t::pathspec_t(counted_t<const datum_t> datum, term_t *_creator)
             }
         }
     } else {
-        rfail_target(creator, base_exc_t::GENERIC, "Invalid path argument `%s`.",
-                datum->print().c_str());
+        rfail_target(creator, base_exc_t::LOGIC, "Invalid path argument `%s`.",
+                datum.print().c_str());
     }
 
     if (type == VEC && vec->size() == 1) {
@@ -85,13 +125,13 @@ void pathspec_t::init_from(const pathspec_t &other) {
     type = other.type;
     switch (type) {
     case STR:
-        str = new std::string(*other.str);
+        str = new datum_string_t(*other.str);
         break;
     case VEC:
         vec = new std::vector<pathspec_t>(*other.vec);
         break;
     case MAP:
-        map = new std::map<std::string, pathspec_t>(*other.map);
+        map = new std::map<datum_string_t, pathspec_t>(*other.map);
         break;
     default:
         unreachable();
@@ -101,39 +141,40 @@ void pathspec_t::init_from(const pathspec_t &other) {
 
 
 /* Limit the datum to only the paths specified by the pathspec. */
-counted_t<const datum_t> project(counted_t<const datum_t> datum,
-        const pathspec_t &pathspec, recurse_flag_t recurse) {
-    if (datum->get_type() == datum_t::R_ARRAY && recurse == RECURSE) {
-        datum_ptr_t res(datum_t::R_ARRAY);
-        for (size_t i = 0; i < datum->size(); ++i) {
-            res.add(project(datum->get(i), pathspec, DONT_RECURSE));
+datum_t project(datum_t datum,
+                const pathspec_t &pathspec, recurse_flag_t recurse,
+                const configured_limits_t &limits) {
+    if (datum.get_type() == datum_t::R_ARRAY && recurse == RECURSE) {
+        datum_array_builder_t res(limits);
+        res.reserve(datum.arr_size());
+        for (size_t i = 0; i < datum.arr_size(); ++i) {
+            res.add(project(datum.get(i), pathspec, DONT_RECURSE, limits));
         }
-        return res.to_counted();
+        return std::move(res).to_datum();
     } else {
-        datum_ptr_t res(datum_t::R_OBJECT);
+        datum_object_builder_t res;
         if (pathspec.as_str() != NULL) {
-            const std::string str = static_cast<std::string>(*pathspec.as_str());
-            if (counted_t<const datum_t> val = datum->get(str, NOTHROW)) {
-                // This bool indicates if things were clobbered. We're fine
-                // with things being clobbered so we ignore it.
-                UNUSED bool b = res.add(str, val, CLOBBER);
+            datum_string_t str(*pathspec.as_str());
+            const datum_t val = datum.get_field(str, NOTHROW);
+            if (val.has()) {
+                res.overwrite(std::move(str), val);
             }
         } else if (const std::vector<pathspec_t> *vec = pathspec.as_vec()) {
             for (auto it = vec->begin(); it != vec->end(); ++it) {
-                counted_t<const datum_t> sub_result = project(datum, *it, recurse);
-                for (auto jt = sub_result->as_object().begin();
-                     jt != sub_result->as_object().end(); ++jt) {
-                    UNUSED bool b = res.add(jt->first, jt->second, CLOBBER);
+                datum_t sub_result = project(datum, *it, recurse, limits);
+                for (size_t i = 0; i < sub_result.obj_size(); ++i) {
+                    auto pair = sub_result.get_pair(i);
+                    res.overwrite(pair.first, pair.second);
                 }
             }
-        } else if (const std::map<std::string, pathspec_t> *map = pathspec.as_map()) {
+        } else if (const std::map<datum_string_t, pathspec_t> *map = pathspec.as_map()) {
             for (auto it = map->begin(); it != map->end(); ++it) {
-                if (counted_t<const datum_t> val = datum->get(it->first, NOTHROW)) {
+                const datum_t val = datum.get_field(it->first, NOTHROW);
+                if (val.has()) {
                     try {
-                        counted_t<const datum_t> sub_result =
-                            project(val, it->second, RECURSE);
-                        // We know we're clobbering, that's the point.
-                        UNUSED bool b = res.add(it->first, sub_result, CLOBBER);
+                        datum_t sub_result =
+                            project(val, it->second, RECURSE, limits);
+                        res.overwrite(it->first, sub_result);
                     } catch (const datum_exc_t &e) {
                         // do nothing
                     }
@@ -142,27 +183,28 @@ counted_t<const datum_t> project(counted_t<const datum_t> datum,
         } else {
             unreachable();
         }
-        return res.to_counted();
+        return std::move(res).to_datum();
     }
 }
 
-void unproject_helper(datum_ptr_t *datum,
+void unproject_helper(datum_object_builder_t *datum,
                       const pathspec_t &pathspec,
-                      recurse_flag_t recurse) {
-    if (const std::string *str = pathspec.as_str()) {
+                      recurse_flag_t recurse,
+                      const configured_limits_t &limits) {
+    if (const datum_string_t *str = pathspec.as_str()) {
         UNUSED bool key_was_deleted = datum->delete_field(*str);
     } else if (const std::vector<pathspec_t> *vec = pathspec.as_vec()) {
         for (auto it = vec->begin(); it != vec->end(); ++it) {
-            unproject_helper(datum, *it, recurse);
+            unproject_helper(datum, *it, recurse, limits);
         }
-    } else if (const std::map<std::string, pathspec_t> *map = pathspec.as_map()) {
+    } else if (const std::map<datum_string_t, pathspec_t> *map = pathspec.as_map()) {
         for (auto it = map->begin(); it != map->end(); ++it) {
-            if (counted_t<const datum_t> val = (*datum)->get(it->first, NOTHROW)) {
+            const datum_t val = datum->try_get(it->first);
+            if (val.has()) {
                 try {
-                    counted_t<const datum_t> sub_result =
-                        unproject(val, it->second, RECURSE);
-                    /* We know we're clobbering, that's the point. */
-                    UNUSED bool clobbered = datum->add(it->first, sub_result, CLOBBER);
+                    datum_t sub_result =
+                        unproject(val, it->second, RECURSE, limits);
+                    datum->overwrite(it->first, sub_result);
                 } catch (const datum_exc_t &e) {
                     // do nothing
                 }
@@ -174,29 +216,31 @@ void unproject_helper(datum_ptr_t *datum,
 }
 
 /* Limit the datum to only the paths not specified by the pathspec. */
-counted_t<const datum_t> unproject(counted_t<const datum_t> datum,
-        const pathspec_t &pathspec, recurse_flag_t recurse) {
-    if (datum->get_type() == datum_t::R_ARRAY && recurse == RECURSE) {
-        datum_ptr_t res(datum_t::R_ARRAY);
-        for (size_t i = 0; i < datum->size(); ++i) {
-            res.add(unproject(datum->get(i), pathspec, DONT_RECURSE));
+datum_t unproject(datum_t datum,
+                  const pathspec_t &pathspec, recurse_flag_t recurse,
+                  const configured_limits_t &limits) {
+    if (datum.get_type() == datum_t::R_ARRAY && recurse == RECURSE) {
+        datum_array_builder_t res(limits);
+        res.reserve(datum.arr_size());
+        for (size_t i = 0; i < datum.arr_size(); ++i) {
+            res.add(unproject(datum.get(i), pathspec, DONT_RECURSE, limits));
         }
-        return res.to_counted();
+        return std::move(res).to_datum();
     } else {
-        datum_ptr_t res(datum->as_object());
-        unproject_helper(&res, pathspec, recurse);
-        return res.to_counted();
+        datum_object_builder_t res(datum);
+        unproject_helper(&res, pathspec, recurse, limits);
+        return std::move(res).to_datum();
     }
 }
 
 /* Return whether or not ALL of the paths in the pathspec exist in the datum. */
-bool contains(counted_t<const datum_t> datum,
+bool contains(datum_t datum,
         const pathspec_t &pathspec) {
     try {
         bool res = true;
-        if (const std::string *str = pathspec.as_str()) {
-            if (!(res &= (datum->get(*str, NOTHROW).has() &&
-                          datum->get(*str)->get_type() != datum_t::R_NULL))) {
+        if (const datum_string_t *str = pathspec.as_str()) {
+            if (!(res &= (datum.get_field(*str, NOTHROW).has() &&
+                          datum.get_field(*str).get_type() != datum_t::R_NULL))) {
                 return res;
             }
         } else if (const std::vector<pathspec_t> *vec = pathspec.as_vec()) {
@@ -205,9 +249,10 @@ bool contains(counted_t<const datum_t> datum,
                     return res;
                 }
             }
-        } else if (const std::map<std::string, pathspec_t> *map = pathspec.as_map()) {
+        } else if (const std::map<datum_string_t, pathspec_t> *map = pathspec.as_map()) {
             for (auto it = map->begin(); it != map->end(); ++it) {
-                if (counted_t<const datum_t> val = datum->get(it->first, NOTHROW)) {
+                const datum_t val = datum.get_field(it->first, NOTHROW);
+                if (val.has()) {
                     if (!(res &= contains(val, it->second))) {
                         return res;
                     }

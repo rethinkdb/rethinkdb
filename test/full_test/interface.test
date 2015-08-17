@@ -1,8 +1,32 @@
-for interface_test_name in ['detect_dead', 'distribution', 'log', 'progress',
-        'dead_machine_issues', 'unsatisfiable_goals_issue', 'name_conflict_issue',
-        'net_corruption', 'resources', 'large_branch_history',
-        'metadata_persistence', 'stat']:
-    generate_test(
-        "$RETHINKDB/test/interface/%s.py" % interface_test_name,
-        name = interface_test_name
-        )
+# RSI(raft): Add test for outdated index issues
+
+for interface_test_name in [
+        'artificial_table',
+        'cache_size',
+        'cluster_config',
+        'db_config',
+        'detect_netsplit',
+        'emergency_repair',
+        'log',
+        'log_write_issue',
+        'metadata_persistence',
+        'name_collision',
+        'net_corruption',
+        'precise_stats',
+        'reconfigure_stress',
+        'resources',
+        'rethinkdb_jobs',
+        'server_config',
+        'server_status',
+        'shard_balancing',
+        'shard_fuzzer',
+        'stat',
+        'system_changefeeds',
+        'table_config',
+        'table_doc_count_estimates',
+        'table_readiness',
+        'table_reconfigure',
+        'table_wait',
+        'unsatisfiable_goals_issue']:
+    generate_test("$RETHINKDB/test/interface/%s.py" % interface_test_name, name=interface_test_name)
+

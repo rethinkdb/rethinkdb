@@ -16,7 +16,8 @@ perfmon_collection_repo_t::perfmon_collection_repo_t(perfmon_collection_t *_pare
 
 perfmon_collection_repo_t::collections_t *perfmon_collection_repo_t::get_perfmon_collections_for_namespace(namespace_id_t n_id) {
     if (!std_contains(perfmon_collections, n_id)) {
-        perfmon_collections.insert(n_id, new collections_t(parent, n_id));
+        perfmon_collections.insert(
+                std::make_pair(n_id, make_scoped<collections_t>(parent, n_id)));
     }
-    return perfmon_collections.find(n_id)->second;
+    return perfmon_collections.find(n_id)->second.get();
 }

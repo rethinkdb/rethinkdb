@@ -113,28 +113,6 @@
 }
 */
 
-/* Inconsolata */
-@font-face {
-    font-family: 'Inconsolata';
-    src: url('inconsolata-regular-webfont.eot');
-    src: url('inconsolata-regular-webfont.eot?#iefix') format('embedded-opentype'),
-         url('inconsolata-regular-webfont.woff') format('woff'),
-         url('inconsolata-regular-webfont.ttf') format('truetype'),
-         url('inconsolata-regular-webfont.svg#inconsolataregular') format('svg');
-    font-weight: 400;
-    font-style: normal;
-}
-
-@font-face {
-    font-family: 'Inconsolata';
-    src: url('inconsolata-bold-webfont.eot');
-    src: url('inconsolata-bold-webfont.eot?#iefix') format('embedded-opentype'),
-         url('inconsolata-bold-webfont.woff') format('woff'),
-         url('inconsolata-bold-webfont.ttf') format('truetype'),
-         url('inconsolata-bold-webfont.svg#inconsolatabold') format('svg');
-    font-weight: 700;
-    font-style: normal;
-}
 
 /* Copse */
 @font-face {
@@ -146,4 +124,31 @@
          url('copse-regular-webfont.svg#copseregular') format('svg');
     font-weight: 400;
     font-style: normal;
+}
+
+/* Ionicons */
+
+@font-face {
+    font-family: "Ionicons";
+    src:url("ionicons.eot?v=2.0.0");
+    src:url("ionicons.eot?v=2.0.0#iefix") format("embedded-opentype"),
+      url("ionicons.ttf?v=2.0.0") format("truetype"),
+      url("ionicons.woff?v=2.0.0") format("woff"),
+      url("ionicons.svg?v=2.0.0#Ionicons") format("svg");
+    font-weight: normal;
+    font-style: normal;
+}
+
+.ion {
+  display: inline-block;
+  font-family: "Ionicons";
+  speak: none;
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  text-transform: none;
+  text-rendering: auto;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }

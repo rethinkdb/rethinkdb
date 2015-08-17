@@ -1,77 +1,70 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_ISSUES_LOCAL_HPP_
 #define CLUSTERING_ADMINISTRATION_ISSUES_LOCAL_HPP_
 
-#include <list>
-#include <set>
 #include <string>
+#include <vector>
 
-#include "clustering/administration/issues/json.hpp"
+#include "clustering/administration/issues/log_write.hpp"
+#include "clustering/administration/issues/outdated_index.hpp"
 #include "concurrency/watchable.hpp"
 #include "containers/clone_ptr.hpp"
-#include "http/json.hpp"
 #include "rpc/semilattice/joins/macros.hpp"
 #include "rpc/serialize_macros.hpp"
 
-class local_issue_t {
+class cluster_directory_metadata_t;
+
+/* "Local issues" are issues that originate on a particular server. When the user queries
+the `rethinkdb.current_issues` system table, each server polls the other servers to
+retrieve their local issues. */
+
+class local_issues_t {
 public:
-    local_issue_t() { }
-    local_issue_t(const std::string& type, bool critical, const std::string& description);
-
-    local_issue_t *clone() const;
-
-    std::string type;
-    bool critical;
-    std::string description;
-    int64_t timestamp;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
+    std::vector<log_write_issue_t> log_write_issues;
+    std::vector<outdated_index_issue_t> outdated_index_issues;
 };
 
-RDB_MAKE_EQUALITY_COMPARABLE_4(local_issue_t,
-    type, critical, description, timestamp);
+RDB_DECLARE_SERIALIZABLE(local_issues_t);
 
-class local_issue_tracker_t {
+class local_issue_bcard_t {
 public:
-    local_issue_tracker_t() : issues_watchable(std::list<local_issue_t>()) { }
+    typedef mailbox_t<void(mailbox_t<void(local_issues_t)>::address_t)> get_mailbox_t;
+    get_mailbox_t::address_t get_mailbox;
+};
 
-    class entry_t {
-    public:
-        entry_t(local_issue_tracker_t *p, const local_issue_t &d) :
-            parent(p), issue(d)
-        {
-            parent->issues.insert(this);
-            parent->recompute();
-        }
-        ~entry_t() {
-            parent->issues.erase(this);
-            parent->recompute();
-        }
-    private:
-        friend class local_issue_tracker_t;
-        local_issue_tracker_t *parent;
-        local_issue_t issue;
+RDB_DECLARE_SERIALIZABLE(local_issue_bcard_t);
 
-        DISABLE_COPYING(entry_t);
-    };
+class local_issue_server_t : public home_thread_mixin_t {
+public:
+    local_issue_server_t(
+        mailbox_manager_t *mm,
+        log_write_issue_tracker_t *log_write_issue_tracker,
+        outdated_index_issue_tracker_t *outdated_index_issue_tracker);
 
-    clone_ptr_t<watchable_t<std::list<local_issue_t> > > get_issues_watchable() {
-        return issues_watchable.get_watchable();
+    local_issue_bcard_t get_bcard() {
+        return local_issue_bcard_t { get_mailbox.get_address() };
     }
 
 private:
-    void recompute() {
-        std::list<local_issue_t> l;
-        for (std::set<entry_t *>::iterator it = issues.begin(); it != issues.end(); it++) {
-            l.push_back((*it)->issue);
-        }
-        issues_watchable.set_value(l);
-    }
+    void on_get(signal_t *, const mailbox_t<void(local_issues_t)>::address_t &reply);
 
-    std::set<entry_t *> issues;
-    watchable_variable_t<std::list<local_issue_t> > issues_watchable;
+    mailbox_manager_t *const mailbox_manager;
+    log_write_issue_tracker_t *const log_write_issue_tracker;
+    outdated_index_issue_tracker_t *const outdated_index_issue_tracker;
+    local_issue_bcard_t::get_mailbox_t get_mailbox;
+    DISABLE_COPYING(local_issue_server_t);
+};
 
-    DISABLE_COPYING(local_issue_tracker_t);
+class local_issue_client_t : public issue_tracker_t {
+public:
+    local_issue_client_t(
+        mailbox_manager_t *_mailbox_manager,
+        watchable_map_t<peer_id_t, cluster_directory_metadata_t> *_directory);
+    std::vector<scoped_ptr_t<issue_t> > get_issues(signal_t *interruptor) const;
+
+private:
+    mailbox_manager_t *const mailbox_manager;
+    watchable_map_t<peer_id_t, cluster_directory_metadata_t> *const directory;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_ISSUES_LOCAL_HPP_ */

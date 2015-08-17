@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 import sys, os, datetime, x_stress_util
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'drivers', 'python')))
-import rethinkdb as r
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
+import utils
+r = utils.import_python_driver()
 
 class Workload:
     def __init__(self, options):
@@ -25,8 +26,8 @@ class Workload:
 
         res = r.db(self.db).table(self.table).between([cid, time_1], [cid, time_2], index="compound") \
                                              .filter(lambda row: row["type"].eq(typ)) \
-                                             .map(lambda row: row["arr"].reduce(lambda acc,val: acc + val, 0)) \
-                                             .reduce(lambda acc,val: acc + val, 0) \
+                                             .map(lambda row: row["arr"].reduce(lambda acc,val: acc + val).default(0)) \
+                                             .reduce(lambda acc,val: acc + val).default(0) \
                                              .run(conn)
 
-        return { }
+        return {}

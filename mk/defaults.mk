@@ -118,7 +118,13 @@ THREADED_COROUTINES ?= 0
 
 # Require MacOS package to be signed with a developer certificate
 REQUIRE_SIGNED ?= 0
-SIGNATURE_NAME ?= Developer ID Installer: Hexagram 49, Inc. (99WDWQ7WDJ)
+OSX_SIGNATURE_NAME ?= Developer ID Installer: Hexagram 49, Inc. (99WDWQ7WDJ)
+
+# Adds default configure flags to the package being built
+DIST_CONFIGURE_DEFAULT ?=
+
+# Minify the webui source code with "uglify".
+UGLIFY ?= 1
 
 # TODO: Document these variables
 STATIC_LIBGCC ?= 0

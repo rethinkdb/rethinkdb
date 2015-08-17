@@ -17,11 +17,12 @@ The test framework is written in python.
 
 ### Dependencies
 
-Rethinkdb needs to have `./configure` run, and been built before these tests will work. 
-Additionally, the javascript tests require that both node.js and the mocha test framework be installed.
+Before the tests will work, you must `./configure` and build RethinkDB. Additionally, Python's YAML library
+and the node.js mocha test framework need to be installed.
 
 ```
 make -C ../..
+sudo easy_install pyyaml
 sudo npm install -g mocha
 ```
 
@@ -29,60 +30,88 @@ sudo npm install -g mocha
 
 `./test-runner` runs all the tests.
 
-`./test-runner --list` lists all of the tests.
+Specific tests, or groups of tests, can be specified with regular expressions as arguments. Multiple groups of
+tests can be run with muitple arguments.
 
-`./test-runner --clean` cleans the `run` folder where the runtime data is put.
+`./test-runner connections`
 
-Specific tests, or groups of tests, can be spcified with regular expressions as arguments. Additionally the 
-`-i/--interpreter` flag can be used one or more times to specifiy the drivers to use. 
+`./test-runner polyglot/math`
 
-Unless you specifiy the `--cluster-port` and `--driver-port` one or more instances of RethinkDB will be started for
-testing. Some of the tests (e.g.: the connection tests) will additionally launch multiple copies of the server.
+`./test-runner connections/connection polyglot/regression/26*`
 
-The tests write out data to a `run` folder that is created in the current working directory.
+Tests can fail when they return non-zero exit codes, or timeout when they exceed 300 seconds. Testing will
+continue and the output (STDERR and STDOUT) of that test will be printed to the screen. A summary of failing
+tests is printed at the completion of testing.
 
-By default, the test suite uses the most recently built rethinkdb binary from ../../build/, but this can be changed by
-passing the `-b` or `--build-dir` argument.
+By default the server data files are created in a hidden folder in the current working directory, and are deleted
+at exit.
 
-When the tests fail, they return a non-zero exit code. Testing will continue and the output (STDERR and STDOUT) of that
-test will be printed to the screen. A summary of failing tests is printed at the completion of testing.
+### Command line Options
+
+* `-l`/`--list` lists all of the tests.
+
+* `-i`/`--interpreter` specifies the drivers to use. See the "Language tests" section for more detail.
+
+* `-c`/`--cluster-port` and `-d`/`--driver-port` can be used to specify an already-running server to use rather than the default which is to startup one or more servers. Not all tests support this.
+
+* `-t`/`--table` specifies an existing table to use on user-supplied servers to use at the primary table. Not all tests support this.
+
+* `-o`/`--output-dir` saves the console output both from the test and any servers managed by the test system
+(i.e.: excluding user-supplied servers) to a folder in the specified directory. The server files for any failing tests are also collected in these folders.
+
+* `--scratch-dir` puts all of the temporary files into the selected folder, including the database data files.
+This can be useful in testing RethinkDB on different disks.
+
+* `--clean` delete the contents of the output directory before running. Only meaningful if `-o`/`--output-dir`
+is specified.
+
+* `-v`/`--verbose` lets the test's output go straight to stderr/stdout. This makes the tests run serially and
+also disables saving test output from any output directory.
+
+* `-b`/`--server-binary` use the specified `rethinkdb` binary rather than automatically selecting the most recently built one.
+
+* `-s`/`--shards` causes the default table to be sharded into the provided number of shards before each test
+starts. Tests that create their own tables will not be affected by this.
+
+* `-j`/`--jobs` runs multiple tests simultaneously. This defaults to 2.
+
+There may be other options that are documented with the `-h/--help` command line option.
 
 ### Language tests
 
-The tests can be run for a specific language.
+The tests can be run for a specific language using the `-i`/`--interpreter` flag.
 
-* `./test-runner -i py`
 * `./test-runner -i js`
+* `./test-runner -i py`
 * `./test-runner -i rb`
+
+By default a single version of those languages are chosen based on what versions can be found. Specific
+interpreter versions can be chosen by adding the version number to the language suffix with a dash.
+
+* `./test-runner -i py-2.7`
+* `./test-runner -i py-3.4`
+
+Multiple languages/language versions can be chosen simultaneously with multiple flags.
+
+* `./test-runner -i py-2.7 -i py3 -i rb`
 
 ### Polyglot tests
 
-There are five ways to run the polyglot tests.
-
-* `./test-runner run polyglot` runs all the polyglot tests.
-* `./test-runner run polyglot -i py`
-* `./test-runner run polyglot -i js`
-* `./test-runner run polyglot -i rb`
+* `./test-runner polyglot` runs all the polyglot tests.
+* `./test-runner polyglot -i js`
+* `./test-runner polyglot -i py`
+* `./test-runner polyglot -i rb`
 
 ### Connection tests
 
-* `./test-runner run connections/connection` run both the javascript and python versions of the tests
-* `./test-runner run -i js connections/connection`
-* `./test-runner run -i py connections/connection`
+* `./test-runner connections/connection` runs all three versions of the tests
+* `./test-runner -i js connections/connection`
+* `./test-runner -i py connections/connection`
+* `./test-runner -i rb connections/connection`
 
 ### Cursor tests
 
-* `./test-runner run connections/cursor` run both the javascript and python versions of the tests
-* `./test-runner run -i js connections/cursor`
-* `./test-runner run -i py connections/cursor`
-
-### Customization
-
-The tests can be customized with command line options:
-
-*  `-b/--build-dir` specifies the build directory to use
-*  `-i/--interpreter` run only the given language, can be given multiple times for multiple languages
-*  `-s/--shards` run with the given number of shards (defaults to 1). Not all tests support this.
-*  `-v/--verbose` display all test output as it is running
-
-There are more options that are documented with the `-h/--help` command line option.
+* `./test-runner run connections/cursor` runs all three versions of the tests
+* `./test-runner -i js connections/cursor`
+* `./test-runner -i py connections/cursor`
+* `./test-runner -i rb connections/cursor`

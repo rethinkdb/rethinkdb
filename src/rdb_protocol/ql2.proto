@@ -47,6 +47,7 @@ message VersionDummy { // We need to wrap it like this for some
         V0_1      = 0x3f61ba36;
         V0_2      = 0x723081e1; // Authorization key during handshake
         V0_3      = 0x5f75e83e; // Authorization key and protocol during handshake
+        V0_4      = 0x400c2d20; // Queries execute in parallel
     }
 
     // The protocol to use after the handshake, specified in V0_3
@@ -111,15 +112,14 @@ message Backtrace {
 message Response {
     enum ResponseType {
         // These response types indicate success.
-        SUCCESS_ATOM     = 1; // Query returned a single RQL datatype.
-        SUCCESS_SEQUENCE = 2; // Query returned a sequence of RQL datatypes.
-        SUCCESS_PARTIAL  = 3; // Query returned a partial sequence of RQL
-                              // datatypes.  If you send a [CONTINUE] query with
-                              // the same token as this response, you will get
-                              // more of the sequence.  Keep sending [CONTINUE]
-                              // queries until you get back [SUCCESS_SEQUENCE].
-        SUCCESS_FEED     = 5; // Like [SUCCESS_PARTIAL] but for feeds.
-        WAIT_COMPLETE    = 4; // A [NOREPLY_WAIT] query completed.
+        SUCCESS_ATOM      = 1; // Query returned a single RQL datatype.
+        SUCCESS_SEQUENCE  = 2; // Query returned a sequence of RQL datatypes.
+        SUCCESS_PARTIAL   = 3; // Query returned a partial sequence of RQL
+                               // datatypes.  If you send a [CONTINUE] query with
+                               // the same token as this response, you will get
+                               // more of the sequence.  Keep sending [CONTINUE]
+                               // queries until you get back [SUCCESS_SEQUENCE].
+        WAIT_COMPLETE     = 4; // A [NOREPLY_WAIT] query completed.
 
         // These response types indicate failure.
         CLIENT_ERROR  = 16; // Means the client is buggy.  An example is if the
@@ -134,6 +134,44 @@ message Response {
                             // than numbers.
     }
     optional ResponseType type = 1;
+
+    // If `ResponseType` is `RUNTIME_ERROR`, this may be filled in with more
+    // information about the error.
+    enum ErrorType {
+        INTERNAL = 1000000;
+        RESOURCE = 2000000;
+        LOGIC = 3000000;
+        NON_EXISTENCE = 3100000;
+        OP_FAILED = 4100000;
+        OP_INDETERMINATE = 4200000;
+        USER = 5000000;
+    }
+    optional ErrorType error_type = 7;
+
+    // ResponseNotes are used to provide information about the query
+    // response that may be useful for people writing drivers or ORMs.
+    // Currently all the notes we send indicate that a stream has certain
+    // special properties.
+    enum ResponseNote {
+        // The stream is a changefeed stream (e.g. `r.table('test').changes()`).
+        SEQUENCE_FEED = 1;
+        // The stream is a point changefeed stream
+        // (e.g. `r.table('test').get(0).changes()`).
+        ATOM_FEED = 2;
+        // The stream is an order_by_limit changefeed stream
+        // (e.g. `r.table('test').order_by(index: 'id').limit(5).changes()`).
+        ORDER_BY_LIMIT_FEED = 3;
+        // The stream is a union of multiple changefeed types that can't be
+        // collapsed to a single type
+        // (e.g. `r.table('test').changes().union(r.table('test').get(0).changes())`).
+        UNIONED_FEED = 4;
+        // The stream is a changefeed stream and includes notes on what state
+        // the changefeed stream is in (e.g. objects of the form `{state:
+        // 'initializing'}`).
+        INCLUDES_STATES = 5;
+    }
+    repeated ResponseNote notes = 6;
+
     optional int64 token = 2; // Indicates what [Query] this response corresponds to.
 
     // [response] contains 1 RQL datum if [type] is [SUCCESS_ATOM], or many RQL
@@ -212,7 +250,7 @@ message Datum {
 // Some arguments must be provided as literal values (and not the results of sub
 // terms).  These are marked with a `!`.
 // Optional arguments are specified within curly braces as argname `:` value
-// type (e.x `{use_outdated:BOOL}`)
+// type (e.x `{noreply:BOOL}`)
 // Many RQL operations are polymorphic. For these, alterantive type signatures
 // are separated by `|`.
 //
@@ -258,6 +296,7 @@ message Term {
         // Takes some javascript code and executes it.
         JAVASCRIPT   = 11; // STRING {timeout: !NUMBER} -> DATUM |
                            // STRING {timeout: !NUMBER} -> Function(*)
+        UUID = 169; // () -> DATUM
 
         // Takes an HTTP URL and gets it.  If the get succeeds and
         //  returns valid JSON, it is converted into a DATUM
@@ -287,7 +326,8 @@ message Term {
         // Returns a reference to a database.
         DB    = 14; // STRING -> Database
         // Returns a reference to a table.
-        TABLE = 15; // Database, STRING, {use_outdated:BOOL} -> Table | STRING, {use_outdated:BOOL} -> Table
+        TABLE = 15; // Database, STRING, {read_mode:STRING, identifier_format:STRING} -> Table
+                    // STRING, {read_mode:STRING, identifier_format:STRING} -> Table
         // Gets a single element from a table by its primary or a secondary key.
         GET   = 16; // Table, STRING -> SingleSelection | Table, NUMBER -> SingleSelection |
                     // Table, STRING -> NULL            | Table, NUMBER -> NULL |
@@ -307,6 +347,10 @@ message Term {
         MUL = 26; // NUMBER... -> NUMBER
         DIV = 27; // NUMBER... -> NUMBER
         MOD = 28; // NUMBER, NUMBER -> NUMBER
+
+        FLOOR = 183;    // NUMBER -> NUMBER
+        CEIL = 184;     // NUMBER -> NUMBER
+        ROUND = 185;    // NUMBER -> NUMBER
 
         // DATUM Array Ops
         // Append a single element to the end of an array (like `snoc`).
@@ -329,8 +373,8 @@ message Term {
         SLICE  = 30; // Sequence, NUMBER, NUMBER -> Sequence
         SKIP  = 70; // Sequence, NUMBER -> Sequence
         LIMIT = 71; // Sequence, NUMBER -> Sequence
-        INDEXES_OF = 87; // Sequence, DATUM -> Sequence | Sequence, Function(1) -> Sequence
-        CONTAINS = 93; // Sequence, DATUM -> BOOL | Sequence, Function(1) -> BOOL
+        OFFSETS_OF = 87; // Sequence, DATUM -> Sequence | Sequence, Function(1) -> Sequence
+        CONTAINS = 93; // Sequence, (DATUM | Function(1))... -> BOOL
 
         // Stream/Object Ops
         // Get a particular field from an object, or map that over a
@@ -361,9 +405,13 @@ message Term {
         // Half-open by default, but the openness of either side can be
         // changed by passing 'closed' or 'open for `right_bound` or
         // `left_bound`.
-        BETWEEN   = 36; // StreamSelection, DATUM, DATUM, {index:!STRING, right_bound:STRING, left_bound:STRING} -> StreamSelection
+        BETWEEN_DEPRECATED = 36; // Deprecated version of between, which allows `null` to specify unboundedness
+                                 // With the newer version, clients should use `r.minval` and `r.maxval` for unboundedness
+        BETWEEN   = 182; // StreamSelection, DATUM, DATUM, {index:!STRING, right_bound:STRING, left_bound:STRING} -> StreamSelection
         REDUCE    = 37; // Sequence, Function(2) -> DATUM
         MAP       = 38; // Sequence, Function(1) -> Sequence
+                        // The arity of the function should be
+                        // Sequence..., Function(sizeof...(Sequence)) -> Sequence
 
         // Filter a sequence with either a function or a shortcut
         // object (see API docs for details).  The body of FILTER is
@@ -375,9 +423,9 @@ message Term {
         FILTER    = 39; // Sequence, Function(1), {default:DATUM} -> Sequence |
                         // Sequence, OBJECT, {default:DATUM} -> Sequence
         // Map a function over a sequence and then concatenate the results together.
-        CONCATMAP = 40; // Sequence, Function(1) -> Sequence
+        CONCAT_MAP = 40; // Sequence, Function(1) -> Sequence
         // Order a sequence based on one or more attributes.
-        ORDERBY   = 41; // Sequence, (!STRING | Ordering)... -> Sequence
+        ORDER_BY   = 41; // Sequence, (!STRING | Ordering)..., {index: (!STRING | Ordering)} -> Sequence
         // Get all distinct elements of a sequence (like `uniq`).
         DISTINCT  = 42; // Sequence -> Sequence
         // Count the number of elements in a sequence, or only the elements that match
@@ -388,12 +436,19 @@ message Term {
         UNION     = 44; // Sequence... -> Sequence
         // Get the Nth element of a sequence.
         NTH       = 45; // Sequence, NUMBER -> DATUM
+        // do NTH or GET_FIELD depending on target object
+        BRACKET            = 170; // Sequence | OBJECT, NUMBER | STRING -> DATUM
+        // OBSOLETE_GROUPED_MAPREDUCE = 46;
+        // OBSOLETE_GROUPBY = 47;
 
         INNER_JOIN         = 48; // Sequence, Sequence, Function(2) -> Sequence
         OUTER_JOIN         = 49; // Sequence, Sequence, Function(2) -> Sequence
         // An inner-join that does an equality comparison on two attributes.
         EQ_JOIN            = 50; // Sequence, !STRING, Sequence, {index:!STRING} -> Sequence
         ZIP                = 72; // Sequence -> Sequence
+        RANGE              = 173; // -> Sequence                        [0, +inf)
+                                  // NUMBER -> Sequence                 [0, a)
+                                  // NUMBER, NUMBER -> Sequence         [a, b)
 
         // Array Ops
         // Insert an element in to an array at a given index.
@@ -411,50 +466,84 @@ message Term {
         // If you previously used `stream_to_array`, you should use this instead
         // with the type "array".
         COERCE_TO = 51; // Top, STRING -> Top
-        // Returns the named type of a datum (e.g. TYPEOF(true) = "BOOL")
-        TYPEOF = 52; // Top -> STRING
+        // Returns the named type of a datum (e.g. TYPE_OF(true) = "BOOL")
+        TYPE_OF = 52; // Top -> STRING
 
         // * Write Ops (the OBJECTs contain data about number of errors etc.)
         // Updates all the rows in a selection.  Calls its Function with the row
         // to be updated, and then merges the result of that call.
-        UPDATE   = 53; // StreamSelection, Function(1), {non_atomic:BOOL, durability:STRING, return_vals:BOOL} -> OBJECT |
-                       // SingleSelection, Function(1), {non_atomic:BOOL, durability:STRING, return_vals:BOOL} -> OBJECT |
-                       // StreamSelection, OBJECT,      {non_atomic:BOOL, durability:STRING, return_vals:BOOL} -> OBJECT |
-                       // SingleSelection, OBJECT,      {non_atomic:BOOL, durability:STRING, return_vals:BOOL} -> OBJECT
+        UPDATE   = 53; // StreamSelection, Function(1), {non_atomic:BOOL, durability:STRING, return_changes:BOOL} -> OBJECT |
+                       // SingleSelection, Function(1), {non_atomic:BOOL, durability:STRING, return_changes:BOOL} -> OBJECT |
+                       // StreamSelection, OBJECT,      {non_atomic:BOOL, durability:STRING, return_changes:BOOL} -> OBJECT |
+                       // SingleSelection, OBJECT,      {non_atomic:BOOL, durability:STRING, return_changes:BOOL} -> OBJECT
         // Deletes all the rows in a selection.
-        DELETE   = 54; // StreamSelection, {durability:STRING, return_vals:BOOL} -> OBJECT | SingleSelection -> OBJECT
+        DELETE   = 54; // StreamSelection, {durability:STRING, return_changes:BOOL} -> OBJECT | SingleSelection -> OBJECT
         // Replaces all the rows in a selection.  Calls its Function with the row
         // to be replaced, and then discards it and stores the result of that
         // call.
-        REPLACE  = 55; // StreamSelection, Function(1), {non_atomic:BOOL, durability:STRING, return_vals:BOOL} -> OBJECT | SingleSelection, Function(1), {non_atomic:BOOL, durability:STRING, return_vals:BOOL} -> OBJECT
-        // Inserts into a table.  If `upsert` is true, overwrites entries with
-        // the same primary key (otherwise errors).
-        INSERT   = 56; // Table, OBJECT, {upsert:BOOL, durability:STRING, return_vals:BOOL} -> OBJECT | Table, Sequence, {upsert:BOOL, durability:STRING, return_vals:BOOL} -> OBJECT
+        REPLACE  = 55; // StreamSelection, Function(1), {non_atomic:BOOL, durability:STRING, return_changes:BOOL} -> OBJECT | SingleSelection, Function(1), {non_atomic:BOOL, durability:STRING, return_changes:BOOL} -> OBJECT
+        // Inserts into a table.  If `conflict` is replace, overwrites
+        // entries with the same primary key.  If `conflict` is
+        // update, does an update on the entry.  If `conflict` is
+        // error, or is omitted, conflicts will trigger an error.
+        INSERT   = 56; // Table, OBJECT, {conflict:STRING, durability:STRING, return_changes:BOOL} -> OBJECT | Table, Sequence, {conflict:STRING, durability:STRING, return_changes:BOOL} -> OBJECT
 
         // * Administrative OPs
         // Creates a database with a particular name.
-        DB_CREATE    = 57; // STRING -> OBJECT
+        DB_CREATE     = 57; // STRING -> OBJECT
         // Drops a database with a particular name.
-        DB_DROP      = 58; // STRING -> OBJECT
+        DB_DROP       = 58; // STRING -> OBJECT
         // Lists all the databases by name.  (Takes no arguments)
-        DB_LIST      = 59; // -> ARRAY
+        DB_LIST       = 59; // -> ARRAY
         // Creates a table with a particular name in a particular
         // database.  (You may omit the first argument to use the
         // default database.)
-        TABLE_CREATE = 60; // Database, STRING, {datacenter:STRING, primary_key:STRING, durability:STRING} -> OBJECT
-                           // STRING, {datacenter:STRING, primary_key:STRING, durability:STRING} -> OBJECT
+        TABLE_CREATE  = 60; // Database, STRING, {primary_key:STRING, shards:NUMBER, replicas:NUMBER, primary_replica_tag:STRING} -> OBJECT
+                            // Database, STRING, {primary_key:STRING, shards:NUMBER, replicas:OBJECT, primary_replica_tag:STRING} -> OBJECT
+                            // STRING, {primary_key:STRING, shards:NUMBER, replicas:NUMBER, primary_replica_tag:STRING} -> OBJECT
+                            // STRING, {primary_key:STRING, shards:NUMBER, replicas:OBJECT, primary_replica_tag:STRING} -> OBJECT
         // Drops a table with a particular name from a particular
         // database.  (You may omit the first argument to use the
         // default database.)
-        TABLE_DROP   = 61; // Database, STRING -> OBJECT
-                           // STRING -> OBJECT
+        TABLE_DROP    = 61; // Database, STRING -> OBJECT
+                                // STRING -> OBJECT
         // Lists all the tables in a particular database.  (You may
         // omit the first argument to use the default database.)
-        TABLE_LIST   = 62; // Database -> ARRAY
-                           //  -> ARRAY
+        TABLE_LIST    = 62; // Database -> ARRAY
+                            //  -> ARRAY
+        // Returns the row in the `rethinkdb.table_config` or `rethinkdb.db_config` table
+        // that corresponds to the given database or table.
+        CONFIG  = 174; // Database -> SingleSelection
+                       // Table -> SingleSelection
+        // Returns the row in the `rethinkdb.table_status` table that corresponds to the
+        // given table.
+        STATUS  = 175; // Table -> SingleSelection
+        // Called on a table, waits for that table to be ready for read/write operations.
+        // Called on a database, waits for all of the tables in the database to be ready.
+        // Returns the corresponding row or rows from the `rethinkdb.table_status` table.
+        WAIT    = 177; // Table -> OBJECT
+                       // Database -> OBJECT
+        // Generates a new config for the given table, or all tables in the given database
+        // The `shards` and `replicas` arguments are required. If `emergency_repair` is
+        // specified, it will enter a completely different mode of repairing a table
+        // which has lost half or more of its replicas.
+        RECONFIGURE   = 176; // Database|Table, {shards:NUMBER, replicas:NUMBER [,
+                             //                  dry_run:BOOLEAN]
+                             //                 } -> OBJECT
+                             // Database|Table, {shards:NUMBER, replicas:OBJECT [,
+                             //                  primary_replica_tag:STRING,
+                             //                  nonvoting_replica_tags:ARRAY,
+                             //                  dry_run:BOOLEAN]
+                             //                 } -> OBJECT
+                             // Table, {emergency_repair:STRING, dry_run:BOOLEAN} -> OBJECT
+        // Balances the table's shards but leaves everything else the same. Can also be
+        // applied to an entire database at once.
+        REBALANCE     = 179; // Table -> OBJECT
+                             // Database -> OBJECT
+
         // Ensures that previously issued soft-durability writes are complete and
         // written to disk.
-        SYNC     = 138; // Table -> OBJECT
+        SYNC          = 138; // Table -> OBJECT
 
         // * Secondary indexes OPs
         // Creates a new secondary index with a particular name and definition.
@@ -470,6 +559,8 @@ message Term {
         // Blocks until a set of indexes are ready to be accessed. Returns the
         // same values INDEX_STATUS.
         INDEX_WAIT = 140; // Table, STRING... -> ARRAY
+        // Renames the given index to a new name
+        INDEX_RENAME = 156; // Table, STRING, STRING, {overwrite:BOOL} -> OBJECT
 
         // * Control Operators
         // Calls a function on data
@@ -479,14 +570,12 @@ message Term {
         // statement).
         BRANCH  = 65; // BOOL, Top, Top -> Top
         // Returns true if any of its arguments returns true (short-circuits).
-        // (Like `or` in most languages.)
-        ANY     = 66; // BOOL... -> BOOL
+        OR      = 66; // BOOL... -> BOOL
         // Returns true if all of its arguments return true (short-circuits).
-        // (Like `and` in most languages.)
-        ALL     = 67; // BOOL... -> BOOL
+        AND     = 67; // BOOL... -> BOOL
         // Calls its Function with each entry in the sequence
         // and executes the array of terms that Function returns.
-        FOREACH = 68; // Sequence, Function(1) -> OBJECT
+        FOR_EACH = 68; // Sequence, Function(1) -> OBJECT
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////// Special Terms
@@ -562,6 +651,11 @@ message Term {
         // Parses its first argument as a json string and returns it as a
         // datum.
         JSON = 98; // STRING -> DATUM
+        // Returns the datum as a JSON string.
+        // N.B.: we would really prefer this be named TO_JSON and that exists as
+        // an alias in Python and JavaScript drivers; however it conflicts with the
+        // standard `to_json` method defined by Ruby's standard json library.
+        TO_JSON_STRING = 172; // DATUM -> STRING
 
         // Parses its first arguments as an ISO 8601 time and returns it as a
         // datum.
@@ -599,9 +693,7 @@ message Term {
 
         // Construct a time from a date and optional timezone or a
         // date+time and optional timezone.
-        TIME = 136; // NUMBER, NUMBER, NUMBER -> PSEUDOTYPE(TIME) |
-                    // NUMBER, NUMBER, NUMBER, STRING -> PSEUDOTYPE(TIME) |
-                    // NUMBER, NUMBER, NUMBER, NUMBER, NUMBER, NUMBER -> PSEUDOTYPE(TIME) |
+        TIME = 136; // NUMBER, NUMBER, NUMBER, STRING -> PSEUDOTYPE(TIME) |
                     // NUMBER, NUMBER, NUMBER, NUMBER, NUMBER, NUMBER, STRING -> PSEUDOTYPE(TIME) |
 
         // Constants for ISO 8601 days of the week.
@@ -627,8 +719,10 @@ message Term {
         NOVEMBER = 124;  // -> 11
         DECEMBER = 125;  // -> 12
 
-        // Indicates to MERGE to replace the other object rather than merge it.
-        LITERAL = 137; // JSON -> Merging
+        // Indicates to MERGE to replace, or remove in case of an empty literal, the
+        // other object rather than merge it.
+        LITERAL = 137; // -> Merging
+                       // JSON -> Merging
 
         // SEQUENCE, STRING -> GROUPED_SEQUENCE | SEQUENCE, FUNCTION -> GROUPED_SEQUENCE
         GROUP = 144;
@@ -650,6 +744,27 @@ message Term {
 
         CHANGES = 152; // TABLE -> STREAM
         ARGS = 154; // ARRAY -> SPECIAL (used to splice arguments)
+
+        // BINARY is client-only at the moment, it is not supported on the server
+        BINARY = 155; // STRING -> PSEUDOTYPE(BINARY)
+
+        GEOJSON = 157;           // OBJECT -> PSEUDOTYPE(GEOMETRY)
+        TO_GEOJSON = 158;        // PSEUDOTYPE(GEOMETRY) -> OBJECT
+        POINT = 159;             // NUMBER, NUMBER -> PSEUDOTYPE(GEOMETRY)
+        LINE = 160;              // (ARRAY | PSEUDOTYPE(GEOMETRY))... -> PSEUDOTYPE(GEOMETRY)
+        POLYGON = 161;           // (ARRAY | PSEUDOTYPE(GEOMETRY))... -> PSEUDOTYPE(GEOMETRY)
+        DISTANCE = 162;          // PSEUDOTYPE(GEOMETRY), PSEUDOTYPE(GEOMETRY) {geo_system:STRING, unit:STRING} -> NUMBER
+        INTERSECTS = 163;        // PSEUDOTYPE(GEOMETRY), PSEUDOTYPE(GEOMETRY) -> BOOL
+        INCLUDES = 164;          // PSEUDOTYPE(GEOMETRY), PSEUDOTYPE(GEOMETRY) -> BOOL
+        CIRCLE = 165;            // PSEUDOTYPE(GEOMETRY), NUMBER {num_vertices:NUMBER, geo_system:STRING, unit:STRING, fill:BOOL} -> PSEUDOTYPE(GEOMETRY)
+        GET_INTERSECTING = 166;  // TABLE, PSEUDOTYPE(GEOMETRY) {index:!STRING} -> StreamSelection
+        FILL = 167;              // PSEUDOTYPE(GEOMETRY) -> PSEUDOTYPE(GEOMETRY)
+        GET_NEAREST = 168;       // TABLE, PSEUDOTYPE(GEOMETRY) {index:!STRING, max_results:NUM, max_dist:NUM, geo_system:STRING, unit:STRING} -> ARRAY
+        POLYGON_SUB = 171;       // PSEUDOTYPE(GEOMETRY), PSEUDOTYPE(GEOMETRY) -> PSEUDOTYPE(GEOMETRY)
+
+        // Constants for specifying key ranges
+        MINVAL = 180;
+        MAXVAL = 181;
     }
     optional TermType type = 1;
 
@@ -672,7 +787,7 @@ message Term {
 //                                  EXAMPLE                                   //
 ////////////////////////////////////////////////////////////////////////////////
 //   ```ruby
-//   r.table('tbl', {:use_outdated => true}).insert([{:id => 0}, {:id => 1}])
+//   r.table('tbl', {:read_mode => 'outdated'}).insert([{:id => 0}, {:id => 1}])
 //   ```
 // Would turn into:
 //   Term {
@@ -683,10 +798,10 @@ message Term {
 //                         type = DATUM;
 //                         datum = Datum { type = R_STR; r_str = "tbl"; };
 //                       }];
-//               optargs = [["use_outdated",
+//               optargs = [["read_mode",
 //                           Term {
 //                             type = DATUM;
-//                             datum = Datum { type = R_BOOL; r_bool = true; };
+//                             datum = Datum { type = R_STR; r_bool = "outdated"; };
 //                           }]];
 //             },
 //             Term {

@@ -1,17 +1,14 @@
 desc: Tests that manipulation data in tables
+table_variable_name: tbl
 tests:
 
-    # Set up some data
-    - cd: r.db('test').table_create('test1')
-      ot: ({'created':1})
-      def: tbl = r.db('test').table('test1')
-
+    # Set up some more tables
     - cd: r.db('test').table_create('test2')
-      ot: ({'created':1})
+      ot: partial({'tables_created':1})
       def: tbl2 = r.db('test').table('test2')
 
     - cd: r.db('test').table_create('test3')
-      ot: ({'created':1})
+      ot: partial({'tables_created':1})
       def: tbl3 = r.db('test').table('test3')
 
     - py: tbl.insert([{'id':i, 'a':i%4} for i in xrange(100)])
@@ -53,6 +50,9 @@ tests:
     # make sure we can insert and query json docs with arbitrary unicode attrs
     - js: tbl3.insert({'id':'Здравствуй','value':'Земля!'})
       py: tbl3.insert({'id':u'Здравствуй','value':u'Земля!'})
+      py3.0: tbl3.insert({'id':'Здравствуй','value':'Земля!'})
+      py3.1: tbl3.insert({'id':'Здравствуй','value':'Земля!'})
+      py3.2: tbl3.insert({'id':'Здравствуй','value':'Земля!'})
       rb: tbl3.insert({:id => "\u0417\u0434\u0440\u0430\u0432\u0441\u0442\u0432\u0443\u0439", :value => "\u0417\u0435\u043C\u043B\u044F!"})
       ot: ({'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':1})
 
@@ -60,12 +60,21 @@ tests:
     - js:
         cd: tbl3.get('Здравствуй')
         ot: ({'id':'Здравствуй','value':'Земля!'})
-      py:
-        cd: tbl3.get(u'Здравствуй')
-        ot: ({u'id':u'Здравствуй',u'value':u'Земля!'})
       rb:
         cd: tbl3.get('Здравствуй')
         ot: ({:id=>'Здравствуй',:value=>'Земля!'})
+      py:
+        cd: tbl3.get(u'Здравствуй')
+        ot: ({u'id':u'Здравствуй',u'value':u'Земля!'})
+      py3.0:
+        cd: tbl3.get('Здравствуй')
+        ot: ({'id':'Здравствуй','value':'Земля!'})
+      py3.1:
+        cd: tbl3.get('Здравствуй')
+        ot: ({'id':'Здравствуй','value':'Земля!'})
+      py3.2:
+        cd: tbl3.get('Здравствуй')
+        ot: ({'id':'Здравствуй','value':'Земля!'})
 
     - js:
         cd: tbl3.filter({'value':'Земля!'})
@@ -73,6 +82,15 @@ tests:
       py:
         cd: tbl3.filter({'value':u'Земля!'})
         ot: "[{u'id':u'Здравствуй',u'value':u'Земля!'}]"
+      py3.0:
+        cd: tbl3.filter({'value':'Земля!'})
+        ot: "[{'id':'Здравствуй','value':'Земля!'}]"
+      py3.1:
+        cd: tbl3.filter({'value':'Земля!'})
+        ot: "[{'id':'Здравствуй','value':'Земля!'}]"
+      py3.2:
+        cd: tbl3.filter({'value':'Земля!'})
+        ot: "[{'id':'Здравствуй','value':'Земля!'}]"
       rb:
         cd: tbl3.filter({:value=>'Земля!'})
         ot: "[{:id=>'Здравствуй',:value=>'Земля!'}]"
@@ -86,20 +104,66 @@ tests:
       ot: err("RqlRuntimeError", 'Table name `%` invalid (Use A-Za-z0-9_ only).', [0])
 
     # Access a table from default db
-    - cd: r.table('test1').count()
+    - cd: tbl.count()
       ot: 100
 
-    # Access a table using the `use_outdated` flag
+    # Access a table using different read modes
     - py:
-        - r.table('test1', use_outdated=True).count()
-        - r.db('test').table('test1', use_outdated=True).count()
+        - r.table('test2', read_mode='outdated').count()
+        - r.table('test2', read_mode='single').count()
+        - r.table('test2', read_mode='majority').count()
+        - r.db('test').table('test2', read_mode='outdated').count()
+        - r.db('test').table('test2', read_mode='single').count()
+        - r.db('test').table('test2', read_mode='majority').count()
       js:
-        - r.table('test1', {useOutdated:true}).count()
-        - r.db('test').table('test1', {useOutdated:true}).count()
+        - r.table('test2', {readMode:'outdated'}).count()
+        - r.table('test2', {readMode:'single'}).count()
+        - r.table('test2', {readMode:'majority'}).count()
+        - r.db('test').table('test2', {readMode:'outdated'}).count()
+        - r.db('test').table('test2', {readMode:'single'}).count()
+        - r.db('test').table('test2', {readMode:'majority'}).count()
       rb:
-        - r.table('test1', {:use_outdated => true}).count()
-        - r.db('test').table('test1', {:use_outdated => true}).count()
+        - r.table('test2', {:read_mode => 'outdated'}).count()
+        - r.table('test2', {:read_mode => 'single'}).count()
+        - r.table('test2', {:read_mode => 'majority'}).count()
+        - r.db('test').table('test2', {:read_mode => 'outdated'}).count()
+        - r.db('test').table('test2', {:read_mode => 'single'}).count()
+        - r.db('test').table('test2', {:read_mode => 'majority'}).count()
       ot: 100
+
+    # Access a table with an invalid read mode
+    - py:
+        - r.table('test2', read_mode=null).count()
+        - r.db('test').table('test2', read_mode=null).count()
+      js:
+        - r.table('test2', {readMode:null}).count()
+        - r.db('test').table('test2', {readMode:null}).count()
+      rb:
+        - r.table('test2', {:read_mode => null}).count()
+        - r.db('test').table('test2', {:read_mode => null}).count()
+      ot: err("RqlRuntimeError", 'Expected type STRING but found NULL.')
+
+    - py:
+        - r.table('test2', read_mode=false).count()
+        - r.db('test').table('test2', read_mode=true).count()
+      js:
+        - r.table('test2', {readMode:true}).count()
+        - r.db('test').table('test2', {readMode:false}).count()
+      rb:
+        - r.table('test2', {:read_mode => false}).count()
+        - r.db('test').table('test2', {:read_mode => true}).count()
+      ot: err("RqlRuntimeError", 'Expected type STRING but found BOOL.')
+
+    - py:
+        - r.table('test2', read_mode='fake').count()
+        - r.db('test').table('test2', read_mode='fake').count()
+      js:
+        - r.table('test2', {readMode:'fake'}).count()
+        - r.db('test').table('test2', {readMode:'fake'}).count()
+      rb:
+        - r.table('test2', {:read_mode => 'fake'}).count()
+        - r.db('test').table('test2', {:read_mode => 'fake'}).count()
+      ot: err("RqlRuntimeError", 'Read mode `fake` unrecognized (options are "majority", "single", and "outdated").')
 
     - cd: tbl.get(20).count()
       py: [] # Handled by native Python error
@@ -117,18 +181,18 @@ tests:
     - cd: tbl.get()
       py: [] # Handled by native Python error
       rb: []
-      ot: err("RqlCompileError", 'Expected 2 argument(s) but found 1.', [1])
+      ot: err("RqlCompileError", 'Expected 2 arguments but found 1.', [1])
 
     - cd: tbl.get(10, 20)
       py: [] # Handled by native Python error
       rb: []
-      ot: err("RqlCompileError", 'Expected 2 argument(s) but found 3.', [1])
+      ot: err("RqlCompileError", 'Expected 2 arguments but found 3.', [1])
 
     # Create a table with a non-id primary key
     - py: r.db('test').table_create('testpkey', primary_key='foo')
       js: r.db('test').tableCreate('testpkey', {primaryKey:'foo'})
       rb: r.db('test').table_create('testpkey', { :primary_key => 'foo' })
-      ot: ({'created':1})
+      ot: partial({'tables_created':1})
       def: tblpkey = r.db('test').table('testpkey')
 
     - cd: tblpkey.insert({'foo':10,'a':10})
@@ -139,6 +203,23 @@ tests:
       ot: ({'foo':10,'a':10})
 
     # Between
+    - cd: tbl.between(1, 2).type_of()
+      ot: "'TABLE_SLICE'"
+    - py: tbl.between(1, 2, index='id').type_of()
+      js: tbl.between(1, 2, {'index':'id'}).typeOf()
+      rb: tbl.between(1, 2, :index => 'id').type_of()
+      ot: "'TABLE_SLICE'"
+    - py: tbl.between(1, 1, right_bound='closed').type_of()
+      js: tbl.between(1, 1, {'right_bound':'closed'}).typeOf()
+      rb: tbl.between(1, 1, :right_bound => 'closed').type_of()
+      ot: "'TABLE_SLICE'"
+    - cd: tbl.between(2, 1).type_of()
+      ot: "'TABLE_SLICE'"
+    - py: tbl.between(2, 1, index='id').type_of()
+      js: tbl.between(2, 1, {'index':'id'}).typeOf()
+      rb: tbl.between(2, 1, :index => 'id').type_of()
+      ot: "'TABLE_SLICE'"
+
     - cd: tbl.between(20, 29).count()
       ot: 9
     - cd: tbl.between(-10, 9).count()
@@ -186,26 +267,33 @@ tests:
 
     # Between shouldn't work on arrays
     - cd: r.expr([1, 2, 3]).between(-1, 2)
-      ot: err('RqlRuntimeError', 'Expected type TABLE but found DATUM.', [0])
+      ot: err('RqlRuntimeError', 'Expected type TABLE_SLICE but found DATUM.', [0])
 
     # test between on open intervals
-    - cd: tbl.between(null, 2).count()
+    - cd: tbl.between(r.minval, 2).count()
       ot: 2
-    - cd: tbl.between(null, 2, :right_bound => 'closed').count()
-      py: tbl.between(null, 2, right_bound='closed').count()
-      js: tbl.between(null, 2, {'right_bound':'closed'}).count()
+    - cd: tbl.between(r.minval, 2, :right_bound => 'closed').count()
+      py: tbl.between(r.minval, 2, right_bound='closed').count()
+      js: tbl.between(r.minval, 2, {'right_bound':'closed'}).count()
       ot: 3
-    - cd: tbl.between(null, 2, :left_bound => 'open').count()
-      py: tbl.between(null, 2, left_bound='open').count()
-      js: tbl.between(null, 2, {'left_bound':'open'}).count()
+    - cd: tbl.between(r.minval, 2, :left_bound => 'open').count()
+      py: tbl.between(r.minval, 2, left_bound='open').count()
+      js: tbl.between(r.minval, 2, {'left_bound':'open'}).count()
       ot: 2
 
-    - cd: tbl.between(2, null).count()
+    - cd: tbl.between(2, r.maxval).count()
       ot: 98
 
     - js: tbl.between(2).count()
       cd: []
-      ot: err('RqlDriverError', 'Expected 2 argument(s) but found 1.', '[]')
+      ot: err('RqlDriverError', 'Expected 2 arguments (not including options) but found 1.', '[]')
+
+    # test between with null bounds (allowed in old versions, now an error)
+    - cd:
+        - tbl.between(null, 2).count()
+        - tbl.between(2, null).count()
+        - tbl.between(null, null).count()
+      ot: err('RqlRuntimeError', 'Cannot use `nu' + 'll` in BETWEEN, use `r.minval` or `r.maxval` to denote unboundedness.')
 
     # test between table where id isn't a primary key
     - cd: tblpkey.between(9, 11).count()
@@ -294,7 +382,7 @@ tests:
       ot: err('RqlRuntimeError', 'Expected type DATUM but found TABLE.', [0])
 
     # Clean up
-    - cd: r.db('test').table_list().for_each(r.db('test').table_drop(r.row))
-      rb: r.db('test').table_list().for_each{ |row| r.db('test').table_drop(row) }
-      ot: ({'dropped':4})
+    - cd: r.expr(['test2','test3','testpkey']).for_each(r.db('test').table_drop(r.row))
+      rb: r.expr(['test2','test3','testpkey']).for_each{ |row| r.db('test').table_drop(row) }
+      ot: partial({'tables_dropped':3})
 

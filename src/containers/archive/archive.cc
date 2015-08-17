@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "containers/archive/archive.hpp"
 
 #include <string.h>
@@ -6,6 +6,7 @@
 
 #include <algorithm>
 
+#include "containers/archive/versioned.hpp"
 #include "containers/uuid.hpp"
 #include "rpc/serialize_macros.hpp"
 
@@ -95,12 +96,13 @@ int send_write_message(write_stream_t *s, const write_message_t *wm) {
     return 0;
 }
 
-void serialize(write_message_t *wm, const uuid_u &uuid) {
+// You MUST NOT change the behavior of serialize_universal and deserialize_universal
+// functions!  (You could find a way to remove their callers and remove them though.)
+void serialize_universal(write_message_t *wm, const uuid_u &uuid) {
     rassert(!uuid.is_unset());
     wm->append(uuid.data(), uuid_u::static_size());
 }
-
-MUST_USE archive_result_t deserialize(read_stream_t *s, uuid_u *uuid) {
+MUST_USE archive_result_t deserialize_universal(read_stream_t *s, uuid_u *uuid) {
     int64_t sz = uuid_u::static_size();
     int64_t res = force_read(s, uuid->data(), sz);
 
@@ -110,10 +112,33 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, uuid_u *uuid) {
     return archive_result_t::SUCCESS;
 }
 
+template <cluster_version_t W>
+void serialize(write_message_t *wm, const uuid_u &uuid) {
+    serialize_universal(wm, uuid);
+}
+
+template <cluster_version_t W>
+MUST_USE archive_result_t deserialize(read_stream_t *s, uuid_u *uuid) {
+    return deserialize_universal(s, uuid);
+}
+
+INSTANTIATE_SERIALIZABLE_SINCE_v1_13(uuid_u);
+
+void serialize_universal(write_message_t *wm, bool b) {
+    // We depend on the versioned implementation for booleans not changing.
+    serialize<cluster_version_t::LATEST_OVERALL>(wm, b);
+}
+MUST_USE archive_result_t deserialize_universal(read_stream_t *s, bool *b) {
+    return deserialize<cluster_version_t::LATEST_OVERALL>(s, b);
+}
+
+
+template <cluster_version_t W>
 void serialize(write_message_t *wm, const in6_addr &addr) {
     wm->append(&addr.s6_addr, sizeof(addr.s6_addr));
 }
 
+template <cluster_version_t W>
 MUST_USE archive_result_t deserialize(read_stream_t *s, in6_addr *addr) {
     int64_t sz = sizeof(addr->s6_addr);
     int64_t res = force_read(s, &addr->s6_addr, sz);
@@ -124,4 +149,6 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, in6_addr *addr) {
     return archive_result_t::SUCCESS;
 }
 
-RDB_IMPL_SERIALIZABLE_1(in_addr, s_addr);
+INSTANTIATE_SERIALIZABLE_SINCE_v1_13(in6_addr);
+
+RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(in_addr, s_addr);

@@ -1,0 +1,26 @@
+desc: Test cleanup of cursors on the server
+table_variable_name: tbl
+tests:
+# The JS test driver doesn't support noreply wait, so only test with Python and Ruby
+
+  - py: r.db('rethinkdb').table('jobs').map(lambda:1)
+    rb: r.db('rethinkdb').table('jobs').map{|x| 1}
+    ot: [1]
+
+  - py: r.db('rethinkdb').table('jobs').map(lambda:1)
+    rb: r.db('rethinkdb').table('jobs').map{|x| 1}
+    runopts:
+      noreply: true
+    ot: null
+
+  - py: r.db('rethinkdb').table('jobs').map(lambda:1)
+    rb: r.db('rethinkdb').table('jobs').map{|x| 1}
+    runopts:
+      noreply: true
+    testopts:
+      noreply_wait: true
+    ot: null
+
+  - py: r.db('rethinkdb').table('jobs').map(lambda:1)
+    rb: r.db('rethinkdb').table('jobs').map{|x| 1}
+    ot: [1]

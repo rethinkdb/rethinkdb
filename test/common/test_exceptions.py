@@ -3,7 +3,9 @@
 '''Collection of the shared exceptions used in testing'''
 
 class TestingFrameworkException(Exception):
-    message = 'A generic testing framework error occured'
+    '''Generic exception for this testing framework, mostly a base class for others'''
+    
+    _message = 'A generic testing framework error occured'
     detail = None
     debugInfo = None
     
@@ -11,17 +13,22 @@ class TestingFrameworkException(Exception):
         if detail is not None:
             self.detail = str(detail)
         if debugInfo is not None:
-            if hasattr(debug, 'read'):
-                debug.seek(0)
+            if hasattr(debugInfo, 'read'):
+                debugInfo.seek(0)
                 self.debugInfo = debugInfo.read()
             else:
                 self.debugInfo = debugInfo
     
     def __str__(self):
         if self.detail is not None:
-            return "%s: %s" % (self.message, self.detail)
+            return "%s: %s" % (self.message(), self.detail)
         else:
-            return self.message
+            return self.message()
+    
+    def message(self):
+        return self._message
 
 class NotBuiltException(TestingFrameworkException):
-    message = 'An item was not built'
+    '''Exception to raise when an item that was expected to be built was not'''
+    
+    _message = 'An item was not built'

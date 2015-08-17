@@ -1,10 +1,7 @@
 desc: 718 -- another lazy crashing bug -- changed as of #1328 to allow referencing external variables
+table_variable_name: tbl
 tests:
-  - rb: r.db('test').table_create('718')
+
+  - rb: r(4).do{|x| tbl.index_create('718') {|row| row[:id] % x}}
     ot: ({'created':1})
 
-  - rb: r(4).do{|x| r.table('718').index_create('718') {|row| row[:id] % x}}
-    ot: ({'created':1})
-
-  - rb: r.db('test').table_drop('718')
-    ot: ({'dropped':1})

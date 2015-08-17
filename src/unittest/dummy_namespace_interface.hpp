@@ -5,9 +5,6 @@
 #include <set>
 #include <vector>
 
-#include "errors.hpp"
-#include <boost/ptr_container/ptr_vector.hpp>
-
 #include "containers/scoped.hpp"
 #include "protocol_api.hpp"
 #include "timestamps.hpp"
@@ -25,7 +22,6 @@ public:
     void read(const read_t &read,
               read_response_t *response,
               DEBUG_VAR state_timestamp_t expected_timestamp,
-              order_token_t order_token,
               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
     void read_outdated(const read_t &read,
@@ -34,7 +30,7 @@ public:
 
     void write(const write_t &write,
                write_response_t *response,
-               transition_timestamp_t transition_timestamp,
+               state_timestamp_t timestamp,
                order_token_t order_token) THROWS_NOTHING;
 
     order_source_t bs_outdated_read_source;
@@ -73,8 +69,6 @@ public:
 
     void read(const read_t &read, read_response_t *response, order_token_t tok, signal_t *interruptor);
 
-    void read_outdated(const read_t &read, read_response_t *response, signal_t *interruptor);
-
     void write(const write_t &write, write_response_t *response, order_token_t tok, signal_t *interruptor);
 
 private:
@@ -85,16 +79,12 @@ private:
 class dummy_namespace_interface_t : public namespace_interface_t {
 public:
     dummy_namespace_interface_t(std::vector<region_t> shards,
-                                store_view_t **stores, order_source_t
+                                store_view_t *const *stores, order_source_t
                                 *order_source, rdb_context_t *_ctx,
                                 bool initialize_metadata);
 
     void read(const read_t &read, read_response_t *response, order_token_t tok, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
         return sharder->read(read, response, tok, interruptor);
-    }
-
-    void read_outdated(const read_t &read, read_response_t *response, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
-        return sharder->read_outdated(read, response, interruptor);
     }
 
     void write(const write_t &write, write_response_t *response, order_token_t tok, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
@@ -103,9 +93,13 @@ public:
 
     std::set<region_t> get_sharding_scheme() THROWS_ONLY(cannot_perform_query_exc_t);
 
+    bool check_readiness(table_readiness_t, signal_t *) {
+        throw cannot_perform_query_exc_t("unimplemented", query_state_t::FAILED);
+    }
+
 private:
-    boost::ptr_vector<dummy_performer_t> performers;
-    boost::ptr_vector<dummy_timestamper_t> timestampers;
+    std::vector<scoped_ptr_t<dummy_performer_t> > performers;
+    std::vector<scoped_ptr_t<dummy_timestamper_t> > timestampers;
     scoped_ptr_t<dummy_sharder_t> sharder;
     rdb_context_t *ctx;
 };

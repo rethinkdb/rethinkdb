@@ -11,17 +11,33 @@ public:
     keys_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-        counted_t<const datum_t> d = arg(env, 0)->as_datum();
-        const std::map<std::string, counted_t<const datum_t> > &obj = d->as_object();
-
-        std::vector<counted_t<const datum_t> > arr;
-        arr.reserve(obj.size());
-        for (auto it = obj.begin(); it != obj.end(); ++it) {
-            arr.push_back(make_counted<const datum_t>(std::string(it->first)));
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        scoped_ptr_t<val_t> v = args->arg(env, 0);
+        datum_t d = v->as_datum();
+        switch (env->env->reql_version()) {
+        case reql_version_t::v1_14: // v1_15 is the same as v1_14
+            break;
+        case reql_version_t::v1_16:
+        case reql_version_t::v2_0:
+        case reql_version_t::v2_1_is_latest:
+            rcheck_target(v,
+                          d.has() && d.get_type() == datum_t::R_OBJECT && !d.is_ptype(),
+                          base_exc_t::LOGIC,
+                          strprintf("Cannot call `%s` on objects of type `%s`.",
+                                    name(),
+                                    d.get_type_name().c_str()));
+            break;
+        default:
+            unreachable();
         }
 
-        return new_val(make_counted<const datum_t>(std::move(arr)));
+        std::vector<datum_t> arr;
+        arr.reserve(d.obj_size());
+        for (size_t i = 0; i < d.obj_size(); ++i) {
+            arr.push_back(datum_t(d.get_pair(i).first));
+        }
+
+        return new_val(datum_t(std::move(arr), env->env->limits()));
     }
     virtual const char *name() const { return "keys"; }
 };
@@ -31,34 +47,36 @@ public:
     object_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(0, -1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-        rcheck(num_args() % 2 == 0,
-               base_exc_t::GENERIC,
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        rcheck(args->num_args() % 2 == 0,
+               base_exc_t::LOGIC,
                strprintf("OBJECT expects an even number of arguments (but found %zu).",
-                         num_args()));
-        datum_ptr_t obj(datum_t::R_OBJECT);
-        for (size_t i = 0; i < num_args(); i+=2) {
-            std::string key = arg(env, i)->as_str().to_std();
-            counted_t<const datum_t> keyval = arg(env, i+1)->as_datum();
+                         args->num_args()));
+        datum_object_builder_t obj;
+        for (size_t i = 0; i < args->num_args(); i+=2) {
+            const datum_string_t &key = args->arg(env, i)->as_str();
+            datum_t keyval = args->arg(env, i + 1)->as_datum();
             bool b = obj.add(key, keyval);
-            rcheck(!b, base_exc_t::GENERIC,
+            rcheck(!b, base_exc_t::LOGIC,
                    strprintf("Duplicate key `%s` in object.  "
                              "(got `%s` and `%s` as values)",
-                             key.c_str(),
-                             obj->get(key)->trunc_print().c_str(),
-                             keyval->trunc_print().c_str()));
+                             key.to_std().c_str(),
+                             obj.at(key).trunc_print().c_str(),
+                             keyval.trunc_print().c_str()));
         }
-        return new_val(obj.to_counted());
+        return new_val(std::move(obj).to_datum());
     }
 
     virtual const char *name() const { return "object"; }
 };
 
-counted_t<term_t> make_keys_term(compile_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_keys_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<keys_term_t>(env, term);
 }
 
-counted_t<term_t> make_object_term(compile_env_t *env, const protob_t<const Term> &term){
+counted_t<term_t> make_object_term(
+        compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<object_term_t>(env, term);
 }
 

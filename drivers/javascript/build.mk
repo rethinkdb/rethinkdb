@@ -13,7 +13,7 @@ DRIVER_COMPILED_COFFEE := $(patsubst $(JS_SRC_DIR)/%.coffee,$(DRIVER_COFFEE_BUIL
 
 JS_PKG_DIR := $(PACKAGES_DIR)/js
 
-$(PROTO_MODULE): $(PROTO_FILE) $(JS_BUILD_DIR)/.
+$(PROTO_MODULE): $(PROTO_FILE) | $(JS_BUILD_DIR)/.
 	$P CONVERT_PROTOFILE
 	$(JS_SRC_DIR)/../convert_protofile --language javascript --input-file $(PROTO_FILE) --output-file $(PROTO_MODULE)
 
@@ -44,6 +44,8 @@ js-publish: $(JS_PKG_DIR)
 js-clean:
 	$P RM $(JS_BUILD_DIR)
 	rm -rf $(JS_BUILD_DIR)
+	$P RM $(JS_PKG_DIR)
+	rm -rf $(JS_PKG_DIR)
 
 .PHONY: js-install
 js-install: NPM_PREFIX=.
@@ -68,7 +70,7 @@ $(JS_PKG_DIR)/node_modules: $(BLUEBIRD_MODULE_DIR) $(JS_PKG_DIR) | $(NPM_BIN_DEP
 $(JS_BUILD_DIR)/rethinkdb.js: $(JS_PKG_DIR) $(JS_PKG_DIR)/node_modules | $(BROWSERIFY_BIN_DEP)
 	$P BROWSERIFY
 	cd $(JS_PKG_DIR) && \
-	  $(abspath $(BROWSERIFY)) --require ./rethinkdb:rethinkdb --outfile $(abspath $@)
+	  $(abspath $(BROWSERIFY)) --require ./rethinkdb:rethinkdb --ignore tls --outfile $(abspath $@)
 
 .PHONY: js-driver
 js-driver: $(JS_BUILD_DIR)/rethinkdb.js

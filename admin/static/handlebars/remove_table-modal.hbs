@@ -1,0 +1,14 @@
+
+    <div class="alert alert-error displayed_alert">Deleting a table will delete all its data. This action cannot be reversed.</div>
+    <div class="alert alert-error error_answer"></div>
+    {{#if single_delete}}
+        <h4>Are you sure you want to delete this table:</h4>
+    {{else}}
+        <h4>Are you sure you want to delete these tables:</h4>
+    {{/if}}
+    <ul class="table-list">
+        {{#each tables}}
+        <li><a href="#tables/TODO">{{database}}.{{table}}</a></li>
+        {{/each}}
+    </ul>
+

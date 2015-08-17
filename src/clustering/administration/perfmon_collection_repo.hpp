@@ -1,12 +1,11 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_PERFMON_COLLECTION_REPO_HPP_
 #define CLUSTERING_ADMINISTRATION_PERFMON_COLLECTION_REPO_HPP_
 
-#include "errors.hpp"
-#include <boost/ptr_container/ptr_map.hpp>
+#include <map>
 
+#include "containers/uuid.hpp"
 #include "perfmon/perfmon.hpp"
-#include "clustering/administration/namespace_metadata.hpp"
 
 class perfmon_collection_repo_t {
 public:
@@ -25,7 +24,7 @@ public:
 
 private:
     perfmon_collection_t *parent;
-    boost::ptr_map<namespace_id_t, collections_t> perfmon_collections;
+    std::map<namespace_id_t, scoped_ptr_t<collections_t> > perfmon_collections;
 
     DISABLE_COPYING(perfmon_collection_repo_t);
 };

@@ -6,14 +6,14 @@
 #include "concurrency/wait_any.hpp"
 
 void fifo_enforcer_state_t::advance_by_read(DEBUG_VAR fifo_enforcer_read_token_t token) THROWS_NOTHING {
-    rassert(timestamp == token.timestamp);
+    rassert(last_timestamp == token.timestamp);
     num_reads++;
 }
 
 void fifo_enforcer_state_t::advance_by_write(fifo_enforcer_write_token_t token) THROWS_NOTHING {
-    rassert(timestamp == token.timestamp.timestamp_before());
+    rassert(last_timestamp.next() == token.timestamp);
     rassert(num_reads == token.num_preceding_reads);
-    timestamp = token.timestamp.timestamp_after();
+    last_timestamp = token.timestamp;
     num_reads = 0;
 }
 
@@ -21,14 +21,14 @@ fifo_enforcer_read_token_t fifo_enforcer_source_t::enter_read() THROWS_NOTHING {
     assert_thread();
     mutex_assertion_t::acq_t freeze(&lock);
     state.num_reads++;
-    return fifo_enforcer_read_token_t(state.timestamp);
+    return fifo_enforcer_read_token_t(state.last_timestamp);
 }
 
 fifo_enforcer_write_token_t fifo_enforcer_source_t::enter_write() THROWS_NOTHING {
     assert_thread();
     mutex_assertion_t::acq_t freeze(&lock);
-    fifo_enforcer_write_token_t token(transition_timestamp_t::starting_from(state.timestamp), state.num_reads);
-    state.timestamp = token.timestamp.timestamp_after();
+    state.last_timestamp = state.last_timestamp.next();
+    fifo_enforcer_write_token_t token(state.last_timestamp, state.num_reads);
     state.num_reads = 0;
     return token;
 }
@@ -122,7 +122,6 @@ void fifo_enforcer_sink_t::exit_write_t::end() THROWS_NOTHING {
     if (is_pulsed()) {
         parent->internal_finish_a_writer(token);
     } else {
-        // KSI: Why would we need a dummy?
         /* Swap us out for a dummy. */
         class dummy_exit_write_t : public internal_exit_write_t {
         public:
@@ -132,7 +131,6 @@ void fifo_enforcer_sink_t::exit_write_t::end() THROWS_NOTHING {
                 return token;
             }
             void on_reached_head_of_queue() {
-                // KSI: This probably calls 'delete this' later than it should.
                 sink->internal_write_queue.remove(this);
                 sink->internal_finish_a_writer(token);
                 delete this;
@@ -176,15 +174,15 @@ void fifo_enforcer_sink_t::internal_pump() THROWS_NOTHING {
             pump_should_keep_going = false;
 
             while (!internal_read_queue.empty() &&
-                    internal_read_queue.peek()->get_token().timestamp == finished_state.timestamp) {
+                    internal_read_queue.peek()->get_token().timestamp == finished_state.last_timestamp) {
                 internal_exit_read_t *read = internal_read_queue.peek();
                 popped_state.advance_by_read(read->get_token());
                 read->on_reached_head_of_queue();
             }
 
             if (!internal_write_queue.empty() &&
-                    internal_write_queue.peek()->get_token().timestamp.timestamp_before() == finished_state.timestamp &&
-                    internal_write_queue.peek()->get_token().num_preceding_reads == finished_state.num_reads) {
+                internal_write_queue.peek()->get_token().timestamp == finished_state.last_timestamp.next() &&
+                internal_write_queue.peek()->get_token().num_preceding_reads == finished_state.num_reads) {
                 internal_exit_write_t *write = internal_write_queue.peek();
                 popped_state.advance_by_write(write->get_token());
                 write->on_reached_head_of_queue();
@@ -195,14 +193,14 @@ void fifo_enforcer_sink_t::internal_pump() THROWS_NOTHING {
 }
 
 void fifo_enforcer_sink_t::internal_finish_a_reader(fifo_enforcer_read_token_t token) THROWS_NOTHING {
-    rassert(popped_state.timestamp == token.timestamp);
+    rassert(popped_state.last_timestamp == token.timestamp);
     rassert(finished_state.num_reads <= popped_state.num_reads);
     finished_state.advance_by_read(token);
     internal_pump();
 }
 
 void fifo_enforcer_sink_t::internal_finish_a_writer(fifo_enforcer_write_token_t token) THROWS_NOTHING {
-    rassert(popped_state.timestamp == token.timestamp.timestamp_after());
+    rassert(popped_state.last_timestamp == token.timestamp);
     rassert(popped_state.num_reads == 0);
     finished_state.advance_by_write(token);
     internal_pump();

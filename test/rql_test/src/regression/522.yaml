@@ -1,9 +1,6 @@
 desc: Skip after orderby causes use-after-free (#522)
+table_variable_name: tbl
 tests:
-
-  - cd: r.db('test').table_create('522')
-    def: tbl = r.db('test').table('522')
-
   - cd: tbl.insert([{'id':0}, {'id':1}, {'id':2}])
 
   - js: tbl.orderBy('id').skip(1)
@@ -11,4 +8,3 @@ tests:
     rb: tbl.order_by('id').skip(1)
     ot: [{'id':1}, {'id':2}]
 
-  - cd: r.db('test').table_drop('522')

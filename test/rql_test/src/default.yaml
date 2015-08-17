@@ -1,8 +1,6 @@
 desc: Tests r.default
 tests:
 
-    # The test driver sometimes rewrites `null` to `None` in Ruby for unknown reasons.
-
     # tst
     - cd: r.expr(1).default(2)
       ot: 1
@@ -13,7 +11,7 @@ tests:
       ot: 2
     - cd: r.expr(r.expr('a')['b']).default(2)
       js: r.expr(r.expr('a')('b')).default(2)
-      ot: err("RqlRuntimeError", "Cannot perform get_field on a non-object non-sequence `\"a\"`.", [])
+      ot: err("RqlRuntimeError", "Cannot perform bracket on a non-object non-sequence `\"a\"`.", [])
     - rb: r.expr([]).reduce{|a,b| a+b}.default(2)
       py: r.expr([]).reduce(lambda a,b:a+b).default(2)
       js: r.expr([]).reduce(function(a,b){return a+b}).default(2)
@@ -90,7 +88,7 @@ tests:
     - cd: r.expr({})['b'].default{|e| e}
       py: r.expr({})['b'].default(lambda e:e)
       js: r.expr({})('b').default(function(e){return e})
-      ot: ("No attribute `b` in object:\n{\n}")
+      ot: ("No attribute `b` in object:\n{}")
     - cd: r.expr([]).reduce{|a,b| a+b}.default{|e| e}
       py: r.expr([]).reduce(lambda a,b:a+b).default(lambda e:e)
       js: r.expr([]).reduce(function(a,b){return a+b}).default(function(e){return e})
@@ -192,7 +190,7 @@ tests:
       ot: err("RqlRuntimeError", "No attribute `a` in object.", [])
 
     - cd: r.table_create('default_test')
-      ot: ({'created':1})
+      ot: partial({'tables_created':1})
 
     - cd: r.table('default_test').insert(arr)
       ot: ({'deleted':0.0,'replaced':0.0,'generated_keys':arrlen(3,uuid()),'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':3})
@@ -265,4 +263,4 @@ tests:
       ot: err("RqlRuntimeError", "No attribute `a` in object.", [])
 
     - cd: r.table_drop('default_test')
-      ot: ({'dropped':1})
+      ot: partial({'tables_dropped':1})

@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+#include "backtrace.hpp"
+#include "concurrency/new_semaphore.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "rpc/connectivity/cluster.hpp"
@@ -22,22 +24,31 @@ public:
     virtual ~mailbox_write_callback_t() { }
     virtual void write(cluster_version_t cluster_version,
                        write_message_t *wm) = 0;
+#ifdef ENABLE_MESSAGE_PROFILER
+    virtual const char *message_profiler_tag() const = 0;
+#endif
 };
 
 class mailbox_read_callback_t {
 public:
     virtual ~mailbox_read_callback_t() { }
 
-    // cluster_version tells the read callback what format to read bytes off the
-    // stream in, for its mailbox message parsing.
-    virtual void read(cluster_version_t cluster_version,
-                      read_stream_t *stream) = 0;
+    /* `read()` is allowed to block indefinitely after reading the message from the
+    stream, but the mailbox's destructor cannot return until `read()` returns. */
+    virtual void read(
+        read_stream_t *stream,
+        /* `interruptor` will be pulsed if the mailbox is destroyed. */
+        signal_t *interruptor) = 0;
 };
 
 struct raw_mailbox_t : public home_thread_mixin_t {
 public:
     struct address_t;
     typedef uint64_t id_t;
+
+#ifndef NDEBUG
+    lazy_backtrace_formatter_t bt;
+#endif
 
 private:
     friend class mailbox_manager_t;
@@ -48,6 +59,9 @@ private:
 
     const id_t mailbox_id;
 
+    /* `callback` will be set to `nullptr` after `begin_shutdown()` is called. This is
+    both a way of ensuring that no new callbacks are spawned and of making sure that
+    the destructor won't call `begin_shutdown()` again. */
     mailbox_read_callback_t *callback;
 
     auto_drainer_t drainer;
@@ -81,18 +95,17 @@ public:
 
         RDB_MAKE_ME_EQUALITY_COMPARABLE_3(raw_mailbox_t::address_t, peer, thread, mailbox_id);
 
+        RDB_MAKE_ME_SERIALIZABLE_3(address_t, peer, thread, mailbox_id);
+
     private:
         friend void send(mailbox_manager_t *, raw_mailbox_t::address_t, mailbox_write_callback_t *callback);
         friend struct raw_mailbox_t;
         friend class mailbox_manager_t;
 
-        RDB_MAKE_ME_SERIALIZABLE_3(peer, thread, mailbox_id);
-
         /* The peer on which the mailbox is located */
         peer_id_t peer;
 
         /* The thread on `peer` that the mailbox lives on */
-        static const int32_t ANY_THREAD;
         int32_t thread;
 
         /* The ID of the mailbox */
@@ -100,39 +113,37 @@ public:
     };
 
     raw_mailbox_t(mailbox_manager_t *, mailbox_read_callback_t *callback);
+
+    /* Note that `~raw_mailbox_t()` will block until all of the callbacks have finished
+    running. */
     ~raw_mailbox_t();
+
+    /* `begin_shutdown()` will stop the mailbox from accepting further queries, and
+    pulse the interruptor for every running instance of the callback. */
+    void begin_shutdown();
 
     address_t get_address() const;
 };
 
 /* `send()` sends a message to a mailbox. `send()` can block and must be called
-in a coroutine. If the mailbox does not exist or the peer is inaccessible, `send()`
-will silently fail. */
+in a coroutine. If the mailbox does not exist or the peer is disconnected, `send()`
+will silently fail. Mailbox messages are not necessarily delivered in order. */
 
 void send(mailbox_manager_t *src,
           raw_mailbox_t::address_t dest,
           mailbox_write_callback_t *callback);
 
-/* `mailbox_manager_t` uses a `message_service_t` to provide mailbox capability.
-Usually you will split a `message_service_t` into several sub-services using
-`message_multiplexer_t` and put a `mailbox_manager_t` on only one of them,
-because the `mailbox_manager_t` relies on something else to send the initial
-mailbox addresses back and forth between nodes. */
+/* `mailbox_manager_t` is a `cluster_message_handler_t` that takes care
+of actually routing messages to mailboxes. */
 
-class mailbox_manager_t : public message_handler_t {
+class mailbox_manager_t : public cluster_message_handler_t {
 public:
-    explicit mailbox_manager_t(message_service_t *);
-
-    /* Returns the connectivity service of the underlying message service. */
-    connectivity_service_t *get_connectivity_service() {
-        return message_service->get_connectivity_service();
-    }
+    mailbox_manager_t(connectivity_cluster_t *connectivity_cluster,
+                      connectivity_cluster_t::message_tag_t message_tag);
 
 private:
     friend struct raw_mailbox_t;
     friend void send(mailbox_manager_t *, raw_mailbox_t::address_t, mailbox_write_callback_t *callback);
-
-    message_service_t *message_service;
 
     struct mailbox_table_t {
         mailbox_table_t();
@@ -144,6 +155,11 @@ private:
     };
     one_per_thread_t<mailbox_table_t> mailbox_tables;
 
+    /* We must acquire one of these semaphores whenever we want to send a message over a
+    mailbox. This prevents mailbox messages from starving directory and semilattice
+    messages. */
+    one_per_thread_t<new_semaphore_t> semaphores;
+
     raw_mailbox_t::id_t generate_mailbox_id();
 
     raw_mailbox_t::id_t register_mailbox(raw_mailbox_t *mb);
@@ -154,19 +170,32 @@ private:
                                       raw_mailbox_t::id_t dest_mailbox_id,
                                       mailbox_write_callback_t *callback);
 
-    void on_message(peer_id_t source_peer, cluster_version_t version,
+    void on_message(connectivity_cluster_t::connection_t *connection,
+                    auto_drainer_t::lock_t connection_keeepalive,
                     read_stream_t *stream);
-    void on_local_message(peer_id_t source_peer, cluster_version_t version,
+    void on_local_message(connectivity_cluster_t::connection_t *connection,
+                          auto_drainer_t::lock_t connection_keepalive,
                           std::vector<char> &&data);
 
     enum force_yield_t {FORCE_YIELD, MAYBE_YIELD};
-    void mailbox_read_coroutine(peer_id_t source_peer,
-                                cluster_version_t cluster_version,
+    void mailbox_read_coroutine(connectivity_cluster_t::connection_t *connection,
+                                auto_drainer_t::lock_t connection_keepalive,
                                 threadnum_t dest_thread,
                                 raw_mailbox_t::id_t dest_mailbox_id,
                                 std::vector<char> *stream_data,
                                 int64_t stream_data_offset,
                                 force_yield_t force_yield);
+};
+
+/* Note: disconnect_watcher_t keeps the connection alive for as long as it
+exists, blocking reconnects from getting through. Avoid keeping the 
+disconnect_watcher_t around for long after it gets pulsed. */
+class disconnect_watcher_t : public signal_t, private signal_t::subscription_t {
+public:
+    disconnect_watcher_t(mailbox_manager_t *mailbox_manager, peer_id_t peer);
+private:
+    void run();
+    auto_drainer_t::lock_t connection_keepalive;
 };
 
 #endif /* RPC_MAILBOX_MAILBOX_HPP_ */

@@ -90,41 +90,57 @@ const char* http_req_t::resource_t::token_start_position(const http_req_t::resou
     }
 }
 
-http_req_t::http_req_t() {
+http_req_t::http_req_t() :
+    peer(ip_address_t::any(AF_INET), port_t(0)) {
 }
 
-http_req_t::http_req_t(const std::string &resource_path) : resource(resource_path) {
+http_req_t::http_req_t(const std::string &resource_path) :
+    resource(resource_path),
+    peer(ip_address_t::any(AF_INET), port_t(0)) {
 }
 
 http_req_t::http_req_t(const http_req_t &from, const resource_t::iterator& resource_start)
     : resource(from.resource, resource_start),
-      method(from.method), query_params(from.query_params), version(from.version), header_lines(from.header_lines), body(from.body) {
-}
+      peer(from.peer),
+      method(from.method),
+      query_params(from.query_params),
+      version(from.version),
+      header_lines(from.header_lines),
+      body(from.body) { }
 
 boost::optional<std::string> http_req_t::find_query_param(const std::string& key) const {
-    //TODO this is inefficient we should actually load it all into a map
-    for (std::vector<query_parameter_t>::const_iterator it = query_params.begin(); it != query_params.end(); ++it) {
-        if (it->key == key)
-            return boost::optional<std::string>(it->val);
+    std::map<std::string, std::string>::const_iterator it = query_params.find(key);
+    if (it != query_params.end()) {
+        return boost::optional<std::string>(it->second);
     }
     return boost::none;
 }
 
+void http_req_t::add_header_line(const std::string& key, const std::string& val) {
+    std::string header_key = key;
+    boost::to_lower(header_key);
+    std::map<std::string, std::string>::const_iterator it = header_lines.find(header_key);
+    if (it == header_lines.end()) {
+        header_lines[header_key] = val;
+    }
+}
+
 boost::optional<std::string> http_req_t::find_header_line(const std::string& key) const {
-    //TODO this is inefficient we should actually load it all into a map
-    for (std::vector<header_line_t>::const_iterator it = header_lines.begin(); it != header_lines.end(); ++it) {
-        if (boost::iequals(it->key, key))
-            return boost::optional<std::string>(it->val);
+    std::string header_key = key;
+    boost::to_lower(header_key);
+    std::map<std::string, std::string>::const_iterator it = header_lines.find(header_key);
+    if (it != header_lines.end()) {
+        return boost::optional<std::string>(it->second);
     }
     return boost::none;
 }
 
 bool http_req_t::has_header_line(const std::string& key) const {
-    //TODO this is inefficient we should actually load it all into a map
-    for (std::vector<header_line_t>::const_iterator it = header_lines.begin(); it != header_lines.end(); ++it) {
-        if (boost::iequals(it->key, key)) {
-            return true;
-        }
+    std::string header_key = key;
+    boost::to_lower(header_key);
+    std::map<std::string, std::string>::const_iterator it = header_lines.find(header_key);
+    if (it != header_lines.end()) {
+        return true;
     }
     return false;
 }
@@ -161,17 +177,21 @@ void http_res_t::add_last_modified(int) {
 }
 
 void http_res_t::add_header_line(const std::string& key, const std::string& val) {
-    header_line_t hdr_ln;
-    hdr_ln.key = key;
-    hdr_ln.val = val;
-    header_lines.push_back(hdr_ln);
+    std::string header_key = key;
+    boost::to_lower(header_key);
+    std::map<std::string, std::string>::const_iterator it = header_lines.find(header_key);
+    if (it == header_lines.end()) {
+        header_lines[header_key] = val;
+    }
 }
 
 void http_res_t::set_body(const std::string& content_type, const std::string& content) {
-    for (std::vector<header_line_t>::iterator it = header_lines.begin(); it != header_lines.end(); ++it) {
-        guarantee(it->key != "Content-Type");
-        guarantee(it->key != "Content-Length");
-    }
+    std::map<std::string, std::string>::const_iterator it;
+    it = header_lines.find("content-type");
+    guarantee(it == header_lines.end());
+    it = header_lines.find("content-length");
+    guarantee(it == header_lines.end());
+
     guarantee(body.size() == 0);
 
     add_header_line("Content-Type", content_type);
@@ -196,7 +216,6 @@ bool maybe_gzip_response(const http_req_t &req, http_res_t *res) {
     if (!supported_encoding || supported_encoding.get().empty()) {
         return false;
     }
-
     std::map<std::string, std::string> encodings;
 
     // Regular expression to match an encoding/qvalue pair
@@ -214,7 +233,8 @@ bool maybe_gzip_response(const http_req_t &req, http_res_t *res) {
     //      be the next comma or the end of the string.  We consume the comma so that the
     //      next iteration will start at the beginning of the remaining string.
     {
-        RE2 re2_parser("^\\s*([\\w-]+|\\*)\\s*(?:;\\s*q\\s*=\\s*([0-9]+(?:\\.[0-9]+)?)\\s*)?(?:,|$)");
+        RE2 re2_parser("^\\s*([\\w-]+|\\*)\\s*(?:;\\s*q\\s*=\\s*([0-9]+(?:\\.[0-9]+)?)\\s*)?(?:,|$)",
+                       RE2::Quiet);
         re2::StringPiece encodings_re2(supported_encoding.get());
         std::string name;
         std::string qvalue;
@@ -316,11 +336,8 @@ bool maybe_gzip_response(const http_req_t &req, http_res_t *res) {
     res->body.assign(out_buffer.data(), zstream.total_out);
 
     // Update the body size in the headers
-    for (auto it = res->header_lines.begin(); it != res->header_lines.end(); ++it) {
-        if (it->key == "Content-Length") {
-            it->val = strprintf("%lu", zstream.total_out);
-            break;
-        }
+    if (res->header_lines.find("content-length") != res->header_lines.end()){
+        res->header_lines["content-length"] = strprintf("%lu", zstream.total_out);
     }
 
     res->add_header_line("Content-Encoding", "gzip");
@@ -348,98 +365,32 @@ int http_server_t::get_port() const {
 
 http_server_t::~http_server_t() { }
 
-std::string human_readable_status(int code) {
+std::string human_readable_status(http_status_code_t code) {
     switch (code) {
-    case 100:
-        return "Continue";
-    case 101:
-        return "Switching Protocols";
-    case 200:
+    case http_status_code_t::OK:
         return "OK";
-    case 201:
-        return "Created";
-    case 202:
-        return "Accepted";
-    case 203:
-        return "Non-Authoritative Information";
-    case 204:
-        return "No Content";
-    case 205:
-        return "Reset Content";
-    case 206:
-        return "Partial Content";
-    case 300:
-        return "Multiple Choices";
-    case 301:
-        return "Moved Permanently";
-    case 302:
-        return "Found";
-    case 303:
-        return "See Other";
-    case 304:
-        return "Not Modified";
-    case 305:
-        return "Use Proxy";
-    case 307:
-        return "Temporary Redirect";
-    case 400:
+    case http_status_code_t::BAD_REQUEST:
         return "Bad Request";
-    case 401:
-        return "Unauthorized";
-    case 403:
+    case http_status_code_t::FORBIDDEN:
         return "Forbidden";
-    case 404:
+    case http_status_code_t::NOT_FOUND:
         return "Not Found";
-    case 405:
+    case http_status_code_t::METHOD_NOT_ALLOWED:
         return "Method Not Allowed";
-    case 406:
-        return "Not Acceptable";
-    case 407:
-        return "Proxy Authentication Required";
-    case 408:
-        return "Request Timeout";
-    case 409:
-        return "Conflict";
-    case 410:
-        return "Gone";
-    case 411:
-        return "Length Required";
-    case 412:
-        return "Precondition Failed";
-    case 413:
-        return "Request Entity Too Large";
-    case 414:
-        return "Request-URI Too Long";
-    case 415:
-        return "Unsupported Media Type";
-    case 416:
-        return "Request Range Not Satisfiable";
-    case 417:
-        return "Expectation Failed";
-    case 451:
-        return "Unavailable For Legal Reasons";
-    case 500:
+    case http_status_code_t::INTERNAL_SERVER_ERROR:
         return "Internal Server Error";
-    case 501:
-        return "Not Implemented";
-    case 502:
-        return "Bad Gateway";
-    case 503:
-        return "Service Unavailable";
-    case 504:
-        return "Gateway Timeout";
-    case 505:
-        return "HTTP Version Not Supported";
     default:
-        guarantee(false, "Unknown code %d.", code);
-        return "(Unknown status code)";
+        unreachable();
     }
 }
 
 void write_http_msg(tcp_conn_t *conn, const http_res_t &res, signal_t *closer) THROWS_ONLY(tcp_conn_write_closed_exc_t) {
-    conn->writef(closer, "HTTP/%s %d %s\r\n", res.version.c_str(), res.code, human_readable_status(res.code).c_str());
-    for (std::vector<header_line_t>::const_iterator it = res.header_lines.begin(); it != res.header_lines.end(); ++it) {
-        conn->writef(closer, "%s: %s\r\n", it->key.c_str(), it->val.c_str());
+    conn->writef(closer, "HTTP/%s %" PRIu32 " %s\r\n",
+                 res.version.c_str(),
+                 static_cast<uint32_t>(res.code),
+                 human_readable_status(res.code).c_str());
+    for (auto const &line: res.header_lines) {
+        conn->writef(closer, "%s: %s\r\n", line.first.c_str(), line.second.c_str());
     }
     conn->writef(closer, "\r\n");
     conn->write(res.body.c_str(), res.body.size(), closer);
@@ -455,12 +406,14 @@ void http_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn
     // Parse the request
     try {
         http_res_t res;
+        UNUSED bool peer_res = conn->getpeername(&req.peer);
+
         if (http_msg_parser.parse(conn.get(), &req, keepalive.get_drain_signal())) {
             application->handle(req, &res, keepalive.get_drain_signal());
             res.version = req.version;
             maybe_gzip_response(req, &res);
         } else {
-            res = http_res_t(HTTP_BAD_REQUEST);
+            res = http_res_t(http_status_code_t::BAD_REQUEST);
         }
         write_http_msg(conn.get(), res, keepalive.get_drain_signal());
     } catch (const interrupted_exc_t &) {
@@ -476,27 +429,27 @@ void http_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn
 
 // Parse a http request off of the tcp conn and stuff it into the http_req_t object. Returns parse success.
 bool tcp_http_msg_parser_t::parse(tcp_conn_t *conn, http_req_t *req, signal_t *closer) THROWS_ONLY(tcp_conn_read_closed_exc_t) {
-    LineParser parser(conn);
+    line_parser_t parser(conn);
 
     std::string method = parser.readWord(closer);
     if (method == "HEAD") {
-        req->method = HEAD;
+        req->method = http_method_t::HEAD;
     } else if (method == "GET") {
-        req->method = GET;
+        req->method = http_method_t::GET;
     } else if (method == "POST") {
-        req->method = POST;
+        req->method = http_method_t::POST;
     } else if (method == "PUT") {
-        req->method = PUT;
+        req->method = http_method_t::PUT;
     } else if (method == "DELETE") {
-        req->method = DELETE;
+        req->method = http_method_t::DELETE;
     } else if (method == "TRACE") {
-        req->method = TRACE;
+        req->method = http_method_t::TRACE;
     } else if (method == "OPTIONS") {
-        req->method = OPTIONS;
+        req->method = http_method_t::OPTIONS;
     } else if (method == "CONNECT") {
-        req->method = CONNECT;
+        req->method = http_method_t::CONNECT;
     } else if (method == "PATCH") {
-        req->method = PATCH;
+        req->method = http_method_t::PATCH;
     } else {
         return false;
     }
@@ -529,10 +482,7 @@ bool tcp_http_msg_parser_t::parse(tcp_conn_t *conn, http_req_t *req, signal_t *c
             return false;
         }
 
-        header_line_t final_line;
-        final_line.key = header_parser.key;
-        final_line.val = header_parser.val;
-        req->header_lines.push_back(final_line);
+        req->add_header_line(header_parser.key, header_parser.val);
     }
 
     // Parse body
@@ -555,7 +505,9 @@ bool tcp_http_msg_parser_t::version_parser_t::parse(const std::string &src) {
 }
 
 bool tcp_http_msg_parser_t::resource_string_parser_t::parse(const std::string &src) {
+    std::string key, val;
     std::string::const_iterator iter = src.begin();
+
     while (iter != src.end() && *iter != '?') {
         ++iter;
     }
@@ -571,9 +523,6 @@ bool tcp_http_msg_parser_t::resource_string_parser_t::parse(const std::string &s
 
     while (iter != src.end()) {
 
-        // Parse single query param
-        query_parameter_t param;
-
         // Skip to the end of this param
         std::string::const_iterator query_start = iter;
         while (!(iter == src.end() || *iter == '&')) {
@@ -586,15 +535,17 @@ bool tcp_http_msg_parser_t::resource_string_parser_t::parse(const std::string &s
             ++query_iter;
         }
 
-        param.key = std::string(query_start, query_iter);
+        key = std::string(query_start, query_iter);
         if (query_iter == iter) {
             // There was no '=' and subsequent value, default to ""
-            param.val = "";
+            val = "";
         } else {
-            param.val = std::string(query_iter + 1, iter);
+            val = std::string(query_iter + 1, iter);
         }
 
-        query_params.push_back(param);
+        if (query_params.find(key) == query_params.end()) {
+            query_params[key] = val;
+        }
 
         // Skip the '&'
         if (iter != src.end()) ++iter;

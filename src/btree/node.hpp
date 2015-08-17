@@ -30,25 +30,6 @@ private:
     DISABLE_COPYING(value_sizer_t);
 };
 
-
-struct btree_superblock_t {
-    block_magic_t magic;
-    block_id_t root_block;
-    block_id_t stat_block;
-    block_id_t sindex_block;
-
-    static const int METAINFO_BLOB_MAXREFLEN
-        = from_ser_block_size_t<DEVICE_BLOCK_SIZE>::cache_size - sizeof(magic)
-                                                               - sizeof(root_block)
-                                                               - sizeof(stat_block)
-                                                               - sizeof(sindex_block);
-
-    char metainfo_blob[METAINFO_BLOB_MAXREFLEN];
-
-    static const block_magic_t expected_magic;
-} __attribute__ ((__packed__));
-static const uint32_t BTREE_SUPERBLOCK_SIZE = sizeof(btree_superblock_t);
-
 struct btree_statblock_t {
     //The total number of keys in the btree
     int64_t population;
@@ -56,23 +37,9 @@ struct btree_statblock_t {
     btree_statblock_t()
         : population(0)
     { }
-} __attribute__ ((__packed__));
+} __attribute__((__packed__));
 static const uint32_t BTREE_STATBLOCK_SIZE = sizeof(btree_statblock_t);
 
-struct btree_sindex_block_t {
-    static const int SINDEX_BLOB_MAXREFLEN = 4076;
-
-    block_magic_t magic;
-    char sindex_blob[SINDEX_BLOB_MAXREFLEN];
-
-    // Right now there's only one version.
-    static const block_magic_t expected_magic;
-} __attribute__ ((__packed__));
-
-inline cluster_version_t sindex_block_version(const btree_sindex_block_t *data) {
-    guarantee(data->magic == btree_sindex_block_t::expected_magic);
-    return cluster_version_t::ONLY_VERSION;
-}
 
 //Note: This struct is stored directly on disk.  Changing it invalidates old data.
 struct internal_node_t {
@@ -82,12 +49,12 @@ struct internal_node_t {
     uint16_t pair_offsets[0];
 
     static const block_magic_t expected_magic;
-} __attribute__ ((__packed__));
+} __attribute__((__packed__));
 
 // A node_t is either a btree_internal_node or a btree_leaf_node.
 struct node_t {
     block_magic_t magic;
-} __attribute__ ((__packed__));
+} __attribute__((__packed__));
 
 namespace node {
 

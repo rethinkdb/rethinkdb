@@ -32,12 +32,11 @@ public:
 
     fd_t reset(fd_t f2 = INVALID_FD);
 
-    // TODO: Make get check that it's not returning INVALID_FD.
     fd_t get() {
         return fd;
     }
 
-    void swap(scoped_fd_t &other) {  // NOLINT(build/include_what_you_use)
+    void swap(scoped_fd_t &other) {
         fd_t tmp = fd;
         fd = other.fd;
         other.fd = tmp;

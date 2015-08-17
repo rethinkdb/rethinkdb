@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_PSEUDO_LITERAL_HPP_
 #define RDB_PROTOCOL_PSEUDO_LITERAL_HPP_
 
@@ -6,6 +6,7 @@
 
 namespace ql {
 namespace pseudo {
+
 extern const char *const literal_string;
 extern const char *const value_key;
 

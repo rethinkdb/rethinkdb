@@ -12,17 +12,20 @@ new_semaphore_t::~new_semaphore_t() {
 }
 
 void new_semaphore_t::set_capacity(int64_t new_capacity) {
+    assert_thread();
     guarantee(new_capacity > 0);
     capacity_ = new_capacity;
     pulse_waiters();
 }
 
 void new_semaphore_t::add_acquirer(new_semaphore_acq_t *acq) {
+    assert_thread();
     waiters_.push_back(acq);
     pulse_waiters();
 }
 
 void new_semaphore_t::remove_acquirer(new_semaphore_acq_t *acq) {
+    assert_thread();
     rassert(acq->semaphore_ == this);
     if (acq->cond_.is_pulsed()) {
         current_ -= acq->count_;
@@ -33,6 +36,7 @@ void new_semaphore_t::remove_acquirer(new_semaphore_acq_t *acq) {
 }
 
 void new_semaphore_t::pulse_waiters() {
+    assert_thread();
     while (new_semaphore_acq_t *acq = waiters_.head()) {
         if (acq->count_ <= capacity_ - current_ || current_ == 0) {
             current_ += acq->count_;
@@ -105,3 +109,13 @@ void new_semaphore_acq_t::change_count(int64_t new_count) {
     // haven't acquired it yet, or other waiters, if we have reduced current_).
     semaphore_->pulse_waiters();
 }
+
+void new_semaphore_acq_t::transfer_in(new_semaphore_acq_t &&other) {
+    guarantee(semaphore_ != nullptr);
+    guarantee(other.semaphore_ == semaphore_);
+    guarantee(cond_.is_pulsed());
+    guarantee(other.cond_.is_pulsed());
+    change_count(count_ + other.count_);
+    other.reset();
+}
+

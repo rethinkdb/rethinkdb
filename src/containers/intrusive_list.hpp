@@ -10,7 +10,7 @@ template <class T>
 class intrusive_list_node_t {
 public:
     bool in_a_list() const {
-        rassert((next_ == NULL) == (prev_ == NULL));
+        guarantee((next_ == NULL) == (prev_ == NULL));
         return prev_ != NULL;
     }
 
@@ -19,13 +19,13 @@ protected:
     ~intrusive_list_node_t() {
         guarantee(prev_ == NULL,
                   "non-detached intrusive list node destroyed");
-        rassert(next_ == NULL,
-                "inconsistent intrusive list node!");
+        guarantee(next_ == NULL,
+                  "inconsistent intrusive list node!");
     }
 
     intrusive_list_node_t(intrusive_list_node_t &&movee) {
-        rassert((movee.prev_ == NULL) == (movee.next_ == NULL));
-        rassert(movee.prev_ != &movee,
+        guarantee((movee.prev_ == NULL) == (movee.next_ == NULL));
+        guarantee(movee.prev_ != &movee,
                 "Only intrusive_list_t can be a self-pointing node.");
         prev_ = movee.prev_;
         next_ = movee.next_;
@@ -73,8 +73,8 @@ public:
 
     ~intrusive_list_t() {
         guarantee(this->prev_ == this, "non-empty intrusive list destroyed");
-        rassert(this->next_ == this, "inconsistent intrusive list (end node)!");
-        rassert(size_ == 0, "empty intrusive list destroyed with non-zero size");
+        guarantee(this->next_ == this, "inconsistent intrusive list (end node)!");
+        guarantee(size_ == 0, "empty intrusive list destroyed with non-zero size");
 
         // Set these to NULL to appease base class destructor's assertions.
         this->prev_ = NULL;
@@ -156,13 +156,13 @@ public:
         size_t count = 0;
         do {
             ++count;
-            rassert(node->prev_ != NULL, "count = %zu", count);
-            rassert(node->prev_->next_ == node);
-            rassert(node->next_ != NULL);
-            rassert(node->next_->prev_ == node);
+            guarantee(node->prev_ != NULL, "count = %zu", count);
+            guarantee(node->prev_->next_ == node);
+            guarantee(node->next_ != NULL);
+            guarantee(node->next_->prev_ == node);
             node = node->next_;
         } while (node != this);
-        rassert(count == size_ + 1);
+        guarantee(count == size_ + 1);
     }
 #endif // NDEBUG
 
@@ -172,10 +172,10 @@ private:
                                intrusive_list_node_t<T> *after) {
         intrusive_list_node_t<T> *node = item;
         guarantee(!node->in_a_list());
-        rassert(before != NULL);
-        rassert(before->in_a_list());
-        rassert(after != NULL);
-        rassert(after->in_a_list());
+        guarantee(before != NULL);
+        guarantee(before->in_a_list());
+        guarantee(after != NULL);
+        guarantee(after->in_a_list());
         before->next_ = node;
         after->prev_ = node;
         node->prev_ = before;
@@ -184,7 +184,7 @@ private:
 
     static void remove_node(T *item) {
         intrusive_list_node_t<T> *node = item;
-        rassert(node->in_a_list());
+        guarantee(node->in_a_list());
         node->prev_->next_ = node->next_;
         node->next_->prev_ = node->prev_;
         node->prev_ = NULL;

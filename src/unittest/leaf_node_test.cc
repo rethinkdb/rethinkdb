@@ -1,4 +1,4 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #include <map>
 
 #include "btree/leaf_node.hpp"
@@ -69,15 +69,23 @@ private:
 
 class LeafNodeTracker {
 public:
-    LeafNodeTracker() : bs_(max_block_size_t::unsafe_make(4096)), sizer_(bs_), node_(bs_.value()),
-                        tstamp_counter_(0) {
+    LeafNodeTracker()
+        : bs_(max_block_size_t::unsafe_make(4096)),
+          sizer_(bs_),
+          node_(bs_.value()),
+          tstamp_counter_(0),
+          maximum_existing_tstamp_(repli_timestamp_t::distant_past) {
         leaf::init(&sizer_, node_.get());
         Print();
     }
 
     leaf_node_t *node() { return node_.get(); }
+    value_sizer_t *sizer() { return &sizer_; }
 
-    bool Insert(const store_key_t& key, const std::string& value, repli_timestamp_t tstamp) {
+    bool Insert(
+            const store_key_t &key,
+            const std::string &value,
+            repli_timestamp_t tstamp) {
         short_value_buffer_t v(value);
 
         if (leaf::is_full(&sizer_, node(), key.btree_key(), v.data())) {
@@ -87,7 +95,17 @@ public:
             return false;
         }
 
-        leaf::insert(&sizer_, node(), key.btree_key(), v.data(), tstamp, key_modification_proof_t::real_proof());
+        leaf::insert(
+            &sizer_,
+            node(),
+            key.btree_key(),
+            v.data(),
+            tstamp,
+            maximum_existing_tstamp_,
+            key_modification_proof_t::real_proof());
+
+        maximum_existing_tstamp_ =
+            superceding_recency(maximum_existing_tstamp_, tstamp);
 
         kv_[key] = value;
 
@@ -101,12 +119,23 @@ public:
         return Insert(key, value, NextTimestamp());
     }
 
-    void Remove(const store_key_t& key, repli_timestamp_t tstamp) {
+    void Remove(
+            const store_key_t &key,
+            repli_timestamp_t tstamp) {
         ASSERT_TRUE(ShouldHave(key));
 
         kv_.erase(key);
 
-        leaf::remove(&sizer_, node(), key.btree_key(), tstamp, key_modification_proof_t::real_proof());
+        leaf::remove(
+            &sizer_,
+            node(),
+            key.btree_key(),
+            tstamp,
+            maximum_existing_tstamp_,
+            key_modification_proof_t::real_proof());
+
+        maximum_existing_tstamp_ =
+            superceding_recency(maximum_existing_tstamp_, tstamp);
 
         Verify();
 
@@ -232,41 +261,6 @@ public:
         // leaf::print(stdout, &sizer_, node());
     }
 
-    class verify_receptor_t : public leaf::entry_reception_callback_t {
-    public:
-        verify_receptor_t() : got_lost_deletions_(false) { }
-
-        void lost_deletions() {
-            ASSERT_FALSE(got_lost_deletions_);
-            got_lost_deletions_ = true;
-        }
-
-        void deletion(UNUSED const btree_key_t *k, UNUSED repli_timestamp_t tstamp) {
-            ASSERT_TRUE(false);
-        }
-
-        void keys_values(const std::vector<const btree_key_t *> &ks, const std::vector<const void *> &values, const std::vector<repli_timestamp_t> &) {
-            ASSERT_TRUE(got_lost_deletions_);
-            for (size_t i = 0; i < ks.size(); ++i) {
-                const short_value_t *value = static_cast<const short_value_t *>(values[i]);
-
-                store_key_t k_buf(ks[i]);
-                short_value_buffer_t v_buf(value);
-                std::string v_str = v_buf.as_str();
-
-                ASSERT_TRUE(kv_map_.find(k_buf) == kv_map_.end());
-                kv_map_[k_buf] = v_str;
-            }
-        }
-
-        const std::map<store_key_t, std::string>& map() const { return kv_map_; }
-
-    private:
-        bool got_lost_deletions_;
-
-        std::map<store_key_t, std::string> kv_map_;
-    };
-
     void printmap(const std::map<store_key_t, std::string>& m) {
         for (std::map<store_key_t, std::string>::const_iterator p = m.begin(), q = m.end(); p != q; ++p) {
             printf("%s: %s;", key_to_debug_str(p->first).c_str(), p->second.c_str());
@@ -278,18 +272,28 @@ public:
         // Of course, this will fail with rassert, not a gtest assertion.
         leaf::validate(&sizer_, node());
 
-        verify_receptor_t receptor;
+        std::map<store_key_t, std::string> leaf_guts;
         repli_timestamp_t max_possible_tstamp = { tstamp_counter_ };
-        leaf::dump_entries_since_time(&sizer_, node(), repli_timestamp_t::distant_past, max_possible_tstamp, &receptor);
+        leaf::visit_entries(&sizer_, node(), max_possible_tstamp,
+            [&](const btree_key_t *key, repli_timestamp_t, const void *value)
+                    -> continue_bool_t {
+                if (value != nullptr) {
+                    store_key_t k(key);
+                    short_value_buffer_t v(static_cast<const short_value_t *>(value));
+                    auto res = leaf_guts.insert(std::make_pair(k, v.as_str()));
+                    EXPECT_TRUE(res.second);
+                }
+                return continue_bool_t::CONTINUE;
+            });
 
-        if (receptor.map() != kv_) {
-            printf("receptor.map(): ");
-            printmap(receptor.map());
+        if (leaf_guts != kv_) {
+            printf("leaf_guts: ");
+            printmap(leaf_guts);
             printf("\nkv_: ");
             printmap(kv_);
             printf("\n");
         }
-        ASSERT_TRUE(receptor.map() == kv_);
+        ASSERT_TRUE(leaf_guts == kv_);
     }
 
 private:
@@ -298,6 +302,7 @@ private:
     scoped_malloc_t<leaf_node_t> node_;
 
     uint64_t tstamp_counter_;
+    repli_timestamp_t maximum_existing_tstamp_;
 
     std::map<store_key_t, std::string> kv_;
 
@@ -427,6 +432,43 @@ TEST(LeafNodeTest, RandomOutOfOrder) {
             }
         }
     }
+}
+
+TEST(LeafNodeTest, DeletionTimestamp) {
+    LeafNodeTracker tracker;
+
+    rng_t rng;
+
+    /* The parameters for the initial setup phase are tuned so that the call to
+    `erase_deletions()` usually affects at least one deletion entry. */
+
+    std::vector<store_key_t> keys;
+    const int num_ops = 50;
+    for (int i = 0; i < num_ops; ++i) {
+        if (rng.randint(2) == 1 || keys.size() == 0) {
+            store_key_t key(std::string(rng.randint(10), 'a' + rng.randint(26)));
+            keys.push_back(key);
+            std::string value(rng.randint(10), 'a' + rng.randint(26));
+            tracker.Insert(key, value);
+        } else {
+            const store_key_t &key = keys.at(rng.randint(keys.size()));
+            if (tracker.ShouldHave(key) && rng.randint(4) != 0) {
+                tracker.Remove(key);
+            } else {
+                std::string value(rng.randint(10), 'a' + rng.randint(26));
+                tracker.Insert(key, value);
+            }
+        }
+    }
+
+    repli_timestamp_t max_ts = tracker.NextTimestamp();
+    repli_timestamp_t min_del_ts = leaf::min_deletion_timestamp(
+        tracker.sizer(), tracker.node(), max_ts);
+    ASSERT_LT(min_del_ts.longtime, max_ts.longtime - 10);
+    min_del_ts.longtime += (max_ts.longtime - min_del_ts.longtime) / 2;
+    leaf::erase_deletions(tracker.sizer(), tracker.node(), min_del_ts);
+
+    tracker.Verify();
 }
 
 TEST(LeafNodeTest, ZeroZeroMerging) {

@@ -10,19 +10,17 @@
 use strict;
 
 my $file = 0;
+my $sum = 0;
 
 my @pairs;
 
 while (<>) {
-    if (/^\s*CC (.*) -o/) {
+    if (/^\s*(\[\d+\/\d+\].*)$/) {
+        push @pairs, [$file, $sum];
         $file = $1;
-    } elsif (/^\d+inputs/) {
-        # nothing
-    } elsif (!$file) {
-        # nothing
-    } elsif (/^([0-9.]+)user/) {
-        push @pairs, [$file, $1];
-        $file = 0;
+        $sum = 0;
+    } elsif (/^user\s*(\d+)m(\d+\.\d+)s/) {
+        $sum += $1 * 60 + $2;
     }
 }
 

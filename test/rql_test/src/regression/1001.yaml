@@ -1,18 +1,20 @@
 desc: 1001 (null + between + sindexes)
+table_variable_name: tbl
 tests:
-  - rb: r.table_create('1001')
-    def: tbl = r.table('1001')
+  - cd: tbl.insert({'a':null})
+    rb: tbl.insert({:a => null})
+  - cd: tbl.index_create('a')
+  - cd: tbl.index_create('b')
+  - cd: tbl.index_wait().pluck('index', 'ready')
 
-  - rb: tbl.insert({:a => nil})
-  - rb: tbl.index_create('a')
-  - rb: tbl.index_create('b')
-  - rb: tbl.index_wait()
-
-  - rb: tbl.between(nil, nil).count
+  - cd: tbl.between(r.minval, r.maxval).count()
     ot: 1
-  - rb: tbl.between(nil, nil, :index => :a).count
+  - py: tbl.between(r.minval, r.maxval, index='a').count()
+    js: tbl.between(r.minval, r.maxval, {index:'a'}).count()
+    rb: tbl.between(r.minval, r.maxval, :index => 'a').count()
     ot: 0
-  - rb: tbl.between(nil, nil, :index => :b).count
+  - py: tbl.between(r.minval, r.maxval, index='b').count()
+    js: tbl.between(r.minval, r.maxval, {index:'b'}).count()
+    rb: tbl.between(r.minval, r.maxval, :index => 'b').count()
     ot: 0
 
-  - rb: r.table_drop('1001')

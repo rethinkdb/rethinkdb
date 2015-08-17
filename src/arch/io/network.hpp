@@ -17,6 +17,7 @@
 
 #include "config/args.hpp"
 #include "concurrency/interruptor.hpp"
+#include "containers/lazy_erase_vector.hpp"
 #include "containers/scoped.hpp"
 #include "arch/address.hpp"
 #include "arch/io/event_watcher.hpp"
@@ -95,7 +96,7 @@ public:
     void shutdown_read();
 
     /* Returns false if the half of the pipe that goes from the peer to us has been closed. */
-    bool is_read_open();
+    bool is_read_open() const;
 
     /* Writing */
 
@@ -120,7 +121,7 @@ public:
     void shutdown_write();
 
     /* Returns false if the half of the pipe that goes from us to the peer has been closed. */
-    bool is_write_open();
+    bool is_write_open() const;
 
     /* Put a `perfmon_rate_monitor_t` here if you want to record stats on how fast data is being
     transmitted over the network. */
@@ -132,8 +133,7 @@ public:
 
     void rethread(threadnum_t thread);
 
-    int getsockname(ip_address_t *addr);
-    int getpeername(ip_address_t *addr);
+    bool getpeername(ip_and_port_t *ip_and_port);
 
     linux_event_watcher_t *get_event_watcher() {
         return event_watcher.get();
@@ -225,7 +225,7 @@ private:
     cond_t read_closed, write_closed;
 
     /* Holds data that we read from the socket but hasn't been consumed yet */
-    std::vector<char> read_buffer;
+    lazy_erase_vector_t<char> read_buffer;
 
     /* Reads up to the given number of bytes, but not necessarily that many. Simple wrapper around
     ::read(). Returns the number of bytes read or throws tcp_conn_read_closed_exc_t. Bypasses read_buffer. */
@@ -292,7 +292,7 @@ private:
 
     /* Used to actually perform the writes. Only has one coroutine in it, which will call the
     handle_write_queue callback when operations are ready */
-    coro_pool_t<write_queue_op_t*> write_coro_pool;
+    coro_pool_t<write_queue_op_t *> write_coro_pool;
 
     /* Buffer we are currently filling up with data that we want to write. When it reaches a
     certain size, we push it onto `write_queue`. */
@@ -345,7 +345,7 @@ protected:
     friend class linux_tcp_listener_t;
     friend class linux_tcp_bound_socket_t;
 
-    MUST_USE bool bind_sockets();
+    void bind_sockets();
 
     // The callback to call when we get a connection
     std::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t> &)> callback;
@@ -353,7 +353,6 @@ protected:
 private:
     static const uint32_t MAX_BIND_ATTEMPTS = 20;
     int init_sockets();
-    bool bind_sockets_internal(int *port_out);
 
     /* accept_loop() runs in a separate coroutine. It repeatedly tries to accept
     new connections; when accept() blocks, then it waits for events from the

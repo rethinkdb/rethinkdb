@@ -2,72 +2,30 @@
 #include "unittest/rdb_env.hpp"
 
 #include "rdb_protocol/func.hpp"
+#include "rdb_protocol/real_table.hpp"
 
 namespace unittest {
 
-mock_namespace_repo_t::mock_namespace_repo_t() : env(NULL) { }
-mock_namespace_repo_t::~mock_namespace_repo_t() {
-    while (!cache.empty()) {
-        delete cache.begin()->second;
-        cache.erase(cache.begin());
-    }
-}
-
-void mock_namespace_repo_t::set_env(ql::env_t *_env) {
-    env = _env;
-}
-
-ql::env_t *mock_namespace_repo_t::get_env() {
-    return env;
-}
-
-mock_namespace_interface_t *mock_namespace_repo_t::get_ns_if(const namespace_id_t &ns_id) {
-    get_cache_entry(ns_id); // This will create it if it doesn't already exist
-    if (cache.find(ns_id) != cache.end()) {
-        return &cache[ns_id]->mock_ns_if;
-    }
-    return NULL;
-}
-
-mock_namespace_repo_t::namespace_cache_entry_t *mock_namespace_repo_t::get_cache_entry(const namespace_id_t &ns_id) {
-    if (cache.find(ns_id) == cache.end()) {
-        mock_namespace_cache_entry_t *entry = new mock_namespace_cache_entry_t(this);
-        entry->entry.namespace_if.pulse(&entry->mock_ns_if);
-        entry->entry.ref_count = 0;
-        entry->entry.pulse_when_ref_count_becomes_zero = NULL;
-        entry->entry.pulse_when_ref_count_becomes_nonzero = NULL;
-        cache.insert(std::make_pair(ns_id, entry));
-    }
-    return &cache[ns_id]->entry;
-}
-
-
-mock_namespace_interface_t::mock_namespace_interface_t(mock_namespace_repo_t *_parent) :
-    parent(_parent) {
+mock_namespace_interface_t::mock_namespace_interface_t(
+            datum_string_t _primary_key,
+            std::map<store_key_t, ql::datum_t> &&_data,
+            ql::env_t *_env) :
+        primary_key(_primary_key),
+        data(std::move(_data)),
+        env(_env) {
     ready_cond.pulse();
 }
 
-mock_namespace_interface_t::~mock_namespace_interface_t() {
-    while (!data.empty()) {
-        delete data.begin()->second;
-        data.erase(data.begin());
-    }
-}
+mock_namespace_interface_t::~mock_namespace_interface_t() { }
 
 void mock_namespace_interface_t::read(const read_t &query,
                                       read_response_t *response,
                                       UNUSED order_token_t tok,
                                       signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
-    read_outdated(query, response, interruptor);
-}
-
-void mock_namespace_interface_t::read_outdated(const read_t &query,
-                                               read_response_t *response,
-                                               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
     if (interruptor->is_pulsed()) {
         throw interrupted_exc_t();
     }
-    read_visitor_t v(&data, response);
+    read_visitor_t v(this, response);
     boost::apply_visitor(v, query.read);
 }
 
@@ -78,12 +36,16 @@ void mock_namespace_interface_t::write(const write_t &query,
     if (interruptor->is_pulsed()) {
         throw interrupted_exc_t();
     }
-    write_visitor_t v(&data, parent->get_env(), response);
+    write_visitor_t v(this, response);
     boost::apply_visitor(v, query.write);
 }
 
-std::map<store_key_t, scoped_cJSON_t *> *mock_namespace_interface_t::get_data() {
+std::map<store_key_t, ql::datum_t> *mock_namespace_interface_t::get_data() {
     return &data;
+}
+
+std::string mock_namespace_interface_t::get_primary_key() const {
+    return primary_key.to_std();
 }
 
 std::set<region_t> mock_namespace_interface_t::get_sharding_scheme()
@@ -93,273 +55,589 @@ std::set<region_t> mock_namespace_interface_t::get_sharding_scheme()
     return s;
 }
 
+bool mock_namespace_interface_t::check_readiness(table_readiness_t, signal_t *) {
+    throw cannot_perform_query_exc_t("unimplemented", query_state_t::FAILED);
+}
+
 void mock_namespace_interface_t::read_visitor_t::operator()(const point_read_t &get) {
+    ql::configured_limits_t limits;
     response->response = point_read_response_t();
     point_read_response_t &res = boost::get<point_read_response_t>(response->response);
 
-    if (data->find(get.key) != data->end()) {
-        res.data = make_counted<ql::datum_t>(scoped_cJSON_t(data->at(get.key)->DeepCopy()));
+    if (parent->data.find(get.key) != parent->data.end()) {
+        res.data = parent->data.at(get.key);
     } else {
-        res.data = make_counted<ql::datum_t>(ql::datum_t::R_NULL);
+        res.data = ql::datum_t::null();
     }
 }
 
-void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(const changefeed_subscribe_t &) {
-    throw cannot_perform_query_exc_t("unimplemented");
+void mock_namespace_interface_t::read_visitor_t::operator()(const dummy_read_t &) {
+    response->response = dummy_read_response_t();
 }
 
-void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(const changefeed_stamp_t &) {
-    throw cannot_perform_query_exc_t("unimplemented");
+void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
+        const changefeed_subscribe_t &) {
+    throw cannot_perform_query_exc_t("unimplemented", query_state_t::FAILED);
 }
 
-void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(UNUSED const rget_read_t &rget) {
-    throw cannot_perform_query_exc_t("unimplemented");
+void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
+        const changefeed_limit_subscribe_t &) {
+    throw cannot_perform_query_exc_t("unimplemented", query_state_t::FAILED);
 }
 
-void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(UNUSED const distribution_read_t &dg) {
-    throw cannot_perform_query_exc_t("unimplemented");
+void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
+        const changefeed_stamp_t &) {
+    throw cannot_perform_query_exc_t("unimplemented", query_state_t::FAILED);
 }
 
-void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(UNUSED const sindex_list_t &sinner) {
-    throw cannot_perform_query_exc_t("unimplemented");
+void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
+        UNUSED const rget_read_t &rget) {
+    throw cannot_perform_query_exc_t("unimplemented", query_state_t::FAILED);
 }
 
-void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(UNUSED const sindex_status_t &ss) {
-    throw cannot_perform_query_exc_t("unimplemented");
+void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
+        const changefeed_point_stamp_t &) {
+    throw cannot_perform_query_exc_t("unimplemented", query_state_t::FAILED);
 }
 
-mock_namespace_interface_t::read_visitor_t::read_visitor_t(std::map<store_key_t, scoped_cJSON_t *> *_data,
-                                                           read_response_t *_response) :
-    data(_data), response(_response) {
+void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
+        UNUSED const intersecting_geo_read_t &gr) {
+    throw cannot_perform_query_exc_t("unimplemented", query_state_t::FAILED);
+}
+
+void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
+        UNUSED const nearest_geo_read_t &gr) {
+    throw cannot_perform_query_exc_t("unimplemented", query_state_t::FAILED);
+}
+
+void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(
+        UNUSED const distribution_read_t &dg) {
+    throw cannot_perform_query_exc_t("unimplemented", query_state_t::FAILED);
+}
+
+mock_namespace_interface_t::read_visitor_t::read_visitor_t(
+        mock_namespace_interface_t *_parent,
+        read_response_t *_response) :
+    parent(_parent), response(_response) {
     // Do nothing
 }
 
 void mock_namespace_interface_t::write_visitor_t::operator()(
     const batched_replace_t &r) {
-    counted_t<const ql::datum_t> stats(new ql::datum_t(ql::datum_t::R_OBJECT));
+    ql::configured_limits_t limits;
+    ql::datum_t stats = ql::datum_t::empty_object();
+    std::set<std::string> conditions;
     for (auto it = r.keys.begin(); it != r.keys.end(); ++it) {
-        ql::datum_ptr_t resp(ql::datum_t::R_OBJECT);
-        counted_t<const ql::datum_t> old_val;
-        if (data->find(*it) != data->end()) {
-            old_val = make_counted<ql::datum_t>(data->at(*it)->get());
-        } else {
-            old_val = make_counted<ql::datum_t>(ql::datum_t::R_NULL);
-        }
+        auto data_it = parent->data.find(*it);
+        ql::datum_object_builder_t resp;
+        ql::datum_t old_val = data_it == parent->data.end() ?
+            data_it->second : ql::datum_t::null();
 
-        counted_t<const ql::datum_t> new_val
-            = r.f.compile_wire_func()->call(env, old_val)->as_datum();
-        data->erase(*it);
+        ql::datum_t new_val
+            = r.f.compile_wire_func()->call(parent->env, old_val)->as_datum();
+        parent->data.erase(*it);
 
         bool err;
-        if (new_val->get_type() == ql::datum_t::R_OBJECT) {
-            data->insert(std::make_pair(*it, new scoped_cJSON_t(new_val->as_json())));
-            if (old_val->get_type() == ql::datum_t::R_NULL) {
-                err = resp.add("inserted", make_counted<const ql::datum_t>(1.0));
+        if (new_val.get_type() == ql::datum_t::R_OBJECT) {
+            if (old_val.get_type() == ql::datum_t::R_NULL) {
+                parent->data.insert(std::make_pair(*it, new_val));
+                err = resp.add("inserted", ql::datum_t(1.0));
             } else {
-                if (*old_val == *new_val) {
-                    err = resp.add("unchanged", make_counted<const ql::datum_t>(1.0));
+                if (old_val == new_val) {
+                    err = resp.add("unchanged", ql::datum_t(1.0));
                 } else {
-                    err = resp.add("replaced", make_counted<const ql::datum_t>(1.0));
+                    parent->data.erase(*it);
+                    parent->data.insert(std::make_pair(*it, new_val));
+                    err = resp.add("replaced", ql::datum_t(1.0));
                 }
             }
-        } else if (new_val->get_type() == ql::datum_t::R_NULL) {
-            if (old_val->get_type() == ql::datum_t::R_NULL) {
-                err = resp.add("skipped", make_counted<const ql::datum_t>(1.0));
+        } else if (new_val.get_type() == ql::datum_t::R_NULL) {
+            if (old_val.get_type() == ql::datum_t::R_NULL) {
+                err = resp.add("skipped", ql::datum_t(1.0));
             } else {
-                err = resp.add("deleted", make_counted<const ql::datum_t>(1.0));
+                parent->data.erase(*it);
+                err = resp.add("deleted", ql::datum_t(1.0));
             }
         } else {
             throw cannot_perform_query_exc_t(
-                "value being inserted is neither an object nor an empty value");
+                "value being inserted is neither an object nor an empty value",
+                query_state_t::FAILED);
         }
         guarantee(!err);
-        stats = stats->merge(resp.to_counted(), ql::stats_merge);
+        stats = stats.merge(std::move(resp).to_datum(), ql::stats_merge,
+                            limits, &conditions);
     }
-    response->response = stats;
+    ql::datum_object_builder_t result(std::move(stats));
+    result.add_warnings(conditions, limits);
+    response->response = std::move(result).to_datum();
 }
 
 void mock_namespace_interface_t::write_visitor_t::operator()(
     const batched_insert_t &bi) {
-    counted_t<const ql::datum_t> stats(new ql::datum_t(ql::datum_t::R_OBJECT));
+    ql::configured_limits_t limits;
+    ql::datum_t stats = ql::datum_t::empty_object();
+    std::set<std::string> conditions;
     for (auto it = bi.inserts.begin(); it != bi.inserts.end(); ++it) {
-        store_key_t key((*it)->get(bi.pkey)->print_primary());
-        ql::datum_ptr_t resp(ql::datum_t::R_OBJECT);
-        counted_t<const ql::datum_t> old_val;
-        if (data->find(key) != data->end()) {
-            old_val = make_counted<ql::datum_t>(data->at(key)->get());
-        } else {
-            old_val = make_counted<ql::datum_t>(ql::datum_t::R_NULL);
-        }
+        store_key_t key((*it).get_field(datum_string_t(bi.pkey)).print_primary());
+        auto data_it = parent->data.find(key);
+        ql::datum_object_builder_t resp;
+        ql::datum_t old_val = data_it != parent->data.end() ?
+            data_it->second : ql::datum_t::null();
 
-        counted_t<const ql::datum_t> new_val = *it;
-        data->erase(key);
+        ql::datum_t new_val = *it;
+        parent->data.erase(key);
 
         bool err;
-        if (new_val->get_type() == ql::datum_t::R_OBJECT) {
-            data->insert(std::make_pair(key, new scoped_cJSON_t(new_val->as_json())));
-            if (old_val->get_type() == ql::datum_t::R_NULL) {
-                err = resp.add("inserted", make_counted<const ql::datum_t>(1.0));
+        if (new_val.get_type() == ql::datum_t::R_OBJECT) {
+            if (old_val.get_type() == ql::datum_t::R_NULL) {
+                parent->data.insert(std::make_pair(key, new_val));
+                err = resp.add("inserted", ql::datum_t(1.0));
             } else {
-                if (*old_val == *new_val) {
-                    err = resp.add("unchanged", make_counted<const ql::datum_t>(1.0));
+                if (old_val == new_val) {
+                    err = resp.add("unchanged", ql::datum_t(1.0));
                 } else {
-                    err = resp.add("replaced", make_counted<const ql::datum_t>(1.0));
+                    parent->data.erase(key);
+                    parent->data.insert(std::make_pair(key, new_val));
+                    err = resp.add("replaced", ql::datum_t(1.0));
                 }
             }
-        } else if (new_val->get_type() == ql::datum_t::R_NULL) {
-            if (old_val->get_type() == ql::datum_t::R_NULL) {
-                err = resp.add("skipped", make_counted<const ql::datum_t>(1.0));
+        } else if (new_val.get_type() == ql::datum_t::R_NULL) {
+            if (old_val.get_type() == ql::datum_t::R_NULL) {
+                err = resp.add("skipped", ql::datum_t(1.0));
             } else {
-                err = resp.add("deleted", make_counted<const ql::datum_t>(1.0));
+                parent->data.erase(key);
+                err = resp.add("deleted", ql::datum_t(1.0));
             }
         } else {
             throw cannot_perform_query_exc_t(
-                "value being inserted is neither an object nor an empty value");
+                "value being inserted is neither an object nor an empty value",
+                query_state_t::FAILED);
         }
         guarantee(!err);
-        stats = stats->merge(resp.to_counted(), ql::stats_merge);
+        stats = stats.merge(std::move(resp).to_datum(), ql::stats_merge, limits, &conditions);
     }
-    response->response = stats;
+    ql::datum_object_builder_t result(stats);
+    result.add_warnings(conditions, limits);
+    response->response = std::move(result).to_datum();
+}
+
+void mock_namespace_interface_t::write_visitor_t::operator()(const dummy_write_t &) {
+    response->response = dummy_write_response_t();
 }
 
 void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const point_write_t &) {
-    throw cannot_perform_query_exc_t("unimplemented");
+    throw cannot_perform_query_exc_t("unimplemented", query_state_t::FAILED);
 }
 
 void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const point_delete_t &) {
-    throw cannot_perform_query_exc_t("unimplemented");
-}
-
-void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const sindex_create_t &) {
-    throw cannot_perform_query_exc_t("unimplemented");
-}
-
-void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const sindex_drop_t &) {
-    throw cannot_perform_query_exc_t("unimplemented");
+    throw cannot_perform_query_exc_t("unimplemented", query_state_t::FAILED);
 }
 
 void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const sync_t &) {
-    throw cannot_perform_query_exc_t("unimplemented");
+    throw cannot_perform_query_exc_t("unimplemented", query_state_t::FAILED);
 }
 
-mock_namespace_interface_t::write_visitor_t::write_visitor_t(std::map<store_key_t, scoped_cJSON_t*> *_data,
-                                                             ql::env_t *_env,
-                                                             write_response_t *_response) :
-    data(_data), env(_env), response(_response) {
+mock_namespace_interface_t::write_visitor_t::write_visitor_t(
+            mock_namespace_interface_t *_parent,
+            write_response_t *_response) :
+        parent(_parent), response(_response) {
     // Do nothing
 }
 
-test_rdb_env_t::test_rdb_env_t() :
-    machine_id(generate_uuid()) // Not like we actually care
-{
-    machine_semilattice_metadata_t machine;
-    name_string_t machine_name;
-    if (!machine_name.assign_value("test_machine")) throw invalid_name_exc_t("test_machine");
-    machine.name = vclock_t<name_string_t>(machine_name, machine_id);
-    machine.datacenter = vclock_t<datacenter_id_t>(nil_uuid());
-    metadata.machines.machines.insert(std::make_pair(generate_uuid(), make_deletable(machine)));
+test_rdb_env_t::test_rdb_env_t() { }
+
+test_rdb_env_t::~test_rdb_env_t() { }
+
+void test_rdb_env_t::add_table(const std::string &db_name,
+                               const std::string &table_name,
+                               const std::string &primary_key) {
+    std::set<ql::datum_t, optional_datum_less_t> empty_data;
+    add_table(db_name, table_name, primary_key, empty_data);
 }
 
-test_rdb_env_t::~test_rdb_env_t() {
-    // Clean up initial datas (if there was no instance constructed, this may happen
-    for (auto it = initial_datas.begin(); it != initial_datas.end(); ++it) {
-        delete it->second;
+void test_rdb_env_t::add_table(
+        const std::string &db_name,
+        const std::string &table_name,
+        const std::string &primary_key,
+        const std::set<ql::datum_t, optional_datum_less_t> &initial_data) {
+    std::pair<name_string_t, name_string_t> db_table(
+        { name_string_t::guarantee_valid(db_name.c_str()),
+          name_string_t::guarantee_valid(table_name.c_str()) });
+
+    auto table_it = tables.insert(std::make_pair(db_table, table_data_t())).first;
+    guarantee(table_it != tables.end());
+
+    table_it->second.primary_key = datum_string_t(primary_key);
+
+    for (auto const &row : initial_data) {
+        store_key_t key(row.get_field(table_it->second.primary_key).print_primary());
+        table_it->second.initial_data.insert(std::make_pair(key, row));
     }
 }
 
-namespace_id_t test_rdb_env_t::add_table(const std::string &table_name,
-                                         const uuid_u &db_id,
-                                         const std::string &primary_key,
-                                         const std::set<std::map<std::string, std::string> > &initial_data) {
-    name_string_t table_name_string;
-    cow_ptr_t<namespaces_semilattice_metadata_t>::change_t change(&metadata.rdb_namespaces);
-    if (!table_name_string.assign_value(table_name)) throw invalid_name_exc_t(table_name);
-    namespace_id_t namespace_id = generate_uuid();
-    *change.get()->namespaces[namespace_id].get_mutable() =
-        new_namespace(machine_id,
-                      db_id,
-                      nil_uuid(),
-                      table_name_string,
-                      primary_key);
-
-    // Set up initial data
-    std::map<store_key_t, scoped_cJSON_t*> *data = new std::map<store_key_t, scoped_cJSON_t*>();
-
-    for (auto it = initial_data.begin(); it != initial_data.end(); ++it) {
-        guarantee(it->find(primary_key) != it->end());
-        store_key_t key("S" + it->at(primary_key));
-        scoped_cJSON_t *item = new scoped_cJSON_t(cJSON_CreateObject());
-
-        for (auto jt = it->begin(); jt != it->end(); ++jt) {
-            cJSON* strvalue = cJSON_CreateString(jt->second.c_str());
-            item->AddItemToObject(jt->first.c_str(), strvalue);
-        }
-        data->insert(std::make_pair(key, item));
-    }
-
-    initial_datas.insert(std::make_pair(namespace_id, data));
-
-    return namespace_id;
+void test_rdb_env_t::add_database(const std::string &db_name) {
+    databases.insert(name_string_t::guarantee_valid(db_name.c_str()));
 }
 
-database_id_t test_rdb_env_t::add_database(const std::string &db_name) {
-    name_string_t db_name_string;
-    database_semilattice_metadata_t db;
-    if (!db_name_string.assign_value(db_name)) throw invalid_name_exc_t(db_name);
-    db.name = vclock_t<name_string_t>(db_name_string, machine_id);
-    database_id_t database_id = generate_uuid();
-    metadata.databases.databases.insert(std::make_pair(database_id,
-                                                       make_deletable(db)));
-    return database_id;
+scoped_ptr_t<test_rdb_env_t::instance_t> test_rdb_env_t::make_env() {
+    return make_scoped<instance_t>(std::move(*this));
 }
 
-void test_rdb_env_t::make_env(scoped_ptr_t<instance_t> *instance_out) {
-    instance_out->init(new instance_t(this));
-}
-
-test_rdb_env_t::instance_t::instance_t(test_rdb_env_t *test_env) :
-    dummy_semilattice_controller(test_env->metadata),
-    namespaces_metadata(new semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t> >(metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, dummy_semilattice_controller.get_view()))),
-    databases_metadata(new semilattice_watchable_t<databases_semilattice_metadata_t>(metadata_field(&cluster_semilattice_metadata_t::databases, dummy_semilattice_controller.get_view()))),
+test_rdb_env_t::instance_t::instance_t(test_rdb_env_t &&test_env) :
     extproc_pool(2),
-    test_cluster(0),
-    rdb_ns_repo()
+    rdb_ctx(&extproc_pool, this),
+    auth_manager(auth_semilattice_metadata_t())
 {
-    env.init(new ql::env_t(&extproc_pool,
-                           NULL,
-                           std::string(),
-                           &rdb_ns_repo,
-                           namespaces_metadata,
-                           databases_metadata,
-                           dummy_semilattice_controller.get_view(),
-                           NULL,
+    rdb_ctx.auth_metadata = auth_manager.get_view();
+    env.init(new ql::env_t(&rdb_ctx,
+                           ql::return_empty_normal_batches_t::NO,
                            &interruptor,
-                           test_env->machine_id,
-                           ql::protob_t<Query>()));
-    rdb_ns_repo.set_env(env.get());
+                           std::map<std::string, ql::wire_func_t>(),
+                           nullptr /* no profile trace */));
 
-    // Set up any initial datas
-    for (auto it = test_env->initial_datas.begin(); it != test_env->initial_datas.end(); ++it) {
-        std::map<store_key_t, scoped_cJSON_t*> *data = get_data(it->first);
-        data->swap(*it->second);
-        delete it->second;
+    // Set up any databases, tables, and data
+    for (auto const &db_name : test_env.databases) {
+        databases[db_name] = generate_uuid();
     }
-    test_env->initial_datas.clear();
+
+    for (auto &&db_table_pair : test_env.tables) {
+        auto db_it = databases.find(db_table_pair.first.first);
+        guarantee(db_it != databases.end());
+
+        scoped_ptr_t<mock_namespace_interface_t> storage(
+            new mock_namespace_interface_t(
+                db_table_pair.second.primary_key,
+                std::move(db_table_pair.second.initial_data),
+                env.get()));
+        tables[std::make_pair(db_it->second, db_table_pair.first.second)] =
+            std::move(storage);
+    }
+
+    test_env.databases.clear();
+    test_env.tables.clear();
 }
 
-ql::env_t *test_rdb_env_t::instance_t::get() {
+ql::env_t *test_rdb_env_t::instance_t::get_env() {
     return env.get();
 }
 
-std::map<store_key_t, scoped_cJSON_t*>* test_rdb_env_t::instance_t::get_data(const namespace_id_t &ns_id) {
-    mock_namespace_interface_t *ns_if = rdb_ns_repo.get_ns_if(ns_id);
-    guarantee(ns_if != NULL);
-    return ns_if->get_data();
+rdb_context_t *test_rdb_env_t::instance_t::get_rdb_context() {
+    return &rdb_ctx;
+}
+
+std::map<store_key_t, ql::datum_t> *test_rdb_env_t::instance_t::get_data(
+        name_string_t db, name_string_t table) {
+    auto db_it = databases.find(db);
+    guarantee(db_it != databases.end());
+    auto table_it = tables.find(std::make_pair(db_it->second, table));
+    guarantee(table_it != tables.end());
+    return table_it->second->get_data();
 }
 
 void test_rdb_env_t::instance_t::interrupt() {
     interruptor.pulse();
 }
 
+bool test_rdb_env_t::instance_t::db_create(UNUSED const name_string_t &name,
+        UNUSED signal_t *local_interruptor, UNUSED ql::datum_t *result_out,
+        admin_err_t *error_out) {
+    *error_out = admin_err_t{
+        "test_rdb_env_t::instance_t doesn't support mutation",
+        query_state_t::FAILED};
+    return false;
 }
 
+bool test_rdb_env_t::instance_t::db_drop(UNUSED const name_string_t &name,
+        UNUSED signal_t *local_interruptor, UNUSED ql::datum_t *result_out,
+        admin_err_t *error_out) {
+    *error_out = admin_err_t{
+        "test_rdb_env_t::instance_t doesn't support mutation",
+        query_state_t::FAILED};
+    return false;
+}
+
+bool test_rdb_env_t::instance_t::db_list(
+        UNUSED signal_t *local_interruptor, std::set<name_string_t> *names_out,
+        UNUSED admin_err_t *error_out) {
+    for (auto pair : databases) {
+        names_out->insert(pair.first);
+    }
+    return true;
+}
+
+bool test_rdb_env_t::instance_t::db_find(const name_string_t &name,
+        UNUSED signal_t *local_interruptor, counted_t<const ql::db_t> *db_out,
+        admin_err_t *error_out) {
+    auto it = databases.find(name);
+    if (it == databases.end()) {
+        *error_out = admin_err_t{
+            "No database with that name",
+            query_state_t::FAILED};
+        return false;
+    } else {
+        *db_out = make_counted<const ql::db_t>(it->second, name);
+        return true;
+    }
+}
+
+bool test_rdb_env_t::instance_t::db_config(
+        UNUSED const counted_t<const ql::db_t> &db,
+        UNUSED ql::backtrace_id_t bt,
+        UNUSED ql::env_t *local_env,
+        UNUSED scoped_ptr_t<ql::val_t> *selection_out,
+        admin_err_t *error_out) {
+    *error_out = admin_err_t{
+        "test_db_env_t::instance_t doesn't support db_config()",
+        query_state_t::FAILED};
+    return false;
+}
+
+bool test_rdb_env_t::instance_t::table_create(UNUSED const name_string_t &name,
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED const table_generate_config_params_t &config_params,
+        UNUSED const std::string &primary_key,
+        UNUSED write_durability_t durability,
+        UNUSED signal_t *local_interruptor,
+        UNUSED ql::datum_t *result_out,
+        admin_err_t *error_out) {
+    *error_out = admin_err_t{
+        "test_rdb_env_t::instance_t doesn't support mutation",
+        query_state_t::FAILED};
+    return false;
+}
+
+bool test_rdb_env_t::instance_t::table_drop(UNUSED const name_string_t &name,
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED signal_t *local_interruptor,
+        UNUSED ql::datum_t *result_out,
+        admin_err_t *error_out) {
+    *error_out = admin_err_t{
+        "test_rdb_env_t::instance_t doesn't support mutation",
+        query_state_t::FAILED};
+    return false;
+}
+
+bool test_rdb_env_t::instance_t::table_list(counted_t<const ql::db_t> db,
+        UNUSED signal_t *local_interruptor, std::set<name_string_t> *names_out,
+        UNUSED admin_err_t *error_out) {
+    for (auto it = tables.begin(); it != tables.end(); it++) {
+        if (it->first.first == db->id) {
+            names_out->insert(it->first.second);
+        }
+    }
+    return true;
+}
+
+class fake_ref_tracker_t : public namespace_interface_access_t::ref_tracker_t {
+    void add_ref() { }
+    void release() { }
+};
+
+bool test_rdb_env_t::instance_t::table_find(const name_string_t &name,
+        counted_t<const ql::db_t> db,
+        boost::optional<admin_identifier_format_t> identifier_format,
+        UNUSED signal_t *local_interruptor, counted_t<base_table_t> *table_out,
+        admin_err_t *error_out) {
+    auto it = tables.find(std::make_pair(db->id, name));
+    if (it == tables.end()) {
+        *error_out = admin_err_t{
+            "No table with that name",
+            query_state_t::FAILED};
+        return false;
+    } else {
+        if (static_cast<bool>(identifier_format)) {
+            *error_out = admin_err_t{
+                "identifier_format doesn't make sense for "
+                "test_rdb_env_t::instance_t",
+                query_state_t::FAILED};
+            return false;
+        }
+        static fake_ref_tracker_t fake_ref_tracker;
+        namespace_interface_access_t table_access(
+            it->second.get(), &fake_ref_tracker, get_thread_id());
+        table_out->reset(new real_table_t(nil_uuid(), table_access,
+                                          it->second->get_primary_key(), NULL));
+        return true;
+    }
+}
+
+bool test_rdb_env_t::instance_t::table_estimate_doc_counts(
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED const name_string_t &name,
+        UNUSED ql::env_t *local_env,
+        UNUSED std::vector<int64_t> *doc_counts_out,
+        admin_err_t *error_out) {
+    *error_out = admin_err_t{
+        "test_rdb_env_t::instance_t doesn't support info()",
+        query_state_t::FAILED};
+    return false;
+}
+
+bool test_rdb_env_t::instance_t::table_config(
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED const name_string_t &name,
+        UNUSED ql::backtrace_id_t bt,
+        UNUSED ql::env_t *local_env,
+        UNUSED scoped_ptr_t<ql::val_t> *selection_out,
+        admin_err_t *error_out) {
+    *error_out = admin_err_t{
+        "test_rdb_env_t::instance_t doesn't support table_config()",
+        query_state_t::FAILED};
+    return false;
+}
+
+bool test_rdb_env_t::instance_t::table_status(
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED const name_string_t &name,
+        UNUSED ql::backtrace_id_t bt,
+        UNUSED ql::env_t *local_env,
+        UNUSED scoped_ptr_t<ql::val_t> *selection_out,
+        admin_err_t *error_out) {
+    *error_out = admin_err_t{
+        "test_rdb_env_t::instance_t doesn't support table_status()",
+        query_state_t::FAILED};
+    return false;
+}
+
+bool test_rdb_env_t::instance_t::table_wait(
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED const name_string_t &name,
+        UNUSED table_readiness_t readiness,
+        UNUSED signal_t *local_interruptor,
+        UNUSED ql::datum_t *result_out,
+        admin_err_t *error_out) {
+    *error_out = admin_err_t{
+        "test_rdb_env_t::instance_t doesn't support table_wait()",
+        query_state_t::FAILED};
+    return false;
+}
+
+bool test_rdb_env_t::instance_t::db_wait(
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED table_readiness_t readiness,
+        UNUSED signal_t *local_interruptor,
+        UNUSED ql::datum_t *result_out,
+        admin_err_t *error_out) {
+    *error_out = admin_err_t{
+        "test_rdb_env_t::instance_t doesn't support db_wait()",
+        query_state_t::FAILED};
+    return false;
+}
+
+bool test_rdb_env_t::instance_t::table_reconfigure(
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED const name_string_t &name,
+        UNUSED const table_generate_config_params_t &params,
+        UNUSED bool dry_run,
+        UNUSED signal_t *local_interruptor,
+        UNUSED ql::datum_t *result_out,
+        admin_err_t *error_out) {
+    *error_out = admin_err_t{
+        "test_rdb_env_t::instance_t doesn't support reconfigure()",
+        query_state_t::FAILED};
+    return false;
+}
+
+bool test_rdb_env_t::instance_t::db_reconfigure(
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED const table_generate_config_params_t &params,
+        UNUSED bool dry_run,
+        UNUSED signal_t *local_interruptor,
+        UNUSED ql::datum_t *result_out,
+        admin_err_t *error_out) {
+    *error_out = admin_err_t{
+        "test_rdb_env_t::instance_t doesn't support reconfigure()",
+        query_state_t::FAILED};
+    return false;
+}
+
+bool test_rdb_env_t::instance_t::table_emergency_repair(
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED const name_string_t &name,
+        UNUSED bool allow_erase,
+        UNUSED bool dry_run,
+        UNUSED signal_t *local_interruptor,
+        UNUSED ql::datum_t *result_out,
+        admin_err_t *error_out) {
+    *error_out = admin_err_t{
+        "test_rdb_env_t::instance_t doesn't support reconfigure()",
+        query_state_t::FAILED};
+    return false;
+}
+
+bool test_rdb_env_t::instance_t::table_rebalance(
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED const name_string_t &name,
+        UNUSED signal_t *local_interruptor,
+        UNUSED ql::datum_t *result_out,
+        admin_err_t *error_out) {
+    *error_out = admin_err_t{
+        "test_rdb_env_t::instance_t doesn't support rebalance()",
+        query_state_t::FAILED};
+    return false;
+}
+
+bool test_rdb_env_t::instance_t::db_rebalance(
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED signal_t *local_interruptor,
+        UNUSED ql::datum_t *result_out,
+        admin_err_t *error_out) {
+    *error_out = admin_err_t{
+        "test_rdb_env_t::instance_t doesn't support rebalance()",
+        query_state_t::FAILED};
+    return false;
+}
+
+bool test_rdb_env_t::instance_t::sindex_create(
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED const name_string_t &table,
+        UNUSED const std::string &name,
+        UNUSED const sindex_config_t &config,
+        UNUSED signal_t *local_interruptor,
+        admin_err_t *error_out) {
+    *error_out = admin_err_t{
+        "test_rdb_env_t::instance_t doesn't support sindex_create()",
+        query_state_t::FAILED};
+    return false;
+}
+
+bool test_rdb_env_t::instance_t::sindex_drop(
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED const name_string_t &table,
+        UNUSED const std::string &name,
+        UNUSED signal_t *local_interruptor,
+        admin_err_t *error_out) {
+    *error_out = admin_err_t{
+        "test_rdb_env_t::instance_t doesn't support sindex_drop()",
+        query_state_t::FAILED};
+    return false;
+}
+
+bool test_rdb_env_t::instance_t::sindex_rename(
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED const name_string_t &table,
+        UNUSED const std::string &name,
+        UNUSED const std::string &new_name,
+        UNUSED bool overwrite,
+        UNUSED signal_t *local_interruptor,
+        admin_err_t *error_out) {
+    *error_out = admin_err_t{
+        "test_rdb_env_t::instance_t doesn't support sindex_rename()",
+        query_state_t::FAILED};
+    return false;
+}
+
+bool test_rdb_env_t::instance_t::sindex_list(
+        UNUSED counted_t<const ql::db_t> db,
+        UNUSED const name_string_t &table,
+        UNUSED signal_t *local_interruptor,
+        admin_err_t *error_out,
+        UNUSED std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
+            *configs_and_statuses_out) {
+    *error_out = admin_err_t{
+        "test_rdb_env_t::instance_t doesn't support sindex_list()",
+        query_state_t::FAILED};
+    return false;
+}
+
+}  // namespace unittest

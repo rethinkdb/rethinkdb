@@ -14,6 +14,7 @@ class printf_buffer_t;
 // uuid_t is defined on Darwin.  I have given up on what to name it.  Please
 // don't use guid_t, for it has a Windowsian connotation and we might run into
 // the same sort of problem from that.
+// UUIDs are kept in network byte order at all times.
 class uuid_u {
 public:
     uuid_u();
@@ -30,11 +31,12 @@ public:
 
     uint8_t *data() { return data_; }
     const uint8_t *data() const { return data_; }
+
+    static uuid_u from_hash(const uuid_u &base, const std::string &name);
+
 private:
     uint8_t data_[kStaticSize];
 };
-
-
 
 bool operator==(const uuid_u& x, const uuid_u& y);
 inline bool operator!=(const uuid_u& x, const uuid_u& y) { return !(x == y); }
@@ -57,14 +59,12 @@ MUST_USE bool str_to_uuid(const std::string &str, uuid_u *out);
 
 bool is_uuid(const std::string& str);
 
-
 typedef uuid_u namespace_id_t;
 typedef uuid_u database_id_t;
-typedef uuid_u machine_id_t;
-typedef uuid_u datacenter_id_t;
+typedef uuid_u server_id_t;
 typedef uuid_u backfill_session_id_t;
 typedef uuid_u branch_id_t;
-typedef uuid_u reactor_activity_id_t;
+typedef uuid_u issue_id_t;
 
 
 #endif  // CONTAINERS_UUID_HPP_

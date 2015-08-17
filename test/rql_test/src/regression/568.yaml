@@ -1,8 +1,6 @@
 desc: concatmap that doesn't return stream crashes server (#568)
+table_variable_name: tbl
 tests:
-
-  - cd: r.db('test').table_create('568')
-    def: tbl = r.db('test').table('568')
 
   - cd: tbl.insert({'name':'Jim Brown'})
 
@@ -11,4 +9,3 @@ tests:
     rb: tbl.concat_map {|rec| rec[:name]}
     ot: err("RqlRuntimeError", "Cannot convert STRING to SEQUENCE", [])
 
-  - cd: r.db('test').table_drop('568')

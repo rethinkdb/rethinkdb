@@ -1,13 +1,12 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
 
-#include "clustering/immediate_consistency/branch/backfill_throttler.hpp"
-#include "clustering/immediate_consistency/branch/broadcaster.hpp"
-#include "clustering/immediate_consistency/branch/listener.hpp"
-#include "clustering/immediate_consistency/branch/replier.hpp"
-
-// TODO: We include master.hpp, which kind of breaks abstraction boundaries, for ack_checker_t.
-#include "clustering/immediate_consistency/query/master.hpp"
+#include "clustering/immediate_consistency/local_replicator.hpp"
+#include "clustering/immediate_consistency/primary_dispatcher.hpp"
+#include "clustering/immediate_consistency/remote_replicator_client.hpp"
+#include "clustering/immediate_consistency/remote_replicator_server.hpp"
+#include "clustering/immediate_consistency/standard_backfill_throttler.hpp"
+#include "clustering/table_manager/backfill_progress_tracker.hpp"
 #include "containers/uuid.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "unittest/branch_history_manager.hpp"
@@ -18,219 +17,158 @@ namespace unittest {
 
 namespace {
 
-boost::optional<boost::optional<broadcaster_business_card_t> > wrap_broadcaster_in_optional(
-        const boost::optional<broadcaster_business_card_t> &inner) {
-    return boost::optional<boost::optional<broadcaster_business_card_t> >(inner);
-}
-
-boost::optional<boost::optional<replier_business_card_t> > wrap_replier_in_optional(
-        const boost::optional<replier_business_card_t> &inner) {
-    return boost::optional<boost::optional<replier_business_card_t> >(inner);
-}
-
-void run_with_broadcaster(
-        std::function<void(io_backender_t *,
-                           simple_mailbox_cluster_t *,
-                           branch_history_manager_t *,
-                           clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t> > >,
-                           scoped_ptr_t<broadcaster_t> *,
+void run_with_primary(
+        std::function<void(simple_mailbox_cluster_t *,
+                           primary_dispatcher_t *,
                            mock_store_t *,
-                           scoped_ptr_t<listener_t> *,
+                           local_replicator_t *,
                            order_source_t *)> fun) {
     order_source_t order_source;
-
-    /* Set up a cluster so mailboxes can be created */
     simple_mailbox_cluster_t cluster;
-
-    /* Set up branch history manager */
-    in_memory_branch_history_manager_t branch_history_manager;
-
-    io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
-
-    /* Set up a broadcaster and initial listener */
-    mock_store_t initial_store((binary_blob_t(version_range_t(version_t::zero()))));
     cond_t interruptor;
 
-    scoped_ptr_t<broadcaster_t> broadcaster(
-        new broadcaster_t(
-            cluster.get_mailbox_manager(),
-            &branch_history_manager,
-            &initial_store,
-            &get_global_perfmon_collection(),
-            &order_source,
-            &interruptor));
+    primary_dispatcher_t primary_dispatcher(
+        &get_global_perfmon_collection(),
+        region_map_t<version_t>(region_t::universe(), version_t::zero()));
 
-    watchable_variable_t<boost::optional<broadcaster_business_card_t> > broadcaster_directory_controller(
-        boost::optional<broadcaster_business_card_t>(broadcaster->get_business_card()));
-
-    scoped_ptr_t<listener_t> initial_listener(
-        new listener_t(base_path_t("."),
-                                         &io_backender,
-                                         cluster.get_mailbox_manager(),
-                                         broadcaster_directory_controller.get_watchable()->subview(&wrap_broadcaster_in_optional),
-                                         &branch_history_manager,
-                                         broadcaster.get(),
-                                         &get_global_perfmon_collection(),
-                                         &interruptor,
-                                         &order_source));
-
-    fun(&io_backender,
-        &cluster,
-        &branch_history_manager,
-        broadcaster_directory_controller.get_watchable(),
-        &broadcaster,
+    mock_store_t initial_store((binary_blob_t(version_t::zero())));
+    in_memory_branch_history_manager_t branch_history_manager;
+    local_replicator_t local_replicator(
+        cluster.get_mailbox_manager(),
+        generate_uuid(),
+        &primary_dispatcher,
         &initial_store,
-        &initial_listener,
-        &order_source);
-}
+        &branch_history_manager,
+        &interruptor);
 
-void run_in_thread_pool_with_broadcaster(
-        std::function<void(io_backender_t *,
-                           simple_mailbox_cluster_t *,
-                           branch_history_manager_t *,
-                           clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t> > >,
-                           scoped_ptr_t<broadcaster_t> *,
-                           mock_store_t *,
-                           scoped_ptr_t<listener_t> *,
-                           order_source_t *)> fun)
-{
-    unittest::run_in_thread_pool(std::bind(&run_with_broadcaster, fun));
+    fun(&cluster,
+        &primary_dispatcher,
+        &initial_store,
+        &local_replicator,
+        &order_source);
 }
 
 }   /* anonymous namespace */
 
-/* The `ReadWrite` test just sends some reads and writes via the broadcaster to a
-single mirror. */
+/* The `ReadWrite` test just sends some reads and writes via the dispatcher to the single
+local replica. */
 
-void run_read_write_test(UNUSED io_backender_t *io_backender,
-                         UNUSED simple_mailbox_cluster_t *cluster,
-                         branch_history_manager_t *branch_history_manager,
-                         UNUSED clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t> > > broadcaster_metadata_view,
-                         scoped_ptr_t<broadcaster_t> *broadcaster,
-                         UNUSED mock_store_t *store,
-                         scoped_ptr_t<listener_t> *initial_listener,
-                         order_source_t *order_source) {
-    /* Set up a replier so the broadcaster can handle operations. */
-    EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
-    replier_t replier(initial_listener->get(), cluster->get_mailbox_manager(), branch_history_manager);
-
-    /* Give time for the broadcaster to see the replier. */
-    let_stuff_happen();
-
+void run_read_write_test(
+        UNUSED simple_mailbox_cluster_t *cluster,
+        primary_dispatcher_t *dispatcher,
+        UNUSED mock_store_t *store,
+        UNUSED local_replicator_t *local_replicator,
+        order_source_t *order_source) {
     /* Send some writes via the broadcaster to the mirror. */
     std::map<std::string, std::string> values_inserted;
     for (int i = 0; i < 10; i++) {
-        unittest::fake_fifo_enforcement_t enforce;
-        fifo_enforcer_sink_t::exit_write_t exiter(&enforce.sink, enforce.source.enter_write());
-
         std::string key = std::string(1, 'a' + randint(26));
         values_inserted[key] = strprintf("%d", i);
         write_t w = mock_overwrite(key, strprintf("%d", i));
-
-        class : public broadcaster_t::write_callback_t, public cond_t {
-        public:
-            void on_response(peer_id_t, const write_response_t &) {
-                /* Ignore. */
-            }
-            void on_done() {
-                pulse();
-            }
-        } write_callback;
-        cond_t non_interruptor;
-        spawn_write_fake_ack_checker_t ack_checker;
-        (*broadcaster)->spawn_write(w, &exiter, order_source->check_in("unittest::run_read_write_test(write)"), &write_callback, &non_interruptor, &ack_checker);
+        simple_write_callback_t write_callback;
+        dispatcher->spawn_write(
+            w,
+            order_source->check_in("run_read_write_test(write)"),
+            &write_callback);
         write_callback.wait_lazily_unordered();
     }
 
     /* Now send some reads. */
     for (std::map<std::string, std::string>::iterator it = values_inserted.begin();
             it != values_inserted.end(); it++) {
-        unittest::fake_fifo_enforcement_t enforce;
-        fifo_enforcer_sink_t::exit_read_t exiter(&enforce.sink, enforce.source.enter_read());
+        fifo_enforcer_source_t fifo_source;
+        fifo_enforcer_sink_t fifo_sink;
+        fifo_enforcer_sink_t::exit_read_t exiter(&fifo_sink, fifo_source.enter_read());
 
         read_t r = mock_read(it->first);
         cond_t non_interruptor;
         read_response_t resp;
-        (*broadcaster)->read(r, &resp, &exiter, order_source->check_in("unittest::run_read_write_test(read)").with_read_mode(), &non_interruptor);
+        dispatcher->read(
+            r,
+            &exiter,
+            order_source->check_in("run_read_write_test(read)").with_read_mode(),
+            &non_interruptor,
+            &resp);
         EXPECT_EQ(it->second, mock_parse_read_response(resp));
     }
 }
 
-TEST(ClusteringBranch, ReadWrite) {
-    run_in_thread_pool_with_broadcaster(&run_read_write_test);
+TPTEST(ClusteringBranch, ReadWrite) {
+    run_with_primary(&run_read_write_test);
 }
 
 /* The `Backfill` test starts up a node with one mirror, inserts some data, and
 then adds another mirror. */
 
-static void write_to_broadcaster(broadcaster_t *broadcaster, const std::string& key, const std::string& value, order_token_t otok, signal_t *) {
-    // TODO: Is this the right place?  Maybe we should have real fifo enforcement for this helper function.
-    unittest::fake_fifo_enforcement_t enforce;
-    fifo_enforcer_sink_t::exit_write_t exiter(&enforce.sink, enforce.source.enter_write());
-    write_t w = mock_overwrite(key, value);
-    class : public broadcaster_t::write_callback_t, public cond_t {
-    public:
-        void on_response(peer_id_t, const write_response_t &) {
-            /* Ignore. */
-        }
-        void on_done() {
-            pulse();
-        }
-    } write_callback;
-    spawn_write_fake_ack_checker_t ack_checker;
-    cond_t non_interruptor;
-    broadcaster->spawn_write(w, &exiter, otok, &write_callback, &non_interruptor, &ack_checker);
-    write_callback.wait_lazily_unordered();
-}
-
-void run_backfill_test(io_backender_t *io_backender,
-                       simple_mailbox_cluster_t *cluster,
-                       branch_history_manager_t *branch_history_manager,
-                       clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t> > > broadcaster_metadata_view,
-                       scoped_ptr_t<broadcaster_t> *broadcaster,
-                       mock_store_t *store1,
-                       scoped_ptr_t<listener_t> *initial_listener,
-                       order_source_t *order_source) {
-    /* Set up a replier so the broadcaster can handle operations */
-    EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
-    replier_t replier(initial_listener->get(), cluster->get_mailbox_manager(), branch_history_manager);
-
-    watchable_variable_t<boost::optional<replier_business_card_t> > replier_directory_controller(
-        boost::optional<replier_business_card_t>(replier.get_business_card()));
-
+void run_backfill_test(
+        simple_mailbox_cluster_t *cluster,
+        primary_dispatcher_t *dispatcher,
+        mock_store_t *store1,
+        local_replicator_t *local_replicator,
+        order_source_t *order_source) {
     /* Start sending operations to the broadcaster */
     std::map<std::string, std::string> inserter_state;
-    test_inserter_t inserter(
-        std::bind(&write_to_broadcaster, broadcaster->get(),
-                  ph::_1, ph::_2, ph::_3, ph::_4),
-        std::function<std::string(const std::string &, order_token_t, signal_t *)>(),
-        &dummy_key_gen,
-        order_source,
-        "run_backfill_test/inserter",
-        &inserter_state);
+    class inserter_t : public test_inserter_t {
+    public:
+        inserter_t(
+                primary_dispatcher_t *d,
+                std::map<std::string, std::string> *s,
+                order_source_t *os) :
+            test_inserter_t(os, "run_backfill_test::inserter_t", s),
+            dispatcher(d)
+        {
+            start();
+        }
+        ~inserter_t() {
+            if (running()) {
+                stop();
+            }
+        }
+    private:
+        void write(const std::string &key, const std::string &value,
+                order_token_t otok, signal_t *) {
+            write_t w = mock_overwrite(key, value);
+            simple_write_callback_t write_callback;
+            dispatcher->spawn_write(w, otok, &write_callback);
+            write_callback.wait_lazily_unordered();
+        }
+        std::string read(const std::string &, order_token_t, signal_t *) {
+            unreachable();
+        }
+        std::string generate_key() {
+            return dummy_key_gen();
+        }
+        primary_dispatcher_t *dispatcher;
+    } inserter(dispatcher, &inserter_state, order_source);
+
     nap(100);
 
-    backfill_throttler_t backfill_throttler;
+    remote_replicator_server_t remote_replicator_server(
+        cluster->get_mailbox_manager(),
+        dispatcher);
+
+    standard_backfill_throttler_t backfill_throttler;
+    backfill_progress_tracker_t backfill_progress_tracker;
+    peer_id_t nil_peer;
 
     /* Set up a second mirror */
-    mock_store_t store2((binary_blob_t(version_range_t(version_t::zero()))));
+    mock_store_t store2((binary_blob_t(version_t::zero())));
+    in_memory_branch_history_manager_t bhm2;
     cond_t interruptor;
-    listener_t listener2(
-        base_path_t("."),
-        io_backender,
-        cluster->get_mailbox_manager(),
+    remote_replicator_client_t remote_replicator_client(
         &backfill_throttler,
-        broadcaster_metadata_view->subview(&wrap_broadcaster_in_optional),
-        branch_history_manager,
-        &store2,
-        replier_directory_controller.get_watchable()->subview(&wrap_replier_in_optional),
+        backfill_config_t(),
+        &backfill_progress_tracker,
+        cluster->get_mailbox_manager(),
         generate_uuid(),
-        &get_global_perfmon_collection(),
-        &interruptor,
-        order_source);
-
-    EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
-    EXPECT_FALSE(listener2.get_broadcaster_lost_signal()->is_pulsed());
+        backfill_throttler_t::priority_t::critical_t::NO,
+        dispatcher->get_branch_id(),
+        remote_replicator_server.get_bcard(),
+        local_replicator->get_replica_bcard(),
+        generate_uuid(),
+        &store2,
+        &bhm2,
+        &interruptor);
 
     nap(100);
 
@@ -246,82 +184,8 @@ void run_backfill_test(io_backender_t *io_backender,
         EXPECT_EQ(it->second, mock_lookup(&store2, it->first));
     }
 }
-TEST(ClusteringBranch, Backfill) {
-    run_in_thread_pool_with_broadcaster(&run_backfill_test);
-}
-
-/* `PartialBackfill` backfills only in a specific sub-region. */
-
-void run_partial_backfill_test(io_backender_t *io_backender,
-                               simple_mailbox_cluster_t *cluster,
-                               branch_history_manager_t *branch_history_manager,
-                               clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t> > > broadcaster_metadata_view,
-                               scoped_ptr_t<broadcaster_t> *broadcaster,
-                               mock_store_t *store1,
-                               scoped_ptr_t<listener_t> *initial_listener,
-                               order_source_t *order_source) {
-    /* Set up a replier so the broadcaster can handle operations */
-    EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
-    replier_t replier(initial_listener->get(), cluster->get_mailbox_manager(), branch_history_manager);
-
-    watchable_variable_t<boost::optional<replier_business_card_t> > replier_directory_controller(
-        boost::optional<replier_business_card_t>(replier.get_business_card()));
-
-    /* Start sending operations to the broadcaster */
-    std::map<std::string, std::string> inserter_state;
-    test_inserter_t inserter(
-        std::bind(&write_to_broadcaster, broadcaster->get(),
-                  ph::_1, ph::_2, ph::_3, ph::_4),
-        std::function<std::string(const std::string &, order_token_t, signal_t *)>(),
-        &dummy_key_gen,
-        order_source,
-        "run_partial_backfill_test/inserter",
-        &inserter_state);
-    nap(100);
-
-    backfill_throttler_t backfill_throttler;
-
-    /* Set up a second mirror */
-    mock_store_t store2((binary_blob_t(version_range_t(version_t::zero()))));
-    region_t subregion(key_range_t(key_range_t::closed, store_key_t("a"),
-                                                   key_range_t::open, store_key_t("n")));
-    cond_t interruptor;
-    listener_t listener2(
-        base_path_t("."),
-        io_backender,
-        cluster->get_mailbox_manager(),
-        &backfill_throttler,
-        broadcaster_metadata_view->subview(&wrap_broadcaster_in_optional),
-        branch_history_manager,
-        &store2,
-        replier_directory_controller.get_watchable()->subview(&wrap_replier_in_optional),
-        generate_uuid(),
-        &get_global_perfmon_collection(),
-        &interruptor,
-        order_source);
-
-    EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
-    EXPECT_FALSE(listener2.get_broadcaster_lost_signal()->is_pulsed());
-
-    nap(100);
-
-    /* Stop the inserter, then let any lingering writes finish */
-    inserter.stop();
-
-    /* Let any lingering writes finish */
-    let_stuff_happen();
-
-    /* Confirm that both mirrors have all of the writes */
-    for (std::map<std::string, std::string>::iterator it = inserter.values_inserted->begin();
-            it != inserter.values_inserted->end(); it++) {
-        if (region_contains_key(subregion, store_key_t(it->first))) {
-            EXPECT_EQ(it->second, mock_lookup(store1, it->first));
-            EXPECT_EQ(it->second, mock_lookup(&store2, it->first));
-        }
-    }
-}
-TEST(ClusteringBranch, PartialBackfill) {
-    run_in_thread_pool_with_broadcaster(&run_partial_backfill_test);
+TPTEST(ClusteringBranch, Backfill) {
+    run_with_primary(&run_backfill_test);
 }
 
 }   /* namespace unittest */

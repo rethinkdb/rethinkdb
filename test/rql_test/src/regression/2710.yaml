@@ -1,0 +1,6 @@
+desc: Test pseudo literal strings in JSON.
+tests:
+    - js: r.expr({"a":{"b":1, "c":2}}).merge(r.json('{"a":{"$reql_'+'type$":"LITERAL", "value":{"b":2}}}'))
+      py: r.expr({"a":{"b":1, "c":2}}).merge(r.json('{"a":{"$reql_type$":"LITERAL", "value":{"b":2}}}'))
+      rb: r.expr({:a => {:b => 1, :c => 2}}).merge(r.json('{"a":{"$reql_type$":"LITERAL", "value":{"b":2}}}'))
+      ot: ({'a':{'b':2}})

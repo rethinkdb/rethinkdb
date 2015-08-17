@@ -20,6 +20,12 @@ public:
         cond.pulse();
     }
 
+    void pulse_if_not_already_pulsed(const val_t &v) {
+        if (!is_pulsed()) {
+            pulse(v);
+        }
+    }
+
     const val_t &wait() const {
         assert_thread();
         cond.wait_lazily_unordered();
@@ -28,6 +34,12 @@ public:
 
     const signal_t *get_ready_signal() const {
         return &cond;
+    }
+
+    /* Note that `assert_get_value()` can be called on any thread. */
+    val_t assert_get_value() const {
+        cond.guarantee_pulsed();
+        return *value.get();
     }
 
     MUST_USE bool try_get_value(val_t *out) const {

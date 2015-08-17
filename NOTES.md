@@ -1,3 +1,869 @@
+# Release 2.0.0 (Yojimbo)
+
+Release highlights:
+* Support for attaching a changefeed to the `get_all` and `union` commands
+* Improved support for asynchronous queries
+* The first production-ready release of RethinkDB
+
+Read the [release blog post][2.0-blog] for more details.
+
+[2.0-blog]: http://rethinkdb.com/blog/2.0-release/
+
+## Compatibility ##
+
+Data files from RethinkDB versions 1.13.0 onward will be automatically
+migrated to version 2.0. As with any major release, back up your data files
+before performing the upgrade.
+
+### Handling of negative zero in indexes ###
+
+IEEE 754 floating point numbers distinguish between negative (-0) and
+positive (+0) zero.  The following information is only relevant if you
+are storing negative zero values in your documents.  We expect very
+few users to be affected by this change.
+
+ReQL compares -0 and +0 as equal in accordance with IEEE 754.  In
+previous versions of RethinkDB, -0 and +0 were however treated as
+distinct values in primary and secondary indexes.  This could lead to
+inconsistent behavior and wrong query results in some rare cases.
+
+Starting with RethinkDB 2.0, -0 and +0 are indexed as equal values.
+Secondary indexes can be [migrated online][1.14-outdated-index] using
+the `rethinkdb index-rebuild` utility.  If any of your documents have
+negative zero values in their primary keys, those documents will
+become partially inaccessible in RethinkDB 2.0. You will need to
+re-import the affected tables using the `rethinkdb dump` and
+`rethinkdb restore` commands. See the article "[Back up your
+data][backup-docs]" for more information.
+
+If you are unsure if any of your documents are affected, you can run
+`python -m rethinkdb._negative_zero_check` after upgrading both the
+server and Python driver.  See the output of `python -m
+rethinkdb._negative_zero_check --help` for additional options.
+
+[1.14-outdated-index]: http://rethinkdb.com/docs/troubleshooting/#my-secondary-index-is-outdated
+[backup-docs]: http://www.rethinkdb.com/docs/backup/
+
+### API-breaking changes ###
+
+* `between` no longer accepts `null` bounds. The new `r.minval` and
+  `r.maxval` can be used instead
+
+* The `any` and `all` commands have been removed. The `or` and `and`
+  commands can be used instead
+
+* `indexes_of` has been renamed to `offsets_of`
+
+* The `squash` argument to `changes` now defaults to `false`
+
+* The type hierarchy for exception types in the Python driver changed.
+  All exceptions including `RqlDriverError` now inherit from the
+  `RqlError` type.  `RqlRuntimeError`, `RqlCompileError` and
+  `RqlClientError` additionally inherit from the new `RqlQueryError`
+  type
+
+## New features ##
+
+* Overall
+  * Reached a production-ready state (#1174)
+* ReQL
+  * Added support for changefeeds on `get_all` and `union` queries (#3642)
+  * `between` no longer accepts `null` as a bound. The new `r.minval` and `r.maxval` can be used instead (#1023)
+  * Added support for getting the state of a changefeed using the new `include_states` optarg to `changes` (#3709)
+* Drivers
+  * Added support for non-blocking `cursor.next` (#3529)
+  * Added support for executing multiple queries in parallel on a single connection (#3754)
+  * Consolidated the return types and use the new `ResponseNotes` field to convey extra information (#3715)
+* Python driver
+  * Added an optional script that warns for documents with negative zero in a primary key (#3637)
+  * Added an asynchronous API based on Tornado (#2622)
+* Ruby driver
+  * Added an asynchronous API based on EventMachine (#2622)
+
+## Improvements ##
+
+* Server
+  * Report open cursors as a single entry in the jobs table (#3662)
+  * Timestamps are no longer sent between servers in `batchspec_t` (#2671)
+  * Some expensive changefeed checks are no longer performed in release mode (#3656)
+  * Include the remote port number in the heartbeat timeout message (#2891)
+  * Improved the ordering and throttling of reads and writes (#1606)
+  * Limit the number of documents per write batch to reduce the impact of large writes on other queries (#3806)
+  * Execute multiple queries in parallel on a single connection (#3296)
+  * Improved the performance of sending responses (#3744)
+  * Immediately send back an empty first batch when the result is a changefeed (#3852)
+  * Simplified the `multi_throttling` infrastructure (#4021)
+  * The server now reports handshake errors to client drivers earlier (#4011)
+  * Set `TCP_NODELAY` in the Python and Ruby driver to avoid delays in combination with `noreply` (#3998)
+* Web UI
+  * Added a configurable limit for the results per page in the Data Explorer (#3910)
+  * Added an "add table" button to each database (#3522)
+* ReQL
+  * `table.rebalance` with insufficient data is no longer an error (#3679)
+  * Renamed `indexes_of` to `offsets_of` to avoid confusion with secondary indexes (#3265)
+  * Removed `any` and `all` in favor of `or` and `and` (#1581)
+  * Trivial changes are filtered out from `return_changes` (#3697)
+  * Reduced the size of profiles (#3218)
+  * Changefeeds are no longer squashed by default (#3904)
+* JavaScript driver
+  * Added an upper bound to the bluebird dependency (#3823)
+* Ruby driver
+  * Added a `timeout` option to `r.connect` (#1666)
+  * Improved the code style (#3900, #3901, #3906)
+  * Strings are now allowed as keys in the config options (#3905)
+* Build
+  * Upgraded to a more recent version of V8 and dropped support for out-of-tree V8 (#3472)
+  * Added support for building with Python 3 (#3731)
+* Packaging
+  * Got rid of the outdated bash completion script (#719)
+  * Allow installing RethinkDB in 32-bit OS X on a 64-bit processor (#1595)
+* Tests
+  * Increased the number of retries in the `RDBBtree` tests to avoid false positives (#3805)
+
+## Bug Fixes ##
+
+* Server
+  * Fixed a race condition that could be caused by concurrent queries (#3766)
+  * Deleted servers and tables are no longer counted during version checks (#3692)
+  * Made JSON parsing more strict (#3810)
+  * Fixed a bug that could cause the server to crash when killed (#3792)
+  * Databases can no longer be renamed to "rethinkdb" (#3858)
+  * Return an initial value for point changefeeds on system tables (#3723)
+  * Improved the handling of negative zero (#3637)
+  * Correctly abort `order_by.limit` changefeeds when a table become unavailable (#3932)
+  * Do not unlink files early to avoid crashing in virtual environments (#3791)
+  * Fallback to TCP4 when binding sockets (#4000)
+  * No longer crash when the data files are in a VirtualBox shared folder (#3791)
+* ReQL
+  * Fixed the behavior of point changefeeds on system tables (#3944)
+  * `noreplyWait` no longer waits for non-`noreply` queries (#3812)
+  * Initial values for `order_by` changefeeds are now returned in order (#3993)
+  * Reduced the size of profiles when deleting documents (#3218)
+* Web UI
+  * Fixed a bug that caused the status icon to be green when a table was unavailable (#3500)
+  * Fixed a bug that truncated labels in the performance graph (#3751)
+  * Correctly handle the escape key in modal dialogs (#3872)
+  * Fixed a bug that caused an `InternalError` when loading large tables (#3873)
+  * Fixed a bug that caused the Data Explorer to break when reading older data from `localStorage` (#3935)
+  * Fixed a bug that caused autocompletion to fail in certain cases (#3143)
+* Python driver
+  * Fixed `rethinkdb export` compatibility between Python 2 and Python 3 (#3911)
+  * Fixed a bug that caused `rethinkdb export` to hang when certain errors occur (#4005)
+* JavaScript driver
+  * Fixed a bug that caused `cursor.each` to fail with an exception (#3826)
+  * Fixed a bug that caused connection errors to be discarded (#3733)
+  * Fixed a bug that could be triggered by calling `close` twice (#4017)
+  * Fixed a bug in `feed.close` (#3967)
+* Ruby driver
+  * Fixed a bug that caused failures when using JRuby (#3795)
+  * Signals are now handled correctly (#4029)
+  * Fixed a bug in the arity check (#3968)
+* Build
+  * Fetching Browserify during the build process is now more reliable (#4009)
+
+## Contributors ##
+
+Many thanks to external contributors from the RethinkDB community for helping
+us ship RethinkDB 2.0. In no particular order:
+
+* Andrey Deryabin (@aderyabin)
+* Krishna Narasimhan (@krishnanm86)
+* Elian Gidoni (@eliangidoni)
+* Sherzod Kuchkarov (@tundrax)
+* Jason Dobry (@jmdobry)
+* Justin Mealey (@justinmealey)
+* Jonathan Ong (@jonathanong)
+* Andrey Deryabin (@aderyabin)
+* Angelo Ashmore (@angeloashmore)
+* Bill Barsch (@billbarsch)
+* Ed Costello (@epc)
+* Ilya Radchenko (@knownasilya)
+* Kai Curry (@webmasterkai)
+* Loring Dodge (@loringdodge)
+* Mike Marcacci (@mike-marcacci)
+* Param Aggarwal (@paramaggarwal)
+* Tinco Andringa (@tinco)
+* Armen Filipetyan (@armenfilipetyan)
+* Andrei Horak (@linkyndy)
+* Shirow Miura (@sharow)
+
+--
+
+# Release 1.16.3 (Stand By Me)
+
+Released on 2015-03-26
+
+Bug fix update.
+
+* Fixed a bug that could cause a crash when reading from a secondary index in some rare circumstances (#3976)
+* Fixed a bug that could cause a connection to hang indefinitely on OS X (#3954)
+* Fixed `rethinkdb export` compatibility between Python 2 and Python 3 (#3911)
+* Heartbeat timeout messages now include the remote port number (#2891)
+* Python driver: patched to work in PyPy (#3969)
+* Python driver: fixed an "Unterminated string" error during `rethinkdb restore` (#3859)
+* JavaScript driver: fixed a bug that caused `cursor.each` to fail with an exception (#3826)
+* JavaScript driver: fixed a bug that caused connection errors to be discarded (#3733)
+* Ruby driver: fixed a bug that caused failures when using JRuby (#3795)
+
+## Contributors ##
+
+* Sherzod Kuchkarov (@tundrax)
+* Elian Gidoni (@eliangidoni)
+
+--
+
+# Release 1.16.2 (Stand By Me)
+
+Released on 2015-02-16
+
+Bug fix update.
+
+* Fixed a bug in `r.range` that caused query failures (#3767)
+* Fixed a race condition in the implementation of `.order_by.limit.changes` (#3765)
+* Fixed a build error that caused very slow `r.js` performance (#3757)
+* Removed spurious comma in the Data Explorer (#3730)
+
+--
+
+# Release 1.16.1 (Stand By Me)
+
+Released on 2015-02-12
+
+Bug fix update.
+
+* Write a message to the log every time a file is deleted (#1780)
+* Fixed `rethinkdb dump` and other backup scripts to correctly detect the server version (#3706)
+* Changed the output of `rethinkdb dump` to clarify that indexes are being saved (#3708)
+* Fixed unbounded memory consumption when using the official OS X package or when building with boost 1.56.0 or higher (#3712)
+* Fixed the `written_docs_total` field of `rethinkdb.stats` (#3713)
+* Fixed a bug that caused the web UI to hang when creating or deleting indexes (#3717, #3721)
+* Fixed rounding of document counts in the web UI (#3722)
+* Fixed a bug that broke the `-f` flag of `rethinkdb import` (#3728)
+* Fixed a bug that prevented the web UI from loading data properly (#3729)
+* Fixed a bug that caused RethinkDB to refuse to link with jemalloc dynamically (#3741)
+* Fixed an uncaught exception in the handling of `r.js` (#3745)
+
+--
+
+# Release 1.16.0 (Stand By Me)
+
+Released on 2015-01-29
+
+The highlights of this release are:
+* A new administration API
+* Changefeeds on complex queries
+* Numerous improvements and enhancements throughout RethinkDB
+
+Read the [release blog post][1.16-blog] for more details.
+
+[1.16-blog]: http://rethinkdb.com/blog/1.16-release/
+
+## Compatibility ##
+
+### Backwards-compatible changes ###
+
+Data files from RethinkDB versions 1.13.0 onward will be automatically
+migrated to version 1.16.x. As with any major release, back up your data files
+before performing the upgrade. If you are upgrading from a release earlier
+than 1.13.0, follow the [migration instructions][migration-documentation] before upgrading.
+
+[migration-documentation]: http://rethinkdb.com/docs/migration/
+
+Secondary indexes now use a new format; old indexes will continue to work, but
+you should rebuild indexes after upgrading to 1.16.x. A warning about outdated
+indexes will be issued on startup.
+
+Indexes can be migrated to the new format with the `rethinkdb index-rebuild`
+utility. Consult the [troubleshooting document][outdated-indexes-documentation] for more information.
+
+[outdated-indexes-documentation]: http://rethinkdb.com/docs/troubleshooting#my-secondary-index-is-outdated
+
+The abstraction of datacenters has been replaced by [server tags][server-tags-documentation].
+Existing datacenter assignments will be converted to server tags automatically.
+
+[server-tags-documentation]: http://rethinkdb.com/docs/sharding-and-replication/
+
+### API-breaking changes ###
+
+The `tableCreate`, `tableDrop`, `dbCreate` and `dbDrop` terms have a new set of return values.
+The previous return values `created` and `dropped` have been renamed to `tables_creates` / `dbs_created` and
+`tables_dropped` / `dbs_dropped` respectively. The terms now additionally return a `config_changes` field.
+
+Consult the API documentation for these commands for details:
+[tableCreate][tableCreate-api-docs], [tableDrop][tableDrop-api-docs], [dbCreate][dbCreate-api-docs], [dbDrop][dbDrop-api-docs]
+
+[tableCreate-api-docs]: http://rethinkdb.com/api/javascript/tableCreate
+[tableDrop-api-docs]: http://rethinkdb.com/api/javascript/tableDrop
+[dbCreate-api-docs]: http://rethinkdb.com/api/javascript/dbCreate
+[dbDrop-api-docs]: http://rethinkdb.com/api/javascript/dbDrop
+
+Changefeeds on a table now combine multiple changes to the same document into a single notification if they happen rapidly.
+You can turn this behavior off by passing the `squash: false` optional argument (see the
+[API documentation][changes-api-docs] for details).
+
+[changes-api-docs]: http://rethinkdb.com/api/javascript/changes
+
+Strings passed to ReQL are now rejected if they are not valid UTF-8.
+Non UTF-8 conformant data can be stored as [binary][binary-api-docs] data instead.
+
+[binary-api-docs]: http://rethinkdb.com/api/javascript/binary/
+
+
+## New features ##
+
+* ReQL admin: a new cluster management and monitoring API (#2169)
+  * Added a special system database named `rethinkdb`
+    * The `table_config` table allows changing a table's configuration (#2870)
+    * The `server_config` table allows listing and managing servers in the cluster (#2873)
+    * The `db_config` table allows listing and renaming databases (#151, #2871)
+    * The `cluster_config` table contains cluster-wide settings (#2924)
+    * The `table_status` table displays each table's availability and replication status (#2983, #3269)
+    * The `server_status` table contains information about the servers in the cluster (#2923, #3270)
+    * The `current_issues` table lists issues affecting the cluster and suggests solutions (#2864, #3258)
+    * The `jobs` table lists running queries and background tasks (#3115)
+    * The `stats` table contains real-time statistics about the server (#2885)
+    * The `logs` table provides access to the server logs (#2884)
+    * The `identifierFormat` optional argument to `table` switches how databases, tables and servers are referenced in the system tables. Can be either "name" or "uuid" (#3266)
+    * Added hidden debug tables (`_debug_table_status`, `_debug_stats`). These tables are subject to change and not part of the official administration interface (#2901, #3385)
+  * Improved cluster management
+    * Servers can now be associated with multiple tags using the `--server-tag` flag or by updating the `server_config` table (#2856)
+    * Removed the datacenter abstraction and changed the arguments to `tableCreate` (#2876)
+    * Removed the `rethinkdb admin` command line interface
+    * Added a `reconfigure` command to change the replication and sharding settings of a table (#2932)
+    * Added a `rebalance` command to even out the size of a table's shards (#2981)
+    * Added a `config` command for tables and databases as an alias for the corresponding row in `db_config` or `table_config`
+    * Added a `status` command for tables as an alias for the corresponding row in `table_status`
+    * Most of the `/ajax` endpoints have been removed. Their functionality has been moved to the system tables (#2878, #2879)
+    * The stats now contains the number of client connections (#2989)
+    * Added more information to the return value of `db_create`, `db_drop`, `table_create` and `table_drop` (#3001)
+    * Changed how `durability` and `write_acks` are configured (#3066)
+    * The cache size can now be changed at runtime (#3166)
+    * Improved the scalability for large table creation and reconfiguration in large clusters (#3198)
+    * Added a new UI for table configuration (#3229)
+    * Empty tables can now be sharded (#3271, #1679)
+* ReQL
+  * Added `r.range` which generates all numbers from a given range (#875)
+  * Enforce UTF-8 encoding on input strings (#1181)
+  * Added a `wait` command which waits for a table to be ready (#2259)
+  * Added `toJsonString` which converts a datum into a JSON string (#2513)
+  * Turned `map` into a variadic function for mapping over multiple sequences in parallel (#2574)
+  * Added a prefix version of `map` (#3321)
+  * Added an optional `squash` argument to the `changes` command, which lets the server combine multiple changes to the same document (defaults to `true`) (#2726, #3558)
+  * `min` and `max` now use an index when passed the new `index` parameter (#2974, #2981)
+  * It is now possible to get changefeeds for more types of queries. `changes` can now be chained onto:
+    * Ranges generated with `between` (#3232)
+    * Single documents with `get`
+    * Subsets with `filter`
+    * Sub-documents and modified documents with `map` and other commands that are stream-polymorphic such as `merge`
+    * Certain reductions such as `min` and `max`
+    * Top scoring documents with `orderBy` and `limit`
+    * Combinations of the above, such as `between` followed by `map`
+* Server
+  * Made buffered IO the default, added a `--direct-io` flag to enable direct IO and deprecated the `--no-direct-io` flag (#3391)
+* Python driver
+  * `rethinkdb export` now exports secondary index information and `rethinkdb import` re-creates those indexes unless it is given the `--no-secondary-indexes` flag (#3484)
+
+## Improvements ##
+
+* Web UI
+  * The web assets are now compiled into the `rethinkdb` executable (#1093)
+  * `getAll` queries on secondary indexes are now shown in the performance graph (#2379)
+  * Added `getField` to the autocompletion in the Data Explorer (#2624)
+  * Added live updates for changefeeds in the Data Explorer (#2643)
+  * Reduced the amount of data transferred to and processed by the browser by the dashboard (#2786)
+  * The database view was removed (#3491)
+  * Added a secondary index monitor to the dashboard (#3493)
+* Server
+  * Removed code used to support outdated tests (#1524)
+  * Improved implementation of erase range operations (#2034)
+  * `jemalloc` is now used by default instead of `tcmalloc`, which solves some memory inflation (#2279)
+  * Replaced vector clocks with automatic timestamp-based conflict resolution (#2784)
+  * No longer complain when `stderr` can't be flushed (#2790)
+  * Replaced uses of the word "machine" to use "server" instead. The old `--machine-name` flag is now `--server-name` (#2877, #3254)
+  * The server now prints its own name on startup (#2992)
+  * Adjusted the formatting of log levels, no longer print `info:` lines to stderr and added a `notice` log level (#3040)
+  * Added a `--no-default-bind` option that prevents the server from listening on loopback addresses (#3154)
+  * Lower the CPU load of an idle server (#3185)
+  * The OS disk cache is now ignored when calculating available memory (#3193)
+  * `kqueue` is now used instead of `poll` for events on OS X for better performance (#3403)
+  * Tables now become available faster and table metadata takes less space on disk (#3463)
+  * Queries that perform multiple HTTP requests now share the same cookies (#3469)
+  * Made resolving of ties in secondary indexes more consistent (#3550)
+  * The server now calls home to RethinkDB HQ to check for newer versions and send anonymized statistics. This can be turned off with the new `--no-update-check` flag (#3170)
+* Testing
+  * The ReQL tests can now run in parallel (#2305, #2672)
+  * The Ruby driver is now tested against different versions of Ruby (#2526)
+  * Relaxing floating point comparison to account for rounding issues (#2912)
+  * No longer depend on external HTTP servers (#3047)
+  * Switched to using the new cluster management features in the test suite (#3398, #3401)
+* ReQL
+  * Allow querying the version of the server (#2698)
+  * Improved the error message when pseudo-types are used as objects (#2766)
+  * The names of types returned by `typeOf` and `info` now match (#3059)
+  * No longer silently ignore unknown global optional arguments (#2052)
+  * Improved handling of socket, protocol and cursor errors (#3207)
+  * Added an `isOpen` method to connections (#2113)
+  * `info` on tables now works when `useOutdated` is true (#3355)
+  * `info` on tables now includes the table id (#3358)
+* Driver protocol
+  * Made internal names of commands more consistent (#3147)
+  * Added the `SUCCESS_ATOM_FEED` return type, used when returning changes for a single document (#3389)
+* JavaScript driver
+  * Upgrade to bluebird 2 (#2973)
+* Python driver
+  * Added a `next` method for cursors (#3042)
+  * `r.expr` now accepts any iterable or mapping (#3146)
+  * `rethinkdb export` now avoids traversing each table twice by using an estimated document count (#3483)
+* Build
+  * Updated code to build with post-Yosemite versions of Xcode (#3219)
+  * Fetch Curl 7.40.0 when not using the system-installed one (#3540)
+* Packaging
+  * Added `procps` as a dependency in the Debian packages (#3404)
+  * Now depend on `jemalloc` instead of `gperftools` (#3419)
+
+## Bug fixes ##
+
+* Tests
+  * Fixed the `TimerTest` test (#549)
+  * Always use the in-tree driver for testing (#711)
+* Server
+  * Some startup log messages are now consolidated into a single log entry (#925)
+  * Fixed continuation of partially-interrupted vectored I/O (#2665)
+  * Fixed an issue in the log file parser (#3694)
+* ReQL
+  * Changed type of `between` queries to from `TABLE` to the more correct `TABLE_SLICE` (#1728)
+* Web UI
+  * Use a real fixed width font for backtraces to make them align correctly (#2065)
+  * No longer show empty batches when more data is available (#3432)
+* Python driver
+  * Correctly handle Unicode characters in error messages (#3051)
+* JavaScript driver
+  * Added support for passing batch configuration arguments to `run` (#3161)
+* Ruby driver
+  * Optional arguments can now be passed to `order_by` (#3221)
+
+## Contributors ##
+
+Many thanks to external contributors from the RethinkDB community for helping
+us ship RethinkDB 1.16. In no particular order:
+
+* Adam Grandquist (@grandquista)
+* Ilya Radchenko (@knownasilya)
+* Gianluca Ciccarelli (@sturmer)
+* Alexis Okuwa (@wojons)
+* Mike Ma (@cosql)
+* Patrick Stapleton (@gdi2290)
+* Mike Marcacci (@mike-marcacci)
+* Andrei Horak (@linkyndy)
+* Param Aggarwal (@paramaggarwal)
+* Brandon Zylstra (@brandondrew)
+* Ed Costello (@epc)
+* Alessio Basso (@alexdown)
+* Benjamin Goodger (@goodgerster)
+* Vinh Quốc Nguyễn (@kureikain)
+
+--
+
+# Release 1.15.3 (Lawrence of Arabia)
+
+Released on 2015-01-08
+
+Bug fix update.
+
+* Fixed a bug that caused the endpoints of a reversed range to not be
+  correctly included or excluded (#3449)
+* Fixed the `reverse_iterator` implementation for leaf nodes (#3446)
+* Fixed a bug that could cause a bad ordering of secondary indexes for
+  rows with different primary key sizes (#3444)
+* Fixed a bug that could cause a crash under high load when using
+  changefeeds (#3393)
+* Fixed a bug that made it impossible to chain `between` and
+  `distinct` (#3346)
+* Changed some calls to avoid passing `NULL` to `memcpy` (#3317)
+* Fixed the installer artwork on OS X Yosemite (#3253)
+* Changed the version scheme for the JavaScript driver to avoid
+  mis-use of pre-release numbers (#3281)
+* Fixed a bug that could cause `rethinkdb import` and `rethinkdb
+  export` to hang (#3458)
+
+---
+
+# Release 1.15.2 (Lawrence of Arabia)
+
+Released on 2014-11-07
+
+Bug fix update.
+
+* Added packages for Ubuntu 14.10 "Utopic Unicorn" (#3237)
+* Fixed a bug with memory handling in S2 (#3201)
+* Fixed a bug handling paged results in the Data Explorer (#3111)
+* Fixed a bug that caused a crash on exit if a joined server with an open
+  changefeed crashed (#3038)
+* Fixed a bug that caused a crash when unsharding discarded more rows than
+  expected when batching results (#3264)
+* Fixed a bug that could lead to crashes when changefeeds were frequently
+  registered and unregistered (#3205)
+* Changed the `r.point` constructor to be deterministic, allowing it to be used
+  in secondary index functions (#3287)
+* Fixed an incompatibility problem between Python 3.4 and the `import` command
+  (#3259)
+* Fixed a buffer alignment issue with `object_buffer_t` data (#3300)
+
+---
+
+# Release 1.15.1 (Lawrence of Arabia)
+
+Released on 2014-10-07
+
+Bug fix update.
+
+* Fixed a bug where tables were always created with hard durability, regardless
+  of the `durability` option (#3128)
+* Fixed a bug that caused HTTPS access with `r.http` to fail under OS X (#3112)
+* Fixed a bug in the Python driver that caused pickling/unpickling of time
+  objects to fail (#3024)
+* Changed the Data Explorer autocomplete to not override Ctrl+Tab on Firefox
+  (#2959)
+* Fixed a bug that caused a crash when a non-directory file was specified as
+  RethinkDB's startup directory (#3036)
+* Added native packages for Debian (#3125, #3107)
+* Fixed a compilation error on ARM CPUs (#3116)
+* Support building with Protobuf 2.6.0 (#3137)
+
+---
+
+# Release 1.15.0 (Lawrence of Arabia)
+
+Released on 2014-09-23
+
+The highlights of this release are support for geospatial objects and queries,
+and significant performance upgrades relating to datum serialization (twice as
+fast for many analytical workloads). Read the [release blog post][1.15-blog]
+for more details.
+
+[1.15-blog]: http://rethinkdb.com/blog/1.15-release/
+
+Only documents modified after upgrading to 1.15 will receive these performance
+gains. You may "upgrade" older documents by performing any write that modifies
+their contents. For example, you could add a dummy field to all the documents in
+a table and then remove it:
+
+    r.table('tablename').update({dummy_field: true})
+    r.table('tablename').replace(r.row.without('dummy_field'))
+
+There are no API-breaking changes in this release.
+
+## New features ##
+
+* ReQL
+  * Added geospatial query and index support (#2571, #2847, #2851, #2854, #2859,
+    #3003, #3011)
+  * Added `r.uuid` for generating unique IDs (#2063)
+  * Added a `BRACKET` term to the query language, to improve the bracket
+    operator in client drivers (#1179)
+
+## Improvements ##
+
+* Server
+  * Significantly improved performance of read operations by lazily
+    deserializing data: ~1.15x faster for simple queries, ~2x faster for many
+    analytical queries, and ~50x for count queries (#1915, #2244, #2652)
+  * Removed the option for `datum_t` to be uninitialized (#2985)
+  * Improved the performance of `zip` by replacing the `zip_datum_stream_t` type
+    with a transformer function (#2654)
+  * Clarified error messages when the data in the selection could not be printed
+    (#972)
+  * Improved performance of `r.match` by adding regex caching and a framework
+    for generic query-based caches (#2196)
+* Testing
+  * Removed unnecessary files from `test/common` (#2829)
+  * Changed all tests to run with `--cache-size` parameter (#2816)
+* Python driver
+  * Modified `r.row` to provide an error message on an attempt to call it like a
+    function (#2960)
+* JavaScript driver
+  * Errors thrown by the driver now have a stack trace (#3087)
+
+## Fixed bugs ##
+
+* ReQL
+  * Fixed a bug for `r.literal` corner cases (#2710)
+  * Improved error message when `r.literal` is used in an invalid context
+    (#1600)
+* Web UI
+  * Fixed a bug that caused selection in the query text area to become
+    unresponsive with large queries (#3043)
+  * Fixed a bug that caused "more data is available" to be displayed incorrectly
+    in certain cases (#3037)
+* Server
+  * Fixed a display bug with log entries in the web UI (#2627)
+  * Fixed a bug where Makefile miscounted dependencies when `ql2.proto` was
+    changed (#2965)
+  * Fixed a bug where the connection authorization key was improperly encoded
+    (#2952)
+  * Fixed an uninitialized variable warning during builds (#2977)
+* Testing
+  * Fixed various bugs in tests (#2940, #2887, #2844, #2837, #2603, #2793)
+* JavaScript driver
+  * Fixed a bug in the JavaScript driver that caused backtraces to not print
+    properly (#2793)
+* Python driver
+  * Replaced `or isinstance` with a tuple of types (#2968)
+  * Removed unused `kwarg` assignments (#2969)
+* Ruby driver
+  * Fixed a bug where `default_db`, `host` and `port` were not exposed in the
+    Connection object (#2849)
+
+## Contributors ##
+
+Many thanks to external contributors from the RethinkDB community for helping
+us ship RethinkDB 1.15. In no particular order:
+
+* Sathyanarayanan Gunasekaran (@gsathya)
+* Adam Grandquist (@grandquista)
+* Duane Johnson (@canadaduane)
+* Colin Mattson(@cmattson)
+* Justas Brazauskas (@jutaz)
+* Matt Stith (@stith)
+* Dmitry Minkovsky (@dminkovsky)
+
+---
+
+# Release 1.14.1 (Brazil)
+
+Released on 2014-09-09
+
+Bug fix update.
+
+* Fixed a bug that caused `rethinkdb index-rebuild` to fail with auth keys (#2970)
+* Changed `rethinkdb export` to specify `binary_format='raw'` to work with binary data correctly (#2964)
+* Fixed `rethinkdb import` to handle Unicode in CSV files (#2963)
+* Updated the Valgrind suppressions file to fix false "uninitialized value" warnings (#2961)
+* Fixed a bug that caused duplicate perfmons when recreating an index (#2951)
+* Fixed a bug that could cause `r.http` to crash when used with pagination and `coerce_to` (#2947)
+* Improved the printing of binary data in Python and Ruby REPLs (#2942)
+* Fixed a bug that could corrupt databases larger than 4GB on 32-bit systems (#2928)
+* Fixed permission issues with the web admin interface files (#2927)
+* Fixed a bug that caused a crash due to incorrect error handling in profile mode (#2718)
+* Fixed a bug that caused a crash when existing servers tried to connect to a new server with an unresolvable hostname (#2708)
+
+---
+
+# Release 1.14.0 (Brazil)
+
+Released on 2014-08-20
+
+The highlights of this release are:
+
+* Support for storing binary data
+* Seamless database migration
+* Support for Python 3
+
+Read the [release blog post][1.14-blog] for more details.
+
+[1.14-blog]: http://rethinkdb.com/blog/1.14-release/
+
+## Compatibility ##
+
+### Backwards-compatible changes ###
+
+Data files from RethinkDB versions 1.13.0 onward will be automatically
+migrated to version 1.14.x. As with any major release, back up your data files
+before performing the upgrade. If you are upgrading from a release earlier
+than 1.13.0, follow the [migration instructions][1.14-migration] before upgrading:
+
+[1.14-migration]: http://rethinkdb.com/docs/migration/
+
+Secondary indexes now use a new format; old indexes will continue to work, but
+you should rebuild indexes after upgrading to 1.14.x. A warning about outdated
+indexes will be issued on startup.
+
+Indexes can be migrated to the new format with the `rethinkdb index-rebuild`
+utility. Consult the [troubleshooting document][1.14-outdated-index] for more
+information:
+
+[1.14-outdated-index]: http://rethinkdb.com/docs/troubleshooting/#my-secondary-index-is-outdated
+
+### API-breaking changes ###
+
+The `return_vals` optional argument for `insert`, `delete` and `update` has
+been changed to `return_changes`, and works with all write operations
+(previously, this only worked with single-document writes). The returned
+object is in a new format that is backwards-incompatible with previous
+versions. Consult the API documentation for [insert][1.14-insert], [delete][1.14-delete],
+and [update][1.14-update] for details:
+
+[1.14-insert]: http://rethinkdb.com/api/javascript/insert
+[1.14-delete]: http://rethinkdb.com/api/javascript/delete
+[1.14-update]: http://rethinkdb.com/api/javascript/update
+
+The `upsert` optional argument to `insert` has been replaced with `conflict`
+and new allowed values of `error`, `replace` or `update`. This is a
+backwards-incompatible change. Consult the API documentation for more
+information.
+
+## New features ##
+
+* Server
+  * Return old/new values for multi-row write operations (#1382)
+  * `upsert` replaced with `conflict` argument for `insert` (#1838)
+  * Added binary data type support via `binary` (#137, #2612, #2931)
+  * `binary_format="raw"` added to `run` (#2762)
+  * Secondary indexes can be renamed with `index_rename` (#2794)
+  * Secondary indexes can be duplicated (#2797)
+  * Out of date secondary indexes logged on startup (#2798)
+  * `r.http` can return a binary object (#2806)
+* Python driver
+  * Added Python 3 support (#2502)
+* Data Explorer
+  * Support for displaying binary types (#2804, #2865)
+
+## Improvements ##
+
+* Server
+  * Server names now default to the hostname of the machine (#236, #2548)
+  * `distinct` is faster and now works on indexes (#1864)
+  * Improve secondary index queue handling (#1947)
+  * The array limit is now configurable (#2059)
+  * Allow initializing an empty directory (#2359)
+  * Max number of extprocs raised (#2391, #2584)
+  * Argument count errors are prettier (#2568)
+  * Better error reporting in `r.js` (#2748)
+  * `index_status` provides more info (#2791)
+* Command line
+  * Table names in the CLI are disambiguated (#2360, #2550)
+* Python driver
+  * Cleanup unneeded files (#2610)
+  * Documentation examples are now PEP8 compliant (#2534)
+* Testing
+  * Polyglot targets for Ruby 1.8, 1.9, 2.0, 2.1 (#773)
+  * Multiple versions of Python can be tested simultaneously
+* Web UI
+  * Added a notification and helpful message for out-of-date secondary indexes
+    (#2799)
+
+## Fixed bugs ##
+
+* Server
+  * `--runuser` and `--rungroup` set proper permissions when used with
+    `rethinkdb create` (#1722)
+  * Improved behavior and error messages for write acks (#2039)
+  * Fix `getaddrinfo` error handling (#2110)
+  * Fix a bug with machine name generation (#2552, #2569)
+  * Fix a bug when compiling on GCC 4.7.2 (#2572)
+  * Fix memory corruption error (#2589)
+  * Fix stream cache error (#2607)
+  * Fix linking issue with RE2 (#2685)
+  * Miscellaneous build fixes (#2666, #2827)
+  * Fix rare conflict bug in cluster config (#2738)
+  * Fix variable initialization error (#2741)
+  * Fix bug in `RPCSemilatticeTest.MetadataExchange` (#2758)
+  * Changefeeds work on multiple joined servers (#2761)
+  * Secondary index functions ignore global optargs (#2767)
+  * Secondary indexes sort correctly (#2774, #2789)
+  * Fix crashing bug with undefined ordering (#2777)
+  * Fix dependency includes in Makefile (#2779)
+  * Convert `query_params` to a `map` (#2812)
+  * Convert `header_lines` into a `map` (#2818)
+  * Improve robustness with big documents (#2832)
+  * Wipe out old secondary index tree when post-constructing (#2925)
+  * Preliminary fix for web permission issues on CentOS (#2927)
+* ReQL
+  * Fix a bug in `delete_at` (#2696)
+  * `insert` and `splice` now check array size limit (#2697)
+  * Fix error in undocumented `batch_conf` option (#2709)
+* Web UI
+  * Improve interval notation for shard boundaries (#2081, #2635)
+  * The Data Explorer now remembers the current query on disconnects (#2460)
+  * The Data Explorer now hides overflowing text in its popup containers
+    (#2593)
+* Testing
+  * Miscellaneous testing improvements (#2396, #2583, #2760, #2787, #2788,
+    #2795)
+  * Update testing scripts for drivers (#2815)
+* Python driver
+  * Make `all` and `any` behave like `and_` and `or_` (#2659)
+  * Use `os.path.splitext` to check file extensions (#2681)
+* JavaScript driver
+  * Return errors rather than throw them (#2852, #2883)
+
+## Contributors ##
+
+Many thanks to external contributors from the RethinkDB community for helping
+us ship RethinkDB 1.14. In no particular order:
+
+* Sathyanarayanan Gunasekaran (@gsathya)
+* James Costian (@jamescostian)
+* Ed Rooth (@sym3tri)
+* Cole Gleason (@colegleason)
+* Mikhail Goncharov (@metaflow)
+* Elian Gidoni (@eliangidoni)
+* Ivan Fraixedes (@ifraixedes)
+* Brett Griffin (@brettgriffin)
+* Ed Costello (@epc)
+* Juuso Haavisto (@9uuso)
+* Nick Verlinde (@npiv)
+* Ayman Mackouly (@1N50MN14)
+* Adam Grandquist (@grandquista)
+
+---
+
+# Release 1.13.4 (My Name is Nobody)
+
+Released on 2014-08-14
+
+Bug fix update.
+
+* Resolved several memory leaks (#2899, #2840, #2744)
+* Added a `--temp-dir` option to `rethinkdb dump` and `rethinkdb restore` (#2783)
+* The `batchConf` argument to `run` now works in the JavaScript driver (#2707)
+* Fixed the `Accept-Encoding` header sent by `r.http` (#2695)
+* Improved the performance of inserting large objects from the JavaScript driver (#2641)
+* `cursor.close` now takes a callback in the JavaScript driver (#2591)
+* Fixed a bug that caused `illegal to destroy fifo_enforcer_sink_t` errors (#2264)
+* Fixed a bug that caused `Assertion failed: [!parent->draining.is_pulsed()]` errors (#2811)
+* Improved the error message when running into version incompatibilities (#2657)
+* Improved the garbage collection for `r.js` (#2642)
+
+---
+
+# Release 1.13.3 (My Name is Nobody)
+
+Released on 2014-07-07
+
+Bug fix update.
+
+* Fix a compiler warning: `cluster_version may be used uninitialized` (#2640)
+* Fix code that used `std::move` twice on the same object (#2638)
+* Prepare for live cluster upgrades (#2563)
+* Fix a bug that could lead to inconsistent data (#2579)
+
+---
+
+# Release 1.13.1 (My Name is Nobody)
+
+Released on 2014-06-26
+
+Bug fix update.
+
+* Fixed a bug that caused `Assertion failed: [ptr_]` errors when shutting down (#2594)
+* Fixed a performance issue in the JSON parser (#2585)
+* The JavaScript driver no longer buffers change feeds (#2582)
+* Fixed a bug that caused `Uncaught exception of type "cannot_perform_query_exc_t"` errors (#2576)
+* No longer crash when a secondary index is named `primary` (#2575)
+* Queries that return `null` are now handled correctly in the Data Explorer (#2573)
+* `r.http` now properly parses headers when following a redirection (#2556)
+* Improved the performance of write operations on sharded tables (#2551)
+* Fixed a bug that caused `r.js` to crash in certain circumstances (#2435)
+* Correctly handle `EPIPE` errors when connecting to an old version of the server (#2422)
+* Fixed a bug that caused `Could not bind socket` errors when using `--bind` (#2405)
+* Fixed a bug that caused `Failed to parse  as valid uuid` errors (#2401)
+* Improved the `bad magic number` error message (#2302)
+* `default` now catches index out of bounds errors on streams (#1922)
+* Improved arity error messages in the JavaScript driver (#2449)
+
+---
+
 # Release 1.13.0 (My Name is Nobody)
 
 Released on 2014-06-13
@@ -6,16 +872,18 @@ The highlights of this release are the `r.http` command for external
 data access, change feed support via the new `changes` command, and
 full support for Node.js promises in the JavaScript driver.
 
-http://rethinkdb.com/blog/1.13-release/
+Read the [release blog post][1.13-blog] for more details.
+
+[1.13-blog]: http://rethinkdb.com/blog/1.13-release/
 
 ## Compatibility ##
 
 This release is not compatible with data files from earlier
 releases. If you have data you want to migrate from an older version
-of RethinkDB, please follow the migration instructions before
+of RethinkDB, please follow the [migration instructions][1.13-migration] before
 upgrading:
 
-http://rethinkdb.com/docs/migration/
+[1.13-migration]: http://rethinkdb.com/docs/migration/
 
 There are also some backwards incompatible changes in the JavaScript driver.
 
@@ -123,13 +991,13 @@ helping us ship RethinkDB 1.13. In no particular order:
 * Matthew Frazier (@leafstorm)
 * Masatoshi Ishida (@Masatoshi)
 
---
+---
 
 # Release 1.12.5 (The Wizard of Oz)
 
 Released on 2014-05-21
 
-Big fix update.
+Bug fix update.
 
 * Fixed a bug that caused `Guarantee failed: [!mod_info->deleted.second.empty() && mod_info->added.second.empty()]` errors (#2285)
 * Fixed the behaviour of `order_by` following `between` (#2307)
@@ -138,7 +1006,7 @@ Big fix update.
 * Python driver: improved the error message when a cursor's connection is closed (#2291)
 * Python driver: improved the implementation of cursors (#2364, #2337)
 
---
+---
 
 # Release 1.12.4 (The Wizard of Oz)
 
@@ -149,7 +1017,7 @@ Bug fix update.
 * Fixed a bug that caused `Assertion failed: [page->is_disk_backed()]` errors (#2260)
 * Fixed a bug that caused incorrect query results and frequent server crashes under low memory conditions (#2237)
 
---
+---
 
 # Release 1.12.3 (The Wizard of Oz)
 
@@ -164,7 +1032,7 @@ Bug fix update.
 * Failure to `fsync` a directory is now a warning instead of an error (#2255)
 * Packages are now available for Ubuntu 14.04, codename Trusty Tahr (#2101)
 
---
+---
 
 # Release 1.12.2 (The Wizard of Oz)
 
@@ -181,7 +1049,7 @@ Bug fix update.
 * Updated the documentation (#2197)
 * Updated the sample config file (#2205)
 
---
+---
 
 # Release 1.12.1 (The Wizard of Oz)
 
@@ -198,7 +1066,7 @@ Bug fix update.
 * Fixed some build failures (#2183, #2174)
 * Fixed the Centos i686 packages (#2176)
 
---
+---
 
 # Release 1.12.0 (The Wizard of Oz)
 
@@ -207,16 +1075,18 @@ Released on 2014-03-26
 The highlights of this release are a simplified map/reduce, an
 experimental ARM port, and a new caching infrastructure.
 
-http://rethinkdb.com/blog/1.12-release/
+Read the [release blog post][1.12-blog] for more details.
+
+[1.12-blog]: http://rethinkdb.com/blog/1.12-release/
 
 ## Compatibility ##
 
 This release is not compatible with data files from earlier
 releases. If you have data you want to migrate from an older version
-of RethinkDB, please follow the migration instructions before
+of RethinkDB, please follow the [migration instructions][1.12-migration] before
 upgrading:
 
-http://rethinkdb.com/docs/migration/
+[1.12-migration]: http://rethinkdb.com/docs/migration/
 
 There are also some backwards incompatible changes in ReQL, the query
 language.
@@ -341,7 +1211,7 @@ language.
 
 * Support for Ubuntu Raring has been dropped (#1924)
 
---
+---
 
 # Release 1.11.3 (Breakfast at Tiffany's)
 
@@ -365,7 +1235,7 @@ Bug fix update.
 * Fix a bug with thread-local storage that caused a segfault on certain platforms (#1731)
 * `get` of a non-existent document followed by `replace` now works as documented (#1570)
 
---
+---
 
 # Release 1.11.2 (Breakfast at Tiffany's)
 
@@ -380,7 +1250,7 @@ Bug fix update.
 * Fixed IPv6 issues with link-local addresses (#1694)
 * Add some support for Python 3 in the build scripts (#1709)
 
---
+---
 
 # Release 1.11.1 (Breakfast at Tiffany's)
 
@@ -392,7 +1262,7 @@ Bug fix update.
 * RethinkDB now correctly sets the `ResponseType` field in responses to `STOP` queries (#1715)
 * Fixed a bug that caused RethinkDB to crash with a failed guarantee (#1691)
 
---
+---
 
 # Release 1.11.0 (Breakfast at Tiffany's)
 
@@ -400,6 +1270,10 @@ Released on 2013-11-25
 
 This release introduces a new query profiler, an overhauled streaming infrastructure,
 and many enhancements that improve ease and robustness of operation.
+
+Read the [release blog post][1.11-blog] for more details.
+
+[1.11-blog]: http://rethinkdb.com/blog/1.11-release/
 
 ## New Features ##
 
@@ -476,7 +1350,7 @@ and many enhancements that improve ease and robustness of operation.
   * Fixed how `termcap` is handled by `./configure` (#1622)
   * Generate a better version number when compiling from a shallow clone (#1636)
 
---
+---
 
 # Release 1.10.1 (Von Ryan's Express)
 
@@ -501,6 +1375,10 @@ Bug fix update.
 # Release 1.10.0 (Von Ryan's Express)
 
 Released on 2013-09-26
+
+Read the [release blog post][1.10-blog] for more details.
+
+[1.10-blog]: http://rethinkdb.com/blog/1.10-release/
 
 ## New Features ##
 
@@ -531,11 +1409,15 @@ Released on 2013-09-26
 * Fixed the error message when using `groupBy` with illegal pattern (#1460)
 * `default` is no longer unprintable in Python (#1476)
 
---
+---
 
 # Release 1.9.0 (Kagemusha)
 
 Released on 2013-09-09
+
+Read the [release blog post][1.9-blog] for more details.
+
+[1.9-blog]: http://rethinkdb.com/blog/1.9-release/
 
 Bug fix update.
 
@@ -555,7 +1437,7 @@ Bug fix update.
 * CLI
   * `rethinkdb import` now works with Python 2.6 (#1349)
 
---
+---
 
 # Release 1.8.1 (High Noon)
 
@@ -569,13 +1451,17 @@ Bug fix update.
 * The web UI now correctly positions `SVGRectElement` (#1314)
 * Fixed a bug that caused a crash when using `filter` with a non-deterministic value (#1299)
 
---
+---
 
 # Release 1.8.0 (High Noon)
 
 Released on 2013-08-14
 
 This release introduces date and time support, a new syntax for querying nested objects and 8x improvement in disk usage.
+
+Read the [release blog post][1.8-blog] for more details.
+
+[1.8-blog]: http://rethinkdb.com/blog/1.8-release/
 
 ## New Features ##
 
@@ -660,7 +1546,7 @@ This release introduces date and time support, a new syntax for querying nested 
 * Build
   * Fixed bugs that caused make to not rebuild certain files or build files it should not (#1162, #1215, #1216, #1229, #1230, #1272)
 
---
+---
 
 # Release 1.7.3 (Nights of Cabiria)
 
@@ -670,7 +1556,7 @@ Bug fix update.
 
 * RethinkDB no longer fails to create the data directory when using `--daemon` (#1191)
 
---
+---
 
 # Release 1.7.2 (Nights of Cabiria)
 
@@ -700,7 +1586,7 @@ Bug fix update.
 * The init script now creates folders with the correct permissions (#1069)
 * Client drivers now time out if the connection handshake takes too long (#1033)
 
---
+---
 
 # Release 1.7.1 (Nights of Cabiria)
 
@@ -711,13 +1597,18 @@ Bug fix update.
 * Fixed a bug causing `rethinkdb import` to crash on single files
 * Added options to `rethinkdb import` for custom CSV separators and no headers (#1112)
 
---
+---
 
 # Release 1.7.0 (Nights of Cabiria)
 
 Released on 2013-07-03
 
 This release introduces hot backup, atomic set and get operations, significant insert performance improvements, nested document syntax, and native binaries for CentOS / RHEL.
+
+Read the [release blog post][1.7-blog] for more details.
+
+[1.7-blog]: http://rethinkdb.com/blog/1.7-release/
+
 
 ## New Features ##
 
@@ -764,7 +1655,7 @@ This release introduces hot backup, atomic set and get operations, significant i
 * Tests
   * ReQL tests no longer leave zombie processes (#1055)
 
---
+---
 
 # Release 1.6.1 (Fargo)
 
@@ -782,13 +1673,17 @@ Released on 2013-06-19
 * Fixed compilation failures with gcc 4.4 (#1011)
 * Fixed problems with resolving a conflicted auth_key (#1024)
 
---
+---
 
 # Release 1.6.0 (Fargo)
 
 Released on 2013-06-13
 
 This release introduces basic access control, regular expression matching, new array operations, random sampling, better error handling, and many bug fixes.
+
+Read the [release blog post][1.6-blog] for more details.
+
+[1.6-blog]: http://rethinkdb.com/blog/1.6-release/
 
 ## New Features ##
 
@@ -865,7 +1760,7 @@ This release introduces basic access control, regular expression matching, new a
   * Check for versions of LESS that are known to work (#956)
   * Removed bitrotted MOCK_CACHE_CHECK option (#804)
 
---
+---
 
 # Release 1.5.2 (Le Gras de Ouate)
 
@@ -880,7 +1775,7 @@ Bug fix update.
 * Fix #817: Fix a crash caused by adding a secondary index while under load
 * Fix #831: Some invalid queries no longer cause a crash
 
---
+---
 
 # Release 1.5.1 (The Grad You Ate) #
 
@@ -895,11 +1790,15 @@ Bug fix update.
 
 ---
 
-# Release 1.5.0 (The Graduate) #
+# Release 1.5.0 (The Graduate)
 
 Released on 2013-05-16
 
 This release introduces secondary indexes, stability and performance enhancements and many bug fixes.
+
+Read the [release blog post][1.5-blog] for more details.
+
+[1.5-blog]: http://rethinkdb.com/blog/1.5-release/
 
 ## New Features ##
 
@@ -1093,7 +1992,7 @@ Bug fix update:
 
 ---
 
-# Release 1.4 (Some Like It Hot) #
+# Release 1.4.0 (Some Like It Hot)
 
 Relased on 2013-03-18.
 
@@ -1125,7 +2024,7 @@ Released on 2012-12-20.
 
 ---
 
-# Release 1.3.0 (Metropolis) #
+# Release 1.3.0 (Metropolis)
 
 Released on 2012-12-20.
 
@@ -1201,7 +2100,7 @@ Released on 2012-11-09.
 
 ---
 
-# Release 1.2.0 (Rashomon) #
+# Release 1.2.0 (Rashomon)
 
 Released on 2012-11-09.
 

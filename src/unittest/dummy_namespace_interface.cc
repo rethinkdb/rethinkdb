@@ -1,60 +1,61 @@
 #include "unittest/dummy_namespace_interface.hpp"
 
 #include "unittest/clustering_utils.hpp"
+#include "rdb_protocol/env.hpp"
 
 namespace unittest {
 
 void dummy_performer_t::read(const read_t &read,
                              read_response_t *response,
                              DEBUG_VAR state_timestamp_t expected_timestamp,
-                             order_token_t order_token,
                              signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    read_token_pair_t token_pair;
-    store->new_read_token_pair(&token_pair);
+    read_token_t token;
+    store->new_read_token(&token);
 
 #ifndef NDEBUG
-    equality_metainfo_checker_callback_t metainfo_checker_callback((binary_blob_t(expected_timestamp)));
-    metainfo_checker_t metainfo_checker(&metainfo_checker_callback, store->get_region());
+    metainfo_checker_t metainfo_checker(store->get_region(),
+        [&](const region_t &, const binary_blob_t &bb) {
+            rassert(bb == binary_blob_t(expected_timestamp));
+        });
 #endif
 
-    return store->read(DEBUG_ONLY(metainfo_checker, ) read, response, order_token, &token_pair, interruptor);
+    return store->read(DEBUG_ONLY(metainfo_checker, ) read, response, &token, interruptor);
 }
 
 void dummy_performer_t::read_outdated(const read_t &read,
                                       read_response_t *response,
                                       signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    read_token_pair_t token_pair;
-    store->new_read_token_pair(&token_pair);
+    read_token_t token;
+    store->new_read_token(&token);
 
 #ifndef NDEBUG
-    trivial_metainfo_checker_callback_t metainfo_checker_callback;
-    metainfo_checker_t metainfo_checker(&metainfo_checker_callback, store->get_region());
+    metainfo_checker_t metainfo_checker(store->get_region(),
+        [](const region_t &, const binary_blob_t &) { });
 #endif
 
     return store->read(DEBUG_ONLY(metainfo_checker, ) read, response,
-                       bs_outdated_read_source.check_in("dummy_performer_t::read_outdated").with_read_mode(),
-                       &token_pair,
+                       &token,
                        interruptor);
 }
 
 void dummy_performer_t::write(const write_t &write,
                               write_response_t *response,
-                              transition_timestamp_t transition_timestamp,
+                              state_timestamp_t timestamp,
                               order_token_t order_token) THROWS_NOTHING {
     cond_t non_interruptor;
 
 #ifndef NDEBUG
-    equality_metainfo_checker_callback_t metainfo_checker_callback(binary_blob_t(transition_timestamp.timestamp_before()));
-    metainfo_checker_t metainfo_checker(&metainfo_checker_callback, store->get_region());
+    metainfo_checker_t metainfo_checker(store->get_region(),
+        [](const region_t &, const binary_blob_t &) { });
 #endif
 
-    write_token_pair_t token_pair;
-    store->new_write_token_pair(&token_pair);
+    write_token_t token;
+    store->new_write_token(&token);
 
     store->write(
             DEBUG_ONLY(metainfo_checker, )
-            region_map_t<binary_blob_t>(store->get_region(), binary_blob_t(transition_timestamp.timestamp_after())),
-            write, response, write_durability_t::SOFT, transition_timestamp, order_token, &token_pair, &non_interruptor);
+            region_map_t<binary_blob_t>(store->get_region(), binary_blob_t(timestamp)),
+            write, response, write_durability_t::SOFT, timestamp, order_token, &token, &non_interruptor);
 }
 
 
@@ -63,35 +64,32 @@ dummy_timestamper_t::dummy_timestamper_t(dummy_performer_t *n,
     : next(n) {
     cond_t interruptor;
 
-    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+    read_token_t read_token;
     next->store->new_read_token(&read_token);
 
-    region_map_t<binary_blob_t> metainfo;
-    next->store->do_get_metainfo(order_source->check_in("dummy_timestamper_t").with_read_mode(),
-                                 &read_token, &interruptor, &metainfo);
+    region_map_t<binary_blob_t> metainfo = next->store->get_metainfo(
+        order_source->check_in("dummy_timestamper_t").with_read_mode(),
+        &read_token,
+        next->store->get_region(),
+        &interruptor);
 
     current_timestamp = state_timestamp_t::zero();
-    for (typename region_map_t<binary_blob_t>::iterator it  = metainfo.begin();
-                                                        it != metainfo.end();
-                                                        it++) {
-        state_timestamp_t region_timestamp
-            = binary_blob_t::get<state_timestamp_t>(it->second);
-        if (region_timestamp > current_timestamp) {
-            current_timestamp = region_timestamp;
-        }
-    }
+    metainfo.visit(metainfo.get_domain(),
+        [&](const region_t &, const binary_blob_t &b) {
+            state_timestamp_t region_ts = binary_blob_t::get<state_timestamp_t>(b);
+            current_timestamp = std::max(current_timestamp, region_ts);
+        });
 }
 
 void dummy_timestamper_t::read(const read_t &read, read_response_t *response, order_token_t otok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     order_sink.check_out(otok);
-    next->read(read, response, current_timestamp, otok, interruptor);
+    next->read(read, response, current_timestamp, interruptor);
 }
 
 void dummy_timestamper_t::write(const write_t &write, write_response_t *response, order_token_t otok) THROWS_NOTHING {
     order_sink.check_out(otok);
-    transition_timestamp_t transition_timestamp = transition_timestamp_t::starting_from(current_timestamp);
-    current_timestamp = transition_timestamp.timestamp_after();
-    next->write(write, response, transition_timestamp, otok);
+    current_timestamp = current_timestamp.next();
+    next->write(write, response, current_timestamp, otok);
 }
 
 void dummy_sharder_t::read(const read_t &read, read_response_t *response, order_token_t tok, signal_t *interruptor) {
@@ -104,27 +102,12 @@ void dummy_sharder_t::read(const read_t &read, read_response_t *response, order_
         read_t subread;
         if (read.shard(it->region, &subread)) {
             responses.push_back(read_response_t());
-            it->timestamper->read(subread, &responses.back(), tok, interruptor);
-            if (interruptor->is_pulsed()) {
-                throw interrupted_exc_t();
+            if (read.read_mode == read_mode_t::OUTDATED ||
+                    read.read_mode == read_mode_t::DEBUG_DIRECT) {
+                it->performer->read_outdated(subread, &responses.back(), interruptor);
+            } else {
+                it->timestamper->read(subread, &responses.back(), tok, interruptor);
             }
-        }
-    }
-
-    read.unshard(responses.data(), responses.size(), response, ctx, interruptor);
-}
-
-void dummy_sharder_t::read_outdated(const read_t &read, read_response_t *response, signal_t *interruptor) {
-    if (interruptor->is_pulsed()) { throw interrupted_exc_t(); }
-
-    std::vector<read_response_t> responses;
-    responses.reserve(shards.size());
-
-    for (auto it = shards.begin(); it != shards.end(); ++it) {
-        read_t subread;
-        if (read.shard(it->region, &subread)) {
-            responses.push_back(read_response_t());
-            it->performer->read_outdated(subread, &responses.back(), interruptor);
             if (interruptor->is_pulsed()) {
                 throw interrupted_exc_t();
             }
@@ -156,7 +139,7 @@ void dummy_sharder_t::write(const write_t &write, write_response_t *response, or
 
 dummy_namespace_interface_t::
 dummy_namespace_interface_t(std::vector<region_t> shards,
-                            store_view_t **stores, order_source_t
+                            store_view_t *const *stores, order_source_t
                             *order_source, rdb_context_t *_ctx,
                             bool initialize_metadata)
     : ctx(_ctx)
@@ -176,38 +159,37 @@ dummy_namespace_interface_t(std::vector<region_t> shards,
         if (initialize_metadata) {
             cond_t interruptor;
 
-            object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+            read_token_t read_token;
             stores[i]->new_read_token(&read_token);
 
-            region_map_t<binary_blob_t> metadata;
-            stores[i]->do_get_metainfo(order_source->check_in("dummy_namespace_interface_t::dummy_namespace_interface_t (do_get_metainfo)").with_read_mode(),
-                                       &read_token, &interruptor, &metadata);
+            region_map_t<binary_blob_t> metainfo = stores[i]->get_metainfo(
+                order_source->check_in("dummy_namespace_interface_t::"
+                    "dummy_namespace_interface_t (get_metainfo)").with_read_mode(),
+                &read_token,
+                shards[i],
+                &interruptor);
 
-            rassert(metadata.get_domain() == shards[i]);
-            for (region_map_t<binary_blob_t>::const_iterator it = metadata.begin();
-                 it != metadata.end();
-                 ++it) {
-                rassert(it->second.size() == 0);
-            }
+            rassert(metainfo.get_domain() == shards[i]);
+            metainfo.visit(shards[i], [&](const region_t &, const binary_blob_t &b) {
+                guarantee(b.size() == 0);
+            });
 
-            object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
+            write_token_t write_token;
             stores[i]->new_write_token(&write_token);
 
             stores[i]->set_metainfo(
-                    region_map_transform<state_timestamp_t, binary_blob_t>(
-                            region_map_t<state_timestamp_t>(shards[i], state_timestamp_t::zero()),
-                            &binary_blob_t::make<state_timestamp_t>
-                                                                           ),
-                    order_source->check_in("dummy_namespace_interface_t::dummy_namespace_interface_t (set_metainfo)"),
+                    region_map_t<binary_blob_t>(
+                        shards[i], binary_blob_t(state_timestamp_t::zero())),
+                    order_source->check_in("dummy_namespace_interface_t::"
+                        "dummy_namespace_interface_t (set_metainfo)"),
                     &write_token,
+                    write_durability_t::SOFT,
                     &interruptor);
         }
 
-        dummy_performer_t *performer = new dummy_performer_t(stores[i]);
-        performers.push_back(performer);
-        dummy_timestamper_t *timestamper = new dummy_timestamper_t(performer, order_source);
-        timestampers.push_back(timestamper);
-        shards_of_this_db.push_back(dummy_sharder_t::shard_t(timestamper, performer, shards[i]));
+        performers.push_back(make_scoped<dummy_performer_t>(stores[i]));
+        timestampers.push_back(make_scoped<dummy_timestamper_t>(performers.back().get(), order_source));
+        shards_of_this_db.push_back(dummy_sharder_t::shard_t(timestampers.back().get(), performers.back().get(), shards[i]));
     }
 
     sharder.init(new dummy_sharder_t(shards_of_this_db, ctx));

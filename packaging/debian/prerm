@@ -3,7 +3,7 @@ set -e
 
 case "$1" in
     remove|upgrade|deconfigure|failed-upgrade)
-        invoke-rc.d rethinkdb stop ;
+        invoke-rc.d rethinkdb stop || true;
         ;;
 
     *)

@@ -5,34 +5,8 @@
 #include <map>
 
 #include "concurrency/watchable.hpp"
-#include "rpc/connectivity/connectivity.hpp"
 #include "containers/incremental_lenses.hpp"
-
-template<class inner_t, class outer_t>
-class field_copier_t {
-public:
-    field_copier_t(inner_t outer_t::*_field, const clone_ptr_t<watchable_t<inner_t> > &_inner, watchable_variable_t<outer_t> *_outer) :
-        field(_field), inner(_inner), outer(_outer),
-        subscription(std::bind(&field_copier_t<inner_t, outer_t>::on_change, this)) {
-        typename watchable_t<inner_t>::freeze_t freeze(inner);
-        subscription.reset(inner, &freeze);
-        on_change();
-    }
-
-private:
-    void on_change() {
-        outer_t value = outer->get_watchable()->get();
-        value.*field = inner->get();
-        outer->set_value(value);
-    }
-
-    inner_t outer_t::*field;
-    clone_ptr_t<watchable_t<inner_t> > inner;
-    watchable_variable_t<outer_t> *outer;
-    typename watchable_t<inner_t>::subscription_t subscription;
-
-    DISABLE_COPYING(field_copier_t);
-};
+#include "rpc/connectivity/peer_id.hpp"
 
 template<class inner_t, class outer_t>
 class field_getter_t {
@@ -92,7 +66,7 @@ public:
     explicit incremental_field_getter_t(inner_t outer_t::*f) :
         incremental_map_lens_t<peer_id_t, outer_t, inner_field_getter_t<inner_t, outer_t> >(
             inner_field_getter_t<inner_t, outer_t>(f)) {
-    };
+    }
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_MAIN_WATCHABLE_FIELDS_HPP_ */

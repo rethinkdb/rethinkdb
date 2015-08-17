@@ -5,10 +5,11 @@
 
 #ifdef ENABLE_CORO_PROFILER
 
+#include <stdio.h>
+
 #include <algorithm>
 #include <array>
 #include <map>
-#include <fstream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -60,7 +61,7 @@
  * identify an "execution point". Data is recorded and reported for each such
  * execution point.
  *
- * The aggregated data is written to the file "coro_profiler_out.py" in the working
+ * The aggregated data is written to the file "coro_profiler_out_PID.py" in the working
  * directory. Data is written every `CORO_PROFILER_REPORTING_INTERVAL` ticks.
  */
 class coro_profiler_t {
@@ -68,6 +69,7 @@ public:
     // Should you ever want to make this a true singleton, just make the
     // constructor private.
     coro_profiler_t();
+    ~coro_profiler_t();
 
     static coro_profiler_t &get_global_profiler();
 
@@ -113,6 +115,7 @@ private:
     struct data_distribution_t {
         data_distribution_t() : min(0.0), max(0.0), mean(0.0), stddev(0.0) { }
         double min, max;
+
         double mean, stddev;
     };
     struct per_execution_point_collected_report_t {
@@ -160,7 +163,8 @@ private:
     std::map<void *, std::string> frame_description_cache;
     address_to_line_t address_to_line;
 
-    std::ofstream reql_output_file;
+    // This is NULL if opening the file failed.
+    FILE *reql_output_file;
 
     DISABLE_COPYING(coro_profiler_t);
 };

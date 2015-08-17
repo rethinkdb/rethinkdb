@@ -2,15 +2,78 @@
 #include "btree/secondary_operations.hpp"
 
 #include "btree/operations.hpp"
-#include "buffer_cache/alt/alt.hpp"
-#include "buffer_cache/alt/blob.hpp"
-#include "buffer_cache/alt/serialize_onto_blob.hpp"
+#include "buffer_cache/alt.hpp"
+#include "buffer_cache/blob.hpp"
+#include "buffer_cache/serialize_onto_blob.hpp"
 #include "containers/archive/vector_stream.hpp"
+#include "containers/archive/versioned.hpp"
 
-RDB_IMPL_ME_SERIALIZABLE_5(secondary_index_t, superblock, opaque_definition,
-                           post_construction_complete, being_deleted, id);
+RDB_IMPL_SERIALIZABLE_5_SINCE_v1_13(
+        secondary_index_t, superblock, opaque_definition,
+        post_construction_complete, being_deleted, id);
 
-RDB_IMPL_ME_SERIALIZABLE_2(sindex_name_t, name, being_deleted);
+RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(sindex_name_t, name, being_deleted);
+
+struct btree_sindex_block_t {
+    static const int SINDEX_BLOB_MAXREFLEN = 4076;
+
+    block_magic_t magic;
+    char sindex_blob[SINDEX_BLOB_MAXREFLEN];
+} __attribute__((__packed__));
+
+template <cluster_version_t W>
+struct btree_sindex_block_magic_t {
+    static const block_magic_t value;
+};
+
+block_magic_t v1_13_sindex_block_magic = { { 's', 'i', 'n', 'd' } };
+template <>
+const block_magic_t
+btree_sindex_block_magic_t<cluster_version_t::v1_14>::value
+    = { { 's', 'i', 'n', 'e' } };
+template <>
+const block_magic_t
+btree_sindex_block_magic_t<cluster_version_t::v1_15>::value
+    = { { 's', 'i', 'n', 'f' } };
+template <>
+const block_magic_t
+btree_sindex_block_magic_t<cluster_version_t::v1_16>::value
+    = { { 's', 'i', 'n', 'g' } };
+template <>
+const block_magic_t
+btree_sindex_block_magic_t<cluster_version_t::v2_0>::value
+    = { { 's', 'i', 'n', 'h' } };
+template <>
+const block_magic_t
+btree_sindex_block_magic_t<cluster_version_t::v2_1_is_latest_disk>::value
+    = { { 's', 'i', 'n', 'i' } };
+
+
+cluster_version_t sindex_block_version(const btree_sindex_block_t *data) {
+    if (data->magic == v1_13_sindex_block_magic) {
+        fail_due_to_user_error(
+            "Found a secondary index from unsupported RethinkDB version 1.13.  "
+            "You can migrate this secondary index using RethinkDB 2.0.");
+    } else if (data->magic
+               == btree_sindex_block_magic_t<cluster_version_t::v1_14>::value) {
+        return cluster_version_t::v1_14;
+    } else if (data->magic
+               == btree_sindex_block_magic_t<cluster_version_t::v1_15>::value) {
+        return cluster_version_t::v1_15;
+    } else if (data->magic
+               == btree_sindex_block_magic_t<cluster_version_t::v1_16>::value) {
+        return cluster_version_t::v1_16;
+    } else if (data->magic
+               == btree_sindex_block_magic_t<cluster_version_t::v2_0>::value) {
+        return cluster_version_t::v2_0;
+    } else if (data->magic
+               == btree_sindex_block_magic_t<
+                   cluster_version_t::v2_1_is_latest_disk>::value) {
+        return cluster_version_t::v2_1_is_latest_disk;
+    } else {
+        crash("Unexpected magic in btree_sindex_block_t.");
+    }
+}
 
 void get_secondary_indexes_internal(
         buf_lock_t *sindex_block,
@@ -36,15 +99,18 @@ void set_secondary_indexes_internal(
     blob_t sindex_blob(sindex_block->cache()->max_block_size(),
                        data->sindex_blob,
                        btree_sindex_block_t::SINDEX_BLOB_MAXREFLEN);
-    serialize_for_version_onto_blob(sindex_block_version(data),
-                                    buf_parent_t(sindex_block), &sindex_blob, sindexes);
+    // There's just one field in btree_sindex_block_t, sindex_blob.  So we set
+    // the magic to the latest value and serialize with the latest version.
+    data->magic = btree_sindex_block_magic_t<cluster_version_t::LATEST_DISK>::value;
+    serialize_onto_blob<cluster_version_t::LATEST_DISK>(
+            buf_parent_t(sindex_block), &sindex_blob, sindexes);
 }
 
 void initialize_secondary_indexes(buf_lock_t *sindex_block) {
     buf_write_t write(sindex_block);
     btree_sindex_block_t *data
         = static_cast<btree_sindex_block_t *>(write.get_data_write());
-    data->magic = btree_sindex_block_t::expected_magic;
+    data->magic = btree_sindex_block_magic_t<cluster_version_t::LATEST_DISK>::value;
     memset(data->sindex_blob, 0, btree_sindex_block_t::SINDEX_BLOB_MAXREFLEN);
 
     set_secondary_indexes_internal(sindex_block,

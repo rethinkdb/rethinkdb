@@ -4,6 +4,7 @@
 #include <limits.h>
 
 #include "btree/keys.hpp"
+#include "containers/archive/versioned.hpp"
 #include "region/region.hpp"
 #include "stl_utils.hpp"
 
@@ -32,6 +33,14 @@ uint64_t hash_region_hasher(const uint8_t *s, ssize_t len) {
     //           ^...^...^...^...
 }
 
+uint64_t hash_region_hasher(const btree_key_t *key) {
+    return hash_region_hasher(key->contents, key->size);
+}
+
+uint64_t hash_region_hasher(const store_key_t &key) {
+    return hash_region_hasher(key.contents(), key.size());
+}
+
 const hash_region_t<key_range_t> *double_lookup(int i, const std::vector<hash_region_t<key_range_t> > &vec) {
     rassert(0 <= i && i < static_cast<ssize_t>(vec.size() * 2));
     return &vec[i / 2];
@@ -50,7 +59,7 @@ const store_key_t *double_key_lookup(int i, const std::vector<hash_region_t<key_
         if (r->inner.right.unbounded) {
             return NULL;
         } else {
-            return &r->inner.right.key;
+            return &r->inner.right.key();
         }
     }
 }
@@ -167,9 +176,9 @@ MUST_USE region_join_result_t region_join(const std::vector< hash_region_t<key_r
     int granular_width = key_end - key_beg - 1;
 
     if (granular_width <= 0 || granular_height <= 0) {
-        guarantee(vec.empty() || (vec[0].beg == 0 && vec[0].end == 0 && vec[0].inner.is_empty()),
-                  "vec size = %zu, vec[0].beg = %" PRIu64 ", vec[0].end = %" PRIu64 ", vec[0].inner.is_empty() = %d",
-                  vec.size(), vec.empty() ? 0 : vec[0].beg, vec.empty() ? 0 : vec[0].end, vec.empty() ? 0 : vec[0].inner.is_empty());
+        for (const hash_region_t<key_range_t> &hr : vec) {
+            guarantee(region_is_empty(hr));
+        }
         *out = hash_region_t<key_range_t>();
         return REGION_JOIN_OK;
     }
@@ -235,6 +244,38 @@ bool region_contains_key_with_precomputed_hash(const hash_region_t<key_range_t> 
 }
 
 bool region_contains_key(const hash_region_t<key_range_t> &region, const store_key_t &key) {
-    const uint64_t hash_value = hash_region_hasher(key.contents(), key.size());
+    const uint64_t hash_value = hash_region_hasher(key);
     return region_contains_key_with_precomputed_hash(region, key, hash_value);
 }
+
+
+// The wire format of serialize_for_metainfo and deserialize_for_metainfo must not
+// change.
+void serialize_for_metainfo(write_message_t *wm, const hash_region_t<key_range_t> &h) {
+    serialize_universal(wm, h.beg);
+    serialize_universal(wm, h.end);
+    serialize_for_metainfo(wm, h.inner);
+}
+archive_result_t deserialize_for_metainfo(read_stream_t *s,
+                                          hash_region_t<key_range_t> *out) {
+    archive_result_t res = deserialize_universal(s, &out->beg);
+    if (bad(res)) { return res; }
+    res = deserialize_universal(s, &out->end);
+    if (bad(res)) { return res; }
+    if (!((0 == out->end && 0 == out->beg) || out->beg < out->end)) {
+        return archive_result_t::RANGE_ERROR;
+    }
+    res = deserialize_for_metainfo(s, &out->inner);
+    return res;
+}
+
+template <cluster_version_t W>
+void serialize(write_message_t *wm, const hash_region_t<key_range_t> &h) {
+    serialize_for_metainfo(wm, h);
+}
+template <cluster_version_t W>
+archive_result_t deserialize(read_stream_t *s, hash_region_t<key_range_t> *h) {
+    return deserialize_for_metainfo(s, h);
+}
+
+INSTANTIATE_SERIALIZABLE_SINCE_v1_13(hash_region_t<key_range_t>);

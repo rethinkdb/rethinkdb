@@ -48,7 +48,7 @@ public:
     typedef T value_t;
     typedef T value_type;
     boost::optional<T> t;
-    RDB_MAKE_ME_SERIALIZABLE_1(t);
+    RDB_MAKE_ME_SERIALIZABLE_1(deletable_t, t);
 };
 
 template <class T>

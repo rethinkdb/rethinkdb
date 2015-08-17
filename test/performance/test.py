@@ -1,7 +1,9 @@
 #!/usr/bin/python
-# Copyright 2010-2012 RethinkDB, all rights reserved.
+# Copyright 2010-2014 RethinkDB, all rights reserved.
+
+from __future__ import print_function
+
 import sys
-from sys import stdout, exit, path
 import time
 import json
 import os
@@ -11,19 +13,13 @@ import subprocess
 from util import gen_doc, gen_num_docs, compare
 from queries import constant_queries, table_queries, write_queries, delete_queries
 
-path.insert(0, "../../drivers/python")
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
+import driver, utils
 
-from os import environ
-import rethinkdb as r
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'rql_test')))
-from test_util import RethinkDBTestServers
-
-
-import pdb
+r = utils.import_python_driver()
 
 # We define 4 tables (small/normal cache with small/big documents
-servers_data = [
+servers_settings = [
     {
         "cache_size": 1024,
         "name": "inmemory"
@@ -55,51 +51,55 @@ executions_per_query = 1000 # 1000 executions max per query
 results = {} # Save the time per query (average, min, max etc.)
 connection = None
 
-def run_tests(build="../../build/release", data_dir='./'):
-    global connection, servers_data
-    for i in range(0, len(servers_data)):
-        server_data = servers_data[i]
+def run_tests(build=None, data_dir='./'):
+    global connection, servers_settings
+    
+    if not os.path.exists(data_dir):
+        os.makedirs(data_dir)
+    if not os.path.isdir(data_dir):
+        raise ValueError('data_dir is not a directory: %s' % str(data_dir))
+    
+    executable_path = utils.find_rethinkdb_executable() if build is None else os.path.realpath(os.path.join(build, 'rethinkdb'))
+    
+    if not os.path.basename(os.path.dirname(executable_path)).startswith('release'):
+        sys.stderr.write('Warning: Testing a non-release build: %s\n' % executable_path)
+    else:
+        print('Testing: %s' % executable_path)
+    
+    for settings in servers_settings:
 
-        print "Starting server with cache_size "+str(server_data["cache_size"])+" MB...",
+        print("Starting server with cache_size " + str(settings["cache_size"]) + " MB...", end=' ')
         sys.stdout.flush()
-
-        with RethinkDBTestServers(1, server_build_dir=build, cache_size=server_data["cache_size"], data_dir=data_dir) as servers:
-            print " Done."
+        serverFiles = driver.Files(machine_name=settings["name"], db_path=os.path.join(data_dir, settings["name"]))
+        
+        with driver.Process(files=serverFiles, executable_path=executable_path, extra_options=['--cache-size', str(settings["cache_size"])]) as server:
+            
+            print(" Done.\nConnecting...", end=' ')
             sys.stdout.flush()
 
-            print "Connecting...",
+            connection = r.connect(host="localhost", port=server.driver_port)
+            print(" Done.")
             sys.stdout.flush()
 
-            connection = connect(servers)
-            print " Done."
-            sys.stdout.flush()
-
-            init_tables()
+            init_tables(connection)
 
             # Tests
-            execute_read_write_queries(server_data["name"])
+            execute_read_write_queries(settings["name"])
 
             if i == 0:
                 execute_constant_queries()
 
     save_compare_results()
 
+def init_tables(connection):
+    """Create the tables we are going to use"""
+    global tables
 
-def connect(servers):
-    return r.connect(host="localhost", port=servers.driver_port())
-
-
-def init_tables():
-    """
-    Create the tables we are going to use
-    """
-    global connection, tables
-
-    print "Creating databases/tables...",
+    print("Creating databases/tables...", end=' ')
     sys.stdout.flush()
     try:
         r.db_drop("test").run(connection)
-    except r.errors.RqlRuntimeError, e:
+    except r.errors.RqlRuntimeError as e:
         pass
 
     r.db_create("test").run(connection)
@@ -110,8 +110,9 @@ def init_tables():
     for table in tables:
         r.db("test").table(table["name"]).index_create("field0").run(connection)
         r.db("test").table(table["name"]).index_create("field1").run(connection)
+        r.db("test").table(table["name"]).index_wait().run(connection)
 
-    print " Done."
+    print(" Done.")
     sys.stdout.flush()
 
 
@@ -122,7 +123,7 @@ def execute_read_write_queries(suffix):
     """
     global results, connection, time_per_query, executions_per_query, constant_queries
 
-    print "Running inserts...",
+    print("Running inserts...", end=' ')
     sys.stdout.flush()
     for table in tables:
         docs = []
@@ -135,22 +136,22 @@ def execute_read_write_queries(suffix):
 
         durations = []
         start = time.time()
-        while (time.time()-start < time_per_query) & (i < num_writes):
+        while time.time() - start < time_per_query and i < num_writes:
             start_query = time.time()
             result = r.db('test').table(table['name']).insert(docs[i]).run(connection)
-            durations.append(time.time()-start_query)
+            durations.append(time.time() - start_query)
 
             if "generated_keys" in result:
                 table["ids"].append(result["generated_keys"][0])
             i += 1
 
         durations.sort()
-        results["single-inserts-"+table["name"]+"-"+suffix] = {
-            "average": (time.time()-start)/i,
+        results["single-inserts-" + table["name"] + "-" + suffix] = {
+            "average": (time.time() - start) / i,
             "min": durations[0],
-            "max": durations[len(durations)-1],
-            "first_centile": durations[int(math.floor(len(durations)/100.*1))],
-            "last_centile": durations[int(math.floor(len(durations)/100.*99))]
+            "max": durations[len(durations) - 1],
+            "first_centile": durations[int(math.floor(len(durations) / 100. * 1))],
+            "last_centile": durations[int(math.floor(len(durations) / 100. * 99))]
         }
 
         # Save it to know how many batch inserts we did
@@ -162,10 +163,10 @@ def execute_read_write_queries(suffix):
         start = time.time()
         count_batch_insert = 0;
         if i < num_writes:
-            while i+size_batch < num_writes:
+            while i + size_batch < num_writes:
                 start_query = time.time()
-                resutl = r.db('test').table(table['name']).insert(docs[i:i+size_batch]).run(connection)
-                durations.append(time.time()-start_query)
+                result = r.db('test').table(table['name']).insert(docs[i:i + size_batch]).run(connection)
+                durations.append(time.time() - start_query)
                 end = time.time()
                 count_batch_insert += 1
 
@@ -176,24 +177,23 @@ def execute_read_write_queries(suffix):
                 result = r.db('test').table(table['name']).insert(docs[i:len(docs)]).run(connection)
                 table["ids"] += result["generated_keys"]
         
-        if num_writes-single_inserts != 0:
-            results["batch-inserts-"+table["name"]+"-"+suffix] = {
-                "average": (end-start)/(count_batch_insert*size_batch),
+        if num_writes - single_inserts != 0:
+            results["batch-inserts-" + table["name"] + "-" + suffix] = {
+                "average": (end - start) / (count_batch_insert * size_batch),
                 "min": durations[0],
-                "max": durations[len(durations)-1],
-                "first_centile": durations[int(math.floor(len(durations)/100.*1))],
-                "last_centile": durations[int(math.floor(len(durations)/100.*99))]
+                "max": durations[len(durations) - 1],
+                "first_centile": durations[int(math.floor(len(durations) / 100. * 1))],
+                "last_centile": durations[int(math.floor(len(durations) / 100. * 99))]
             }
-
-    
-        table["ids"].sort()
         
-    print " Done."
+        table["ids"].sort()
+    
+    print(" Done.")
     sys.stdout.flush()
 
 
     # Execute the insert queries
-    print "Running update/replace...",
+    print("Running update/replace...", end=' ')
     sys.stdout.flush()
     for table in tables:
         for p in xrange(len(write_queries)):
@@ -206,44 +206,44 @@ def execute_read_write_queries(suffix):
 
             durations = []
             start = time.time()
-            while (time.time()-start < time_per_query) & (i < len(table["ids"])):
+            while time.time() - start < time_per_query and i < len(table["ids"]):
                 start_query = time.time()
                 eval(write_queries[p]["query"]).run(connection)
-                durations.append(time.time()-start_query)
+                durations.append(time.time() - start_query)
                 i += 1
 
             durations.sort()
-            results[write_queries[p]["tag"]+"-"+table["name"]+"-"+suffix] = {
-                "average": (time.time()-start)/i,
+            results[write_queries[p]["tag"] + "-" + table["name"] + "-" + suffix] = {
+                "average": (time.time() - start) / i,
                 "min": durations[0],
-                "max": durations[len(durations)-1],
-                "first_centile": durations[int(math.floor(len(durations)/100.*1))],
-                "last_centile": durations[int(math.floor(len(durations)/100.*99))]
+                "max": durations[len(durations) - 1],
+                "first_centile": durations[int(math.floor(len(durations) / 100. * 1))],
+                "last_centile": durations[int(math.floor(len(durations) / 100. * 99))]
             }
 
             i -= 1 # We need i in write_queries[p]["clean"] (to revert only the document we updated)
             # Clean the update
             eval(write_queries[p]["clean"]).run(connection)
 
-    print " Done."
+    print(" Done.")
     sys.stdout.flush()
 
 
     # Execute the read queries on every tables
-    print "Running reads...",
+    print("Running reads...", end=' ')
     sys.stdout.flush()
     for table in tables:
         for p in xrange(len(table_queries)):
             count = 0
             i = 0
             if "imax" in table_queries[p]:
-                max_i = table_queries[p]["imax"]+1
+                max_i = table_queries[p]["imax"] + 1
             else:
                 max_i = 1
 
             durations = []
             start = time.time()
-            while (time.time()-start < time_per_query) & (count < executions_per_query):
+            while time.time() - start < time_per_query and count < executions_per_query:
                 start_query = time.time()
                 try:
                     cursor = eval(table_queries[p]["query"]).run(connection)
@@ -251,34 +251,34 @@ def execute_read_write_queries(suffix):
                         list(cursor)
                         cursor.close()
 
-                    if i >= len(table["ids"])-max_i:
+                    if i >= len(table["ids"]) - max_i:
                         i = 0
                     else:
-                         i+= 1
+                        i += 1
                 except:
-                    print "Query failed"
-                    print constant_queries[p]
+                    print("Query failed")
+                    print(constant_queries[p])
                     sys.stdout.flush()
                     break
-                durations.append(time.time()-start_query)
-                count+=1
+                durations.append(time.time() - start_query)
+                count += 1
 
             durations.sort()
-            results[table_queries[p]["tag"]+"-"+table["name"]+"-"+suffix] = {
-                "average": (time.time()-start)/count,
+            results[table_queries[p]["tag"] + "-" + table["name"] + "-" + suffix] = {
+                "average": (time.time() - start) / count,
                 "min": durations[0],
-                "max": durations[len(durations)-1],
-                "first_centile": durations[int(math.floor(len(durations)/100.*1))],
-                "last_centile": durations[int(math.floor(len(durations)/100.*99))]
+                "max": durations[len(durations) - 1],
+                "first_centile": durations[int(math.floor(len(durations) / 100. * 1))],
+                "last_centile": durations[int(math.floor(len(durations) / 100. * 99))]
             }
 
 
-    print " Done."
+    print(" Done.")
     sys.stdout.flush()
 
 
     # Execute the delete queries
-    print "Running delete...",
+    print("Running delete...", end =' ')
     sys.stdout.flush()
     for table in tables:
         for p in xrange(len(delete_queries)):
@@ -288,37 +288,37 @@ def execute_read_write_queries(suffix):
 
             durations = []
             start = time.time()
-            while (time.time()-start < time_per_query) & (i < len(table["ids"])):
+            while time.time() - start < time_per_query and i < len(table["ids"]):
                 start_query = time.time()
                 eval(delete_queries[p]["query"]).run(connection)
-                durations.append(time.time()-start_query)
+                durations.append(time.time() - start_query)
 
                 i += 1
 
             durations.sort()
-            results[delete_queries[p]["tag"]+"-"+table["name"]+"-"+suffix] = {
-                "average": (time.time()-start)/i,
+            results[delete_queries[p]["tag"] + "-" + table["name"] + "-" + suffix] = {
+                "average": (time.time() - start) / i,
                 "min": durations[0],
-                "max": durations[len(durations)-1],
-                "first_centile": durations[int(math.floor(len(durations)/100.*1))],
-                "last_centile": durations[int(math.floor(len(durations)/100.*99))]
+                "max": durations[len(durations) - 1],
+                "first_centile": durations[int(math.floor(len(durations) / 100. * 1))],
+                "last_centile": durations[int(math.floor(len(durations) / 100. * 99))]
             }
 
 
-    print " Done."
+    print(" Done.")
     sys.stdout.flush()
 
 def execute_constant_queries():
     global results
 
     # Execute the queries that do not require a table
-    print "Running constant queries...",
+    print("Running constant queries...", end=' ')
     sys.stdout.flush()
     for p in xrange(len(constant_queries)):
         count = 0
         durations = []
         start = time.time()
-        while (time.time()-start < time_per_query) & (count < executions_per_query):
+        while time.time() - start < time_per_query and count < executions_per_query:
             start_query = time.time()
             if type(constant_queries[p]) == type(""):
                 try:
@@ -327,63 +327,50 @@ def execute_constant_queries():
                         list(cursor)
                         cursor.close()
                 except:
-                    print "Query failed"
-                    print constant_queries[p]
+                    print("Query failed")
+                    print(constant_queries[p])
                     sys.stdout.flush()
             else:
                 cursor = eval(constant_queries[p]["query"]).run(connection)
                 if isinstance(cursor, r.net.Cursor):
                     list(cursor)
                     cursor.close()
-            durations.append(time.time()-start_query)
+            durations.append(time.time() - start_query)
             
-            count+=1
-
+            count += 1
+        
         durations.sort()
         if type(constant_queries[p]) == type(""):
             results[constant_queries[p]] = {
-                "average": (time.time()-start)/count,
+                "average": (time.time() - start) / count,
                 "min": durations[0],
-                "max": durations[len(durations)-1],
-                "first_centile": durations[int(math.floor(len(durations)/100.*1))],
-                "last_centile": durations[int(math.floor(len(durations)/100.*99))]
+                "max": durations[len(durations) - 1],
+                "first_centile": durations[int(math.floor(len(durations) / 100. * 1))],
+                "last_centile": durations[int(math.floor(len(durations) / 100. * 99))]
             }
         else:
             results[constant_queries[p]["tag"]] = {
-                "average": (time.time()-start)/count,
+                "average": (time.time() - start) / count,
                 "min": durations[0],
-                "max": durations[len(durations)-1],
-                "first_centile": durations[int(math.floor(len(durations)/100.*1))],
-                "last_centile": durations[int(math.floor(len(durations)/100.*99))]
+                "max": durations[len(durations) - 1],
+                "first_centile": durations[int(math.floor(len(durations) / 100. * 1))],
+                "last_centile": durations[int(math.floor(len(durations) / 100. * 99))]
             }
 
-    print " Done."
+    print(" Done.")
     sys.stdout.flush()
 
-
-
-
 def stop_cluster(cluster):
-    """
-    Stop the cluster
-    """
+    """Stop the cluster"""
     cluster.check_and_stop()
 
 def check_driver():
-    """
-    Make sure we are using the C++ backend.
-    Exit if we don't
-    """
-    if r.protobuf_implementation == 'py':
-        print "Please install the C++ backend for the tests."
-        sys.stdout.flush()
-        exit(1)
-
+    '''If this driver is protobuf based, make sure we are using the C++ backend.'''
+    if hasattr(r, 'protobuf_implementation') and r.protobuf_implementation == 'py':
+        sys.exit("Please install the C++ backend for the tests.")
 
 def save_compare_results():
-    """
-    Save the current results, and if previous results are available, generate an HTML page with the differences
-    """
+    """Save the current results, and if previous results are available, generate an HTML page with the differences"""
     global results, str_date
 
     commit = out = subprocess.Popen(['git', 'log', '-n 1', '--pretty=format:"%H"'], stdout=subprocess.PIPE).communicate()[0]
@@ -394,7 +381,7 @@ def save_compare_results():
         os.makedirs("results")
 
     str_date = time.strftime("%y.%m.%d-%H:%M:%S")
-    f = open("results/result_"+str_date+".txt", "w")
+    f = open("results/result_" + str_date + ".txt", "w")
 
     str_res = json.dumps(results, indent=2)
     f.write(str_res)
@@ -405,13 +392,13 @@ def save_compare_results():
     for root, directories, files in os.walk("results/"):
         for filename in files:
             # Join the two strings in order to form the full filepath.
-            filepath = os.path.join(root, filename) 
+            filepath = os.path.join(root, filename)
             file_paths.append(filepath)  # Add it to the list.
 
     # Sort files, we just need the last one (the most recent one)
     file_paths.sort()
     if len(file_paths) > 1:
-        last_file = file_paths[-2] #The last file is the one we just saved
+        last_file = file_paths[-2] # The last file is the one we just saved
 
         f = open(last_file, "r")
         previous_results = json.loads(f.read())
@@ -423,14 +410,12 @@ def save_compare_results():
 
 
 def main(data_dir):
-    """
-    Main method
-    """
+    """Main method"""
     check_driver()
     run_tests(data_dir=data_dir)
 
 if __name__ == "__main__":
-    data_dir = ''
+    data_dir = './'
     if len(sys.argv) > 1:
         data_dir = sys.argv[1]
     main(data_dir)

@@ -1,65 +1,82 @@
 #!/usr/bin/env python
-# Copyright 2010-2012 RethinkDB, all rights reserved.
-import sys, os, time
+# Copyright 2010-2014 RethinkDB, all rights reserved.
+
+from __future__ import print_function
+
+import os, sys, time
+
+startTime = time.time()
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import http_admin, driver, workload_runner, scenario_common, rdb_workload_common
-from vcoptparse import *
+import driver, rdb_workload_common, scenario_common, utils, vcoptparse, workload_runner
 
-op = OptParser()
+op = vcoptparse.OptParser()
 scenario_common.prepare_option_parser_mode_flags(op)
-op["workload1"] = PositionalArg()
-op["workload2"] = PositionalArg()
-op["timeout"] = IntFlag("--timeout", 600)
+op["workload1"] = vcoptparse.PositionalArg()
+op["workload2"] = vcoptparse.PositionalArg()
+op["timeout"] = vcoptparse.IntFlag("--timeout", 600)
 opts = op.parse(sys.argv)
+_, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
 
-with driver.Metacluster() as metacluster:
-    cluster = driver.Cluster(metacluster)
-    executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
+r = utils.import_python_driver()
+dbName, tableName = utils.get_test_db_table()
 
-    print "Starting cluster..."
-    files1 = driver.Files(metacluster, db_path = "db-first", log_path = "create-output-first",
-                          executable_path = executable_path, command_prefix = command_prefix)
-    process1 = driver.Process(cluster, files1, log_path = "serve-output-first",
-        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
-    process1.wait_until_started_up()
+print("Starting cluster with one server (%.2fs)" % (time.time() - startTime))
+with driver.Cluster(initial_servers=['first'], output_folder='.', command_prefix=command_prefix, extra_options=serve_options, wait_until_ready=True) as cluster:
+    
+    server1 = cluster[0]
+    workload_ports1 = workload_runner.RDBPorts(host=server1.host, http_port=server1.http_port, rdb_port=server1.driver_port, db_name=dbName, table_name=tableName)
+    
+    print("Establishing ReQL connection (%.2fs)" % (time.time() - startTime))
+    
+    conn1 = r.connect(server1.host, server1.driver_port)
+    
+    print("Creating db/table %s/%s (%.2fs)" % (dbName, tableName, time.time() - startTime))
+    
+    if dbName not in r.db_list().run(conn1):
+        r.db_create(dbName).run(conn1)
+    
+    if tableName in r.db(dbName).table_list().run(conn1):
+        r.db(dbName).table_drop(tableName).run(conn1)
+    r.db(dbName).table_create(tableName).run(conn1)
 
-    print "Creating table..."
-    http1 = http_admin.ClusterAccess([("localhost", process1.http_port)])
-    dc = http1.add_datacenter()
-    http1.move_server_to_datacenter(files1.machine_name, dc)
-    ns = scenario_common.prepare_table_for_workload(http1, primary = dc)
-    http1.wait_until_blueprint_satisfied(ns)
-    rdb_workload_common.wait_for_table(host='localhost', port=process1.driver_port, table=ns.name)
+    print("Starting first workload (%.2fs)" % (time.time() - startTime))
+    
+    workload_runner.run(opts["workload1"], workload_ports1, opts["timeout"])
+    
+    print("Bringing up new server (%.2fs)" % (time.time() - startTime))
+    
+    server2 = driver.Process(cluster=cluster, files='second', command_prefix=command_prefix, extra_options=serve_options, wait_until_ready=True)
+    
+    issues = list(r.db('rethinkdb').table('current_issues').run(conn1))
+    assert [] == issues, 'The issues list was not empty: %s' % repr(issues)
+    
+    print("Explicitly adding server to the table (%.2fs)" % (time.time() - startTime))
+    assert r.db(dbName).table(tableName).config() \
+        .update({'shards':[
+            {'primary_replica':server2.name, 'replicas':[server2.name, server1.name]}
+        ]})['errors'].run(conn1) == 0
+    
+    print("Waiting for backfill (%.2fs)" % (time.time() - startTime))
+    
+    r.db(dbName).wait().run(conn1)
+    
+    print("Removing the first server from the table (%.2fs)" % (time.time() - startTime))
+    assert r.db(dbName).table(tableName).config() \
+        .update({'shards':[
+            {'primary_replica':server2.name, 'replicas':[server2.name]}
+        ]})['errors'].run(conn1) == 0
+    r.db(dbName).wait().run(conn1)
+    
+    print("Shutting down first server (%.2fs)" % (time.time() - startTime))
+    
+    server1.check_and_stop()
+    time.sleep(.1)
+    
+    print("Starting second workload (%.2fs)" % (time.time() - startTime))
 
-    workload_ports_1 = scenario_common.get_workload_ports(ns, [process1])
-    workload_runner.run(opts["workload1"], workload_ports_1, opts["timeout"])
+    workload_ports2 = workload_runner.RDBPorts(host=server2.host, http_port=server2.http_port, rdb_port=server2.driver_port, db_name=dbName, table_name=tableName)
+    workload_runner.run(opts["workload2"], workload_ports2, opts["timeout"])
 
-    print "Bringing up new server..."
-    files2 = driver.Files(metacluster, db_path = "db-second", log_path = "create-output-second",
-                          executable_path = executable_path, command_prefix = command_prefix)
-    process2 = driver.Process(cluster, files2, log_path = "serve-output-second",
-        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
-    process2.wait_until_started_up()
-    http1.update_cluster_data(3)
-    http1.move_server_to_datacenter(files2.machine_name, dc)
-    http1.set_table_affinities(ns, {dc: 1})
-    http1.check_no_issues()
-
-    print "Waiting for backfill..."
-    backfill_start_time = time.time()
-    http1.wait_until_blueprint_satisfied(ns, timeout = 3600)
-    print "Backfill completed after %d seconds." % (time.time() - backfill_start_time)
-
-    print "Shutting down old server..."
-    process1.check_and_stop()
-    http2 = http_admin.ClusterAccess([("localhost", process2.http_port)])
-    http2.declare_machine_dead(files1.machine_name)
-    http2.set_table_affinities(ns.name, {dc.name: 0})
-    http2.check_no_issues()
-    http2.wait_until_blueprint_satisfied(ns.name)
-    rdb_workload_common.wait_for_table(host='localhost', port=process2.driver_port, table=ns.name)
-
-    workload_ports_2 = scenario_common.get_workload_ports(http2.find_table(ns.name), [process2])
-    workload_runner.run(opts["workload2"], workload_ports_2, opts["timeout"])
-
-    cluster.check_and_stop()
+    print("Cleaning up (%.2fs)" % (time.time() - startTime))
+print("Done. (%.2fs)" % (time.time() - startTime))

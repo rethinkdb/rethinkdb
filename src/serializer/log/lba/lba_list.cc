@@ -1,9 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "serializer/log/lba/lba_list.hpp"
 
-#include "errors.hpp"
-#include <boost/ptr_container/ptr_list.hpp>
-
 #include "utils.hpp"
 #include "serializer/log/lba/disk_format.hpp"
 #include "arch/arch.hpp"
@@ -67,14 +64,14 @@ public:
     {
         rassert(owner->state == lba_list_t::state_unstarted);
         owner->state = lba_list_t::state_starting_up;
-        
+
         // Copy the current set of inline LBA entries from the metablock
         guarantee(last_metablock->inline_lba_entries_count <= LBA_NUM_INLINE_ENTRIES);
         owner->inline_lba_entries_count = last_metablock->inline_lba_entries_count;
         memcpy(owner->inline_lba_entries,
                last_metablock->inline_lba_entries,
                last_metablock->inline_lba_entries_count * sizeof(lba_entry_t));
-        
+
         cbs_out = LBA_SHARD_FACTOR;
         for (int i = 0; i < LBA_SHARD_FACTOR; i++) {
             owner->disk_structures[i] = new lba_disk_structure_t(
@@ -110,7 +107,7 @@ public:
                         e->offset,
                         e->ser_block_size);
             }
-            
+
             owner->state = lba_list_t::state_ready;
             if (callback) callback->on_lba_ready();
             delete this;
@@ -242,7 +239,7 @@ void lba_list_t::move_inline_entries_to_extents(file_account_t *io_account, exte
 
 void lba_list_t::add_inline_entry(block_id_t block, repli_timestamp_t recency,
                                 flagged_off64_t offset, uint32_t ser_block_size) {
-    
+
     rassert(!check_inline_lba_full());
     inline_lba_entries[inline_lba_entries_count++] =
             lba_entry_t::make(block, recency, offset, ser_block_size);
@@ -306,9 +303,9 @@ void lba_list_t::gc(int lba_shard, auto_drainer_t::lock_t) {
     ++extent_manager->stats->pm_serializer_lba_gcs;
 
     // Start a transaction
-    boost::ptr_list<extent_transaction_t> txns;
-    txns.push_back(new extent_transaction_t());
-    extent_manager->begin_transaction(&txns.back());
+    std::vector<scoped_ptr_t<extent_transaction_t> > txns;
+    txns.push_back(make_scoped<extent_transaction_t>());
+    extent_manager->begin_transaction(txns.back().get());
 
     // Fetch a list of current LBA extents, minus the active one
     const std::set<lba_disk_extent_t *> gced_extents =
@@ -324,8 +321,10 @@ void lba_list_t::gc(int lba_shard, auto_drainer_t::lock_t) {
             uint32_t ser_block_size = get_ser_block_size(id);
             disk_structures[lba_shard]->add_entry(id,
                                                   get_block_recency(id),
-                                                  off, ser_block_size,
-                                                  gc_io_account.get(), &txns.back());
+                                                  off,
+                                                  ser_block_size,
+                                                  gc_io_account.get(),
+                                                  txns.back().get());
         }
 
         ++num_written_in_batch;
@@ -333,7 +332,7 @@ void lba_list_t::gc(int lba_shard, auto_drainer_t::lock_t) {
             num_written_in_batch = 0;
             // End the transaction. We must not commit it though until after
             // we have written a new metablock (see below).
-            extent_manager->end_transaction(&txns.back());
+            extent_manager->end_transaction(txns.back().get());
 
             // Sync the LBA. This is simply to make the final sync at the end
             // (as well as other LBA syncs done from inside the serializer) finish
@@ -349,8 +348,8 @@ void lba_list_t::gc(int lba_shard, auto_drainer_t::lock_t) {
             on_lba_sync.wait();
 
             // Start a new transaction for the next batch of entries
-            txns.push_back(new extent_transaction_t());
-            extent_manager->begin_transaction(&txns.back());
+            txns.push_back(make_scoped<extent_transaction_t>());
+            extent_manager->begin_transaction(txns.back().get());
 
             // Check if we are shutting down. If yes, we simply abort garbage
             // collection.
@@ -364,7 +363,7 @@ void lba_list_t::gc(int lba_shard, auto_drainer_t::lock_t) {
     // Discard the old LBA extents
     if (!aborted) {
         disk_structures[lba_shard]->destroy_extents(gced_extents, gc_io_account.get(),
-                &txns.back());
+                                                    txns.back().get());
     }
 
     // Sync the changed LBA for a final time
@@ -374,7 +373,7 @@ void lba_list_t::gc(int lba_shard, auto_drainer_t::lock_t) {
     disk_structures[lba_shard]->sync(gc_io_account.get(), &on_lba_sync);
 
     // End the last extent manager transaction
-    extent_manager->end_transaction(&txns.back());
+    extent_manager->end_transaction(txns.back().get());
 
     // Write a new metablock once the LBA has synced. We have to do this before
     // we can commit the extent_manager transactions.
@@ -383,7 +382,7 @@ void lba_list_t::gc(int lba_shard, auto_drainer_t::lock_t) {
     // Commit all extent transactions. From that point on the data of extents
     // we have deleted can be overwritten.
     for (auto txn = txns.begin(); txn != txns.end(); ++txn) {
-        extent_manager->commit_transaction(&*txn);
+        extent_manager->commit_transaction(txn->get());
     }
 
     gc_active[lba_shard] = false;

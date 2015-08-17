@@ -1,10 +1,12 @@
 err = require('./errors')
 
+plural = (number) -> if number == 1 then "" else "s"
+
 # Function wrapper that enforces that the function is
 # called with the correct number of arguments
 module.exports.ar = (fun) -> (args...) ->
     if args.length isnt fun.length
-        throw new err.RqlDriverError "Expected #{fun.length} argument(s) but found #{args.length}."
+        throw new err.RqlDriverError "Expected #{fun.length} argument#{plural(fun.length)} but found #{args.length}."
     fun.apply(@, args)
 
 # Like ar for variable argument functions. Takes minimum
@@ -12,10 +14,10 @@ module.exports.ar = (fun) -> (args...) ->
 module.exports.varar = (min, max, fun) -> (args...) ->
     if (min? and args.length < min) or (max? and args.length > max)
         if min? and not max?
-            throw new err.RqlDriverError "Expected #{min} or more argument(s) but found #{args.length}."
+            throw new err.RqlDriverError "Expected #{min} or more arguments but found #{args.length}."
         if max? and not min?
-            throw new err.RqlDriverError "Expected #{max} or fewer argument(s) but found #{args.length}."
-        throw new err.RqlDriverError "Expected between #{min} and #{max} argument(s) but found #{args.length}."
+            throw new err.RqlDriverError "Expected #{max} or fewer arguments but found #{args.length}."
+        throw new err.RqlDriverError "Expected between #{min} and #{max} arguments but found #{args.length}."
     fun.apply(@, args)
 
 # Like ar but for functions that take an optional options dict as the last argument
@@ -29,7 +31,10 @@ module.exports.aropt = (fun) -> (args...) ->
     numPosArgs = args.length - (if perhapsOptDict? then 1 else 0)
 
     if expectedPosArgs isnt numPosArgs
-         throw new err.RqlDriverError "Expected #{expectedPosArgs} argument(s) but found #{numPosArgs}."
+        if expectedPosArgs isnt 1
+            throw new err.RqlDriverError "Expected #{expectedPosArgs} arguments (not including options) but found #{numPosArgs}."
+        else
+            throw new err.RqlDriverError "Expected #{expectedPosArgs} argument (not including options) but found #{numPosArgs}."
     fun.apply(@, args)
 
 module.exports.toArrayBuffer = (node_buffer) ->
@@ -38,6 +43,16 @@ module.exports.toArrayBuffer = (node_buffer) ->
     for value,i in node_buffer
         arr[i] = value
     return arr.buffer
+
+module.exports.fromCamelCase = (token) ->
+    token.replace(/[A-Z]/g, (match) =>
+        "_"+match.toLowerCase()
+    )
+
+module.exports.toCamelCase = (token) ->
+    token.replace(/_[a-z]/g, (match) =>
+        match[1].toUpperCase()
+    )
 
 convertPseudotype = (obj, opts) ->
     # An R_OBJECT may be a regular object or a "pseudo-type" so we need a
@@ -71,15 +86,25 @@ convertPseudotype = (obj, opts) ->
                     obj
                 else
                     throw new err.RqlDriverError "Unknown groupFormat run option #{opts.groupFormat}."
+        when 'BINARY'
+            switch opts.binaryFormat
+                when 'native', undefined
+                    if not obj['data']?
+                        throw new err.RqlDriverError "pseudo-type BINARY object missing expected field 'data'."
+                    (new Buffer(obj['data'], 'base64'))
+                when 'raw'
+                    obj
+                else
+                    throw new err.RqlDriverError "Unknown binaryFormat run option #{opts.binaryFormat}."
         else
             # Regular object or unknown pseudo type
             obj
 
 recursivelyConvertPseudotype = (obj, opts) ->
-    if obj instanceof Array
+    if Array.isArray obj
         for value, i in obj
             obj[i] = recursivelyConvertPseudotype(value, opts)
-    else if obj instanceof Object
+    else if obj and typeof obj is 'object'
         for key, value of obj
             obj[key] = recursivelyConvertPseudotype(value, opts)
         obj = convertPseudotype(obj, opts)

@@ -37,8 +37,7 @@ struct coro_profiler_mixin_t {
 coroutine, call wait() to return control to the scheduler; the coroutine will be resumed when
 another fiber calls notify_*() on it.
 
-coro_t objects can switch threads with move_to_thread(), but it is recommended that you use
-on_thread_t for more safety. */
+coro_t objects can switch threads by constructing an `on_thread_t`. */
 
 class coro_t : private coro_profiler_mixin_t,
                private linux_thread_message_t,
@@ -46,16 +45,28 @@ class coro_t : private coro_profiler_mixin_t,
                public home_thread_mixin_t {
 public:
     friend bool is_coroutine_stack_overflow(void *);
+    friend bool has_n_bytes_free_stack_space(size_t);
 
     template<class Callable>
-    static void spawn_now_dangerously(const Callable &action) {
-        coro_t *coro = get_and_init_coro(action);
+    static void spawn_now_dangerously(Callable &&action) {
+        coro_t *coro = get_and_init_coro(std::forward<Callable>(action));
         coro->notify_now_deprecated();
     }
 
     template<class Callable>
-    static coro_t *spawn_sometime(const Callable &action) {
-        coro_t *coro = get_and_init_coro(action);
+    static coro_t *spawn_sometime(Callable &&action) {
+        coro_t *coro = get_and_init_coro(std::forward<Callable>(action));
+        coro->notify_sometime();
+        return coro;
+    }
+
+    /* This is an optimization over spawn_sometime() followed by an on_thread_t.
+    It avoids two thread messages, since it doesn't have to run on the original
+    thread first, and also doesn't switch back at the end of the coro's lifetime. */
+    template<class Callable>
+    static coro_t *spawn_on_thread(Callable &&action, threadnum_t thread) {
+        coro_t *coro = get_and_init_coro(std::forward<Callable>(action));
+        coro->current_thread_ = thread;
         coro->notify_sometime();
         return coro;
     }
@@ -64,15 +75,10 @@ public:
     `spawn_later_ordered()` (or `spawn_ordered()`). `spawn_later_ordered()` does not
     honor scheduler priorities. */
     template<class Callable>
-    static coro_t *spawn_later_ordered(const Callable &action) {
-        coro_t *coro = get_and_init_coro(action);
+    static coro_t *spawn_later_ordered(Callable &&action) {
+        coro_t *coro = get_and_init_coro(std::forward<Callable>(action));
         coro->notify_later_ordered();
         return coro;
-    }
-
-    template<class Callable>
-    static void spawn_ordered(const Callable &action) {
-        spawn_later_ordered(action);
     }
 
     // Use coro_t::spawn_*(std::bind(...)) for spawning with parameters.
@@ -85,7 +91,7 @@ public:
     `yield()` by different coroutines may return in a different order than they
     began in. */
     static void yield();
-    /* Like `yield()`, but guarantees that the ordering of coroutines calling 
+    /* Like `yield()`, but guarantees that the ordering of coroutines calling
     `yield_ordered()` is maintained. */
     static void yield_ordered();
 
@@ -165,13 +171,13 @@ private:
 
     // If this function footprint ever changes, you may need to update the parse_coroutine_info function
     template<class Callable>
-    static coro_t * get_and_init_coro(const Callable &action) {
+    static coro_t *get_and_init_coro(Callable &&action) {
         coro_t *coro = get_coro();
 #ifndef NDEBUG
         coro->parse_coroutine_type(__PRETTY_FUNCTION__);
 #endif
         coro->grab_spawn_backtrace();
-        coro->action_wrapper.reset(action);
+        coro->action_wrapper.reset(std::forward<Callable>(action));
 
         // If we were called from a coroutine, the new coroutine inherits our
         // caller's priority.
@@ -185,7 +191,7 @@ private:
         return coro;
     }
 
-    static coro_t * get_coro();
+    static coro_t *get_coro();
 
     static void return_coro_to_free_list(coro_t *coro);
     static void maybe_evict_from_free_list();
@@ -224,6 +230,8 @@ private:
 
 /* Returns true if the given address is in the protection page of the current coroutine. */
 bool is_coroutine_stack_overflow(void *addr);
+/* Returns true if at least n bytes are available on the stack of the current coroutine. */
+bool has_n_bytes_free_stack_space(size_t n);
 bool coroutines_have_been_initialized();
 
 class home_coro_mixin_t {

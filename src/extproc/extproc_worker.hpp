@@ -28,12 +28,14 @@ public:
     read_stream_t *get_read_stream();
     write_stream_t *get_write_stream();
 
+    void kill_process();
+    bool is_process_alive();
+
     static const uint64_t parent_to_worker_magic;
     static const uint64_t worker_to_parent_magic;
 
 private:
     void spawn();
-    void kill_process();
 
     // This will run inside the blocker pool so the worker process doesn't inherit any
     //  of our coroutine stuff

@@ -7,12 +7,17 @@ import os, subprocess, sys, tempfile, time
 
 thisDir = os.path.abspath(os.path.dirname(__file__))
 sys.path.append(os.path.join(thisDir, os.path.pardir, 'common'))
-import driver
+import driver, utils
+
+debugBuild = str(os.path.basename(utils.latest_build_dir())).startswith('debug')
 
 # -- ensure the test is compliled
 
-outputFile = tempfile.NamedTemporaryFile()
-compileProcess = subprocess.Popen(['make', 'protobuf-test-output-location'], stdout=outputFile, stderr=subprocess.STDOUT, cwd=thisDir)
+outputFile = tempfile.NamedTemporaryFile('w+')
+command = ['make', 'protobuf-test-output-location']
+if debugBuild is True:
+    command += ['DEBUG=1']
+compileProcess = subprocess.Popen(command, stdout=outputFile, stderr=subprocess.STDOUT, cwd=thisDir)
 reportDeadline = time.time() + 2
 while compileProcess.poll() == None and reportDeadline > time.time():
 	time.sleep(.1)

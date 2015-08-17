@@ -5,6 +5,8 @@
 #include <utility>
 
 #include "containers/archive/archive.hpp"
+#include "containers/archive/versioned.hpp"
+#include "rdb_protocol/datum.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "time.hpp"
 
@@ -34,17 +36,19 @@ enum class batch_type_t {
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
     batch_type_t, int8_t, batch_type_t::NORMAL, batch_type_t::SINDEX_CONSTANT);
 
+enum ignore_latency_t { NO, YES };
+
 class batcher_t {
 public:
-    template<class T>
-    bool note_el(const T &t) {
+    bool note_el(const datum_t &t) {
         seen_one_el = true;
         els_left -= 1;
         min_els_left -= 1;
-        size_left -= serialized_size(t);
+        size_left -= serialized_size<cluster_version_t::CLUSTER>(t);
         return should_send_batch();
     }
-    bool should_send_batch() const;
+    bool should_send_batch(
+        ignore_latency_t ignore_latency = ignore_latency_t::NO) const;
     batcher_t(batcher_t &&other) :
         batch_type(std::move(other.batch_type)),
         seen_one_el(std::move(other.seen_one_el)),
@@ -71,32 +75,35 @@ private:
 
 class batchspec_t {
 public:
-    static batchspec_t user(batch_type_t batch_type,
-                            const counted_t<const datum_t> &conf);
     static batchspec_t user(batch_type_t batch_type, env_t *env);
     static batchspec_t all(); // Gimme everything.
     static batchspec_t empty() { return batchspec_t(); }
+    static batchspec_t default_for(batch_type_t batch_type);
     batch_type_t get_batch_type() const { return batch_type; }
     batchspec_t with_new_batch_type(batch_type_t new_batch_type) const;
+    batchspec_t with_max_dur(int64_t new_max_dur) const;
     batchspec_t with_at_most(uint64_t max_els) const;
     batchspec_t scale_down(int64_t divisor) const;
     batcher_t to_batcher() const;
-    RDB_MAKE_ME_SERIALIZABLE_6(batch_type, min_els, max_els, max_size, \
-                               first_scaledown_factor, end_time);
+
 private:
     // I made this private and accessible through a static function because it
     // was being accidentally default-initialized.
     batchspec_t() { } // USE ONLY FOR SERIALIZATION
     batchspec_t(batch_type_t batch_type, int64_t min_els, int64_t max_els,
-                int64_t max_size, int64_t first_scaledown, microtime_t end);
+                int64_t max_size, int64_t first_scaledown,
+                int64_t max_dur, microtime_t start_time);
+
+    template<cluster_version_t W>
+    friend void serialize(write_message_t *wm, const batchspec_t &batchspec);
+    template<cluster_version_t W>
+    friend archive_result_t deserialize(read_stream_t *s, batchspec_t *batchspec);
 
     batch_type_t batch_type;
-    int64_t min_els, max_els, max_size, first_scaledown_factor;
-    microtime_t end_time;
+    int64_t min_els, max_els, max_size, first_scaledown_factor, max_dur;
+    microtime_t start_time;
 };
-
-// TODO: make user-tunable.
-size_t array_size_limit();
+RDB_DECLARE_SERIALIZABLE(batchspec_t);
 
 } // namespace ql
 
