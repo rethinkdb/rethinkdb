@@ -1,6 +1,6 @@
 workloads = {
     'append-stress': "$RETHINKDB/test/memcached_workloads/append_stress.py --address $HOST:$PORT --table $DB_NAME.$TABLE_NAME",
-    'many-keys': "$RETHINKDB/test/memcached_workloads/many_keys.py --address $HOST:$PORT --table $DB_NAME.$TABLE_NAME",
+    'many-rows': "$RETHINKDB/test/memcached_workloads/many_rows.py --address $HOST:$PORT --table $DB_NAME.$TABLE_NAME",
     'multi-serial': "$RETHINKDB/test/memcached_workloads/multi_serial_mix.py --address $HOST:$PORT --table $DB_NAME.$TABLE_NAME",
     'rget': "$RETHINKDB/test/memcached_workloads/rget.py --address $HOST:$PORT --table $DB_NAME.$TABLE_NAME",
     'rget-huge': "$RETHINKDB/test/memcached_workloads/rget_huge.py --address $HOST:$PORT --table $DB_NAME.$TABLE_NAME",

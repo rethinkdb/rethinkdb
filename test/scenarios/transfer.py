@@ -12,8 +12,8 @@ import driver, rdb_workload_common, scenario_common, utils, vcoptparse, workload
 
 op = vcoptparse.OptParser()
 scenario_common.prepare_option_parser_mode_flags(op)
-op["workload1"] = vcoptparse.PositionalArg()
-op["workload2"] = vcoptparse.PositionalArg()
+op["workload1"] = vcoptparse.StringFlag("--workload-before", None)
+op["workload2"] = vcoptparse.StringFlag("--workload-after", None)
 op["timeout"] = vcoptparse.IntFlag("--timeout", 600)
 opts = op.parse(sys.argv)
 _, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)

@@ -1,10 +1,8 @@
-# Copyright 2010-2014 RethinkDB, all rights reserved.
+# Copyright 2010-2015 RethinkDB, all rights reserved.
 
-from __future__ import print_function
+import os, signal, subprocess, sys, time
 
-import subprocess, os, time, string, signal, sys
-
-import vcoptparse
+import utils, vcoptparse
 
 class RDBPorts(object):
     def __init__(self, host, http_port, rdb_port, db_name, table_name):
@@ -25,7 +23,7 @@ def run(command_line, ports, timeout):
 
     start_time = time.time()
     end_time = start_time + timeout
-    print("Running workload %r..." % command_line)
+    utils.print_with_time("Running workload %r..." % command_line)
 
     # Set up environment
     new_environ = os.environ.copy()
@@ -39,10 +37,10 @@ def run(command_line, ports, timeout):
             if result is None:
                 time.sleep(1)
             elif result == 0:
-                print("Done (%d seconds)" % (time.time() - start_time))
+                utils.print_with_time("Done")
                 return
             else:
-                print("Failed (%d seconds)" % (time.time() - start_time))
+                utils.print_with_time("Failed")
                 sys.stderr.write("workload '%s' failed with error code %d\n" % (command_line, result))
                 exit(1)
         sys.stderr.write("\nWorkload timed out after %d seconds (%s)\n"  % (time.time() - start_time, command_line))
@@ -65,7 +63,7 @@ class ContinuousWorkload(object):
 
     def start(self):
         assert not self.running
-        print("Starting workload %r..." % self.command_line)
+        utils.print_with_time("Starting workload %r..." % self.command_line)
 
         # Set up environment
         new_environ = os.environ.copy()
@@ -86,7 +84,7 @@ class ContinuousWorkload(object):
 
     def stop(self):
         self.check()
-        print("Stopping %r..." % self.command_line)
+        utils.print_with_time("Stopping %r..." % self.command_line)
         os.killpg(self.proc.pid, signal.SIGINT)
         shutdown_grace_period = 10   # seconds
         end_time = time.time() + shutdown_grace_period
@@ -95,7 +93,7 @@ class ContinuousWorkload(object):
             if result is None:
                 time.sleep(1)
             elif result == 0 or result == -signal.SIGINT:
-                print("OK")
+                utils.print_with_time("OK")
                 self.running = False
                 break
             else:
@@ -144,7 +142,7 @@ class SplitOrContinuousWorkload(object):
     def _spin_continuous_workloads(self, seconds):
         assert self.opts["workload-during"]
         if seconds != 0:
-            print("Letting %s run for %d seconds..." % (" and ".join(repr(x) for x in self.opts["workload-during"]), seconds))
+            utils.print_with_time("Letting %s run for %d seconds..." % (" and ".join(repr(x) for x in self.opts["workload-during"]), seconds))
             for i in xrange(seconds):
                 time.sleep(1)
                 self.check()
