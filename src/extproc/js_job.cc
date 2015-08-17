@@ -82,11 +82,12 @@ void js_instance_t::maybe_initialize_v8() {
 }
 
 // Wrapper around `v8::Persistent<v8::Value> >` that calls `Reset()` on destruction
-class persistent_value_t  : public v8::Persistent<v8::Value> {
+class persistent_value_t {
 public:
     ~persistent_value_t() {
-        Reset();
+        value.Reset();
     }
+    v8::Persistent<v8::Value> value;
 };
 
 // Worker-side JS evaluation environment.
@@ -447,7 +448,7 @@ js_id_t js_env_t::remember_value(const v8::Handle<v8::Value> &value) {
     // its scope is destructed.
 
     boost::shared_ptr<persistent_value_t> persistent_handle(new persistent_value_t());
-    persistent_handle->Reset(js_instance_t::isolate(), value);
+    persistent_handle->value.Reset(js_instance_t::isolate(), value);
 
     values.insert(std::make_pair(id, persistent_handle));
     return id;
@@ -496,14 +497,15 @@ js_result_t js_env_t::call(js_id_t id,
     std::string *err_out = boost::get<std::string>(&result);
 
     const boost::shared_ptr<persistent_value_t> found_value = find_value(id);
-    guarantee(!found_value->IsEmpty());
+    guarantee(!found_value->value.IsEmpty());
 
     v8::Isolate *isolate = js_instance_t::isolate();
 
     v8::HandleScope handle_scope(isolate);
 
     // Construct local handle from persistent handle
-    v8::Local<v8::Value> local_handle = v8::Local<v8::Value>::New(isolate, *found_value);
+    v8::Local<v8::Value> local_handle =
+        v8::Local<v8::Value>::New(isolate, found_value->value);
     v8::Local<v8::Function> fn = v8::Local<v8::Function>::Cast(local_handle);
     v8::Handle<v8::Value> value = run_js_func(fn, args, err_out);
 
