@@ -45,6 +45,7 @@
         "include_in": [
             "top"
         ],
+        "signatures": [[]],
         "id": 13
     },
     "DB": {
@@ -59,7 +60,10 @@
             "top",
             "db"
         ],
-        "signatures": [["R_EXPR"]],
+        "signatures": [
+            ["R_EXPR"],
+            ["R_EXPR", "R_EXPR"]
+        ],
         "optargs": {
             "read_mode": "E_READ_MODE",
             "identifier_format": "E_IDENTIFIER_FORMAT"
@@ -70,14 +74,14 @@
         "include_in": [
             "table"
         ],
-        "signatures": [["E_EXPR"]],
+        "signatures": [["R_EXPR", "R_EXPR"]],
         "id": 16
     },
     "GET_ALL": {
         "include_in": [
             "table"
         ],
-        "signatures": [["E_EXPR", "*"]],
+        "signatures": [["R_EXPR", "R_EXPR", "*"]],
         "optargs": {
             "index": "R_STR"
         },
@@ -90,6 +94,7 @@
             "top",
             "query"
         ],
+        "signatures": [["R_EXPR", "R_EXPR", "R_EXPR", "*"]],
         "id": 17
     },
     "NE": {
@@ -99,6 +104,7 @@
             "top",
             "query"
         ],
+        "signatures": [["R_EXPR", "R_EXPR", "R_EXPR", "*"]],
         "id": 18
     },
     "LT": {
@@ -108,6 +114,7 @@
             "top",
             "query"
         ],
+        "signatures": [["R_EXPR", "R_EXPR", "R_EXPR", "*"]],
         "id": 19
     },
     "LE": {
@@ -117,6 +124,7 @@
             "top",
             "query"
         ],
+        "signatures": [["R_EXPR", "R_EXPR", "R_EXPR", "*"]],
         "id": 20
     },
     "GT": {
@@ -126,6 +134,7 @@
             "top",
             "query"
         ],
+        "signatures": [["R_EXPR", "R_EXPR", "R_EXPR", "*"]],
         "id": 21
     },
     "GE": {
@@ -135,6 +144,7 @@
             "top",
             "query"
         ],
+        "signatures": [["R_EXPR", "R_EXPR", "R_EXPR", "*"]],
         "id": 22
     },
     "NOT": {
@@ -142,6 +152,7 @@
             "top",
             "query"
         ],
+        "signatures": [["R_EXPR"]],
         "id": 23
     },
     "ADD": {
@@ -150,6 +161,7 @@
             "top",
             "query"
         ],
+        "signatures": [["R_EXPR", "R_EXPR", "R_EXPR", "*"]],
         "id": 24
     },
     "SUB": {
@@ -166,6 +178,7 @@
             "top",
             "query"
         ],
+        "signatures": [["R_EXPR", "R_EXPR", "R_EXPR", "*"]],
         "id": 26
     },
     "DIV": {
@@ -174,6 +187,7 @@
             "top",
             "query"
         ],
+        "signatures": [["R_EXPR", "R_EXPR", "R_EXPR", "*"]],
         "id": 27
     },
     "MOD": {
@@ -182,42 +196,53 @@
             "top",
             "query"
         ],
+        "signatures": [["R_EXPR", "R_EXPR"]],
         "id": 28
     },
     "FLOOR": {
+        "signatures": [["R_EXPR"]],
         "id": 183
     },
     "CEIL": {
+        "signatures": [["R_EXPR"]],
         "id": 184
     },
     "ROUND": {
+        "signatures": [["R_EXPR"]],
         "id": 185
     },
     "APPEND": {
+        "signatures": [["R_EXPR", "R_EXPR"]],
         "id": 29
     },
     "PREPEND": {
+        "signatures": [["R_EXPR", "R_EXPR"]],
         "id": 80
     },
     "DIFFERENCE": {
+        "signatures": [["R_EXPR", "R_EXPR"]],
         "id": 95
     },
     "SET_INSERT": {
+        "signatures": [["R_EXPR", "R_EXPR"]],
         "id": 88
     },
     "SET_INTERSECTION": {
+        "signatures": [["R_EXPR", "R_EXPR"]],
         "id": 89
     },
     "SET_UNION": {
+        "signatures": [["R_EXPR", "R_EXPR"]],
         "id": 90
     },
     "SET_DIFFERENCE": {
+        "signatures": [["R_EXPR", "R_EXPR"]],
         "id": 91
     },
     "SLICE": {
         "signatures": [
-            ["R_EXPR"],
-            ["R_EXPR", "R_EXPR"]
+            ["R_EXPR", "R_EXPR"],
+            ["R_EXPR", "R_EXPR", "R_EXPR"]
         ],
         "optargs": {
             "left_bound": "E_BOUND",
@@ -226,52 +251,61 @@
         "id": 30
     },
     "SKIP": {
-        "signatures": [["R_EXPR"]],
+        "signatures": [["R_EXPR", "R_EXPR"]],
         "id": 70
     },
     "LIMIT": {
-        "signatures": [["R_EXPR"]],
+        "signatures": [["R_EXPR", "R_EXPR"]],
         "id": 71
     },
     "OFFSETS_OF": {
         "signatures": [
-            ["R_EXPR"],
-            ["R_FUNC1"]
+            ["R_EXPR", "R_EXPR"],
+            ["R_EXPR", "R_FUNC1"]
         ],
         "id": 87
     },
     "CONTAINS": {
         "signatures": [
-            [["R_EXPR", "R_FUNC1"], "*"]
+            ["R_EXPR", ["R_EXPR", "R_FUNC1"], "*"]
         ],
         "id": 93
     },
     "GET_FIELD": {
+        "signatures": [["R_EXPR", "R_EXPR"]],
         "id": 31
     },
     "KEYS": {
+        "signatures": [["R_EXPR"]],
         "id": 94
     },
     "OBJECT": {
         "include_in": [
             "top"
         ],
+        "signatures": [["R_EXPR", "*"]],
         "id": 143
     },
     "HAS_FIELDS": {
+        "signatures": [["R_EXPR", "R_EXPR", "*"]],
         "id": 32
     },
     "WITH_FIELDS": {
-        "signatures": [["R_EXPR", "*"]],
+        "signatures": [["R_EXPR", "R_EXPR", "*"]],
         "id": 96
     },
     "PLUCK": {
+        "signatures": [["R_EXPR", "R_EXPR", "*"]],
         "id": 33
     },
     "WITHOUT": {
+        "signatures": [["R_EXPR", "R_EXPR", "*"]],
         "id": 34
     },
     "MERGE": {
+        "signatures": [
+            ["R_EXPR", ["R_EXPR", "R_FUNC1"], "*"]
+        ],
         "id": 35
     },
     "BETWEEN_DEPRECATED": {
@@ -280,7 +314,8 @@
         "id": 36
     },
     "BETWEEN": {
-        "signatures": [["R_EXPR", "R_EXPR"]],
+        "include_in": ["table"],
+        "signatures": [["R_EXPR", "R_EXPR", "R_EXPR"]],
         "optargs": {
             "index": "R_STR",
             "left_bound": "E_BOUND",
@@ -289,7 +324,7 @@
         "id": 182
     },
     "REDUCE": {
-        "signatures": [["R_FUNC2"]],
+        "signatures": [["R_EXPR", "R_FUNC2"]],
         "id": 37
     },
     "MAP": {
@@ -298,30 +333,30 @@
             "query"
         ],
         "signatures": [
-            ["R_EXPR", "*", "R_FUNCX"]
+            ["R_EXPR", "R_EXPR", "*", "R_FUNCX"]
         ],
         "id": 38
     },
     "FILTER": {
-        "signatures": [["R_FUNC1"]],
+        "signatures": [["R_EXPR", "R_FUNC1"]],
         "optargs": {
             "default": "R_EXPR"
         },
         "id": 39
     },
     "CONCAT_MAP": {
-        "signatures": [["R_FUNC1"]],
+        "signatures": [["R_EXPR", "R_FUNC1"]],
         "id": 40
     },
     "ORDER_BY": {
-        "signatures": [["R_EXPR", "*"]],
+        "signatures": [["R_EXPR", "R_EXPR", "*"]],
         "optargs": {
             "index": "R_EXPR"
         },
         "id": 41
     },
     "DISTINCT": {
-        "signatures": [[]],
+        "signatures": [["R_EXPR"]],
         "optargs": {
             "index": "R_STR"
         },
@@ -329,39 +364,44 @@
     },
     "COUNT": {
         "signatures": [
-            [],
             ["R_EXPR"],
-            ["R_FUNC1"]
+            ["R_EXPR", "R_EXPR"],
+            ["R_EXPR", "R_FUNC1"]
         ],
         "id": 43
     },
     "IS_EMPTY": {
-        "signatures": [[]],
+        "signatures": [["R_EXPR"]],
         "id": 86
     },
     "UNION": {
-        "signatures": [["R_EXPR", "R_EXPR", "*"]],
+        "include_in": [
+            "top",
+            "query"
+        ],
+        "signatures": [["R_EXPR", "*"]],
         "id": 44
     },
     "NTH": {
-        "signatures": [["R_EXPR"]],
+        "signatures": [["R_EXPR", "R_EXPR"]],
         "id": 45
     },
     "BRACKET": {
+        "signatures": [["R_EXPR", "R_EXPR"]],
         "id": 170
     },
     "INNER_JOIN": {
-        "signatures": [["R_EXPR", "R_FUNC1"]],
+        "signatures": [["R_EXPR", "R_EXPR", "R_FUNC1"]],
         "id": 48
     },
     "OUTER_JOIN": {
-        "signatures": [["R_EXPR", "R_FUNC1"]],
+        "signatures": [["R_EXPR", "R_EXPR", "R_FUNC1"]],
         "id": 49
     },
     "EQ_JOIN": {
         "signatures": [
-            ["R_EXPR", "R_EXPR"],
-            ["R_FUNC1", "R_EXPR"]
+            ["R_EXPR", "R_EXPR", "R_EXPR"],
+            ["R_EXPR", "R_FUNC1", "R_EXPR"]
         ],
         "optargs": {
             "index": "R_STR"
@@ -369,7 +409,7 @@
         "id": 50
     },
     "ZIP": {
-        "signatures": [[]],
+        "signatures": [["R_EXPR"]],
         "id": 72
     },
     "RANGE": {
@@ -379,15 +419,22 @@
         "id": 173
     },
     "INSERT_AT": {
+        "signatures": [["R_EXPR", "R_EXPR"]],
         "id": 82
     },
     "DELETE_AT": {
+        "signatures": [
+            ["R_EXPR", "R_EXPR"],
+            ["R_EXPR", "R_EXPR", "R_EXPR"]
+        ],
         "id": 83
     },
     "CHANGE_AT": {
+        "signatures": [["R_EXPR", "R_EXPR", "R_EXPR"]],
         "id": 84
     },
     "SPLICE_AT": {
+        "signatures": [["R_EXPR", "R_EXPR", "R_EXPR"]],
         "id": 85
     },
     "COERCE_TO": {
@@ -402,8 +449,8 @@
     },
     "UPDATE": {
         "signatures": [
-            ["R_EXPR"],
-            ["R_FUNC1"]
+            ["R_EXPR", "R_EXPR"],
+            ["R_EXPR", "R_FUNC1"]
         ],
         "optargs": {
             "durability": "E_DURABILITY",
@@ -413,7 +460,7 @@
         "id": 53
     },
     "DELETE": {
-        "signatures": [[]],
+        "signatures": [["R_EXPR"]],
         "optargs": {
             "durability": "E_DURABILITY",
             "return_changes": ["R_BOOL", "always"]
@@ -422,8 +469,8 @@
     },
     "REPLACE": {
         "signatures": [
-            ["R_EXPR"],
-            ["R_FUNC1"]
+            ["R_EXPR", "R_EXPR"],
+            ["R_EXPR", "R_FUNC1"]
         ],
         "optargs": {
             "durability": "E_DURABILITY",
@@ -436,7 +483,7 @@
         "include_in": [
             "table"
         ],
-        "signatures": [["R_EXPR"]],
+        "signatures": [["R_EXPR", "R_EXPR"]],
         "optargs": {
             "durability": "E_DURABILITY",
             "return_changes": ["R_BOOL", "always"],
@@ -448,14 +495,14 @@
         "include_in": [
             "top"
         ],
-        "signatures": [["R_EXPR"]],
+        "signatures": [["R_EXPR", "R_EXPR"]],
         "id": 57
     },
     "DB_DROP": {
         "include_in": [
             "top"
         ],
-        "signatures": [["R_EXPR"]],
+        "signatures": [["R_EXPR", "R_EXPR"]],
         "id": 58
     },
     "DB_LIST": {
@@ -470,7 +517,7 @@
             "top",
             "db"
         ],
-        "signatures": [["R_EXPR"]],
+        "signatures": [["R_EXPR", "R_EXPR"]],
         "optargs": {
             "primary_key": "R_STR",
             "durability": "E_DURABILITY",
@@ -485,7 +532,7 @@
             "top",
             "db"
         ],
-        "signatures": [["R_EXPR"]],
+        "signatures": [["R_EXPR", "R_EXPR"]],
         "id": 61
     },
     "TABLE_LIST": {
@@ -493,7 +540,7 @@
             "top",
             "db"
         ],
-        "signatures": [[]],
+        "signatures": [["R_EXPR"]],
         "id": 62
     },
     "CONFIG": {
@@ -545,8 +592,8 @@
             "table"
         ],
         "signatures": [
-            ["R_EXPR"],
-            ["R_EXPR", "R_FUNC1"]
+            ["R_EXPR", "R_EXPR"],
+            ["R_EXPR", "R_EXPR", "R_FUNC1"]
         ],
         "optargs": {
             "multi": "R_BOOL",
@@ -558,35 +605,35 @@
         "include_in": [
             "table"
         ],
-        "signatures": [["R_EXPR"]],
+        "signatures": [["R_EXPR", "R_EXPR"]],
         "id": 76
     },
     "INDEX_LIST": {
         "include_in": [
             "table"
         ],
-        "signatures": [[]],
+        "signatures": [["R_EXPR"]],
         "id": 77
     },
     "INDEX_STATUS": {
         "include_in": [
             "table"
         ],
-        "signatures": [["R_EXPR", "*"]],
+        "signatures": [["R_EXPR", "R_EXPR", "*"]],
         "id": 139
     },
     "INDEX_WAIT": {
         "include_in": [
             "table"
         ],
-        "signatures": [["R_EXPR", "*"]],
+        "signatures": [["R_EXPR", "R_EXPR", "*"]],
         "id": 140
     },
     "INDEX_RENAME": {
         "include_in": [
             "table"
         ],
-        "signatures": [["R_EXPR", "R_EXPR"]],
+        "signatures": [["R_EXPR", "R_EXPR", "R_EXPR"]],
         "optargs": {
             "overwrite": "R_BOOL"
         },
@@ -611,6 +658,7 @@
             "top",
             "query"
         ],
+        "signatures": [["R_EXPR", "R_EXPR", "R_EXPR", "*"]],
         "id": 66
     },
     "AND": {
@@ -618,6 +666,7 @@
             "top",
             "query"
         ],
+        "signatures": [["R_EXPR", "R_EXPR", "*"]],
         "id": 67
     },
     "FOR_EACH": {
@@ -647,16 +696,19 @@
         "id": 79
     },
     "MATCH": {
+        "signatures": [["R_EXPR", "R_EXPR"]],
         "id": 97
     },
     "UPCASE": {
+        "signatures": [["R_EXPR"]],
         "id": 141
     },
     "DOWNCASE": {
+        "signatures": [["R_EXPR"]],
         "id": 142
     },
     "SAMPLE": {
-        "signatures": [["R_EXPR"]],
+        "signatures": [["R_EXPR", "R_EXPR"]],
         "id": 81
     },
     "DEFAULT": {
@@ -861,8 +913,8 @@
     },
     "GROUP": {
         "signatures": [
-            ["R_EXPR"],
-            ["R_FUNC1"]
+            ["R_EXPR", "R_EXPR"],
+            ["R_EXPR", "R_FUNC1"]
         ],
         "optargs": {
             "index": "R_STR",
@@ -872,25 +924,25 @@
     },
     "SUM": {
         "signatures": [
-            [],
             ["R_EXPR"],
-            ["R_FUNC"]
+            ["R_EXPR", "R_EXPR"],
+            ["R_EXPR", "R_FUNC"]
         ],
         "id": 145
     },
     "AVG": {
         "signatures": [
-            [],
             ["R_EXPR"],
-            ["R_FUNC"]
+            ["R_EXPR", "R_EXPR"],
+            ["R_EXPR", "R_FUNC"]
         ],
         "id": 146
     },
     "MIN": {
         "signatures": [
-            [],
             ["R_EXPR"],
-            ["R_FUNC1"]
+            ["R_EXPR", "R_EXPR"],
+            ["R_EXPR", "R_FUNC1"]
         ],
         "optargs": {
             "index": "R_STR"
@@ -899,9 +951,9 @@
     },
     "MAX": {
         "signatures": [
-            [],
             ["R_EXPR"],
-            ["R_FUNC1"]
+            ["R_EXPR", "R_EXPR"],
+            ["R_EXPR", "R_FUNC1"]
         ],
         "optargs": {
             "index": "R_STR"
@@ -909,20 +961,33 @@
         "id": 148
     },
     "SPLIT": {
+        "signatures": [
+            ["R_EXPR"],
+            ["R_EXPR", "R_EXPR"],
+            ["R_EXPR", "R_EXPR", "R_EXPR"]
+        ],
         "id": 149
     },
     "UNGROUP": {
-        "signatures": [[]],
+        "signatures": [["R_EXPR"]],
         "id": 150
     },
     "RANDOM": {
         "include_in": [
             "top"
         ],
+        "signatures": [
+            [],
+            ["R_EXPR"],
+            ["R_EXPR", "R_EXPR"]
+        ],
+        "optargs": {
+            "float": "R_BOOL"
+        },
         "id": 151
     },
     "CHANGES": {
-        "signatures": [[]],
+        "signatures": [["R_EXPR"]],
         "optargs": {
             "squash": "R_BOOL",
             "include_states": "R_BOOL"
