@@ -1120,9 +1120,6 @@ public:
 
     void each_range_sub(const auto_drainer_t::lock_t &lock,
                         const std::function<void(range_sub_t *)> &f) THROWS_NOTHING;
-    void each_active_range_sub(
-        const auto_drainer_t::lock_t &lock,
-        const std::function<void(range_sub_t *)> &f) THROWS_NOTHING;
     void each_point_sub(const std::function<void(point_sub_t *)> &f) THROWS_NOTHING;
     void each_limit_sub(const std::function<void(limit_sub_t *)> &f) THROWS_NOTHING;
     void each_sub(const auto_drainer_t::lock_t &lock,
@@ -1869,19 +1866,22 @@ public:
         configured_limits_t default_limits;
         datum_t null = datum_t::null();
 
-        feed->each_active_range_sub(*lock, [&](range_sub_t *sub) {
+        feed->each_range_sub(*lock, [&](range_sub_t *sub) {
             datum_t new_val = null, old_val = null;
+            if (!sub->active()) return;
             if (sub->has_ops()) {
                 if (change.new_val.has()) {
                     if (boost::optional<datum_t> d = sub->apply_ops(change.new_val)) {
                         new_val = *d;
                     }
                 }
+                if (!sub->active()) return;
                 if (change.old_val.has()) {
                     if (boost::optional<datum_t> d = sub->apply_ops(change.old_val)) {
                         old_val = *d;
                     }
                 }
+                if (!sub->active()) return;
                 // Duplicate values are caught before being written to disk and
                 // don't generate a `mod_report`, but if we have transforms the
                 // values might have changed.
@@ -1897,6 +1897,7 @@ public:
                     old_val = change.old_val;
                 }
             }
+            ASSERT_NO_CORO_WAITING;
             boost::optional<std::string> sindex = sub->sindex();
             if (sindex) {
                 size_t old_vals = 0, new_vals = 0;
@@ -2132,8 +2133,7 @@ subscription_t::get_els(batcher_t *batcher,
         // matters for squashing.)
         mid_batch = batcher->should_send_batch();
     } else {
-        r_sanity_check(ret.size() == 0);
-        return ret;
+        r_sanity_check(false);
     }
     r_sanity_check(ret.size() != 0);
     return ret;
@@ -2325,16 +2325,6 @@ void feed_t::each_range_sub(
     assert_thread();
     rwlock_in_line_t spot(&range_subs_lock, access_t::read);
     each_sub_in_vec(range_subs, &spot, lock, f);
-}
-
-void feed_t::each_active_range_sub(
-    const auto_drainer_t::lock_t &lock,
-    const std::function<void(range_sub_t *)> &f) THROWS_NOTHING {
-    each_range_sub(lock, [&f](range_sub_t *sub) {
-        if (sub->active()) {
-            f(sub);
-        }
-    });
 }
 
 void feed_t::each_point_sub(
