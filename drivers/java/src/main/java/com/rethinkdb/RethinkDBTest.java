@@ -25,7 +25,7 @@ public class RethinkDBTest extends TestCase {
                 .port(31157)
                 .connect();
         Optional<Object> res =
-                r.table("foo").limit(1).coerceTo("array").run(conn);
+                r.random(1,2).add(r.random(1,2)).run(conn);
         assert(res.get().equals(new JSONArray()));
     }
 }
