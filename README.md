@@ -7,7 +7,7 @@
 What is RethinkDB?
 -----------
 
-* **Open source** database for building realtime web applications
+* **Open-source** database for building realtime web applications
 * **NoSQL** database that stores schemaless JSON documents
 * **Distributed** database that is easy to scale and is partition and fault tolerant
 * **High availability** database with automatic failover and robust fault tolerance
