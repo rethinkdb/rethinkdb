@@ -149,7 +149,7 @@ store_t::store_t(serializer_t *serializer,
                                 access_t::write);
 
         std::map<sindex_name_t, secondary_index_t> sindexes;
-        get_secondary_indexes(&sindex_block, &sindexes);
+        migrate_secondary_index_block(&sindex_block, &sindexes);
 
         for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
             // Deleted secondary indexes should not be added to the perfmons
