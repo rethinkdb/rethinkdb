@@ -15,7 +15,20 @@
         "E_EMERGENCY_REPAIR": [
             "unsafe_rollback",
             "unsafe_rollback_or_erase"
-        ]
+        ],
+        "E_RESULT_FORMAT": [
+            "text",
+            "json",
+            "jsonp",
+            "binary",
+            "auto"
+        ],
+        "E_HTTP_METHOD": [
+            "GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"
+        ],
+        "E_AUTH_TYPE": ["basic", "digest"],
+        "E_GEO_SYSTEM": ["WGS84", "unit_sphere"],
+        "E_UNIT": ["m", "km", "mi", "nm", "ft"]
     },
     "type_hierarchy": {
         "T_TOP_LEVEL": {},
