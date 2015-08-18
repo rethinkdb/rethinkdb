@@ -315,7 +315,7 @@
     },
     "BETWEEN": {
         "include_in": ["table"],
-        "signatures": [["T_EXPR", "T_EXPR", "T_EXPR"]],
+        "signatures": [["T_TABLE", "T_EXPR", "T_EXPR"]],
         "optargs": {
             "index": "T_STR",
             "left_bound": "E_BOUND",
@@ -483,7 +483,7 @@
         "include_in": [
             "table"
         ],
-        "signatures": [["T_EXPR", "T_EXPR"]],
+        "signatures": [["T_TABLE", "T_EXPR"]],
         "optargs": {
             "durability": "E_DURABILITY",
             "return_changes": ["T_BOOL", "always"],
@@ -619,7 +619,7 @@
         "include_in": [
             "table"
         ],
-        "signatures": [[]],
+        "signatures": [["T_TABLE"]],
         "id": 138
     },
     "INDEX_CREATE": {
@@ -627,8 +627,8 @@
             "table"
         ],
         "signatures": [
-            ["T_EXPR", "T_EXPR"],
-            ["T_EXPR", "T_EXPR", "T_FUNC1"]
+            ["T_TABLE", "T_EXPR"],
+            ["T_TABLE", "T_EXPR", "T_FUNC1"]
         ],
         "optargs": {
             "multi": "T_BOOL",
@@ -640,35 +640,35 @@
         "include_in": [
             "table"
         ],
-        "signatures": [["T_EXPR", "T_EXPR"]],
+        "signatures": [["T_TABLE", "T_EXPR"]],
         "id": 76
     },
     "INDEX_LIST": {
         "include_in": [
             "table"
         ],
-        "signatures": [["T_EXPR"]],
+        "signatures": [["T_TABLE"]],
         "id": 77
     },
     "INDEX_STATUS": {
         "include_in": [
             "table"
         ],
-        "signatures": [["T_EXPR", "T_EXPR", "*"]],
+        "signatures": [["T_TABLE", "T_EXPR", "*"]],
         "id": 139
     },
     "INDEX_WAIT": {
         "include_in": [
             "table"
         ],
-        "signatures": [["T_EXPR", "T_EXPR", "*"]],
+        "signatures": [["T_TABLE", "T_EXPR", "*"]],
         "id": 140
     },
     "INDEX_RENAME": {
         "include_in": [
             "table"
         ],
-        "signatures": [["T_EXPR", "T_EXPR", "T_EXPR"]],
+        "signatures": [["T_TABLE", "T_EXPR", "T_EXPR"]],
         "optargs": {
             "overwrite": "T_BOOL"
         },
@@ -763,68 +763,99 @@
         "include_in": [
             "top"
         ],
+        "signatures": [
+            ["T_EXPR"]
+        ],
+        "optargs": {
+            "default_timezone": "T_STR"
+        },
         "id": 99
     },
     "TO_ISO8601": {
+        "signatures": [["R_EXPR"]],
         "id": 100
     },
     "EPOCH_TIME": {
         "include_in": [
             "top"
         ],
+        "signatures": [["R_EXPR"]],
         "id": 101
     },
     "TO_EPOCH_TIME": {
+        "signatures": [["R_EXPR"]],
         "id": 102
     },
     "NOW": {
         "include_in": [
             "top"
         ],
+        "signatures": [[]],
         "id": 103
     },
     "IN_TIMEZONE": {
+        "signatures": [["R_EXPR", "R_EXPR"]],
         "id": 104
     },
     "DURING": {
+        "signatures": [["R_EXPR", "R_EXPR", "R_EXPR"]],
+        "optargs": {
+            "left_bound": "E_BOUND",
+            "right_bound": "E_BOUND"
+        },
         "id": 105
     },
     "DATE": {
+        "signatures": [["R_EXPR"]],
         "id": 106
     },
     "TIME_OF_DAY": {
+        "signatures": [["R_EXPR"]],
         "id": 126
     },
     "TIMEZONE": {
+        "signatures": [["R_EXPR"]],
         "id": 127
     },
     "YEAR": {
+        "signatures": [["R_EXPR"]],
         "id": 128
     },
     "MONTH": {
+        "signatures": [["R_EXPR"]],
         "id": 129
     },
     "DAY": {
+        "signatures": [["R_EXPR"]],
         "id": 130
     },
     "DAY_OF_WEEK": {
+        "signatures": [["R_EXPR"]],
         "id": 131
     },
     "DAY_OF_YEAR": {
+        "signatures": [["R_EXPR"]],
         "id": 132
     },
     "HOURS": {
+        "signatures": [["R_EXPR"]],
         "id": 133
     },
     "MINUTES": {
+        "signatures": [["R_EXPR"]],
         "id": 134
     },
     "SECONDS": {
+        "signatures": [["R_EXPR"]],
         "id": 135
     },
     "TIME": {
         "include_in": [
             "top"
+        ],
+        "signatures": [
+            ["T_EXPR", "T_EXPR", "T_EXPR", "T_EXPR"],
+            ["T_EXPR", "T_EXPR", "T_EXPR", "T_EXPR", "T_EXPR", "T_EXPR", "T_EXPR"]
         ],
         "id": 136
     },
@@ -832,112 +863,133 @@
         "include_in": [
             "top"
         ],
+        "signatures": [[]],
         "id": 107
     },
     "TUESDAY": {
         "include_in": [
             "top"
         ],
+        "signatures": [[]],
         "id": 108
     },
     "WEDNESDAY": {
         "include_in": [
             "top"
         ],
+        "signatures": [[]],
         "id": 109
     },
     "THURSDAY": {
         "include_in": [
             "top"
         ],
+        "signatures": [[]],
         "id": 110
     },
     "FRIDAY": {
         "include_in": [
             "top"
         ],
+        "signatures": [[]],
         "id": 111
     },
     "SATURDAY": {
         "include_in": [
             "top"
         ],
+        "signatures": [[]],
         "id": 112
     },
     "SUNDAY": {
         "include_in": [
             "top"
         ],
+        "signatures": [[]],
         "id": 113
     },
     "JANUARY": {
         "include_in": [
             "top"
         ],
+        "signatures": [[]],
         "id": 114
     },
     "FEBRUARY": {
         "include_in": [
             "top"
         ],
+        "signatures": [[]],
         "id": 115
     },
     "MARCH": {
         "include_in": [
             "top"
         ],
+        "signatures": [[]],
         "id": 116
     },
     "APRIL": {
-        "toplevel": true,
+        "include_in": [
+            "top"
+        ],
+        "signatures": [[]],
         "id": 117
     },
     "MAY": {
         "include_in": [
             "top"
         ],
+        "signatures": [[]],
         "id": 118
     },
     "JUNE": {
         "include_in": [
             "top"
         ],
+        "signatures": [[]],
         "id": 119
     },
     "JULY": {
         "include_in": [
             "top"
         ],
+        "signatures": [[]],
         "id": 120
     },
     "AUGUST": {
         "include_in": [
             "top"
         ],
+        "signatures": [[]],
         "id": 121
     },
     "SEPTEMBER": {
         "include_in": [
             "top"
         ],
+        "signatures": [[]],
         "id": 122
     },
     "OCTOBER": {
         "include_in": [
             "top"
         ],
+        "signatures": [[]],
         "id": 123
     },
     "NOVEMBER": {
         "include_in": [
             "top"
         ],
+        "signatures": [[]],
         "id": 124
     },
     "DECEMBER": {
         "include_in": [
             "top"
         ],
+        "signatures": [[]],
         "id": 125
     },
     "LITERAL": {
