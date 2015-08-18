@@ -20,24 +20,47 @@
         "include_in": [
             "top"
         ],
+        "signatures": [["T_EXPR"]],
+        "optargs": {
+            "timeout": "T_NUM"
+        },
         "id": 11
     },
     "UUID": {
         "include_in": [
             "top"
         ],
+        "signatures": [[]],
         "id": 169
     },
     "HTTP": {
         "include_in": [
             "top"
         ],
+        "signatures": [["T_EXPR"]],
+        "optargs": {
+            "timeout": "T_NUM",
+            "reattempts": "T_NUM",
+            "redirects": "T_NUM",
+            "verify": "T_BOOL",
+            "result_format": "E_RESULT_FORMAT",
+            "method": "E_HTTP_METHOD",
+            "auth": {
+                "type": "E_AUTH_TYPE",
+                "user": "T_STR",
+                "pass": "T_STR"
+            },
+            "params": "T_OBJECT",
+            "header": ["T_ARRAY", "T_OBJECT"],
+            "data": ["T_STR", "T_OBJECT"]
+        },
         "id": 153
     },
     "ERROR": {
         "include_in": [
             "top"
         ],
+        "signatures": [["T_EXPR"]],
         "id": 12
     },
     "IMPLICIT_VAR": {
@@ -161,7 +184,7 @@
             "top",
             "query"
         ],
-        "signatures": [["T_EXPR", "T_EXPR", "T_EXPR", "*"]],
+        "signatures": [["T_EXPR", "T_EXPR", "*"]],
         "id": 24
     },
     "SUB": {
@@ -170,6 +193,7 @@
             "top",
             "query"
         ],
+        "signatures": [["T_EXPR", "T_EXPR", "*"]],
         "id": 25
     },
     "MUL": {
@@ -178,7 +202,7 @@
             "top",
             "query"
         ],
-        "signatures": [["T_EXPR", "T_EXPR", "T_EXPR", "*"]],
+        "signatures": [["T_EXPR", "T_EXPR", "*"]],
         "id": 26
     },
     "DIV": {
@@ -187,7 +211,7 @@
             "top",
             "query"
         ],
-        "signatures": [["T_EXPR", "T_EXPR", "T_EXPR", "*"]],
+        "signatures": [["T_EXPR", "T_EXPR", "*"]],
         "id": 27
     },
     "MOD": {
@@ -391,11 +415,11 @@
         "id": 170
     },
     "INNER_JOIN": {
-        "signatures": [["T_EXPR", "T_EXPR", "T_FUNC1"]],
+        "signatures": [["T_EXPR", "T_EXPR", "T_FUNC2"]],
         "id": 48
     },
     "OUTER_JOIN": {
-        "signatures": [["T_EXPR", "T_EXPR", "T_FUNC1"]],
+        "signatures": [["T_EXPR", "T_EXPR", "T_FUNC2"]],
         "id": 49
     },
     "EQ_JOIN": {
@@ -415,6 +439,11 @@
     "RANGE": {
         "include_in": [
             "top"
+        ],
+        "signatures": [
+            [],
+            ["T_EXPR"],
+            ["T_EXPR", "T_EXPR"]
         ],
         "id": 173
     },
@@ -438,6 +467,7 @@
         "id": 85
     },
     "COERCE_TO": {
+        "signatures": [["T_EXPR", "T_EXPR"]],
         "id": 51
     },
     "TYPE_OF": {
@@ -445,6 +475,7 @@
             "top",
             "query"
         ],
+        "signatures": [["T_EXPR"]],
         "id": 52
     },
     "UPDATE": {
@@ -680,12 +711,17 @@
             "top",
             "query"
         ],
+        "signatures": [
+            ["T_EXPR", "T_EXPR", "*"],
+            ["T_EXPR", "T_EXPR", "*", "T_FUNCX"]
+        ],
         "id": 64
     },
     "BRANCH": {
         "include_in": [
             "top"
         ],
+        "signatures": [["T_EXPR", "T_EXPR", "T_EXPR"]],
         "id": 65
     },
     "OR": {
@@ -705,6 +741,7 @@
         "id": 67
     },
     "FOR_EACH": {
+        "signatures": ["T_EXPR", "T_FUNC1"],
         "id": 68
     },
     "FUNC": {
@@ -715,12 +752,14 @@
         "include_in": [
             "top"
         ],
+        "signatures": [["T_EXPR"]],
         "id": 73
     },
     "DESC": {
         "include_in": [
             "top"
         ],
+        "signatures": [["T_EXPR"]],
         "id": 74
     },
     "INFO": {
@@ -728,6 +767,7 @@
             "top",
             "query"
         ],
+        "signatures": [["T_EXPR"]],
         "id": 79
     },
     "MATCH": {
@@ -747,16 +787,19 @@
         "id": 81
     },
     "DEFAULT": {
+        "signatures": [["T_EXPR", "T_EXPR"]],
         "id": 92
     },
     "JSON": {
         "include_in": [
             "top"
         ],
+        "signatures": [["T_EXPR"]],
         "id": 98
     },
     "TO_JSON_STRING": {
         "alias": "to_json",
+        "signatures": [["T_EXPR"]],
         "id": 172
     },
     "ISO8601": {
@@ -996,6 +1039,10 @@
         "include_in": [
             "top"
         ],
+        "signatures": [
+            [],
+            ["T_EXPR"]
+        ],
         "id": 137
     },
     "GROUP": {
@@ -1085,39 +1132,46 @@
         "include_in": [
             "top"
         ],
+        "signatures": [["T_EXPR"]],
         "id": 154
     },
     "BINARY": {
         "include_in": [
             "top"
         ],
+        "signatures": [["T_EXPR"]],
         "id": 155
     },
     "GEOJSON": {
         "include_in": [
             "top"
         ],
+        "signatures": [["T_EXPR"]],
         "id": 157
     },
     "TO_GEOJSON": {
+        "signatures": [["T_EXPR"]],
         "id": 158
     },
     "POINT": {
         "include_in": [
             "top"
         ],
+        "signatures": [["T_EXPR", "T_EXPR"]],
         "id": 159
     },
     "LINE": {
         "include_in": [
             "top"
         ],
+        "signatures": [["T_EXPR", "T_EXPR", "T_EXPR", "*"]],
         "id": 160
     },
     "POLYGON": {
         "include_in": [
             "top"
         ],
+        "signatures": [["T_EXPR", "T_EXPR", "T_EXPR", "T_EXPR", "*"]],
         "id": 161
     },
     "DISTANCE": {
@@ -1125,6 +1179,11 @@
             "top",
             "query"
         ],
+        "signatures": [["T_EXPR", "T_EXPR"]],
+        "optargs": {
+            "geo_system": "E_GEO_SYSTEM",
+            "unit": "E_UNIT"
+        },
         "id": 162
     },
     "INTERSECTS": {
@@ -1132,45 +1191,74 @@
             "top",
             "query"
         ],
+        "signatures": [["T_EXPR", "T_EXPR"]],
         "id": 163
     },
     "INCLUDES": {
+        "signatures": [["T_EXPR", "T_EXPR"]],
         "id": 164
     },
     "CIRCLE": {
         "include_in": [
             "top"
         ],
+        "signatures": [
+            ["T_EXPR"],
+            ["T_EXPR", "T_EXPR"],
+            ["T_EXPR", "T_EXPR", "T_EXPR"]
+        ],
+        "optargs": {
+            "num_vertices": "T_EXPR",
+            "geo_system": "E_GEO_SYSTEM",
+            "unit": "E_UNIT",
+            "fill": "T_BOOL"
+        },
         "id": 165
     },
     "GET_INTERSECTING": {
         "include_in": [
             "table"
         ],
+        "signatures": [["T_TABLE", "T_EXPR"]],
+        "optargs": {
+            "index": "T_STR"
+        },
         "id": 166
     },
     "FILL": {
+        "signatures": [["T_EXPR"]],
         "id": 167
     },
     "GET_NEAREST": {
         "include_in": [
             "table"
         ],
+        "signatures": [["T_TABLE", "T_EXPR"]],
+        "optargs": {
+            "index": "T_STR",
+            "max_results": "T_NUM",
+            "unit": "E_UNIT",
+            "max_dist": "T_NUM",
+            "geo_system": "E_GEO_SYSTEM"
+        },
         "id": 168
     },
     "POLYGON_SUB": {
+        "signatures": [["T_EXPR", "T_EXPR"]],
         "id": 171
     },
     "MINVAL": {
         "include_in": [
             "top"
         ],
+        "signatures": [[]],
         "id": 180
     },
     "MAXVAL": {
         "include_in": [
             "top"
         ],
+        "signatures": [[]],
         "id": 181
     }
 }
