@@ -13,7 +13,10 @@
 /* `pump_coro_t` is a class for managing a blocking function that must eventually run
 after a certain event occurs; but if the event occurs multiple times in quick succession,
 it's OK for the function to only run once. For example, we might want to flush a value to
-disk every time it changes. */
+disk every time it changes.
+  Note that this is not tested very well for `max_callbacks` > 1, and you should be very
+careful about your assumptions on how flushing works when providing `max_callbacks` > 1.
+*/
 
 class pump_coro_t : public home_thread_mixin_debug_only_t{
 public:
