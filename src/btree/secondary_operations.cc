@@ -151,6 +151,24 @@ void get_secondary_indexes(buf_lock_t *sindex_block,
     get_secondary_indexes_internal(sindex_block, sindexes_out);
 }
 
+void migrate_secondary_index_block(buf_lock_t *sindex_block,
+                                   std::map<sindex_name_t, secondary_index_t> *sindexes_out) {
+    guarantee(sindexes_out != nullptr);
+
+    cluster_version_t block_version;
+    {
+        buf_read_t read(sindex_block);
+        const btree_sindex_block_t *data
+            = static_cast<const btree_sindex_block_t *>(read.get_data_read());
+        block_version = sindex_block_version(data);
+    }
+
+    get_secondary_indexes_internal(sindex_block, sindexes_out);
+    if (block_version != cluster_version_t::LATEST_DISK) {
+        set_secondary_indexes_internal(sindex_block, *sindexes_out);
+    }
+}
+
 void set_secondary_index(buf_lock_t *sindex_block, const sindex_name_t &name,
                          const secondary_index_t &sindex) {
     std::map<sindex_name_t, secondary_index_t> sindex_map;
