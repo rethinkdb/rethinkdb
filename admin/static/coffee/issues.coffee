@@ -160,8 +160,8 @@ render_outdated_index = (issue) ->
             h "br"
             "Use ", h("code", help_command)
             " to apply the latest bug fixes and improvements."
-            "See ", h("a", href: help_link, "the troubleshooting page")
-            "for more details."
+            " See ", h("a", href: help_link, "the troubleshooting page")
+            " for more details."
         ]
         h "ul", issue.info.tables.map((table) ->
             h "li", [
@@ -182,7 +182,7 @@ render_log_write_error = (issue) ->
     subtitle: [
         "Log "
         util.pluralize_noun('file', issue.info.servers.length)
-        "cannot be written to"
+        " cannot be written to"
     ]
     details: [
         h "p", [
@@ -194,7 +194,7 @@ render_log_write_error = (issue) ->
             h "li",
                 h "a", href: "/#servers/#{server.server_id}", server.server)
         h "p", [
-            "The error message reported is:",
+            "The error message reported is: ",
             h "code", issue.info.message
         ]
         h "p", [
