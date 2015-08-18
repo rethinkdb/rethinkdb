@@ -173,7 +173,7 @@ def main():
 		print(e)
 		parser.error('the executable given is not a valid RethinkDB executable: %s' % rethinkdbPath)
 	
-	strictVersion = re.match('^(\d+\.?)+', versionString)
+	strictVersion = re.match('^(\d+\.?)+(-\d+)?', versionString)
 	if strictVersion is None:
 		parser.error('version string from executable does not have a regular version string: %s' % versionString)
 	strictVersion = strictVersion.group()
