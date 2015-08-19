@@ -18,6 +18,9 @@ class ChangePrimary(rdb_unittest.RdbTestCase):
     replicas = 2
     shards = 1
     
+    server_command_prefix = command_prefix
+    server_extra_options = serve_options
+    
     def test_workload(self):
         alpha = self.getPrimaryForShard(0)
         beta = self.getReplicaForShard(0)

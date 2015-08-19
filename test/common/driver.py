@@ -751,6 +751,17 @@ class ProxyProcess(_Process):
             command_prefix = []
         if extra_options is None:
             extra_options = []
+        else:
+            # remove --cache-size
+            for option in extra_options[:]:
+                if option == '--cache-size':
+                    position = extra_options.index(option)
+                    assert len(serve_options) > position, 'Had a --cache-size marker without the spec' 
+                    extra_options.pop(position)
+                    extra_options.pop(position)
+                    break # we can only handle one
+                elif option.startswith('--cache-size='):
+                    serve_options.remove(option)
         
         self.logfile_path = logfile_path
         

@@ -18,8 +18,20 @@ class RDBPorts(object):
         env["DB_NAME"] = self.db_name
         env["TABLE_NAME"] = self.table_name
 
-def run(command_line, ports, timeout):
-    assert isinstance(ports, RDBPorts)
+def run(command_line, ports, timeout, db_name=None, table_name=None):
+    if isinstance(ports, RDBPorts):
+        if db_name is not None:
+            ports.db_name = db_name
+        if table_name is not None:
+            ports.table_name = table_name
+    else: # probably a driver._Process subclass
+        assert db_name is not None, 'When using a non-RDBPorts ports, db_name must be supplied'
+        assert table_name is not None, 'When using a non-RDBPorts ports, table_name must be supplied'
+        
+        assert hasattr(ports, 'http_port'), 'When using a non-RDBPorts ports, the ports object must have a http_port attribute: %r' % ports
+        assert hasattr(ports, 'driver_port'), 'When using a non-RDBPorts ports, the ports object must have a driver_port attribute: %r' % ports
+        
+        ports = RDBPorts(host=ports.host, http_port=ports.http_port, rdb_port=ports.driver_port, db_name=db_name, table_name=table_name)
 
     start_time = time.time()
     end_time = start_time + timeout
@@ -52,11 +64,29 @@ def run(command_line, ports, timeout):
     exit(1)
 
 class ContinuousWorkload(object):
-    def __init__(self, command_line, ports):
-        assert isinstance(ports, RDBPorts)
+    
+    running = False
+    ports = None
+    
+    def __init__(self, command_line, ports, db_name=None, table_name=None):
+        
         self.command_line = command_line
-        self.ports = ports
-        self.running = False
+        
+        if isinstance(ports, RDBPorts):
+            self.ports = ports
+            if db_name is not None:
+                self.ports.db_name = db_name
+            if table_name is not None:
+                self.ports.table_name = table_name
+        
+        else: # probably a driver._Process subclass
+            assert db_name is not None, 'When using a non-RDBPorts ports, db_name must be supplied'
+            assert table_name is not None, 'When using a non-RDBPorts ports, table_name must be supplied'
+            
+            assert hasattr(ports, 'http_port'), 'When using a non-RDBPorts ports, the ports object must have a http_port attribute: %r' % ports
+            assert hasattr(ports, 'driver_port'), 'When using a non-RDBPorts ports, the ports object must have a driver_port attribute: %r' % ports
+            
+            self.ports = RDBPorts(host=ports.host, http_port=ports.http_port, rdb_port=ports.driver_port, db_name=db_name, table_name=table_name)
 
     def __enter__(self):
         return self
@@ -68,9 +98,8 @@ class ContinuousWorkload(object):
         # Set up environment
         new_environ = os.environ.copy()
         self.ports.add_to_environ(new_environ)
-
-        self.proc = subprocess.Popen(self.command_line, shell=True, env=new_environ, preexec_fn=lambda: os.setpgid(0, 0))
-
+        
+        self.proc = subprocess.Popen(self.command_line, shell=True, env=new_environ, preexec_fn=os.setpgrp)
         self.running = True
 
         self.check()
