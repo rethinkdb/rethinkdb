@@ -383,8 +383,7 @@ public:
         perfmon_collection_t *perfmon_collection_serializers) = 0;
     virtual void destroy_multistore(
         const namespace_id_t &table_id,
-        scoped_ptr_t<multistore_ptr_t> *multistore_ptr_in,
-        signal_t *interruptor) = 0;
+        scoped_ptr_t<multistore_ptr_t> *multistore_ptr_in) = 0;
 
 protected:
     virtual ~table_persistence_interface_t() { }

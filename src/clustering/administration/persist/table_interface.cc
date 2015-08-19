@@ -243,11 +243,13 @@ void real_table_persistence_interface_t::write_metadata_inactive(
     write_txn.erase(
         mdprefix_table_active().suffix(uuid_to_str(table_id)),
         interruptor);
-    table_raft_storage_interface_t::erase(&write_txn, table_id, interruptor);
     write_txn.write(
         mdprefix_table_inactive().suffix(uuid_to_str(table_id)),
         state,
         interruptor);
+
+    table_raft_storage_interface_t::erase(&write_txn, table_id, interruptor);
+    real_branch_history_manager_t::erase(&write_txn, table_id, interruptor);
 }
 
 void real_table_persistence_interface_t::delete_metadata(
@@ -262,6 +264,7 @@ void real_table_persistence_interface_t::delete_metadata(
         mdprefix_table_inactive().suffix(uuid_to_str(table_id)),
         interruptor);
     table_raft_storage_interface_t::erase(&write_txn, table_id, interruptor);
+    real_branch_history_manager_t::erase(&write_txn, table_id, interruptor);
 }
 
 void real_table_persistence_interface_t::load_multistore(
@@ -308,8 +311,7 @@ void real_table_persistence_interface_t::create_multistore(
 
 void real_table_persistence_interface_t::destroy_multistore(
         const namespace_id_t &table_id,
-        scoped_ptr_t<multistore_ptr_t> *multistore_ptr_in,
-        signal_t *interruptor) {
+        scoped_ptr_t<multistore_ptr_t> *multistore_ptr_in) {
     guarantee(multistore_ptr_in->has());
     multistore_ptr_in->reset();
 
@@ -318,8 +320,6 @@ void real_table_persistence_interface_t::destroy_multistore(
     const int res = ::unlink(filepath.c_str());
     guarantee_err(res == 0 || get_errno() == ENOENT,
                   "unlink failed for file %s", filepath.c_str());
-
-    real_branch_history_manager_t::erase(table_id, metadata_file, interruptor);
 }
 
 serializer_filepath_t real_table_persistence_interface_t::file_name_for(

@@ -428,7 +428,7 @@ void multi_table_manager_t::on_action(
             /* Destroy files for the table before we update the metadata record, so that
             if we crash we won't leak the file. */
             persistence_interface->destroy_multistore(
-                table_id, &table->multistore_ptr, interruptor);
+                table_id, &table->multistore_ptr);
 
             logINF("Table %s: Removed replica on this server.",
                 uuid_to_str(table_id).c_str());
@@ -462,7 +462,7 @@ void multi_table_manager_t::on_action(
                 /* Destroy files for the table before we update the metadata record, so
                 that if we crash we won't leak the file. */
                 persistence_interface->destroy_multistore(
-                    table_id, &table->multistore_ptr, interruptor);
+                    table_id, &table->multistore_ptr);
 
                 logINF("Table %s: Deleted the table.", uuid_to_str(table_id).c_str());
             }
