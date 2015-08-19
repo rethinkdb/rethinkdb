@@ -89,10 +89,9 @@ template <cluster_version_t W, int N, class Variant, class T, class... Ts>
 struct variant_deserializer<W, N, Variant, T, Ts...> {
     static MUST_USE archive_result_t deserialize_variant(int n, read_stream_t *s, Variant *x) {
         if (n == N) {
-            T v;
-            archive_result_t res = deserialize<W>(s, &v);
+            *x = T();
+            archive_result_t res = deserialize<W>(s, boost::get<T>(x));
             if (bad(res)) { return res; }
-            *x = v;
 
             return archive_result_t::SUCCESS;
         } else {
