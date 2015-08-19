@@ -69,6 +69,7 @@ public class ErrorBuilder {
                             return ReqlRuntimeError::new;
                     }
                 }).orElse(ReqlRuntimeError::new);
+                break;
             }
             default:
                 con = ReqlError::new;
