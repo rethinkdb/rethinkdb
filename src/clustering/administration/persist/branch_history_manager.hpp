@@ -8,8 +8,8 @@
 class real_branch_history_manager_t : public branch_history_manager_t {
 public:
     static void erase(
+        metadata_file_t::write_txn_t *write_txn,
         const namespace_id_t &_table_id,
-        metadata_file_t *_metadata_file,
         signal_t *interruptor);
     real_branch_history_manager_t(
         const namespace_id_t &_table_id,
