@@ -69,8 +69,7 @@ public:
         perfmon_collection_t *perfmon_collection_serializers);
     void destroy_multistore(
         const namespace_id_t &table_id,
-        scoped_ptr_t<multistore_ptr_t> *multistore_ptr_in,
-        signal_t *interruptor);
+        scoped_ptr_t<multistore_ptr_t> *multistore_ptr_in);
 
     bool is_gc_active() const;
 
