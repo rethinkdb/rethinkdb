@@ -67,7 +67,7 @@ table_manager_t::table_manager_t(
     raft_readiness_subs(std::bind(&table_manager_t::on_raft_readiness_change, this))
 {
     guarantee(!raft_member_id.is_nil());
-    guarantee(!epoch.id.is_unset());
+    guarantee(!epoch.is_unset());
 
     /* Set up the initial table bcard */
     {

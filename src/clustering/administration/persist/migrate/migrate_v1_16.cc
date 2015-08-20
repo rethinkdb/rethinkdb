@@ -268,8 +268,7 @@ multi_table_manager_timestamp_t max_versioned_timestamp(const versioned_t<Args> 
     time_t ts = *std::max_element(times.begin(), times.end());
 
     multi_table_manager_timestamp_t res;
-    res.epoch.timestamp = static_cast<microtime_t>(ts < 0 ? 0 : ts);
-    res.epoch.id = generate_uuid();
+    res.epoch = multi_table_manager_timestamp_t::epoch_t::migrate(ts);
     res.log_index = 0;
     return res;
 }
