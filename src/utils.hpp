@@ -73,7 +73,7 @@ private:
 };
 
 // Reads from /dev/urandom.  Use this sparingly, please.
-void get_dev_urandom(void *out, int64_t nbytes);
+void system_random_bytes(void *out, int64_t nbytes);
 
 int randint(int n);
 uint64_t randuint64(uint64_t n);

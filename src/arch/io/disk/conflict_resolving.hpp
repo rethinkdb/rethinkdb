@@ -100,13 +100,13 @@ private:
     for B.  It could be a multimap instead, but that would mean depending on
     properties of multimaps that are not guaranteed by the C++ standard. */
 
-    std::map<fd_t, std::map<int64_t, std::deque<action_t *> > > all_chunk_queues;
+    std::map<fd_t, std::map<int64_t, std::deque<action_t *> >, compare_fds> all_chunk_queues;
 
     /* `resize_waiter_queues` contains actions that are waiting for an ongoing
     resize to finish. Right now, a resize operation blocks the whole file. */
-    std::map<fd_t, std::deque<action_t *> > resize_waiter_queues;
+    std::map<fd_t, std::deque<action_t *>, compare_fds> resize_waiter_queues;
     /* Contains an entry > 0 for as long as any resize operation is active. */
-    std::map<fd_t, int> resize_active;
+    std::map<fd_t, int, compare_fds> resize_active;
 
     perfmon_sampler_t conflict_sampler;
     perfmon_membership_t conflict_sampler_membership;

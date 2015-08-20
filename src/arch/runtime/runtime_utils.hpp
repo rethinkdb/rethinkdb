@@ -21,7 +21,15 @@ public:
     bool operator !=(const fd_t other) { return handle != other.handle; }
 
 private:
+    friend class compare_fds;
+
     HANDLE handle;
+};
+
+struct compare_fds {
+    bool operator()(const fd_t a, const fd_t b) {
+        return a.handle < b.handle;
+    }
 };
 
 #define INVALID_FD fd_t(INVALID_HANDLE_VALUE)
@@ -30,6 +38,10 @@ private:
 
 typedef int fd_t;
 #define INVALID_FD fd_t(-1)
+
+bool compare_fds(const fd_t a, const fd_t b) {
+    return a < b;
+}
 
 #endif
 

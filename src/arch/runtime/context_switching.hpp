@@ -29,7 +29,7 @@ typedef fiber_context_ref_t coro_context_ref_t;
 #include <pthread.h>
 
 #include "errors.hpp"
-
+typedef
 #include "arch/io/concurrency.hpp"
 #include "containers/scoped.hpp"
 

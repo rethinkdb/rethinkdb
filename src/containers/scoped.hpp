@@ -193,8 +193,6 @@ public:
         other.size_ = tmpsize;
     }
 
-
-
     T &operator[](size_t i) const {
         rassert(ptr_);
         rassert(i < size_);

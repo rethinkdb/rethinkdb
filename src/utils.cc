@@ -358,12 +358,12 @@ void system_random_bytes(void *out, int64_t nbytes) {
     int64_t readres = force_read(&urandom, out, nbytes);
     guarantee(readres == nbytes);
 #else
-	HCRYPTPROV hProv;
-	BOOL res = CryptAcquireContext(&hProv, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT | CRYPT_SILENT);
-	guarantee_winerr(res, "CryptAcquireContext failed");
-	defer_t cleanup([&]{ CryptReleaseContext(hProv, 0); });
-	res = CryptGenRandom(hProv, nbytes, static_cast<BYTE*>(out));
-	guarantee_winerr(res, "CryptGenRandom failed");
+    HCRYPTPROV hProv;
+    BOOL res = CryptAcquireContext(&hProv, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT | CRYPT_SILENT);
+    guarantee_winerr(res, "CryptAcquireContext failed");
+    defer_t cleanup([&]{ CryptReleaseContext(hProv, 0); });
+    res = CryptGenRandom(hProv, nbytes, static_cast<BYTE*>(out));
+    guarantee_winerr(res, "CryptGenRandom failed");
 #endif
 }
 

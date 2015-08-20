@@ -51,7 +51,7 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>gtest.lib;libprotobuf.lib;WS2_32.lib;$(ProjectDir)\..\re2\x64\Debug\re2.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>iphlpapi.lib;gtest.lib;libprotobuf.lib;WS2_32.lib;$(ProjectDir)\..\re2\x64\Debug\re2.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ForceFileOutput>UndefinedSymbolOnly</ForceFileOutput>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
     </Link>

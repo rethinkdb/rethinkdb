@@ -9,6 +9,11 @@
 #include <ifaddrs.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#else
+#pragma comment(lib, "Ws2_32.lib")
+//ATN TODO: errors in wsock without this
+#define OPTIONAL
+#include <mswsock.h>
 #endif
 
 #include <functional>

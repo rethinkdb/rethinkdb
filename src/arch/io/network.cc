@@ -1,6 +1,9 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "arch/io/network.hpp"
 
+// ATN TODO: winsock iocp is queued on success, not only on ERROR_IO_PENDING
+// see https://support.microsoft.com/en-us/kb/192800
+
 #ifndef _WIN32 // TODO ATN
 #include <arpa/inet.h>
 #include <net/if.h>
@@ -11,7 +14,12 @@
 #else
 #include "windows.hpp"
 #include <ws2tcpip.h>
-#include <mswsock.h>
+
+// ATN TODO: error in mswsock.h related to OPTIONAL
+//#define OPTIONAL
+//#include <mswsock.h>
+
+#include <iphlpapi.h>
 #endif
 #include <errno.h>
 #include <fcntl.h>
@@ -33,7 +41,7 @@
 #include "perfmon/perfmon.hpp"
 
 LPFN_CONNECTEX get_ConnectEx(SOCKET s) {
-    LPFN_CONNECTEX ConnectEx = nullptr;
+    static LPFN_CONNECTEX ConnectEx = nullptr;
     if (!ConnectEx) {
         DWORD size = 0;
         GUID id = WSAID_CONNECTEX;
@@ -42,6 +50,19 @@ LPFN_CONNECTEX get_ConnectEx(SOCKET s) {
                                   &size, nullptr, nullptr));
     }
     return ConnectEx;
+}
+
+LPFN_ACCEPTEX get_AcceptEx(SOCKET s) {
+    static LPFN_ACCEPTEX AcceptEx = nullptr;
+    if (!AcceptEx) {
+        DWORD size = 0;
+        GUID id = WSAID_ACCEPTEX;
+        guarantee_winerr(WSAIoctl(s, SIO_GET_EXTENSION_FUNCTION_POINTER,
+                                  &id, sizeof(id), &AcceptEx, sizeof(AcceptEx),
+                                  &size, nullptr, nullptr),
+                         "WSAIoctl failed");
+    }
+    return AcceptEx;
 }
 
 void async_connect(fd_t socket, sockaddr *sa, size_t sa_len,
@@ -147,16 +168,16 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &peer,
                                    int port,
                                    signal_t *interruptor,
                                    int local_port) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t) :
-        write_perfmon(NULL),
-        sock(create_socket_wrapper(peer.get_address_family())),
-        event_watcher(new event_watcher_t(sock.get(), this)),
-        read_in_progress(false), write_in_progress(false),
-        read_buffer(IO_BUFFER_SIZE),
-        write_handler(this),
-        write_queue_limiter(WRITE_QUEUE_MAX_SIZE),
-        write_coro_pool(1, &write_queue, &write_handler),
-        current_write_buffer(get_write_buffer()),
-        drainer(new auto_drainer_t) {
+write_perfmon(NULL),
+    sock(create_socket_wrapper(peer.get_address_family())),
+    event_watcher(new event_watcher_t(sock.get(), this)),
+    read_in_progress(false), write_in_progress(false),
+    read_buffer(IO_BUFFER_SIZE),
+    write_handler(this),
+    write_queue_limiter(WRITE_QUEUE_MAX_SIZE),
+                                       write_coro_pool(1, &write_queue, &write_handler),
+                                       current_write_buffer(get_write_buffer()),
+    drainer(new auto_drainer_t) {
 #ifndef _WIN32 // TODO ATN
     guarantee_err(fcntl(sock.get(), F_SETFL, O_NONBLOCK) == 0, "Could not make socket non-blocking");
 #endif
@@ -184,16 +205,16 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &peer,
 }
 
 linux_tcp_conn_t::linux_tcp_conn_t(fd_t s) :
-        write_perfmon(NULL),
-        sock(s),
-        event_watcher(new event_watcher_t(sock.get(), this)),
-        read_in_progress(false), write_in_progress(false),
-        read_buffer(IO_BUFFER_SIZE),
-        write_handler(this),
-        write_queue_limiter(WRITE_QUEUE_MAX_SIZE),
-        write_coro_pool(1, &write_queue, &write_handler),
-        current_write_buffer(get_write_buffer()),
-        drainer(new auto_drainer_t) {
+    write_perfmon(NULL),
+    sock(s),
+    event_watcher(new event_watcher_t(sock.get(), this)),
+    read_in_progress(false), write_in_progress(false),
+    read_buffer(IO_BUFFER_SIZE),
+    write_handler(this),
+    write_queue_limiter(WRITE_QUEUE_MAX_SIZE),
+    write_coro_pool(1, &write_queue, &write_handler),
+    current_write_buffer(get_write_buffer()),
+    drainer(new auto_drainer_t) {
     rassert(sock.get() != INVALID_FD);
 
 #ifndef _WIN32 // TODO ATN
@@ -280,7 +301,7 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) THROWS_ONLY(tc
 
         if (res == -1 && (get_errno() == EAGAIN || get_errno() == EWOULDBLOCK)) {
             /* There's no data available right now, so we must wait for a notification from the
-            epoll queue, or for an order to shut down. */
+               epoll queue, or for an order to shut down. */
 
             linux_event_watcher_t::watch_t watch(event_watcher.get(), poll_event_in);
             wait_any_t waiter(&watch, &read_closed);
@@ -288,7 +309,7 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) THROWS_ONLY(tc
 
             if (read_closed.is_pulsed()) {
                 /* We were closed for whatever reason. Something else has already called
-                on_shutdown_read(). In fact, we were probably signalled by on_shutdown_read(). */
+                   on_shutdown_read(). In fact, we were probably signalled by on_shutdown_read(). */
                 throw tcp_conn_read_closed_exc_t();
             }
 
@@ -296,13 +317,13 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) THROWS_ONLY(tc
 
         } else if (res == 0 || (res == -1 && (get_errno() == ECONNRESET || get_errno() == ENOTCONN))) {
             /* We were closed. This is the first notification that the kernel has given us, so we
-            must call on_shutdown_read(). */
+               must call on_shutdown_read(). */
             on_shutdown_read();
             throw tcp_conn_read_closed_exc_t();
 
         } else if (res == -1) {
             /* Unknown error. This is not expected, but it will probably happen sometime so we
-            shouldn't crash. */
+               shouldn't crash. */
             logERR("Could not read from socket: %s", errno_string(get_errno()).c_str());
             on_shutdown_read();
             throw tcp_conn_read_closed_exc_t();
@@ -438,7 +459,7 @@ void linux_tcp_conn_t::internal_flush_write_buffer() {
     rassert(write_in_progress);
 
     /* Swap in a new write buffer, and set up the old write buffer to be
-    released once the write is over. */
+       released once the write is over. */
     op->buffer = current_write_buffer->buffer;
     op->size = current_write_buffer->size;
     op->dealloc = current_write_buffer.release();
@@ -447,7 +468,7 @@ void linux_tcp_conn_t::internal_flush_write_buffer() {
     current_write_buffer.init(get_write_buffer());
 
     /* Acquire the write semaphore so the write queue doesn't get too long
-    to be released once the write is completed by the coroutine pool */
+       to be released once the write is completed by the coroutine pool */
     rassert(op->size <= WRITE_CHUNK_SIZE);
     rassert(WRITE_CHUNK_SIZE < WRITE_QUEUE_MAX_SIZE);
     write_queue_limiter.co_lock(op->size);
@@ -460,8 +481,8 @@ void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {
 
     if (write_closed.is_pulsed()) {
         /* The write end of the connection was closed, but there are still
-        operations in the write queue; we are one of those operations. Just
-        don't do anything. */
+           operations in the write queue; we are one of those operations. Just
+           don't do anything. */
         return;
     }
 
@@ -484,8 +505,8 @@ void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {
     }
     /* ATN TODO:
        if (res == -1 && (get_errno() == EPIPE || get_errno() == ENOTCONN || get_errno() == EHOSTUNREACH ||
-                         get_errno() == ENETDOWN || get_errno() == EHOSTDOWN || get_errno() == ECONNRESET)) {
-            on_shutdown_write();
+       get_errno() == ENETDOWN || get_errno() == EHOSTDOWN || get_errno() == ECONNRESET)) {
+       on_shutdown_write();
     */
     if (error != ERROR_SUCCESS) {
         logERR("Could not write to socket: %s", winerr_string(error).c_str());
@@ -503,7 +524,7 @@ void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {
 
         if (res == -1 && (get_errno() == EAGAIN || get_errno() == EWOULDBLOCK)) {
             /* Wait for a notification from the event queue, or for an order to
-            shut down */
+               shut down */
             linux_event_watcher_t::watch_t watch(event_watcher.get(), poll_event_out);
             wait_any_t waiter(&watch, &write_closed);
             waiter.wait_lazily_unordered();
@@ -556,7 +577,7 @@ void linux_tcp_conn_t::write(const void *buf, size_t size, signal_t *closer) THR
     if (current_write_buffer->size > 0) internal_flush_write_buffer();
 
     /* Don't bother acquiring the write semaphore because we're going to block
-    until the write is done anyway */
+       until the write is done anyway */
 
     /* Enqueue the write so it will happen eventually */
     op.buffer = buf;
@@ -566,8 +587,8 @@ void linux_tcp_conn_t::write(const void *buf, size_t size, signal_t *closer) THR
     write_queue.push(&op);
 
     /* Wait for the write to be done. If the write half of the network connection
-    is closed before or during our write, then `perform_write()` will turn into a
-    no-op, so the cond will still get pulsed. */
+       is closed before or during our write, then `perform_write()` will turn into a
+       no-op, so the cond will still get pulsed. */
     to_signal_when_done.wait();
 
     if (write_closed.is_pulsed()) throw tcp_conn_write_closed_exc_t();
@@ -613,10 +634,10 @@ void linux_tcp_conn_t::flush_buffer(signal_t *closer) THROWS_ONLY(tcp_conn_write
     if (current_write_buffer->size > 0) internal_flush_write_buffer();
 
     /* Wait until we know that the write buffer has gone out over the network.
-    If the write half of the connection is closed, then the call to
-    `perform_write()` that `internal_flush_write_buffer()` will turn into a no-op,
-    but the queue will continue to be pumped and so our cond will still get
-    pulsed. */
+       If the write half of the connection is closed, then the call to
+       `perform_write()` that `internal_flush_write_buffer()` will turn into a no-op,
+       but the queue will continue to be pumped and so our cond will still get
+       pulsed. */
     write_queue_op_t op;
     cond_t to_signal_when_done;
     op.buffer = NULL;
@@ -661,8 +682,8 @@ void linux_tcp_conn_t::on_shutdown_write() {
     write_closed.pulse();
 
     /* We don't flush out the write queue or stop the write coro pool explicitly.
-    But by pulsing `write_closed`, we turn all `perform_write()` operations into
-    no-ops, so in practice the write queue empties. */
+       But by pulsing `write_closed`, we turn all `perform_write()` operations into
+       no-ops, so in practice the write queue empties. */
 }
 
 bool linux_tcp_conn_t::is_write_open() const {
@@ -728,7 +749,7 @@ void linux_tcp_conn_t::on_event(int /* events */) {
     assert_thread();
 
     /* This is called by linux_event_watcher_t when error events occur. Ordinary
-    poll_event_in/poll_event_out events are not sent through this function. */
+       poll_event_in/poll_event_out events are not sent through this function. */
 
     if (is_write_open()) {
         shutdown_write();
@@ -761,8 +782,8 @@ void linux_tcp_conn_descriptor_t::make_overcomplicated(linux_tcp_conn_t **tcp_co
 
 /* Network listener object */
 linux_nonthrowing_tcp_listener_t::linux_nonthrowing_tcp_listener_t(
-        const std::set<ip_address_t> &bind_addresses, int _port,
-        const std::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t> &)> &cb) :
+                                                                   const std::set<ip_address_t> &bind_addresses, int _port,
+                                                                   const std::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t> &)> &cb) :
     callback(cb),
     local_addresses(bind_addresses),
     port(_port),
@@ -803,7 +824,7 @@ bool linux_nonthrowing_tcp_listener_t::begin_listening() {
     // Start the accept loop
     accept_loop_drainer.init(new auto_drainer_t);
     coro_t::spawn_sometime(std::bind(
-        &linux_nonthrowing_tcp_listener_t::accept_loop, this, auto_drainer_t::lock_t(accept_loop_drainer.get())));
+                                     &linux_nonthrowing_tcp_listener_t::accept_loop, this, auto_drainer_t::lock_t(accept_loop_drainer.get())));
 
     return true;
 }
@@ -856,7 +877,7 @@ int linux_nonthrowing_tcp_listener_t::init_sockets() {
          */
         res = setsockopt(sock_fd, IPPROTO_TCP, TCP_NODELAY, &sockoptval, sizeof(sockoptval));
         guarantee_err(res != -1, "Could not set TCP_NODELAY option");
-#undef
+#endif
     }
     return 0;
 }
@@ -1010,6 +1031,89 @@ void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) 
     exponential_backoff_t backoff(10, 160, 2.0, 0.5);
     fd_t active_fd = socks[0].get();
 
+#ifdef _WIN32 // TODO ATN
+    union accept_op_t { // TODO ATN: ugh
+        accept_op_t() : initialized(false) { }
+
+        accept_op_t(fd_t sock, event_watcher_t *event_watcher)
+            : initialized(true), listening_sock(sock), op(event_watcher) {
+            WSAPROTOCOL_INFO pinfo;
+            int pinfo_size = sizeof(pinfo);
+            guarantee_winerr(0 == getsockopt(sock, SOL_SOCKET, SO_PROTOCOL_INFO, reinterpret_cast<char*>(&pinfo), &pinfo_size), "getsockopt failed");
+            address_family = pinfo.iAddressFamily;
+
+            queue_accept();
+        }
+
+        ~accept_op_t() {
+            if (initialized) {
+                op.~async_operation_t();
+            }
+        }
+
+        void init(fd_t sock, event_watcher_t *event_watcher) {
+            rassert(!initialized);
+            new (this) accept_op_t(sock, event_watcher);
+        }
+
+        void queue_accept() {
+            op.reset();
+            new_sock = socket(address_family, SOCK_STREAM, IPPROTO_TCP);
+            guarantee_winerr(new_sock != INVALID_FD, "socket() failed");
+            BOOL res = get_AcceptEx(listening_sock)(listening_sock, new_sock, addresses, 0, sizeof(addresses[0]), sizeof(addresses[1]), &bytes_recieved, &op.overlapped);
+            DWORD error = GetLastError();
+            if (error != ERROR_IO_PENDING) {
+                op.error = error;
+                op.completed.pulse();
+            }
+        }
+
+        bool initialized;
+        struct {
+            bool initialized_;
+            fd_t listening_sock;
+            int address_family;
+            char addresses[INET6_ADDRSTRLEN + 16][2];
+            async_operation_t op;
+            fd_t new_sock;
+            DWORD bytes_recieved;
+        };
+    };
+
+    scoped_array_t<accept_op_t> accept_ops(socks.size());
+    for (size_t i = 0; i < socks.size(); i++) {
+        accept_ops[i].init(socks[i].get(), event_watchers[i].get());
+    }
+
+    while(!lock.get_drain_signal()->is_pulsed()) {
+        wait_any_t waiter(lock.get_drain_signal());
+        for (size_t i = 0; i < accept_ops.size(); i++) {
+            waiter.add(&accept_ops[i].op.completed);
+        }
+        waiter.wait_lazily_unordered();
+
+        if (lock.get_drain_signal()->is_pulsed()) {
+            return;
+        }
+
+        for (size_t i = 0; i < accept_ops.size(); i++) {
+            accept_op_t *accepted = &accept_ops[(i + last_used_socket_index + 1) % accept_ops.size()];
+            if (accepted->op.completed.is_pulsed()) {
+                if (accepted->op.error != ERROR_SUCCESS) {
+                    logERR("AcceptEx() failed: %s.", winerr_string(accepted->op.error).c_str());
+                    try {
+                        backoff.failure(lock.get_drain_signal());
+                    } catch (const interrupted_exc_t &) {
+                        return;
+                    }
+                } else {
+                    coro_t::spawn_now_dangerously(std::bind(&linux_nonthrowing_tcp_listener_t::handle, this, accepted->new_sock));
+                    backoff.success();
+                }
+            }
+        }
+    }
+#else
     while(!lock.get_drain_signal()->is_pulsed()) {
         fd_t new_sock = accept(active_fd, NULL, NULL);
 
@@ -1018,7 +1122,7 @@ void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) 
             backoff.success();
 
             /* Assume that if there was a problem before, it's gone now because accept()
-            is working. */
+               is working. */
             log_next_error = true;
 
         } else if (get_errno() == EAGAIN || get_errno() == EWOULDBLOCK) {
@@ -1031,7 +1135,7 @@ void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) 
             /* Unexpected error. Log it unless it's a repeat error. */
             if (log_next_error) {
                 logERR("accept() failed: %s.",
-                    errno_string(get_errno()).c_str());
+                       errno_string(get_errno()).c_str());
                 log_next_error = false;
             }
 
@@ -1043,6 +1147,7 @@ void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) 
             }
         }
     }
+#endif
 }
 
 void linux_nonthrowing_tcp_listener_t::handle(fd_t socket) {
@@ -1059,7 +1164,7 @@ linux_nonthrowing_tcp_listener_t::~linux_nonthrowing_tcp_listener_t() {
 
 void linux_nonthrowing_tcp_listener_t::on_event(int) {
     /* This is only called in cases of error; normal input events are recieved
-    via event_listener.watch(). */
+       via event_listener.watch(). */
 }
 
 void noop_fun(UNUSED const scoped_ptr_t<linux_tcp_conn_descriptor_t> &arg) { }
@@ -1075,8 +1180,8 @@ int linux_tcp_bound_socket_t::get_port() const {
 }
 
 linux_tcp_listener_t::linux_tcp_listener_t(const std::set<ip_address_t> &bind_addresses, int port,
-    const std::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t> &)> &callback) :
-        listener(new linux_nonthrowing_tcp_listener_t(bind_addresses, port, callback))
+                                           const std::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t> &)> &callback) :
+    listener(new linux_nonthrowing_tcp_listener_t(bind_addresses, port, callback))
 {
     if (!listener->begin_listening()) {
         throw address_in_use_exc_t("localhost", listener->get_port());
@@ -1084,9 +1189,9 @@ linux_tcp_listener_t::linux_tcp_listener_t(const std::set<ip_address_t> &bind_ad
 }
 
 linux_tcp_listener_t::linux_tcp_listener_t(
-    linux_tcp_bound_socket_t *bound_socket,
-    const std::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t> &)> &callback) :
-        listener(bound_socket->listener.release())
+                                           linux_tcp_bound_socket_t *bound_socket,
+                                           const std::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t> &)> &callback) :
+    listener(bound_socket->listener.release())
 {
     listener->callback = callback;
     if (!listener->begin_listening()) {
@@ -1099,10 +1204,10 @@ int linux_tcp_listener_t::get_port() const {
 }
 
 linux_repeated_nonthrowing_tcp_listener_t::linux_repeated_nonthrowing_tcp_listener_t(
-    const std::set<ip_address_t> &bind_addresses,
-    int port,
-    const std::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t> &)> &callback) :
-        listener(bind_addresses, port, callback)
+                                                                                     const std::set<ip_address_t> &bind_addresses,
+                                                                                     int port,
+                                                                                     const std::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t> &)> &callback) :
+    listener(bind_addresses, port, callback)
 { }
 
 int linux_repeated_nonthrowing_tcp_listener_t::get_port() const {
@@ -1112,7 +1217,7 @@ int linux_repeated_nonthrowing_tcp_listener_t::get_port() const {
 void linux_repeated_nonthrowing_tcp_listener_t::begin_repeated_listening_attempts() {
     auto_drainer_t::lock_t lock(&drainer);
     coro_t::spawn_sometime(
-        std::bind(&linux_repeated_nonthrowing_tcp_listener_t::retry_loop, this, lock));
+                           std::bind(&linux_repeated_nonthrowing_tcp_listener_t::retry_loop, this, lock));
 }
 
 void linux_repeated_nonthrowing_tcp_listener_t::retry_loop(auto_drainer_t::lock_t lock) {
@@ -1123,8 +1228,8 @@ void linux_repeated_nonthrowing_tcp_listener_t::retry_loop(auto_drainer_t::lock_
              !bound;
              retry_interval = std::min(10, retry_interval + 2)) {
             logNTC("Will retry binding to port %d in %d seconds.\n",
-                    listener.get_port(),
-                    retry_interval);
+                   listener.get_port(),
+                   retry_interval);
             nap(retry_interval * 1000, lock.get_drain_signal());
             bound = listener.begin_listening();
         }
@@ -1142,6 +1247,45 @@ signal_t *linux_repeated_nonthrowing_tcp_listener_t::get_bound_signal() {
 std::vector<std::string> get_ips() {
     std::vector<std::string> ret;
 
+#ifdef _WIN32 // TODO ATN
+    // TODO ATN: see example here: https://msdn.microsoft.com/en-us/library/windows/desktop/aa365915(v=vs.85).aspx
+    const ULONG SIZE_INCREMENT = 15000;
+    scoped_malloc_t<IP_ADAPTER_ADDRESSES> addresses_buffer;
+    UINT res;
+    for (int i = 1; i < 10; i++) {
+        ULONG buf_size = i * SIZE_INCREMENT;
+        addresses_buffer = scoped_malloc_t<IP_ADAPTER_ADDRESSES>(buf_size);
+        res = GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER, nullptr, addresses_buffer.get(), &buf_size);
+        if (res != ERROR_BUFFER_OVERFLOW) {
+            break;
+        }
+    }
+    guarantee_winerr(res == NO_ERROR, "GetAdaptersAddresses failed");
+    for (IP_ADAPTER_ADDRESSES *addresses = addresses_buffer.get(); addresses != nullptr; addresses = addresses->Next) {
+        for (IP_ADAPTER_UNICAST_ADDRESS *unicast = addresses->FirstUnicastAddress; unicast != nullptr; unicast = unicast->Next) {
+            SOCKADDR *addr = unicast->Address.lpSockaddr;
+            char buf[INET6_ADDRSTRLEN];
+            const char *str;
+            switch (addr->sa_family) {
+            case AF_INET: {
+                auto sa = reinterpret_cast<sockaddr_in*>(addr);
+                str = InetNtop(AF_INET, &sa->sin_addr, buf, sizeof(buf));
+                break;
+            }
+            case AF_INET6: {
+                auto sa6 = reinterpret_cast<sockaddr_in6*>(addr);
+                str = InetNtop(AF_INET6, &sa6->sin6_addr, buf, sizeof(buf));
+                break;
+            }
+            default:
+                // ATN TODO: what to do with unsupported address family or AF_UNSPEC?
+                continue;
+            }
+            guarantee_winerr(str != nullptr, "InetNtop failed");
+            ret.emplace_back(str);
+        }
+    }
+#else
     struct ifaddrs *if_addrs = NULL;
     int addr_res = getifaddrs(&if_addrs);
     guarantee_err(addr_res == 0, "getifaddrs failed, could not determine local ip addresses");
@@ -1179,6 +1323,7 @@ std::vector<std::string> get_ips() {
     }
 
     freeifaddrs(if_addrs);
+#endif
 
     return ret;
 }

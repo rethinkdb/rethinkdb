@@ -6,12 +6,6 @@
 #include "containers/archive/socket_stream.hpp"
 #include "errors.hpp"
 
-
-int64_t socket_stream_t::read(void*, int64_t) {
-  rassert(false, "ATN TODO");
-  return 0;
-}
-
 #else
 
 #include <fcntl.h>

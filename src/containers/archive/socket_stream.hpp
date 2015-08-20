@@ -13,10 +13,10 @@ class socket_stream_t :
     public read_stream_t,
     public write_stream_t {
 public:
-    socket_stream_t(int, bool);
-    int64_t read(void*, int64_t);
-    int64_t write(const void*, int64_t);
-    void set_interruptor(signal_t*);
+    socket_stream_t(fd_t, bool) { rassert(false, "ATN TODO: socket_stream"); }
+    int64_t read(void*, int64_t) { rassert(false, "ATN TODO: socket_stream"); return 0; }
+    int64_t write(const void*, int64_t) { rassert(false, "ATN TODO: socket_stream"); return 0; }
+    void set_interruptor(signal_t*) { rassert(false, "ATN TODO: socket_stream"); }
 };
 
 class blocking_fd_watcher_t {

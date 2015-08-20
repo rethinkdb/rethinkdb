@@ -16,7 +16,8 @@ class windows_event_watcher_t;
 struct async_operation_t {
     async_operation_t(windows_event_watcher_t *ew) : error_handler(ew) { }
 
-    // should be called exactly once
+    void reset() { completed.reset(); }
+
     void set_result(size_t nb_bytes_, DWORD error_);
 
     OVERLAPPED overlapped;           // Used by Windows to track the queued operation
