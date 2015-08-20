@@ -124,6 +124,8 @@ public:
     }
 
     ~real_multistore_ptr_t() {
+        map_insertion_sentry.reset();
+        drainer.drain();
         pmap(CPU_SHARDING_FACTOR, [this](int ix) {
             if (stores[ix].has()) {
                 on_thread_t thread_switcher(stores[ix]->home_thread());
@@ -144,7 +146,7 @@ public:
     }
 
     serializer_t *get_serializer() {
-        return serializer.get();
+        return serializer.get_or_null();
     }
 
     store_view_t *get_cpu_sharded_store(size_t i) {
@@ -156,6 +158,7 @@ public:
     }
 
     bool is_gc_active() {
+        rassert(!drainer.is_draining());
         if (serializer.has()) {
             return serializer->is_gc_active();
         } else {
