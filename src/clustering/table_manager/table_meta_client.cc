@@ -280,7 +280,8 @@ void table_meta_client_t::create(
     create_or_emergency_repair(
         table_id,
         make_new_table_raft_state(initial_config),
-        current_microtime(),
+        multi_table_manager_timestamp_t::epoch_t::make(
+            multi_table_manager_timestamp_t::epoch_t::min()),
         &interruptor);
 }
 
@@ -495,20 +496,20 @@ void table_meta_client_t::emergency_repair(
 
         /* Fetch the table's current epoch's timestamp to make sure that the new epoch
         has a higher timestamp, even if the server's clock is wrong. */
-        microtime_t old_epoch_timestamp;
+        multi_table_manager_timestamp_t::epoch_t old_epoch;
         multi_table_manager->get_table_basic_configs()->read_key(table_id,
             [&](const std::pair<table_basic_config_t,
                     multi_table_manager_timestamp_t> *pair) {
                 if (pair == nullptr) {
                     throw no_such_table_exc_t();
                 }
-                old_epoch_timestamp = pair->second.epoch.timestamp;
+                old_epoch = pair->second.epoch;
             });
 
         create_or_emergency_repair(
             table_id,
             new_state,
-            std::max(current_microtime(), old_epoch_timestamp + 1),
+            multi_table_manager_timestamp_t::epoch_t::make(old_epoch),
             &interruptor);
     }
 }
@@ -516,7 +517,7 @@ void table_meta_client_t::emergency_repair(
 void table_meta_client_t::create_or_emergency_repair(
         const namespace_id_t &table_id,
         const table_raft_state_t &raft_state,
-        microtime_t epoch_timestamp,
+        const multi_table_manager_timestamp_t::epoch_t &epoch,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, failed_table_op_exc_t,
             maybe_failed_table_op_exc_t) {
@@ -524,8 +525,7 @@ void table_meta_client_t::create_or_emergency_repair(
 
     /* Prepare the message that we'll be sending to each server */
     multi_table_manager_timestamp_t timestamp;
-    timestamp.epoch.timestamp = epoch_timestamp;
-    timestamp.epoch.id = generate_uuid();
+    timestamp.epoch = epoch;
     timestamp.log_index = 0;
 
     std::set<server_id_t> all_servers, voting_servers;

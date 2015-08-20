@@ -209,7 +209,7 @@ private:
     void create_or_emergency_repair(
         const namespace_id_t &table_id,
         const table_raft_state_t &raft_state,
-        microtime_t epoch_timestamp,
+        const multi_table_manager_timestamp_t::epoch_t &epoch,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, failed_table_op_exc_t,
             maybe_failed_table_op_exc_t);
