@@ -426,7 +426,6 @@ void check_for_obsolete_sindexes(io_backender_t *io_backender,
                                       nullptr,
                                       io_backender,
                                       base_path,
-                                      scoped_ptr_t<outdated_index_report_t>(),
                                       info.first);
 
                         store.sindex_list(interruptor);
@@ -474,7 +473,6 @@ void migrate_tables(io_backender_t *io_backender,
                                       nullptr,
                                       io_backender,
                                       base_path,
-                                      scoped_ptr_t<outdated_index_report_t>(),
                                       info.first);
 
                         if (index == 0) {

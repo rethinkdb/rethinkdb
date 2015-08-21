@@ -85,16 +85,12 @@ store_t::store_t(const region_t &region,
                  rdb_context_t *_ctx,
                  io_backender_t *io_backender,
                  const base_path_t &base_path,
-                 /* TODO: We should track outdated indexes by looking at the Raft state,
-                 not by looking at the `store_t`. */
-                 scoped_ptr_t<outdated_index_report_t> &&_index_report,
                  namespace_id_t _table_id)
     : store_view_t(region),
       perfmon_collection(),
       io_backender_(io_backender), base_path_(base_path),
       perfmon_collection_membership(parent_perfmon_collection, &perfmon_collection, perfmon_name),
       ctx(_ctx),
-      index_report(std::move(_index_report)),
       table_id(_table_id),
       write_superblock_acq_semaphore(WRITE_SUPERBLOCK_ACQ_WAITERS_LIMIT)
 {
@@ -164,8 +160,6 @@ store_t::store_t(const region_t &region,
             secondary_index_slices.insert(std::make_pair(it->second.id,
                                                          std::move(slice)));
         }
-
-        update_outdated_sindex_list(&sindex_block);
     }
 
     help_construct_bring_sindexes_up_to_date();
@@ -422,10 +416,6 @@ void store_t::sindex_rename_multi(
         set_secondary_index(&sindex_block, sindex_name_t(pair.first), pair.second.first);
         pair.second.second->rename(&perfmon_collection, "index-" + pair.first);
     }
-
-    if (index_report.has()) {
-        index_report->indexes_renamed(name_changes);
-    }
 }
 
 void store_t::sindex_drop(
@@ -456,10 +446,6 @@ void store_t::sindex_drop(
                                      this,
                                      sindex,
                                      drainer.lock()));
-
-    if (index_report.has()) {
-        index_report->index_dropped(name);
-    }
 }
 
 new_mutex_in_line_t store_t::get_in_line_for_sindex_queue(buf_lock_t *sindex_block) {

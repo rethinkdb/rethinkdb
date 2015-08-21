@@ -13,6 +13,7 @@
 #include "concurrency/watchable.hpp"
 #include "clustering/administration/issues/local.hpp"
 #include "clustering/administration/issues/name_collision.hpp"
+#include "clustering/administration/issues/outdated_index.hpp"
 #include "clustering/administration/issues/table.hpp"
 
 class namespace_repo_t;
@@ -67,6 +68,7 @@ private:
     local_issue_client_t local_issue_client;
     name_collision_issue_tracker_t name_collision_issue_tracker;
     table_issue_tracker_t table_issue_tracker;
+    outdated_index_issue_tracker_t outdated_index_issue_tracker;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_ISSUES_ISSUES_BACKEND_HPP_ */
