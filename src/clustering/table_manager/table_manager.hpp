@@ -77,9 +77,9 @@ private:
     private:
         void on_set_config(
             signal_t *interruptor,
-            const table_config_and_shards_t &new_config_and_shards,
+            const table_config_and_shards_change_t &table_config_and_shards_change,
             const mailbox_t<void(
-                boost::optional<multi_table_manager_timestamp_t>
+                boost::optional<multi_table_manager_timestamp_t>, bool
                 )>::address_t &reply_addr);
 
         table_manager_t * const parent;

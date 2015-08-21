@@ -340,10 +340,10 @@ void table_meta_client_t::drop(
 
 void table_meta_client_t::set_config(
         const namespace_id_t &table_id,
-        const table_config_and_shards_t &new_config,
+        const table_config_and_shards_change_t &table_config_and_shards_change,
         signal_t *interruptor_on_caller)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,
-            maybe_failed_table_op_exc_t) {
+            maybe_failed_table_op_exc_t, config_change_exc_t) {
     cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
 
@@ -392,14 +392,18 @@ void table_meta_client_t::set_config(
                 });
 
         /* OK, now send the change and wait for a reply, or for something to go wrong */
-        promise_t<boost::optional<multi_table_manager_timestamp_t> > promise;
-        mailbox_t<void(boost::optional<multi_table_manager_timestamp_t>)>
+        promise_t<std::pair<boost::optional<multi_table_manager_timestamp_t>, bool> > promise;
+        mailbox_t<void(boost::optional<multi_table_manager_timestamp_t>, bool)>
             ack_mailbox(mailbox_manager,
-            [&](signal_t *, const boost::optional<
-                    multi_table_manager_timestamp_t> &res) {
-                promise.pulse(res);
+            [&](signal_t *,
+                    const boost::optional<multi_table_manager_timestamp_t> &change_timestamp,
+                    bool is_change_successful) {
+                promise.pulse(std::make_pair(change_timestamp, is_change_successful));
             });
-        send(mailbox_manager, best_mailbox, new_config, ack_mailbox.get_address());
+        send(mailbox_manager,
+             best_mailbox,
+             table_config_and_shards_change,
+             ack_mailbox.get_address());
         wait_any_t done_cond(promise.get_ready_signal(),
             &leader_disconnected, &leader_stopped);
         wait_interruptible(&done_cond, interruptor2);
@@ -408,12 +412,14 @@ void table_meta_client_t::set_config(
         }
 
         /* Sometimes the server will reply by indicating that something went wrong */
-        boost::optional<multi_table_manager_timestamp_t> maybe_timestamp =
+        std::pair<boost::optional<multi_table_manager_timestamp_t>, bool> response =
             promise.wait();
-        if (!static_cast<bool>(maybe_timestamp)) {
+        if (response.second == false) {
+            throw config_change_exc_t();
+        } else if (!static_cast<bool>(response.first)) {
             throw maybe_failed_table_op_exc_t();
         }
-        timestamp = *maybe_timestamp;
+        timestamp = response.first.get();
     }, &interruptor);
 
     /* We know for sure that the change has been applied; now we just need to wait until
@@ -425,8 +431,7 @@ void table_meta_client_t::set_config(
         table_id,
         [&](const timestamped_basic_config_t *value) {
             return value == nullptr || value->second.supersedes(timestamp) ||
-                (value->first.name == new_config.config.basic.name &&
-                    value->first.database == new_config.config.basic.database);
+                table_config_and_shards_change.name_and_database_equal(value->first);
         },
         &interruptor);
 }

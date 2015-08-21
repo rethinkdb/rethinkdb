@@ -248,14 +248,6 @@ private:
             THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t,
                 failed_table_op_exc_t, maybe_failed_table_op_exc_t, admin_op_exc_t);
 
-    void sindex_change_internal(
-            const counted_t<const ql::db_t> &db,
-            const name_string_t &table_name,
-            const std::function<void(std::map<std::string, sindex_config_t> *)> &cb,
-            signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t,
-                failed_table_op_exc_t, maybe_failed_table_op_exc_t, admin_op_exc_t);
-
     DISABLE_COPYING(real_reql_cluster_interface_t);
 };
 
