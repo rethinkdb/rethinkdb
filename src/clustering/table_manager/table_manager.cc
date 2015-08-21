@@ -189,24 +189,30 @@ table_manager_t::leader_t::~leader_t() {
 
 void table_manager_t::leader_t::on_set_config(
         signal_t *interruptor,
-        const table_config_and_shards_t &new_config,
+        const table_config_and_shards_change_t &table_config_and_shards_change,
         const mailbox_t<void(
-            boost::optional<multi_table_manager_timestamp_t>
+            boost::optional<multi_table_manager_timestamp_t>, bool
             )>::address_t &reply_addr) {
     logINF("Table %s: Configuration is changing.",
         uuid_to_str(parent->table_id).c_str());
+    bool is_change_successful = false;
     boost::optional<raft_log_index_t> result = coordinator.change_config(
-        [&](table_config_and_shards_t *config) { *config = new_config; },
+        [&](table_config_and_shards_t *config_and_shards) {
+            is_change_successful =
+                table_config_and_shards_change.apply_change(config_and_shards);
+        },
         interruptor);
-    if (static_cast<bool>(result)) {
+    if (static_cast<bool>(result) && is_change_successful) {
         multi_table_manager_timestamp_t timestamp;
         timestamp.epoch = parent->epoch;
         timestamp.log_index = *result;
         send(parent->mailbox_manager, reply_addr,
-            boost::make_optional(timestamp));
+            boost::make_optional(timestamp), true);
     } else {
+        /* If `is_change_successful` is false the change was considered a no-op and the
+        returned log_index is that of the last change, which we safely ignore. */
         send(parent->mailbox_manager, reply_addr,
-            boost::optional<multi_table_manager_timestamp_t>());
+            boost::optional<multi_table_manager_timestamp_t>(), is_change_successful);
     }
 }
 

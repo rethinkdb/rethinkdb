@@ -265,8 +265,8 @@ public:
         commit. If something goes wrong, it returns an empty `boost::optional`, in which
         case the change may or may not eventually be committed. */
         typedef mailbox_t<void(
-            table_config_and_shards_t new_config_and_shards,
-            mailbox_t<void(boost::optional<multi_table_manager_timestamp_t>
+            table_config_and_shards_change_t config_and_shards_change,
+            mailbox_t<void(boost::optional<multi_table_manager_timestamp_t>, bool
                 )>::address_t reply_addr
             )> set_config_mailbox_t;
         set_config_mailbox_t::address_t set_config_mailbox;
