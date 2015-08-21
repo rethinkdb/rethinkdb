@@ -4,12 +4,12 @@
 #include <algorithm>
 #include <array>
 
-#include "clustering/administration/issues/outdated_index.hpp"
 #include "clustering/administration/persist/branch_history_manager.hpp"
 #include "clustering/administration/persist/file_keys.hpp"
 #include "clustering/administration/persist/raft_storage_interface.hpp"
 #include "clustering/administration/perfmon_collection_repo.hpp"
 #include "logger.hpp"
+#include "rdb_protocol/store.hpp"
 #include "serializer/log/log_serializer.hpp"
 #include "serializer/merger.hpp"
 #include "serializer/translator.hpp"
@@ -25,7 +25,6 @@ public:
             io_backender_t *io_backender,
             cache_balancer_t *cache_balancer,
             rdb_context_t *rdb_context,
-            outdated_index_issue_tracker_t *outdated_index_issue_tracker,
             perfmon_collection_t *perfmon_collection_serializers,
             threadnum_t serializer_thread,
             const std::vector<threadnum_t> &store_threads,
@@ -82,12 +81,6 @@ public:
 
             on_thread_t thread_switcher_2(store_threads[ix]);
 
-            // Only pass this down to the first store
-            scoped_ptr_t<outdated_index_report_t> index_report;
-            if (ix == 0) {
-                index_report = outdated_index_issue_tracker->create_report(table_id);
-            }
-
             stores[ix].init(new store_t(
                 cpu_sharding_subspace(ix),
                 multiplexer->proxies[ix],
@@ -98,7 +91,6 @@ public:
                 rdb_context,
                 io_backender,
                 base_path,
-                std::move(index_report),
                 table_id));
 
             /* Initialize the metainfo if necessary */
@@ -294,7 +286,6 @@ void real_table_persistence_interface_t::load_multistore(
         io_backender,
         cache_balancer,
         rdb_context,
-        outdated_index_issue_tracker,
         perfmon_collection_serializers,
         serializer_thread,
         store_threads,

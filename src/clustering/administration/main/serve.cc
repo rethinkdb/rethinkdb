@@ -10,7 +10,6 @@
 #include "clustering/administration/artificial_reql_cluster_interface.hpp"
 #include "clustering/administration/http/server.hpp"
 #include "clustering/administration/issues/local.hpp"
-#include "clustering/administration/issues/outdated_index.hpp"
 #include "clustering/administration/jobs/manager.hpp"
 #include "clustering/administration/logs/log_writer.hpp"
 #include "clustering/administration/main/initial_join.hpp"
@@ -270,20 +269,17 @@ bool do_serve(io_backender_t *io_backender,
             helps it by constructing the B-trees and serializers, and also persisting
             table-related metadata to disk. */
             scoped_ptr_t<cache_balancer_t> cache_balancer;
-            scoped_ptr_t<outdated_index_issue_tracker_t> outdated_index_issue_tracker;
             scoped_ptr_t<real_table_persistence_interface_t>
                 table_persistence_interface;
             scoped_ptr_t<multi_table_manager_t> multi_table_manager;
             if (i_am_a_server) {
                 cache_balancer.init(new alt_cache_balancer_t(
                     server_config_server->get_actual_cache_size_bytes()));
-                outdated_index_issue_tracker.init(new outdated_index_issue_tracker_t);
                 table_persistence_interface.init(
                     new real_table_persistence_interface_t(
                         io_backender,
                         cache_balancer.get(),
                         base_path,
-                        outdated_index_issue_tracker.get(),
                         &rdb_ctx,
                         metadata_file));
                 multi_table_manager.init(new multi_table_manager_t(
@@ -342,6 +338,12 @@ bool do_serve(io_backender_t *io_backender,
                 real_reql_cluster_interface.get_namespace_repo(),
                 &mailbox_manager);
 
+            /* Kick off a coroutine to log any outdated indexes. */
+            outdated_index_issue_tracker_t::log_outdated_indexes(
+                multi_table_manager.get(),
+                semilattice_manager_cluster.get_root_view()->get(),
+                stop_cond);
+
             /* `jobs_manager_t` keeps track of all of the running jobs on this server.
             When the user reads the `rethinkdb.jobs` table, it sends messages to the
             `jobs_manager_t` on each server to get information about running jobs. */
@@ -381,8 +383,7 @@ bool do_serve(io_backender_t *io_backender,
             if (i_am_a_server) {
                 local_issue_server.init(new local_issue_server_t(
                     &mailbox_manager,
-                    log_writer.get_log_write_issue_tracker(),
-                    outdated_index_issue_tracker.get()));
+                    log_writer.get_log_write_issue_tracker()));
             }
 
             proc_directory_metadata_t initial_proc_directory {

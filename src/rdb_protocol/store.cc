@@ -50,24 +50,6 @@ reql_version_t update_sindex_last_compatible_version(secondary_index_t *sindex,
     return res;
 }
 
-void store_t::update_outdated_sindex_list(buf_lock_t *sindex_block) {
-    if (index_report.has()) {
-        std::map<sindex_name_t, secondary_index_t> sindexes;
-        get_secondary_indexes(sindex_block, &sindexes);
-
-        std::set<std::string> index_set;
-        for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
-            if (!it->first.being_deleted &&
-                update_sindex_last_compatible_version(&it->second,
-                                                      sindex_block) !=
-                    reql_version_t::LATEST) {
-                index_set.insert(it->first.name);
-            }
-        }
-        index_report->set_outdated_indexes(std::move(index_set));
-    }
-}
-
 void store_t::help_construct_bring_sindexes_up_to_date() {
     // Make sure to continue bringing sindexes up-to-date if it was interrupted earlier
 

@@ -144,7 +144,7 @@ public:
 
     /* Calls `callable` on the specific table, if it's available. `callable`'s signature
     must be:
-        void(multistore_ptr_t *, table_manager_t *
+        void(multistore_ptr_t *, table_manager_t *)
     If the table doesn't exist or is not active on this server, calls `callable` with
     null pointers. */
     template <typename F>

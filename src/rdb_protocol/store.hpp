@@ -69,20 +69,6 @@ public:
     virtual const value_deleter_t *post_deleter() const = 0;
 };
 
-class outdated_index_report_t {
-public:
-    outdated_index_report_t() { }
-    virtual ~outdated_index_report_t() { }
-
-    // Called during store_t instantiation
-    virtual void set_outdated_indexes(std::set<std::string> &&indexes) = 0;
-
-    // Called when indexes change during store_t lifetime
-    virtual void index_dropped(const std::string &index_name) = 0;
-    virtual void indexes_renamed(
-        const std::map<std::string, std::string> &name_changes) = 0;
-};
-
 class store_t final : public store_view_t {
 public:
     using home_thread_mixin_t::assert_thread;
@@ -96,7 +82,6 @@ public:
             rdb_context_t *_ctx,
             io_backender_t *io_backender,
             const base_path_t &base_path,
-            scoped_ptr_t<outdated_index_report_t> &&_index_report,
             namespace_id_t table_id);
     ~store_t();
 
@@ -250,8 +235,6 @@ public:
         uuid_u id,
         buf_lock_t *sindex_block)
     THROWS_NOTHING;
-
-    void update_outdated_sindex_list(buf_lock_t *sindex_block);
 
     MUST_USE bool acquire_sindex_superblock_for_read(
             const sindex_name_t &name,
@@ -433,10 +416,6 @@ public:
         }
         return nullptr;
     }
-
-    // This report is used by the outdated index issue tracker, and should be updated
-    // any time the set of outdated indexes for this table changes
-    scoped_ptr_t<outdated_index_report_t> index_report;
 
 private:
     namespace_id_t table_id;
