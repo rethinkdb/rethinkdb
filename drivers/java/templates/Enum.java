@@ -1,4 +1,4 @@
-package com.rethinkdb.proto;
+package com.rethinkdb.${package};
 
 public enum ${classname} {
 

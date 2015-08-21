@@ -33,36 +33,4 @@ public class Db extends ReqlAst {
     }
 
 
-    public Table table(java.lang.Object... fields) {
-        return new Table(this, new Arguments(fields), new OptArgs());
-    }
-
-    public TableCreate tableCreate(java.lang.Object... fields) {
-        return new TableCreate(this, new Arguments(fields), new OptArgs());
-    }
-
-    public TableDrop tableDrop(java.lang.Object... fields) {
-        return new TableDrop(this, new Arguments(fields), new OptArgs());
-    }
-
-    public TableList tableList(java.lang.Object... fields) {
-        return new TableList(this, new Arguments(fields), new OptArgs());
-    }
-
-    public Config config(java.lang.Object... fields) {
-        return new Config(this, new Arguments(fields), new OptArgs());
-    }
-
-    public Wait wait(java.lang.Object... fields) {
-        return new Wait(this, new Arguments(fields), new OptArgs());
-    }
-
-    public Reconfigure reconfigure(java.lang.Object... fields) {
-        return new Reconfigure(this, new Arguments(fields), new OptArgs());
-    }
-
-    public Rebalance rebalance(java.lang.Object... fields) {
-        return new Rebalance(this, new Arguments(fields), new OptArgs());
-    }
-
 }

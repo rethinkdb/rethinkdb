@@ -18,7 +18,7 @@
     "JAVASCRIPT": {
         "alias": "js",
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [["T_EXPR"]],
         "optargs": {
@@ -28,14 +28,14 @@
     },
     "UUID": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [[]],
         "id": 169
     },
     "HTTP": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [["T_EXPR"]],
         "optargs": {
@@ -58,7 +58,7 @@
     },
     "ERROR": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [["T_EXPR"]],
         "id": 12
@@ -66,22 +66,22 @@
     "IMPLICIT_VAR": {
         "alias": "row",
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [[]],
         "id": 13
     },
     "DB": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [["T_EXPR"]],
         "id": 14
     },
     "TABLE": {
         "include_in": [
-            "top",
-            "db"
+            "T_TOP_LEVEL",
+            "T_DB"
         ],
         "signatures": [
             ["T_EXPR"],
@@ -95,14 +95,14 @@
     },
     "GET": {
         "include_in": [
-            "table"
+            "T_TABLE"
         ],
         "signatures": [["T_TABLE", "T_EXPR"]],
         "id": 16
     },
     "GET_ALL": {
         "include_in": [
-            "table"
+            "T_TABLE"
         ],
         "signatures": [["T_TABLE", "T_EXPR", "*"]],
         "optargs": {
@@ -114,8 +114,8 @@
         "binop": true,
         "comparison": true,
         "include_in": [
-            "top",
-            "query"
+            "T_TOP_LEVEL",
+            "T_EXPR"
         ],
         "signatures": [["T_EXPR", "T_EXPR", "T_EXPR", "*"]],
         "id": 17
@@ -124,8 +124,8 @@
         "binop": true,
         "comparison": true,
         "include_in": [
-            "top",
-            "query"
+            "T_TOP_LEVEL",
+            "T_EXPR"
         ],
         "signatures": [["T_EXPR", "T_EXPR", "T_EXPR", "*"]],
         "id": 18
@@ -134,8 +134,8 @@
         "binop": true,
         "comparison": true,
         "include_in": [
-            "top",
-            "query"
+            "T_TOP_LEVEL",
+            "T_EXPR"
         ],
         "signatures": [["T_EXPR", "T_EXPR", "T_EXPR", "*"]],
         "id": 19
@@ -144,8 +144,8 @@
         "binop": true,
         "comparison": true,
         "include_in": [
-            "top",
-            "query"
+            "T_TOP_LEVEL",
+            "T_EXPR"
         ],
         "signatures": [["T_EXPR", "T_EXPR", "T_EXPR", "*"]],
         "id": 20
@@ -154,8 +154,8 @@
         "binop": true,
         "comparison": true,
         "include_in": [
-            "top",
-            "query"
+            "T_TOP_LEVEL",
+            "T_EXPR"
         ],
         "signatures": [["T_EXPR", "T_EXPR", "T_EXPR", "*"]],
         "id": 21
@@ -164,16 +164,16 @@
         "binop": true,
         "comparison": true,
         "include_in": [
-            "top",
-            "query"
+            "T_TOP_LEVEL",
+            "T_EXPR"
         ],
         "signatures": [["T_EXPR", "T_EXPR", "T_EXPR", "*"]],
         "id": 22
     },
     "NOT": {
         "include_in": [
-            "top",
-            "query"
+            "T_TOP_LEVEL",
+            "T_EXPR"
         ],
         "signatures": [["T_EXPR"]],
         "id": 23
@@ -181,8 +181,8 @@
     "ADD": {
         "binop": true,
         "include_in": [
-            "top",
-            "query"
+            "T_TOP_LEVEL",
+            "T_EXPR"
         ],
         "signatures": [["T_EXPR", "T_EXPR", "*"]],
         "id": 24
@@ -190,8 +190,8 @@
     "SUB": {
         "binop": true,
         "include_in": [
-            "top",
-            "query"
+            "T_TOP_LEVEL",
+            "T_EXPR"
         ],
         "signatures": [["T_EXPR", "T_EXPR", "*"]],
         "id": 25
@@ -199,8 +199,8 @@
     "MUL": {
         "binop": true,
         "include_in": [
-            "top",
-            "query"
+            "T_TOP_LEVEL",
+            "T_EXPR"
         ],
         "signatures": [["T_EXPR", "T_EXPR", "*"]],
         "id": 26
@@ -208,8 +208,8 @@
     "DIV": {
         "binop": true,
         "include_in": [
-            "top",
-            "query"
+            "T_TOP_LEVEL",
+            "T_EXPR"
         ],
         "signatures": [["T_EXPR", "T_EXPR", "*"]],
         "id": 27
@@ -217,8 +217,8 @@
     "MOD": {
         "binop": true,
         "include_in": [
-            "top",
-            "query"
+            "T_TOP_LEVEL",
+            "T_EXPR"
         ],
         "signatures": [["T_EXPR", "T_EXPR"]],
         "id": 28
@@ -305,7 +305,7 @@
     },
     "OBJECT": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [["T_EXPR", "*"]],
         "id": 143
@@ -338,7 +338,7 @@
         "id": 36
     },
     "BETWEEN": {
-        "include_in": ["table"],
+        "include_in": ["T_TABLE"],
         "signatures": [["T_TABLE", "T_EXPR", "T_EXPR"]],
         "optargs": {
             "index": "T_STR",
@@ -353,8 +353,8 @@
     },
     "MAP": {
         "include_in": [
-            "top",
-            "query"
+            "T_TOP_LEVEL",
+            "T_EXPR"
         ],
         "signatures": [
             ["T_EXPR", "T_EXPR", "*", "T_FUNCX"]
@@ -400,8 +400,8 @@
     },
     "UNION": {
         "include_in": [
-            "top",
-            "query"
+            "T_TOP_LEVEL",
+            "T_EXPR"
         ],
         "signatures": [["T_EXPR", "*"]],
         "id": 44
@@ -438,7 +438,7 @@
     },
     "RANGE": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [
             [],
@@ -472,8 +472,8 @@
     },
     "TYPE_OF": {
         "include_in": [
-            "top",
-            "query"
+            "T_TOP_LEVEL",
+            "T_EXPR"
         ],
         "signatures": [["T_EXPR"]],
         "id": 52
@@ -512,7 +512,7 @@
     },
     "INSERT": {
         "include_in": [
-            "table"
+            "T_TABLE"
         ],
         "signatures": [["T_TABLE", "T_EXPR"]],
         "optargs": {
@@ -524,29 +524,29 @@
     },
     "DB_CREATE": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [["T_EXPR", "T_EXPR"]],
         "id": 57
     },
     "DB_DROP": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [["T_EXPR", "T_EXPR"]],
         "id": 58
     },
     "DB_LIST": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [[]],
         "id": 59
     },
     "TABLE_CREATE": {
         "include_in": [
-            "top",
-            "db"
+            "T_TOP_LEVEL",
+            "T_DB"
         ],
         "signatures": [["T_DB", "T_EXPR"]],
         "optargs": {
@@ -560,8 +560,8 @@
     },
     "TABLE_DROP": {
         "include_in": [
-            "top",
-            "db"
+            "T_TOP_LEVEL",
+            "T_DB"
         ],
         "signatures": [
             ["T_EXPR"],
@@ -571,16 +571,16 @@
     },
     "TABLE_LIST": {
         "include_in": [
-            "top",
-            "db"
+            "T_TOP_LEVEL",
+            "T_DB"
         ],
         "signatures": [["T_DB"]],
         "id": 62
     },
     "CONFIG": {
         "include_in": [
-            "db",
-            "table"
+            "T_DB",
+            "T_TABLE"
         ],
         "signatures": [
             ["T_DB"],
@@ -590,16 +590,16 @@
     },
     "STATUS": {
         "include_in": [
-            "table"
+            "T_TABLE"
         ],
         "signatures": [["T_TABLE"]],
         "id": 175
     },
     "WAIT": {
         "include_in": [
-            "top",
-            "db",
-            "table"
+            "T_TOP_LEVEL",
+            "T_DB",
+            "T_TABLE"
         ],
         "signatures": [
             [],
@@ -614,9 +614,9 @@
     },
     "RECONFIGURE": {
         "include_in": [
-            "top",
-            "db",
-            "table"
+            "T_TOP_LEVEL",
+            "T_DB",
+            "T_TABLE"
         ],
         "signatures": [
             [],
@@ -635,9 +635,9 @@
     },
     "REBALANCE": {
         "include_in": [
-            "top",
-            "db",
-            "table"
+            "T_TOP_LEVEL",
+            "T_DB",
+            "T_TABLE"
         ],
         "signatures": [
             [],
@@ -648,14 +648,14 @@
     },
     "SYNC": {
         "include_in": [
-            "table"
+            "T_TABLE"
         ],
         "signatures": [["T_TABLE"]],
         "id": 138
     },
     "INDEX_CREATE": {
         "include_in": [
-            "table"
+            "T_TABLE"
         ],
         "signatures": [
             ["T_TABLE", "T_EXPR"],
@@ -669,35 +669,35 @@
     },
     "INDEX_DROP": {
         "include_in": [
-            "table"
+            "T_TABLE"
         ],
         "signatures": [["T_TABLE", "T_EXPR"]],
         "id": 76
     },
     "INDEX_LIST": {
         "include_in": [
-            "table"
+            "T_TABLE"
         ],
         "signatures": [["T_TABLE"]],
         "id": 77
     },
     "INDEX_STATUS": {
         "include_in": [
-            "table"
+            "T_TABLE"
         ],
         "signatures": [["T_TABLE", "T_EXPR", "*"]],
         "id": 139
     },
     "INDEX_WAIT": {
         "include_in": [
-            "table"
+            "T_TABLE"
         ],
         "signatures": [["T_TABLE", "T_EXPR", "*"]],
         "id": 140
     },
     "INDEX_RENAME": {
         "include_in": [
-            "table"
+            "T_TABLE"
         ],
         "signatures": [["T_TABLE", "T_EXPR", "T_EXPR"]],
         "optargs": {
@@ -708,8 +708,8 @@
     "FUNCALL": {
         "alias": "do",
         "include_in": [
-            "top",
-            "query"
+            "T_TOP_LEVEL",
+            "T_EXPR"
         ],
         "signatures": [
             ["T_EXPR", "T_EXPR", "*"],
@@ -719,23 +719,23 @@
     },
     "BRANCH": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [["T_EXPR", "T_EXPR", "T_EXPR"]],
         "id": 65
     },
     "OR": {
         "include_in": [
-            "top",
-            "query"
+            "T_TOP_LEVEL",
+            "T_EXPR"
         ],
         "signatures": [["T_EXPR", "T_EXPR", "T_EXPR", "*"]],
         "id": 66
     },
     "AND": {
         "include_in": [
-            "top",
-            "query"
+            "T_TOP_LEVEL",
+            "T_EXPR"
         ],
         "signatures": [["T_EXPR", "T_EXPR", "*"]],
         "id": 67
@@ -750,22 +750,22 @@
     },
     "ASC": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [["T_EXPR"]],
         "id": 73
     },
     "DESC": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [["T_EXPR"]],
         "id": 74
     },
     "INFO": {
         "include_in": [
-            "top",
-            "query"
+            "T_TOP_LEVEL",
+            "T_EXPR"
         ],
         "signatures": [["T_EXPR"]],
         "id": 79
@@ -792,7 +792,7 @@
     },
     "JSON": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [["T_EXPR"]],
         "id": 98
@@ -804,7 +804,7 @@
     },
     "ISO8601": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [
             ["T_EXPR"]
@@ -820,7 +820,7 @@
     },
     "EPOCH_TIME": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [["R_EXPR"]],
         "id": 101
@@ -831,7 +831,7 @@
     },
     "NOW": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [[]],
         "id": 103
@@ -894,7 +894,7 @@
     },
     "TIME": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [
             ["T_EXPR", "T_EXPR", "T_EXPR", "T_EXPR"],
@@ -904,140 +904,140 @@
     },
     "MONDAY": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [[]],
         "id": 107
     },
     "TUESDAY": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [[]],
         "id": 108
     },
     "WEDNESDAY": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [[]],
         "id": 109
     },
     "THURSDAY": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [[]],
         "id": 110
     },
     "FRIDAY": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [[]],
         "id": 111
     },
     "SATURDAY": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [[]],
         "id": 112
     },
     "SUNDAY": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [[]],
         "id": 113
     },
     "JANUARY": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [[]],
         "id": 114
     },
     "FEBRUARY": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [[]],
         "id": 115
     },
     "MARCH": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [[]],
         "id": 116
     },
     "APRIL": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [[]],
         "id": 117
     },
     "MAY": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [[]],
         "id": 118
     },
     "JUNE": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [[]],
         "id": 119
     },
     "JULY": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [[]],
         "id": 120
     },
     "AUGUST": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [[]],
         "id": 121
     },
     "SEPTEMBER": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [[]],
         "id": 122
     },
     "OCTOBER": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [[]],
         "id": 123
     },
     "NOVEMBER": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [[]],
         "id": 124
     },
     "DECEMBER": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [[]],
         "id": 125
     },
     "LITERAL": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [
             [],
@@ -1108,7 +1108,7 @@
     },
     "RANDOM": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [
             [],
@@ -1130,21 +1130,21 @@
     },
     "ARGS": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [["T_EXPR"]],
         "id": 154
     },
     "BINARY": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [["T_EXPR"]],
         "id": 155
     },
     "GEOJSON": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [["T_EXPR"]],
         "id": 157
@@ -1155,29 +1155,29 @@
     },
     "POINT": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [["T_EXPR", "T_EXPR"]],
         "id": 159
     },
     "LINE": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [["T_EXPR", "T_EXPR", "T_EXPR", "*"]],
         "id": 160
     },
     "POLYGON": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [["T_EXPR", "T_EXPR", "T_EXPR", "T_EXPR", "*"]],
         "id": 161
     },
     "DISTANCE": {
         "include_in": [
-            "top",
-            "query"
+            "T_TOP_LEVEL",
+            "T_EXPR"
         ],
         "signatures": [["T_EXPR", "T_EXPR"]],
         "optargs": {
@@ -1188,8 +1188,8 @@
     },
     "INTERSECTS": {
         "include_in": [
-            "top",
-            "query"
+            "T_TOP_LEVEL",
+            "T_EXPR"
         ],
         "signatures": [["T_EXPR", "T_EXPR"]],
         "id": 163
@@ -1200,7 +1200,7 @@
     },
     "CIRCLE": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [
             ["T_EXPR"],
@@ -1217,7 +1217,7 @@
     },
     "GET_INTERSECTING": {
         "include_in": [
-            "table"
+            "T_TABLE"
         ],
         "signatures": [["T_TABLE", "T_EXPR"]],
         "optargs": {
@@ -1231,7 +1231,7 @@
     },
     "GET_NEAREST": {
         "include_in": [
-            "table"
+            "T_TABLE"
         ],
         "signatures": [["T_TABLE", "T_EXPR"]],
         "optargs": {
@@ -1249,14 +1249,14 @@
     },
     "MINVAL": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [[]],
         "id": 180
     },
     "MAXVAL": {
         "include_in": [
-            "top"
+            "T_TOP_LEVEL"
         ],
         "signatures": [[]],
         "id": 181
