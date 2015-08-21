@@ -30,7 +30,8 @@ jsonf = namedtuple("jsonf", "filename json")
 
 
 def jsonfile(filename):
-    return jsonf(filename, json.load(open(filename)))
+    return jsonf(filename,
+                 json.load(open(filename), object_pairs_hook=OrderedDict))
 
 
 def parse_args():
@@ -90,7 +91,10 @@ def diff_proto_keys(proto, term_meta):
     new = term_meta.copy()
     for key in diff:
         print("Got new term", key, "with id", proto_items[key], end='')
-        new[key] = OrderedDict({'id': proto_items[key]})
+        new[key] = OrderedDict([
+            ('include_in', ['T_EXPR']),
+            ('id', proto_items[key])
+        ])
     # Sync up protocol ids (these should never change, but it's best
     # that it's automated since they'd otherwise be specified in two
     # places that would need to be kept in sync.

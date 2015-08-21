@@ -224,46 +224,57 @@
         "id": 28
     },
     "FLOOR": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR"]],
         "id": 183
     },
     "CEIL": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR"]],
         "id": 184
     },
     "ROUND": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR"]],
         "id": 185
     },
     "APPEND": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR", "T_EXPR"]],
         "id": 29
     },
     "PREPEND": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR", "T_EXPR"]],
         "id": 80
     },
     "DIFFERENCE": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR", "T_EXPR"]],
         "id": 95
     },
     "SET_INSERT": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR", "T_EXPR"]],
         "id": 88
     },
     "SET_INTERSECTION": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR", "T_EXPR"]],
         "id": 89
     },
     "SET_UNION": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR", "T_EXPR"]],
         "id": 90
     },
     "SET_DIFFERENCE": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR", "T_EXPR"]],
         "id": 91
     },
     "SLICE": {
+        "include_in": ["T_EXPR"],
         "signatures": [
             ["T_EXPR", "T_EXPR"],
             ["T_EXPR", "T_EXPR", "T_EXPR"]
@@ -275,14 +286,17 @@
         "id": 30
     },
     "SKIP": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR", "T_EXPR"]],
         "id": 70
     },
     "LIMIT": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR", "T_EXPR"]],
         "id": 71
     },
     "OFFSETS_OF": {
+        "include_in": ["T_EXPR"],
         "signatures": [
             ["T_EXPR", "T_EXPR"],
             ["T_EXPR", "T_FUNC1"]
@@ -290,16 +304,19 @@
         "id": 87
     },
     "CONTAINS": {
+        "include_in": ["T_EXPR"],
         "signatures": [
             ["T_EXPR", ["T_EXPR", "T_FUNC1"], "*"]
         ],
         "id": 93
     },
     "GET_FIELD": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR", "T_EXPR"]],
         "id": 31
     },
     "KEYS": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR"]],
         "id": 94
     },
@@ -311,22 +328,27 @@
         "id": 143
     },
     "HAS_FIELDS": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR", "T_EXPR", "*"]],
         "id": 32
     },
     "WITH_FIELDS": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR", "T_EXPR", "*"]],
         "id": 96
     },
     "PLUCK": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR", "T_EXPR", "*"]],
         "id": 33
     },
     "WITHOUT": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR", "T_EXPR", "*"]],
         "id": 34
     },
     "MERGE": {
+        "include_in": ["T_EXPR"],
         "signatures": [
             ["T_EXPR", ["T_EXPR", "T_FUNC1"], "*"]
         ],
@@ -348,6 +370,7 @@
         "id": 182
     },
     "REDUCE": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR", "T_FUNC2"]],
         "id": 37
     },
@@ -362,6 +385,7 @@
         "id": 38
     },
     "FILTER": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR", "T_FUNC1"]],
         "optargs": {
             "default": "T_EXPR"
@@ -369,10 +393,12 @@
         "id": 39
     },
     "CONCAT_MAP": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR", "T_FUNC1"]],
         "id": 40
     },
     "ORDER_BY": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR", "T_EXPR", "*"]],
         "optargs": {
             "index": "T_EXPR"
@@ -380,6 +406,7 @@
         "id": 41
     },
     "DISTINCT": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR"]],
         "optargs": {
             "index": "T_STR"
@@ -387,6 +414,7 @@
         "id": 42
     },
     "COUNT": {
+        "include_in": ["T_EXPR"],
         "signatures": [
             ["T_EXPR"],
             ["T_EXPR", "T_EXPR"],
@@ -395,6 +423,7 @@
         "id": 43
     },
     "IS_EMPTY": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR"]],
         "id": 86
     },
@@ -407,22 +436,27 @@
         "id": 44
     },
     "NTH": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR", "T_EXPR"]],
         "id": 45
     },
     "BRACKET": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR", "T_EXPR"]],
         "id": 170
     },
     "INNER_JOIN": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR", "T_EXPR", "T_FUNC2"]],
         "id": 48
     },
     "OUTER_JOIN": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR", "T_EXPR", "T_FUNC2"]],
         "id": 49
     },
     "EQ_JOIN": {
+        "include_in": ["T_EXPR"],
         "signatures": [
             ["T_EXPR", "T_EXPR", "T_EXPR"],
             ["T_EXPR", "T_FUNC1", "T_EXPR"]
@@ -433,6 +467,7 @@
         "id": 50
     },
     "ZIP": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR"]],
         "id": 72
     },
@@ -448,10 +483,12 @@
         "id": 173
     },
     "INSERT_AT": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR", "T_EXPR"]],
         "id": 82
     },
     "DELETE_AT": {
+        "include_in": ["T_EXPR"],
         "signatures": [
             ["T_EXPR", "T_EXPR"],
             ["T_EXPR", "T_EXPR", "T_EXPR"]
@@ -459,14 +496,17 @@
         "id": 83
     },
     "CHANGE_AT": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR", "T_EXPR", "T_EXPR"]],
         "id": 84
     },
     "SPLICE_AT": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR", "T_EXPR", "T_EXPR"]],
         "id": 85
     },
     "COERCE_TO": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR", "T_EXPR"]],
         "id": 51
     },
@@ -479,6 +519,7 @@
         "id": 52
     },
     "UPDATE": {
+        "include_in": ["T_EXPR"],
         "signatures": [
             ["T_EXPR", "T_EXPR"],
             ["T_EXPR", "T_FUNC1"]
@@ -491,6 +532,7 @@
         "id": 53
     },
     "DELETE": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR"]],
         "optargs": {
             "durability": "E_DURABILITY",
@@ -499,6 +541,7 @@
         "id": 54
     },
     "REPLACE": {
+        "include_in": ["T_EXPR"],
         "signatures": [
             ["T_EXPR", "T_EXPR"],
             ["T_EXPR", "T_FUNC1"]
@@ -741,6 +784,7 @@
         "id": 67
     },
     "FOR_EACH": {
+        "include_in": ["T_EXPR"],
         "signatures": ["T_EXPR", "T_FUNC1"],
         "id": 68
     },
@@ -771,22 +815,27 @@
         "id": 79
     },
     "MATCH": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR", "T_EXPR"]],
         "id": 97
     },
     "UPCASE": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR"]],
         "id": 141
     },
     "DOWNCASE": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR"]],
         "id": 142
     },
     "SAMPLE": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR", "T_EXPR"]],
         "id": 81
     },
     "DEFAULT": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR", "T_EXPR"]],
         "id": 92
     },
@@ -798,6 +847,7 @@
         "id": 98
     },
     "TO_JSON_STRING": {
+        "include_in": ["T_EXPR"],
         "alias": "to_json",
         "signatures": [["T_EXPR"]],
         "id": 172
@@ -815,6 +865,7 @@
         "id": 99
     },
     "TO_ISO8601": {
+        "include_in": ["T_EXPR"],
         "signatures": [["R_EXPR"]],
         "id": 100
     },
@@ -826,6 +877,7 @@
         "id": 101
     },
     "TO_EPOCH_TIME": {
+        "include_in": ["T_EXPR"],
         "signatures": [["R_EXPR"]],
         "id": 102
     },
@@ -837,10 +889,12 @@
         "id": 103
     },
     "IN_TIMEZONE": {
+        "include_in": ["T_EXPR"],
         "signatures": [["R_EXPR", "R_EXPR"]],
         "id": 104
     },
     "DURING": {
+        "include_in": ["T_EXPR"],
         "signatures": [["R_EXPR", "R_EXPR", "R_EXPR"]],
         "optargs": {
             "left_bound": "E_BOUND",
@@ -849,46 +903,57 @@
         "id": 105
     },
     "DATE": {
+        "include_in": ["T_EXPR"],
         "signatures": [["R_EXPR"]],
         "id": 106
     },
     "TIME_OF_DAY": {
+        "include_in": ["T_EXPR"],
         "signatures": [["R_EXPR"]],
         "id": 126
     },
     "TIMEZONE": {
+        "include_in": ["T_EXPR"],
         "signatures": [["R_EXPR"]],
         "id": 127
     },
     "YEAR": {
+        "include_in": ["T_EXPR"],
         "signatures": [["R_EXPR"]],
         "id": 128
     },
     "MONTH": {
+        "include_in": ["T_EXPR"],
         "signatures": [["R_EXPR"]],
         "id": 129
     },
     "DAY": {
+        "include_in": ["T_EXPR"],
         "signatures": [["R_EXPR"]],
         "id": 130
     },
     "DAY_OF_WEEK": {
+        "include_in": ["T_EXPR"],
         "signatures": [["R_EXPR"]],
         "id": 131
     },
     "DAY_OF_YEAR": {
+        "include_in": ["T_EXPR"],
         "signatures": [["R_EXPR"]],
         "id": 132
     },
     "HOURS": {
+        "include_in": ["T_EXPR"],
         "signatures": [["R_EXPR"]],
         "id": 133
     },
     "MINUTES": {
+        "include_in": ["T_EXPR"],
         "signatures": [["R_EXPR"]],
         "id": 134
     },
     "SECONDS": {
+        "include_in": ["T_EXPR"],
         "signatures": [["R_EXPR"]],
         "id": 135
     },
@@ -1046,6 +1111,7 @@
         "id": 137
     },
     "GROUP": {
+        "include_in": ["T_EXPR"],
         "signatures": [
             ["T_EXPR", "T_EXPR"],
             ["T_EXPR", "T_FUNC1"]
@@ -1057,6 +1123,7 @@
         "id": 144
     },
     "SUM": {
+        "include_in": ["T_EXPR"],
         "signatures": [
             ["T_EXPR"],
             ["T_EXPR", "T_EXPR"],
@@ -1065,6 +1132,7 @@
         "id": 145
     },
     "AVG": {
+        "include_in": ["T_EXPR"],
         "signatures": [
             ["R_EXPR"],
             ["T_EXPR", "T_EXPR"],
@@ -1073,6 +1141,7 @@
         "id": 146
     },
     "MIN": {
+        "include_in": ["T_EXPR"],
         "signatures": [
             ["T_EXPR"],
             ["T_EXPR", "T_EXPR"],
@@ -1084,6 +1153,7 @@
         "id": 147
     },
     "MAX": {
+        "include_in": ["T_EXPR"],
         "signatures": [
             ["T_EXPR"],
             ["T_EXPR", "T_EXPR"],
@@ -1095,6 +1165,7 @@
         "id": 148
     },
     "SPLIT": {
+        "include_in": ["T_EXPR"],
         "signatures": [
             ["T_EXPR"],
             ["T_EXPR", "T_EXPR"],
@@ -1103,6 +1174,7 @@
         "id": 149
     },
     "UNGROUP": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR"]],
         "id": 150
     },
@@ -1121,6 +1193,7 @@
         "id": 151
     },
     "CHANGES": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR"]],
         "optargs": {
             "squash": "T_BOOL",
@@ -1150,6 +1223,7 @@
         "id": 157
     },
     "TO_GEOJSON": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR"]],
         "id": 158
     },
@@ -1195,6 +1269,7 @@
         "id": 163
     },
     "INCLUDES": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR", "T_EXPR"]],
         "id": 164
     },
@@ -1226,6 +1301,7 @@
         "id": 166
     },
     "FILL": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR"]],
         "id": 167
     },
@@ -1244,6 +1320,7 @@
         "id": 168
     },
     "POLYGON_SUB": {
+        "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR", "T_EXPR"]],
         "id": 171
     },
