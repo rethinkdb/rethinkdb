@@ -1,3 +1,60 @@
+# Release 2.1.2 (Forbidden Planet)
+
+Released on 2015-08-24
+
+Bug fix release
+
+### Compatiblity ###
+
+* RethinkDB 2.1.2 servers cannot be mixed with servers running earlier versions in the
+  same cluster.
+* Changefeeds on a `get_all` query no longer return initial values. This restores the
+  behavior from RethinkDB 2.0
+
+### Bug fixes ###
+
+* Fixed an issue that could cause writes to be acknowledged before all necessary data got
+  written to disk
+* Restored the 2.0 behavior for changefeeds on `get_all` queries to avoid various
+  issues and incompatibilities
+* Fixed an issue that caused previously migrated tables to be shown as unavailable (#4723)
+* Made outdated secondary index warnings disappear once the problem is resolved (#4664)
+* Made `index_create` atomic to avoid race conditions when multiple indexes were created
+  in quick succession (#4694)
+* Fixed a memory leak in `r.js` (#4663)
+* Fixed the `Branch history is missing pieces` error (#4721)
+* Fixed a race condition causing a crash with
+  `Guarantee failed: [!send_mutex.is_locked()]` (#4710)
+* Fixed a bug in the changefeed code that could cause crashes with the message
+  `Guarantee failed: [active()]` (#4678)
+* Fixed various race conditions that could cause crashes if changefeeds were present
+  during resharding (#4735, #4734, #4678)
+* Fixed a race condition causing a crash with `Guarantee failed: [val.has()]` (#4736)
+* Fixed an `Assertion failed` issue when running a debug-mode binary (#4685)
+* Added a workaround for an `eglibc` bug that caused an `unexpected address family`
+  error on startup (#4470)
+* Added precautions to avoid secondary index migration issues in subsequent releases
+
+--
+
+# Release 2.0.5 (Yojimbo)
+
+Released on 2015-08-24
+
+Bug fix release
+
+* Added precautions to avoid secondary index migration issues in subsequent releases
+* Fixed a memory leak in `r.js` (#4663)
+* Added a workaround for an `eglibc` bug that caused an `unexpected address family`
+  error on startup (#4470)
+* Fixed a bug in the changefeed code that could cause crashes with the message
+  `Guarantee failed: [active()]` (#4678)
+* Fixed a bug that caused intermittent server crashes with the message
+  `Guarantee failed: [fn_id != __null]` in combination with the `r.js` command (#4611)
+* Improved the performance of the `is_empty` term (#4592)
+
+--
+
 # Release 2.1.1 (Forbidden Planet)
 
 Released on 2015-08-12
