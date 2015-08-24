@@ -56,7 +56,7 @@ RAPIDJSON_NAMESPACE_BEGIN
     \tparam StackAllocator Type of allocator for allocating memory of stack.
     \note implements Handler concept
 */
-template<typename OutputStream, typename SourceEncoding = UTF8<>, typename TargetEncoding = UTF8<>, typename StackAllocator = CrtAllocator>
+template<typename OutputStream, typename SourceEncoding = UTF8<>, typename TargetEncoding = UTF8<>, typename StackAllocator = RAllocator>
 class Writer {
 public:
     typedef typename SourceEncoding::Ch Ch;

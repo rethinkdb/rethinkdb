@@ -22,6 +22,7 @@
 #define RAPIDJSON_ALLOCATORS_H_
 
 #include "rapidjson.h"
+#include "utils.hpp"
 
 RAPIDJSON_NAMESPACE_BEGIN
 
@@ -30,10 +31,10 @@ RAPIDJSON_NAMESPACE_BEGIN
 
 /*! \class rapidjson::Allocator
     \brief Concept for allocating, resizing and freeing memory block.
-    
+
     Note that Malloc() and Realloc() are non-static but Free() is static.
-    
-    So if an allocator need to support Free(), it needs to put its pointer in 
+
+    So if an allocator need to support Free(), it needs to put its pointer in
     the header of memory block.
 
 \code
@@ -65,11 +66,23 @@ concept Allocator {
 /*! This class is just wrapper for standard C library memory routines.
     \note implements Allocator concept
 */
-class CrtAllocator {
+// RethinkDB patch: Don't use this. It doesn't check if the memory allocation
+// was successful.
+/*class CrtAllocator {
 public:
     static const bool kNeedFree = true;
     void* Malloc(size_t size) { return std::malloc(size); }
     void* Realloc(void* originalPtr, size_t originalSize, size_t newSize) { (void)originalSize; return std::realloc(originalPtr, newSize); }
+    static void Free(void *ptr) { std::free(ptr); }
+};*/
+
+// RethinkDB patch: A variant of CrtAllocator that uses our `rmalloc` wrapper
+// instead.
+class RAllocator {
+public:
+    static const bool kNeedFree = true;
+    void* Malloc(size_t size) { return rmalloc(size); }
+    void* Realloc(void* originalPtr, size_t originalSize, size_t newSize) { (void)originalSize; return rrealloc(originalPtr, newSize); }
     static void Free(void *ptr) { std::free(ptr); }
 };
 
@@ -77,11 +90,11 @@ public:
 // MemoryPoolAllocator
 
 //! Default memory allocator used by the parser and DOM.
-/*! This allocator allocate memory blocks from pre-allocated memory chunks. 
+/*! This allocator allocate memory blocks from pre-allocated memory chunks.
 
     It does not free memory blocks. And Realloc() only allocate new memory.
 
-    The memory chunks are allocated by BaseAllocator, which is CrtAllocator by default.
+    The memory chunks are allocated by BaseAllocator, which is RAllocator by default.
 
     User may also supply a buffer as the first chunk.
 
@@ -89,10 +102,10 @@ public:
 
     The user-buffer is not deallocated by this allocator.
 
-    \tparam BaseAllocator the allocator type for allocating memory chunks. Default is CrtAllocator.
+    \tparam BaseAllocator the allocator type for allocating memory chunks. Default is RAllocator.
     \note implements Allocator concept
 */
-template <typename BaseAllocator = CrtAllocator>
+template <typename BaseAllocator = RAllocator>
 class MemoryPoolAllocator {
 public:
     static const bool kNeedFree = false;    //!< Tell users that no need to call Free() with this allocator. (concept Allocator)
@@ -101,7 +114,7 @@ public:
     /*! \param chunkSize The size of memory chunk. The default is kDefaultChunkSize.
         \param baseAllocator The allocator for allocating memory chunks.
     */
-    MemoryPoolAllocator(size_t chunkSize = kDefaultChunkCapacity, BaseAllocator* baseAllocator = 0) : 
+    MemoryPoolAllocator(size_t chunkSize = kDefaultChunkCapacity, BaseAllocator* baseAllocator = 0) :
         chunkHead_(0), chunk_capacity_(chunkSize), userBuffer_(0), baseAllocator_(baseAllocator), ownBaseAllocator_(0)
     {
     }
