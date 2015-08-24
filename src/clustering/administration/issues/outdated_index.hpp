@@ -39,7 +39,7 @@ private:
 
 class outdated_index_issue_tracker_t : public issue_tracker_t {
 public:
-    outdated_index_issue_tracker_t(table_meta_client_t *_table_meta_client);
+    explicit outdated_index_issue_tracker_t(table_meta_client_t *_table_meta_client);
 
     std::vector<scoped_ptr_t<issue_t> > get_issues(signal_t *interruptor) const;
 
