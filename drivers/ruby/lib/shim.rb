@@ -89,10 +89,10 @@ module RethinkDB
       @body.to_json(*a, &b)
     end
 
-    def as_json(*a)
-     @body.as_json(*a)
+    def as_json(*a, &b)
+     @body.as_json(*a, &b)
     end
-    
+
     def to_pb; @body; end
 
     def binary(*a)
