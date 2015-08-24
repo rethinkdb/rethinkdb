@@ -90,7 +90,7 @@ module RethinkDB
     end
 
     def as_json(*a, &b)
-     @body.as_json(*a, &b)
+      @body.as_json(*a, &b)
     end
 
     def to_pb; @body; end
