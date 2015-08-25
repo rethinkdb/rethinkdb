@@ -24,7 +24,7 @@
             {{else}}
                 {{num_results}} {{pluralize_noun 'row' num_results}} returned
                 {{~#if execution_time_pretty}}
-                    in <span title="Queries originating from the web UI incur additional HTTP round-trip latency." class="execution_time">{{execution_time_pretty}}</span>
+                    in {{execution_time_pretty}}
                 {{~/if~}}.
                 {{#if range_end~}}
                     Displaying rows {{range_begin}}-{{range_end}}
