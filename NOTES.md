@@ -35,6 +35,7 @@ Bug fix release
 * Added a workaround for an `eglibc` bug that caused an `unexpected address family`
   error on startup (#4470)
 * Added precautions to avoid secondary index migration issues in subsequent releases
+* Out-of-memory errors in the server's JSON parser are now correctly reported (#4751)
 
 --
 
