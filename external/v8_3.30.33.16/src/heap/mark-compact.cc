@@ -2133,7 +2133,7 @@ void MarkCompactCollector::MarkLiveObjects() {
     // Finalize the incremental marking and check whether we had an overflow.
     // Both markers use grey color to mark overflowed objects so
     // non-incremental marker can deal with them as if overflow
-    // occured during normal marking.
+    // occurred during normal marking.
     // But incremental marker uses a separate marking deque
     // so we have to explicitly copy its overflow state.
     incremental_marking->Finalize();
