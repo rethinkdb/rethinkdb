@@ -75,7 +75,7 @@ public:
         rwlock_in_line_t::reset();
     }
 
-    void guarantee_is_holding(rwlock_t *lock) {
+    void guarantee_is_holding(rwlock_t *lock) const {
         rwlock_in_line_t::guarantee_is_for_lock(lock);
     }
 

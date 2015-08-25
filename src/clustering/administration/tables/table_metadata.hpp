@@ -161,12 +161,14 @@ public:
 
     table_config_and_shards_change_t() { }
 
-    template <typename T>
-    explicit table_config_and_shards_change_t(T &&_change)
-        : change(std::forward<T>(_change)) { }
-
-    table_config_and_shards_change_t(const table_config_and_shards_change_t &) = default;
-    table_config_and_shards_change_t(table_config_and_shards_change_t &&) = default;
+    explicit table_config_and_shards_change_t(set_table_config_and_shards_t &&_change)
+        : change(std::move(_change)) { }
+    explicit table_config_and_shards_change_t(sindex_create_t &&_change)
+        : change(std::move(_change)) { }
+    explicit table_config_and_shards_change_t(sindex_drop_t &&_change)
+        : change(std::move(_change)) { }
+    explicit table_config_and_shards_change_t(sindex_rename_t &&_change)
+        : change(std::move(_change)) { }
 
     /* Note, it's important that `apply_change` does not change
     `table_config_and_shards` if it returns false. */

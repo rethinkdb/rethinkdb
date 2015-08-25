@@ -37,7 +37,7 @@ RAPIDJSON_NAMESPACE_BEGIN
     \tparam Allocator type for allocating memory buffer.
     \note implements Stream concept
 */
-template <typename Encoding, typename Allocator = CrtAllocator>
+template <typename Encoding, typename Allocator = RAllocator>
 class GenericStringBuffer {
 public:
     typedef typename Encoding::Ch Ch;

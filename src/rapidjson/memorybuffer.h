@@ -33,13 +33,13 @@ RAPIDJSON_NAMESPACE_BEGIN
     It is similar to FileWriteBuffer but the destination is an in-memory buffer instead of a file.
 
     Differences between MemoryBuffer and StringBuffer:
-    1. StringBuffer has Encoding but MemoryBuffer is only a byte buffer. 
+    1. StringBuffer has Encoding but MemoryBuffer is only a byte buffer.
     2. StringBuffer::GetString() returns a null-terminated string. MemoryBuffer::GetBuffer() returns a buffer without terminator.
 
     \tparam Allocator type for allocating memory buffer.
     \note implements Stream concept
 */
-template <typename Allocator = CrtAllocator>
+template <typename Allocator = RAllocator>
 struct GenericMemoryBuffer {
     typedef char Ch; // byte
 

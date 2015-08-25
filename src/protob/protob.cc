@@ -34,6 +34,7 @@
 #include "rdb_protocol/base64.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rpc/semilattice/view.hpp"
+#include "time.hpp"
 
 #include "rdb_protocol/ql2.pb.h"
 #include "rdb_protocol/query_server.hpp"
@@ -754,8 +755,21 @@ void query_server_t::handle(const http_req_t &req,
                                         drainer.get_drain_signal());
             ql::query_id_t query_id(conn->get_query_cache());
             try {
+                ticks_t start = get_ticks();
                 handler->run_query(std::move(query_id), query, &response,
                                    conn->get_query_cache(), &true_interruptor);
+                ticks_t ticks = get_ticks() - start;
+
+                if (!response.has_profile()) {
+                    ql::datum_array_builder_t array_builder(
+                        ql::configured_limits_t::unlimited);
+                    ql::datum_object_builder_t object_builder;
+                    object_builder.overwrite("duration(ms)",
+                        ql::datum_t(static_cast<double>(ticks) / MILLION));
+                    array_builder.add(std::move(object_builder).to_datum());
+                    std::move(array_builder).to_datum().write_to_protobuf(
+                        response.mutable_profile(), ql::use_json_t::YES);
+                }
             } catch (const interrupted_exc_t &ex) {
                 if (http_conn_cache.is_expired(*conn)) {
                     // This will only be sent back if this was interrupted by a http conn
