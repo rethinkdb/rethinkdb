@@ -12,7 +12,7 @@ using namespace v8::internal;
 using namespace v8::internal::compiler;
 
 // Helper to determine inline count via JavaScriptFrame::GetInlineCount.
-// Note that a count of 1 indicates that no inlining has occured.
+// Note that a count of 1 indicates that no inlining has occurred.
 static void AssertInlineCount(const v8::FunctionCallbackInfo<v8::Value>& args) {
   StackTraceFrameIterator it(CcTest::i_isolate());
   int frames_seen = 0;
