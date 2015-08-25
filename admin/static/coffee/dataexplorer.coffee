@@ -52,6 +52,7 @@ class QueryResult
         @driver_handler = options.driver_handler
         @ready = false
         @position = 0
+        @server_duration = null
         if options.events?
             for own event, handler of options.events
                 @on event, handler
@@ -63,10 +64,13 @@ class QueryResult
         else if not @discard_results
             if @has_profile
                 @profile = result.profile
+                @server_duration = result.profile.reduce(((total, prof) ->
+                    total + (prof['duration(ms)'] or prof['mean_duration(ms)'])), 0)
                 value = result.value
             else
                 @profile = null
-                value = result
+                @server_duration = result?.profile[0]['duration(ms)']
+                value = result.value
             if value? and typeof value._next is 'function' and value not instanceof Array # if it's a cursor
                 @type = 'cursor'
                 @results = []
@@ -75,6 +79,7 @@ class QueryResult
                 @is_feed = @cursor.toString() in ['[object Feed]', '[object AtomFeed]']
                 @missing = 0
                 @ended = false
+                @server_duration = null  # ignore server time if batched response
             else
                 @type = 'value'
                 @value = value
@@ -3502,14 +3507,8 @@ class ProfileView extends ResultView
         super args
 
     compute_total_duration: (profile) ->
-        total_duration = 0
-        for task in profile
-            if task['duration(ms)']?
-                total_duration += task['duration(ms)']
-            else if task['mean_duration(ms)']?
-                total_duration += task['mean_duration(ms)']
-
-        total_duration
+        profile.reduce(((total, task) ->
+            total + (task['duration(ms)'] or task['mean_duration(ms)'])) ,0)
 
     compute_num_shard_accesses: (profile) ->
         num_shard_accesses = 0
@@ -3740,7 +3739,7 @@ class ResultViewWrapper extends Backbone.View
                 show_more_data: has_more_data and not @container.state.cursor_timed_out
                 cursor_timed_out_template: (
                     @cursor_timed_out_template() if not @query_result.ended and @container.state.cursor_timed_out)
-                execution_time_pretty: util.prettify_duration @container.driver_handler.total_duration
+                execution_time_pretty: util.prettify_duration @query_result.server_duration
                 no_results: @query_result.ended and @query_result.size() == 0
                 num_results: @query_result.size()
                 floating_metadata: @floating_metadata
@@ -3834,7 +3833,8 @@ class OptionsView extends Backbone.View
                 @$('.profiler_enabled').slideUp 'fast'
 
     change_query_limit: (event) =>
-        @options['query_limit'] = if parseInt(@$('#query_limit').val(), 10) > 40 then parseInt(@$('#query_limit').val(), 10) else  40
+        query_limit = parseInt(@$("#query_limit").val(), 10) or DEFAULTS.options.query_limit
+        @options['query_limit'] = Math.max(query_limit, 1)
         if window.localStorage?
             window.localStorage.options = JSON.stringify @options
         @$('#query_limit').val(@options['query_limit']) # In case the input is reset to 40
