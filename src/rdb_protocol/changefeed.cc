@@ -317,6 +317,7 @@ server_t::server_t(mailbox_manager_t *_manager, store_t *_parent)
 server_t::~server_t() { }
 
 void server_t::stop_mailbox_cb(signal_t *, client_t::addr_t addr) {
+    auto_drainer_t::lock_t lock(&drainer);
     rwlock_in_line_t spot(&clients_lock, access_t::read);
     spot.read_signal()->wait_lazily_unordered();
     auto it = clients.find(addr);
@@ -377,8 +378,11 @@ void server_t::limit_stop_mailbox_cb(signal_t *,
     }
 }
 
-void server_t::add_client(const client_t::addr_t &addr, region_t region) {
-    auto_drainer_t::lock_t lock(&drainer);
+void server_t::add_client(
+        const client_t::addr_t &addr,
+        region_t region,
+        const auto_drainer_t::lock_t &keepalive) {
+    keepalive.assert_is_holding(&drainer);
     rwlock_in_line_t spot(&clients_lock, access_t::write);
     spot.write_signal()->wait_lazily_unordered();
     client_info_t *info = &clients[addr];
@@ -395,25 +399,31 @@ void server_t::add_client(const client_t::addr_t &addr, region_t region) {
         info->stamp = 0;
         cond_t *stopped = new cond_t();
         info->cond.init(stopped);
-        // We spawn now so the auto drainer lock is acquired immediately.
         // Passing the raw pointer `stopped` is safe because `add_client_cb` is
         // the only function which can remove an entry from the map.
+        // TODO: This `spawn_now_dangerously` could probably be a `spawn_sometime`.
+        //   It used to be a `spawn_now_dangerously` because we used to acquire
+        //   the auto drainer lock inside of `add_client_cb`, rather than passing
+        //   `keepalive` in. This is no longer the case.
+        //   We're keeping the `spawn_now_dangerously` for now to make sure that
+        //   we don't introduce any subtle new bugs in 2.1.2.
         coro_t::spawn_now_dangerously(
-            std::bind(&server_t::add_client_cb, this, stopped, addr));
+            std::bind(&server_t::add_client_cb, this, stopped, addr, keepalive));
     }
 }
 
 void server_t::add_limit_client(
-    const client_t::addr_t &addr,
-    const region_t &region,
-    const std::string &table,
-    rdb_context_t *ctx,
-    std::map<std::string, wire_func_t> optargs,
-    const uuid_u &client_uuid,
-    const keyspec_t::limit_t &spec,
-    limit_order_t lt,
-    std::vector<item_t> &&item_vec) {
-    auto_drainer_t::lock_t lock(&drainer);
+        const client_t::addr_t &addr,
+        const region_t &region,
+        const std::string &table,
+        rdb_context_t *ctx,
+        std::map<std::string, wire_func_t> optargs,
+        const uuid_u &client_uuid,
+        const keyspec_t::limit_t &spec,
+        limit_order_t lt,
+        std::vector<item_t> &&item_vec,
+        const auto_drainer_t::lock_t &keepalive) {
+    keepalive.assert_is_holding(&drainer);
     rwlock_in_line_t spot(&clients_lock, access_t::read);
     spot.read_signal()->wait_lazily_unordered();
     auto it = clients.find(addr);
@@ -440,12 +450,15 @@ void server_t::add_limit_client(
     }
 }
 
-void server_t::add_client_cb(signal_t *stopped, client_t::addr_t addr) {
-    auto_drainer_t::lock_t coro_lock(&drainer);
+void server_t::add_client_cb(
+        signal_t *stopped,
+        client_t::addr_t addr,
+        const auto_drainer_t::lock_t &keepalive) {
+    keepalive.assert_is_holding(&drainer);
     {
         disconnect_watcher_t disconnect(manager, addr.get_peer());
         wait_any_t wait_any(
-            &disconnect, stopped, coro_lock.get_drain_signal());
+            &disconnect, stopped, keepalive.get_drain_signal());
         wait_any.wait_lazily_unordered();
     }
     rwlock_in_line_t coro_spot(&clients_lock, access_t::write);
@@ -453,7 +466,7 @@ void server_t::add_client_cb(signal_t *stopped, client_t::addr_t addr) {
     auto it = clients.find(addr);
     // We can be removed more than once safely (e.g. in the case of oversharding).
     if (it != clients.end()) {
-        send_one_with_lock(coro_lock, &*it, msg_t(msg_t::stop_t()));
+        send_one_with_lock(&*it, msg_t(msg_t::stop_t()), keepalive);
     }
     coro_spot.write_signal()->wait_lazily_unordered();
     size_t erased = clients.erase(addr);
@@ -480,9 +493,10 @@ RDB_MAKE_SERIALIZABLE_3(stamped_msg_t, server_uuid, stamp, submsg);
 // `stop_t` during destruction, and you can't acquire a drain lock on a draining
 // `auto_drainer_t`.)
 void server_t::send_one_with_lock(
-    const auto_drainer_t::lock_t &,
-    std::pair<const client_t::addr_t, client_info_t> *client,
-    msg_t msg) {
+        std::pair<const client_t::addr_t, client_info_t> *client,
+        msg_t msg,
+        const auto_drainer_t::lock_t &keepalive) {
+    keepalive.assert_is_holding(&drainer);
     uint64_t stamp;
     {
         // We don't need a write lock as long as we make sure the coroutine
@@ -493,10 +507,12 @@ void server_t::send_one_with_lock(
     send(manager, client->first, stamped_msg_t(uuid, stamp, std::move(msg)));
 }
 
-void server_t::send_all(const msg_t &msg,
-                        const store_key_t &key,
-                        rwlock_in_line_t *stamp_spot) {
-    auto_drainer_t::lock_t lock(&drainer);
+void server_t::send_all(
+        const msg_t &msg,
+        const store_key_t &key,
+        rwlock_in_line_t *stamp_spot,
+        const auto_drainer_t::lock_t &keepalive) {
+    keepalive.assert_is_holding(&drainer);
     stamp_spot->guarantee_is_for_lock(&parent->cfeed_stamp_lock);
     stamp_spot->write_signal()->wait_lazily_unordered();
 
@@ -527,8 +543,10 @@ server_t::limit_addr_t server_t::get_limit_stop_addr() {
     return limit_stop_mailbox.get_address();
 }
 
-boost::optional<uint64_t> server_t::get_stamp(const client_t::addr_t &addr) {
-    auto_drainer_t::lock_t lock(&drainer);
+boost::optional<uint64_t> server_t::get_stamp(
+        const client_t::addr_t &addr,
+        const auto_drainer_t::lock_t &keepalive) {
+    keepalive.assert_is_holding(&drainer);
     rwlock_acq_t stamp_acq(&parent->cfeed_stamp_lock, access_t::read);
     rwlock_acq_t client_acq(&clients_lock, access_t::read);
     auto it = clients.find(addr);
@@ -543,8 +561,10 @@ uuid_u server_t::get_uuid() {
     return uuid;
 }
 
-bool server_t::has_limit(const boost::optional<std::string> &sindex) {
-    auto_drainer_t::lock_t lock(&drainer);
+bool server_t::has_limit(
+        const boost::optional<std::string> &sindex,
+        const auto_drainer_t::lock_t &keepalive) {
+    keepalive.assert_is_holding(&drainer);
     auto spot = make_scoped<rwlock_in_line_t>(&clients_lock, access_t::read);
     spot->read_signal()->wait_lazily_unordered();
     for (auto &&client : clients) {
@@ -561,13 +581,19 @@ bool server_t::has_limit(const boost::optional<std::string> &sindex) {
     return false;
 }
 
-void server_t::foreach_limit(const boost::optional<std::string> &sindex,
-                             const store_key_t *pkey,
-                             std::function<void(rwlock_in_line_t *,
-                                                rwlock_in_line_t *,
-                                                rwlock_in_line_t *,
-                                                limit_manager_t *)> f) THROWS_NOTHING {
-    auto_drainer_t::lock_t lock(&drainer);
+auto_drainer_t::lock_t server_t::get_keepalive() {
+    return drainer.lock();
+}
+
+void server_t::foreach_limit(
+        const boost::optional<std::string> &sindex,
+        const store_key_t *pkey,
+        std::function<void(rwlock_in_line_t *,
+                           rwlock_in_line_t *,
+                           rwlock_in_line_t *,
+                           limit_manager_t *)> f,
+        const auto_drainer_t::lock_t &keepalive) THROWS_NOTHING {
+    keepalive.assert_is_holding(&drainer);
     auto spot = make_scoped<rwlock_in_line_t>(&clients_lock, access_t::read);
     spot->read_signal()->wait_lazily_unordered();
     for (auto &&client : clients) {
@@ -594,15 +620,15 @@ void server_t::foreach_limit(const boost::optional<std::string> &sindex,
                 f(spot.get(), &lspot, &lc_spot, (*lc).get());
             } catch (const exc_t &e) {
                 (*lc)->abort(e);
-                auto_drainer_t::lock_t sub_lock(lock);
+                auto_drainer_t::lock_t sub_keepalive(keepalive);
                 auto sub_spot = make_scoped<rwlock_in_line_t>(
                     &clients_lock, access_t::read);
                 guarantee(sub_spot->read_signal()->is_pulsed());
                 // We spawn immediately so it can steal our locks.
                 coro_t::spawn_now_dangerously(
                     std::bind(&server_t::prune_dead_limit,
-                              this, &sub_lock, &sub_spot, info, sindex, i));
-                guarantee(!sub_lock.has_lock());
+                              this, &sub_keepalive, &sub_spot, info, sindex, i));
+                guarantee(!sub_keepalive.has_lock());
                 guarantee(!sub_spot.has());
             }
         }
@@ -794,7 +820,7 @@ void limit_manager_t::send(msg_t &&msg) {
         auto_drainer_t::lock_t drain_lock(&parent->drainer);
         auto it = parent->clients.find(parent_client);
         guarantee(it != parent->clients.end());
-        parent->send_one_with_lock(drain_lock, &*it, std::move(msg));
+        parent->send_one_with_lock(&*it, std::move(msg), drain_lock);
     }
 }
 
