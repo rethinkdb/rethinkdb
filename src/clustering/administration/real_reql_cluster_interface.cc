@@ -328,8 +328,7 @@ bool real_reql_cluster_interface_t::table_drop(const name_string_t &name,
         if (!config_backend->read_row(convert_uuid_to_datum(table_id),
                 &interruptor_on_home, &old_config, error_out)) {
             return false;
-        }
-        if (old_config == ql::datum_t::null()) {
+        } else if (!old_config.has()) {
             throw no_such_table_exc_t();
         }
 
@@ -568,6 +567,8 @@ void real_reql_cluster_interface_t::reconfigure_internal(
     if (!status_backend->read_row(convert_uuid_to_datum(table_id), interruptor_on_home,
             &old_status, &error)) {
         throw admin_op_exc_t(error);
+    } else if (!old_status.has()) {
+        throw no_such_table_exc_t();
     }
 
     table_config_and_shards_t new_config;
@@ -605,6 +606,8 @@ void real_reql_cluster_interface_t::reconfigure_internal(
     if (!status_backend->read_row(convert_uuid_to_datum(table_id), interruptor_on_home,
             &new_status, &error)) {
         throw admin_op_exc_t(error);
+    } else if (!new_status.has()) {
+        throw no_such_table_exc_t();
     }
 
     ql::datum_object_builder_t result_builder;
@@ -722,6 +725,8 @@ void real_reql_cluster_interface_t::emergency_repair_internal(
     if (!status_backend->read_row(convert_uuid_to_datum(table_id), interruptor_on_home,
             &old_status, &error)) {
         throw admin_op_exc_t(error);
+    } else if (!old_status.has()) {
+        throw no_such_table_exc_t();
     }
 
     table_config_and_shards_t new_config;
@@ -761,6 +766,8 @@ void real_reql_cluster_interface_t::emergency_repair_internal(
     if (!status_backend->read_row(convert_uuid_to_datum(table_id), interruptor_on_home,
             &new_status, &error)) {
         throw admin_op_exc_t(error);
+    } else if (!new_status.has()) {
+        throw no_such_table_exc_t();
     }
 
     ql::datum_object_builder_t result_builder;
@@ -828,6 +835,8 @@ void real_reql_cluster_interface_t::rebalance_internal(
     if (!status_backend->read_row(convert_uuid_to_datum(table_id), interruptor_on_home,
             &old_status, &error)) {
         throw admin_op_exc_t(error);
+    } else if (!old_status.has()) {
+        throw no_such_table_exc_t();
     }
 
     std::map<store_key_t, int64_t> counts;
@@ -848,6 +857,8 @@ void real_reql_cluster_interface_t::rebalance_internal(
     if (!status_backend->read_row(convert_uuid_to_datum(table_id), interruptor_on_home,
             &new_status, &error)) {
         throw admin_op_exc_t(error);
+    } else if (!new_status.has()) {
+        throw no_such_table_exc_t();
     }
 
     ql::datum_object_builder_t builder;
@@ -1098,8 +1109,7 @@ void real_reql_cluster_interface_t::make_single_selection(
     if (!table_backend->read_row(convert_uuid_to_datum(primary_key), env->interruptor,
             &row, &error)) {
         throw admin_op_exc_t(error);
-    }
-    if (!row.has()) {
+    } else if (!row.has()) {
         /* This is unlikely, but it can happen if the object is deleted between when we
         look up its name and when we call `read_row()` */
         throw no_such_table_exc_t();
