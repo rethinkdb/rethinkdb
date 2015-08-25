@@ -39,7 +39,7 @@ dataexplorer_state = _.extend({}, DEFAULTS)
 # It triggers the following events:
 #  * ready: The first response has been received
 #  * add: Another row has been received from a cursor
-#  * error: An error has occured
+#  * error: An error has occurred
 #  * end: There are no more documents to fetch
 #  * discard: The results have been discarded
 class QueryResult
