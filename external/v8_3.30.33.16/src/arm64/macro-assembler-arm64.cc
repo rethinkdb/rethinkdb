@@ -2960,7 +2960,7 @@ void MacroAssembler::TryConvertDoubleToInt64(Register result,
 
   // The values INT64_MIN (0x800...00) or INT64_MAX (0x7ff...ff) are not
   // representable using a double, so if the result is one of those then we know
-  // that saturation occured, and we need to manually handle the conversion.
+  // that saturation occurred, and we need to manually handle the conversion.
   //
   // It is easy to detect INT64_MIN and INT64_MAX because adding or subtracting
   // 1 will cause signed overflow.
