@@ -17,7 +17,10 @@
 #include "utils.hpp"
 
 #ifndef VALGRIND
-const int SIGNAL_HANDLER_STACK_SIZE = SIGSTKSZ;
+// This needs to be large enough for abi::__cxa_demangle to not overflow the stack.
+// If this is too small, you may see memory corruption and crashes when attempting
+// to format a backtrace.
+const int SIGNAL_HANDLER_STACK_SIZE = MINSIGSTKSZ + (128 * KILOBYTE);
 #endif  // VALGRIND
 
 __thread linux_thread_pool_t *linux_thread_pool_t::thread_pool;
