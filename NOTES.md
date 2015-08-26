@@ -1,3 +1,21 @@
+# Release 2.0.5 (Yojimbo)
+
+Released on 2015-08-25
+
+Bug fix release
+
+* Added precautions to avoid secondary index migration issues in subsequent releases
+* Fixed a memory leak in `r.js` (#4663)
+* Added a workaround for an `eglibc` bug that caused an `unexpected address family`
+  error on startup (#4470)
+* Fixed a bug in the changefeed code that could cause crashes with the message
+  `Guarantee failed: [active()]` (#4678)
+* Fixed a bug that caused intermittent server crashes with the message
+  `Guarantee failed: [fn_id != __null]` in combination with the `r.js` command (#4611)
+* Improved the performance of the `is_empty` term (#4592)
+
+--
+
 # Release 2.0.4 (Yojimbo)
 
 Released on 2015-07-08
