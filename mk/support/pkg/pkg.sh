@@ -28,6 +28,9 @@ set -eu
 
 unset DESTDIR
 
+src_url_backup=""
+src_url_sha1=""
+
 # Print the version number of the package
 pkg_version () {
     echo $version
@@ -63,8 +66,22 @@ pkg_fetch_archive () {
     pkg_make_tmp_fetch_dir
 
     local archive="${src_url##*/}"
+    set +e # turn off auto-fail so we can fall back to $src_url_backup
     geturl "$src_url" > "$tmp_dir/$archive"
-
+    local download_failed=$?
+    if [[ $download_failed -ne "0" ]] && [[ $src_url_backup ]]; then
+        geturl "$src_url_backup" > "$tmp_dir/$archive"
+        download_failed=$?
+    fi
+    set -e # reenable auto-fail
+    if [[ $download_failed -ne "0" ]]; then
+        error "failed to download $pkg: $src_url"
+    fi
+    
+    if [ $src_url_sha1 ] && [[ `getsha1  "$tmp_dir/$archive"` != "$src_url_sha1" ]]; then
+        error "sha1 for $pkg was incorrect: `getsha1  "$tmp_dir/$archive"` vs. expected: $src_url_sha1"
+    fi
+    
     local ext
     case "$archive" in
         *.tgz)     ext=tgz;     in_dir "$tmp_dir" tar -xzf "$archive" ;;
@@ -259,7 +276,21 @@ geturl () {
     if [[ -n "${WGET:-}" ]]; then
         $WGET --quiet --output-document=- "$@"
     else
-        ${CURL:-curl} --silent --location "$@"
+        ${CURL:-curl} --silent --fail --location "$@"
+    fi
+}
+
+getsha1 () {
+    if hash openssl 1>/dev/null 2>/dev/null; then
+        openssl sha1 "$@" | awk '{print $NF}'
+    elif hash sha1sum 1>/dev/null 2>/dev/null; then
+        sha1sum "$@" | awk '{print $1}'
+    elif hash shasum 1>/dev/null 2>/dev/null; then
+        shasum -a 1 "$@" | awk '{print $NF}'
+    elif hash sha1 1>/dev/null 2>/dev/null; then
+        sha1 -q "$@"
+    else
+        error "Unable to get the sha1 checksum of $pkg, please install one of these tools: openssl, sha1sum, shasum, sha1"
     fi
 }
 
