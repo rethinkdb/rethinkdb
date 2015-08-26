@@ -785,7 +785,7 @@
     },
     "FOR_EACH": {
         "include_in": ["T_EXPR"],
-        "signatures": ["T_EXPR", "T_FUNC1"],
+        "signatures": [["T_EXPR", "T_FUNC1"]],
         "id": 68
     },
     "FUNC": {
@@ -866,19 +866,19 @@
     },
     "TO_ISO8601": {
         "include_in": ["T_EXPR"],
-        "signatures": [["R_EXPR"]],
+        "signatures": [["T_EXPR"]],
         "id": 100
     },
     "EPOCH_TIME": {
         "include_in": [
             "T_TOP_LEVEL"
         ],
-        "signatures": [["R_EXPR"]],
+        "signatures": [["T_EXPR"]],
         "id": 101
     },
     "TO_EPOCH_TIME": {
         "include_in": ["T_EXPR"],
-        "signatures": [["R_EXPR"]],
+        "signatures": [["T_EXPR"]],
         "id": 102
     },
     "NOW": {
@@ -890,12 +890,12 @@
     },
     "IN_TIMEZONE": {
         "include_in": ["T_EXPR"],
-        "signatures": [["R_EXPR", "R_EXPR"]],
+        "signatures": [["T_EXPR", "T_EXPR"]],
         "id": 104
     },
     "DURING": {
         "include_in": ["T_EXPR"],
-        "signatures": [["R_EXPR", "R_EXPR", "R_EXPR"]],
+        "signatures": [["T_EXPR", "T_EXPR", "T_EXPR"]],
         "optargs": {
             "left_bound": "E_BOUND",
             "right_bound": "E_BOUND"
@@ -904,57 +904,57 @@
     },
     "DATE": {
         "include_in": ["T_EXPR"],
-        "signatures": [["R_EXPR"]],
+        "signatures": [["T_EXPR"]],
         "id": 106
     },
     "TIME_OF_DAY": {
         "include_in": ["T_EXPR"],
-        "signatures": [["R_EXPR"]],
+        "signatures": [["T_EXPR"]],
         "id": 126
     },
     "TIMEZONE": {
         "include_in": ["T_EXPR"],
-        "signatures": [["R_EXPR"]],
+        "signatures": [["T_EXPR"]],
         "id": 127
     },
     "YEAR": {
         "include_in": ["T_EXPR"],
-        "signatures": [["R_EXPR"]],
+        "signatures": [["T_EXPR"]],
         "id": 128
     },
     "MONTH": {
         "include_in": ["T_EXPR"],
-        "signatures": [["R_EXPR"]],
+        "signatures": [["T_EXPR"]],
         "id": 129
     },
     "DAY": {
         "include_in": ["T_EXPR"],
-        "signatures": [["R_EXPR"]],
+        "signatures": [["T_EXPR"]],
         "id": 130
     },
     "DAY_OF_WEEK": {
         "include_in": ["T_EXPR"],
-        "signatures": [["R_EXPR"]],
+        "signatures": [["T_EXPR"]],
         "id": 131
     },
     "DAY_OF_YEAR": {
         "include_in": ["T_EXPR"],
-        "signatures": [["R_EXPR"]],
+        "signatures": [["T_EXPR"]],
         "id": 132
     },
     "HOURS": {
         "include_in": ["T_EXPR"],
-        "signatures": [["R_EXPR"]],
+        "signatures": [["T_EXPR"]],
         "id": 133
     },
     "MINUTES": {
         "include_in": ["T_EXPR"],
-        "signatures": [["R_EXPR"]],
+        "signatures": [["T_EXPR"]],
         "id": 134
     },
     "SECONDS": {
         "include_in": ["T_EXPR"],
-        "signatures": [["R_EXPR"]],
+        "signatures": [["T_EXPR"]],
         "id": 135
     },
     "TIME": {
@@ -1127,16 +1127,16 @@
         "signatures": [
             ["T_EXPR"],
             ["T_EXPR", "T_EXPR"],
-            ["T_EXPR", "T_FUNC"]
+            ["T_EXPR", "T_FUNC1"]
         ],
         "id": 145
     },
     "AVG": {
         "include_in": ["T_EXPR"],
         "signatures": [
-            ["R_EXPR"],
+            ["T_EXPR"],
             ["T_EXPR", "T_EXPR"],
-            ["T_EXPR", "T_FUNC"]
+            ["T_EXPR", "T_FUNC1"]
         ],
         "id": 146
     },
