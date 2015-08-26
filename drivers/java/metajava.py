@@ -45,7 +45,7 @@ def parse_args():
                         choices=[
                             'update-terminfo',
                             'generate-java-terminfo',
-                            'render-ast-subclasses',
+                            'generate-java-classes',
                         ])
     parser.add_argument("--term-info", type=jsonfile)
     parser.add_argument("--proto-json", type=jsonfile)
@@ -60,10 +60,10 @@ def main():
 
     if args.command == 'update-term-info':
         update_term_info(args.proto_json, args.term_info)
-    elif args.command == 'generate-term-ast':
-        render_ast_subclasses(args.term_info.json)
     elif args.command == 'generate-java-terminfo':
         java_term_info(args.term_info.json, args.output_file)
+    elif args.command == 'generate-java-classes':
+        generate_java_classes(args.java_term_info.json, args.global_info)
     return #maginot line of conversion
     render_proto_enums(args.proto.json)
 
@@ -74,90 +74,48 @@ def main():
     render_optarg_enums(global_info['optarg_enums'])
 
 
-def update_term_info(proto, term_meta):
+class update_term_info(object):
     '''Updates term_info.json if new terms were discovered in
     proto_basic.json'''
-    new_json = diff_proto_keys(proto.json, term_meta.json)
-    if new_json != term_meta.json:
-        write_term_metadata(term_meta.filename, new_json)
-        # term_meta is a tuple, so we re-use the same dict to avoid
-        # mutation
-        term_meta.json.clear()
-        term_meta.json.update(new_json)
-    else:
-        os.utime(term_meta.filename, None)
+    def __init__(self, proto, term_meta):
+        new_json = self.diff_proto_keys(proto.json, term_meta.json)
+        if new_json != term_meta.json:
+            self.write_term_metadata(term_meta.filename, new_json)
+            # term_meta is a tuple, so we re-use the same dict to avoid
+            # mutation
+            term_meta.json.clear()
+            term_meta.json.update(new_json)
+        else:
+            os.utime(term_meta.filename, None)
 
+    @staticmethod
+    def diff_proto_keys(proto, term_meta):
+        '''Finds any new keys in the protobuf file and adds dummy entries
+        for them in the term_info.json dictionary'''
+        set_meta = set(term_meta.keys())
+        proto_items = proto['Term']['TermType']
+        diff = [x for x in proto_items.keys()
+                if x not in set_meta]
+        new = term_meta.copy()
+        for key in diff:
+            print("Got new term", key, "with id", proto_items[key], end='')
+            new[key] = OrderedDict([
+                ('include_in', ['T_EXPR']),
+                ('id', proto_items[key])
+            ])
+        # Sync up protocol ids (these should never change, but it's best
+        # that it's automated since they'd otherwise be specified in two
+        # places that would need to be kept in sync.
+        for key, val in new.iteritems():
+            if val['id'] != proto_items[key]:
+                print("Warning: {} changed from {} to {}".format(
+                    key, val['id'], proto_items[key]))
+                val['id'] = proto_items[key]
+        return new
 
-def diff_proto_keys(proto, term_meta):
-    '''Finds any new keys in the protobuf file and adds dummy entries
-    for them in the term_info.json dictionary'''
-    set_meta = set(term_meta.keys())
-    proto_items = proto['Term']['TermType']
-    diff = [x for x in proto_items.keys()
-            if x not in set_meta]
-    new = term_meta.copy()
-    for key in diff:
-        print("Got new term", key, "with id", proto_items[key], end='')
-        new[key] = OrderedDict([
-            ('include_in', ['T_EXPR']),
-            ('id', proto_items[key])
-        ])
-    # Sync up protocol ids (these should never change, but it's best
-    # that it's automated since they'd otherwise be specified in two
-    # places that would need to be kept in sync.
-    for key, val in new.iteritems():
-        if val['id'] != proto_items[key]:
-            print("Warning: {} changed from {} to {}".format(
-                key, val['id'], proto_items[key]))
-            val['id'] = proto_items[key]
-    return new
-
-
-def camel(varname):
-    'CamelCase'
-    return ''.join(x.title() for x in varname.split('_'))
-
-
-def dromedary(words):
-    'dromedaryCase'
-    broken = words.split('_')
-    return broken[0].lower() + ''.join(x.title() for x in broken[1:])
-
-
-def reql_to_java_type(reql_type):
-    if isinstance(reql_type, list):
-        # for enums
-        return 'String'
-    elif reql_type == 'T_BOOL':
-        return 'Boolean'
-    elif reql_type == 'T_NUM':
-        return 'Double'
-    elif reql_type == 'T_STR':
-        return 'String'
-    else:
-        return 'Object'
-
-
-def java_repr(obj):
-    if isinstance(obj, bool):
-        return str(obj).lower()
-    elif isinstance(obj, basestring):
-        return '"{}"'.format(obj)
-    elif isinstance(obj, (int, float)):
-        return str(obj)
-    elif obj is None:
-        return 'null'
-    else:
-        return repr(obj)
-
-
-def autogenerated_header(template_path, output_path):
-    rel_tpl = os.path.relpath(template_path, start=output_path)
-
-    return ('// Autogenerated by {}.\n'
-            '// Do not edit this file directly.\n'
-            '// The template for this file is located at:\n'
-            '// {}\n').format(os.path.basename(__file__), rel_tpl)
+    def write_term_metadata(self, output_filename, new_json):
+        with open(output_filename, 'w') as outfile:
+            json.dump(new_json, outfile, indent=2)
 
 
 class java_term_info(object):
@@ -184,16 +142,15 @@ class java_term_info(object):
     }
 
     # Special aliases for the java driver only
-    FORCED_RENAMES = {
-        'BRACKET': 'field'  # We can't override [] or () in Java
+    FORCED_CLASS_RENAMES = {
+        'OBJECT': 'ReqlObject',
     }
 
     # How many times to expand when manually expanding '*' arguments
     FUNCX_EXPAND = 2
 
-    def __init__(self, term_info, global_info, output_filename):
-        self.java_terminfo = copy.deep_copy(term_info)
-        self.global_info = global_info
+    def __init__(self, term_info, output_filename):
+        self.java_terminfo = copy.deepcopy(term_info)
         self.output_filename = output_filename
 
         self.modify_term_meta()
@@ -204,17 +161,15 @@ class java_term_info(object):
             self.delete_if_blacklisted(term, info)
             self.add_methodname(term, info)
             self.add_classname(term, info)
-            self.reify_signatures(info)
+            info['signatures'] = self.reify_signatures(
+                info.get('signatures', []))
 
     @classmethod
-    def reify_signatures(cls, info):
+    def reify_signatures(cls, signatures):
         '''This takes the general signatures from terminfo.json and
         turns them into signatures that can actually be created in the
         Java.'''
-        final = []
-        for signature in info['signatures']:
-            final.extend(cls.reify_signature(signature))
-        return final
+        return [x for sig in signatures for x in cls.reify_signature(sig)]
 
     @classmethod
     def reify_signature(cls, signature):
@@ -328,22 +283,20 @@ class java_term_info(object):
 
     def write_output(self):
         with open(self.output_filename, 'w') as outputfile:
-            json.dump(outputfile, self.java_terminfo, indent=2)
+            json.dump(self.java_terminfo, outputfile, indent=2)
 
     def delete_if_blacklisted(self, term, info):
-        if self.nice_name(term, info) in self.JAVA_BLACKLIST:
+        if self.nice_name(term, info) in self.TERM_BLACKLIST:
             del self.java_terminfo[term]
 
     def add_methodname(self, term, info):
         methodname = self.nice_name(term, info)
         if methodname in self.JAVA_KEYWORDS:
             methodname += '_'
-        if term in self.FORCED_RENAMES:
-            methodname = dromedary(self.FORCED_RENAMES[term])
         info['methodname'] = methodname
 
     def add_classname(self, term, info):
-        info['classname'] = camel(term)
+        info['classname'] = self.FORCED_CLASS_RENAMES.get(term, camel(term))
 
     @staticmethod
     def nice_name(term, info):
@@ -353,10 +306,58 @@ class java_term_info(object):
 
 TL = TemplateLookup(directories=[TEMPLATE_DIR])
 
+
+def camel(varname):
+    'CamelCase'
+    return ''.join(x.title() for x in varname.split('_'))
+
+
+def dromedary(words):
+    'dromedaryCase'
+    broken = words.split('_')
+    return broken[0].lower() + ''.join(x.title() for x in broken[1:])
+
+
 template_context = {
     'camel': camel,  # CamelCase function
     'dromedary': dromedary,  # dromeDary case function
 }
+
+
+def reql_to_java_type(reql_type):
+    if isinstance(reql_type, list):
+        # for enums
+        return 'String'
+    elif reql_type == 'T_BOOL':
+        return 'Boolean'
+    elif reql_type == 'T_NUM':
+        return 'Double'
+    elif reql_type == 'T_STR':
+        return 'String'
+    else:
+        return 'Object'
+
+
+def java_repr(obj):
+    if isinstance(obj, bool):
+        return str(obj).lower()
+    elif isinstance(obj, basestring):
+        return '"{}"'.format(obj)
+    elif isinstance(obj, (int, float)):
+        return str(obj)
+    elif obj is None:
+        return 'null'
+    else:
+        return repr(obj)
+
+
+def autogenerated_header(template_path, output_path):
+    rel_tpl = os.path.relpath(template_path, start=output_path)
+
+    return ('// Autogenerated by {}.\n'
+            '// Do not edit this file directly.\n'
+            '// The template for this file is located at:\n'
+            '// {}\n').format(os.path.basename(__file__), rel_tpl)
 
 
 def dependent_templates(tpl):

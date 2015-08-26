@@ -5,7 +5,7 @@ version = '0.5-b1'
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
-//create a single Jar with all dependencies
+//create a single Jar with all dependencies baked in
 task fatJar(type: Jar) {
   archiveName = "rethinkdb-"+version+".jar"
   from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
@@ -20,9 +20,3 @@ dependencies {
   compile 'org.slf4j:slf4j-api:1.7.2'
   compile group: 'com.googlecode.json-simple', name: 'json-simple', version: '1.1.1'
 }
-
-task generateProtocolFiles(type:Exec) {
-  commandLine 'python2', 'metajava.py'
-}
-
-compileJava.dependsOn generateProtocolFiles
