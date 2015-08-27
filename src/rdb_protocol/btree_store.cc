@@ -299,7 +299,7 @@ std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > store_t::sin
         std::pair<sindex_config_t, sindex_status_t> *res = &results[pair.first.name];
         sindex_disk_info_t disk_info;
         try {
-            deserialize_sindex_info(pair.second.opaque_definition, &disk_info);
+            deserialize_sindex_info_or_crash(pair.second.opaque_definition, &disk_info);
         } catch (const archive_exc_t &) {
             crash("corrupted sindex definition");
         }
@@ -833,8 +833,8 @@ bool secondary_indexes_are_equivalent(const std::vector<char> &left,
                                       const std::vector<char> &right) {
     sindex_disk_info_t sindex_info_left;
     sindex_disk_info_t sindex_info_right;
-    deserialize_sindex_info(left, &sindex_info_left);
-    deserialize_sindex_info(right, &sindex_info_right);
+    deserialize_sindex_info_or_crash(left, &sindex_info_left);
+    deserialize_sindex_info_or_crash(right, &sindex_info_right);
 
     if (sindex_info_left.multi == sindex_info_right.multi &&
         sindex_info_left.geo == sindex_info_right.geo &&

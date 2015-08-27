@@ -1235,18 +1235,16 @@ void serialize_sindex_info(write_message_t *wm,
     serialize<cluster_version_t::LATEST_DISK>(wm, info.geo);
 }
 
-void deserialize_sindex_info(const std::vector<char> &data,
-                             sindex_disk_info_t *info_out)
-    THROWS_ONLY(archive_exc_t) {
+void deserialize_sindex_info(
+        const std::vector<char> &data,
+        sindex_disk_info_t *info_out,
+        const std::function<void()> &obsolete_cb) {
     buffer_read_stream_t read_stream(data.data(), data.size());
     // This cluster version field is _not_ a ReQL evaluation version field, which is
     // in secondary_index_t -- it only says how the value was serialized.
     cluster_version_t cluster_version;
     archive_result_t success = deserialize_cluster_version(
-        &read_stream,
-        &cluster_version,
-        "Encountered a RethinkDB 1.13 secondary index, which is no longer supported.  "
-        "You can use RethinkDB 2.0 to upgrade your secondary index.");
+        &read_stream, &cluster_version, obsolete_cb);
     throw_if_bad_deserialization(success, "sindex description");
 
     switch (cluster_version) {
@@ -1258,8 +1256,7 @@ void deserialize_sindex_info(const std::vector<char> &data,
         success = deserialize_reql_version(
                 &read_stream,
                 &info_out->mapping_version_info.original_reql_version,
-                "Encountered a RethinkDB 1.13 secondary index, which is no longer supported.  "
-                "You can use RethinkDB 2.0 to upgrade your secondary index.");
+                obsolete_cb);
         throw_if_bad_deserialization(success, "original_reql_version");
         success = deserialize_for_version(
                 cluster_version,
@@ -1298,6 +1295,18 @@ void deserialize_sindex_info(const std::vector<char> &data,
               "An sindex description was incompletely deserialized.");
 }
 
+void deserialize_sindex_info_or_crash(
+        const std::vector<char> &data,
+        sindex_disk_info_t *info_out)
+            THROWS_ONLY(archive_exc_t) {
+    deserialize_sindex_info(data, info_out,
+        [] () -> void {
+            fail_due_to_user_error("Encountered a RethinkDB 1.13 secondary index, "
+                                   "which is no longer supported.  You can use "
+                                   "RethinkDB 2.0 to update your secondary index.");
+        });
+}
+
 /* Used below by rdb_update_sindexes. */
 void rdb_update_single_sindex(
         store_t *store,
@@ -1321,7 +1330,7 @@ void rdb_update_single_sindex(
 
     sindex_disk_info_t sindex_info;
     try {
-        deserialize_sindex_info(sindex->sindex.opaque_definition, &sindex_info);
+        deserialize_sindex_info_or_crash(sindex->sindex.opaque_definition, &sindex_info);
     } catch (const archive_exc_t &e) {
         crash("%s", e.what());
     }

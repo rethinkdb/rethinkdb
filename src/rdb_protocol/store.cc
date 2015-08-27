@@ -38,7 +38,7 @@ void store_t::note_reshard() {
 reql_version_t update_sindex_last_compatible_version(secondary_index_t *sindex,
                                                      buf_lock_t *sindex_block) {
     sindex_disk_info_t sindex_info;
-    deserialize_sindex_info(sindex->opaque_definition, &sindex_info);
+    deserialize_sindex_info_or_crash(sindex->opaque_definition, &sindex_info);
 
     reql_version_t res = sindex_info.mapping_version_info.original_reql_version;
 
@@ -184,7 +184,7 @@ scoped_ptr_t<sindex_superblock_t> acquire_sindex_for_read(
     }
 
     try {
-        deserialize_sindex_info(sindex_mapping_data, sindex_info_out);
+        deserialize_sindex_info_or_crash(sindex_mapping_data, sindex_info_out);
     } catch (const archive_exc_t &e) {
         crash("%s", e.what());
     }
