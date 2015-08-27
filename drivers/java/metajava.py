@@ -150,11 +150,20 @@ class java_term_info(object):
 
     # Special aliases for the java driver only
     FORCED_CLASS_RENAMES = {
-        'OBJECT': 'ReqlObject',
+        'OBJECT': 'ReqlObject',  # Avoids Object collision which is annoying
     }
 
+    # Manual override of superclasses for terms. Default is ReqlExpr
     SUPERCLASSES = {
         'DB': 'ReqlAst'
+    }
+
+    # Translation from T_ style types in term_info to Java classnames
+    INCLUDE_IN_CLASSNAMES = {
+        'T_DB': 'Db',
+        'T_TOP_LEVEL': 'TopLevel',
+        'T_EXPR': 'ReqlExpr',
+        'T_TABLE': 'Table',
     }
 
     # How many times to expand when manually expanding 'T_FUNCX' arguments
@@ -176,6 +185,7 @@ class java_term_info(object):
             self.add_methodname(term, info)
             self.add_classname(term, info)
             self.add_superclass(term, info)
+            self.translate_include_in(info)
             info['signatures'] = self.reify_signatures(
                 info.get('signatures', []))
 
@@ -317,6 +327,10 @@ class java_term_info(object):
         ast_type_hierarchy in global_info.json if it became an
         issue'''
         info['superclass'] = self.SUPERCLASSES.get(term, 'ReqlExpr')
+
+    def translate_include_in(self, info):
+        info['include_in'] = [self.INCLUDE_IN_CLASSNAMES[t]
+                              for t in info.get('include_in')]
 
     @staticmethod
     def nice_name(term, info):
