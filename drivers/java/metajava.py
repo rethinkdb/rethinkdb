@@ -51,7 +51,9 @@ def parse_args():
     parser.add_argument("--proto-json", type=jsonfile)
     parser.add_argument("--global-info", type=jsonfile)
     parser.add_argument("--java-term-info", type=jsonfile)
-    parser.add_argument("--output-file", "-o")
+    parser.add_argument("--template-dir")
+    parser.add_argument("--package-dir")
+    parser.add_argument("--output-file")
     return parser.parse_args()
 
 
@@ -63,7 +65,12 @@ def main():
     elif args.command == 'generate-java-terminfo':
         java_term_info(args.term_info.json, args.output_file)
     elif args.command == 'generate-java-classes':
-        generate_java_classes(args.java_term_info.json, args.global_info)
+        generate_java_classes(
+            global_info=args.global_info.json,
+            java_term_info=args.java_term_info.json,
+            template_dir=args.template_dir,
+            package_dir=args.package_dir,
+        )
     return #maginot line of conversion
     render_proto_enums(args.proto.json)
 
@@ -146,8 +153,15 @@ class java_term_info(object):
         'OBJECT': 'ReqlObject',
     }
 
-    # How many times to expand when manually expanding '*' arguments
-    FUNCX_EXPAND = 2
+    SUPERCLASSES = {
+        'DB': 'ReqlAst'
+    }
+
+    # How many times to expand when manually expanding 'T_FUNCX' arguments
+    FUNCX_EXPAND = 3
+
+    # How many times to expand manual * arguments
+    STAR_EXPAND = 2
 
     def __init__(self, term_info, output_filename):
         self.java_terminfo = copy.deepcopy(term_info)
@@ -161,6 +175,7 @@ class java_term_info(object):
             self.delete_if_blacklisted(term, info)
             self.add_methodname(term, info)
             self.add_classname(term, info)
+            self.add_superclass(term, info)
             info['signatures'] = self.reify_signatures(
                 info.get('signatures', []))
 
@@ -209,12 +224,11 @@ class java_term_info(object):
             reql does in principle, but it should be ok for practical
             purposes and allow convenient type inference.
             '''
-            before_prev = formal_args[:i-1]
-            after_current = formal_args[i+1:]
+            before_prev = formal_args[:-1]
             prev = formal_args[i-1]
             result = []
-            for reps in range(0, cls.FUNCX_EXPAND+1):
-                result.extend(before_prev+list(p)+after_current
+            for reps in range(0, cls.STAR_EXPAND+1):
+                result.extend(before_prev+list(p)
                               for p in itertools.product(prev, repeat=reps))
             return result
 
@@ -298,13 +312,16 @@ class java_term_info(object):
     def add_classname(self, term, info):
         info['classname'] = self.FORCED_CLASS_RENAMES.get(term, camel(term))
 
+    def add_superclass(self, term, info):
+        '''This is sort of hardcoded. It could be obtained from
+        ast_type_hierarchy in global_info.json if it became an
+        issue'''
+        info['superclass'] = self.SUPERCLASSES.get(term, 'ReqlExpr')
+
     @staticmethod
     def nice_name(term, info):
         '''Whether the nice name for a term is in a given set'''
         return info.get('alias', dromedary(term))
-
-
-TL = TemplateLookup(directories=[TEMPLATE_DIR])
 
 
 def camel(varname):
@@ -318,10 +335,59 @@ def dromedary(words):
     return broken[0].lower() + ''.join(x.title() for x in broken[1:])
 
 
-template_context = {
-    'camel': camel,  # CamelCase function
-    'dromedary': dromedary,  # dromeDary case function
-}
+class generate_java_classes(object):
+    '''Uses java_term_info.json and global_info.json to render all Java
+    AST and interface files'''
+
+    def __init__(self, global_info, java_term_info, template_dir, package_dir):
+        self.tl = TemplateLookup(directories=[template_dir])
+        self.global_info = global_info
+        self.term_info = java_term_info
+        self.template_dir = template_dir
+        self.package_dir = package_dir
+        self.template_context = {
+            'camel': camel,  # CamelCase function
+            'dromedary': dromedary,  # dromeDary case function
+        }
+
+        self.render_optarg_enums()
+
+    def render_optarg_enums(self):
+        def enum_name(termname):
+            return camel(termname[2:])
+
+        for term, values in self.global_info['optarg_enums'].items():
+            self.render(
+                template_name="Enum.java",
+                output_dir=self.package_dir+'/gen/model',
+                output_name=enum_name(term)+'.java',
+                package="model",
+                classname=enum_name(term),
+                items=[(val.upper(), '"'+val+'"') for val in values],
+                value_type="String",
+            )
+
+    def render(self, template_name, output_dir, output_name=None, **kwargs):
+        if output_name is None:
+            output_name = template_name
+
+        tpl = self.tl.get_template(template_name)
+        output_path = output_dir + '/' + output_name
+
+        if already_rendered(tpl, output_path):
+            return
+
+        with codecs.open(output_path, "w", "utf-8") as outfile:
+            print("Rendering", output_path)
+            results = self.template_context.copy()
+            results.update(kwargs)
+            rendered = tpl.render(**results)
+            outfile.write(autogenerated_header(
+                TEMPLATE_DIR + '/' + template_name,
+                output_path,
+            ))
+            outfile.write(rendered)
+
 
 
 def reql_to_java_type(reql_type):
@@ -361,6 +427,7 @@ def autogenerated_header(template_path, output_path):
 
 
 def dependent_templates(tpl):
+
     '''Returns filenames for all templates that are inherited from the
     given template'''
     inherit_files = re.findall(r'inherit file="(.*)"', tpl.source)
@@ -384,28 +451,6 @@ def already_rendered(tpl, output_path):
     return (output_exists and
             tpl_mtime < os.path.getmtime(output_path) and
             MTIME <= os.path.getmtime(output_path))
-
-
-def render(template_name, output_dir, output_name=None, **kwargs):
-    if output_name is None:
-        output_name = template_name
-
-    tpl = TL.get_template(template_name)
-    output_path = output_dir + '/' + output_name
-
-    if already_rendered(tpl, output_path):
-        return
-
-    with codecs.open(output_path, "w", "utf-8") as outfile:
-        print("Rendering", output_path)
-        results = template_context.copy()
-        results.update(kwargs)
-        rendered = tpl.render(**results)
-        outfile.write(autogenerated_header(
-            TEMPLATE_DIR + '/' + template_name,
-            output_path,
-        ))
-        outfile.write(rendered)
 
 
 def get_template_name(classname, directory, default):
@@ -473,8 +518,8 @@ def sub_to_super_mapping(type_hierarchy, superclass='ReqlAst'):
         if ty in ('T_DATUM', 'T_FUNC'):
             # these won't be generated automatically
             continue
-        mapping[ty.lstrip('T_')] = superclass
-        mapping.update(sub_to_super_mapping(subclasses, ty.lstrip('T_')))
+        mapping[ty[2:]] = superclass
+        mapping.update(sub_to_super_mapping(subclasses, ty[2:]))
     return mapping
 
 

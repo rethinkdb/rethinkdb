@@ -34,9 +34,9 @@ public class ${classname} extends ${superclass} {
 </%block>
 <%block name="special_methods" />
 % for term, info in meta.iteritems():
-    % if include_in in info.get('include_in', ['query']):
+    % if include_in in info.get('include_in', []):
     public ${camel(term)} ${info.get('alias', dromedary(term))}(java.lang.Object... fields) {
-     %if include_in == "top":
+     %if include_in == "T_TOP_LEVEL":
         return new ${camel(term)}(null, new Arguments(fields), new OptArgs());
      %else:
         return new ${camel(term)}(this, new Arguments(fields), new OptArgs());

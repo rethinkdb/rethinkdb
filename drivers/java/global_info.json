@@ -30,7 +30,7 @@
         "E_GEO_SYSTEM": ["WGS84", "unit_sphere"],
         "E_UNIT": ["m", "km", "mi", "nm", "ft"]
     },
-    "type_hierarchy": {
+    "ast_type_hierarchy": {
         "T_TOP_LEVEL": {},
         "T_DB": {},
         "T_EXPR": {

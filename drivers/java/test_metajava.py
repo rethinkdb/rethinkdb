@@ -57,11 +57,13 @@ import pytest
     (['T_EXPR', 'T_EXPR', '*', 'T_FUNCX'],
      [['Object', 'ReqlFunction1'],
       ['Object', 'Object', 'ReqlFunction2'],
-      ['Object', 'Object', 'Object', 'ReqlFunction3']]),
+      ['Object', 'Object', 'Object', 'ReqlFunction3'],
+      ['Object', 'Object', 'Object', 'Object', 'ReqlFunction4']]),
     (['T_EXPR', 'T_EXPR', 'T_EXPR', '*', 'T_FUNCX'],
      [['Object', 'Object', 'ReqlFunction2'],
       ['Object', 'Object', 'Object', 'ReqlFunction3'],
-      ['Object', 'Object', 'Object', 'Object', 'ReqlFunction4']]),
+      ['Object', 'Object', 'Object', 'Object', 'ReqlFunction4'],
+      ['Object', 'Object', 'Object', 'Object', 'Object', 'ReqlFunction5']]),
 ])
 def test_reify_signatures(sig, expected):
     assert MJ.java_term_info.reify_signature(sig) == expected

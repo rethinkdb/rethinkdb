@@ -20,3 +20,5 @@ dependencies {
   compile 'org.slf4j:slf4j-api:1.7.2'
   compile group: 'com.googlecode.json-simple', name: 'json-simple', version: '1.1.1'
 }
+
+buildDir = '../../build/drivers/java/gradle'
