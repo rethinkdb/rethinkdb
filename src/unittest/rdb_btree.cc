@@ -136,7 +136,7 @@ ql::grouped_t<ql::stream_t> read_row_via_sindex(
 
     sindex_disk_info_t sindex_info;
     try {
-        deserialize_sindex_info(opaque_definition, &sindex_info);
+        deserialize_sindex_info_or_crash(opaque_definition, &sindex_info);
     } catch (const archive_exc_t &e) {
         crash("%s", e.what());
     }
