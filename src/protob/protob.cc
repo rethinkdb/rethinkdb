@@ -594,12 +594,13 @@ void query_server_t::connection_loop(tcp_conn_t *conn,
                 ql::protob_t<Query> query_pb = std::move(query);
                 // Since we `spawn_now_dangerously` it's always safe to acquire this.
                 auto_drainer_t::lock_t coro_drainer_lock(&coro_drainer);
+                ql::query_id_t query_id(query_cache);
+                wait_any_t cb_interruptor(coro_drainer_lock.get_drain_signal(),
+                                          &interruptor);
+                Response response;
+                bool replied = false;
+
                 save_exception(&err, &err_str, &abort, [&]() {
-                    ql::query_id_t query_id((ql::query_id_t(query_cache)));
-                    wait_any_t cb_interruptor(coro_drainer_lock.get_drain_signal(),
-                                              &interruptor);
-                    Response response;
-                    bool replied = false;
                     handler->run_query(std::move(query_id), query_pb, &response,
                                        query_cache, acq.get(), &cb_interruptor);
                     if (!ql::is_noreply(query_pb)) {
@@ -608,8 +609,10 @@ void query_server_t::connection_loop(tcp_conn_t *conn,
                         protocol_t::send_response(
                             response, handler, conn, &cb_interruptor);
                         replied = true;
-                    }
-                     if (!replied && !ql::is_noreply(query_pb)) {
+                        }
+                });
+                save_exception(&err, &err_str, &abort, [&]() {
+                    if (!replied && !ql::is_noreply(query_pb)) {
                         make_error_response(drain_signal->is_pulsed(), *conn,
                                             err_str, &response);
                         response.set_token(query_pb->token());
