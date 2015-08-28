@@ -57,10 +57,11 @@ scoped_ptr_t<val_t> reql_func_t::call(env_t *env,
         // way (thanks to entropy).  TODO: This is bad.
         rcheck(arg_names.size() == args.size() || arg_names.size() == 0,
                base_exc_t::LOGIC,
-               strprintf("Expected %zd argument%s but found %zu.",
+               strprintf("Expected function with %zu argument%s but found function with %zu argument%s.",
+                         args.size(),
+                         (args.size() == 1 ? "" : "s"),
                          arg_names.size(),
-                         (arg_names.size() == 1 ? "" : "s"),
-                         args.size()));
+                         (arg_names.size() == 1 ? "" : "s")));
 
         var_scope_t new_scope = arg_names.size() == 0
             ? captured_scope

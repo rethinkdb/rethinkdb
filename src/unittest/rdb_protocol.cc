@@ -82,7 +82,7 @@ void run_with_namespace_interface(
                     make_scoped<store_t>(region_t::universe(), serializers[i].get(),
                         &balancer, temp_files[i]->name().permanent_path(), do_create,
                         &get_global_perfmon_collection(), &ctx, &io_backender,
-                        base_path_t("."), scoped_ptr_t<outdated_index_report_t>(),
+                        base_path_t("."),
                         generate_uuid()));
         }
 

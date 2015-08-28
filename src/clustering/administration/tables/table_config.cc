@@ -592,7 +592,10 @@ void table_config_artificial_table_backend_t::do_modify(
         new_config.config.shards.size(), old_config.shard_scheme, interruptor,
         &new_config.shard_scheme);
 
-    table_meta_client->set_config(table_id, new_config, interruptor);
+    table_config_and_shards_change_t table_config_and_shards_change(
+        table_config_and_shards_change_t::set_table_config_and_shards_t{ new_config });
+    table_meta_client->set_config(
+        table_id, table_config_and_shards_change, interruptor);
 }
 
 void table_config_artificial_table_backend_t::do_create(

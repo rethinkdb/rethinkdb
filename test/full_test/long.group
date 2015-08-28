@@ -24,4 +24,5 @@ split_workloads.rebalance-multi-serial-mix
 split_workloads.remove-secondary-multi-serial-mix
 split_workloads.transfer-multi-serial-mix
 static_cluster.rget-huge
+static_cluster.rget-huge-proxy
 unit.JSON

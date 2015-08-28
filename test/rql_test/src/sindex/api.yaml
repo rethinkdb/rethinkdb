@@ -26,10 +26,10 @@ tests:
     ot: ({'created':1})
 
   - cd: tbl.index_rename('rename-foo','rename-bar')
-    ot: err_regex('ReqlOpFailedError','Index `rename-bar` already exists on table `[a-zA-Z0-9_]+.[a-zA-Z0-9_]+`[.]',[])
+    ot: err_regex('ReqlOpFailedError','Index `rename-foo` does not exist or index `rename-bar` already exists on table `[a-zA-Z0-9_]+.[a-zA-Z0-9_]+`[.]',[])
 
   - cd: tbl.index_rename('rename-fake','rename-stuff')
-    ot: err_regex('ReqlOpFailedError','Index `rename-fake` does not exist on table `[a-zA-Z0-9_]+.[a-zA-Z0-9_]+`[.]',[])
+    ot: err_regex('ReqlOpFailedError','Index `rename-fake` does not exist or index `rename-stuff` already exists on table `[a-zA-Z0-9_]+.[a-zA-Z0-9_]+`[.]',[])
 
   - cd: tbl.index_rename('id','rename-stuff')
     ot: err('ReqlQueryLogicError','Index name conflict:'+' `id` is the name of the primary key.',[])

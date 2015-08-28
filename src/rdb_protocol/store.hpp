@@ -69,20 +69,6 @@ public:
     virtual const value_deleter_t *post_deleter() const = 0;
 };
 
-class outdated_index_report_t {
-public:
-    outdated_index_report_t() { }
-    virtual ~outdated_index_report_t() { }
-
-    // Called during store_t instantiation
-    virtual void set_outdated_indexes(std::set<std::string> &&indexes) = 0;
-
-    // Called when indexes change during store_t lifetime
-    virtual void index_dropped(const std::string &index_name) = 0;
-    virtual void indexes_renamed(
-        const std::map<std::string, std::string> &name_changes) = 0;
-};
-
 class store_t final : public store_view_t {
 public:
     using home_thread_mixin_t::assert_thread;
@@ -96,7 +82,6 @@ public:
             rdb_context_t *_ctx,
             io_backender_t *io_backender,
             const base_path_t &base_path,
-            scoped_ptr_t<outdated_index_report_t> &&_index_report,
             namespace_id_t table_id);
     ~store_t();
 
@@ -251,8 +236,6 @@ public:
         buf_lock_t *sindex_block)
     THROWS_NOTHING;
 
-    void update_outdated_sindex_list(buf_lock_t *sindex_block);
-
     MUST_USE bool acquire_sindex_superblock_for_read(
             const sindex_name_t &name,
             const std::string &table_name,
@@ -400,43 +383,32 @@ public:
     // `btree.cc`.
     rwlock_t cfeed_stamp_lock;
 
+private:
     rdb_context_t *ctx;
     // We store regions here even though we only really need the key ranges
     // because it's nice to have a unique identifier across `store_t`s.  In the
     // future we may use these `region_t`s instead of the `uuid_u`s in the
     // changefeed server.
     std::map<region_t, scoped_ptr_t<ql::changefeed::server_t> > changefeed_servers;
-    ql::changefeed::server_t *changefeed_server(const region_t &region) {
-        for (auto &&pair : changefeed_servers) {
-            if (pair.first.inner.is_superset(region.inner)) {
-                return pair.second.get();
-            }
-        }
-        return nullptr;
-    }
-    ql::changefeed::server_t *make_changefeed_server(const region_t &region) {
-        guarantee(ctx && ctx->manager);
-        for (auto &&pair : changefeed_servers) {
-            guarantee(!pair.first.inner.overlaps(region.inner));
-        }
-        auto it = changefeed_servers.insert(
-            std::make_pair(
-                region_t(region),
-                make_scoped<ql::changefeed::server_t>(ctx->manager, this))).first;
-        return it->second.get();
-    }
-    ql::changefeed::server_t *changefeed_server(const store_key_t &key) {
-        for (auto &&pair : changefeed_servers) {
-            if (pair.first.inner.contains_key(key)) {
-                return pair.second.get();
-            }
-        }
-        return nullptr;
-    }
+    rwlock_t changefeed_servers_lock;
 
-    // This report is used by the outdated index issue tracker, and should be updated
-    // any time the set of outdated indexes for this table changes
-    scoped_ptr_t<outdated_index_report_t> index_report;
+    std::pair<ql::changefeed::server_t *, auto_drainer_t::lock_t> changefeed_server(
+            const region_t &region,
+            const rwlock_acq_t *acq);
+public:
+    // Returns a pointer to `changefeed_servers` together with a read acquisition
+    // on `changefeed_servers_lock`.
+    std::pair<const std::map<region_t, scoped_ptr_t<ql::changefeed::server_t> > *,
+              scoped_ptr_t<rwlock_acq_t> > access_changefeed_servers();
+    // Return a pointer to a specific changefeed server if it exists. These can
+    // block.
+    std::pair<ql::changefeed::server_t *, auto_drainer_t::lock_t> changefeed_server(
+            const region_t &region);
+    std::pair<ql::changefeed::server_t *, auto_drainer_t::lock_t> changefeed_server(
+            const store_key_t &key);
+    // Like `changefeed_server()`, but creates the server if it doesn't exist.
+    std::pair<ql::changefeed::server_t *, auto_drainer_t::lock_t>
+            get_or_make_changefeed_server(const region_t &region);
 
 private:
     namespace_id_t table_id;

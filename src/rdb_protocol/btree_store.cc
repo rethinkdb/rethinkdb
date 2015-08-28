@@ -85,16 +85,12 @@ store_t::store_t(const region_t &region,
                  rdb_context_t *_ctx,
                  io_backender_t *io_backender,
                  const base_path_t &base_path,
-                 /* TODO: We should track outdated indexes by looking at the Raft state,
-                 not by looking at the `store_t`. */
-                 scoped_ptr_t<outdated_index_report_t> &&_index_report,
                  namespace_id_t _table_id)
     : store_view_t(region),
       perfmon_collection(),
       io_backender_(io_backender), base_path_(base_path),
       perfmon_collection_membership(parent_perfmon_collection, &perfmon_collection, perfmon_name),
       ctx(_ctx),
-      index_report(std::move(_index_report)),
       table_id(_table_id),
       write_superblock_acq_semaphore(WRITE_SUPERBLOCK_ACQ_WAITERS_LIMIT)
 {
@@ -149,7 +145,7 @@ store_t::store_t(const region_t &region,
                                 access_t::write);
 
         std::map<sindex_name_t, secondary_index_t> sindexes;
-        get_secondary_indexes(&sindex_block, &sindexes);
+        migrate_secondary_index_block(&sindex_block, &sindexes);
 
         for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
             // Deleted secondary indexes should not be added to the perfmons
@@ -164,8 +160,6 @@ store_t::store_t(const region_t &region,
             secondary_index_slices.insert(std::make_pair(it->second.id,
                                                          std::move(slice)));
         }
-
-        update_outdated_sindex_list(&sindex_block);
     }
 
     help_construct_bring_sindexes_up_to_date();
@@ -305,7 +299,7 @@ std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > store_t::sin
         std::pair<sindex_config_t, sindex_status_t> *res = &results[pair.first.name];
         sindex_disk_info_t disk_info;
         try {
-            deserialize_sindex_info(pair.second.opaque_definition, &disk_info);
+            deserialize_sindex_info_or_crash(pair.second.opaque_definition, &disk_info);
         } catch (const archive_exc_t &) {
             crash("corrupted sindex definition");
         }
@@ -422,10 +416,6 @@ void store_t::sindex_rename_multi(
         set_secondary_index(&sindex_block, sindex_name_t(pair.first), pair.second.first);
         pair.second.second->rename(&perfmon_collection, "index-" + pair.first);
     }
-
-    if (index_report.has()) {
-        index_report->indexes_renamed(name_changes);
-    }
 }
 
 void store_t::sindex_drop(
@@ -456,10 +446,6 @@ void store_t::sindex_drop(
                                      this,
                                      sindex,
                                      drainer.lock()));
-
-    if (index_report.has()) {
-        index_report->index_dropped(name);
-    }
 }
 
 new_mutex_in_line_t store_t::get_in_line_for_sindex_queue(buf_lock_t *sindex_block) {
@@ -847,8 +833,8 @@ bool secondary_indexes_are_equivalent(const std::vector<char> &left,
                                       const std::vector<char> &right) {
     sindex_disk_info_t sindex_info_left;
     sindex_disk_info_t sindex_info_right;
-    deserialize_sindex_info(left, &sindex_info_left);
-    deserialize_sindex_info(right, &sindex_info_right);
+    deserialize_sindex_info_or_crash(left, &sindex_info_left);
+    deserialize_sindex_info_or_crash(right, &sindex_info_right);
 
     if (sindex_info_left.multi == sindex_info_right.multi &&
         sindex_info_left.geo == sindex_info_right.geo &&

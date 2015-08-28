@@ -424,7 +424,10 @@ public:
         limit_addr_t;
     explicit server_t(mailbox_manager_t *_manager, store_t *_parent);
     ~server_t();
-    void add_client(const client_t::addr_t &addr, region_t region);
+    void add_client(
+        const client_t::addr_t &addr,
+        region_t region,
+        const auto_drainer_t::lock_t &keepalive);
     void add_limit_client(
         const client_t::addr_t &addr,
         const region_t &region,
@@ -434,24 +437,34 @@ public:
         const uuid_u &client_uuid,
         const keyspec_t::limit_t &spec,
         limit_order_t lt,
-        std::vector<item_t> &&start_data);
+        std::vector<item_t> &&start_data,
+        const auto_drainer_t::lock_t &keepalive);
     // `key` should be non-NULL if there is a key associated with the message.
-    void send_all(const msg_t &msg,
-                  const store_key_t &key,
-                  rwlock_in_line_t *stamp_spot);
+    void send_all(
+        const msg_t &msg,
+        const store_key_t &key,
+        rwlock_in_line_t *stamp_spot,
+        const auto_drainer_t::lock_t &keepalive);
     addr_t get_stop_addr();
     limit_addr_t get_limit_stop_addr();
-    boost::optional<uint64_t> get_stamp(const client_t::addr_t &addr);
+    boost::optional<uint64_t> get_stamp(
+        const client_t::addr_t &addr,
+        const auto_drainer_t::lock_t &keepalive);
     uuid_u get_uuid();
     // `f` will be called with a read lock on `clients` and a write lock on the
     // limit manager.
-    void foreach_limit(const boost::optional<std::string> &s,
-                       const store_key_t *pkey, // NULL if none
-                       std::function<void(rwlock_in_line_t *,
-                                          rwlock_in_line_t *,
-                                          rwlock_in_line_t *,
-                                          limit_manager_t *)> f) THROWS_NOTHING;
-    bool has_limit(const boost::optional<std::string> &s);
+    void foreach_limit(
+        const boost::optional<std::string> &s,
+        const store_key_t *pkey, // NULL if none
+        std::function<void(rwlock_in_line_t *,
+                           rwlock_in_line_t *,
+                           rwlock_in_line_t *,
+                           limit_manager_t *)> f,
+        const auto_drainer_t::lock_t &keepalive) THROWS_NOTHING;
+    bool has_limit(
+        const boost::optional<std::string> &s,
+        const auto_drainer_t::lock_t &keepalive);
+    auto_drainer_t::lock_t get_keepalive();
 private:
     friend class limit_manager_t;
     void stop_mailbox_cb(signal_t *interruptor, client_t::addr_t addr);
@@ -459,7 +472,10 @@ private:
                                client_t::addr_t addr,
                                boost::optional<std::string> sindex,
                                uuid_u uuid);
-    void add_client_cb(signal_t *stopped, client_t::addr_t addr);
+    void add_client_cb(
+        signal_t *stopped,
+        client_t::addr_t addr,
+        const auto_drainer_t::lock_t &keepalive);
 
     // The UUID of the server, used so that `real_feed_t`s can enforce on ordering on
     // changefeed messages on a per-server basis (and drop changefeed messages
@@ -490,9 +506,9 @@ private:
         boost::optional<std::string> sindex,
         size_t offset);
 
-    void send_one_with_lock(const auto_drainer_t::lock_t &lock,
-                            std::pair<const client_t::addr_t, client_info_t> *client,
-                            msg_t msg);
+    void send_one_with_lock(std::pair<const client_t::addr_t, client_info_t> *client,
+                            msg_t msg,
+                            const auto_drainer_t::lock_t &lock);
 
     // Controls access to `clients`.  A `server_t` needs to read `clients` when:
     // * `send_all` is called

@@ -1,7 +1,16 @@
+<img style="width:100%;" src="/github-banner.png">
+
 [RethinkDB](http://www.rethinkdb.com)
 =================
 
-<img align="right" src="/thinker-standing-computer.png">
+
+What is RethinkDB?
+-----------
+
+* **Open-source** database for building realtime web applications
+* **NoSQL** database that stores schemaless JSON documents
+* **Distributed** database that is easy to scale
+* **High availability** database with automatic failover and robust fault tolerance
 
 RethinkDB is the first open-source scalable database built for realtime applications. It exposes a new database access model -- instead of polling for changes, the developer can tell the database to continuously push updated query results to applications in realtime. RethinkDB allows developers to build scalable realtime apps in a fraction of the time with less effort.
 
@@ -34,8 +43,8 @@ Besides our three official drivers, we also have many [third-party drivers](http
 * **Elixir:** [rethinkdb-elixir](https://github.com/hamiltop/rethinkdb-elixir)
 * **Go:** [GoRethink](https://github.com/dancannon/gorethink)
 * **Haskell:** [haskell-rethinkdb](https://github.com/atnnn/haskell-rethinkdb)
-* **PHP:** [php-rql](https://github.com/danielmewes/php-rql) 
-* **Scala:** [rethink-scala](https://github.com/kclay/rethink-scala) 
+* **PHP:** [php-rql](https://github.com/danielmewes/php-rql)
+* **Scala:** [rethink-scala](https://github.com/kclay/rethink-scala)
 
 Looking to explore what else RethinkDB offers or the specifics of ReQL? Check out [our RethinkDB docs](http://rethinkdb.com/docs/) and [ReQL API](http://rethinkdb.com/api/).
 

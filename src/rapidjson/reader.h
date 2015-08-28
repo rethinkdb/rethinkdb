@@ -380,7 +380,7 @@ template<> inline void SkipWhitespace(StringStream& is) {
     \tparam TargetEncoding Encoding of the parse output.
     \tparam StackAllocator Allocator type for stack.
 */
-template <typename SourceEncoding, typename TargetEncoding, typename StackAllocator = CrtAllocator>
+template <typename SourceEncoding, typename TargetEncoding, typename StackAllocator = RAllocator>
 class GenericReader {
 public:
     typedef typename SourceEncoding::Ch Ch; //!< SourceEncoding character type

@@ -136,10 +136,6 @@ ifeq ($(COVERAGE), 1)
   endif
 endif
 
-ifeq ($(AGRESSIVE_BUF_UNLOADING),1)
-  RT_CXXFLAGS += -DAGRESSIVE_BUF_UNLOADING=1
-endif
-
 # TODO: >() only works on bash >= 4
 LD_OUTPUT_FILTER ?=
 ifeq ($(COMPILER),INTEL)
@@ -198,16 +194,8 @@ ifeq ($(SEMANTIC_SERIALIZER_CHECK),1)
   RT_CXXFLAGS += -DSEMANTIC_SERIALIZER_CHECK
 endif
 
-ifeq ($(BTREE_DEBUG),1)
-  RT_CXXFLAGS += -DBTREE_DEBUG
-endif
-
 ifeq ($(JSON_SHORTCUTS),1)
   RT_CXXFLAGS += -DJSON_SHORTCUTS
-endif
-
-ifeq ($(SERIALIZER_DEBUG),1)
-  RT_CXXFLAGS += -DSERIALIZER_MARKERS
 endif
 
 ifeq ($(LEGACY_LINUX),1)
@@ -235,10 +223,6 @@ ifeq ($(VALGRIND),1)
     $(error cannot build with VALGRIND=1 when using a custom allocator)
   endif
   RT_CXXFLAGS += -DVALGRIND
-endif
-
-ifeq ($(LEGACY_PROC_STAT),1)
-  RT_CXXFLAGS += -DLEGACY_PROC_STAT
 endif
 
 ifeq ($(V8_PRE_3_19),1)

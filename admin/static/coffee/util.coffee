@@ -269,7 +269,9 @@ date_to_string = (date) ->
     return raw_date_str.slice(0, raw_date_str.indexOf('GMT')+3)+timezone
 
 prettify_duration = (duration) ->
-    if duration < 1
+    if duration is null
+        return ''
+    else if duration < 1
         return '<1ms'
     else if duration < 1000
         return duration.toFixed(0)+"ms"

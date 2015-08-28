@@ -58,6 +58,12 @@ public:
         "modification may or may not have taken place.") { }
 };
 
+class config_change_exc_t : public std::runtime_error {
+public:
+    config_change_exc_t() : std::runtime_error("The change could not be applied to the "
+        "table's configuration.") { }
+};
+
 /* `table_meta_client_t` is responsible for submitting client requests over the network
 to the `multi_table_manager_t`. It doesn't have any real state of its own; it's just a
 convenient way of bundling together all of the objects that are necessary for submitting
@@ -171,10 +177,10 @@ public:
     block. If it returns successfully, the change will be visible in `find()`, etc. */
     void set_config(
         const namespace_id_t &table_id,
-        const table_config_and_shards_t &new_config,
+        const table_config_and_shards_change_t &table_config_and_shards_change,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,
-            maybe_failed_table_op_exc_t);
+            maybe_failed_table_op_exc_t, config_change_exc_t);
 
     /* `emergency_repair()` performs an emergency repair operation on the given table,
     creating a new table epoch. If all of the replicas for a given shard are missing, it
@@ -203,7 +209,7 @@ private:
     void create_or_emergency_repair(
         const namespace_id_t &table_id,
         const table_raft_state_t &raft_state,
-        microtime_t epoch_timestamp,
+        const multi_table_manager_timestamp_t::epoch_t &epoch,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, failed_table_op_exc_t,
             maybe_failed_table_op_exc_t);

@@ -95,6 +95,13 @@ class RdbTestCase(unittest.TestCase):
         else:
             return None
     
+    def checkCluster(self):
+        '''Check that all the servers are running and the cluster is in good shape. Errors on problems'''
+        
+        assert self.cluster is not None, 'The cluster was None'
+        self.cluster.check()
+        assert [] == list(self.r.db('rethinkdb').table('current_issues').run(self.conn))
+    
     def setUp(self):
         
         # -- start the servers
@@ -103,7 +110,7 @@ class RdbTestCase(unittest.TestCase):
         
         if self.cluster is not None:
             try:
-                self.cluster.check()
+                self.checkCluster()
             except:
                 self.__class__.cluster = None
                 self.__class__.conn = None

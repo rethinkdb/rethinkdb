@@ -20,47 +20,22 @@ class multi_table_manager_timestamp_t {
 public:
     class epoch_t {
     public:
-        static epoch_t min() {
-            epoch_t e;
-            e.id = nil_uuid();
-            e.timestamp = 0;
-            return e;
-        }
+        static epoch_t min();
+        static epoch_t deletion();
+        static epoch_t migrate(time_t ts);
+        static epoch_t make(const epoch_t &prev);
 
-        static epoch_t deletion() {
-            epoch_t e;
-            e.id = nil_uuid();
-            e.timestamp = std::numeric_limits<microtime_t>::max();
-            return e;
-        }
+        ql::datum_t to_datum() const;
 
-        bool is_deletion() const {
-            return id.is_nil();
-        }
-
-        bool operator==(const epoch_t &other) const {
-            return timestamp == other.timestamp && id == other.id;
-        }
-        bool operator!=(const epoch_t &other) const {
-            return !(*this == other);
-        }
-
-        bool supersedes(const epoch_t &other) const {
-            // Workaround for issue #4668 - handle invalid timestamps from migration
-            if (timestamp == special_timestamp) {
-                return false;
-            } else if (other.timestamp == special_timestamp) {
-                return true;
-            }
-
-            if (timestamp > other.timestamp) {
-                return true;
-            } else if (timestamp < other.timestamp) {
-                return false;
-            } else {
-                return other.id < id;
-            }
-        }
+        bool is_unset() const;
+        bool is_deletion() const;
+        bool operator==(const epoch_t &other) const;
+        bool operator!=(const epoch_t &other) const;
+        bool supersedes(const epoch_t &other) const;
+    private:
+        // Workaround for issue #4668 - invalid timestamps that were migrated
+        // These timestamps should never supercede any other timestamps
+        static const microtime_t special_timestamp;
 
         /* Every table's lifetime is divided into "epochs". Each epoch corresponds to
         one Raft instance. Normally tables only have one epoch; a new epoch is created
@@ -75,11 +50,7 @@ public:
         microtime_t timestamp;
         uuid_u id;
 
-    private:
-        // Workaround for issue #4668 - invalid timestamps that were migrated
-        // These timestamps should never supercede any other timestamps
-        static const microtime_t special_timestamp =
-            static_cast<microtime_t>(std::numeric_limits<time_t>::min());
+        RDB_DECLARE_ME_SERIALIZABLE(epoch_t);
     };
 
     static multi_table_manager_timestamp_t min() {
@@ -116,12 +87,12 @@ public:
         return log_index > other.log_index;
     }
 
+    // TODO: make the data members private and strictly control how they may be changed
     epoch_t epoch;
 
     /* Within each epoch, Raft log indices provide a monotonically increasing clock. */
     raft_log_index_t log_index;
 };
-RDB_DECLARE_SERIALIZABLE(multi_table_manager_timestamp_t::epoch_t);
 RDB_DECLARE_SERIALIZABLE(multi_table_manager_timestamp_t);
 
 /* In VERIFIED mode, the all replicas ready check makes sure that the leader
@@ -265,8 +236,8 @@ public:
         commit. If something goes wrong, it returns an empty `boost::optional`, in which
         case the change may or may not eventually be committed. */
         typedef mailbox_t<void(
-            table_config_and_shards_t new_config_and_shards,
-            mailbox_t<void(boost::optional<multi_table_manager_timestamp_t>
+            table_config_and_shards_change_t config_and_shards_change,
+            mailbox_t<void(boost::optional<multi_table_manager_timestamp_t>, bool
                 )>::address_t reply_addr
             )> set_config_mailbox_t;
         set_config_mailbox_t::address_t set_config_mailbox;
@@ -383,8 +354,7 @@ public:
         perfmon_collection_t *perfmon_collection_serializers) = 0;
     virtual void destroy_multistore(
         const namespace_id_t &table_id,
-        scoped_ptr_t<multistore_ptr_t> *multistore_ptr_in,
-        signal_t *interruptor) = 0;
+        scoped_ptr_t<multistore_ptr_t> *multistore_ptr_in) = 0;
 
 protected:
     virtual ~table_persistence_interface_t() { }

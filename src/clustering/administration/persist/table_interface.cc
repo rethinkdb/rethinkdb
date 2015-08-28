@@ -4,12 +4,12 @@
 #include <algorithm>
 #include <array>
 
-#include "clustering/administration/issues/outdated_index.hpp"
 #include "clustering/administration/persist/branch_history_manager.hpp"
 #include "clustering/administration/persist/file_keys.hpp"
 #include "clustering/administration/persist/raft_storage_interface.hpp"
 #include "clustering/administration/perfmon_collection_repo.hpp"
 #include "logger.hpp"
+#include "rdb_protocol/store.hpp"
 #include "serializer/log/log_serializer.hpp"
 #include "serializer/merger.hpp"
 #include "serializer/translator.hpp"
@@ -25,7 +25,6 @@ public:
             io_backender_t *io_backender,
             cache_balancer_t *cache_balancer,
             rdb_context_t *rdb_context,
-            outdated_index_issue_tracker_t *outdated_index_issue_tracker,
             perfmon_collection_t *perfmon_collection_serializers,
             threadnum_t serializer_thread,
             const std::vector<threadnum_t> &store_threads,
@@ -82,12 +81,6 @@ public:
 
             on_thread_t thread_switcher_2(store_threads[ix]);
 
-            // Only pass this down to the first store
-            scoped_ptr_t<outdated_index_report_t> index_report;
-            if (ix == 0) {
-                index_report = outdated_index_issue_tracker->create_report(table_id);
-            }
-
             stores[ix].init(new store_t(
                 cpu_sharding_subspace(ix),
                 multiplexer->proxies[ix],
@@ -98,7 +91,6 @@ public:
                 rdb_context,
                 io_backender,
                 base_path,
-                std::move(index_report),
                 table_id));
 
             /* Initialize the metainfo if necessary */
@@ -124,6 +116,8 @@ public:
     }
 
     ~real_multistore_ptr_t() {
+        map_insertion_sentry.reset();
+        drainer.drain();
         pmap(CPU_SHARDING_FACTOR, [this](int ix) {
             if (stores[ix].has()) {
                 on_thread_t thread_switcher(stores[ix]->home_thread());
@@ -144,7 +138,7 @@ public:
     }
 
     serializer_t *get_serializer() {
-        return serializer.get();
+        return serializer.get_or_null();
     }
 
     store_view_t *get_cpu_sharded_store(size_t i) {
@@ -156,6 +150,7 @@ public:
     }
 
     bool is_gc_active() {
+        rassert(!drainer.is_draining());
         if (serializer.has()) {
             return serializer->is_gc_active();
         } else {
@@ -243,11 +238,13 @@ void real_table_persistence_interface_t::write_metadata_inactive(
     write_txn.erase(
         mdprefix_table_active().suffix(uuid_to_str(table_id)),
         interruptor);
-    table_raft_storage_interface_t::erase(&write_txn, table_id, interruptor);
     write_txn.write(
         mdprefix_table_inactive().suffix(uuid_to_str(table_id)),
         state,
         interruptor);
+
+    table_raft_storage_interface_t::erase(&write_txn, table_id, interruptor);
+    real_branch_history_manager_t::erase(&write_txn, table_id, interruptor);
 }
 
 void real_table_persistence_interface_t::delete_metadata(
@@ -262,6 +259,7 @@ void real_table_persistence_interface_t::delete_metadata(
         mdprefix_table_inactive().suffix(uuid_to_str(table_id)),
         interruptor);
     table_raft_storage_interface_t::erase(&write_txn, table_id, interruptor);
+    real_branch_history_manager_t::erase(&write_txn, table_id, interruptor);
 }
 
 void real_table_persistence_interface_t::load_multistore(
@@ -288,7 +286,6 @@ void real_table_persistence_interface_t::load_multistore(
         io_backender,
         cache_balancer,
         rdb_context,
-        outdated_index_issue_tracker,
         perfmon_collection_serializers,
         serializer_thread,
         store_threads,
@@ -308,8 +305,7 @@ void real_table_persistence_interface_t::create_multistore(
 
 void real_table_persistence_interface_t::destroy_multistore(
         const namespace_id_t &table_id,
-        scoped_ptr_t<multistore_ptr_t> *multistore_ptr_in,
-        signal_t *interruptor) {
+        scoped_ptr_t<multistore_ptr_t> *multistore_ptr_in) {
     guarantee(multistore_ptr_in->has());
     multistore_ptr_in->reset();
 
@@ -318,8 +314,6 @@ void real_table_persistence_interface_t::destroy_multistore(
     const int res = ::unlink(filepath.c_str());
     guarantee_err(res == 0 || get_errno() == ENOENT,
                   "unlink failed for file %s", filepath.c_str());
-
-    real_branch_history_manager_t::erase(table_id, metadata_file, interruptor);
 }
 
 serializer_filepath_t real_table_persistence_interface_t::file_name_for(

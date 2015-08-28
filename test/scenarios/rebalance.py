@@ -1,14 +1,10 @@
 #!/usr/bin/env python
-# Copyright 2010-2014 RethinkDB, all rights reserved.
+# Copyright 2010-2015 RethinkDB, all rights reserved.
 
-from __future__ import print_function
-
-import os, sys, time
-
-startTime = time.time()
+import os, sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import driver, rdb_workload_common, scenario_common, utils, vcoptparse, workload_runner
+import rdb_unittest, rdb_workload_common, scenario_common, utils, vcoptparse, workload_runner
 
 def sequence_from_string(string):
     returnValue = tuple()
@@ -36,57 +32,45 @@ op["sequence"] = vcoptparse.ValueFlag("--sequence", converter=sequence_from_stri
 opts = op.parse(sys.argv)
 _, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
 
-numNodes = opts["num-nodes"]
-
-r = utils.import_python_driver()
-dbName, tableName = utils.get_test_db_table()
-
-print("Starting cluster of %d servers (%.2fs)" % (numNodes, time.time() - startTime))
-with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_ready=True, command_prefix=command_prefix, extra_options=serve_options) as cluster:
+class Rebalance(rdb_unittest.RdbTestCase):
+    '''Change the number of shards on a table.'''
+    # keep the same number of replicas as nodes so we don't have to backfill constantly
     
-    print("Establishing ReQL connection (%.2fs)" % (time.time() - startTime))
+    replicas = opts["num-nodes"]
+    shards = 1
     
-    server = cluster[0]
-    conn = r.connect(host=server.host, port=server.driver_port)
+    server_command_prefix = command_prefix
+    server_extra_options = serve_options
     
-    print("Creating db/table %s/%s (%.2fs)" % (dbName, tableName, time.time() - startTime))
-    
-    if dbName not in r.db_list().run(conn):
-        r.db_create(dbName).run(conn)
-    
-    if tableName in r.db(dbName).table_list().run(conn):
-        r.db(dbName).table_drop(tableName).run(conn)
-    r.db(dbName).table_create(tableName).run(conn)
-    
-    print("Inserting data (%.2fs)" % (time.time() - startTime))
-    
-    rdb_workload_common.insert_many(host=server.host, port=server.driver_port, database=dbName, table=tableName, count=10000, conn=conn)
-    
-    print("Sharding table (%.2fs)" % (time.time() - startTime))
-    
-    r.db(dbName).reconfigure(shards=numNodes, replicas=numNodes).run(conn)
-    r.db(dbName).wait().run(conn)
-    
-    print("Starting workload (%.2fs)" % (time.time() - startTime))
-    
-    workload_ports = workload_runner.RDBPorts(host=server.host, http_port=server.http_port, rdb_port=server.driver_port, db_name=dbName, table_name=tableName)
-    with workload_runner.SplitOrContinuousWorkload(opts, workload_ports) as workload:
+    def test_workload(self):
         
-        print("Running workload before (%.2fs)" % (time.time() - startTime))
-        workload.run_before()
-        cluster.check()
+        connServer = self.cluster[0]
         
-        currentShards = numNodes
-        for currentShards in opts["sequence"]:
-            print("Sharding table to %d shards (%.2fs)" % (currentShards, time.time() - startTime))
+        utils.print_with_time("Inserting data")
+        rdb_workload_common.insert_many(conn=self.conn, table=self.table, count=10000)
+        
+        utils.print_with_time("Starting workload")
+        with workload_runner.SplitOrContinuousWorkload(opts, connServer, db_name=self.dbName, table_name=self.tableName) as workload:
             
-            r.db(dbName).reconfigure(shards=currentShards, replicas=numNodes).run(conn)
-            r.db(dbName).wait().run(conn)
-            cluster.check()
-            assert [] == list(r.db('rethinkdb').table('current_issues').run(conn))
+            utils.print_with_time("Running workload before")
+            workload.run_before()
+            self.checkCluster()
+            
+            for currentShards in opts["sequence"]:
+                
+                utils.print_with_time("Sharding table to %d shards" % currentShards)
+                self.table.reconfigure(shards=currentShards, replicas=opts["num-nodes"]).run(self.conn)
+                self.table.wait(wait_for='all_replicas_ready').run(self.conn)
+                self.checkCluster()
+            
+            utils.print_with_time("Running workload after")
+            workload.run_after()
+            self.checkCluster()
         
-        print("Running workload after (%.2fs)" % (time.time() - startTime))
-        workload.run_after()
-    
-    print("Cleaning up (%.2fs)" % (time.time() - startTime))
-print("Done. (%.2fs)" % (time.time() - startTime))
+        utils.print_with_time("Workload complete")
+            
+# ==== main
+
+if __name__ == '__main__':
+    import unittest
+    unittest.main(argv=[sys.argv[0]])

@@ -280,7 +280,8 @@ void table_meta_client_t::create(
     create_or_emergency_repair(
         table_id,
         make_new_table_raft_state(initial_config),
-        current_microtime(),
+        multi_table_manager_timestamp_t::epoch_t::make(
+            multi_table_manager_timestamp_t::epoch_t::min()),
         &interruptor);
 }
 
@@ -340,10 +341,10 @@ void table_meta_client_t::drop(
 
 void table_meta_client_t::set_config(
         const namespace_id_t &table_id,
-        const table_config_and_shards_t &new_config,
+        const table_config_and_shards_change_t &table_config_and_shards_change,
         signal_t *interruptor_on_caller)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,
-            maybe_failed_table_op_exc_t) {
+            maybe_failed_table_op_exc_t, config_change_exc_t) {
     cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
 
@@ -392,14 +393,18 @@ void table_meta_client_t::set_config(
                 });
 
         /* OK, now send the change and wait for a reply, or for something to go wrong */
-        promise_t<boost::optional<multi_table_manager_timestamp_t> > promise;
-        mailbox_t<void(boost::optional<multi_table_manager_timestamp_t>)>
+        promise_t<std::pair<boost::optional<multi_table_manager_timestamp_t>, bool> > promise;
+        mailbox_t<void(boost::optional<multi_table_manager_timestamp_t>, bool)>
             ack_mailbox(mailbox_manager,
-            [&](signal_t *, const boost::optional<
-                    multi_table_manager_timestamp_t> &res) {
-                promise.pulse(res);
+            [&](signal_t *,
+                    const boost::optional<multi_table_manager_timestamp_t> &change_timestamp,
+                    bool is_change_successful) {
+                promise.pulse(std::make_pair(change_timestamp, is_change_successful));
             });
-        send(mailbox_manager, best_mailbox, new_config, ack_mailbox.get_address());
+        send(mailbox_manager,
+             best_mailbox,
+             table_config_and_shards_change,
+             ack_mailbox.get_address());
         wait_any_t done_cond(promise.get_ready_signal(),
             &leader_disconnected, &leader_stopped);
         wait_interruptible(&done_cond, interruptor2);
@@ -408,12 +413,14 @@ void table_meta_client_t::set_config(
         }
 
         /* Sometimes the server will reply by indicating that something went wrong */
-        boost::optional<multi_table_manager_timestamp_t> maybe_timestamp =
+        std::pair<boost::optional<multi_table_manager_timestamp_t>, bool> response =
             promise.wait();
-        if (!static_cast<bool>(maybe_timestamp)) {
+        if (response.second == false) {
+            throw config_change_exc_t();
+        } else if (!static_cast<bool>(response.first)) {
             throw maybe_failed_table_op_exc_t();
         }
-        timestamp = *maybe_timestamp;
+        timestamp = response.first.get();
     }, &interruptor);
 
     /* We know for sure that the change has been applied; now we just need to wait until
@@ -425,8 +432,7 @@ void table_meta_client_t::set_config(
         table_id,
         [&](const timestamped_basic_config_t *value) {
             return value == nullptr || value->second.supersedes(timestamp) ||
-                (value->first.name == new_config.config.basic.name &&
-                    value->first.database == new_config.config.basic.database);
+                table_config_and_shards_change.name_and_database_equal(value->first);
         },
         &interruptor);
 }
@@ -490,20 +496,20 @@ void table_meta_client_t::emergency_repair(
 
         /* Fetch the table's current epoch's timestamp to make sure that the new epoch
         has a higher timestamp, even if the server's clock is wrong. */
-        microtime_t old_epoch_timestamp;
+        multi_table_manager_timestamp_t::epoch_t old_epoch;
         multi_table_manager->get_table_basic_configs()->read_key(table_id,
             [&](const std::pair<table_basic_config_t,
                     multi_table_manager_timestamp_t> *pair) {
                 if (pair == nullptr) {
                     throw no_such_table_exc_t();
                 }
-                old_epoch_timestamp = pair->second.epoch.timestamp;
+                old_epoch = pair->second.epoch;
             });
 
         create_or_emergency_repair(
             table_id,
             new_state,
-            std::max(current_microtime(), old_epoch_timestamp + 1),
+            multi_table_manager_timestamp_t::epoch_t::make(old_epoch),
             &interruptor);
     }
 }
@@ -511,7 +517,7 @@ void table_meta_client_t::emergency_repair(
 void table_meta_client_t::create_or_emergency_repair(
         const namespace_id_t &table_id,
         const table_raft_state_t &raft_state,
-        microtime_t epoch_timestamp,
+        const multi_table_manager_timestamp_t::epoch_t &epoch,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, failed_table_op_exc_t,
             maybe_failed_table_op_exc_t) {
@@ -519,8 +525,7 @@ void table_meta_client_t::create_or_emergency_repair(
 
     /* Prepare the message that we'll be sending to each server */
     multi_table_manager_timestamp_t timestamp;
-    timestamp.epoch.timestamp = epoch_timestamp;
-    timestamp.epoch.id = generate_uuid();
+    timestamp.epoch = epoch;
     timestamp.log_index = 0;
 
     std::set<server_id_t> all_servers, voting_servers;

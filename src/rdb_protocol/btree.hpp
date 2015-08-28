@@ -261,10 +261,19 @@ struct sindex_disk_info_t {
 
 void serialize_sindex_info(write_message_t *wm,
                            const sindex_disk_info_t &info);
-// Note that this will throw an exception if there's an error rather than just
-// crashing.
-void deserialize_sindex_info(const std::vector<char> &data,
-                             sindex_disk_info_t *info_out)
+
+// Note that the behavior for how this reacts to obsolete indexes is controlled
+// by the `outdated_cb`.  All other errors will throw an `archive_exc_t`.
+void deserialize_sindex_info(
+        const std::vector<char> &data,
+        sindex_disk_info_t *info_out,
+        const std::function<void()> &obsolete_cb);
+
+// Utility function that will call deserialize_sindex_info with an `obsolete_cb`
+// that will `fail_due_to_user_error` when an obsolete index is encountered.
+void deserialize_sindex_info_or_crash(
+        const std::vector<char> &data,
+        sindex_disk_info_t *info_out)
     THROWS_ONLY(archive_exc_t);
 
 /* An rdb_modification_cb_t is passed to BTree operations and allows them to

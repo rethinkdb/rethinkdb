@@ -328,8 +328,7 @@ bool real_reql_cluster_interface_t::table_drop(const name_string_t &name,
         if (!config_backend->read_row(convert_uuid_to_datum(table_id),
                 &interruptor_on_home, &old_config, error_out)) {
             return false;
-        }
-        if (old_config == ql::datum_t::null()) {
+        } else if (!old_config.has()) {
             throw no_such_table_exc_t();
         }
 
@@ -568,6 +567,8 @@ void real_reql_cluster_interface_t::reconfigure_internal(
     if (!status_backend->read_row(convert_uuid_to_datum(table_id), interruptor_on_home,
             &old_status, &error)) {
         throw admin_op_exc_t(error);
+    } else if (!old_status.has()) {
+        throw no_such_table_exc_t();
     }
 
     table_config_and_shards_t new_config;
@@ -591,7 +592,10 @@ void real_reql_cluster_interface_t::reconfigure_internal(
         &new_config.server_names);
 
     if (!dry_run) {
-        table_meta_client->set_config(table_id, new_config, interruptor_on_home);
+        table_config_and_shards_change_t table_config_and_shards_change(
+            table_config_and_shards_change_t::set_table_config_and_shards_t{ new_config });
+        table_meta_client->set_config(
+            table_id, table_config_and_shards_change, interruptor_on_home);
     }
 
     // Compute the new value of the config and status
@@ -602,6 +606,8 @@ void real_reql_cluster_interface_t::reconfigure_internal(
     if (!status_backend->read_row(convert_uuid_to_datum(table_id), interruptor_on_home,
             &new_status, &error)) {
         throw admin_op_exc_t(error);
+    } else if (!new_status.has()) {
+        throw no_such_table_exc_t();
     }
 
     ql::datum_object_builder_t result_builder;
@@ -719,6 +725,8 @@ void real_reql_cluster_interface_t::emergency_repair_internal(
     if (!status_backend->read_row(convert_uuid_to_datum(table_id), interruptor_on_home,
             &old_status, &error)) {
         throw admin_op_exc_t(error);
+    } else if (!old_status.has()) {
+        throw no_such_table_exc_t();
     }
 
     table_config_and_shards_t new_config;
@@ -758,6 +766,8 @@ void real_reql_cluster_interface_t::emergency_repair_internal(
     if (!status_backend->read_row(convert_uuid_to_datum(table_id), interruptor_on_home,
             &new_status, &error)) {
         throw admin_op_exc_t(error);
+    } else if (!new_status.has()) {
+        throw no_such_table_exc_t();
     }
 
     ql::datum_object_builder_t result_builder;
@@ -825,6 +835,8 @@ void real_reql_cluster_interface_t::rebalance_internal(
     if (!status_backend->read_row(convert_uuid_to_datum(table_id), interruptor_on_home,
             &old_status, &error)) {
         throw admin_op_exc_t(error);
+    } else if (!old_status.has()) {
+        throw no_such_table_exc_t();
     }
 
     std::map<store_key_t, int64_t> counts;
@@ -835,13 +847,18 @@ void real_reql_cluster_interface_t::rebalance_internal(
     bool actually_rebalanced = calculate_split_points_with_distribution(
         counts, config.config.shards.size(), &config.shard_scheme);
     if (actually_rebalanced) {
-        table_meta_client->set_config(table_id, config, interruptor_on_home);
+        table_config_and_shards_change_t table_config_and_shards_change(
+            table_config_and_shards_change_t::set_table_config_and_shards_t{ config });
+        table_meta_client->set_config(
+            table_id, table_config_and_shards_change, interruptor_on_home);
     }
 
     ql::datum_t new_status;
     if (!status_backend->read_row(convert_uuid_to_datum(table_id), interruptor_on_home,
             &new_status, &error)) {
         throw admin_op_exc_t(error);
+    } else if (!new_status.has()) {
+        throw no_such_table_exc_t();
     }
 
     ql::datum_object_builder_t builder;
@@ -914,25 +931,6 @@ bool real_reql_cluster_interface_t::db_rebalance(
     return true;
 }
 
-void real_reql_cluster_interface_t::sindex_change_internal(
-        const counted_t<const ql::db_t> &db,
-        const name_string_t &table_name,
-        const std::function<void(std::map<std::string, sindex_config_t> *)> &cb,
-        signal_t *interruptor_on_caller)
-        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t,
-            failed_table_op_exc_t, maybe_failed_table_op_exc_t, admin_op_exc_t){
-    guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
-        "real_reql_cluster_interface_t should never get queries for system tables");
-    cross_thread_signal_t interruptor_on_home(interruptor_on_caller, home_thread());
-    on_thread_t thread_switcher(home_thread());
-    namespace_id_t table_id;
-    table_meta_client->find(db->id, table_name, &table_id);
-    table_config_and_shards_t config;
-    table_meta_client->get_config(table_id, &interruptor_on_home, &config);
-    cb(&config.config.sindexes);
-    table_meta_client->set_config(table_id, config, &interruptor_on_home);
-}
-
 bool real_reql_cluster_interface_t::sindex_create(
         counted_t<const ql::db_t> db,
         const name_string_t &table,
@@ -941,21 +939,24 @@ bool real_reql_cluster_interface_t::sindex_create(
         signal_t *interruptor_on_caller,
         admin_err_t *error_out) {
     try {
-        sindex_change_internal(
-            db, table,
-            [&](std::map<std::string, sindex_config_t> *map) {
-                if (map->count(name) == 1) {
-                    throw admin_op_exc_t(
-                        strprintf("Index `%s` already exists on table `%s.%s`.",
-                                  name.c_str(), db->name.c_str(), table.c_str()),
-                        query_state_t::FAILED);
-                }
-                map->insert(std::make_pair(name, config));
-            },
-            interruptor_on_caller);
+        guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
+            "real_reql_cluster_interface_t should never get queries for system tables");
+        cross_thread_signal_t interruptor_on_home(interruptor_on_caller, home_thread());
+        on_thread_t thread_switcher(home_thread());
+
+        namespace_id_t table_id;
+        table_meta_client->find(db->id, table, &table_id);
+        table_config_and_shards_change_t table_config_and_shards_change(
+            table_config_and_shards_change_t::sindex_create_t{name, config});
+        table_meta_client->set_config(
+            table_id, table_config_and_shards_change, &interruptor_on_home);
+
         return true;
-    } catch (const admin_op_exc_t &exc) {
-        *error_out = admin_err_t{exc.what(), exc.query_state};
+    } catch (const config_change_exc_t &) {
+        *error_out = admin_err_t{
+            strprintf("Index `%s` already exists on table `%s.%s`.",
+                      name.c_str(), db->name.c_str(), table.c_str()),
+            query_state_t::FAILED};
         return false;
     } CATCH_NAME_ERRORS(db->name, name, error_out)
       CATCH_OP_ERRORS(db->name, name, error_out,
@@ -970,21 +971,24 @@ bool real_reql_cluster_interface_t::sindex_drop(
         signal_t *interruptor_on_caller,
         admin_err_t *error_out) {
     try {
-        sindex_change_internal(
-            db, table,
-            [&](std::map<std::string, sindex_config_t> *map) {
-                if (map->count(name) == 0) {
-                    throw admin_op_exc_t(
-                        strprintf("Index `%s` does not exist on table `%s.%s`.",
-                                  name.c_str(), db->name.c_str(), table.c_str()),
-                        query_state_t::FAILED);
-                }
-                map->erase(name);
-            },
-            interruptor_on_caller);
+        guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
+            "real_reql_cluster_interface_t should never get queries for system tables");
+        cross_thread_signal_t interruptor_on_home(interruptor_on_caller, home_thread());
+        on_thread_t thread_switcher(home_thread());
+
+        namespace_id_t table_id;
+        table_meta_client->find(db->id, table, &table_id);
+        table_config_and_shards_change_t table_config_and_shards_change(
+            table_config_and_shards_change_t::sindex_drop_t{name});
+        table_meta_client->set_config(
+            table_id, table_config_and_shards_change, &interruptor_on_home);
+
         return true;
-    } catch (const admin_op_exc_t &exc) {
-        *error_out = admin_err_t{exc.what(), exc.query_state};
+    } catch (const config_change_exc_t &) {
+        *error_out = admin_err_t{
+            strprintf("Index `%s` does not exist on table `%s.%s`.",
+                      name.c_str(), db->name.c_str(), table.c_str()),
+            query_state_t::FAILED};
         return false;
     } CATCH_NAME_ERRORS(db->name, name, error_out)
       CATCH_OP_ERRORS(db->name, name, error_out,
@@ -1001,37 +1005,34 @@ bool real_reql_cluster_interface_t::sindex_rename(
         signal_t *interruptor_on_caller,
         admin_err_t *error_out) {
     try {
-        sindex_change_internal(
-            db, table,
-            [&](std::map<std::string, sindex_config_t> *map) {
-                if (map->count(name) == 0) {
-                    throw admin_op_exc_t(
-                        strprintf("Index `%s` does not exist on table `%s.%s`.",
-                                  name.c_str(), db->name.c_str(), table.c_str()),
-                        query_state_t::FAILED);
-                }
-                if (name != new_name) {
-                    if (map->count(new_name) == 1) {
-                        if (overwrite) {
-                            map->erase(new_name);
-                        } else {
-                            throw admin_op_exc_t(
-                                strprintf("Index `%s` already exists on table `%s.%s`.",
-                                          new_name.c_str(),
-                                          db->name.c_str(),
-                                          table.c_str()),
-                                query_state_t::FAILED);
-                        }
-                    }
-                    sindex_config_t config = map->at(name);
-                    map->erase(name);
-                    map->insert(std::make_pair(new_name, config));
-                }
-            },
-            interruptor_on_caller);
+        guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
+            "real_reql_cluster_interface_t should never get queries for system tables");
+        cross_thread_signal_t interruptor_on_home(interruptor_on_caller, home_thread());
+        on_thread_t thread_switcher(home_thread());
+
+        namespace_id_t table_id;
+        table_meta_client->find(db->id, table, &table_id);
+        table_config_and_shards_change_t table_config_and_shards_change(
+            table_config_and_shards_change_t::sindex_rename_t{
+                name, new_name, overwrite});
+        table_meta_client->set_config(
+            table_id, table_config_and_shards_change, &interruptor_on_home);
+
         return true;
-    } catch (const admin_op_exc_t &exc) {
-        *error_out = admin_err_t{exc.what(), exc.query_state};
+    } catch (const config_change_exc_t &) {
+        if (overwrite) {
+            *error_out = admin_err_t{
+                strprintf("Index `%s` does not exist on table `%s.%s`.",
+                          name.c_str(), db->name.c_str(), table.c_str()),
+                query_state_t::FAILED};
+        } else {
+            *error_out = admin_err_t{
+                strprintf(
+                    "Index `%s` does not exist or index `%s` already exists "
+                        "on table `%s.%s`.",
+                    name.c_str(), new_name.c_str(), db->name.c_str(), table.c_str()),
+                query_state_t::FAILED};
+        }
         return false;
     } CATCH_NAME_ERRORS(db->name, name, error_out)
       CATCH_OP_ERRORS(db->name, name, error_out,
@@ -1108,8 +1109,7 @@ void real_reql_cluster_interface_t::make_single_selection(
     if (!table_backend->read_row(convert_uuid_to_datum(primary_key), env->interruptor,
             &row, &error)) {
         throw admin_op_exc_t(error);
-    }
-    if (!row.has()) {
+    } else if (!row.has()) {
         /* This is unlikely, but it can happen if the object is deleted between when we
         look up its name and when we call `read_row()` */
         throw no_such_table_exc_t();

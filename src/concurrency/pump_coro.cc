@@ -95,7 +95,7 @@ void pump_coro_t::run(auto_drainer_t::lock_t keepalive) {
 
         acq.reset(&mutex);
         for (auto it = flush_waiters.begin();
-                it != flush_waiters.upper_bound(timestamp);
+                it != flush_waiters.upper_bound(local_timestamp);
                 ++it) {
             it->second->pulse_if_not_already_pulsed();
         }

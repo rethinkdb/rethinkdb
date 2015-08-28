@@ -1,5 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/administration/issues/outdated_index.hpp"
+
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/datum_adapter.hpp"
 #include "rdb_protocol/configured_limits.hpp"
@@ -9,26 +10,12 @@ const datum_string_t outdated_index_issue_t::outdated_index_issue_type =
 const uuid_u outdated_index_issue_t::base_issue_id =
     str_to_uuid("528f5239-096e-47a3-b263-7a06a256ecc3");
 
-// Merge two maps of outdated indexes by table id
-outdated_index_issue_t::index_map_t merge_maps(
-        const std::vector<outdated_index_issue_t::index_map_t> &maps) {
-    outdated_index_issue_t::index_map_t res;
-    for (auto it = maps.begin(); it != maps.end(); ++it) {
-        for (auto jt = it->begin(); jt != it->end(); ++jt) {
-            if (!jt->second.empty()) {
-                res[jt->first].insert(jt->second.begin(), jt->second.end());
-            }
-        }
-    }
-    return res;
-}
-
 outdated_index_issue_t::outdated_index_issue_t() : issue_t(nil_uuid()) { }
 
 outdated_index_issue_t::outdated_index_issue_t(
-        const outdated_index_issue_t::index_map_t &_indexes) :
+        outdated_index_issue_t::index_map_t _indexes) :
     issue_t(base_issue_id),
-    indexes(_indexes) { }
+    indexes(std::move(_indexes)) { }
 
 bool outdated_index_issue_t::build_info_and_description(
         const metadata_t &metadata,
@@ -81,123 +68,74 @@ bool outdated_index_issue_t::build_info_and_description(
     return !tables_str.empty();
 }
 
-RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(outdated_index_issue_t,
-    issue_id, reporting_server_ids, indexes);
-RDB_IMPL_EQUALITY_COMPARABLE_3(outdated_index_issue_t,
-    issue_id, reporting_server_ids, indexes);
 
-class outdated_index_report_impl_t :
-        public outdated_index_report_t,
-        public home_thread_mixin_t {
-public:
-    outdated_index_report_impl_t(outdated_index_issue_tracker_t *_parent,
-                                 namespace_id_t _ns_id) :
-        parent(_parent),
-        ns_id(_ns_id) { }
-
-    ~outdated_index_report_impl_t() {
-        assert_thread();
-        parent->outdated_indexes.get()->erase(ns_id);
-        parent->remove_report(this);
-    }
-
-    void set_outdated_indexes(std::set<std::string> &&indexes) {
-        assert_thread();
-        coro_t::spawn_sometime(
-            std::bind(&outdated_index_issue_tracker_t::log_outdated_indexes,
-                      parent, ns_id, indexes, auto_drainer_t::lock_t(&drainer)));
-        (*parent->outdated_indexes.get())[ns_id] = std::move(indexes);
-    }
-
-    void index_dropped(const std::string &index_name) {
-        assert_thread();
-        (*parent->outdated_indexes.get())[ns_id].erase(index_name);
-    }
-
-    void indexes_renamed(const std::map<std::string, std::string> &name_changes) {
-        assert_thread();
-        std::set<std::string> &ns_set = (*parent->outdated_indexes.get())[ns_id];
-        for (const auto &pair : name_changes) {
-            ns_set.erase(pair.first);
-        }
-        for (const auto &pair : name_changes) {
-            ns_set.insert(pair.second);
-        }
-    }
-
-private:
-    outdated_index_issue_tracker_t *parent;
-    namespace_id_t ns_id;
-    auto_drainer_t drainer;
-
-    DISABLE_COPYING(outdated_index_report_impl_t);
-};
-
-scoped_ptr_t<outdated_index_report_t> outdated_index_issue_tracker_t::create_report(
-        const namespace_id_t &ns_id) {
-    scoped_ptr_t<outdated_index_report_t> new_report(
-        new outdated_index_report_impl_t(this, ns_id));
-    index_reports.get()->insert(new_report.get());
-    return new_report;
-}
-
-void copy_thread_map(
-        one_per_thread_t<outdated_index_issue_t::index_map_t> *maps_in,
-        std::vector<outdated_index_issue_t::index_map_t> *maps_out, int thread_id) {
-    on_thread_t thread_switcher((threadnum_t(thread_id)));
-    (*maps_out)[thread_id] = *maps_in->get();
-}
-
-std::vector<outdated_index_issue_t> outdated_index_issue_tracker_t::get_issues() {
-    std::vector<outdated_index_issue_t::index_map_t> all_maps(get_num_threads());
-
-    pmap(get_num_threads(), std::bind(&copy_thread_map,
-                                      &outdated_indexes,
-                                      &all_maps,
-                                      ph::_1));
-
-    outdated_index_issue_t::index_map_t merged_map = merge_maps(all_maps);
-
-    std::vector<outdated_index_issue_t> issues;
-    if (!merged_map.empty()) {
-        issues.push_back(outdated_index_issue_t(merged_map));
-    }
-    return issues;
-}
-
-void outdated_index_issue_tracker_t::remove_report(outdated_index_report_impl_t *report) {
-    guarantee(index_reports.get()->erase(report) == 1);
-}
+outdated_index_issue_tracker_t::outdated_index_issue_tracker_t(
+            table_meta_client_t *_table_meta_client) :
+        table_meta_client(_table_meta_client) { }
 
 void outdated_index_issue_tracker_t::log_outdated_indexes(
-        namespace_id_t ns_id,
-        std::set<std::string> indexes,
-        UNUSED auto_drainer_t::lock_t keepalive) {
-    on_thread_t rethreader(home_thread());
-    if (indexes.size() > 0 &&
-        logged_namespaces.find(ns_id) == logged_namespaces.end()) {
+        multi_table_manager_t *multi_table_manager,
+        const cluster_semilattice_metadata_t &metadata,
+        signal_t *interruptor) {
+    multi_table_manager->visit_tables(interruptor,
+        [&] (const namespace_id_t &table_id,
+             multistore_ptr_t *,
+             table_manager_t *table_manager) {
+            table_config_and_shards_t config =
+                table_manager->get_raft()->get_committed_state()->get().state.config;
 
-        std::string index_list;
-        for (auto const &s : indexes) {
-            index_list += (index_list.empty() ? "'" : ", '") + s + "'";
-        }
+            std::string indexes;
+            for (auto const &sindex_pair : config.config.sindexes) {
+                if (sindex_pair.second.func_version != reql_version_t::LATEST) {
+                    indexes += (indexes.empty() ? "'" : ", '") + sindex_pair.first + "'";
+                }
+            }
 
-        logWRN("Namespace %s contains these outdated indexes which should be "
-               "recreated: %s", uuid_to_str(ns_id).c_str(), index_list.c_str());
+            if (!indexes.empty()) {
+                name_string_t db_name;
+                if (!convert_database_id_to_datum(config.config.basic.database,
+                                                  admin_identifier_format_t::name,
+                                                  metadata,
+                                                  nullptr,
+                                                  &db_name)) {
+                    db_name = name_string_t::guarantee_valid("__deleted_database__");
+                }
 
-        logged_namespaces.insert(ns_id);
-    }
+                logWRN("Table %s.%s (%s) contains these outdated indexes which should be "
+                       "recreated: %s",
+                       db_name.c_str(),
+                       config.config.basic.name.c_str(),
+                       uuid_to_str(table_id).c_str(),
+                       indexes.c_str());
+            }
+        });
 }
 
-void outdated_index_issue_tracker_t::combine(
-        std::vector<outdated_index_issue_t> &&issues,
-        std::vector<scoped_ptr_t<issue_t> > *issues_out) {
-    if (!issues.empty()) {
-        std::vector<outdated_index_issue_t::index_map_t> all_maps;
-        for (auto const &issue : issues) {
-            all_maps.push_back(issue.indexes);
+std::vector<scoped_ptr_t<issue_t> > outdated_index_issue_tracker_t::get_issues(
+        signal_t *interruptor) const {
+    std::vector<scoped_ptr_t<issue_t> > res;
+    outdated_index_issue_t::index_map_t index_map;
+
+    std::map<namespace_id_t, table_config_and_shards_t> configs;
+    std::map<namespace_id_t, table_basic_config_t> disconnected_configs;
+    table_meta_client->list_configs(interruptor, &configs, &disconnected_configs);
+
+    for (auto const &table_pair : configs) {
+        std::set<std::string> indexes;
+        for (auto const &sindex_pair : table_pair.second.config.sindexes) {
+            if (sindex_pair.second.func_version != reql_version_t::LATEST) {
+                indexes.insert(sindex_pair.first);
+            }
         }
-        issues_out->push_back(scoped_ptr_t<issue_t>(
-            new outdated_index_issue_t(merge_maps(all_maps))));
+
+        if (!indexes.empty()) {
+            index_map.insert(std::make_pair(table_pair.first, indexes));
+        }
     }
+
+    if (!index_map.empty()) {
+        res.push_back(scoped_ptr_t<issue_t>(
+            new outdated_index_issue_t(std::move(index_map))));
+    }
+    return res;
 }

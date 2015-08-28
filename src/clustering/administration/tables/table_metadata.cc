@@ -31,6 +31,16 @@ RDB_IMPL_SERIALIZABLE_3_SINCE_v2_1(table_config_and_shards_t,
 RDB_IMPL_EQUALITY_COMPARABLE_3(table_config_and_shards_t,
                                config, shard_scheme, server_names);
 
+RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(
+    table_config_and_shards_change_t::set_table_config_and_shards_t,
+    new_config_and_shards);
+RDB_IMPL_SERIALIZABLE_2_FOR_CLUSTER(table_config_and_shards_change_t::sindex_create_t,
+    name, config);
+RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(table_config_and_shards_change_t::sindex_drop_t,
+    name);
+RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(table_config_and_shards_change_t::sindex_rename_t,
+    name, new_name, overwrite);
+
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(database_semilattice_metadata_t, name);
 RDB_IMPL_SEMILATTICE_JOINABLE_1(database_semilattice_metadata_t, name);
 RDB_IMPL_EQUALITY_COMPARABLE_1(database_semilattice_metadata_t, name);
