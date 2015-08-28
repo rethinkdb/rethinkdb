@@ -178,7 +178,7 @@ class AlertUpdates extends Backbone.View
 
     check: =>
         # If it's fail, it's fine - like if the user is just on a local network without access to the Internet.
-        $.getJSON "http://update.rethinkdb.com/update_for/#{VERSION}?callback=?", @render_updates
+        $.getJSON "https://update.rethinkdb.com/update_for/#{VERSION}?callback=?", @render_updates
 
     # Callback on the ajax request
     render_updates: (data) =>
