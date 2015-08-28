@@ -3,7 +3,7 @@
 // The template for this file is located at:
 // ../../../../../../../../templates/Enum.java
 
-package com.rethinkdb.gen.gen.proto;
+package com.rethinkdb.gen.proto;
 
 public enum Version {
 

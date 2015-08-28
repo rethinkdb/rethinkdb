@@ -2,13 +2,12 @@ package com.rethinkdb;
 
 import com.rethinkdb.ast.Query;
 import com.rethinkdb.ast.ReqlAst;
-import com.rethinkdb.proto.ErrorType;
-import com.rethinkdb.proto.ResponseType;
+import com.rethinkdb.gen.proto.ErrorType;
+import com.rethinkdb.gen.proto.ResponseType;
 import com.rethinkdb.model.Backtrace;
 
 import java.util.Optional;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 public class ErrorBuilder {
     final String msg;

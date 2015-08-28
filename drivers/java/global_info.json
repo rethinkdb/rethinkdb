@@ -30,26 +30,6 @@
         "E_GEO_SYSTEM": ["WGS84", "unit_sphere"],
         "E_UNIT": ["m", "km", "mi", "nm", "ft"]
     },
-    "ast_type_hierarchy": {
-        "T_TOP_LEVEL": {},
-        "T_DB": {},
-        "T_EXPR": {
-            "T_TABLE": {},
-            "T_DATUM": {
-                "T_NULL": {},
-                "T_BOOL": {},
-                "T_NUM": {},
-                "T_STR": {},
-                "T_ARRAY": {},
-                "T_OBJECT": {}
-            }
-        },
-        "T_FUNC": {
-            "T_FUNC1": {},
-            "T_FUNC2": {},
-            "T_FUNCX": {}
-        }
-    },
     "global_optargs": {
         "use_outdated": "T_BOOL",
         "time_format": "E_FORMAT",
@@ -57,7 +37,7 @@
         "durability": "E_DURABILITY",
         "group_format": "E_FORMAT",
         "noreply": "T_BOOL",
-        "db": "T_STR",
+        "db": "T_DB",
         "array_limit": "T_NUM",
         "binary_format": "E_FORMAT",
         "min_batch_rows": "T_NUM",

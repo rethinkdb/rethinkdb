@@ -1,15 +1,17 @@
-package com.rethinkdb.ast.gen;
+<%page args="term_name, classname, superclass, all_terms" />
+package com.rethinkdb.gen.ast;
 
+import com.rethinkdb.gen.proto.TermType;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
-import com.rethinkdb.proto.TermType;
+
 <%block name="add_imports" />
 
 public class ${classname} extends ${superclass} {
 <%block name="member_vars" />
 <%block name="constructors">
-% if term_type is not None:
+% if term_name is not None:
     public ${classname}(java.lang.Object arg) {
         this(new Arguments(arg), null);
     }
@@ -17,7 +19,7 @@ public class ${classname} extends ${superclass} {
         this(null, args, optargs);
     }
     public ${classname}(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.${term_type}, args, optargs);
+        this(prev, TermType.${term_name}, args, optargs);
     }
 % endif
     protected ${classname}(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
@@ -27,22 +29,19 @@ public class ${classname} extends ${superclass} {
 <%block name="static_factories">
     /* Static factories */
 % if term_type is not None:
-    public static ${classname} fromArgs(java.lang.Object... args){
+    public static ${classname} fromArgs(Object... args){
         return new ${classname}(new Arguments(args), null);
     }
 %endif
 </%block>
 <%block name="special_methods" />
-% for term, info in meta.iteritems():
-    % if include_in in info.get('include_in', []):
-    public ${camel(term)} ${info.get('alias', dromedary(term))}(java.lang.Object... fields) {
-     %if include_in == "T_TOP_LEVEL":
-        return new ${camel(term)}(null, new Arguments(fields), new OptArgs());
-     %else:
-        return new ${camel(term)}(this, new Arguments(fields), new OptArgs());
-     %endif
+% for term, info in all_terms.iteritems():
+    % if classname in info.get('include_in'):
+    % for signatures in info.get('signatures', []):
+    public ${info['classname']} ${info['methodname']}() {
+        return new ${info['classname']}(this, new Arguments(fields), new OptArgs());
     }
-
+    % endfor
     % endif
 % endfor
 }

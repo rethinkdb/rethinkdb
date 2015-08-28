@@ -1,7 +1,7 @@
 package com.rethinkdb.ast;
 
-import com.rethinkdb.proto.QueryType;
-import com.rethinkdb.model.GlobalOptions;
+import com.rethinkdb.gen.proto.QueryType;
+import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.net.Util;
 
 import java.nio.ByteBuffer;
@@ -18,9 +18,9 @@ public class Query {
     public final QueryType type;
     public final long token;
     public final Optional<ReqlAst> term;
-    public final GlobalOptions globalOptions;
+    public final OptArgs globalOptions;
 
-    public Query(QueryType type, long token, ReqlAst term, GlobalOptions globalOptions) {
+    public Query(QueryType type, long token, ReqlAst term, OptArgs globalOptions) {
         this.type = type;
         this.token = token;
         this.term = Optional.ofNullable(term);
@@ -28,30 +28,30 @@ public class Query {
     }
 
     public Query(QueryType type, long token) {
-        this(type, token, null, new GlobalOptions());
+        this(type, token, null, new OptArgs());
     }
 
     public static Query stop(long token) {
-        return new Query(QueryType.STOP, token, null, new GlobalOptions());
+        return new Query(QueryType.STOP, token, null, new OptArgs());
     }
 
     public static Query continue_(long token) {
-        return new Query(QueryType.CONTINUE, token, null, new GlobalOptions());
+        return new Query(QueryType.CONTINUE, token, null, new OptArgs());
     }
 
-    public static Query start(long token, ReqlAst term, GlobalOptions globalOptions) {
+    public static Query start(long token, ReqlAst term, OptArgs globalOptions) {
         return new Query(QueryType.START, token, term, globalOptions);
     }
 
     public static Query noreplyWait(long token) {
-        return new Query(QueryType.NOREPLY_WAIT, token, null, new GlobalOptions());
+        return new Query(QueryType.NOREPLY_WAIT, token, null, new OptArgs());
     }
 
     public ByteBuffer serialize() {
         JSONArray queryArr = new JSONArray();
         queryArr.add(type.value);
         term.ifPresent(t -> queryArr.add(t.build()));
-        queryArr.add(globalOptions.toOptArgs());
+        queryArr.add(globalOptions);
         String queryJson = queryArr.toJSONString();
         ByteBuffer bb = Util.leByteBuffer(8 + 4 + queryJson.length())
             .putLong(token)

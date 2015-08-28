@@ -4,11 +4,11 @@ import com.rethinkdb.ReqlDriverError;
 import com.rethinkdb.ReqlError;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.ReqlFunction;
-import com.rethinkdb.ast.gen.Datum;
-import com.rethinkdb.ast.gen.Func;
-import com.rethinkdb.ast.gen.MakeArray;
-import com.rethinkdb.ast.gen.MakeObj;
-import com.rethinkdb.ast.gen.Iso8601;
+import com.rethinkdb.gen.ast.Datum;
+import com.rethinkdb.gen.ast.Func;
+import com.rethinkdb.gen.ast.MakeArray;
+import com.rethinkdb.gen.ast.MakeObj;
+import com.rethinkdb.gen.ast.Iso8601;
 import com.rethinkdb.model.ReqlFunction2;
 
 

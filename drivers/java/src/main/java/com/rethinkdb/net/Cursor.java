@@ -2,8 +2,7 @@ package com.rethinkdb.net;
 
 import com.rethinkdb.ReqlRuntimeError;
 import com.rethinkdb.ast.Query;
-import com.rethinkdb.proto.ResponseType;
-import org.json.simple.JSONArray;
+import com.rethinkdb.gen.proto.ResponseType;
 
 import java.util.*;
 

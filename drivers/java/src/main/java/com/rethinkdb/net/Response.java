@@ -2,9 +2,9 @@ package com.rethinkdb.net;
 
 import com.rethinkdb.*;
 import com.rethinkdb.ReqlError;
-import com.rethinkdb.proto.ErrorType;
-import com.rethinkdb.proto.ResponseType;
-import com.rethinkdb.proto.ResponseNote;
+import com.rethinkdb.gen.proto.ErrorType;
+import com.rethinkdb.gen.proto.ResponseType;
+import com.rethinkdb.gen.proto.ResponseNote;
 import com.rethinkdb.ast.Query;
 import com.rethinkdb.model.Backtrace;
 import com.rethinkdb.model.Profile;

@@ -1,37 +1,38 @@
-package com.rethinkdb.model;
+package com.rethinkdb.gen.model;
 
 import java.util.*;
-
+import com.rethinkdb.model.*;
+import com.rethinkdb.gen.ast.*;
 
 public class GlobalOptions {
 
-    % for arg, spec in global_optargs:
-    private Optional<${reql_to_java_type(spec['type'])}> _${dromedary(arg)} = Optional.empty();
+    % for option_name, type_ in global_optargs:
+    private Optional<${type_}> _${option_name} = Optional.empty();
     % endfor
 
     public OptArgs toOptArgs() {
         OptArgs ret = new OptArgs();
 
-        %for arg, spec in global_optargs:
-        _${dromedary(arg)}.ifPresent(val ->
-            ret.with("${arg}", val));
+        %for option_name, type_ in global_optargs:
+        _${option_name}.ifPresent(val ->
+            ret.with("${option_name}", val));
         %endfor
 
         return ret;
     }
 
-    % for arg, spec in global_optargs:
-    public static GlobalOptions with${camel(arg)}(${reql_to_java_type(spec['type'])} ${dromedary(arg)}) {
-        return new GlobalOptions().${dromedary(arg)}(${dromedary(arg)});
+    % for option_name, type_ in global_optargs:
+    public static GlobalOptions with${camel(option_name)}(${type_} ${option_name}) {
+        return new GlobalOptions().${option_name}(${option_name});
     }
 
-    public GlobalOptions ${dromedary(arg)}(${reql_to_java_type(spec['type'])} ${dromedary(arg)}) {
-        _${dromedary(arg)} = Optional.of(${dromedary(arg)});
+    public GlobalOptions ${option_name}(${type_} ${option_name}) {
+        _${option_name} = Optional.of(${option_name});
         return this;
     }
 
-    public Optional<${reql_to_java_type(spec['type'])}> ${dromedary(arg)}() {
-        return _${dromedary(arg)};
+    public Optional<${type_}> ${option_name}() {
+        return _${option_name};
     }
 
     % endfor

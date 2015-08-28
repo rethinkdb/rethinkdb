@@ -3,7 +3,7 @@
 // The template for this file is located at:
 // ../../../../../../../../templates/proto/ResponseNote.java
 
-package com.rethinkdb.gen.gen.proto;
+package com.rethinkdb.gen.proto;
 
 public enum ResponseNote {
 
