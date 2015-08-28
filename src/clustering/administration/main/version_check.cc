@@ -47,11 +47,11 @@ void version_checker_t::do_check(bool is_initial, auto_drainer_t::lock_t keepali
     opts.limits = env.limits();
     opts.result_format = http_result_format_t::JSON;
     if (is_initial) {
-        opts.url = strprintf("http://update.rethinkdb.com/update_for/%s",
+        opts.url = strprintf("https://update.rethinkdb.com/update_for/%s",
                              RETHINKDB_VERSION);
     } else {
         opts.method = http_method_t::POST;
-        opts.url = "http://update.rethinkdb.com/checkin";
+        opts.url = "https://update.rethinkdb.com/checkin";
         opts.header.push_back("Content-Type: application/x-www-form-urlencoded");
         opts.form_data["Version"] = RETHINKDB_VERSION;
         opts.form_data["Uname"] = uname;
