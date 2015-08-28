@@ -390,7 +390,7 @@ void table_query_client_t::dispatch_debug_direct_read(
     cross_thread_signal_t interruptor_on_mtm(
         interruptor_on_caller, multi_table_manager->home_thread());
     on_thread_t thread_switcher(multi_table_manager->home_thread());
-    multi_table_manager->visit_table(table_id, &interruptor_on_mtm,
+    multi_table_manager->visit_table(table_id, &interruptor_on_mtm, access_t::read,
     [&](multistore_ptr_t *multistore, table_manager_t *) {
         if (multistore == nullptr) {
             throw cannot_perform_query_exc_t(

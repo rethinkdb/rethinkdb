@@ -77,7 +77,7 @@ void outdated_index_issue_tracker_t::log_outdated_indexes(
         multi_table_manager_t *multi_table_manager,
         const cluster_semilattice_metadata_t &metadata,
         signal_t *interruptor) {
-    multi_table_manager->visit_tables(interruptor,
+    multi_table_manager->visit_tables(interruptor, access_t::read,
         [&] (const namespace_id_t &table_id,
              multistore_ptr_t *,
              table_manager_t *table_manager) {
