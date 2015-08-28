@@ -114,7 +114,7 @@ void jobs_manager_t::on_get_job_reports(
             server_id);
     }
 
-    multi_table_manager->visit_tables(interruptor,
+    multi_table_manager->visit_tables(interruptor, access_t::read,
     [&](const namespace_id_t &table_id,
             UNUSED multistore_ptr_t *multistore_ptr,
             table_manager_t *table_manager) {
