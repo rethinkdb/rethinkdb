@@ -55,6 +55,9 @@ translateRegex = (pattern) ->
         hex = (char.charCodeAt(0) - 64).toString(16)
         return "\\x{#{hex}}"
 
+    if source.match /\\\d+/g
+        throw new err.RqlDriverError "Cannot convert RegExp '#{pattern}' to RQL: backreferences are not supported."
+
     return if flags then "(?#{flags})#{source}" else source
 
 # AST classes
