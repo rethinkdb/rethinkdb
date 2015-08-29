@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class Nth extends ReqlExpr {
 
 
-    public Nth(java.lang.Object arg) {
+    public Nth(Object arg) {
         this(new Arguments(arg), null);
     }
+    public Nth(Arguments args){
+        this(args, null);
+    }
     public Nth(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.NTH, args, optargs);
     }
-    public Nth(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.NTH, args, optargs);
+    protected Nth(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected Nth(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static Nth fromArgs(Object... args){
-        return new Nth(new Arguments(args), null);
-    }
-
-
 }

@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class Includes extends ReqlExpr {
 
 
-    public Includes(java.lang.Object arg) {
+    public Includes(Object arg) {
         this(new Arguments(arg), null);
     }
+    public Includes(Arguments args){
+        this(args, null);
+    }
     public Includes(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.INCLUDES, args, optargs);
     }
-    public Includes(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.INCLUDES, args, optargs);
+    protected Includes(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected Includes(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static Includes fromArgs(Object... args){
-        return new Includes(new Arguments(args), null);
-    }
-
-
 }

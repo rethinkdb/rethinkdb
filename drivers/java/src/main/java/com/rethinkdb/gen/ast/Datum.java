@@ -6,31 +6,26 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
 
 
-import org.json.simple.JSONArray;
-
 
 public class Datum extends ReqlExpr {
 
-    protected final java.lang.Object datum;
-
+    public final java.lang.Object datum;
 
     public Datum(java.lang.Object arg) {
-        super(null, TermType.DATUM, null, null);
+        super(TermType.DATUM, null, null);
         datum = arg;
     }
 
-
-
     @Override
-    protected java.lang.Object build() {
+    protected Object build() {
         // Overridden because Datums are leaf-nodes and therefore
         // don't contain lower ReqlAst objects.
         return datum;
     }
-
 }

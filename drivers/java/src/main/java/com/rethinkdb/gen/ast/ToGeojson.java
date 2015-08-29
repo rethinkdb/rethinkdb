@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class ToGeojson extends ReqlExpr {
 
 
-    public ToGeojson(java.lang.Object arg) {
+    public ToGeojson(Object arg) {
         this(new Arguments(arg), null);
     }
+    public ToGeojson(Arguments args){
+        this(args, null);
+    }
     public ToGeojson(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.TO_GEOJSON, args, optargs);
     }
-    public ToGeojson(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.TO_GEOJSON, args, optargs);
+    protected ToGeojson(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected ToGeojson(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static ToGeojson fromArgs(Object... args){
-        return new ToGeojson(new Arguments(args), null);
-    }
-
-
 }

@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class WithFields extends ReqlExpr {
 
 
-    public WithFields(java.lang.Object arg) {
+    public WithFields(Object arg) {
         this(new Arguments(arg), null);
     }
+    public WithFields(Arguments args){
+        this(args, null);
+    }
     public WithFields(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.WITH_FIELDS, args, optargs);
     }
-    public WithFields(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.WITH_FIELDS, args, optargs);
+    protected WithFields(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected WithFields(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static WithFields fromArgs(Object... args){
-        return new WithFields(new Arguments(args), null);
-    }
-
-
 }

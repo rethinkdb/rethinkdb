@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class Eq extends ReqlExpr {
 
 
-    public Eq(java.lang.Object arg) {
+    public Eq(Object arg) {
         this(new Arguments(arg), null);
     }
+    public Eq(Arguments args){
+        this(args, null);
+    }
     public Eq(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.EQ, args, optargs);
     }
-    public Eq(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.EQ, args, optargs);
+    protected Eq(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected Eq(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static Eq fromArgs(Object... args){
-        return new Eq(new Arguments(args), null);
-    }
-
-
 }

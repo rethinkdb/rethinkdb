@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,102 +16,107 @@ import com.rethinkdb.ast.ReqlAst;
 public class Table extends ReqlExpr {
 
 
-    public Table(java.lang.Object arg) {
+    public Table(Object arg) {
         this(new Arguments(arg), null);
     }
+    public Table(Arguments args){
+        this(args, null);
+    }
     public Table(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.TABLE, args, optargs);
     }
-    public Table(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.TABLE, args, optargs);
+    protected Table(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected Table(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
+    public Get get(Object expr) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(expr);
+        return new Get(arguments);
     }
-
-
-    /* Static factories */
-    public static Table fromArgs(Object... args){
-        return new Table(new Arguments(args), null);
+    public GetAll getAll(Object... exprs) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAddAll(exprs);
+        return new GetAll(arguments);
     }
-
-
-    public Get get() {
-        return new Get(this, new Arguments(fields), new OptArgs());
+    public Between between(Object expr, Object exprA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(expr);
+        arguments.coerceAndAdd(exprA);
+        return new Between(arguments);
     }
-    public GetAll getAll() {
-        return new GetAll(this, new Arguments(fields), new OptArgs());
-    }
-    public Between between() {
-        return new Between(this, new Arguments(fields), new OptArgs());
-    }
-    public Insert insert() {
-        return new Insert(this, new Arguments(fields), new OptArgs());
+    public Insert insert(Object expr) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(expr);
+        return new Insert(arguments);
     }
     public Config config() {
-        return new Config(this, new Arguments(fields), new OptArgs());
-    }
-    public Config config() {
-        return new Config(this, new Arguments(fields), new OptArgs());
+        Arguments arguments = new Arguments(this);
+        return new Config(arguments);
     }
     public Status status() {
-        return new Status(this, new Arguments(fields), new OptArgs());
+        Arguments arguments = new Arguments(this);
+        return new Status(arguments);
     }
-    public Wait wait() {
-        return new Wait(this, new Arguments(fields), new OptArgs());
-    }
-    public Wait wait() {
-        return new Wait(this, new Arguments(fields), new OptArgs());
-    }
-    public Wait wait() {
-        return new Wait(this, new Arguments(fields), new OptArgs());
+    public Wait wait_() {
+        Arguments arguments = new Arguments(this);
+        return new Wait(arguments);
     }
     public Reconfigure reconfigure() {
-        return new Reconfigure(this, new Arguments(fields), new OptArgs());
-    }
-    public Reconfigure reconfigure() {
-        return new Reconfigure(this, new Arguments(fields), new OptArgs());
-    }
-    public Reconfigure reconfigure() {
-        return new Reconfigure(this, new Arguments(fields), new OptArgs());
+        Arguments arguments = new Arguments(this);
+        return new Reconfigure(arguments);
     }
     public Rebalance rebalance() {
-        return new Rebalance(this, new Arguments(fields), new OptArgs());
-    }
-    public Rebalance rebalance() {
-        return new Rebalance(this, new Arguments(fields), new OptArgs());
-    }
-    public Rebalance rebalance() {
-        return new Rebalance(this, new Arguments(fields), new OptArgs());
+        Arguments arguments = new Arguments(this);
+        return new Rebalance(arguments);
     }
     public Sync sync() {
-        return new Sync(this, new Arguments(fields), new OptArgs());
+        Arguments arguments = new Arguments(this);
+        return new Sync(arguments);
     }
-    public IndexCreate indexCreate() {
-        return new IndexCreate(this, new Arguments(fields), new OptArgs());
+    public IndexCreate indexCreate(Object expr) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(expr);
+        return new IndexCreate(arguments);
     }
-    public IndexCreate indexCreate() {
-        return new IndexCreate(this, new Arguments(fields), new OptArgs());
+    public IndexCreate indexCreate(Object expr, ReqlFunction1 func1) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(expr);
+        arguments.coerceAndAdd(func1);
+        return new IndexCreate(arguments);
     }
-    public IndexDrop indexDrop() {
-        return new IndexDrop(this, new Arguments(fields), new OptArgs());
+    public IndexDrop indexDrop(Object expr) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(expr);
+        return new IndexDrop(arguments);
     }
     public IndexList indexList() {
-        return new IndexList(this, new Arguments(fields), new OptArgs());
+        Arguments arguments = new Arguments(this);
+        return new IndexList(arguments);
     }
-    public IndexStatus indexStatus() {
-        return new IndexStatus(this, new Arguments(fields), new OptArgs());
+    public IndexStatus indexStatus(Object... exprs) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAddAll(exprs);
+        return new IndexStatus(arguments);
     }
-    public IndexWait indexWait() {
-        return new IndexWait(this, new Arguments(fields), new OptArgs());
+    public IndexWait indexWait(Object... exprs) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAddAll(exprs);
+        return new IndexWait(arguments);
     }
-    public IndexRename indexRename() {
-        return new IndexRename(this, new Arguments(fields), new OptArgs());
+    public IndexRename indexRename(Object expr, Object exprA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(expr);
+        arguments.coerceAndAdd(exprA);
+        return new IndexRename(arguments);
     }
-    public GetIntersecting getIntersecting() {
-        return new GetIntersecting(this, new Arguments(fields), new OptArgs());
+    public GetIntersecting getIntersecting(Object expr) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(expr);
+        return new GetIntersecting(arguments);
     }
-    public GetNearest getNearest() {
-        return new GetNearest(this, new Arguments(fields), new OptArgs());
+    public GetNearest getNearest(Object expr) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(expr);
+        return new GetNearest(arguments);
     }
 }

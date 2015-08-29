@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class Mul extends ReqlExpr {
 
 
-    public Mul(java.lang.Object arg) {
+    public Mul(Object arg) {
         this(new Arguments(arg), null);
     }
+    public Mul(Arguments args){
+        this(args, null);
+    }
     public Mul(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.MUL, args, optargs);
     }
-    public Mul(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.MUL, args, optargs);
+    protected Mul(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected Mul(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static Mul fromArgs(Object... args){
-        return new Mul(new Arguments(args), null);
-    }
-
-
 }

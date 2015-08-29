@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class Avg extends ReqlExpr {
 
 
-    public Avg(java.lang.Object arg) {
+    public Avg(Object arg) {
         this(new Arguments(arg), null);
     }
+    public Avg(Arguments args){
+        this(args, null);
+    }
     public Avg(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.AVG, args, optargs);
     }
-    public Avg(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.AVG, args, optargs);
+    protected Avg(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected Avg(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static Avg fromArgs(Object... args){
-        return new Avg(new Arguments(args), null);
-    }
-
-
 }

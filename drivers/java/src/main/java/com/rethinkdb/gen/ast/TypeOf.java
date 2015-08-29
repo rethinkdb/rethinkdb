@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class TypeOf extends ReqlExpr {
 
 
-    public TypeOf(java.lang.Object arg) {
+    public TypeOf(Object arg) {
         this(new Arguments(arg), null);
     }
+    public TypeOf(Arguments args){
+        this(args, null);
+    }
     public TypeOf(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.TYPE_OF, args, optargs);
     }
-    public TypeOf(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.TYPE_OF, args, optargs);
+    protected TypeOf(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected TypeOf(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static TypeOf fromArgs(Object... args){
-        return new TypeOf(new Arguments(args), null);
-    }
-
-
 }

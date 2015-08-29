@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class Delete extends ReqlExpr {
 
 
-    public Delete(java.lang.Object arg) {
+    public Delete(Object arg) {
         this(new Arguments(arg), null);
     }
+    public Delete(Arguments args){
+        this(args, null);
+    }
     public Delete(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.DELETE, args, optargs);
     }
-    public Delete(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.DELETE, args, optargs);
+    protected Delete(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected Delete(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static Delete fromArgs(Object... args){
-        return new Delete(new Arguments(args), null);
-    }
-
-
 }

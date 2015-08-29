@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class Floor extends ReqlExpr {
 
 
-    public Floor(java.lang.Object arg) {
+    public Floor(Object arg) {
         this(new Arguments(arg), null);
     }
+    public Floor(Arguments args){
+        this(args, null);
+    }
     public Floor(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.FLOOR, args, optargs);
     }
-    public Floor(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.FLOOR, args, optargs);
+    protected Floor(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected Floor(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static Floor fromArgs(Object... args){
-        return new Floor(new Arguments(args), null);
-    }
-
-
 }

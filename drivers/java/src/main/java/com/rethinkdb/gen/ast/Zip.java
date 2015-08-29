@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class Zip extends ReqlExpr {
 
 
-    public Zip(java.lang.Object arg) {
+    public Zip(Object arg) {
         this(new Arguments(arg), null);
     }
+    public Zip(Arguments args){
+        this(args, null);
+    }
     public Zip(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.ZIP, args, optargs);
     }
-    public Zip(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.ZIP, args, optargs);
+    protected Zip(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected Zip(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static Zip fromArgs(Object... args){
-        return new Zip(new Arguments(args), null);
-    }
-
-
 }

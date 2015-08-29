@@ -1,15 +1,10 @@
 <%inherit file="../AstSubclass.java" />
 
-<%block name="add_imports">
-import org.json.simple.JSONArray;
-</%block>
-
 <%block name="member_vars">
-    protected final java.lang.Object datum;
-</%block>
+    public final java.lang.Object datum;</%block>
 <%block name="constructors">
     public Datum(java.lang.Object arg) {
-        super(null, TermType.DATUM, null, null);
+        super(TermType.DATUM, null, null);
         datum = arg;
     }
 </%block>
@@ -18,7 +13,7 @@ import org.json.simple.JSONArray;
 
 <%block name="special_methods">
     @Override
-    protected java.lang.Object build() {
+    protected Object build() {
         // Overridden because Datums are leaf-nodes and therefore
         // don't contain lower ReqlAst objects.
         return datum;

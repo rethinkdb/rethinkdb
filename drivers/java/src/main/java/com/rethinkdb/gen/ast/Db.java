@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,75 +16,51 @@ import com.rethinkdb.ast.ReqlAst;
 public class Db extends ReqlAst {
 
 
-    public Db(java.lang.Object arg) {
+    public Db(Object arg) {
         this(new Arguments(arg), null);
     }
+    public Db(Arguments args){
+        this(args, null);
+    }
     public Db(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.DB, args, optargs);
     }
-    public Db(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.DB, args, optargs);
+    protected Db(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected Db(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
+    public Table table(Object expr) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(expr);
+        return new Table(arguments);
     }
-
-
-    /* Static factories */
-    public static Db fromArgs(Object... args){
-        return new Db(new Arguments(args), null);
+    public TableCreate tableCreate(Object expr) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(expr);
+        return new TableCreate(arguments);
     }
-
-
-    public Table table() {
-        return new Table(this, new Arguments(fields), new OptArgs());
-    }
-    public Table table() {
-        return new Table(this, new Arguments(fields), new OptArgs());
-    }
-    public TableCreate tableCreate() {
-        return new TableCreate(this, new Arguments(fields), new OptArgs());
-    }
-    public TableDrop tableDrop() {
-        return new TableDrop(this, new Arguments(fields), new OptArgs());
-    }
-    public TableDrop tableDrop() {
-        return new TableDrop(this, new Arguments(fields), new OptArgs());
+    public TableDrop tableDrop(Object expr) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(expr);
+        return new TableDrop(arguments);
     }
     public TableList tableList() {
-        return new TableList(this, new Arguments(fields), new OptArgs());
+        Arguments arguments = new Arguments(this);
+        return new TableList(arguments);
     }
     public Config config() {
-        return new Config(this, new Arguments(fields), new OptArgs());
+        Arguments arguments = new Arguments(this);
+        return new Config(arguments);
     }
-    public Config config() {
-        return new Config(this, new Arguments(fields), new OptArgs());
-    }
-    public Wait wait() {
-        return new Wait(this, new Arguments(fields), new OptArgs());
-    }
-    public Wait wait() {
-        return new Wait(this, new Arguments(fields), new OptArgs());
-    }
-    public Wait wait() {
-        return new Wait(this, new Arguments(fields), new OptArgs());
+    public Wait wait_() {
+        Arguments arguments = new Arguments(this);
+        return new Wait(arguments);
     }
     public Reconfigure reconfigure() {
-        return new Reconfigure(this, new Arguments(fields), new OptArgs());
-    }
-    public Reconfigure reconfigure() {
-        return new Reconfigure(this, new Arguments(fields), new OptArgs());
-    }
-    public Reconfigure reconfigure() {
-        return new Reconfigure(this, new Arguments(fields), new OptArgs());
+        Arguments arguments = new Arguments(this);
+        return new Reconfigure(arguments);
     }
     public Rebalance rebalance() {
-        return new Rebalance(this, new Arguments(fields), new OptArgs());
-    }
-    public Rebalance rebalance() {
-        return new Rebalance(this, new Arguments(fields), new OptArgs());
-    }
-    public Rebalance rebalance() {
-        return new Rebalance(this, new Arguments(fields), new OptArgs());
+        Arguments arguments = new Arguments(this);
+        return new Rebalance(arguments);
     }
 }

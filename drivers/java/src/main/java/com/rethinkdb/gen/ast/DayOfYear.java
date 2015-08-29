@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class DayOfYear extends ReqlExpr {
 
 
-    public DayOfYear(java.lang.Object arg) {
+    public DayOfYear(Object arg) {
         this(new Arguments(arg), null);
     }
+    public DayOfYear(Arguments args){
+        this(args, null);
+    }
     public DayOfYear(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.DAY_OF_YEAR, args, optargs);
     }
-    public DayOfYear(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.DAY_OF_YEAR, args, optargs);
+    protected DayOfYear(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected DayOfYear(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static DayOfYear fromArgs(Object... args){
-        return new DayOfYear(new Arguments(args), null);
-    }
-
-
 }

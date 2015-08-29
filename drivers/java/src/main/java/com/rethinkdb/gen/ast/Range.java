@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class Range extends ReqlExpr {
 
 
-    public Range(java.lang.Object arg) {
+    public Range(Object arg) {
         this(new Arguments(arg), null);
     }
+    public Range(Arguments args){
+        this(args, null);
+    }
     public Range(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.RANGE, args, optargs);
     }
-    public Range(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.RANGE, args, optargs);
+    protected Range(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected Range(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static Range fromArgs(Object... args){
-        return new Range(new Arguments(args), null);
-    }
-
-
 }

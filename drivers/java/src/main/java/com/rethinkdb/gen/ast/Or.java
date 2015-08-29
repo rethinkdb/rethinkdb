@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class Or extends ReqlExpr {
 
 
-    public Or(java.lang.Object arg) {
+    public Or(Object arg) {
         this(new Arguments(arg), null);
     }
+    public Or(Arguments args){
+        this(args, null);
+    }
     public Or(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.OR, args, optargs);
     }
-    public Or(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.OR, args, optargs);
+    protected Or(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected Or(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static Or fromArgs(Object... args){
-        return new Or(new Arguments(args), null);
-    }
-
-
 }

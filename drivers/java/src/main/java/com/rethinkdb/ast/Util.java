@@ -29,7 +29,7 @@ public class Util {
      * @return ReqlAst
      */
     public static ReqlAst toReqlAst(java.lang.Object val) {
-        return toReqlAst(val, 20);
+        return toReqlAst(val, 1000);
     }
 
     private static ReqlAst toReqlAst(java.lang.Object val, int remainingDepth) {

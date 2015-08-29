@@ -67,3 +67,19 @@ import pytest
 ])
 def test_reify_signatures(sig, expected):
     assert MJ.java_term_info.reify_signature(sig) == expected
+
+
+def test_elaborate_signature():
+    sig = ["Object", "Object", "Object...", "ReqlFunction2", "ReqlFunction3"]
+    expected = {
+        "args": [
+            {"type": "Object", "var": "expr"},
+            {"type": "Object", "var": "exprA"},
+            {"type": "Object...", "var": "exprs"},
+            {"type": "ReqlFunction2", "var": "func2"},
+            {"type": "ReqlFunction3", "var": "func3"},
+        ],
+        "first_arg": "ReqlExpr"
+    }
+
+    assert MJ.java_term_info.elaborate_signature(sig) == expected

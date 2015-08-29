@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class Replace extends ReqlExpr {
 
 
-    public Replace(java.lang.Object arg) {
+    public Replace(Object arg) {
         this(new Arguments(arg), null);
     }
+    public Replace(Arguments args){
+        this(args, null);
+    }
     public Replace(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.REPLACE, args, optargs);
     }
-    public Replace(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.REPLACE, args, optargs);
+    protected Replace(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected Replace(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static Replace fromArgs(Object... args){
-        return new Replace(new Arguments(args), null);
-    }
-
-
 }

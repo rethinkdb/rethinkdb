@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class ToEpochTime extends ReqlExpr {
 
 
-    public ToEpochTime(java.lang.Object arg) {
+    public ToEpochTime(Object arg) {
         this(new Arguments(arg), null);
     }
+    public ToEpochTime(Arguments args){
+        this(args, null);
+    }
     public ToEpochTime(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.TO_EPOCH_TIME, args, optargs);
     }
-    public ToEpochTime(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.TO_EPOCH_TIME, args, optargs);
+    protected ToEpochTime(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected ToEpochTime(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static ToEpochTime fromArgs(Object... args){
-        return new ToEpochTime(new Arguments(args), null);
-    }
-
-
 }

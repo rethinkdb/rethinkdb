@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class Map extends ReqlExpr {
 
 
-    public Map(java.lang.Object arg) {
+    public Map(Object arg) {
         this(new Arguments(arg), null);
     }
+    public Map(Arguments args){
+        this(args, null);
+    }
     public Map(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.MAP, args, optargs);
     }
-    public Map(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.MAP, args, optargs);
+    protected Map(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected Map(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static Map fromArgs(Object... args){
-        return new Map(new Arguments(args), null);
-    }
-
-
 }

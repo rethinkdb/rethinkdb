@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class Pluck extends ReqlExpr {
 
 
-    public Pluck(java.lang.Object arg) {
+    public Pluck(Object arg) {
         this(new Arguments(arg), null);
     }
+    public Pluck(Arguments args){
+        this(args, null);
+    }
     public Pluck(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.PLUCK, args, optargs);
     }
-    public Pluck(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.PLUCK, args, optargs);
+    protected Pluck(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected Pluck(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static Pluck fromArgs(Object... args){
-        return new Pluck(new Arguments(args), null);
-    }
-
-
 }

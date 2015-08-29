@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class Keys extends ReqlExpr {
 
 
-    public Keys(java.lang.Object arg) {
+    public Keys(Object arg) {
         this(new Arguments(arg), null);
     }
+    public Keys(Arguments args){
+        this(args, null);
+    }
     public Keys(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.KEYS, args, optargs);
     }
-    public Keys(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.KEYS, args, optargs);
+    protected Keys(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected Keys(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static Keys fromArgs(Object... args){
-        return new Keys(new Arguments(args), null);
-    }
-
-
 }

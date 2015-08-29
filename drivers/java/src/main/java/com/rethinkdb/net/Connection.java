@@ -3,9 +3,10 @@ package com.rethinkdb.net;
 import com.rethinkdb.ReqlDriverError;
 import com.rethinkdb.ast.Query;
 import com.rethinkdb.ast.ReqlAst;
-import com.rethinkdb.model.GlobalOptions;
-import com.rethinkdb.proto.Protocol;
-import com.rethinkdb.proto.Version;
+import com.rethinkdb.gen.ast.Datum;
+import com.rethinkdb.gen.proto.Protocol;
+import com.rethinkdb.gen.proto.Version;
+import com.rethinkdb.model.OptArgs;
 
 import java.nio.ByteBuffer;
 import java.util.Optional;
@@ -130,8 +131,6 @@ public class Connection<C extends ConnectionInstance> {
 
         Response res = inst.readResponse(query.token);
 
-        // TODO: This logic needs to move into the Response class
-        System.out.println(res.toString()); //RSI
         if(res.isAtom()) {
             try {
                 return Optional.of(Response.convertPseudotypes(
@@ -164,12 +163,14 @@ public class Connection<C extends ConnectionInstance> {
         runQuery(Query.noreplyWait(newToken()));
     }
 
-    public Optional<Object> run(ReqlAst term, GlobalOptions globalOpts) {
-        if (!globalOpts.db().isPresent()) {
-            dbname.ifPresent(globalOpts::db);
+    public Optional<Object> run(ReqlAst term, OptArgs globalOpts) {
+        if (!globalOpts.containsKey("db") && dbname.isPresent()) {
+            globalOpts.with("db", dbname.get());
         }
         Query q = Query.start(newToken(), term, globalOpts);
-        return runQuery(q, globalOpts.noreply().orElse(false));
+        Boolean noreply = (Boolean) globalOpts.getOrDefault(
+                "noreply", new Datum(false)).datum;
+        return runQuery(q, noreply);
     }
 
     void continue_(Cursor cursor) {

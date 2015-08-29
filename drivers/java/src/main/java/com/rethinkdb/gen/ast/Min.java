@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class Min extends ReqlExpr {
 
 
-    public Min(java.lang.Object arg) {
+    public Min(Object arg) {
         this(new Arguments(arg), null);
     }
+    public Min(Arguments args){
+        this(args, null);
+    }
     public Min(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.MIN, args, optargs);
     }
-    public Min(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.MIN, args, optargs);
+    protected Min(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected Min(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static Min fromArgs(Object... args){
-        return new Min(new Arguments(args), null);
-    }
-
-
 }

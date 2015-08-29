@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class Literal extends ReqlExpr {
 
 
-    public Literal(java.lang.Object arg) {
+    public Literal(Object arg) {
         this(new Arguments(arg), null);
     }
+    public Literal(Arguments args){
+        this(args, null);
+    }
     public Literal(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.LITERAL, args, optargs);
     }
-    public Literal(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.LITERAL, args, optargs);
+    protected Literal(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected Literal(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static Literal fromArgs(Object... args){
-        return new Literal(new Arguments(args), null);
-    }
-
-
 }

@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class Maxval extends ReqlExpr {
 
 
-    public Maxval(java.lang.Object arg) {
+    public Maxval(Object arg) {
         this(new Arguments(arg), null);
     }
+    public Maxval(Arguments args){
+        this(args, null);
+    }
     public Maxval(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.MAXVAL, args, optargs);
     }
-    public Maxval(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.MAXVAL, args, optargs);
+    protected Maxval(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected Maxval(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static Maxval fromArgs(Object... args){
-        return new Maxval(new Arguments(args), null);
-    }
-
-
 }

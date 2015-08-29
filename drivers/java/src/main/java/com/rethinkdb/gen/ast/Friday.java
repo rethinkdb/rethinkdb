@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class Friday extends ReqlExpr {
 
 
-    public Friday(java.lang.Object arg) {
+    public Friday(Object arg) {
         this(new Arguments(arg), null);
     }
+    public Friday(Arguments args){
+        this(args, null);
+    }
     public Friday(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.FRIDAY, args, optargs);
     }
-    public Friday(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.FRIDAY, args, optargs);
+    protected Friday(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected Friday(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static Friday fromArgs(Object... args){
-        return new Friday(new Arguments(args), null);
-    }
-
-
 }

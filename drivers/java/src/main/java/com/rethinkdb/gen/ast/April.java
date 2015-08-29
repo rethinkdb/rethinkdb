@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class April extends ReqlExpr {
 
 
-    public April(java.lang.Object arg) {
+    public April(Object arg) {
         this(new Arguments(arg), null);
     }
+    public April(Arguments args){
+        this(args, null);
+    }
     public April(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.APRIL, args, optargs);
     }
-    public April(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.APRIL, args, optargs);
+    protected April(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected April(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static April fromArgs(Object... args){
-        return new April(new Arguments(args), null);
-    }
-
-
 }

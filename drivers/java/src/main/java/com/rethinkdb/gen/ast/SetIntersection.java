@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class SetIntersection extends ReqlExpr {
 
 
-    public SetIntersection(java.lang.Object arg) {
+    public SetIntersection(Object arg) {
         this(new Arguments(arg), null);
     }
+    public SetIntersection(Arguments args){
+        this(args, null);
+    }
     public SetIntersection(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.SET_INTERSECTION, args, optargs);
     }
-    public SetIntersection(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.SET_INTERSECTION, args, optargs);
+    protected SetIntersection(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected SetIntersection(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static SetIntersection fromArgs(Object... args){
-        return new SetIntersection(new Arguments(args), null);
-    }
-
-
 }

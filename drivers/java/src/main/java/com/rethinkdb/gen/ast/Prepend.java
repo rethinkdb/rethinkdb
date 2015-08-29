@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class Prepend extends ReqlExpr {
 
 
-    public Prepend(java.lang.Object arg) {
+    public Prepend(Object arg) {
         this(new Arguments(arg), null);
     }
+    public Prepend(Arguments args){
+        this(args, null);
+    }
     public Prepend(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.PREPEND, args, optargs);
     }
-    public Prepend(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.PREPEND, args, optargs);
+    protected Prepend(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected Prepend(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static Prepend fromArgs(Object... args){
-        return new Prepend(new Arguments(args), null);
-    }
-
-
 }

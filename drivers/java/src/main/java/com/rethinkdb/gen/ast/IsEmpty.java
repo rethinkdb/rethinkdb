@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class IsEmpty extends ReqlExpr {
 
 
-    public IsEmpty(java.lang.Object arg) {
+    public IsEmpty(Object arg) {
         this(new Arguments(arg), null);
     }
+    public IsEmpty(Arguments args){
+        this(args, null);
+    }
     public IsEmpty(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.IS_EMPTY, args, optargs);
     }
-    public IsEmpty(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.IS_EMPTY, args, optargs);
+    protected IsEmpty(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected IsEmpty(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static IsEmpty fromArgs(Object... args){
-        return new IsEmpty(new Arguments(args), null);
-    }
-
-
 }

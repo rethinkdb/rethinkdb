@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class Limit extends ReqlExpr {
 
 
-    public Limit(java.lang.Object arg) {
+    public Limit(Object arg) {
         this(new Arguments(arg), null);
     }
+    public Limit(Arguments args){
+        this(args, null);
+    }
     public Limit(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.LIMIT, args, optargs);
     }
-    public Limit(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.LIMIT, args, optargs);
+    protected Limit(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected Limit(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static Limit fromArgs(Object... args){
-        return new Limit(new Arguments(args), null);
-    }
-
-
 }

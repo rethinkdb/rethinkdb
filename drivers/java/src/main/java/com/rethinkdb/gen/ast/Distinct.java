@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class Distinct extends ReqlExpr {
 
 
-    public Distinct(java.lang.Object arg) {
+    public Distinct(Object arg) {
         this(new Arguments(arg), null);
     }
+    public Distinct(Arguments args){
+        this(args, null);
+    }
     public Distinct(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.DISTINCT, args, optargs);
     }
-    public Distinct(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.DISTINCT, args, optargs);
+    protected Distinct(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected Distinct(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static Distinct fromArgs(Object... args){
-        return new Distinct(new Arguments(args), null);
-    }
-
-
 }

@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class Javascript extends ReqlExpr {
 
 
-    public Javascript(java.lang.Object arg) {
+    public Javascript(Object arg) {
         this(new Arguments(arg), null);
     }
+    public Javascript(Arguments args){
+        this(args, null);
+    }
     public Javascript(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.JAVASCRIPT, args, optargs);
     }
-    public Javascript(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.JAVASCRIPT, args, optargs);
+    protected Javascript(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected Javascript(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static Javascript fromArgs(Object... args){
-        return new Javascript(new Arguments(args), null);
-    }
-
-
 }

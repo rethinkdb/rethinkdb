@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class Insert extends ReqlExpr {
 
 
-    public Insert(java.lang.Object arg) {
+    public Insert(Object arg) {
         this(new Arguments(arg), null);
     }
+    public Insert(Arguments args){
+        this(args, null);
+    }
     public Insert(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.INSERT, args, optargs);
     }
-    public Insert(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.INSERT, args, optargs);
+    protected Insert(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected Insert(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static Insert fromArgs(Object... args){
-        return new Insert(new Arguments(args), null);
-    }
-
-
 }

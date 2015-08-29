@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class July extends ReqlExpr {
 
 
-    public July(java.lang.Object arg) {
+    public July(Object arg) {
         this(new Arguments(arg), null);
     }
+    public July(Arguments args){
+        this(args, null);
+    }
     public July(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.JULY, args, optargs);
     }
-    public July(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.JULY, args, optargs);
+    protected July(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected July(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static July fromArgs(Object... args){
-        return new July(new Arguments(args), null);
-    }
-
-
 }

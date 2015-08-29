@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class DayOfWeek extends ReqlExpr {
 
 
-    public DayOfWeek(java.lang.Object arg) {
+    public DayOfWeek(Object arg) {
         this(new Arguments(arg), null);
     }
+    public DayOfWeek(Arguments args){
+        this(args, null);
+    }
     public DayOfWeek(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.DAY_OF_WEEK, args, optargs);
     }
-    public DayOfWeek(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.DAY_OF_WEEK, args, optargs);
+    protected DayOfWeek(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected DayOfWeek(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static DayOfWeek fromArgs(Object... args){
-        return new DayOfWeek(new Arguments(args), null);
-    }
-
-
 }

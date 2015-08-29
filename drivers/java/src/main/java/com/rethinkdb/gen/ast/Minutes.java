@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class Minutes extends ReqlExpr {
 
 
-    public Minutes(java.lang.Object arg) {
+    public Minutes(Object arg) {
         this(new Arguments(arg), null);
     }
+    public Minutes(Arguments args){
+        this(args, null);
+    }
     public Minutes(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.MINUTES, args, optargs);
     }
-    public Minutes(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.MINUTES, args, optargs);
+    protected Minutes(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected Minutes(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static Minutes fromArgs(Object... args){
-        return new Minutes(new Arguments(args), null);
-    }
-
-
 }

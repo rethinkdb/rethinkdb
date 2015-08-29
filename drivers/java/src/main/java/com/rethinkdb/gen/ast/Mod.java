@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class Mod extends ReqlExpr {
 
 
-    public Mod(java.lang.Object arg) {
+    public Mod(Object arg) {
         this(new Arguments(arg), null);
     }
+    public Mod(Arguments args){
+        this(args, null);
+    }
     public Mod(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.MOD, args, optargs);
     }
-    public Mod(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.MOD, args, optargs);
+    protected Mod(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected Mod(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static Mod fromArgs(Object... args){
-        return new Mod(new Arguments(args), null);
-    }
-
-
 }

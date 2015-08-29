@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class TableCreate extends ReqlExpr {
 
 
-    public TableCreate(java.lang.Object arg) {
+    public TableCreate(Object arg) {
         this(new Arguments(arg), null);
     }
+    public TableCreate(Arguments args){
+        this(args, null);
+    }
     public TableCreate(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.TABLE_CREATE, args, optargs);
     }
-    public TableCreate(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.TABLE_CREATE, args, optargs);
+    protected TableCreate(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected TableCreate(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static TableCreate fromArgs(Object... args){
-        return new TableCreate(new Arguments(args), null);
-    }
-
-
 }

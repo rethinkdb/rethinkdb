@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class TableDrop extends ReqlExpr {
 
 
-    public TableDrop(java.lang.Object arg) {
+    public TableDrop(Object arg) {
         this(new Arguments(arg), null);
     }
+    public TableDrop(Arguments args){
+        this(args, null);
+    }
     public TableDrop(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.TABLE_DROP, args, optargs);
     }
-    public TableDrop(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.TABLE_DROP, args, optargs);
+    protected TableDrop(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected TableDrop(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static TableDrop fromArgs(Object... args){
-        return new TableDrop(new Arguments(args), null);
-    }
-
-
 }

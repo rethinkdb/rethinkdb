@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class Random extends ReqlExpr {
 
 
-    public Random(java.lang.Object arg) {
+    public Random(Object arg) {
         this(new Arguments(arg), null);
     }
+    public Random(Arguments args){
+        this(args, null);
+    }
     public Random(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.RANDOM, args, optargs);
     }
-    public Random(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.RANDOM, args, optargs);
+    protected Random(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected Random(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static Random fromArgs(Object... args){
-        return new Random(new Arguments(args), null);
-    }
-
-
 }

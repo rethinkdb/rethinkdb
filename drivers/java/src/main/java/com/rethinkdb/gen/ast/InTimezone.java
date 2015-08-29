@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class InTimezone extends ReqlExpr {
 
 
-    public InTimezone(java.lang.Object arg) {
+    public InTimezone(Object arg) {
         this(new Arguments(arg), null);
     }
+    public InTimezone(Arguments args){
+        this(args, null);
+    }
     public InTimezone(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.IN_TIMEZONE, args, optargs);
     }
-    public InTimezone(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.IN_TIMEZONE, args, optargs);
+    protected InTimezone(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected InTimezone(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static InTimezone fromArgs(Object... args){
-        return new InTimezone(new Arguments(args), null);
-    }
-
-
 }

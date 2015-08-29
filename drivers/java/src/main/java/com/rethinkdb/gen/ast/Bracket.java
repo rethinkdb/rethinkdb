@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class Bracket extends ReqlExpr {
 
 
-    public Bracket(java.lang.Object arg) {
+    public Bracket(Object arg) {
         this(new Arguments(arg), null);
     }
+    public Bracket(Arguments args){
+        this(args, null);
+    }
     public Bracket(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.BRACKET, args, optargs);
     }
-    public Bracket(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.BRACKET, args, optargs);
+    protected Bracket(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected Bracket(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static Bracket fromArgs(Object... args){
-        return new Bracket(new Arguments(args), null);
-    }
-
-
 }

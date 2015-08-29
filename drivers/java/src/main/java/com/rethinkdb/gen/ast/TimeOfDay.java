@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class TimeOfDay extends ReqlExpr {
 
 
-    public TimeOfDay(java.lang.Object arg) {
+    public TimeOfDay(Object arg) {
         this(new Arguments(arg), null);
     }
+    public TimeOfDay(Arguments args){
+        this(args, null);
+    }
     public TimeOfDay(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.TIME_OF_DAY, args, optargs);
     }
-    public TimeOfDay(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.TIME_OF_DAY, args, optargs);
+    protected TimeOfDay(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected TimeOfDay(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static TimeOfDay fromArgs(Object... args){
-        return new TimeOfDay(new Arguments(args), null);
-    }
-
-
 }

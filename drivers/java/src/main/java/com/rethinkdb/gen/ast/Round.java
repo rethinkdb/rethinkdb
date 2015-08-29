@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class Round extends ReqlExpr {
 
 
-    public Round(java.lang.Object arg) {
+    public Round(Object arg) {
         this(new Arguments(arg), null);
     }
+    public Round(Arguments args){
+        this(args, null);
+    }
     public Round(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.ROUND, args, optargs);
     }
-    public Round(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.ROUND, args, optargs);
+    protected Round(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected Round(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static Round fromArgs(Object... args){
-        return new Round(new Arguments(args), null);
-    }
-
-
 }

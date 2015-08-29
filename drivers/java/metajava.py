@@ -12,6 +12,7 @@ import codecs
 import argparse
 import copy
 import itertools
+import string
 
 from collections import OrderedDict, namedtuple
 from mako.lookup import TemplateLookup
@@ -134,6 +135,12 @@ class java_term_info(object):
             'while'
         }
 
+    # Methods defined on Object that we don't want to inadvertantly override
+    OBJECT_METHODS = {
+        'clone', 'equals', 'finalize', 'hashCode', 'getClass',
+        'notify', 'notifyAll', 'wait', 'toString'
+    }
+
     # Terms we don't want to create
     TERM_BLACKLIST = {
         'row'  # Java 8 lambda syntax is nice, so no need for row
@@ -185,7 +192,71 @@ class java_term_info(object):
         '''This takes the general signatures from terminfo.json and
         turns them into signatures that can actually be created in the
         Java.'''
-        return [x for sig in signatures for x in cls.reify_signature(sig)]
+        return [cls.elaborate_signature(x)
+                for sig in signatures
+                for x in cls.reify_signature(sig)]
+
+    @staticmethod
+    def elaborate_signature(sig):
+        '''This expands a list of arguments that have already been
+        converted to Java classnames by reify_signature. This is
+        pre-computing a bunch of data that it's convenient to have
+        for the templates
+
+        Example:
+        ["Object", "Object", "Object...", "ReqlFunction2"]
+        becomes:
+        {"args": [{"type": "Object", "var": "expr"},
+                  {"type": "Object", "var": "exprA"},
+                  {"type": "Object...", "var": "exprs"},
+                  {"type": "ReqlFunction2", "var": "func2"}],
+         "first_arg": "ReqlExpr"
+        }
+        '''
+        def num2str(num):
+            if num == 0:
+                return ''
+            if num > 26:
+                raise RuntimeError("too many variables in this signature")
+            return string.ascii_uppercase[num - 1]
+
+        args = []
+        suffix_counts = {}
+        first_arg = None
+        for arg in sig:
+            if not first_arg:
+                # If the first argument is Db, we shouldn't output
+                # that signature for the Table class etc, since the
+                # first argument is implicitly `this` for all methods
+                # except the ones defined on TopLevel.
+
+                # The bit about `ReqlExpr` is because we need to
+                # accept arguments like Booleans and Numbers that will
+                # later be converted to ReqlExpr, so the signature
+                # argument type has to be `Object`. But when deciding
+                # whether to output the methods, we need to match
+                # against the classname. So if the first argument is
+                # Object, we want it to be output as a method on the
+                # `ReqlExpr` class.
+                first_arg = 'ReqlExpr' if arg.startswith('Object') else arg
+            if arg == 'Object...':
+                varname = 'exprs'
+            else:
+                suffix = num2str(suffix_counts.setdefault(arg, 0))
+                suffix_counts[arg] += 1
+                if arg.startswith('ReqlFunction'):
+                    arity = arg[len('ReqlFunction'):]
+                    varname = 'func' + arity + suffix
+                elif arg == 'Object':
+                    varname = 'expr' + suffix
+                else:
+                    varname = arg.lower() + suffix
+            args.append({"type": arg, "var": varname})
+
+        return {
+            'args': args,
+            'first_arg': first_arg,
+        }
 
     @classmethod
     def reify_signature(cls, signature):
@@ -308,6 +379,8 @@ class java_term_info(object):
         methodname = self.nice_name(term, info)
         if methodname in self.JAVA_KEYWORDS:
             methodname += '_'
+        elif methodname in self.OBJECT_METHODS:
+            methodname += '_'
         info['methodname'] = methodname
 
     def add_classname(self, term, info):
@@ -385,6 +458,12 @@ class generate_java_classes(object):
         print("WARNING: didn't render function interfaces. not really.")
 
     def render_ast_subclasses(self):
+        self.render_ast_subclass(
+            None, {
+                "superclass": "ReqlAst",
+                "classname": "ReqlExpr",
+            }
+        )
         for term_name, meta in self.term_info.items():
             if not meta.get('deprecated'):
                 self.render_ast_subclass(term_name, meta)
@@ -535,27 +614,6 @@ def render_exception(classname, superclass):
         superclass=superclass,
         camel=camel,
     )
-
-
-def get_proto_file(proto_json):
-    '''Loads proto file as json'''
-    return json.loads(open(proto_json))
-
-
-def render_optarg_enums(enum_listing):
-    for key, values in enum_listing.items():
-        classname = camel(key.lstrip('E_'))
-        enum_name_mapping = {val: '"'+val+'"' for val in values}
-        template_name = get_template_name(
-            classname, directory='model', default='Enum.java')
-        render(template_name,
-               output_dir=MODEL_DIR,
-               output_name=classname+'.java',
-               classname=classname,
-               package="model",
-               items=enum_name_mapping.items())
-
-
 
 
 if __name__ == '__main__':

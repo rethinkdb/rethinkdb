@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class Not extends ReqlExpr {
 
 
-    public Not(java.lang.Object arg) {
+    public Not(Object arg) {
         this(new Arguments(arg), null);
     }
+    public Not(Arguments args){
+        this(args, null);
+    }
     public Not(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.NOT, args, optargs);
     }
-    public Not(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.NOT, args, optargs);
+    protected Not(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected Not(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static Not fromArgs(Object... args){
-        return new Not(new Arguments(args), null);
-    }
-
-
 }

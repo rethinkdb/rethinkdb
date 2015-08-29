@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class InsertAt extends ReqlExpr {
 
 
-    public InsertAt(java.lang.Object arg) {
+    public InsertAt(Object arg) {
         this(new Arguments(arg), null);
     }
+    public InsertAt(Arguments args){
+        this(args, null);
+    }
     public InsertAt(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.INSERT_AT, args, optargs);
     }
-    public InsertAt(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.INSERT_AT, args, optargs);
+    protected InsertAt(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected InsertAt(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static InsertAt fromArgs(Object... args){
-        return new InsertAt(new Arguments(args), null);
-    }
-
-
 }

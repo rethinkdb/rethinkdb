@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class Merge extends ReqlExpr {
 
 
-    public Merge(java.lang.Object arg) {
+    public Merge(Object arg) {
         this(new Arguments(arg), null);
     }
+    public Merge(Arguments args){
+        this(args, null);
+    }
     public Merge(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.MERGE, args, optargs);
     }
-    public Merge(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.MERGE, args, optargs);
+    protected Merge(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected Merge(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static Merge fromArgs(Object... args){
-        return new Merge(new Arguments(args), null);
-    }
-
-
 }

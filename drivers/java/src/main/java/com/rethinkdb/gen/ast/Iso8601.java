@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,28 +16,20 @@ import com.rethinkdb.ast.ReqlAst;
 public class Iso8601 extends ReqlExpr {
 
 
-    public Iso8601(java.lang.Object arg) {
+    public Iso8601(Object arg) {
         this(new Arguments(arg), null);
     }
+    public Iso8601(Arguments args){
+        this(args, null);
+    }
     public Iso8601(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.ISO8601, args, optargs);
     }
-    public Iso8601(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.ISO8601, args, optargs);
+    protected Iso8601(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected Iso8601(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static Iso8601 fromArgs(Object... args){
-        return new Iso8601(new Arguments(args), null);
-    }
-
 
     public static Iso8601 fromString(String iso) {
         return new Iso8601(new Arguments(iso), null);
     }
-
 }

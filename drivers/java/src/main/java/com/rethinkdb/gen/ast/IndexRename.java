@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class IndexRename extends ReqlExpr {
 
 
-    public IndexRename(java.lang.Object arg) {
+    public IndexRename(Object arg) {
         this(new Arguments(arg), null);
     }
+    public IndexRename(Arguments args){
+        this(args, null);
+    }
     public IndexRename(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.INDEX_RENAME, args, optargs);
     }
-    public IndexRename(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.INDEX_RENAME, args, optargs);
+    protected IndexRename(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected IndexRename(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static IndexRename fromArgs(Object... args){
-        return new IndexRename(new Arguments(args), null);
-    }
-
-
 }

@@ -2,12 +2,13 @@ package com.rethinkdb.ast;
 
 import com.rethinkdb.ReqlDriverError;
 import com.rethinkdb.model.Arguments;
-import com.rethinkdb.model.GlobalOptions;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.net.Connection;
-import com.rethinkdb.proto.TermType;
+import com.rethinkdb.gen.proto.TermType;
 
 import java.lang.reflect.Array;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -18,29 +19,17 @@ import org.json.simple.JSONObject;
  */
 public class ReqlAst {
 
-    protected final Optional<ReqlAst> prev;
     protected final TermType termType;
     protected final Arguments args;
     protected final OptArgs optargs;
 
-    protected ReqlAst(ReqlAst prev, TermType termType, Arguments args, OptArgs optargs) {
-        this.prev = Optional.ofNullable(prev);
+    protected ReqlAst(TermType termType, Arguments args, OptArgs optargs) {
         if(termType == null){
             throw new ReqlDriverError("termType can't be null!");
         }
         this.termType = termType;
-        this.args = new Arguments();
-        if(prev != null){
-            this.args.add(prev);
-        }
-        if(args != null){
-            this.args.addAll(args);
-        }
+        this.args = args != null ? args : new Arguments();
         this.optargs = optargs != null ? optargs : new OptArgs();
-    }
-
-    protected ReqlAst(TermType termType, Arguments args) {
-        this(null, termType, args, null);
     }
 
     protected java.lang.Object build() {
@@ -64,19 +53,36 @@ public class ReqlAst {
         return list;
     }
 
-    public Optional<Object> run(Connection conn, GlobalOptions g) {
-        return conn.run(this, g);
+    public ReqlAst optArg(String optname, Object value) {
+        try {
+            Constructor<? extends ReqlAst> subclass =
+                    this.getClass().getDeclaredConstructor(
+                            Arguments.class, OptArgs.class);
+            Arguments copyargs = new Arguments(this.args);
+            OptArgs copyopts = OptArgs.fromMap(this.optargs);
+            copyopts.with(optname, Util.toReqlAst(value));
+            return subclass.newInstance(copyargs, copyopts);
+        } catch(NoSuchMethodException
+                | InvocationTargetException
+                | InstantiationException
+                | IllegalAccessException
+                e) {
+            throw new ReqlDriverError("Something went wrong", e);
+        }
+    }
+
+    public Optional<Object> run(Connection conn, OptArgs runOpts) {
+        return conn.run(this, runOpts);
     }
 
     public Optional<Object> run(Connection conn) {
-        return conn.run(this, new GlobalOptions());
+        return conn.run(this, new OptArgs());
     }
 
     @Override
     public String toString() {
         return "ReqlAst{" +
-                "prev=" + prev +
-                ", termType=" + termType +
+                "termType=" + termType +
                 ", args=" + args +
                 ", optargs=" + optargs +
                 '}';

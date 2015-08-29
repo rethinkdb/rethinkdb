@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class PolygonSub extends ReqlExpr {
 
 
-    public PolygonSub(java.lang.Object arg) {
+    public PolygonSub(Object arg) {
         this(new Arguments(arg), null);
     }
+    public PolygonSub(Arguments args){
+        this(args, null);
+    }
     public PolygonSub(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.POLYGON_SUB, args, optargs);
     }
-    public PolygonSub(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.POLYGON_SUB, args, optargs);
+    protected PolygonSub(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected PolygonSub(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static PolygonSub fromArgs(Object... args){
-        return new PolygonSub(new Arguments(args), null);
-    }
-
-
 }

@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class Downcase extends ReqlExpr {
 
 
-    public Downcase(java.lang.Object arg) {
+    public Downcase(Object arg) {
         this(new Arguments(arg), null);
     }
+    public Downcase(Arguments args){
+        this(args, null);
+    }
     public Downcase(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.DOWNCASE, args, optargs);
     }
-    public Downcase(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.DOWNCASE, args, optargs);
+    protected Downcase(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected Downcase(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static Downcase fromArgs(Object... args){
-        return new Downcase(new Arguments(args), null);
-    }
-
-
 }

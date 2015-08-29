@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class Without extends ReqlExpr {
 
 
-    public Without(java.lang.Object arg) {
+    public Without(Object arg) {
         this(new Arguments(arg), null);
     }
+    public Without(Arguments args){
+        this(args, null);
+    }
     public Without(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.WITHOUT, args, optargs);
     }
-    public Without(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.WITHOUT, args, optargs);
+    protected Without(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected Without(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static Without fromArgs(Object... args){
-        return new Without(new Arguments(args), null);
-    }
-
-
 }

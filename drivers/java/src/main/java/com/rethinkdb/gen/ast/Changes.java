@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class Changes extends ReqlExpr {
 
 
-    public Changes(java.lang.Object arg) {
+    public Changes(Object arg) {
         this(new Arguments(arg), null);
     }
+    public Changes(Arguments args){
+        this(args, null);
+    }
     public Changes(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.CHANGES, args, optargs);
     }
-    public Changes(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.CHANGES, args, optargs);
+    protected Changes(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected Changes(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static Changes fromArgs(Object... args){
-        return new Changes(new Arguments(args), null);
-    }
-
-
 }

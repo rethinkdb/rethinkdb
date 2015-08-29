@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class SetUnion extends ReqlExpr {
 
 
-    public SetUnion(java.lang.Object arg) {
+    public SetUnion(Object arg) {
         this(new Arguments(arg), null);
     }
+    public SetUnion(Arguments args){
+        this(args, null);
+    }
     public SetUnion(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.SET_UNION, args, optargs);
     }
-    public SetUnion(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.SET_UNION, args, optargs);
+    protected SetUnion(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected SetUnion(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static SetUnion fromArgs(Object... args){
-        return new SetUnion(new Arguments(args), null);
-    }
-
-
 }

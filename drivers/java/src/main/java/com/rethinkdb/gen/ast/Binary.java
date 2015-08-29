@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class Binary extends ReqlExpr {
 
 
-    public Binary(java.lang.Object arg) {
+    public Binary(Object arg) {
         this(new Arguments(arg), null);
     }
+    public Binary(Arguments args){
+        this(args, null);
+    }
     public Binary(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.BINARY, args, optargs);
     }
-    public Binary(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.BINARY, args, optargs);
+    protected Binary(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected Binary(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static Binary fromArgs(Object... args){
-        return new Binary(new Arguments(args), null);
-    }
-
-
 }

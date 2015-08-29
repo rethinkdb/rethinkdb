@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class During extends ReqlExpr {
 
 
-    public During(java.lang.Object arg) {
+    public During(Object arg) {
         this(new Arguments(arg), null);
     }
+    public During(Arguments args){
+        this(args, null);
+    }
     public During(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.DURING, args, optargs);
     }
-    public During(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.DURING, args, optargs);
+    protected During(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected During(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static During fromArgs(Object... args){
-        return new During(new Arguments(args), null);
-    }
-
-
 }

@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class HasFields extends ReqlExpr {
 
 
-    public HasFields(java.lang.Object arg) {
+    public HasFields(Object arg) {
         this(new Arguments(arg), null);
     }
+    public HasFields(Arguments args){
+        this(args, null);
+    }
     public HasFields(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.HAS_FIELDS, args, optargs);
     }
-    public HasFields(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.HAS_FIELDS, args, optargs);
+    protected HasFields(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected HasFields(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static HasFields fromArgs(Object... args){
-        return new HasFields(new Arguments(args), null);
-    }
-
-
 }

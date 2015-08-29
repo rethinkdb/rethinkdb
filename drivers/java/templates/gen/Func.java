@@ -21,7 +21,7 @@ import com.rethinkdb.ast.Util;
     }
 
     protected Func(Arguments args) {
-        super(null, TermType.FUNC, args, null);
+        super(TermType.FUNC, args, null);
     }
 </%block>
 

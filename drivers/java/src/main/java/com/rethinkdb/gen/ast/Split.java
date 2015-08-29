@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class Split extends ReqlExpr {
 
 
-    public Split(java.lang.Object arg) {
+    public Split(Object arg) {
         this(new Arguments(arg), null);
     }
+    public Split(Arguments args){
+        this(args, null);
+    }
     public Split(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.SPLIT, args, optargs);
     }
-    public Split(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.SPLIT, args, optargs);
+    protected Split(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected Split(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static Split fromArgs(Object... args){
-        return new Split(new Arguments(args), null);
-    }
-
-
 }

@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class ConcatMap extends ReqlExpr {
 
 
-    public ConcatMap(java.lang.Object arg) {
+    public ConcatMap(Object arg) {
         this(new Arguments(arg), null);
     }
+    public ConcatMap(Arguments args){
+        this(args, null);
+    }
     public ConcatMap(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.CONCAT_MAP, args, optargs);
     }
-    public ConcatMap(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.CONCAT_MAP, args, optargs);
+    protected ConcatMap(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected ConcatMap(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static ConcatMap fromArgs(Object... args){
-        return new ConcatMap(new Arguments(args), null);
-    }
-
-
 }

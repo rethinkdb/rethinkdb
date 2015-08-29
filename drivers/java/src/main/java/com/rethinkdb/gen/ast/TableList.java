@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class TableList extends ReqlExpr {
 
 
-    public TableList(java.lang.Object arg) {
+    public TableList(Object arg) {
         this(new Arguments(arg), null);
     }
+    public TableList(Arguments args){
+        this(args, null);
+    }
     public TableList(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.TABLE_LIST, args, optargs);
     }
-    public TableList(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.TABLE_LIST, args, optargs);
+    protected TableList(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected TableList(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static TableList fromArgs(Object... args){
-        return new TableList(new Arguments(args), null);
-    }
-
-
 }

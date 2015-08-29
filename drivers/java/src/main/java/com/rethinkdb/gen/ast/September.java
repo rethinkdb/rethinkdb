@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class September extends ReqlExpr {
 
 
-    public September(java.lang.Object arg) {
+    public September(Object arg) {
         this(new Arguments(arg), null);
     }
+    public September(Arguments args){
+        this(args, null);
+    }
     public September(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.SEPTEMBER, args, optargs);
     }
-    public September(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.SEPTEMBER, args, optargs);
+    protected September(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected September(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static September fromArgs(Object... args){
-        return new September(new Arguments(args), null);
-    }
-
-
 }

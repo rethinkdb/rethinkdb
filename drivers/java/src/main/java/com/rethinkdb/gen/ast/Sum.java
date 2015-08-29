@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class Sum extends ReqlExpr {
 
 
-    public Sum(java.lang.Object arg) {
+    public Sum(Object arg) {
         this(new Arguments(arg), null);
     }
+    public Sum(Arguments args){
+        this(args, null);
+    }
     public Sum(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.SUM, args, optargs);
     }
-    public Sum(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.SUM, args, optargs);
+    protected Sum(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected Sum(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static Sum fromArgs(Object... args){
-        return new Sum(new Arguments(args), null);
-    }
-
-
 }

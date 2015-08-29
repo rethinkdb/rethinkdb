@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class Funcall extends ReqlExpr {
 
 
-    public Funcall(java.lang.Object arg) {
+    public Funcall(Object arg) {
         this(new Arguments(arg), null);
     }
+    public Funcall(Arguments args){
+        this(args, null);
+    }
     public Funcall(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.FUNCALL, args, optargs);
     }
-    public Funcall(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.FUNCALL, args, optargs);
+    protected Funcall(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected Funcall(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static Funcall fromArgs(Object... args){
-        return new Funcall(new Arguments(args), null);
-    }
-
-
 }

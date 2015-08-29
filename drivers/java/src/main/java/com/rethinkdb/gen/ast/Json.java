@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class Json extends ReqlExpr {
 
 
-    public Json(java.lang.Object arg) {
+    public Json(Object arg) {
         this(new Arguments(arg), null);
     }
+    public Json(Arguments args){
+        this(args, null);
+    }
     public Json(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.JSON, args, optargs);
     }
-    public Json(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.JSON, args, optargs);
+    protected Json(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected Json(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static Json fromArgs(Object... args){
-        return new Json(new Arguments(args), null);
-    }
-
-
 }

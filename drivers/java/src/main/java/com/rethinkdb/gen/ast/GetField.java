@@ -6,6 +6,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -15,24 +16,16 @@ import com.rethinkdb.ast.ReqlAst;
 public class GetField extends ReqlExpr {
 
 
-    public GetField(java.lang.Object arg) {
+    public GetField(Object arg) {
         this(new Arguments(arg), null);
     }
+    public GetField(Arguments args){
+        this(args, null);
+    }
     public GetField(Arguments args, OptArgs optargs) {
-        this(null, args, optargs);
+        this(TermType.GET_FIELD, args, optargs);
     }
-    public GetField(ReqlAst prev, Arguments args, OptArgs optargs) {
-        this(prev, TermType.GET_FIELD, args, optargs);
+    protected GetField(TermType termType, Arguments args, OptArgs optargs){
+        super(termType, args, optargs);
     }
-    protected GetField(ReqlAst previous, TermType termType, Arguments args, OptArgs optargs){
-        super(previous, termType, args, optargs);
-    }
-
-
-    /* Static factories */
-    public static GetField fromArgs(Object... args){
-        return new GetField(new Arguments(args), null);
-    }
-
-
 }
