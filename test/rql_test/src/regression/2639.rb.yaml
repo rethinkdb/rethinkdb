@@ -1,4 +1,8 @@
-desc: 2639 -- Coroutine stack overflow during compilation phase should result in ReQL error.
+desc: 2639 -- Coroutine stacks should not overflow during the query compilation phase.
 tests:
   - rb: r.expr({id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:{id:1}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}, 1000)
-    ot: err("ReqlCompileError", "Insufficient stack space available to compile query.  This is usually caused by running a very deeply-nested query.")
+    ot: partial({})
+
+  - rb: r.expr([[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]],1000).and(nil)
+    ot: nil
+

@@ -382,6 +382,7 @@ def test(src, expected, name, opthash=nil, testopts=nil)
         end
         print_debug("Running query: #{queryString} Options: #{testopts}")
         result = $defines.eval(queryString)
+        print_debug("Result: #{result}")
 
         if result.kind_of?(RethinkDB::Cursor) # convert cursors into Enumerators to allow for poping single items
 	      result = result.each

@@ -8,11 +8,13 @@
 
 #include <algorithm>
 #include <cmath>
+#include <functional>
 #include <iterator>
 
 #include "errors.hpp"
 #include <boost/detail/endian.hpp>
 
+#include "arch/runtime/coroutines.hpp"
 #include "cjson/json.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "containers/scoped.hpp"
@@ -32,6 +34,10 @@
 #include "stl_utils.hpp"
 
 namespace ql {
+
+// The minimum amount of stack space we require to be available on a coroutine
+// before attempting to recurse into a nested datum.
+const size_t MIN_DATUM_RECURSION_STACK_SPACE = 16 * KILOBYTE;
 
 const size_t tag_size = 8;
 
@@ -821,7 +827,7 @@ void datum_t::rcheck_is_ptype(const std::string s) const {
                         trunc_print().c_str())));
 }
 
-datum_t datum_t::drop_literals(bool *encountered_literal_out) const {
+datum_t datum_t::drop_literals_unchecked_stack(bool *encountered_literal_out) const {
     // drop_literals will never create arrays larger than those in the
     // existing datum; so checking (and thus threading the limits
     // parameter) is unnecessary here.
@@ -918,6 +924,13 @@ datum_t datum_t::drop_literals(bool *encountered_literal_out) const {
         *encountered_literal_out = false;
         return *this;
     }
+}
+
+datum_t datum_t::drop_literals(bool *encountered_literal_out) const {
+    return call_with_enough_stack<datum_t>([&] {
+            return this->drop_literals_unchecked_stack(
+                encountered_literal_out);
+        }, MIN_DATUM_RECURSION_STACK_SPACE);
 }
 
 void datum_t::rcheck_valid_replace(datum_t old_val,
@@ -1384,7 +1397,7 @@ datum_t datum_t::get_field(const char *key, throw_bool_t throw_bool) const {
 }
 
 template <class json_writer_t>
-void datum_t::write_json(json_writer_t *writer) const {
+void datum_t::write_json_unchecked_stack(json_writer_t *writer) const {
     switch (get_type()) {
     case MINVAL: rfail_datum(base_exc_t::LOGIC, "Cannot convert `r.minval` to JSON.");
     case MAXVAL: rfail_datum(base_exc_t::LOGIC, "Cannot convert `r.maxval` to JSON.");
@@ -1425,6 +1438,13 @@ void datum_t::write_json(json_writer_t *writer) const {
     case UNINITIALIZED: // fallthru
     default: unreachable();
     }
+}
+
+template <class json_writer_t>
+void datum_t::write_json(json_writer_t *writer) const {
+    call_with_enough_stack([&] {
+            return this->write_json_unchecked_stack<json_writer_t>(writer);
+        }, MIN_DATUM_RECURSION_STACK_SPACE);
 }
 
 // Explicit instantiation
@@ -1512,7 +1532,7 @@ void datum_t::replace_field(const datum_string_t &key, datum_t val) {
     it->second = val;
 }
 
-datum_t datum_t::merge(const datum_t &rhs) const {
+datum_t datum_t::default_merge_unchecked_stack(const datum_t &rhs) const {
     if (get_type() != R_OBJECT || rhs.get_type() != R_OBJECT) {
         return rhs;
     }
@@ -1549,7 +1569,13 @@ datum_t datum_t::merge(const datum_t &rhs) const {
     return std::move(d).to_datum();
 }
 
-datum_t datum_t::merge(const datum_t &rhs,
+datum_t datum_t::merge(const datum_t &rhs) const {
+    return call_with_enough_stack<datum_t>([&] {
+            return this->default_merge_unchecked_stack(rhs);
+        }, MIN_DATUM_RECURSION_STACK_SPACE);
+}
+
+datum_t datum_t::custom_merge_unchecked_stack(const datum_t &rhs,
                        merge_resoluter_t f,
                        const configured_limits_t &limits,
                        std::set<std::string> *conditions_out) const {
@@ -1568,13 +1594,23 @@ datum_t datum_t::merge(const datum_t &rhs,
     return std::move(d).to_datum();
 }
 
+datum_t datum_t::merge(const datum_t &rhs,
+                       merge_resoluter_t f,
+                       const configured_limits_t &limits,
+                       std::set<std::string> *conditions_out) const {
+    return call_with_enough_stack<datum_t>([&] {
+            return this->custom_merge_unchecked_stack(
+                rhs, std::move(f), limits, conditions_out);
+        }, MIN_DATUM_RECURSION_STACK_SPACE);
+}
+
 template<class T>
 int derived_cmp(T a, T b) {
     if (a == b) return 0;
     return a < b ? -1 : 1;
 }
 
-int datum_t::cmp(const datum_t &rhs) const {
+int datum_t::cmp_unchecked_stack(const datum_t &rhs) const {
     bool lhs_ptype = is_ptype() && !pseudo_compares_as_obj();
     bool rhs_ptype = rhs.is_ptype() && !rhs.pseudo_compares_as_obj();
     if (lhs_ptype && rhs_ptype) {
@@ -1636,6 +1672,12 @@ int datum_t::cmp(const datum_t &rhs) const {
     case UNINITIALIZED: // fallthru
     default: unreachable();
     }
+}
+
+int datum_t::cmp(const datum_t &rhs) const {
+    return call_with_enough_stack<int>([&] {
+            return this->cmp_unchecked_stack(rhs);
+        }, MIN_DATUM_RECURSION_STACK_SPACE);
 }
 
 bool datum_t::operator==(const datum_t &rhs) const { return cmp(rhs) == 0; }

@@ -1,15 +1,22 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
+#include <functional>
+
+#include "arch/runtime/coroutines.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/validate.hpp"
 #include "utils.hpp"
+
+// The minimum amount of stack space we require to be available on a coroutine
+// before attempting to validate a protocol buffer.
+const size_t MIN_VALIDATE_STACK_SPACE = 16 * KILOBYTE;
 
 
 #define check_has(pb, has_field, field) do {                            \
         auto const &check_has_tmp = (pb);                               \
         rcheck_toplevel(                                                \
             check_has_tmp.has_field(),                                  \
-            ql::base_exc_t::LOGIC,                                    \
+            ql::base_exc_t::LOGIC,                                      \
             strprintf("MALFORMED PROTOBUF (missing field `%s`):\n%s",   \
                       (field), check_has_tmp.DebugString().c_str()));   \
     } while (0)
@@ -18,7 +25,7 @@
         auto const &check_not_has_tmp = (pb);                           \
         rcheck_toplevel(                                                \
             !check_not_has_tmp.has_field(),                             \
-            ql::base_exc_t::LOGIC,                                    \
+            ql::base_exc_t::LOGIC,                                      \
             strprintf("MALFORMED PROTOBUF (spurious field `%s`):\n%s",  \
                       (field),                                          \
                       check_not_has_tmp.DebugString().c_str()));        \
@@ -29,7 +36,7 @@
         const int check_size_expected = (expected_size);                \
         rcheck_toplevel(                                                \
             check_size_tmp.field_size() == check_size_expected,         \
-            ql::base_exc_t::LOGIC,                                    \
+            ql::base_exc_t::LOGIC,                                      \
             strprintf("MALFORMED PROTOBUF (expected field `%s` "        \
                       "to have size %d):\n%s",                          \
                       (field), check_size_expected,                     \
@@ -38,11 +45,11 @@
 
 #define check_empty(pb, field_size, field) check_size(0, pb, field_size, field)
 
-#define check_type(pbname, pb) do {                             \
-        check_has(pb, has_type, "type");                        \
+#define check_type(pbname, pb) do {                                     \
+        check_has(pb, has_type, "type");                                \
         rcheck_toplevel(                                                \
             pbname##_##pbname##Type_IsValid(pb.type()),                 \
-            ql::base_exc_t::LOGIC,                                    \
+            ql::base_exc_t::LOGIC,                                      \
             strprintf("MALFORMED PROTOBUF (Illegal " #pbname " type %d).", \
                       pb.type()));                                      \
     } while (0)
@@ -91,7 +98,7 @@ void validate_pb(const Response &r) {
     }
 }
 
-void validate_pb(const Datum &d) {
+void validate_pb_datum(const Datum &d) {
     check_type(Datum, d);
     if (d.type() == Datum::R_BOOL) {
         check_has(d, has_r_bool, "r_bool");
@@ -124,6 +131,12 @@ void validate_pb(const Datum &d) {
     }
 }
 
+void validate_pb(const Datum &d) {
+    call_with_enough_stack([&] () {
+            validate_pb_datum(d);
+        }, MIN_VALIDATE_STACK_SPACE);
+}
+
 void validate_pb(const Datum::AssocPair &ap) {
     check_has(ap, has_key, "key");
     check_has(ap, has_val, "val");
@@ -151,7 +164,7 @@ void validate_var_term(const Term &t) {
     }
 }
 
-void validate_pb(const Term &t) {
+void validate_pb_term(const Term &t) {
     check_type(Term, t);
     if (t.type() == Term::DATUM) {
         check_has(t, has_datum, "datum");
@@ -168,6 +181,12 @@ void validate_pb(const Term &t) {
     for (int i = 0; i < t.optargs_size(); ++i) {
         validate_pb(t.optargs(i));
     }
+}
+
+void validate_pb(const Term &t) {
+    call_with_enough_stack([&] () {
+            validate_pb_term(t);
+        }, MIN_VALIDATE_STACK_SPACE);
 }
 
 void validate_pb(const Term::AssocPair &ap) {

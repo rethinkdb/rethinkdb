@@ -8,6 +8,11 @@
 #include "rapidjson/writer.h"
 #include "rdb_protocol/ql2.pb.h"
 #include "utils.hpp"
+#include "arch/runtime/coroutines.hpp"
+
+// The minimum amount of stack space we require to be available on a coroutine
+// before attempting to extract a value.
+const size_t MIN_EXTRACT_STACK_SPACE = 16 * KILOBYTE;
 
 using rapidjson::Value;
 using rapidjson::StringBuffer;
@@ -47,7 +52,9 @@ extract(const Value *, const Value &field, T *dest) {
 template<class T>
 void safe_extract(const Value *key, const Value &val, T *t) {
     if (t != nullptr) {
-        extract(key, val, t);
+        call_with_enough_stack([&] () {
+                extract<T>(key, val, t);
+            }, MIN_EXTRACT_STACK_SPACE);
     }
 }
 

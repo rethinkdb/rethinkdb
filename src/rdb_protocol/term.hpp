@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_TERM_HPP_
 #define RDB_PROTOCOL_TERM_HPP_
 
@@ -46,6 +46,10 @@ public:
 protected:
     explicit runtime_term_t(backtrace_id_t bt);
 private:
+    scoped_ptr_t<val_t> eval_on_current_stack(
+            scope_env_t *env,
+            eval_flags_t eval_flags) const;
+
     virtual scoped_ptr_t<val_t> term_eval(scope_env_t *env, eval_flags_t) const = 0;
 };
 

@@ -2,10 +2,12 @@
 #include "rdb_protocol/serialize_datum.hpp"
 
 #include <cmath>
+#include <functional>
 #include <limits>
 #include <string>
 #include <vector>
 
+#include "arch/runtime/coroutines.hpp"
 #include "containers/archive/buffer_stream.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "containers/archive/versioned.hpp"
@@ -17,6 +19,9 @@
 
 namespace ql {
 
+// The minimum amount of stack space we require to be available on a coroutine
+// before attempting to recurse into a datum (de-)serialization function
+const size_t MIN_DATUM_SERIALIZATION_STACK_SPACE = 16 * KILOBYTE;
 
 enum class datum_serialized_type_t {
     R_ARRAY = 1,
@@ -49,6 +54,20 @@ enum class datum_offset_size_t {
 // which in the worst-case could lead to quadratic serialization costs.
 // This is the data structure in which we store the sizes.
 struct size_tree_node_t {
+    size_tree_node_t() = default;
+    size_tree_node_t(const size_tree_node_t &) = default;
+    size_tree_node_t(size_tree_node_t &&) = default;
+    size_tree_node_t &operator=(const size_tree_node_t &) = default;
+    size_tree_node_t &operator=(size_tree_node_t &&) = default;
+    ~size_tree_node_t() {
+        // A stack overflow could occur while recursively destructing these.
+        // Stop that from happening.
+        if (!child_sizes.empty()) {
+            call_with_enough_stack([this]() {
+                child_sizes.clear();
+            }, MIN_DATUM_SERIALIZATION_STACK_SPACE);
+        }
+    }
     size_t size;
     std::vector<size_tree_node_t> child_sizes;
 };
@@ -312,7 +331,7 @@ serialization_result_t datum_array_serialize(
 
 // For legacy R_ARRAY datums. BUF_R_ARRAY datums are not deserialized through this.
 MUST_USE archive_result_t
-datum_deserialize(read_stream_t *s, std::vector<datum_t> *v) {
+datum_deserialize_array(read_stream_t *s, std::vector<datum_t> *v) {
     v->clear();
 
     uint64_t sz;
@@ -330,6 +349,10 @@ datum_deserialize(read_stream_t *s, std::vector<datum_t> *v) {
     }
 
     return archive_result_t::SUCCESS;
+}
+MUST_USE archive_result_t
+datum_deserialize(read_stream_t *s, std::vector<datum_t> *v) {
+    return datum_deserialize_array(s, v);
 }
 
 // Keep in sync with datum_object_serialize.
@@ -416,7 +439,7 @@ serialization_result_t datum_object_serialize(
 }
 
 // For legacy R_OBJECT datums. BUF_R_OBJECT datums are not deserialized through this.
-MUST_USE archive_result_t datum_deserialize(
+MUST_USE archive_result_t datum_deserialize_object(
         read_stream_t *s,
         std::vector<std::pair<datum_string_t, datum_t> > *m) {
     m->clear();
@@ -437,10 +460,15 @@ MUST_USE archive_result_t datum_deserialize(
         if (bad(res)) { return res; }
         res = datum_deserialize(s, &p.second);
         if (bad(res)) { return res; }
-        m->push_back(std::move(p));
+        m->emplace_back(std::move(p));
     }
 
     return archive_result_t::SUCCESS;
+}
+MUST_USE archive_result_t datum_deserialize(
+        read_stream_t *s,
+        std::vector<std::pair<datum_string_t, datum_t> > *m) {
+    return datum_deserialize_object(s, m);
 }
 
 
@@ -459,7 +487,11 @@ size_t datum_serialized_size(const datum_t &datum,
     switch (datum.get_type()) {
     case datum_t::MINVAL: break; // No data aside from the type
     case datum_t::R_ARRAY: {
-        sz += datum_array_serialized_size(datum, check_errors, child_sizes_out);
+        sz += call_with_enough_stack<size_t>([&] () {
+                return datum_array_serialized_size(datum,
+                                                   check_errors,
+                                                   child_sizes_out);
+            }, MIN_DATUM_SERIALIZATION_STACK_SPACE);
     } break;
     case datum_t::R_BINARY: {
         sz += datum_serialized_size(datum.as_binary());
@@ -478,7 +510,11 @@ size_t datum_serialized_size(const datum_t &datum,
         }
     } break;
     case datum_t::R_OBJECT: {
-        sz += datum_object_serialized_size(datum, check_errors, child_sizes_out);
+        sz += call_with_enough_stack<size_t>([&] () {
+                return datum_object_serialized_size(datum,
+                                                    check_errors,
+                                                    child_sizes_out);
+            }, MIN_DATUM_SERIALIZATION_STACK_SPACE);
     } break;
     case datum_t::R_STR: {
         sz += datum_serialized_size(datum.as_str());
@@ -511,7 +547,12 @@ serialization_result_t datum_serialize(
         if (datum.arr_size() > 100000) {
             res = res | serialization_result_t::ARRAY_TOO_BIG;
         }
-        res = res | datum_array_serialize(wm, datum, check_errors, precomputed_size);
+        res = res | call_with_enough_stack<serialization_result_t>([&] () {
+                return datum_array_serialize(wm,
+                                             datum,
+                                             check_errors,
+                                             precomputed_size);
+            }, MIN_DATUM_SERIALIZATION_STACK_SPACE);
     } break;
     case datum_t::R_BINARY: {
         datum_serialize(wm, datum_serialized_type_t::R_BINARY);
@@ -548,7 +589,12 @@ serialization_result_t datum_serialize(
     } break;
     case datum_t::R_OBJECT: {
         res = res | datum_serialize(wm, datum_serialized_type_t::BUF_R_OBJECT);
-        res = res | datum_object_serialize(wm, datum, check_errors, precomputed_size);
+        res = res | call_with_enough_stack<serialization_result_t>([&] () {
+                return datum_object_serialize(wm,
+                                              datum,
+                                              check_errors,
+                                              precomputed_size);
+            }, MIN_DATUM_SERIALIZATION_STACK_SPACE);
     } break;
     case datum_t::R_STR: {
         res = res | datum_serialize(wm, datum_serialized_type_t::R_STR);
@@ -604,7 +650,9 @@ archive_result_t datum_deserialize(read_stream_t *s, datum_t *datum) {
     } break;
     case datum_serialized_type_t::R_ARRAY: {
         std::vector<datum_t> value;
-        res = datum_deserialize(s, &value);
+        res = call_with_enough_stack<archive_result_t>([&] () {
+                return datum_deserialize_array(s, &value);
+            }, MIN_DATUM_SERIALIZATION_STACK_SPACE);
         if (bad(res)) {
             return res;
         }
@@ -679,7 +727,9 @@ archive_result_t datum_deserialize(read_stream_t *s, datum_t *datum) {
     } break;
     case datum_serialized_type_t::R_OBJECT: {
         std::vector<std::pair<datum_string_t, datum_t> > value;
-        res = datum_deserialize(s, &value);
+        res = call_with_enough_stack<archive_result_t>([&] () {
+                return datum_deserialize_object(s, &value);
+            }, MIN_DATUM_SERIALIZATION_STACK_SPACE);
         if (bad(res)) {
             return res;
         }

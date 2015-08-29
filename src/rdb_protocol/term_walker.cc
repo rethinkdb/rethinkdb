@@ -10,6 +10,10 @@
 
 namespace ql {
 
+// The minimum amount of stack space we require to be available on a coroutine
+// before attempting to walk into another term.
+const size_t MIN_WALK_STACK_SPACE = 16 * KILOBYTE;
+
 // We use this class to walk a term and do something to every node.
 class term_walker_t {
 public:
@@ -70,6 +74,13 @@ public:
     };
 
     void walk(Term *t, frame_t *this_frame) {
+        call_with_enough_stack([&] () {
+                return walk_stack_unchecked(t, this_frame);
+            }, MIN_WALK_STACK_SPACE);
+    }
+
+private:
+    void walk_stack_unchecked(Term *t, frame_t *this_frame) {
         guarantee(this_frame != nullptr);
         if (t->type() == Term::NOW && t->args_size() == 0) {
             // Construct curtime the first time we access it
@@ -121,7 +132,7 @@ public:
             walk(child, &child_frame);
         }
     }
-private:
+
     backtrace_id_t child_bt(const frame_t *this_frame, datum_t val) {
         if (bt_reg == nullptr) {
             return this_frame->bt;
