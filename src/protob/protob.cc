@@ -587,11 +587,11 @@ void query_server_t::connection_loop(tcp_conn_t *conn,
     while (!err) {
         ql::protob_t<Query> query(ql::make_counted_query());
         auto outer_acq = make_scoped<new_semaphore_acq_t>(&sem, 1);
+        wait_interruptible(outer_acq->acquisition_signal(), &interruptor);
         if (protocol_t::parse_query(conn, &interruptor, handler, &query)) {
             coro_t::spawn_now_dangerously([&]() {
                 // We grab these right away while they're still valid.
                 scoped_ptr_t<new_semaphore_acq_t> acq = std::move(outer_acq);
-                wait_interruptible(acq->acquisition_signal(), &interruptor);
                 ql::protob_t<Query> query_pb = std::move(query);
                 // Since we `spawn_now_dangerously` it's always safe to acquire this.
                 auto_drainer_t::lock_t coro_drainer_lock(&coro_drainer);
