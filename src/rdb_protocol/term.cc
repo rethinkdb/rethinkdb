@@ -67,6 +67,7 @@ counted_t<const term_t> compile_on_current_stack(
     case Term::GET_FIELD:          return make_get_field_term(env, t);
     case Term::OFFSETS_OF:         return make_offsets_of_term(env, t);
     case Term::KEYS:               return make_keys_term(env, t);
+    case Term::VALUES:             return make_values_term(env, t);
     case Term::OBJECT:             return make_object_term(env, t);
     case Term::HAS_FIELDS:         return make_has_fields_term(env, t);
     case Term::WITH_FIELDS:        return make_with_fields_term(env, t);

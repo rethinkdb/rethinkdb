@@ -134,3 +134,6 @@ tests:
     ## keys
     - cd: obj.keys()
       ot: (['a', 'b', 'c', 'd', 'e'])
+
+    - cd: obj.values()
+      ot: ([1, 2, 'str', null, {'f':'buzz'}])
