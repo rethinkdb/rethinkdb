@@ -3,13 +3,12 @@ package com.rethinkdb.ast;
 import com.rethinkdb.ReqlDriverError;
 import com.rethinkdb.ReqlError;
 import com.rethinkdb.model.Arguments;
-import com.rethinkdb.model.ReqlFunction;
 import com.rethinkdb.gen.ast.Datum;
 import com.rethinkdb.gen.ast.Func;
 import com.rethinkdb.gen.ast.MakeArray;
 import com.rethinkdb.gen.ast.MakeObj;
 import com.rethinkdb.gen.ast.Iso8601;
-import com.rethinkdb.model.ReqlFunction2;
+import com.rethinkdb.model.ReqlLambda;
 
 
 import java.lang.*;
@@ -57,11 +56,8 @@ public class Util {
             return MakeObj.fromMap(obj);
         }
 
-        if (val instanceof ReqlFunction) {
-            return new Func((ReqlFunction) val);
-        }
-        if (val instanceof ReqlFunction2) {
-            return new Func((ReqlFunction2) val);
+        if (val instanceof ReqlLambda) {
+            return Func.fromLambda((ReqlLambda) val);
         }
 
         if (val instanceof Date) {

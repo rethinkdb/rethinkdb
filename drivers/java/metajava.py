@@ -437,6 +437,7 @@ class generate_java_classes(object):
         self.term_info = java_term_info
         self.template_dir = template_dir
         self.gen_dir = package_dir+'/gen'
+        self.max_arity = self.get_max_arity()
         self.template_context = {
             'camel': camel,  # CamelCase function
             'dromedary': dromedary,  # dromeDary case function
@@ -445,17 +446,31 @@ class generate_java_classes(object):
         self.render_proto_enums()
         self.render_ast_subclasses()
         self.render_toplevel()
-        self.render_exceptions()
         self.render_function_interfaces()
+        self.render_exceptions()
 
     def render_toplevel(self):
-        print("WARNING: didn't render toplevel for real")
+        '''Specially renders the TopLevel class'''
+        self.render(
+            'TopLevel.java',
+            output_dir=self.gen_dir+'/model',
+            all_terms=self.term_info,
+        )
+
+    def render_function_interfaces(self):
+        '''Finds the maximum arity a function will be from
+        java_term_info.json, then creates an interface for each
+        arity'''
+        for arity in range(1, self.max_arity+1):
+            self.render(
+                'ReqlFunction.java',
+                output_dir=self.gen_dir+'/ast',
+                output_name='ReqlFunction{}.java'.format(arity),
+                arity=arity,
+            )
 
     def render_exceptions(self):
         print("WARNING: didn't render exceptions for real")
-
-    def render_function_interfaces(self):
-        print("WARNING: didn't render function interfaces. not really.")
 
     def render_ast_subclasses(self):
         self.render_ast_subclass(
@@ -471,7 +486,7 @@ class generate_java_classes(object):
     def render_ast_subclass(self, term_name, meta):
         output_name = meta['classname'] + '.java'
         template_name = self.get_template_name(
-            meta['classname'], directory='gen', default='AstSubclass.java')
+            meta['classname'], directory='ast', default='AstSubclass.java')
         self.render(
             template_name,
             output_dir=self.gen_dir+'/ast',
@@ -481,6 +496,7 @@ class generate_java_classes(object):
             superclass=meta['superclass'],
             meta=meta,
             all_terms=self.term_info,
+            max_arity=self.max_arity
         )
 
     def render_proto_enums(self):
@@ -561,6 +577,22 @@ class generate_java_classes(object):
         return (output_exists and
                 tpl_mtime < os.path.getmtime(output_path) and
                 MTIME <= os.path.getmtime(output_path))
+
+    def get_max_arity(self):
+        '''Determines the maximum reql lambda arity that shows up in any
+        signature'''
+        max_arity = 0
+        for info in self.term_info.values():
+            for sig in info['signatures']:
+                for arg in sig['args']:
+                    if arg['type'].startswith('ReqlFunction'):
+                        # Scrape out the arity from the type
+                        # name. This could have been inserted into
+                        # java_term_info.json, but it's a lot of
+                        # clutter for redundant information.
+                        arity = int(arg['type'][len('ReqlFunction'):])
+                        max_arity = max(max_arity, arity)
+        return max_arity
 
 
 def java_repr(obj):

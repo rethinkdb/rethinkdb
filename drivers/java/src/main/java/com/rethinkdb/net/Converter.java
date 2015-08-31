@@ -1,12 +1,12 @@
 package com.rethinkdb.net;
 
-import com.rethinkdb.ast.Query;
-import com.rethinkdb.model.GlobalOptions;
+
+import com.rethinkdb.model.OptArgs;
 
 import java.util.Map;
 
 public class Converter {
-    public static Object convertPseudo(Object value, GlobalOptions optargs) {
+    public static Object convertPseudo(Object value, OptArgs optargs) {
         throw new RuntimeException("convertPseudo not implemented");
     }
 }

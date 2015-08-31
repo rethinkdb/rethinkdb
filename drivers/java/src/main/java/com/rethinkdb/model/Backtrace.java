@@ -5,10 +5,22 @@ import org.json.simple.JSONArray;
 import java.util.Optional;
 
 public class Backtrace {
-    public static Optional<Backtrace> fromJSONArray(JSONArray object) {
-        if(object == null || object.size() == 0){
+
+    private JSONArray rawBacktrace;
+
+    private Backtrace(JSONArray rawBacktrace){
+        this.rawBacktrace = rawBacktrace;
+    }
+
+    public static Optional<Backtrace> fromJSONArray(JSONArray rawBacktrace) {
+        if(rawBacktrace == null || rawBacktrace.size() == 0){
             return Optional.empty();
+        }else{
+            return Optional.of(new Backtrace(rawBacktrace));
         }
-        throw new RuntimeException("fromJSONArray not implemented");
+    }
+
+    public JSONArray getRawBacktrace(){
+        return rawBacktrace;
     }
 }

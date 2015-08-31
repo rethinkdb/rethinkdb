@@ -2,7 +2,7 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
-import com.rethinkdb.gen.model.TopLevel;
+import com.rethinkdb.gen.exc.ReqlDriverError;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
@@ -31,7 +31,7 @@ public class ${classname} extends ${superclass} {
 <%block name="special_methods" />\
 % for term, info in all_terms.iteritems():
   % if classname in info.get('include_in'):
-    % for signature in info.get('signatures', []):
+    % for signature in info['signatures']:
       % if signature['first_arg'] == classname:
     public ${info['classname']} ${info['methodname']}(${
             ', '.join("%s %s" % (arg['type'], arg['var'])
