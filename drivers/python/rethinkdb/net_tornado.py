@@ -11,10 +11,10 @@ from tornado.ioloop import IOLoop
 from tornado.concurrent import Future
 
 from . import ql2_pb2 as p
-from .net import decodeUTF, Query, Response, Cursor, maybe_profile, convert_pseudo
+from .ast import ReQLDecoder
+from .net import decodeUTF, Query, Response, Cursor, maybe_profile
 from .net import Connection as ConnectionBase
 from .errors import *
-from .ast import RqlQuery, RqlTopLevelQuery, DB
 
 __all__ = ['Connection']
 
@@ -74,7 +74,7 @@ class TornadoCursor(Cursor):
             if self.error is not None:
                 raise self.error
             yield with_absolute_timeout(deadline, self.new_response)
-        raise gen.Return(convert_pseudo(self.items.pop(0), self.query))
+        raise gen.Return(self.items.pop(0))
 
 
 class ConnectionInstance(object):
@@ -196,18 +196,20 @@ class ConnectionInstance(object):
                 buf = yield self._stream.read_bytes(12)
                 (token, length,) = struct.unpack("<qL", buf)
                 buf = yield self._stream.read_bytes(length)
-                res = Response(token, buf)
 
                 cursor = self._cursor_cache.get(token)
                 if cursor is not None:
+                    res = Response(token, buf,
+                                   self._parent._get_json_decoder(cursor.query.global_optargs))
                     cursor._extend(res)
                 elif token in self._user_queries:
                     # Do not pop the query from the dict until later, so
                     # we don't lose track of it in case of an exception
                     query, future = self._user_queries[token]
+                    res = Response(token, buf,
+                                   self._parent._get_json_decoder(query.global_optargs))
                     if res.type == pResponse.SUCCESS_ATOM:
-                        value = convert_pseudo(res.data[0], query)
-                        future.set_result(maybe_profile(value, res))
+                        future.set_result(maybe_profile(res.data[0], res))
                     elif res.type in (pResponse.SUCCESS_SEQUENCE,
                                       pResponse.SUCCESS_PARTIAL):
                         cursor = TornadoCursor(self, query)

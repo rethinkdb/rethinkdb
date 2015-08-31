@@ -6,7 +6,8 @@ import socket
 import struct
 
 from . import ql2_pb2 as p
-from .net import decodeUTF, Query, Response, Cursor, maybe_profile, convert_pseudo
+from .ast import ReQLDecoder
+from .net import decodeUTF, Query, Response, Cursor, maybe_profile
 from .net import Connection as ConnectionBase
 from .errors import *
 
@@ -104,7 +105,7 @@ class AsyncioCursor(Cursor):
                 raise self.error
             with translate_timeout_errors():
                 yield from waiter(asyncio.shield(self.new_response))
-        return convert_pseudo(self.items.pop(0), self.query)
+        return self.items.pop(0)
 
     def _maybe_fetch_batch(self):
         if self.error is None and \
@@ -217,18 +218,20 @@ class ConnectionInstance(object):
                 buf = yield from self._streamreader.readexactly(12)
                 (token, length,) = struct.unpack("<qL", buf)
                 buf = yield from self._streamreader.readexactly(length)
-                res = Response(token, buf)
 
                 cursor = self._cursor_cache.get(token)
                 if cursor is not None:
+                    res = Response(token, buf,
+                                   self._parent._get_json_decoder(cursor.query.global_optargs))
                     cursor._extend(res)
                 elif token in self._user_queries:
                     # Do not pop the query from the dict until later, so
                     # we don't lose track of it in case of an exception
                     query, future = self._user_queries[token]
+                    res = Response(token, buf,
+                                   self._parent._get_json_decoder(query.global_optargs))
                     if res.type == pResponse.SUCCESS_ATOM:
-                        value = convert_pseudo(res.data[0], query)
-                        future.set_result(maybe_profile(value, res))
+                        future.set_result(maybe_profile(res.data[0], res))
                     elif res.type in (pResponse.SUCCESS_SEQUENCE,
                                       pResponse.SUCCESS_PARTIAL):
                         cursor = AsyncioCursor(self, query)
