@@ -577,7 +577,10 @@ void unshard_stamps(const std::vector<changefeed_stamp_response_t *> &resps,
             // should ever happen and it isn't correct for
             // `include_initial_vals` changefeeds.
             auto pair = out->stamps->insert(std::make_pair(stamp.first, stamp.second));
-            guarantee(pair.second);
+            if (!pair.second) {
+                out->stamps = boost::none;
+                return;
+            }
         }
     }
 }
