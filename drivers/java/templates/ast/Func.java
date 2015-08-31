@@ -32,7 +32,7 @@ import java.util.concurrent.atomic.AtomicInteger;
             Arguments varIds = Arguments.make(
                 ${", ".join("var%s"%(j,) for j in range(1, j+1))});
             Object appliedFunction = func${i}.apply(
-                ${", ".join("new Var(var%s)"%(j,) for m in range(1, j+1))}
+                ${", ".join("new Var(var%s)"%(j,) for j in range(1, j+1))}
             );
             return new Func(Arguments.make(
                   new MakeArray(varIds),

@@ -469,8 +469,24 @@ class generate_java_classes(object):
                 arity=arity,
             )
 
-    def render_exceptions(self):
-        print("WARNING: didn't render exceptions for real")
+    def render_exceptions(
+            self, hierarchy=None, superclass='runtime_exception'):
+        '''Renders the exception hierarchy'''
+        if hierarchy is None:
+            hierarchy = self.global_info['exception_hierarchy']
+        for classname, subclasses in hierarchy.items():
+            self.render_exception(classname, superclass)
+            self.render_exceptions(subclasses, superclass=classname)
+
+    def render_exception(self, classname, superclass):
+        '''Renders a single exception class'''
+        self.render(
+            'Exception.java',
+            output_dir=self.gen_dir+'/exc',
+            output_name=camel(classname)+'.java',
+            classname=classname,
+            superclass=superclass,
+        )
 
     def render_ast_subclasses(self):
         self.render_ast_subclass(
@@ -627,25 +643,6 @@ def sub_to_super_mapping(type_hierarchy, superclass='ReqlAst'):
         mapping[ty[2:]] = superclass
         mapping.update(sub_to_super_mapping(subclasses, ty[2:]))
     return mapping
-
-
-def render_exceptions(hierarchy, superclass='runtime_exception'):
-    '''Renders the exception hierarchy'''
-    for classname, subclasses in hierarchy.items():
-        render_exception(classname, superclass)
-        render_exceptions(subclasses, superclass=classname)
-
-
-def render_exception(classname, superclass):
-    '''Renders a single exception class'''
-    render(
-        'Exception.java',
-        output_dir=PACKAGE_DIR,
-        output_name=camel(classname)+'.java',
-        classname=classname,
-        superclass=superclass,
-        camel=camel,
-    )
 
 
 if __name__ == '__main__':

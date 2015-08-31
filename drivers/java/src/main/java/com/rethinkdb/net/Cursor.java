@@ -1,8 +1,8 @@
 package com.rethinkdb.net;
 
-import com.rethinkdb.ReqlRuntimeError;
 import com.rethinkdb.ast.Query;
 import com.rethinkdb.gen.proto.ResponseType;
+import com.rethinkdb.gen.exc.ReqlRuntimeError;
 
 import java.util.*;
 

@@ -1,6 +1,6 @@
 package com.rethinkdb.response;
 
-import com.rethinkdb.ReqlError;
+import com.rethinkdb.gen.exc.ReqlError;
 
 import java.util.HashMap;
 import java.util.List;

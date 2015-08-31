@@ -5,6 +5,7 @@ import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.gen.proto.ErrorType;
 import com.rethinkdb.gen.proto.ResponseType;
 import com.rethinkdb.model.Backtrace;
+import com.rethinkdb.gen.exc.*;
 
 import java.util.Optional;
 import java.util.function.Function;

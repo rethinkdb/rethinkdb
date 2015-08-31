@@ -1,8 +1,6 @@
 package com.rethinkdb.net;
 
-import com.rethinkdb.ReqlDriverError;
-import com.rethinkdb.ReqlError;
-import com.rethinkdb.ReqlRuntimeError;
+import com.rethinkdb.gen.exc.ReqlDriverError;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -30,7 +28,7 @@ public class SocketWrapper {
         try {
             this.socketChannel = SocketChannel.open();
         } catch (IOException e) {
-            throw new ReqlRuntimeError(e);
+            throw new ReqlDriverError(e);
         }
     }
 
@@ -51,7 +49,7 @@ public class SocketWrapper {
         } catch (SocketTimeoutException ste) {
             throw new TimeoutException("Connect timed out.");
         } catch (IOException e) {
-            throw new ReqlRuntimeError(e);
+            throw new ReqlDriverError(e);
         }
     }
 
@@ -62,7 +60,7 @@ public class SocketWrapper {
                 socketChannel.write(buffer);
             }
         } catch (IOException e) {
-            throw new ReqlError(e);
+            throw new ReqlDriverError(e);
         }
     }
 
@@ -108,13 +106,13 @@ public class SocketWrapper {
             }
 
             if (totalRead != i && strict) {
-                throw new ReqlError("Error receiving data, expected " + i + " bytes but received " + totalRead);
+                throw new ReqlDriverError("Error receiving data, expected " + i + " bytes but received " + totalRead);
             }
 
             buffer.flip();
             return buffer;
         } catch (IOException e) {
-            throw new ReqlError(e);
+            throw new ReqlDriverError(e);
         }
     }
 
@@ -177,7 +175,7 @@ public class SocketWrapper {
         try {
             socketChannel.close();
         } catch (IOException e) {
-            throw new ReqlError(e);
+            throw new ReqlDriverError(e);
         }
     }
 }

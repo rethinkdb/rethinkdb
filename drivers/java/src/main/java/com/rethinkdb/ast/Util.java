@@ -1,7 +1,6 @@
 package com.rethinkdb.ast;
 
-import com.rethinkdb.ReqlDriverError;
-import com.rethinkdb.ReqlError;
+import com.rethinkdb.gen.exc.ReqlDriverError;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.gen.ast.Datum;
 import com.rethinkdb.gen.ast.Func;
@@ -48,7 +47,7 @@ public class Util {
             Map<String, ReqlAst> obj = new HashMap<>();
             for (Map.Entry<Object, Object> entry : (Set<Map.Entry>) ((Map) val).entrySet()) {
                 if (!(entry.getKey() instanceof String)) {
-                    throw new ReqlError("Object key can only be strings");
+                    throw new ReqlDriverError("Object key can only be strings");
                 }
 
                 obj.put((String) entry.getKey(), toReqlAst(entry.getValue()));

@@ -1,6 +1,6 @@
 package com.rethinkdb.net;
 
-import com.rethinkdb.ReqlDriverError;
+import com.rethinkdb.gen.exc.ReqlDriverError;
 import com.rethinkdb.ast.Query;
 import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.gen.ast.Datum;
@@ -168,8 +168,13 @@ public class Connection<C extends ConnectionInstance> {
             globalOpts.with("db", dbname.get());
         }
         Query q = Query.start(newToken(), term, globalOpts);
-        Boolean noreply = (Boolean) globalOpts.getOrDefault(
-                "noreply", new Datum(false)).datum;
+        Boolean noreply;
+        if(globalOpts.containsKey("noreply")) {
+            Datum d = (Datum) globalOpts.get("noreply");
+            noreply = (Boolean) d.datum;
+        }else{
+            noreply = false;
+        }
         return runQuery(q, noreply);
     }
 

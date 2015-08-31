@@ -46,7 +46,7 @@ public class Func extends ReqlExpr {
             Arguments varIds = Arguments.make(
                 var1, var2);
             Object appliedFunction = func2.apply(
-                new Var(var2), new Var(var2)
+                new Var(var1), new Var(var2)
             );
             return new Func(Arguments.make(
                   new MakeArray(varIds),
@@ -60,7 +60,7 @@ public class Func extends ReqlExpr {
             Arguments varIds = Arguments.make(
                 var1, var2, var3);
             Object appliedFunction = func3.apply(
-                new Var(var3), new Var(var3), new Var(var3)
+                new Var(var1), new Var(var2), new Var(var3)
             );
             return new Func(Arguments.make(
                   new MakeArray(varIds),
@@ -75,7 +75,7 @@ public class Func extends ReqlExpr {
             Arguments varIds = Arguments.make(
                 var1, var2, var3, var4);
             Object appliedFunction = func4.apply(
-                new Var(var4), new Var(var4), new Var(var4), new Var(var4)
+                new Var(var1), new Var(var2), new Var(var3), new Var(var4)
             );
             return new Func(Arguments.make(
                   new MakeArray(varIds),

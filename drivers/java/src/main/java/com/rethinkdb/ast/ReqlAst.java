@@ -1,10 +1,10 @@
 package com.rethinkdb.ast;
 
-import com.rethinkdb.ReqlDriverError;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.net.Connection;
 import com.rethinkdb.gen.proto.TermType;
+import com.rethinkdb.gen.exc.*;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;

@@ -1,4 +1,4 @@
-package com.rethinkdb;
+package com.rethinkdb.gen.exc;
 
 import java.util.Optional;
 import com.rethinkdb.ast.ReqlAst;

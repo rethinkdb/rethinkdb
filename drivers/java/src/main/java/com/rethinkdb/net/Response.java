@@ -1,7 +1,7 @@
 package com.rethinkdb.net;
 
 import com.rethinkdb.*;
-import com.rethinkdb.ReqlError;
+import com.rethinkdb.gen.exc.ReqlError;
 import com.rethinkdb.gen.proto.ErrorType;
 import com.rethinkdb.gen.proto.ResponseType;
 import com.rethinkdb.gen.proto.ResponseNote;
