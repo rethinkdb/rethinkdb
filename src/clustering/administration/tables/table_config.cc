@@ -659,8 +659,12 @@ bool table_config_artificial_table_backend_t::write_row(
 
             if (new_value_inout->has()) {
                 table_config_and_shards_t old_config;
-                table_meta_client->get_config(
-                    table_id, &interruptor_on_home, &old_config);
+                try {
+                    table_meta_client->get_config(
+                        table_id, &interruptor_on_home, &old_config);
+                } CATCH_OP_ERRORS(old_db_name, old_basic_config.name, error_out,
+                    "Failed to retrieve the table's configuration, it was not changed.",
+                    "Failed to retrieve the table's configuration, it was not changed.")
 
                 table_config_t new_config;
                 server_name_map_t new_server_names;
