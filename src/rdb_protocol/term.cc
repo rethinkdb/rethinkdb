@@ -233,6 +233,7 @@ void run(query_id_t &&query_id,
          protob_t<Query> q,
          Response *res,
          query_cache_t *query_cache,
+         new_semaphore_acq_t *throttler,
          signal_t *interruptor) {
     try {
         validate_pb(*q);
@@ -268,13 +269,13 @@ void run(query_id_t &&query_id,
             maybe_release_query_id(std::move(query_id), q);
             scoped_ptr_t<query_cache_t::ref_t> query_ref =
                 query_cache->create(token, q, use_json, interruptor);
-            query_ref->fill_response(res);
+            query_ref->fill_response(res, throttler);
         } break;
         case Query_QueryType_CONTINUE: {
             maybe_release_query_id(std::move(query_id), q);
             scoped_ptr_t<query_cache_t::ref_t> query_ref =
                 query_cache->get(token, use_json, interruptor);
-            query_ref->fill_response(res);
+            query_ref->fill_response(res, throttler);
         } break;
         case Query_QueryType_STOP: {
             query_cache->terminate_query(token);

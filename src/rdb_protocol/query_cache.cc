@@ -222,7 +222,8 @@ query_cache_t::ref_t::~ref_t() {
     }
 }
 
-void query_cache_t::ref_t::fill_response(Response *res) {
+void query_cache_t::ref_t::fill_response(
+    Response *res, new_semaphore_acq_t *throttler) {
     query_cache->assert_thread();
     if (entry->state != entry_t::state_t::START &&
         entry->state != entry_t::state_t::STREAM) {
@@ -249,7 +250,7 @@ void query_cache_t::ref_t::fill_response(Response *res) {
         }
 
         if (entry->state == entry_t::state_t::STREAM) {
-            serve(&env, res);
+            serve(&env, res, throttler);
         }
 
         if (trace.has()) {
@@ -320,8 +321,15 @@ void query_cache_t::ref_t::run(env_t *env, Response *res) {
     }
 }
 
-void query_cache_t::ref_t::serve(env_t *env, Response *res) {
+void query_cache_t::ref_t::serve(
+    env_t *env, Response *res, new_semaphore_acq_t *throttler) {
     guarantee(entry->stream.has());
+
+    feed_type_t cfeed_type = entry->stream->cfeed_type();
+    if (cfeed_type != feed_type_t::not_feed) {
+        // We don't throttle changefeed queries because they can block forever.
+        throttler->reset();
+    }
 
     batch_type_t batch_type = entry->has_sent_batch
                                   ? batch_type_t::NORMAL
@@ -343,7 +351,7 @@ void query_cache_t::ref_t::serve(env_t *env, Response *res) {
         res->set_type(Response::SUCCESS_PARTIAL);
     }
 
-    switch (entry->stream->cfeed_type()) {
+    switch (cfeed_type) {
     case feed_type_t::not_feed:
         // If we don't have a feed, then a 0-size response means there's no more
         // data.  The reason this `if` statement is only in this branch of the

@@ -34,6 +34,7 @@ public:
                    const ql::protob_t<Query> &query,
                    Response *response_out,
                    ql::query_cache_t *query_cache,
+                   new_semaphore_acq_t *throttler,
                    signal_t *interruptor);
 public:
     static const uint32_t default_http_timeout_sec = 300;

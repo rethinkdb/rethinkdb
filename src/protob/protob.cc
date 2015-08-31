@@ -475,8 +475,8 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
             case VersionDummy::JSON:
             case VersionDummy::PROTOBUF: break;
             default: {
-                throw protob_server_exc_t(strprintf("Unrecognized protocol specified: '%d'",
-                                                    wire_protocol));
+                throw protob_server_exc_t(
+                    strprintf("Unrecognized protocol specified: '%d'", wire_protocol));
             }
         }
 
@@ -582,90 +582,47 @@ void query_server_t::connection_loop(tcp_conn_t *conn,
     wait_any_t interruptor(drain_signal, &abort);
 #endif  // __linux
 
-    // query_info_t and the nascent_query_list_t exist to guarantee that ql::query_id_ts
-    // (which are RAII) are allocated and destroyed properly.  When we read a query off
-    // of the wire, it needs to be allocated a query_id_t immediately, because we then
-    // put it into the coro pool.  Once it is in the coro pool, all ordering guarantees
-    // are lost, so it must be done as soon as we receive the query.
-    //
-    // The nascent_query_list_t holds ownership of the query_info_t until it is
-    // successfully handed over to the coroutine that will run the query.  This allows us
-    // to guarantee proper destruction of query_id_ts in exceptional interruption or
-    // error cases.
-    //
-    // A ql::query_id_t is used to provide an absolute ordering of queries, and is
-    // necessary for proper NOREPLY_WAIT semantics.
-    typedef std::list<std::pair<ql::query_id_t, ql::protob_t<Query> > >
-        nascent_query_list_t;
-    nascent_query_list_t query_list;
+    new_semaphore_t sem(max_concurrent_queries);
+    auto_drainer_t coro_drainer;
+    while (!err) {
+        ql::protob_t<Query> query(ql::make_counted_query());
+        auto outer_acq = make_scoped<new_semaphore_acq_t>(&sem, 1);
+        wait_interruptible(outer_acq->acquisition_signal(), &interruptor);
+        if (protocol_t::parse_query(conn, &interruptor, handler, &query)) {
+            coro_t::spawn_now_dangerously([&]() {
+                // We grab these right away while they're still valid.
+                scoped_ptr_t<new_semaphore_acq_t> acq = std::move(outer_acq);
+                ql::protob_t<Query> query_pb = std::move(query);
+                // Since we `spawn_now_dangerously` it's always safe to acquire this.
+                auto_drainer_t::lock_t coro_drainer_lock(&coro_drainer);
+                ql::query_id_t query_id(query_cache);
+                wait_any_t cb_interruptor(coro_drainer_lock.get_drain_signal(),
+                                          &interruptor);
+                Response response;
+                bool replied = false;
 
-    std_function_callback_t<nascent_query_list_t::iterator> callback(
-        [&](nascent_query_list_t::iterator query_it,
-            signal_t *pool_interruptor) {
-
-            ql::query_id_t query_id(std::move(query_it->first));
-            ql::protob_t<Query> query_pb(std::move(query_it->second));
-            query_list.erase(query_it);
-            wait_any_t cb_interruptor(pool_interruptor, &interruptor);
-            Response response;
-            bool replied = false;
-
-            save_exception(&err, &err_str, &abort, [&]() {
+                save_exception(&err, &err_str, &abort, [&]() {
                     handler->run_query(std::move(query_id), query_pb, &response,
-                                       query_cache, &cb_interruptor);
+                                       query_cache, acq.get(), &cb_interruptor);
                     if (!ql::is_noreply(query_pb)) {
                         response.set_token(query_pb->token());
                         new_mutex_acq_t send_lock(&send_mutex, &cb_interruptor);
-                        protocol_t::send_response(response, handler,
-                                                  conn, &cb_interruptor);
+                        protocol_t::send_response(
+                            response, handler, conn, &cb_interruptor);
                         replied = true;
-                    }
+                        }
                 });
-
-            if (!replied && !ql::is_noreply(query_pb)) {
                 save_exception(&err, &err_str, &abort, [&]() {
+                    if (!replied && !ql::is_noreply(query_pb)) {
                         make_error_response(drain_signal->is_pulsed(), *conn,
                                             err_str, &response);
                         response.set_token(query_pb->token());
                         new_mutex_acq_t send_lock(&send_mutex, drain_signal);
                         protocol_t::send_response(response, handler, conn, drain_signal);
-                    });
-            }
-        });
-
-    {
-        // Pick a small limit so queries back up on the TCP connection.
-        limited_fifo_queue_t<nascent_query_list_t::iterator> coro_queue(4);
-        coro_pool_t<nascent_query_list_t::iterator> coro_pool(max_concurrent_queries,
-                                                              &coro_queue,
-                                                              &callback);
-
-        while (!err) {
-            ql::protob_t<Query> query(ql::make_counted_query());
-            save_exception(&err, &err_str, &abort, [&]() {
-                    if (protocol_t::parse_query(conn, &interruptor, handler, &query)) {
-                        query_list.push_front(std::make_pair(ql::query_id_t(query_cache),
-                                                             std::move(query)));
-                        coro_queue.push(query_list.begin());
                     }
                 });
-        }
-
-        // Stop processing queries here, so we don't get into race conditions
-        // with the loop over `query_list` below.
-    }
-
-    // Respond to any queries still in the run queue
-    for (auto const &pair : query_list) {
-        if (!ql::is_noreply(pair.second)) {
-            Response response;
-            save_exception(&err, &err_str, &abort, [&]() {
-                    make_error_response(drain_signal->is_pulsed(), *conn,
-                                        err_str, &response);
-                    response.set_token(pair.second->token());
-                    new_mutex_acq_t send_lock(&send_mutex, drain_signal);
-                    protocol_t::send_response(response, handler, conn, drain_signal);
-                });
+            });
+            guarantee(!outer_acq.has());
         }
     }
 
@@ -756,8 +713,14 @@ void query_server_t::handle(const http_req_t &req,
             ql::query_id_t query_id(conn->get_query_cache());
             try {
                 ticks_t start = get_ticks();
-                handler->run_query(std::move(query_id), query, &response,
-                                   conn->get_query_cache(), &true_interruptor);
+                // We don't throttle HTTP queries.
+                new_semaphore_acq_t dummy_throttler;
+                handler->run_query(std::move(query_id),
+                                   query,
+                                   &response,
+                                   conn->get_query_cache(),
+                                   &dummy_throttler,
+                                   &true_interruptor);
                 ticks_t ticks = get_ticks() - start;
 
                 if (!response.has_profile()) {

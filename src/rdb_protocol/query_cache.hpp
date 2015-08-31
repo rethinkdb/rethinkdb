@@ -60,7 +60,7 @@ public:
     class ref_t {
     public:
         ~ref_t();
-        void fill_response(Response *res);
+        void fill_response(Response *res, new_semaphore_acq_t *throttler);
     private:
         friend class query_cache_t;
         ref_t(query_cache_t *_query_cache,
@@ -70,7 +70,8 @@ public:
               signal_t *interruptor);
 
         void run(env_t *env, Response *res); // Run a new query
-        void serve(env_t *env, Response *res); // Serve a batch from a stream
+        // Serve a batch from a stream
+        void serve(env_t *env, Response *res, new_semaphore_acq_t *throttler);
 
         query_cache_t::entry_t *const entry;
         const int64_t token;

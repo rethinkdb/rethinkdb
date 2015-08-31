@@ -259,6 +259,7 @@ public:
                    const ql::protob_t<Query> &query,
                    Response *res,
                    UNUSED ql::query_cache_t *query_cache,
+                   UNUSED new_semaphore_acq_t *throttler,
                    signal_t *interruptor) {
         assert_thread();
 
