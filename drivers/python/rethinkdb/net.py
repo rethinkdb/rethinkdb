@@ -24,8 +24,7 @@ pResponse = p.Response.ResponseType
 pQuery = p.Query.QueryType
 
 from .errors import *
-from .ast import RqlQuery, RqlTopLevelQuery, DB, Repl
-from .ast import recursively_convert_pseudotypes
+from .ast import RqlQuery, RqlTopLevelQuery, DB, Repl, ReQLDecoder
 
 try:
     from ssl import match_hostname, CertificateError
@@ -52,9 +51,6 @@ def decodeUTF(inputPipe):
             return inputPipe.decode('utf-8')
         except UnicodeError:
             return repr(inputPipe)
-
-def convert_pseudo(value, query):
-    return recursively_convert_pseudotypes(value, query.global_optargs)
 
 def maybe_profile(value, res):
     if res.profile is not None:
@@ -83,13 +79,13 @@ class Query(object):
 
 
 class Response(object):
-    def __init__(self, token, json_str):
+    def __init__(self, token, json_str, reql_decoder=ReQLDecoder()):
         try:
             json_str = json_str.decode('utf-8')
         except AttributeError:
             pass               # Python3 str objects are already utf-8
         self.token = token
-        full_response = json.loads(json_str)
+        full_response = reql_decoder.decode(json_str)
         self.type = full_response["t"]
         self.data = full_response["r"]
         self.backtrace = full_response.get("b", None)
@@ -242,8 +238,8 @@ class DefaultCursor(Cursor):
             self._maybe_fetch_batch()
             if self.error is not None:
                 raise self.error
-            self.conn._read_response(self.query.token, deadline)
-        return convert_pseudo(self.items.pop(0), self.query)
+            self.conn._read_response(self.query, deadline)
+        return self.items.pop(0)
 
 
 class SocketWrapper(object):
@@ -435,10 +431,10 @@ class ConnectionInstance(object):
             return None
 
         # Get response
-        res = self._read_response(query.token)
+        res = self._read_response(query)
 
         if res.type == pResponse.SUCCESS_ATOM:
-            return maybe_profile(convert_pseudo(res.data[0], query), res)
+            return maybe_profile(res.data[0], res)
         elif res.type in (pResponse.SUCCESS_PARTIAL,
                           pResponse.SUCCESS_SEQUENCE):
             cursor = DefaultCursor(self, query)
@@ -449,7 +445,8 @@ class ConnectionInstance(object):
         else:
             raise res.make_error(query)
 
-    def _read_response(self, token, deadline=None):
+    def _read_response(self, query, deadline=None):
+        token = query.token
         # We may get an async continue result, in which case we save
         # it and read the next response
         while True:
@@ -470,16 +467,22 @@ class ConnectionInstance(object):
                 self._parent.reconnect(noreply_wait=False)
                 raise ex
 
-            # Construct response
-            res = Response(res_token, res_buf)
+            res = None
 
-            cursor = self._cursor_cache.get(res.token)
+            cursor = self._cursor_cache.get(res_token)
             if cursor is not None:
+                # Construct response
+                res = Response(
+                    res_token, res_buf,
+                    self._parent._get_json_decoder(cursor.query.global_optargs))
                 self._handle_cursor_response(cursor, res)
-
-            if res.token == token:
-                return res
-            elif not self._closing and cursor is None:
+                if res_token == token:
+                    return res
+            elif res_token == token:
+                return Response(
+                    res_token, res_buf,
+                    self._parent._get_json_decoder(query.global_optargs))
+            elif not self._closing:
                 # This response is corrupted or not intended for us
                 self.close(False, None)
                 raise ReqlDriverError("Unexpected response received.")
@@ -583,6 +586,9 @@ class Connection(object):
         self.check_open()
         q = Query(pQuery.STOP, cursor.query.token, None, None)
         return self._instance.run_query(q, True)
+
+    def _get_json_decoder(self, format_opts):
+        return ReQLDecoder(format_opts)
 
 class DefaultConnection(Connection):
     def __init__(self, *args, **kwargs):
