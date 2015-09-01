@@ -43,10 +43,9 @@ class Response {
                 .map(Long::intValue)
                 .map(ResponseNote::fromValue)
                 .collect(Collectors.toCollection(ArrayList::new));
-        ErrorType et = (ErrorType) jsonResp.getOrDefault("e", null);
         Builder res = new Builder(token, responseType);
         if(jsonResp.containsKey("e")){
-            res.setErrorType((int) jsonResp.get("e"));
+            res.setErrorType(((Long)jsonResp.get("e")).intValue());
         }
         return res.setProfile((JSONArray) jsonResp.getOrDefault("p", null))
                 .setBacktrace((JSONArray) jsonResp.getOrDefault("b", null))

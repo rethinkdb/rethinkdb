@@ -1,5 +1,6 @@
 package com.rethinkdb;
 
+import com.rethinkdb.gen.ast.ReqlExpr;
 import com.rethinkdb.net.Connection;
 import com.rethinkdb.net.Cursor;
 import junit.framework.TestCase;
@@ -26,8 +27,11 @@ public class RethinkDBTest extends TestCase {
                 .hostname("newton")
                 .port(31157)
                 .connect();
-        Optional<Object> res = r.table("foo")
-                .map(m -> m.bracket("id")).run(conn);
+        Optional<Object> res = r.expr(3).run(conn);
         assert(res.isPresent());
+        res = r.range(3, 9).map(r.range(2, 8), r.range(1,7),
+                (x, y, z) -> x.mul(y, z)).run(conn);
+        assert(res.isPresent());
+        res = r.do_(1,3, (x, y)-> x.add(y)).run(conn);
     }
 }

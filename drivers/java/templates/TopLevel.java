@@ -9,8 +9,8 @@ import com.rethinkdb.ast.Util;
 
 public class TopLevel {
 
-    public ReqlAst expr(Object value){
-        return Util.toReqlAst(value);
+    public ReqlExpr expr(Object value){
+        return Util.toReqlExpr(value);
     }
 
 %for term in all_terms.values():

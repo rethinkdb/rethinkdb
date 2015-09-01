@@ -1,13 +1,9 @@
 package com.rethinkdb.ast;
 
+import com.rethinkdb.gen.ast.*;
 import com.rethinkdb.gen.exc.ReqlDriverError;
 import com.rethinkdb.gen.proto.TermType;
 import com.rethinkdb.model.Arguments;
-import com.rethinkdb.gen.ast.Datum;
-import com.rethinkdb.gen.ast.Func;
-import com.rethinkdb.gen.ast.MakeArray;
-import com.rethinkdb.gen.ast.MakeObj;
-import com.rethinkdb.gen.ast.Iso8601;
 import com.rethinkdb.model.ReqlLambda;
 
 
@@ -17,6 +13,8 @@ import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.Date;
+import java.util.Map;
 
 
 public class Util {
@@ -27,11 +25,21 @@ public class Util {
      * @param val val
      * @return ReqlAst
      */
-    public static ReqlAst toReqlAst(java.lang.Object val) {
+    public static ReqlAst toReqlAst(Object val) {
         return toReqlAst(val, 1000);
     }
 
-    private static ReqlAst toReqlAst(java.lang.Object val, int remainingDepth) {
+    public static ReqlExpr toReqlExpr(Object val){
+        ReqlAst converted = toReqlAst(val);
+        if(converted instanceof ReqlExpr){
+            System.out.println("Got a " + converted);
+            return (ReqlExpr) converted;
+        }else{
+            throw new ReqlDriverError("Cannot convert %s to ReqlExpr", val);
+        }
+    }
+
+    private static ReqlAst toReqlAst(Object val, int remainingDepth) {
         if (val instanceof ReqlAst) {
             return (ReqlAst) val;
         }
