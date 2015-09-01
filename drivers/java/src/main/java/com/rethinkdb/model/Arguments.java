@@ -36,7 +36,7 @@ public class Arguments extends ArrayList<ReqlAst> {
     }
 
     public void coerceAndAddAll(Object[] args) {
-        addAll(Collections.singletonList(args).stream()
+        addAll(Arrays.asList(args).stream()
                 .map(Util::toReqlAst)
                 .collect(Collectors.toList()));
     }

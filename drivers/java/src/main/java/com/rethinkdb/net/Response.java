@@ -36,12 +36,13 @@ class Response {
         ResponseType responseType = ResponseType.fromValue(
                 ((Long) jsonResp.get("t")).intValue()
         );
-        ArrayList<Integer> responseNoteVals = (ArrayList<Integer>) jsonResp
+        ArrayList<Long> responseNoteVals = (ArrayList<Long>) jsonResp
             .getOrDefault("n", new ArrayList());
         ArrayList<ResponseNote> responseNotes = responseNoteVals
             .stream()
-            .map(ResponseNote::fromValue)
-            .collect(Collectors.toCollection(ArrayList::new));
+                .map(Long::intValue)
+                .map(ResponseNote::fromValue)
+                .collect(Collectors.toCollection(ArrayList::new));
         ErrorType et = (ErrorType) jsonResp.getOrDefault("e", null);
         Builder res = new Builder(token, responseType);
         if(jsonResp.containsKey("e")){

@@ -12,143 +12,142 @@ import com.rethinkdb.gen.ast.*;
 import com.rethinkdb.ast.Util;
 
 public class TopLevel {
-    protected TopLevel(){}
 
     public ReqlAst expr(Object value){
         return Util.toReqlAst(value);
     }
 
-    public static Javascript js(Object expr){
+    public Javascript js(Object expr){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Javascript(args);
     }
-    public static Uuid uuid(){
+    public Uuid uuid(){
         Arguments args = new Arguments();
         return new Uuid(args);
     }
-    public static Http http(Object expr){
+    public Http http(Object expr){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Http(args);
     }
-    public static Error error(Object expr){
+    public Error error(Object expr){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Error(args);
     }
-    public static Db db(Object expr){
+    public Db db(Object expr){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Db(args);
     }
-    public static Table table(Object expr){
+    public Table table(Object expr){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Table(args);
     }
-    public static Table table(Db db, Object expr){
+    public Table table(Db db, Object expr){
         Arguments args = new Arguments();
         args.coerceAndAdd(db);
         args.coerceAndAdd(expr);
         return new Table(args);
     }
-    public static Eq eq(Object expr, Object exprA, Object... exprs){
+    public Eq eq(Object expr, Object exprA, Object... exprs){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         args.coerceAndAddAll(exprs);
         return new Eq(args);
     }
-    public static Ne ne(Object expr, Object exprA, Object... exprs){
+    public Ne ne(Object expr, Object exprA, Object... exprs){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         args.coerceAndAddAll(exprs);
         return new Ne(args);
     }
-    public static Lt lt(Object expr, Object exprA, Object... exprs){
+    public Lt lt(Object expr, Object exprA, Object... exprs){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         args.coerceAndAddAll(exprs);
         return new Lt(args);
     }
-    public static Le le(Object expr, Object exprA, Object... exprs){
+    public Le le(Object expr, Object exprA, Object... exprs){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         args.coerceAndAddAll(exprs);
         return new Le(args);
     }
-    public static Gt gt(Object expr, Object exprA, Object... exprs){
+    public Gt gt(Object expr, Object exprA, Object... exprs){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         args.coerceAndAddAll(exprs);
         return new Gt(args);
     }
-    public static Ge ge(Object expr, Object exprA, Object... exprs){
+    public Ge ge(Object expr, Object exprA, Object... exprs){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         args.coerceAndAddAll(exprs);
         return new Ge(args);
     }
-    public static Not not(Object expr){
+    public Not not(Object expr){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Not(args);
     }
-    public static Add add(Object expr, Object... exprs){
+    public Add add(Object expr, Object... exprs){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAddAll(exprs);
         return new Add(args);
     }
-    public static Sub sub(Object expr, Object... exprs){
+    public Sub sub(Object expr, Object... exprs){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAddAll(exprs);
         return new Sub(args);
     }
-    public static Mul mul(Object expr, Object... exprs){
+    public Mul mul(Object expr, Object... exprs){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAddAll(exprs);
         return new Mul(args);
     }
-    public static Div div(Object expr, Object... exprs){
+    public Div div(Object expr, Object... exprs){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAddAll(exprs);
         return new Div(args);
     }
-    public static Mod mod(Object expr, Object exprA){
+    public Mod mod(Object expr, Object exprA){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         return new Mod(args);
     }
-    public static ReqlObject object(Object... exprs){
+    public ReqlObject object(Object... exprs){
         Arguments args = new Arguments();
         args.coerceAndAddAll(exprs);
         return new ReqlObject(args);
     }
-    public static Map map(Object expr, ReqlFunction1 func1){
+    public Map map(Object expr, ReqlFunction1 func1){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(func1);
         return new Map(args);
     }
-    public static Map map(Object expr, Object exprA, ReqlFunction2 func2){
+    public Map map(Object expr, Object exprA, ReqlFunction2 func2){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         args.coerceAndAdd(func2);
         return new Map(args);
     }
-    public static Map map(Object expr, Object exprA, Object exprB, ReqlFunction3 func3){
+    public Map map(Object expr, Object exprA, Object exprB, ReqlFunction3 func3){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -156,7 +155,7 @@ public class TopLevel {
         args.coerceAndAdd(func3);
         return new Map(args);
     }
-    public static Map map(Object expr, Object exprA, Object exprB, Object exprC, ReqlFunction4 func4){
+    public Map map(Object expr, Object exprA, Object exprB, Object exprC, ReqlFunction4 func4){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -165,131 +164,131 @@ public class TopLevel {
         args.coerceAndAdd(func4);
         return new Map(args);
     }
-    public static Union union(Object... exprs){
+    public Union union(Object... exprs){
         Arguments args = new Arguments();
         args.coerceAndAddAll(exprs);
         return new Union(args);
     }
-    public static Range range(){
+    public Range range(){
         Arguments args = new Arguments();
         return new Range(args);
     }
-    public static Range range(Object expr){
+    public Range range(Object expr){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Range(args);
     }
-    public static Range range(Object expr, Object exprA){
+    public Range range(Object expr, Object exprA){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         return new Range(args);
     }
-    public static TypeOf typeOf(Object expr){
+    public TypeOf typeOf(Object expr){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new TypeOf(args);
     }
-    public static DbCreate dbCreate(Object expr, Object exprA){
+    public DbCreate dbCreate(Object expr, Object exprA){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         return new DbCreate(args);
     }
-    public static DbDrop dbDrop(Object expr, Object exprA){
+    public DbDrop dbDrop(Object expr, Object exprA){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         return new DbDrop(args);
     }
-    public static DbList dbList(){
+    public DbList dbList(){
         Arguments args = new Arguments();
         return new DbList(args);
     }
-    public static TableCreate tableCreate(Db db, Object expr){
+    public TableCreate tableCreate(Db db, Object expr){
         Arguments args = new Arguments();
         args.coerceAndAdd(db);
         args.coerceAndAdd(expr);
         return new TableCreate(args);
     }
-    public static TableDrop tableDrop(Object expr){
+    public TableDrop tableDrop(Object expr){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new TableDrop(args);
     }
-    public static TableDrop tableDrop(Db db, Object expr){
+    public TableDrop tableDrop(Db db, Object expr){
         Arguments args = new Arguments();
         args.coerceAndAdd(db);
         args.coerceAndAdd(expr);
         return new TableDrop(args);
     }
-    public static TableList tableList(Db db){
+    public TableList tableList(Db db){
         Arguments args = new Arguments();
         args.coerceAndAdd(db);
         return new TableList(args);
     }
-    public static Wait wait_(){
+    public Wait wait_(){
         Arguments args = new Arguments();
         return new Wait(args);
     }
-    public static Wait wait_(Table table){
+    public Wait wait_(Table table){
         Arguments args = new Arguments();
         args.coerceAndAdd(table);
         return new Wait(args);
     }
-    public static Wait wait_(Db db){
+    public Wait wait_(Db db){
         Arguments args = new Arguments();
         args.coerceAndAdd(db);
         return new Wait(args);
     }
-    public static Reconfigure reconfigure(){
+    public Reconfigure reconfigure(){
         Arguments args = new Arguments();
         return new Reconfigure(args);
     }
-    public static Reconfigure reconfigure(Table table){
+    public Reconfigure reconfigure(Table table){
         Arguments args = new Arguments();
         args.coerceAndAdd(table);
         return new Reconfigure(args);
     }
-    public static Reconfigure reconfigure(Db db){
+    public Reconfigure reconfigure(Db db){
         Arguments args = new Arguments();
         args.coerceAndAdd(db);
         return new Reconfigure(args);
     }
-    public static Rebalance rebalance(){
+    public Rebalance rebalance(){
         Arguments args = new Arguments();
         return new Rebalance(args);
     }
-    public static Rebalance rebalance(Db db){
+    public Rebalance rebalance(Db db){
         Arguments args = new Arguments();
         args.coerceAndAdd(db);
         return new Rebalance(args);
     }
-    public static Rebalance rebalance(Table table){
+    public Rebalance rebalance(Table table){
         Arguments args = new Arguments();
         args.coerceAndAdd(table);
         return new Rebalance(args);
     }
-    public static Funcall do_(Object expr, Object... exprs){
+    public Funcall do_(Object expr, Object... exprs){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAddAll(exprs);
         return new Funcall(args);
     }
-    public static Funcall do_(Object expr, ReqlFunction1 func1){
+    public Funcall do_(Object expr, ReqlFunction1 func1){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(func1);
         return new Funcall(args);
     }
-    public static Funcall do_(Object expr, Object exprA, ReqlFunction2 func2){
+    public Funcall do_(Object expr, Object exprA, ReqlFunction2 func2){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         args.coerceAndAdd(func2);
         return new Funcall(args);
     }
-    public static Funcall do_(Object expr, Object exprA, Object exprB, ReqlFunction3 func3){
+    public Funcall do_(Object expr, Object exprA, Object exprB, ReqlFunction3 func3){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -297,7 +296,7 @@ public class TopLevel {
         args.coerceAndAdd(func3);
         return new Funcall(args);
     }
-    public static Funcall do_(Object expr, Object exprA, Object exprB, Object exprC, ReqlFunction4 func4){
+    public Funcall do_(Object expr, Object exprA, Object exprB, Object exprC, ReqlFunction4 func4){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -306,61 +305,61 @@ public class TopLevel {
         args.coerceAndAdd(func4);
         return new Funcall(args);
     }
-    public static Branch branch(Object expr, Object exprA, Object exprB){
+    public Branch branch(Object expr, Object exprA, Object exprB){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         args.coerceAndAdd(exprB);
         return new Branch(args);
     }
-    public static Or or(Object expr, Object exprA, Object... exprs){
+    public Or or(Object expr, Object exprA, Object... exprs){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         args.coerceAndAddAll(exprs);
         return new Or(args);
     }
-    public static And and(Object expr, Object... exprs){
+    public And and(Object expr, Object... exprs){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAddAll(exprs);
         return new And(args);
     }
-    public static Asc asc(Object expr){
+    public Asc asc(Object expr){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Asc(args);
     }
-    public static Desc desc(Object expr){
+    public Desc desc(Object expr){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Desc(args);
     }
-    public static Info info(Object expr){
+    public Info info(Object expr){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Info(args);
     }
-    public static Json json(Object expr){
+    public Json json(Object expr){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Json(args);
     }
-    public static Iso8601 iso8601(Object expr){
+    public Iso8601 iso8601(Object expr){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Iso8601(args);
     }
-    public static EpochTime epochTime(Object expr){
+    public EpochTime epochTime(Object expr){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new EpochTime(args);
     }
-    public static Now now(){
+    public Now now(){
         Arguments args = new Arguments();
         return new Now(args);
     }
-    public static Time time(Object expr, Object exprA, Object exprB, Object exprC){
+    public Time time(Object expr, Object exprA, Object exprB, Object exprC){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -368,7 +367,7 @@ public class TopLevel {
         args.coerceAndAdd(exprC);
         return new Time(args);
     }
-    public static Time time(Object expr, Object exprA, Object exprB, Object exprC, Object exprD, Object exprE, Object exprF){
+    public Time time(Object expr, Object exprA, Object exprB, Object exprC, Object exprD, Object exprE, Object exprF){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -379,135 +378,135 @@ public class TopLevel {
         args.coerceAndAdd(exprF);
         return new Time(args);
     }
-    public static Monday monday(){
+    public Monday monday(){
         Arguments args = new Arguments();
         return new Monday(args);
     }
-    public static Tuesday tuesday(){
+    public Tuesday tuesday(){
         Arguments args = new Arguments();
         return new Tuesday(args);
     }
-    public static Wednesday wednesday(){
+    public Wednesday wednesday(){
         Arguments args = new Arguments();
         return new Wednesday(args);
     }
-    public static Thursday thursday(){
+    public Thursday thursday(){
         Arguments args = new Arguments();
         return new Thursday(args);
     }
-    public static Friday friday(){
+    public Friday friday(){
         Arguments args = new Arguments();
         return new Friday(args);
     }
-    public static Saturday saturday(){
+    public Saturday saturday(){
         Arguments args = new Arguments();
         return new Saturday(args);
     }
-    public static Sunday sunday(){
+    public Sunday sunday(){
         Arguments args = new Arguments();
         return new Sunday(args);
     }
-    public static January january(){
+    public January january(){
         Arguments args = new Arguments();
         return new January(args);
     }
-    public static February february(){
+    public February february(){
         Arguments args = new Arguments();
         return new February(args);
     }
-    public static March march(){
+    public March march(){
         Arguments args = new Arguments();
         return new March(args);
     }
-    public static April april(){
+    public April april(){
         Arguments args = new Arguments();
         return new April(args);
     }
-    public static May may(){
+    public May may(){
         Arguments args = new Arguments();
         return new May(args);
     }
-    public static June june(){
+    public June june(){
         Arguments args = new Arguments();
         return new June(args);
     }
-    public static July july(){
+    public July july(){
         Arguments args = new Arguments();
         return new July(args);
     }
-    public static August august(){
+    public August august(){
         Arguments args = new Arguments();
         return new August(args);
     }
-    public static September september(){
+    public September september(){
         Arguments args = new Arguments();
         return new September(args);
     }
-    public static October october(){
+    public October october(){
         Arguments args = new Arguments();
         return new October(args);
     }
-    public static November november(){
+    public November november(){
         Arguments args = new Arguments();
         return new November(args);
     }
-    public static December december(){
+    public December december(){
         Arguments args = new Arguments();
         return new December(args);
     }
-    public static Literal literal(){
+    public Literal literal(){
         Arguments args = new Arguments();
         return new Literal(args);
     }
-    public static Literal literal(Object expr){
+    public Literal literal(Object expr){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Literal(args);
     }
-    public static Random random(){
+    public Random random(){
         Arguments args = new Arguments();
         return new Random(args);
     }
-    public static Random random(Object expr){
+    public Random random(Object expr){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Random(args);
     }
-    public static Random random(Object expr, Object exprA){
+    public Random random(Object expr, Object exprA){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         return new Random(args);
     }
-    public static Args args(Object expr){
+    public Args args(Object expr){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Args(args);
     }
-    public static Binary binary(Object expr){
+    public Binary binary(Object expr){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Binary(args);
     }
-    public static Geojson geojson(Object expr){
+    public Geojson geojson(Object expr){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Geojson(args);
     }
-    public static Point point(Object expr, Object exprA){
+    public Point point(Object expr, Object exprA){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         return new Point(args);
     }
-    public static Line line(Object expr, Object exprA, Object... exprs){
+    public Line line(Object expr, Object exprA, Object... exprs){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         args.coerceAndAddAll(exprs);
         return new Line(args);
     }
-    public static Polygon polygon(Object expr, Object exprA, Object exprB, Object... exprs){
+    public Polygon polygon(Object expr, Object exprA, Object exprB, Object... exprs){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -515,41 +514,41 @@ public class TopLevel {
         args.coerceAndAddAll(exprs);
         return new Polygon(args);
     }
-    public static Distance distance(Object expr, Object exprA){
+    public Distance distance(Object expr, Object exprA){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         return new Distance(args);
     }
-    public static Intersects intersects(Object expr, Object exprA){
+    public Intersects intersects(Object expr, Object exprA){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         return new Intersects(args);
     }
-    public static Circle circle(Object expr){
+    public Circle circle(Object expr){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Circle(args);
     }
-    public static Circle circle(Object expr, Object exprA){
+    public Circle circle(Object expr, Object exprA){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         return new Circle(args);
     }
-    public static Circle circle(Object expr, Object exprA, Object exprB){
+    public Circle circle(Object expr, Object exprA, Object exprB){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         args.coerceAndAdd(exprB);
         return new Circle(args);
     }
-    public static Minval minval(){
+    public Minval minval(){
         Arguments args = new Arguments();
         return new Minval(args);
     }
-    public static Maxval maxval(){
+    public Maxval maxval(){
         Arguments args = new Arguments();
         return new Maxval(args);
     }

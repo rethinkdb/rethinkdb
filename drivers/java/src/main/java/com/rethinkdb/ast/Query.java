@@ -51,7 +51,9 @@ public class Query {
         JSONArray queryArr = new JSONArray();
         queryArr.add(type.value);
         term.ifPresent(t -> queryArr.add(t.build()));
-        queryArr.add(globalOptions);
+        if(!globalOptions.isEmpty()) {
+            queryArr.add(globalOptions);
+        }
         String queryJson = queryArr.toJSONString();
         ByteBuffer bb = Util.leByteBuffer(8 + 4 + queryJson.length())
             .putLong(token)

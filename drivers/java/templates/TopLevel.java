@@ -8,7 +8,6 @@ import com.rethinkdb.gen.ast.*;
 import com.rethinkdb.ast.Util;
 
 public class TopLevel {
-    protected TopLevel(){}
 
     public ReqlAst expr(Object value){
         return Util.toReqlAst(value);
@@ -17,7 +16,7 @@ public class TopLevel {
 %for term in all_terms.values():
   %if "TopLevel" in term["include_in"]:
     %for signature in term['signatures']:
-    public static ${term['classname']} ${term['methodname']}(${
+    public ${term['classname']} ${term['methodname']}(${
         ', '.join('%s %s' % (arg['type'], arg['var'])
                   for arg in signature['args'])}){
         Arguments args = new Arguments();

@@ -7,7 +7,7 @@ import com.rethinkdb.gen.exc.ReqlRuntimeError;
 import java.util.*;
 
 
-public abstract class Cursor<T> implements Iterator<T> {
+public abstract class Cursor<T> implements Iterator<T>, Iterable<T> {
 
     // public immutable members
     public final long token;
@@ -41,7 +41,7 @@ public abstract class Cursor<T> implements Iterator<T> {
 
     @Override
     public boolean hasNext() {
-        throw new UnsupportedOperationException();
+        return true;
     }
 
     @Override
@@ -89,6 +89,11 @@ public abstract class Cursor<T> implements Iterator<T> {
 
     public static Cursor empty(Connection connection, Query query) {
         return new DefaultCursor(connection, query);
+    }
+
+    @Override
+    public Iterator<T> iterator(){
+        return this;
     }
 
     @Override
