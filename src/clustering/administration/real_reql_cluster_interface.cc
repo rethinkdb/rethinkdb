@@ -700,7 +700,7 @@ bool real_reql_cluster_interface_t::db_reconfigure(
 void real_reql_cluster_interface_t::emergency_repair_internal(
         const counted_t<const ql::db_t> &db,
         const namespace_id_t &table_id,
-        bool allow_erase,
+        emergency_repair_mode_t mode,
         bool dry_run,
         signal_t *interruptor_on_home,
         ql::datum_t *result_out)
@@ -734,18 +734,19 @@ void real_reql_cluster_interface_t::emergency_repair_internal(
     bool erase_found;
     table_meta_client->emergency_repair(
         table_id,
-        allow_erase,
+        mode,
         dry_run,
         interruptor_on_home,
         &new_config,
         &rollback_found,
         &erase_found);
 
-    if (!rollback_found) {
+    if (!rollback_found && mode != emergency_repair_mode_t::DEBUG_RECOMMIT) {
         if (!erase_found) {
             throw admin_op_exc_t("This table doesn't need to be repaired.",
                                  query_state_t::FAILED);
-        } else if (erase_found && !allow_erase) {
+        } else if (erase_found &&
+                mode != emergency_repair_mode_t::UNSAFE_ROLLBACK_OR_ERASE) {
             throw admin_op_exc_t(
                 "One or more shards of this table have no available "
                 "replicas. Since there are no available copies of the data that was "
@@ -788,7 +789,7 @@ void real_reql_cluster_interface_t::emergency_repair_internal(
 bool real_reql_cluster_interface_t::table_emergency_repair(
         counted_t<const ql::db_t> db,
         const name_string_t &name,
-        bool allow_erase,
+        emergency_repair_mode_t mode,
         bool dry_run,
         signal_t *interruptor_on_caller,
         ql::datum_t *result_out,
@@ -800,7 +801,7 @@ bool real_reql_cluster_interface_t::table_emergency_repair(
         on_thread_t thread_switcher(home_thread());
         namespace_id_t table_id;
         table_meta_client->find(db->id, name, &table_id);
-        emergency_repair_internal(db, table_id, allow_erase, dry_run,
+        emergency_repair_internal(db, table_id, mode, dry_run,
             &interruptor_on_home, result_out);
         return true;
     } catch (const admin_op_exc_t &msg) {

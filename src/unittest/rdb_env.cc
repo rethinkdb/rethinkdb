@@ -554,7 +554,7 @@ bool test_rdb_env_t::instance_t::db_reconfigure(
 bool test_rdb_env_t::instance_t::table_emergency_repair(
         UNUSED counted_t<const ql::db_t> db,
         UNUSED const name_string_t &name,
-        UNUSED bool allow_erase,
+        UNUSED emergency_repair_mode_t mode,
         UNUSED bool dry_run,
         UNUSED signal_t *local_interruptor,
         UNUSED ql::datum_t *result_out,

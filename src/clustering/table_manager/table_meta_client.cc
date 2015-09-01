@@ -439,7 +439,7 @@ void table_meta_client_t::set_config(
 
 void table_meta_client_t::emergency_repair(
         const namespace_id_t &table_id,
-        bool allow_erase,
+        emergency_repair_mode_t mode,
         bool dry_run,
         signal_t *interruptor_on_caller,
         table_config_and_shards_t *new_config_out,
@@ -480,14 +480,15 @@ void table_meta_client_t::emergency_repair(
     calculate_emergency_repair(
         old_state,
         dead_servers,
-        allow_erase,
+        mode,
         &new_state,
         rollback_found_out,
         erase_found_out);
 
     *new_config_out = new_state.config;
 
-    if ((*rollback_found_out || *erase_found_out) && !dry_run) {
+    if ((*rollback_found_out || *erase_found_out ||
+                mode == emergency_repair_mode_t::DEBUG_RECOMMIT) && !dry_run) {
         /* In theory, we don't always have to start a new epoch. Sometimes we run an
         emergency repair where we've lost a quorum of one shard, but still have a quorum
         of the Raft cluster as a whole. In that case we could run a regular Raft

@@ -191,7 +191,7 @@ public:
     detected. */
     void emergency_repair(
         const namespace_id_t &table_id,
-        bool allow_erase,
+        emergency_repair_mode_t mode,
         bool dry_run,
         signal_t *interruptor,
         table_config_and_shards_t *new_config_out,
