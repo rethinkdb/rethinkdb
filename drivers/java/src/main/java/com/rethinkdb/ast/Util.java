@@ -32,7 +32,6 @@ public class Util {
     public static ReqlExpr toReqlExpr(Object val){
         ReqlAst converted = toReqlAst(val);
         if(converted instanceof ReqlExpr){
-            System.out.println("Got a " + converted);
             return (ReqlExpr) converted;
         }else{
             throw new ReqlDriverError("Cannot convert %s to ReqlExpr", val);

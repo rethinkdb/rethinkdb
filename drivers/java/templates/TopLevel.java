@@ -6,11 +6,17 @@ import com.rethinkdb.model.Arguments;
 import com.rethinkdb.gen.ast.Error;
 import com.rethinkdb.gen.ast.*;
 import com.rethinkdb.ast.Util;
+import com.rethinkdb.gen.exc.ReqlDriverError;
 
 public class TopLevel {
 
     public ReqlExpr expr(Object value){
         return Util.toReqlExpr(value);
+    }
+
+    public ReqlExpr row(Object... values) {
+        throw new ReqlDriverError("r.row is not implemented in the Java driver."+
+                                  " Use lambda syntax instead");
     }
 
 %for term in all_terms.values():
