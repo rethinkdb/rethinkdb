@@ -2,6 +2,7 @@ package com.rethinkdb;
 
 import com.rethinkdb.gen.ast.ReqlExpr;
 import com.rethinkdb.net.Connection;
+import com.rethinkdb.net.ConnectionInstance;
 import com.rethinkdb.net.Cursor;
 import junit.framework.TestCase;
 import org.json.simple.JSONArray;
@@ -23,15 +24,17 @@ public class RethinkDBTest extends TestCase {
     }
 
     public void testBuildConnection() throws Exception {
-        Connection conn = r.connection()
+        Connection<? extends ConnectionInstance> conn = r.connection()
                 .hostname("newton")
                 .port(31157)
                 .connect();
-        Optional<Object> res = r.expr(3).run(conn);
-        assert(res.isPresent());
-        res = r.range(3, 9).map(r.range(2, 8), r.range(1,7),
+        Long res = r.expr(3).run(conn);
+        assert (res.equals(3L));
+        Cursor resCursor = r.range(3, 9).map(r.range(2, 8), r.range(1, 7),
                 (x, y, z) -> x.mul(y, z)).run(conn);
-        assert(res.isPresent());
-        res = r.do_(1,3, (x, y)-> x.add(y)).run(conn);
+        assert (resCursor.hasNext());
+
+        Boolean thing = r.expr(false).run(conn);
     }
+
 }

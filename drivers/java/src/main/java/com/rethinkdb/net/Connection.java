@@ -9,6 +9,7 @@ import com.rethinkdb.gen.proto.Version;
 import com.rethinkdb.model.OptArgs;
 
 import java.nio.ByteBuffer;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
@@ -119,63 +120,65 @@ public class Connection<C extends ConnectionInstance> {
     Response readResponse(long token, Optional<Integer> deadline) {
         return checkOpen().readResponse(token, deadline);
     }
-
-    Optional<Object> runQuery(Query query, boolean noreply) {
+    void runQueryNoreply(Query query){
         ConnectionInstance inst = checkOpen();
         inst.socket
                 .orElseThrow(() -> new ReqlDriverError("No socket open."))
                 .write(query.serialize());
-        if(noreply){
-            return Optional.empty();
-        }
+    }
+
+    @SuppressWarnings("unchecked")
+    <T> T runQuery(Query query) {
+        ConnectionInstance inst = checkOpen();
+        inst.socket
+                .orElseThrow(() -> new ReqlDriverError("No socket open."))
+                .write(query.serialize());
 
         Response res = inst.readResponse(query.token);
-
         if(res.isAtom()) {
             try {
-                return Optional.of(Response.convertPseudotypes(
-                        res.data,
-                        res.profile
-                ).get(0));
+                Converter.FormatOptions fmt =
+                        new Converter.FormatOptions(query.globalOptions);
+                return (T) ((List)
+                        Converter.convertPseudotypes(res.data,fmt)).get(0);
             } catch (IndexOutOfBoundsException ex){
                 throw new ReqlDriverError("Atom response was empty!", ex);
             }
         } else if(res.isPartial() || res.isSequence()) {
             Cursor cursor = Cursor.empty(this, query);
             cursor.extend(res);
-            return Optional.of(cursor);
+            return (T) cursor;
         } else if(res.isWaitComplete()) {
-            return Optional.empty();
+            return null;
         } else {
             throw res.makeError(query);
         }
-    }
-
-    Optional<Object> runQuery(Query query) {
-        return runQuery(query, false);
-    }
-
-    void runQueryNoreply(Query query) {
-        runQuery(query, true);
     }
 
     public void noreplyWait() {
         runQuery(Query.noreplyWait(newToken()));
     }
 
-    public Optional<Object> run(ReqlAst term, OptArgs globalOpts) {
+    private void setDefaultDB(OptArgs globalOpts){
         if (!globalOpts.containsKey("db") && dbname.isPresent()) {
             globalOpts.with("db", dbname.get());
         }
+    }
+
+    public <T> T run(ReqlAst term, OptArgs globalOpts) {
+        setDefaultDB(globalOpts);
         Query q = Query.start(newToken(), term, globalOpts);
-        Boolean noreply;
         if(globalOpts.containsKey("noreply")) {
-            Datum d = (Datum) globalOpts.get("noreply");
-            noreply = (Boolean) d.datum;
-        }else{
-            noreply = false;
+            throw new ReqlDriverError(
+                    "Don't provide the noreply option as an optarg. "+
+                            "Use `.runNoReply` instead of `.run`");
         }
-        return runQuery(q, noreply);
+        return runQuery(q);
+    }
+
+    public void runNoReply(ReqlAst term, OptArgs globalOpts){
+        setDefaultDB(globalOpts);
+        runQueryNoreply(Query.start(newToken(), term, globalOpts));
     }
 
     void continue_(Cursor cursor) {

@@ -5,6 +5,8 @@ import com.rethinkdb.gen.proto.ResponseType;
 import com.rethinkdb.gen.exc.ReqlRuntimeError;
 
 import java.util.*;
+import java.util.function.*;
+import java.util.stream.*;
 
 
 public abstract class Cursor<T> implements Iterator<T>, Iterable<T> {
@@ -39,15 +41,6 @@ public abstract class Cursor<T> implements Iterator<T>, Iterable<T> {
         }
     }
 
-    @Override
-    public boolean hasNext() {
-        return true;
-    }
-
-    @Override
-    public void remove() {
-        throw new UnsupportedOperationException();
-    }
 
     void extend(Response response) {
         outstandingRequests -= 1;
@@ -91,12 +84,6 @@ public abstract class Cursor<T> implements Iterator<T>, Iterable<T> {
         return new DefaultCursor(connection, query);
     }
 
-    @Override
-    public Iterator<T> iterator(){
-        return this;
-    }
-
-    @Override
     public T next() {
         return getNext(Optional.empty());
     }
@@ -105,15 +92,35 @@ public abstract class Cursor<T> implements Iterator<T>, Iterable<T> {
         return getNext(Optional.of(timeout));
     }
 
+    public Iterator<T> iterator(){
+        return this;
+    }
 
     // Abstract methods
     abstract T getNext(Optional<Integer> timeout);
 
     private static class DefaultCursor<T> extends Cursor<T> {
+        public final Converter.FormatOptions fmt;
         public DefaultCursor(Connection connection, Query query) {
             super(connection, query);
+            fmt = new Converter.FormatOptions(query.globalOptions);
         }
 
+        /* This isn't great, but the Java iterator protocol relies on hasNext,
+         so it must be implemented in a reasonable way */
+        public boolean hasNext(){
+            if(items.size() > 0){
+                return true;
+            }
+            if(error.isPresent()){
+                return false;
+            }
+            maybeFetchBatch();
+            connection.readResponse(query.token, Optional.empty());
+            return items.size() > 0;
+        }
+
+        @SuppressWarnings("unchecked")
         T getNext(Optional<Integer> timeout) {
             while(items.size() == 0) {
                 maybeFetchBatch();
@@ -124,8 +131,7 @@ public abstract class Cursor<T> implements Iterator<T>, Iterable<T> {
                         timeout.map(Util::deadline));
             }
             Object element = items.pop();
-            return (T) Converter.convertPseudo(element, query.globalOptions);
+            return (T) Converter.convertPseudotypes(element, fmt);
         }
-
     }
 }

@@ -142,11 +142,6 @@ class Response {
         return type.isError();
     }
 
-    public static JSONArray convertPseudotypes(
-            JSONArray obj, Optional<Profile> profile) {
-        return obj; // TODO remove pass-through
-    }
-
     /* What type of success the response contains */
     boolean isAtom() {
         return type == ResponseType.SUCCESS_ATOM;

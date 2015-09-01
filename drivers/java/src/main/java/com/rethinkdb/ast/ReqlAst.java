@@ -12,6 +12,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import com.rethinkdb.net.ConnectionInstance;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
@@ -71,12 +72,21 @@ public class ReqlAst {
         }
     }
 
-    public Optional<Object> run(Connection conn, OptArgs runOpts) {
+    public <T> T run(Connection<? extends ConnectionInstance> conn,
+                     OptArgs runOpts) {
         return conn.run(this, runOpts);
     }
 
-    public Optional<Object> run(Connection conn) {
+    public <T> T run(Connection<? extends ConnectionInstance> conn) {
         return conn.run(this, new OptArgs());
+    }
+
+    public void runNoReply(Connection conn){
+        conn.runNoReply(this, new OptArgs());
+    }
+
+    public void runNoReply(Connection conn, OptArgs globalOpts){
+        conn.runNoReply(this, globalOpts);
     }
 
     @Override
