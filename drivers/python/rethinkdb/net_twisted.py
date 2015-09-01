@@ -11,7 +11,8 @@ from twisted.internet.endpoints import TCP4ClientEndpoint
 from twisted.internet.error import TimeoutError
 
 from . import ql2_pb2 as p
-from .net import decodeUTF, Query, Response, Cursor, maybe_profile, convert_pseudo
+from .ast import ReQLDecoder
+from .net import decodeUTF, Query, Response, Cursor, maybe_profile
 from .net import Connection as ConnectionBase
 from .errors import *
 
@@ -216,7 +217,6 @@ class TwistedCursor(Cursor):
                 raise errback.value
 
         item_defer = self.items.get()
-        item_defer.addCallback(lambda x: convert_pseudo(x, self.query))
 
         if timeout is not None:
             item_defer.addErrback(raise_timeout)
@@ -240,16 +240,17 @@ class ConnectionInstance(object):
 
     def _handleResponse(self, token, data):
         try:
-            res = Response(token, data)
-
             cursor = self._cursor_cache.get(token)
             if cursor is not None:
+                res = Response(token, data,
+                               self._parent._get_json_decoder(cursor.query.global_optargs))
                 cursor._extend(res)
             elif token in self._user_queries:
                 query, deferred = self._user_queries[token]
+                res = Response(token, data,
+                               self._parent._get_json_decoder(query.global_optargs))
                 if res.type == pResponse.SUCCESS_ATOM:
-                    value = convert_pseudo(res.data[0], query)
-                    deferred.callback(maybe_profile(value, res))
+                    deferred.callback(maybe_profile(res.data[0], res))
                 elif res.type in (pResponse.SUCCESS_SEQUENCE,
                                   pResponse.SUCCESS_PARTIAL):
                     cursor = TwistedCursor(self, query)
