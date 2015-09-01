@@ -52,7 +52,7 @@ public class Query {
         queryArr.add(type.value);
         term.ifPresent(t -> queryArr.add(t.build()));
         if(!globalOptions.isEmpty()) {
-            queryArr.add(globalOptions);
+            queryArr.add(ReqlAst.buildOptarg(globalOptions));
         }
         String queryJson = queryArr.toJSONString();
         ByteBuffer bb = Util.leByteBuffer(8 + 4 + queryJson.length())

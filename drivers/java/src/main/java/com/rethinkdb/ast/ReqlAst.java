@@ -45,13 +45,16 @@ public class ReqlAst {
             list.add(new JSONArray());
         }
         if (optargs.size() > 0) {
-            JSONObject joptargs = new JSONObject();
-            for(Map.Entry<String, ReqlAst> entry: optargs.entrySet()){
-                joptargs.put(entry.getKey(), entry.getValue().build());
-            }
-            list.add(joptargs);
+            list.add(buildOptarg(optargs));
         }
         return list;
+    }
+
+    public static Map<String, Object> buildOptarg(OptArgs opts){
+        return opts.entrySet().stream().collect(Collectors.toMap(
+                Map.Entry::getKey,
+                entry -> entry.getValue().build()
+        ));
     }
 
     public ReqlAst optArg(String optname, Object value) {

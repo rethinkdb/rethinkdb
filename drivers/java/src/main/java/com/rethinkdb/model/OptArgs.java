@@ -2,10 +2,12 @@ package com.rethinkdb.model;
 
 import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.ast.Util;
+import org.json.simple.JSONObject;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class OptArgs extends HashMap<String, ReqlAst> {
     public OptArgs with(String key, Object value) {

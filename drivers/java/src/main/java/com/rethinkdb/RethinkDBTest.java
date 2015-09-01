@@ -38,8 +38,8 @@ public class RethinkDBTest extends TestCase {
         byte[] bytes = r.binary("Hey there").run(conn);
         assert(new String(bytes, "UTF-8")).equals("Hey there");
         String result = r.do_("Hiyas").run(conn);
-        //JSONObject job = r.now().run(conn, new OptArgs().with("date_format", "raw"));
-        JSONObject allresults = r.table("foo").getAll().optArg("index", "id").run(conn);
+        JSONObject job = r.now().run(conn, new OptArgs().with("time_format", "raw"));
+        Cursor getAllresults = r.table("foo").getAll("f").optArg("index", "id").run(conn);
     }
 
 }
