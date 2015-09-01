@@ -74,7 +74,7 @@ class TornadoCursor(Cursor):
             if self.error is not None:
                 raise self.error
             yield with_absolute_timeout(deadline, self.new_response)
-        raise gen.Return(self.items.pop(0))
+        raise gen.Return(self.items.popleft())
 
 
 class ConnectionInstance(object):

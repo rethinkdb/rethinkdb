@@ -105,7 +105,7 @@ class AsyncioCursor(Cursor):
                 raise self.error
             with translate_timeout_errors():
                 yield from waiter(asyncio.shield(self.new_response))
-        return self.items.pop(0)
+        return self.items.popleft()
 
     def _maybe_fetch_batch(self):
         if self.error is None and \
