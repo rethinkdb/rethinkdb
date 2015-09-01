@@ -7,6 +7,7 @@ import socket
 import struct
 import time
 import ssl
+import collections
 try:
     from importlib import import_module
 except ImportError:
@@ -145,7 +146,7 @@ class Cursor(object):
     def __init__(self, conn_instance, query):
         self.conn = conn_instance
         self.query = query
-        self.items = list()
+        self.items = collections.deque()
         self.outstanding_requests = 1
         self.threshold = 0
         self.error = None
@@ -239,7 +240,7 @@ class DefaultCursor(Cursor):
             if self.error is not None:
                 raise self.error
             self.conn._read_response(self.query, deadline)
-        return self.items.pop(0)
+        return self.items.popleft()
 
 
 class SocketWrapper(object):
