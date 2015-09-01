@@ -30,7 +30,7 @@ try:
     openFileLimit = int(os.getenv('OPEN_FILE_LIMIT', 512))
     if resource.getrlimit(resource.RLIMIT_NOFILE)[0] < openFileLimit:
         resource.setrlimit(resource.RLIMIT_NOFILE, (openFileLimit, openFileLimit))
-except Exception, e:
+except Exception as e:
     sys.exit('Bad OPEN_FILE_LIMIT input: %s' % os.getenv('OPEN_FILE_LIMIT'))
 
 # -- settings
