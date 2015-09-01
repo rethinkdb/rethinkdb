@@ -10,15 +10,23 @@ import java.util.stream.Collectors;
 public class Arguments extends ArrayList<ReqlAst> {
 
     public Arguments() {}
-    public Arguments(Object arg) {
-        coerceAndAdd(arg);
+
+    public Arguments(Object arg){
+        if(arg instanceof List){
+            coerceAndAddAll((List) arg);
+        }else{
+            coerceAndAdd(arg);
+        }
+    }
+    public Arguments(Arguments args) {
+        addAll(args);
     }
     public Arguments(ReqlAst arg) {
         add(arg);
     }
 
     public Arguments(Object[] args) {
-        coerceAndAdd(args);
+        coerceAndAddAll(args);
     }
 
     public Arguments(List<Object> args) {
@@ -36,7 +44,11 @@ public class Arguments extends ArrayList<ReqlAst> {
     }
 
     public void coerceAndAddAll(Object[] args) {
-        addAll(Arrays.asList(args).stream()
+        coerceAndAddAll(Arrays.asList(args));
+    }
+
+    public void coerceAndAddAll(List<Object> args){
+        addAll(args.stream()
                 .map(Util::toReqlAst)
                 .collect(Collectors.toList()));
     }

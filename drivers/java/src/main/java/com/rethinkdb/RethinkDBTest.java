@@ -1,9 +1,11 @@
 package com.rethinkdb;
 
 import com.rethinkdb.net.Connection;
+import com.rethinkdb.net.Cursor;
 import junit.framework.TestCase;
 import org.json.simple.JSONArray;
 
+import java.util.Map;
 import java.util.Optional;
 
 public class RethinkDBTest extends TestCase {
@@ -24,8 +26,8 @@ public class RethinkDBTest extends TestCase {
                 .hostname("newton")
                 .port(31157)
                 .connect();
-        Optional<Object> res =
-                r.random(1,2).add(r.random(1,2)).run(conn);
-        assert(res.get().equals(new JSONArray()));
+        Optional<Object> res = r.table("foo")
+                .map(m -> m.bracket("id")).run(conn);
+        assert(res.isPresent());
     }
 }

@@ -4,6 +4,8 @@
 import com.rethinkdb.model.ReqlLambda;
 import com.rethinkdb.ast.Util;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Arrays;
+import java.util.List;
 </%block>
 
 <%block name="member_vars">
@@ -29,7 +31,7 @@ import java.util.concurrent.atomic.AtomicInteger;
             % for j in range(1, i+1):
             int var${j} = nextVarId();
             % endfor
-            Arguments varIds = Arguments.make(
+            List<Integer> varIds = Arrays.asList(
                 ${", ".join("var%s"%(j,) for j in range(1, j+1))});
             Object appliedFunction = func${i}.apply(
                 ${", ".join("new Var(var%s)"%(j,) for j in range(1, j+1))}

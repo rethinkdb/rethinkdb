@@ -1,6 +1,7 @@
 package com.rethinkdb.ast;
 
 import com.rethinkdb.gen.exc.ReqlDriverError;
+import com.rethinkdb.gen.proto.TermType;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.gen.ast.Datum;
 import com.rethinkdb.gen.ast.Func;

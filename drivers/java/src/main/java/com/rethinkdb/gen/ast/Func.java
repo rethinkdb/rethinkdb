@@ -15,6 +15,8 @@ import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.model.ReqlLambda;
 import com.rethinkdb.ast.Util;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Arrays;
+import java.util.List;
 
 
 public class Func extends ReqlExpr {
@@ -30,7 +32,7 @@ public class Func extends ReqlExpr {
         if(function instanceof ReqlFunction1){
             ReqlFunction1 func1 = (ReqlFunction1) function;
             int var1 = nextVarId();
-            Arguments varIds = Arguments.make(
+            List<Integer> varIds = Arrays.asList(
                 var1);
             Object appliedFunction = func1.apply(
                 new Var(var1)
@@ -43,7 +45,7 @@ public class Func extends ReqlExpr {
             ReqlFunction2 func2 = (ReqlFunction2) function;
             int var1 = nextVarId();
             int var2 = nextVarId();
-            Arguments varIds = Arguments.make(
+            List<Integer> varIds = Arrays.asList(
                 var1, var2);
             Object appliedFunction = func2.apply(
                 new Var(var1), new Var(var2)
@@ -57,7 +59,7 @@ public class Func extends ReqlExpr {
             int var1 = nextVarId();
             int var2 = nextVarId();
             int var3 = nextVarId();
-            Arguments varIds = Arguments.make(
+            List<Integer> varIds = Arrays.asList(
                 var1, var2, var3);
             Object appliedFunction = func3.apply(
                 new Var(var1), new Var(var2), new Var(var3)
@@ -72,7 +74,7 @@ public class Func extends ReqlExpr {
             int var2 = nextVarId();
             int var3 = nextVarId();
             int var4 = nextVarId();
-            Arguments varIds = Arguments.make(
+            List<Integer> varIds = Arrays.asList(
                 var1, var2, var3, var4);
             Object appliedFunction = func4.apply(
                 new Var(var1), new Var(var2), new Var(var3), new Var(var4)

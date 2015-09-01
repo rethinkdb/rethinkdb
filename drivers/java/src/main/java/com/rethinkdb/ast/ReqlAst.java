@@ -32,7 +32,7 @@ public class ReqlAst {
         this.optargs = optargs != null ? optargs : new OptArgs();
     }
 
-    protected java.lang.Object build() {
+    protected Object build() {
         // Create a JSON object from the Ast
         JSONArray list = new JSONArray();
         list.add(termType.value);
