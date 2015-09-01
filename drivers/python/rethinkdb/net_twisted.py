@@ -163,8 +163,8 @@ class CursorItems(DeferredQueue):
 
 class TwistedCursor(Cursor):
     def __init__(self, *args, **kwargs):
+        kwargs.setdefault('items_type', CursorItems)
         super(TwistedCursor, self).__init__(*args, **kwargs)
-        self.items = CursorItems()
         self.waiting = list()
 
     def _extend(self, res):
@@ -242,9 +242,7 @@ class ConnectionInstance(object):
         try:
             cursor = self._cursor_cache.get(token)
             if cursor is not None:
-                res = Response(token, data,
-                               self._parent._get_json_decoder(cursor.query.global_optargs))
-                cursor._extend(res)
+                cursor._extend(data)
             elif token in self._user_queries:
                 query, deferred = self._user_queries[token]
                 res = Response(token, data,
@@ -253,9 +251,7 @@ class ConnectionInstance(object):
                     deferred.callback(maybe_profile(res.data[0], res))
                 elif res.type in (pResponse.SUCCESS_SEQUENCE,
                                   pResponse.SUCCESS_PARTIAL):
-                    cursor = TwistedCursor(self, query)
-                    self._cursor_cache[token] = cursor
-                    cursor._extend(res)
+                    cursor = TwistedCursor(self, query, res)
                     deferred.callback(maybe_profile(cursor, res))
                 elif res.type == pResponse.WAIT_COMPLETE:
                     deferred.callback(None)
