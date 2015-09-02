@@ -39,6 +39,7 @@ class IterableResult
 
         @next = @_next
         @each = @_each
+        @eachAsync = @_eachAsync
 
     _addResponse: (response) ->
         if response.t is @_type or response.t is protoResponseType.SUCCESS_SEQUENCE
@@ -160,23 +161,14 @@ class IterableResult
         throw new err.ReqlDriverError "The `hasNext` command has been removed since 1.13. Use `next` instead."
 
     _next: varar 0, 1, (cb) ->
+        if cb? and typeof cb isnt "function"
+            throw new err.ReqlDriverError "First argument to `next` must be a function or undefined."
+
         fn = (cb) =>
             @_cbQueue.push cb
             @_promptNext()
 
-        if typeof cb is "function"
-            fn(cb)
-        else if cb is undefined
-            p = new Promise (resolve, reject) ->
-                cb = (err, result) ->
-                    if (err)
-                        reject(err)
-                    else
-                        resolve(result)
-                fn(cb)
-            return p
-        else
-            throw new err.ReqlDriverError "First argument to `next` must be a function or undefined."
+        return Promise.fromNode(fn).nodeify(cb)
 
 
     close: varar 0, 1, (cb) ->
@@ -229,19 +221,26 @@ class IterableResult
         self = @
         nextCb = (err, data) =>
             if stopFlag isnt true
-                if err?
-                    if err.message is 'No more rows in the cursor.'
-                        if onFinished?
-                            onFinished()
-                    else
-                        cb(err)
+                if err?.message is 'No more rows in the cursor.'
+                    onFinished?()
                 else
-                    stopFlag = cb(null, data) is false
+                    stopFlag = cb(err, data) is false
                     @_next nextCb
-            else if onFinished?
-                onFinished()
+            else
+                onFinished?()
         @_next nextCb
     )
+
+    _eachAsync: (cb) ->
+        unless typeof cb is 'function'
+            throw new err.ReqlDriverError "First argument to eachAsync must be a function."
+
+        nextCb = =>
+            @_next().then(cb).then(nextCb).catch (err) ->
+                return if err?.message is 'No more rows in the cursor.'
+                throw err
+
+        return nextCb()
 
     toArray: varar 0, 1, (cb) ->
         fn = (cb) =>

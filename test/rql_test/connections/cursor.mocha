@@ -176,6 +176,25 @@ describe('JavaScript Cursor', function() {
             });
         });
 
+        describe('eachAsync', function() {
+            it('iterates over table', function(done) {
+                var i = 0;
+                tableCursor.eachAsync(function(row) {
+                    assert.deepEqual(row, {'id':i});
+                    i++;
+                }).then(function() {
+                    assert.equal(i, numRows);
+                    done();
+                });
+            });
+
+            it('errors when missing argument', function(done) {
+                expectedMsg = 'First argument to eachAsync must be a function.';
+                assert.throws(function() { tableCursor.eachAsync(); }, argErrorTest(expectedMsg));
+                done();
+            });
+        });
+
         describe('close', function(done) {
             it("doesn't error", function(done) {
                 tableCursor.close(function(err) {
