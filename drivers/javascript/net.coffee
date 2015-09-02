@@ -912,9 +912,11 @@ class TcpConnection extends Connection
         # using the net module and store it in the `@rawSocket`
         # attribute.
         if @ssl
-            @rawSocket = tls.connect options
+          @ssl.host = @host
+          @ssl.port = @port
+          @rawSocket = tls.connect @ssl
         else
-            @rawSocket = net.connect @port, @host
+          @rawSocket = net.connect @port, @host
 
         # We disable [Nagle's
         # algorithm](http://en.wikipedia.org/wiki/Nagle%27s_algorithm)
