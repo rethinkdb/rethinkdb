@@ -46,5 +46,8 @@ tests:
     - cd: r.range().coerce_to("ARRAY")
       ot: err("ReqlQueryLogicError", "Cannot use an infinite stream with an aggregation function (`reduce`, `count`, etc.) or coerce it to an array.", [])
 
+    - cd: r.range().coerce_to("OBJECT")
+      ot: err("ReqlQueryLogicError", "Cannot use an infinite stream with an aggregation function (`reduce`, `count`, etc.) or coerce it to an array.", [])
+
     - cd: r.range(4).count()
       ot: 4

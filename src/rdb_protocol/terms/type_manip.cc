@@ -253,7 +253,7 @@ private:
             }
 
             // SEQUENCE -> OBJECT
-            if (start_type == R_ARRAY_TYPE && end_type == R_OBJECT_TYPE) {
+            if (end_type == R_OBJECT_TYPE) {
                 datum_object_builder_t obj;
                 batchspec_t batchspec
                     = batchspec_t::user(batch_type_t::TERMINAL, env->env);
