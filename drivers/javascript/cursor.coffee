@@ -240,30 +240,11 @@ class IterableResult
         return nextCb()
 
     toArray: varar 0, 1, (cb) ->
-        fn = (cb) =>
-            arr = []
-            eachCb = (err, row) =>
-                if err?
-                    cb err
-                else
-                    arr.push(row)
-
-            onFinish = (err, ar) =>
-                cb null, arr
-
-            @each eachCb, onFinish
-
         if cb? and typeof cb isnt 'function'
             throw new err.ReqlDriverError "First argument to `toArray` must be a function or undefined."
 
-        new Promise( (resolve, reject) =>
-            toArrayCb = (err, result) ->
-                if err?
-                    reject(err)
-                else
-                    resolve(result)
-            fn(toArrayCb)
-        ).nodeify cb
+        results = []
+        return @eachAsync(results.push.bind(results)).return(results).nodeify(cb)
 
     _makeEmitter: ->
         @emitter = new EventEmitter
