@@ -261,6 +261,10 @@ private:
                     profile::sampler_t sampler("Coercing to object.", env->env->trace);
                     datum_t pair;
                     while (pair = ds->next(env->env, batchspec), pair.has()) {
+                        rcheck(pair.arr_size() == 2,
+                               base_exc_t::LOGIC,
+                               strprintf("Expected array of size 2, but got size %zu.",
+                                         pair.arr_size()));
                         datum_string_t key = pair.get(0).as_str();
                         datum_t keyval = pair.get(1);
                         bool b = obj.add(key, keyval);
