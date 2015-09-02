@@ -1,22 +1,49 @@
 # Notes for building on windows
 
-I am in the process of porting RethinkDB to Windows. These
-notes may or may not help you reproduce the failing builds
-that I have managed to run so far.
+I am in the process of porting RethinkDB to Windows. These notes may
+or may not help you reproduce builds that I have managed to run so
+far.
 
 ## Visual Studio
 
-* Install Visual Studio 2015 RC
+* Install Visual Studio 2015 (Community Edition)
+
+## Cygwin
+
+* `mk/cygwin.sh` is a wrapper around msbuild that converts error messages to ones
+  that cygwin's emacs can understand
+
+## Command line
+
+I've been alternating between the cygwin command line and cmd.exe.
+Some environment variables I've neeed are:
+
+* PATH="/cygdrive/c/Program Files (x86)/Microsoft Visual Studio 14.0/VC/bin/amd64":$PATH
+* PATH="/cygdrive/c/Program Files (x86)/Windows Kits/8.1/bin/x64/":$PATH
+* export INCLUDE="C:/Program Files (x86)/Windows Kits/8.1/Include/um/;C:/Program Files (x86)/Windows Kits/8.1/Include/shared;
+c:/Program Files (x86)/Microsoft Visual Studio 14.0/VC/include;c:/Program Files (x86)/Windows Kits/10/Include/10.0.10056.0/ucrt"
+* export LIB="c:/Program Files (x86)/Windows Kits/8.1/Lib/winv6.3/um/x64/;c:/Program Files (x86)/Microsoft Visual Studio 14.0/
+VC/lib/amd64;c:/Program Files (x86)/Windows Kits/10/Lib/10.0.10056.0/ucrt/x64"
+
+## Dependencies
+
+Follow the instructions below to build the dependencies.
+
+Pre-built static libraries and headers are available in ipfs://QmazHtNBTRsSXGpeEBhfgYHjNtWkPMEnLWNSvshyx3AJuu/windows_deps.zip
 
 ## boost
 
-* downlaod boost 1.58.0 into `..\boost_1_58_0`
+* download boost 1.58.0 into `..\boost_1_58_0`
 * in the boost directory, run
 
 ```
 .\bootstrap.bat
 .\b2 -j 24 runtime-link=static address-model=64
 ```
+
+* Copy the files from `../boost_1_58_0/bin.v2/libs/date_time/build/msvc-14.0/debug/address-model-64/link-static/runtime-link-static/threading-multi/`
+  to `windows_deps/lib/Debug`
+* Copy the `../boost_1_58_0/boost` folder to `windows_deps/include`
 
 ## gtest
 
@@ -29,10 +56,10 @@ cmake -G"Visual Studio 14 Win64"
 
 * Open `gtest.sln` in visual studio.
 * Build the `gtest` project.
+* copy `external/gtest_1.7.0/Debug/*` to `windows_deps/lib/Debug`
+* copy `external/gtest_1.7.0/include/gtest` to `windows_deps/include`
 
 ## Protobuf
-
-The dependency on Protobuf will hopefully go away soon.
 
 * Download protobuf into `..\protobuf-2.5.0`
 * Open `vsprojects\protobuf.sln`
@@ -40,6 +67,8 @@ The dependency on Protobuf will hopefully go away soon.
 * For each project in `libprotobuf` `libprotoc` and `protoc`:
   - Open Properties -> C/C++ -> All Options
   - Set Runtime Library to `/MTd`
+* Copy `../protobuf-2.5.0/vsprojects/x64/Debug/libprotobuf.lib` to `windows_deps/lib/Debug`
+* Copy the files from `../protobuf-2.5.0/vsprojects/include` to `windows_deps/include`
 
 ## OpenSSL
 
@@ -47,31 +76,43 @@ The dependency on Protobuf will hopefully go away soon.
 * Extract it to `../openssl-1.0.2a`
 * Extracting the tar file may have created symlinks that don't work in VC++. They can be converted by doing ```for x in `find . -type l`; do mv -f `readlink $x` $x; done```
 * TODO: build
+* Copy the `../openssl-1.0.2a/include/openssl` folder to `windows_deps/include`
 
 ## ICU
 
-* cd to the RethinkDB folder from the cygwin shell (use 8.3 path names if there are spaces in your path)
-* Convert endings of sh files to unix-style. Use dos2unix or ```perl -pi -e chomp `find . -name \*.sh` ````
-* `./configure --continue --fetch all`
-* `make fetch-icu`
-* ... TODO build
+* Use v8's icu
+* Recursively copy all .h files from `../v8/third_party/icu/source/common` to `windows_deps/include`
 
 ## RE2
 
 * ... TODO build
+* Copy `../re2/x64/Debug/re2.lib` `windows_deps/lib/Debug`
+* Copy `../re2/re2/*.h` to `windows_deps/include/re2`
 
 ## Curl
 
 * `make fetch-curl`
-* ... TODO build
+* cd external/curl_7.40.0/winbuild
+* nmake /f Makefile.vc mode=static DEBUG=yes MACHINE=x64 RTLIBCFG=static
+* copy `external/curl_7.40.0/builds/libcurl-vc-x64-debug-static-ipv6-sspi-winssl/lib/libcurl_a_debug.lib`
+  to `windows_deps/libs/Debug/curl.lib`
+* Copy `external/curl_7.40.0/include/curl` to `windows_deps/include`
 
 ## V8
 
-* ... TODO build
+* Download v8 4.7.17 into `../v8` (see https://code.google.com/p/v8-wiki/wiki/UsingGit)
+* Build it in Debug mode for x64 using VS2015 (see https://code.google.com/p/v8-wiki/wiki/BuildingWithGYP)
+ * Pass `-Dtarget_arch=x64` to `gyp_v8`
+* See also https://developers.google.com/v8/get_started
+* Copy `../v8/include/*` to `windows_deps/include`
+* In `windows_deps/include/libplatform/libplatform.h`, change `include/v8-platform.h` to `v8-platform.h`
+* Copy `../v8/build/Debug/lib/{v8,icu}*.lib` to `windows_deps/lib/Debug/`
 
 ## ZLib
 
 * `make fetch-zlib`
+* TODO: build?
+* Copy `external/zlib_1.2.8/z{lib,conf}.h` to `windows_deps/include`
 
 ## RethinkDB
 
@@ -86,7 +127,6 @@ The dependency on Protobuf will hopefully go away soon.
 * Compile with and fix all warnings
 * Support mingw64
 * Clean up the ifdefs, and use feature macros
-* Command line build using msbuild
 * Consider not using the pthread API on windows
 * Backtraces on crash, with addr2line
 * Clean up the arch hierachy

@@ -2,6 +2,18 @@
 #include "extproc/js_job.hpp"
 
 #include <v8.h>
+#ifdef _WIN32
+#pragma comment(lib, "v8_base_0.lib")
+#pragma comment(lib, "v8_base_1.lib")
+#pragma comment(lib, "v8_base_2.lib")
+#pragma comment(lib, "v8_base_3.lib")
+#pragma comment(lib, "v8_external_snapshot.lib")
+#pragma comment(lib, "v8_libbase.lib")
+#pragma comment(lib, "v8_libplatform.lib")
+#pragma comment(lib, "icui18n.lib")
+#pragma comment(lib, "icuuc.lib")
+#endif
+
 
 #include <stdint.h>
 #include <libplatform/libplatform.h>
@@ -56,7 +68,7 @@ js_instance_t::js_instance_t() {
     platform.init(v8::platform::CreateDefaultPlatform());
     v8::V8::InitializePlatform(platform.get());
     v8::V8::Initialize();
-    isolate_ = v8::Isolate::New();
+    isolate_ = v8::Isolate::New(v8::Isolate::CreateParams());
     isolate_->Enter();
 }
 

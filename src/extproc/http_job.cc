@@ -2,6 +2,10 @@
 #include "extproc/http_job.hpp"
 
 #include <ctype.h>
+#ifdef _WIN32 // TODO ATN
+#pragma comment(lib, "curl.lib")
+#define CURL_STATICLIB
+#endif
 #include <curl/curl.h>
 
 #include <re2/re2.h>

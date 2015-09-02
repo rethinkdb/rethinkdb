@@ -28,7 +28,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(ProjectDir)\build\release\proto;$(ProjectDir)\src;$(IncludePath)</IncludePath>
-    <LibraryPath>$(ProjectDir)\external\gtest_1.7.0\Debug;$(ProjectDir)\..\boost_1_58_0\bin.v2\libs\date_time\build\msvc-14.0\debug\address-model-64\link-static\runtime-link-static\threading-multi;$(ProjectDir)\..\protobuf-2.5.0\vsprojects\x64\Debug;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(ProjectDir)\windows_deps\lib\Debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -38,7 +38,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
       <ObjectFileName>$(IntDir)</ObjectFileName>
-      <AdditionalIncludeDirectories>$(ProjectDir)\..\protobuf-2.5.0\vsprojects\include;$(ProjectDir)\..\boost_1_58_0;$(ProjectDir)\external\gtest_1.7.0\include;$(ProjectDir)\windows_stub;$(ProjectDir)\..\re2;$(ProjectDir)\..\openssl-1.0.2a\include;$(ProjectDir)\external\icu_54.1\source\common;$(ProjectDir)\external\re2_20140111;$(ProjectDir)\external\curl_7.40.0\include;$(ProjectDir)\external\zlib_1.2.8;$(ProjectDir)\build\external\v8_3.30.33.16\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)\windows_stub;$(ProjectDir)\windows_deps\include</AdditionalIncludeDirectories>
       <PreprocessToFile>false</PreprocessToFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -51,7 +51,7 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>iphlpapi.lib;gtest.lib;libprotobuf.lib;WS2_32.lib;$(ProjectDir)\..\re2\x64\Debug\re2.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>iphlpapi.lib;gtest.lib;libprotobuf.lib;WS2_32.lib;re2.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ForceFileOutput>UndefinedSymbolOnly</ForceFileOutput>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
     </Link>
