@@ -8,8 +8,8 @@ package com.rethinkdb.gen.proto;
 public enum ErrorType {
 
     INTERNAL(1000000),
-    RESOURCE(2000000),
-    LOGIC(3000000),
+    RESOURCE_LIMIT(2000000),
+    QUERY_LOGIC(3000000),
     NON_EXISTENCE(3100000),
     OP_FAILED(4100000),
     OP_INDETERMINATE(4200000),
@@ -24,8 +24,8 @@ public enum ErrorType {
     public static ErrorType fromValue(int value) {
         switch (value) {
             case 1000000: return ErrorType.INTERNAL;
-            case 2000000: return ErrorType.RESOURCE;
-            case 3000000: return ErrorType.LOGIC;
+            case 2000000: return ErrorType.RESOURCE_LIMIT;
+            case 3000000: return ErrorType.QUERY_LOGIC;
             case 3100000: return ErrorType.NON_EXISTENCE;
             case 4100000: return ErrorType.OP_FAILED;
             case 4200000: return ErrorType.OP_INDETERMINATE;

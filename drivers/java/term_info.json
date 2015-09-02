@@ -1337,5 +1337,10 @@
         ],
         "signatures": [[]],
         "id": 181
+    },
+    "VALUES": {
+        "include_in": ["T_EXPR"],
+        "signatures": [["T_EXPR"]],
+        "id": 186
     }
 }

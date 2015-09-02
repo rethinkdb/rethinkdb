@@ -53,9 +53,9 @@ public class ErrorBuilder {
                     switch (et) {
                         case INTERNAL:
                             return ReqlInternalError::new;
-                        case RESOURCE:
+                        case RESOURCE_LIMIT:
                             return ReqlResourceLimitError::new;
-                        case LOGIC:
+                        case QUERY_LOGIC:
                             return ReqlQueryLogicError::new;
                         case NON_EXISTENCE:
                             return ReqlNonExistenceError::new;

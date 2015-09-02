@@ -49,6 +49,7 @@ public enum TermType {
     CONTAINS(93),
     GET_FIELD(31),
     KEYS(94),
+    VALUES(186),
     OBJECT(143),
     HAS_FIELDS(32),
     WITH_FIELDS(96),
@@ -233,6 +234,7 @@ public enum TermType {
             case 93: return TermType.CONTAINS;
             case 31: return TermType.GET_FIELD;
             case 94: return TermType.KEYS;
+            case 186: return TermType.VALUES;
             case 143: return TermType.OBJECT;
             case 32: return TermType.HAS_FIELDS;
             case 96: return TermType.WITH_FIELDS;

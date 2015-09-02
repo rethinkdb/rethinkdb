@@ -39,8 +39,8 @@
     },
     "ErrorType": {
       "INTERNAL": 1000000,
-      "RESOURCE": 2000000,
-      "LOGIC": 3000000,
+      "RESOURCE_LIMIT": 2000000,
+      "QUERY_LOGIC": 3000000,
       "NON_EXISTENCE": 3100000,
       "OP_FAILED": 4100000,
       "OP_INDETERMINATE": 4200000,
@@ -110,6 +110,7 @@
       "CONTAINS": 93,
       "GET_FIELD": 31,
       "KEYS": 94,
+      "VALUES": 186,
       "OBJECT": 143,
       "HAS_FIELDS": 32,
       "WITH_FIELDS": 96,
