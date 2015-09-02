@@ -169,6 +169,24 @@ describe('JavaScript Cursor', function() {
                 );
             });
 
+            it('stops iteration over table early', function(done) {
+                var i = 0;
+                tableCursor.each(
+                    function(err, row) {
+                        assert.ifError(err);
+                        assert.deepEqual(row, {'id':i});
+                        if (row.id === 10) {
+                            return false;
+                        }
+                        i++;
+                    },
+                    function() {
+                        assert.equal(i, 10);
+                        done();
+                    }
+                );
+            });
+
             it('errors when missing argument', function(done) {
                 expectedMsg = 'Expected between 1 and 2 arguments but found 0.';
                 assert.throws(function() { tableCursor.each(); }, argErrorTest(expectedMsg));
@@ -184,6 +202,43 @@ describe('JavaScript Cursor', function() {
                     i++;
                 }).then(function() {
                     assert.equal(i, numRows);
+                    done();
+                });
+            });
+
+            it('resolves before continuing iteration', function(done) {
+                var i = 0,
+                    handled = 0;
+
+                function asyncHandler(row) {
+                    return Promise.resolve().then(function () {
+                        assert.equal(handled++, row.id);
+                    })
+                }
+
+                tableCursor.eachAsync(function(row) {
+                    assert.deepEqual(row, {'id':i});
+                    i++;
+                    return asyncHandler(row);
+                })
+                .then(function() {
+                    assert.equal(i, numRows);
+                    done();
+                });
+            });
+
+            it('stops iteration over table early', function(done) {
+                var i = 0;
+                tableCursor.eachAsync(function(row) {
+                    assert.deepEqual(row, {'id':i});
+                    if (row.id === 10) {
+                        return Promise.reject(row);
+                    }
+                    i++;
+                })
+                .catch(function(row) {
+                    assert.equal(i, 10);
+                    assert.equal(row.id, 10);
                     done();
                 });
             });
