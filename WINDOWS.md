@@ -20,8 +20,7 @@ Some environment variables I've neeed are:
 
 * PATH="/cygdrive/c/Program Files (x86)/Microsoft Visual Studio 14.0/VC/bin/amd64":$PATH
 * PATH="/cygdrive/c/Program Files (x86)/Windows Kits/8.1/bin/x64/":$PATH
-* export INCLUDE="C:/Program Files (x86)/Windows Kits/8.1/Include/um/;C:/Program Files (x86)/Windows Kits/8.1/Include/shared;
-c:/Program Files (x86)/Microsoft Visual Studio 14.0/VC/include;c:/Program Files (x86)/Windows Kits/10/Include/10.0.10056.0/ucrt"
+* export INCLUDE="C:/Program Files (x86)/Windows Kits/8.1/Include/um/;C:/Program Files (x86)/Windows Kits/8.1/Include/shared;c:/Program Files (x86)/Microsoft Visual Studio 14.0/VC/include;c:/Program Files (x86)/Windows Kits/10/Include/10.0.10150.0/ucrt"
 * export LIB="c:/Program Files (x86)/Windows Kits/8.1/Lib/winv6.3/um/x64/;c:/Program Files (x86)/Microsoft Visual Studio 14.0/
 VC/lib/amd64;c:/Program Files (x86)/Windows Kits/10/Lib/10.0.10056.0/ucrt/x64"
 
@@ -74,8 +73,10 @@ cmake -G"Visual Studio 14 Win64"
 
 * Download `openssl-1.0.2a.tar.gz` from https://www.openssl.org/source/
 * Extract it to `../openssl-1.0.2a`
+* `cd ../openssl-1.0.2a`
 * Extracting the tar file may have created symlinks that don't work in VC++. They can be converted by doing ```for x in `find . -type l`; do mv -f `readlink $x` $x; done```
-* TODO: build
+* To build, follow the instructions in `INSTALL.w64`
+  * TODO ...
 * Copy the `../openssl-1.0.2a/include/openssl` folder to `windows_deps/include`
 
 ## ICU
@@ -111,7 +112,9 @@ cmake -G"Visual Studio 14 Win64"
 ## ZLib
 
 * `make fetch-zlib`
-* TODO: build?
+* `cd external/zlib_1.2.8`
+* Edit `win32/Makefile.msc`, change `-MD` to `-MTd`
+* `nmake -f win32/Makefile.msc`
 * Copy `external/zlib_1.2.8/z{lib,conf}.h` to `windows_deps/include`
 
 ## RethinkDB

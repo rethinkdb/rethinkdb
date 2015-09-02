@@ -26,7 +26,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LinkIncremental>true</LinkIncremental>
+    <!-- disabled due to /FORCE <LinkIncremental>true</LinkIncremental> -->
     <IncludePath>$(ProjectDir)\build\release\proto;$(ProjectDir)\src;$(IncludePath)</IncludePath>
     <LibraryPath>$(ProjectDir)\windows_deps\lib\Debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
@@ -51,7 +51,7 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>iphlpapi.lib;gtest.lib;libprotobuf.lib;WS2_32.lib;re2.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>iphlpapi.lib;gtest.lib;libprotobuf.lib;WS2_32.lib;re2.lib;zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ForceFileOutput>UndefinedSymbolOnly</ForceFileOutput>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
     </Link>
@@ -68,6 +68,7 @@
     <ClCompile Include="build\release\proto\rdb_protocol\ql2.pb.cc" />
     <ClCompile Include="build\release\proto\rdb_protocol\ql2_extensions.pb.cc" />
     <ClCompile Include="windows_stub\pthread.cc" />
+    <ClCompile Include="build\release\web_assets\web_assets.cc" />
   </ItemGroup>
   <ItemGroup>
     <None Include="src\rdb_protocol\ql2.proto" />

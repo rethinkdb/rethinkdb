@@ -6,6 +6,10 @@ import os
 import sys
 import itertools
 
+MAX_LITERAL_SIZE = 65535
+MAX_LINE_LENGTH = 82
+MAX_LINES = MAX_LITERAL_SIZE // MAX_LINE_LENGTH
+
 def main():
     try:
         assets_root = sys.argv[1]
@@ -46,12 +50,18 @@ def write_assets(asset_root, assets):
         position = 0 # track the position to keep lines short
         trigraph = 0 # track consecutive question marks to avoid writing trigraphs
         prev_e = None # track the previous character to avoid tacking on hex digits
+        line = 0
 
         for c in data:
             c = byte(c)
 
             if position == 0:
                 # start a new line
+                if line >= MAX_LINES:
+                    print(' + (std::string)', end='')
+                    line = 0
+                else:
+                    line += 1
                 print('\n      "', end='')
                 position = 7
                 trigraph = 0
@@ -74,7 +84,7 @@ def write_assets(asset_root, assets):
             print(e, end='')
             position += len(e)
 
-            if position > 82 or c == b'\n':
+            if position > MAX_LINE_LENGTH or c == b'\n':
                 # end a line if it gets too long and on newlines
                 print('"', end='')
                 position = 0
