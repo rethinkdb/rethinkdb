@@ -25,6 +25,12 @@ public class TopLevel {
     public ${term['classname']} ${term['methodname']}(${
         ', '.join('%s %s' % (arg['type'], arg['var'])
                   for arg in signature['args'])}){
+        % if term['methodname'] == 'binary':
+        <% firstarg = signature['args'][0]['var'] %>
+        if(${firstarg} instanceof byte[]){
+            return new ${term['classname']}((byte[]) ${firstarg});
+        }else{
+        %endif
         Arguments args = new Arguments();
         %for arg in signature['args']:
           %if arg['type'] == 'Object...':
@@ -34,6 +40,9 @@ public class TopLevel {
           %endif
         %endfor
         return new ${term['classname']}(args);
+        % if term['methodname'] == 'binary':
+        }
+        %endif
     }
     %endfor
   %endif

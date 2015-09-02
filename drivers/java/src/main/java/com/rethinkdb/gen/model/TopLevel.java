@@ -490,9 +490,14 @@ public class TopLevel {
         return new Args(args);
     }
     public Binary binary(Object expr){
+        
+        if(expr instanceof byte[]){
+            return new Binary((byte[]) expr);
+        }else{
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Binary(args);
+        }
     }
     public Geojson geojson(Object expr){
         Arguments args = new Arguments();

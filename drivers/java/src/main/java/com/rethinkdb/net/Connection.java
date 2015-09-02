@@ -99,6 +99,10 @@ public class Connection<C extends ConnectionInstance> {
         }
     }
 
+    public void close(){
+        close(true);
+    }
+
     public void close(boolean shouldNoreplyWait) {
         instance.ifPresent(inst -> {
             try {

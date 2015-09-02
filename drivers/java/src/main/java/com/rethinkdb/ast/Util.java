@@ -43,6 +43,14 @@ public class Util {
             return (ReqlAst) val;
         }
 
+        if (val instanceof Object[]){
+            Arguments innerValues = new Arguments();
+            for (Object innerValue : Arrays.asList((Object[])val)){
+                innerValues.add(toReqlAst(innerValue, remainingDepth -1));
+            }
+            return new MakeArray(innerValues, null);
+        }
+
         if (val instanceof List) {
             Arguments innerValues = new Arguments();
             for (java.lang.Object innerValue : (List) val) {

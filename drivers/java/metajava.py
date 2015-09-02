@@ -184,17 +184,17 @@ class java_term_info(object):
             self.add_classname(term, info)
             self.add_superclass(term, info)
             self.translate_include_in(info)
-            info['signatures'] = self.reify_signatures(
+            info['signatures'] = self.reify_signatures(term,
                 info.get('signatures', []))
 
     @classmethod
-    def reify_signatures(cls, signatures):
+    def reify_signatures(cls, term, signatures):
         '''This takes the general signatures from terminfo.json and
         turns them into signatures that can actually be created in the
         Java.'''
         return [cls.elaborate_signature(x)
                 for sig in signatures
-                for x in cls.reify_signature(sig)]
+                for x in cls.reify_signature(term, sig)]
 
     @staticmethod
     def elaborate_signature(sig):
@@ -259,7 +259,7 @@ class java_term_info(object):
         }
 
     @classmethod
-    def reify_signature(cls, signature):
+    def reify_signature(cls, term, signature):
         def translate(arg):
             if isinstance(arg, basestring):
                 return {
@@ -333,6 +333,14 @@ class java_term_info(object):
 
         formal_args = []
         expanded = False
+
+        # This is a little hack just for r.do. It formally accepts (in
+        # the wire format) the function first, and the arguments
+        # last. But all the drivers conventionally accept the function
+        # as the last argument since that looks the best when it is
+        # chained.
+        if term == 'FUNCALL' and 'T_FUNCX' in signature:
+            signature = signature[1:] + [signature[0]]
 
         for i, arg in enumerate(signature):
             if arg == '*':

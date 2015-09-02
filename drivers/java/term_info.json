@@ -756,7 +756,7 @@
         ],
         "signatures": [
             ["T_EXPR", "T_EXPR", "*"],
-            ["T_EXPR", "T_EXPR", "*", "T_FUNCX"]
+            ["T_FUNCX", "T_EXPR", "T_EXPR", "*"]
         ],
         "id": 64
     },

@@ -4,8 +4,8 @@ package com.rethinkdb.net;
 import com.rethinkdb.gen.ast.Datum;
 import com.rethinkdb.gen.exc.ReqlDriverError;
 import com.rethinkdb.model.GroupedResult;
+import com.rethinkdb.model.MapObject;
 import com.rethinkdb.model.OptArgs;
-import org.json.simple.JSONArray;
 
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -13,7 +13,9 @@ import java.util.stream.Collectors;
 
 public class Converter {
 
-    private static final Base64.Decoder b64 = Base64.getDecoder();
+    private static final Base64.Decoder b64decoder = Base64.getDecoder();
+    private static final Base64.Encoder b64encoder = Base64.getEncoder();
+
 
     public static final String PSEUDOTYPE_KEY = "$reql_type$";
 
@@ -79,12 +81,6 @@ public class Converter {
     }
 
     @SuppressWarnings("unchecked")
-    private static byte[] getBinary(Map<String, Object> value) {
-        String str = (String) value.get("data");
-        return b64.decode(str.getBytes(StandardCharsets.UTF_8));
-    }
-
-    @SuppressWarnings("unchecked")
     private static List<GroupedResult> getGrouped(Map<String, Object> value) {
         return ((List<List<Object>>) value.get("data")).stream()
                 .map(g -> new GroupedResult(g.remove(0), g))
@@ -102,5 +98,18 @@ public class Converter {
         } catch (Exception ex) {
             throw new ReqlDriverError("Error handling date", ex);
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static byte[] getBinary(Map<String, Object> value) {
+        String str = (String) value.get("data");
+        return b64decoder.decode(str.getBytes(StandardCharsets.UTF_8));
+    }
+
+    public static Map<String,Object> toBinary(byte[] data){
+        MapObject mob = new MapObject();
+        mob.with("$reql_type$", BINARY);
+        mob.with("data", b64encoder.encodeToString(data));
+        return mob;
     }
 }
