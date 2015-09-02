@@ -63,6 +63,9 @@ public class Converter {
     }
 
     public static Object convertPseudo(Map<String, Object> value, FormatOptions fmt) {
+        if(value == null){
+            return null;
+        }
         String reqlType = (String) value.get(PSEUDOTYPE_KEY);
         switch (reqlType) {
             case TIME:

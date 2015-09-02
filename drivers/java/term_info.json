@@ -569,14 +569,14 @@
         "include_in": [
             "T_TOP_LEVEL"
         ],
-        "signatures": [["T_EXPR", "T_EXPR"]],
+        "signatures": [["T_EXPR"]],
         "id": 57
     },
     "DB_DROP": {
         "include_in": [
             "T_TOP_LEVEL"
         ],
-        "signatures": [["T_EXPR", "T_EXPR"]],
+        "signatures": [["T_EXPR"]],
         "id": 58
     },
     "DB_LIST": {

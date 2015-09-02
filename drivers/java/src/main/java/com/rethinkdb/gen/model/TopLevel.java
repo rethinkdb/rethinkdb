@@ -195,16 +195,14 @@ public class TopLevel {
         args.coerceAndAdd(expr);
         return new TypeOf(args);
     }
-    public DbCreate dbCreate(Object expr, Object exprA){
+    public DbCreate dbCreate(Object expr){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
-        args.coerceAndAdd(exprA);
         return new DbCreate(args);
     }
-    public DbDrop dbDrop(Object expr, Object exprA){
+    public DbDrop dbDrop(Object expr){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
-        args.coerceAndAdd(exprA);
         return new DbDrop(args);
     }
     public DbList dbList(){

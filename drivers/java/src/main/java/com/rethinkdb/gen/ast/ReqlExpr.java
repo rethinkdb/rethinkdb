@@ -696,4 +696,8 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(exprA);
         return new PolygonSub(arguments);
     }
+    public Values values() {
+        Arguments arguments = new Arguments(this);
+        return new Values(arguments);
+    }
 }
