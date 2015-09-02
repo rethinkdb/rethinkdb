@@ -217,15 +217,12 @@ class IterableResult
         if onFinished? and typeof onFinished isnt 'function'
             throw new err.ReqlDriverError "Optional second argument to each must be a function."
 
-        stopFlag = false
         self = @
         nextCb = (err, data) =>
-            if stopFlag isnt true
-                if err?.message is 'No more rows in the cursor.'
-                    onFinished?()
-                else
-                    stopFlag = cb(err, data) is false
-                    @_next nextCb
+            if err?.message is 'No more rows in the cursor.'
+                onFinished?()
+            else if cb(err, data) isnt false
+                @_next nextCb
             else
                 onFinished?()
         @_next nextCb
