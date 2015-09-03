@@ -102,8 +102,8 @@ public class RethinkDBTest{
         Number nmb12 = r.expr("-1.2").coerceTo("NUMBER").run(conn);
         Assert.assertEquals(nmb12, -1.2);
 
-        Number nmb10 = r.expr("0xa").coerceTo("NUMBER").run(conn);
-        Assert.assertEquals(nmb10, 10);
+        Long nmb10 = r.expr("0xa").coerceTo("NUMBER").run(conn);
+        Assert.assertEquals(nmb10.longValue(), 10L);
     }
 
     @Test
