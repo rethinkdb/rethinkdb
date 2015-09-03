@@ -28,7 +28,7 @@ VC/lib/amd64;c:/Program Files (x86)/Windows Kits/10/Lib/10.0.10056.0/ucrt/x64"
 
 Follow the instructions below to build the dependencies.
 
-Pre-built static libraries and headers are available in ipfs://QmazHtNBTRsSXGpeEBhfgYHjNtWkPMEnLWNSvshyx3AJuu/windows_deps.zip
+Pre-built static libraries and headers are available in ipfs://QmYVvWsNPr5ixpJQz1atf6hfeTnYfy6VuEpPosYLpUzniA/windows_deps.zip
 
 ## boost
 
@@ -75,9 +75,10 @@ cmake -G"Visual Studio 14 Win64"
 * Extract it to `../openssl-1.0.2a`
 * `cd ../openssl-1.0.2a`
 * Extracting the tar file may have created symlinks that don't work in VC++. They can be converted by doing ```for x in `find . -type l`; do mv -f `readlink $x` $x; done```
-* To build, follow the instructions in `INSTALL.w64`
-  * TODO ...
-* Copy the `../openssl-1.0.2a/include/openssl` folder to `windows_deps/include`
+* To build, maybe follow the instructions in `INSTALL.w64`
+* Or instead, download from http://p-nand-q.com/programming/windows/building_openssl_with_visual_studio_2013.html
+* Copy the `include/openssl` folder to `windows_deps/include`
+* Copy `libeay32.lib` `ssleay32.lib` to `windows_deps/lib/Debug`
 
 ## ICU
 
@@ -141,15 +142,11 @@ cmake -G"Visual Studio 14 Win64"
 * Generate protobuf
 * Pass all unit tests
 * death tests with exceptions seem to fail
-* web assets literal size > 65535
 * Check all RSI ATN TODO _MSC_VER and _WIN32 tags
-* re-implement sockets.cc
 * Handle ^C
-* no more named VA_ARGS
 * test blocker pool, maybe use windowswindows-specific pool
 * make sure it still builds on linux
 * keep up-to-date with next/raft/sunos
-* build without /force:unresolved LDFLAG 
 * rebuild with MSC and examine all the int32 -> int64 warnings.
 * restore the msvc-specific s2 code
 * ensure that aligned pointers are freed and allocated correctly

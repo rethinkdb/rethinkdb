@@ -26,7 +26,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <!-- disabled due to /FORCE <LinkIncremental>true</LinkIncremental> -->
+    <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(ProjectDir)\build\release\proto;$(ProjectDir)\src;$(IncludePath)</IncludePath>
     <LibraryPath>$(ProjectDir)\windows_deps\lib\Debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
@@ -51,9 +51,10 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>iphlpapi.lib;gtest.lib;libprotobuf.lib;WS2_32.lib;re2.lib;zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <ForceFileOutput>UndefinedSymbolOnly</ForceFileOutput>
+      <AdditionalDependencies>iphlpapi.lib;gtest.lib;libprotobuf.lib;WS2_32.lib;re2.lib;zlib.lib;ssleay32.lib;libeay32.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <!-- TODO ATN: No longer needed! <ForceFileOutput>UndefinedSymbolOnly</ForceFileOutput> -->
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
+      <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
