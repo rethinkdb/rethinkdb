@@ -85,7 +85,7 @@ TPTEST(RPCMailboxTest, MailboxStartStop, 2) {
     dummy_mailbox_t mbox1(&m);
 
     /* Make sure we can create a mailbox on an arbitrary thread */
-    on_thread_t thread_switcher(threadnum_t(1));
+    on_thread_t thread_switcher((threadnum_t(1)));
     dummy_mailbox_t mbox2(&m);
 }
 
