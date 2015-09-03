@@ -149,7 +149,9 @@ datum_t::data_wrapper_t::data_wrapper_t(type_t type, shared_buf_ref_t<char> &&_b
 }
 
 datum_t::data_wrapper_t::~data_wrapper_t() {
-    destruct();
+    call_with_enough_stack(
+        [&] { destruct(); },
+        MIN_DATUM_RECURSION_STACK_SPACE);
 }
 
 datum_t::type_t datum_t::data_wrapper_t::get_type() const {
