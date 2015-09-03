@@ -6,6 +6,9 @@
 #include <algorithm>
 #include <set>
 
+#include "errors.hpp"
+#include <boost/optional.hpp>
+
 #include "btree/node.hpp"
 #include "repli_timestamp.hpp"
 #include "utils.hpp"
@@ -580,7 +583,12 @@ private:
 };
 
 
-void garbage_collect(value_sizer_t *sizer, leaf_node_t *node, int num_tstamped, int *preserved_index) {
+void garbage_collect(
+        value_sizer_t *sizer,
+        leaf_node_t *node,
+        int num_tstamped,
+        int *preserved_index,
+        boost::optional<int> tstamp_cutoff_upper_bound = boost::optional<int>()) {
     scoped_array_t<uint16_t> indices(node->num_pairs);
 
     for (int i = 0; i < node->num_pairs; ++i) {
@@ -591,6 +599,11 @@ void garbage_collect(value_sizer_t *sizer, leaf_node_t *node, int num_tstamped, 
 
     int mand_offset;
     UNUSED int cost = mandatory_cost(sizer, node, num_tstamped, &mand_offset);
+    if (tstamp_cutoff_upper_bound) {
+        /* If we have an upper bound for the timestamp cutoff point, make sure
+        that we cut off at least that many timestamps. */
+        mand_offset = std::min(*tstamp_cutoff_upper_bound, mand_offset);
+    }
 
     int w = sizer->block_size().value();
     int i = node->num_pairs - 1;
@@ -618,9 +631,11 @@ void garbage_collect(value_sizer_t *sizer, leaf_node_t *node, int num_tstamped, 
 
     for (; i >= 0; --i) {
         int offset = node->pair_offsets[indices[i]];
+        entry_t *ent = get_entry(node, offset);
+        rassert(!entry_is_skip(ent));
 
         // Preserve the timestamp.
-        int sz = sizeof(repli_timestamp_t) + entry_size(sizer, get_entry(node, offset));
+        int sz = sizeof(repli_timestamp_t) + entry_size(sizer, ent);
 
         w -= sz;
 
@@ -1241,6 +1256,23 @@ MUST_USE bool prepare_space_for_new_entry(
         bool allow_after_tstamp_cutpoint,
         char **space_out) {
 
+    /* Get an upper bound for the timestamp cutoff point in case we later call
+    `garbage_collect()`. We want to make sure that garbage collection cleans up
+    *at least* as much space as it would clean up now. This is crucial, because
+    our caller (in particular `insert()`) might have used `is_full()` in order to
+    check that the leaf node has enough space for a given entry.
+    If the key already exists, we are going to call `clear_entry()` on it below,
+    before we call `garbage_collect()`. However this can have the unwanted side
+    effect that `mandatory_cost` om `garbage_collect()` no longer exceeds the
+    `max_deletions_cost`, or exceeds it only at a later offset
+    (this is true in particular if the existing entry is a deletion entry).
+    As a consequence of that, `garbage_collect()` might clean up slightly less space
+    than was originally assumed.
+    We avoid this problem by getting the cutoff point now, and having `garbage_collect()`
+    pick the lower of the two. */
+    int gc_tstamp_cutoff_upper_bound;
+    mandatory_cost(sizer, node, MANDATORY_TIMESTAMPS - 1, &gc_tstamp_cutoff_upper_bound);
+
     /* Figure out where in `pair_offsets` to put the offset of the new entry,
     and simultaneously check for an existing entry for this key. If the entry
     already exists, clean it. */
@@ -1292,7 +1324,8 @@ MUST_USE bool prepare_space_for_new_entry(
         /* Passing `&index` as the last parameter to `garbage_collect()`
         guarantees that it will remain valid even as `pair_offsets` entries are
         moved around. */
-        garbage_collect(sizer, node, MANDATORY_TIMESTAMPS - 1, &index);
+        garbage_collect(sizer, node, MANDATORY_TIMESTAMPS - 1, &index,
+                        boost::make_optional(gc_tstamp_cutoff_upper_bound));
 
         /* Make sure that `index` still refers to where the new key should be
         inserted. */
@@ -1338,8 +1371,7 @@ MUST_USE bool prepare_space_for_new_entry(
     }
 
     /* If a deletion would go after `tstamp_cutpoint`, instead we want to just
-    discard it entirely. */
-
+    discard it entirely (deletions have `allow_after_tstamp_cutpoint == false`). */
     bool actually_create_entry = new_entry_should_have_timestamp || allow_after_tstamp_cutpoint;
 
     if (!actually_create_entry) {
@@ -1397,7 +1429,8 @@ MUST_USE bool prepare_space_for_new_entry(
     }
 
     node->frontmost -= total_space_for_new_entry;
-    rassert(offsetof(leaf_node_t, pair_offsets) + sizeof(uint16_t) * node->num_pairs <= node->frontmost);
+    guarantee(offsetof(leaf_node_t, pair_offsets)
+              + sizeof(uint16_t) * node->num_pairs <= node->frontmost);
 
     /* Write the timestamp if we need one, and update `node->tstamp_cutpoint` if
     we don't. */
@@ -1421,6 +1454,7 @@ MUST_USE bool prepare_space_for_new_entry(
     } else {
         *space_out = get_at_offset(node, start_of_where_new_entry_should_go);
     }
+    guarantee(end_of_where_new_entry_should_go <= sizer->block_size().value());
 
     return true;
 }
@@ -1440,11 +1474,11 @@ void insert(
     /* Make space for the entry itself */
 
     char *location_to_write_data;
-    DEBUG_VAR bool should_write = prepare_space_for_new_entry(sizer, node,
+    bool should_write = prepare_space_for_new_entry(sizer, node,
         key, key->full_size() + sizer->size(value), tstamp, maximum_existing_tstamp,
         true,
         &location_to_write_data);
-    rassert(should_write);
+    guarantee(should_write);
 
     /* Now copy the data into the node itself */
 
