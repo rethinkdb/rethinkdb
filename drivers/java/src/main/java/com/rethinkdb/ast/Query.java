@@ -5,6 +5,8 @@ import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.net.Util;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 import org.json.simple.JSONArray;
@@ -55,10 +57,10 @@ public class Query {
             queryArr.add(ReqlAst.buildOptarg(globalOptions));
         }
         String queryJson = queryArr.toJSONString();
-        byte[] queryBytes = queryJson.getBytes();
+        byte[] queryBytes = queryJson.getBytes(StandardCharsets.UTF_8);
         ByteBuffer bb = Util.leByteBuffer(8 + 4 + queryBytes.length)
             .putLong(token)
-            .putInt(queryJson.length())
+            .putInt(queryBytes.length)
             .put(queryBytes);
         System.out.println("Sending: "+ Util.bufferToString(bb)); //RSI
         return bb;
