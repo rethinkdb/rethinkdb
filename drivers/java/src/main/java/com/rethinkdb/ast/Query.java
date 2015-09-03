@@ -55,10 +55,11 @@ public class Query {
             queryArr.add(ReqlAst.buildOptarg(globalOptions));
         }
         String queryJson = queryArr.toJSONString();
-        ByteBuffer bb = Util.leByteBuffer(8 + 4 + queryJson.length())
+        byte[] queryBytes = queryJson.getBytes();
+        ByteBuffer bb = Util.leByteBuffer(8 + 4 + queryBytes.length)
             .putLong(token)
             .putInt(queryJson.length())
-            .put(queryJson.getBytes());
+            .put(queryBytes);
         System.out.println("Sending: "+ Util.bufferToString(bb)); //RSI
         return bb;
     }
