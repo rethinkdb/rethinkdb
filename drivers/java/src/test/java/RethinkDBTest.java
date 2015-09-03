@@ -32,7 +32,7 @@ public class RethinkDBTest{
                 .port(31157)
                 .connect();
         try{
-            r.dbCreate(dbName);
+            r.dbCreate(dbName).run(conn);
         }catch(ReqlError e){}
         try {
             r.db(dbName).wait_().run(conn);
