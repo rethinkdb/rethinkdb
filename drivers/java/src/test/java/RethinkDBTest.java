@@ -92,7 +92,7 @@ public class RethinkDBTest{
 
         String unicode = r.expr("こんにちは").run(conn);
         Assert.assertEquals(unicode, "こんにちは");
-        System.out.println("This is getting run I think");
+
         String strType = r.expr("foo").typeOf().run(conn);
         Assert.assertEquals(strType, "STRING");
 
@@ -137,6 +137,40 @@ public class RethinkDBTest{
 
         List<String> emptySplitSpace = r.expr("").split(" ").run(conn);
         Assert.assertEquals(Arrays.asList(""), emptySplitSpace);
+
+        List<String> emptySplitEmpty = r.expr("").split("").run(conn);
+        assertEquals(Arrays.asList(), emptySplitEmpty);
+
+        List<String> emptySplitNull5 = r.expr("").split(null, 5).run(conn);
+        assertEquals(Arrays.asList(), emptySplitNull5);
+
+        List<String> emptySplitSpace5 = r.expr("").split(" ", 5).run(conn);
+        assertEquals(Arrays.asList(""), emptySplitSpace5);
+
+        List<String> emptySplitEmpty5 = r.expr("").split("", 5).run(conn);
+        assertEquals(Arrays.asList(), emptySplitEmpty5);
+    }
+
+    @Test
+    public void testSplitWithNullOrWhitespace() {
+        List<String> extraWhitespace = r.expr("aaaa bbbb  cccc ").split().run(conn);
+        assertEquals(Arrays.asList("aaaa", "bbbb", "cccc"), extraWhitespace);
+
+        List<String> extraWhitespaceNull = r.expr("aaaa bbbb  cccc ").split(null).run(conn);
+        assertEquals(Arrays.asList("aaaa", "bbbb", "cccc"), extraWhitespaceNull);
+
+        List<String> extraWhitespaceSpace = r.expr("aaaa bbbb  cccc ").split(" ").run(conn);
+        assertEquals(Arrays.asList("aaaa", "bbbb", "", "cccc", ""), extraWhitespaceSpace);
+
+        List<String> extraWhitespaceEmpty = r.expr("aaaa bbbb  cccc ").split("").run(conn);
+        assertEquals(Arrays.asList("a", "a", "a", "a", " ",
+                "b", "b", "b", "b", " ", " ", "c", "c", "c", "c", " "), extraWhitespaceEmpty);
+    }
+
+    @Test
+    public void testSplitWithString() {
+        List<String> b = r.expr("aaaa bbbb  cccc ").split("b").run(conn);
+        assertEquals(Arrays.asList("aaaa ", "", "", "", "  cccc "), b);
     }
 
 }
