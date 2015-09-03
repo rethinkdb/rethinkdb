@@ -7,18 +7,19 @@ targetCompatibility = 1.8
 
 //create a single Jar with all dependencies baked in
 task fatJar(type: Jar) {
-  archiveName = "rethinkdb-"+version+".jar"
-  from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
-  with jar
+    archiveName = "rethinkdb-"+version+".jar"
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
 }
 
 repositories {
-  mavenCentral()
+    mavenCentral()
 }
 
 dependencies {
-  compile 'org.slf4j:slf4j-api:1.7.2'
-  compile group: 'com.googlecode.json-simple', name: 'json-simple', version: '1.1.1'
+    testCompile "junit:junit:4.12"
+    compile 'org.slf4j:slf4j-api:1.7.2'
+    compile group: 'com.googlecode.json-simple', name: 'json-simple', version: '1.1.1'
 }
 
 buildDir = '../../build/drivers/java/gradle'

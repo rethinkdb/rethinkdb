@@ -1,0 +1,142 @@
+import com.rethinkdb.RethinkDB;
+import com.rethinkdb.gen.exc.ReqlError;
+import com.rethinkdb.gen.exc.ReqlQueryLogicError;
+import com.rethinkdb.net.Connection;
+import junit.framework.Assert;
+import junit.framework.TestCase;
+import static org.junit.Assert.assertEquals;
+
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
+
+import java.util.Arrays;
+import java.util.List;
+
+public class RethinkDBTest{
+
+    public static final RethinkDB r = RethinkDB.r;
+    Connection<?> conn;
+    public final String dbName = "javatests";
+    public final String tableName = "atest";
+
+    @Rule
+    public ExpectedException expectedEx = ExpectedException.none();
+
+    @Before
+    public void setUp() throws Exception {
+        conn = r.connection()
+                .hostname("newton")
+                .port(31157)
+                .connect();
+        try{
+            r.dbCreate(dbName);
+        }catch(ReqlError e){}
+        try {
+            r.db(dbName).wait_().run(conn);
+            r.db(dbName).tableCreate(tableName).run(conn);
+            r.db(dbName).table(tableName).wait_().run(conn);
+        }catch(ReqlError e){}
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        try {
+            r.db(dbName).tableDrop(tableName).run(conn);
+        }catch(ReqlError e){}
+        try {
+            r.dbDrop(dbName).run(conn);
+        }catch(ReqlError e){}
+        conn.close();
+    }
+
+    @Test
+    public void testBooleans() throws Exception {
+        Boolean t = r.expr(true).run(conn);
+        Assert.assertEquals(t.booleanValue(), true);
+
+        Boolean f = r.expr(false).run(conn);
+        Assert.assertEquals(t.booleanValue(), false);
+
+        String trueType = r.expr(true).typeOf().run(conn);
+        Assert.assertEquals(trueType, "BOOL");
+
+        String falseString = r.expr(false).coerceTo("string").run(conn);
+        Assert.assertEquals(falseString, "false");
+
+        Boolean boolCoerce = r.expr(true).coerceTo("bool").run(conn);
+        Assert.assertEquals(boolCoerce.booleanValue(), true);
+    }
+
+    @Test
+    public void testNull() {
+        Object o = r.expr(null).run(conn);
+        Assert.assertEquals(o, null);
+
+        String nullType = r.expr(null).typeOf().run(conn);
+        Assert.assertEquals(nullType, "NULL");
+
+        String nullCoerce = r.expr(null).coerceTo("string").run(conn);
+        Assert.assertEquals(nullCoerce, "null");
+
+        Object n = r.expr(null).coerceTo("null").run(conn);
+        Assert.assertEquals(n, null);
+    }
+
+    @Test
+    public void testString() {
+        String str = r.expr("str").run(conn);
+        Assert.assertEquals(str, "str");
+
+        String unicode = r.expr("こんにちは").run(conn);
+        Assert.assertEquals(unicode, "こんにちは");
+        System.out.println("This is getting run I think");
+        String strType = r.expr("foo").typeOf().run(conn);
+        Assert.assertEquals(strType, "STRING");
+
+        String strCoerce = r.expr("foo").coerceTo("string").run(conn);
+        Assert.assertEquals(strCoerce, "foo");
+
+        Number nmb12 = r.expr("-1.2").coerceTo("NUMBER").run(conn);
+        Assert.assertEquals(nmb12, -1.2);
+
+        Number nmb10 = r.expr("0xa").coerceTo("NUMBER").run(conn);
+        Assert.assertEquals(nmb10, 10);
+    }
+
+    @Test
+    public void testCoerceFailureDoubleNegative() {
+        expectedEx.expect(ReqlQueryLogicError.class);
+        expectedEx.expectMessage("Could not coerce `--1.2` to NUMBER.");
+        r.expr("--1.2").coerceTo("NUMBER").run(conn);
+    }
+
+    @Test
+    public void testCoerceFailureTrailingNegative() {
+        expectedEx.expect(ReqlQueryLogicError.class);
+        expectedEx.expectMessage("Could not coerce `-1.2` to NUMBER.");
+        r.expr("-1.2-").coerceTo("NUMBER").run(conn);
+    }
+
+    @Test
+    public void testCoerceFailureInfinity() {
+        expectedEx.expect(ReqlQueryLogicError.class);
+        expectedEx.expectMessage("Non-finite number: inf");
+        r.expr("inf").coerceTo("NUMBER");
+    }
+
+    @Test
+    public void testSplitEdgeCases() {
+        List<String> emptySplitNothing = r.expr("").split().run(conn);
+        Assert.assertEquals(emptySplitNothing, Arrays.asList());
+
+        List<String> nullSplit = r.expr("").split(null).run(conn);
+        Assert.assertEquals(nullSplit, Arrays.asList());
+
+        List<String> emptySplitSpace = r.expr("").split(" ").run(conn);
+        Assert.assertEquals(emptySplitSpace, Arrays.asList("1"));
+    }
+
+}
