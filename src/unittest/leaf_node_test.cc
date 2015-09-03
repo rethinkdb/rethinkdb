@@ -393,44 +393,58 @@ TEST(LeafNodeTest, InsertRemove) {
     }
 }
 
+void test_random_out_of_order(int num_keys, int num_ops, bool random_tstamps) {
+    LeafNodeTracker tracker;
+
+    rng_t rng;
+
+    std::vector<store_key_t> key_pool(num_keys);
+    for (int i = 0; i < num_keys; ++i) {
+        key_pool[i].set_size(rng.randint(160));
+        char letter = 'a' + rng.randint(26);
+        for (int j = 0; j < key_pool[i].size(); ++j) {
+            key_pool[i].contents()[j] = letter;
+        }
+    }
+
+    for (int i = 0; i < num_ops; ++i) {
+        const store_key_t &key = key_pool[rng.randint(num_keys)];
+        repli_timestamp_t tstamp;
+        if (random_tstamps) {
+            tstamp.longtime = rng.randint(num_ops);
+        } else {
+            tstamp.longtime = 0;
+        }
+
+        if (rng.randint(2) == 1) {
+            std::string value;
+            int length = rng.randint(160);
+            char letter = 'a' + rng.randint(26);
+            for (int j = 0; j < length; ++j) {
+                value.push_back(letter);
+            }
+            /* If the key doesn't fit, that's OK; it will just not insert it
+            and return `false`, which we ignore. */
+            tracker.Insert(key, value, tstamp);
+        } else {
+            if (tracker.ShouldHave(key)) {
+                tracker.Remove(key);
+            }
+        }
+    }
+}
+
 TEST(LeafNodeTest, RandomOutOfOrder) {
     for (int try_num = 0; try_num < 10; ++try_num) {
-        LeafNodeTracker tracker;
+        test_random_out_of_order(10, 20000, true);
+    }
+}
 
-        rng_t rng;
-
-        const int num_keys = 10;
-        store_key_t key_pool[num_keys];
-        for (int i = 0; i < num_keys; ++i) {
-            key_pool[i].set_size(rng.randint(160));
-            char letter = 'a' + rng.randint(26);
-            for (int j = 0; j < key_pool[i].size(); ++j) {
-                key_pool[i].contents()[j] = letter;
-            }
-        }
-
-        const int num_ops = 10000;
-        for (int i = 0; i < num_ops; ++i) {
-            const store_key_t &key = key_pool[rng.randint(num_keys)];
-            repli_timestamp_t tstamp;
-            tstamp.longtime = rng.randint(num_ops);
-
-            if (rng.randint(2) == 1) {
-                std::string value;
-                int length = rng.randint(160);
-                char letter = 'a' + rng.randint(26);
-                for (int j = 0; j < length; ++j) {
-                    value.push_back(letter);
-                }
-                /* If the key doesn't fit, that's OK; it will just not insert it
-                and return `false`, which we ignore. */
-                tracker.Insert(key, value, tstamp);
-            } else {
-                if (tracker.ShouldHave(key)) {
-                    tracker.Remove(key);
-                }
-            }
-        }
+TEST(LeafNodeTest, RandomOutOfOrderLowTstamp) {
+    for (int try_num = 0; try_num < 10; ++try_num) {
+        // In contrast to RandomOutOfOrder, we use a fixed tstamp of 0
+        // to test some corner cases better.
+        test_random_out_of_order(50, 20000, false);
     }
 }
 
