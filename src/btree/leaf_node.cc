@@ -1263,7 +1263,7 @@ MUST_USE bool prepare_space_for_new_entry(
     check that the leaf node has enough space for a given entry.
     If the key already exists, we are going to call `clear_entry()` on it below,
     before we call `garbage_collect()`. However this can have the unwanted side
-    effect that `mandatory_cost` om `garbage_collect()` no longer exceeds the
+    effect that `mandatory_cost` in `garbage_collect()` no longer exceeds the
     `max_deletions_cost`, or exceeds it only at a later offset
     (this is true in particular if the existing entry is a deletion entry).
     As a consequence of that, `garbage_collect()` might clean up slightly less space
@@ -1302,8 +1302,15 @@ MUST_USE bool prepare_space_for_new_entry(
         in the leaf node, we'll open up some space in `pair_offsets`. */
     }
 
-    /* Garbage collect if appropriate. We do it after cleaning up any existing
-    entry so that deletion always works no matter how full the node is. */
+    /* Garbage collect if appropriate.
+    We do it after cleaning up any existing entry so that adding a deletion entry
+    *almost* always works no matter how full the node is.
+    If the existing entry is smaller than the new deletion entry that we're trying
+    to add, we might not have enough space for it even after garbage collection.
+    This can happen if the previous entry didn't have a timestamp and had a very
+    small value size (in practice this should be really rare).
+    We check for this condition further down, and recover from it by dropping
+    all existing timestamps and discarding the delete entry by returning `false`. */
 
     if (offsetof(leaf_node_t, pair_offsets) +
             sizeof(uint16_t) * (node->num_pairs + (found ? 0 : 1)) +
@@ -1321,7 +1328,7 @@ MUST_USE bool prepare_space_for_new_entry(
             --node->num_pairs;
         }
 
-        /* Passing `&index` as the last parameter to `garbage_collect()`
+        /* Passing `&index` as a parameter to `garbage_collect()`
         guarantees that it will remain valid even as `pair_offsets` entries are
         moved around. */
         garbage_collect(sizer, node, MANDATORY_TIMESTAMPS - 1, &index,
@@ -1374,6 +1381,25 @@ MUST_USE bool prepare_space_for_new_entry(
     discard it entirely (deletions have `allow_after_tstamp_cutpoint == false`). */
     bool actually_create_entry = new_entry_should_have_timestamp || allow_after_tstamp_cutpoint;
 
+    /* As mentioned above, it can theoretically happen that we're trying to replace
+    an entry by a deletion entry and we don't have enough space to write the deletion
+    entry.
+    We check for this here, and shift the timestamp cutoff point in order to
+    maintain correctness.
+    This will be very rare in practice, since values are usually larger than
+    deletion entries. */
+    bool drop_timestamps = false;
+    if (actually_create_entry
+        && !allow_after_tstamp_cutpoint
+        && offsetof(leaf_node_t, pair_offsets)
+           + sizeof(uint16_t) * (node->num_pairs + (found ? 0 : 1))
+           + new_entry_size
+           + sizeof(repli_timestamp_t)
+           > node->frontmost) {
+        actually_create_entry = false;
+        drop_timestamps = true;
+    }
+
     if (!actually_create_entry) {
         if (found) {
             /* We're deleting the previous entry for this key, but not inserting
@@ -1384,6 +1410,10 @@ MUST_USE bool prepare_space_for_new_entry(
                 node->pair_offsets + index + 1,
                 sizeof(uint16_t) * (node->num_pairs - index - 1));
             --node->num_pairs;
+        }
+
+        if (drop_timestamps) {
+            erase_deletions(sizer, node, boost::optional<repli_timestamp_t>());
         }
 
         return false;
@@ -1555,27 +1585,30 @@ repli_timestamp_t min_deletion_timestamp(
         earliest_so_far = tstamp;
         iter.step(sizer, node);
     }
-    /* It's possible for us to forget a deletion with timestamp equal to the olddest
+    /* It's possible for us to forget a deletion with timestamp equal to the oldest
     timestamped entry, so the min deletion timestamp is one time unit newer than the
     oldest timestamped entry. */
     return earliest_so_far.next();
 }
 
 void erase_deletions(
-        value_sizer_t *sizer, leaf_node_t *node, repli_timestamp_t min_del_timestamp) {
+        value_sizer_t *sizer, leaf_node_t *node,
+        boost::optional<repli_timestamp_t> min_del_timestamp) {
     int old_tstamp_cutpoint = node->tstamp_cutpoint;
     entry_iter_t iter = entry_iter_t::make(node);
 
-    /* Advance `iter` to the first entry with a timestamp that's lower than
-    `min_del_timestamp - 1`. */
-    while (true) {
-        if (iter.done(sizer) || iter.offset >= old_tstamp_cutpoint) {
-            return;
+    if (min_del_timestamp) {
+        /* Advance `iter` to the first entry with a timestamp that's lower than
+        `min_del_timestamp - 1`. */
+        while (true) {
+            if (iter.done(sizer) || iter.offset >= old_tstamp_cutpoint) {
+                return;
+            }
+            if (get_timestamp(node, iter.offset).next() < *min_del_timestamp) {
+                break;
+            }
+            iter.step(sizer, node);
         }
-        if (get_timestamp(node, iter.offset).next() < min_del_timestamp) {
-            break;
-        }
-        iter.step(sizer, node);
     }
 
     /* We'll remove timestamps from all of the entries between `old_tstamp_cutpoint` and
