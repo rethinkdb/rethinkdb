@@ -58,7 +58,7 @@ public class RethinkDBTest{
         Assert.assertEquals(t.booleanValue(), true);
 
         Boolean f = r.expr(false).run(conn);
-        Assert.assertEquals(t.booleanValue(), false);
+        Assert.assertEquals(f.booleanValue(), false);
 
         String trueType = r.expr(true).typeOf().run(conn);
         Assert.assertEquals(trueType, "BOOL");
@@ -116,7 +116,7 @@ public class RethinkDBTest{
     @Test
     public void testCoerceFailureTrailingNegative() {
         expectedEx.expect(ReqlQueryLogicError.class);
-        expectedEx.expectMessage("Could not coerce `-1.2` to NUMBER.");
+        expectedEx.expectMessage("Could not coerce `-1.2-` to NUMBER.");
         r.expr("-1.2-").coerceTo("NUMBER").run(conn);
     }
 
@@ -124,7 +124,7 @@ public class RethinkDBTest{
     public void testCoerceFailureInfinity() {
         expectedEx.expect(ReqlQueryLogicError.class);
         expectedEx.expectMessage("Non-finite number: inf");
-        r.expr("inf").coerceTo("NUMBER");
+        r.expr("inf").coerceTo("NUMBER").run(conn);
     }
 
     @Test
@@ -136,7 +136,7 @@ public class RethinkDBTest{
         Assert.assertEquals(nullSplit, Arrays.asList());
 
         List<String> emptySplitSpace = r.expr("").split(" ").run(conn);
-        Assert.assertEquals(emptySplitSpace, Arrays.asList("1"));
+        Assert.assertEquals(Arrays.asList(""), emptySplitSpace);
     }
 
 }
