@@ -15,14 +15,9 @@ namespace unittest {
 bool equals(int a, int b) { return a == b; }
 
 TPTEST(CrossThreadWatchable, CrossThreadWatchableTest) {
-    scoped_ptr_t<watchable_variable_t<int> > watchable;
-    scoped_ptr_t<cross_thread_watchable_variable_t<int> > ctw;
-    {
-        on_thread_t thread_switcher(threadnum_t(0));
-        watchable.init(new watchable_variable_t<int>(0));
-
-        ctw.init(new cross_thread_watchable_variable_t<int>(watchable->get_watchable(), threadnum_t(1)));
-    }
+    on_thread_t thread_switcher(threadnum_t(0));
+    watchable_variable_t<int> watchable(0);
+    cross_thread_watchable_variable_t<int> ctw(watchable.get_watchable(), threadnum_t(1));
 
     int i;
     int expected_value = 0;
@@ -30,14 +25,14 @@ TPTEST(CrossThreadWatchable, CrossThreadWatchableTest) {
         for (i = 1; i < 100; ++i) {
             {
                 on_thread_t switcher(threadnum_t(0));
-                watchable->set_value(i);
+                watchable.set_value(i);
                 expected_value = i;
             }
             {
                 on_thread_t switcher(threadnum_t(1));
                 signal_timer_t timer;
                 timer.start(5000);
-                ctw->get_watchable()->run_until_satisfied(
+                ctw.get_watchable()->run_until_satisfied(
                         boost::bind(&equals, expected_value, _1), &timer);
             }
         }
@@ -47,7 +42,7 @@ TPTEST(CrossThreadWatchable, CrossThreadWatchableTest) {
                 on_thread_t switcher(threadnum_t(0));
                 int step = i + 25;
                 for (; i < step; ++i) {
-                    watchable->set_value(i);
+                    watchable.set_value(i);
                     expected_value = i;
                 }
             }
@@ -55,7 +50,7 @@ TPTEST(CrossThreadWatchable, CrossThreadWatchableTest) {
                 on_thread_t switcher(threadnum_t(1));
                 signal_timer_t timer;
                 timer.start(5000);
-                ctw->get_watchable()->run_until_satisfied(
+                ctw.get_watchable()->run_until_satisfied(
                         boost::bind(&equals, expected_value, _1), &timer);
             }
         }
