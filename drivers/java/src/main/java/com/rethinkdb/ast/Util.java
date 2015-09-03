@@ -94,6 +94,9 @@ public class Util {
         if (val instanceof String) {
             return new Datum((String) val);
         }
+        if (val == null){
+            return new Datum(null);
+        }
 
         throw new ReqlDriverError("Can't convert %s to a ReqlAst", val);
     }
