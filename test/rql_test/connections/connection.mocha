@@ -230,6 +230,17 @@ describe("JavaScript Callback style", function() {
             r.expr(1).run(reqlConn, givesError("ReqlDriverError", "Connection is closed.", done));
         });
 
+        it("gets clientPort", function(done){
+            assert(reqlConn.clientPort() != null);
+            done();
+        });
+
+
+        it("gets clientAddress", function(done){
+            assert(reqlConn.clientAddress() != null);
+            done();
+        });
+
         describe('noreplyWait', function(){
             it("waits", function(done){
                 var t = Date.now();

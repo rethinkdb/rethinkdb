@@ -316,6 +316,12 @@ class TestAuthConnection(TestPrivateServer):
         conn.reconnect()
 
 class TestConnection(TestWithConnection):
+    def test_client_port_and_address(self):
+        c = r.connect(host=sharedServerHost, port=sharedServerDriverPort)
+
+        self.assertIsNotNone(c.client_port())
+        self.assertIsNotNone(c.client_address())
+
     def test_connect_close_reconnect(self):
         c = r.connect(host=sharedServerHost, port=sharedServerDriverPort)
         r.expr(1).run(c)

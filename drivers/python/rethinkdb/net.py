@@ -317,11 +317,19 @@ class SocketWrapper(object):
                 raise ReqlDriverError("Server dropped connection with message: \"%s\"" %
                                       (message, ))
 
+    def client_port(self):
+        if self.is_open():
+            return self._socket.getsockname()[1]
+
+    def client_address(self):
+        if self.is_open():
+            return self._socket.getsockname()[0]
+
     def is_open(self):
         return self._socket is not None
 
     def close(self):
-        if self._socket is not None:
+        if self.is_open():
             try:
                 self._socket.shutdown(socket.SHUT_RDWR)
                 self._socket.close()
@@ -514,6 +522,12 @@ class Connection(object):
         self._child_kwargs = kwargs
         self._instance = None
         self._next_token = 0
+
+    def client_port(self):
+        self._instance._socket.client_port()
+
+    def client_address(self):
+        self._instance._socket.client_address()
 
     def reconnect(self, noreply_wait=True, timeout=None):
         if timeout is None:
