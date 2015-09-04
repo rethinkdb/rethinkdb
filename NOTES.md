@@ -33,7 +33,7 @@ Bug fix release
 * Improved the parallelism of JSON encoding on the server to utilize multiple CPU cores
 * Refactored JSON decoding in the Python driver to allow the use of custom JSON parsers
   and to speed up pseudo type conversion (#4585)
-* Improved the prefetching logic in the Python driver to improve the throughput of
+* Improved the prefetching logic in the Python driver to increase the throughput of
   cursors
 * Changed the Python driver to use a more efficient data structure to store cursor
   results (#4782)
