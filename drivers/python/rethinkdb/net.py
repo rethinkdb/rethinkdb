@@ -524,10 +524,10 @@ class Connection(object):
         self._next_token = 0
 
     def client_port(self):
-        self._instance._socket.client_port()
+        return self._instance._socket.client_port()
 
     def client_address(self):
-        self._instance._socket.client_address()
+        return self._instance._socket.client_address()
 
     def reconnect(self, noreply_wait=True, timeout=None):
         if timeout is None:
