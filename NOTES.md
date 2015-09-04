@@ -1,3 +1,54 @@
+# Release 2.1.3 (Forbidden Planet)
+
+Released on 2015-09-04
+
+Bug fix release
+
+### Compatiblity ###
+
+* RethinkDB 2.1.3 servers cannot be mixed with servers running RethinkDB 2.1.1 or earlier
+  in the same cluster
+
+### Bug fixes ###
+
+* Fixed a data corruption bug in the b-tree implementation (#4769)
+* Fixed the `ssl` option in the JavaScript driver (#4786)
+* Made the Ruby driver compatible with Ruby on Rails 3.2 (#4753)
+* Added the `backports.ssl_match_hostname` library to the Python driver package (#4683)
+* Changed the update check to use an encrypted https connection (#3988, #4643)
+* Fixed access to `https` sources in `r.http` on OS X (#3112)
+* Fixed an `Unexpected exception` error (#4758)
+* Fixed a `Guarantee failed: [pair.second]` crash that could occurr during resharding
+  (#4774)
+* Fixed a bug that caused some queries to not report an error when interrupted (#4762)
+* Added a new `"_debug_recommit"` recovery option to `emergency_repair` (#4720)
+* Made error reporting in the Python driver compatible with `celery` and `nose` (#4764)
+* Changed the handling of outdated indexes from RethinkDB 1.13 during an import to no
+  longer terminate the server (#4766)
+
+### Performance improvements ###
+
+* Improved the latency when reading from a system table in `r.db('rethinkdb')` while the
+  server is under load (#4773)
+* Improved the parallelism of JSON encoding on the server to utilize multiple CPU cores
+* Refactored JSON decoding in the Python driver to allow the use of custom JSON prasers
+  and to speed up the pseudo type conversion step (#4585)
+* Improved the prefetching logic in the Python driver to improve the throughput of
+  cursors
+* Changed the Python driver to use a more efficient data structure to store cursor
+  results (#4782)
+
+## Contributors ##
+
+Many thanks to external contributors from the RethinkDB community for helping
+us ship RethinkDB 2.1.3. In no particular order:
+
+* Adam Grandquist (@grandquista)
+* ajose01 (@ajose01)
+* Paulius Uza (@pauliusuza)
+
+--
+
 # Release 2.1.2 (Forbidden Planet)
 
 Released on 2015-08-25
