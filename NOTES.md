@@ -18,7 +18,7 @@ Bug fix release
 * Changed the update check to use an encrypted https connection (#3988, #4643)
 * Fixed access to `https` sources in `r.http` on OS X (#3112)
 * Fixed an `Unexpected exception` error (#4758)
-* Fixed a `Guarantee failed: [pair.second]` crash that could occurr during resharding
+* Fixed a `Guarantee failed: [pair.second]` crash that could occur during resharding
   (#4774)
 * Fixed a bug that caused some queries to not report an error when interrupted (#4762)
 * Added a new `"_debug_recommit"` recovery option to `emergency_repair` (#4720)
@@ -31,8 +31,8 @@ Bug fix release
 * Improved the latency when reading from a system table in `r.db('rethinkdb')` while the
   server is under load (#4773)
 * Improved the parallelism of JSON encoding on the server to utilize multiple CPU cores
-* Refactored JSON decoding in the Python driver to allow the use of custom JSON prasers
-  and to speed up the pseudo type conversion step (#4585)
+* Refactored JSON decoding in the Python driver to allow the use of custom JSON parsers
+  and to speed up pseudo type conversion (#4585)
 * Improved the prefetching logic in the Python driver to improve the throughput of
   cursors
 * Changed the Python driver to use a more efficient data structure to store cursor
