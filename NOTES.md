@@ -38,7 +38,7 @@ Bug fix release
 * Changed the Python driver to use a more efficient data structure to store cursor
   results (#4782)
 
-## Contributors ##
+### Contributors ###
 
 Many thanks to external contributors from the RethinkDB community for helping
 us ship RethinkDB 2.1.3. In no particular order:
