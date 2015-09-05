@@ -100,6 +100,14 @@ class ConnectionInstance(object):
         else:
             self._stream = iostream.IOStream(self._socket, io_loop=self._io_loop)
 
+    def client_port(self):
+        if self.is_open():
+            return self._socket.getsockname()[1]
+
+    def client_address(self):
+        if self.is_open():
+            return self._socket.getsockname()[0]
+
     @gen.coroutine
     def connect(self, timeout):
         deadline = None if timeout is None else self._io_loop.time() + timeout

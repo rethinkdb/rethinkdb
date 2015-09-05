@@ -260,6 +260,19 @@ class TestNoConnection(TestCaseCompatible):
 
 class TestConnection(TestWithConnection):
     @asyncio.coroutine
+    def test_client_port_and_address(self):
+        c = yield from r.connect(host=sharedServerHost,
+                            port=sharedServerDriverPort)
+
+        self.assertIsNotNone(c.client_port())
+        self.assertIsNotNone(c.client_address())
+
+        yield from c.close()
+
+        self.assertIsNone(c.client_port())
+        self.assertIsNone(c.client_address())
+
+    @asyncio.coroutine
     def test_connect_close_reconnect(self):
         c = yield from r.connect(host=sharedServerHost,
                             port=sharedServerDriverPort)

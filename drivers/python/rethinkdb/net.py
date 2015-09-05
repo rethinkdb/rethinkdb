@@ -317,14 +317,6 @@ class SocketWrapper(object):
                 raise ReqlDriverError("Server dropped connection with message: \"%s\"" %
                                       (message, ))
 
-    def client_port(self):
-        if self.is_open():
-            return self._socket.getsockname()[1]
-
-    def client_address(self):
-        if self.is_open():
-            return self._socket.getsockname()[0]
-
     def is_open(self):
         return self._socket is not None
 
@@ -418,6 +410,14 @@ class ConnectionInstance(object):
         self._header_in_progress = None
         self._socket = None
         self._closing = False
+
+    def client_port(self):
+        if self.is_open():
+            return self._socket._socket.getsockname()[1]
+
+    def client_address(self):
+        if self.is_open():
+            return self._socket._socket.getsockname()[0]
 
     def connect(self, timeout):
         self._socket = SocketWrapper(self, timeout)
@@ -524,10 +524,12 @@ class Connection(object):
         self._next_token = 0
 
     def client_port(self):
-        return self._instance._socket.client_port()
+        if self.is_open():
+            return self._instance.client_port()
 
     def client_address(self):
-        return self._instance._socket.client_address()
+        if self.is_open():
+            return self._instance.client_address()
 
     def reconnect(self, noreply_wait=True, timeout=None):
         if timeout is None:

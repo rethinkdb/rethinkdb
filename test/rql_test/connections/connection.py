@@ -322,6 +322,11 @@ class TestConnection(TestWithConnection):
         self.assertIsNotNone(c.client_port())
         self.assertIsNotNone(c.client_address())
 
+        c.close()
+
+        self.assertIsNone(c.client_port())
+        self.assertIsNone(c.client_address())
+
     def test_connect_close_reconnect(self):
         c = r.connect(host=sharedServerHost, port=sharedServerDriverPort)
         r.expr(1).run(c)

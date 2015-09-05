@@ -238,6 +238,14 @@ class ConnectionInstance(object):
         if start_reactor:
             reactor.run()
 
+    def client_port(self):
+        if self.is_open():
+            return self._connection.transport.getHost().port
+
+    def client_address(self):
+        if self.is_open():
+            return self._connection.transport.getHost().host
+
     def _handleResponse(self, token, data):
         try:
             cursor = self._cursor_cache.get(token)

@@ -351,6 +351,19 @@ class TestNoConnection(TestCaseCompatible):
 
 class TestConnection(TestWithConnection):
     @gen.coroutine
+    def test_client_port_and_address(self):
+        c = yield r.connect(host=sharedServerHost,
+                            port=sharedServerDriverPort)
+
+        self.assertIsNotNone(c.client_port())
+        self.assertIsNotNone(c.client_address())
+
+        yield c.close()
+
+        self.assertIsNone(c.client_port())
+        self.assertIsNone(c.client_address())
+
+    @gen.coroutine
     def test_connect_close_reconnect(self):
         c = yield r.connect(host=sharedServerHost,
                             port=sharedServerDriverPort)
