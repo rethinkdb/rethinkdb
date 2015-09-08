@@ -15,9 +15,11 @@ import com.rethinkdb.ast.ReqlAst;
 
 public class MakeObj extends ReqlExpr {
 
-
     public MakeObj(Object arg) {
         this(new Arguments(arg), null);
+    }
+    public MakeObj(OptArgs opts){
+        this(new Arguments(), opts);
     }
     public MakeObj(Arguments args){
         this(args, null);
@@ -28,7 +30,6 @@ public class MakeObj extends ReqlExpr {
     protected MakeObj(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
-
 
     public static MakeObj fromMap(java.util.Map<String, ReqlAst> map){
         return new MakeObj(OptArgs.fromMap(map));
