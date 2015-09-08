@@ -1,33 +1,33 @@
 import com.rethinkdb.RethinkDB;
 import com.rethinkdb.gen.exc.ReqlError;
 import com.rethinkdb.gen.exc.ReqlQueryLogicError;
+import com.rethinkdb.model.MapObject;
 import com.rethinkdb.net.Connection;
 import junit.framework.Assert;
 import junit.framework.TestCase;
 import static org.junit.Assert.assertEquals;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.ExpectedException;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeoutException;
 
 public class RethinkDBTest{
 
     public static final RethinkDB r = RethinkDB.r;
     Connection<?> conn;
-    public final String dbName = "javatests";
-    public final String tableName = "atest";
+    public static final String dbName = "javatests";
+    public static final String tableName = "atest";
 
     @Rule
     public ExpectedException expectedEx = ExpectedException.none();
 
-    @Before
-    public void setUp() throws Exception {
-        conn = r.connection()
+    @BeforeClass
+    public static void oneTimeSetUp() throws TimeoutException {
+        Connection<?> conn = r.connection()
                 .hostname("newton")
                 .port(31157)
                 .connect();
@@ -39,16 +39,35 @@ public class RethinkDBTest{
             r.db(dbName).tableCreate(tableName).run(conn);
             r.db(dbName).table(tableName).wait_().run(conn);
         }catch(ReqlError e){}
+        conn.close();
     }
 
-    @After
-    public void tearDown() throws Exception {
+    @AfterClass
+    public static void oneTimeTearDown() throws TimeoutException {
+        Connection<?> conn = r.connection()
+                .hostname("newton")
+                .port(31157)
+                .connect();
         try {
             r.db(dbName).tableDrop(tableName).run(conn);
         }catch(ReqlError e){}
         try {
             r.dbDrop(dbName).run(conn);
         }catch(ReqlError e){}
+        conn.close();
+    }
+
+    @Before
+    public void setUp() throws Exception {
+        conn = r.connection()
+                .hostname("newton")
+                .port(31157)
+                .connect();
+        r.db(dbName).table(tableName).delete().run(conn);
+    }
+
+    @After
+    public void tearDown() throws Exception {
         conn.close();
     }
 
@@ -171,6 +190,15 @@ public class RethinkDBTest{
     public void testSplitWithString() {
         List<String> b = r.expr("aaaa bbbb  cccc ").split("b").run(conn);
         assertEquals(Arrays.asList("aaaa ", "", "", "", "  cccc "), b);
+    }
+
+    @Test
+    public void testTableInsert(){
+        MapObject foo = new MapObject()
+                .with("hi", "There")
+                .with("yes", 7);
+        Map<String, Object> result = r.db(dbName).table(tableName).insert(foo).run(conn);
+        assertEquals(result.get("inserted"), 1L);
     }
 
 }
