@@ -62,7 +62,7 @@ public class Query {
             .putLong(token)
             .putInt(queryBytes.length)
             .put(queryBytes);
-        System.out.println("Sending: "+ Util.bufferToString(bb)); //RSI
+        //System.out.println("Sending: "+ Util.bufferToString(bb)); //RSI
         return bb;
     }
 }

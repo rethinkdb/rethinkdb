@@ -6,15 +6,11 @@ import com.rethinkdb.net.Connection;
 import com.rethinkdb.gen.proto.TermType;
 import com.rethinkdb.gen.exc.*;
 
-import java.lang.reflect.Array;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.stream.Collectors;
 
 import com.rethinkdb.net.ConnectionInstance;
 import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
 
 /** Base class for all reql queries.
  */
