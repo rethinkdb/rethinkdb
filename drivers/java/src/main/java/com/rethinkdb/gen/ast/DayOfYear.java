@@ -28,4 +28,5 @@ public class DayOfYear extends ReqlExpr {
     protected DayOfYear(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

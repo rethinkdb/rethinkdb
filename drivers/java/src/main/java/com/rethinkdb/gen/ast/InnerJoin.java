@@ -28,4 +28,5 @@ public class InnerJoin extends ReqlExpr {
     protected InnerJoin(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

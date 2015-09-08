@@ -28,4 +28,5 @@ public class Sample extends ReqlExpr {
     protected Sample(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

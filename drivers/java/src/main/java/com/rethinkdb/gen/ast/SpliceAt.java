@@ -28,4 +28,5 @@ public class SpliceAt extends ReqlExpr {
     protected SpliceAt(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

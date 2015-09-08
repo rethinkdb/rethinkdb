@@ -28,4 +28,5 @@ public class Line extends ReqlExpr {
     protected Line(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

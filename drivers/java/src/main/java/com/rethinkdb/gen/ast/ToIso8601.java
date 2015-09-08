@@ -28,4 +28,5 @@ public class ToIso8601 extends ReqlExpr {
     protected ToIso8601(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

@@ -28,4 +28,5 @@ public class Avg extends ReqlExpr {
     protected Avg(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

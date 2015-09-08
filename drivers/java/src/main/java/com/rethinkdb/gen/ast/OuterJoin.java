@@ -28,4 +28,5 @@ public class OuterJoin extends ReqlExpr {
     protected OuterJoin(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

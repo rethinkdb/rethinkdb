@@ -28,4 +28,5 @@ public class DayOfWeek extends ReqlExpr {
     protected DayOfWeek(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

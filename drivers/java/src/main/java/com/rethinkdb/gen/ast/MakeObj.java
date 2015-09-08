@@ -29,6 +29,7 @@ public class MakeObj extends ReqlExpr {
         super(termType, args, optargs);
     }
 
+
     public static MakeObj fromMap(java.util.Map<String, ReqlAst> map){
         return new MakeObj(OptArgs.fromMap(map));
     }

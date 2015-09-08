@@ -28,6 +28,11 @@ public class Table extends ReqlExpr {
     protected Table(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+public Table optArg(String optname, Object value) {
+    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+    return new Table(args, newOptargs);
+}
+
     public Get get(Object expr) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(expr);

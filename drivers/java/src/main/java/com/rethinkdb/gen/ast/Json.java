@@ -28,4 +28,5 @@ public class Json extends ReqlExpr {
     protected Json(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

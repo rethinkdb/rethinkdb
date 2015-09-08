@@ -19,6 +19,7 @@ public class ReqlExpr extends ReqlAst {
     protected ReqlExpr(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
     public Eq eq(Object exprA, Object... exprs) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(exprA);

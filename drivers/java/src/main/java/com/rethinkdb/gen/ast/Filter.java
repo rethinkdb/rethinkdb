@@ -28,4 +28,9 @@ public class Filter extends ReqlExpr {
     protected Filter(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+public Filter optArg(String optname, Object value) {
+    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+    return new Filter(args, newOptargs);
+}
+
 }

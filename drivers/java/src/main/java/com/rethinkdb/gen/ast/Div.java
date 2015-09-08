@@ -28,4 +28,5 @@ public class Div extends ReqlExpr {
     protected Div(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

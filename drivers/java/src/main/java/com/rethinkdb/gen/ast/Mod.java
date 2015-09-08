@@ -28,4 +28,5 @@ public class Mod extends ReqlExpr {
     protected Mod(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

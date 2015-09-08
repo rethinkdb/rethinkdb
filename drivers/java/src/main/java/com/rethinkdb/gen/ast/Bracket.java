@@ -28,4 +28,5 @@ public class Bracket extends ReqlExpr {
     protected Bracket(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

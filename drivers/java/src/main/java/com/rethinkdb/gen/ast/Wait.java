@@ -28,4 +28,9 @@ public class Wait extends ReqlExpr {
     protected Wait(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+public Wait optArg(String optname, Object value) {
+    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+    return new Wait(args, newOptargs);
+}
+
 }

@@ -28,4 +28,5 @@ public class ConcatMap extends ReqlExpr {
     protected ConcatMap(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

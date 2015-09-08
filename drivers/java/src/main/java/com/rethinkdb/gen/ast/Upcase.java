@@ -28,4 +28,5 @@ public class Upcase extends ReqlExpr {
     protected Upcase(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

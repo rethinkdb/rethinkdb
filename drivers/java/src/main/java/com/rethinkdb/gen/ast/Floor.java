@@ -28,4 +28,5 @@ public class Floor extends ReqlExpr {
     protected Floor(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

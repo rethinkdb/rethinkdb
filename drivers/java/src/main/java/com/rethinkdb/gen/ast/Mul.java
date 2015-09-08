@@ -28,4 +28,5 @@ public class Mul extends ReqlExpr {
     protected Mul(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

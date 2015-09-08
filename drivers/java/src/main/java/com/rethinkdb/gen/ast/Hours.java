@@ -28,4 +28,5 @@ public class Hours extends ReqlExpr {
     protected Hours(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

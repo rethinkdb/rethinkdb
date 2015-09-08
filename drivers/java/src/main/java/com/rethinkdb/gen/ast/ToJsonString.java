@@ -28,4 +28,5 @@ public class ToJsonString extends ReqlExpr {
     protected ToJsonString(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

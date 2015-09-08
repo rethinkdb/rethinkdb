@@ -28,4 +28,5 @@ public class Reduce extends ReqlExpr {
     protected Reduce(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

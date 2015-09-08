@@ -28,4 +28,5 @@ public class Seconds extends ReqlExpr {
     protected Seconds(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

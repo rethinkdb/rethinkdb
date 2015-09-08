@@ -28,4 +28,9 @@ public class Update extends ReqlExpr {
     protected Update(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+public Update optArg(String optname, Object value) {
+    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+    return new Update(args, newOptargs);
+}
+
 }

@@ -28,4 +28,5 @@ public class Args extends ReqlExpr {
     protected Args(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

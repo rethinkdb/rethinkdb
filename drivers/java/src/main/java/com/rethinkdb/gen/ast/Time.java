@@ -28,4 +28,5 @@ public class Time extends ReqlExpr {
     protected Time(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

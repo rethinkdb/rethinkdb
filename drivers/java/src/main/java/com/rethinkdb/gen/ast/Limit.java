@@ -28,4 +28,5 @@ public class Limit extends ReqlExpr {
     protected Limit(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

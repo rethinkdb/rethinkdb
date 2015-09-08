@@ -28,4 +28,5 @@ public class IndexList extends ReqlExpr {
     protected IndexList(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

@@ -28,4 +28,5 @@ public class TimeOfDay extends ReqlExpr {
     protected TimeOfDay(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

@@ -28,4 +28,5 @@ public class Status extends ReqlExpr {
     protected Status(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

@@ -28,4 +28,9 @@ public class GetAll extends ReqlExpr {
     protected GetAll(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+public GetAll optArg(String optname, Object value) {
+    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+    return new GetAll(args, newOptargs);
+}
+
 }

@@ -28,4 +28,5 @@ public class Point extends ReqlExpr {
     protected Point(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

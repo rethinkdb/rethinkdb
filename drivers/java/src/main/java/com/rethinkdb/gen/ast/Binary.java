@@ -38,6 +38,7 @@ public class Binary extends ReqlExpr {
         super(termType, args, optargs);
     }
 
+
     @Override
     public Object build(){
         if(b64Data.isPresent()){

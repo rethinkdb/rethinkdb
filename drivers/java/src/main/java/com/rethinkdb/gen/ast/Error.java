@@ -28,4 +28,5 @@ public class Error extends ReqlExpr {
     protected Error(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

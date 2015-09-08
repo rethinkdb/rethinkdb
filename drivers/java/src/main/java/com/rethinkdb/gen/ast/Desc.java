@@ -28,4 +28,5 @@ public class Desc extends ReqlExpr {
     protected Desc(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

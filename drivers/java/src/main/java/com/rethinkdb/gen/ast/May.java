@@ -28,4 +28,5 @@ public class May extends ReqlExpr {
     protected May(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

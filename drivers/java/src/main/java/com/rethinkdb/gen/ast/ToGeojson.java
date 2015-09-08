@@ -28,4 +28,5 @@ public class ToGeojson extends ReqlExpr {
     protected ToGeojson(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

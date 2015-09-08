@@ -28,4 +28,5 @@ public class HasFields extends ReqlExpr {
     protected HasFields(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

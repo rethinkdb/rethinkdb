@@ -28,4 +28,5 @@ public class SetDifference extends ReqlExpr {
     protected SetDifference(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

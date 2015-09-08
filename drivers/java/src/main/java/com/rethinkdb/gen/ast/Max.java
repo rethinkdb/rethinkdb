@@ -28,4 +28,9 @@ public class Max extends ReqlExpr {
     protected Max(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+public Max optArg(String optname, Object value) {
+    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+    return new Max(args, newOptargs);
+}
+
 }

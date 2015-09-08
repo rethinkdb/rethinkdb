@@ -28,4 +28,5 @@ public class Map extends ReqlExpr {
     protected Map(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

@@ -12,18 +12,18 @@ import java.util.List;
     private static AtomicInteger varId = new AtomicInteger();
 </%block>
 
-<%block name="special_methods">
+<%block name="special_methods">\
     private static int nextVarId(){
         return varId.incrementAndGet();
     }
 </%block>
 
-<%block name="constructors">
+<%block name="constructors">\
     protected Func(Arguments args){
         super(TermType.FUNC, args, null);
     }
 </%block>
-<%block name="static_factories">
+<%block name="static_factories">\
     public static Func fromLambda(ReqlLambda function) {
         % for i in xrange(1, max_arity+1):
         ${"" if loop.first else "else "}if(function instanceof ReqlFunction${i}){

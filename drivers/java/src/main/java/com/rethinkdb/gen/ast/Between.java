@@ -28,4 +28,9 @@ public class Between extends ReqlExpr {
     protected Between(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+public Between optArg(String optname, Object value) {
+    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+    return new Between(args, newOptargs);
+}
+
 }

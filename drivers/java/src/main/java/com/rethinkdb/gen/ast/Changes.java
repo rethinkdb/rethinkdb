@@ -28,4 +28,9 @@ public class Changes extends ReqlExpr {
     protected Changes(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+public Changes optArg(String optname, Object value) {
+    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+    return new Changes(args, newOptargs);
+}
+
 }

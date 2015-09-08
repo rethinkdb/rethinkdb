@@ -28,4 +28,5 @@ public class Sub extends ReqlExpr {
     protected Sub(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

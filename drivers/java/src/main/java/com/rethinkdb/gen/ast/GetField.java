@@ -28,4 +28,5 @@ public class GetField extends ReqlExpr {
     protected GetField(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

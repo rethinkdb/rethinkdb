@@ -28,4 +28,5 @@ public class Intersects extends ReqlExpr {
     protected Intersects(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

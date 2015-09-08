@@ -28,4 +28,5 @@ public class Asc extends ReqlExpr {
     protected Asc(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

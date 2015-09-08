@@ -28,4 +28,5 @@ public class Now extends ReqlExpr {
     protected Now(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

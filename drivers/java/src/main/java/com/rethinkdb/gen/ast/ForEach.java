@@ -28,4 +28,5 @@ public class ForEach extends ReqlExpr {
     protected ForEach(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

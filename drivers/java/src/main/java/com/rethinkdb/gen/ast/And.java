@@ -28,4 +28,5 @@ public class And extends ReqlExpr {
     protected And(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

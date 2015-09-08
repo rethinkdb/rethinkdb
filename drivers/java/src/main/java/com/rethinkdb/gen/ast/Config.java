@@ -28,4 +28,5 @@ public class Config extends ReqlExpr {
     protected Config(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

@@ -28,4 +28,5 @@ public class Ungroup extends ReqlExpr {
     protected Ungroup(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

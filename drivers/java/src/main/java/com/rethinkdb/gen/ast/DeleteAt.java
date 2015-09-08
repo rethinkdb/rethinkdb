@@ -28,4 +28,5 @@ public class DeleteAt extends ReqlExpr {
     protected DeleteAt(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

@@ -28,4 +28,5 @@ public class Merge extends ReqlExpr {
     protected Merge(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

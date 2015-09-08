@@ -28,4 +28,5 @@ public class Not extends ReqlExpr {
     protected Not(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

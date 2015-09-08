@@ -28,4 +28,9 @@ public class IndexCreate extends ReqlExpr {
     protected IndexCreate(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+public IndexCreate optArg(String optname, Object value) {
+    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+    return new IndexCreate(args, newOptargs);
+}
+
 }

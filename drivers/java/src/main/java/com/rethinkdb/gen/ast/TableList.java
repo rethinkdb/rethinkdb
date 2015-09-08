@@ -28,4 +28,5 @@ public class TableList extends ReqlExpr {
     protected TableList(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

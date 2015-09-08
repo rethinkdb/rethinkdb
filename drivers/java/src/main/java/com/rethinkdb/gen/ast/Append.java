@@ -28,4 +28,5 @@ public class Append extends ReqlExpr {
     protected Append(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

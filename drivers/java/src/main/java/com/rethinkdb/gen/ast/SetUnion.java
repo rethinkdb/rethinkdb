@@ -28,4 +28,5 @@ public class SetUnion extends ReqlExpr {
     protected SetUnion(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

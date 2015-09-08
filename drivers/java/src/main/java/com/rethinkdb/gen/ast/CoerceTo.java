@@ -28,4 +28,5 @@ public class CoerceTo extends ReqlExpr {
     protected CoerceTo(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

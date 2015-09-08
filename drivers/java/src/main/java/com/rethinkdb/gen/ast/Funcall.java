@@ -28,4 +28,5 @@ public class Funcall extends ReqlExpr {
     protected Funcall(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

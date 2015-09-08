@@ -28,4 +28,5 @@ public class Round extends ReqlExpr {
     protected Round(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

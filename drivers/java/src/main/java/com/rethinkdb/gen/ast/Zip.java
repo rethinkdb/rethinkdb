@@ -28,4 +28,5 @@ public class Zip extends ReqlExpr {
     protected Zip(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

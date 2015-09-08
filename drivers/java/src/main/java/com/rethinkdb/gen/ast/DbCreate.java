@@ -28,4 +28,5 @@ public class DbCreate extends ReqlExpr {
     protected DbCreate(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

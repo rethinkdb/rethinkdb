@@ -28,4 +28,5 @@ public class Ne extends ReqlExpr {
     protected Ne(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

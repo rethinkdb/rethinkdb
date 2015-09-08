@@ -28,4 +28,9 @@ public class Distinct extends ReqlExpr {
     protected Distinct(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+public Distinct optArg(String optname, Object value) {
+    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+    return new Distinct(args, newOptargs);
+}
+
 }

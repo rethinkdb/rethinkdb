@@ -28,4 +28,9 @@ public class Http extends ReqlExpr {
     protected Http(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+public Http optArg(String optname, Object value) {
+    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+    return new Http(args, newOptargs);
+}
+
 }

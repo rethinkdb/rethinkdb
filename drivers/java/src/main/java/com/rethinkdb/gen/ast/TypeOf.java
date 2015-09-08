@@ -28,4 +28,5 @@ public class TypeOf extends ReqlExpr {
     protected TypeOf(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

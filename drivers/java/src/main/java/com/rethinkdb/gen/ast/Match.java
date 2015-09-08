@@ -28,4 +28,5 @@ public class Match extends ReqlExpr {
     protected Match(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

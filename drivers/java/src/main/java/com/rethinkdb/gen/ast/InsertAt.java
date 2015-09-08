@@ -28,4 +28,5 @@ public class InsertAt extends ReqlExpr {
     protected InsertAt(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

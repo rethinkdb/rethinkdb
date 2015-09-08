@@ -28,4 +28,5 @@ public class Without extends ReqlExpr {
     protected Without(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

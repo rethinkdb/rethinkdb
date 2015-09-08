@@ -28,4 +28,5 @@ public class Polygon extends ReqlExpr {
     protected Polygon(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

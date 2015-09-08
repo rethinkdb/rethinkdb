@@ -28,4 +28,5 @@ public class Sync extends ReqlExpr {
     protected Sync(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

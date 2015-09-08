@@ -28,4 +28,5 @@ public class Union extends ReqlExpr {
     protected Union(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

@@ -28,4 +28,5 @@ public class Pluck extends ReqlExpr {
     protected Pluck(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

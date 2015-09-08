@@ -28,4 +28,5 @@ public class Gt extends ReqlExpr {
     protected Gt(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

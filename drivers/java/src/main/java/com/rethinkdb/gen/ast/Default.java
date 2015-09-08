@@ -28,4 +28,5 @@ public class Default extends ReqlExpr {
     protected Default(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

@@ -28,4 +28,9 @@ public class EqJoin extends ReqlExpr {
     protected EqJoin(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+public EqJoin optArg(String optname, Object value) {
+    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+    return new EqJoin(args, newOptargs);
+}
+
 }

@@ -520,7 +520,8 @@ class generate_java_classes(object):
             superclass=meta['superclass'],
             meta=meta,
             all_terms=self.term_info,
-            max_arity=self.max_arity
+            max_arity=self.max_arity,
+            optargs=meta.get('optargs'),
         )
 
     def render_proto_enums(self):

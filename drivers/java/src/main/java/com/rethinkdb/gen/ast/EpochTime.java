@@ -28,4 +28,5 @@ public class EpochTime extends ReqlExpr {
     protected EpochTime(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

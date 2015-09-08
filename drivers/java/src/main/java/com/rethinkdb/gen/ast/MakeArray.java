@@ -28,4 +28,5 @@ public class MakeArray extends ReqlExpr {
     protected MakeArray(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

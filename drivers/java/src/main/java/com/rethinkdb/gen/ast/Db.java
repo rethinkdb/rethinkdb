@@ -28,6 +28,7 @@ public class Db extends ReqlAst {
     protected Db(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
     public Table table(Object expr) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(expr);

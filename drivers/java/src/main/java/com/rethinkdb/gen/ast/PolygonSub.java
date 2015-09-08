@@ -28,4 +28,5 @@ public class PolygonSub extends ReqlExpr {
     protected PolygonSub(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

@@ -28,4 +28,5 @@ public class Info extends ReqlExpr {
     protected Info(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

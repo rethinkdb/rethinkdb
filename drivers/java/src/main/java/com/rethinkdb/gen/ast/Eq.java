@@ -28,4 +28,5 @@ public class Eq extends ReqlExpr {
     protected Eq(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

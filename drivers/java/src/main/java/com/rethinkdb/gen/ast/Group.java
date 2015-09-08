@@ -28,4 +28,9 @@ public class Group extends ReqlExpr {
     protected Group(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+public Group optArg(String optname, Object value) {
+    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+    return new Group(args, newOptargs);
+}
+
 }

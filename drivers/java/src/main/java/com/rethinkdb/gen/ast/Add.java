@@ -28,4 +28,5 @@ public class Add extends ReqlExpr {
     protected Add(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

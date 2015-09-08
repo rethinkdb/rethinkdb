@@ -28,4 +28,9 @@ public class Delete extends ReqlExpr {
     protected Delete(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+public Delete optArg(String optname, Object value) {
+    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+    return new Delete(args, newOptargs);
+}
+
 }

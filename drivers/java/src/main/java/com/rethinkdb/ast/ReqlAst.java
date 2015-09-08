@@ -53,24 +53,6 @@ public class ReqlAst {
         ));
     }
 
-    public ReqlAst optArg(String optname, Object value) {
-        try {
-            Constructor<? extends ReqlAst> subclass =
-                    this.getClass().getDeclaredConstructor(
-                            Arguments.class, OptArgs.class);
-            Arguments copyargs = new Arguments(this.args);
-            OptArgs copyopts = OptArgs.fromMap(this.optargs);
-            copyopts.with(optname, Util.toReqlAst(value));
-            return subclass.newInstance(copyargs, copyopts);
-        } catch(NoSuchMethodException
-                | InvocationTargetException
-                | InstantiationException
-                | IllegalAccessException
-                e) {
-            throw new ReqlDriverError("Something went wrong", e);
-        }
-    }
-
     public <T> T run(Connection<? extends ConnectionInstance> conn,
                      OptArgs runOpts) {
         return conn.run(this, runOpts);

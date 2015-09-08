@@ -28,4 +28,5 @@ public class Range extends ReqlExpr {
     protected Range(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

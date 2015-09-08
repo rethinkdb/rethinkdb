@@ -28,4 +28,5 @@ public class OffsetsOf extends ReqlExpr {
     protected OffsetsOf(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

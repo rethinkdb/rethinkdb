@@ -28,4 +28,5 @@ public class Var extends ReqlExpr {
     protected Var(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

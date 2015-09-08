@@ -28,4 +28,5 @@ public class SetIntersection extends ReqlExpr {
     protected SetIntersection(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

@@ -28,4 +28,5 @@ public class Count extends ReqlExpr {
     protected Count(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

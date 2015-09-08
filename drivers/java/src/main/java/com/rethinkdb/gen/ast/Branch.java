@@ -28,4 +28,5 @@ public class Branch extends ReqlExpr {
     protected Branch(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

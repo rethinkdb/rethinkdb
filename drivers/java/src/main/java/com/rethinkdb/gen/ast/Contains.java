@@ -28,4 +28,5 @@ public class Contains extends ReqlExpr {
     protected Contains(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

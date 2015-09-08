@@ -28,4 +28,5 @@ public class Saturday extends ReqlExpr {
     protected Saturday(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

@@ -28,6 +28,14 @@ public class ${classname} extends ${superclass} {
     }
 </%block>\
 <%block name="static_factories"></%block>\
+<%block name="optArgs">\
+% if optargs:
+public ${classname} optArg(String optname, Object value) {
+    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+    return new ${classname}(args, newOptargs);
+}
+% endif
+</%block>
 <%block name="special_methods" />\
 % for term, info in all_terms.iteritems():
   % if classname in info.get('include_in'):

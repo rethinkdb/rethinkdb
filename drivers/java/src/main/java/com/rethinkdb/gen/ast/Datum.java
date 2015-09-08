@@ -22,6 +22,7 @@ public class Datum extends ReqlExpr {
         datum = arg;
     }
 
+
     @Override
     protected Object build() {
         // Overridden because Datums are leaf-nodes and therefore

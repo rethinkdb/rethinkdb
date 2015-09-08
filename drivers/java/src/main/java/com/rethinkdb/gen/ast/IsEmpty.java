@@ -28,4 +28,5 @@ public class IsEmpty extends ReqlExpr {
     protected IsEmpty(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

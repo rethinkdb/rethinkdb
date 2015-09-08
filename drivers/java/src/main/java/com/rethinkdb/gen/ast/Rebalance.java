@@ -28,4 +28,5 @@ public class Rebalance extends ReqlExpr {
     protected Rebalance(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

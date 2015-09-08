@@ -28,4 +28,5 @@ public class Ge extends ReqlExpr {
     protected Ge(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

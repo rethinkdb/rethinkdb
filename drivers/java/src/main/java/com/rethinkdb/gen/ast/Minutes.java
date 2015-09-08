@@ -28,4 +28,5 @@ public class Minutes extends ReqlExpr {
     protected Minutes(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

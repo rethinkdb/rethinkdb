@@ -28,4 +28,5 @@ public class IndexWait extends ReqlExpr {
     protected IndexWait(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

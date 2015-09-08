@@ -28,4 +28,5 @@ public class SetInsert extends ReqlExpr {
     protected SetInsert(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

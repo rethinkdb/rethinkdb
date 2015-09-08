@@ -28,4 +28,5 @@ public class Downcase extends ReqlExpr {
     protected Downcase(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

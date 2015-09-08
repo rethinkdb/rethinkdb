@@ -28,4 +28,5 @@ public class Split extends ReqlExpr {
     protected Split(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

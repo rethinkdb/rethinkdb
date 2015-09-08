@@ -28,4 +28,5 @@ public class IndexStatus extends ReqlExpr {
     protected IndexStatus(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

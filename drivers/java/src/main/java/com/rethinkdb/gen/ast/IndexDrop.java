@@ -28,4 +28,5 @@ public class IndexDrop extends ReqlExpr {
     protected IndexDrop(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

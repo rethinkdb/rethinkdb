@@ -28,4 +28,5 @@ public class Sum extends ReqlExpr {
     protected Sum(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

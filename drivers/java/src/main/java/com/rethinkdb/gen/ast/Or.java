@@ -28,4 +28,5 @@ public class Or extends ReqlExpr {
     protected Or(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

@@ -28,4 +28,5 @@ public class Ceil extends ReqlExpr {
     protected Ceil(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

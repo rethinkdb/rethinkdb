@@ -28,4 +28,5 @@ public class Literal extends ReqlExpr {
     protected Literal(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

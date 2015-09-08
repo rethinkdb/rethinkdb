@@ -28,4 +28,9 @@ public class During extends ReqlExpr {
     protected During(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+public During optArg(String optname, Object value) {
+    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+    return new During(args, newOptargs);
+}
+
 }

@@ -28,4 +28,5 @@ public class DbList extends ReqlExpr {
     protected DbList(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

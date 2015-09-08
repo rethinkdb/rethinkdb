@@ -23,11 +23,9 @@ public class Func extends ReqlExpr {
 
     private static AtomicInteger varId = new AtomicInteger();
 
-
     protected Func(Arguments args){
         super(TermType.FUNC, args, null);
     }
-
     public static Func fromLambda(ReqlLambda function) {
         if(function instanceof ReqlFunction1){
             ReqlFunction1 func1 = (ReqlFunction1) function;

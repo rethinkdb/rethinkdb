@@ -28,4 +28,9 @@ public class IndexRename extends ReqlExpr {
     protected IndexRename(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+public IndexRename optArg(String optname, Object value) {
+    OptArgs newOptargs = OptArgs.fromMap(optargs).with(optname, value);
+    return new IndexRename(args, newOptargs);
+}
+
 }

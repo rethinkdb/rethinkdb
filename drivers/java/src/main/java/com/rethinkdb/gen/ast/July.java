@@ -28,4 +28,5 @@ public class July extends ReqlExpr {
     protected July(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }

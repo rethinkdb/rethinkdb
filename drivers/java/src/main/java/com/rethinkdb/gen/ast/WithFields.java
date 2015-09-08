@@ -28,4 +28,5 @@ public class WithFields extends ReqlExpr {
     protected WithFields(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);
     }
+
 }
