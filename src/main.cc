@@ -1,4 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
+#if 0 // TODO ATN
+
 #ifndef _MSC_VER
 #include <sys/resource.h>
 #endif
@@ -11,7 +13,7 @@
 
 int main(int argc, char *argv[]) {
 #ifndef NDEBUG
-#ifndef _MSC_VER
+#ifndef _MSC_VER // TODO ATN
     rlimit core_limit;
     core_limit.rlim_cur = 100 * MEGABYTE;
     core_limit.rlim_max = 200 * MEGABYTE;
@@ -97,3 +99,5 @@ int main(int argc, char *argv[]) {
         }
     }
 }
+
+#endif

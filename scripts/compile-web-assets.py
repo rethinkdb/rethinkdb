@@ -8,7 +8,6 @@ import itertools
 
 MAX_LITERAL_SIZE = 65535
 MAX_LINE_LENGTH = 82
-MAX_LINES = MAX_LITERAL_SIZE // MAX_LINE_LENGTH
 
 def main():
     try:
@@ -44,24 +43,19 @@ def write_assets(asset_root, assets):
     print('std::map<std::string, const std::string> static_web_assets = {')
     for i, asset in enumerate(assets):
 
-        print('    { ' + encode('/' + asset) + ', {', end='')
+        print('    { ' + encode('/' + asset) + ', std::string(', end='')
 
         data = open(os.path.join(asset_root, asset), "rb").read()
         position = 0 # track the position to keep lines short
         trigraph = 0 # track consecutive question marks to avoid writing trigraphs
         prev_e = None # track the previous character to avoid tacking on hex digits
-        line = 0
+        index = 0
 
         for c in data:
             c = byte(c)
+            index += 1
 
             if position == 0:
-                # start a new line
-                if line >= MAX_LINES:
-                    print(' + (std::string)', end='')
-                    line = 0
-                else:
-                    line += 1
                 print('\n      "', end='')
                 position = 7
                 trigraph = 0
@@ -88,6 +82,11 @@ def write_assets(asset_root, assets):
                 # end a line if it gets too long and on newlines
                 print('"', end='')
                 position = 0
+                if index > MAX_LITERAL_SIZE - MAX_LINE_LENGTH:
+                    print(',')
+                    print('      ' + str(index) + ') + std::string(', end='')
+                    index = 0
+
 
         if position != 0:
             print('"', end='')
@@ -95,8 +94,11 @@ def write_assets(asset_root, assets):
         if not data:
             print('""', end='')
 
-        print(',')
-        print('      ' + str(len(data)) + ' } },')
+        if index:
+            print(',')
+            print('      ' + str(index) + ' ) },')
+        else:
+            print('"") },')
 
     print('};')
 

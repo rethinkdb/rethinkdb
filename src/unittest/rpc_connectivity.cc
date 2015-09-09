@@ -3,6 +3,11 @@
 
 #include "arch/runtime/thread_pool.hpp"
 #include "arch/timing.hpp"
+#ifdef _WIN32
+#include "windows.hpp"
+#include <ws2tcpip.h>
+#include <iphlpapi.h>
+#endif
 #include "containers/scoped.hpp"
 #include "containers/archive/socket_stream.hpp"
 #include "unittest/clustering_utils.hpp"

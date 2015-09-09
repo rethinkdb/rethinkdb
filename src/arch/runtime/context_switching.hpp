@@ -94,6 +94,7 @@ public:
     size_t free_space_below(const void *addr) const;
 
 private:
+
     scoped_aligned_malloc_t<char> stack;
     size_t stack_size;
 #ifdef VALGRIND

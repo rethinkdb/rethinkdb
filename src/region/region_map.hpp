@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 
+#include "utils.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "containers/range_map.hpp"
 #include "region/region.hpp"
@@ -198,7 +199,7 @@ public:
         rassert(region_is_superset(get_domain(), r));
         inner.visit_mutable(key_edge_t(r.inner.left), r.inner.right,
             [&](const key_edge_t &, const key_edge_t &, hash_range_map_t *cur) {
-                cur->update(r.beg, r.end, value_t(v));
+                cur->update(r.beg, r.end, make_copy(v));
             });
     }
 

@@ -65,6 +65,7 @@ void report_fatal_error(const char *file, int line, const char *msg, ...) {
         fprintf(stderr, "Crashing while already crashed. Printing error message to stderr.\n");
         vfprintf(stderr, msg, args);
         va_end(args);
+        fflush(stderr);
         return;
     }
 
@@ -86,6 +87,7 @@ void report_fatal_error(const char *file, int line, const char *msg, ...) {
 #endif
 
     logERR("Exiting.");
+    fflush(stderr);
 }
 
 const char *errno_string_maybe_using_buffer(int errsv, char *buf, size_t buflen) {
@@ -123,7 +125,7 @@ NORETURN void terminate_handler() {
 #ifndef _WIN32
     std::type_info *t = abi::__cxa_current_exception_type();
 #else
-	bool t = std::uncaught_exception();
+    bool t = std::uncaught_exception();
 #endif
     if (t) {
 #ifndef _WIN32
@@ -150,9 +152,21 @@ NORETURN void terminate_handler() {
     }
 }
 
+#ifdef _WIN32
+LONG WINAPI windows_crash_handler(EXCEPTION_POINTERS *exceptions) {
+
+    // ATN TODO: examine and report what exception this is
+    crash("Unhandled exception\n");
+
+    // This usually results in process termination
+    return EXCEPTION_EXECUTE_HANDLER;
+}
+#endif
+
 void install_generic_crash_handler() {
 #ifdef _WIN32
-	// ATN TODO
+    // TODO ATN: stack trace using StackWalkEx
+    SetUnhandledExceptionFilter(windows_crash_handler);
 #else
 #ifndef VALGRIND
     {
@@ -168,9 +182,9 @@ void install_generic_crash_handler() {
     struct sigaction sa = make_sa_handler(0, SIG_IGN);
     int res = sigaction(SIGPIPE, &sa, NULL);
     guarantee_err(res == 0, "Could not install PIPE handler");
+#endif
 
     std::set_terminate(&terminate_handler);
-#endif
 }
 
 /* If a call to `operator new()` or `operator new[]()` fails, we have to crash

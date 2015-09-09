@@ -23,7 +23,7 @@
 #endif  /* x86/amd64 */
 #elif defined(__MACH__)
 #define BREAKPOINT (raise(SIGTRAP))
-#elif defined(_MSC_VER)
+#elif defined(_WIN32)
 #define BREAKPOINT DebugBreak()
 #else
 #error "BREAKPOINT not defined for this operating system"
@@ -96,7 +96,7 @@ void set_errno(int new_errno);
 #define DEBUG_VAR __attribute__((unused))
 #endif
 
-#ifdef _MSC_VER
+#ifdef _MSC_VER // ATN TODO
 #define UNUSED __pragma(warning(suppress: 4100 4101))
 #else
 #define UNUSED __attribute__((unused))

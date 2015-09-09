@@ -14,11 +14,6 @@
 #else
 #include "windows.hpp"
 #include <ws2tcpip.h>
-
-// ATN TODO: error in mswsock.h related to OPTIONAL
-//#define OPTIONAL
-//#include <mswsock.h>
-
 #include <iphlpapi.h>
 #endif
 #include <errno.h>

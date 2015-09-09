@@ -18,7 +18,7 @@ table_shard_scheme_t do_rebalance(const std::map<store_key_t, int64_t> &distribu
 }
 
 TEST(Rebalance, Regression3020) {
-    static const uint8_t key0[0] = { };
+    static const uint8_t key0[1] = { };
     static const uint8_t key1[1] = { 'N' };
     static const uint8_t key2[5] = { 'N', 'Z', 'a', 'b', 'c' };
     static const uint8_t key3[6] = { 'N', 'Z', 'a', 'b', 'c', '\x00' };
@@ -43,7 +43,7 @@ TEST(Rebalance, Regression3020) {
 }
 
 TEST(Rebalance, NoBalance) {
-    static const uint8_t key0[0] = { };
+    static const uint8_t key0[1] = { };
     static const uint8_t key1[1] = { 'D' };
     static const uint8_t key2[1] = { 'F' };
     static const uint8_t key3[1] = { 'O' };

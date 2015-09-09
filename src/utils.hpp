@@ -287,4 +287,9 @@ private:
 	DISABLE_COPYING(defer_t);
 };
 
+template <class T>
+T make_copy(const T &x){
+    return x;
+}
+
 #endif // UTILS_HPP_

@@ -21,7 +21,13 @@ TEST(LogMessageTest, ParseFormat) {
 
 void test_chunks(const std::vector<size_t> &sizes) {
     char filename[] = "/tmp/rethinkdb-unittest-file-reverse-reader-XXXXXX";
+#ifdef _WIN32 // TODO ATN
+    errno_t err = _mktemp_s(filename, sizeof(filename));
+    guarantee_xerr(err == 0, err, "_mktemp_s failed");
+    scoped_fd_t fd(filename);
+#else
     scoped_fd_t fd(mkstemp(filename));
+#endif
     guarantee(fd.get() != INVALID_FD);
     int unlink_res = unlink(filename);
     guarantee(unlink_res == 0);
@@ -31,7 +37,9 @@ void test_chunks(const std::vector<size_t> &sizes) {
         int res = write(fd.get(), line.data(), line.size());
         ASSERT_EQ(line.size(), res);
     }
+#ifndef _WIN32 // ATN TODO
     fsync(fd.get());
+#endif
     file_reverse_reader_t rr(std::move(fd));
     for (ssize_t i = sizes.size() - 1; i >= 0; --i) {
         std::string expected(sizes[i], 'A' + i);

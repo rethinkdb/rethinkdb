@@ -26,7 +26,7 @@ inline std::string show_member_id(const raft_member_id_t &mid) {
 #else
 #define RAFT_DEBUG(...) ((void)0)
 #define RAFT_DEBUG_THIS(...) ((void)0)
-#define RAFT_DEBUG_VAR __attribute__((unused))
+#define RAFT_DEBUG_VAR UNUSED
 #endif /* ENABLE_RAFT_DEBUG */
 
 template<class state_t>

@@ -140,7 +140,7 @@ public:
     MUST_USE range_map_t<edge_t, value_t> mask(const edge_t &l, const edge_t &r) const {
         range_map_t res(l);
         visit(l, r, [&](const edge_t &l2, const edge_t &r2, const value_t &v) {
-            res.extend_right(l2, r2, value_t(v));
+            res.extend_right(l2, r2, make_copy(v));
         });
         return res;
     }

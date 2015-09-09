@@ -50,7 +50,7 @@
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>Console</SubSystem> <!-- TODO ATN: Set to windows in release mode? -->
       <AdditionalDependencies>iphlpapi.lib;gtest.lib;libprotobuf.lib;WS2_32.lib;re2.lib;zlib.lib;ssleay32.lib;libeay32.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <!-- TODO ATN: No longer needed! <ForceFileOutput>UndefinedSymbolOnly</ForceFileOutput> -->
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
@@ -65,7 +65,7 @@
     <ClInclude Include="build\release\proto\rdb_protocol\ql2_extensions.pb.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\**\*.cc" Exclude="src\unittest\**\*.cc"/>
+    <ClCompile Include="src\**\*.cc" /> <!-- TODO ATN Exclude="src\unittest\**\*.cc"/> -->
     <ClCompile Include="build\release\proto\rdb_protocol\ql2.pb.cc" />
     <ClCompile Include="build\release\proto\rdb_protocol\ql2_extensions.pb.cc" />
     <ClCompile Include="windows_stub\pthread.cc" />

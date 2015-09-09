@@ -2,6 +2,8 @@
 #include "utils.hpp"
 #include "unittest/gtest.hpp"
 
+// TODO ATN
+
 void open_console() {
 	AllocConsole();
 	freopen("conin$", "r", stdin);
@@ -16,9 +18,11 @@ void close_console() {
 }
 
 int main(int argc, char **argv) {
+    printf("Starting RethinkDB unittest main.\n");
     startup_shutdown_t startup_shutdown;
-	open_console();
-	defer_t defer(close_console);
+    //open_console();
+    //defer_t defer(close_console);
     ::testing::InitGoogleTest(&argc, argv);
+    printf("Running tests\n");
     return RUN_ALL_TESTS();
 }
