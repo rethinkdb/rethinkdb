@@ -8,29 +8,36 @@ import os.path
 import ast
 import yaml
 import metajava
-from collections import namedtuple, deque
+from cStringIO import StringIO
+from collections import namedtuple
 
 
 def main():
     TEST_DIR = '../../test/rql_test/src'
     total_tests = 0
     total_errors = 0
+    total_defs = 0
     for testfile in all_yaml_tests(TEST_DIR):
         print("\n### ", testfile)
         for i, testline in enumerate(TestFile(TEST_DIR, testfile)):
             # TODO: the body of this loop should output to the test files
             if isinstance(testline, Def):
-                pass  # TODO: handle assignments
+                total_defs += 1
+                # print(testline.line)
+                # handle_assignment(testline)
+                # print()
             elif isinstance(testline, Query):
                 total_tests += 1
                 print("---- #{}".format(i))
                 print("-", testline.line)
                 try:
-                    result = Converter([], None).convert(testline.line)
+                    result = JavaVisitor().convert(testline.line)
                     print("+", result)
                 except Exception:
                     total_errors += 1
-    print("Errors {} out of {} total tests".format(total_errors, total_tests))
+                    raise
+    print("Errors {} out of {} total tests. {} defs".format(
+        total_errors, total_tests, total_defs))
 
 
 TEST_EXCLUSIONS = [
@@ -63,6 +70,13 @@ SIGIL = object()
 
 Query = namedtuple('Query', 'line expected_value runopts')
 Def = namedtuple('Def', 'line runopts')
+
+
+def handle_assignment(definition):
+    '''Processes an assignment statement'''
+    assignment = ast.parse(definition.line, mode='single').body[0]
+    value = JavaConverter().convert(assignment.value)
+    print("Object", assignment.targets[0].id, "=", value, end=";\n")
 
 
 class TestFile(object):
@@ -158,103 +172,24 @@ class TestFile(object):
                         yield Query(subtestline, expected_value, runopts)
 
 
-def to_java_attribute(attr_name):
-    '''Converts a snake-case python attribute into a dromedary case java
-    attribute that avoids colliding with java keywords and Object methods'''
-    initial = metajava.dromedary(attr_name)
-    if initial in metajava.java_term_info.JAVA_KEYWORDS:
-        return initial + '_'
-    elif initial in metajava.java_term_info.OBJECT_METHODS:
-        return initial + '_'
-    else:
-        return initial
+class JavaVisitor(ast.NodeVisitor):
+    '''Converts python ast nodes into a java string'''
 
-class Converter(object):
-
-    '''Converts a parsed python AST into a java expression string'''
-    def __init__(self, vars_, type_, context=None, out=None):
-        self.out = out if out is not None else deque()
-        self.vars_ = vars_ if vars_ is not None else []
-        self.type_ = type_
-        self.context = context
-
-    def subconvert(self, expr, vars_=SIGIL, type_=SIGIL, context=SIGIL):
-        '''Create a converter with different properties, run the
-        conversion, and return the result'''
-        return Converter(
-            vars_=vars_ if vars_ is not SIGIL else self.vars_,
-            type_=type_ if type_ is not SIGIL else self.type_,
-            context=context if context is not SIGIL else self.context,
-            out=self.out,
-        ).to_java(expr)
+    def __init__(self, out=None):
+        self.out = out or StringIO()
+        super(JavaVisitor, self).__init__()
 
     def convert(self, line):
-        expr = ast.parse(line, mode='eval').body
-        self.to_java(expr)
-        return ''.join(self.out)
+        '''Convert a text line to another text line'''
+        if isinstance(line, "".__class__):
+            node = ast.parse(line, mode='eval').body
+        else:
+            node = line
+        self.visit(node)
+        return self.out.getvalue()
 
     def write(self, to_write):
-        self.out.append(to_write)
-
-    def write_str(self, to_write):
-        self.out.extend(['"', to_write, '"'])
-
-    def to_java(self, expr):
-        try:
-            t = type(expr)
-            if isinstance(t, "".__class__):
-                self.write(t)
-            elif t == ast.Index:
-                self.to_index(expr)
-            elif t == ast.Num:
-                self.to_num(expr)
-            elif t == ast.Call:
-                self.to_call(expr)
-            elif t == ast.Str:
-                self.write_str(expr.s)
-            elif t == ast.Attribute:
-                self.to_attr(expr)
-            elif t == ast.Name:
-                self.write(expr.id)
-            elif t == ast.Subscript:
-                self.to_subscript(expr)
-            elif t == ast.Dict:
-                self.to_dict(expr)
-            elif t == ast.List:
-                self.to_list(expr)
-            elif t == ast.Lambda:
-                self.to_lambda(expr)
-            elif t == ast.BinOp:
-                self.to_binop(expr)
-            elif t == ast.ListComp:
-                self.to_listcomp(expr)
-            elif t == ast.Compare:
-                self.to_compare(expr)
-            elif t == ast.UnaryOp:
-                self.to_unary(expr)
-            elif t == ast.Tuple:
-                self.to_tuple(expr)
-            else:
-                raise Unhandled("Don't know what this thing is: " + str(t))
-        except Exception as e:
-            print("While translating: " + ast.dump(expr), file=sys.stderr)
-            print(type(e).__name__, e)
-            print("Got as far as:", ''.join(self.out))
-            raise
-
-    def to_num(self, expr):
-        self.write(repr(expr.n))
-        if abs(expr.n) > 2147483647:  # max int in java
-            self.write(".0")
-
-    def to_index(self, expr):
-        self.to_java(expr.value)
-
-    def to_call(self, expr):
-        assert not expr.kwargs
-        assert not expr.starargs
-        self.to_java(expr.func)
-        self.to_args(expr.args, expr.keywords)
+        self.out.write(to_write)
 
     def join(self, sep, items):
         first = True
@@ -263,7 +198,12 @@ class Converter(object):
                 first = False
             else:
                 self.write(sep)
-            self.to_java(item)
+            self.visit(item)
+
+    def to_str(self, string):
+        self.write('"')
+        self.write(repr(string)[1:-1])
+        self.write('"')
 
     def to_args(self, args, optargs=[]):
         self.write("(")
@@ -271,57 +211,86 @@ class Converter(object):
         self.write(")")
         for optarg in optargs:
             self.write(".optArg(")
-            self.write_str(optarg.arg)
+            self.to_str(optarg.arg)
             self.write(", ")
-            self.to_java(optarg.value)
+            self.visit(optarg.value)
             self.write(")")
 
-    def to_attr(self, expr):
-        self.to_java(expr.value)
-        self.write(".")
-        self.write(to_java_attribute(expr.attr))
+    def generic_visit(self, node):
+        print("While translating: " + ast.dump(node), file=sys.stderr)
+        print("Got as far as:", ''.join(self.out), file=sys.stderr)
+        raise Unhandled("Don't know what this thing is: " + str(type(node)))
 
-    def to_subscript(self, expr):
-        self.to_java(expr.value)
-        if type(expr.slice) == ast.Index:
+    def visit_Str(self, node):
+        self.to_str(node.s)
+
+    def visit_Name(self, node):
+        self.write(node.id)
+
+    def visit_Num(self, node):
+        self.write(repr(node.n))
+        if abs(node.n) > 2147483647:  # max int in java
+            self.write(".0")
+
+    def visit_Index(self, node):
+        self.visit(node.value)
+
+    def visit_Call(self, node):
+        assert not node.kwargs
+        assert not node.starargs
+        self.visit(node.func)
+        self.to_args(node.args, node.keywords)
+
+    def visit_Attribute(self, node):
+        self.visit(node.value)
+        self.write(".")
+        initial = metajava.dromedary(node.attr)
+        self.write(initial)
+        if initial in metajava.java_term_info.JAVA_KEYWORDS or \
+           initial in metajava.java_term_info.OBJECT_METHODS:
+            self.write('_')
+
+    def visit_Subscript(self, node):
+        self.visit(node.value)
+        if type(node.slice) == ast.Index:
             # Syntax like a[2] or a["b"]
             self.write(".bracket(")
-            self.to_java(expr.slice.value)
-        elif type(expr.slice) == ast.Slice:
+            self.visit(node.slice.value)
+        elif type(node.slice) == ast.Slice:
             # Syntax like a[1:2] or a[:2]
             self.write(".slice(")
-            lower = 0 if not expr.slice.lower else expr.slice.lower.n
-            upper = -1 if not expr.slice.upper else expr.slice.upper.n
+            lower = 0 if not node.slice.lower else node.slice.lower.n
+            upper = -1 if not node.slice.upper else node.slice.upper.n
             self.write(str(lower))
             self.write(", ")
             self.write(str(upper))
         else:
-            raise Unhandled("Don't support ExtSlice")
+            raise Unhandled("No translation for ExtSlice")
         self.write(")")
 
-    def to_dict(self, expr):
+    def visit_Dict(self, node):
         self.write("new MapObject()")
-        for k, v in zip(expr.keys, expr.values):
+        for k, v in zip(node.keys, node.values):
             self.write(".with(")
-            self.to_java(k)
+            self.visit(k)
             self.write(", ")
-            self.to_java(v)
+            self.visit(v)
             self.write(")")
 
-    def to_list(self, expr):
+    def visit_List(self, node):
         self.write("Arrays.toList(")
-        self.join(", ", expr.elts)
+        self.join(", ", node.elts)
         self.write(")")
 
-    def to_tuple(self, expr):
-        self.to_list(expr)
+    def visit_Tuple(self, node):
+        self.visit_List(node)
 
-    def to_lambda(self, expr):
-        self.to_args(expr.args.args)
+    def visit_Lambda(self, node):
+        self.to_args(node.args.args)
         self.write(" -> ")
-        self.to_java(expr.body)
+        self.visit(node.body)
 
-    def to_binop(self, expr):
+    def visit_BinOp(self, node):
         opMap = {
             ast.Add: "add",
             ast.Sub: "sub",
@@ -332,14 +301,14 @@ class Converter(object):
             ast.BitOr: "or",
         }
         self.write("r.")
-        self.write(opMap[type(expr.op)])
+        self.write(opMap[type(node.op)])
         self.write("(")
-        self.to_java(expr.left)
+        self.visit(node.left)
         self.write(", ")
-        self.to_java(expr.right)
+        self.visit(node.right)
         self.write(")")
 
-    def to_compare(self, expr):
+    def visit_Compare(self, node):
         opMap = {
             ast.Lt: "lt",
             ast.Gt: "gt",
@@ -349,45 +318,54 @@ class Converter(object):
             ast.NotEq: "ne",
         }
         self.write("r.")
-        if len(expr.ops) != 1:
-            raise Unhandled("Compare hack bailed on: ", ast.dump(expr))
-        self.write(opMap[type(expr.ops[0])])
+        if len(node.ops) != 1:
+            # Python syntax allows chained comparisons (a < b < c) but
+            # we don't deal with that here
+            raise Unhandled("Compare hack bailed on: ", ast.dump(node))
+        self.write(opMap[type(node.ops[0])])
         self.write("(")
-        self.to_java(expr.left)
-        self.to_java(expr.comparators[0])
+        self.visit(node.left)
+        self.write(", ")
+        self.visit(node.comparators[0])
         self.write(")")
 
-    def to_listcomp(self, expr):
-        gen = expr.generators[0]
+    def visit_ListComp(self, node):
+        gen = node.generators[0]
 
         if type(gen.iter) == ast.Call and gen.iter.func.id.endswith('range'):
+            # This is really a special-case hacking of [... for i in
+            # range(i)] comprehensions that are used in the polyglot
+            # tests sometimes. It won't handle translating arbitrary
+            # comprehensions to Java streams.
             self.write("IntStream.range(")
             if len(gen.iter.args) == 1:
                 self.write("0, ")
-                self.to_java(gen.iter.args[0])
+                self.visit(gen.iter.args[0])
             elif len(gen.iter.args) == 2:
-                self.to_java(gen.iter.args[0])
+                self.visit(gen.iter.args[0])
                 self.write(", ")
-                self.to_java(gen.iter.args[1])
+                self.visit(gen.iter.args[1])
             self.write(")")
         else:
-            raise Unhandled("ListComp hack couldn't handle: ", ast.dump(expr))
+            # Somebody came up with a creative new use for
+            # comprehensions in the test suite...
+            raise Unhandled("ListComp hack couldn't handle: ", ast.dump(node))
         self.write(".map(")
-        self.to_java(gen.target)
+        self.visit(gen.target)
         self.write(" -> ")
-        self.to_java(expr.elt)
+        self.visit(node.elt)
         self.write(").collect(Collectors.toList())")
 
-    def to_unary(self, expr):
-        if type(expr.op) == ast.USub:
+    def visit_UnaryOp(self, node):
+        if type(node.op) == ast.USub:
             self.write("-")
-            self.to_java(expr.operand)
-        elif type(expr.op) == ast.Invert:
+            self.visit(node.operand)
+        elif type(node.op) in (ast.Invert, ast.Not):
             self.write("r.not(")
-            self.to_java(expr.operand)
+            self.visit(node.operand)
             self.write(")")
         else:
-            raise Unhandled("Not sure what to do with:", ast.dump(expr))
+            raise Unhandled("Not sure what to do with:", ast.dump(node))
 
 if __name__ == '__main__':
     main()
