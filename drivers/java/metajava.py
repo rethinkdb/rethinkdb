@@ -414,7 +414,8 @@ def camel(varname):
     'CamelCase'
     if re.match(r'[A-Z][A-Z0-9_]*$|[a-z][a-z0-9_]*$', varname):
         # if snake-case (upper or lower) camelize it
-        return ''.join(x.title() for x in varname.split('_'))
+        suffix = "_" if varname.endswith('_') else ""
+        return ''.join(x.title() for x in varname.split('_')) + suffix
     else:
         # if already mixed case, just capitalize the first letter
         return varname[0].upper() + varname[1:]
@@ -424,7 +425,8 @@ def dromedary(varname):
     'dromedaryCase'
     if re.match(r'[A-Z][A-Z0-9_]*$|[a-z][a-z0-9_]*$', varname):
         chunks = varname.split('_')
-        return chunks[0].lower() + ''.join(x.title() for x in chunks[1:])
+        suffix = "_" if varname.endswith('_') else ""
+        return chunks[0].lower() + ''.join(x.title() for x in chunks[1:]) + suffix
     else:
         return varname[0].lower() + varname[1:]
 
