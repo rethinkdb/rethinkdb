@@ -441,8 +441,10 @@ bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_o
     }
 
     if (fd.get() == INVALID_FD) {
-        error_out->assign("cannot open or find log file");
-        return false;
+        // TODO ATN: make a distinction between "could not find log file" and "the log file is a black hole"
+        // error_out->assign("cannot open or find log file");
+        // return false;
+        return true;
     }
 #ifndef _WIN32
     int fcntl_res = fcntl(fd.get(), F_SETLKW, &filelock);

@@ -153,3 +153,5 @@ cmake -G"Visual Studio 14 Win64"
 * install as service
 * ensure windows paths are parsed and generated correctly where needed
 * memset 0 / bzero
+* may need to add fflush(stderr) in some places to help debugging
+* make sure HANDLEs (both fd_t and file/process/thread handles) are being properly closed
