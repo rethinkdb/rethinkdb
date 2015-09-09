@@ -334,7 +334,7 @@ class ConnectionInstance(object):
         if not noreply:
             self._user_queries[query.token] = (query, response_defer)
         # Send the query
-        self._connection.transport.write(query.serialize())
+        self._connection.transport.write(query.serialize(self._parent._get_json_encoder()))
 
         if noreply:
             returnValue(None)

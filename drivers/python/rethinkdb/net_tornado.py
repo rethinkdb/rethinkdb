@@ -174,7 +174,7 @@ class ConnectionInstance(object):
 
     @gen.coroutine
     def run_query(self, query, noreply):
-        yield self._stream.write(query.serialize())
+        yield self._stream.write(query.serialize(self._parent._get_json_encoder()))
         if noreply:
             raise gen.Return(None)
 

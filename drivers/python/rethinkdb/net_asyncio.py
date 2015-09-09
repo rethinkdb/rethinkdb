@@ -198,7 +198,7 @@ class ConnectionInstance(object):
 
     @asyncio.coroutine
     def run_query(self, query, noreply):
-        self._streamwriter.write(query.serialize())
+        self._streamwriter.write(query.serialize(self._parent._get_json_encoder()))
         if noreply:
             return None
 
