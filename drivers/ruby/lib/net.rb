@@ -486,7 +486,7 @@ module RethinkDB
       is_open() ? @socket.addr[1] : nil
     end
     def client_address
-      is_open() ? @socket.addr[0] : nil
+      is_open() ? @socket.addr[3] : nil
     end
 
     def new_token
