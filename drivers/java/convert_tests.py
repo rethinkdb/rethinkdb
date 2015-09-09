@@ -283,16 +283,20 @@ class Converter(object):
 
     def to_subscript(self, expr):
         self.to_java(expr.value)
-        if hasattr(expr.slice, "upper"):
-            # Using slice notation
-            self.write(".slice(")
-            self.to_java(expr.slice.lower)
-            if expr.slice.upper is not None:
-                self.write(", ")
-                self.to_java(expr.slice.upper)
-        else:
+        if type(expr.slice) == ast.Index:
+            # Syntax like a[2] or a["b"]
             self.write(".bracket(")
             self.to_java(expr.slice.value)
+        elif type(expr.slice) == ast.Slice:
+            # Syntax like a[1:2] or a[:2]
+            self.write(".slice(")
+            lower = 0 if not expr.slice.lower else expr.slice.lower.n
+            upper = -1 if not expr.slice.upper else expr.slice.upper.n
+            self.write(str(lower))
+            self.write(", ")
+            self.write(str(upper))
+        else:
+            raise Unhandled("Don't support ExtSlice")
         self.write(")")
 
     def to_dict(self, expr):
