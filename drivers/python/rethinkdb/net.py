@@ -63,6 +63,8 @@ class Query(object):
         self.type = type
         self.token = token
         self.term = term
+        self._json_encoder = global_optargs.pop('json_encoder', None)
+        self._json_decoder = global_optargs.pop('json_decoder', None)
         self.global_optargs = global_optargs
 
     def serialize(self, reql_encoder=ReQLEncoder()):
@@ -177,7 +179,7 @@ class Cursor(object):
         self._maybe_fetch_batch()
 
         res = Response(self.query.token, res_buf,
-                       self.conn._parent._get_json_decoder(self.query.global_optargs))
+                       self.conn._get_json_decoder(self.query))
         self._extend_internal(res)
 
     def _extend_internal(self, res):
@@ -401,12 +403,14 @@ class SocketWrapper(object):
 
 
 class ConnectionInstance(object):
-    def __init__(self, parent):
+    def __init__(self, parent, json_encoder=None, json_decoder=None):
         self._parent = parent
         self._cursor_cache = {}
         self._header_in_progress = None
         self._socket = None
         self._closing = False
+        self._json_encoder = json_encoder
+        self._json_decoder = json_decoder
 
     def connect(self, timeout):
         self._socket = SocketWrapper(self, timeout)
@@ -432,7 +436,7 @@ class ConnectionInstance(object):
             self._header_in_progress = None
 
     def run_query(self, query, noreply):
-        self._socket.sendall(query.serialize(self._parent._get_json_encoder()))
+        self._socket.sendall(query.serialize(self._get_json_encoder(query)))
         if noreply:
             return None
 
@@ -483,11 +487,20 @@ class ConnectionInstance(object):
             elif res_token == token:
                 return Response(
                     res_token, res_buf,
-                    self._parent._get_json_decoder(query.global_optargs))
+                    self._get_json_decoder(query))
             elif not self._closing:
                 # This response is corrupted or not intended for us
                 self.close(False, None)
                 raise ReqlDriverError("Unexpected response received.")
+
+    def _get_json_decoder(self, query):
+        return (
+            query._json_decoder or self._json_decoder or
+            self._parent._get_json_decoder)(query.global_optargs)
+
+    def _get_json_encoder(self, query):
+        return (
+            query._json_encoder or self._json_encoder or self._parent._get_json_encoder)()
 
 
 class Connection(object):
