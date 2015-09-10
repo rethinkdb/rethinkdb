@@ -45,8 +45,17 @@ public class ${module_name} {
 
     @Test
     public void test() throws Exception {
-        %for item in defs_and_test:
-        ${item}
+        %for rendered, expected, item in defs_and_test:
+        %if type(item) == Def:
+
+        ${rendered}
+        %elif type(item) == Query:
+        {
+            Object expected = ${expected};
+            Object obtained = ${rendered}.run(conn);
+            assertEquals(expected, obtained);
+        }
+        %endif
         %endfor
     }
 }

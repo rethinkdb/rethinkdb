@@ -86,7 +86,9 @@ class TestFile(object):
             output_name=self.module_name + '.java',
             defs_and_test=self.convert_to_java(self.tests_and_defs()),
             table_var_name=self.table_var_name,
-            module_name=self.module_name
+            module_name=self.module_name,
+            Def=Def,
+            Query=Query,
         )
 
     def convert_to_java(self, sequence):
@@ -96,9 +98,12 @@ class TestFile(object):
                 if isinstance(item, Def):
                     if is_reql(item.parsed.value, self.reql_vars):
                         self.reql_vars.add(item.parsed.targets[0].id)
-                    yield JavaVisitor(self.reql_vars).convert(item.parsed)
+                    yield (JavaVisitor(self.reql_vars).convert(item.parsed),
+                           None, item)
                 elif isinstance(item, Query):
-                    yield ReQLVisitor(self.reql_vars).convert(item.parsed)
+                    yield (ReQLVisitor(self.reql_vars).convert(item.parsed),
+                           JavaVisitor().convert(item.expected_value),
+                           item)
                 else:
                     assert False, "shouldn't happen"
             except Exception as e:
@@ -153,6 +158,7 @@ class TestFile(object):
         for test in self.raw_test_data:
             runopts = test.get('runopts')
             expected = get_python_value(test)  # ot field
+            expected_ast = ast.parse(py_str(expected), mode="eval").body
             if 'def' in test:
                 # We want to yield the definition before the test itself
                 define = flexiget(test['def'], ['py', 'cd'], test['def'])
@@ -168,19 +174,19 @@ class TestFile(object):
                 if isinstance(pytest, "".__class__):
                     parsed = ast.parse(pytest, mode="single").body[0]
                     if type(parsed) == ast.Expr:
-                        yield Query(parsed.value, pytest, expected, runopts)
+                        yield Query(parsed.value, pytest, expected_ast, runopts)
                     elif type(parsed) == ast.Assign:
                         yield Def(parsed, pytest, runopts)
                 elif type(pytest) is dict and 'cd' in pytest:
                     pytestline = py_str(pytest['cd'])
                     parsed = ast.parse(pytestline, mode="eval").body
-                    yield Query(parsed, pytestline, expected, runopts)
+                    yield Query(parsed, pytestline, expected_ast, runopts)
                 else:
                     # unroll subtests
                     for subtest in pytest:
                         subtestline = py_str(subtest)
                         parsed = ast.parse(subtestline, mode="eval").body
-                        yield Query(parsed, subtestline, expected, runopts)
+                        yield Query(parsed, subtestline, expected_ast, runopts)
 
 
 def is_reql(node, reql_vars):
@@ -271,7 +277,11 @@ class JavaVisitor(ast.NodeVisitor):
         self.to_str(node.s)
 
     def visit_Name(self, node):
-        self.write(node.id)
+        self.write({
+            'True': 'true',
+            'False': 'false',
+            'None': 'null',
+            }.get(node.id, node.id))
 
     def visit_Attribute(self, node):
         self.write(".")
@@ -301,7 +311,7 @@ class JavaVisitor(ast.NodeVisitor):
             self.write(")")
 
     def visit_List(self, node):
-        self.write("Arrays.toList(")
+        self.write("Arrays.asList(")
         self.join(", ", node.elts)
         self.write(")")
 
