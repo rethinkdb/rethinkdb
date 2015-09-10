@@ -14,38 +14,8 @@ from collections import namedtuple
 
 def main():
     TEST_DIR = '../../test/rql_test/src'
-    total_tests = 0
-    total_errors = 0
-    total_defs = 0
     for testfile in all_yaml_tests(TEST_DIR):
-        print("\n### ", testfile)
-        reql_vars = ["r"]
-        tf = TestFile(TEST_DIR, testfile)
-        if tf.table_var_name is not None:
-            reql_vars.append(tf.table_var_name)
-        print(" ## ReQL vars:", ", ".join(reql_vars))
-        for i, testline in enumerate(tf):
-            # TODO: the body of this loop should output to the test files
-            if isinstance(testline, Def):
-                total_defs += 1
-                print(testline.line)
-                varname = handle_assignment(testline.parsed, reql_vars)
-                if varname is not None:
-                    reql_vars.append(varname)
-                    print(" ## ReQL vars:", ", ".join(reql_vars))
-                print()
-            elif isinstance(testline, Query):
-                total_tests += 1
-                print("---- #{}".format(i))
-                print("-", testline.line)
-                try:
-                    result = ReQLVisitor(reql_vars).convert(testline.parsed)
-                    print("+", result)
-                except Exception:
-                    total_errors += 1
-                    raise
-    print("Errors {} out of {} total tests. {} defs".format(
-        total_errors, total_tests, total_defs))
+        TestFile(TEST_DIR, testfile, './src/test/java').render()
 
 
 TEST_EXCLUSIONS = [
@@ -83,11 +53,16 @@ Def = namedtuple('Def', 'parsed line runopts')
 class TestFile(object):
     '''Represents a single test file'''
 
-    def __init__(self, test_dir, filename):
+    def __init__(self, test_dir, filename, test_output_dir):
         self.filename = filename
         self.full_path = os.path.join(test_dir, filename)
         self.module_name = metajava.camel(
             filename.split('.')[0].replace('/', '_'))
+        self.test_output_dir = test_output_dir
+        self.reql_vars = {'r'}
+        # TODO: accept template_dir from the command line
+        self.renderer = metajava.Renderer(
+            "./templates", mtime=os.path.getmtime(__file__))
 
         self.load()
 
@@ -97,11 +72,44 @@ class TestFile(object):
             parsed_yaml = yaml.load(f)
         self.description = parsed_yaml.get('desc', 'No description')
         self.table_var_name = parsed_yaml.get('table_variable_name')
+        if self.table_var_name is not None:
+            if isinstance(self.table_var_name, list):
+                self.reql_vars.update(self.table_var_name)
+            else:
+                self.reql_vars.add(self.table_var_name)
         self.raw_test_data = parsed_yaml['tests']
 
-    def __iter__(self):
-        '''Generator of python test data. Yields both Query and Def
-        objects'''
+    def render(self):
+        self.renderer.render(
+            'Test.java',
+            output_dir=self.test_output_dir,
+            output_name=self.module_name + '.java',
+            defs_and_test=self.convert_to_java(self.tests_and_defs()),
+            table_var_name=self.table_var_name,
+            module_name=self.module_name
+        )
+
+    def convert_to_java(self, sequence):
+        '''Converts the output of __iter__ to java source lines'''
+        for item in sequence:
+            try:
+                if isinstance(item, Def):
+                    if is_reql(item.parsed.value, self.reql_vars):
+                        self.reql_vars.add(item.parsed.targets[0].id)
+                    yield JavaVisitor(self.reql_vars).convert(item.parsed)
+                elif isinstance(item, Query):
+                    yield ReQLVisitor(self.reql_vars).convert(item.parsed)
+                else:
+                    assert False, "shouldn't happen"
+            except Exception as e:
+                print(type(e), e)
+                print("was trying to convert", item.line)
+
+    def handle_assignment(self, assignment):
+        '''Processes an assignment statement'''
+
+    def tests_and_defs(self):
+        '''Generator of parsed python tests and definitions.'''
 
         def flexiget(obj, keys, default):
             '''Like dict.get, but accepts an array of keys, and still
@@ -173,14 +181,6 @@ class TestFile(object):
                         subtestline = py_str(subtest)
                         parsed = ast.parse(subtestline, mode="eval").body
                         yield Query(parsed, subtestline, expected, runopts)
-
-
-def handle_assignment(assignment, reql_vars):
-    '''Processes an assignment statement'''
-    var = assignment.targets[0].id
-    print(JavaVisitor(reql_vars=reql_vars).convert(assignment))
-    if is_reql(assignment.value, reql_vars):
-        return var
 
 
 def is_reql(node, reql_vars):
@@ -314,7 +314,7 @@ class JavaVisitor(ast.NodeVisitor):
         self.visit(node.body)
 
     def visit_Subscript(self, node):
-        if not node.slice or not node.slice.value or not node.slice.value.n:
+        if node.slice is None or type(node.slice.value) != ast.Num:
             raise Unhandled("Only integers subscript can be converted")
         self.write("[")
         self.visit(node.slice.value)
