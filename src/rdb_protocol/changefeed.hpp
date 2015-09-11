@@ -124,7 +124,7 @@ struct keyspec_t {
         std::vector<transform_variant_t> transforms;
         boost::optional<std::string> sindex;
         sorting_t sorting;
-        datum_range_t range;
+        std::vector<datum_range_t> ranges;
     };
     struct limit_t {
         range_t range;

@@ -536,16 +536,19 @@ typedef ql::terminal_variant_t terminal_variant_t;
 
 class rget_sindex_data_t {
 public:
-    rget_sindex_data_t(const key_range_t &_pkey_range, const ql::datum_range_t &_range,
+    rget_sindex_data_t(const key_range_t &_pkey_range,
+                       const std::vector<ql::datum_range_t> &_ranges,
                        reql_version_t wire_func_reql_version,
                        ql::map_wire_func_t wire_func, sindex_multi_bool_t _multi)
-        : pkey_range(_pkey_range), range(_range),
+        : pkey_range(_pkey_range),
+          ranges(_ranges),
           func_reql_version(wire_func_reql_version),
-          func(wire_func.compile_wire_func()), multi(_multi) { }
+          func(wire_func.compile_wire_func()),
+          multi(_multi) { }
 private:
     friend class rget_cb_t;
     const key_range_t pkey_range;
-    const ql::datum_range_t range;
+    const std::vector<ql::datum_range_t> ranges;
     const reql_version_t func_reql_version;
     const counted_t<const ql::func_t> func;
     const sindex_multi_bool_t multi;
@@ -568,6 +571,7 @@ public:
         }
         guarantee(transformers.size() == _transforms.size());
     }
+
     job_data_t(job_data_t &&jd)
         : env(jd.env),
           batcher(std::move(jd.batcher)),
@@ -575,6 +579,11 @@ public:
           sorting(jd.sorting),
           accumulator(jd.accumulator.release()) {
     }
+
+    bool should_send_batch() const {
+        return accumulator->should_send_batch();
+    }
+
 private:
     friend class rget_cb_t;
     ql::env_t *const env;
@@ -605,7 +614,13 @@ public:
         scoped_key_value_t &&keyvalue,
         concurrent_traversal_fifo_enforcer_signal_t waiter)
         THROWS_ONLY(interrupted_exc_t);
+
+    bool should_finish() const {
+        return job.should_send_batch();
+    }
+
     void finish() THROWS_ONLY(interrupted_exc_t);
+
 private:
     const rget_io_data_t io; // How do get data in/out.
     job_data_t job; // What to do next (stateful).
@@ -625,9 +640,14 @@ rget_cb_t::rget_cb_t(rget_io_data_t &&_io,
       job(std::move(_job)),
       sindex(std::move(_sindex)),
       bad_init(false) {
-    io.response->last_key = !reversed(job.sorting)
-        ? range.left
-        : (!range.right.unbounded ? range.right.key() : store_key_t::max());
+    if (!reversed(job.sorting)) {
+        io.response->last_key = range.left;
+    } else {
+        io.response->last_key = range.right.unbounded
+            ? store_key_t::max()
+            : range.right.key();
+    }
+
     // We must disable profiler events for subtasks, because multiple instances
     // of `handle_pair`are going to run in parallel which  would otherwise corrupt
     // the sequence of events in the profiler trace.
@@ -701,9 +721,14 @@ continue_bool_t rget_cb_t::handle_pair(
                 sindex_val = sindex_val.get(*tag, ql::NOTHROW);
                 guarantee(sindex_val.has());
             }
-            if (!sindex->range.contains(sindex_val)) {
+            if (std::none_of(
+                    sindex->ranges.begin(),
+                    sindex->ranges.end(),
+                    [&](const ql::datum_range_t &datum_range) {
+                        return datum_range.contains(sindex_val);
+                    })) {
                 return continue_bool_t::CONTINUE;
-            }
+            };
         }
 
         ql::groups_t data;
@@ -736,6 +761,7 @@ continue_bool_t rget_cb_t::handle_pair(
 void rdb_rget_slice(
         btree_slice_t *slice,
         const key_range_t &range,
+        const boost::optional<std::vector<store_key_t> > &primary_keys,
         superblock_t *superblock,
         ql::env_t *ql_env,
         const ql::batchspec_t &batchspec,
@@ -744,24 +770,43 @@ void rdb_rget_slice(
         sorting_t sorting,
         rget_read_response_t *response,
         release_superblock_t release_superblock) {
-
     r_sanity_check(boost::get<ql::exc_t>(&response->result) == NULL);
     profile::starter_t starter("Do range scan on primary index.", ql_env->trace);
+
     rget_cb_t callback(
         rget_io_data_t(response, slice),
         job_data_t(ql_env, batchspec, transforms, terminal, sorting),
         boost::optional<rget_sindex_data_t>(),
         range);
-    btree_concurrent_traversal(
-        superblock, range, &callback, (!reversed(sorting) ? FORWARD : BACKWARD),
-        release_superblock);
+
+    direction_t direction = reversed(sorting) ? BACKWARD : FORWARD;
+    if (static_cast<bool>(primary_keys)) {
+        for (size_t i = 0; i < primary_keys->size(); ++i) {
+            btree_concurrent_traversal(
+                superblock,
+                key_range_t(primary_keys->at(i)),
+                &callback,
+                direction,
+                i == primary_keys->size() - 1
+                    ? release_superblock
+                    : release_superblock_t::KEEP);
+
+            if (callback.should_finish() == true) {
+                // If required the superblock will get released further up the stack
+                break;
+            }
+        }
+    } else {
+        btree_concurrent_traversal(
+            superblock, range, &callback, direction, release_superblock);
+    }
     callback.finish();
 }
 
 void rdb_rget_secondary_slice(
         btree_slice_t *slice,
-        const ql::datum_range_t &sindex_range,
-        const region_t &sindex_region,
+        const std::vector<ql::datum_range_t> &sindex_ranges,
+        const key_range_t &sindex_region,
         sindex_superblock_t *superblock,
         ql::env_t *ql_env,
         const ql::batchspec_t &batchspec,
@@ -779,18 +824,36 @@ void rdb_rget_secondary_slice(
 
     const reql_version_t sindex_func_reql_version =
         sindex_info.mapping_version_info.latest_compatible_reql_version;
+    ql::skey_version_t skey_version =
+        ql::skey_version_from_reql_version(sindex_func_reql_version);
+
     rget_cb_t callback(
         rget_io_data_t(response, slice),
         job_data_t(ql_env, batchspec, transforms, terminal, sorting),
-        rget_sindex_data_t(pk_range, sindex_range, sindex_func_reql_version,
-                           sindex_info.mapping, sindex_info.multi),
-        sindex_region.inner);
-    btree_concurrent_traversal(
-        superblock,
-        sindex_region.inner,
-        &callback,
-        (!reversed(sorting) ? FORWARD : BACKWARD),
-        release_superblock);
+        rget_sindex_data_t(
+            pk_range,
+            sindex_ranges,
+            sindex_func_reql_version,
+            sindex_info.mapping,
+            sindex_info.multi),
+        sindex_region);
+
+    direction_t direction = reversed(sorting) ? BACKWARD : FORWARD;
+    for (size_t i = 0; i < sindex_ranges.size(); ++i) {
+        btree_concurrent_traversal(
+            superblock,
+            sindex_ranges.at(i).to_sindex_keyrange(skey_version),
+            &callback,
+            direction,
+            i == sindex_ranges.size() - 1
+                ? release_superblock
+                : release_superblock_t::KEEP);
+
+        if (callback.should_finish() == true) {
+            // If required the superblock will get released further up the stack
+            break;
+        }
+    }
     callback.finish();
 }
 

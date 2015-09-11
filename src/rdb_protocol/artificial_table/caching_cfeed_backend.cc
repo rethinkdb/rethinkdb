@@ -230,6 +230,7 @@ bool caching_cfeed_artificial_table_backend_t::caching_machinery_t::get_values(
     if (!parent->read_all_rows_as_stream(
             ql::backtrace_id_t(),
             ql::datum_range_t::universe(),
+            boost::none,
             sorting_t::UNORDERED,
             interruptor,
             &stream,

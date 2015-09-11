@@ -259,6 +259,14 @@ public:
     key_range_t(bound_t lm, const btree_key_t *l,
                 bound_t rm, const btree_key_t *r);
 
+    explicit key_range_t(const store_key_t &key) {
+        left = key;
+        right.unbounded = false;
+        right.key() = key;
+        bool ok = right.increment();
+        guarantee(ok);
+    }
+
     explicit key_range_t(const btree_key_t *key) {
         left.assign(key);
         right.unbounded = false;

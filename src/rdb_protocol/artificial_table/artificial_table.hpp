@@ -33,6 +33,7 @@ public:
         ql::backtrace_id_t bt,
         const std::string &table_name,   /* the table's own name, for display purposes */
         const ql::datum_range_t &range,
+        const boost::optional<std::vector<ql::datum_t> > &keys,
         sorting_t sorting,
         read_mode_t read_mode);
     counted_t<ql::datum_stream_t> read_changes(

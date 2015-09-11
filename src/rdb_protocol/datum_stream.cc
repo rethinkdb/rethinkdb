@@ -17,7 +17,9 @@ namespace ql {
 
 bool changespec_t::include_initial_vals() {
     if (auto *range = boost::get<changefeed::keyspec_t::range_t>(&keyspec.spec)) {
-        if (range->range.is_universe()) return false;
+        if (range->ranges.size() != 1 || range->ranges.at(0).is_universe()) {
+            return false;
+        }
     }
     return true;
 }
@@ -412,12 +414,12 @@ bool readgen_t::update_range(key_range_t *active_range,
 rget_readgen_t::rget_readgen_t(
     const std::map<std::string, wire_func_t> &_global_optargs,
     std::string _table_name,
-    const datum_range_t &_original_datum_range,
+    const datum_range_t &_range,
     profile_bool_t _profile,
     read_mode_t _read_mode,
     sorting_t _sorting)
     : readgen_t(_global_optargs, std::move(_table_name), _profile, _read_mode, _sorting),
-      original_datum_range(_original_datum_range) { }
+      range(_range) { }
 
 read_t rget_readgen_t::next_read(
     const boost::optional<key_range_t> &active_range,
@@ -450,24 +452,41 @@ read_t rget_readgen_t::terminal_read(
 primary_readgen_t::primary_readgen_t(
     const std::map<std::string, wire_func_t> &global_optargs,
     std::string table_name,
-    datum_range_t range,
+    const ql::datum_range_t &range,
+    const boost::optional<std::vector<ql::datum_t> > &_keys,
     profile_bool_t _profile,
     read_mode_t _read_mode,
     sorting_t sorting)
-    : rget_readgen_t(global_optargs, std::move(table_name), range,
-                     _profile, _read_mode, sorting) { }
+    : rget_readgen_t(
+        global_optargs,
+        std::move(table_name),
+        range,
+        _profile,
+        _read_mode,
+        sorting),
+    keys(_keys) {
+    if (static_cast<bool>(keys)) {
+        store_keys = std::vector<store_key_t>{};
+        store_keys->reserve(keys->size());
+        for (const auto &key : keys.get()) {
+            store_keys->push_back(store_key_t(key.print_primary()));
+        }
+    }
+}
 
 scoped_ptr_t<readgen_t> primary_readgen_t::make(
     env_t *env,
     std::string table_name,
     read_mode_t read_mode,
-    datum_range_t range,
+    const ql::datum_range_t &range,
+    const boost::optional<std::vector<ql::datum_t> > &keys,
     sorting_t sorting) {
     return scoped_ptr_t<readgen_t>(
         new primary_readgen_t(
             env->get_all_optargs(),
             std::move(table_name),
             range,
+            keys,
             env->profile(),
             read_mode,
             sorting));
@@ -479,9 +498,11 @@ rget_read_t primary_readgen_t::next_read_impl(
     std::vector<transform_variant_t> transforms,
     const batchspec_t &batchspec) const {
     r_sanity_check(active_range);
+
     return rget_read_t(
         std::move(stamp),
         region_t(*active_range),
+        store_keys,
         global_optargs,
         table_name,
         batchspec,
@@ -505,7 +526,7 @@ void primary_readgen_t::sindex_sort(UNUSED std::vector<rget_item_t> *vec) const 
 }
 
 boost::optional<key_range_t> primary_readgen_t::original_keyrange() const {
-    return original_datum_range.to_primary_keyrange();
+    return range.to_primary_keyrange();
 }
 
 key_range_t primary_readgen_t::sindex_keyrange(skey_version_t) const {
@@ -516,25 +537,60 @@ boost::optional<std::string> primary_readgen_t::sindex_name() const {
     return boost::optional<std::string>();
 }
 
+changefeed::keyspec_t::range_t primary_readgen_t::get_range_spec(
+        std::vector<transform_variant_t> transforms) const {
+    if (static_cast<bool>(keys)) {
+        std::vector<datum_range_t> key_ranges;
+        key_ranges.reserve(keys->size());
+        for (const auto &key : keys.get()) {
+            key_ranges.push_back(datum_range_t(key));
+        }
+        return changefeed::keyspec_t::range_t{
+            std::move(transforms), sindex_name(), sorting, std::move(key_ranges)};
+    } else {
+        return changefeed::keyspec_t::range_t{
+            std::move(transforms),
+            sindex_name(),
+            sorting,
+            std::vector<datum_range_t>{range}};
+    }
+}
+
 sindex_readgen_t::sindex_readgen_t(
     const std::map<std::string, wire_func_t> &global_optargs,
     std::string table_name,
     const std::string &_sindex,
-    datum_range_t range,
+    const ql::datum_range_t &range,
+    const boost::optional<std::vector<ql::datum_t> > &keys,
     profile_bool_t _profile,
     read_mode_t _read_mode,
     sorting_t sorting)
-    : rget_readgen_t(global_optargs, std::move(table_name), range,
-                     _profile, _read_mode, sorting),
+    : rget_readgen_t(
+        global_optargs,
+        std::move(table_name),
+        range,
+        _profile,
+        _read_mode,
+        sorting),
       sindex(_sindex),
-      sent_first_read(false) { }
+      sent_first_read(false) {
+        if (static_cast<bool>(keys)) {
+            key_ranges.reserve(keys->size());
+            for (const auto &key : keys.get()) {
+                key_ranges.push_back(datum_range_t(key));
+            }
+        } else {
+            key_ranges.push_back(range);
+        }
+    }
 
 scoped_ptr_t<readgen_t> sindex_readgen_t::make(
     env_t *env,
     std::string table_name,
     read_mode_t read_mode,
     const std::string &sindex,
-    datum_range_t range,
+    const ql::datum_range_t &range,
+    const boost::optional<std::vector<ql::datum_t> > &keys,
     sorting_t sorting) {
     return scoped_ptr_t<readgen_t>(
         new sindex_readgen_t(
@@ -542,6 +598,7 @@ scoped_ptr_t<readgen_t> sindex_readgen_t::make(
             std::move(table_name),
             sindex,
             range,
+            keys,
             env->profile(),
             read_mode,
             sorting));
@@ -600,15 +657,20 @@ rget_read_t sindex_readgen_t::next_read_impl(
         // away once we drop support for pre-1.16 sindex key skey_version.
         const_cast<sindex_readgen_t *>(this)->sent_first_read = true;
     }
+
     return rget_read_t(
         std::move(stamp),
         region_t::universe(),
+        boost::none,
         global_optargs,
         table_name,
         batchspec,
         std::move(transforms),
         boost::optional<terminal_variant_t>(),
-        sindex_rangespec_t(sindex, std::move(region), original_datum_range),
+        sindex_rangespec_t(
+            sindex,
+            std::move(region),
+            key_ranges),
         sorting);
 }
 
@@ -649,6 +711,7 @@ boost::optional<read_t> sindex_readgen_t::sindex_sort_read(
                     rget_read_t(
                         std::move(stamp),
                         region_t::universe(),
+                        boost::none,
                         global_optargs,
                         table_name,
                         batchspec.with_new_batch_type(batch_type_t::SINDEX_CONSTANT),
@@ -657,7 +720,7 @@ boost::optional<read_t> sindex_readgen_t::sindex_sort_read(
                         sindex_rangespec_t(
                             sindex,
                             region_t(key_range_t(rng)),
-                            original_datum_range),
+                            std::vector<datum_range_t>{range}),
                         sorting),
                     profile,
                     read_mode);
@@ -672,11 +735,17 @@ boost::optional<key_range_t> sindex_readgen_t::original_keyrange() const {
 }
 
 key_range_t sindex_readgen_t::sindex_keyrange(skey_version_t skey_version) const {
-    return original_datum_range.to_sindex_keyrange(skey_version);
+    return range.to_sindex_keyrange(skey_version);
 }
 
 boost::optional<std::string> sindex_readgen_t::sindex_name() const {
     return sindex;
+}
+
+changefeed::keyspec_t::range_t sindex_readgen_t::get_range_spec(
+        std::vector<transform_variant_t> transforms) const {
+    return changefeed::keyspec_t::range_t{
+        std::move(transforms), sindex_name(), sorting, key_ranges};
 }
 
 intersecting_readgen_t::intersecting_readgen_t(
@@ -749,7 +818,10 @@ intersecting_geo_read_t intersecting_readgen_t::next_read_impl(
         batchspec,
         std::move(transforms),
         boost::optional<terminal_variant_t>(),
-        sindex_rangespec_t(sindex, region_t(*active_range), datum_range_t::universe()),
+        sindex_rangespec_t(
+            sindex,
+            region_t(*active_range),
+            std::vector<datum_range_t>{datum_range_t::universe()}),
         query_geometry);
 }
 

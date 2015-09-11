@@ -874,7 +874,11 @@ void limit_manager_t::add(
     guarantee(spot->write_signal()->is_pulsed());
     guarantee((is_primary == is_primary_t::NO) == static_cast<bool>(spec.range.sindex));
     if ((is_primary == is_primary_t::YES && region.inner.contains_key(sk))
-        || (is_primary == is_primary_t::NO && spec.range.range.contains(key))) {
+        || (is_primary == is_primary_t::NO &&
+            std::any_of(spec.range.ranges.begin(), spec.range.ranges.end(),
+                [&](const datum_range_t &range) {
+                    return range.contains(key);
+                }))) {
         if (boost::optional<datum_t> d = apply_ops(val, ops, env.get(), key)) {
             added.push_back(
                 std::make_pair(
@@ -933,6 +937,7 @@ public:
         rdb_rget_slice(
             ref.btree,
             range,
+            boost::none,
             ref.superblock,
             env,
             batchspec_t::all(),
@@ -958,7 +963,9 @@ public:
     std::vector<item_t> operator()(const sindex_ref_t &ref) {
         rget_read_response_t resp;
         guarantee(spec->range.sindex);
-        datum_range_t srange = spec->range.range;
+        // `.limit().changes()` is currently only allowed on a single range
+        r_sanity_check(spec->range.ranges.size() == 1);
+        datum_range_t srange = spec->range.ranges.at(0);
         if (start) {
             datum_t dstart = (**start)->second.first;
             switch (sorting) {
@@ -976,8 +983,8 @@ public:
             ref.sindex_info->mapping_version_info.latest_compatible_reql_version);
         rdb_rget_secondary_slice(
             ref.btree,
-            srange,
-            region_t(srange.to_sindex_keyrange(skey_version)),
+            std::vector<ql::datum_range_t>{srange},
+            srange.to_sindex_keyrange(skey_version),
             ref.superblock,
             env,
             batchspec_t::all(), // Terminal takes care of early termination
@@ -1743,11 +1750,21 @@ public:
     boost::optional<std::string> sindex() const { return spec.sindex; }
     bool contains(const datum_t &sindex_key) const {
         guarantee(spec.sindex);
-        return spec.range.contains(sindex_key);
+        return std::any_of(
+            spec.ranges.begin(),
+            spec.ranges.end(),
+            [&](const datum_range_t &range) {
+                return range.contains(sindex_key);
+            });
     }
     bool contains(const store_key_t &pkey) const {
         guarantee(!spec.sindex);
-        return spec.range.to_primary_keyrange().contains_key(pkey);
+        return std::any_of(
+            spec.ranges.begin(),
+            spec.ranges.end(),
+            [&](const datum_range_t &range) {
+                return range.to_primary_keyrange().contains_key(pkey);
+            });
     }
 
     virtual bool active() {
@@ -1864,7 +1881,13 @@ public:
         if (artificial_include_initial_vals) {
             state = state_t::INITIALIZING;
             for (auto it = initial_vals.rbegin(); it != initial_vals.rend(); ++it) {
-                if (spec.range.contains(it->get_field(datum_string_t(pkey_name)))) {
+                if (std::any_of(
+                        spec.ranges.begin(),
+                        spec.ranges.end(),
+                        [&](const datum_range_t &range) {
+                            return range.contains(
+                                it->get_field(datum_string_t(pkey_name)));
+                        })) {
                     artificial_initial_vals.push_back(*it);
                 }
             }
@@ -2156,6 +2179,8 @@ public:
         backtrace_id_t bt) final {
         assert_thread();
         r_sanity_check(self.get() == this);
+        // `.limit().changes()` is currently only allowed on a single range
+        r_sanity_check(spec.range.ranges.size() == 1);
         include_initial_vals = maybe_src.has();
         read_response_t read_resp;
         nif->read(
@@ -2167,7 +2192,7 @@ public:
                        env->get_all_optargs(),
                        spec.range.sindex
                        ? region_t::universe()
-                       : region_t(spec.range.range.to_primary_keyrange())),
+                       : region_t(spec.range.ranges.at(0).to_primary_keyrange())),
                    profile_bool_t::DONT_PROFILE,
                    read_mode_t::SINGLE),
             &read_resp,
@@ -2739,7 +2764,7 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
 keyspec_t::~keyspec_t() { }
 
 RDB_MAKE_SERIALIZABLE_4_FOR_CLUSTER(
-    keyspec_t::range_t, transforms, sindex, sorting, range);
+    keyspec_t::range_t, transforms, sindex, sorting, ranges);
 RDB_MAKE_SERIALIZABLE_2_FOR_CLUSTER(keyspec_t::limit_t, range, limit);
 RDB_MAKE_SERIALIZABLE_1_FOR_CLUSTER(keyspec_t::point_t, key);
 

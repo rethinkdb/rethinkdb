@@ -749,16 +749,22 @@ private:
         counted_t<table_t> table = args->arg(env, 0)->as_table();
         scoped_ptr_t<val_t> index = args->optarg(env, "index");
         std::string index_str = index ? index->as_str().to_std() : table->get_pkey();
-        std::vector<counted_t<datum_stream_t> > streams;
+
+        std::vector<datum_t> keys;
+        keys.reserve(args->num_args() - 1);
         for (size_t i = 1; i < args->num_args(); ++i) {
-            datum_t key = get_key_arg(args->arg(env, i));
-            counted_t<datum_stream_t> seq =
-                table->get_all(env->env, key, index_str, backtrace());
-            streams.push_back(seq);
+            keys.push_back(get_key_arg(args->arg(env, i)));
         }
-        counted_t<datum_stream_t> stream = make_counted<union_datum_stream_t>(
-            env->env, std::move(streams), backtrace());
-        return new_val(make_counted<selection_t>(table, stream));
+
+        auto pair = std::minmax_element(keys.begin(), keys.end());
+        datum_range_t range(
+            *pair.first,
+            key_range_t::closed,
+            *pair.second,
+            key_range_t::closed);
+
+        return new_val(make_counted<selection_t>(
+            table, table->get_all(env->env, range, keys, index_str, backtrace())));
     }
     virtual const char *name() const { return "get_all"; }
 };

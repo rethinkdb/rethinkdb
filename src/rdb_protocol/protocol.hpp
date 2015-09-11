@@ -265,13 +265,13 @@ struct sindex_rangespec_t {
                        // sometimes smaller than the datum range below when
                        // dealing with truncated keys.
                        boost::optional<region_t> &&_region,
-                       const ql::datum_range_t _original_range)
-        : id(_id), region(std::move(_region)), original_range(_original_range) { }
+                       const std::vector<ql::datum_range_t> &_original_ranges)
+        : id(_id), region(std::move(_region)), original_ranges(_original_ranges) { }
     std::string id; // What sindex we're using.
     // What keyspace we're currently operating on.  If empty, assume the
     // original range and create the readgen on the shards.
     boost::optional<region_t> region;
-    ql::datum_range_t original_range; // For dealing with truncation.
+    std::vector<ql::datum_range_t> original_ranges; // For dealing with truncation.
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(sindex_rangespec_t);
 
@@ -290,6 +290,7 @@ public:
 
     rget_read_t(boost::optional<changefeed_stamp_t> &&_stamp,
                 region_t _region,
+                boost::optional<std::vector<store_key_t> > _primary_keys,
                 std::map<std::string, ql::wire_func_t> _optargs,
                 std::string _table_name,
                 ql::batchspec_t _batchspec,
@@ -299,6 +300,7 @@ public:
                 sorting_t _sorting)
     : stamp(std::move(_stamp)),
       region(std::move(_region)),
+      primary_keys(std::move(_primary_keys)),
       optargs(std::move(_optargs)),
       table_name(std::move(_table_name)),
       batchspec(std::move(_batchspec)),
@@ -310,6 +312,8 @@ public:
     boost::optional<changefeed_stamp_t> stamp;
 
     region_t region; // We need this even for sindex reads due to sharding.
+    boost::optional<std::vector<store_key_t> > primary_keys;
+
     std::map<std::string, ql::wire_func_t> optargs;
     std::string table_name;
     ql::batchspec_t batchspec; // used to size batches
@@ -464,6 +468,7 @@ struct read_t {
                            changefeed_point_stamp_t,
                            distribution_read_t,
                            dummy_read_t> variant_t;
+
     variant_t read;
     profile_bool_t profile;
     read_mode_t read_mode;

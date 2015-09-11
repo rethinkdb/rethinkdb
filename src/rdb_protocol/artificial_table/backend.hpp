@@ -40,6 +40,7 @@ public:
     virtual bool read_all_rows_as_stream(
         ql::backtrace_id_t bt,
         const ql::datum_range_t &range,
+        const boost::optional<std::vector<ql::datum_t> > &keys,
         sorting_t sorting,
         signal_t *interruptor,
         counted_t<ql::datum_stream_t> *rows_out,

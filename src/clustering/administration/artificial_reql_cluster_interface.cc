@@ -156,6 +156,7 @@ bool artificial_reql_cluster_interface_t::table_estimate_doc_counts(
             if (!it->second.second->read_all_rows_as_stream(
                     ql::backtrace_id_t::empty(),
                     ql::datum_range_t::universe(),
+                    boost::none,
                     sorting_t::UNORDERED,
                     env->interruptor,
                     &docs,

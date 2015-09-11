@@ -62,6 +62,7 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_all(
         ql::backtrace_id_t bt,
         const std::string &table_name,
         const ql::datum_range_t &range,
+        const boost::optional<std::vector<ql::datum_t> > &keys,
         sorting_t sorting,
         UNUSED read_mode_t read_mode) {
     if (get_all_sindex_id != primary_key) {
@@ -72,7 +73,7 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_all(
     counted_t<ql::datum_stream_t> stream;
     admin_err_t error;
     if (!backend->read_all_rows_as_stream(
-            bt, range, sorting, env->interruptor, &stream, &error)) {
+            bt, range, keys, sorting, env->interruptor, &stream, &error)) {
         REQL_RETHROW_DATUM(error);
     }
     return stream;

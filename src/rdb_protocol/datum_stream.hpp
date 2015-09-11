@@ -451,7 +451,7 @@ public:
     explicit rget_readgen_t(
         const std::map<std::string, wire_func_t> &global_optargs,
         std::string table_name,
-        const datum_range_t &original_datum_range,
+        const datum_range_t &range,
         profile_bool_t profile,
         read_mode_t read_mode,
         sorting_t sorting);
@@ -467,11 +467,6 @@ public:
         std::vector<transform_variant_t> transform,
         const batchspec_t &batchspec) const;
 
-    virtual changefeed::keyspec_t::range_t get_range_spec(
-        std::vector<transform_variant_t> transforms) const {
-        return changefeed::keyspec_t::range_t{
-            std::move(transforms), sindex_name(), sorting, original_datum_range};
-    }
 private:
     virtual rget_read_t next_read_impl(
         const boost::optional<key_range_t> &active_range,
@@ -480,7 +475,7 @@ private:
         const batchspec_t &batchspec) const = 0;
 
 protected:
-    const datum_range_t original_datum_range;
+    datum_range_t range;
 };
 
 class primary_readgen_t : public rget_readgen_t {
@@ -489,13 +484,15 @@ public:
         env_t *env,
         std::string table_name,
         read_mode_t read_mode,
-        datum_range_t range = datum_range_t::universe(),
+        const datum_range_t &range = datum_range_t::universe(),
+        const boost::optional<std::vector<datum_t> > &keys = boost::none,
         sorting_t sorting = sorting_t::UNORDERED);
 
 private:
     primary_readgen_t(const std::map<std::string, wire_func_t> &global_optargs,
                       std::string table_name,
-                      datum_range_t range,
+                      const datum_range_t &range,
+                      const boost::optional<std::vector<datum_t> > &keys,
                       profile_bool_t profile,
                       read_mode_t read_mode,
                       sorting_t sorting);
@@ -514,6 +511,12 @@ private:
     virtual boost::optional<key_range_t> original_keyrange() const;
     virtual key_range_t sindex_keyrange(skey_version_t skey_version) const;
     virtual boost::optional<std::string> sindex_name() const;
+
+    virtual changefeed::keyspec_t::range_t get_range_spec(
+            std::vector<transform_variant_t> transforms) const;
+
+    boost::optional<std::vector<datum_t> > keys; // for `get_range_spec`
+    boost::optional<std::vector<store_key_t> > store_keys;
 };
 
 class sindex_readgen_t : public rget_readgen_t {
@@ -523,7 +526,8 @@ public:
         std::string table_name,
         read_mode_t read_mode,
         const std::string &sindex,
-        datum_range_t range = datum_range_t::universe(),
+        const datum_range_t &range = datum_range_t::universe(),
+        const boost::optional<std::vector<datum_t> > &keys = boost::none,
         sorting_t sorting = sorting_t::UNORDERED);
 
     virtual boost::optional<read_t> sindex_sort_read(
@@ -541,7 +545,8 @@ private:
         const std::map<std::string, wire_func_t> &global_optargs,
         std::string table_name,
         const std::string &sindex,
-        datum_range_t sindex_range,
+        const datum_range_t &range,
+        const boost::optional<std::vector<datum_t> > &keys,
         profile_bool_t profile,
         read_mode_t read_mode,
         sorting_t sorting);
@@ -551,8 +556,12 @@ private:
         std::vector<transform_variant_t> transform,
         const batchspec_t &batchspec) const;
 
+    virtual changefeed::keyspec_t::range_t get_range_spec(
+            std::vector<transform_variant_t> transforms) const;
+
     const std::string sindex;
     bool sent_first_read;
+    std::vector<datum_range_t> key_ranges;
 };
 
 // For geospatial intersection queries
@@ -761,7 +770,7 @@ public:
     vector_datum_stream_t(
             backtrace_id_t bt,
             std::vector<datum_t> &&_rows,
-            boost::optional<ql::changefeed::keyspec_t> &&_changespec);
+            boost::optional<changefeed::keyspec_t> &&_changespec);
 private:
     datum_t next(env_t *env, const batchspec_t &bs);
     datum_t next_impl(env_t *);
@@ -779,7 +788,7 @@ private:
 
     std::vector<datum_t> rows;
     size_t index;
-    boost::optional<ql::changefeed::keyspec_t> changespec;
+    boost::optional<changefeed::keyspec_t> changespec;
 };
 
 } // namespace ql
