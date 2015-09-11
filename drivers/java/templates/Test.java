@@ -63,7 +63,7 @@ public class ${module_name} {
         // ${item.original_line}
         ${item.java_line}
         %elif type(item) == JavaQuery:
-        <%rendered_something = True %>\
+        <%rendered_something = True %>
         {
             // ${item.testfile} #${item.test_num}
             // ${item.original_expected_line}

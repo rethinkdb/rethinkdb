@@ -404,6 +404,7 @@ class JavaVisitor(ast.NodeVisitor):
             'True': 'true',
             'False': 'false',
             'None': 'null',
+            'nil': 'null',
             }.get(node.id, node.id))
 
     def visit_Attribute(self, node):
