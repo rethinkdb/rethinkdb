@@ -524,12 +524,15 @@ def create_table(progress, conn, db, table, pkey, sindexes):
     # Recreate secondary indexes - assume that any indexes that already exist are wrong
     # and create them from scratch
     indexes = r.db(db).table(table).index_list().run(conn)
+    created_indexes = list()
     for sindex in sindexes[progress[0]:]:
         if isinstance(sindex, dict) and all(k in sindex for k in ('index', 'function')):
             if sindex['index'] in indexes:
                 r.db(db).table(table).index_drop(sindex['index']).run(conn)
             r.db(db).table(table).index_create(sindex['index'], sindex['function']).run(conn)
+            created_indexes.append(sindex['index'])
         progress[0] += 1
+    r.db(db).table(table).index_wait(r.args(created_indexes)).run(conn)
 
 def table_reader(options, file_info, task_queue, error_queue, progress_info, exit_event):
     try:
