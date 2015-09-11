@@ -1,7 +1,9 @@
 import com.rethinkdb.RethinkDB;
 import com.rethinkdb.gen.exc.*;
 import com.rethinkdb.gen.ast.*;
+import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.model.MapObject;
+import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.net.Connection;
 import junit.framework.Assert;
 import junit.framework.TestCase;
@@ -21,7 +23,9 @@ import java.util.concurrent.TimeoutException;
 public class ${module_name} {
 
     public static final RethinkDB r = RethinkDB.r;
-    public static final Table ${table_var_name} = r.db("test").table("atest");
+    %for var_name in table_var_names:
+    public static final Table ${var_name} = r.db("test").table("${var_name}");
+    %endfor
 
     Connection<?> conn;
     public String hostname = "newton";
@@ -35,27 +39,52 @@ public class ${module_name} {
             .hostname(hostname)
             .port(port)
             .connect();
+        %for var_name in table_var_names:
+        r.db("test").tableCreate("${var_name}").run(conn);
+        %endfor
     }
 
     @After
     public void tearDown() throws Exception {
-        ${table_var_name}.delete().run(conn);
+        %for var_name in table_var_names:
+        r.db("test").tableDrop("${var_name}").run(conn);
+        %endfor
         conn.close();
     }
 
     @Test
     public void test() throws Exception {
-        %for rendered, expected, item in defs_and_test:
-        %if type(item) == Def:
+        <%rendered_something = False %>\
+        %for item in defs_and_test:
+        %if type(item) == JavaDef:
+        <%rendered_something = True %>\
 
-        ${rendered}
-        %elif type(item) == Query:
+        // ${item.testfile} #${item.test_num}
+        // ${item.original_line}
+        ${item.java_line}
+        %elif type(item) == JavaQuery:
+        <%rendered_something = True %>\
         {
-            Object expected = ${expected};
-            Object obtained = ${rendered}.run(conn);
+            // ${item.testfile} #${item.test_num}
+            // ${item.original_expected_line}
+            Object expected = ${item.java_expected_line};
+            // ${item.original_line}
+            Object obtained = ${item.java_line}
+            %if item.runopts:
+                .run(conn, new OptArgs()
+              %for key, val in item.runopts.items():
+                    .with("${key}", ${val})
+              %endfor
+                );
+            %else:
+                .run(conn);
+            %endif
             assertEquals(expected, obtained);
         }
         %endif
         %endfor
+        %if not rendered_something:
+        <% raise EmptyTemplate() %>
+        %endif
     }
 }

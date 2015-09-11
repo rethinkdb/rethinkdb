@@ -11,6 +11,8 @@ PROTO_DIR=$(GEN_DIR)/proto
 AST_DIR=$(GEN_DIR)/ast
 MODEL_DIR=$(GEN_DIR)/model
 EXC_DIR=$(GEN_DIR)/exc
+TEST_DIR=$(JAVA_SRC_DIR)/src/test/java
+TEST_GEN_DIR=$(TEST_DIR)/gen
 
 METAJAVA=$(JAVA_SRC_DIR)/metajava.py
 CONVERT_PROTO=$(JAVA_SRC_DIR)/convert_protofile.py
@@ -32,7 +34,7 @@ clean:
 	$P CLEAN
 	gradle clean
 
-$(JAVA_BUILD_DIR) $(GEN_DIR) $(PROTO_DIR) $(AST_DIR) $(EXC_DIR) $(MODEL_DIR):
+$(JAVA_BUILD_DIR) $(GEN_DIR) $(PROTO_DIR) $(AST_DIR) $(EXC_DIR) $(MODEL_DIR) $(TEST_GEN_DIR):
 	$P MKDIR $@
 	mkdir -p $@
 
