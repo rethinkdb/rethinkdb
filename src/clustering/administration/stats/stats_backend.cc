@@ -203,7 +203,6 @@ bool stats_artificial_table_backend_t::write_row(
         UNUSED ql::datum_t *new_value_inout,
         UNUSED signal_t *interruptor_on_caller,
         admin_err_t *error_out) {
-    assert_thread();
     *error_out = admin_err_t{
         "It's illegal to write to the `rethinkdb.stats` table.",
         query_state_t::FAILED};
