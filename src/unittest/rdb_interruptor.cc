@@ -251,7 +251,7 @@ TEST(RDBInterrupt, DeleteOp) {
 
 // This is a simple drop-in mock of query_server_t - it will not handle
 // concurrent queries for the same token - aside from a STOP query.
-class query_hanger_t : public query_handler_t, public home_thread_mixin_t {
+class query_hanger_t : public query_handler_t {
 public:
     static const std::string stop_query_message;
 
@@ -261,7 +261,10 @@ public:
                    UNUSED ql::query_cache_t *query_cache,
                    UNUSED new_semaphore_acq_t *throttler,
                    signal_t *interruptor) {
-        assert_thread();
+        if (!handler_thread) {
+            handler_thread = get_thread_id();
+        }
+        rassert(handler_thread.get() == get_thread_id());
 
         if (query->type() != Query::STOP) {
             cond_t dummy_cond;
@@ -293,6 +296,7 @@ public:
                        ql::backtrace_registry_t::EMPTY_BACKTRACE);
     }
 private:
+    boost::optional<threadnum_t> handler_thread;
     std::map<int64_t, cond_t *> interruptors;
 };
 

@@ -33,6 +33,12 @@ tests:
     - cd: r.expr([['a', 1], ['b', 2]]).coerce_to('object')
       ot: ({'a':1,'b':2})
 
+    - cd: r.expr([[]]).coerce_to('object')
+      ot: err('ReqlQueryLogicError', 'Expected array of size 2, but got size 0.')
+
+    - cd: r.expr([['1',2,3]]).coerce_to('object')
+      ot: err('ReqlQueryLogicError', 'Expected array of size 2, but got size 3.')
+
     # Nested expression
     - cd: r.expr([r.expr(1)])
       ot: [1]

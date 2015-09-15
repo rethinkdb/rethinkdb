@@ -52,7 +52,7 @@ struct starter_t : public thread_message_t {
     starter_t(linux_thread_pool_t *_tp, const std::function<void()> &_fun)
       : tp(_tp), run(std::bind(&starter_t::run_wrapper, this, _fun)) { }
     void on_thread_switch() {
-        rassert(get_thread_id().threadnum == 0);
+        rassert(get_thread_id().threadnum == get_num_threads() - 1);
         coro_t::spawn_sometime(run);
     }
 private:

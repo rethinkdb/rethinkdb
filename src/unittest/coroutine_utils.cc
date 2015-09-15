@@ -1,8 +1,8 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
-#include "arch/runtime/coroutines.hpp"
 
 #include <stdexcept>
 
+#include "arch/runtime/coroutines.hpp"
 #include "arch/runtime/runtime.hpp"
 #include "arch/timing.hpp"
 #include "concurrency/cond_var.hpp"

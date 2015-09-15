@@ -24,6 +24,7 @@ for interface_test_name in [
         'system_changefeeds',
         'table_config',
         'table_doc_count_estimates',
+        'table_fuzzer',
         'table_readiness',
         'table_reconfigure',
         'table_wait',

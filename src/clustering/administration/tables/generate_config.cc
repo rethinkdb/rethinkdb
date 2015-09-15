@@ -101,6 +101,12 @@ static void validate_params(
         if (it->second == 0) {
             continue;
         }
+        if (servers_with_tags.count(it->first) == 0) {
+            throw admin_op_exc_t(
+                strprintf("Could not find any servers with server tag `%s`.",
+                          it->first.c_str()),
+                query_state_t::FAILED);
+        }
         for (const server_id_t &server : servers_with_tags.at(it->first)) {
             if (servers_claimed.count(server) == 0) {
                 servers_claimed.insert(std::make_pair(server, it->first));
