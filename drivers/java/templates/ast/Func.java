@@ -25,7 +25,7 @@ import java.util.List;
 </%block>
 <%block name="static_factories">\
     public static Func fromLambda(ReqlLambda function) {
-        % for i in xrange(1, max_arity+1):
+        % for i in range(1, max_arity+1):
         ${"" if loop.first else "else "}if(function instanceof ReqlFunction${i}){
             ReqlFunction${i} func${i} = (ReqlFunction${i}) function;
             % for j in range(1, i+1):

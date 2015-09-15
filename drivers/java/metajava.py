@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 from __future__ import print_function
 '''
 Generates AST terms and serialization code for the Java driver
@@ -18,7 +18,7 @@ import logging
 from collections import OrderedDict, namedtuple
 from mako.lookup import TemplateLookup
 
-logging.basicConfig(format="%(message)s", level=logging.DEBUG)
+logging.basicConfig(format="%(message)s", level=logging.INFO)
 logger = logging.getLogger("metajava")
 
 
@@ -254,7 +254,7 @@ class java_term_info(object):
     @classmethod
     def reify_signature(cls, term, signature):
         def translate(arg):
-            if isinstance(arg, basestring):
+            if isinstance(arg, "".__class__):
                 return {
                     'T_DB': 'Db',
                     'T_EXPR': 'Object',
@@ -338,7 +338,7 @@ class java_term_info(object):
         for i, arg in enumerate(signature):
             if arg == '*':
                 prev = formal_args[i-1]
-                if isinstance(prev, basestring):
+                if isinstance(prev, "".__class__):
                     # Use normal Java varargs if not alternation
                     formal_args[i-1] += '...'
                 elif isinstance(prev, list):
@@ -440,7 +440,7 @@ class JavaRenderer(object):
         self.template_dir = template_dir
         self.gen_dir = package_dir+'/gen'
         self.max_arity = self.get_max_arity()
-        self.renderer = Renderer(template_dir, current_filename=__file__)
+        self.renderer = Renderer(template_dir, invoking_filename=__file__)
         # Facade methods
         self.get_template_name = self.renderer.get_template_name
         self.render = self.renderer.render
@@ -601,7 +601,7 @@ class Renderer(object):
         output_path = output_dir + '/' + output_name
 
         if self.already_rendered(tpl, output_path, dependencies):
-            logger.debug(" Up to date:", output_path)
+            logger.debug(" Up to date: %s", output_path)
             return
 
         with codecs.open(output_path, "w", "utf-8") as outfile:
@@ -661,7 +661,7 @@ class Renderer(object):
         # Check if this file or the invoking file have changed
         if self.mtime(self.invoking_filename) > output_mtime:
             logger.debug(
-                "Rendering since %s has changed", self.invoking_filename)
+                " Rendering since %s has changed", self.invoking_filename)
             return False
         if self.mtime(__file__) > output_mtime:
             logger.debug(" Rendering since %s has changed", __file__)

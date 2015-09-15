@@ -37,7 +37,7 @@ public ${classname} optArg(String optname, Object value) {
 % endif
 </%block>
 <%block name="special_methods" />\
-% for term, info in all_terms.iteritems():
+% for term, info in all_terms.items():
   % if classname in info.get('include_in'):
     % for signature in info['signatures']:
       % if signature['first_arg'] == classname:

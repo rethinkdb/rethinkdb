@@ -1,3 +1,5 @@
+package gen;
+
 import com.rethinkdb.RethinkDB;
 import com.rethinkdb.gen.exc.*;
 import com.rethinkdb.gen.ast.*;
@@ -50,6 +52,10 @@ public class ${module_name} {
         r.db("test").tableDrop("${var_name}").run(conn);
         %endfor
         conn.close();
+    }
+
+    public Object bag(Object...) {
+        throw new RuntimeException("Not implemented");
     }
 
     @Test

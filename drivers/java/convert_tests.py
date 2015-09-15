@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # -*- encoding: utf-8
 '''Finds yaml tests, converts them to Java tests.'''
 from __future__ import print_function
@@ -9,24 +9,25 @@ import os.path
 import time
 import ast
 import yaml
+import argparse
 import metajava
-from cStringIO import StringIO
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from io import StringIO
 from collections import namedtuple
 
 
 def main():
     start = time.clock()
-    # TODO: accept vars from the command line
-    TEST_DIR = '../../test/rql_test/src'
-    TEST_OUTPUT_DIR = './src/test/java/gen'
-    TEMPLATE_DIR = './templates'
+    args = parse_args()
     renderer = metajava.Renderer(
-        TEMPLATE_DIR, invoking_filename=__file__)
-    for testfile in all_yaml_tests(TEST_DIR):
+        args.template_dir, invoking_filename=__file__)
+    for testfile in all_yaml_tests(args.test_dir):
         TestFile(
-            test_dir=TEST_DIR,
+            test_dir=args.test_dir,
             filename=testfile,
-            test_output_dir=TEST_OUTPUT_DIR,
+            test_output_dir=args.test_output_dir,
             renderer=renderer,
         ).load().render()
     print("Finished in", time.clock() - start, "seconds")
@@ -42,6 +43,27 @@ TEST_EXCLUSIONS = [
     # arity checked at compile time
     'arity',
 ]
+
+
+def parse_args():
+    '''Parse command line arguments'''
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--test-dir",
+        help="Directory where yaml tests are",
+        default="../../test/rql_test/src"
+    )
+    parser.add_argument(
+        "--test-output-dir",
+        help="Directory to render tests to",
+        default="./src/test/java/gen",
+    )
+    parser.add_argument(
+        "--template-dir",
+        help="Where to find test generation templates",
+        default="./templates",
+    )
+    return parser.parse_args()
 
 
 def all_yaml_tests(test_dir):
@@ -63,8 +85,6 @@ class Unhandled(Exception):
 class Skip(Exception):
     '''Used when skipping a test for whatever reason'''
     pass
-
-SIGIL = object()
 
 
 Query = namedtuple(
@@ -147,7 +167,7 @@ def ast_to_java(sequence, reql_vars):
             if is_reql(item.ast.value, reql_vars):
                 reql_vars.add(item.ast.targets[0].id)
             try:
-                java_line = JavaVisitor(reql_vars).convert(item.ast)
+                java_line = ValueVisitor(reql_vars).convert(item.ast)
             except Skip as skip:
                 skipped += 1
                 yield SkippedTest(line=item.line, reason=str(skip))
@@ -399,6 +419,10 @@ class JavaVisitor(ast.NodeVisitor):
     def visit_Str(self, node):
         self.to_str(node.s)
 
+    def visit_Bytes(self, node):
+        self.to_str(node.s)
+        self.write(".getBytes(StandardCharsets.UTF_8)")
+
     def visit_Name(self, node):
         self.write({
             'True': 'true',
@@ -406,6 +430,20 @@ class JavaVisitor(ast.NodeVisitor):
             'None': 'null',
             'nil': 'null',
             }.get(node.id, node.id))
+
+    def visit_arg(self, node):
+        self.write(node.arg)
+
+    def visit_NameConstant(self, node):
+        if node.value is None:
+            self.write("null")
+        elif node.value is True:
+            self.write("true")
+        elif node.value is False:
+            self.write("false")
+        else:
+            raise Unhandled(
+                "Don't know NameConstant with value %s" % node.value)
 
     def visit_Attribute(self, node):
         self.write(".")
@@ -568,14 +606,34 @@ class ReQLVisitor(JavaVisitor):
         elif type(node.slice) == ast.Slice:
             # Syntax like a[1:2] or a[:2]
             self.write(".slice(")
-            lower = 0 if not node.slice.lower else node.slice.lower.n
-            upper = -1 if not node.slice.upper else node.slice.upper.n
+            lower, upper = self.get_slice_bounds(node.slice)
             self.write(str(lower))
             self.write(", ")
             self.write(str(upper))
         else:
             raise Unhandled("No translation for ExtSlice")
         self.write(")")
+
+    def get_slice_bounds(self, slc):
+        '''Used to extract bounds when using bracket slice
+        syntax. This is more complicated since Python3 parses -1 as
+        UnaryOp(op=USub, operand=Num(1)) instead of Num(-1) like
+        Python2 does'''
+        if not slc:
+            return 0, -1
+
+        def get_bound(bound, default):
+            if bound is None:
+                return default
+            elif type(bound) == ast.UnaryOp and type(bound.op) == ast.USub:
+                return -bound.operand.n
+            elif type(bound) == ast.Num:
+                return bound.n
+            else:
+                raise Unhandled(
+                    "Not handling bound: %s" % ast.dump(bound))
+
+        return get_bound(slc.lower, 0), get_bound(slc.upper, -1)
 
     def visit_Attribute(self, node):
         if node.attr == 'row' and \
@@ -594,6 +652,23 @@ class ReQLVisitor(JavaVisitor):
         if initial in metajava.java_term_info.JAVA_KEYWORDS or \
            initial in metajava.java_term_info.OBJECT_METHODS:
             self.write('_')
+
+
+class ValueVisitor(JavaVisitor):
+    '''Used to find calls to the built in test methods.'''
+
+    BIFS = {
+        'bag', 'partial', 'fetch', 'wait', 'uuid', 'err', 'err_regex',
+        'define', 'arrlen', 'err_regex', 'int_cmp', 'float_cmp', 'the_end',
+        'eq', 'test', 'setup_table', 'setup_table_check'
+    }
+
+    def visit_Call(self, node):
+        if type(node.func) != ast.Name or node.func.id not in self.BIFS:
+            return super(ValueVisitor, self).visit_Call(node)
+
+        if node.func.id == 'bag':
+            pass
 
 
 if __name__ == '__main__':
