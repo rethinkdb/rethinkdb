@@ -38,12 +38,18 @@ bool any_dead(
 void calculate_emergency_repair(
         const table_raft_state_t &old_state,
         const std::set<server_id_t> &dead_servers,
-        bool allow_erase,
+        emergency_repair_mode_t mode,
         table_raft_state_t *new_state_out,
         bool *rollback_found_out,
         bool *erase_found_out) {
     *rollback_found_out = false;
     *erase_found_out = false;
+
+    /* If we're in `"_debug_recommit"` mode we simply copy the old state and are done */
+    if (mode == emergency_repair_mode_t::DEBUG_RECOMMIT) {
+        *new_state_out = old_state;
+        return;
+    }
 
     /* Pick the server we'll use as a replacement for shards that we end up erasing */
     server_id_t erase_replacement = nil_uuid();
@@ -62,7 +68,7 @@ void calculate_emergency_repair(
         contract_t contract = pair.second.second;
         if (all_dead(contract.replicas, dead_servers)) {
             *erase_found_out = true;
-            if (allow_erase) {
+            if (mode == emergency_repair_mode_t::UNSAFE_ROLLBACK_OR_ERASE) {
                 /* Discard all previous replicas, and set up a new empty replica on
                 `erase_replacement`. */
                 contract = contract_t();

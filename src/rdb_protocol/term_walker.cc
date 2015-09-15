@@ -253,6 +253,7 @@ private:
         case Term::DEFAULT:
         case Term::CONTAINS:
         case Term::KEYS:
+        case Term::VALUES:
         case Term::OBJECT:
         case Term::WITH_FIELDS:
         case Term::JSON:
@@ -443,6 +444,7 @@ private:
         case Term::DEFAULT:
         case Term::CONTAINS:
         case Term::KEYS:
+        case Term::VALUES:
         case Term::OBJECT:
         case Term::WITH_FIELDS:
         case Term::JSON:

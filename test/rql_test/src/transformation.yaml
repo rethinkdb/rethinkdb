@@ -479,13 +479,6 @@ tests:
     - cd: tbl3.without(['a', {'b':'d'}]).order_by('id').nth(0)
       ot: ({'id':0, 'b':{'c':0}})
 
-    # Coerce a table to an array
-    - cd: tbl.limit(5).type_of()
-      ot: '"SELECTION<STREAM>"'
-
-    - cd: tbl.limit(5).coerce_to('array').type_of()
-      ot: '"ARRAY"'
-
     # Union
     - cd: tbl.union(tbl2).count()
       ot: 200

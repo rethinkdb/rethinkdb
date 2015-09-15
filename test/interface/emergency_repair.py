@@ -47,6 +47,8 @@ with driver.Cluster(initial_servers=['a', 'x'], output_folder='.',
         res = r.table(name).insert({"number": i} for i in xrange(docs_per_table)).run(conn)
         assert res.get("inserted") == 100
 
+    make_table("recommit", [
+        {"primary_replica": "a", "replicas": ["a"]}])
     make_table("no_repair_1", [
         {"primary_replica": "a", "replicas": ["a"]}])
     make_table("no_repair_2", [
@@ -155,6 +157,9 @@ with driver.Cluster(initial_servers=['a', 'x'], output_folder='.',
         assert 0.25*docs_per_table < count < 0.75*docs_per_table, \
             ("Found %d rows, expected about %d" % (count, 0.50*docs_per_table))
 
+    repair("recommit", "_debug_recommit",
+        [{"primary_replica": "a", "replicas": ["a"]}])
+
     # `no_repair_1` is hosted only on server "a"
     check_table("no_repair_1")
     bad_repair("no_repair_1", "unsafe_rollback",
@@ -211,6 +216,7 @@ with driver.Cluster(initial_servers=['a', 'x'], output_folder='.',
     new_x.wait_until_started_up()
 
     # Make sure that the reappearance of the dead server doesn't break anything
+    check_table("recommit", wait_for="all_replicas_ready")
     check_table("no_repair_1", wait_for="all_replicas_ready")
     check_table("no_repair_2", wait_for="all_replicas_ready")
     check_table("rollback", wait_for="all_replicas_ready")

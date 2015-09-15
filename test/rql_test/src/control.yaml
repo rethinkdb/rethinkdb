@@ -107,6 +107,18 @@ tests:
     - cd: r.branch(1.2, 1, 2)
       ot: 1
 
+    - cd: r.branch(True, 1, True, 2, 3)
+      ot: 1
+    - cd: r.branch(True, 1, False, 2, 3)
+      ot: 1
+    - cd: r.branch(False, 1, True, 2, 3)
+      ot: 2
+    - cd: r.branch(False, 1, False, 2, 3)
+      ot: 3
+
+    - cd: r.branch(True, 1, True, 2)
+      ot: err("ReqlQueryLogicError", "Cannot call `branch` term with an even number of arguments.")
+
     # r.error()
     - cd: r.error('Hello World')
       ot: err("ReqlUserError", "Hello World", [0])

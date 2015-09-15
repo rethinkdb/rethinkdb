@@ -50,11 +50,21 @@ private:
 class branch_term_t : public op_term_t {
 public:
     branch_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(3)) { }
+        : op_term_t(env, term, argspec_t(3, -1)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        bool b = args->arg(env, 0)->as_bool();
-        return b ? args->arg(env, 1) : args->arg(env, 2);
+        rcheck(args->num_args() % 2 == 1,
+               base_exc_t::LOGIC,
+               "Cannot call `branch` term with an even number of arguments.");
+
+        for (size_t i = 0; i < args->num_args()-1; i += 2) {
+            scoped_ptr_t<val_t> v = args->arg(env, i);
+            if (v->as_bool()) {
+                return args->arg(env, i+1);
+            }
+        }
+
+        return args->arg(env, args->num_args()-1);
     }
     virtual const char *name() const { return "branch"; }
 };

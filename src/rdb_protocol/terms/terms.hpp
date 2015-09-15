@@ -192,6 +192,8 @@ counted_t<term_t> make_downcase_term(
 // obj.cc
 counted_t<term_t> make_keys_term(
     compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_values_term(
+    compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_object_term(
     compile_env_t *env, const protob_t<const Term> &term);
 

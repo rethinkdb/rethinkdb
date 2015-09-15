@@ -841,6 +841,7 @@ static void pprint_update_reminder() {
     case Term::DEFAULT:
     case Term::CONTAINS:
     case Term::KEYS:
+    case Term::VALUES:
     case Term::OBJECT:
     case Term::WITH_FIELDS:
     case Term::JSON:

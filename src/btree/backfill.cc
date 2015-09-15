@@ -709,7 +709,8 @@ public:
         *skip_out = true;
         buf_write_t buf_write(&buf->lock);
         leaf_node_t *lnode = static_cast<leaf_node_t *>(buf_write.get_data_write());
-        leaf::erase_deletions(sizer, lnode, min_deletion_timestamp);
+        leaf::erase_deletions(sizer, lnode,
+                              boost::make_optional(min_deletion_timestamp));
         buf->lock.set_recency(superceding_recency(
             min_deletion_timestamp, buf->lock.get_recency()));
         return continue_bool_t::CONTINUE;

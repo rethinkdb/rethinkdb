@@ -109,7 +109,7 @@ class AsyncioCursor(Cursor):
 
     def _maybe_fetch_batch(self):
         if self.error is None and \
-           len(self.items) <= self.threshold and \
+           len(self.items) < self.threshold and \
            self.outstanding_requests == 0:
             self.outstanding_requests += 1
             asyncio.async(self.conn._parent._continue(self))
@@ -221,9 +221,7 @@ class ConnectionInstance(object):
 
                 cursor = self._cursor_cache.get(token)
                 if cursor is not None:
-                    res = Response(token, buf,
-                                   self._parent._get_json_decoder(cursor.query.global_optargs))
-                    cursor._extend(res)
+                    cursor._extend(buf)
                 elif token in self._user_queries:
                     # Do not pop the query from the dict until later, so
                     # we don't lose track of it in case of an exception
@@ -234,9 +232,7 @@ class ConnectionInstance(object):
                         future.set_result(maybe_profile(res.data[0], res))
                     elif res.type in (pResponse.SUCCESS_SEQUENCE,
                                       pResponse.SUCCESS_PARTIAL):
-                        cursor = AsyncioCursor(self, query)
-                        self._cursor_cache[token] = cursor
-                        cursor._extend(res)
+                        cursor = AsyncioCursor(self, query, res)
                         future.set_result(maybe_profile(cursor, res))
                     elif res.type == pResponse.WAIT_COMPLETE:
                         future.set_result(None)

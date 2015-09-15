@@ -203,10 +203,10 @@ tests:
         cd: err('ReqlCompileError', "Expected 2 or more arguments but found 1.", [])
         js: err('ReqlDriverError', "Expected 1 or more arguments but found 0.", [])
 
-    - ot: err("ReqlCompileError", "Expected 3 arguments but found 2.", [])
-      cd: r.branch(1,2)
-    - ot: err("ReqlCompileError", "Expected 3 arguments but found 4.", [])
-      cd: r.branch(1,2,3,4)
+    - cd: r.branch(1,2)
+      ot: err("ReqlCompileError", "Expected 3 or more arguments but found 2.", [])
+    - cd: r.branch(1,2,3,4)
+      ot: err("ReqlQueryLogicError", "Cannot call `branch` term with an even number of arguments.", [])
 
     - cd: r.expr({})[1,2]
       js: r.expr({})(1,2)

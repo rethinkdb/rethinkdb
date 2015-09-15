@@ -280,6 +280,9 @@ class RqlQuery(object):
     def keys(self, *args):
         return Keys(self, *args)
 
+    def values(self, *args):
+        return Values(self, *args)
+
     def changes(self, *args, **kwargs):
         return Changes(self, *args, **kwargs)
 
@@ -1026,6 +1029,11 @@ class WithFields(RqlMethodQuery):
 class Keys(RqlMethodQuery):
     tt = pTerm.KEYS
     st = 'keys'
+
+
+class Values(RqlMethodQuery):
+    tt = pTerm.VALUES
+    st = 'values'
 
 
 class Object(RqlMethodQuery):

@@ -553,11 +553,13 @@ private:
 
             /* Parse `emergency_repair` to figure out which kind we're doing. */
             datum_string_t emergency_repair_str = emergency_repair->as_str();
-            bool allow_erase;
-            if (emergency_repair_str == "unsafe_rollback") {
-                allow_erase = false;
+            emergency_repair_mode_t mode;
+            if (emergency_repair_str == "_debug_recommit") {
+                mode = emergency_repair_mode_t::DEBUG_RECOMMIT;
+            } else if (emergency_repair_str == "unsafe_rollback") {
+                mode = emergency_repair_mode_t::UNSAFE_ROLLBACK;
             } else if (emergency_repair_str == "unsafe_rollback_or_erase") {
-                allow_erase = true;
+                mode = emergency_repair_mode_t::UNSAFE_ROLLBACK_OR_ERASE;
             } else {
                 rfail_target(emergency_repair.get(), base_exc_t::LOGIC,
                     "`emergency_repair` should be \"unsafe_rollback\" or "
@@ -583,7 +585,7 @@ private:
             datum_t result;
             admin_err_t error;
             bool success = env->env->reql_cluster_interface()->table_emergency_repair(
-                db, *name_if_table, allow_erase, dry_run,
+                db, *name_if_table, mode, dry_run,
                 env->env->interruptor, &result, &error);
             if (!success) {
                 REQL_RETHROW(error);
