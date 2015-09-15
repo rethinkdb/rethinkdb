@@ -502,6 +502,8 @@ class ReconfigureModal extends ui_modals.AbstractModal
         driver.run_once query, (error, result) =>
             if error?
                 @model.set server_error: error.msg
+            else if result.first_error?
+                @model.set server_error: result.first_error
             else
                 @reset_buttons()
                 @remove()
