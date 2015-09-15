@@ -10,14 +10,17 @@ the following:
 
 ```bash
 git clone https://github.com/rethinkdb/rethinkdb.git
+cd rethinkdb
 ./configure --allow-fetch
+make
 cd drivers/python
 make
 pip install -e .
 ```
 
-The `make` command will take awhile, if you have a lot of cores you can speed
-it up by running:
+Since the python driver requires you to run the `make` command for the whole
+server it will take awhile, if you have a lot of cores you can speed it up by
+running:
 
 ```bash
 make -j 8

@@ -1,4 +1,0 @@
-PyOpenSSL
-PyYAML
-twisted
-tornado
