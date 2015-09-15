@@ -1,9 +1,13 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "backtrace.hpp"
 
-#ifndef _MSC_VER
+#ifndef _WIN32 // ATN TODO
 #include <cxxabi.h>
 #include <execinfo.h>
+#else
+#define OPTIONAL // ATN TODO: otherwise MSC complains about "unknown override specifier"
+#pragma comment( lib, "dbghelp.lib" )
+#include <DbgHelp.h>
 #endif
 
 #include <stdio.h>
@@ -316,10 +320,63 @@ std::string lazy_backtrace_formatter_t::lines() {
     return cached_lines;
 }
 
+#ifdef _WIN32
+void initialize_dbghelp() {
+    DWORD options = SymGetOptions();
+    // options |= SYMOPT_DEBUG; // Turn on noisy symbol loading
+    options |= SYMOPT_LOAD_LINES; // Load line information
+    SymSetOptions(options);
+
+    // Initialize and load the symbol tables
+    BOOL ret = SymInitialize(GetCurrentProcess(), nullptr, true);
+    // TODO ATN: test return value
+}
+#endif
+
 std::string lazy_backtrace_formatter_t::print_frames(bool use_addr2line) {
 #ifdef _WIN32
-	// TODO ATN
-	return "print_frames: unimplemented";
+    /* TODO ATN: this comented block is for StackWalkEx
+    DWORD machine_type = IMAGE_FILE_MACHINE_AMD64;
+    HANDLE process = GetCurrentProcess();
+    STACKFRAME_EX frame;
+    CONTEXT context;
+    BOOL res = StackWalkEx(machine_type, process, &frame, &context, nullptr, nullptr, nullptr, nullptr, SYM_STKWALK_DEFAULT);
+    */
+
+    initialize_dbghelp();
+
+    std::string output;
+    const int MAX_STACK_TRACE_SIZE = 62; // As suggested by MSDN
+    void *addresses[MAX_STACK_TRACE_SIZE];
+    USHORT frames = /*Rtl*/CaptureStackBackTrace(0, sizeof(addresses), addresses, nullptr);
+    const int SKIP_FRAMES = 3;
+    for (int i = SKIP_FRAMES; i < frames; i++) {
+        output.append(strprintf("%d: ", static_cast<int>(i+1)));
+        DWORD64 offset;
+        const int MAX_SYMBOL_LENGTH = 2048; // An arbitrary number
+        auto symbol_info = scoped_malloc_t<SYMBOL_INFO>(sizeof(SYMBOL_INFO) - 1 + MAX_SYMBOL_LENGTH);
+        symbol_info->SizeOfStruct = sizeof(SYMBOL_INFO);
+        symbol_info->MaxNameLen = MAX_SYMBOL_LENGTH;
+        BOOL ret = SymFromAddr(GetCurrentProcess(), reinterpret_cast<DWORD64>(addresses[i]), &offset, symbol_info.get());
+        if (!ret) {
+            output.append(strprintf("0x%p [%s]", addresses[i], winerr_string(GetLastError()).c_str()));
+        } else {
+            output.append(strprintf("%s", symbol_info->Name));
+            if (offset != 0) {
+                output.append(strprintf("+%llu", offset));
+            }
+        }
+        DWORD line_offset;
+        IMAGEHLP_LINE64 line_info;
+        ret = SymGetLineFromAddr64(GetCurrentProcess(), reinterpret_cast<DWORD64>(addresses[i]), &line_offset, &line_info);
+        if (!ret) {
+            output.append(" (no line info)");
+        } else {
+            output.append(strprintf(" at %s:%u", line_info.FileName, line_info.LineNumber));
+        }
+        output.append("\n");
+    }
+    return output;
 #else
     address_to_line_t address_to_line;
     std::string output;

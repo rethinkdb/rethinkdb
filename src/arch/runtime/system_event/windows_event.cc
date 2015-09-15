@@ -6,14 +6,10 @@
 #include "arch/runtime/event_queue/windows.hpp"
 #include "arch/runtime/thread_pool.hpp"
 
-void CALLBACK on_event(ULONG_PTR cb) {
-    reinterpret_cast<event_callback_t*>(cb)->on_event(poll_event_in);
-}
-
 void windows_event_t::wakey_wakey() {
-    if (thread != nullptr) {
+    if (completion_port != INVALID_HANDLE_VALUE) {
         rassert(callback != nullptr);
-        QueueUserAPC(on_event, thread, reinterpret_cast<ULONG_PTR>(callback));
+        PostQueuedCompletionStatus(completion_port, 0, ULONG_PTR(windows_message_type_t::EVENT), reinterpret_cast<OVERLAPPED*>(this));
     }
 }
 

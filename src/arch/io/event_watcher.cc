@@ -14,8 +14,8 @@ void async_operation_t::set_result(size_t nb_bytes_, DWORD error_) {
     completed.pulse();
 }
 
-windows_event_watcher_t::windows_event_watcher_t(fd_t handle, event_callback_t *eh) {
-    error_handler = eh;
+windows_event_watcher_t::windows_event_watcher_t(fd_t handle, event_callback_t *eh) :
+    error_handler (eh) {
     linux_thread_pool_t::get_thread()->queue.add_handle(handle);
 }
 
@@ -35,8 +35,6 @@ void windows_event_watcher_t::on_error(DWORD error) {
 windows_event_watcher_t::~windows_event_watcher_t() {
     // ATN TODO: windows re-uses handles, so checking that a handle is closed or
     // double-closing is impossible.
-    // It may be possible to remove the handle from the completion port, but I haven't
-    // figured out how yet.
 }
 
 #else

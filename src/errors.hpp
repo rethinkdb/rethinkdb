@@ -7,6 +7,7 @@
 #include <errno.h>
 #include <signal.h>
 #include <stdlib.h>
+#include <string>
 
 #ifdef _MSC_VER
 #define ATTRIBUTE_FORMAT(...)
@@ -137,6 +138,8 @@ void crash_oom();
 // a nul-terminated string, either equal to buf or pointing at a statically allocated string.
 MUST_USE const char *errno_string_maybe_using_buffer(int errsv, char *buf, size_t buflen);
 
+MUST_USE const std::string winerr_string(DWORD winerr);
+
 #define stringify(x) #x
 
 #define format_assert_message(assert_type, cond) assert_type " failed: [" stringify(cond) "] "
@@ -169,10 +172,7 @@ MUST_USE const char *errno_string_maybe_using_buffer(int errsv, char *buf, size_
 #define guarantee_xwinerr(cond, err, msg, ...) do {                     \
         if (!(cond)) {                                                  \
             DWORD guarantee_winerr_err = (err);                         \
-            char *guarantee_winerr_errmsg;                              \
-            FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, \
-                           NULL, guarantee_winerr_err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&guarantee_winerr_errmsg, 0, NULL); \
-            crash_or_trap(format_assert_message("Guarantee", (cond)) " (LastError %d - %s) " msg, guarantee_winerr_err, guarantee_winerr_errmsg, ##__VA_ARGS__); \
+            crash_or_trap(format_assert_message("Guarantee", (cond)) " (LastError %d - %s) " msg, guarantee_winerr_err, winerr_string(guarantee_winerr_err), ##__VA_ARGS__); \
         }                                                               \
     } while (0);
 

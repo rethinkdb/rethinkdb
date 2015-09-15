@@ -143,7 +143,7 @@ cmake -G"Visual Studio 14 Win64"
 * Pass all unit tests
 * death tests with exceptions seem to fail
 * Check all RSI ATN TODO _MSC_VER and _WIN32 tags
-* Handle ^C
+* Handle ^C, ^Break in main process and extprocs
 * test blocker pool, maybe use windowswindows-specific pool
 * make sure it still builds on linux
 * keep up-to-date with next/raft/sunos

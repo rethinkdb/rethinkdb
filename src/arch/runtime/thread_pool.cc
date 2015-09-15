@@ -1,6 +1,17 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "arch/runtime/thread_pool.hpp"
 
+/* TODO ATN: windows ^C handler:
+    SetConsoleCtrlHandler(windows_ctrl_handler, true);
+
+BOOL windows_ctrl_handler(DWORD type) {
+    // NOTE: this function runs in a fresh thread
+    // see HandlerRoutine docs:
+    // https://msdn.microsoft.com/en-us/library/windows/desktop/ms683242(v=vs.85).aspx
+}
+*/
+
+
 #include <errno.h>
 #include <signal.h>
 #include <string.h>

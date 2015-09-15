@@ -13,19 +13,16 @@ class linux_thread_t;
 
 class windows_event_t {
 public:
-	windows_event_t() : thread(nullptr), callback(nullptr) { }
-	~windows_event_t() {
-		if (thread != nullptr) {
-			CloseHandle(thread);
-		}
-	}
-	void wakey_wakey();
-	void consume_wakey_wakeys() { }
+    windows_event_t() : completion_port(INVALID_HANDLE_VALUE), callback(nullptr) { }
+    void wakey_wakey();
+    void consume_wakey_wakeys() { }
 
 private:
-	friend class windows_event_queue_t;
-	HANDLE thread;
-	event_callback_t *callback;
+    // TODO ATN: break up this friendship
+    friend class windows_event_queue_t;
+
+    HANDLE completion_port;
+    event_callback_t *callback;
 };
 
 #endif

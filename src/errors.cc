@@ -104,6 +104,15 @@ const char *errno_string_maybe_using_buffer(int errsv, char *buf, size_t buflen)
 #endif  // _GNU_SOURCE
 }
 
+MUST_USE const std::string winerr_string(DWORD winerr) {
+    char *errmsg;
+    FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+                   NULL, winerr, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&errmsg, 0, NULL);
+    std::string ret(errmsg);
+    LocalFree(errmsg);
+    return ret;
+}
+
 /* Handlers for various signals and for unexpected exceptions or calls to std::terminate() */
 
 #ifndef _WIN32 // ATN TODO
@@ -165,7 +174,7 @@ LONG WINAPI windows_crash_handler(EXCEPTION_POINTERS *exceptions) {
 
 void install_generic_crash_handler() {
 #ifdef _WIN32
-    // TODO ATN: stack trace using StackWalkEx
+    // TODO ATN: maybe call SetErrorMode
     SetUnhandledExceptionFilter(windows_crash_handler);
 #else
 #ifndef VALGRIND

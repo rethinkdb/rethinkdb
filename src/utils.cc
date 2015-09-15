@@ -578,15 +578,6 @@ std::string errno_string(int errsv) {
     return std::string(errstr);
 }
 
-#ifdef _WIN32
-std::string winerr_string(DWORD error) {
-  char *message;
-  FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-                 NULL, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&message, 0, NULL);
-  return std::string(message);
-}
-#endif
-
 int remove_directory_helper(const char *path, ...) {
     logNTC("In recursion: removing file %s\n", path);
     int res = ::remove(path);

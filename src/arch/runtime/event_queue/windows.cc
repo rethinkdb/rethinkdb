@@ -18,17 +18,14 @@ void windows_event_queue_t::add_handle(fd_t handle) {
 }
 
 void windows_event_queue_t::watch_event(windows_event_t& event, event_callback_t *cb) {
-    rassert(event.thread == nullptr && event.callback == nullptr, "Cannot watch the same event twice");
-    BOOL res = DuplicateHandle(GetCurrentProcess(), GetCurrentThread(), GetCurrentProcess(), &event.thread, 0, false, DUPLICATE_SAME_ACCESS);
-    guarantee_winerr(res, "DuplicateHandle failed");
+    rassert(event.completion_port == INVALID_HANDLE_VALUE && event.callback == nullptr, "Cannot watch the same event twice"); 
     event.callback = cb;
-    // TODO ATN: when does event get watched
+    event.completion_port = completion_port;
 }
 
 void windows_event_queue_t::forget_event(windows_event_t& event, event_callback_t *cb) {
-    if (event.thread != nullptr) {
-        CloseHandle(event.thread); // TODO ATN: should this handle really be closed
-        event.thread = nullptr;
+    if (event.completion_port != nullptr) {
+        event.completion_port = INVALID_HANDLE_VALUE;
     }
     event.callback = nullptr;
 }
@@ -39,15 +36,29 @@ void windows_event_queue_t::run() {
         ULONG_PTR key;
         OVERLAPPED *overlapped;
 
-        // TODO ATN : make sure QueueUserAPC works, if not maybe replace it with PostQueuedCompletionStatus or use GQCSEx here
         BOOL res = GetQueuedCompletionStatus(completion_port, &nb_bytes, &key, &overlapped, INFINITE);
         DWORD error = GetLastError();
         if (overlapped == NULL) {
             guarantee_xwinerr(res != 0, error, "GetQueuedCompletionStatus failed");
         }
 
-        async_operation_t *ao = reinterpret_cast<async_operation_t*>(overlapped);
-        ao->set_result(nb_bytes, error);
+        switch (key) {
+        case windows_message_type_t::ASYNC_OPERATION: {
+            async_operation_t *ao = reinterpret_cast<async_operation_t*>(overlapped);
+            ao->set_result(nb_bytes, error);
+            break;
+        }
+
+        case windows_message_type_t::EVENT: {
+            windows_event_t *event = reinterpret_cast<windows_event_t*>(overlapped);
+            event->callback->on_event(poll_event_in); // TODO ATN: what value does on_event expect?
+            // TODO ATN: mark the event as having been triggered?
+            break;
+        }
+
+        default:
+            crash("Unknown message type in IOCP queue %ld");
+        }
 
         thread->pump();
     }
