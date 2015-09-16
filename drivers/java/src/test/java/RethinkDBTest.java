@@ -4,7 +4,7 @@ import com.rethinkdb.gen.exc.ReqlQueryLogicError;
 import com.rethinkdb.model.MapObject;
 import com.rethinkdb.net.Connection;
 import junit.framework.Assert;
-import junit.framework.TestCase;
+
 import static org.junit.Assert.assertEquals;
 
 import org.junit.*;
@@ -26,11 +26,8 @@ public class RethinkDBTest{
     public ExpectedException expectedEx = ExpectedException.none();
 
     @BeforeClass
-    public static void oneTimeSetUp() throws TimeoutException {
-        Connection<?> conn = r.connection()
-                .hostname("newton")
-                .port(31157)
-                .connect();
+    public static void oneTimeSetUp() throws Exception {
+        Connection<?> conn = TestingFramework.createConnection();
         try{
             r.dbCreate(dbName).run(conn);
         }catch(ReqlError e){}
@@ -43,11 +40,8 @@ public class RethinkDBTest{
     }
 
     @AfterClass
-    public static void oneTimeTearDown() throws TimeoutException {
-        Connection<?> conn = r.connection()
-                .hostname("newton")
-                .port(31157)
-                .connect();
+    public static void oneTimeTearDown() throws Exception {
+        Connection<?> conn = TestingFramework.createConnection();
         try {
             r.db(dbName).tableDrop(tableName).run(conn);
         }catch(ReqlError e){}
@@ -59,10 +53,7 @@ public class RethinkDBTest{
 
     @Before
     public void setUp() throws Exception {
-        conn = r.connection()
-                .hostname("newton")
-                .port(31157)
-                .connect();
+        conn = TestingFramework.createConnection();
         r.db(dbName).table(tableName).delete().run(conn);
     }
 
@@ -196,7 +187,8 @@ public class RethinkDBTest{
     public void testTableInsert(){
         MapObject foo = new MapObject()
                 .with("hi", "There")
-                .with("yes", 7);
+                .with("yes", 7)
+                .with("no", null );
         Map<String, Object> result = r.db(dbName).table(tableName).insert(foo).run(conn);
         assertEquals(result.get("inserted"), 1L);
     }

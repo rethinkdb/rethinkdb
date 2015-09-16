@@ -3,3 +3,4 @@ build/
 .#*
 *.iml
 .idea/
+test-config-override.properties
