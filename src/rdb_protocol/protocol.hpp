@@ -266,7 +266,9 @@ struct sindex_rangespec_t {
                        // dealing with truncated keys.
                        boost::optional<region_t> &&_region,
                        const std::vector<ql::datum_range_t> &_original_ranges)
-        : id(_id), region(std::move(_region)), original_ranges(_original_ranges) { }
+        : id(_id), region(std::move(_region)), original_ranges(_original_ranges) {
+        r_sanity_check(original_ranges.size() != 0);
+    }
     std::string id; // What sindex we're using.
     // What keyspace we're currently operating on.  If empty, assume the
     // original range and create the readgen on the shards.

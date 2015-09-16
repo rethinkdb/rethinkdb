@@ -17,7 +17,7 @@ namespace ql {
 
 bool changespec_t::include_initial_vals() {
     if (auto *range = boost::get<changefeed::keyspec_t::range_t>(&keyspec.spec)) {
-        if (range->ranges.size() != 1 || range->ranges.at(0).is_universe()) {
+        if (range->ranges.size() != 1 || range->ranges[0].is_universe()) {
             return false;
         }
     }
@@ -464,7 +464,7 @@ primary_readgen_t::primary_readgen_t(
         _profile,
         _read_mode,
         sorting),
-    keys(_keys) {
+      keys(_keys) {
     if (static_cast<bool>(keys)) {
         store_keys = std::vector<store_key_t>{};
         store_keys->reserve(keys->size());

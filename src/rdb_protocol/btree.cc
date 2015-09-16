@@ -806,7 +806,7 @@ void rdb_rget_slice(
 void rdb_rget_secondary_slice(
         btree_slice_t *slice,
         const std::vector<ql::datum_range_t> &sindex_ranges,
-        const key_range_t &sindex_region,
+        const key_range_t &sindex_region_range,
         sindex_superblock_t *superblock,
         ql::env_t *ql_env,
         const ql::batchspec_t &batchspec,
@@ -836,13 +836,18 @@ void rdb_rget_secondary_slice(
             sindex_func_reql_version,
             sindex_info.mapping,
             sindex_info.multi),
-        sindex_region);
+        sindex_region_range);
 
     direction_t direction = reversed(sorting) ? BACKWARD : FORWARD;
     for (size_t i = 0; i < sindex_ranges.size(); ++i) {
+        key_range_t active_range = sindex_region_range.intersection(
+            sindex_ranges[i].to_sindex_keyrange(skey_version));
+        // Ranges that don't intersect the region range should be removed during
+        // sharding.
+        guarantee(!active_range.is_empty());
         btree_concurrent_traversal(
             superblock,
-            sindex_ranges.at(i).to_sindex_keyrange(skey_version),
+            active_range,
             &callback,
             direction,
             i == sindex_ranges.size() - 1

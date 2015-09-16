@@ -965,7 +965,7 @@ public:
         guarantee(spec->range.sindex);
         // `.limit().changes()` is currently only allowed on a single range
         r_sanity_check(spec->range.ranges.size() == 1);
-        datum_range_t srange = spec->range.ranges.at(0);
+        datum_range_t srange = spec->range.ranges[0];
         if (start) {
             datum_t dstart = (**start)->second.first;
             switch (sorting) {
@@ -2192,7 +2192,7 @@ public:
                        env->get_all_optargs(),
                        spec.range.sindex
                        ? region_t::universe()
-                       : region_t(spec.range.ranges.at(0).to_primary_keyrange())),
+                       : region_t(spec.range.ranges[0].to_primary_keyrange())),
                    profile_bool_t::DONT_PROFILE,
                    read_mode_t::SINGLE),
             &read_resp,
