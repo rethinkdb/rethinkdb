@@ -548,3 +548,17 @@ tests:
       rb: tbl.max(index:'a').without('b')
       js: tbl.max({index:'a'}).without('b')
       ot: ({'a':3,'id':99})
+
+
+    # Infix
+
+    - cd: r.sum([ 1, 2 ])
+      ot: 3
+    - cd: r.avg([ 1, 2 ])
+      ot: 1.5
+    - cd: r.min([ 1, 2 ])
+      ot: 1
+    - cd: r.max([ 1, 2 ])
+      ot: 2
+    - cd: r.distinct([ 1, 2 ])
+      ot: [ 1, 2 ]
