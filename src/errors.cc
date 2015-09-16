@@ -162,10 +162,75 @@ NORETURN void terminate_handler() {
 }
 
 #ifdef _WIN32
-LONG WINAPI windows_crash_handler(EXCEPTION_POINTERS *exceptions) {
+LONG WINAPI windows_crash_handler(EXCEPTION_POINTERS *exception) {
+    std::string message;
+    switch (exception->ExceptionRecord->ExceptionCode) {
+    case EXCEPTION_ACCESS_VIOLATION:
+        message = "ACCESS_VIOLATION: The thread tried to read from or write to a virtual address for which it does not have the appropriate access.";
+        break;
+    case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:
+        message = "ARRAY_BOUNDS_EXCEEDED: The thread tried to access an array element that is out of bounds and the underlying hardware supports bounds checking.";
+        break;
+    case EXCEPTION_BREAKPOINT:
+        message = "BREAKPOINT: A breakpoint was encountered.";
+        break;
+    case EXCEPTION_DATATYPE_MISALIGNMENT:
+        message = "DATATYPE_MISALIGNMENT: The thread tried to read or write data that is misaligned on hardware that does not provide alignment. For example, 16-bit values must be aligned on 2-byte boundaries; 32-bit values on 4-byte boundaries, and so on.";
+        break;
+    case EXCEPTION_FLT_DENORMAL_OPERAND:
+        message = "FLT_DENORMAL_OPERAND: One of the operands in a floating-point operation is denormal. A denormal value is one that is too small to represent as a standard floating-point value.";
+        break;
+    case EXCEPTION_FLT_DIVIDE_BY_ZERO:
+        message = "FLT_DIVIDE_BY_ZERO: The thread tried to divide a floating-point value by a floating-point divisor of zero.";
+        break;
+    case EXCEPTION_FLT_INEXACT_RESULT:
+        message = "FLT_INEXACT_RESULT: The result of a floating-point operation cannot be represented exactly as a decimal fraction.";
+        break;
+    case EXCEPTION_FLT_INVALID_OPERATION:
+        message = "FLT_INVALID_OPERATION: This exception represents any floating-point exception not included in this list.";
+        break;
+    case EXCEPTION_FLT_OVERFLOW:
+        message = "FLT_OVERFLOW: The exponent of a floating-point operation is greater than the magnitude allowed by the corresponding type.";
+        break;
+    case EXCEPTION_FLT_STACK_CHECK:
+        message = "FLT_STACK_CHECK: The stack overflowed or underflowed as the result of a floating-point operation.";
+        break;
+    case EXCEPTION_FLT_UNDERFLOW:
+        message = "FLT_UNDERFLOW: The exponent of a floating-point operation is less than the magnitude allowed by the corresponding type.";
+        break;
+    case EXCEPTION_ILLEGAL_INSTRUCTION:
+        message = "ILLEGAL_INSTRUCTION: The thread tried to execute an invalid instruction.";
+        break;
+    case EXCEPTION_IN_PAGE_ERROR:
+        message = "IN_PAGE_ERROR: The thread tried to access a page that was not present, and the system was unable to load the page. For example, this exception might occur if a network connection is lost while running a program over the network.";
+        break;
+    case EXCEPTION_INT_DIVIDE_BY_ZERO:
+        message = "INT_DIVIDE_BY_ZERO: The thread tried to divide an integer value by an integer divisor of zero.";
+        break;
+    case EXCEPTION_INT_OVERFLOW:
+        message = "INT_OVERFLOW: The result of an integer operation caused a carry out of the most significant bit of the result.";
+        break;
+    case EXCEPTION_INVALID_DISPOSITION:
+        message = "INVALID_DISPOSITION: An exception handler returned an invalid disposition to the exception dispatcher. Programmers using a high-level language such as C should never encounter this exception.";
+        break;
+    case EXCEPTION_NONCONTINUABLE_EXCEPTION:
+        message = "NONCONTINUABLE_EXCEPTION: The thread tried to continue execution after a noncontinuable exception occurred.";
+        break;
+    case EXCEPTION_PRIV_INSTRUCTION:
+        message = "PRIV_INSTRUCTION: The thread tried to execute an instruction whose operation is not allowed in the current machine mode.";
+        break;
+    case EXCEPTION_SINGLE_STEP:
+        message = "SINGLE_STEP: A trace trap or other single-instruction mechanism signaled that one instruction has been executed.";
+        break;
+    case EXCEPTION_STACK_OVERFLOW:
+        message = "STACK_OVERFLOW: The thread used up its stack.";
+        break;
+    default:
+        message = "Unkown exception.";
+    }
 
-    // ATN TODO: examine and report what exception this is
-    crash("Unhandled exception\n");
+    logERR("Windows exception 0x%x: %s", exception->ExceptionRecord->ExceptionCode, message.c_str());
+    logERR("%s", format_backtrace(exception->ContextRecord));
 
     // This usually results in process termination
     return EXCEPTION_EXECUTE_HANDLER;

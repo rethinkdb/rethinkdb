@@ -27,6 +27,7 @@
 #include "rethinkdb_backtrace.hpp"
 #include "utils.hpp"
 
+#ifndef _WIN32
 static bool parse_backtrace_line(char *line, char **filename, char **function, char **offset, char **address) {
     /*
     backtrace() gives us lines in one of the following two forms:
@@ -97,10 +98,6 @@ Please don't change this function without talking to the people who have already
 been involved in this. */
 
 std::string demangle_cpp_name(const char *mangled_name) {
-#ifdef _WIN32
-	// ATN TODO UnDecorateSymbolName?
-	return mangled_name;
-#else
     int res;
     char *name_as_c_str = abi::__cxa_demangle(mangled_name, NULL, 0, &res);
     if (res == 0) {
@@ -110,10 +107,8 @@ std::string demangle_cpp_name(const char *mangled_name) {
     } else {
         throw demangle_failed_exc_t();
     }
-#endif
 }
 
-#ifndef _WIN32 // ATN TODO
 int set_o_cloexec(int fd) {
     int flags = fcntl(fd, F_GETFD);
     if (flags < 0) {
@@ -121,9 +116,7 @@ int set_o_cloexec(int fd) {
     }
     return fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
 }
-#endif
 
-#ifndef _WIN32 // TODO ATN
 address_to_line_t::addr2line_t::addr2line_t(const char *executable) : input(NULL), output(NULL), bad(false), pid(-1) {
     if (pipe(child_in) || set_o_cloexec(child_in[0]) || set_o_cloexec(child_in[1]) || pipe(child_out) || set_o_cloexec(child_out[0]) || set_o_cloexec(child_out[1])) {
         bad = true;
@@ -212,14 +205,14 @@ std::string address_to_line_t::address_to_line(const std::string &executable, co
 }
 #endif
 
-std::string format_backtrace(bool use_addr2line) {
-    lazy_backtrace_formatter_t bt;
-    return use_addr2line ? bt.lines() : bt.addrs();
+std::string format_backtrace(void *context) {
+    lazy_backtrace_formatter_t bt(context);
+    return bt.lines();
 }
 
-backtrace_t::backtrace_t() {
+backtrace_t::backtrace_t(void *context) {
     scoped_array_t<void *> stack_frames(new void*[max_frames], max_frames); // Allocate on heap in case stack space is scarce
-    int size = rethinkdb_backtrace(stack_frames.data(), max_frames);
+    int size = rethinkdb_backtrace(stack_frames.data(), max_frames, context);
 
 #ifdef CROSS_CORO_BACKTRACES
     if (coro_t::self() != NULL) {
@@ -244,7 +237,7 @@ backtrace_frame_t::backtrace_frame_t(const void* _addr) :
 
 void backtrace_frame_t::initialize_symbols() {
 #ifdef _WIN32
-	// ATN TODO CaptureStackBackTrace, SymFromAddr
+    // ATN TODO CaptureStackBackTrace, SymFromAddr
 #else
     void *addr_array[1] = {const_cast<void *>(addr)};
     char **symbols = backtrace_symbols(addr_array, 1);
@@ -283,7 +276,11 @@ std::string backtrace_frame_t::get_symbols_line() const {
 
 std::string backtrace_frame_t::get_demangled_name() const {
     rassert(symbols_initialized);
+#ifdef _WIN32 // TODO ATN
+    return function;
+#else
     return demangle_cpp_name(function.c_str());
+#endif
 }
 
 std::string backtrace_frame_t::get_filename() const {
@@ -300,8 +297,8 @@ const void *backtrace_frame_t::get_addr() const {
     return addr;
 }
 
-lazy_backtrace_formatter_t::lazy_backtrace_formatter_t() :
-    backtrace_t(),
+lazy_backtrace_formatter_t::lazy_backtrace_formatter_t(void *context) :
+    backtrace_t(context),
     timestamp(time(0)),
     timestr(time2str(timestamp)) {
 }
@@ -323,8 +320,8 @@ std::string lazy_backtrace_formatter_t::lines() {
 #ifdef _WIN32
 void initialize_dbghelp() {
     DWORD options = SymGetOptions();
-    // options |= SYMOPT_DEBUG; // Turn on noisy symbol loading
     options |= SYMOPT_LOAD_LINES; // Load line information
+    // TODO ATN: SYMOPT for lazy loading
     SymSetOptions(options);
 
     // Initialize and load the symbol tables
@@ -335,31 +332,19 @@ void initialize_dbghelp() {
 
 std::string lazy_backtrace_formatter_t::print_frames(bool use_addr2line) {
 #ifdef _WIN32
-    /* TODO ATN: this comented block is for StackWalkEx
-    DWORD machine_type = IMAGE_FILE_MACHINE_AMD64;
-    HANDLE process = GetCurrentProcess();
-    STACKFRAME_EX frame;
-    CONTEXT context;
-    BOOL res = StackWalkEx(machine_type, process, &frame, &context, nullptr, nullptr, nullptr, nullptr, SYM_STKWALK_DEFAULT);
-    */
-
     initialize_dbghelp();
 
     std::string output;
-    const int MAX_STACK_TRACE_SIZE = 62; // As suggested by MSDN
-    void *addresses[MAX_STACK_TRACE_SIZE];
-    USHORT frames = /*Rtl*/CaptureStackBackTrace(0, sizeof(addresses), addresses, nullptr);
-    const int SKIP_FRAMES = 3;
-    for (int i = SKIP_FRAMES; i < frames; i++) {
+    for (int i = 0; i < get_num_frames(); i++) {
         output.append(strprintf("%d: ", static_cast<int>(i+1)));
         DWORD64 offset;
         const int MAX_SYMBOL_LENGTH = 2048; // An arbitrary number
         auto symbol_info = scoped_malloc_t<SYMBOL_INFO>(sizeof(SYMBOL_INFO) - 1 + MAX_SYMBOL_LENGTH);
         symbol_info->SizeOfStruct = sizeof(SYMBOL_INFO);
         symbol_info->MaxNameLen = MAX_SYMBOL_LENGTH;
-        BOOL ret = SymFromAddr(GetCurrentProcess(), reinterpret_cast<DWORD64>(addresses[i]), &offset, symbol_info.get());
+        BOOL ret = SymFromAddr(GetCurrentProcess(), reinterpret_cast<DWORD64>(get_frame(i).get_addr()), &offset, symbol_info.get());
         if (!ret) {
-            output.append(strprintf("0x%p [%s]", addresses[i], winerr_string(GetLastError()).c_str()));
+            output.append(strprintf("0x%p [%s]", get_frame(i).get_addr(), winerr_string(GetLastError()).c_str()));
         } else {
             output.append(strprintf("%s", symbol_info->Name));
             if (offset != 0) {
@@ -368,9 +353,9 @@ std::string lazy_backtrace_formatter_t::print_frames(bool use_addr2line) {
         }
         DWORD line_offset;
         IMAGEHLP_LINE64 line_info;
-        ret = SymGetLineFromAddr64(GetCurrentProcess(), reinterpret_cast<DWORD64>(addresses[i]), &line_offset, &line_info);
+        ret = SymGetLineFromAddr64(GetCurrentProcess(), reinterpret_cast<DWORD64>(get_frame(i).get_addr()), &line_offset, &line_info);
         if (!ret) {
-            output.append(" (no line info)");
+            // output.append(" (no line info)");
         } else {
             output.append(strprintf(" at %s:%u", line_info.FileName, line_info.LineNumber));
         }

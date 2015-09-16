@@ -32,6 +32,10 @@ int main(int argc, char **argv) {
     startup_shutdown_t startup_shutdown;
     //open_console();
     //defer_t defer(close_console);
+
+    // TODO ATN
+    // crash("oh noes");
+
     SetConsoleCtrlHandler(unittest_ctrl_c, true);
     ::testing::InitGoogleTest(&argc, argv);
     printf("Running tests\n");
