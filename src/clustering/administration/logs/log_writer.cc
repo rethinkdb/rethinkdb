@@ -100,10 +100,10 @@ std::string format_log_message(const log_message_t &m, bool for_console) {
                 message_reformatted.append("\\\\");
             }
         } else if (message[i] < ' ' || message[i] > '~') {
-#ifndef NDEBUG
-            crash("We can't have special characters in log messages because then it "
-                "would be difficult to parse the log file. Message: %s",
-                message.c_str());
+#if !defined(NDEBUG) && 0 // TODO ATN: this message is pretty annoying
+             crash("We can't have special characters in log messages because then it "
+                   "would be difficult to parse the log file. Message: %s",
+                   message.c_str());
 #else
             message_reformatted.push_back('?');
 #endif

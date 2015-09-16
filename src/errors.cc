@@ -65,7 +65,6 @@ void report_fatal_error(const char *file, int line, const char *msg, ...) {
         fprintf(stderr, "Crashing while already crashed. Printing error message to stderr.\n");
         vfprintf(stderr, msg, args);
         va_end(args);
-        fflush(stderr);
         return;
     }
 
@@ -87,7 +86,6 @@ void report_fatal_error(const char *file, int line, const char *msg, ...) {
 #endif
 
     logERR("Exiting.");
-    fflush(stderr);
 }
 
 const char *errno_string_maybe_using_buffer(int errsv, char *buf, size_t buflen) {
@@ -165,14 +163,16 @@ NORETURN void terminate_handler() {
 LONG WINAPI windows_crash_handler(EXCEPTION_POINTERS *exception) {
     std::string message;
     switch (exception->ExceptionRecord->ExceptionCode) {
+    case EXCEPTION_BREAKPOINT:
+        // TODO ATN: don't handle breakpoints, otherwise "crashing while already crashed" message will show
+        // return EXCEPTION_EXECUTE_HANDLER;
+        message = "BREAKPOINT: A breakpoint was encountered.";
+        break;
     case EXCEPTION_ACCESS_VIOLATION:
         message = "ACCESS_VIOLATION: The thread tried to read from or write to a virtual address for which it does not have the appropriate access.";
         break;
     case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:
         message = "ARRAY_BOUNDS_EXCEEDED: The thread tried to access an array element that is out of bounds and the underlying hardware supports bounds checking.";
-        break;
-    case EXCEPTION_BREAKPOINT:
-        message = "BREAKPOINT: A breakpoint was encountered.";
         break;
     case EXCEPTION_DATATYPE_MISALIGNMENT:
         message = "DATATYPE_MISALIGNMENT: The thread tried to read or write data that is misaligned on hardware that does not provide alignment. For example, 16-bit values must be aligned on 2-byte boundaries; 32-bit values on 4-byte boundaries, and so on.";

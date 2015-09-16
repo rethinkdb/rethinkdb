@@ -104,7 +104,7 @@ int rethinkdb_backtrace(void **buffer, int size, void *context) {
 #include <vector>
 
 int rethinkdb_backtrace(void **buffer, int size, void *context) {
-    /* TODO ATN: this comented block is for StackWalkEx
+    /* TODO ATN: use StackWalkEx when context is not null
     DWORD machine_type = IMAGE_FILE_MACHINE_AMD64;
     HANDLE process = GetCurrentProcess();
     STACKFRAME_EX frame;

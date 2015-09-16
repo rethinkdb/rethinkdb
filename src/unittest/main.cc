@@ -32,6 +32,7 @@ int main(int argc, char **argv) {
     startup_shutdown_t startup_shutdown;
     //open_console();
     //defer_t defer(close_console);
+    setvbuf(stderr, nullptr, _IONBF, 0);
 
     // TODO ATN
     // crash("oh noes");
