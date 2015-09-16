@@ -7,6 +7,7 @@ __all__ = [
     'db', 'db_create', 'db_drop', 'db_list',
     'table', 'table_create', 'table_drop', 'table_list',
     'wait', 'reconfigure', 'rebalance',
+    'sum', 'avg', 'min', 'max', 'distinct',
     'eq', 'ne', 'le', 'ge', 'lt', 'gt', 'and_', 'or_', 'not_',
     'add', 'sub', 'mul', 'div', 'mod', 'floor', 'ceil', 'round',
     'time', 'iso8601', 'epoch_time', 'now', 'make_timezone',
@@ -121,6 +122,27 @@ def map(*args):
         return ast.Map(*(args[:-1] + (ast.func_wrap(args[-1]), )))
     else:
         return ast.Map()
+
+
+# aggregation
+def sum(*args):
+    return ast.Sum(*args)
+
+
+def avg(*args):
+    return ast.Avg(*args)
+
+
+def min(*args):
+    return ast.Min(*args)
+
+
+def max(*args):
+    return ast.Max(*args)
+
+
+def distinct(*args):
+    return ast.Distinct(*args)
 
 
 # orderBy orders
