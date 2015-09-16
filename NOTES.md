@@ -1,3 +1,19 @@
+# Release 2.1.4 (Forbidden Planet)
+
+Released on 2015-10-15
+
+Bug fix release
+
+* Fixed a second data corruption bug in the b-tree implementation (#4769)
+* The web UI now displays table configuration errors correctly (#4811)
+* Added a check in case `reconfigure` is called with a non-existent server tag (#4840)
+* Removed a spurious debug-mode assertion that caused a server crash when trying
+  to write to the `stats` system table (#4837)
+* The `rethinkdb restore` and `rethinkdb import` commands now wait for secondary
+  indexes to become ready before beginning the data import (#4832)
+
+--
+
 # Release 2.1.3 (Forbidden Planet)
 
 Released on 2015-09-04
