@@ -1,11 +1,11 @@
 # Release 2.1.4 (Forbidden Planet)
 
-Released on 2015-10-15
+Released on 2015-09-16
 
 Bug fix release
 
-* Fixed a second data corruption bug in the b-tree implementation (#4769)
-* The web UI now displays table configuration errors correctly (#4811)
+* Fixed a data corruption bug that could occur when deleting documents (#4769)
+* The web UI no longer ignores errors during table configuration (#4811)
 * Added a check in case `reconfigure` is called with a non-existent server tag (#4840)
 * Removed a spurious debug-mode assertion that caused a server crash when trying
   to write to the `stats` system table (#4837)
