@@ -47,10 +47,9 @@ public class ReqlAst {
     }
 
     public static Map<String, Object> buildOptarg(OptArgs opts){
-        return opts.entrySet().stream().collect(Collectors.toMap(
-                Map.Entry::getKey,
-                entry -> entry.getValue().build()
-        ));
+        Map<String, Object> result = new HashMap<>( opts.size() );
+        opts.forEach( (name, arg) -> result.put( name, arg.build() ) );
+        return result;
     }
 
     public <T> T run(Connection<? extends ConnectionInstance> conn,
