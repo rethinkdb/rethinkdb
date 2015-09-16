@@ -7,10 +7,14 @@ package com.rethinkdb.gen.model;
 
 import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.model.Arguments;
+import com.rethinkdb.model.MapObject;
 import com.rethinkdb.gen.ast.Error;
 import com.rethinkdb.gen.ast.*;
 import com.rethinkdb.ast.Util;
 import com.rethinkdb.gen.exc.ReqlDriverError;
+
+import java.util.Arrays;
+import java.util.List;
 
 public class TopLevel {
 
@@ -21,6 +25,14 @@ public class TopLevel {
     public ReqlExpr row(Object... values) {
         throw new ReqlDriverError("r.row is not implemented in the Java driver."+
                                   " Use lambda syntax instead");
+    }
+
+    public MapObject hashMap(String key, Object val){
+        return new MapObject().with(key, val);
+    }
+
+    public List array(Object... vals){
+        return Arrays.asList(vals);
     }
 
     public Javascript js(Object expr){
