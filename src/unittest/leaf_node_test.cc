@@ -589,6 +589,29 @@ TEST(LeafNodeTest, MergingWithHugeEntries) {
     right.Merge(&left);
 }
 
+// A regression test for https://github.com/rethinkdb/rethinkdb/issues/4769
+TEST(LeafNodeTest, MergingRegression4769) {
+    LeafNodeTracker left;
+    LeafNodeTracker right;
+
+    // Fill the nodes with a bunch of deletion entries
+    for (int i = 0; i < 100; ++i) {
+        left.Insert(store_key_t(strprintf("a%d", i)), strprintf("A%d", i));
+        right.Insert(store_key_t(strprintf("b%d", i)), strprintf("B%d", i));
+        left.Remove(store_key_t(strprintf("a%d", i)));
+        right.Remove(store_key_t(strprintf("b%d", i)));
+    }
+
+    // Then insert a bunch of keys to push some of them over the timestamp
+    // cut-off point.
+    for (int i = 0; i < 20; ++i) {
+        left.Insert(store_key_t(strprintf("c%d", i)), strprintf("C%d", i));
+        right.Insert(store_key_t(strprintf("d%d", i)), strprintf("D%d", i));
+    }
+
+    right.Merge(&left);
+}
+
 
 TEST(LeafNodeTest, LevelingLeftToRight) {
     LeafNodeTracker left;
