@@ -844,7 +844,7 @@ void rdb_rget_secondary_slice(
             sindex_ranges[i].to_sindex_keyrange(skey_version));
         // Ranges that don't intersect the region range should be removed during
         // sharding.
-        guarantee(!active_range.is_empty());
+        r_sanity_check(!active_range.is_empty());
         btree_concurrent_traversal(
             superblock,
             active_range,
@@ -853,7 +853,6 @@ void rdb_rget_secondary_slice(
             i == sindex_ranges.size() - 1
                 ? release_superblock
                 : release_superblock_t::KEEP);
-
         if (callback.should_finish() == true) {
             // If required the superblock will get released further up the stack
             break;

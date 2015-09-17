@@ -412,6 +412,7 @@ public:
 
     virtual read_t next_read(
         const boost::optional<key_range_t> &active_range,
+        const boost::optional<skey_version_t> &skey_version,
         boost::optional<changefeed_stamp_t> stamp,
         std::vector<transform_variant_t> transform,
         const batchspec_t &batchspec) const = 0;
@@ -463,6 +464,7 @@ public:
 
     virtual read_t next_read(
         const boost::optional<key_range_t> &active_range,
+        const boost::optional<skey_version_t> &skey_version,
         boost::optional<changefeed_stamp_t> stamp,
         std::vector<transform_variant_t> transform,
         const batchspec_t &batchspec) const;
@@ -470,6 +472,7 @@ public:
 private:
     virtual rget_read_t next_read_impl(
         const boost::optional<key_range_t> &active_range,
+        const boost::optional<skey_version_t> &skey_version,
         boost::optional<changefeed_stamp_t> stamp,
         std::vector<transform_variant_t> transform,
         const batchspec_t &batchspec) const = 0;
@@ -498,6 +501,7 @@ private:
                       sorting_t sorting);
     virtual rget_read_t next_read_impl(
         const boost::optional<key_range_t> &active_range,
+        const boost::optional<skey_version_t> &skey_version,
         boost::optional<changefeed_stamp_t> stamp,
         std::vector<transform_variant_t> transform,
         const batchspec_t &batchspec) const;
@@ -552,6 +556,7 @@ private:
         sorting_t sorting);
     virtual rget_read_t next_read_impl(
         const boost::optional<key_range_t> &active_range,
+        const boost::optional<skey_version_t> &skey_version,
         boost::optional<changefeed_stamp_t> stamp,
         std::vector<transform_variant_t> transform,
         const batchspec_t &batchspec) const;
@@ -581,6 +586,7 @@ public:
 
     virtual read_t next_read(
         const boost::optional<key_range_t> &active_range,
+        const boost::optional<skey_version_t> &skey_version,
         boost::optional<changefeed_stamp_t> stamp,
         std::vector<transform_variant_t> transform,
         const batchspec_t &batchspec) const;
@@ -615,6 +621,7 @@ private:
     // geo read.
     intersecting_geo_read_t next_read_impl(
         const boost::optional<key_range_t> &active_range,
+        const boost::optional<skey_version_t> &skey_version,
         boost::optional<changefeed_stamp_t> stamp,
         std::vector<transform_variant_t> transforms,
         const batchspec_t &batchspec) const;

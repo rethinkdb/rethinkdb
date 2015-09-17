@@ -183,7 +183,8 @@ void rget_reader_t::accumulate_all(env_t *env, eager_acc_t *acc) {
     r_sanity_check(!started);
     started = true;
     batchspec_t batchspec = batchspec_t::all();
-    read_t read = readgen->next_read(active_range, stamp, transforms, batchspec);
+    read_t read = readgen->next_read(
+        active_range, skey_version, stamp, transforms, batchspec);
     rget_read_response_t resp = do_read(env, std::move(read));
 
     auto *rr = boost::get<rget_read_t>(&read.read);
@@ -260,7 +261,9 @@ bool rget_reader_t::load_items(env_t *env, const batchspec_t &batchspec) {
         // `active_range` is guaranteed to be full after the `do_range_read`,
         // because `do_range_read` is responsible for updating the active range.
         items = do_range_read(
-            env, readgen->next_read(active_range, stamp, transforms, batchspec));
+            env,
+            readgen->next_read(
+                active_range, skey_version, stamp, transforms, batchspec));
         // Everything below this point can handle `items` being empty (this is
         // good hygiene anyway).
         r_sanity_check(active_range);
@@ -303,7 +306,8 @@ void intersecting_reader_t::accumulate_all(env_t *env, eager_acc_t *acc) {
     r_sanity_check(!started);
     started = true;
     batchspec_t batchspec = batchspec_t::all();
-    read_t read = readgen->next_read(active_range, stamp, transforms, batchspec);
+    read_t read = readgen->next_read(
+        active_range, skey_version, stamp, transforms, batchspec);
     rget_read_response_t resp = do_read(env, std::move(read));
 
     auto final_key = store_key_t::max();
@@ -318,7 +322,9 @@ bool intersecting_reader_t::load_items(env_t *env, const batchspec_t &batchspec)
     started = true;
     while (items_index >= items.size() && !shards_exhausted) { // read some more
         std::vector<rget_item_t> unfiltered_items = do_intersecting_read(
-            env, readgen->next_read(active_range, stamp, transforms, batchspec));
+            env,
+            readgen->next_read(
+                active_range, skey_version, stamp, transforms, batchspec));
         if (unfiltered_items.empty()) {
             shards_exhausted = true;
         } else {
@@ -423,16 +429,19 @@ rget_readgen_t::rget_readgen_t(
 
 read_t rget_readgen_t::next_read(
     const boost::optional<key_range_t> &active_range,
+    const boost::optional<skey_version_t> &skey_version,
     boost::optional<changefeed_stamp_t> stamp,
     std::vector<transform_variant_t> transforms,
     const batchspec_t &batchspec) const {
-    return read_t(next_read_impl(
-                      active_range,
-                      std::move(stamp),
-                      std::move(transforms),
-                      batchspec),
-                  profile,
-                  read_mode);
+    return read_t(
+        next_read_impl(
+            active_range,
+            skey_version,
+            std::move(stamp),
+            std::move(transforms),
+            batchspec),
+        profile,
+        read_mode);
 }
 
 // TODO: this is how we did it before, but it sucks.
@@ -442,6 +451,7 @@ read_t rget_readgen_t::terminal_read(
     const batchspec_t &batchspec) const {
     rget_read_t read = next_read_impl(
         original_keyrange(),
+        boost::none,
         boost::optional<changefeed_stamp_t>(), // No need to stamp terminals.
         transforms,
         batchspec);
@@ -494,6 +504,7 @@ scoped_ptr_t<readgen_t> primary_readgen_t::make(
 
 rget_read_t primary_readgen_t::next_read_impl(
     const boost::optional<key_range_t> &active_range,
+    const boost::optional<skey_version_t> &,
     boost::optional<changefeed_stamp_t> stamp,
     std::vector<transform_variant_t> transforms,
     const batchspec_t &batchspec) const {
@@ -642,13 +653,27 @@ void sindex_readgen_t::sindex_sort(std::vector<rget_item_t> *vec) const {
 
 rget_read_t sindex_readgen_t::next_read_impl(
     const boost::optional<key_range_t> &active_range,
+    const boost::optional<skey_version_t> &skey_version,
     boost::optional<changefeed_stamp_t> stamp,
     std::vector<transform_variant_t> transforms,
     const batchspec_t &batchspec) const {
+
     boost::optional<region_t> region;
+    std::vector<datum_range_t> active_ranges;
     if (active_range) {
         region = region_t(*active_range);
+        r_sanity_check(skey_version);
+        for (auto &&kr : key_ranges) {
+            if (active_range->overlaps(kr.to_sindex_keyrange(*skey_version))) {
+                active_ranges.push_back(kr);
+            }
+        }
+        // Otherwise `active_range` should be empty and we should never have
+        // gotten here (since `active_range` is supposed to be a subset of the
+        // covering range of the key ranges).
+        r_sanity_check(active_ranges.size() >= 1);
     } else {
+        active_ranges = key_ranges;
         // We should send at most one read before we're able to calculate the
         // active range.
         r_sanity_check(!sent_first_read);
@@ -670,7 +695,7 @@ rget_read_t sindex_readgen_t::next_read_impl(
         sindex_rangespec_t(
             sindex,
             std::move(region),
-            key_ranges),
+            std::move(active_ranges)),
         sorting);
 }
 
@@ -778,16 +803,19 @@ scoped_ptr_t<readgen_t> intersecting_readgen_t::make(
 
 read_t intersecting_readgen_t::next_read(
     const boost::optional<key_range_t> &active_range,
+    const boost::optional<skey_version_t> &skey_version,
     boost::optional<changefeed_stamp_t> stamp,
     std::vector<transform_variant_t> transforms,
     const batchspec_t &batchspec) const {
-    return read_t(next_read_impl(
-                      active_range,
-                      std::move(stamp),
-                      std::move(transforms),
-                      batchspec),
-                  profile,
-                  read_mode);
+    return read_t(
+        next_read_impl(
+            active_range,
+            skey_version,
+            std::move(stamp),
+            std::move(transforms),
+            batchspec),
+        profile,
+        read_mode);
 }
 
 read_t intersecting_readgen_t::terminal_read(
@@ -797,6 +825,7 @@ read_t intersecting_readgen_t::terminal_read(
     intersecting_geo_read_t read =
         next_read_impl(
             original_keyrange(),
+            boost::none,
             boost::optional<changefeed_stamp_t>(), // No need to stamp terminals.
             transforms,
             batchspec);
@@ -806,6 +835,7 @@ read_t intersecting_readgen_t::terminal_read(
 
 intersecting_geo_read_t intersecting_readgen_t::next_read_impl(
     const boost::optional<key_range_t> &active_range,
+    const boost::optional<skey_version_t> &,
     boost::optional<changefeed_stamp_t> stamp,
     std::vector<transform_variant_t> transforms,
     const batchspec_t &batchspec) const {

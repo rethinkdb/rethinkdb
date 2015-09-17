@@ -429,7 +429,7 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
                         rg_out->primary_keys->begin(),
                         rg_out->primary_keys->end(),
                         [&](const store_key_t &key) {
-                            return !region->inner.contains_key(key);
+                            return !rg_out->region.inner.contains_key(key);
                         }),
                     rg_out->primary_keys->end());
                 if (rg_out->primary_keys->empty()) {
