@@ -68,6 +68,7 @@ r.table('test').index_create(*indexes).run rescue nil
       truncated_collision: 'a'*300 + sprintf("%05d", i % 10)
     }
   }
+  r.table('test').insert(input).run(runopts)
 
   puts "Testing ordering..."
   res = r.table('test').run(runopts).to_a
@@ -76,9 +77,5 @@ r.table('test').index_create(*indexes).run rescue nil
   raise "Ordered retrieve failed." if res.count != 1000
   res = r.table('test').order_by(index: r.desc('id')).run(runopts)
   raise "Descending retrieve failed." if res.count != 1000
-  res = r.table('test').order_by(index: 'a').run(runopts)
-  raise "Sindex retrieve failed." if res.count != 1000
-  res = r.table('test').order_by(index: r.desc('a')).run(runopts)
-  raise "Descending sindex retrieve failed." if res.count != 1000
 }
 puts "Done!"
