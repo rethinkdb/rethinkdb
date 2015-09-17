@@ -417,7 +417,8 @@ inline void fail_if_invalid(reql_version_t reql_version, const std::string &stri
             break;
         case reql_version_t::v1_16:
         case reql_version_t::v2_0:
-        case reql_version_t::v2_1_is_latest:
+        case reql_version_t::v2_1:
+        case reql_version_t::v2_2_is_latest:
             utf8::reason_t reason;
             if (!utf8::is_valid(string, &reason)) {
                 int truncation_length = std::min<size_t>(reason.position, 20);
@@ -442,7 +443,8 @@ inline void fail_if_invalid(
             break;
         case reql_version_t::v1_16:
         case reql_version_t::v2_0:
-        case reql_version_t::v2_1_is_latest:
+        case reql_version_t::v2_1:
+        case reql_version_t::v2_2_is_latest:
             utf8::reason_t reason;
             if (!utf8::is_valid(string, string + string_length, &reason)) {
                 int truncation_length = std::min<size_t>(reason.position, 20);
@@ -1111,7 +1113,8 @@ skey_version_t skey_version_from_reql_version(reql_version_t rv) {
         return skey_version_t::pre_1_16;
     case reql_version_t::v1_16:
     case reql_version_t::v2_0:
-    case reql_version_t::v2_1_is_latest:
+    case reql_version_t::v2_1:
+    case reql_version_t::v2_2_is_latest:
         return skey_version_t::post_1_16;
     default: unreachable();
     }

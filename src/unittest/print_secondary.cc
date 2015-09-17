@@ -13,7 +13,8 @@ void test_mangle(const std::string &pkey, const std::string &skey, boost::option
         reql_version_t::v1_14,
         reql_version_t::v1_16,
         reql_version_t::v2_0,
-        reql_version_t::v2_1_is_latest
+        reql_version_t::v2_1,
+        reql_version_t::v2_2_is_latest
     };
     for (reql_version_t rv : versions) {
         ql::skey_version_t skey_version = ql::skey_version_from_reql_version(rv);
