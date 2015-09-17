@@ -25,7 +25,7 @@ pResponse = p.Response.ResponseType
 pQuery = p.Query.QueryType
 
 from .errors import *
-from .ast import RqlQuery, RqlTopLevelQuery, DB, Repl, ReQLDecoder
+from .ast import RqlQuery, RqlTopLevelQuery, DB, Repl, ReQLDecoder, ReQLEncoder
 
 try:
     from ssl import match_hostname, CertificateError
@@ -65,16 +65,13 @@ class Query(object):
         self.term = term
         self.global_optargs = global_optargs
 
-    def serialize(self):
+    def serialize(self, reql_encoder=ReQLEncoder()):
         message = [self.type]
         if self.term is not None:
-            message.append(self.term.build())
+            message.append(self.term)
         if self.global_optargs is not None:
-            optargs = {}
-            for k, v in dict_items(self.global_optargs):
-                optargs[k] = v.build() if isinstance(v, RqlQuery) else v
-            message.append(optargs)
-        query_str = json.dumps(message, ensure_ascii=False, allow_nan=False).encode('utf-8')
+            message.append(self.global_optargs)
+        query_str = reql_encoder.encode(message).encode('utf-8')
         query_header = struct.pack('<QL', self.token, len(query_str))
         return query_header + query_str
 
@@ -435,7 +432,7 @@ class ConnectionInstance(object):
             self._header_in_progress = None
 
     def run_query(self, query, noreply):
-        self._socket.sendall(query.serialize())
+        self._socket.sendall(query.serialize(self._parent._get_json_encoder()))
         if noreply:
             return None
 
@@ -591,6 +588,9 @@ class Connection(object):
 
     def _get_json_decoder(self, format_opts):
         return ReQLDecoder(format_opts)
+
+    def _get_json_encoder(self):
+        return ReQLEncoder()
 
 class DefaultConnection(Connection):
     def __init__(self, *args, **kwargs):
