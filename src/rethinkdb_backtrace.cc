@@ -112,9 +112,10 @@ int rethinkdb_backtrace(void **buffer, int size, void *context) {
     BOOL res = StackWalkEx(machine_type, process, &frame, &context, nullptr, nullptr, nullptr, nullptr, SYM_STKWALK_DEFAULT);
     */
 
-    const int MAX_STACK_TRACE_SIZE = 62; // As suggested by MSDN
-    std::vector<void *> addresses(MAX_STACK_TRACE_SIZE, nullptr);
-    USHORT frames = CaptureStackBackTrace(0, std::min(size, MAX_STACK_TRACE_SIZE), addresses.data(), nullptr); 
+    // const int MAX_STACK_TRACE_SIZE = 62; // suggested on MSDN for older versions of windows, but ignored here
+
+    std::vector<void *> addresses(size, nullptr);
+    USHORT frames = CaptureStackBackTrace(0, size, addresses.data(), nullptr);
     if (frames > NUM_FRAMES_INSIDE_RETHINKDB_BACKTRACE) {
         std::move(addresses.begin() + NUM_FRAMES_INSIDE_RETHINKDB_BACKTRACE, addresses.begin() + frames, buffer);
         return frames - NUM_FRAMES_INSIDE_RETHINKDB_BACKTRACE;

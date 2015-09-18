@@ -155,3 +155,4 @@ cmake -G"Visual Studio 14 Win64"
 * memset 0 / bzero
 * may need to add fflush(stderr) in some places to help debugging
 * make sure HANDLEs (both fd_t and file/process/thread handles) are being properly closed
+* Maybe use IOCP for disk read//write instead of thread pool

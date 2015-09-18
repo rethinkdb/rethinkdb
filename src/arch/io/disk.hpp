@@ -94,6 +94,8 @@ public:
 
     ~linux_file_t();
 
+    fd_t maybe_get_fd() { return fd.get(); }
+
 private:
     linux_file_t(scoped_fd_t &&fd, int64_t file_size, linux_disk_manager_t *diskmgr);
     friend file_open_result_t open_file(const char *path, int mode,

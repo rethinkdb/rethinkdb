@@ -76,7 +76,7 @@ std::string format_log_message(const log_message_t &m, bool for_console) {
     while (start < static_cast<ssize_t>(message.length()) && message[start] == '\n') {
         ++start;
     }
-    while (end >= 0 && message[end] == '\n') {
+    while (end >= 0 && (message[end] == '\n' || message[end] == '\r')) {
         end--;
     }
     for (int i = start; i <= end; i++) {

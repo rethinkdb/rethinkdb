@@ -71,8 +71,8 @@
         return TLS_ ## name;                                            \
     }                                                                   \
                                                                         \
-	template <class T>													\
-    NOINLINE void TLS_set_ ## name (T&& val) {					        \
+    template <class T>                                                  \
+    NOINLINE void TLS_set_ ## name (T&& val) {                          \
         TLS_ ## name = std::forward<T>(val);                            \
     }
 
@@ -85,8 +85,8 @@
         return TLS_ ## name[get_thread_id().threadnum].value;           \
     }                                                                   \
                                                                         \
-    tempalte <class T>													\
-	void TLS_set_ ## name(T&& val) {									\
+    tempalte <class T>                                                  \
+    void TLS_set_ ## name(T&& val) {                                    \
         TLS_ ## name[get_thread_id().threadnum].value = std::forward<T>(val); \
     }
 

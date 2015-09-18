@@ -8,6 +8,7 @@
 #include <string>
 
 #include "errors.hpp"
+#include "arch/runtime/runtime_utils.hpp"
 
 template <class> class scoped_array_t;
 struct iovec;
@@ -141,6 +142,7 @@ public:
 
     virtual bool coop_lock_and_check() = 0;
 
+    virtual fd_t maybe_get_fd() = 0;
 private:
     DISABLE_COPYING(file_t);
 };

@@ -164,10 +164,7 @@ LONG WINAPI windows_crash_handler(EXCEPTION_POINTERS *exception) {
     std::string message;
     switch (exception->ExceptionRecord->ExceptionCode) {
     case EXCEPTION_BREAKPOINT:
-        // TODO ATN: don't handle breakpoints, otherwise "crashing while already crashed" message will show
-        // return EXCEPTION_EXECUTE_HANDLER;
-        message = "BREAKPOINT: A breakpoint was encountered.";
-        break;
+        return EXCEPTION_EXECUTE_HANDLER;
     case EXCEPTION_ACCESS_VIOLATION:
         message = "ACCESS_VIOLATION: The thread tried to read from or write to a virtual address for which it does not have the appropriate access.";
         break;
@@ -230,7 +227,7 @@ LONG WINAPI windows_crash_handler(EXCEPTION_POINTERS *exception) {
     }
 
     logERR("Windows exception 0x%x: %s", exception->ExceptionRecord->ExceptionCode, message.c_str());
-    logERR("%s", format_backtrace(exception->ContextRecord));
+    logERR("backtrace:\n%s", format_backtrace(exception->ContextRecord).c_str());
 
     // This usually results in process termination
     return EXCEPTION_EXECUTE_HANDLER;

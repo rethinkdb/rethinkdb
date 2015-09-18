@@ -154,7 +154,24 @@ void pool_diskmgr_t::action_t::run() {
     switch (type) {
     case ACTION_RESIZE: {
 #ifdef _WIN32
-		rassert(false, "ATN TODO");
+        LARGE_INTEGER offset_;
+        offset_.QuadPart = offset;
+        DWORD res = SetFilePointer(fd, offset_.LowPart, &offset_.HighPart, FILE_BEGIN);
+        if (res == 0xFFFFFFFF && GetLastError() != ERROR_SUCCESS) {
+            // TODO ATN: convert winerr -> errno
+            logERR("SetFilePointer failed: %s", winerr_string(GetLastError()));
+            io_result = -EIO;
+            return;
+        }
+        // TODO ATN: MSDN comments suggest that SetEndOfFile doesn't work on handles opened for overlapped io
+        BOOL res2 = SetEndOfFile(fd);
+        if (!res2) {
+            // TODO ATN: convert winerr -> errno
+            logERR("SetEndOfFile failed: %s", winerr_string(GetLastError()));
+            io_result = -EIO;
+            return;
+        }
+        io_result = 0;
 #else
         CT_ASSERT(sizeof(off_t) == sizeof(int64_t));
         int res;

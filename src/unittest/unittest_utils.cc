@@ -63,11 +63,18 @@ serializer_filepath_t manual_serializer_filepath(const std::string &permanent_pa
 static const char *const temp_file_create_suffix = ".create";
 
 temp_file_t::temp_file_t() {
-#ifdef _WIN32
-	BREAKPOINT;
+#ifdef _WIN32 // TODO ATN
+    char tmpl[MAX_PATH + 2];
+    BOOL res = GetTempPath(sizeof(tmpl), tmpl);
+    guarantee_winerr(res, "GetTempPath failed");
+    // TODO ATN: buffer overflow
+    strcpy(tmpl + res, "rdb_unittest.XXXXXX");
+    errno_t err = _mktemp_s(tmpl, sizeof(tmpl));
+    guarantee_xerr(err == 0, err, "_mktemp_s failed");
+    filename = tmpl;
 #else
+    char tmpl[] = "/tmp/rdb_unittest.XXXXXX";
     for (;;) {
-        char tmpl[] = "/tmp/rdb_unittest.XXXXXX";
         const int fd = mkstemp(tmpl);
         guarantee_err(fd != -1, "Couldn't create a temporary file");
         close(fd);
