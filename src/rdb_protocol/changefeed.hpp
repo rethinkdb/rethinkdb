@@ -234,7 +234,9 @@ private:
     std::set<diterator,
              std::function<bool(const diterator &, const diterator &)> > index;
 
-    void erase(const diterator &it) {
+    // This can't be passed by reference because we sometimes erase the source
+    // of the reference in the body of this function.
+    void erase(diterator it) {
         guarantee(it != data.end());
         auto ft = index.find(it);
         guarantee(ft != index.end());

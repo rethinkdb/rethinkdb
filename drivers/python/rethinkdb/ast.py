@@ -126,10 +126,9 @@ class RqlQuery(object):
 
     # Compile this query to a json-serializable object
     def build(self):
-        res = [self.tt, [arg.build() for arg in self.args]]
+        res = [self.tt, self.args]
         if len(self.optargs) > 0:
-            res.append(dict((k, v.build())
-                            for k, v in dict_items(self.optargs)))
+            res.append(self.optargs)
         return res
 
     # The following are all operators and methods that operate on
@@ -688,6 +687,20 @@ def recursively_make_hashable(obj):
     return obj
 
 
+class ReQLEncoder(py_json.JSONEncoder):
+    '''
+        Default JSONEncoder subclass to handle query conversion.
+    '''
+    def __init__(self):
+        py_json.JSONEncoder.__init__(self, ensure_ascii=False, allow_nan=False,
+                                     check_circular=False, separators=(',', ':'))
+
+    def default(self, obj):
+        if isinstance(obj, RqlQuery):
+            return obj.build()
+        return py_json.JSONEncoder.default(self, o)
+
+
 class ReQLDecoder(py_json.JSONDecoder):
     '''
         Default JSONDecoder subclass to handle pseudo-type conversion.
@@ -804,11 +817,7 @@ class MakeObj(RqlQuery):
             self.optargs[k] = expr(v)
 
     def build(self):
-        res = {}
-        for k, v in dict_items(self.optargs):
-            k = k.build() if isinstance(k, RqlQuery) else k
-            res[k] = v.build() if isinstance(v, RqlQuery) else v
-        return res
+        return self.optargs
 
     def compose(self, args, optargs):
         return T('r.expr({', T(*[T(repr(k), ': ', v)
