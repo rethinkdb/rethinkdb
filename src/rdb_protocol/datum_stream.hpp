@@ -488,14 +488,14 @@ public:
         std::string table_name,
         read_mode_t read_mode,
         const datum_range_t &range = datum_range_t::universe(),
-        const boost::optional<std::vector<datum_t> > &keys = boost::none,
+        const boost::optional<std::map<datum_t, size_t> > &keys = boost::none,
         sorting_t sorting = sorting_t::UNORDERED);
 
 private:
     primary_readgen_t(const std::map<std::string, wire_func_t> &global_optargs,
                       std::string table_name,
                       const datum_range_t &range,
-                      const boost::optional<std::vector<datum_t> > &keys,
+                      const boost::optional<std::map<datum_t, size_t> > &keys,
                       profile_bool_t profile,
                       read_mode_t read_mode,
                       sorting_t sorting);
@@ -519,8 +519,7 @@ private:
     virtual changefeed::keyspec_t::range_t get_range_spec(
             std::vector<transform_variant_t> transforms) const;
 
-    boost::optional<std::vector<datum_t> > keys; // for `get_range_spec`
-    boost::optional<std::vector<store_key_t> > store_keys;
+    boost::optional<std::map<store_key_t, size_t> > store_keys;
 };
 
 class sindex_readgen_t : public rget_readgen_t {
@@ -531,7 +530,7 @@ public:
         read_mode_t read_mode,
         const std::string &sindex,
         const datum_range_t &range = datum_range_t::universe(),
-        const boost::optional<std::vector<datum_t> > &keys = boost::none,
+        const boost::optional<std::map<datum_t, size_t> > &keys = boost::none,
         sorting_t sorting = sorting_t::UNORDERED);
 
     virtual boost::optional<read_t> sindex_sort_read(
@@ -550,7 +549,7 @@ private:
         std::string table_name,
         const std::string &sindex,
         const datum_range_t &range,
-        const boost::optional<std::vector<datum_t> > &keys,
+        const boost::optional<std::map<datum_t, size_t> > &keys,
         profile_bool_t profile,
         read_mode_t read_mode,
         sorting_t sorting);
@@ -566,7 +565,7 @@ private:
 
     const std::string sindex;
     bool sent_first_read;
-    std::vector<datum_range_t> key_ranges;
+    std::map<datum_range_t, size_t> key_ranges;
 };
 
 // For geospatial intersection queries

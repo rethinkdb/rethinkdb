@@ -87,8 +87,7 @@ counted_t<ql::datum_stream_t> real_table_t::read_all(
         const std::string &sindex,
         ql::backtrace_id_t bt,
         const std::string &table_name,
-        const ql::datum_range_t &range,
-        const boost::optional<std::vector<ql::datum_t> > &keys,
+        const datumspec_t &datumspec,
         sorting_t sorting,
         read_mode_t read_mode) {
     if (sindex == get_pkey()) {
@@ -96,14 +95,14 @@ counted_t<ql::datum_stream_t> real_table_t::read_all(
             make_scoped<ql::rget_reader_t>(
                 counted_t<real_table_t>(this),
                 ql::primary_readgen_t::make(
-                    env, table_name, read_mode, range, keys, sorting)),
+                    env, table_name, read_mode, datumspec, sorting)),
             bt);
     } else {
         return make_counted<ql::lazy_datum_stream_t>(
             make_scoped<ql::rget_reader_t>(
                 counted_t<real_table_t>(this),
                 ql::sindex_readgen_t::make(
-                    env, table_name, read_mode, sindex, range, keys, sorting)),
+                    env, table_name, read_mode, sindex, datumspec, sorting)),
             bt);
     }
 }

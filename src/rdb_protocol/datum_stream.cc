@@ -462,8 +462,7 @@ read_t rget_readgen_t::terminal_read(
 primary_readgen_t::primary_readgen_t(
     const std::map<std::string, wire_func_t> &global_optargs,
     std::string table_name,
-    const ql::datum_range_t &range,
-    const boost::optional<std::vector<ql::datum_t> > &_keys,
+    const datumspec_t &datumspec,
     profile_bool_t _profile,
     read_mode_t _read_mode,
     sorting_t sorting)
@@ -473,30 +472,21 @@ primary_readgen_t::primary_readgen_t(
         range,
         _profile,
         _read_mode,
-        sorting),
-      keys(_keys) {
-    if (static_cast<bool>(keys)) {
-        store_keys = std::vector<store_key_t>{};
-        store_keys->reserve(keys->size());
-        for (const auto &key : keys.get()) {
-            store_keys->push_back(store_key_t(key.print_primary()));
-        }
-    }
+        sorting) {
+    datumspec.fill_in_primary_keys(&store_keys);
 }
 
 scoped_ptr_t<readgen_t> primary_readgen_t::make(
     env_t *env,
     std::string table_name,
     read_mode_t read_mode,
-    const ql::datum_range_t &range,
-    const boost::optional<std::vector<ql::datum_t> > &keys,
+    const datumspec_t &datumspec,
     sorting_t sorting) {
     return scoped_ptr_t<readgen_t>(
         new primary_readgen_t(
             env->get_all_optargs(),
             std::move(table_name),
-            range,
-            keys,
+            datumspec,
             env->profile(),
             read_mode,
             sorting));
@@ -571,29 +561,27 @@ sindex_readgen_t::sindex_readgen_t(
     const std::map<std::string, wire_func_t> &global_optargs,
     std::string table_name,
     const std::string &_sindex,
-    const ql::datum_range_t &range,
-    const boost::optional<std::vector<ql::datum_t> > &keys,
+    const datumspec_t &datumspec,
     profile_bool_t _profile,
     read_mode_t _read_mode,
     sorting_t sorting)
     : rget_readgen_t(
         global_optargs,
         std::move(table_name),
-        range,
+        datumspec.covering_range(),
         _profile,
         _read_mode,
         sorting),
       sindex(_sindex),
       sent_first_read(false) {
-        if (static_cast<bool>(keys)) {
-            key_ranges.reserve(keys->size());
-            for (const auto &key : keys.get()) {
-                key_ranges.push_back(datum_range_t(key));
-            }
-        } else {
-            key_ranges.push_back(range);
+    if (keys) {
+        for (auto &&pair : *keys) {
+            key_ranges[datum_range_t(pair.first)] = pair.second;
         }
+    } else {
+        key_ranges[range] = 1;
     }
+}
 
 scoped_ptr_t<readgen_t> sindex_readgen_t::make(
     env_t *env,
@@ -601,7 +589,7 @@ scoped_ptr_t<readgen_t> sindex_readgen_t::make(
     read_mode_t read_mode,
     const std::string &sindex,
     const ql::datum_range_t &range,
-    const boost::optional<std::vector<ql::datum_t> > &keys,
+    const boost::optional<std::map<datum_t, size_t> > &keys,
     sorting_t sorting) {
     return scoped_ptr_t<readgen_t>(
         new sindex_readgen_t(

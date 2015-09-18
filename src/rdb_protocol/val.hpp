@@ -39,8 +39,7 @@ public:
     datum_t get_row(env_t *env, datum_t pval);
     counted_t<datum_stream_t> get_all(
             env_t *env,
-            const datum_range_t &range,
-            const boost::optional<std::vector<ql::datum_t> > &keys,
+            const datumspec_t &datumspec,
             const std::string &sindex_id,
             backtrace_id_t bt);
     counted_t<datum_stream_t> get_intersecting(

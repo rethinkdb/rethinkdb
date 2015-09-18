@@ -7,8 +7,7 @@
 
 bool artificial_table_backend_t::read_all_rows_as_stream(
         ql::backtrace_id_t bt,
-        const ql::datum_range_t &range,
-        const boost::optional<std::vector<ql::datum_t> > &keys,
+        const datumspec_t &datumspec,
         sorting_t sorting,
         signal_t *interruptor,
         counted_t<ql::datum_stream_t> *rows_out,
@@ -22,21 +21,15 @@ bool artificial_table_backend_t::read_all_rows_as_stream(
     std::string primary_key = get_primary_key_name();
 
     /* Apply range filter */
-    if (!range.is_universe() || static_cast<bool>(keys)) {
+    if (!datumspec.is_universe()) {
         std::vector<ql::datum_t> filter_rows;
-        filter_rows.reserve(rows.size());
-        for (const ql::datum_t &row : rows) {
+        for (ql::datum_t &&row : rows) {
             ql::datum_t key = row.get_field(primary_key.c_str(), ql::NOTHROW);
             guarantee(key.has());
-            if (static_cast<bool>(keys)) {
-                if (std::find(keys->begin(), keys->end(), key) != keys->end()) {
-                    filter_rows.push_back(row);
-                }
-            } else if (range.contains(key)) {
-                filter_rows.push_back(row);
+            for (size_t i = 0; i < datumspec.copies(key); ++i) {
+                filter_rows.push_back(std::move(row));
             }
         }
-        rows = std::move(filter_rows);
     }
 
     /* Apply sorting */
@@ -61,14 +54,7 @@ bool artificial_table_backend_t::read_all_rows_as_stream(
 
     ql::changefeed::keyspec_t::range_t range_keyspec;
     range_keyspec.sorting = sorting;
-    if (static_cast<bool>(keys)) {
-        range_keyspec.ranges.reserve(keys->size());
-        for (const auto &key : keys.get()) {
-            range_keyspec.ranges.push_back(ql::datum_range_t(key));
-        }
-    } else {
-        range_keyspec.ranges.push_back(range);
-    }
+    range_keyspec.datumspec = datumspec;
     boost::optional<ql::changefeed::keyspec_t> keyspec(ql::changefeed::keyspec_t(
         std::move(range_keyspec),
         counted_t<base_table_t>(new artificial_table_t(this)),

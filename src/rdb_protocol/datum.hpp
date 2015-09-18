@@ -13,6 +13,7 @@
 
 #include "errors.hpp"
 #include <boost/optional.hpp>
+#include <boost/variant.hpp>
 
 #include "btree/keys.hpp"
 #include "cjson/json.hpp"
@@ -472,6 +473,78 @@ private:
     friend class info_term_t;
     datum_t left_bound, right_bound;
     key_range_t::bound_t left_bound_type, right_bound_type;
+};
+
+template<class T>
+class ds_helper_t : public boost::static_visitor<T> {
+public:
+    ds_helper_t(std::function<T(const datum_range_t &)> _f1,
+                std::function<T(const std::map<datum_t, size_t> &)> _f2)
+        : f1(_f1), f2(_f2) { }
+    T operator()(const datum_range_t &dr) const { return f1(dr); }
+    T operator()(const std::map<datum_t, size_t> &m) const { return f2(m); }
+private:
+    std::function<T(const datum_range_t &)> f1;
+    std::function<T(const std::map<datum_t, size_t> &)> f2;
+};
+
+struct datumspec_t {
+public:
+    template<class T>
+    explicit datumspec_t(T t) : spec(std::move(t)) { }
+
+    // Only use this for serialization!
+    datumspec_t() { }
+
+    bool is_universe() {
+        return boost::apply_visitor(
+            ds_helper_t<bool>(
+                [](const datum_range_t &dr) { return dr.is_universe(); },
+                [](const std::map<datum_t, size_t> &) { return false; }),
+            spec);
+    }
+    // Try to only call this once since it does work to compute it.
+    datum_range_t covering_range() {
+        return boost::apply_visitor(
+            ds_helper_t<datum_range_t>(
+                [](const datum_range_t &dr) { return dr; },
+                [](const std::map<datum_t, size_t> &m) {
+                    datum_t min = datum_t::maxval(), max = datum_t::minval();
+                    for (const auto &pair : m) {
+                        if (pair.first < min) min = pair.first;
+                        if (pair.first > max) max = pair.first;
+                    }
+                    return datum_range_t(min, key_range_t::closed,
+                                         max, key_range_t::closed);
+                }),
+            spec);
+    }
+    size_t copies(datum_t key) {
+        return boost::apply_visitor(
+            ds_helper_t<size_t>(
+                [&key](const datum_range_t &dr) { return dr.contains(key) ? 1 : 0; },
+                [&key](const std::map<datum_t, size_t> &m) {
+                    auto it = m.find(key);
+                    return it != m.end() ? it->second : 0;
+                }),
+            spec);
+    }
+    void fill_in_primary_keys(boost::optional<std::map<store_key_t, size_t> > *out) {
+        return boost::apply_visitor(
+            ds_helper_t<void>(
+                [](const datum_range_t &) { },
+                [out](const std::map<datum_t, size_t> &m) {
+                    *out = std::map<store_key_t, size_t>;
+                    for (const auto &pair : m) {
+                        (*out)[store_key_t(pair.first.print_primary())] = pair.second;
+                    }
+                }),
+            spec);
+    }
+
+    RDB_DECLARE_ME_SERIALIZABLE(datumspec_t);
+private:
+    boost::variant<datum_range_t, std::map<datum_t, size_t> > spec;
 };
 
 datum_t to_datum(const Datum *d, const configured_limits_t &, reql_version_t);

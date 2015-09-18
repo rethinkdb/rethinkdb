@@ -750,17 +750,17 @@ private:
         scoped_ptr_t<val_t> index = args->optarg(env, "index");
         std::string index_str = index ? index->as_str().to_std() : table->get_pkey();
 
-        std::vector<datum_t> keys;
-        keys.reserve(args->num_args() - 1);
+        std::map<datum_t, size_t> keys;
         for (size_t i = 1; i < args->num_args(); ++i) {
-            keys.push_back(get_key_arg(args->arg(env, i)));
+            auto key = get_key_arg(args->arg(env, i));
+            keys.insert(std::make_pair(std::move(key), 0)).first->second += 1;
         }
 
-        auto pair = std::minmax_element(keys.begin(), keys.end());
+        guarantee(keys.size() > 0);
         datum_range_t range(
-            *pair.first,
+            keys.begin()->first,
             key_range_t::closed,
-            *pair.second,
+            keys.rbegin()->first,
             key_range_t::closed);
 
         return new_val(make_counted<selection_t>(

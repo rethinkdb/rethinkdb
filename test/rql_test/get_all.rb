@@ -66,6 +66,7 @@ indexes.each {|index|
   puts "-- Setting up hard table..."
   r.table('test').delete.run(runopts)
   # RSI: multi
+  # RSI: oversharing
   input = (0...1000).map {|i|
     {
       id: -i,

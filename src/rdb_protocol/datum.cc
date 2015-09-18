@@ -16,6 +16,7 @@
 
 #include "arch/runtime/coroutines.hpp"
 #include "cjson/json.hpp"
+#include "containers/archive/boost_types.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "containers/scoped.hpp"
 #include "rapidjson/prettywriter.h"
@@ -2287,5 +2288,8 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(key_range_t::bound_t, int8_t,
 RDB_IMPL_SERIALIZABLE_4(
         datum_range_t, left_bound, right_bound, left_bound_type, right_bound_type);
 INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(datum_range_t);
+
+RDB_IMPL_SERIALIZABLE_1(datumspec_t, spec);
+INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(datumspec_t);
 
 } // namespace ql
