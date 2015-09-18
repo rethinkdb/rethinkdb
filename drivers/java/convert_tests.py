@@ -6,31 +6,22 @@ from __future__ import print_function
 import sys
 import os
 import os.path
+import re
 import time
 import ast
 import yaml
 import argparse
 import metajava
+import process_polyglot
+from process_polyglot import Unhandled, Skip, SkippedTest
 try:
     from cStringIO import StringIO
 except ImportError:
     from io import StringIO
 from collections import namedtuple
 
-
-def main():
-    start = time.clock()
-    args = parse_args()
-    renderer = metajava.Renderer(
-        args.template_dir, invoking_filename=__file__)
-    for testfile in all_yaml_tests(args.test_dir):
-        TestFile(
-            test_dir=args.test_dir,
-            filename=testfile,
-            test_output_dir=args.test_output_dir,
-            renderer=renderer,
-        ).load().render()
-    print("Finished in", time.clock() - start, "seconds")
+# Supplied by import_python_driver
+r = None
 
 
 TEST_EXCLUSIONS = [
@@ -43,6 +34,30 @@ TEST_EXCLUSIONS = [
     # arity checked at compile time
     'arity',
 ]
+
+
+def main():
+    start = time.clock()
+    args = parse_args()
+    global r
+    r = import_python_driver(args.test_common_dir)
+    renderer = metajava.Renderer(
+        args.template_dir,
+        invoking_filenames=[
+            __file__,
+            process_polyglot.__file__,
+        ])
+    for testfile in process_polyglot.all_yaml_tests(
+            args.test_dir,
+            TEST_EXCLUSIONS):
+        print("Working on", testfile)
+        TestFile(
+            test_dir=args.test_dir,
+            filename=testfile,
+            test_output_dir=args.test_output_dir,
+            renderer=renderer,
+        ).load().render()
+    print("Finished in", time.clock() - start, "seconds")
 
 
 def parse_args():
@@ -63,42 +78,22 @@ def parse_args():
         help="Where to find test generation templates",
         default="./templates",
     )
+    parser.add_argument(
+        "--test-common-dir",
+        help="Where the common test modules are located",
+        default="../../test/common"
+    )
     return parser.parse_args()
 
 
-def all_yaml_tests(test_dir):
-    '''Generator for the full paths of all non-excluded yaml tests'''
-    for root, dirs, files in os.walk(test_dir):
-        for f in files:
-            path = os.path.relpath(os.path.join(root, f), test_dir)
-            parts = path.split('.')
-            if parts[-1] == 'yaml' and parts[0] not in TEST_EXCLUSIONS:
-                yield path
+def import_python_driver(common_dir):
+    '''Imports the test driver header'''
+    stashed_path = sys.path
+    sys.path.insert(0, os.path.realpath(common_dir))
+    import utils
+    sys.path = stashed_path
+    return utils.import_python_driver()
 
-
-class Unhandled(Exception):
-    '''Used when a corner case is hit that probably should be handled
-    if a test actually hits it'''
-    pass
-
-
-class Skip(Exception):
-    '''Used when skipping a test for whatever reason'''
-    pass
-
-
-Query = namedtuple(
-    'Query',
-    ('query_ast',
-     'query_line',
-     'expected_ast',
-     'expected_line',
-     'testfile',
-     'test_num',
-     'runopts')
-)
-Def = namedtuple('Def', 'ast line testfile test_num')
-SkippedTest = namedtuple('SkippedTest', 'line reason')
 JavaQuery = namedtuple(
     'JavaQuery',
     ('original_line',
@@ -132,12 +127,23 @@ class TestFile(object):
         with open(self.full_path) as f:
             parsed_yaml = yaml.load(f)
         self.description = parsed_yaml.get('desc', 'No description')
-        self.table_var_names = set(
-            parsed_yaml.get('table_variable_name', '').split())
+        self.table_var_names = self.get_varnames(parsed_yaml)
         self.reql_vars.update(self.table_var_names)
         self.raw_test_data = parsed_yaml['tests']
-        self.test_generator = tests_and_defs(self.filename, self.raw_test_data)
+        self.test_generator = process_polyglot.tests_and_defs(
+            self.filename,
+            self.raw_test_data,
+            process_polyglot.create_context(r, self.table_var_names)
+        )
         return self
+
+    def get_varnames(self, yaml_file):
+        '''Extract table variable names from yaml variable
+        They can be specified just space separated, or comma separated'''
+        raw_var_names = yaml_file.get('table_variable_name', '')
+        if not raw_var_names:
+            return set()
+        return set(re.split(r'[, ]+', raw_var_names))
 
     def render(self):
         '''Renders the converted tests to a runnable test file'''
@@ -159,17 +165,13 @@ def ast_to_java(sequence, reql_vars):
     '''Converts the the parsed test data to java source lines using the
     visitor classes'''
     reql_vars = set(reql_vars)
-    total = 0
-    skipped = 0
     for item in sequence:
-        total += 1
-        if isinstance(item, Def):
+        if isinstance(item, process_polyglot.Def):
             if is_reql(item.ast.value, reql_vars):
                 reql_vars.add(item.ast.targets[0].id)
             try:
                 java_line = ValueVisitor(reql_vars).convert(item.ast)
             except Skip as skip:
-                skipped += 1
                 yield SkippedTest(line=item.line, reason=str(skip))
                 continue
             yield JavaDef(
@@ -178,7 +180,7 @@ def ast_to_java(sequence, reql_vars):
                 testfile=item.testfile,
                 test_num=item.test_num,
             )
-        elif isinstance(item, Query):
+        elif isinstance(item, process_polyglot.Query):
             if item.runopts is not None:
                 converted_runopts = {
                     key: JavaVisitor(reql_vars).convert(val)
@@ -188,9 +190,9 @@ def ast_to_java(sequence, reql_vars):
                 converted_runopts = item.runopts
             try:
                 java_line = ReQLVisitor(reql_vars).convert(item.query_ast)
-                java_expected_line = JavaVisitor().convert(item.expected_ast)
+                java_expected_line = ValueVisitor(item.expected_line)\
+                    .convert(item.expected_ast)
             except Skip as skip:
-                skipped += 1
                 yield SkippedTest(line=item.query_line, reason=str(skip))
                 continue
             yield JavaQuery(
@@ -203,133 +205,9 @@ def ast_to_java(sequence, reql_vars):
                 runopts=converted_runopts,
             )
         elif isinstance(item, SkippedTest):
-            skipped += 1
             yield item
         else:
             assert False, "shouldn't happen"
-    #print("  skipped", skipped, "out of", total, "tests")
-
-
-def tests_and_defs(testfile, raw_test_data):
-    '''Generator of parsed python tests and definitions.'''
-
-    def flexiget(obj, keys, default):
-        '''Like dict.get, but accepts an array of keys, and still
-        returns the default if obj isn't a dictionary'''
-        if not isinstance(obj, dict):
-            return default
-        for key in keys:
-            if key in obj:
-                return obj[key]
-        return default
-
-    def get_python_entry(test):
-        '''Extract the 'ot' or expected result of the test. We
-        want the python specific version if it's available, so we
-        have to poke around a bit'''
-        if 'ot' in test:
-            ret = flexiget(test['ot'], ['py', 'cd'], test['ot'])
-        elif isinstance(test.get('py'), dict) and 'ot' in test['py']:
-            ret = test['py']['ot']
-        else:
-            # This is distinct from the 'ot' field having the
-            # value None in it!
-            return None
-        return py_str(ret)
-
-    def py_str(py):
-        '''Turns a python value into a string of python code
-        representing that object'''
-        def maybe_str(s):
-            return s if isinstance(s, str) and '(' in s else repr(s)
-
-        if type(py) is dict:
-            return '{' + ', '.join(
-                [repr(k) + ': ' + maybe_str(py[k]) for k in py]) + '}'
-        if not isinstance(py, "".__class__):
-            return repr(py)
-        else:
-            return py
-
-    for test_num, test in enumerate(raw_test_data, 1):
-        runopts = test.get('runopts')
-        if runopts is not None:
-            runopts = {key: ast.parse(py_str(val), mode="eval").body
-                       for key, val in runopts.items()}
-        if 'def' in test:
-            # We want to yield the definition before the test itself
-            define = flexiget(test['def'], ['py', 'cd'], test['def'])
-            # for some reason, sometimes def is just None
-            if define and type(define) is not dict:
-                # if define is a dict, it doesn't have a py key
-                # since we already checked
-                define_line = py_str(define)
-                parsed_define = ast.parse(
-                    py_str(define), mode="single").body[0]
-                yield Def(
-                    line=define_line,
-                    ast=parsed_define,
-                    testfile=testfile,
-                    test_num=test_num,
-                )
-        pytest = flexiget(test, ['py', 'cd'], None)
-        if pytest is None:
-            line = flexiget(test, ['rb', 'js'], u'¯\_(ツ)_/¯')
-            yield SkippedTest(line=line, reason='No python or generic test')
-            continue
-
-        expected = py_str(get_python_entry(test))  # ot field
-        try:
-            expected_ast = ast.parse(expected, mode="eval").body
-        except Exception:
-            print("In", testfile, test_num)
-            print("Error translating: ", expected)
-            raise
-        if isinstance(pytest, "".__class__):
-            parsed = ast.parse(pytest, mode="single").body[0]
-            if type(parsed) == ast.Expr:
-                yield Query(
-                    query_ast=parsed.value,
-                    query_line=pytest,
-                    expected_line=expected,
-                    expected_ast=expected_ast,
-                    runopts=runopts,
-                    testfile=testfile,
-                    test_num=test_num,
-                )
-            elif type(parsed) == ast.Assign:
-                yield Def(
-                    ast=parsed,
-                    line=pytest,
-                    testfile=testfile,
-                    test_num=test_num,
-                )
-        elif type(pytest) is dict and 'cd' in pytest:
-            pytestline = py_str(pytest['cd'])
-            parsed = ast.parse(pytestline, mode="eval").body
-            yield Query(
-                query_ast=parsed,
-                query_line=pytestline,
-                expected_ast=expected_ast,
-                expected_line=expected,
-                runopts=runopts,
-                testfile=testfile,
-                test_num=test_num,
-            )
-        else:
-            # unroll subtests
-            for subtest in pytest:
-                subtestline = py_str(subtest)
-                parsed = ast.parse(subtestline, mode="eval").body
-                yield Query(
-                    query_ast=parsed,
-                    query_line=subtestline,
-                    expected_ast=expected_ast,
-                    expected_line=expected,
-                    runopts=runopts,
-                    testfile=testfile,
-                    test_num=test_num,
-                )
 
 
 def is_reql(node, reql_vars):
@@ -490,7 +368,9 @@ class JavaVisitor(ast.NodeVisitor):
 
     def visit_Subscript(self, node):
         if node.slice is None or type(node.slice.value) != ast.Num:
-            raise Unhandled("Only integers subscript can be converted")
+            print("While doing:", ast.dump(node))
+            raise Unhandled("Only integers subscript can be converted."
+                            " Got %s" % node.slice.value.s)
         self.write("[")
         self.visit(node.slice.value)
         self.write("]")
@@ -653,22 +533,43 @@ class ReQLVisitor(JavaVisitor):
            initial in metajava.java_term_info.OBJECT_METHODS:
             self.write('_')
 
+Bag = namedtuple("Bag", "value")
+Err = namedtuple("Err", "exception message")
+Partial = namedtuple("Partial", "value")
+Uuid = namedtuple("Uuid", "value")
+Arrlen = namedtuple("Arrlen", "array")
+Repeat = namedtuple("Repeat", "rpt")
+
 
 class ValueVisitor(JavaVisitor):
     '''Used to find calls to the built in test methods.'''
 
     BIFS = {
-        'bag', 'partial', 'fetch', 'wait', 'uuid', 'err', 'err_regex',
-        'define', 'arrlen', 'err_regex', 'int_cmp', 'float_cmp', 'the_end',
-        'eq', 'test', 'setup_table', 'setup_table_check'
+        "bag": Bag,
+        "err": Err,
+        "partial": Partial,
+        "uuid": Uuid,
+        "arrlen": Arrlen,
+        "repeat": Repeat
     }
 
     def visit_Call(self, node):
         if type(node.func) != ast.Name or node.func.id not in self.BIFS:
-            return super(ValueVisitor, self).visit_Call(node)
-
-        if node.func.id == 'bag':
-            pass
+            super(ValueVisitor, self).visit_Call(node)
+        else:
+            self.write(node.func.id)
+            self.write("(")
+            first = True
+            for arg in node.args:
+                if first:
+                    first = False
+                else:
+                    self.write(", ")
+                if is_reql(arg, self.reql_vars):
+                    self.write(ReQLVisitor().convert(arg))
+                else:
+                    self.write(JavaVisitor().convert(arg))
+            self.write(")")
 
 
 if __name__ == '__main__':
