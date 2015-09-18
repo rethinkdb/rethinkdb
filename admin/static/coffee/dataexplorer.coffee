@@ -76,7 +76,7 @@ class QueryResult
                 @results = []
                 @results_offset = 0
                 @cursor = value
-                @is_feed = @cursor.toString() in ['[object Feed]', '[object AtomFeed]']
+                @is_feed = @cursor.toString().match(/\[object .*Feed\]/)
                 @missing = 0
                 @ended = false
                 @server_duration = null  # ignore server time if batched response
