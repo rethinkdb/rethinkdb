@@ -72,7 +72,7 @@ public:
         const std::string &sindex,
         ql::backtrace_id_t bt,
         const std::string &table_name, // The table's own name, for display purposes.
-        const datumspec_t &datumspec,
+        const ql::datumspec_t &datumspec,
         sorting_t sorting,
         read_mode_t read_mode);
     counted_t<ql::datum_stream_t> read_changes(

@@ -452,7 +452,7 @@ public:
     explicit rget_readgen_t(
         const std::map<std::string, wire_func_t> &global_optargs,
         std::string table_name,
-        const datum_range_t &range,
+        const datumspec_t &datumspec,
         profile_bool_t profile,
         read_mode_t read_mode,
         sorting_t sorting);
@@ -478,7 +478,7 @@ private:
         const batchspec_t &batchspec) const = 0;
 
 protected:
-    datum_range_t range;
+    datumspec_t datumspec;
 };
 
 class primary_readgen_t : public rget_readgen_t {
@@ -487,15 +487,13 @@ public:
         env_t *env,
         std::string table_name,
         read_mode_t read_mode,
-        const datum_range_t &range = datum_range_t::universe(),
-        const boost::optional<std::map<datum_t, size_t> > &keys = boost::none,
+        const datumspec_t &datumspec = datumspec_t(datum_range_t::universe()),
         sorting_t sorting = sorting_t::UNORDERED);
 
 private:
     primary_readgen_t(const std::map<std::string, wire_func_t> &global_optargs,
                       std::string table_name,
-                      const datum_range_t &range,
-                      const boost::optional<std::map<datum_t, size_t> > &keys,
+                      const datumspec_t &datumspec,
                       profile_bool_t profile,
                       read_mode_t read_mode,
                       sorting_t sorting);
@@ -529,8 +527,7 @@ public:
         std::string table_name,
         read_mode_t read_mode,
         const std::string &sindex,
-        const datum_range_t &range = datum_range_t::universe(),
-        const boost::optional<std::map<datum_t, size_t> > &keys = boost::none,
+        const datumspec_t &datumspec = datumspec_t(datum_range_t::universe()),
         sorting_t sorting = sorting_t::UNORDERED);
 
     virtual boost::optional<read_t> sindex_sort_read(
@@ -548,8 +545,7 @@ private:
         const std::map<std::string, wire_func_t> &global_optargs,
         std::string table_name,
         const std::string &sindex,
-        const datum_range_t &range,
-        const boost::optional<std::map<datum_t, size_t> > &keys,
+        const datumspec_t &datumspec,
         profile_bool_t profile,
         read_mode_t read_mode,
         sorting_t sorting);
@@ -565,7 +561,7 @@ private:
 
     const std::string sindex;
     bool sent_first_read;
-    std::map<datum_range_t, size_t> key_ranges;
+    std::map<datum_range_t, size_t> datum_ranges;
 };
 
 // For geospatial intersection queries

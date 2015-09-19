@@ -2168,13 +2168,38 @@ datum_range_t datum_range_t::universe() {
                          datum_t::maxval(), key_range_t::open);
 }
 
+bool bound_lt(key_range_t::bound_t a_bound, const datum_t &a,
+              key_range_t::bound_t b_bound, const datum_t &b) {
+    if (a < b) return true;
+    if (a > b) return false;
+    guarantee(a_bound != key_range_t::none);
+    guarantee(b_bound != key_range_t::none);
+    if (a_bound == key_range_t::closed && b_bound == key_range_t::open) return true;
+    return false;
+}
+
+bool operator<(const datum_range_t &o) const {
+    if (bound_lt(left_bound_type, left_bound, o.left_bound_type, o.left_bound)) {
+        return true;
+    }
+    if (bound_lt(o.left_bound_type, o.left_bound, left_bound_type, left_bound)) {
+        return false;
+    }
+    if (bound_lt(right_bound_type, right_bound, o.right_bound_type, o.right_bound)) {
+        return true;
+    }
+    return false;
+}
+
 bool datum_range_t::contains(datum_t val) const {
     r_sanity_check(left_bound.has() && right_bound.has());
 
     int left_cmp = left_bound.cmp(val);
     int right_cmp = right_bound.cmp(val);
-    return (left_cmp < 0 || (left_cmp == 0 && left_bound_type == key_range_t::closed)) &&
-           (right_cmp > 0 || (right_cmp == 0 && right_bound_type == key_range_t::closed));
+    return (left_cmp < 0
+            || (left_cmp == 0 && left_bound_type == key_range_t::closed)) &&
+           (right_cmp > 0
+            || (right_cmp == 0 && right_bound_type == key_range_t::closed));
 }
 
 bool datum_range_t::is_empty() const {

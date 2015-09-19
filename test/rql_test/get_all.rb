@@ -55,7 +55,7 @@ indexes.each {|index|
   raise "Short get_all failed." if res.to_a.count != 6
   res = r.table('test').get_all(10, 20, -1, 3, 3, 4, 3, index: 'a').run(runopts)
   raise "Short indexed get_all failed." if res.to_a.count != 6
-  keys = (0...100).map{|i| (i - 10)*2}*2
+  keys = ((0...100).map{|i| (i - 10)*2}*2).reverse
   res = r.table('test').get_all(*keys).run(runopts)
   raise "Long get_all failed." if res.to_a.count != 180
   res = r.table('test').get_all(*keys, index: 'a').run(runopts)

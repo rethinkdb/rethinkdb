@@ -265,15 +265,16 @@ struct sindex_rangespec_t {
                        // sometimes smaller than the datum range below when
                        // dealing with truncated keys.
                        boost::optional<region_t> &&_region,
-                       const std::vector<ql::datum_range_t> &_original_ranges)
-        : id(_id), region(std::move(_region)), original_ranges(_original_ranges) {
-        r_sanity_check(original_ranges.size() != 0);
+                       const std::map<ql::datum_range_t, size_t> &_ranges)
+        : id(_id), region(std::move(_region)), ranges(_ranges) {
+        r_sanity_check(ranges.size() > 0);
     }
     std::string id; // What sindex we're using.
     // What keyspace we're currently operating on.  If empty, assume the
     // original range and create the readgen on the shards.
     boost::optional<region_t> region;
-    std::vector<ql::datum_range_t> original_ranges; // For dealing with truncation.
+    // For dealing with truncation and `get_all`.
+    std::map<ql::datum_range_t, size_t> ranges;
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(sindex_rangespec_t);
 
@@ -292,7 +293,7 @@ public:
 
     rget_read_t(boost::optional<changefeed_stamp_t> &&_stamp,
                 region_t _region,
-                boost::optional<std::vector<store_key_t> > _primary_keys,
+                boost::optional<std::map<store_key_t, size_t> > _primary_keys,
                 std::map<std::string, ql::wire_func_t> _optargs,
                 std::string _table_name,
                 ql::batchspec_t _batchspec,
@@ -314,7 +315,7 @@ public:
     boost::optional<changefeed_stamp_t> stamp;
 
     region_t region; // We need this even for sindex reads due to sharding.
-    boost::optional<std::vector<store_key_t> > primary_keys;
+    boost::optional<std::map<store_key_t, size_t> > primary_keys;
 
     std::map<std::string, ql::wire_func_t> optargs;
     std::string table_name;

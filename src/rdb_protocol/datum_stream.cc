@@ -17,9 +17,7 @@ namespace ql {
 
 bool changespec_t::include_initial_vals() {
     if (auto *range = boost::get<changefeed::keyspec_t::range_t>(&keyspec.spec)) {
-        if (range->ranges.size() != 1 || range->ranges[0].is_universe()) {
-            return false;
-        }
+        return !range->datumspec.is_universe();
     }
     return true;
 }
@@ -420,12 +418,12 @@ bool readgen_t::update_range(key_range_t *active_range,
 rget_readgen_t::rget_readgen_t(
     const std::map<std::string, wire_func_t> &_global_optargs,
     std::string _table_name,
-    const datum_range_t &_range,
+    const datumspec_t &_datumspec,
     profile_bool_t _profile,
     read_mode_t _read_mode,
     sorting_t _sorting)
     : readgen_t(_global_optargs, std::move(_table_name), _profile, _read_mode, _sorting),
-      range(_range) { }
+      datumspec(_datumspec) { }
 
 read_t rget_readgen_t::next_read(
     const boost::optional<key_range_t> &active_range,
@@ -469,7 +467,7 @@ primary_readgen_t::primary_readgen_t(
     : rget_readgen_t(
         global_optargs,
         std::move(table_name),
-        range,
+        datumspec,
         _profile,
         _read_mode,
         sorting) {
@@ -527,7 +525,7 @@ void primary_readgen_t::sindex_sort(UNUSED std::vector<rget_item_t> *vec) const 
 }
 
 boost::optional<key_range_t> primary_readgen_t::original_keyrange() const {
-    return range.to_primary_keyrange();
+    return datumspec.covering_range().to_primary_keyrange();
 }
 
 key_range_t primary_readgen_t::sindex_keyrange(skey_version_t) const {
@@ -540,21 +538,11 @@ boost::optional<std::string> primary_readgen_t::sindex_name() const {
 
 changefeed::keyspec_t::range_t primary_readgen_t::get_range_spec(
         std::vector<transform_variant_t> transforms) const {
-    if (static_cast<bool>(keys)) {
-        std::vector<datum_range_t> key_ranges;
-        key_ranges.reserve(keys->size());
-        for (const auto &key : keys.get()) {
-            key_ranges.push_back(datum_range_t(key));
-        }
-        return changefeed::keyspec_t::range_t{
-            std::move(transforms), sindex_name(), sorting, std::move(key_ranges)};
-    } else {
-        return changefeed::keyspec_t::range_t{
-            std::move(transforms),
-            sindex_name(),
-            sorting,
-            std::vector<datum_range_t>{range}};
-    }
+    return changefeed::keyspec_t::range_t{
+        std::move(transforms),
+        sindex_name(),
+        sorting,
+        datumspec};
 }
 
 sindex_readgen_t::sindex_readgen_t(
@@ -568,19 +556,13 @@ sindex_readgen_t::sindex_readgen_t(
     : rget_readgen_t(
         global_optargs,
         std::move(table_name),
-        datumspec.covering_range(),
+        datumspec,
         _profile,
         _read_mode,
         sorting),
       sindex(_sindex),
       sent_first_read(false) {
-    if (keys) {
-        for (auto &&pair : *keys) {
-            key_ranges[datum_range_t(pair.first)] = pair.second;
-        }
-    } else {
-        key_ranges[range] = 1;
-    }
+    datumspec.fill_in_sindex_datum_ranges(&datum_ranges);
 }
 
 scoped_ptr_t<readgen_t> sindex_readgen_t::make(
@@ -588,16 +570,14 @@ scoped_ptr_t<readgen_t> sindex_readgen_t::make(
     std::string table_name,
     read_mode_t read_mode,
     const std::string &sindex,
-    const ql::datum_range_t &range,
-    const boost::optional<std::map<datum_t, size_t> > &keys,
+    const datumspec_t &datumspec,
     sorting_t sorting) {
     return scoped_ptr_t<readgen_t>(
         new sindex_readgen_t(
             env->get_all_optargs(),
             std::move(table_name),
             sindex,
-            range,
-            keys,
+            datumspec,
             env->profile(),
             read_mode,
             sorting));
@@ -647,13 +627,13 @@ rget_read_t sindex_readgen_t::next_read_impl(
     const batchspec_t &batchspec) const {
 
     boost::optional<region_t> region;
-    std::vector<datum_range_t> active_ranges;
+    std::map<datum_range_t, size_t> active_ranges;
     if (active_range) {
         region = region_t(*active_range);
         r_sanity_check(skey_version);
-        for (auto &&kr : key_ranges) {
-            if (active_range->overlaps(kr.to_sindex_keyrange(*skey_version))) {
-                active_ranges.push_back(kr);
+        for (const auto &pair : datum_ranges) {
+            if (active_range->overlaps(pair.first.to_sindex_keyrange(*skey_version))) {
+                active_ranges.insert(pair);
             }
         }
         // Otherwise `active_range` should be empty and we should never have
@@ -661,7 +641,7 @@ rget_read_t sindex_readgen_t::next_read_impl(
         // covering range of the key ranges).
         r_sanity_check(active_ranges.size() >= 1);
     } else {
-        active_ranges = key_ranges;
+        active_ranges = datum_ranges;
         // We should send at most one read before we're able to calculate the
         // active range.
         r_sanity_check(!sent_first_read);
@@ -733,7 +713,8 @@ boost::optional<read_t> sindex_readgen_t::sindex_sort_read(
                         sindex_rangespec_t(
                             sindex,
                             region_t(key_range_t(rng)),
-                            std::vector<datum_range_t>{range}),
+                            std::map<datum_range_t, size_t>{{
+                                    datumspec.covering_range(), 1}}),
                         sorting),
                     profile,
                     read_mode);
@@ -748,7 +729,7 @@ boost::optional<key_range_t> sindex_readgen_t::original_keyrange() const {
 }
 
 key_range_t sindex_readgen_t::sindex_keyrange(skey_version_t skey_version) const {
-    return range.to_sindex_keyrange(skey_version);
+    return datumspec.covering_range().to_sindex_keyrange(skey_version);
 }
 
 boost::optional<std::string> sindex_readgen_t::sindex_name() const {
@@ -758,7 +739,7 @@ boost::optional<std::string> sindex_readgen_t::sindex_name() const {
 changefeed::keyspec_t::range_t sindex_readgen_t::get_range_spec(
         std::vector<transform_variant_t> transforms) const {
     return changefeed::keyspec_t::range_t{
-        std::move(transforms), sindex_name(), sorting, key_ranges};
+        std::move(transforms), sindex_name(), sorting, datumspec};
 }
 
 intersecting_readgen_t::intersecting_readgen_t(
@@ -839,7 +820,7 @@ intersecting_geo_read_t intersecting_readgen_t::next_read_impl(
         sindex_rangespec_t(
             sindex,
             region_t(*active_range),
-            std::vector<datum_range_t>{datum_range_t::universe()}),
+            std::map<datum_range_t, size_t>{{datum_range_t::universe(), 1}}),
         query_geometry);
 }
 

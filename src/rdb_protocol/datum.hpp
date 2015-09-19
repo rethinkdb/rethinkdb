@@ -448,6 +448,8 @@ public:
     explicit datum_range_t(datum_t val);
     static datum_range_t universe();
 
+    bool operator<(const datum_range_t &o) const;
+
     bool contains(datum_t val) const;
     bool is_empty() const;
     bool is_universe() const;
@@ -480,7 +482,7 @@ class ds_helper_t : public boost::static_visitor<T> {
 public:
     ds_helper_t(std::function<T(const datum_range_t &)> _f1,
                 std::function<T(const std::map<datum_t, size_t> &)> _f2)
-        : f1(_f1), f2(_f2) { }
+        : f1(std::move(_f1)), f2(std::move(_f2)) { }
     T operator()(const datum_range_t &dr) const { return f1(dr); }
     T operator()(const std::map<datum_t, size_t> &m) const { return f2(m); }
 private:
@@ -496,7 +498,14 @@ public:
     // Only use this for serialization!
     datumspec_t() { }
 
-    bool is_universe() {
+    template<class T>
+    T visit(std::function<T(const datum_range_t &)> f1,
+            std::function<T(const std::map<datum_t, size_t> &)> f2) const {
+        return boost::apply_visitor(ds_helper_t<T>(std::move(f1), std::move(f2)), spec);
+    }
+
+
+    bool is_universe() const {
         return boost::apply_visitor(
             ds_helper_t<bool>(
                 [](const datum_range_t &dr) { return dr.is_universe(); },
@@ -504,7 +513,7 @@ public:
             spec);
     }
     // Try to only call this once since it does work to compute it.
-    datum_range_t covering_range() {
+    datum_range_t covering_range() const {
         return boost::apply_visitor(
             ds_helper_t<datum_range_t>(
                 [](const datum_range_t &dr) { return dr; },
@@ -519,7 +528,7 @@ public:
                 }),
             spec);
     }
-    size_t copies(datum_t key) {
+    size_t copies(datum_t key) const {
         return boost::apply_visitor(
             ds_helper_t<size_t>(
                 [&key](const datum_range_t &dr) { return dr.contains(key) ? 1 : 0; },
@@ -529,14 +538,28 @@ public:
                 }),
             spec);
     }
-    void fill_in_primary_keys(boost::optional<std::map<store_key_t, size_t> > *out) {
+    void fill_in_primary_keys(
+        boost::optional<std::map<store_key_t, size_t> > *out) const {
         return boost::apply_visitor(
             ds_helper_t<void>(
                 [](const datum_range_t &) { },
                 [out](const std::map<datum_t, size_t> &m) {
-                    *out = std::map<store_key_t, size_t>;
+                    *out = std::map<store_key_t, size_t>();
                     for (const auto &pair : m) {
-                        (*out)[store_key_t(pair.first.print_primary())] = pair.second;
+                        (**out)[store_key_t(pair.first.print_primary())] = pair.second;
+                    }
+                }),
+            spec);
+    }
+    void fill_in_sindex_datum_ranges(std::map<datum_range_t, size_t> *out) const {
+        return boost::apply_visitor(
+            ds_helper_t<void>(
+                [out](const datum_range_t &dr) {
+                    (*out)[dr] = 1;
+                },
+                [out](const std::map<datum_t, size_t> &m) {
+                    for (const auto &pair : m) {
+                        (*out)[datum_range_t(pair.first)] = pair.second;
                     }
                 }),
             spec);
