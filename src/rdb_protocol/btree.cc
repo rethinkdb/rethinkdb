@@ -537,7 +537,7 @@ typedef ql::terminal_variant_t terminal_variant_t;
 class rget_sindex_data_t {
 public:
     rget_sindex_data_t(const key_range_t &_pkey_range,
-                       const std::vector<ql::datum_range_t> &_ranges,
+                       const std::map<ql::datum_range_t, size_t> &_ranges,
                        reql_version_t wire_func_reql_version,
                        ql::map_wire_func_t wire_func, sindex_multi_bool_t _multi)
         : pkey_range(_pkey_range),
@@ -548,7 +548,7 @@ public:
 private:
     friend class rget_cb_t;
     const key_range_t pkey_range;
-    const std::vector<ql::datum_range_t> ranges;
+    const std::map<ql::datum_range_t, size_t> ranges;
     const reql_version_t func_reql_version;
     const counted_t<const ql::func_t> func;
     const sindex_multi_bool_t multi;
@@ -603,15 +603,17 @@ private:
     btree_slice_t *const slice;
 };
 
-class rget_cb_t : public concurrent_traversal_callback_t {
+
+class rget_cb_t {
 public:
     rget_cb_t(rget_io_data_t &&_io,
               job_data_t &&_job,
               boost::optional<rget_sindex_data_t> &&_sindex,
               const key_range_t &range);
 
-    virtual continue_bool_t handle_pair(
+    continue_bool_t handle_pair(
         scoped_key_value_t &&keyvalue,
+        size_t copies,
         concurrent_traversal_fifo_enforcer_signal_t waiter)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -630,6 +632,20 @@ private:
     bool bad_init;
     scoped_ptr_t<profile::disabler_t> disabler;
     scoped_ptr_t<profile::sampler_t> sampler;
+};
+
+class rget_cb_wrapper_t : public concurrent_traversal_callback_t {
+public:
+    rget_cb_wrapper_t(rget_cb_t *_cb, size_t _copies) : cb(_cb), copies(_copies) { }
+    virtual continue_bool_t handle_pair(
+        scoped_key_value_t &&keyvalue,
+        concurrent_traversal_fifo_enforcer_signal_t waiter)
+        THROWS_ONLY(interrupted_exc_t) {
+        return cb->handle_pair(std::move(keyvalue), copies, std::move(waiter));
+    }
+private:
+    rget_cb_t *cb;
+    size_t copies;
 };
 
 rget_cb_t::rget_cb_t(rget_io_data_t &&_io,
@@ -666,6 +682,7 @@ void rget_cb_t::finish() THROWS_ONLY(interrupted_exc_t) {
 // Handle a keyvalue pair.  Returns whether or not we're done early.
 continue_bool_t rget_cb_t::handle_pair(
     scoped_key_value_t &&keyvalue,
+    size_t copies,
     concurrent_traversal_fifo_enforcer_signal_t waiter)
     THROWS_ONLY(interrupted_exc_t) {
     sampler->new_sample();
@@ -721,18 +738,17 @@ continue_bool_t rget_cb_t::handle_pair(
                 sindex_val = sindex_val.get(*tag, ql::NOTHROW);
                 guarantee(sindex_val.has());
             }
-            if (std::none_of(
-                    sindex->ranges.begin(),
-                    sindex->ranges.end(),
-                    [&](const ql::datum_range_t &datum_range) {
-                        return datum_range.contains(sindex_val);
-                    })) {
-                return continue_bool_t::CONTINUE;
-            };
+            bool in_range = false;
+            for (auto &&pair : sindex->ranges) {
+                if (pair.first.contains(sindex_val)) {
+                    in_range = true;
+                    break;
+                }
+            }
+            if (!in_range) return continue_bool_t::CONTINUE;
         }
 
-        ql::groups_t data;
-        data = {{ql::datum_t(), ql::datums_t{val}}};
+        ql::groups_t data = {{ql::datum_t(), ql::datums_t(copies, val)}};
 
         for (auto it = job.transformers.begin(); it != job.transformers.end(); ++it) {
             (**it)(job.env, &data, sindex_val);
@@ -761,7 +777,7 @@ continue_bool_t rget_cb_t::handle_pair(
 void rdb_rget_slice(
         btree_slice_t *slice,
         const key_range_t &range,
-        const boost::optional<std::vector<store_key_t> > &primary_keys,
+        const boost::optional<std::map<store_key_t, size_t> > &primary_keys,
         superblock_t *superblock,
         ql::env_t *ql_env,
         const ql::batchspec_t &batchspec,
@@ -780,32 +796,43 @@ void rdb_rget_slice(
         range);
 
     direction_t direction = reversed(sorting) ? BACKWARD : FORWARD;
-    if (static_cast<bool>(primary_keys)) {
-        for (size_t i = 0; i < primary_keys->size(); ++i) {
+    if (primary_keys) {
+        auto cb = [&](const std::pair<store_key_t, size_t> &pair, bool is_last) {
+            rget_cb_wrapper_t wrapper(&callback, pair.second);
             btree_concurrent_traversal(
                 superblock,
-                key_range_t(primary_keys->at(i)),
-                &callback,
+                key_range_t(pair.first),
+                &wrapper,
                 direction,
-                i == primary_keys->size() - 1
-                    ? release_superblock
-                    : release_superblock_t::KEEP);
-
-            if (callback.should_finish() == true) {
-                // If required the superblock will get released further up the stack
-                break;
+                is_last ? release_superblock : release_superblock_t::KEEP);
+            return callback.should_finish();
+        };
+        if (!reversed(sorting)) {
+            for (auto it = primary_keys->begin(); it != primary_keys->end(); ++it) {
+                if (cb(*it, ++it == primary_keys->end())) {
+                    // If required the superblock will get released further up the stack.
+                    break;
+                }
+            }
+        } else {
+            for (auto it = primary_keys->rbegin(); it != primary_keys->rend(); ++it) {
+                if (cb(*it, ++it == primary_keys->rend())) {
+                    // If required the superblock will get released further up the stack.
+                    break;
+                }
             }
         }
     } else {
+        rget_cb_wrapper_t wrapper(&callback, 1);
         btree_concurrent_traversal(
-            superblock, range, &callback, direction, release_superblock);
+            superblock, range, &wrapper, direction, release_superblock);
     }
     callback.finish();
 }
 
 void rdb_rget_secondary_slice(
         btree_slice_t *slice,
-        const std::vector<ql::datum_range_t> &sindex_ranges,
+        const std::map<ql::datum_range_t, size_t> &sindex_ranges,
         const key_range_t &sindex_region_range,
         sindex_superblock_t *superblock,
         ql::env_t *ql_env,
@@ -839,23 +866,34 @@ void rdb_rget_secondary_slice(
         sindex_region_range);
 
     direction_t direction = reversed(sorting) ? BACKWARD : FORWARD;
-    for (size_t i = 0; i < sindex_ranges.size(); ++i) {
+    auto cb = [&](const std::pair<ql::datum_range_t, size_t> &pair, bool is_last) {
+        rget_cb_wrapper_t wrapper(&callback, pair.second);
         key_range_t active_range = sindex_region_range.intersection(
-            sindex_ranges[i].to_sindex_keyrange(skey_version));
+            pair.first.to_sindex_keyrange(skey_version));
         // Ranges that don't intersect the region range should be removed during
         // sharding.
         r_sanity_check(!active_range.is_empty());
         btree_concurrent_traversal(
             superblock,
             active_range,
-            &callback,
+            &wrapper,
             direction,
-            i == sindex_ranges.size() - 1
-                ? release_superblock
-                : release_superblock_t::KEEP);
-        if (callback.should_finish() == true) {
-            // If required the superblock will get released further up the stack
-            break;
+            is_last ? release_superblock : release_superblock_t::KEEP);
+        return callback.should_finish();
+    };
+    if (!reversed(sorting)) {
+        for (auto it = sindex_ranges.begin(); it != sindex_ranges.end(); ++it) {
+            if (cb(*it, ++it == sindex_ranges.end())) {
+                // If required the superblock will get released further up the stack.
+                break;
+            }
+        }
+    } else {
+        for (auto it = sindex_ranges.rbegin(); it != sindex_ranges.rend(); ++it) {
+            if (cb(*it, ++it == sindex_ranges.rend())) {
+                // If required the superblock will get released further up the stack.
+                break;
+            }
         }
     }
     callback.finish();

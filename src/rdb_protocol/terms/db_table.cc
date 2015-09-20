@@ -755,16 +755,13 @@ private:
             auto key = get_key_arg(args->arg(env, i));
             keys.insert(std::make_pair(std::move(key), 0)).first->second += 1;
         }
-
-        guarantee(keys.size() > 0);
-        datum_range_t range(
-            keys.begin()->first,
-            key_range_t::closed,
-            keys.rbegin()->first,
-            key_range_t::closed);
-
-        return new_val(make_counted<selection_t>(
-            table, table->get_all(env->env, range, keys, index_str, backtrace())));
+        return new_val(
+            make_counted<selection_t>(
+                table,
+                table->get_all(env->env,
+                               datumspec_t(std::move(keys)),
+                               index_str,
+                               backtrace())));
     }
     virtual const char *name() const { return "get_all"; }
 };

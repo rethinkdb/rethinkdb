@@ -218,8 +218,7 @@ void do_read(ql::env_t *env,
         sindex_disk_info_t sindex_info;
         uuid_u sindex_uuid;
         scoped_ptr_t<sindex_superblock_t> sindex_sb;
-        std::vector<key_range_t> sindex_ranges;
-        key_range_t sindex_region;
+        key_range_t sindex_range;
         try {
             sindex_sb =
                 acquire_sindex_for_read(
@@ -234,15 +233,14 @@ void do_read(ql::env_t *env,
                     sindex_info.mapping_version_info.latest_compatible_reql_version);
             res->skey_version = skey_version;
             if (static_cast<bool>(rget.sindex->region)) {
-                sindex_region = rget.sindex->region->inner;
+                sindex_range = rget.sindex->region->inner;
             } else {
-                sindex_region = rget.sindex->original_ranges.at(0).to_sindex_keyrange(
-                    skey_version);
-                for (const auto &original_range : rget.sindex->original_ranges) {
-                    key_range_t key_range =
-                        original_range.to_sindex_keyrange(skey_version);
-                    sindex_region.left = std::min(key_range.left, sindex_region.left);
-                    sindex_region.right = std::max(key_range.right, sindex_region.right);
+                sindex_range.left = store_key_t::max();
+                sindex_range.right = key_range_t::right_bound_t(store_key_t::min());
+                for (const auto &pair : rget.sindex->ranges) {
+                    key_range_t key_range = pair.first.to_sindex_keyrange(skey_version);
+                    sindex_range.left = std::min(key_range.left, sindex_range.left);
+                    sindex_range.right = std::max(key_range.right, sindex_range.right);
                 }
             }
         } catch (const ql::exc_t &e) {
@@ -268,8 +266,8 @@ void do_read(ql::env_t *env,
 
         rdb_rget_secondary_slice(
             store->get_sindex_slice(sindex_uuid),
-            rget.sindex->original_ranges,
-            sindex_region,
+            rget.sindex->ranges,
+            sindex_range,
             sindex_sb.get(),
             env,
             rget.batchspec,
@@ -318,7 +316,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                 rget.sindex = sindex_rangespec_t(
                     *s.spec.range.sindex,
                     boost::none, // We just want to use whole range.
-                    s.spec.range.ranges);
+                    s.spec.range.datumspec.sindex_datum_ranges());
             } else {
                 rget.terminal = ql::limit_read_t{
                     is_primary_t::YES,

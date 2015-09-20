@@ -205,7 +205,7 @@ ql::changefeed::keyspec_t::range_t table_slice_t::get_range_spec() {
         std::vector<transform_variant_t>(),
         idx && *idx == tbl->get_pkey() ? boost::none : idx,
         sorting,
-        std::vector<ql::datum_range_t>{bounds}};
+        datumspec_t(bounds)};
 }
 
 counted_t<datum_stream_t> table_t::as_seq(
@@ -219,8 +219,7 @@ counted_t<datum_stream_t> table_t::as_seq(
         idx,
         bt,
         display_name(),
-        bounds,
-        boost::none,
+        datumspec_t(bounds),
         sorting,
         read_mode);
 }

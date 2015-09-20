@@ -562,7 +562,7 @@ sindex_readgen_t::sindex_readgen_t(
         sorting),
       sindex(_sindex),
       sent_first_read(false) {
-    datumspec.fill_in_sindex_datum_ranges(&datum_ranges);
+    datum_ranges = datumspec.sindex_datum_ranges();
 }
 
 scoped_ptr_t<readgen_t> sindex_readgen_t::make(

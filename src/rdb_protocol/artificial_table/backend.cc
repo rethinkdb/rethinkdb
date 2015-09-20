@@ -7,7 +7,7 @@
 
 bool artificial_table_backend_t::read_all_rows_as_stream(
         ql::backtrace_id_t bt,
-        const datumspec_t &datumspec,
+        const ql::datumspec_t &datumspec,
         sorting_t sorting,
         signal_t *interruptor,
         counted_t<ql::datum_stream_t> *rows_out,
@@ -23,13 +23,14 @@ bool artificial_table_backend_t::read_all_rows_as_stream(
     /* Apply range filter */
     if (!datumspec.is_universe()) {
         std::vector<ql::datum_t> filter_rows;
-        for (ql::datum_t &&row : rows) {
+        for (auto &&row : rows) {
             ql::datum_t key = row.get_field(primary_key.c_str(), ql::NOTHROW);
             guarantee(key.has());
             for (size_t i = 0; i < datumspec.copies(key); ++i) {
                 filter_rows.push_back(std::move(row));
             }
         }
+        rows = std::move(filter_rows);
     }
 
     /* Apply sorting */

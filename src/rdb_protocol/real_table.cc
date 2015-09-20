@@ -87,7 +87,7 @@ counted_t<ql::datum_stream_t> real_table_t::read_all(
         const std::string &sindex,
         ql::backtrace_id_t bt,
         const std::string &table_name,
-        const datumspec_t &datumspec,
+        const ql::datumspec_t &datumspec,
         sorting_t sorting,
         read_mode_t read_mode) {
     if (sindex == get_pkey()) {

@@ -2174,21 +2174,17 @@ bool bound_lt(key_range_t::bound_t a_bound, const datum_t &a,
     if (a > b) return false;
     guarantee(a_bound != key_range_t::none);
     guarantee(b_bound != key_range_t::none);
-    if (a_bound == key_range_t::closed && b_bound == key_range_t::open) return true;
-    return false;
+    return a_bound == key_range_t::closed && b_bound == key_range_t::open;
 }
 
-bool operator<(const datum_range_t &o) const {
+bool datum_range_t::operator<(const datum_range_t &o) const {
     if (bound_lt(left_bound_type, left_bound, o.left_bound_type, o.left_bound)) {
         return true;
     }
     if (bound_lt(o.left_bound_type, o.left_bound, left_bound_type, left_bound)) {
         return false;
     }
-    if (bound_lt(right_bound_type, right_bound, o.right_bound_type, o.right_bound)) {
-        return true;
-    }
-    return false;
+    return bound_lt(right_bound_type, right_bound, o.right_bound_type, o.right_bound);
 }
 
 bool datum_range_t::contains(datum_t val) const {

@@ -424,14 +424,13 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
             auto rg_out = boost::get<rget_read_t>(payload_out);
             rg_out->batchspec = rg_out->batchspec.scale_down(CPU_SHARDING_FACTOR);
             if (static_cast<bool>(rg_out->primary_keys)) {
-                rg_out->primary_keys->erase(
-                    std::remove_if(
-                        rg_out->primary_keys->begin(),
-                        rg_out->primary_keys->end(),
-                        [&](const store_key_t &key) {
-                            return !rg_out->region.inner.contains_key(key);
-                        }),
-                    rg_out->primary_keys->end());
+                for (auto it = rg_out->primary_keys->begin();
+                     it != rg_out->primary_keys->end();) {
+                    auto cur_it = it++;
+                    if (!rg_out->region.inner.contains_key(it->first)) {
+                        rg_out->primary_keys->erase(cur_it);
+                    }
+                }
                 if (rg_out->primary_keys->empty()) {
                     return false;
                 }
@@ -1219,7 +1218,7 @@ RDB_IMPL_SERIALIZABLE_0_FOR_CLUSTER(dummy_read_response_t);
 
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(point_read_t, key);
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(dummy_read_t, region);
-RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(sindex_rangespec_t, id, region, original_ranges);
+RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(sindex_rangespec_t, id, region, ranges);
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         sorting_t, int8_t,

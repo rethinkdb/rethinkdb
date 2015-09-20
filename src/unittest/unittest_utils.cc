@@ -43,7 +43,9 @@ struct make_sindex_read_t {
                 std::vector<ql::transform_variant_t>(),
                 boost::optional<ql::terminal_variant_t>(),
                 sindex_rangespec_t(
-                    id, boost::none, std::vector<ql::datum_range_t>{rng}),
+                    id,
+                    boost::none,
+                    std::map<ql::datum_range_t, size_t>{{rng, 1}}),
                 sorting_t::UNORDERED),
             profile_bool_t::PROFILE,
             read_mode_t::SINGLE);
