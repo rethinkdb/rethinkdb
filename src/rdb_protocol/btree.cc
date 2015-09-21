@@ -808,15 +808,17 @@ void rdb_rget_slice(
             return callback.should_finish();
         };
         if (!reversed(sorting)) {
-            for (auto it = primary_keys->begin(); it != primary_keys->end(); ++it) {
-                if (cb(*it, ++it == primary_keys->end())) {
+            for (auto it = primary_keys->begin(); it != primary_keys->end();) {
+                auto this_it = it++;
+                if (cb(*this_it, it == primary_keys->end())) {
                     // If required the superblock will get released further up the stack.
                     break;
                 }
             }
         } else {
-            for (auto it = primary_keys->rbegin(); it != primary_keys->rend(); ++it) {
-                if (cb(*it, ++it == primary_keys->rend())) {
+            for (auto it = primary_keys->rbegin(); it != primary_keys->rend();) {
+                auto this_it = it++;
+                if (cb(*this_it, it == primary_keys->rend())) {
                     // If required the superblock will get released further up the stack.
                     break;
                 }
