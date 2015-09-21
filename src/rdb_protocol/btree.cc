@@ -884,15 +884,17 @@ void rdb_rget_secondary_slice(
         return callback.should_finish();
     };
     if (!reversed(sorting)) {
-        for (auto it = sindex_ranges.begin(); it != sindex_ranges.end(); ++it) {
-            if (cb(*it, ++it == sindex_ranges.end())) {
+        for (auto it = sindex_ranges.begin(); it != sindex_ranges.end();) {
+            auto this_it = it++;
+            if (cb(*this_it, it == sindex_ranges.end())) {
                 // If required the superblock will get released further up the stack.
                 break;
             }
         }
     } else {
-        for (auto it = sindex_ranges.rbegin(); it != sindex_ranges.rend(); ++it) {
-            if (cb(*it, ++it == sindex_ranges.rend())) {
+        for (auto it = sindex_ranges.rbegin(); it != sindex_ranges.rend();) {
+            auto this_it = it++;
+            if (cb(*this_it, it == sindex_ranges.rend())) {
                 // If required the superblock will get released further up the stack.
                 break;
             }
@@ -916,7 +918,8 @@ void rdb_get_intersecting_slice(
     guarantee(query_geometry.has());
 
     guarantee(sindex_info.geo == sindex_geo_bool_t::GEO);
-    profile::starter_t starter("Do intersection scan on geospatial index.", ql_env->trace);
+    profile::starter_t starter("Do intersection scan on geospatial index.",
+                               ql_env->trace);
 
     const reql_version_t sindex_func_reql_version =
         sindex_info.mapping_version_info.latest_compatible_reql_version;

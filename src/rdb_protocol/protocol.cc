@@ -427,7 +427,7 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
                 for (auto it = rg_out->primary_keys->begin();
                      it != rg_out->primary_keys->end();) {
                     auto cur_it = it++;
-                    if (!rg_out->region.inner.contains_key(it->first)) {
+                    if (!region_contains_key(rg_out->region, cur_it->first)) {
                         rg_out->primary_keys->erase(cur_it);
                     }
                 }
