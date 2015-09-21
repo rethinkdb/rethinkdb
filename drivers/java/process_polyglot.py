@@ -12,6 +12,11 @@ import os.path
 import ast
 from collections import namedtuple
 
+try:
+    basestring
+except NameError:
+    basestring = ("".__class__,)
+
 
 class Unhandled(Exception):
     '''Used when a corner case is hit that probably should be handled
@@ -74,7 +79,7 @@ def py_str(py):
     if type(py) is dict:
         return '{' + ', '.join(
             [repr(k) + ': ' + maybe_str(py[k]) for k in py]) + '}'
-    if not isinstance(py, "".__class__):
+    if not isinstance(py, basestring):
         return repr(py)
     else:
         return py
@@ -204,7 +209,7 @@ def tests_and_defs(testfile, raw_test_data, context):
             print("In", testfile, test_num)
             print("Error translating: ", expected)
             raise
-        if isinstance(pytest, "".__class__):
+        if isinstance(pytest, basestring):
             parsed = ast.parse(pytest, mode="single").body[0]
             if type(parsed) == ast.Expr:
                 yield Query(

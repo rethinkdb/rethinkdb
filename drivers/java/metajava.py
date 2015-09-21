@@ -18,6 +18,11 @@ import logging
 from collections import OrderedDict, namedtuple
 from mako.lookup import TemplateLookup
 
+try:
+    basestring
+except NameError:
+    basestring = ("".__class__,)
+
 logging.basicConfig(format="%(message)s", level=logging.INFO)
 logger = logging.getLogger("metajava")
 
@@ -254,7 +259,7 @@ class java_term_info(object):
     @classmethod
     def reify_signature(cls, term, signature):
         def translate(arg):
-            if isinstance(arg, "".__class__):
+            if isinstance(arg, basestring):
                 return {
                     'T_DB': 'Db',
                     'T_EXPR': 'Object',
@@ -264,6 +269,9 @@ class java_term_info(object):
                 }[arg]
             elif isinstance(arg, list):
                 return [translate(a) for a in arg]
+            else:
+                raise Unhandled(
+                    "Got something unexpected in signature %s", type(arg))
 
         def expand_alternation(formal_args, index):
             '''This does a manual expansion of '*' args when the type of the
@@ -338,7 +346,7 @@ class java_term_info(object):
         for i, arg in enumerate(signature):
             if arg == '*':
                 prev = formal_args[i-1]
-                if isinstance(prev, "".__class__):
+                if isinstance(prev, basestring):
                     # Use normal Java varargs if not alternation
                     formal_args[i-1] += '...'
                 elif isinstance(prev, list):
