@@ -306,6 +306,7 @@ public:
         }
     }
 
+    // TODO: rename these all to `contains` for consistency with other classes.
     bool contains_key(const store_key_t& key) const {
         bool left_ok = left <= key;
         bool right_ok = right.unbounded || key < right.key();

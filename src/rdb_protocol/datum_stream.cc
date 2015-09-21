@@ -471,7 +471,7 @@ primary_readgen_t::primary_readgen_t(
         _profile,
         _read_mode,
         sorting) {
-    datumspec.fill_in_primary_keys(&store_keys);
+    store_keys = datumspec.primary_key_map();
 }
 
 scoped_ptr_t<readgen_t> primary_readgen_t::make(

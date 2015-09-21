@@ -774,12 +774,12 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
                             std::vector<ql::transform_variant_t>(),
                             boost::optional<std::string>(),
                             sorting_t::UNORDERED,
-                            std::vector<ql::datum_range_t>{
+                            ql::datumspec_t(
                                 ql::datum_range_t(
                                     ql::datum_t(0.0),
                                     key_range_t::closed,
                                     ql::datum_t(10.0),
-                                    key_range_t::open)}},
+                                    key_range_t::open))},
                         "id",
                         std::vector<ql::datum_t>(),
                         bt)) { }

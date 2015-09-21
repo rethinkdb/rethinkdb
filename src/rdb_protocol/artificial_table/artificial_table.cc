@@ -61,7 +61,7 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_all(
         const std::string &get_all_sindex_id,
         ql::backtrace_id_t bt,
         const std::string &table_name,
-        const datumspec_t &datumspec,
+        const ql::datumspec_t &datumspec,
         sorting_t sorting,
         UNUSED read_mode_t read_mode) {
     if (get_all_sindex_id != primary_key) {

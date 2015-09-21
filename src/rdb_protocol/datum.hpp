@@ -538,17 +538,16 @@ public:
                 }),
             spec);
     }
-    // RSI: make this return rather than fill in.
-    void fill_in_primary_keys(
-        boost::optional<std::map<store_key_t, size_t> > *out) const {
+    boost::optional<std::map<store_key_t, size_t> > primary_key_map() const {
         return boost::apply_visitor(
-            ds_helper_t<void>(
-                [](const datum_range_t &) { },
-                [out](const std::map<datum_t, size_t> &m) {
-                    *out = std::map<store_key_t, size_t>();
+            ds_helper_t<boost::optional<std::map<store_key_t, size_t> > >(
+                [](const datum_range_t &) { return boost::none; },
+                [](const std::map<datum_t, size_t> &m) {
+                    std::map<store_key_t, size_t> ret;
                     for (const auto &pair : m) {
-                        (**out)[store_key_t(pair.first.print_primary())] = pair.second;
+                        ret[store_key_t(pair.first.print_primary())] = pair.second;
                     }
+                    return ret;
                 }),
             spec);
     }
