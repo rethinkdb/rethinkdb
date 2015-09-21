@@ -2571,7 +2571,7 @@ class Container extends Backbone.View
         dataexplorer_state.cursor_timed_out = false
         dataexplorer_state.query_has_changed = false
 
-        @raw_query = @codemirror.getValue()
+        @raw_query = @codemirror.getSelection() or @codemirror.getValue()
 
         @query = @clean_query @raw_query # Save it because we'll use it in @callback_multilples_queries
 
