@@ -602,21 +602,6 @@ public:
                 }),
             spec);
     }
-    std::map<datum_range_t, size_t> sindex_datum_ranges() const {
-        return boost::apply_visitor(
-            ds_helper_t<std::map<datum_range_t, size_t> >(
-                [](const datum_range_t &dr) {
-                    return std::map<datum_range_t, size_t>{{dr, 1}};
-                },
-                [](const std::map<datum_t, size_t> &m) {
-                    std::map<datum_range_t, size_t> ret;
-                    for (const auto &pair : m) {
-                        ret[datum_range_t(pair.first)] = pair.second;
-                    }
-                    return ret;
-                }),
-            spec);
-    }
 
     RDB_DECLARE_ME_SERIALIZABLE(datumspec_t);
 private:

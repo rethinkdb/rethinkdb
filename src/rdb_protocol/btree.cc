@@ -884,9 +884,8 @@ void rdb_rget_secondary_slice(
         rget_cb_wrapper_t wrapper(&callback, pair.second);
         key_range_t active_range = active_region_range.intersection(
             pair.first.to_sindex_keyrange(skey_version));
-        // Ranges that don't intersect the region range should be removed during
-        // sharding.
-        r_sanity_check(!active_range.is_empty());
+        // This can happen sometimes with truncated keys.
+        if (active_range.is_empty()) return false;
         btree_concurrent_traversal(
             superblock,
             active_range,

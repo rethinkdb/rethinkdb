@@ -238,6 +238,7 @@ void do_read(ql::env_t *env,
                 sindex_range =
                     rget.sindex->datumspec.covering_range().to_sindex_keyrange(
                         skey_version);
+            }
         } catch (const ql::exc_t &e) {
             res->result = e;
             return;
@@ -311,7 +312,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                 rget.sindex = sindex_rangespec_t(
                     *s.spec.range.sindex,
                     boost::none, // We just want to use whole range.
-                    s.spec.range.datumspec.sindex_datum_ranges());
+                    s.spec.range.datumspec);
             } else {
                 rget.terminal = ql::limit_read_t{
                     is_primary_t::YES,

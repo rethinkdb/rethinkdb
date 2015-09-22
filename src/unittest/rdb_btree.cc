@@ -151,7 +151,7 @@ ql::grouped_t<ql::stream_t> read_row_via_sindex(
 
     rdb_rget_secondary_slice(
         store->get_sindex_slice(sindex_uuid),
-        std::map<ql::datum_range_t, size_t>{{datum_range, 1}},
+        ql::datumspec_t(datum_range),
         datum_range.to_sindex_keyrange(ql::skey_version_t::post_1_16),
         sindex_sb.get(),
         &dummy_env, // env_t

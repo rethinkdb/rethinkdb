@@ -699,10 +699,7 @@ boost::optional<read_t> sindex_readgen_t::sindex_sort_read(
                         std::move(transforms),
                         boost::optional<terminal_variant_t>(),
                         sindex_rangespec_t(
-                            sindex,
-                            region_t(key_range_t(rng)),
-                            std::map<datum_range_t, size_t>{{
-                                    datumspec.covering_range(), 1}}),
+                            sindex, region_t(key_range_t(rng)), datumspec),
                         sorting),
                     profile,
                     read_mode);
@@ -808,7 +805,7 @@ intersecting_geo_read_t intersecting_readgen_t::next_read_impl(
         sindex_rangespec_t(
             sindex,
             region_t(*active_range),
-            std::map<datum_range_t, size_t>{{datum_range_t::universe(), 1}}),
+            datumspec_t(datum_range_t::universe())),
         query_geometry);
 }
 

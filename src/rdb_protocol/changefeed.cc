@@ -982,7 +982,7 @@ public:
             ref.sindex_info->mapping_version_info.latest_compatible_reql_version);
         rdb_rget_secondary_slice(
             ref.btree,
-            std::map<ql::datum_range_t, size_t>{{srange, 1}},
+            ql::datumspec_t(srange),
             srange.to_sindex_keyrange(skey_version),
             ref.superblock,
             env,
