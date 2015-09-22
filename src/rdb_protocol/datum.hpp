@@ -464,7 +464,7 @@ public:
     datum_range_t with_left_bound(datum_t d, key_range_t::bound_t type);
     datum_range_t with_right_bound(datum_t d, key_range_t::bound_t type);
 
-    std::string print() {
+    std::string print() const {
         return strprintf("%c%s,%s%c",
                          left_bound_type == key_range_t::open ? '(' : '[',
                          left_bound.print().c_str(),
@@ -476,6 +476,7 @@ private:
     datum_t left_bound, right_bound;
     key_range_t::bound_t left_bound_type, right_bound_type;
 };
+void debug_print(printf_buffer_t *buf, const datum_range_t &rng);
 
 template<class T>
 class ds_helper_t : public boost::static_visitor<T> {

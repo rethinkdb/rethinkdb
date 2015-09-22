@@ -2146,6 +2146,10 @@ datum_t datum_array_builder_t::to_datum() RVALUE_THIS {
     return datum_t(std::move(vector), datum_t::no_array_size_limit_check_t());
 }
 
+void debug_print(printf_buffer_t *buf, const datum_range_t &rng) {
+    buf->appendf("datum_range_t(%s)", rng.print().c_str());
+}
+
 datum_range_t::datum_range_t()
     : left_bound_type(key_range_t::none), right_bound_type(key_range_t::none) { }
 

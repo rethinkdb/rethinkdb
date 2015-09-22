@@ -11,7 +11,7 @@ def to_truncated(i)
 end
 
 r.table_create('test').run rescue nil
-indexes = ['a', 'truncated', 'collision', 'truncated_collision']
+indexes = ['a', 'val', 'truncated', 'collision', 'truncated_collision']
 indexes.each {|index|
   r.table('test').index_create(index).run rescue nil
 }
@@ -70,7 +70,7 @@ indexes.each {|index|
   # RSI: artificial feeds
   input = (0...1000).map {|i|
     {
-      id: -i,
+      val: i,
       truncated: to_truncated(i),
       collision: i % 10,
       truncated_collision: to_truncated(i % 10)
@@ -81,7 +81,7 @@ indexes.each {|index|
   puts "Testing ordering..."
   res = r.table('test').run(runopts).to_a
   raise "Retrieve failed." if res.count != 1000
-  ['id', 'truncated', 'collision', 'truncated_collision'].each {|field|
+  ['id', 'val', 'truncated', 'collision', 'truncated_collision'].each {|field|
     puts "Testing #{field}..."
     res = r.table('test').order_by(index: field).run(runopts)
     raise "Ordered retrieve failed (#{field})." if res.count != 1000
@@ -112,7 +112,7 @@ indexes.each {|index|
 
   puts "Testing get_all..."
   short_keys = [10, 20, -1, 3, 3, 4, 3]
-  res = r.table('test').get_all(short_keys.map{|x| to_truncated(x)},
+  res = r.table('test').get_all(*short_keys.map{|x| to_truncated(x)},
                                 index: 'truncated').run(runopts)
   raise "Get all failed." if res.to_a.count != 6
 
