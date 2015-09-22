@@ -536,19 +536,23 @@ typedef ql::terminal_variant_t terminal_variant_t;
 
 class rget_sindex_data_t {
 public:
-    rget_sindex_data_t(const key_range_t &_pkey_range,
-                       const std::map<ql::datum_range_t, size_t> &_ranges,
+    rget_sindex_data_t(key_range_t _pkey_range,
+                       ql::datumspec_t _datumspec,
+                       key_range_t *_active_region_range,
                        reql_version_t wire_func_reql_version,
-                       ql::map_wire_func_t wire_func, sindex_multi_bool_t _multi)
-        : pkey_range(_pkey_range),
-          ranges(_ranges),
+                       ql::map_wire_func_t wire_func,
+                       sindex_multi_bool_t _multi)
+        : pkey_range(std::move(_pkey_range)),
+          datumspec(std::move(_datumspec)),
+          active_region_range(_active_region_range),
           func_reql_version(wire_func_reql_version),
           func(wire_func.compile_wire_func()),
           multi(_multi) { }
 private:
     friend class rget_cb_t;
     const key_range_t pkey_range;
-    const std::map<ql::datum_range_t, size_t> ranges;
+    const ql::datumspec_t datumspec;
+    key_range_t *active_region_range;
     const reql_version_t func_reql_version;
     const counted_t<const ql::func_t> func;
     const sindex_multi_bool_t multi;
@@ -614,7 +618,6 @@ public:
     continue_bool_t handle_pair(
         scoped_key_value_t &&keyvalue,
         size_t copies,
-        const ql::datum_range_t *current_range,
         concurrent_traversal_fifo_enforcer_signal_t waiter)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -637,21 +640,17 @@ private:
 
 class rget_cb_wrapper_t : public concurrent_traversal_callback_t {
 public:
-    rget_cb_wrapper_t(rget_cb_t *_cb,
-                      size_t _copies,
-                      const ql::datum_range_t *_current_range)
-        : cb(_cb), copies(_copies), current_range(_current_range) { }
+    rget_cb_wrapper_t(rget_cb_t *_cb, size_t _copies)
+        : cb(_cb), copies(_copies) { }
     virtual continue_bool_t handle_pair(
         scoped_key_value_t &&keyvalue,
         concurrent_traversal_fifo_enforcer_signal_t waiter)
         THROWS_ONLY(interrupted_exc_t) {
-        return cb->handle_pair(
-            std::move(keyvalue), copies, current_range, std::move(waiter));
+        return cb->handle_pair(std::move(keyvalue), copies, std::move(waiter));
     }
 private:
     rget_cb_t *cb;
     size_t copies;
-    const ql::datum_range_t *current_range;
 };
 
 rget_cb_t::rget_cb_t(rget_io_data_t &&_io,
@@ -688,8 +687,7 @@ void rget_cb_t::finish() THROWS_ONLY(interrupted_exc_t) {
 // Handle a keyvalue pair.  Returns whether or not we're done early.
 continue_bool_t rget_cb_t::handle_pair(
     scoped_key_value_t &&keyvalue,
-    size_t copies,
-    const ql::datum_range_t *current_range,
+    size_t default_copies,
     concurrent_traversal_fifo_enforcer_signal_t waiter)
     THROWS_ONLY(interrupted_exc_t) {
     sampler->new_sample();
@@ -726,10 +724,21 @@ continue_bool_t rget_cb_t::handle_pair(
         if ((io.response->last_key < key && !reversed(job.sorting)) ||
             (io.response->last_key > key && reversed(job.sorting))) {
             io.response->last_key = key;
+            if (sindex) {
+                if (!reversed(job.sorting)) {
+                    sindex->active_region_range->left = key;
+                    // Closed on the left.
+                    sindex->active_region_range->left.increment();
+                } else {
+                    // Open on the right, so no need to decrement.
+                    sindex->active_region_range->right = key_range_t::right_bound_t(key);
+                }
+            }
         }
 
         // Check whether we're out of sindex range.
         ql::datum_t sindex_val; // NULL if no sindex.
+        size_t copies = default_copies;
         if (sindex) {
             // Secondary index functions are deterministic (so no need for an
             // rdb_context_t) and evaluated in a pristine environment (without global
@@ -745,8 +754,9 @@ continue_bool_t rget_cb_t::handle_pair(
                 sindex_val = sindex_val.get(*tag, ql::NOTHROW);
                 guarantee(sindex_val.has());
             }
-            guarantee(current_range != nullptr);
-            if (!current_range->contains(sindex_val)) return continue_bool_t::CONTINUE;
+
+            copies = sindex->datumspec.copies(sindex_val);
+            if (copies == 0) return continue_bool_t::CONTINUE;
         }
 
         ql::groups_t data = {{ql::datum_t(), ql::datums_t(copies, val)}};
@@ -799,7 +809,7 @@ void rdb_rget_slice(
     direction_t direction = reversed(sorting) ? BACKWARD : FORWARD;
     if (primary_keys) {
         auto cb = [&](const std::pair<store_key_t, size_t> &pair, bool is_last) {
-            rget_cb_wrapper_t wrapper(&callback, pair.second, nullptr);
+            rget_cb_wrapper_t wrapper(&callback, pair.second);
             btree_concurrent_traversal(
                 superblock,
                 key_range_t(pair.first),
@@ -826,7 +836,7 @@ void rdb_rget_slice(
             }
         }
     } else {
-        rget_cb_wrapper_t wrapper(&callback, 1, nullptr);
+        rget_cb_wrapper_t wrapper(&callback, 1);
         btree_concurrent_traversal(
             superblock, range, &wrapper, direction, release_superblock);
     }
@@ -835,7 +845,7 @@ void rdb_rget_slice(
 
 void rdb_rget_secondary_slice(
         btree_slice_t *slice,
-        const std::map<ql::datum_range_t, size_t> &sindex_ranges,
+        const ql::datumspec_t &datumspec,
         const key_range_t &sindex_region_range,
         sindex_superblock_t *superblock,
         ql::env_t *ql_env,
@@ -856,12 +866,14 @@ void rdb_rget_secondary_slice(
     ql::skey_version_t skey_version =
         ql::skey_version_from_reql_version(sindex_func_reql_version);
 
+    key_range_t active_region_range = sindex_region_range;
     rget_cb_t callback(
         rget_io_data_t(response, slice),
         job_data_t(ql_env, batchspec, transforms, terminal, sorting),
         rget_sindex_data_t(
             pk_range,
-            sindex_ranges,
+            datumspec,
+            &active_region_range,
             sindex_func_reql_version,
             sindex_info.mapping,
             sindex_info.multi),
@@ -869,8 +881,8 @@ void rdb_rget_secondary_slice(
 
     direction_t direction = reversed(sorting) ? BACKWARD : FORWARD;
     auto cb = [&](const std::pair<ql::datum_range_t, size_t> &pair, bool is_last) {
-        rget_cb_wrapper_t wrapper(&callback, pair.second, &pair.first);
-        key_range_t active_range = sindex_region_range.intersection(
+        rget_cb_wrapper_t wrapper(&callback, pair.second);
+        key_range_t active_range = active_region_range.intersection(
             pair.first.to_sindex_keyrange(skey_version));
         // Ranges that don't intersect the region range should be removed during
         // sharding.
@@ -881,25 +893,11 @@ void rdb_rget_secondary_slice(
             &wrapper,
             direction,
             is_last ? release_superblock : release_superblock_t::KEEP);
+        // Returning `true` here aborts the iteration.  If required the
+        // superblock will be released further up the stack.
         return callback.should_finish();
     };
-    if (!reversed(sorting)) {
-        for (auto it = sindex_ranges.begin(); it != sindex_ranges.end();) {
-            auto this_it = it++;
-            if (cb(*this_it, it == sindex_ranges.end())) {
-                // If required the superblock will get released further up the stack.
-                break;
-            }
-        }
-    } else {
-        for (auto it = sindex_ranges.rbegin(); it != sindex_ranges.rend();) {
-            auto this_it = it++;
-            if (cb(*this_it, it == sindex_ranges.rend())) {
-                // If required the superblock will get released further up the stack.
-                break;
-            }
-        }
-    }
+    datumspec.iter(sorting, cb);
     callback.finish();
 }
 

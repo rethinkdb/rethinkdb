@@ -561,9 +561,7 @@ sindex_readgen_t::sindex_readgen_t(
         _read_mode,
         sorting),
       sindex(_sindex),
-      sent_first_read(false) {
-    datum_ranges = datumspec.sindex_datum_ranges();
-}
+      sent_first_read(false) { }
 
 scoped_ptr_t<readgen_t> sindex_readgen_t::make(
     env_t *env,
@@ -627,21 +625,13 @@ rget_read_t sindex_readgen_t::next_read_impl(
     const batchspec_t &batchspec) const {
 
     boost::optional<region_t> region;
-    std::map<datum_range_t, size_t> active_ranges;
+    datumspec_t ds;
     if (active_range) {
         region = region_t(*active_range);
         r_sanity_check(skey_version);
-        for (const auto &pair : datum_ranges) {
-            if (active_range->overlaps(pair.first.to_sindex_keyrange(*skey_version))) {
-                active_ranges.insert(pair);
-            }
-        }
-        // Otherwise `active_range` should be empty and we should never have
-        // gotten here (since `active_range` is supposed to be a subset of the
-        // covering range of the key ranges).
-        r_sanity_check(active_ranges.size() >= 1);
+        ds = datumspec.trim_secondary(*active_range, *skey_version);
     } else {
-        active_ranges = datum_ranges;
+        ds = datumspec;
         // We should send at most one read before we're able to calculate the
         // active range.
         r_sanity_check(!sent_first_read);
@@ -650,6 +640,7 @@ rget_read_t sindex_readgen_t::next_read_impl(
         // away once we drop support for pre-1.16 sindex key skey_version.
         const_cast<sindex_readgen_t *>(this)->sent_first_read = true;
     }
+    r_sanity_check(!ds.is_empty());
 
     return rget_read_t(
         std::move(stamp),
@@ -660,10 +651,7 @@ rget_read_t sindex_readgen_t::next_read_impl(
         batchspec,
         std::move(transforms),
         boost::optional<terminal_variant_t>(),
-        sindex_rangespec_t(
-            sindex,
-            std::move(region),
-            std::move(active_ranges)),
+        sindex_rangespec_t(sindex, std::move(region), std::move(ds)),
         sorting);
 }
 

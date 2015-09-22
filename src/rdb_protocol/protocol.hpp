@@ -264,17 +264,15 @@ struct sindex_rangespec_t {
                        // This is the region in the sindex keyspace.  It's
                        // sometimes smaller than the datum range below when
                        // dealing with truncated keys.
-                       boost::optional<region_t> &&_region,
-                       const std::map<ql::datum_range_t, size_t> &_ranges)
-        : id(_id), region(std::move(_region)), ranges(_ranges) {
-        r_sanity_check(ranges.size() > 0);
-    }
+                       boost::optional<region_t> _region,
+                       ql::datumspec_t _datumspec)
+        : id(_id), region(std::move(_region)), datumspec(std::move(_datumspec)) { }
     std::string id; // What sindex we're using.
     // What keyspace we're currently operating on.  If empty, assume the
     // original range and create the readgen on the shards.
     boost::optional<region_t> region;
     // For dealing with truncation and `get_all`.
-    std::map<ql::datum_range_t, size_t> ranges;
+    ql::datumspec_t datumspec;
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(sindex_rangespec_t);
 

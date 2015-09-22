@@ -561,7 +561,6 @@ private:
 
     const std::string sindex;
     bool sent_first_read;
-    std::map<datum_range_t, size_t> datum_ranges;
 };
 
 // For geospatial intersection queries

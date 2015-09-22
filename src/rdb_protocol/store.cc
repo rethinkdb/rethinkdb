@@ -235,14 +235,9 @@ void do_read(ql::env_t *env,
             if (static_cast<bool>(rget.sindex->region)) {
                 sindex_range = rget.sindex->region->inner;
             } else {
-                sindex_range.left = store_key_t::max();
-                sindex_range.right = key_range_t::right_bound_t(store_key_t::min());
-                for (const auto &pair : rget.sindex->ranges) {
-                    key_range_t key_range = pair.first.to_sindex_keyrange(skey_version);
-                    sindex_range.left = std::min(key_range.left, sindex_range.left);
-                    sindex_range.right = std::max(key_range.right, sindex_range.right);
-                }
-            }
+                sindex_range =
+                    rget.sindex->datumspec.covering_range().to_sindex_keyrange(
+                        skey_version);
         } catch (const ql::exc_t &e) {
             res->result = e;
             return;
@@ -266,7 +261,7 @@ void do_read(ql::env_t *env,
 
         rdb_rget_secondary_slice(
             store->get_sindex_slice(sindex_uuid),
-            rget.sindex->ranges,
+            rget.sindex->datumspec,
             sindex_range,
             sindex_sb.get(),
             env,

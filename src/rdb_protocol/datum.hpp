@@ -505,12 +505,62 @@ public:
         return boost::apply_visitor(ds_helper_t<T>(std::move(f1), std::move(f2)), spec);
     }
 
+    datumspec_t trim_secondary(const key_range_t &rng, skey_version_t ver) const {
+        return boost::apply_visitor(
+            ds_helper_t<datumspec_t>(
+                [](const datum_range_t &dr) { return datumspec_t(dr); },
+                [&rng, &ver](const std::map<datum_t, size_t> &m) {
+                    std::map<datum_t, size_t> ret;
+                    for (const auto &pair : m) {
+                        if (rng.overlaps(
+                                datum_range_t(pair.first).to_sindex_keyrange(ver))) {
+                            ret.insert(pair);
+                        }
+                    }
+                    return datumspec_t(std::move(ret));
+                }),
+            spec);
+    }
+
+    template<class T>
+    void iter(sorting_t sorting, const T &cb) const {
+        return boost::apply_visitor(
+            ds_helper_t<void>(
+                [&cb](const datum_range_t &dr) {
+                    cb(std::make_pair(dr, 1), true);
+                },
+                [sorting, &cb](const std::map<datum_t, size_t> &m) {
+                    if (!reversed(sorting)) {
+                        for (auto it = m.begin(); it != m.end();) {
+                            auto this_it = it++;
+                            if (cb(*this_it, it == m.end())) {
+                                break;
+                            }
+                        }
+                    } else {
+                        for (auto it = m.rbegin(); it != m.rend();) {
+                            auto this_it = it++;
+                            if (cb(*this_it, it == m.rend())) {
+                                break;
+                            }
+                        }
+                    }
+                }),
+            spec);
+    }
 
     bool is_universe() const {
         return boost::apply_visitor(
             ds_helper_t<bool>(
                 [](const datum_range_t &dr) { return dr.is_universe(); },
                 [](const std::map<datum_t, size_t> &) { return false; }),
+            spec);
+    }
+    bool is_empty() const {
+        return boost::apply_visitor(
+            ds_helper_t<bool>(
+                [](const datum_range_t &dr) { return dr.is_empty(); },
+                [](const std::map<datum_t, size_t> &m) { return m.size() == 0; }),
             spec);
     }
     // Try to only call this once since it does work to compute it.

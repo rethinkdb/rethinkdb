@@ -149,7 +149,7 @@ void rdb_rget_slice(
 
 void rdb_rget_secondary_slice(
     btree_slice_t *slice,
-    const std::map<ql::datum_range_t, size_t> &sindex_ranges,
+    const ql::datumspec_t &datumspec,
     const key_range_t &sindex_range,
     sindex_superblock_t *superblock,
     ql::env_t *ql_env,

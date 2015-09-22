@@ -1218,7 +1218,7 @@ RDB_IMPL_SERIALIZABLE_0_FOR_CLUSTER(dummy_read_response_t);
 
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(point_read_t, key);
 RDB_IMPL_SERIALIZABLE_1_FOR_CLUSTER(dummy_read_t, region);
-RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(sindex_rangespec_t, id, region, ranges);
+RDB_IMPL_SERIALIZABLE_3_FOR_CLUSTER(sindex_rangespec_t, id, region, datumspec);
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         sorting_t, int8_t,
