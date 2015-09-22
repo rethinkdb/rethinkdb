@@ -32,7 +32,7 @@ inline ssize_t pread(HANDLE h, void* buf, size_t count, off_t offset) {
 }
 
 inline ssize_t pwrite(HANDLE h, const void *buf, size_t count, off_t offset) {
-    if (SetFilePointer(h, count, NULL, FILE_BEGIN) == INVALID_SET_FILE_POINTER && GetLastError() != NO_ERROR) {
+    if (SetFilePointer(h, offset, NULL, FILE_BEGIN) == INVALID_SET_FILE_POINTER && GetLastError() != NO_ERROR) {
         set_errno(EIO); // TODO ATN: GetLastError -> errno
         fprintf(stderr, "pwrite: SetFilePointer failed: %s", winerr_string(GetLastError()).c_str());
         return -1;
