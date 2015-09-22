@@ -10,6 +10,7 @@ import os
 import sys
 import os.path
 import ast
+import copy
 from collections import namedtuple
 
 try:
@@ -29,17 +30,18 @@ class Skip(Exception):
     pass
 
 
+
+Term = namedtuple("Term", 'line type ast')
 Query = namedtuple(
     'Query',
-    ('query_ast',
-     'query_line',
-     'expected_ast',
-     'expected_line',
+    ('query',
+     'expected',
      'testfile',
      'test_num',
      'runopts')
 )
-Def = namedtuple('Def', 'ast line result_type testfile test_num')
+Def = namedtuple('Def', 'varname term testfile test_num')
+Expect = namedtuple('Expect', 'bif term')
 SkippedTest = namedtuple('SkippedTest', 'line reason')
 
 
@@ -85,27 +87,65 @@ def py_str(py):
         return py
 
 
-def try_eval(parsed_define, context, line):
-    '''Evaluates a definition's value to determine the type of the
-    variable'''
-    varname = parsed_define.targets[0].id
-    node = ast.Expression(parsed_define.value)
-    ast.fix_missing_locations(node)  # fill in line numbers etc
-    compiled_value = compile(node, '<str>', mode='eval')
-    try:
-        value = eval(compiled_value, context)
-    except TypeError as te:
-        if te.args[0] == "object of type 'Map' has no len()":
-            return varname, object
+class LenRewriter(ast.NodeTransformer):
+    '''Rewrites an ast so any references to the len() function become
+    a literal number. This is because sometimes a test requires a
+    length by grabbing data from the server, and this won't affect the
+    type of the final result.
+
+    i.e. type(len(some.long.query.run(conn))) === type(1)
+    '''
+    def visit_Call(self, node):
+        node = self.generic_visit(node)
+        if type(node.func) == ast.Name and node.func.id == 'len':
+            return ast.Num(1)
         else:
-            raise
-    except Exception:
-        print("Failed while parsing:", line)
-        raise
+            return node
+
+def _try_eval(node, context):
+    '''For evaluating expressions given a context'''
+    node_4_eval = copy.deepcopy(node)
+    node_4_eval = LenRewriter().visit(node_4_eval)
+    if type(node_4_eval) == ast.Expr:
+        node_4_eval = node_4_eval.value
+    node_4_eval = ast.Expression(node_4_eval)
+    ast.fix_missing_locations(node_4_eval)
+    compiled_value = compile(node_4_eval, '<str>', mode='eval')
+    value = eval(compiled_value, context)
+    return type(value), value
+
+
+def try_eval(node, context):
+    return _try_eval(node, context)[0]
+
+
+def try_eval_def(parsed_define, context):
+    '''For evaluating python definitions like x = foo'''
+    varname = parsed_define.targets[0].id
+    type_, value = _try_eval(parsed_define.value, context)
     context[varname] = value
-    print("Type of `{}` was {}.{}".format(
-        varname, type(value).__module__, type(value).__name__))  # RSI
-    return varname, type(value)
+    return varname, type_
+
+
+def maybe_bif_eval(expected, context):
+    '''For evaluating expected values, possibly unwrapping the
+    surrounding function if it's one of the built in testing
+    functions (e.g. bag, err etc)
+    '''
+    bifs = {
+        "bag", "err", "partial", "uuid", "arrlen", "repeat"
+    }
+    bif = None
+    if type(expected) == ast.Call and \
+       type(expected.func) == ast.Name and \
+       expected.func.id in bifs:
+        print("  Got:", expected)
+        bif = expected
+        node_type = try_eval(expected.args[0], context)
+        return bif, node_type
+    else:
+        node_type = try_eval(expected, context)
+        return None, node_type
 
 
 def all_yaml_tests(test_dir, exclusions):
@@ -169,7 +209,6 @@ def create_context(r, table_var_names):
     context.update({tbl: r.table(tbl) for tbl in table_var_names})
     return context
 
-
 def tests_and_defs(testfile, raw_test_data, context):
     '''Generator of parsed python tests and definitions.'''
     for test_num, test in enumerate(raw_test_data, 1):
@@ -187,12 +226,13 @@ def tests_and_defs(testfile, raw_test_data, context):
                 define_line = py_str(define)
                 parsed_define = ast.parse(
                     py_str(define), mode="single").body[0]
-                varname, result_type = try_eval(
-                    parsed_define, context, define_line)
+                varname, result_type = try_eval_def(parsed_define, context)
                 yield Def(
-                    line=define_line,
-                    ast=parsed_define,
-                    result_type=result_type,
+                    varname=varname,
+                    term=Term(
+                        line=define_line,
+                        type=result_type,
+                        ast=parsed_define),
                     testfile=testfile,
                     test_num=test_num,
                 )
@@ -203,58 +243,67 @@ def tests_and_defs(testfile, raw_test_data, context):
             continue
 
         expected = py_str(get_python_entry(test))  # ot field
-        try:
-            expected_ast = ast.parse(expected, mode="eval").body
-        except Exception:
-            print("In", testfile, test_num)
-            print("Error translating: ", expected)
-            raise
+        expected_ast = ast.parse(expected, mode="eval").body
+        expected_bif, expected_type = maybe_bif_eval(expected_ast, context)
+        expected_term = Expect(bif=expected_bif,
+                               term=Term(
+                                   ast=expected_ast,
+                                   line=expected,
+                                   type=expected_type))
         if isinstance(pytest, basestring):
             parsed = ast.parse(pytest, mode="single").body[0]
+            result_type = try_eval(parsed, context)
             if type(parsed) == ast.Expr:
                 yield Query(
-                    query_ast=parsed.value,
-                    query_line=pytest,
-                    expected_line=expected,
-                    expected_ast=expected_ast,
-                    runopts=runopts,
+                    query=Term(
+                        ast=parsed.value,
+                        line=pytest,
+                        type=result_type),
+                    expected=expected_term,
                     testfile=testfile,
                     test_num=test_num,
+                    runopts=runopts,
                 )
             elif type(parsed) == ast.Assign:
                 # Second syntax for defines. Surprise, it wasn't a
                 # test at all, because it has an equals sign in it.
-                varname, result_type = try_eval(parsed, context, pytest)
+                varname, result_type = try_eval_def(parsed, context)
                 yield Def(
-                    ast=parsed,
-                    line=pytest,
-                    result_type=result_type,
+                    varname=varname,
+                    term=Term(
+                        ast=parsed,
+                        type=result_type,
+                        line=pytest),
                     testfile=testfile,
                     test_num=test_num,
                 )
         elif type(pytest) is dict and 'cd' in pytest:
             pytestline = py_str(pytest['cd'])
             parsed = ast.parse(pytestline, mode="eval").body
+            result_type = try_eval(parsed, context)
             yield Query(
-                query_ast=parsed,
-                query_line=pytestline,
-                expected_ast=expected_ast,
-                expected_line=expected,
-                runopts=runopts,
+                query=Term(
+                    ast=parsed,
+                    line=pytestline,
+                    type=result_type),
+                expected=expected_term,
                 testfile=testfile,
                 test_num=test_num,
+                runopts=runopts,
             )
         else:
             # unroll subtests
             for subtest in pytest:
                 subtestline = py_str(subtest)
                 parsed = ast.parse(subtestline, mode="eval").body
+                result_type = try_eval(parsed, context)
                 yield Query(
-                    query_ast=parsed,
-                    query_line=subtestline,
-                    expected_ast=expected_ast,
-                    expected_line=expected,
-                    runopts=runopts,
+                    query=Term(
+                        ast=parsed,
+                        line=subtestline,
+                        type=result_type),
+                    expected=expected_term,
                     testfile=testfile,
                     test_num=test_num,
+                    runopts=runopts,
                 )

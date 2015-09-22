@@ -72,10 +72,10 @@ public class ${module_name} {
         <%rendered_something = True %>
         {
             // ${item.testfile} #${item.test_num}
-            // ${item.original_expected_line}
-            Object expected = ${item.java_expected_line};
-            // ${item.original_line}
-            Object obtained = ${item.java_line}
+            // ${item.expected_line.original}
+            ${item.expected_type} expected = ${item.expected_line.java};
+            // ${item.line.original}
+            Object obtained = ${item.line.java}
             %if item.runopts:
                 .run(conn, new OptArgs()
               %for key, val in item.runopts.items():

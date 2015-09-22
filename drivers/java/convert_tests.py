@@ -83,6 +83,10 @@ def parse_args():
         help="Where the common test modules are located",
         default="../../test/common"
     )
+    parser.add_argument(
+        "--test-file",
+        help="Only convert the specified yaml file",
+    )
     return parser.parse_args()
 
 
@@ -96,18 +100,16 @@ def import_python_driver(common_dir):
 
 JavaQuery = namedtuple(
     'JavaQuery',
-    ('original_line',
-     'java_line',
-     'original_expected_line',
-     'java_expected_line',
+    ('line',
+     'expected_bif',
+     'expected_type',
+     'expected_line',
      'testfile',
      'test_num',
      'runopts')
 )
-JavaDef = namedtuple(
-    'JavaDef',
-    'original_line java_line testfile test_num'
-)
+JavaDef = namedtuple('JavaDef', 'line testfile test_num')
+Version = namedtuple("Version", "original java")
 
 
 class TestFile(object):
@@ -160,6 +162,16 @@ class TestFile(object):
             JavaDef=JavaDef,
         )
 
+def py_to_java_type(py_type):
+    '''Converts python types to their Java equivalents'''
+    return {
+        int: 'Integer',
+        float: 'Double',
+        str: 'String',
+        dict: 'Map',
+        list: 'List',
+    }[py_type]
+
 
 def ast_to_java(sequence, reql_vars):
     '''Converts the the parsed test data to java source lines using the
@@ -167,16 +179,22 @@ def ast_to_java(sequence, reql_vars):
     reql_vars = set(reql_vars)
     for item in sequence:
         if isinstance(item, process_polyglot.Def):
-            if is_reql(item.ast.value, reql_vars):
-                reql_vars.add(item.ast.targets[0].id)
+            if is_reql(item.term.type):
+                reql_vars.add(item.varname)
             try:
-                java_line = ValueVisitor(reql_vars).convert(item.ast)
+                if is_reql(item.term.type):
+                    visitor = ReQLVisitor(reql_vars)
+                else:
+                    visitor = JavaVisitor(reql_vars)
+                java_line = visitor.convert(item.term.ast)
             except Skip as skip:
-                yield SkippedTest(line=item.line, reason=str(skip))
+                yield SkippedTest(line=item.term.line, reason=str(skip))
                 continue
             yield JavaDef(
-                original_line=item.line,
-                java_line=java_line,
+                line=Version(
+                    original=item.term.line,
+                    java=java_line,
+                ),
                 testfile=item.testfile,
                 test_num=item.test_num,
             )
@@ -189,17 +207,26 @@ def ast_to_java(sequence, reql_vars):
             else:
                 converted_runopts = item.runopts
             try:
-                java_line = ReQLVisitor(reql_vars).convert(item.query_ast)
-                java_expected_line = ValueVisitor(item.expected_line)\
-                    .convert(item.expected_ast)
+                java_line = ReQLVisitor(reql_vars).convert(item.query.ast)
+                if is_reql(item.expected.term.type):
+                    visitor = ReQLVisitor(reql_vars)
+                else:
+                    visitor = JavaVisitor(reql_vars)
+                java_expected_line = visitor.convert(item.expected.term.ast)
             except Skip as skip:
-                yield SkippedTest(line=item.query_line, reason=str(skip))
+                yield SkippedTest(line=item.query.line, reason=str(skip))
                 continue
             yield JavaQuery(
-                original_line=item.query_line,
-                java_line=java_line,
-                original_expected_line=item.expected_line,
-                java_expected_line=java_expected_line,
+                line=Version(
+                    original=item.query.line,
+                    java=java_line,
+                ),
+                expected_bif=item.expected.bif,
+                expected_type=py_to_java_type(item.expected.term.type),
+                expected_line=Version(
+                    original=item.expected.term.line,
+                    java=java_expected_line,
+                ),
                 testfile=item.testfile,
                 test_num=item.test_num,
                 runopts=converted_runopts,
@@ -208,29 +235,6 @@ def ast_to_java(sequence, reql_vars):
             yield item
         else:
             assert False, "shouldn't happen"
-
-
-def is_reql(node, reql_vars):
-    '''Tries to quickly decide (ignoring many corner cases) if an
-    expression is a ReQL term'''
-    if type(node) == ast.Call:
-        return is_reql(node.func, reql_vars)
-    elif type(node) == ast.Subscript:
-        return is_reql(node.value, reql_vars)
-    elif type(node) == ast.Attribute:
-        return is_reql(node.value, reql_vars)
-    elif type(node) == ast.Name:
-        return node.id in reql_vars
-    elif type(node) == ast.UnaryOp:
-        return is_reql(node.operand, reql_vars)
-    elif type(node) == ast.BinOp:
-        return (is_reql(node.left, reql_vars) or
-                is_reql(node.right, reql_vars))
-    elif type(node) == ast.Compare:
-        return (is_reql(node.left) or
-                any(is_reql(n, reql_vars) for n in node.comparator))
-    else:
-        return False
 
 
 class JavaVisitor(ast.NodeVisitor):
@@ -278,11 +282,10 @@ class JavaVisitor(ast.NodeVisitor):
         raise Unhandled("Don't know what this thing is: " + str(type(node)))
 
     def visit_Assign(self, node):
-        # Check if value is
         if len(node.targets) != 1:
             Unhandled("We only support assigning to one variable")
         if is_reql(node.value, self.reql_vars):
-            self.write("ReqlAst ")
+            self.write("ReqlAst ") # TODO: convert python to java type!
             self.write(node.targets[0].id)
             self.write(" = ")
             ReQLVisitor(self.reql_vars, out=self.out).visit(node.value)
@@ -539,37 +542,6 @@ Partial = namedtuple("Partial", "value")
 Uuid = namedtuple("Uuid", "value")
 Arrlen = namedtuple("Arrlen", "array")
 Repeat = namedtuple("Repeat", "rpt")
-
-
-class ValueVisitor(JavaVisitor):
-    '''Used to find calls to the built in test methods.'''
-
-    BIFS = {
-        "bag": Bag,
-        "err": Err,
-        "partial": Partial,
-        "uuid": Uuid,
-        "arrlen": Arrlen,
-        "repeat": Repeat
-    }
-
-    def visit_Call(self, node):
-        if type(node.func) != ast.Name or node.func.id not in self.BIFS:
-            super(ValueVisitor, self).visit_Call(node)
-        else:
-            self.write(node.func.id)
-            self.write("(")
-            first = True
-            for arg in node.args:
-                if first:
-                    first = False
-                else:
-                    self.write(", ")
-                if is_reql(arg, self.reql_vars):
-                    self.write(ReQLVisitor().convert(arg))
-                else:
-                    self.write(JavaVisitor().convert(arg))
-            self.write(")")
 
 
 if __name__ == '__main__':
