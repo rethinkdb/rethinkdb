@@ -4,13 +4,12 @@
 import os, socket, sys, threading, time
 
 sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common'))
-import rdb_unittest
+import rdb_unittest, utils
 
 class JobsTableTests(rdb_unittest.RdbTestCase):
     '''Tests the artificial `rethinkdb.jobs` table'''
     
     servers = 2
-
     timeout = 20
     
     def test_query(self):
@@ -120,7 +119,7 @@ class JobsTableTests(rdb_unittest.RdbTestCase):
         
         # - generate some records
         
-        self.populateTable(recordsToGenerate=recordsToGenerate, fieldName=fieldName)
+        utils.populateTable(conn=self.conn, table=self.table, records=recordsToGenerate, fieldName=fieldName)
         
         # - create an index
         
@@ -255,6 +254,7 @@ class JobsTableTests(rdb_unittest.RdbTestCase):
             else:
                 self.fail('Timed out after %.1f seconds waiting for backfill to be complete' % self.timeout)
 
+# ===== main
+
 if __name__ == '__main__':
-    import unittest
-    unittest.main()
+    rdb_unittest.main()

@@ -43,9 +43,8 @@ if not os.path.isdir(tester_log_dir): os.mkdir(tester_log_dir)
 
 processes = []
 try:
-    print("Starting %d child processes..." % opts["num_testers"])
-    print("Writing output from child processes to %r" % tester_log_dir)
-
+    print("Starting %d child processes, writing to %r" % (opts["num_testers"], tester_log_dir))
+    
     for id in xrange(opts["num_testers"]):
 
         log_path = os.path.join(tester_log_dir, "%d.txt" % id)
@@ -96,4 +95,4 @@ finally:
         if process.is_alive():
             process.terminate()
 
-print("Done.")
+print("Done with multi_serial_mix.")

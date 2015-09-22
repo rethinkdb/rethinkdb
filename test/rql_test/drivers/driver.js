@@ -59,10 +59,10 @@ function printTestFailure(test, result) {
     			"     EXPECTED:   " + stringValue(test.exp_fun) + "\n" +
     			"     RESULT:     " + stringValue(result));
     if (result.stack) {
-        console.log("     BACKTRACE:\n<<<<<<<<<\n" + result.stack.toString() + "\n>>>>>>>>")
+        console.log("     BACKTRACE:\n<<<<<<<<<\n" + result.stack.toString() + "\n>>>>>>>>>")
     }
     if (result.cmpMsg) {
-        console.log("     RAW RESULT:\n<<<<<<<<<\n" + (result.msg || result.message).replace(/^\s+|\s+$/g, '') + "\n>>>>>>>>")
+        console.log("     RAW RESULT:\n<<<<<<<<<\n" + (result.msg || result.message).replace(/^\s+|\s+$/g, '') + "\n>>>>>>>>>")
     }
     console.log('')
 }

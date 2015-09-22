@@ -77,8 +77,7 @@ class FailoverToSecondary(rdb_unittest.RdbTestCase):
             
         print_with_time("Cleaning up")
 
-# ==== main
+# ===== main
 
 if __name__ == '__main__':
-    import unittest
-    unittest.main(argv=[sys.argv[0]])
+    rdb_unittest.main()

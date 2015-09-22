@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright 2010-2014 RethinkDB, all rights reserved.
+# Copyright 2010-2015 RethinkDB, all rights reserved.
 
 from __future__ import print_function
 
@@ -71,9 +71,7 @@ def run_tests(build=None, data_dir='./'):
 
         print("Starting server with cache_size " + str(settings["cache_size"]) + " MB...", end=' ')
         sys.stdout.flush()
-        serverFiles = driver.Files(server_name=settings["name"], db_path=os.path.join(data_dir, settings["name"]))
-        
-        with driver.Process(files=serverFiles, executable_path=executable_path, extra_options=['--cache-size', str(settings["cache_size"])]) as server:
+        with driver.Process(name=os.path.join(data_dir, settings["name"]), executable_path=executable_path, extra_options=['--cache-size', str(settings["cache_size"])]) as server:
             
             print(" Done.\nConnecting...", end=' ')
             sys.stdout.flush()

@@ -3,16 +3,7 @@
 
 """The `interface.table_reconfigure` test checks that the `table.reconfigure()` method works as expected."""
 
-from __future__ import print_function
-
 import sys, os, time
-
-try:
-    xrange
-except NameError:
-    xrange = range
-
-startTime = time.time()
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, scenario_common, utils, vcoptparse
@@ -26,25 +17,25 @@ dbName, tableName = utils.get_test_db_table()
 
 num_servers = 5
 
-print("Starting cluster of %d servers (%.2fs)" % (num_servers, time.time() - startTime))
+utils.print_with_time("Starting cluster of %d servers" % num_servers)
 with driver.Cluster(output_folder='.') as cluster:
     
-    for i in xrange(1, num_servers+1):
-        driver.Process(cluster=cluster, files="s%d" % i, server_tags=["tag_%d" % i], command_prefix=command_prefix, extra_options=serve_options)
+    for i in range(1, num_servers+1):
+        driver.Process(cluster=cluster, name="s%d" % i, server_tags=["tag_%d" % i], command_prefix=command_prefix, extra_options=serve_options)
     cluster.wait_until_ready()
     cluster.check()
     
-    tag_table = {"default": ["s%d" % (i+1) for i in xrange(num_servers)]}
-    for i in xrange(num_servers):
+    tag_table = {"default": ["s%d" % (i+1) for i in range(num_servers)]}
+    for i in range(num_servers):
         tag_table["tag_%d" % (i+1)] = ["s%d" % (i+1)]
     
     server_names = [server.name for server in cluster]
     
-    print("Establishing ReQl connections (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("Establishing ReQl connections")
     
     conn = r.connect(host=cluster[0].host, port=cluster[0].driver_port)
     
-    print("Creating a table (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("Creating a table")
     
     if dbName not in r.db_list().run(conn):
         r.db_create(dbName).run(conn)
@@ -56,21 +47,20 @@ with driver.Cluster(output_folder='.') as cluster:
     assert res["errors"] == 0
     r.db(dbName).table(tableName).wait().run(conn)
     
-    print("Adding data (%.2fs)" % (time.time() - startTime))
-    
     # Insert some data so distribution queries can work
-    r.db(dbName).table(tableName).insert([{"x":x} for x in xrange(100)]).run(conn)
+    utils.print_with_time("Adding data")
+    utils.populateTable(conn, r.db(dbName).table(tableName), fieldName='x')
     
-    print("Test reconfigure dry_run (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("Test reconfigure dry_run")
     
     # Generate many configurations using `dry_run=True` and check to make sure they
     # satisfy the constraints
     def test_reconfigure(num_shards, num_replicas, primary_replica_tag,
                          nonvoting_replica_tags):
         
-        print("Making configuration num_shards=%d num_replicas=%r primary_replica_tag=%r "
-              "nonvoting_replica_tags=%r (%.2fs)" % (num_shards, num_replicas,
-              primary_replica_tag, nonvoting_replica_tags, time.time() - startTime))
+        utils.print_with_time("Making configuration num_shards=%d num_replicas=%r primary_replica_tag=%r "
+              "nonvoting_replica_tags=%r" % (num_shards, num_replicas,
+              primary_replica_tag, nonvoting_replica_tags))
         res = r.db(dbName).table(tableName).reconfigure(shards=num_shards,
             replicas=num_replicas, primary_replica_tag=primary_replica_tag,
             nonvoting_replica_tags=nonvoting_replica_tags, dry_run=True).run(conn)
@@ -79,7 +69,7 @@ with driver.Cluster(output_folder='.') as cluster:
         assert res["config_changes"][0]["old_val"] == \
             r.db(dbName).table(tableName).config().run(conn)
         new_config = res["config_changes"][0]['new_val']
-        print(new_config)
+        utils.print_with_time(new_config)
 
         # Make sure new config follows all the rules
         assert len(new_config["shards"]) == num_shards
@@ -106,7 +96,7 @@ with driver.Cluster(output_folder='.') as cluster:
                 # The current algorithm will sometimes fail to distribute replicas
                 # evenly. See issue #3028. Since this is a known issue, we just print a
                 # warning instead of failing the test.
-                print("WARNING: unevenly distributed replicas:", usages)
+                utils.print_with_time("WARNING: unevenly distributed replicas:", usages)
 
         return new_config
 
@@ -118,7 +108,7 @@ with driver.Cluster(output_folder='.') as cluster:
     test_reconfigure(1, {"tag_1": 1, "tag_2": 1}, "tag_1", ["tag_2"])
     test_reconfigure(1, {"tag_1": 1}, "tag_1", [])
     
-    print("Test table_create dry_run (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("Test table_create dry_run")
     
     # Test to make sure that `dry_run` is respected; the config should only be stored in
     # the semilattices if `dry_run` is `False`.
@@ -144,26 +134,26 @@ with driver.Cluster(output_folder='.') as cluster:
     assert wet_run_res["status_changes"][0]["old_val"] == status_between
     assert wet_run_res["status_changes"][0]["new_val"] != status_between
     
-    print("Test table_create parameters (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("Test table_create parameters")
     
     # Test that configuration parameters to `table_create()` work
     res = r.db(dbName).table_create("blablabla", replicas=2, shards=8).run(conn)
     assert res["tables_created"] == 1
     conf = r.db(dbName).table("blablabla").config().run(conn)
     assert len(conf["shards"]) == 8
-    for i in xrange(8):
+    for i in range(8):
         assert len(conf["shards"][i]["replicas"]) == 2
     res = r.db(dbName).table_drop("blablabla").run(conn)
     assert res["tables_dropped"] == 1
     
-    print("Test table re-creation preference (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("Test table re-creation preference")
     
     # Test that we prefer servers that held our data before
     for server in server_names:
         res = r.db(dbName).table(tableName).config() \
             .update({"shards": [{"replicas": [server], "primary_replica": server}]}).run(conn)
         assert res["errors"] == 0, repr(res)
-        for i in xrange(10):
+        for i in range(10):
             time.sleep(3)
             if r.db(dbName).table(tableName).status().run(conn)["status"]["all_replicas_ready"]:
                 break
@@ -177,7 +167,7 @@ with driver.Cluster(output_folder='.') as cluster:
     res = r.db(dbName).table_drop(tableName).run(conn)
     assert res["tables_dropped"] == 1
     
-    print("Test table provisioning preference (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("Test table provisioning preference")
     
     # Test that we prefer servers that aren't holding other tables' data. We do this by
     # constructing a table "blocker", which we configure so it uses all but one server;
@@ -191,7 +181,7 @@ with driver.Cluster(output_folder='.') as cluster:
             "primary_replica": [n for n in server_names if n != server][0]
             }]}).run(conn)
         assert res["errors"] == 0, res
-        for i in xrange(10):
+        for i in range(10):
             time.sleep(3)
             if r.db(dbName).table("blocker").status() \
                     .run(conn)["status"]["all_replicas_ready"]:
@@ -205,6 +195,6 @@ with driver.Cluster(output_folder='.') as cluster:
         res = r.db(dbName).table_drop("probe").run(conn)
         assert res["tables_dropped"] == 1
 
-    print("Cleaning up (%.2fs)" % (time.time() - startTime))
-print("Done. (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("Cleaning up")
+utils.print_with_time("Done.")
 

@@ -221,5 +221,4 @@ for feed in [
 # ==== main
 
 if __name__ == '__main__':
-    import unittest
-    unittest.main()
+    rdb_unittest.main()

@@ -1361,8 +1361,8 @@ class WorkerThread(threading.Thread):
         # -- start a new server
         
         if self.server is None:
-            clusterFolder = tempfile.mkdtemp(prefix='cluster-', dir=self.scratchDir)
-            self.server = driver.Process(console_output=True, wait_until_ready=True, output_folder=clusterFolder)
+            clusterFolder = tempfile.mkdtemp(prefix='cluster_', dir=self.scratchDir)
+            self.server = driver.Process(name=clusterFolder, console_output=True, wait_until_ready=True)
         
         # -- check that it is running
         
@@ -1570,7 +1570,7 @@ class WorkerThread(threading.Thread):
                 # - copy the server contents or just the server log
                 if self.server.logfile_path: # in case this is a local server, change for https://github.com/rethinkdb/rethinkdb/issues/4512
                     if copyServerContents:
-                        shutil.copytree(self.server.files.db_path, os.path.join(testOutputDir, 'server'))
+                        shutil.copytree(self.server.data_path, os.path.join(testOutputDir, 'server'))
                         
                         # try to add the server log to the errorDetails
                         try:

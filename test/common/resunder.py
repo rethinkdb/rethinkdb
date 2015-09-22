@@ -1,12 +1,16 @@
 #!/usr/bin/env python
-# Copyright 2010-2012 RethinkDB, all rights reserved.
+# Copyright 2010-2015 RethinkDB, all rights reserved.
 
-import sys, os, time, atexit
-import subprocess
-import socket
-import copy
-import re
+import atexit, copy, logging, os, re, socket, subprocess, sys, time
 from signal import SIGTERM
+
+pidFilePath = '/tmp/resunder-daemon.pid'
+resunderPort = 46594
+
+# setup basic logging
+
+logger = logging.getLogger('resunder')
+logger.setLevel(logging.INFO)
 
 class Daemon:
     """
@@ -110,7 +114,7 @@ class Daemon:
         # Try killing the daemon process
         try:
             # first attempt to shutdown the daemon by issuing a shutdown command
-            conn = socket.create_connection(("localhost", 46594))
+            conn = socket.create_connection(("localhost", resunderPort))
             conn.sendall("shutdown\n")
             conn.close()
             time.sleep(0.2)
@@ -140,7 +144,11 @@ class Daemon:
         """
 
 class ResunderDaemon(Daemon):
+    
+    blocked_ports = None
+    
     def run(self):
+        logger.info('Starting resunder')
         # TODO: keep a dict of blocked sockets and unblock them on shutdown
         listener = socket.socket()
         listener.bind(("localhost", 46594))
@@ -157,55 +165,74 @@ class ResunderDaemon(Daemon):
                     source_port = matches.group(2)
                     dest_port = matches.group(3)
                     if int(source_port) < 10000 or int(source_port) > 65535 or int(dest_port) < 10000 or int(dest_port) > 65535:
-                        print "invalid port specified: " + data
+                        logger.warning("invalid port specified: %r" % data)
                     elif operation == "block":
                         self.block_port(source_port, dest_port)
                     elif operation == "unblock":
                         self.unblock_port(source_port, dest_port)
-                elif data == "shutdown":
-                    while len(self.blocked_ports) > 0:
-                        source_port = next(self.blocked_ports.iterkeys())
-                        ports_to_unblock = copy.deepcopy(self.blocked_ports[source_port])
-                        for dest_port in ports_to_unblock:
-                            self.unblock_port(source_port, dest_port)
-                    return
+                elif data.strip() == "shutdown":
+                    logger.info('Shutting down resunder')
+                    return # atexit handler will take care of cleanup
+                else:
+                    logger.warning('got bad input: %r' % data)
             except socket.timeout:
                 unblock = []
-                for source_port, dest_map in self.blocked_ports.iteritems():
-                    for dest_port, creation_time in dest_map.iteritems():
-                        if creation_time < time.time() - 864000: # find and remove rules older than 10 days
-                            unblock.append((source_port, dest_port))
-                for block in unblock:
-                    self.unblock_port(block[0], block[1])
+                for ports, creation_time in self.blocked_ports:
+                    if creation_time < time.time() - (60 * 60 * 24): # find and remove rules older than 1 day
+                        unblock.append(ports)
+                for source_port, dest_port in unblock:
+                    self.unblock_port(source_port, dest_port)
+                    
+            except Exception as e:
+                logger.error(str(e))
 
     def block_port(self, source_port, dest_port):
-        if source_port not in self.blocked_ports:
-            self.blocked_ports[source_port] = {}
+        if (source_port, dest_port) in self.blocked_ports:
+            logger.debug('asked to block ports that were already on the blocked list: %s <-> %s' % (source_port, dest_port))
+            return
 
-        if dest_port not in self.blocked_ports[source_port]:
-            self.blocked_ports[source_port][dest_port] = time.time()
-            args_out = ["-AOUTPUT", "-ptcp", "--sport", source_port, "--dport", dest_port, "-jDROP"]
-            args_in = ["-AINPUT", "-ptcp", "--sport", dest_port, "--dport", source_port, "-jDROP"]
-            subprocess.check_output(["iptables"] + args_out)
-            subprocess.check_output(["iptables"] + args_in)
-            subprocess.check_output(["ip6tables"] + args_out)
-            subprocess.check_output(["ip6tables"] + args_in)
+        self.blocked_ports[tuple([source_port, dest_port])] = time.time()
+        args_out = ["-AOUTPUT", "-ptcp", "--sport", source_port, "--dport", dest_port, "-jDROP", "-m", "comment", "--comment", "resunder"]
+        args_in = ["-AINPUT", "-ptcp", "--sport", dest_port, "--dport", source_port, "-jDROP", "-m", "comment", "--comment", "resunder"]
+        subprocess.check_output(["iptables"] + args_out)
+        subprocess.check_output(["iptables"] + args_in)
+        subprocess.check_output(["ip6tables"] + args_out)
+        subprocess.check_output(["ip6tables"] + args_in)
+        logger.info('blocked %s <-> %s' % (source_port, dest_port))
 
     def unblock_port(self, source_port, dest_port):
-        if source_port in self.blocked_ports and dest_port in self.blocked_ports[source_port]:
-            del self.blocked_ports[source_port][dest_port]
-            args_out = ["-DOUTPUT", "-ptcp", "--sport", source_port, "--dport", dest_port, "-jDROP"]
-            args_in = ["-DINPUT", "-ptcp", "--sport", dest_port, "--dport", source_port, "-jDROP"]
-            subprocess.check_output(["iptables"] + args_out)
-            subprocess.check_output(["iptables"] + args_in)
-            subprocess.check_output(["ip6tables"] + args_out)
-            subprocess.check_output(["ip6tables"] + args_in)
-
-            if len(self.blocked_ports[source_port]) == 0:
-                del self.blocked_ports[source_port]
+        if not (source_port, dest_port) in self.blocked_ports:
+            logger.debug('asked to unblock ports that were not on the blocked list: %s <-> %s' % (source_port, dest_port))
+            return
+        
+        args_out = ["-DOUTPUT", "-ptcp", "--sport", source_port, "--dport", dest_port, "-jDROP", "-m", "comment", "--comment", "resunder"]
+        args_in = ["-DINPUT", "-ptcp", "--sport", dest_port, "--dport", source_port, "-jDROP", "-m", "comment", "--comment", "resunder"]
+        subprocess.check_output(["iptables"] + args_out)
+        subprocess.check_output(["iptables"] + args_in)
+        subprocess.check_output(["ip6tables"] + args_out)
+        subprocess.check_output(["ip6tables"] + args_in)
+        
+        del self.blocked_ports[tuple([source_port, dest_port])]
+        logger.info('unblocked %s <-> %s' % (source_port, dest_port))
+    
+    def unblock_all(self):
+        # ToDo: unblock all of the iptables entries with the comment "resunder"
+        if not self.blocked_ports:
+            return
+        for source_port, dest_port in self.blocked_ports.keys():
+            self.unblock_port(source_port, dest_port)
 
 if __name__ == "__main__":
-    daemon = ResunderDaemon('/tmp/resunder-daemon.pid')
+    
+    # connect the logger to the log file
+    fileLogger = logging.FileHandler('/var/log/resunder.log')
+    fileLogger.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s'))
+    fileLogger.setLevel(logging.INFO)
+    logger.addHandler(fileLogger) 
+    
+    daemon = ResunderDaemon(pidFilePath)
+    atexit.register(daemon.unblock_all) # ensure cleanup
+    
     if len(sys.argv) == 2:
         if 'start' == sys.argv[1]:
             if os.geteuid() != 0:

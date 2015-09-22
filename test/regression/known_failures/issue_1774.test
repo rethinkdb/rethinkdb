@@ -61,7 +61,7 @@ class WaitForTable(utils.PerformContinuousAction):
 
 # - start filling the table
 
-fillTableProcess = FillTable(connection=r.connect(host=server.host, port=server.driver_port))
+fillTableProcess = FillTable(connection=r.connect(host=server.host, port=server.driver_port), tableName=tableName)
 time.sleep(3) # give it a moment to have something
 
 # - start reading the table
@@ -129,7 +129,7 @@ try:
         allPassed = False
         sys.stderr.write('Failure: The count of records in the table (%d) does not match the number we added (%d)\n' % (actualRecordCount, fillTableProcess.successCount))
     else:
-        print('Success: correct number of records: %d' % actualRecordCount)
+        print('Success: correct number of acknowledged records: %d' % actualRecordCount)
     
     expectedSum = (fillTableProcess.successCount * (fillTableProcess.successCount + 1)) / 2
     actualSum = r.db(dbName).table(tableName).sum('data').run(conn)
@@ -137,7 +137,7 @@ try:
         allPassed = False
         sys.stderr.write('Failure: The sum of the data in the table (%d) does not match the number we expected (%d)\n' % (actualSum, expectedSum))
     else:
-        print('Success: correct sum of records: %d' % expectedSum)
+        print('Success: correct sum of acknowledged records: %d' % expectedSum)
 except Exception as e:
     allPassed = False
     sys.stderr.write('Failure: unable to connect to the table to review data: %s %s' % (e.__class__.__name__, str(e)))

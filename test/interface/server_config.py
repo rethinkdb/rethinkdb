@@ -1,11 +1,7 @@
 #!/usr/bin/env python
-# Copyright 2014 RethinkDB, all rights reserved.
-
-from __future__ import print_function
+# Copyright 2014-2015 RethinkDB, all rights reserved.
 
 import os, sys, time
-
-startTime = time.time()
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, scenario_common, utils, vcoptparse
@@ -17,14 +13,14 @@ _, command_prefix, serve_options = scenario_common.parse_mode_flags(op.parse(sys
 r = utils.import_python_driver()
 dbName, tableName = utils.get_test_db_table()
 
-print("Starting cluster of %d servers (%.2fs)" % (2, time.time() - startTime))
+utils.print_with_time("Starting cluster of 2 servers")
 with driver.Cluster(output_folder='.') as cluster:
 
-    process1 = driver.Process(cluster, files='a', server_tags=["foo"], command_prefix=command_prefix, extra_options=serve_options + ["--cache-size", "auto"])
-    process2 = driver.Process(cluster, files='b', server_tags=["foo", "bar"], command_prefix=command_prefix, extra_options=serve_options + ["--cache-size", "123"])
+    process1 = driver.Process(cluster, name='a', server_tags=["foo"], command_prefix=command_prefix, extra_options=serve_options + ["--cache-size", "auto"])
+    process2 = driver.Process(cluster, name='b', server_tags=["foo", "bar"], command_prefix=command_prefix, extra_options=serve_options + ["--cache-size", "123"])
     cluster.wait_until_ready()
     
-    print("Establishing ReQL connections (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("Establishing ReQL connections")
     
     reql_conn1 = r.connect(process1.host, process1.driver_port)
     reql_conn2 = r.connect(process2.host, process2.driver_port)
@@ -43,12 +39,12 @@ with driver.Cluster(output_folder='.') as cluster:
     
     # == check working with names
     
-    print("Checking initial names (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("Checking initial names")
     check_name(process1.uuid, "a")
     check_name(process2.uuid, "b")
     cluster.check()
 
-    print("Checking changing name locally (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("Checking changing name locally")
     res = r.db("rethinkdb").table("server_config").get(process1.uuid).update({"name": "a2"}).run(reql_conn1)
     assert res["errors"] == 0
     time.sleep(.2)
@@ -56,7 +52,7 @@ with driver.Cluster(output_folder='.') as cluster:
     check_name(process2.uuid, "b")
     cluster.check()
 
-    print("Checking changing name remotely (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("Checking changing name remotely")
     res = r.db("rethinkdb").table("server_config").get(process2.uuid).update({"name": "b2"}).run(reql_conn1)
     assert res["errors"] == 0
     time.sleep(.2)
@@ -64,7 +60,7 @@ with driver.Cluster(output_folder='.') as cluster:
     check_name(process2.uuid, "b2")
     cluster.check()
 
-    print("Checking that name conflicts are rejected (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("Checking that name conflicts are rejected")
     res = r.db("rethinkdb").table("server_config").get(process1.uuid).update({"name": "b2"}).run(reql_conn1)
     assert res["errors"] == 1
     assert "already exists" in res["first_error"]
@@ -75,12 +71,12 @@ with driver.Cluster(output_folder='.') as cluster:
 
     # == check working with tags
 
-    print("Checking initial tags (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("Checking initial tags")
     check_tags(process1.uuid, ["default", "foo"])
     check_tags(process2.uuid, ["default", "foo", "bar"])
     cluster.check()
 
-    print("Checking changing tags locally (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("Checking changing tags locally")
     res = r.db("rethinkdb").table("server_config").get(process1.uuid).update({"tags": ["baz"]}).run(reql_conn1)
     assert res["errors"] == 0
     time.sleep(.2)
@@ -88,7 +84,7 @@ with driver.Cluster(output_folder='.') as cluster:
     check_tags(process2.uuid, ["default", "foo", "bar"])
     cluster.check()
 
-    print("Checking changing tags remotely (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("Checking changing tags remotely")
     res = r.db("rethinkdb").table("server_config").get(process2.uuid).update({"tags": ["quz"]}).run(reql_conn1)
     assert res["errors"] == 0
     time.sleep(.2)
@@ -96,7 +92,7 @@ with driver.Cluster(output_folder='.') as cluster:
     check_tags(process2.uuid, ["quz"])
     cluster.check()
 
-    print("Checking that invalid tags are rejected (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("Checking that invalid tags are rejected")
     res = r.db("rethinkdb").table("server_config").get(process1.uuid).update({"tags": [":-)"]}).run(reql_conn1)
     assert res["errors"] == 1, "It shouldn't be possible to set tags that aren't valid names."
     time.sleep(.2)
@@ -104,7 +100,7 @@ with driver.Cluster(output_folder='.') as cluster:
     check_tags(process2.uuid, ["quz"])
     cluster.check()
 
-    print("Checking initial cache size (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("Checking initial cache size")
     res = r.db("rethinkdb").table("server_config").get(process1.uuid)["cache_size_mb"].run(reql_conn1)
     assert res == "auto", res
     res = r.db("rethinkdb").table("server_config") \
@@ -114,19 +110,19 @@ with driver.Cluster(output_folder='.') as cluster:
            .get(process2.uuid)["process"]["cache_size_mb"].run(reql_conn1)
     assert res == 123, res
 
-    print("Checking that cache size can be changed...")
+    utils.print_with_time("Checking that cache size can be changed...")
     res = r.db("rethinkdb").table("server_config") \
            .get(process2.uuid).update({"cache_size_mb": 234}) \
            .run(reql_conn1)
     assert res["errors"] == 0, res
     res = r.db("rethinkdb").table("server_config") \
            .get(process2.uuid)["cache_size_mb"].run(reql_conn1)
-    assert res == 234
+    assert res == 234, res
     res = r.db("rethinkdb").table("server_status") \
            .get(process2.uuid)["process"]["cache_size_mb"].run(reql_conn1)
     assert res == 234, res
 
-    print("Checking that absurd cache sizes are rejected...")
+    utils.print_with_time("Checking that absurd cache sizes are rejected...")
     def try_bad_cache_size(size, message):
         res = r.db("rethinkdb").table("server_config") \
                .get(process2.uuid).update({"cache_size_mb": r.literal(size)}) \
@@ -144,7 +140,7 @@ with driver.Cluster(output_folder='.') as cluster:
     # different code path and get a different error message.
     try_bad_cache_size(2**100, "wrong format")
 
-    print("Checking that nonsense is rejected...")
+    utils.print_with_time("Checking that nonsense is rejected...")
     res = r.db("rethinkdb").table("server_config") \
            .insert({"name": "hi", "tags": [], "cache_size": 100}).run(reql_conn1)
     assert res["errors"] == 1, res
@@ -163,5 +159,5 @@ with driver.Cluster(output_folder='.') as cluster:
 
     cluster.check_and_stop()
 
-    print("Cleaning up (%.2fs)" % (time.time() - startTime))
-print("Done (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("Cleaning up")
+utils.print_with_time("Done")

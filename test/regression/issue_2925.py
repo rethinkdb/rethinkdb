@@ -1,14 +1,10 @@
 #!/usr/bin/env python
-# Copyright 2014 RethinkDB, all rights reserved.
-
-from __future__ import print_function
+# Copyright 2014-2015 RethinkDB, all rights reserved.
 
 import os, multiprocessing, sys, time
 
-startTime = time.time()
-
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.path.pardir, 'common'))
-import driver, utils, vcoptparse
+import driver, scenario_common, utils, vcoptparse
 
 op = vcoptparse.OptParser()
 scenario_common.prepare_option_parser_mode_flags(op)
@@ -42,9 +38,9 @@ def replace_rows(host, port, ready_event, start_event):
             r.db(dbName).table(tableName).get(i).update({'data': r.random(1, 100)}, non_atomic=True).run(conn)
     except Exception as ex:
         if ex.message != "Connection is closed." and ex.message != "Connection is broken.":
-            print("ERROR: Expected to be interrupted by the connection closing, actual error: %s" % ex.message)
+            utils.print_with_time("ERROR: Expected to be interrupted by the connection closing, actual error: %s" % ex.message)
         return
-    print("ERROR: Was not interrupted while replacing entries.")
+    utils.print_with_time("ERROR: Was not interrupted while replacing entries.")
 
 def delete_rows(host, port, ready_event, start_event):
     conn = r.connect(host, port, db=dbName)
@@ -55,14 +51,15 @@ def delete_rows(host, port, ready_event, start_event):
             r.db(dbName).table(tableName).get(i).delete().run(conn)
     except Exception as ex:
         if ex.message != "Connection is closed." and ex.message != "Connection is broken.":
-            print("ERROR: Expected to be interrupted by the connection closing, actual error: %s" % ex.message)
+            utils.print_with_time("ERROR: Expected to be interrupted by the connection closing, actual error: %s" % ex.message)
         return
-    print("ERROR: Was not interrupted interrupted while deleting entries.")
+    utils.print_with_time("ERROR: Was not interrupted interrupted while deleting entries.")
 
 def check_data(conn):
-    print("Waiting for index...")
+    utils.print_with_time("Waiting for index...")
     r.db(dbName).table(tableName).index_wait('data').run(conn)
-    print("Index ready, checking data...")
+    r.db(dbName).table(tableName).wait().run(conn)
+    utils.print_with_time("Index ready, checking data...")
     pkey_count = r.db(dbName).table(tableName).count().run(conn)
 
     # Actually read out all of the rows from the sindexes in case of corruption
@@ -71,20 +68,17 @@ def check_data(conn):
     rows = list(sindex_cursor)
 
     if len(rows) != pkey_count or pkey_count != sindex_count:
-        print("ERROR: inconsistent row counts between the primary and secondary indexes.")
+        utils.print_with_time("ERROR: inconsistent row counts between the primary and secondary indexes.")
         print("  primary - %d" % pkey_count)
         print("  secondary - %d (%d)" % (sindex_count, len(rows)))
 
-print("Spinning a cluster with one server (%.2fs)" % (time.time() - startTime))
-with driver.Cluster(initial_servers=1, output_folder='.', command_prefix=command_prefix, extra_options=serve_options) as cluster:
-    process = cluster[0]
-    files = process.files
+utils.print_with_time("Spinning a cluster with one server")
+with driver.Process(name='.', command_prefix=command_prefix, extra_options=serve_options) as process:
     
-    print("Establishing ReQL connection (%.2fs)" % (time.time() - startTime))
-    
+    utils.print_with_time("Establishing ReQL connection")
     conn = r.connect(process.host, process.driver_port, db=dbName)
     
-    print("Starting replace/delete processes (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("Starting replace/delete processes")
     
     # Get the replace/delete processes ready ahead of time -
     # Time is critical during the sindex post-construction
@@ -101,14 +95,14 @@ with driver.Cluster(initial_servers=1, output_folder='.', command_prefix=command
     replace_proc.start()
     delete_proc.start()
 
-    print("Creating and populating table (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("Creating and populating table")
     populate_table(conn)
 
-    print("Creating secondary index (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("Creating secondary index")
     add_index(conn)
     conn.close()
 
-    print("Killing the server during a replace/delete workload (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("Killing the server during a replace/delete workload")
     for event in ready_events:
         event.wait()
     start_event.set()
@@ -119,14 +113,14 @@ with driver.Cluster(initial_servers=1, output_folder='.', command_prefix=command
 
     # Restart the process
     time.sleep(1)
-    print("Restarting the server (%.2fs)" % (time.time() - startTime))
-    process = driver.Process(cluster, files)
-    process.wait_until_started_up()
+    utils.print_with_time("Restarting the server")
+    process.start()
+    process.wait_until_ready()
 
     conn = r.connect(process.host, process.driver_port, db=dbName)
     time.sleep(1)
     check_data(conn)
     conn.close()
 
-    print("Cleaning up (%.2fs)" % (time.time() - startTime))
-print("Done. (%.2fs)" % (time.time() - startTime))
+    utils.print_with_time("Cleaning up")
+utils.print_with_time("Done.")

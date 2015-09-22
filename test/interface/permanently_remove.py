@@ -177,7 +177,7 @@ with driver.Cluster(output_folder='.') as cluster:
 
     print("Bringing the dead server back as a ghost (%.2fs)" % (time.time() - startTime))
     ghost_of_king_hamlet = driver.Process(cluster, king_hamlet_files, console_output="king-hamlet-ghost-log", command_prefix=command_prefix)
-    ghost_of_king_hamlet.wait_until_started_up()
+    ghost_of_king_hamlet.wait_until_ready()
     cluster.check()
 
     print("Checking that there is an issue (%.2fs)" % (time.time() - startTime))
