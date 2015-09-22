@@ -17,8 +17,8 @@ bool static_header_check(file_t *file) {
         scoped_aligned_malloc_t<static_header_t> buffer = malloc_aligned<static_header_t>(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
         co_read(file, 0, DEVICE_BLOCK_SIZE, buffer.get(), DEFAULT_DISK_ACCOUNT);
         bool equals = memcmp(buffer.get(), SOFTWARE_NAME_STRING, sizeof(SOFTWARE_NAME_STRING)) == 0;
-		buffer.reset();
-		return equals;
+        buffer.reset();
+        return equals;
     }
 }
 
@@ -42,7 +42,7 @@ void co_static_header_write(file_t *file, void *data, size_t data_size) {
     // most important block in the file!
     co_write(file, 0, DEVICE_BLOCK_SIZE, buffer.get(), DEFAULT_DISK_ACCOUNT, file_t::WRAP_IN_DATASYNCS);
 
-	buffer.reset();
+    buffer.reset();
 }
 
 void co_static_header_write_helper(file_t *file, static_header_write_callback_t *cb, void *data, size_t data_size) {
@@ -74,7 +74,7 @@ void co_static_header_read(file_t *file, static_header_read_callback_t *callback
     memcpy(data_out, buffer->data, data_size);
     callback->on_static_header_read();
     // TODO: free buffer before you call the callback.
-	buffer.reset();
+    buffer.reset();
 }
 
 bool static_header_read(file_t *file, void *data_out, size_t data_size, static_header_read_callback_t *cb) {

@@ -185,7 +185,7 @@ void coro_t::run() {
     coro_t *coro = TLS_get_cglobals()->current_coro;
 
 #ifndef NDEBUG
-#ifndef _WIN32
+#ifndef _WIN32 // TODO ATN
     char dummy;  /* Make sure we're on the right stack. */
     rassert(coro->stack.address_in_stack(&dummy));
 #endif
@@ -454,7 +454,7 @@ void coro_t::grab_spawn_backtrace() {
     void *buffer[buffer_size];
     spawn_backtrace_size = rethinkdb_backtrace(buffer, buffer_size);
     if (spawn_backtrace_size < num_frames_to_skip) {
-#ifndef _WIN32 // TODO ATN
+#ifndef _WIN32 // TODO ATN: this assert seems to get triggered a lot
         // Something is fishy if this happens... Probably RethinkDB was compiled
         // with some optimizations enabled that inlined some functions or
         // optimized away some stack frames, or the value of

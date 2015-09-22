@@ -307,7 +307,7 @@ metadata_file_t::metadata_file_t(
     switch (metadata_version) {
         case superblock_version_t::pre_1_16: {
             crash("This version of RethinkDB cannot migrate in place from databases "
-                "created by versions older than RethinkDB 1.16.");
+                  "created by versions older than RethinkDB 1.16.");
             break;
         }
         case superblock_version_t::from_1_16_to_2_0: {

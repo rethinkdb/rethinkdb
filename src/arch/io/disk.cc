@@ -406,15 +406,8 @@ void verify_aligned_file_access(DEBUG_VAR int64_t file_size, DEBUG_VAR int64_t o
 file_open_result_t open_file(const char *path, const int mode, io_backender_t *backender,
                              scoped_ptr_t<file_t> *out) {
     scoped_fd_t fd;
-#ifdef _WIN32
-    // Construct file flags
 
-    // Let's have a sanity check for our attempt to check whether O_DIRECT and O_NOATIME are
-    // available as preprocessor defines.
-#ifndef O_CREAT
-#error "O_CREAT and other open flags are apparently not defined in the preprocessor."
-#endif
-
+#ifdef _WIN32 // ATN TODO
     DWORD create_mode;
     if (mode & linux_file_t::mode_truncate) {
         create_mode = CREATE_ALWAYS;
@@ -427,13 +420,17 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
     DWORD access_mode = 0;
     if (mode & linux_file_t::mode_write) {
         access_mode |= GENERIC_WRITE;
-    } else if (mode & linux_file_t::mode_read) {
+    }
+    if (mode & linux_file_t::mode_read) {
         access_mode |= GENERIC_READ;
-    } else {
+    }
+    if (access_mode == 0) {
         crash("Bad file access mode.");
     }
 
-    fd.reset(CreateFile(path, access_mode, 0, NULL, create_mode, FILE_ATTRIBUTE_NORMAL, NULL));
+    DWORD share_mode = FILE_SHARE_DELETE;
+
+    fd.reset(CreateFile(path, access_mode, share_mode, NULL, create_mode, FILE_ATTRIBUTE_NORMAL, NULL));
     if (fd.get() == INVALID_FD) {
         return file_open_result_t(file_open_result_t::ERROR, get_errno());
     }
@@ -513,8 +510,8 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
 #elif defined(__APPLE__)
         const int fcntl_res = fcntl(fd.get(), F_NOCACHE, 1);
 #elif defined(_WIN32)
-		// ATN TODO
-		const int fcntl_res = -1;
+        // ATN TODO
+        const int fcntl_res = -1;
 #else
 #error "Figure out how to do direct I/O and fsync correctly (despite your operating system's lies) on your platform."
 #endif  // __linux__, defined(__APPLE__)
@@ -541,6 +538,8 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
         disable_readahead_res = fcntl_res == -1
                                 ? get_errno()
                                 : 0;
+#elif defined(_WIN32)
+        // ATN TODO
 #endif
         if (disable_readahead_res != 0) {
             // Non-critical error. Just print a warning and keep going.

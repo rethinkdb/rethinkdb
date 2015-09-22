@@ -18,11 +18,18 @@ struct io_coroutine_adapter_t : public iocallback_t {
     io_coroutine_adapter_t(HANDLE handle_) : cont(coro_t::self()), handle(handle_) { }
     void on_io_failure(int errsv, int64_t offset, int64_t count) {
         if (handle != INVALID_HANDLE_VALUE) {
+            /*
             const int name_info_size = MAX_PATH + sizeof(FILE_NAME_INFO);
             scoped_malloc_t<FILE_NAME_INFO> name_info(name_info_size);
             BOOL res = GetFileInformationByHandleEx(handle, FileNameInfo, static_cast<void*>(name_info.get()), name_info_size);
             if (res) {
-                logERR("read/write error in file '%s'", name_info->FileName);
+                logERR("read/write error in file '%s'", name_info->FileName); // TODO ATN: the reported file name seems wrong
+            }
+            */
+            char path [MAX_PATH];
+            DWORD res = GetFinalPathNameByHandle(handle, path, sizeof(path), FILE_NAME_OPENED);
+            if (res == NO_ERROR) {
+                logERR("read/write error in file '%s'", path);
             }
         }
         iocallback_t::on_io_failure(errsv, offset, count);

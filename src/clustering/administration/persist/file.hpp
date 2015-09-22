@@ -55,7 +55,7 @@ public:
                 T *value_out,
                 signal_t *interruptor) {
             bool found = false;
-            assert(false, "MSC internal error");
+            crash("ATN TODO: MSC internal error");
 #ifndef _MSC_VER
             read_bin(
                 key.key,
@@ -77,7 +77,7 @@ public:
                 const std::function<void(
                     const std::string &key_suffix, const T &value)> &cb,
                 signal_t *interruptor) {
-            assert(false, "MSC internal error");
+            crash("ATN TODO: MSC internal error");
 #ifndef _MSC_VER
             read_many_bin(
                 key_prefix.key,

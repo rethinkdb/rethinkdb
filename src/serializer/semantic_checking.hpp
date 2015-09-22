@@ -17,7 +17,7 @@
 serializer has the correct semantics. It must have exactly the same API as
 the log serializer. */
 
-//#define SERIALIZER_DEBUG_PRINT 1
+#define SERIALIZER_DEBUG_PRINT 1 // TODO ATN: comment out again
 
 struct scs_block_info_t;
 struct scs_persisted_block_info_t;
