@@ -2010,7 +2010,7 @@ def main():
     
     # -- report final results
     
-    failedTestNames = [test.name for test in failedTests].sort()
+    failedTestNames = sorted([test.name for test in failedTests])
     
     if cancelRun is True:
         print('\n== Canceled after %.2f seconds with %d test%s running. %s test%s passed, %s test%s failed, and %s test%s remaining%s' % (

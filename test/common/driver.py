@@ -299,9 +299,6 @@ class Process(object):
     
     startupTimeout = 30
     
-    running = False
-    ready = False
-    
     server_type = 'server'
     cluster = None
     
@@ -568,14 +565,15 @@ class Process(object):
             
             # - start thread to tail output for needed info
             thread.start_new_thread(self.read_ports_from_log, ())
-            
-            # - move console file if necessary
-            if self._console_file_path and os.path.isfile(self._console_file_path) and not os.path.samefile(self._console_file_path, self.console_file.name):
-                os.rename(self.console_file.name, self._console_file_path)
 
         except Exception:
             self.stop()
             raise
+        
+        finally:
+            # - move console file if necessary
+            if self._console_file_path and not os.path.exists(self._console_file_path):
+                os.rename(self.console_file.name, self._console_file_path)
         
         # -- wait until ready (if requested)
         if wait_until_ready:
