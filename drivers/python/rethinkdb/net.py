@@ -149,6 +149,7 @@ class Cursor(object):
         self.outstanding_requests = 0
         self.threshold = 1
         self.error = None
+        self._json_decoder = self.conn._get_json_decoder(self.query)
 
         self.conn._cursor_cache[self.query.token] = self
 
@@ -178,8 +179,7 @@ class Cursor(object):
         self.outstanding_requests -= 1
         self._maybe_fetch_batch()
 
-        res = Response(self.query.token, res_buf,
-                       self.conn._get_json_decoder(self.query))
+        res = Response(self.query.token, res_buf, self._json_decoder)
         self._extend_internal(res)
 
     def _extend_internal(self, res):
