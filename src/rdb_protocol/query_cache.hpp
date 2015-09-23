@@ -90,9 +90,6 @@ public:
     const_iterator begin() const;
     const_iterator end() const;
 
-    // Interrupt a query by token
-    void terminate_query(int64_t token);
-
     // Helper function used by the jobs table
     ip_and_port_t get_client_addr_port() const { return client_addr_port; }
 
@@ -110,6 +107,13 @@ public:
                       int64_t token,
                       signal_t *interruptor);
 
+    // Issue a stop query to the cache
+    void stop_query(int64_t token);
+
+    // Directly stop a query by its entry
+    void terminate_internal(entry_t *entry);
+
+    enum class interrupt_reason_t { UNKNOWN, STOP, DELETE };
 private:
     struct entry_t {
         entry_t(protob_t<Query> _original_query,
@@ -119,6 +123,7 @@ private:
         ~entry_t();
 
         enum class state_t { START, STREAM, DONE, DELETING } state;
+        interrupt_reason_t interrupt_reason;
 
         const uuid_u job_id;
         const protob_t<Query> original_query;
@@ -146,7 +151,6 @@ private:
         DISABLE_COPYING(entry_t);
     };
 
-    void terminate_internal(entry_t *entry);
     static void async_destroy_entry(entry_t *entry);
 
     rdb_context_t *const rdb_ctx;

@@ -275,7 +275,7 @@ void run(query_id_t &&query_id,
             query_ref->fill_response(res);
         } break;
         case Query_QueryType_STOP: {
-            query_cache->terminate_query(token);
+            query_cache->stop_query(token);
             res->set_type(Response::SUCCESS_SEQUENCE);
         } break;
         case Query_QueryType_NOREPLY_WAIT: {

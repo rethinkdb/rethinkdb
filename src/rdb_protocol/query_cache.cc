@@ -166,11 +166,12 @@ void query_cache_t::noreply_wait(const query_id_t &query_id,
         }, interruptor);
 }
 
-void query_cache_t::terminate_query(int64_t token) {
+void query_cache_t::stop_query(int64_t token) {
     assert_thread();
     auto entry_it = queries.find(token);
     if (entry_it != queries.end()) {
         terminate_internal(entry_it->second.get());
+        entry_it->second->interrupt_reason = interrupt_reason_t::STOP;
     }
 }
 
@@ -258,10 +259,27 @@ void query_cache_t::ref_t::fill_response(Response *res) {
     } catch (const interrupted_exc_t &ex) {
         query_cache->terminate_internal(entry);
         if (entry->persistent_interruptor.is_pulsed()) {
+            std::string message;
+            switch (entry->interrupt_reason) {
+            case interrupt_reason_t::DELETE:
+                message.assign("Query terminated by the `rethinkdb.jobs` table.");
+                break;
+            case interrupt_reason_t::STOP:
+                // A STOP'ed stream should always return an empty SUCCESS
+                // for compatibility purposes
+                res->Clear();
+                res->set_type(Response::SUCCESS_SEQUENCE);
+                return;
+            case interrupt_reason_t::UNKNOWN:
+                message.assign("Query terminated by an unknown cause.");
+                break;
+            default: unreachable();
+            }
+
             throw bt_exc_t(
                 Response::RUNTIME_ERROR,
                 Response::OP_INDETERMINATE,
-                "Query terminated by the `rethinkdb.jobs` table.",
+                message,
                 backtrace_registry_t::EMPTY_BACKTRACE);
         }
         throw;
@@ -399,6 +417,7 @@ query_cache_t::entry_t::entry_t(protob_t<Query> _original_query,
                                 std::map<std::string, wire_func_t> &&_global_optargs,
                                 counted_t<const term_t> _root_term) :
         state(state_t::START),
+        interrupt_reason(interrupt_reason_t::UNKNOWN),
         job_id(generate_uuid()),
         original_query(_original_query),
         bt_reg(std::move(_bt_reg)),

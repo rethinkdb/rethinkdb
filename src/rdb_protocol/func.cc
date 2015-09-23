@@ -108,11 +108,6 @@ scoped_ptr_t<val_t> js_func_t::call(
             rfail(base_exc_t::INTERNAL,
                   "Javascript query `%s` caused a crash in a worker process.",
                   js_source.c_str());
-        } catch (const interrupted_exc_t &e) {
-            rfail(base_exc_t::LOGIC,
-                  "JavaScript query `%s` timed out after "
-                  "%" PRIu64 ".%03" PRIu64 " seconds.",
-                  js_source.c_str(), js_timeout_ms / 1000, js_timeout_ms % 1000);
         }
 
         return scoped_ptr_t<val_t>(
