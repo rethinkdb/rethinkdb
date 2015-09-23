@@ -27,7 +27,7 @@ bool artificial_table_backend_t::read_all_rows_as_stream(
             ql::datum_t key = row.get_field(primary_key.c_str(), ql::NOTHROW);
             guarantee(key.has());
             for (size_t i = 0; i < datumspec.copies(key); ++i) {
-                filter_rows.push_back(std::move(row));
+                filter_rows.push_back(row);
             }
         }
         rows = std::move(filter_rows);

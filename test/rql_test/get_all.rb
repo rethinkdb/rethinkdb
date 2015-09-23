@@ -11,13 +11,40 @@ def to_truncated(i)
 end
 
 r.table_create('test').run rescue nil
+# Note that for the simple table there's no oversharding because we
+# use integer keys, and for the hard table there is because we use
+# UUID keys.
+r.table('test').reconfigure(replicas: 1, shards: 2).run
+r.table('test').wait.run
 indexes = ['a', 'val', 'truncated', 'collision', 'truncated_collision']
 indexes.each {|index|
   r.table('test').index_create(index).run rescue nil
 }
 
+short_keys = [10, 20, -1, -1, 3, 3, 4, 3]
+long_keys = (0...100).map{|i| (i-10)*2}*2
+
 [{max_batch_rows: 10}, {}].each {|runopts|
   puts "----- Testing with runopts #{runopts} -----";
+
+  puts "-- Setting up artificial table..."
+  rows = (0...100).map{|i| {id: i}}
+  res = r.db('rethinkdb').table('_debug_scratch').delete.run(runopts)
+  res = r.db('rethinkdb').table('_debug_scratch').insert(rows).run(runopts)
+  raise "Insert failed." if res['inserted'] != 100
+  puts "Testing between..."
+  res = r.db('rethinkdb').table('_debug_scratch').between(10, 50).run(runopts)
+  raise "Between failed." if res.count != 40
+  res = r.db('rethinkdb').table('_debug_scratch').
+          order_by(index: 'id').between(10, 50).run(runopts)
+  raise "Ordered between failed." if res.count != 40
+  res = r.db('rethinkdb').table('_debug_scratch').
+          order_by(index: r.desc('id')).between(10, 50).run(runopts)
+  raise "Ordered between failed." if res.count != 40
+  puts "Testing get_all..."
+  res = r.db('rethinkdb').table('_debug_scratch').get_all(*short_keys).run(runopts)
+  raise "Short get_all failed." if res.count != 6
+
 
   puts "-- Setting up simple table..."
   r.table('test').delete.run(runopts)
@@ -50,13 +77,11 @@ indexes.each {|index|
   raise "Descending sindex retrieve failed." if res.count != 300
 
   puts "Testing get_all..."
-  # RSI: this is broken because of the way we're doing region calculations.
-  res = r.table('test').get_all(10, 20, -1, 3, 3, 4, 3).run(runopts)
+  res = r.table('test').get_all(*short_keys).run(runopts)
   raise "Short get_all failed." if res.to_a.count != 6
-  res = r.table('test').get_all(10, 20, -1, 3, 3, 4, 3, index: 'a').run(runopts)
+  res = r.table('test').get_all(*short_keys, index: 'a').run(runopts)
   raise "Short indexed get_all failed." if res.to_a.count != 6
-  keys = ((0...100).map{|i| (i - 10)*2}*2).reverse
-  res = r.table('test').get_all(*keys).run(runopts)
+  res = r.table('test').get_all(*long_keys).run(runopts)
   raise "Long get_all failed." if res.to_a.count != 180
   res = r.table('test').get_all(*keys, index: 'a').run(runopts)
   raise "Long indexed get_all failed." if res.to_a.count != 180
@@ -65,9 +90,10 @@ indexes.each {|index|
 
   puts "-- Setting up hard table..."
   r.table('test').delete.run(runopts)
-  # RSI: multi
-  # RSI: oversharding
-  # RSI: artificial feeds
+  # TODO in the future:
+  # * Multi-indexes (those follow the same code path but it would be
+  #   good to test htem explicitly just for completeness).
+  # * A mix of truncated and non-truncated keys in one index.
   input = (0...1000).map {|i|
     {
       val: i,
@@ -111,10 +137,25 @@ indexes.each {|index|
   raise "Descending retrieve failed (truncated_collision)." if res.count != 300
 
   puts "Testing get_all..."
-  short_keys = [10, 20, -1, 3, 3, 4, 3]
   res = r.table('test').get_all(*short_keys.map{|x| to_truncated(x)},
                                 index: 'truncated').run(runopts)
-  raise "Get all failed." if res.to_a.count != 6
+  raise "Short truncated get_all failed." if res.to_a.count != 6
+  res = r.table('test').get_all(*long_keys.map{|x| to_truncated(x)},
+                                index: 'truncated').run(runopts)
+  raise "Long truncated get_all failed." if res.to_a.count != 180
+  def trans(x)
+    legal = x.select{|x| x >= 0};
+    illegal = x.select{|x| x < 0};
+    legal.map{|x| x % 10} + illegal;
+  end
+  # We don't test long keys here because we have to scan the whole
+  # table for these truncated keys so it would take forever.
+  res = r.table('test').get_all(*trans(short_keys),
+                                index: 'collision').run(runopts)
+  raise "Short collision get_all failed." if res.to_a.count != 600
+  res = r.table('test').get_all(*trans(short_keys).map{|x| to_truncated(x)},
+                                index: 'truncated_collision').run(runopts)
+  raise "Short truncated collision get_all failed." if res.to_a.count != 600
 
 }
 puts "Done!"
