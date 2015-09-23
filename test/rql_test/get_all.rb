@@ -24,7 +24,7 @@ indexes.each {|index|
 short_keys = [10, 20, -1, -1, 3, 3, 4, 3]
 long_keys = (0...100).map{|i| (i-10)*2}*2
 
-[{max_batch_rows: 10}, {}].each {|runopts|
+[{max_batch_rows: 1}, {max_batch_rows: 10}, {max_batch_rows: 100}, {}].each {|runopts|
   puts "----- Testing with runopts #{runopts} -----";
 
   puts "-- Setting up artificial table..."
