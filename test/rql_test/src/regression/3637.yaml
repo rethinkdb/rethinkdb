@@ -23,18 +23,18 @@ tests:
 
   # Because I don't trust our test framework, test against a JSON string
   - cd: tbl.get(0.0).pluck('id').to_json_string()
-    ot: "'{\"id\":0}'"
+    ot: '{"id":0}'
 
   - cd: tbl.get(-0.0).pluck('id').to_json_string()
     js: tbl.get(r.json('-0.0')).pluck('id').to_json_string()
-    ot: "'{\"id\":0}'"
+    ot: '{"id":0}'
 
   - cd: tbl.get([1, 0.0]).pluck('id').to_json_string()
-    ot: "'{\"id\":[1,-0.0]}'"
+    ot: '{"id":[1,-0.0]}'
 
   - cd: tbl.get([1, -0.0]).pluck('id').to_json_string()
     js: tbl.get([1, r.json('-0.0')]).pluck('id').to_json_string()
-    ot: "'{\"id\":[1,-0.0]}'"
+    ot: '{"id":[1,-0.0]}'
 
   # Test inserting a duplicate
   - cd:

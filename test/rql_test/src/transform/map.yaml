@@ -4,17 +4,17 @@ tests:
     - js: r.range().map(r.range(), function(x, y){return [x, y]}).type_of()
       py: r.range().map(r.range(), lambda x, y:(x, y)).type_of()
       rb: r.range().map(r.range()){|x, y| [x, y]}.type_of()
-      ot: "'STREAM'"
+      ot: 'STREAM'
 
     - js: r.range().map(r.expr([]), function(x, y){return [x, y]}).type_of()
       py: r.range().map(r.expr([]), lambda x, y:(x, y)).type_of()
       rb: r.range().map(r.expr([])){|x, y| [x, y]}.type_of()
-      ot: "'STREAM'"
+      ot: 'STREAM'
 
     - js: r.expr([]).map(r.expr([]), function(x, y){return [x, y]}).type_of()
       py: r.expr([]).map(r.expr([]), lambda x, y:(x, y)).type_of()
       rb: r.expr([]).map(r.expr([])){|x, y| [x, y]}.type_of()
-      ot: "'ARRAY'"
+      ot: 'ARRAY'
 
     # Arity
     - js: r.range(3).map(function(){return 0})

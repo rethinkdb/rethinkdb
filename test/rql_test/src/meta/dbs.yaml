@@ -21,7 +21,7 @@ tests:
     ## DB config
 
     - cd: r.db('a').config()
-      ot: {'name':'a','uuid':uuid()}
+      ot: {'name':'a','id':uuid()}
 
     ## DB drop
 

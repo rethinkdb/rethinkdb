@@ -1,16 +1,8 @@
 desc: Tests that manipulation data in tables
-table_variable_name: tbl
+table_variable_name: tbl tbl2 tbl3
 tests:
 
-    # Set up some more tables
-    - cd: r.db('test').table_create('test2')
-      ot: partial({'tables_created':1})
-      def: tbl2 = r.db('test').table('test2')
-
-    - cd: r.db('test').table_create('test3')
-      ot: partial({'tables_created':1})
-      def: tbl3 = r.db('test').table('test3')
-
+    # Set up tables
     - py: tbl.insert([{'id':i, 'a':i%4} for i in xrange(100)])
       js: |
         tbl.insert(function(){
@@ -37,7 +29,7 @@ tests:
 
     # Table type
     - cd: tbl.type_of()
-      ot: "'TABLE'"
+      ot: 'TABLE'
 
     # Missing db case
     - cd: r.db('missing').table('bar')
@@ -57,44 +49,31 @@ tests:
       ot: ({'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':1})
 
     # make sure we can query json docs by arbitrary unicode attrs
-    - js:
+    - cd:
         cd: tbl3.get('Здравствуй')
-        ot: ({'id':'Здравствуй','value':'Земля!'})
-      rb:
-        cd: tbl3.get('Здравствуй')
-        ot: ({:id=>'Здравствуй',:value=>'Земля!'})
-      py:
-        cd: tbl3.get(u'Здравствуй')
-        ot: ({u'id':u'Здравствуй',u'value':u'Земля!'})
-      py3.0:
-        cd: tbl3.get('Здравствуй')
-        ot: ({'id':'Здравствуй','value':'Земля!'})
-      py3.1:
-        cd: tbl3.get('Здравствуй')
-        ot: ({'id':'Здравствуй','value':'Земля!'})
-      py3.2:
-        cd: tbl3.get('Здравствуй')
-        ot: ({'id':'Здравствуй','value':'Земля!'})
+        py: tbl3.get(u'Здравствуй')
+        py3.0: tbl3.get('Здравствуй')
+        py3.1: tbl3.get('Здравствуй')
+        py3.2: tbl3.get('Здравствуй')
+      ot:
+        cd: {'id':'Здравствуй','value':'Земля!'}
+        py: {u'id':u'Здравствуй',u'value':u'Земля!'}
+        py3.0: {'id':'Здравствуй','value':'Земля!'}
+        py3.1: {'id':'Здравствуй','value':'Земля!'}
+        py3.2: {'id':'Здравствуй','value':'Земля!'}
 
-    - js:
+    - cd:
         cd: tbl3.filter({'value':'Земля!'})
-        ot: "[{'id':'Здравствуй','value':'Земля!'}]"
-      py:
-        cd: tbl3.filter({'value':u'Земля!'})
-        ot: "[{u'id':u'Здравствуй',u'value':u'Земля!'}]"
-      py3.0:
-        cd: tbl3.filter({'value':'Земля!'})
-        ot: "[{'id':'Здравствуй','value':'Земля!'}]"
-      py3.1:
-        cd: tbl3.filter({'value':'Земля!'})
-        ot: "[{'id':'Здравствуй','value':'Земля!'}]"
-      py3.2:
-        cd: tbl3.filter({'value':'Земля!'})
-        ot: "[{'id':'Здравствуй','value':'Земля!'}]"
-      rb:
-        cd: tbl3.filter({:value=>'Земля!'})
-        ot: "[{:id=>'Здравствуй',:value=>'Земля!'}]"
-
+        py: tbl3.filter({'value':u'Земля!'})
+        py3.0: tbl3.filter({'value':'Земля!'})
+        py3.1: tbl3.filter({'value':'Земля!'})
+        py3.2: tbl3.filter({'value':'Земля!'})
+      ot:
+        cd: [{'id':'Здравствуй','value':'Земля!'}]
+        py: [{u'id':u'Здравствуй',u'value':u'Земля!'}]
+        py3.0: [{'id':'Здравствуй','value':'Земля!'}]
+        py3.1: [{'id':'Здравствуй','value':'Земля!'}]
+        py3.2: [{'id':'Здравствуй','value':'Земля!'}]
 
     # db and table name validation
     - cd: r.db('%')
@@ -106,63 +85,39 @@ tests:
     # Access a table from default db
     - cd: tbl.count()
       ot: 100
-
+    
     # Access a table using different read modes
+    - def: tbl2Name = tbl2.info().get_field('name')
+    - def: tbl2DbName = tbl2.info().get_field('db').get_field('name')
+    
     - py:
-        - r.table('test2', read_mode='outdated').count()
-        - r.table('test2', read_mode='single').count()
-        - r.table('test2', read_mode='majority').count()
-        - r.db('test').table('test2', read_mode='outdated').count()
-        - r.db('test').table('test2', read_mode='single').count()
-        - r.db('test').table('test2', read_mode='majority').count()
+        - r.db(tbl2DbName).table(tbl2Name, read_mode='outdated').count()
+        - r.db(tbl2DbName).table(tbl2Name, read_mode='single').count()
+        - r.db(tbl2DbName).table(tbl2Name, read_mode='majority').count()
       js:
-        - r.table('test2', {readMode:'outdated'}).count()
-        - r.table('test2', {readMode:'single'}).count()
-        - r.table('test2', {readMode:'majority'}).count()
-        - r.db('test').table('test2', {readMode:'outdated'}).count()
-        - r.db('test').table('test2', {readMode:'single'}).count()
-        - r.db('test').table('test2', {readMode:'majority'}).count()
+        - r.db(tbl2DbName).table(tbl2Name, {readMode:'outdated'}).count()
+        - r.db(tbl2DbName).table(tbl2Name, {readMode:'single'}).count()
+        - r.db(tbl2DbName).table(tbl2Name, {readMode:'majority'}).count()
       rb:
-        - r.table('test2', {:read_mode => 'outdated'}).count()
-        - r.table('test2', {:read_mode => 'single'}).count()
-        - r.table('test2', {:read_mode => 'majority'}).count()
-        - r.db('test').table('test2', {:read_mode => 'outdated'}).count()
-        - r.db('test').table('test2', {:read_mode => 'single'}).count()
-        - r.db('test').table('test2', {:read_mode => 'majority'}).count()
+        - r.db(tbl2DbName).table(tbl2Name, {:read_mode => 'outdated'}).count()
+        - r.db(tbl2DbName).table(tbl2Name, {:read_mode => 'single'}).count()
+        - r.db(tbl2DbName).table(tbl2Name, {:read_mode => 'majority'}).count()
       ot: 100
 
     # Access a table with an invalid read mode
-    - py:
-        - r.table('test2', read_mode=null).count()
-        - r.db('test').table('test2', read_mode=null).count()
-      js:
-        - r.table('test2', {readMode:null}).count()
-        - r.db('test').table('test2', {readMode:null}).count()
-      rb:
-        - r.table('test2', {:read_mode => null}).count()
-        - r.db('test').table('test2', {:read_mode => null}).count()
+    - py: r.db(tbl2DbName).table(tbl2Name, read_mode=null).count()
+      js: r.db(tbl2DbName).table(tbl2Name, {readMode:null}).count()
+      rb: r.db(tbl2DbName).table(tbl2Name, {:read_mode => null}).count()
       ot: err("ReqlNonExistenceError", 'Expected type STRING but found NULL.')
 
-    - py:
-        - r.table('test2', read_mode=false).count()
-        - r.db('test').table('test2', read_mode=true).count()
-      js:
-        - r.table('test2', {readMode:true}).count()
-        - r.db('test').table('test2', {readMode:false}).count()
-      rb:
-        - r.table('test2', {:read_mode => false}).count()
-        - r.db('test').table('test2', {:read_mode => true}).count()
+    - py: r.db(tbl2DbName).table(tbl2Name, read_mode=true).count()
+      js: r.db(tbl2DbName).table(tbl2Name, {readMode:false}).count()
+      rb: r.db(tbl2DbName).table(tbl2Name, {:read_mode => true}).count()
       ot: err("ReqlQueryLogicError", 'Expected type STRING but found BOOL.')
 
-    - py:
-        - r.table('test2', read_mode='fake').count()
-        - r.db('test').table('test2', read_mode='fake').count()
-      js:
-        - r.table('test2', {readMode:'fake'}).count()
-        - r.db('test').table('test2', {readMode:'fake'}).count()
-      rb:
-        - r.table('test2', {:read_mode => 'fake'}).count()
-        - r.db('test').table('test2', {:read_mode => 'fake'}).count()
+    - py: r.db(tbl2DbName).table(tbl2Name, read_mode='fake').count()
+      js: r.db(tbl2DbName).table(tbl2Name, {readMode:'fake'}).count()
+      rb: r.db(tbl2DbName).table(tbl2Name, {:read_mode => 'fake'}).count()
       ot: err("ReqlQueryLogicError", 'Read mode `fake` unrecognized (options are "majority", "single", and "outdated").')
 
     - cd: tbl.get(20).count()
@@ -170,11 +125,11 @@ tests:
 
     # Get a document that exists
     - cd: tbl.get(20)
-      ot: ({'id':20,'a':0})
+      ot: {'id':20,'a':0}
 
     # Get a document that doesn't exist
     - cd: tbl.get(2000)
-      ot: (null)
+      ot: null
 
     # Make sure get only takes one arg (since we used to be able to pass id)
     - cd: tbl.get()
@@ -191,29 +146,29 @@ tests:
       def: tblpkey = r.db('test').table('testpkey')
 
     - cd: tblpkey.insert({'foo':10,'a':10})
-      ot: ({'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':1})
+      ot: {'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':1}
 
     # get for table where id isn't a primary key
     - cd: tblpkey.get(10)
-      ot: ({'foo':10,'a':10})
+      ot: {'foo':10,'a':10}
 
     # Between
     - cd: tbl.between(1, 2).type_of()
-      ot: "'TABLE_SLICE'"
+      ot: 'TABLE_SLICE'
     - py: tbl.between(1, 2, index='id').type_of()
       js: tbl.between(1, 2, {'index':'id'}).typeOf()
       rb: tbl.between(1, 2, :index => 'id').type_of()
-      ot: "'TABLE_SLICE'"
+      ot: 'TABLE_SLICE'
     - py: tbl.between(1, 1, right_bound='closed').type_of()
       js: tbl.between(1, 1, {'right_bound':'closed'}).typeOf()
       rb: tbl.between(1, 1, :right_bound => 'closed').type_of()
-      ot: "'TABLE_SLICE'"
+      ot: 'TABLE_SLICE'
     - cd: tbl.between(2, 1).type_of()
-      ot: "'TABLE_SLICE'"
+      ot: 'TABLE_SLICE'
     - py: tbl.between(2, 1, index='id').type_of()
       js: tbl.between(2, 1, {'index':'id'}).typeOf()
       rb: tbl.between(2, 1, :index => 'id').type_of()
-      ot: "'TABLE_SLICE'"
+      ot: 'TABLE_SLICE'
 
     - cd: tbl.between(20, 29).count()
       ot: 9
@@ -305,7 +260,7 @@ tests:
       ot: 25
 
     # test not returning a boolean
-    - py: "tbl.filter(lambda row: 1).count()"
+    - py: tbl.filter(lambda row: 1).count()
       js: tbl.filter(function(row) { return 1; }).count()
       rb: tbl.filter{ |row| 1 }.count
       ot: 100
@@ -317,26 +272,23 @@ tests:
       ot: [4, 5]
 
     # test nesting (and r.rows(s))
-    - def: nested=r.expr([[1, 2], [3, 4], [5, 6]])
+    - def: nested = r.expr([[1, 2], [3, 4], [5, 6]])
 
-    - py: "nested.filter(lambda x: x.filter(lambda y: y >= 4).count() > 0)"
+    - py: nested.filter(lambda x: x.filter(lambda y: y >= 4).count() > 0)
       js: nested.filter(function (x) { return x.filter(function (y) { return y.ge(4); }).count().gt(0) })
       rb: nested.filter{ |x| x.filter{ |y| y >= 4}.count > 0 }
-      ot: ([[3, 4], [5, 6]])
+      ot: [[3, 4], [5, 6]]
 
-    - py: "nested.filter(r.row.filter(lambda y: y >= 4).count() > 0)"
+    - py: nested.filter(r.row.filter(lambda y: y >= 4).count() > 0)
       js: nested.filter(r.row.filter(function(y) { return y.ge(4) }).count().gt(0))
-      rb: []
       ot: ([[3, 4], [5, 6]])
 
-    - py: "nested.filter(lambda x: x.filter(r.row >= 4).count() > 0)"
+    - py: nested.filter(lambda x: x.filter(r.row >= 4).count() > 0)
       js: nested.filter(function (x) { return x.filter(r.row.ge(4)).count().gt(0) })
-      rb: []
       ot: err("ReqlCompileError", 'Cannot use r.row in nested queries.  Use functions instead.', [0])
 
-    - py: "r.expr([[1, 2], [3, 4], [5, 6]]).filter(r.row.filter(r.row >= 4).count() > 0)"
+    - py: r.expr([[1, 2], [3, 4], [5, 6]]).filter(r.row.filter(r.row >= 4).count() > 0)
       js: nested.filter(r.row.filter(r.row.ge(4)).count().gt(0))
-      rb: []
       ot: err("ReqlCompileError", 'Cannot use r.row in nested queries.  Use functions instead.', [0])
 
     # test static value syntax for filter (make sure r.row in it works)
@@ -347,9 +299,9 @@ tests:
       ot: [{'a':1,'b':1,'c':3},{'a':1,'b':2,'c':3}]
 
     # test static value syntax for filter with r.row
-    - py: r.expr([{'a':1,'b':1,'c':3},{'a':1,'b':2,'c':3}]).filter({'a':r.row['b']})
+    - cd: r.expr([{'a':1,'b':1,'c':3},{'a':1,'b':2,'c':3}]).filter({'a':r.row['b']})
       js: r.expr([{'a':1,'b':1,'c':3},{'a':1,'b':2,'c':3}]).filter({'a':r.row('b')})
-      rb: []
+      rb: # r.row not supported
       ot: [{'a':1,'b':1,'c':3}]
 
     # test filtering for things by a missing attribute
@@ -359,7 +311,7 @@ tests:
     # Count with parameter
     - js: tbl.count(function(){ return {'a':1}; })
       rb: tbl.count{ |row| {:a => 1} }
-      py: "tbl.count(lambda row: {'a':1})"
+      py: tbl.count(lambda row: {'a':1})
       ot: 25
 
     - js: tbl.count({'a':1})
@@ -378,9 +330,5 @@ tests:
       ot: err('ReqlQueryLogicError', 'Expected type DATUM but found TABLE:', [0])
 
     - cd: tbl.has_fields('field').type_of()
-      ot: ("SELECTION<STREAM>")
+      ot: "SELECTION<STREAM>"
 
-    # Clean up
-    - cd: r.expr(['test2','test3','testpkey']).for_each(r.db('test').table_drop(r.row))
-      rb: r.expr(['test2','test3','testpkey']).for_each{ |row| r.db('test').table_drop(row) }
-      ot: partial({'tables_dropped':3})
