@@ -1277,7 +1277,7 @@ private:
     // Used to block on more changes.  NULL unless we're waiting.
     cond_t *cond;
     cond_t *queue_nearly_full_cond;
-    auto_drainer_t drainer;
+    virtual auto_drainer_t *get_drainer() = 0;
     DISABLE_COPYING(subscription_t);
 };
 
@@ -1707,6 +1707,9 @@ private:
     bool started;
     state_t state, sent_state;
     bool include_initial_vals;
+
+    auto_drainer_t *get_drainer() final { return &drainer; }
+    auto_drainer_t drainer;
 };
 
 // This gets around some class ordering issues; `range_sub_t` needs to know how
@@ -1899,6 +1902,8 @@ private:
     state_t state, sent_state;
     std::vector<datum_t> artificial_initial_vals;
     bool artificial_include_initial_vals;
+
+    auto_drainer_t *get_drainer() final { return &drainer; }
     auto_drainer_t drainer;
 };
 
@@ -2210,6 +2215,9 @@ public:
         queued_changes;
     std::vector<server_t::limit_addr_t> stop_addrs;
     bool include_initial_vals;
+
+    auto_drainer_t *get_drainer() final { return &drainer; }
+    auto_drainer_t drainer;
 };
 
 void real_feed_t::stop_limit_sub(limit_sub_t *sub) {
@@ -2601,7 +2609,7 @@ subscription_t::get_els(batcher_t *batcher,
                         const signal_t *interruptor) {
     assert_thread();
     guarantee(cond == NULL); // Can't get while blocking.
-    auto_drainer_t::lock_t lock(&drainer);
+    auto_drainer_t::lock_t lock(get_drainer());
 
     std::vector<datum_t> ret;
 
