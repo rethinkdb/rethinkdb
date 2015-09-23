@@ -5,16 +5,16 @@
 // TODO ATN
 
 void open_console() {
-	AllocConsole();
-	freopen("conin$", "r", stdin);
-	freopen("conout$", "w", stdout);
-	freopen("conout$", "w", stderr);
+    AllocConsole();
+    freopen("conin$", "r", stdin);
+    freopen("conout$", "w", stdout);
+    freopen("conout$", "w", stderr);
 }
 
 void close_console() {
-	printf("Press return to exit...");
-	fflush(stdout);
-	getchar();
+    printf("Press return to exit...");
+    fflush(stdout);
+    getchar();
 }
 
 // TODO ATN
@@ -31,7 +31,6 @@ int main(int argc, char **argv) {
     printf("Starting RethinkDB unittest main.\n");
     startup_shutdown_t startup_shutdown;
     //open_console();
-    //defer_t defer(close_console);
     setvbuf(stderr, nullptr, _IONBF, 0);
 
     // TODO ATN
@@ -40,5 +39,7 @@ int main(int argc, char **argv) {
     SetConsoleCtrlHandler(unittest_ctrl_c, true);
     ::testing::InitGoogleTest(&argc, argv);
     printf("Running tests\n");
-    return RUN_ALL_TESTS();
+    int ret = RUN_ALL_TESTS();
+    // close_console(); // TODO ATN
+    return ret;
 }

@@ -78,6 +78,6 @@ void co_static_header_read(file_t *file, static_header_read_callback_t *callback
 }
 
 bool static_header_read(file_t *file, void *data_out, size_t data_size, static_header_read_callback_t *cb) {
-    coro_t::spawn_later_ordered(boost::bind(co_static_header_read, file, cb, data_out, data_size));
+     coro_t::spawn_later_ordered(boost::bind(co_static_header_read, file, cb, data_out, data_size));
     return false;
 }

@@ -55,8 +55,6 @@ public:
                 T *value_out,
                 signal_t *interruptor) {
             bool found = false;
-            crash("ATN TODO: MSC internal error");
-#ifndef _MSC_VER
             read_bin(
                 key.key,
                 [&](read_stream_t *bin_value) {
@@ -67,7 +65,6 @@ public:
                     found = true;
                 },
                 interruptor);
-#endif
             return found;
         }
 
@@ -77,8 +74,6 @@ public:
                 const std::function<void(
                     const std::string &key_suffix, const T &value)> &cb,
                 signal_t *interruptor) {
-            crash("ATN TODO: MSC internal error");
-#ifndef _MSC_VER
             read_many_bin(
                 key_prefix.key,
                 [&](const std::string &key_suffix, read_stream_t *bin_value) {
@@ -91,7 +86,6 @@ public:
                     cb(key_suffix, value);
                 },
                 interruptor);
-#endif
         }
 
     private:

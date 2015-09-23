@@ -16,7 +16,7 @@ typedef int uid_t;
 typedef DWORD pid_t;
 
 inline ssize_t pread(HANDLE h, void* buf, size_t count, off_t offset) {
-    DWORD res = SetFilePointer(h, count, NULL, FILE_BEGIN);
+    DWORD res = SetFilePointer(h, offset, NULL, FILE_BEGIN);
     if (res == INVALID_SET_FILE_POINTER && GetLastError() != NO_ERROR) {
         set_errno(EIO); // TODO ATN: GetLastError -> errno
         fprintf(stderr, "pread: SetFilePointer failed: %s", winerr_string(GetLastError()).c_str());
