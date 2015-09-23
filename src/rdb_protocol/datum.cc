@@ -480,12 +480,12 @@ datum_t to_datum(const rapidjson::Value &json, const configured_limits_t &limits
             fail_if_invalid(reql_version,
                             it->name.GetString(),
                             it->name.GetStringLength());
-            bool dup = builder.add(datum_string_t(it->name.GetStringLength(),
-                                                  it->name.GetString()),
-                                   to_datum(it->value, limits, reql_version));
+            datum_string_t key(it->name.GetStringLength(),
+                               it->name.GetString());
+            bool dup = builder.add(key, to_datum(it->value, limits, reql_version));
             rcheck_datum(!dup, base_exc_t::LOGIC,
-                         strprintf("Duplicate key `%s` in JSON.",
-                                   it->name.GetString()));
+                         strprintf("Duplicate key %s in JSON.",
+                                   datum_t(key).print().c_str()));
         }
         const std::set<std::string> pts = { pseudo::literal_string };
         return std::move(builder).to_datum(pts);
@@ -511,16 +511,8 @@ datum_t to_datum(const rapidjson::Value &json, const configured_limits_t &limits
     }
 }
 
-
-void check_str_validity(const char *bytes, size_t count) {
-    const char *pos = static_cast<const char *>(memchr(bytes, 0, count));
-    rcheck_datum(
-        pos == NULL,
-        base_exc_t::LOGIC,
-        // We truncate because lots of other places can call `c_str` on the
-        // error message.
-        strprintf("String `%.20s` (truncated) contains NULL byte at offset %zu.",
-                  bytes, pos - bytes));
+void check_str_validity(const char *, size_t) {
+    // previous versions would throw on NULL bytes.
 }
 
 void datum_t::check_str_validity(const datum_string_t &str) {
@@ -690,11 +682,50 @@ void datum_t::binary_to_str_key(std::string *str_out) const {
     }
 }
 
-void datum_t::str_to_str_key(std::string *str_out) const {
+void datum_t::str_to_str_key(std::string *str_out, escape_nulls_t escape_nulls) const {
     r_sanity_check(get_type() == R_STR);
     str_out->append("S");
-    size_t to_append = std::min(MAX_KEY_SIZE - str_out->size(), as_str().size());
-    str_out->append(as_str().data(), to_append);
+
+    const datum_string_t &key = as_str();
+    const char *key_data = key.data();
+
+    if (escape_nulls == escape_nulls_t::YES) {
+        // Escape byte values of \x00 and \x01 using a leading \x01 byte to avoid
+        // ambiguity when strings are placed in an array (which uses \x00 bytes
+        // as separators)
+
+        size_t to_append = std::min(MAX_KEY_SIZE - str_out->size(), key.size());
+        for (size_t i = 0; i < to_append; ++i) {
+            switch (key_data[i]) {
+            case '\x00':
+                str_out->append("\x01\x01");
+                break;
+            case '\x01':
+                str_out->append("\x01\x02");
+                break;
+            default:
+                str_out->append(1, key_data[i]);
+            }
+        }
+    } else {
+        // No byte values are escaped, null bytes are invalid.
+
+        const char *pos = static_cast<const char *>(memchr(key_data, 0, key.size()));
+        if (pos != NULL) {
+            printf_buffer_t msg;
+            msg.appendf("String ");
+            debug_print_quoted_string(&msg,
+                                      reinterpret_cast<const uint8_t *>(key_data),
+                                      key.size() > 20 ? 20 : key.size());
+            msg.appendf(" (truncated) contains NULL byte at offset %zu in index key.",
+                        pos - key_data);
+
+            rfail(base_exc_t::LOGIC, "%s", msg.c_str());
+        }
+
+        size_t to_append = std::min(MAX_KEY_SIZE - str_out->size(), as_str().size());
+        str_out->append(as_str().data(), to_append);
+    }
 }
 
 void datum_t::bool_to_str_key(std::string *str_out) const {
@@ -727,7 +758,7 @@ void datum_t::extrema_to_str_key(std::string *str_out) const {
 // The key for an array is stored as a string of all its elements, each separated by a
 //  null character, with another null character at the end to signify the end of the
 //  array (this is necessary to prevent ambiguity when nested arrays are involved).
-void datum_t::array_to_str_key(std::string *str_out) const {
+void datum_t::array_to_str_key(std::string *str_out, escape_nulls_t escape_nulls) const {
     r_sanity_check(get_type() == R_ARRAY);
     str_out->append("A");
 
@@ -740,10 +771,10 @@ void datum_t::array_to_str_key(std::string *str_out) const {
         case MINVAL: // fallthru
         case MAXVAL: item.extrema_to_str_key(str_out); break;
         case R_NUM: item.num_to_str_key(str_out); break;
-        case R_STR: item.str_to_str_key(str_out); break;
+        case R_STR: item.str_to_str_key(str_out, escape_nulls); break;
         case R_BINARY: item.binary_to_str_key(str_out); break;
         case R_BOOL: item.bool_to_str_key(str_out); break;
-        case R_ARRAY: item.array_to_str_key(str_out); break;
+        case R_ARRAY: item.array_to_str_key(str_out, escape_nulls); break;
         case R_OBJECT:
             if (item.is_ptype()) {
                 item.pt_to_str_key(str_out);
@@ -967,10 +998,10 @@ std::string datum_t::print_primary_internal() const {
     case MINVAL: // fallthru
     case MAXVAL: extrema_to_str_key(&s); break;
     case R_NUM: num_to_str_key(&s); break;
-    case R_STR: str_to_str_key(&s); break;
+    case R_STR: str_to_str_key(&s, escape_nulls_t::NO); break;
     case R_BINARY: binary_to_str_key(&s); break;
     case R_BOOL: bool_to_str_key(&s); break;
-    case R_ARRAY: array_to_str_key(&s); break;
+    case R_ARRAY: array_to_str_key(&s, escape_nulls_t::NO); break;
     case R_OBJECT:
         if (is_ptype()) {
             pt_to_str_key(&s);
@@ -1069,7 +1100,7 @@ std::string datum_t::compose_secondary(
         skey_version, truncated_secondary_key, primary_key_string, tag_string);
 }
 
-std::string datum_t::print_secondary(skey_version_t skey_version,
+std::string datum_t::print_secondary(reql_version_t reql_version,
                                      const store_key_t &primary_key,
                                      boost::optional<uint64_t> tag_num) const {
     std::string secondary_key_string;
@@ -1077,16 +1108,19 @@ std::string datum_t::print_secondary(skey_version_t skey_version,
     // Reserve max key size to reduce reallocations
     secondary_key_string.reserve(MAX_KEY_SIZE);
 
+    escape_nulls_t escape_nulls = escape_nulls_from_reql_version_for_sindex(reql_version);
+    skey_version_t skey_version = skey_version_from_reql_version(reql_version);
+
     if (get_type() == R_NUM) {
         num_to_str_key(&secondary_key_string);
     } else if (get_type() == R_STR) {
-        str_to_str_key(&secondary_key_string);
+        str_to_str_key(&secondary_key_string, escape_nulls);
     } else if (get_type() == R_BINARY) {
         binary_to_str_key(&secondary_key_string);
     } else if (get_type() == R_BOOL) {
         bool_to_str_key(&secondary_key_string);
     } else if (get_type() == R_ARRAY) {
-        array_to_str_key(&secondary_key_string);
+        array_to_str_key(&secondary_key_string, escape_nulls);
     } else if (get_type() == R_OBJECT && is_ptype()) {
         pt_to_str_key(&secondary_key_string);
     } else {
@@ -1116,6 +1150,19 @@ skey_version_t skey_version_from_reql_version(reql_version_t rv) {
     case reql_version_t::v2_1:
     case reql_version_t::v2_2_is_latest:
         return skey_version_t::post_1_16;
+    default: unreachable();
+    }
+}
+
+escape_nulls_t escape_nulls_from_reql_version_for_sindex(reql_version_t rv) {
+    switch (rv) {
+    case reql_version_t::v1_14:
+    case reql_version_t::v1_16:
+    case reql_version_t::v2_0:
+    case reql_version_t::v2_1:
+        return escape_nulls_t::NO;
+    case reql_version_t::v2_2_is_latest:
+        return escape_nulls_t::YES;
     default: unreachable();
     }
 }
@@ -1200,18 +1247,21 @@ boost::optional<uint64_t> datum_t::extract_tag(const store_key_t &key) {
 // but the amount truncated depends on the length of the primary key.  Since we
 // do not know how much was truncated, we have to truncate the maximum amount,
 // then return all matches and filter them out later.
-store_key_t datum_t::truncated_secondary(skey_version_t skey_version, extrema_ok_t extrema_ok) const {
+store_key_t datum_t::truncated_secondary(reql_version_t reql_version, extrema_ok_t extrema_ok) const {
+
+    escape_nulls_t escape_nulls = escape_nulls_from_reql_version_for_sindex(reql_version);
+
     std::string s;
     if (get_type() == R_NUM) {
         num_to_str_key(&s);
     } else if (get_type() == R_STR) {
-        str_to_str_key(&s);
+        str_to_str_key(&s, escape_nulls);
     } else if (get_type() == R_BINARY) {
         binary_to_str_key(&s);
     } else if (get_type() == R_BOOL) {
         bool_to_str_key(&s);
     } else if (get_type() == R_ARRAY) {
-        array_to_str_key(&s);
+        array_to_str_key(&s, escape_nulls);
     } else if (get_type() == R_OBJECT && is_ptype()) {
         pt_to_str_key(&s);
     } else if (get_type() == MINVAL || get_type() == MAXVAL) {
@@ -1224,6 +1274,8 @@ store_key_t datum_t::truncated_secondary(skey_version_t skey_version, extrema_ok
             "or array (got %s of type %s).",
             print().c_str(), get_type_name().c_str()));
     }
+
+    skey_version_t skey_version = skey_version_from_reql_version(reql_version);
 
     // Truncate the key if necessary
     size_t mts = max_trunc_size(skey_version);
@@ -1781,7 +1833,8 @@ datum_t to_datum(const Datum *d, const configured_limits_t &limits,
                                                  to_datum(&ap->val(), limits,
                                                           reql_version)));
             rcheck_datum(res.second, base_exc_t::LOGIC,
-                         strprintf("Duplicate key %s in object.", key.to_std().c_str()));
+                         strprintf("Duplicate key %s in object.",
+                                   datum_t(key).print().c_str()));
         }
         const std::set<std::string> pts = { pseudo::literal_string };
         return datum_t(std::move(map), pts);
@@ -2190,12 +2243,12 @@ key_range_t datum_range_t::to_primary_keyrange() const {
                        right_bound_type, store_key_t(rb_str));
 }
 
-key_range_t datum_range_t::to_sindex_keyrange(skey_version_t skey_version) const {
+key_range_t datum_range_t::to_sindex_keyrange(reql_version_t reql_version) const {
     r_sanity_check(left_bound.has() && right_bound.has());
     object_buffer_t<store_key_t> lb, rb;
     return rdb_protocol::sindex_key_range(
-        store_key_t(left_bound.truncated_secondary(skey_version, extrema_ok_t::OK)),
-        store_key_t(right_bound.truncated_secondary(skey_version, extrema_ok_t::OK)));
+        store_key_t(left_bound.truncated_secondary(reql_version, extrema_ok_t::OK)),
+        store_key_t(right_bound.truncated_secondary(reql_version, extrema_ok_t::OK)));
 }
 
 datum_range_t datum_range_t::with_left_bound(datum_t d, key_range_t::bound_t type) {

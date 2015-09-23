@@ -84,9 +84,9 @@ private:
             datum_t keyval = args->arg(env, i + 1)->as_datum();
             bool b = obj.add(key, keyval);
             rcheck(!b, base_exc_t::LOGIC,
-                   strprintf("Duplicate key `%s` in object.  "
-                             "(got `%s` and `%s` as values)",
-                             key.to_std().c_str(),
+                   strprintf("Duplicate key %s in object.  "
+                             "(got %s and %s as values)",
+                             datum_t(key).print().c_str(),
                              obj.at(key).trunc_print().c_str(),
                              keyval.trunc_print().c_str()));
         }

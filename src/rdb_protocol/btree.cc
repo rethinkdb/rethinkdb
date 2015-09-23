@@ -1186,10 +1186,7 @@ void compute_keys(const store_key_t &primary_key,
                     keys_out->push_back(
                         std::make_pair(
                             store_key_t(
-                                skey.print_secondary(
-                                    ql::skey_version_from_reql_version(reql_version),
-                                    primary_key,
-                                    i)),
+                                skey.print_secondary(reql_version, primary_key, i)),
                             skey));
                 } catch (const ql::base_exc_t &e) {
                     if (reql_version < reql_version_t::v2_1) {
@@ -1213,10 +1210,7 @@ void compute_keys(const store_key_t &primary_key,
             keys_out->push_back(
                 std::make_pair(
                     store_key_t(
-                        index.print_secondary(
-                            ql::skey_version_from_reql_version(reql_version),
-                            primary_key,
-                            boost::none)),
+                        index.print_secondary(reql_version, primary_key, boost::none)),
                     index));
         }
     }

@@ -269,9 +269,9 @@ private:
                         datum_t keyval = pair.get(1);
                         bool b = obj.add(key, keyval);
                         rcheck(!b, base_exc_t::LOGIC,
-                               strprintf("Duplicate key `%s` in coerced object.  "
-                                         "(got `%s` and `%s` as values)",
-                                         key.to_std().c_str(),
+                               strprintf("Duplicate key %s in coerced object.  "
+                                         "(got %s and %s as values)",
+                                         datum_t(key).print().c_str(),
                                          obj.at(key).trunc_print().c_str(),
                                          keyval.trunc_print().c_str()));
                         sampler.new_sample();

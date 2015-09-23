@@ -55,7 +55,7 @@ inline feed_type_t union_of(feed_type_t a, feed_type_t b) {
 struct active_state_t {
     key_range_t last_read;
     std::map<uuid_u, uint64_t> shard_stamps;
-    boost::optional<skey_version_t> skey_version; // none for pkey
+    boost::optional<reql_version_t> reql_version; // none for pkey
     DEBUG_ONLY(boost::optional<std::string> sindex;)
 };
 
@@ -428,7 +428,7 @@ public:
         const batchspec_t &batchspec) const = 0;
 
     virtual boost::optional<key_range_t> original_keyrange() const = 0;
-    virtual key_range_t sindex_keyrange(skey_version_t skey_version) const = 0;
+    virtual key_range_t sindex_keyrange(reql_version_t reql_version) const = 0;
     virtual boost::optional<std::string> sindex_name() const = 0;
 
     // Returns `true` if there is no more to read.
@@ -513,7 +513,7 @@ private:
         const batchspec_t &batchspec) const;
     virtual void sindex_sort(std::vector<rget_item_t> *vec) const;
     virtual boost::optional<key_range_t> original_keyrange() const;
-    virtual key_range_t sindex_keyrange(skey_version_t skey_version) const;
+    virtual key_range_t sindex_keyrange(reql_version_t reql_version) const;
     virtual boost::optional<std::string> sindex_name() const;
 };
 
@@ -535,7 +535,7 @@ public:
         const batchspec_t &batchspec) const;
     virtual void sindex_sort(std::vector<rget_item_t> *vec) const;
     virtual boost::optional<key_range_t> original_keyrange() const;
-    virtual key_range_t sindex_keyrange(skey_version_t skey_version) const;
+    virtual key_range_t sindex_keyrange(reql_version_t reql_version) const;
     virtual boost::optional<std::string> sindex_name() const;
 private:
     sindex_readgen_t(
@@ -585,7 +585,7 @@ public:
         const batchspec_t &batchspec) const;
     virtual void sindex_sort(std::vector<rget_item_t> *vec) const;
     virtual boost::optional<key_range_t> original_keyrange() const;
-    virtual key_range_t sindex_keyrange(skey_version_t skey_version) const;
+    virtual key_range_t sindex_keyrange(reql_version_t reql_version) const;
     virtual boost::optional<std::string> sindex_name() const;
 
     virtual changefeed::keyspec_t::range_t get_range_spec(
@@ -666,7 +666,7 @@ protected:
     const scoped_ptr_t<const readgen_t> readgen;
     store_key_t last_read_start;
     boost::optional<key_range_t> active_range;
-    boost::optional<skey_version_t> skey_version;
+    boost::optional<reql_version_t> reql_version;
     std::map<uuid_u, uint64_t> shard_stamps;
 
     // We need this to handle the SINDEX_CONSTANT case.

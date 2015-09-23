@@ -115,14 +115,14 @@ RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(changefeed_stamp_response_t);
 struct rget_read_response_t {
     boost::optional<changefeed_stamp_response_t> stamp_response;
     ql::result_t result;
-    ql::skey_version_t skey_version;
+    reql_version_t reql_version;
     bool truncated;
     store_key_t last_key;
 
     rget_read_response_t()
-        : skey_version(ql::skey_version_t::pre_1_16), truncated(false) { }
+        : reql_version(reql_version_t::v1_14), truncated(false) { }
     explicit rget_read_response_t(const ql::exc_t &ex)
-        : result(ex), skey_version(ql::skey_version_t::pre_1_16), truncated(false) { }
+        : result(ex), reql_version(reql_version_t::v1_14), truncated(false) { }
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(rget_read_response_t);
 

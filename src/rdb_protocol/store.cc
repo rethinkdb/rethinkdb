@@ -219,13 +219,12 @@ void do_read(ql::env_t *env,
                     rget.sindex->id,
                     &sindex_info,
                     &sindex_uuid);
-            ql::skey_version_t skey_version =
-                ql::skey_version_from_reql_version(
-                    sindex_info.mapping_version_info.latest_compatible_reql_version);
-            res->skey_version = skey_version;
+            reql_version_t reql_version =
+                sindex_info.mapping_version_info.latest_compatible_reql_version;
+            res->reql_version = reql_version;
             true_region = rget.sindex->region
                 ? *rget.sindex->region
-                : region_t(rget.sindex->original_range.to_sindex_keyrange(skey_version));
+                : region_t(rget.sindex->original_range.to_sindex_keyrange(reql_version));
         } catch (const ql::exc_t &e) {
             res->result = e;
             return;

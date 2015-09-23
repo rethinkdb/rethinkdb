@@ -974,12 +974,12 @@ public:
             default: unreachable();
             }
         }
-        skey_version_t skey_version = skey_version_from_reql_version(
-            ref.sindex_info->mapping_version_info.latest_compatible_reql_version);
+        reql_version_t reql_version =
+            ref.sindex_info->mapping_version_info.latest_compatible_reql_version;
         rdb_rget_secondary_slice(
             ref.btree,
             srange,
-            region_t(srange.to_sindex_keyrange(skey_version)),
+            region_t(srange.to_sindex_keyrange(reql_version)),
             ref.superblock,
             env,
             batchspec_t::all(), // Terminal takes care of early termination
@@ -2491,8 +2491,7 @@ private:
                  const indexed_datum_t &val) {
         store_key_t key;
         if (val.index.has()) {
-            key = store_key_t(
-                val.index.print_secondary(skey_version(), pkey, tag_num));
+            key = store_key_t(val.index.print_secondary(reql_version_t(), pkey, tag_num));
         } else {
             key = pkey;
         }
@@ -2558,10 +2557,10 @@ private:
         r_sanity_check(active_state);
         return active_state->shard_stamps;
     }
-    const skey_version_t &skey_version() const {
+    const reql_version_t &reql_version() const {
         r_sanity_check(active_state);
-        r_sanity_check(active_state->skey_version);
-        return *(active_state->skey_version);
+        r_sanity_check(active_state->reql_version);
+        return *(active_state->reql_version);
     }
     bool ready() {
         // It's OK to cache this because we only ever call `ready` once we're
