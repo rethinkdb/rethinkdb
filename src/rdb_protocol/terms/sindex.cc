@@ -266,12 +266,13 @@ public:
 
         /* Convert it into an array and return it */
         ql::datum_array_builder_t res(ql::configured_limits_t::unlimited);
+        std::set<std::string> remaining_sindexes = sindexes;
         for (const auto &pair : configs_and_statuses) {
             if (!sindexes.empty()) {
                 if (sindexes.count(pair.first) == 0) {
                     continue;
                 } else {
-                    sindexes.erase(pair.first);
+                    remaining_sindexes.erase(pair.first);
                 }
             }
             res.add(sindex_status_to_datum(
@@ -279,9 +280,9 @@ public:
         }
 
         /* Make sure we found all the requested sindexes. */
-        rcheck(sindexes.empty(), base_exc_t::OP_FAILED,
+        rcheck(remaining_sindexes.empty(), base_exc_t::OP_FAILED,
             strprintf("Index `%s` was not found on table `%s`.",
-                      sindexes.begin()->c_str(),
+                      remaining_sindexes.begin()->c_str(),
                       table->display_name().c_str()));
 
         return new_val(std::move(res).to_datum());
