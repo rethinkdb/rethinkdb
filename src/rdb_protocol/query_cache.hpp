@@ -89,9 +89,13 @@ public:
     void noreply_wait(const query_params_t &query_params,
                       signal_t *interruptor);
 
-    // Interrupt a query by token
-    void terminate_query(const query_params_t &query_params);
+    // Issue a stop query to the cache
+    void stop_query(const query_params_t &query_params);
 
+    // Directly stop a query by its entry
+    void terminate_internal(entry_t *entry);
+
+    enum class interrupt_reason_t { UNKNOWN, STOP, DELETE };
 private:
     class entry_t {
     public:
@@ -101,6 +105,7 @@ private:
         ~entry_t();
 
         enum class state_t { START, STREAM, DONE, DELETING } state;
+        interrupt_reason_t interrupt_reason;
 
         const uuid_u job_id;
         const bool noreply;
@@ -128,7 +133,6 @@ private:
         DISABLE_COPYING(entry_t);
     };
 
-    void terminate_internal(entry_t *entry);
     static void async_destroy_entry(entry_t *entry);
 
     rdb_context_t *const rdb_ctx;

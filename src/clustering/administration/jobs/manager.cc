@@ -191,7 +191,9 @@ void jobs_manager_t::on_job_interrupt(
             for (auto &&query_cache : *rdb_context->get_query_caches_for_this_thread()) {
                 for (auto &&pair : *query_cache) {
                     if (pair.second->job_id == id) {
-                        pair.second->persistent_interruptor.pulse_if_not_already_pulsed();
+                        query_cache->terminate_internal(pair.second.get());
+                        pair.second->interrupt_reason =
+                            ql::query_cache_t::interrupt_reason_t::DELETE;
                         return;
                     }
                 }
