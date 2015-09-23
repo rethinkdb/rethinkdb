@@ -705,9 +705,9 @@ class ReQLDecoder(py_json.JSONDecoder):
     '''
         Default JSONDecoder subclass to handle pseudo-type conversion.
     '''
-    def __init__(self, reql_format_opts={}):
+    def __init__(self, reql_format_opts=None):
         py_json.JSONDecoder.__init__(self, object_hook=self.convert_pseudotype)
-        self.reql_format_opts = reql_format_opts
+        self.reql_format_opts = reql_format_opts or {}
 
     def convert_time(self, obj):
         if 'epoch_time' not in obj:
