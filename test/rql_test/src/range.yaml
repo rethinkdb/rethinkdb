@@ -1,7 +1,7 @@
 desc: Tests RQL range generation
 tests:
     - cd: r.range().type_of()
-      ot: "'STREAM'"
+      ot: 'STREAM'
 
     - cd: r.range().limit(4)
       ot: [0, 1, 2, 3]

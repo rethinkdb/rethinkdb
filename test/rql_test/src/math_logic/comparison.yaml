@@ -5,13 +5,18 @@ tests:
 
     ## basic <
 
-    # Python overloads the comparison operators (in both directions)
-    - py: [r.expr(1) < 2, 1 < r.expr(2), r.expr(1).lt(2)]
-      js: r(1).lt(2)
-      rb: [r(1) < 2, r(1).lt(2), 1 < r(2)]
+    - cd: r(1).lt(2)
+      py:
+        - r.expr(1) < 2
+        - 1 < r.expr(2)
+        - r.expr(1).lt(2)
+      rb:
+        - r(1) < 2
+        - r(1).lt(2)
+        - 1 < r(2)
       ot: true
-    - py: r.expr(3) < 2
-      js: r(3).lt(2)
+    - cd: r(3).lt(2)
+      py: r.expr(3) < 2
       rb: r(3) < 2
       ot: false
     - py: r.expr(2) < 2
@@ -22,17 +27,20 @@ tests:
     # All Comparisons can take an arbitrary number of arguments though
     # the functionality is only available in JS at the moment
     - js: r(1).lt(2, 3, 4)
-      cd: []
       ot: true
     - js: r(1).lt(2, 3, 2)
-      cd: []
       ot: false
 
     ## basic >
 
-    - py: [r.expr(1) > 2, 1 > r.expr(2), r.expr(1).gt(2)]
-      js: r(1).gt(2)
-      rb: [r(1) > 2, r(1).gt(2)]
+    - cd: r(1).gt(2)
+      py:
+        - r.expr(1) > 2
+        - 1 > r.expr(2)
+        - r.expr(1).gt(2)
+      rb:
+        - r(1) > 2
+        - r(1).gt(2)
       ot: false
     - py: r.expr(3) > 2
       js: r(3).gt(2)
@@ -44,16 +52,17 @@ tests:
       ot: false
 
     - js: r(4).gt(3, 2, 1)
-      cd: []
       ot: true
     - js: r(4).gt(3, 2, 3)
-      cd: []
       ot: false
 
     ## basic ==
 
-    - py: [r.expr(1) == 2, 1 == r.expr(2), r.expr(1).eq(2)]
-      js: r(1).eq(2)
+    - cd: r(1).eq(2)
+      py:
+        - r.expr(1) == 2
+        - 1 == r.expr(2)
+        - r.expr(1).eq(2)
       rb: r(1).eq 2
       ot: false
     - py: r.expr(3) == 2
@@ -66,16 +75,17 @@ tests:
       ot: true
 
     - js: r(1).eq(1, 1, 1)
-      cd: []
       ot: true
     - js: r(1).eq(1, 2, 1)
-      cd: []
       ot: false
 
     ## basic !=
 
-    - py: [r.expr(1) != 2, 1 != r.expr(2), r.expr(1).ne(2)]
-      js: r(1).ne(2)
+    - cd: r(1).ne(2)
+      py:
+        - r.expr(1) != 2
+        - 1 != r.expr(2)
+        - r.expr(1).ne(2)
       rb: r(1).ne 2
       ot: true
     - py: r.expr(3) != 2
@@ -88,17 +98,20 @@ tests:
       ot: false
 
     - js: r(1).ne(3, 2, 4)
-      cd: []
       ot: true
     - js: r(1).ne(3, 2, 3)
-      cd: []
       ot: true
 
     ## basic <=
 
-    - py: [r.expr(1) <= 2, 1 <= r.expr(2), r.expr(1).le(2)]
-      js: r(1).le(2)
-      rb: [r(1) <= 2, r(1).le(2)]
+    - js: r(1).le(2)
+      py:
+        - r.expr(1) <= 2
+        - 1 <= r.expr(2)
+        - r.expr(1).le(2)
+      rb:
+        - r(1) <= 2
+        - r(1).le(2)
       ot: true
     - py: r.expr(3) <= 2
       js: r(3).le(2)
@@ -110,17 +123,20 @@ tests:
       ot: true
 
     - js: r(1).le(1, 2, 2)
-      cd: []
       ot: true
     - js: r(1).le(1, 3, 2)
-      cd: []
       ot: false
 
     ## basic >=
 
-    - py: [r.expr(1) >= 2, 1 >= r.expr(2), r.expr(1).ge(2)]
-      js: r(1).ge(2)
-      rb: [r(1) >= 2, r(1).ge(2)]
+    - cd: r(1).ge(2)
+      py:
+        - r.expr(1) >= 2
+        - 1 >= r.expr(2)
+        - r.expr(1).ge(2)
+      rb:
+        - r(1) >= 2
+        - r(1).ge(2)
       ot: false
     - py: r.expr(3) >= 2
       js: r(3).ge(2)
@@ -132,24 +148,30 @@ tests:
       ot: true
 
     - js: r(4).ge(4, 2, 2)
-      cd: []
       ot: true
     - js: r(4).ge(4, 2, 3)
-      cd: []
       ot: false
 
     # Comparisons for NULL
     - cd: r(null).eq(null)
-      py: [r.expr(null) == null, null == r.expr(null)]
+      py:
+        - r.expr(null) == null
+        - null == r.expr(null)
       ot: true
 
-    - py: [r.expr(null) < null, null < r.expr(null), r.expr(null).gt(null)]
-      js: r(null).lt(null)
+    - cd: r(null).lt(null)
+      py:
+        - r.expr(null) < null
+        - null < r.expr(null)
+        - r.expr(null).lt(null)
       rb: r(null) < null
       ot: false
 
-    - py: [r.expr(null) > null, null > r.expr(null), r.expr(null).lt(null)]
-      js: r(null).gt(null)
+    - cd: r(null).gt(null)
+      py:
+        - r.expr(null) > null
+        - null > r.expr(null)
+        - r.expr(null).gt(null)
       rb: r(null) > null
       ot: false
 
@@ -420,17 +442,17 @@ tests:
       rb: r('zzz') > {}
       ot: true
 
-    - py: "'zzz' > r.expr(-152)"
+    - py: 'zzz' > r.expr(-152)
       js: r('zzz').gt(-152)
       rb: r('zzz') > -152
       ot: true
 
-    - py: "'zzz' > r.expr(null)"
+    - py: 'zzz' > r.expr(null)
       js: r('zzz').gt(null)
       rb: r('zzz') > null
       ot: true
 
-    - py: "'zzz' > r.expr([])"
+    - py: 'zzz' > r.expr([])
       js: r('zzz').gt([])
       rb: r('zzz') > []
       ot: true
