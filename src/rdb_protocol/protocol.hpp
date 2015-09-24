@@ -291,7 +291,7 @@ public:
 
     rget_read_t(boost::optional<changefeed_stamp_t> &&_stamp,
                 region_t _region,
-                boost::optional<std::map<store_key_t, size_t> > _primary_keys,
+                boost::optional<std::map<store_key_t, uint64_t> > _primary_keys,
                 std::map<std::string, ql::wire_func_t> _optargs,
                 std::string _table_name,
                 ql::batchspec_t _batchspec,
@@ -313,7 +313,10 @@ public:
     boost::optional<changefeed_stamp_t> stamp;
 
     region_t region; // We need this even for sindex reads due to sharding.
-    boost::optional<std::map<store_key_t, size_t> > primary_keys;
+
+    // The `uint64_t`s here are counts.  This map is used to make `get_all` more
+    // efficient, and it's legal to pass duplicate keys to `get_all`.
+    boost::optional<std::map<store_key_t, uint64_t> > primary_keys;
 
     std::map<std::string, ql::wire_func_t> optargs;
     std::string table_name;

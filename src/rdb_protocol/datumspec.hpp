@@ -51,13 +51,13 @@ template<class T>
 class ds_helper_t : public boost::static_visitor<T> {
 public:
     ds_helper_t(std::function<T(const datum_range_t &)> _f1,
-                std::function<T(const std::map<datum_t, size_t> &)> _f2)
+                std::function<T(const std::map<datum_t, uint64_t> &)> _f2)
         : f1(std::move(_f1)), f2(std::move(_f2)) { }
     T operator()(const datum_range_t &dr) const { return f1(dr); }
-    T operator()(const std::map<datum_t, size_t> &m) const { return f2(m); }
+    T operator()(const std::map<datum_t, uint64_t> &m) const { return f2(m); }
 private:
     std::function<T(const datum_range_t &)> f1;
-    std::function<T(const std::map<datum_t, size_t> &)> f2;
+    std::function<T(const std::map<datum_t, uint64_t> &)> f2;
 };
 
 struct datumspec_t {
@@ -70,7 +70,7 @@ public:
 
     template<class T>
     T visit(std::function<T(const datum_range_t &)> f1,
-            std::function<T(const std::map<datum_t, size_t> &)> f2) const {
+            std::function<T(const std::map<datum_t, uint64_t> &)> f2) const {
         return boost::apply_visitor(ds_helper_t<T>(std::move(f1), std::move(f2)), spec);
     }
 
@@ -81,7 +81,7 @@ public:
                 [&cb](const datum_range_t &dr) {
                     cb(std::make_pair(dr, 1), true);
                 },
-                [sorting, &cb](const std::map<datum_t, size_t> &m) {
+                [sorting, &cb](const std::map<datum_t, uint64_t> &m) {
                     if (!reversed(sorting)) {
                         for (auto it = m.begin(); it != m.end();) {
                             auto this_it = it++;
@@ -107,11 +107,11 @@ public:
     // Try to only call this once since it does work to compute it.
     datum_range_t covering_range() const;
     size_t copies(datum_t key) const;
-    boost::optional<std::map<store_key_t, size_t> > primary_key_map() const;
+    boost::optional<std::map<store_key_t, uint64_t> > primary_key_map() const;
 
     RDB_DECLARE_ME_SERIALIZABLE(datumspec_t);
 private:
-    boost::variant<datum_range_t, std::map<datum_t, size_t> > spec;
+    boost::variant<datum_range_t, std::map<datum_t, uint64_t> > spec;
 };
 
 } // namespace ql

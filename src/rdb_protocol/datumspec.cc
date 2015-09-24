@@ -120,8 +120,8 @@ datumspec_t datumspec_t::trim_secondary(
     const key_range_t &rng, skey_version_t ver) const {
     return visit<datumspec_t>(
         [](const datum_range_t &dr) { return datumspec_t(dr); },
-        [&rng, &ver](const std::map<datum_t, size_t> &m) {
-            std::map<datum_t, size_t> ret;
+        [&rng, &ver](const std::map<datum_t, uint64_t> &m) {
+            std::map<datum_t, uint64_t> ret;
             for (const auto &pair : m) {
                 if (rng.overlaps(
                         datum_range_t(pair.first).to_sindex_keyrange(ver))) {
@@ -135,19 +135,19 @@ datumspec_t datumspec_t::trim_secondary(
 bool datumspec_t::is_universe() const {
     return visit<bool>(
         [](const datum_range_t &dr) { return dr.is_universe(); },
-        [](const std::map<datum_t, size_t> &) { return false; });
+        [](const std::map<datum_t, uint64_t> &) { return false; });
 }
 
 bool datumspec_t::is_empty() const {
     return visit<bool>(
         [](const datum_range_t &dr) { return dr.is_empty(); },
-        [](const std::map<datum_t, size_t> &m) { return m.size() == 0; });
+        [](const std::map<datum_t, uint64_t> &m) { return m.size() == 0; });
 }
 
 datum_range_t datumspec_t::covering_range() const {
     return visit<datum_range_t>(
         [](const datum_range_t &dr) { return dr; },
-        [](const std::map<datum_t, size_t> &m) {
+        [](const std::map<datum_t, uint64_t> &m) {
             datum_t min = datum_t::maxval(), max = datum_t::minval();
             for (const auto &pair : m) {
                 if (pair.first < min) min = pair.first;
@@ -159,19 +159,19 @@ datum_range_t datumspec_t::covering_range() const {
 }
 
 size_t datumspec_t::copies(datum_t key) const {
-    return visit<size_t>(
+    return visit<uint64_t>(
         [&key](const datum_range_t &dr) { return dr.contains(key) ? 1 : 0; },
-        [&key](const std::map<datum_t, size_t> &m) {
+        [&key](const std::map<datum_t, uint64_t> &m) {
             auto it = m.find(key);
             return it != m.end() ? it->second : 0;
         });
 }
 
-boost::optional<std::map<store_key_t, size_t> > datumspec_t::primary_key_map() const {
-    return visit<boost::optional<std::map<store_key_t, size_t> > >(
+boost::optional<std::map<store_key_t, uint64_t> > datumspec_t::primary_key_map() const {
+    return visit<boost::optional<std::map<store_key_t, uint64_t> > >(
         [](const datum_range_t &) { return boost::none; },
-        [](const std::map<datum_t, size_t> &m) {
-            std::map<store_key_t, size_t> ret;
+        [](const std::map<datum_t, uint64_t> &m) {
+            std::map<store_key_t, uint64_t> ret;
             for (const auto &pair : m) {
                 ret[store_key_t(pair.first.print_primary())] = pair.second;
             }
