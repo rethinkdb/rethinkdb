@@ -74,23 +74,6 @@ public:
         return boost::apply_visitor(ds_helper_t<T>(std::move(f1), std::move(f2)), spec);
     }
 
-    datumspec_t trim_secondary(const key_range_t &rng, skey_version_t ver) const {
-        return boost::apply_visitor(
-            ds_helper_t<datumspec_t>(
-                [](const datum_range_t &dr) { return datumspec_t(dr); },
-                [&rng, &ver](const std::map<datum_t, size_t> &m) {
-                    std::map<datum_t, size_t> ret;
-                    for (const auto &pair : m) {
-                        if (rng.overlaps(
-                                datum_range_t(pair.first).to_sindex_keyrange(ver))) {
-                            ret.insert(pair);
-                        }
-                    }
-                    return datumspec_t(std::move(ret));
-                }),
-            spec);
-    }
-
     template<class T>
     void iter(sorting_t sorting, const T &cb) const {
         return boost::apply_visitor(
@@ -118,59 +101,13 @@ public:
             spec);
     }
 
-    bool is_universe() const {
-        return boost::apply_visitor(
-            ds_helper_t<bool>(
-                [](const datum_range_t &dr) { return dr.is_universe(); },
-                [](const std::map<datum_t, size_t> &) { return false; }),
-            spec);
-    }
-    bool is_empty() const {
-        return boost::apply_visitor(
-            ds_helper_t<bool>(
-                [](const datum_range_t &dr) { return dr.is_empty(); },
-                [](const std::map<datum_t, size_t> &m) { return m.size() == 0; }),
-            spec);
-    }
+    datumspec_t trim_secondary(const key_range_t &rng, skey_version_t ver) const;
+    bool is_universe() const;
+    bool is_empty() const;
     // Try to only call this once since it does work to compute it.
-    datum_range_t covering_range() const {
-        return boost::apply_visitor(
-            ds_helper_t<datum_range_t>(
-                [](const datum_range_t &dr) { return dr; },
-                [](const std::map<datum_t, size_t> &m) {
-                    datum_t min = datum_t::maxval(), max = datum_t::minval();
-                    for (const auto &pair : m) {
-                        if (pair.first < min) min = pair.first;
-                        if (pair.first > max) max = pair.first;
-                    }
-                    return datum_range_t(min, key_range_t::closed,
-                                         max, key_range_t::closed);
-                }),
-            spec);
-    }
-    size_t copies(datum_t key) const {
-        return boost::apply_visitor(
-            ds_helper_t<size_t>(
-                [&key](const datum_range_t &dr) { return dr.contains(key) ? 1 : 0; },
-                [&key](const std::map<datum_t, size_t> &m) {
-                    auto it = m.find(key);
-                    return it != m.end() ? it->second : 0;
-                }),
-            spec);
-    }
-    boost::optional<std::map<store_key_t, size_t> > primary_key_map() const {
-        return boost::apply_visitor(
-            ds_helper_t<boost::optional<std::map<store_key_t, size_t> > >(
-                [](const datum_range_t &) { return boost::none; },
-                [](const std::map<datum_t, size_t> &m) {
-                    std::map<store_key_t, size_t> ret;
-                    for (const auto &pair : m) {
-                        ret[store_key_t(pair.first.print_primary())] = pair.second;
-                    }
-                    return ret;
-                }),
-            spec);
-    }
+    datum_range_t covering_range() const;
+    size_t copies(datum_t key) const;
+    boost::optional<std::map<store_key_t, size_t> > primary_key_map() const;
 
     RDB_DECLARE_ME_SERIALIZABLE(datumspec_t);
 private:

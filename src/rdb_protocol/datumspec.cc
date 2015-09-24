@@ -116,6 +116,68 @@ datum_range_t datum_range_t::with_right_bound(datum_t d, key_range_t::bound_t ty
     return datum_range_t(left_bound, left_bound_type, d, type);
 }
 
+datumspec_t datumspec_t::trim_secondary(
+    const key_range_t &rng, skey_version_t ver) const {
+    return visit<datumspec_t>(
+        [](const datum_range_t &dr) { return datumspec_t(dr); },
+        [&rng, &ver](const std::map<datum_t, size_t> &m) {
+            std::map<datum_t, size_t> ret;
+            for (const auto &pair : m) {
+                if (rng.overlaps(
+                        datum_range_t(pair.first).to_sindex_keyrange(ver))) {
+                    ret.insert(pair);
+                }
+            }
+            return datumspec_t(std::move(ret));
+        });
+}
+
+bool datumspec_t::is_universe() const {
+    return visit<bool>(
+        [](const datum_range_t &dr) { return dr.is_universe(); },
+        [](const std::map<datum_t, size_t> &) { return false; });
+}
+
+bool datumspec_t::is_empty() const {
+    return visit<bool>(
+        [](const datum_range_t &dr) { return dr.is_empty(); },
+        [](const std::map<datum_t, size_t> &m) { return m.size() == 0; });
+}
+
+datum_range_t datumspec_t::covering_range() const {
+    return visit<datum_range_t>(
+        [](const datum_range_t &dr) { return dr; },
+        [](const std::map<datum_t, size_t> &m) {
+            datum_t min = datum_t::maxval(), max = datum_t::minval();
+            for (const auto &pair : m) {
+                if (pair.first < min) min = pair.first;
+                if (pair.first > max) max = pair.first;
+            }
+            return datum_range_t(min, key_range_t::closed,
+                                 max, key_range_t::closed);
+        });
+}
+
+size_t datumspec_t::copies(datum_t key) const {
+    return visit<size_t>(
+        [&key](const datum_range_t &dr) { return dr.contains(key) ? 1 : 0; },
+        [&key](const std::map<datum_t, size_t> &m) {
+            auto it = m.find(key);
+            return it != m.end() ? it->second : 0;
+        });
+}
+
+boost::optional<std::map<store_key_t, size_t> > datumspec_t::primary_key_map() const {
+    return visit<boost::optional<std::map<store_key_t, size_t> > >(
+        [](const datum_range_t &) { return boost::none; },
+        [](const std::map<datum_t, size_t> &m) {
+            std::map<store_key_t, size_t> ret;
+            for (const auto &pair : m) {
+                ret[store_key_t(pair.first.print_primary())] = pair.second;
+            }
+            return ret;
+        });
+}
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(key_range_t::bound_t, int8_t,
                                       key_range_t::open, key_range_t::none);
