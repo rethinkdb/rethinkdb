@@ -18,16 +18,22 @@ void windows_event_queue_t::add_handle(fd_t handle) {
 }
 
 void windows_event_queue_t::watch_event(windows_event_t& event, event_callback_t *cb) {
-    rassert(event.completion_port == INVALID_HANDLE_VALUE && event.callback == nullptr, "Cannot watch the same event twice"); 
+    rassert(event.event_queue == nullptr && event.callback == nullptr, "Cannot watch the same event twice"); 
     event.callback = cb;
-    event.completion_port = completion_port;
+    event.event_queue = this;
 }
 
 void windows_event_queue_t::forget_event(windows_event_t& event, event_callback_t *cb) {
-    if (event.completion_port != nullptr) {
-        event.completion_port = INVALID_HANDLE_VALUE;
+    if (event.event_queue != nullptr) {
+        event.event_queue = nullptr;
     }
     event.callback = nullptr;
+}
+
+void windows_event_queue_t::post_event(event_callback_t *cb) {
+    rassert(cb != nullptr);
+    BOOL res = PostQueuedCompletionStatus(completion_port, 0, ULONG_PTR(windows_message_type_t::EVENT_CALLBACK), reinterpret_cast<OVERLAPPED*>(cb));
+    guarantee_winerr(res, "PostQueuedCompletionStatus failed");
 }
 
 void windows_event_queue_t::run() {
@@ -49,10 +55,9 @@ void windows_event_queue_t::run() {
             break;
         }
 
-        case windows_message_type_t::EVENT: {
-            windows_event_t *event = reinterpret_cast<windows_event_t*>(overlapped);
-            event->callback->on_event(poll_event_in); // TODO ATN: what value does on_event expect?
-            // TODO ATN: mark the event as having been triggered?
+        case windows_message_type_t::EVENT_CALLBACK: {
+            event_callback_t *cb = reinterpret_cast<event_callback_t*>(overlapped);
+            cb->on_event(poll_event_in); // TODO ATN: what value does on_event expect?
             break;
         }
 

@@ -13,7 +13,7 @@ class linux_thread_t;
 
 class windows_event_t {
 public:
-    windows_event_t() : completion_port(INVALID_HANDLE_VALUE), callback(nullptr) { }
+    windows_event_t() : event_queue(nullptr), callback(nullptr) { }
     void wakey_wakey();
     void consume_wakey_wakeys() { }
 
@@ -21,7 +21,7 @@ private:
     // TODO ATN: break up this friendship
     friend class windows_event_queue_t;
 
-    HANDLE completion_port;
+    windows_event_queue_t *event_queue;
     event_callback_t *callback;
 };
 

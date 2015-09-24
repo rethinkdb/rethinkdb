@@ -271,6 +271,7 @@ release mode. */
                             __GNUC_PATCHLEVEL__ > 1)))
 #define RVALUE_THIS &&
 #else
+// TODO ATN: MSC
 #define RVALUE_THIS
 #endif
 

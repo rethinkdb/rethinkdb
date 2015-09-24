@@ -15,7 +15,7 @@ const int MAX_SIMULTANEOUS_EVENTS = 16;
 class linux_thread_t;
 
 enum class windows_message_type_t : ULONG_PTR {
-    EVENT,
+    EVENT_CALLBACK,
     ASYNC_OPERATION
 };
 
@@ -26,6 +26,8 @@ public:
     // ATN TODO: port watch_event and watch_event to other implementations
     void watch_event(windows_event_t&, event_callback_t*);
     void forget_event(windows_event_t&, event_callback_t*);
+
+    void post_event(event_callback_t *cb);
 
     void add_handle(fd_t handle);
 

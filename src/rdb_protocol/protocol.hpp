@@ -676,7 +676,7 @@ struct write_t {
             ql::configured_limits_t());
     }
 
-    write_t() : durability_requirement(DURABILITY_REQUIREMENT_DEFAULT), limits() {}
+    write_t() : durability_requirement(DURABILITY_REQUIREMENT_DEFAULT), limits(), profile(profile_bool_t::DONT_PROFILE) {}
     /*  Note that for durability != DURABILITY_REQUIREMENT_HARD, sync might
      *  not have the desired effect (of writing unsaved data to disk).
      *  However there are cases where we use sync internally (such as when

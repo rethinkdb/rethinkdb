@@ -40,9 +40,9 @@ LPFN_CONNECTEX get_ConnectEx(SOCKET s) {
     if (!ConnectEx) {
         DWORD size = 0;
         GUID id = WSAID_CONNECTEX;
-        guarantee_winerr(WSAIoctl(s, SIO_GET_EXTENSION_FUNCTION_POINTER,
-                                  &id, sizeof(id), &ConnectEx, sizeof(ConnectEx),
-                                  &size, nullptr, nullptr));
+        guarantee_winerr(0 == WSAIoctl(s, SIO_GET_EXTENSION_FUNCTION_POINTER,
+                                       &id, sizeof(id), &ConnectEx, sizeof(ConnectEx),
+                                       &size, nullptr, nullptr));
     }
     return ConnectEx;
 }
@@ -52,9 +52,9 @@ LPFN_ACCEPTEX get_AcceptEx(SOCKET s) {
     if (!AcceptEx) {
         DWORD size = 0;
         GUID id = WSAID_ACCEPTEX;
-        guarantee_winerr(WSAIoctl(s, SIO_GET_EXTENSION_FUNCTION_POINTER,
-                                  &id, sizeof(id), &AcceptEx, sizeof(AcceptEx),
-                                  &size, nullptr, nullptr),
+        guarantee_winerr(0 == WSAIoctl(s, SIO_GET_EXTENSION_FUNCTION_POINTER,
+                                       &id, sizeof(id), &AcceptEx, sizeof(AcceptEx),
+                                       &size, nullptr, nullptr),
                          "WSAIoctl failed");
     }
     return AcceptEx;
@@ -70,13 +70,13 @@ void async_connect(fd_t socket, sockaddr *sa, size_t sa_len,
     }
     DWORD error = GetLastError();
     if (error != ERROR_IO_PENDING) {
-        rassert(false, "ATN TODO : errno -- GetLastError");
-        throw linux_tcp_conn_t::connect_failed_exc_t(error);
+        logERR("ConnectEx failed: %s", winerr_string(error).c_str());
+        throw linux_tcp_conn_t::connect_failed_exc_t(EIO); // TODO ATN: winerr -> errno
     }
     wait_interruptible(&op.completed, interuptor);
     if (op.error) {
-        rassert(false, "ATN TODO : errno -- GetLastError");
-        throw linux_tcp_conn_t::connect_failed_exc_t(op.error);
+        logERR("ConnectEx failed: %s", winerr_string(op.error).c_str());
+        throw linux_tcp_conn_t::connect_failed_exc_t(EIO); // TODO ATN: winerr -> errno
     }
 #else
     int res;
@@ -1095,7 +1095,7 @@ void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) 
             accept_op_t *accepted = &accept_ops[(i + last_used_socket_index + 1) % accept_ops.size()];
             if (accepted->op.completed.is_pulsed()) {
                 if (accepted->op.error != ERROR_SUCCESS) {
-                    logERR("AcceptEx() failed: %s.", winerr_string(accepted->op.error).c_str());
+                    logWRN("AcceptEx failed: %s", winerr_string(accepted->op.error).c_str());
                     try {
                         backoff.failure(lock.get_drain_signal());
                     } catch (const interrupted_exc_t &) {

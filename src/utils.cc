@@ -323,14 +323,14 @@ int rng_t::randint(int n) {
 #ifndef _MSC_VER
     long x = nrand48(state.data());  // NOLINT(runtime/int)
 #else
-	unsigned long x = state();
+    unsigned long x = state();
 #endif
     return x % static_cast<unsigned int>(n);
 }
 
 uint64_t rng_t::randuint64(uint64_t n) {
-#ifndef _WIN32
     guarantee(n > 0, "non-positive argument for randint's [0,n) interval");
+#ifndef _WIN32
     uint32_t x_low = jrand48(state.data());  // NOLINT(runtime/int)
     uint32_t x_high = jrand48(state.data());  // NOLINT(runtime/int)
     uint64_t x = x_high;
@@ -338,8 +338,8 @@ uint64_t rng_t::randuint64(uint64_t n) {
     x += x_low;
     return x % n;
 #else
-	std::uniform_int_distribution<uint64_t> dist;
-	return dist(state);
+    std::uniform_int_distribution<uint64_t> dist(0, n);
+    return dist(state);
 #endif
 }
 

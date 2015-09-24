@@ -6,16 +6,20 @@
 
 struct timer_provider_callback_t;
 
-struct timer_windows_provider_t {
+struct timer_windows_provider_t : public event_callback_t {
 public:
-	explicit timer_windows_provider_t(UNUSED event_queue_t *);
-	~timer_windows_provider_t();
+    explicit timer_windows_provider_t(UNUSED event_queue_t *);
+    ~timer_windows_provider_t();
 
     void schedule_oneshot(const int64_t next_time_in_nanos, timer_provider_callback_t *const cb);
     void unschedule_oneshot();
 
+    void on_oneshot();
+    void on_event(int);
 private:
-	HANDLE timer;
+    HANDLE timer;
+    timer_provider_callback_t *callback;
+    windows_event_queue_t *event_queue;
     DISABLE_COPYING(timer_windows_provider_t);
 };
 

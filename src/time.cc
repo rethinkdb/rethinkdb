@@ -58,7 +58,7 @@ timespec clock_monotonic() {
     ret.tv_sec = nanosecs / BILLION;
     ret.tv_nsec = nanosecs % BILLION;
     return ret;
-#elif defined(_MSC_VER)
+#elif defined(_WIN32)
 	timespec ret;
 	ULONGLONG millisecs = GetTickCount64(); /* ATN: TODO nanosecs */
 	ret.tv_sec = millisecs / THOUSAND;

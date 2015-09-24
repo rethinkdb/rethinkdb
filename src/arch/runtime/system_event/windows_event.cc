@@ -7,9 +7,9 @@
 #include "arch/runtime/thread_pool.hpp"
 
 void windows_event_t::wakey_wakey() {
-    if (completion_port != INVALID_HANDLE_VALUE) {
+    if (event_queue != nullptr) {
         rassert(callback != nullptr);
-        PostQueuedCompletionStatus(completion_port, 0, ULONG_PTR(windows_message_type_t::EVENT), reinterpret_cast<OVERLAPPED*>(this));
+        event_queue->post_event(callback);
     }
 }
 

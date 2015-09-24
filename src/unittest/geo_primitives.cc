@@ -90,7 +90,7 @@ TPTEST(GeoPrimitives, InExRadiusTest) {
     const int rng_seed = randint(INT_MAX);
     debugf("Using RNG seed %i\n", rng_seed);
     rng_t rng(rng_seed);
-    try {
+    //    try {
         // This one is easy. Just to verify that things work in general.
         test_in_ex_radius(UNIT_SPHERE, &rng);
         // Very relevant, but still almost spherical. Test on earth geometry
@@ -101,9 +101,9 @@ TPTEST(GeoPrimitives, InExRadiusTest) {
         test_in_ex_radius(ellipsoid_spec_t(1.0, 0.4), &rng);
         // ... and stretching (though this wouldn't usually be written that way)
         test_in_ex_radius(ellipsoid_spec_t(1.0, -0.5), &rng);
-    } catch (const geo_exception_t &e) {
-        ADD_FAILURE() << "Caught a geo exception: " << e.what();
-    }
+    //    } catch (const geo_exception_t &e) {
+    //        ADD_FAILURE() << "Caught a geo exception: " << e.what();
+    //    }
 }
 
 }   /* namespace unittest */

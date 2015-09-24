@@ -28,17 +28,11 @@ BOOL unittest_ctrl_c(DWORD type) {
 }
 
 int main(int argc, char **argv) {
-    printf("Starting RethinkDB unittest main.\n");
     startup_shutdown_t startup_shutdown;
     //open_console();
     setvbuf(stderr, nullptr, _IONBF, 0);
-
-    // TODO ATN
-    // crash("oh noes");
-
     SetConsoleCtrlHandler(unittest_ctrl_c, true);
     ::testing::InitGoogleTest(&argc, argv);
-    printf("Running tests\n");
     int ret = RUN_ALL_TESTS();
     // close_console(); // TODO ATN
     return ret;
