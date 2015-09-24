@@ -281,6 +281,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
                     rfail_typed_target(&new_val, "`r.minval` and `r.maxval` cannot be "
                                        "written to disk.");
                 }
+                r_sanity_check(!ql::bad(res));
             }
 
             /* Report the changes for sindex and change-feed purposes */
@@ -483,6 +484,7 @@ void rdb_set(const store_key_t &key,
             rfail_typed_target(&data, "`r.minval` and `r.maxval` cannot be "
                                "written to disk.");
         }
+        r_sanity_check(!ql::bad(res));
         guarantee(mod_info->deleted.second.empty() == !had_value &&
                   !mod_info->added.second.empty());
     }
