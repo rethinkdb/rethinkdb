@@ -21,6 +21,7 @@
 #include "protocol_api.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/datum.hpp"
+#include "rdb_protocol/datumspec.hpp"
 #include "rdb_protocol/shards.hpp"
 #include "region/region.hpp"
 #include "repli_timestamp.hpp"
