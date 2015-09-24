@@ -158,6 +158,7 @@ remote_replicator_client_t::remote_replicator_client_t(
     store_(store),
     region_(store->get_region()),
     branch_id_(branch_id),
+    mode_(backfill_mode_t::PAUSED),
 
     next_write_waiter_(nullptr),
 
@@ -321,7 +322,6 @@ remote_replicator_client_t::remote_replicator_client_t(
         guarantee(tracker_->is_homogeneous());
         guarantee(tracker_->get_prev_timestamp() ==
             timestamp_enforcer_->get_latest_all_before_completed());
-        tracker_.reset();   /* we don't need `tracker_` anymore */
 
 #ifndef NDEBUG
         /* Sanity check that the store's metainfo is all on the correct branch and
@@ -346,6 +346,7 @@ remote_replicator_client_t::remote_replicator_client_t(
         replica_.init(new replica_t(mailbox_manager_, store_, branch_history_manager,
             branch_id, timestamp_enforcer_->get_latest_all_before_completed()));
 
+        tracker_.reset();   /* we don't need `tracker_` anymore */
         mode_ = backfill_mode_t::STREAMING;
 
         if (next_write_waiter_ != nullptr) {
