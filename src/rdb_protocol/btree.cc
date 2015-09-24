@@ -617,7 +617,7 @@ public:
 
     continue_bool_t handle_pair(
         scoped_key_value_t &&keyvalue,
-        size_t copies,
+        size_t default_copies,
         concurrent_traversal_fifo_enforcer_signal_t waiter)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -638,6 +638,8 @@ private:
     scoped_ptr_t<profile::sampler_t> sampler;
 };
 
+// This is the interface the btree code expects, but our actual callback needs a
+// littl bit more so we use this wrapper to hold the extra information.
 class rget_cb_wrapper_t : public concurrent_traversal_callback_t {
 public:
     rget_cb_wrapper_t(rget_cb_t *_cb, size_t _copies)
