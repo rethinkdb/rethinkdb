@@ -201,7 +201,7 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(func1A);
         return new Contains(arguments);
     }
-    public GetField getField(Object exprA) {
+    public GetField g(Object exprA) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(exprA);
         return new GetField(arguments);

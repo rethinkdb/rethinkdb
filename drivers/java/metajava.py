@@ -149,6 +149,11 @@ class java_term_info(object):
         'OBJECT': 'ReqlObject',  # Avoids Object collision which is annoying
     }
 
+    # Renames for methods
+    METHOD_RENAMES = {
+        'getField': 'g'  # getField is too long for such a common operation
+    }
+
     # Manual override of superclasses for terms. Default is ReqlExpr
     SUPERCLASSES = {
         'DB': 'ReqlAst'
@@ -190,16 +195,9 @@ class java_term_info(object):
         '''This takes the general signatures from terminfo.json and
         turns them into signatures that can actually be created in the
         Java.'''
-        try:
-            return [cls.elaborate_signature(x)
-                    for sig in signatures
-                    for x in cls.reify_signature(term, sig)]
-        except Exception:
-            print("Term:", term)
-            print("sig:", sig)
-            print("reified", x)
-            raise
-
+        return [cls.elaborate_signature(x)
+                for sig in signatures
+                for x in cls.reify_signature(term, sig)]
 
     @staticmethod
     def elaborate_signature(sig):
@@ -380,9 +378,6 @@ class java_term_info(object):
                     expanded = True
                     formal_args = expand_funcx(formal_args)
             else:
-                if term == "JAVASCRIPT":
-                    print("got arg:", arg) #RSI
-                    print("translate(arg):", translate(arg)) #RSI
                 formal_args.append(translate(arg))
         return [formal_args] if not expanded else formal_args
 
@@ -400,6 +395,8 @@ class java_term_info(object):
             methodname += '_'
         elif methodname in self.OBJECT_METHODS:
             methodname += '_'
+        elif methodname in self.METHOD_RENAMES:
+            methodname = self.METHOD_RENAMES[methodname]
         info['methodname'] = methodname
 
     def add_classname(self, term, info):

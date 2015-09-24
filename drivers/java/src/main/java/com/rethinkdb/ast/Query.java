@@ -9,6 +9,9 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.json.simple.JSONArray;
 
 /* An instance for a query that has been sent to the server. Keeps
@@ -21,6 +24,8 @@ public class Query {
     public final long token;
     public final Optional<ReqlAst> term;
     public final OptArgs globalOptions;
+
+    static final Logger logger = LoggerFactory.getLogger(Query.class);
 
     public Query(QueryType type, long token, ReqlAst term, OptArgs globalOptions) {
         this.type = type;
@@ -62,7 +67,7 @@ public class Query {
             .putLong(token)
             .putInt(queryBytes.length)
             .put(queryBytes);
-        //System.out.println("Sending: "+ Util.bufferToString(bb)); //RSI
+        logger.debug("Serialized query: %s", Util.bufferToString(bb));
         return bb;
     }
 }
