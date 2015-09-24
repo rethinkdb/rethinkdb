@@ -16,6 +16,10 @@ try:
     xrange
 except NameError:
     xrange = range
+try:
+    unicode
+except NameError:
+    unicode = str
 
 # == resunder support
 
@@ -340,7 +344,7 @@ class Process(object):
         '''generate a non-existing name with a bit of randomness at the end'''
         newPath = path # should always exist
         while os.path.exists(newPath):
-            newPath = '%s_%s' % (os.path.join(path, name), ''.join(random.choice(string.lowercase) for i in range(extraLetters)))
+            newPath = '%s_%s' % (os.path.join(path, name), ''.join(random.choice(string.ascii_lowercase) for i in range(extraLetters)))
         os.mkdir(newPath)
         return newPath
     

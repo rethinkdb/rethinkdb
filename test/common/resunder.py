@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # Copyright 2010-2015 RethinkDB, all rights reserved.
+from __future__ import print_function
 
 import atexit, copy, logging, os, re, socket, subprocess, sys, time
 from signal import SIGTERM
@@ -127,7 +128,7 @@ class Daemon:
                 if os.path.exists(self.pidfile):
                     os.remove(self.pidfile)
             else:
-                print str(err)
+                print("%s" % str(err))
                 sys.exit(1)
     
     def restart(self):
@@ -236,7 +237,7 @@ if __name__ == "__main__":
     if len(sys.argv) == 2:
         if 'start' == sys.argv[1]:
             if os.geteuid() != 0:
-                print "Cannot start daemon without root access"
+                print("Cannot start daemon without root access")
             else:
                 daemon.start()
         elif 'stop' == sys.argv[1]:
@@ -246,9 +247,9 @@ if __name__ == "__main__":
         elif 'inline' == sys.argv[1]:
             daemon.run()
         else:
-            print "Unknown command"
+            print("Unknown command")
             sys.exit(2)
         sys.exit(0)
     else:
-        print "usage: %s start|stop|restart" % sys.argv[0]
+        print("usage: %s start|stop|restart" % sys.argv[0])
         sys.exit(2)

@@ -17,6 +17,11 @@ _, command_prefix, serve_options = scenario_common.parse_mode_flags(op.parse(sys
 r = utils.import_python_driver()
 dbName, tableName = utils.get_test_db_table()
 
+try:
+    xrange
+except NameError:
+    xrange = range
+
 print("Spinning up two servers (%.2fs)" % (time.time() - startTime))
 with driver.Cluster(initial_servers=['a', 'b'], output_folder='.', command_prefix=command_prefix, extra_options=serve_options) as cluster:
     cluster.check()

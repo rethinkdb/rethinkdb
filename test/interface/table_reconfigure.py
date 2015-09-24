@@ -75,7 +75,7 @@ with driver.Cluster(output_folder='.') as cluster:
         assert len(new_config["shards"]) == num_shards
         for shard in new_config["shards"]:
             assert shard["primary_replica"] in tag_table[primary_replica_tag]
-            for tag, count in num_replicas.iteritems():
+            for tag, count in num_replicas.items():
                 servers_in_tag = [s for s in shard["replicas"] if s in tag_table[tag]]
                 assert len(servers_in_tag) == count
                 if tag in nonvoting_replica_tags:
@@ -87,7 +87,7 @@ with driver.Cluster(output_folder='.') as cluster:
 
         # Make sure new config distributes replicas evenly when possible
         assert len(primary_replicas) == min(num_shards, num_servers)
-        for tag, count in num_replicas.iteritems():
+        for tag, count in num_replicas.items():
             usages = {}
             for shard in new_config["shards"]:
                 for replica in shard["replicas"]:

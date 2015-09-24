@@ -37,7 +37,7 @@ class AsyncChangefeed(threading.Thread):
                 # Throw away initial values
                 if "old_val" in x:
                     self.changes.append(x)
-        except Exception, e:
+        except Exception as e:
             self.err = sys.exc_info()
     
     def check(self):
@@ -61,7 +61,7 @@ with driver.Cluster(output_folder='.', ) as cluster:
 
     def check(expected, timer):
         time.sleep(timer)
-        for name, feed in feeds.iteritems():
+        for name, feed in feeds.items():
             feed.check()
             if name in expected:
                 assert len(feed.changes) > 0, "Expected changes on %s, found none." % name

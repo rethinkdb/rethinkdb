@@ -12,6 +12,11 @@ startTime = time.time()
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, scenario_common, utils, vcoptparse
 
+try:
+    xrange
+except NameError:
+    xrange = range
+
 op = vcoptparse.OptParser()
 scenario_common.prepare_option_parser_mode_flags(op)
 _, command_prefix, serve_options = scenario_common.parse_mode_flags(op.parse(sys.argv))

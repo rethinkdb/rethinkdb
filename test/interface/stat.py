@@ -27,6 +27,11 @@ import multiprocessing, os, pprint, random, re, sys, time
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, scenario_common, utils, vcoptparse, workload_runner
 
+try:
+    xrange
+except NameError:
+    xrange = range
+
 r = utils.import_python_driver()
 
 db = 'test'

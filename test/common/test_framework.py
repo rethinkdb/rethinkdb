@@ -287,10 +287,10 @@ class TestRunner(object):
         running = self.running.copy()
         if running:
             print("\nKilling remaining tasks...")
-            for id, process in running.iteritems():
+            for id, process in running.items():
                 tests_killed.add(id)
                 process.terminate(gracefull_kill=True)
-            for id, process in running.iteritems():
+            for id, process in running.items():
                 process.join()
 
         self.view.close()
@@ -313,7 +313,7 @@ class TestRunner(object):
             with self.running as running:
                 if not running:
                     break
-                id, process = running.iteritems().next()
+                id, process = list(running.items())[0]
             process.join()
             with self.running as running:
                 try:
@@ -793,7 +793,7 @@ class TestFilter(object):
                 print('Warning: ' + message)
             else:
                 raise Exception(message)
-        for name, filter in self.tree.iteritems():
+        for name, filter in self.tree.items():
             filter.check_use(path + [name])
 
     def __repr__(self):
@@ -868,7 +868,7 @@ class TestTree(Test):
             else:
                 return TestTree()
         trimmed = TestTree()
-        for name, test in self.tests.iteritems():
+        for name, test in self.tests.items():
             subfilter = filter.zoom(name)
             trimmed[name] = test.filter(subfilter)
         return trimmed
