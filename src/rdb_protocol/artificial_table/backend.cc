@@ -23,7 +23,7 @@ bool artificial_table_backend_t::read_all_rows_as_stream(
     /* Apply range filter */
     if (!datumspec.is_universe()) {
         std::vector<ql::datum_t> filter_rows;
-        for (auto &&row : rows) {
+        for (const auto &row : rows) {
             ql::datum_t key = row.get_field(primary_key.c_str(), ql::NOTHROW);
             guarantee(key.has());
             for (size_t i = 0; i < datumspec.copies(key); ++i) {
