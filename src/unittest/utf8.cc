@@ -570,7 +570,9 @@ TEST(UTF8IterationTest, Zalgo) {
     const char32_t *current = zalgo_codepoints;
     size_t seen = 0;
     while (it != end) {
-        ASSERT_EQ(*current++, *it++);
+        ASSERT_EQ(*current, *it);
+        ++current;
+        ++it;
         ++seen;
     }
     ASSERT_EQ(66, seen);
