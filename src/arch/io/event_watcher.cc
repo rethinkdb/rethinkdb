@@ -5,10 +5,11 @@
 #include "arch/runtime/thread_pool.hpp"
 
 void async_operation_t::set_result(size_t nb_bytes_, DWORD error_) {
+    debugf("ATN: %x->set_result\n", this);
     rassert(!completed.is_pulsed());
     nb_bytes = nb_bytes_;
     error = error_;
-    if (error != ERROR_SUCCESS) {
+    if (error != NO_ERROR) {
         error_handler->on_error(error);
     }
     completed.pulse();

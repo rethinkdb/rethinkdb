@@ -8,12 +8,12 @@
 
 windows_event_queue_t::windows_event_queue_t(linux_thread_t *thread_)
     : thread(thread_) {
-    completion_port = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, NULL, 1);
+    completion_port = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, static_cast<ULONG_PTR>(windows_message_type_t::ASYNC_OPERATION), 1);
     guarantee_winerr(completion_port != NULL, "CreateIoCompletionPort failed");
 }
 
 void windows_event_queue_t::add_handle(fd_t handle) {
-    completion_port = CreateIoCompletionPort(handle, completion_port, NULL, 1);
+    completion_port = CreateIoCompletionPort(handle, completion_port, static_cast<ULONG_PTR>(windows_message_type_t::ASYNC_OPERATION), 1);
     guarantee_winerr(completion_port != NULL, "CreateIoCompletionPort failed");
 }
 
@@ -43,9 +43,9 @@ void windows_event_queue_t::run() {
         OVERLAPPED *overlapped;
 
         BOOL res = GetQueuedCompletionStatus(completion_port, &nb_bytes, &key, &overlapped, INFINITE);
-        DWORD error = GetLastError();
+        DWORD error = res ? NO_ERROR : GetLastError();
         if (overlapped == NULL) {
-            guarantee_xwinerr(res != 0, error, "GetQueuedCompletionStatus failed");
+            guarantee_winerr(res != 0, "GetQueuedCompletionStatus failed");
         }
 
         switch (key) {

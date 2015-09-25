@@ -35,6 +35,11 @@
 #include "logger.hpp"
 #include "perfmon/perfmon.hpp"
 
+//* TODO ATN
+#define winsock_debugf debugf /*/
+#define winsock_debugf(...) ((void)0) //*/
+
+#ifdef _WIN32 // ATN TODO
 LPFN_CONNECTEX get_ConnectEx(SOCKET s) {
     static LPFN_CONNECTEX ConnectEx = nullptr;
     if (!ConnectEx) {
@@ -59,23 +64,27 @@ LPFN_ACCEPTEX get_AcceptEx(SOCKET s) {
     }
     return AcceptEx;
 }
+#endif
 
 void async_connect(fd_t socket, sockaddr *sa, size_t sa_len,
                    event_watcher_t *event_watcher, signal_t *interuptor) {
 #ifdef _WIN32
     async_operation_t op(event_watcher);
-    BOOL res = get_ConnectEx(socket)(socket, sa, sa_len, nullptr, 0, nullptr, &op.overlapped);
+    winsock_debugf("ATN: connecting socket %x\n", socket);
+    DWORD bytes_sent; // TODO ATN: is this needed?
+    BOOL res = get_ConnectEx(socket)(socket, sa, sa_len, nullptr, 0, &bytes_sent, &op.overlapped);
     if (res) {
         return;
     }
     DWORD error = GetLastError();
     if (error != ERROR_IO_PENDING) {
-        logERR("ConnectEx failed: %s", winerr_string(error).c_str());
+        crash("ConnectEx failed: %s", winerr_string(error).c_str());
         throw linux_tcp_conn_t::connect_failed_exc_t(EIO); // TODO ATN: winerr -> errno
     }
+    winsock_debugf("ATN: waiting for connection on %x\n",socket);
     wait_interruptible(&op.completed, interuptor);
-    if (op.error) {
-        logERR("ConnectEx failed: %s", winerr_string(op.error).c_str());
+    if (op.error != NO_ERROR) {
+        crash("ConnectEx failed: %s", winerr_string(op.error).c_str());
         throw linux_tcp_conn_t::connect_failed_exc_t(EIO); // TODO ATN: winerr -> errno
     }
 #else
@@ -110,13 +119,23 @@ void connect_ipv4_internal(fd_t socket, int local_port, const in_addr &addr, int
     memset(&sa, 0, sa_len);
     sa.sin_family = AF_INET;
 
+#ifdef _WIN32
+    sa.sin_port = htons(local_port);
+    sa.sin_addr.s_addr = INADDR_ANY;
+    // TODO ATN: on Windows at least, bind can block. Can it block in this use case?
+    winsock_debugf("ATN: binding socket for connect %x\n", socket);
+    if (bind(socket, reinterpret_cast<sockaddr *>(&sa), sa_len) != 0) {
+        logWRN("Failed to bind to local port %d: %s", local_port, errno_string(get_errno()).c_str());
+    }
+#else
     if (local_port != 0) {
         sa.sin_port = htons(local_port);
         sa.sin_addr.s_addr = INADDR_ANY;
-        // TODO ATN: on Windows at least, bind can block. Can it block in this use case?
-        if (bind(socket, reinterpret_cast<sockaddr *>(&sa), sa_len) != 0)
+        if (bind(socket, reinterpret_cast<sockaddr *>(&sa), sa_len) != 0) {
             logWRN("Failed to bind to local port %d: %s", local_port, errno_string(get_errno()).c_str());
+        }
     }
+#endif
 
     sa.sin_port = htons(port);
     sa.sin_addr = addr;
@@ -125,6 +144,7 @@ void connect_ipv4_internal(fd_t socket, int local_port, const in_addr &addr, int
 }
 
 void connect_ipv6_internal(fd_t socket, int local_port, const in6_addr &addr, int port, uint32_t scope_id, event_watcher_t *event_watcher, signal_t *interuptor) {
+    crash("TODO ATN: ipv6 connect");
     struct sockaddr_in6 sa;
     socklen_t sa_len(sizeof(sa));
     memset(&sa, 0, sa_len);
@@ -133,8 +153,9 @@ void connect_ipv6_internal(fd_t socket, int local_port, const in6_addr &addr, in
     if (local_port != 0) {
         sa.sin6_port = htons(local_port);
         sa.sin6_addr = in6addr_any;
-        if (bind(socket, reinterpret_cast<sockaddr *>(&sa), sa_len) != 0)
+        if (bind(socket, reinterpret_cast<sockaddr *>(&sa), sa_len) != 0) {
             logWRN("Failed to bind to local port %d: %s", local_port, errno_string(get_errno()).c_str());
+        }
     }
 
     sa.sin6_port = htons(port);
@@ -144,8 +165,21 @@ void connect_ipv6_internal(fd_t socket, int local_port, const in6_addr &addr, in
     async_connect(socket, reinterpret_cast<sockaddr *>(&sa), sa_len, event_watcher, interuptor);
 }
 
-// TODO ATN: windows version of this using HANDLE and without get_errno
 fd_t create_socket_wrapper(int address_family) {
+#ifdef _WIN32
+    // fd_t res = WSASocket(address_family, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, WSA_FLAG_OVERLAPPED);
+    // TODO ATN: maybe replace this by above, or at least use address_family instead of AF_INET
+    fd_t res = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    winsock_debugf("ATN: new socket %x\n", res); // TODO ATN
+    if (res == INVALID_FD) {
+        DWORD err = GetLastError();
+        // TODO ATN: if (err != WSAEAFNOSUPPORT || address_family == AF_INET) {
+        logERR("Failed to create socket: %s", winerr_string(err).c_str());
+        //}
+        throw linux_tcp_conn_t::connect_failed_exc_t(EIO); // TODO: winerr -> errno
+    }
+    return res;
+#else
     fd_t res = socket(address_family, SOCK_STREAM, 0);
     if (res == INVALID_FD) {
         // Let the user know something is wrong - except in the case where
@@ -155,6 +189,7 @@ fd_t create_socket_wrapper(int address_family) {
         }
         throw linux_tcp_conn_t::connect_failed_exc_t(get_errno());
     }
+#endif
     return res;
 }
 
@@ -788,6 +823,9 @@ linux_nonthrowing_tcp_listener_t::linux_nonthrowing_tcp_listener_t(
     event_watchers(),
     log_next_error(true)
 {
+#ifdef _WIN32 // TODO ATN: this is for testing
+    local_addresses = std::set<ip_address_t>{ ip_address_t::any(AF_INET) }; // TODO: maybe use gethostbyname
+#endif
     // If no addresses were supplied, default to 'any'
     if (local_addresses.empty()) {
         local_addresses.insert(ip_address_t::any(AF_INET6));
@@ -807,8 +845,9 @@ bool linux_nonthrowing_tcp_listener_t::begin_listening() {
 
     // Start listening to connections
     for (size_t i = 0; i < socks.size(); ++i) {
+        winsock_debugf("ATN: listening on socket %x\n", socks[i].get()); // TODO ATN
         int res = listen(socks[i].get(), RDB_LISTEN_BACKLOG);
-        guarantee_err(res == 0, "Couldn't listen to the socket");
+        guarantee_err(res == 0, "Couldn't listen to the socket"); // TODO ATN: on windows, GetLastERror instead of errno
 
 #ifndef _WIN32 // TODO ATN
         res = fcntl(socks[i].get(), F_SETFL, O_NONBLOCK);
@@ -844,10 +883,20 @@ int linux_nonthrowing_tcp_listener_t::init_sockets() {
             event_watchers[i].reset();
         }
 
+#ifdef _WIN32
+        // socks[i].reset(WSASocket(addr->get_address_family(), SOCK_STREAM, IPPROTO_TCP, nullptr, 0, WSA_FLAG_OVERLAPPED));
+        // TODO ATN: maybe restore above line, or at least use the correct family
+        socks[i].reset(socket(AF_INET, SOCK_STREAM, IPPROTO_TCP));
+        winsock_debugf("ATN: new socket for listening: %x\n", socks[i]);
+        if (socks[i].get() == INVALID_FD) {
+            return EIO; // TODO ATN: winerr -> errno
+        }
+#else
         socks[i].reset(socket(addr->get_address_family(), SOCK_STREAM, 0));
         if (socks[i].get() == INVALID_FD) {
             return get_errno();
         }
+#endif
 
         event_watchers[i].init(new event_watcher_t(socks[i].get(), this));
 
@@ -886,8 +935,9 @@ int bind_ipv4_interface(fd_t sock, int *port_out, const struct in_addr &addr) {
     serv_addr.sin_addr = addr;
 
     int res = bind(sock, reinterpret_cast<sockaddr *>(&serv_addr), sa_len);
+    winsock_debugf("ATN: bound socket %x\n", sock); // TODO ATN
     if (res != 0) {
-        res = get_errno();
+        res = get_errno(); // TODO ATN: GetLastError on windows
     } else if (*port_out == ANY_PORT) {
         res = ::getsockname(sock, reinterpret_cast<sockaddr *>(&serv_addr), &sa_len);
         guarantee_err(res != -1, "Could not determine socket local port number");
@@ -898,6 +948,9 @@ int bind_ipv4_interface(fd_t sock, int *port_out, const struct in_addr &addr) {
 }
 
 int bind_ipv6_interface(fd_t sock, int *port_out, const ip_address_t &addr) {
+#ifdef _WIN32
+    crash("ATN TODO: ipv6");
+#endif
     sockaddr_in6 serv_addr;
     socklen_t sa_len(sizeof(serv_addr));
     memset(&serv_addr, 0, sa_len);
@@ -908,7 +961,7 @@ int bind_ipv6_interface(fd_t sock, int *port_out, const ip_address_t &addr) {
 
     int res = bind(sock, reinterpret_cast<sockaddr *>(&serv_addr), sa_len);
     if (res != 0) {
-        res = get_errno();
+        res = get_errno(); // TODO ATN: on windows, GetLastError
     } else if (*port_out == ANY_PORT) {
         res = ::getsockname(sock, reinterpret_cast<sockaddr *>(&serv_addr), &sa_len);
         guarantee_err(res != -1, "Could not determine socket local port number");
@@ -1027,6 +1080,7 @@ void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) 
     fd_t active_fd = socks[0].get();
 
 #ifdef _WIN32 // TODO ATN
+    static const int ADDRESS_SIZE = INET6_ADDRSTRLEN + 16;
     union accept_op_t { // TODO ATN: ugh
         accept_op_t() : initialized(false) { }
 
@@ -1053,22 +1107,29 @@ void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) 
 
         void queue_accept() {
             op.reset();
-            new_sock = socket(address_family, SOCK_STREAM, IPPROTO_TCP);
-            guarantee_winerr(new_sock != INVALID_FD, "socket() failed");
-            BOOL res = get_AcceptEx(listening_sock)(listening_sock, new_sock, addresses, 0, sizeof(addresses[0]), sizeof(addresses[1]), &bytes_recieved, &op.overlapped);
-            DWORD error = GetLastError();
-            if (error != ERROR_IO_PENDING) {
-                op.error = error;
+            new_sock = WSASocket(address_family, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, WSA_FLAG_OVERLAPPED);
+            guarantee_winerr(new_sock != INVALID_FD, "WSASocket failed");
+            winsock_debugf("ATN: accept on socket %x, buffer size %d\n", listening_sock, ADDRESS_SIZE); // TODO ATN
+            BOOL res = get_AcceptEx(listening_sock)(listening_sock, new_sock, addresses, 0, ADDRESS_SIZE, ADDRESS_SIZE, &bytes_recieved, &op.overlapped);
+            if (res) {
+                op.error = NO_ERROR;
                 op.completed.pulse();
+            } else {
+                DWORD error = GetLastError();
+                if (error != ERROR_IO_PENDING) {
+                    op.error = error;
+                    op.completed.pulse();
+                } else {
+                    winsock_debugf("ATN: AcceptEx ERROR_IO_PENDING\n");
+                }
             }
         }
-
         bool initialized;
         struct {
             bool initialized_;
             fd_t listening_sock;
             int address_family;
-            char addresses[INET6_ADDRSTRLEN + 16][2];
+            char addresses[ADDRESS_SIZE][2];
             async_operation_t op;
             fd_t new_sock;
             DWORD bytes_recieved;
@@ -1081,11 +1142,13 @@ void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) 
     }
 
     while(!lock.get_drain_signal()->is_pulsed()) {
-        wait_any_t waiter(lock.get_drain_signal());
-        for (size_t i = 0; i < accept_ops.size(); i++) {
-            waiter.add(&accept_ops[i].op.completed);
+        {
+            wait_any_t waiter(lock.get_drain_signal());
+            for (size_t i = 0; i < accept_ops.size(); i++) {
+                waiter.add(&accept_ops[i].op.completed);
+            }
+            waiter.wait_lazily_unordered();
         }
-        waiter.wait_lazily_unordered();
 
         if (lock.get_drain_signal()->is_pulsed()) {
             return;
@@ -1094,14 +1157,17 @@ void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) 
         for (size_t i = 0; i < accept_ops.size(); i++) {
             accept_op_t *accepted = &accept_ops[(i + last_used_socket_index + 1) % accept_ops.size()];
             if (accepted->op.completed.is_pulsed()) {
-                if (accepted->op.error != ERROR_SUCCESS) {
-                    logWRN("AcceptEx failed: %s", winerr_string(accepted->op.error).c_str());
+                if (accepted->op.error != NO_ERROR) {
+                    logERR("AcceptEx failed: %s", winerr_string(accepted->op.error).c_str());
                     try {
                         backoff.failure(lock.get_drain_signal());
                     } catch (const interrupted_exc_t &) {
                         return;
                     }
+                    accepted->queue_accept();
                 } else {
+                    winsock_debugf("ATN: accepted %x from %x\n", accepted->new_sock, accepted->listening_sock);
+                    accepted->queue_accept();
                     coro_t::spawn_now_dangerously(std::bind(&linux_nonthrowing_tcp_listener_t::handle, this, accepted->new_sock));
                     backoff.success();
                 }

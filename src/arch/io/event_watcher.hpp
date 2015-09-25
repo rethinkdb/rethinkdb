@@ -14,7 +14,10 @@ class windows_event_watcher_t;
 
 // An asynchronous operation
 struct async_operation_t {
-    async_operation_t(windows_event_watcher_t *ew) : error_handler(ew) { }
+    async_operation_t(windows_event_watcher_t *ew) : error_handler(ew) {
+        debugf("ATN: %x->init async_operation_t\n", this);
+        memset(&overlapped, 0, sizeof(overlapped));
+    }
 
     void reset() { completed.reset(); }
 

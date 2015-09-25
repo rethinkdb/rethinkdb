@@ -104,11 +104,20 @@ const char *errno_string_maybe_using_buffer(int errsv, char *buf, size_t buflen)
 
 MUST_USE const std::string winerr_string(DWORD winerr) {
     char *errmsg;
-    FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+    DWORD res = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
                    NULL, winerr, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&errmsg, 0, NULL);
-    std::string ret(errmsg);
-    LocalFree(errmsg);
-    return ret;
+    if (res != 0) {
+        size_t end = strlen(errmsg);
+        while (end > 0 && isspace(errmsg[end-1])) {
+            end--;
+        }
+        errmsg[end] = 0;
+        std::string ret(errmsg);
+        LocalFree(errmsg);
+        return ret;
+    } else {
+        return strprintf("Unkown error 0x%x (error formatting the error: 0x%x)", winerr, GetLastError());
+    }
 }
 
 /* Handlers for various signals and for unexpected exceptions or calls to std::terminate() */

@@ -33,7 +33,9 @@ home_thread_mixin_t::home_thread_mixin_t(threadnum_t specified_home_thread)
     assert_good_thread_id(specified_home_thread);
 }
 home_thread_mixin_t::home_thread_mixin_t()
-    : real_home_thread(get_thread_id()) { }
+    : real_home_thread(get_thread_id()) {
+    assert_good_thread_id(real_home_thread); // TODO ATN
+}
 
 
 on_thread_t::on_thread_t(threadnum_t thread) {

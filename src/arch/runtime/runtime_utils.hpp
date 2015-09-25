@@ -8,15 +8,17 @@
 #include "config/args.hpp"
 #include "containers/intrusive_list.hpp"
 
+#include "debug.hpp"
+
 #ifdef _WIN32 // TODO ATN
 
 class fd_t {
 public:
     fd_t() : handle(INVALID_HANDLE_VALUE) { }
     fd_t(HANDLE h) : handle(h) { }
-    fd_t(SOCKET s) : handle(reinterpret_cast<HANDLE>(s)) { }
+    fd_t(SOCKET s) : handle((HANDLE)s) { }
     operator HANDLE() { return handle; }
-    operator SOCKET() { return reinterpret_cast<SOCKET>(handle); }
+    operator SOCKET() { return (SOCKET)handle; }
     bool operator ==(const fd_t other) { return handle == other.handle; }
     bool operator !=(const fd_t other) { return handle != other.handle; }
 

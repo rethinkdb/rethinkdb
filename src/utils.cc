@@ -53,7 +53,7 @@ void run_generic_global_startup_behavior() {
     // two servers in the same cluster have different locales.
     setlocale(LC_ALL, "C");
 
-#if !defined(_MSC_VER) // ATN: TODO: use feature macro. also TODO: extend limit on windows
+#if !defined(_WIN32) // ATN: TODO: use feature macro. also TODO: extend limit on windows
     rlimit file_limit;
     int res = getrlimit(RLIMIT_NOFILE, &file_limit);
     guarantee_err(res == 0, "getrlimit with RLIMIT_NOFILE failed");
@@ -85,7 +85,8 @@ void run_generic_global_startup_behavior() {
 #ifdef _WIN32
 	// ATN TODO
 	WSADATA wsa_data;
-	WSAStartup(MAKEWORD(2, 2), &wsa_data);
+	DWORD res = WSAStartup(MAKEWORD(2, 2), &wsa_data);
+        guarantee_winerr(res == NO_ERROR, "WSAStartup failed");
 #endif
 }
 
