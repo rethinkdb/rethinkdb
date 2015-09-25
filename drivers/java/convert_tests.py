@@ -432,7 +432,7 @@ class JavaVisitor(ast.NodeVisitor):
 
     def visit_Subscript(self, node):
         if node.slice is None or type(node.slice.value) != ast.Num:
-            logger.errro("While doing: %s", ast.dump(node))
+            logger.error("While doing: %s", ast.dump(node))
             raise Unhandled("Only integers subscript can be converted."
                             " Got %s" % node.slice.value.s)
         self.write("[")
