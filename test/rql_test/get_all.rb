@@ -1,6 +1,6 @@
 require 'pp'
 require 'eventmachine'
-# require_relative './importRethinkDB.rb'
+require_relative './importRethinkDB.rb'
 
 $port ||= (ARGV[0] || ENV['RDB_DRIVER_PORT'] || raise('driver port not supplied')).to_i
 ARGV.clear
@@ -24,7 +24,9 @@ indexes.each {|index|
 short_keys = [10, 20, -1, -1, 3, 3, 4, 3]
 long_keys = (0...100).map{|i| (i-10)*2}*2
 
-[{max_batch_rows: 1}, {max_batch_rows: 10}, {max_batch_rows: 100}, {}].each {|runopts|
+# Add these to the list if you have a lot of time to run the test:
+# [{max_batch_rows: 1}, {max_batch_rows: 100}]
+[{max_batch_rows: 10}, {}].each {|runopts|
   puts "----- Testing with runopts #{runopts} -----";
 
   puts "-- Setting up artificial table..."
@@ -44,7 +46,6 @@ long_keys = (0...100).map{|i| (i-10)*2}*2
   puts "Testing get_all..."
   res = r.db('rethinkdb').table('_debug_scratch').get_all(*short_keys).run(runopts)
   raise "Short get_all failed." if res.count != 6
-
 
   puts "-- Setting up simple table..."
   r.table('test').delete.run(runopts)
@@ -83,7 +84,7 @@ long_keys = (0...100).map{|i| (i-10)*2}*2
   raise "Short indexed get_all failed." if res.to_a.count != 6
   res = r.table('test').get_all(*long_keys).run(runopts)
   raise "Long get_all failed." if res.to_a.count != 180
-  res = r.table('test').get_all(*keys, index: 'a').run(runopts)
+  res = r.table('test').get_all(*long_keys, index: 'a').run(runopts)
   raise "Long indexed get_all failed." if res.to_a.count != 180
 
   ####
