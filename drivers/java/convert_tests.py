@@ -185,13 +185,46 @@ class TestFile(object):
 
 def py_to_java_type(py_type):
     '''Converts python types to their Java equivalents'''
-    return {
-        int: 'Integer',
-        float: 'Double',
-        str: 'String',
-        dict: 'Map',
-        list: 'List',
-    }[py_type]
+    if isinstance(py_type, str):
+        # This can be called on something already converted
+        return py_type
+    elif py_type.__name__ == 'function':
+        raise Skip("Can't store a lambda in a variable")
+    elif (py_type.__module__ == 'datetime' and
+          py_type.__name__ == 'datetime'):
+        return 'java.util.Date'
+    elif py_type.__module__ == 'builtins':
+        return {
+            bool: 'Boolean',
+            bytes: 'byte[]',
+            int: 'Integer',
+            float: 'Double',
+            str: 'String',
+            dict: 'Map',
+            list: 'List',
+            type(None): 'Object',
+        }[py_type]
+    elif py_type.__module__ == 'rethinkdb.ast':
+        return py_type.__name__
+    elif py_type.__module__ == 'rethinkdb.errors':
+        return py_type.__name__
+    elif py_type.__module__ == '?test?':
+        return metajava.camel(py_type.__name__)
+    elif py_type.__module__ == 'rethinkdb.query':
+        # All of the constants like minval maxval etc are defined in
+        # query.py, but no type name is provided to `type`, so we have
+        # to pull it out of a class variable
+        return metajava.camel(py_type.st)
+    else:
+        raise Unhandled(
+            "Don't know how to convert python type {}.{} to java"
+            .format(py_type.__module__, py_type.__name__))
+
+
+def is_reql(t):
+    '''Determines if a type is a reql term'''
+    # Other options for module: builtins, ?test?, datetime
+    return t.__module__ == 'rethinkdb.ast'
 
 
 def ast_to_java(sequence, reql_vars):
@@ -204,10 +237,11 @@ def ast_to_java(sequence, reql_vars):
                 reql_vars.add(item.varname)
             try:
                 if is_reql(item.term.type):
-                    visitor = ReQLVisitor(reql_vars)
+                    visitor = ReQLVisitor
                 else:
-                    visitor = JavaVisitor(reql_vars)
-                java_line = visitor.convert(item.term.ast)
+                    visitor = JavaVisitor
+                java_line = visitor(
+                    reql_vars, type_=item.term.type).convert(item.term.ast)
             except Skip as skip:
                 yield SkippedTest(line=item.term.line, reason=str(skip))
                 continue
@@ -222,18 +256,22 @@ def ast_to_java(sequence, reql_vars):
         elif isinstance(item, process_polyglot.Query):
             if item.runopts is not None:
                 converted_runopts = {
-                    key: JavaVisitor(reql_vars).convert(val)
+                    key: JavaVisitor(
+                        reql_vars, type_=item.query.type).convert(val)
                     for key, val in item.runopts.items()
                 }
             else:
                 converted_runopts = item.runopts
             try:
-                java_line = ReQLVisitor(reql_vars).convert(item.query.ast)
+                java_line = ReQLVisitor(
+                    reql_vars, type_=item.query.type).convert(item.query.ast)
                 if is_reql(item.expected.term.type):
-                    visitor = ReQLVisitor(reql_vars)
+                    visitor = ReQLVisitor
                 else:
-                    visitor = JavaVisitor(reql_vars)
-                java_expected_line = visitor.convert(item.expected.term.ast)
+                    visitor = JavaVisitor
+                java_expected_line = visitor(
+                    reql_vars, type_=item.expected.term.type)\
+                    .convert(item.expected.term.ast)
             except Skip as skip:
                 yield SkippedTest(line=item.query.line, reason=str(skip))
                 continue
@@ -261,9 +299,13 @@ def ast_to_java(sequence, reql_vars):
 class JavaVisitor(ast.NodeVisitor):
     '''Converts python ast nodes into a java string'''
 
-    def __init__(self, reql_vars=frozenset("r"), out=None):
+    def __init__(self, reql_vars=frozenset("r"), out=None, type_=None):
         self.out = StringIO() if out is None else out
         self.reql_vars = reql_vars
+        if type_ is None:  # RSI
+            raise Exception("Didn't provide overall_type")
+        self.type = py_to_java_type(type_)
+        self._type = type_
         super(JavaVisitor, self).__init__()
         self.write = self.out.write
 
@@ -305,18 +347,16 @@ class JavaVisitor(ast.NodeVisitor):
     def visit_Assign(self, node):
         if len(node.targets) != 1:
             Unhandled("We only support assigning to one variable")
-        if is_reql(node.value, self.reql_vars):
-            self.write("ReqlAst ") # TODO: convert python to java type!
-            self.write(node.targets[0].id)
-            self.write(" = ")
-            ReQLVisitor(self.reql_vars, out=self.out).visit(node.value)
-            self.write(";")
+        self.write(self.type + " ")
+        self.write(node.targets[0].id)
+        self.write(" = ")
+        if is_reql(self._type):
+            ReQLVisitor(self.reql_vars,
+                        out=self.out,
+                        type_=self.type).visit(node.value)
         else:
-            self.write("Object ")
-            self.write(node.targets[0].id)
-            self.write(" = ")
             self.visit(node.value)
-            self.write(";")
+        self.write(";")
 
     def visit_Str(self, node):
         self.to_str(node.s)
@@ -392,7 +432,7 @@ class JavaVisitor(ast.NodeVisitor):
 
     def visit_Subscript(self, node):
         if node.slice is None or type(node.slice.value) != ast.Num:
-            logger.error("While doing: %s", ast.dump(node))
+            logger.errro("While doing: %s", ast.dump(node))
             raise Unhandled("Only integers subscript can be converted."
                             " Got %s" % node.slice.value.s)
         self.write("[")
@@ -556,13 +596,6 @@ class ReQLVisitor(JavaVisitor):
         if initial in metajava.java_term_info.JAVA_KEYWORDS or \
            initial in metajava.java_term_info.OBJECT_METHODS:
             self.write('_')
-
-Bag = namedtuple("Bag", "value")
-Err = namedtuple("Err", "exception message")
-Partial = namedtuple("Partial", "value")
-Uuid = namedtuple("Uuid", "value")
-Arrlen = namedtuple("Arrlen", "array")
-Repeat = namedtuple("Repeat", "rpt")
 
 
 if __name__ == '__main__':

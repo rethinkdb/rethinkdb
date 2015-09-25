@@ -54,10 +54,6 @@ public class ${module_name} {
         conn.close();
     }
 
-    public Object bag(Object...) {
-        throw new RuntimeException("Not implemented");
-    }
-
     @Test
     public void test() throws Exception {
         <%rendered_something = False %>\
@@ -66,8 +62,8 @@ public class ${module_name} {
         <%rendered_something = True %>\
 
         // ${item.testfile} #${item.test_num}
-        // ${item.original_line}
-        ${item.java_line}
+        // ${item.line.original}
+        ${item.line.java}
         %elif type(item) == JavaQuery:
         <%rendered_something = True %>
         {

@@ -96,31 +96,21 @@ def py_str(py):
         return py
 
 
-class LenRewriter(ast.NodeTransformer):
-    '''Rewrites an ast so any references to the len() function become
-    a literal number. This is because sometimes a test requires a
-    length by grabbing data from the server, and this won't affect the
-    type of the final result.
-
-    i.e. type(len(some.long.query.run(conn))) === type(1)
-    '''
-    def visit_Call(self, node):
-        node = self.generic_visit(node)
-        if type(node.func) == ast.Name and node.func.id == 'len':
-            return ast.Num(1)
-        else:
-            return node
-
 def _try_eval(node, context):
     '''For evaluating expressions given a context'''
     node_4_eval = copy.deepcopy(node)
-    node_4_eval = LenRewriter().visit(node_4_eval)
     if type(node_4_eval) == ast.Expr:
         node_4_eval = node_4_eval.value
     node_4_eval = ast.Expression(node_4_eval)
     ast.fix_missing_locations(node_4_eval)
     compiled_value = compile(node_4_eval, '<str>', mode='eval')
-    value = eval(compiled_value, context)
+    r = context['r']
+    try:
+        value = eval(compiled_value, context)
+    except r.ReqlError:
+        raise Skip("Java type system prevents static Reql errors")
+    except AttributeError:
+        raise Skip("Java type system prevents attribute errors")
     return type(value), value
 
 
@@ -141,14 +131,11 @@ def maybe_bif_eval(expected, context):
     surrounding function if it's one of the built in testing
     functions (e.g. bag, err etc)
     '''
-    bifs = {
-        "bag", "err", "partial", "uuid", "arrlen", "repeat"
-    }
+    bifs = {"bag", "err", "partial", "repeat", "err_regex"}
     bif = None
     if type(expected) == ast.Call and \
        type(expected.func) == ast.Name and \
        expected.func.id in bifs:
-        print("  Got:", expected)
         bif = expected
         node_type = try_eval(expected.args[0], context)
         return bif, node_type
@@ -199,17 +186,36 @@ def create_context(r, table_var_names):
         def dst(self, dt):
             return timedelta(0, 3600)
 
+    def fake_type(name):
+        def __init__(self, *args, **kwargs):
+            pass
+        typ = type(name, (object,), {'__init__': __init__})
+        typ.__module__ = '?test?'
+        return typ
+
     # We need to keep track of the values of definitions because each
     # subsequent definition can depend on previous ones.
     context = {
         'r': r,
         'null': None,
+        'nil': None,
         'sys': sys,
         'false': False,
         'true': True,
         'datetime': datetime,
         'PacificTimeZone': PacificTimeZone,
         'UTCTimeZone': UTCTimeZone,
+        # mock test helper functions
+        'len': lambda x: 1,
+        'arrlen': lambda *args: 1,
+        'uuid': lambda: "aaaaaaaa-bbbb-cccc-dddd-xxxxxxxxxxxx",
+        'fetch': lambda c, limit=None: [],
+        'int_cmp': fake_type("int_cmp"),
+        'partial': fake_type("partial"),
+        'float_cmp': fake_type("float_cmp"),
+        'wait': lambda time: None,
+        # py3 compatibility
+        'xrange': range,
     }
     # Definitions can refer to these predefined table variables. Since
     # we're only evaluating definitions here to determine what the
@@ -264,8 +270,12 @@ def tests_and_defs(testfile, raw_test_data, context):
                                    type=expected_type))
         if isinstance(pytest, basestring):
             parsed = ast.parse(pytest, mode="single").body[0]
-            result_type = try_eval(parsed, context)
             if type(parsed) == ast.Expr:
+                logger.debug("Evaluating: %s", pytest)
+                try:
+                    result_type = try_eval(parsed, context)
+                except Skip as s:
+                    yield SkippedTest(line=pytest, reason=str(s))
                 yield Query(
                     query=Term(
                         ast=parsed.value,
