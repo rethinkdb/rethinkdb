@@ -366,7 +366,7 @@ describe("JavaScript Callback style", function() {
         it("errors with an invalid optarg", function(done){
             r.expr(1).run(reqlConn, {nonValidOption: true}).then(function() {
                 done(new Error("Was expecting an error"))
-            }).error(givesError("ReqlCompileError", "Unrecognized global optional argument `non_valid_option`.", done));
+            }).error(givesError("ReqlServerCompileError", "Unrecognized global optional argument `non_valid_option`.", done));
         });
 
         it("errors with an extra argument", function(done){

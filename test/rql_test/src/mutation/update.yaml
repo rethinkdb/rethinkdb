@@ -128,7 +128,7 @@ tests:
       ot: {'deleted':0.0,'replaced':1,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':0.0}
 
     - js: tbl.get(1).update({}, 'foo')
-      ot: err('ReqlDriverError', 'Expected 1 argument (not including options) but found 2.')
+      ot: err('ReqlCompileError', 'Expected 1 argument (not including options) but found 2.')
 
     - js: tbl.get(1).update({}, {'foo':'bar'})
       ot: err('ReqlCompileError', 'Unrecognized optional argument `foo`.')

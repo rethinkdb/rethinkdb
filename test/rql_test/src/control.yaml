@@ -39,15 +39,14 @@ tests:
       ot: 1
 
     - js: r.do(1, function(x) {})
-      ot: err("ReqlDriverError", 'Anonymous function returned `undefined`. Did you forget a `return`?', [1])
+      ot: err("ReqlDriverCompileError", 'Anonymous function returned `undefined`. Did you forget a `return`?', [1])
 
     - js: r.do(1, function(x) { return undefined; })
-      ot: err("ReqlDriverError", 'Anonymous function returned `undefined`. Did you forget a `return`?', [1])
+      ot: err("ReqlDriverCompileError", 'Anonymous function returned `undefined`. Did you forget a `return`?', [1])
 
     - cd: r.do()
       ot:
         cd: err("ReqlCompileError", 'Expected 1 or more arguments but found 0.', [1])
-        js: err("ReqlDriverError", 'Expected 1 or more arguments but found 0.', [1])
 
     # FunCall errors
 
@@ -131,11 +130,11 @@ tests:
     - cd: r.expr([1, 2, 3]).filter()
       ot:
         cd: err("ReqlCompileError", "Expected 2 arguments but found 1.", [0])
-        js: err("ReqlDriverError", "Expected 1 argument (not including options) but found 0.", [0])
+        js: err("ReqlCompileError", "Expected 1 argument (not including options) but found 0.", [0])
     - cd: r.expr([1, 2, 3]).filter(1, 2)
       ot:
         cd: err("ReqlCompileError", "Expected 2 arguments but found 3.", [0])
-        js: err("ReqlDriverError", "Expected 1 argument (not including options) but found 2.", [0])
+        js: err("ReqlCompileError", "Expected 1 argument (not including options) but found 2.", [0])
 
     # r.js()
     - cd: r.js('1 + 1')
@@ -267,7 +266,7 @@ tests:
 
       # This is only relevant in JS -- what happens when we return undefined
     - js: r([1, 2, 3]).forEach(function (row) {})
-      ot: err("ReqlDriverError", 'Anonymous function returned `undefined`. Did you forget a `return`?', [1])
+      ot: err("ReqlDriverCompileError", 'Anonymous function returned `undefined`. Did you forget a `return`?', [1])
 
     # Make sure write queries can't be nested into stream ops
     - cd: r.expr(1).do(tbl.insert({'foo':r.row}))

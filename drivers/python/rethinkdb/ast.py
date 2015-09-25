@@ -9,7 +9,7 @@ import binascii
 import json as py_json
 import threading
 
-from .errors import ReqlDriverError, QueryPrinter, T
+from .errors import ReqlDriverError, ReqlDriverCompileError, QueryPrinter, T
 from . import ql2_pb2 as p
 
 pTerm = p.Term.TermType
@@ -53,10 +53,10 @@ def expr(val, nesting_depth=20):
         Convert a Python primitive into a RQL primitive value
     '''
     if not isinstance(nesting_depth, int):
-        raise ReqlDriverError("Second argument to `r.expr` must be a number.")
+        raise ReqlDriverCompileError("Second argument to `r.expr` must be a number.")
 
     if nesting_depth <= 0:
-        raise ReqlDriverError("Nesting depth limit exceeded")
+        raise ReqlDriverCompileError("Nesting depth limit exceeded.")
 
     if isinstance(val, RqlQuery):
         return val
@@ -64,7 +64,7 @@ def expr(val, nesting_depth=20):
         return Func(val)
     elif isinstance(val, (datetime.datetime, datetime.date)):
         if not hasattr(val, 'tzinfo') or not val.tzinfo:
-            raise ReqlDriverError("""Cannot convert %s to ReQL time object
+            raise ReqlDriverCompileError("""Cannot convert %s to ReQL time object
             without timezone information. You can add timezone information with
             the third party module \"pytz\" or by constructing ReQL compatible
             timezone values with r.make_timezone(\"[+-]HH:MM\"). Alternatively,
@@ -599,9 +599,9 @@ class RqlBiCompareOperQuery(RqlBiOperQuery):
                         "Note that `a < b | b < c` <==> `a < (b | b) < c`.\n"
                         "If you really want this behavior, use `.or_` or "
                         "`.and_` instead.")
-                    raise ReqlDriverError(err %
-                                          (self.st,
-                                           QueryPrinter(self).print_query()))
+                    raise ReqlDriverCompileError(err %
+                                                 (self.st,
+                                                  QueryPrinter(self).print_query()))
             except AttributeError:
                 pass  # No infix attribute, so not possible to be an infix bool operator
 
@@ -813,7 +813,7 @@ class MakeObj(RqlQuery):
         self.optargs = {}
         for k, v in dict_items(obj_dict):
             if not isinstance(k, (str, unicode)):
-                raise ReqlDriverError("Object keys must be strings.")
+                raise ReqlDriverCompileError("Object keys must be strings.")
             self.optargs[k] = expr(v)
 
     def build(self):
@@ -1109,7 +1109,7 @@ class FunCall(RqlQuery):
     # before passing it down to the base class constructor.
     def __init__(self, *args):
         if len(args) == 0:
-            raise ReqlDriverError("Expected 1 or more arguments but found 0.")
+            raise ReqlDriverCompileError("Expected 1 or more arguments but found 0.")
         args = [func_wrap(args[-1])] + list(args[:-1])
         RqlQuery.__init__(self, *args)
 
@@ -1588,13 +1588,13 @@ class Binary(RqlTopLevelQuery):
         if isinstance(data, RqlQuery):
             RqlTopLevelQuery.__init__(self, data)
         elif isinstance(data, unicode):
-            raise ReqlDriverError("Cannot convert a unicode string to binary, "
-                                  "use `unicode.encode()` to specify the "
-                                  "encoding.")
+            raise ReqlDriverCompileError("Cannot convert a unicode string to binary, "
+                                         "use `unicode.encode()` to specify the "
+                                         "encoding.")
         elif not isinstance(data, bytes):
-            raise ReqlDriverError(("Cannot convert %s to binary, convert the "
-                                   "object to a `bytes` object first.")
-                                  % type(data).__name__)
+            raise ReqlDriverCompileError(("Cannot convert %s to binary, convert the "
+                                          "object to a `bytes` object first.")
+                                         % type(data).__name__)
         else:
             self.base64_data = base64.b64encode(data)
 

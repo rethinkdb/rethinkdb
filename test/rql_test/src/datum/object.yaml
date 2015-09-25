@@ -41,26 +41,26 @@ tests:
     - cd: r.expr({12:'a'})
       # JavaScript auto-converts keys for us 
       js: 
-      ot: err_regex("ReqlDriverError", "Object keys must be strings.*")
+      ot: err_regex("ReqlCompileError", "Object keys must be strings.*")
     
     - cd: r.expr({'a':{12:'b'}})
       # JavaScript auto-converts keys for us 
       js: 
-      ot: err_regex("ReqlDriverError", "Object keys must be strings.*")
+      ot: err_regex("ReqlCompileError", "Object keys must be strings.*")
 
     - js: r({'a':undefined})
-      ot: err("ReqlDriverError", "Object field 'a' may not be undefined")
+      ot: err("ReqlCompileError", "Object field 'a' may not be undefined")
 
     - js: r({'a':{'b':undefined}})
-      ot: err("ReqlDriverError", "Object field 'b' may not be undefined")
+      ot: err("ReqlCompileError", "Object field 'b' may not be undefined")
 
     - cd: r.expr({}, "foo")
       ot:
-        cd: err("ReqlDriverError", "Second argument to `r.expr` must be a number.")
-        js: err("ReqlDriverError", "Second argument to `r.expr` must be a number or undefined.")
+        cd: err("ReqlCompileError", "Second argument to `r.expr` must be a number.")
+        js: err("ReqlCompileError", "Second argument to `r.expr` must be a number or undefined.")
 
     - js: r.expr({}, NaN)
-      ot: err("ReqlDriverError", "Second argument to `r.expr` must be a number or undefined.")
+      ot: err("ReqlCompileError", "Second argument to `r.expr` must be a number or undefined.")
 
     # r.object
     - cd: r.object()

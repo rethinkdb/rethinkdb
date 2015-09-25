@@ -58,7 +58,7 @@ class IterableResult
             if @_closeCb?
                 switch response.t
                     when protoResponseType.COMPILE_ERROR
-                        @_closeCb mkErr(err.ReqlCompileError, response, @_root)
+                        @_closeCb mkErr(err.ReqlServerCompileError, response, @_root)
                     when protoResponseType.CLIENT_ERROR
                         @_closeCb mkErr(err.ReqlClientError, response, @_root)
                     when protoResponseType.RUNTIME_ERROR
@@ -133,7 +133,7 @@ class IterableResult
                     when protoResponseType.COMPILE_ERROR
                         @_responses.shift()
                         cb = @_getCallback()
-                        cb mkErr(err.ReqlCompileError, response, @_root)
+                        cb mkErr(err.ReqlServerCompileError, response, @_root)
                     when protoResponseType.CLIENT_ERROR
                         @_responses.shift()
                         cb = @_getCallback()

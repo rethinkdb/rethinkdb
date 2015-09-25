@@ -143,7 +143,7 @@ tests:
 
     - cd: db.table_create('nonsense', 'foo')
       ot:
-        js: err('ReqlDriverError', 'Expected 1 argument (not including options) but found 2.', [])
+        js: err('ReqlCompileError', 'Expected 1 argument (not including options) but found 2.', [])
         rb: err("ReqlCompileError", "Expected between 1 and 2 arguments but found 3.", [])
         py: err("ReqlCompileError", "Expected between 1 and 2 arguments but found 3.", [])
 

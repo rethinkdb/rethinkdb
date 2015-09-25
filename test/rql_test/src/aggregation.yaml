@@ -302,7 +302,7 @@ tests:
         - tbl.reduce(function(a,b){return a+b}).group(function(row){})
         - tbl.reduce(function(a,b){return a+b}).map(function(row){})
         - tbl.reduce(function(a,b){return a+b}).reduce(function(row){})
-      ot: err('ReqlDriverError', 'Anonymous function returned `undefined`. Did you forget a `return`?', [0])
+      ot: err('ReqlDriverCompileError', 'Anonymous function returned `undefined`. Did you forget a `return`?', [0])
 
     # GroupBy
 

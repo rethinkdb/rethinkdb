@@ -23,11 +23,11 @@ tests:
     - cd: tbl.distinct(1)
       ot:
         cd: err("ReqlCompileError", "Expected 1 argument but found 2.", [])
-        js: err("ReqlDriverError", "Expected 0 arguments (not including options) but found 1.", [])
+        js: err("ReqlCompileError", "Expected 0 arguments (not including options) but found 1.", [])
 
     - cd: tbl.delete(1)
       ot:
-        js: err("ReqlDriverError", "Expected 0 arguments (not including options) but found 1.", [])
+        js: err("ReqlCompileError", "Expected 0 arguments (not including options) but found 1.", [])
         cd: err("ReqlCompileError", "Expected 1 argument but found 2.", [])
 
     - rb: db.table_list(1)
@@ -48,14 +48,14 @@ tests:
     - cd: r.js()
       ot:
         cd: err("ReqlCompileError", "Expected 1 argument but found 0.", [])
-        js: err("ReqlDriverError", "Expected 1 argument (not including options) but found 0.", [])
+        js: err("ReqlCompileError", "Expected 1 argument (not including options) but found 0.", [])
 
     - cd: r.expr()
       ot:
         py3.3: err_regex('TypeError', '.* missing 1 required positional argument.*', [])
         py3.4: err_regex('TypeError', '.* missing 1 required positional argument.*', [])
         py: err_regex('TypeError', ".* takes at least 1 (?:positional )?argument \(0 given\)", [])
-        js: err("ReqlDriverError", "Expected between 1 and 2 arguments but found 0.", [])
+        js: err("ReqlCompileError", "Expected between 1 and 2 arguments but found 0.", [])
         rb: err("ArgumentError", 'wrong number of arguments (0 for 1)', [])
 
     - ot: err("ReqlCompileError", "Expected 2 arguments but found 1.", [])
@@ -86,7 +86,7 @@ tests:
 
     - cd: tbl.filter()
       ot:
-        js: err("ReqlDriverError", "Expected 1 argument (not including options) but found 0.", [])
+        js: err("ReqlCompileError", "Expected 1 argument (not including options) but found 0.", [])
         cd: err("ReqlCompileError", "Expected 2 arguments but found 1.", [])
 
     - cd: r.error(1, 2)
@@ -99,12 +99,12 @@ tests:
     - cd: db.table_create()
       ot:
         cd: err("ReqlQueryLogicError", "Expected type DATUM but found DATABASE:", [])
-        js: err("ReqlDriverError", "Expected 1 argument (not including options) but found 0.", [])
+        js: err("ReqlCompileError", "Expected 1 argument (not including options) but found 0.", [])
 
     - cd: r.js(1,2)
       ot:
         cd: err("ReqlCompileError", "Expected 1 argument but found 2.", [])
-        js: err("ReqlDriverError", "Expected 1 argument (not including options) but found 2.", [])
+        js: err("ReqlCompileError", "Expected 1 argument (not including options) but found 2.", [])
 
     - ot: err("ReqlCompileError", "Expected 2 arguments but found 3.", [])
       cd:
@@ -127,7 +127,7 @@ tests:
     - cd: tbl.filter(1,2,3)
       ot:
         cd: err("ReqlCompileError", "Expected 2 arguments but found 4.", [])
-        js: err("ReqlDriverError", "Expected 1 argument (not including options) but found 3.", [])
+        js: err("ReqlCompileError", "Expected 1 argument (not including options) but found 3.", [])
 
     - cd: db.table_drop(1,2)
       ot: err("ReqlCompileError", "Expected between 1 and 2 arguments but found 3.", [])
@@ -138,19 +138,23 @@ tests:
     - cd: db.table_create(1,2)
       ot:
         cd: err("ReqlCompileError", "Expected between 1 and 2 arguments but found 3.", [])
-        js: err("ReqlDriverError", "Expected 1 argument (not including options) but found 2.", [])
+        js: err("ReqlCompileError", "Expected 1 argument (not including options) but found 2.", [])
 
     - cd: tbl.count(1,2)
       ot: err("ReqlCompileError", "Expected between 1 and 2 arguments but found 3.", [])
 
     - ot:
         cd: err("ReqlCompileError", "Expected 2 arguments but found 1.", [])
-        js: err("ReqlDriverError", "Expected 1 argument (not including options) but found 0.", [])
+        js: err("ReqlCompileError", "Expected 1 argument (not including options) but found 0.", [])
       cd:
         - tbl.update()
         - tbl.replace()
         - tbl.insert()
-        - db.table()
+        
+    - cd: db.table()
+      ot:
+        cd: err("ReqlQueryLogicError", "Expected type DATUM but found DATABASE:", [])
+        js: err("ReqlCompileError", "Expected 1 argument (not including options) but found 0.", [])
 
     - cd: tbl.reduce()
       ot: err("ReqlCompileError", "Expected 2 arguments but found 1.", [])
@@ -158,7 +162,7 @@ tests:
     - cd: tbl.eq_join()
       ot:
         cd: err("ReqlCompileError", "Expected 3 arguments but found 1.", [])
-        js: err("ReqlDriverError", "Expected 2 arguments (not including options) but found 0.", [])
+        js: err("ReqlCompileError", "Expected 2 arguments (not including options) but found 0.", [])
 
     - ot: err("ReqlCompileError", "Expected 3 arguments but found 1.", [])
       cd:
@@ -171,7 +175,7 @@ tests:
     - cd: tbl.eq_join(1)
       ot:
         cd: err("ReqlCompileError", "Expected 3 arguments but found 2.", [])
-        js: err("ReqlDriverError", "Expected 2 arguments (not including options) but found 1.", [])
+        js: err("ReqlCompileError", "Expected 2 arguments (not including options) but found 1.", [])
 
     - ot: err("ReqlCompileError", "Expected 3 arguments but found 2.", [])
       cd:
@@ -184,7 +188,7 @@ tests:
     - cd: tbl.eq_join(1,2,3,4)
       ot:
         cd: err("ReqlCompileError", "Expected 3 arguments but found 5.", [])
-        js: err("ReqlDriverError", "Expected 2 arguments (not including options) but found 4.", [])
+        js: err("ReqlCompileError", "Expected 2 arguments (not including options) but found 4.", [])
 
     - ot: err("ReqlCompileError", "Expected 3 arguments but found 4.", [])
       cd:
@@ -200,7 +204,7 @@ tests:
     - cd: tbl.map()
       ot:
         cd: err('ReqlCompileError', "Expected 2 or more arguments but found 1.", [])
-        js: err('ReqlDriverError', "Expected 1 or more arguments but found 0.", [])
+        js: err('ReqlCompileError', "Expected 1 or more arguments but found 0.", [])
 
     - cd: r.branch(1,2)
       ot: err("ReqlCompileError", "Expected 3 or more arguments but found 2.", [])
@@ -210,8 +214,8 @@ tests:
     - cd: r.expr({})[1,2]
       js: r.expr({})(1,2)
       ot:
-        js: err('ReqlDriverError', "Expected 1 argument but found 2.", [])
-        py: err('ReqlCompileError', 'Expected NUMBER or STRING as second argument to `bracket` but found ARRAY.')
+        js: err('ReqlCompileError', "Expected 1 argument but found 2.", [])
+        py: err('ReqlQueryLogicError', 'Expected NUMBER or STRING as second argument to `bracket` but found ARRAY.')
         rb: err('ArgumentError', 'wrong number of arguments (2 for 1)')
 
     - cd: tbl.insert([{'id':0},{'id':1},{'id':2},{'id':3},{'id':4},{'id':5},{'id':6},{'id':7},{'id':8},{'id':9}]).get_field('inserted')
@@ -268,7 +272,7 @@ tests:
 
     - cd: r.http("httpbin.org/get","bad_param")
       ot:
-        js: err("ReqlDriverError", "Expected 1 argument (not including options) but found 2.", [])
+        js: err("ReqlCompileError", "Expected 1 argument (not including options) but found 2.", [])
         rb: err("ReqlCompileError", "Expected 1 argument but found 2.", [])
         py: err_regex('TypeError', ".*takes exactly 1 argument \(2 given\)", [])
         py3.0: err_regex('TypeError', ".*takes exactly 1 positional argument \(2 given\)", [])
@@ -279,7 +283,7 @@ tests:
     - cd: r.binary("1", "2")
       ot:
         py: err_regex('TypeError', ".*takes exactly 1 argument \(2 given\)", [])
-        js: err("ReqlDriverError", "Expected 1 argument but found 2.", [])
+        js: err("ReqlCompileError", "Expected 1 argument but found 2.", [])
         rb: err("ReqlCompileError", "Expected 1 argument but found 2.", [])
         py3.0: err_regex('TypeError', ".*takes exactly 1 positional argument \(2 given\)", [])
         py3.1: err_regex('TypeError', ".*takes exactly 1 positional argument \(2 given\)", [])
@@ -288,7 +292,7 @@ tests:
     - cd: r.binary()
       ot:
         py: err_regex('TypeError', ".*takes exactly 1 argument \(0 given\)", [])
-        js: err("ReqlDriverError", "Expected 1 argument but found 0.", [])
+        js: err("ReqlCompileError", "Expected 1 argument but found 0.", [])
         rb: err("ReqlCompileError", "Expected 1 argument but found 0.", [])
         py3.0: err_regex('TypeError', ".*takes exactly 1 positional argument \(0 given\)", [])
         py3.1: err_regex('TypeError', ".*takes exactly 1 positional argument \(0 given\)", [])
@@ -302,12 +306,12 @@ tests:
     - cd: tbl.index_rename('idx')
       ot:
         cd: err('ReqlCompileError','Expected 3 arguments but found 2.',[])
-        js: err('ReqlDriverError','Expected 2 arguments (not including options) but found 1.',[])
+        js: err('ReqlCompileError','Expected 2 arguments (not including options) but found 1.',[])
 
     - cd: tbl.index_rename('idx','idx2','idx3')
       ot:
         cd: err('ReqlCompileError','Expected 3 arguments but found 4.',[])
-        js: err('ReqlDriverError','Expected 2 arguments (not including options) but found 3.',[])
+        js: err('ReqlCompileError','Expected 2 arguments (not including options) but found 3.',[])
 
     # Clean up
     - cd: db.table_drop('test1')

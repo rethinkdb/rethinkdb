@@ -8,6 +8,10 @@ class ReqlError extends Error
 
 class ReqlCompileError extends ReqlError
 
+class ReqlDriverCompileError extends ReqlCompileError
+
+class ReqlServerCompileError extends ReqlCompileError
+
 class ReqlDriverError extends ReqlError
 
 class ReqlAuthError extends ReqlDriverError
@@ -99,6 +103,8 @@ module.exports = {
     ReqlError
     ReqlCompileError
     RqlCompileError: ReqlCompileError
+    ReqlServerCompileError
+    ReqlDriverCompileError
 
     RqlClientError: ReqlDriverError
 

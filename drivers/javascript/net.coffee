@@ -374,7 +374,7 @@ class Connection extends events.EventEmitter
                         # response and the original query
                         # (`root`). Then we delete the token from
                         # `@outstandingCallbacks`.
-                        cb mkErr(err.ReqlCompileError, response, root)
+                        cb mkErr(err.ReqlServerCompileError, response, root)
                         @_delQuery(token)
                     when protoResponseType.CLIENT_ERROR
                         # Client errors are returned when the client
