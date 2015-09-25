@@ -11,12 +11,15 @@ import sys
 import os.path
 import ast
 import copy
+import logging
 from collections import namedtuple
 
 try:
     basestring
 except NameError:
     basestring = ("".__class__,)
+
+logger = logging.getLogger("process_polyglot")
 
 
 class Unhandled(Exception):
@@ -29,8 +32,6 @@ class Skip(Exception):
     '''Used when skipping a test for whatever reason'''
     pass
 
-
-
 Term = namedtuple("Term", 'line type ast')
 Query = namedtuple(
     'Query',
@@ -42,7 +43,15 @@ Query = namedtuple(
 )
 Def = namedtuple('Def', 'varname term testfile test_num')
 Expect = namedtuple('Expect', 'bif term')
-SkippedTest = namedtuple('SkippedTest', 'line reason')
+
+
+class SkippedTest(object):
+    __slots__ = ('line', 'reason')
+
+    def __init__(self, line, reason):
+        logger.info("Skipped test because %s", reason)
+        self.line = line
+        self.reason = reason
 
 
 def flexiget(obj, keys, default):
@@ -209,6 +218,7 @@ def create_context(r, table_var_names):
     context.update({tbl: r.table(tbl) for tbl in table_var_names})
     return context
 
+
 def tests_and_defs(testfile, raw_test_data, context):
     '''Generator of parsed python tests and definitions.'''
     for test_num, test in enumerate(raw_test_data, 1):
@@ -226,6 +236,7 @@ def tests_and_defs(testfile, raw_test_data, context):
                 define_line = py_str(define)
                 parsed_define = ast.parse(
                     py_str(define), mode="single").body[0]
+                logger.debug("Evaluating: %s", py_str(define_line))
                 varname, result_type = try_eval_def(parsed_define, context)
                 yield Def(
                     varname=varname,
@@ -244,6 +255,7 @@ def tests_and_defs(testfile, raw_test_data, context):
 
         expected = py_str(get_python_entry(test))  # ot field
         expected_ast = ast.parse(expected, mode="eval").body
+        logger.debug("Evaluating: %s", expected)
         expected_bif, expected_type = maybe_bif_eval(expected_ast, context)
         expected_term = Expect(bif=expected_bif,
                                term=Term(
@@ -267,6 +279,7 @@ def tests_and_defs(testfile, raw_test_data, context):
             elif type(parsed) == ast.Assign:
                 # Second syntax for defines. Surprise, it wasn't a
                 # test at all, because it has an equals sign in it.
+                logger.debug("Evaluating: %s", pytest)
                 varname, result_type = try_eval_def(parsed, context)
                 yield Def(
                     varname=varname,
@@ -280,6 +293,7 @@ def tests_and_defs(testfile, raw_test_data, context):
         elif type(pytest) is dict and 'cd' in pytest:
             pytestline = py_str(pytest['cd'])
             parsed = ast.parse(pytestline, mode="eval").body
+            logger.debug("Evaluating: %s", pytestline)
             result_type = try_eval(parsed, context)
             yield Query(
                 query=Term(
@@ -296,6 +310,7 @@ def tests_and_defs(testfile, raw_test_data, context):
             for subtest in pytest:
                 subtestline = py_str(subtest)
                 parsed = ast.parse(subtestline, mode="eval").body
+                logger.debug("Evaluating subtest: %s", subtestline)
                 result_type = try_eval(parsed, context)
                 yield Query(
                     query=Term(

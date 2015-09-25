@@ -23,7 +23,6 @@ try:
 except NameError:
     basestring = ("".__class__,)
 
-logging.basicConfig(format="%(message)s", level=logging.INFO)
 logger = logging.getLogger("metajava")
 
 
@@ -51,11 +50,21 @@ def parse_args():
     parser.add_argument("--template-dir")
     parser.add_argument("--package-dir")
     parser.add_argument("--output-file")
+    parser.add_argument(
+        "--debug",
+        help="print debug output",
+        dest='debug',
+        action='store_true'
+    )
+    parser.set_defaults(debug=False)
     return parser.parse_args()
 
 
 def main():
+    logging.basicConfig(format="[%(name)s] %(message)s", level=logging.INFO)
     args = parse_args()
+    if args.debug:
+        logging.root.setLevel(logging.DEBUG)
 
     if args.command == 'update-term-info':
         update_term_info(args.proto_json, args.term_info)

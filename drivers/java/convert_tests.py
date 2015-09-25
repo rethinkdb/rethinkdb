@@ -13,12 +13,15 @@ import yaml
 import argparse
 import metajava
 import process_polyglot
+import logging
 from process_polyglot import Unhandled, Skip, SkippedTest
 try:
     from cStringIO import StringIO
 except ImportError:
     from io import StringIO
 from collections import namedtuple
+
+logger = logging.getLogger("convert_tests")
 
 # Supplied by import_python_driver
 r = None
@@ -37,8 +40,13 @@ TEST_EXCLUSIONS = [
 
 
 def main():
+    logging.basicConfig(format="[%(name)s] %(message)s", level=logging.INFO)
     start = time.clock()
     args = parse_args()
+    if args.debug:
+        logging.root.setLevel(logging.DEBUG)
+    elif args.info:
+        logging.root.setLevel(logging.INFO)
     global r
     r = import_python_driver(args.test_common_dir)
     renderer = metajava.Renderer(
@@ -50,14 +58,14 @@ def main():
     for testfile in process_polyglot.all_yaml_tests(
             args.test_dir,
             TEST_EXCLUSIONS):
-        print("Working on", testfile)
+        logger.debug("Working on %s", testfile)
         TestFile(
             test_dir=args.test_dir,
             filename=testfile,
             test_output_dir=args.test_output_dir,
             renderer=renderer,
         ).load().render()
-    print("Finished in", time.clock() - start, "seconds")
+    logger.info("Finished in %s seconds", time.clock() - start)
 
 
 def parse_args():
@@ -87,6 +95,18 @@ def parse_args():
         "--test-file",
         help="Only convert the specified yaml file",
     )
+    parser.add_argument(
+        '--debug',
+        help="Print debug output",
+        dest='debug',
+        action='store_true')
+    parser.add_argument(
+        '--info',
+        help="Print info level output",
+        dest='info',
+        action='store_true')
+    parser.set_defaults(debug=False)
+    parser.set_defaults(debug=False)
     return parser.parse_args()
 
 
@@ -161,6 +181,7 @@ class TestFile(object):
             JavaQuery=JavaQuery,
             JavaDef=JavaDef,
         )
+
 
 def py_to_java_type(py_type):
     '''Converts python types to their Java equivalents'''
@@ -277,8 +298,8 @@ class JavaVisitor(ast.NodeVisitor):
             self.write(")")
 
     def generic_visit(self, node):
-        print("While translating: " + ast.dump(node), file=sys.stderr)
-        print("Got as far as:", ''.join(self.out), file=sys.stderr)
+        logger.error("While translating: %s", ast.dump(node))
+        logger.error("Got as far as: %s", ''.join(self.out))
         raise Unhandled("Don't know what this thing is: " + str(type(node)))
 
     def visit_Assign(self, node):
@@ -371,7 +392,7 @@ class JavaVisitor(ast.NodeVisitor):
 
     def visit_Subscript(self, node):
         if node.slice is None or type(node.slice.value) != ast.Num:
-            print("While doing:", ast.dump(node))
+            logger.error("While doing: %s", ast.dump(node))
             raise Unhandled("Only integers subscript can be converted."
                             " Got %s" % node.slice.value.s)
         self.write("[")
