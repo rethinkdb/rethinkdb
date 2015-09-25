@@ -814,7 +814,7 @@ void rdb_rget_slice(
             rget_cb_wrapper_t wrapper(&callback, pair.second);
             btree_concurrent_traversal(
                 superblock,
-                key_range_t(pair.first),
+                key_range_t::one_key(pair.first),
                 &wrapper,
                 direction,
                 is_last ? release_superblock : release_superblock_t::KEEP);
