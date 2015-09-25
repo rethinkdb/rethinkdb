@@ -46,8 +46,7 @@ tests:
 
     - cd: r.do()
       ot:
-        cd: err("ReqlCompileError", 'Expected 1 or more arguments but found 0.', [1])
-        js: err("ReqlDriverError", 'Expected 1 or more arguments but found 0.', [1])
+        cd: err("ReqlDriverError", 'Expected 1 or more arguments but found 0.', [1])
 
     # FunCall errors
 

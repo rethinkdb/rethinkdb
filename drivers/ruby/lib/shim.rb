@@ -149,6 +149,9 @@ module RethinkDB
 
     def expr(x, max_depth=20)
       unbound_if(@body != RQL)
+      if !max_depth.is_a?(Numeric)
+        raise ReqlDriverError, "Second argument to `r.expr` must be a number."
+      end
       RQL.fast_expr(x, max_depth)
     end
     def coerce(other)
