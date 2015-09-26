@@ -349,7 +349,9 @@ class JavaVisitor(ast.NodeVisitor):
             Unhandled("We only support assigning to one variable")
         self.write(self.type + " ")
         self.write(node.targets[0].id)
-        self.write(" = ")
+        self.write(" = (")
+        self.write(self.type)
+        self.write(") ")
         if is_reql(self._type):
             ReQLVisitor(self.reql_vars,
                         out=self.out,
