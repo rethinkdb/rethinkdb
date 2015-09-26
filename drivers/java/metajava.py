@@ -28,6 +28,7 @@ logger = logging.getLogger("metajava")
 
 jsonf = namedtuple("jsonf", "filename json")
 
+arity_regex = re.compile(r'ReqlFunction(\d+)')
 
 def jsonfile(filename):
     return jsonf(filename,
@@ -256,8 +257,9 @@ class java_term_info(object):
             else:
                 suffix = num2str(suffix_counts.setdefault(arg, 0))
                 suffix_counts[arg] += 1
-                if arg.startswith('ReqlFunction'):
-                    arity = arg[len('ReqlFunction'):]
+                arity_match = arity_regex.match(arg)
+                if arity_match:
+                    arity = arity_match.groups()[0]
                     varname = 'func' + arity + suffix
                 elif arg == 'Object':
                     varname = 'expr' + suffix
@@ -576,12 +578,13 @@ class JavaRenderer(object):
         for info in self.term_info.values():
             for sig in info['signatures']:
                 for arg in sig['args']:
-                    if arg['type'].startswith('ReqlFunction'):
+                    match = arity_regex.match(arg['type'])
+                    if match:
                         # Scrape out the arity from the type
                         # name. This could have been inserted into
                         # java_term_info.json, but it's a lot of
                         # clutter for redundant information.
-                        arity = int(arg['type'][len('ReqlFunction'):])
+                        arity = int(match.groups()[0])
                         max_arity = max(max_arity, arity)
         return max_arity
 
