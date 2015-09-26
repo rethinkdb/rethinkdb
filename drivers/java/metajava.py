@@ -53,19 +53,27 @@ def parse_args():
     parser.add_argument("--output-file")
     parser.add_argument(
         "--debug",
-        help="print debug output",
+        help="print debug level output",
         dest='debug',
         action='store_true'
     )
-    parser.set_defaults(debug=False)
+    parser.add_argument(
+        "--info",
+        help="print info level output",
+        dest='info',
+        action='store_true'
+    )
+    parser.set_defaults(debug=False, info=False)
     return parser.parse_args()
 
 
 def main():
-    logging.basicConfig(format="[%(name)s] %(message)s", level=logging.INFO)
+    logging.basicConfig(format="[%(name)s] %(message)s")
     args = parse_args()
     if args.debug:
         logging.root.setLevel(logging.DEBUG)
+    elif args.info:
+        logging.root.setLevel(logging.INFO)
 
     if args.command == 'update-term-info':
         update_term_info(args.proto_json, args.term_info)
