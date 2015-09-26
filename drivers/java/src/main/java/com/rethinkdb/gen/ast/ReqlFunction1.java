@@ -8,5 +8,5 @@ import com.rethinkdb.model.ReqlLambda;
 import com.rethinkdb.ast.ReqlAst;
 
 public interface ReqlFunction1 extends ReqlLambda {
-    ReqlAst apply(ReqlExpr arg1);
+    Object apply(ReqlExpr arg1);
 }
