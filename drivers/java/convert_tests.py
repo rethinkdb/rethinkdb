@@ -366,6 +366,8 @@ class JavaVisitor(ast.NodeVisitor):
         self.write(".getBytes(StandardCharsets.UTF_8)")
 
     def visit_Name(self, node):
+        if node.id == 'frozenset':
+            raise Skip("don't handle frozensets")
         self.write({
             'True': 'true',
             'False': 'false',
