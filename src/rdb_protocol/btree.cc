@@ -538,13 +538,13 @@ class rget_sindex_data_t {
 public:
     rget_sindex_data_t(key_range_t _pkey_range,
                        ql::datumspec_t _datumspec,
-                       key_range_t *_active_region_range,
+                       key_range_t *_active_region_range_inout,
                        reql_version_t wire_func_reql_version,
                        ql::map_wire_func_t wire_func,
                        sindex_multi_bool_t _multi)
         : pkey_range(std::move(_pkey_range)),
           datumspec(std::move(_datumspec)),
-          active_region_range(_active_region_range),
+          active_region_range_inout(_active_region_range_inout),
           func_reql_version(wire_func_reql_version),
           func(wire_func.compile_wire_func()),
           multi(_multi) { }
@@ -552,7 +552,7 @@ private:
     friend class rget_cb_t;
     const key_range_t pkey_range;
     const ql::datumspec_t datumspec;
-    key_range_t *active_region_range;
+    key_range_t *active_region_range_inout;
     const reql_version_t func_reql_version;
     const counted_t<const ql::func_t> func;
     const sindex_multi_bool_t multi;
@@ -728,12 +728,12 @@ continue_bool_t rget_cb_t::handle_pair(
             io.response->last_key = key;
             if (sindex) {
                 if (!reversed(job.sorting)) {
-                    sindex->active_region_range->left = key;
+                    sindex->active_region_range_inout->left = key;
                     // Closed on the left.
-                    sindex->active_region_range->left.increment();
+                    sindex->active_region_range_inout->left.increment();
                 } else {
                     // Open on the right, so no need to decrement.
-                    sindex->active_region_range->right = key_range_t::right_bound_t(key);
+                    sindex->active_region_range_inout->right = key_range_t::right_bound_t(key);
                 }
             }
         }
