@@ -1,16 +1,16 @@
 package com.rethinkdb.ast;
 
+import com.rethinkdb.gen.exc.ReqlDriverError;
+import com.rethinkdb.gen.proto.TermType;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.net.Connection;
-import com.rethinkdb.gen.proto.TermType;
-import com.rethinkdb.gen.exc.*;
-
-import java.util.*;
-import java.util.stream.Collectors;
-
 import com.rethinkdb.net.ConnectionInstance;
 import org.json.simple.JSONArray;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /** Base class for all reql queries.
  */
@@ -59,6 +59,14 @@ public class ReqlAst {
 
     public <T> T run(Connection<? extends ConnectionInstance> conn) {
         return conn.run(this, new OptArgs());
+    }
+
+    public <T> T run(Connection<? extends ConnectionInstance> conn, OptArgs runOpts, Class<T> pojoClass) {
+        return Util.toPojo(conn.run(this, runOpts), pojoClass);
+    }
+
+    public <T> T run(Connection<? extends ConnectionInstance> conn, Class<T> pojoClass) {
+        return Util.toPojo(conn.run(this, new OptArgs()), pojoClass);
     }
 
     public void runNoReply(Connection conn){

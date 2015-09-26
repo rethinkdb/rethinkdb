@@ -12,9 +12,10 @@ import java.util.Arrays;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeoutException;
 import java.util.regex.Pattern;
-
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import gen.TestingFramework;
 
 public class RethinkDBTest{
@@ -242,4 +243,19 @@ public class RethinkDBTest{
             r.db("test").tableDrop(tblName).run(conn);
         }
     }
+    }
+
+    @Test
+    public void testTableSelectOfPojo() {
+        TestPojo pojo = new TestPojo("foo", new TestPojoInner(42L, true));
+        Map<String, Object> pojoResult = r.db(dbName).table(tableName).insert(pojo).run(conn);
+        assertEquals(1L, pojoResult.get("inserted"));
+
+        String key = (String) ((List) pojoResult.get("generated_keys")).get(0);
+        TestPojo result = r.db(dbName).table(tableName).get(key).run(conn, TestPojo.class);
+        assertEquals("foo", result.getStringProperty());
+        assertTrue(42L == result.getPojoProperty().getLongProperty());
+        assertEquals(true, result.getPojoProperty().getBooleanProperty());
+    }
 }
+

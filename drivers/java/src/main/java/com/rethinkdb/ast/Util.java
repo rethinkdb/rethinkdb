@@ -7,12 +7,13 @@ import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.MapObject;
 import com.rethinkdb.model.ReqlLambda;
 
-
-import java.lang.Boolean;
-import java.lang.Integer;
-import java.lang.Number;
-import java.lang.Object;
-import java.lang.String;
+import java.lang.*;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.beans.BeanInfo;
+import java.beans.IntrospectionException;
+import java.beans.Introspector;
+import java.beans.PropertyDescriptor;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -102,20 +103,116 @@ public class Util {
         if (val instanceof Integer) {
             return new Datum((Integer) val);
         }
+
         if (val instanceof Number) {
             return new Datum((Number) val);
         }
+
         if (val instanceof Boolean) {
             return new Datum((Boolean) val);
         }
+
         if (val instanceof String) {
             return new Datum((String) val);
         }
-        if (val == null){
+
+        if (val == null) {
             return new Datum(null);
         }
 
-        throw new ReqlDriverError("Can't convert %s to a ReqlAst", val);
+        // val is a non-null POJO, let's introspect its public properties
+        return toReqlAst(toMap(val));
     }
 
+    /**
+     * Converts a POJO to a map of its public properties collected using bean introspection.<br>
+     * The POJO's class must be public, or a ReqlDriverError would be thrown.<br>
+     * Numeric properties should be Long instead of Integer
+     * @param pojo POJO to be introspected
+     * @return Map of POJO's public properties
+     */
+    private static Map<String, Object> toMap(Object pojo) {
+        try {
+            Map<String, Object> map = new HashMap<String, Object>();
+            Class pojoClass = pojo.getClass();
+
+            if (!Modifier.isPublic(pojoClass.getModifiers())) {
+                throw new IllegalAccessException(String.format("%s's class should be public", pojo));
+            }
+
+            BeanInfo info = Introspector.getBeanInfo(pojoClass);
+
+            for (PropertyDescriptor descriptor : info.getPropertyDescriptors()) {
+                Method reader = descriptor.getReadMethod();
+
+                if (reader != null && reader.getDeclaringClass() == pojoClass) {
+                    Object value = reader.invoke(pojo);
+
+                    if (value instanceof Integer) {
+                        throw new IllegalAccessException(String.format(
+                                "Make %s of %s Long instead of Integer", reader.getName(), pojo));
+                    }
+
+                    map.put(descriptor.getName(), value);
+                }
+            }
+
+            return map;
+        }
+        catch (IntrospectionException | IllegalAccessException | InvocationTargetException e) {
+            throw new ReqlDriverError("Can't convert %s to a ReqlAst: %s", pojo, e.getMessage());
+        }
+    }
+
+    /**
+     * Converts a String-to-Object map to a POJO using bean introspection.<br>
+     * The POJO's class must be public and should have a public parameterless constructor,
+     * or a ReqlDriverError would be thrown.<br>
+     * All properties with no corresponding entries in the map would have default values
+     * @param map Map to be converted
+     * @param pojoClass POJO's class to be instantiated
+     * @return Instantiated POJO
+     */
+    public static <T> T toPojo(Map<String, Object> map, Class<T> pojoClass) {
+        try {
+            if (!Modifier.isPublic(pojoClass.getModifiers())) {
+                throw new IllegalAccessException(String.format("%s should be public", pojoClass));
+            }
+
+            if (Arrays.stream(pojoClass.getDeclaredConstructors()).filter(ctor ->
+                    ctor.getParameterCount() == 0 && Modifier.isPublic(ctor.getModifiers())
+            ).count() != 1) {
+                throw new IllegalAccessException(String.format(
+                        "%s should have a public parameterless constructor", pojoClass));
+            }
+
+            T pojo = (T) pojoClass.newInstance();
+            BeanInfo info = Introspector.getBeanInfo(pojoClass);
+
+            for (PropertyDescriptor descriptor : info.getPropertyDescriptors()) {
+                String propertyName = descriptor.getName();
+
+                if (!map.containsKey(propertyName)) {
+                    continue;
+                }
+
+                Method writer = descriptor.getWriteMethod();
+
+                if (writer != null && writer.getDeclaringClass() == pojoClass) {
+                    Object value = map.get(propertyName);
+                    Class valueClass = writer.getParameterTypes()[0];
+
+                    writer.invoke(pojo, value instanceof Map
+                            ? toPojo((Map<String, Object>) value, valueClass)
+                            : valueClass.cast(value));
+                }
+            }
+
+            return pojo;
+        } catch (InstantiationException | IllegalAccessException | IntrospectionException | InvocationTargetException e) {
+            System.out.println(e);
+            e.printStackTrace();
+            throw new ReqlDriverError("Can't convert %s to a POJO: %s", map, e.getMessage());
+        }
+    }
 }
