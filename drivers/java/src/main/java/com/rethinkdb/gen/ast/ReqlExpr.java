@@ -336,8 +336,9 @@ public class ReqlExpr extends ReqlAst {
         Arguments arguments = new Arguments(this);
         return new IsEmpty(arguments);
     }
-    public Union union() {
+    public Union union(Object... exprs) {
         Arguments arguments = new Arguments(this);
+        arguments.coerceAndAddAll(exprs);
         return new Union(arguments);
     }
     public Nth nth(Object exprA) {
@@ -580,14 +581,14 @@ public class ReqlExpr extends ReqlAst {
         Arguments arguments = new Arguments(this);
         return new Seconds(arguments);
     }
-    public Group group(Object exprA) {
+    public Group group(Object... exprs) {
         Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAddAll(exprs);
         return new Group(arguments);
     }
-    public Group group(ReqlFunction1 func1) {
+    public Group group(ReqlFunction1... func1) {
         Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(func1);
+        arguments.coerceAndAddAll(func1);
         return new Group(arguments);
     }
     public Sum sum() {

@@ -46,7 +46,7 @@ public ${classname} optArg(String optname, Object value) {
                       for arg in signature['args'][1:])}) {
         Arguments arguments = new Arguments(this);
         %for arg in signature['args'][1:]:
-          %if arg['type'] == 'Object...':
+          %if arg['type'].endswith('...'):
         arguments.coerceAndAddAll(${arg['var']});
           %else:
         arguments.coerceAndAdd(${arg['var']});

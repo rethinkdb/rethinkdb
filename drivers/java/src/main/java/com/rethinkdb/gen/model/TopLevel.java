@@ -182,8 +182,9 @@ public class TopLevel {
         args.coerceAndAdd(func4);
         return new Map(args);
     }
-    public Union union(Object... exprs){
+    public Union union(Object expr, Object... exprs){
         Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
         args.coerceAndAddAll(exprs);
         return new Union(args);
     }
