@@ -189,7 +189,7 @@ class java_term_info(object):
     FUNCX_EXPAND = 3
 
     # How many times to expand manual * arguments
-    STAR_EXPAND = 2
+    STAR_EXPAND = 4
 
     def __init__(self, term_info, output_filename):
         self.java_terminfo = copy.deepcopy(term_info)

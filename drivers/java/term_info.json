@@ -1113,8 +1113,7 @@
     "GROUP": {
         "include_in": ["T_EXPR"],
         "signatures": [
-            ["T_EXPR", "T_EXPR", "*"],
-            ["T_EXPR", "T_FUNC1", "*"]
+            ["T_EXPR", ["T_EXPR", "T_FUNC1"], "*"]
         ],
         "optargs": {
             "index": "T_STR",
