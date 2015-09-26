@@ -6,6 +6,7 @@ import com.rethinkdb.gen.exc.ReqlDriverError;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.MapObject;
 import com.rethinkdb.model.ReqlLambda;
+import com.rethinkdb.net.Cursor;
 
 import java.lang.*;
 import java.nio.ByteBuffer;
@@ -173,6 +174,7 @@ public class Util {
      * @param pojoClass POJO's class to be instantiated
      * @return Instantiated POJO
      */
+    @SuppressWarnings("unchecked")
     public static <T> T toPojo(Map<String, Object> map, Class<T> pojoClass) {
         try {
             if (!Modifier.isPublic(pojoClass.getModifiers())) {
@@ -214,5 +216,26 @@ public class Util {
             e.printStackTrace();
             throw new ReqlDriverError("Can't convert %s to a POJO: %s", map, e.getMessage());
         }
+    }
+
+    /**
+     * Converts a cursor of String-to-Object maps to a list of POJOs using {@link #toPojo(Map, Class) toPojo}.
+     * @param cursor Cursor to be iterated
+     * @param pojoClass POJO's class
+     * @return List of POJOs
+     */
+    @SuppressWarnings("unchecked")
+    public static <T> List<T> toPojoList(Cursor cursor, Class<T> pojoClass) {
+        List<T> list = new ArrayList<T>();
+
+        for (Object value : cursor) {
+            if (!(value instanceof Map)) {
+                throw new ReqlDriverError("Can't convert %s to a POJO, should be of Map<String, Object>", value);
+            }
+
+            list.add(toPojo((Map<String, Object>) value, pojoClass));
+        }
+
+        return list;
     }
 }

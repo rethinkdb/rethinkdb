@@ -253,9 +253,34 @@ public class RethinkDBTest{
 
         String key = (String) ((List) pojoResult.get("generated_keys")).get(0);
         TestPojo result = r.db(dbName).table(tableName).get(key).run(conn, TestPojo.class);
+
         assertEquals("foo", result.getStringProperty());
         assertTrue(42L == result.getPojoProperty().getLongProperty());
         assertEquals(true, result.getPojoProperty().getBooleanProperty());
+    }
+
+    @Test
+    public void testTableSelectOfPojoList() {
+        TestPojo pojoOne = new TestPojo("foo", new TestPojoInner(42L, true));
+        TestPojo pojoTwo = new TestPojo("bar", new TestPojoInner(53L, false));
+        Map<String, Object> pojoOneResult = r.db(dbName).table(tableName).insert(pojoOne).run(conn);
+        Map<String, Object> pojoTwoResult = r.db(dbName).table(tableName).insert(pojoTwo).run(conn);
+        assertEquals(1L, pojoOneResult.get("inserted"));
+        assertEquals(1L, pojoTwoResult.get("inserted"));
+
+        List<TestPojo> result = r.db(dbName).table(tableName).runList(conn, TestPojo.class);
+        assertEquals(2, result.size());
+
+        TestPojo pojoOneSelected = "foo".equals(result.get(0).getStringProperty()) ? result.get(0) : result.get(1);
+        TestPojo pojoTwoSelected = "bar".equals(result.get(0).getStringProperty()) ? result.get(0) : result.get(1);
+
+        assertEquals("foo", pojoOneSelected.getStringProperty());
+        assertTrue(42L == pojoOneSelected.getPojoProperty().getLongProperty());
+        assertEquals(true, pojoOneSelected.getPojoProperty().getBooleanProperty());
+
+        assertEquals("bar", pojoTwoSelected.getStringProperty());
+        assertTrue(53L == pojoTwoSelected.getPojoProperty().getLongProperty());
+        assertEquals(false, pojoTwoSelected.getPojoProperty().getBooleanProperty());
     }
 }
 

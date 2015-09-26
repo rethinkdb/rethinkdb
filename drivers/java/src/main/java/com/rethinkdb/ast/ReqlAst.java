@@ -9,6 +9,7 @@ import com.rethinkdb.net.ConnectionInstance;
 import org.json.simple.JSONArray;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -67,6 +68,14 @@ public class ReqlAst {
 
     public <T> T run(Connection<? extends ConnectionInstance> conn, Class<T> pojoClass) {
         return Util.toPojo(conn.run(this, new OptArgs()), pojoClass);
+    }
+
+    public <T> List<T> runList(Connection<? extends ConnectionInstance> conn, OptArgs runOpts, Class<T> pojoClass) {
+        return Util.toPojoList(conn.run(this, runOpts), pojoClass);
+    }
+
+    public <T> List<T> runList(Connection<? extends ConnectionInstance> conn, Class<T> pojoClass) {
+        return Util.toPojoList(conn.run(this, new OptArgs()), pojoClass);
     }
 
     public void runNoReply(Connection conn){
