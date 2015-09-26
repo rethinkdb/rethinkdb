@@ -639,7 +639,7 @@ private:
 };
 
 // This is the interface the btree code expects, but our actual callback needs a
-// littl bit more so we use this wrapper to hold the extra information.
+// little bit more so we use this wrapper to hold the extra information.
 class rget_cb_wrapper_t : public concurrent_traversal_callback_t {
 public:
     rget_cb_wrapper_t(rget_cb_t *_cb, size_t _copies)
