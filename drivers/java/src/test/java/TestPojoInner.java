@@ -1,10 +1,11 @@
+/**
+ * Has only public parametrized constructor and no public parameterless constructor
+ */
 public class TestPojoInner {
     private Long longProperty;
     private Boolean booleanProperty;
 
-    public TestPojoInner() {}
-
-    TestPojoInner(Long longProperty, Boolean booleanProperty) {
+    public TestPojoInner(Long longProperty, Boolean booleanProperty) {
         this.longProperty = longProperty;
         this.booleanProperty = booleanProperty;
     }

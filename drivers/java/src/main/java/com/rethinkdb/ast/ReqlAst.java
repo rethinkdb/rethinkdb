@@ -63,11 +63,11 @@ public class ReqlAst {
     }
 
     public <T> T run(Connection<? extends ConnectionInstance> conn, OptArgs runOpts, Class<T> pojoClass) {
-        return Util.toPojo(conn.run(this, runOpts), pojoClass);
+        return Util.toPojo(pojoClass, conn.run(this, runOpts));
     }
 
     public <T> T run(Connection<? extends ConnectionInstance> conn, Class<T> pojoClass) {
-        return Util.toPojo(conn.run(this, new OptArgs()), pojoClass);
+        return Util.toPojo(pojoClass, conn.run(this, new OptArgs()));
     }
 
     public <T> List<T> runList(Connection<? extends ConnectionInstance> conn, OptArgs runOpts, Class<T> pojoClass) {

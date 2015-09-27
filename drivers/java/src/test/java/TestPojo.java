@@ -1,10 +1,13 @@
+/**
+ * Has both public parameterless constructor and public parametrized constructor
+ */
 public class TestPojo {
     private String stringProperty;
     private TestPojoInner pojoProperty;
 
     public TestPojo() {}
 
-    TestPojo(String stringProperty, TestPojoInner pojoProperty) {
+    public TestPojo(String stringProperty, TestPojoInner pojoProperty) {
         this.stringProperty = stringProperty;
         this.pojoProperty = pojoProperty;
     }

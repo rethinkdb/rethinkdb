@@ -9,6 +9,7 @@ import com.rethinkdb.model.ReqlLambda;
 import com.rethinkdb.net.Cursor;
 
 import java.lang.*;
+import java.lang.reflect.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.beans.BeanInfo;
@@ -24,6 +25,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 
 
 public class Util {
@@ -167,59 +169,109 @@ public class Util {
 
     /**
      * Converts a String-to-Object map to a POJO using bean introspection.<br>
-     * The POJO's class must be public and should have a public parameterless constructor,
-     * or a ReqlDriverError would be thrown.<br>
-     * All properties with no corresponding entries in the map would have default values
-     * @param map Map to be converted
+     * The POJO's class must be public and satisfy one of the following conditions:<br>
+     * 1. Should have a public parameterless constructor and public setters for all properties
+     * in the map. Properties with no corresponding entries in the map would have default values<br>
+     * 2. Should have a public constructor with parameters matching the contents of the map
+     * either by names and value types. Names of parameters are only available since Java 8
+     * and only in case <code>javac</code> is run with <code>-parameters</code> argument.<br>
+     * If the POJO's class doesn't satisfy the conditions, a ReqlDriverError is thrown.
      * @param pojoClass POJO's class to be instantiated
+     * @param map Map to be converted
      * @return Instantiated POJO
      */
     @SuppressWarnings("unchecked")
-    public static <T> T toPojo(Map<String, Object> map, Class<T> pojoClass) {
+    public static <T> T toPojo(Class pojoClass, Map<String, Object> map) {
         try {
             if (!Modifier.isPublic(pojoClass.getModifiers())) {
                 throw new IllegalAccessException(String.format("%s should be public", pojoClass));
             }
 
-            if (Arrays.stream(pojoClass.getDeclaredConstructors()).filter(ctor ->
-                    ctor.getParameterCount() == 0 && Modifier.isPublic(ctor.getModifiers())
-            ).count() != 1) {
-                throw new IllegalAccessException(String.format(
-                        "%s should have a public parameterless constructor", pojoClass));
+            Constructor[] allConstructors = pojoClass.getDeclaredConstructors();
+
+            if (getPublicParameterlessConstructors(allConstructors).count() == 1) {
+                return (T) constructViaPublicParameterlessConstructor(pojoClass, map);
             }
 
-            T pojo = (T) pojoClass.newInstance();
-            BeanInfo info = Introspector.getBeanInfo(pojoClass);
+            Constructor[] constructors = getSuitablePublicParametrizedConstructors(allConstructors, map);
 
-            for (PropertyDescriptor descriptor : info.getPropertyDescriptors()) {
-                String propertyName = descriptor.getName();
-
-                if (!map.containsKey(propertyName)) {
-                    continue;
-                }
-
-                Method writer = descriptor.getWriteMethod();
-
-                if (writer != null && writer.getDeclaringClass() == pojoClass) {
-                    Object value = map.get(propertyName);
-                    Class valueClass = writer.getParameterTypes()[0];
-
-                    writer.invoke(pojo, value instanceof Map
-                            ? toPojo((Map<String, Object>) value, valueClass)
-                            : valueClass.cast(value));
-                }
+            if (constructors.length == 1) {
+                return (T) constructViaPublicParametrizedConstructor(constructors[0], map);
             }
 
-            return pojo;
+            throw new IllegalAccessException(String.format(
+                    "%s should have a public parameterless constructor " +
+                    "or a public constructor with %d parameters", pojoClass, map.keySet().size()));
         } catch (InstantiationException | IllegalAccessException | IntrospectionException | InvocationTargetException e) {
-            System.out.println(e);
             e.printStackTrace();
             throw new ReqlDriverError("Can't convert %s to a POJO: %s", map, e.getMessage());
         }
     }
+    
+    private static Stream<Constructor> getPublicParameterlessConstructors(Constructor[] constructors) {
+        return Arrays.stream(constructors).filter(constructor ->
+                Modifier.isPublic(constructor.getModifiers()) &&
+                constructor.getParameterCount() == 0
+        );
+    }
+    
+    @SuppressWarnings("unchecked")
+    private static Object constructViaPublicParameterlessConstructor(Class pojoClass, Map<String, Object> map)
+            throws IllegalAccessException, InstantiationException, IntrospectionException, InvocationTargetException {
+        Object pojo = pojoClass.newInstance();
+        BeanInfo info = Introspector.getBeanInfo(pojoClass);
+
+        for (PropertyDescriptor descriptor : info.getPropertyDescriptors()) {
+            String propertyName = descriptor.getName();
+
+            if (!map.containsKey(propertyName)) {
+                continue;
+            }
+
+            Method writer = descriptor.getWriteMethod();
+
+            if (writer != null && writer.getDeclaringClass() == pojoClass) {
+                Object value = map.get(propertyName);
+                Class valueClass = writer.getParameterTypes()[0];
+
+                writer.invoke(pojo, value instanceof Map
+                        ? toPojo(valueClass, (Map<String, Object>) value)
+                        : valueClass.cast(value));
+            }
+        }
+        
+        return pojo;
+    }
+
+    private static Constructor[] getSuitablePublicParametrizedConstructors(Constructor[] allConstructors, Map<String, Object> map) {
+        return Arrays.stream(allConstructors).filter(constructor ->
+                Modifier.isPublic(constructor.getModifiers()) &&
+                areParametersMatching(constructor.getParameters(), map)
+        ).toArray(Constructor[]::new);
+    }
+
+    private static boolean areParametersMatching(Parameter[] parameters, Map<String, Object> values) {
+        return Arrays.stream(parameters).allMatch(parameter ->
+                values.containsKey(parameter.getName()) &&
+                values.get(parameter.getName()).getClass() == parameter.getType()
+        );
+    }
+
+    private static Object constructViaPublicParametrizedConstructor(Constructor constructor, Map<String, Object> map)
+            throws IllegalAccessException, InstantiationException, IntrospectionException, InvocationTargetException {
+        Object[] values = Arrays.stream(constructor.getParameters()).map(parameter -> {
+                Object value = map.get(parameter.getName());
+
+                return value instanceof Map
+                        ? toPojo(value.getClass(), (Map<String, Object>) value)
+                        : value;
+        }).toArray();
+
+        return constructor.newInstance(values);
+    }
 
     /**
-     * Converts a cursor of String-to-Object maps to a list of POJOs using {@link #toPojo(Map, Class) toPojo}.
+     * Converts a cursor of String-to-Object maps to a list of POJOs using {@link #toPojo(Class, Map) toPojo}.
      * @param cursor Cursor to be iterated
      * @param pojoClass POJO's class
      * @return List of POJOs
@@ -233,7 +285,7 @@ public class Util {
                 throw new ReqlDriverError("Can't convert %s to a POJO, should be of Map<String, Object>", value);
             }
 
-            list.add(toPojo((Map<String, Object>) value, pojoClass));
+            list.add(toPojo(pojoClass, (Map<String, Object>) value));
         }
 
         return list;
