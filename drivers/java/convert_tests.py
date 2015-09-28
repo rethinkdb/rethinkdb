@@ -506,6 +506,13 @@ class ReQLVisitor(JavaVisitor):
     reql-specific stuff. This should only be invoked on an expression
     if it's already known to return true from is_reql'''
 
+    TOPLEVEL_CONSTANTS = {
+        'monday', 'tuesday', 'wednesday', 'thursday', 'friday',
+        'saturday', 'sunday', 'january', 'february', 'march', 'april',
+        'may', 'june', 'july', 'august', 'september', 'october',
+        'november', 'december', 'minval', 'maxval',
+    }
+
     def visit_BinOp(self, node):
         opMap = {
             ast.Add: "add",
@@ -584,10 +591,14 @@ class ReQLVisitor(JavaVisitor):
         return get_bound(slc.lower, 0), get_bound(slc.upper, -1)
 
     def visit_Attribute(self, node):
-        if node.attr == 'row' and \
-           type(node.value) == ast.Name and \
-           node.value.id == 'r':
-            raise Skip("Java driver doesn't support r.row")
+        emit_call = False
+        if type(node.value) == ast.Name and node.value.id == 'r':
+            if node.attr == 'row':
+                raise Skip("Java driver doesn't support r.row")
+            elif node.attr in self.TOPLEVEL_CONSTANTS:
+                # Python has r.minval, r.saturday etc. We need to emit
+                # r.minval() and r.saturday()
+                emit_call = True
         python_clashes = {
             'or_': 'or',
             'and_': 'and',
@@ -600,6 +611,8 @@ class ReQLVisitor(JavaVisitor):
         if initial in metajava.java_term_info.JAVA_KEYWORDS or \
            initial in metajava.java_term_info.OBJECT_METHODS:
             self.write('_')
+        if emit_call:
+            self.write('()')
 
 
 if __name__ == '__main__':
