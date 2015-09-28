@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 import java.util.concurrent.TimeoutException;
 
 
+
 public class ${module_name} {
 
     public static final RethinkDB r = RethinkDB.r;
@@ -52,6 +53,10 @@ public class ${module_name} {
         r.db("test").tableDrop("${var_name}").run(conn);
         %endfor
         conn.close();
+    }
+
+    public int len(List array) {
+        return array.size();
     }
 
     @Test
