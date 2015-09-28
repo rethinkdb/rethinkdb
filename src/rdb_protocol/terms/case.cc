@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "rdb_protocol/terms/terms.hpp"
 
 #include "rdb_protocol/error.hpp"
@@ -8,7 +8,7 @@ namespace ql {
 
 class case_term_t : public op_term_t {
 public:
-    case_term_t(compile_env_t *env, const protob_t<const Term> &term,
+    case_term_t(compile_env_t *env, const raw_term_t &term,
                 const char *name, int (*_f)(int))
         : op_term_t(env, term, argspec_t(1)), name_(name), f(_f) { }
 private:
@@ -24,11 +24,11 @@ private:
 };
 
 counted_t<term_t> make_upcase_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<case_term_t>(env, term, "upcase", ::toupper);
 }
 counted_t<term_t> make_downcase_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<case_term_t>(env, term, "downcase", ::tolower);
 }
 

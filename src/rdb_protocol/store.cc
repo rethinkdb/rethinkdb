@@ -506,7 +506,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             // This asserts that the optargs have been initialized.  (There is always
             // a 'db' optarg.)  We have the same assertion in
             // rdb_r_unshard_visitor_t.
-            rassert(rget.optargs.size() != 0);
+            rassert(rget.optargs.has_optarg("db"));
         }
         ql::env_t ql_env(ctx, ql::return_empty_normal_batches_t::NO,
                          interruptor, rget.optargs, trace);

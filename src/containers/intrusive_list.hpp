@@ -1,4 +1,4 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #ifndef CONTAINERS_INTRUSIVE_LIST_HPP_
 #define CONTAINERS_INTRUSIVE_LIST_HPP_
 

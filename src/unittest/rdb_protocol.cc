@@ -1,4 +1,4 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "unittest/rdb_protocol.hpp"
 
 #include <vector>
@@ -14,7 +14,6 @@
 #include "extproc/extproc_spawner.hpp"
 #include "rdb_protocol/changefeed.hpp"
 #include "rdb_protocol/minidriver.hpp"
-#include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/store.hpp"
 #include "rpc/directory/read_manager.hpp"
@@ -194,9 +193,12 @@ std::string create_sindex(const std::vector<scoped_ptr_t<store_t> > *stores) {
     std::string id = uuid_to_str(generate_uuid());
 
     const ql::sym_t arg(1);
-    ql::protob_t<const Term> mapping = ql::r::var(arg)["sid"].release_counted();
+
+    ql::minidriver_t r(ql::backtrace_id_t::empty());
+    ql::raw_term_t mapping = r.var(arg)["sid"].root_term();
+
     sindex_config_t sindex(
-        ql::map_wire_func_t(mapping, make_vector(arg), ql::backtrace_id_t::empty()),
+        ql::map_wire_func_t(mapping, make_vector(arg)),
         reql_version_t::LATEST,
         sindex_multi_bool_t::SINGLE,
         sindex_geo_bool_t::REGULAR);

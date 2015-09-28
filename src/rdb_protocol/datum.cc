@@ -1,4 +1,4 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "rdb_protocol/datum.hpp"
 
 #include <float.h>
@@ -1455,6 +1455,42 @@ template void datum_t::write_json(
 template void datum_t::write_json(
     rapidjson::PrettyWriter<rapidjson::StringBuffer> *writer) const;
 
+rapidjson::Value datum_t::as_json(rapidjson::Value::AllocatorType *allocator) const {
+    switch (get_type()) {
+    case MINVAL: rfail_datum(base_exc_t::LOGIC, "Cannot convert `r.minval` to JSON.");
+    case MAXVAL: rfail_datum(base_exc_t::LOGIC, "Cannot convert `r.maxval` to JSON.");
+    case R_NULL: return rapidjson::Value(rapidjson::kNullType);
+    case R_BINARY: return pseudo::encode_base64_ptype(as_binary(), allocator);
+    case R_BOOL: return rapidjson::Value(as_bool());
+    case R_NUM: return rapidjson::Value(as_num());
+    case R_STR: return rapidjson::Value(as_str().data(), as_str().size(), *allocator);
+    case R_ARRAY: {
+        rapidjson::Value res(rapidjson::kArrayType);
+        for (size_t i = 0; i < arr_size(); ++i) {
+            call_with_enough_stack([&]() {
+                    res.PushBack(unchecked_get(i).as_json(allocator), *allocator);
+                }, MIN_DATUM_RECURSION_STACK_SPACE);
+        }
+        return res;
+    } break;
+    case R_OBJECT: {
+        rapidjson::Value res(rapidjson::kObjectType);
+        for (size_t i = 0; i < obj_size(); ++i) {
+            call_with_enough_stack([&]() {
+                    auto pair = get_pair(i);
+                    res.AddMember(rapidjson::Value(pair.first.data(),
+                                                   pair.first.size(), *allocator),
+                                  pair.second.as_json(allocator), *allocator);
+                }, MIN_DATUM_RECURSION_STACK_SPACE);
+        }
+        return res;
+    } break;
+    case UNINITIALIZED: // fallthru
+    default: unreachable();
+    }
+    unreachable();
+}
+
 cJSON *datum_t::as_json_raw() const {
     switch (get_type()) {
     case MINVAL: rfail_datum(base_exc_t::LOGIC, "Cannot convert `r.minval` to JSON.");
@@ -1819,65 +1855,6 @@ bool datum_t::key_is_truncated(const store_key_t &key) {
         return key.size() == MAX_KEY_SIZE;
     } else {
         return key.size() == MAX_KEY_SIZE - tag_size;
-    }
-}
-
-void datum_t::write_to_protobuf(Datum *d, use_json_t use_json) const {
-    switch (use_json) {
-    case use_json_t::NO: {
-        switch (get_type()) {
-        case MINVAL: rfail_datum(base_exc_t::LOGIC, "Cannot convert `r.minval` to a protobuf.");
-        case MAXVAL: rfail_datum(base_exc_t::LOGIC, "Cannot convert `r.maxval` to a protobuf.");
-        case R_NULL: {
-            d->set_type(Datum::R_NULL);
-        } break;
-        case R_BINARY: {
-            pseudo::write_binary_to_protobuf(d, data.r_str);
-        } break;
-        case R_BOOL: {
-            d->set_type(Datum::R_BOOL);
-            d->set_r_bool(data.r_bool);
-        } break;
-        case R_NUM: {
-            d->set_type(Datum::R_NUM);
-            // so we can use `isfinite` in a GCC 4.4.3-compatible way
-            using namespace std;  // NOLINT(build/namespaces)
-            r_sanity_check(isfinite(data.r_num));
-            d->set_r_num(data.r_num);
-        } break;
-        case R_STR: {
-            d->set_type(Datum::R_STR);
-            d->set_r_str(data.r_str.data(), data.r_str.size());
-        } break;
-        case R_ARRAY: {
-            d->set_type(Datum::R_ARRAY);
-            const size_t sz = arr_size();
-            for (size_t i = 0; i < sz; ++i) {
-                get(i).write_to_protobuf(d->add_r_array(), use_json);
-            }
-        } break;
-        case R_OBJECT: {
-            d->set_type(Datum::R_OBJECT);
-            // We use the opposite order so that things print the way we expect.
-            for (size_t i = obj_size(); i > 0; --i) {
-                Datum_AssocPair *ap = d->add_r_object();
-                auto pair = get_pair(i-1);
-                ap->set_key(pair.first.data(), pair.first.size());
-                pair.second.write_to_protobuf(ap->mutable_val(), use_json);
-            }
-        } break;
-        case UNINITIALIZED: // fallthru
-        default: unreachable();
-        }
-    } break;
-    case use_json_t::YES: {
-        d->set_type(Datum::R_JSON);
-        rapidjson::StringBuffer buffer;
-        rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
-        write_json(&writer);
-        d->set_r_str(buffer.GetString(), buffer.GetSize());
-    } break;
-    default: unreachable();
     }
 }
 

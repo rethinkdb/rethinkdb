@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_OP_HPP_
 #define RDB_PROTOCOL_OP_HPP_
 
@@ -107,7 +107,7 @@ void accumulate_all_captures(
 // access their arguments.
 class op_term_t : public term_t {
 protected:
-    op_term_t(compile_env_t *env, protob_t<const Term> term,
+    op_term_t(compile_env_t *env, const raw_term_t &term,
               argspec_t argspec, optargspec_t optargspec = optargspec_t({}));
     virtual ~op_term_t();
 
@@ -117,8 +117,8 @@ protected:
     // * literal -- it checks whether this operation has the literal key you
     //   provided and doesn't look anywhere else for optargs (in particular, it
     //   doesn't check global optargs).
-    counted_t<func_term_t> lazy_literal_optarg(
-        compile_env_t *env, const std::string &key) const;
+    counted_t<const func_term_t> lazy_literal_optarg(
+            compile_env_t *env, const std::string &key) const;
 
     // Provides a default implementation, passing off a call to arg terms and optarg
     // terms.  implicit_var_term_t overrides this.  (var_term_t does too, but it's not
@@ -165,7 +165,7 @@ private:
 
 class bounded_op_term_t : public op_term_t {
 public:
-    bounded_op_term_t(compile_env_t *env, protob_t<const Term> term,
+    bounded_op_term_t(compile_env_t *env, const raw_term_t &term,
                       argspec_t argspec, optargspec_t optargspec = optargspec_t({}));
 
     virtual ~bounded_op_term_t() { }

@@ -1,4 +1,4 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
 
 #include "btree/backfill_debug.hpp"
@@ -13,7 +13,6 @@
 #include "extproc/extproc_spawner.hpp"
 #include "rapidjson/document.h"
 #include "rdb_protocol/minidriver.hpp"
-#include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/store.hpp"

@@ -30,10 +30,10 @@
 #define MESSAGE_HANDLER_MAX_BATCH_SIZE           16
 
 // The cluster communication protocol version.
-static_assert(cluster_version_t::CLUSTER == cluster_version_t::v2_1_is_latest,
+static_assert(cluster_version_t::CLUSTER == cluster_version_t::v2_2_is_latest,
               "We need to update CLUSTER_VERSION_STRING when we add a new cluster "
               "version.");
-#define CLUSTER_VERSION_STRING "2.1.2"
+#define CLUSTER_VERSION_STRING "2.2.0"
 
 const std::string connectivity_cluster_t::cluster_proto_header("RethinkDB cluster\n");
 const std::string connectivity_cluster_t::cluster_version_string(CLUSTER_VERSION_STRING);

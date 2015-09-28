@@ -1,4 +1,4 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_CHANGEFEED_HPP_
 #define RDB_PROTOCOL_CHANGEFEED_HPP_
 
@@ -19,7 +19,6 @@
 #include "containers/counted.hpp"
 #include "containers/scoped.hpp"
 #include "protocol_api.hpp"
-#include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/shards.hpp"
 #include "region/region.hpp"
@@ -361,7 +360,7 @@ public:
         region_t _region,
         std::string _table,
         rdb_context_t *ctx,
-        std::map<std::string, wire_func_t> optargs,
+        global_optargs_t optargs,
         uuid_u _uuid,
         server_t *_parent,
         client_t::addr_t _parent_client,
@@ -435,7 +434,7 @@ public:
         const region_t &region,
         const std::string &table,
         rdb_context_t *ctx,
-        std::map<std::string, wire_func_t> optargs,
+        global_optargs_t optargs,
         const uuid_u &client_uuid,
         const keyspec_t::limit_t &spec,
         limit_order_t lt,

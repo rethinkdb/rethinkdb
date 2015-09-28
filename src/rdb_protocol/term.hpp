@@ -7,6 +7,7 @@
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/ql2.pb.h"
 #include "rdb_protocol/val.hpp"
+#include "rdb_protocol/term_storage.hpp"
 
 namespace ql {
 
@@ -55,16 +56,18 @@ private:
 
 class term_t : public runtime_term_t {
 public:
-    explicit term_t(protob_t<const Term> _src);
+    explicit term_t(const raw_term_t &_src);
     virtual ~term_t();
-    protob_t<const Term> get_src() const;
+    const raw_term_t &get_src() const;
     virtual void accumulate_captures(var_captures_t *captures) const = 0;
 private:
-    protob_t<const Term> src;
+    // The `src` member contains pointers to the original query and must not exceed
+    // the lifetime of that query object.
+    const raw_term_t src;
     DISABLE_COPYING(term_t);
 };
 
-counted_t<const term_t> compile_term(compile_env_t *env, const protob_t<const Term> t);
+counted_t<const term_t> compile_term(compile_env_t *env, const raw_term_t &t);
 
 } // namespace ql
 

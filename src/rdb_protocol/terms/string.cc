@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "rdb_protocol/terms/terms.hpp"
 
 #include <re2/re2.h>
@@ -31,7 +31,7 @@ static bool is_whitespace_character(char32_t c) {
 
 class match_term_t : public op_term_t {
 public:
-    match_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    match_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
@@ -133,7 +133,7 @@ void push_datum(std::vector<datum_t> *res, It &&begin, It &&end) {
 
 class split_term_t : public op_term_t {
 public:
-    split_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    split_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(1, 3)) { }
 private:
     std::vector<datum_t> utf8_aware_split(const std::string &s,
@@ -268,11 +268,11 @@ private:
 };
 
 counted_t<term_t> make_match_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<match_term_t>(env, term);
 }
 counted_t<term_t> make_split_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<split_term_t>(env, term);
 }
 

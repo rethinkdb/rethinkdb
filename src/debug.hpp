@@ -1,3 +1,4 @@
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #ifndef DEBUG_HPP_
 #define DEBUG_HPP_
 
@@ -76,9 +77,6 @@ public:
 private:
     std::string message;
 };
-
-class Term;
-void pb_print(Term *t);
 
 // TODO: make this more efficient (use `clock_monotonic` and use a vector of
 // integers rather than accumulating a string).

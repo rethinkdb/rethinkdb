@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "rdb_protocol/terms/terms.hpp"
 
 #include <map>
@@ -99,7 +99,7 @@ void get_replicas_and_primary(const scoped_ptr_t<val_t> &replicas,
 // Meta operations (BUT NOT TABLE TERMS) should inherit from this.
 class meta_op_term_t : public op_term_t {
 public:
-    meta_op_term_t(compile_env_t *env, const protob_t<const Term> term,
+    meta_op_term_t(compile_env_t *env, const raw_term_t &term,
                    argspec_t argspec, optargspec_t optargspec = optargspec_t({}))
         : op_term_t(env, term, std::move(argspec), std::move(optargspec)) { }
 
@@ -109,7 +109,7 @@ private:
 
 class db_term_t : public meta_op_term_t {
 public:
-    db_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    db_term_t(compile_env_t *env, const raw_term_t &term)
         : meta_op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
@@ -127,7 +127,7 @@ private:
 
 class db_create_term_t : public meta_op_term_t {
 public:
-    db_create_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    db_create_term_t(compile_env_t *env, const raw_term_t &term)
         : meta_op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
@@ -146,7 +146,7 @@ private:
 
 class table_create_term_t : public meta_op_term_t {
 public:
-    table_create_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    table_create_term_t(compile_env_t *env, const raw_term_t &term)
         : meta_op_term_t(env, term, argspec_t(1, 2),
             optargspec_t({"primary_key", "shards", "replicas",
                           "nonvoting_replica_tags", "primary_replica_tag",
@@ -209,7 +209,7 @@ private:
 
 class db_drop_term_t : public meta_op_term_t {
 public:
-    db_drop_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    db_drop_term_t(compile_env_t *env, const raw_term_t &term)
         : meta_op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
@@ -230,7 +230,7 @@ private:
 
 class table_drop_term_t : public meta_op_term_t {
 public:
-    table_drop_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    table_drop_term_t(compile_env_t *env, const raw_term_t &term)
         : meta_op_term_t(env, term, argspec_t(1, 2)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
@@ -261,7 +261,7 @@ private:
 
 class db_list_term_t : public meta_op_term_t {
 public:
-    db_list_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    db_list_term_t(compile_env_t *env, const raw_term_t &term)
         : meta_op_term_t(env, term, argspec_t(0)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *, eval_flags_t) const {
@@ -285,7 +285,7 @@ private:
 
 class table_list_term_t : public meta_op_term_t {
 public:
-    table_list_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    table_list_term_t(compile_env_t *env, const raw_term_t &term)
         : meta_op_term_t(env, term, argspec_t(0, 1)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
@@ -317,7 +317,7 @@ private:
 
 class config_term_t : public meta_op_term_t {
 public:
-    config_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    config_term_t(compile_env_t *env, const raw_term_t &term)
         : meta_op_term_t(env, term, argspec_t(1, 1), optargspec_t({})) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
@@ -348,7 +348,7 @@ private:
 
 class status_term_t : public meta_op_term_t {
 public:
-    status_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    status_term_t(compile_env_t *env, const raw_term_t &term)
         : meta_op_term_t(env, term, argspec_t(1, 1), optargspec_t({})) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
@@ -369,7 +369,7 @@ private:
 `reconfigure`, and `rebalance`. */
 class table_or_db_meta_term_t : public meta_op_term_t {
 public:
-    table_or_db_meta_term_t(compile_env_t *env, const protob_t<const Term> &term,
+    table_or_db_meta_term_t(compile_env_t *env, const raw_term_t &term,
                             optargspec_t &&optargs)
         /* None of the subclasses take positional arguments except for the table/db. */
         : meta_op_term_t(env, term, argspec_t(0, 1), std::move(optargs)) { }
@@ -404,7 +404,7 @@ private:
 
 class wait_term_t : public table_or_db_meta_term_t {
 public:
-    wait_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    wait_term_t(compile_env_t *env, const raw_term_t &term)
         : table_or_db_meta_term_t(env, term,
                                   optargspec_t({"timeout", "wait_for"})) { }
 private:
@@ -480,7 +480,7 @@ char const * const wait_term_t::wait_all_str = "all_replicas_ready";
 
 class reconfigure_term_t : public table_or_db_meta_term_t {
 public:
-    reconfigure_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    reconfigure_term_t(compile_env_t *env, const raw_term_t &term)
         : table_or_db_meta_term_t(env, term,
             optargspec_t({"dry_run", "emergency_repair", "nonvoting_replica_tags",
                 "primary_replica_tag", "replicas", "shards"})) { }
@@ -598,7 +598,7 @@ private:
 
 class rebalance_term_t : public table_or_db_meta_term_t {
 public:
-    rebalance_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    rebalance_term_t(compile_env_t *env, const raw_term_t &term)
         : table_or_db_meta_term_t(env, term, optargspec_t({})) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl_on_table_or_db(
@@ -625,7 +625,7 @@ private:
 
 class sync_term_t : public meta_op_term_t {
 public:
-    sync_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    sync_term_t(compile_env_t *env, const raw_term_t &term)
         : meta_op_term_t(env, term, argspec_t(1)) { }
 
 private:
@@ -643,7 +643,7 @@ private:
 
 class table_term_t : public op_term_t {
 public:
-    table_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    table_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(1, 2),
                     optargspec_t({"read_mode", "use_outdated", "identifier_format"})) { }
 private:
@@ -714,7 +714,7 @@ private:
 
 class get_term_t : public op_term_t {
 public:
-    get_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    get_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual scoped_ptr_t<val_t>
@@ -730,7 +730,7 @@ private:
 
 class get_all_term_t : public op_term_t {
 public:
-    get_all_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    get_all_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(2, -1), optargspec_t({ "index" })) { }
 private:
     datum_t get_key_arg(const scoped_ptr_t<val_t> &arg) const {
@@ -764,82 +764,82 @@ private:
 };
 
 counted_t<term_t> make_db_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<db_term_t>(env, term);
 }
 
 counted_t<term_t> make_table_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<table_term_t>(env, term);
 }
 
 counted_t<term_t> make_get_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<get_term_t>(env, term);
 }
 
 counted_t<term_t> make_get_all_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<get_all_term_t>(env, term);
 }
 
 counted_t<term_t> make_db_create_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<db_create_term_t>(env, term);
 }
 
 counted_t<term_t> make_db_drop_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<db_drop_term_t>(env, term);
 }
 
 counted_t<term_t> make_db_list_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<db_list_term_t>(env, term);
 }
 
 counted_t<term_t> make_table_create_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<table_create_term_t>(env, term);
 }
 
 counted_t<term_t> make_table_drop_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<table_drop_term_t>(env, term);
 }
 
 counted_t<term_t> make_table_list_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<table_list_term_t>(env, term);
 }
 
 counted_t<term_t> make_config_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<config_term_t>(env, term);
 }
 
 counted_t<term_t> make_status_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<status_term_t>(env, term);
 }
 
 counted_t<term_t> make_wait_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<wait_term_t>(env, term);
 }
 
 counted_t<term_t> make_reconfigure_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<reconfigure_term_t>(env, term);
 }
 
 counted_t<term_t> make_rebalance_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<rebalance_term_t>(env, term);
 }
 
 counted_t<term_t> make_sync_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<sync_term_t>(env, term);
 }
 

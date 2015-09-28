@@ -249,7 +249,7 @@ SOURCES := $(shell find $(SOURCE_DIR) -name '*.cc' -not -name '\.*')
 
 SERVER_EXEC_SOURCES := $(filter-out $(SOURCE_DIR)/unittest/%,$(SOURCES))
 
-QL2_PROTO_NAMES := rdb_protocol/ql2 rdb_protocol/ql2_extensions
+QL2_PROTO_NAMES := rdb_protocol/ql2
 QL2_PROTO_SOURCES := $(foreach _,$(QL2_PROTO_NAMES),$(SOURCE_DIR)/$_.proto)
 QL2_PROTO_HEADERS := $(foreach _,$(QL2_PROTO_NAMES),$(PROTO_DIR)/$_.pb.h)
 QL2_PROTO_CODE := $(foreach _,$(QL2_PROTO_NAMES),$(PROTO_DIR)/$_.pb.cc)

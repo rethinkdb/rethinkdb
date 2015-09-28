@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #include <stdint.h>
 
 #include <string>
@@ -16,7 +16,7 @@ const uuid_u base_key_id =
 
 class uuid_term_t : public op_term_t {
 public:
-    uuid_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    uuid_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(0, 1)) { }
 
 private:
@@ -41,7 +41,7 @@ private:
 };
 
 counted_t<term_t> make_uuid_term(
-        compile_env_t *env, const protob_t<const Term> &term) {
+        compile_env_t *env, const raw_term_t &term) {
     return make_counted<uuid_term_t>(env, term);
 }
 

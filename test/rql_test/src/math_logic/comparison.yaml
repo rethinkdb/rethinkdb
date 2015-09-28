@@ -358,6 +358,7 @@ tests:
     - py: r.expr(False) < []
       js: r(false).lt([])
       rb: r(false) < []
+      ot: false
 
     - py: r.expr([]) < r.binary(b"\xAE")
       js: r([]).lt(r.binary(Buffer("\x00")))

@@ -1,4 +1,4 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_DATUM_HPP_
 #define RDB_PROTOCOL_DATUM_HPP_
 
@@ -206,8 +206,6 @@ public:
     bool has() const;
     void reset();
 
-    void write_to_protobuf(Datum *out, use_json_t use_json) const;
-
     type_t get_type() const;
     bool is_ptype() const;
     bool is_ptype(const std::string &reql_type) const;
@@ -292,6 +290,7 @@ public:
     // json_writer_t can be rapidjson::Writer<rapidjson::StringBuffer>
     // or rapidjson::PrettyWriter<rapidjson::StringBuffer>
     template <class json_writer_t> void write_json(json_writer_t *writer) const;
+    rapidjson::Value as_json(rapidjson::Value::AllocatorType *allocator) const;
 
     // DEPRECATED: Used for backwards compatibility with reql_versions before 2.1
     cJSON *as_json_raw() const;
@@ -474,13 +473,10 @@ private:
     key_range_t::bound_t left_bound_type, right_bound_type;
 };
 
-datum_t to_datum(const Datum *d, const configured_limits_t &, reql_version_t);
-datum_t to_datum(
-    const rapidjson::Value &json,
-    const configured_limits_t &,
-    reql_version_t);
 // DEPRECATED: Used in the r.json term for pre 2.1 backwards compatibility
 datum_t to_datum(cJSON *json, const configured_limits_t &, reql_version_t);
+
+datum_t to_datum(const rapidjson::Value &v, const configured_limits_t &, reql_version_t);
 
 // This should only be used to send responses to the client.
 datum_t to_datum_for_client_serialization(

@@ -1,6 +1,6 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef PROTOB_PROTOB_HPP_
-#define PROTOB_PROTOB_HPP_
+// Copyright 2010-2015 RethinkDB, all rights reserved.
+#ifndef CLIENT_PROTOCOL_SERVER_HPP_
+#define CLIENT_PROTOCOL_SERVER_HPP_
 
 #include <set>
 #include <map>
@@ -22,7 +22,6 @@
 #include "containers/counted.hpp"
 #include "http/http.hpp"
 #include "perfmon/perfmon.hpp"
-#include "rdb_protocol/counted_term.hpp"
 #include "utils.hpp"
 
 class auth_key_t;
@@ -31,8 +30,9 @@ template <class> class semilattice_readwrite_view_t;
 
 class rdb_context_t;
 namespace ql {
-class query_id_t;
+class query_params_t;
 class query_cache_t;
+class response_t;
 }
 
 class http_conn_cache_t : public repeating_timer_callback_t,
@@ -94,11 +94,8 @@ class query_handler_t {
 public:
     virtual ~query_handler_t() { }
 
-    virtual void run_query(ql::query_id_t &&query_id,
-                           const ql::protob_t<Query> &query,
-                           Response *response_out,
-                           ql::query_cache_t *query_cache,
-                           new_semaphore_acq_t *throttler,
+    virtual void run_query(ql::query_params_t *query_params,
+                           ql::response_t *response_out,
                            signal_t *interruptor) = 0;
 };
 
@@ -124,7 +121,7 @@ private:
     void make_error_response(bool is_draining,
                              const tcp_conn_t &conn,
                              const std::string &err,
-                             Response *response_out);
+                             ql::response_t *response_out);
 
     // For the client driver socket
     void handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn,
@@ -153,4 +150,4 @@ private:
     int next_thread;
 };
 
-#endif /* PROTOB_PROTOB_HPP_ */
+#endif /* CLIENT_PROTOCOL_SERVER_HPP_ */

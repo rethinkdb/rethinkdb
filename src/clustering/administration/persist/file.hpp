@@ -41,15 +41,15 @@ public:
     public:
         read_txn_t(metadata_file_t *file, signal_t *interruptor);
 
-        template<class T>
+        template<class T, cluster_version_t W = cluster_version_t::LATEST_DISK>
         T read(const key_t<T> &key, signal_t *interruptor) {
             T value;
-            bool found = read_maybe(key, &value, interruptor);
+            bool found = read_maybe<T, W>(key, &value, interruptor);
             guarantee(found, "failed to find expected metadata key");
             return value;
         }
 
-        template<class T>
+        template<class T, cluster_version_t W = cluster_version_t::LATEST_DISK>
         bool read_maybe(
                 const key_t<T> &key,
                 T *value_out,
@@ -58,9 +58,7 @@ public:
             read_bin(
                 key.key,
                 [&](read_stream_t *bin_value) {
-                    archive_result_t res =
-                        deserialize<cluster_version_t::v2_1_is_latest>(
-                            bin_value, value_out);
+                    archive_result_t res = deserialize<W>(bin_value, value_out);
                     guarantee_deserialization(res, "metadata_file_t::read_txn_t::read");
                     found = true;
                 },
@@ -68,7 +66,7 @@ public:
             return found;
         }
 
-        template<class T>
+        template<class T, cluster_version_t W = cluster_version_t::LATEST_DISK>
         void read_many(
                 const key_t<T> &key_prefix,
                 const std::function<void(
@@ -78,9 +76,7 @@ public:
                 key_prefix.key,
                 [&](const std::string &key_suffix, read_stream_t *bin_value) {
                     T value;
-                    archive_result_t res =
-                        deserialize<cluster_version_t::v2_1_is_latest>(
-                            bin_value, &value);
+                    archive_result_t res = deserialize<W>(bin_value, &value);
                     guarantee_deserialization(res,
                         "metadata_file_t::read_txn_t::read_many");
                     cb(key_suffix, value);

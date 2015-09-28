@@ -102,7 +102,7 @@ module RethinkDB
                     when RQL then x.to_pb
                     else { '$reql_type$' => 'BINARY', 'data' => Base64.strict_encode64(x) }
                     end
-                 }, []])
+                 }])
     end
 
     def self.safe_to_s(x)

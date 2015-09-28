@@ -775,7 +775,7 @@ void run_rethinkdb_serve(const base_path_t &base_path,
                 {
                     metadata_file_t::write_txn_t txn(metadata_file.get(),
                                                      &non_interruptor);
-                    migrate_auth_metadata_to_v2_1(&io_backender, auth_path, &txn,
+                    migrate_auth_metadata_to_v2_2(&io_backender, auth_path, &txn,
                                                   &non_interruptor);
                     /* End the inner scope here so we flush the new metadata file before
                     we delete the old auth file */

@@ -8,7 +8,6 @@
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/ql2.pb.h"
-#include "rdb_protocol/ql2_extensions.pb.h"
 
 namespace ql {
 
@@ -40,9 +39,7 @@ public:
 class backtrace_registry_t {
 public:
     backtrace_registry_t();
-    backtrace_registry_t(backtrace_registry_t &&other) :
-        frames(std::move(other.frames)) { }
-    virtual ~backtrace_registry_t() { }
+    backtrace_registry_t(backtrace_registry_t &&) = default;
 
     backtrace_id_t new_frame(backtrace_id_t parent_bt,
                              const datum_t &val);
@@ -65,15 +62,6 @@ private:
     std::vector<frame_t> frames;
     DISABLE_COPYING(backtrace_registry_t);
 };
-
-void fill_backtrace(Backtrace *bt_out,
-                    datum_t backtrace);
-
-void fill_error(Response *res_out,
-                Response::ResponseType response_type,
-                Response::ErrorType error_type,
-                const std::string &message,
-                datum_t backtrace);
 
 } // namespace ql
 

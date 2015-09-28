@@ -1,4 +1,4 @@
-// Copyright 2010-2014 RethinkDB, all rights reserved.
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/administration/jobs/manager.hpp"
 
 #include <functional>
@@ -80,15 +80,15 @@ void jobs_manager_t::on_get_job_reports(
         {
             on_thread_t thread((threadnum_t(threadnum)));
 
-            for (auto const &query_cache
+            for (const auto &query_cache
                     : *rdb_context->get_query_caches_for_this_thread()) {
-                for (auto const &pair : *query_cache) {
+                for (const auto &pair : *query_cache) {
                     if (pair.second->persistent_interruptor.is_pulsed()) {
                         continue;
                     }
 
                     auto render = pprint::render_as_javascript(
-                        pair.second->original_query->query());
+                        pair.second->term_storage->root_term());
 
                     query_job_reports_inner.emplace_back(
                         pair.second->job_id,
@@ -127,8 +127,8 @@ void jobs_manager_t::on_get_job_reports(
             /* Note that we only calculate the duration if the index construction is
                still in progress. */
             double duration = status.second.second.ready
-                ? 0
-                : time - std::min(status.second.second.start_time, time);
+                ? 0.0
+                : time - std::min<double>(status.second.second.start_time, time);
 
             index_construction_job_reports.emplace_back(
                 id,
@@ -152,8 +152,8 @@ void jobs_manager_t::on_get_job_reports(
             /* As above we only calculate the duration if the backfill is still in
                progress. */
             double duration = backfill.second.is_ready
-                ? 0
-                : time - std::min(backfill.second.start_time, time);
+                ? 0.0
+                : time - std::min<double>(backfill.second.start_time, time);
 
             backfill_job_reports.emplace_back(
                 id,

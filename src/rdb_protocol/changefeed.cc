@@ -1,3 +1,4 @@
+// Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "rdb_protocol/changefeed.hpp"
 
 #include <queue>
@@ -11,6 +12,7 @@
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/protocol.hpp"
+#include "rdb_protocol/response.hpp"
 #include "rdb_protocol/val.hpp"
 #include "rpc/mailbox/typed.hpp"
 
@@ -417,7 +419,7 @@ void server_t::add_limit_client(
         const region_t &region,
         const std::string &table,
         rdb_context_t *ctx,
-        std::map<std::string, wire_func_t> optargs,
+        global_optargs_t optargs,
         const uuid_u &client_uuid,
         const keyspec_t::limit_t &spec,
         limit_order_t lt,
@@ -829,7 +831,7 @@ limit_manager_t::limit_manager_t(
     region_t _region,
     std::string _table,
     rdb_context_t *ctx,
-    std::map<std::string, wire_func_t> optargs,
+    global_optargs_t optargs,
     uuid_u _uuid,
     server_t *_parent,
     client_t::addr_t _parent_client,
@@ -1193,7 +1195,7 @@ public:
           sub(std::move(_sub)) { }
     virtual bool is_array() const { return false; }
     virtual bool is_exhausted() const { return false; }
-    void set_notes(Response *res) const final { sub->set_notes(res); }
+    void set_notes(response_t *res) const final { sub->set_notes(res); }
     feed_type_t cfeed_type() const final { return sub->cfeed_type(); }
     virtual bool is_infinite() const { return true; }
     virtual std::vector<datum_t>
@@ -1221,7 +1223,7 @@ class subscription_t : public home_thread_mixin_t {
 public:
     virtual ~subscription_t();
     virtual feed_type_t cfeed_type() const = 0;
-    void set_notes(Response *res) const;
+    void set_notes(response_t *res) const;
     std::vector<datum_t> get_els(
         batcher_t *batcher,
         return_empty_normal_batches_t return_empty_normal_batches,
@@ -2599,8 +2601,8 @@ subscription_t::subscription_t(
 
 subscription_t::~subscription_t() { }
 
-void subscription_t::set_notes(Response *res) const {
-    if (include_states) res->add_notes(Response::INCLUDES_STATES);
+void subscription_t::set_notes(response_t *res) const {
+    if (include_states) res->add_note(Response::INCLUDES_STATES);
 }
 
 std::vector<datum_t>

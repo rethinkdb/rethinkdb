@@ -1,4 +1,5 @@
 desc: Test the arity of every function
+table_variable_name: tbl
 tests:
 
     # TODO: add test for slice (should require one or two arguments)
@@ -7,9 +8,6 @@ tests:
     - def: db = r.db('test')
     - def: obj = r.expr({'a':1})
     - def: array = r.expr([1])
-    - cd: db.table_create('test1')
-      ot: partial({'tables_created':1})
-    - def: tbl = db.table('test1')
 
     - ot: err("ReqlCompileError", "Expected 0 arguments but found 1.", [])
       cd: r.db_list(1)
@@ -312,7 +310,3 @@ tests:
       ot:
         cd: err('ReqlCompileError','Expected 3 arguments but found 4.',[])
         js: err('ReqlCompileError','Expected 2 arguments (not including options) but found 3.',[])
-
-    # Clean up
-    - cd: db.table_drop('test1')
-      ot: partial({'tables_dropped':1})
