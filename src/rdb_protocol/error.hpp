@@ -38,6 +38,7 @@ public:
         LOGIC, // An error in ReQL logic.
         INTERNAL, // An internal error.
         RESOURCE, // Exceeded a resource limit (e.g. the array size limit).
+        RESUMABLE_OP_FAILED, // Used internally to retry some operations.
         OP_FAILED, // An operation is known to have failed.
         OP_INDETERMINATE, // It is unknown whether an operation failed or not.
         USER, // An error caused by `r.error` with arguments.
@@ -47,16 +48,18 @@ public:
     explicit base_exc_t(type_t _type) : type(_type) { }
     virtual ~base_exc_t() throw () { }
     type_t get_type() const { return type; }
+    virtual void rethrow_with_type(type_t type) const = 0;
     Response::ErrorType get_error_type() const {
         switch (type) {
-        case EMPTY_USER:       // fallthru (this only bubbles up here if misused)
-        case LOGIC:            return Response::QUERY_LOGIC;
-        case INTERNAL:         return Response::INTERNAL;
-        case RESOURCE:         return Response::RESOURCE_LIMIT;
-        case OP_FAILED:        return Response::OP_FAILED;
-        case OP_INDETERMINATE: return Response::OP_INDETERMINATE;
-        case USER:             return Response::USER;
-        case NON_EXISTENCE:    return Response::NON_EXISTENCE;
+        case EMPTY_USER:          // fallthru (this only bubbles up here if misused)
+        case LOGIC:               return Response::QUERY_LOGIC;
+        case INTERNAL:            return Response::INTERNAL;
+        case RESOURCE:            return Response::RESOURCE_LIMIT;
+        case RESUMABLE_OP_FAILED: // fallthru
+        case OP_FAILED:           return Response::OP_FAILED;
+        case OP_INDETERMINATE:    return Response::OP_INDETERMINATE;
+        case USER:                return Response::USER;
+        case NON_EXISTENCE:       return Response::NON_EXISTENCE;
         default: unreachable();
         }
         unreachable();
@@ -227,6 +230,9 @@ public:
     virtual ~exc_t() throw () { }
 
     const char *what() const throw () { return message.c_str(); }
+    void rethrow_with_type(base_exc_t::type_t type) const final {
+        throw exc_t(type, message, bt, dummy_frames_);
+    }
 
     backtrace_id_t backtrace() const { return bt; }
     size_t dummy_frames() const { return dummy_frames_; }
@@ -250,7 +256,9 @@ public:
     virtual ~datum_exc_t() throw () { }
 
     const char *what() const throw () { return message.c_str(); }
-
+    void rethrow_with_type(base_exc_t::type_t type) const final {
+        throw datum_exc_t(type, message);
+    }
     RDB_DECLARE_ME_SERIALIZABLE(datum_exc_t);
 private:
     std::string message;
