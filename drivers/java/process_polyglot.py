@@ -126,24 +126,6 @@ def try_eval_def(parsed_define, context):
     return varname, type_
 
 
-def maybe_bif_eval(expected, context):
-    '''For evaluating expected values, possibly unwrapping the
-    surrounding function if it's one of the built in testing
-    functions (e.g. bag, err etc)
-    '''
-    bifs = {"bag", "err", "partial", "repeat", "err_regex"}
-    bif = None
-    if type(expected) == ast.Call and \
-       type(expected.func) == ast.Name and \
-       expected.func.id in bifs:
-        bif = expected
-        node_type = try_eval(expected.args[0], context)
-        return bif, node_type
-    else:
-        node_type = try_eval(expected, context)
-        return None, node_type
-
-
 def all_yaml_tests(test_dir, exclusions):
     '''Generator for the full paths of all non-excluded yaml tests'''
     for root, dirs, files in os.walk(test_dir):
@@ -207,13 +189,16 @@ def create_context(r, table_var_names):
         'UTCTimeZone': UTCTimeZone,
         # mock test helper functions
         'len': lambda x: 1,
-        'arrlen': lambda *args: 1,
-        'uuid': lambda: "aaaaaaaa-bbbb-cccc-dddd-xxxxxxxxxxxx",
+        'arrlen': fake_type("arr_len"),
+        'uuid': fake_type("uuid"),
         'fetch': lambda c, limit=None: [],
         'int_cmp': fake_type("int_cmp"),
         'partial': fake_type("partial"),
         'float_cmp': fake_type("float_cmp"),
         'wait': lambda time: None,
+        'err': fake_type('err'),
+        'err_regex': fake_type('err_regex'),
+        'bag': fake_type('bag'),
         # py3 compatibility
         'xrange': range,
     }
@@ -262,12 +247,10 @@ def tests_and_defs(testfile, raw_test_data, context):
         expected = py_str(get_python_entry(test))  # ot field
         expected_ast = ast.parse(expected, mode="eval").body
         logger.debug("Evaluating: %s", expected)
-        expected_bif, expected_type = maybe_bif_eval(expected_ast, context)
-        expected_term = Expect(bif=expected_bif,
-                               term=Term(
-                                   ast=expected_ast,
-                                   line=expected,
-                                   type=expected_type))
+        expected_type = try_eval(expected_ast, context)
+        expected_term = Term(ast=expected_ast,
+                             line=expected,
+                             type=expected_type)
         if isinstance(pytest, basestring):
             parsed = ast.parse(pytest, mode="single").body[0]
             if type(parsed) == ast.Expr:

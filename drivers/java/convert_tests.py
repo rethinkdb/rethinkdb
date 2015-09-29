@@ -121,7 +121,6 @@ def import_python_driver(common_dir):
 JavaQuery = namedtuple(
     'JavaQuery',
     ('line',
-     'expected_bif',
      'expected_type',
      'expected_line',
      'testfile',
@@ -227,70 +226,75 @@ def is_reql(t):
     return t.__module__ == 'rethinkdb.ast'
 
 
+def def_to_java(item, reql_vars):
+    if is_reql(item.term.type):
+        reql_vars.add(item.varname)
+    try:
+        if is_reql(item.term.type):
+            visitor = ReQLVisitor
+        else:
+            visitor = JavaVisitor
+        java_line = visitor(
+            reql_vars, type_=item.term.type).convert(item.term.ast)
+    except Skip as skip:
+        return SkippedTest(line=item.term.line, reason=str(skip))
+    return JavaDef(
+        line=Version(
+            original=item.term.line,
+            java=java_line,
+        ),
+        testfile=item.testfile,
+        test_num=item.test_num,
+    )
+
+
+def query_to_java(item, reql_vars):
+    if item.runopts is not None:
+        converted_runopts = {
+            key: JavaVisitor(
+                reql_vars, type_=item.query.type).convert(val)
+            for key, val in item.runopts.items()
+        }
+    else:
+        converted_runopts = item.runopts
+    try:
+        java_line = ReQLVisitor(
+            reql_vars, type_=item.query.type).convert(item.query.ast)
+        if is_reql(item.expected.type):
+            visitor = ReQLVisitor
+        else:
+            visitor = JavaVisitor
+        java_expected_line = visitor(
+            reql_vars, type_=item.expected.type)\
+            .convert(item.expected.ast)
+    except Skip as skip:
+        return SkippedTest(line=item.query.line, reason=str(skip))
+    return JavaQuery(
+        line=Version(
+            original=item.query.line,
+            java=java_line,
+        ),
+        expected_type=py_to_java_type(item.expected.type),
+        expected_line=Version(
+            original=item.expected.line,
+            java=java_expected_line,
+        ),
+        testfile=item.testfile,
+        test_num=item.test_num,
+        runopts=converted_runopts,
+    )
+
+
 def ast_to_java(sequence, reql_vars):
     '''Converts the the parsed test data to java source lines using the
     visitor classes'''
     reql_vars = set(reql_vars)
     for item in sequence:
-        if isinstance(item, process_polyglot.Def):
-            if is_reql(item.term.type):
-                reql_vars.add(item.varname)
-            try:
-                if is_reql(item.term.type):
-                    visitor = ReQLVisitor
-                else:
-                    visitor = JavaVisitor
-                java_line = visitor(
-                    reql_vars, type_=item.term.type).convert(item.term.ast)
-            except Skip as skip:
-                yield SkippedTest(line=item.term.line, reason=str(skip))
-                continue
-            yield JavaDef(
-                line=Version(
-                    original=item.term.line,
-                    java=java_line,
-                ),
-                testfile=item.testfile,
-                test_num=item.test_num,
-            )
-        elif isinstance(item, process_polyglot.Query):
-            if item.runopts is not None:
-                converted_runopts = {
-                    key: JavaVisitor(
-                        reql_vars, type_=item.query.type).convert(val)
-                    for key, val in item.runopts.items()
-                }
-            else:
-                converted_runopts = item.runopts
-            try:
-                java_line = ReQLVisitor(
-                    reql_vars, type_=item.query.type).convert(item.query.ast)
-                if is_reql(item.expected.term.type):
-                    visitor = ReQLVisitor
-                else:
-                    visitor = JavaVisitor
-                java_expected_line = visitor(
-                    reql_vars, type_=item.expected.term.type)\
-                    .convert(item.expected.term.ast)
-            except Skip as skip:
-                yield SkippedTest(line=item.query.line, reason=str(skip))
-                continue
-            yield JavaQuery(
-                line=Version(
-                    original=item.query.line,
-                    java=java_line,
-                ),
-                expected_bif=item.expected.bif,
-                expected_type=py_to_java_type(item.expected.term.type),
-                expected_line=Version(
-                    original=item.expected.term.line,
-                    java=java_expected_line,
-                ),
-                testfile=item.testfile,
-                test_num=item.test_num,
-                runopts=converted_runopts,
-            )
-        elif isinstance(item, SkippedTest):
+        if type(item) == process_polyglot.Def:
+            yield def_to_java(item, reql_vars)
+        elif type(item) == process_polyglot.Query:
+            yield query_to_java(item, reql_vars)
+        elif type(item) == SkippedTest:
             yield item
         else:
             assert False, "shouldn't happen"

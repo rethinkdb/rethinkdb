@@ -17,9 +17,12 @@ import org.junit.rules.ExpectedException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.IntStream;
 import java.util.stream.Collectors;
 import java.util.concurrent.TimeoutException;
+import java.util.regex.Pattern;
+import java.util.Collections;
 
 
 
@@ -57,6 +60,192 @@ public class ${module_name} {
 
     public int len(List array) {
         return array.size();
+    }
+
+    static class Lst {
+        final List lst;
+        public Lst(List lst) {
+            this.lst = lst;
+        }
+
+        public boolean equals(Object other) {
+            return lst.equals(other);
+        }
+    }
+
+    static class Bag {
+        final List lst;
+        public Bag(List lst) {
+            Collections.sort(lst);
+            this.lst = lst;
+        }
+
+        public boolean equals(Object other) {
+            if(!(other instanceof List)) {
+                return false;
+            }
+            List otherList = (List) other;
+            Collections.sort(otherList);
+            return lst.equals(otherList);
+        }
+    }
+
+    Bag bag(List lst) {
+        return new Bag(lst);
+    }
+
+    static class PartialLst {
+        final List lst;
+        public PartialLst(List lst){
+            this.lst = lst;
+        }
+
+        public boolean equals(Object other) {
+            if(!(other instanceof List)) {
+                return false;
+            }
+            List otherList = (List) other;
+            if(lst.size() > otherList.size()){
+                return false;
+            }
+            for(Object item: lst) {
+                if(otherList.indexOf(item) == -1){
+                    return false;
+                }
+            }
+            return true;
+        }
+    }
+
+    PartialLst partial(List lst) {
+        return new PartialLst(lst);
+    }
+
+    static class Dct {
+        final Map dct;
+        public Dct(Map dct){
+            this.dct = dct;
+        }
+
+        public boolean equals(Object other) {
+            return dct.equals(other);
+        }
+    }
+
+    static class PartialDct {
+        final Map dct;
+        public PartialDct(Map dct){
+            this.dct = dct;
+        }
+
+        public boolean equals(Object other) {
+            if(!(other instanceof Map)) {
+                return false;
+            }
+            Set otherEntries = ((Map) other).entrySet();
+            return otherEntries.containsAll(dct.entrySet());
+        }
+    }
+    PartialDct partial(Map dct) {
+        return new PartialDct(dct);
+    }
+
+    static class ArrLen {
+        final int length;
+        final Object thing;
+        public ArrLen(int length, Object thing) {
+            this.length = length;
+            this.thing = thing;
+        }
+
+        public boolean equals(Object other) {
+            if(!(other instanceof List)){
+                return false;
+            }
+            List otherList = (List) other;
+            if(length != otherList.size()) {
+                return false;
+            }
+            if(thing == null) {
+                return true;
+            }
+            for(Object item: otherList) {
+                if(!item.equals(thing)){
+                    return false;
+                }
+            }
+            return true;
+        }
+    }
+
+    ArrLen arrlen(int length, Object thing) {
+        return new ArrLen(length, thing);
+    }
+
+    static class Uuid {
+        public boolean equals(Object other) {
+            if(!(other instanceof String)) {
+                return false;
+            }
+            return Pattern.matches(
+            "[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}",
+            (String) other);
+        }
+    }
+
+    Uuid uuid() {
+        return new Uuid();
+    }
+
+    static class IntCmp {
+        final Integer nbr;
+        public IntCmp(Integer nbr) {
+            this.nbr = nbr;
+        }
+        public boolean equals(Object other) {
+            return nbr.equals(other);
+        }
+    }
+
+    IntCmp int_cmp(Integer nbr) {
+        return new IntCmp(nbr);
+    }
+
+    static class FloatCmp {
+        final Double nbr;
+        public FloatCmp(Double nbr) {
+            this.nbr = nbr;
+        }
+        public boolean equals(Object other) {
+            return nbr.equals(other);
+        }
+
+    }
+
+    FloatCmp float_cmp(Double nbr) {
+        return new FloatCmp(nbr);
+    }
+
+    static class Err {
+        public final Class clazz;
+        public final String message;
+
+        public Err(String classname, String message) {
+            try {
+                this.clazz = Class.forName(classname);
+            } catch (ClassNotFoundException cnfe) {
+                throw new RuntimeException("Bad exception class", cnfe);
+            }
+            this.message = message;
+        }
+    }
+
+    Err err(String classname, String message) {
+        return new Err(classname, message);
+    }
+
+    Err err(String classname, String message, List _unused) {
+        return err(classname, message);
     }
 
     @Test
