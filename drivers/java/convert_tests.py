@@ -14,7 +14,7 @@ import argparse
 import metajava
 import process_polyglot
 import logging
-from process_polyglot import Unhandled, Skip, SkippedTest
+from process_polyglot import Unhandled, Skip, FatalSkip, SkippedTest
 try:
     from cStringIO import StringIO
 except ImportError:
@@ -598,7 +598,7 @@ class ReQLVisitor(JavaVisitor):
         emit_call = False
         if type(node.value) == ast.Name and node.value.id == 'r':
             if node.attr == 'row':
-                raise Skip("Java driver doesn't support r.row")
+                raise FatalSkip("Java driver doesn't support r.row")
             elif node.attr in self.TOPLEVEL_CONSTANTS:
                 # Python has r.minval, r.saturday etc. We need to emit
                 # r.minval() and r.saturday()

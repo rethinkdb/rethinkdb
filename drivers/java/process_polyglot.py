@@ -14,6 +14,8 @@ import copy
 import logging
 from collections import namedtuple
 
+import metajava
+
 try:
     basestring
 except NameError:
@@ -31,6 +33,15 @@ class Unhandled(Exception):
 class Skip(Exception):
     '''Used when skipping a test for whatever reason'''
     pass
+
+
+class FatalSkip(metajava.EmptyTemplate):
+    '''Used when a skipped test should prevent the entire test file
+    from rendering'''
+    def __init__(self, msg):
+        logger.info("Skipping rendering because %s", msg)
+        super(FatalSkip, self).__init__(msg)
+
 
 Term = namedtuple("Term", 'line type ast')
 Query = namedtuple(

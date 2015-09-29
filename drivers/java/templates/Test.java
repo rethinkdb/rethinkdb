@@ -23,6 +23,9 @@ import java.util.stream.Collectors;
 import java.util.concurrent.TimeoutException;
 import java.util.regex.Pattern;
 import java.util.Collections;
+import java.nio.charset.StandardCharsets
+
+
 
 
 
@@ -94,7 +97,9 @@ public class ${module_name} {
         return new Bag(lst);
     }
 
-    static class PartialLst {
+    static class Partial {}
+
+    static class PartialLst extends Partial {
         final List lst;
         public PartialLst(List lst){
             this.lst = lst;
@@ -132,7 +137,7 @@ public class ${module_name} {
         }
     }
 
-    static class PartialDct {
+    static class PartialDct extends Partial {
         final Map dct;
         public PartialDct(Map dct){
             this.dct = dct;
@@ -238,6 +243,18 @@ public class ${module_name} {
             }
             this.message = message;
         }
+
+        public boolean equals(Object other) {
+            try {
+                // do stuff with object
+                return false;
+            } catch (Exception ex) {
+                if(ex.getClass() != clazz) {
+                    return false;
+                }
+                return ex.getMessage() == message;
+            }
+        }
     }
 
     Err err(String classname, String message) {
@@ -246,6 +263,40 @@ public class ${module_name} {
 
     Err err(String classname, String message, List _unused) {
         return err(classname, message);
+    }
+
+    static class ErrRgx {
+        public final Class clazz;
+        public final String message_rgx;
+
+        public ErrRgx(String classname, String message_rgx) {
+            try {
+                this.clazz = Class.forName(classname);
+            } catch (ClassNotFoundException cnfe) {
+                throw new RuntimeException("Bad exception class", cnfe);
+            }
+            this.message_rgx = message_rgx;
+        }
+
+        public boolean equals(Object other) {
+            try {
+                // do stuff with object
+                return false;
+            } catch (Exception ex) {
+                if(ex.getClass() != clazz) {
+                    return false;
+                }
+                return Pattern.matches(message_rgx, ex.getMessage());
+            }
+        }
+    }
+
+    ErrRgx err_rgx(String classname, String message_rgx) {
+        return new ErrRgx(classname, message_rgx);
+    }
+
+    List fetch(RqlAst query, int values) {
+        throw new RuntimeException("Not implemented!");
     }
 
     @Test
