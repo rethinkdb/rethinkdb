@@ -219,7 +219,7 @@ bool parse_json_pb(Query *q, int64_t token, char *str) THROWS_NOTHING {
         // the server even if the ReQL logic is incorrect; see also
         // `r_sanity_check`.)
 #ifndef NDEBUG
-        throw;
+        abort();
 #else
         return false;
 #endif // NDEBUG
@@ -292,7 +292,7 @@ void write_json_pb(const Response &r, StringBuffer *s) THROWS_NOTHING {
         writer.EndObject();
     } catch (...) {
 #ifndef NDEBUG
-        throw;
+        abort();
 #else
         // Reset s to it's original state, then write an error response.
         s->Pop(s->GetSize() - start_offset);

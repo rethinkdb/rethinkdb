@@ -34,6 +34,6 @@ int main(int argc, char **argv) {
     SetConsoleCtrlHandler(unittest_ctrl_c, true);
     ::testing::InitGoogleTest(&argc, argv);
     int ret = RUN_ALL_TESTS();
-    // close_console(); // TODO ATN
+    close_console(); // TODO ATN
     return ret;
 }

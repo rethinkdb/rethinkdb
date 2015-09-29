@@ -47,7 +47,9 @@ void timer_windows_provider_t::on_event(UNUSED int) {
 void timer_windows_provider_t::schedule_oneshot(const int64_t next_time_in_nanos, timer_provider_callback_t *const cb) {
     debugf_timer("[%p] scheduled in %" PRIi64 "ns\n", this, next_time_in_nanos - get_ticks());
     if (timer != nullptr) {
-        guarantee_winerr(DeleteTimerQueueTimer(nullptr, timer, nullptr));
+        // TODO ATN: possible race condition
+        BOOL res = DeleteTimerQueueTimer(nullptr, timer, nullptr);
+        guarantee_winerr(res || GetLastError() == ERROR_IO_PENDING, "DeleteTimerQueueTimer failed");
     }
     callback = cb;
     int64_t srelative_ms = (next_time_in_nanos - get_ticks()) / MILLION;
@@ -59,7 +61,12 @@ void timer_windows_provider_t::schedule_oneshot(const int64_t next_time_in_nanos
 void timer_windows_provider_t::unschedule_oneshot() {
     debugf_timer("[%p] unscheduled\n", this);
     if (timer != nullptr) {
-        guarantee_winerr(DeleteTimerQueueTimer(nullptr, timer, nullptr));
+        // TODO ATN: possible race condition
+        BOOL res = DeleteTimerQueueTimer(nullptr, timer, NULL);
+        if (!res) {
+            DWORD error = GetLastError();
+            guarantee_xwinerr(error != ERROR_IO_PENDING, error, "DeleteTimerQueueTimer failed");
+        }
         timer = nullptr;
     }
 }

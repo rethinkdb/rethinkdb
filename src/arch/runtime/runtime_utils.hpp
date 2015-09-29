@@ -17,13 +17,13 @@ public:
     fd_t() : handle(INVALID_HANDLE_VALUE) { }
     fd_t(HANDLE h) : handle(h) { }
     fd_t(SOCKET s) : handle((HANDLE)s) { }
-    operator HANDLE() { return handle; }
-    operator SOCKET() { return (SOCKET)handle; }
-    bool operator ==(const fd_t other) { return handle == other.handle; }
-    bool operator !=(const fd_t other) { return handle != other.handle; }
+    operator HANDLE() const { return handle; }
+    operator SOCKET() const { return (SOCKET)handle; }
+    bool operator ==(const fd_t other) const { return handle == other.handle; }
+    bool operator !=(const fd_t other) const { return handle != other.handle; }
 
 private:
-    friend class compare_fds;
+    friend struct compare_fds;
 
     HANDLE handle;
 };

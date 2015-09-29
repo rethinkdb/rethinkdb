@@ -1,9 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "arch/io/network.hpp"
 
-// ATN TODO: winsock iocp is queued on success, not only on ERROR_IO_PENDING
-// see https://support.microsoft.com/en-us/kb/192800
-
 #ifndef _WIN32 // TODO ATN
 #include <arpa/inet.h>
 #include <net/if.h>
@@ -73,12 +70,10 @@ void async_connect(fd_t socket, sockaddr *sa, size_t sa_len,
     winsock_debugf("ATN: connecting socket %x\n", socket);
     DWORD bytes_sent; // TODO ATN: is this needed?
     BOOL res = get_ConnectEx(socket)(socket, sa, sa_len, nullptr, 0, &bytes_sent, &op.overlapped);
-    if (res) {
-        return;
-    }
     DWORD error = GetLastError();
-    if (error != ERROR_IO_PENDING) {
-        crash("ConnectEx failed: %s", winerr_string(error).c_str());
+    if (!res && error != ERROR_IO_PENDING) {
+        op.set_cancel();
+        logERR("connect failed: %s", winerr_string(error).c_str());
         throw linux_tcp_conn_t::connect_failed_exc_t(EIO); // TODO ATN: winerr -> errno
     }
     winsock_debugf("ATN: waiting for connection on %x\n",socket);
@@ -87,6 +82,7 @@ void async_connect(fd_t socket, sockaddr *sa, size_t sa_len,
         crash("ConnectEx failed: %s", winerr_string(op.error).c_str());
         throw linux_tcp_conn_t::connect_failed_exc_t(EIO); // TODO ATN: winerr -> errno
     }
+    winsock_debugf("ATN: connected %x\n",socket);
 #else
     int res;
     do {
@@ -304,13 +300,11 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) THROWS_ONLY(tc
 #ifdef _WIN32
     // TODO ATN: handle all cases
     async_operation_t op(event_watcher.get());
-    DWORD sync_bytes;
-    BOOL res = ReadFile(sock.get(), buffer, size, &sync_bytes, &op.overlapped);
-    if (res) {
-        return sync_bytes;
-    }
+    debugf("ATN: read on %x\n", sock.get());
+    // TODO ATN: WSARecv may be more efficient
+    BOOL res = ReadFile(sock.get(), buffer, size, nullptr, &op.overlapped);
     DWORD error = GetLastError();
-    if (error == ERROR_IO_PENDING) {
+    if (res || error == ERROR_IO_PENDING) {
         wait_any_t waiter(&op.completed, &read_closed);
         waiter.wait_lazily_unordered();
         if (read_closed.is_pulsed()) {
@@ -318,7 +312,7 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) THROWS_ONLY(tc
         }
         error = op.error;
     }
-    if (error != ERROR_SUCCESS) {
+    if (error != NO_ERROR) {
         logERR("Could not read from socket: %s", winerr_string(error).c_str());
         on_shutdown_read();
         throw tcp_conn_read_closed_exc_t();
@@ -519,13 +513,14 @@ void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {
 #ifdef _WIN32 // TODO ATN
     // TODO ATN
     async_operation_t op(event_watcher.get());
-    DWORD sync_bytes;
-    BOOL res = WriteFile(sock.get(), buf, size, &sync_bytes, &op.overlapped);
-    if (res) {
-        return;
-    }
+    WSABUF wsabuf;
+    wsabuf.len = size;
+    wsabuf.buf = const_cast<char*>(reinterpret_cast<const char*>(buf));
+    DWORD flags = 0;
+    winsock_debugf("ATN: write on %x\n", sock.get()); 
+    int res = WSASend(sock.get(), &wsabuf, 1, nullptr, flags, &op.overlapped, nullptr);
     DWORD error = GetLastError();
-    if (error == ERROR_IO_PENDING) {
+    if (res == 0 || error == ERROR_IO_PENDING) {
         wait_any_t waiter(&op.completed, &write_closed);
         waiter.wait_lazily_unordered();
         if (write_closed.is_pulsed()) {
@@ -538,8 +533,8 @@ void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {
        get_errno() == ENETDOWN || get_errno() == EHOSTDOWN || get_errno() == ECONNRESET)) {
        on_shutdown_write();
     */
-    if (error != ERROR_SUCCESS) {
-        logERR("Could not write to socket: %s", winerr_string(error).c_str());
+    if (error != NO_ERROR) {
+        logERR("Could not write to socket %x: %s", sock.get(), winerr_string(error).c_str());
         on_shutdown_write();
     } else if (op.nb_bytes == 0) {
         logERR("Didn't expect WriteEx to write 0 bytes.");
@@ -732,14 +727,14 @@ linux_tcp_conn_t::~linux_tcp_conn_t() THROWS_NOTHING {
 
 void linux_tcp_conn_t::rethread(threadnum_t new_thread) {
     if (home_thread() == get_thread_id() && new_thread == INVALID_THREAD) {
-        rassert(false, "ATN TODO");
+        crash("ATN TODO A: %d -> %d", home_thread(), new_thread);
         rassert(!read_in_progress);
         rassert(!write_in_progress);
         rassert(event_watcher.has());
         event_watcher.reset();
 
     } else if (home_thread() == INVALID_THREAD && new_thread == get_thread_id()) {
-        rassert(false, "ATN TODO");
+        crash("ATN TODO B: %d -> %d", home_thread(), new_thread);
         rassert(!event_watcher.has());
         event_watcher.init(new event_watcher_t(sock.get(), this));
 
@@ -1077,15 +1072,12 @@ fd_t linux_nonthrowing_tcp_listener_t::wait_for_any_socket(const auto_drainer_t:
 
 void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) {
     exponential_backoff_t backoff(10, 160, 2.0, 0.5);
-    fd_t active_fd = socks[0].get();
 
 #ifdef _WIN32 // TODO ATN
     static const int ADDRESS_SIZE = INET6_ADDRSTRLEN + 16;
-    union accept_op_t { // TODO ATN: ugh
-        accept_op_t() : initialized(false) { }
-
+    struct accept_op_t { // TODO ATN: ugh
         accept_op_t(fd_t sock, event_watcher_t *event_watcher)
-            : initialized(true), listening_sock(sock), op(event_watcher) {
+            : listening_sock(sock), op(event_watcher) {
             WSAPROTOCOL_INFO pinfo;
             int pinfo_size = sizeof(pinfo);
             guarantee_winerr(0 == getsockopt(sock, SOL_SOCKET, SO_PROTOCOL_INFO, reinterpret_cast<char*>(&pinfo), &pinfo_size), "getsockopt failed");
@@ -1094,22 +1086,14 @@ void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) 
             queue_accept();
         }
 
-        ~accept_op_t() {
-            if (initialized) {
-                op.~async_operation_t();
-            }
-        }
-
-        void init(fd_t sock, event_watcher_t *event_watcher) {
-            rassert(!initialized);
-            new (this) accept_op_t(sock, event_watcher);
-        }
+        accept_op_t(accept_op_t&&) = default;
 
         void queue_accept() {
             op.reset();
             new_sock = WSASocket(address_family, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, WSA_FLAG_OVERLAPPED);
+            winsock_debugf("ATN: new socket for accepting: %x\n", new_sock);
             guarantee_winerr(new_sock != INVALID_FD, "WSASocket failed");
-            winsock_debugf("ATN: accept on socket %x, buffer size %d\n", listening_sock, ADDRESS_SIZE); // TODO ATN
+            winsock_debugf("ATN: accepting on socket %x\n", listening_sock);
             BOOL res = get_AcceptEx(listening_sock)(listening_sock, new_sock, addresses, 0, ADDRESS_SIZE, ADDRESS_SIZE, &bytes_recieved, &op.overlapped);
             if (res) {
                 op.error = NO_ERROR;
@@ -1117,35 +1101,29 @@ void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) 
             } else {
                 DWORD error = GetLastError();
                 if (error != ERROR_IO_PENDING) {
-                    op.error = error;
-                    op.completed.pulse();
-                } else {
-                    winsock_debugf("ATN: AcceptEx ERROR_IO_PENDING\n");
+                    op.set_result(0, error);
                 }
             }
         }
-        bool initialized;
-        struct {
-            bool initialized_;
-            fd_t listening_sock;
-            int address_family;
-            char addresses[ADDRESS_SIZE][2];
-            async_operation_t op;
-            fd_t new_sock;
-            DWORD bytes_recieved;
-        };
+
+        fd_t listening_sock;
+        int address_family;
+        char addresses[ADDRESS_SIZE][2];
+        async_operation_t op;
+        fd_t new_sock;
+        DWORD bytes_recieved;
     };
 
-    scoped_array_t<accept_op_t> accept_ops(socks.size());
+    scoped_array_t<boost::optional<accept_op_t>> accept_ops(socks.size());
     for (size_t i = 0; i < socks.size(); i++) {
-        accept_ops[i].init(socks[i].get(), event_watchers[i].get());
+        accept_ops[i].emplace(socks[i].get(), event_watchers[i].get());
     }
 
     while(!lock.get_drain_signal()->is_pulsed()) {
         {
             wait_any_t waiter(lock.get_drain_signal());
             for (size_t i = 0; i < accept_ops.size(); i++) {
-                waiter.add(&accept_ops[i].op.completed);
+                waiter.add(&accept_ops[i]->op.completed);
             }
             waiter.wait_lazily_unordered();
         }
@@ -1155,7 +1133,7 @@ void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) 
         }
 
         for (size_t i = 0; i < accept_ops.size(); i++) {
-            accept_op_t *accepted = &accept_ops[(i + last_used_socket_index + 1) % accept_ops.size()];
+            accept_op_t *accepted = &*accept_ops[(i + last_used_socket_index + 1) % accept_ops.size()];
             if (accepted->op.completed.is_pulsed()) {
                 if (accepted->op.error != NO_ERROR) {
                     logERR("AcceptEx failed: %s", winerr_string(accepted->op.error).c_str());
@@ -1167,16 +1145,18 @@ void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) 
                     accepted->queue_accept();
                 } else {
                     winsock_debugf("ATN: accepted %x from %x\n", accepted->new_sock, accepted->listening_sock);
+                    fd_t new_sock = accepted->new_sock;
                     accepted->queue_accept();
-                    coro_t::spawn_now_dangerously(std::bind(&linux_nonthrowing_tcp_listener_t::handle, this, accepted->new_sock));
+                    coro_t::spawn_now_dangerously(std::bind(&linux_nonthrowing_tcp_listener_t::handle, this, new_sock));
                     backoff.success();
                 }
             }
         }
     }
 #else
+    fd_t active_fd = socks[0].get();
     while(!lock.get_drain_signal()->is_pulsed()) {
-        fd_t new_sock = accept(active_fd, NULL, NULL);
+        fd_t new_sock c = accept(active_fd, NULL, NULL);
 
         if (new_sock != INVALID_FD) {
             coro_t::spawn_now_dangerously(std::bind(&linux_nonthrowing_tcp_listener_t::handle, this, new_sock));

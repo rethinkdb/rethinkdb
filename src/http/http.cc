@@ -171,10 +171,6 @@ http_res_t::http_res_t(http_status_code_t rescode, const std::string& content_ty
     set_body(content_type, content);
 }
 
-void http_res_t::add_last_modified(int) {
-    not_implemented();
-}
-
 void http_res_t::add_header_line(const std::string& key, const std::string& val) {
     std::string header_key = key;
     boost::to_lower(header_key);

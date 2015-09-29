@@ -161,25 +161,24 @@ MUST_USE const std::string winerr_string(DWORD winerr);
             }                                                                   \
         }                                                                       \
     } while (0)
-#define guarantee_err(cond, msg, ...) guarantee_xerr(cond, get_errno(), msg, ##__VA_ARGS__)
+#define guarantee_err(cond, ...) guarantee_xerr(cond, get_errno(), ##__VA_ARGS__)
 
 #ifdef _WIN32
 
 // ATN TODO TEST
-#define guarantee_winerr(cond, msg, ...) guarantee_xwinerr(cond, GetLastError(), msg, ##__VA_ARGS__)
+#define guarantee_winerr(cond, ...) guarantee_xwinerr(cond, GetLastError(), ##__VA_ARGS__)
 
 // ATN TODO TEST
 #define guarantee_xwinerr(cond, err, msg, ...) do {                     \
         if (!(cond)) {                                                  \
             DWORD guarantee_winerr_err = (err);                         \
-            crash_or_trap(format_assert_message("Guarantee", (cond)) " (LastError %d - %s) " msg, guarantee_winerr_err, winerr_string(guarantee_winerr_err).c_str(), ##__VA_ARGS__); \
+            crash_or_trap(format_assert_message("Guarantee", (cond)) "(error 0x%d - %s) " msg, guarantee_winerr_err, winerr_string(guarantee_winerr_err).c_str(), ##__VA_ARGS__); \
         }                                                               \
     } while (0);
 
 #endif
 
 #define unreachable(...) crash("Unreachable code: " __VA_ARGS__)    // can't use crash_or_trap since code needs to depend on its noreturn property
-#define not_implemented(msg, ...) crash_or_trap("Not implemented: " msg, ##__VA_ARGS__)
 
 #ifdef NDEBUG
 #define rassert(cond, msg...) ((void)(0))

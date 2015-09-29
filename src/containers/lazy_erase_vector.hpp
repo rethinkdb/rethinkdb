@@ -21,11 +21,11 @@ public:
     }
 
     type_t *data() {
-        return &vec_[erased_offset_];
+        return vec_.data() + erased_offset_;
     }
 
     const type_t *data() const {
-        return &vec_[erased_offset_];
+        return vec_.data() + erased_offset_;
     }
 
     void resize(size_t new_size) {

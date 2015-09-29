@@ -50,7 +50,7 @@ void windows_event_queue_t::run() {
 
         switch (key) {
         case windows_message_type_t::ASYNC_OPERATION: {
-            async_operation_t *ao = reinterpret_cast<async_operation_t*>(overlapped);
+            async_operation_t *ao = reinterpret_cast<async_operation_t*>(reinterpret_cast<char*>(overlapped) - offsetof(async_operation_t, overlapped));
             ao->set_result(nb_bytes, error);
             break;
         }
@@ -62,7 +62,7 @@ void windows_event_queue_t::run() {
         }
 
         default:
-            crash("Unknown message type in IOCP queue %ld");
+            crash("Unknown message type in IOCP queue %lu", key);
         }
 
         thread->pump();

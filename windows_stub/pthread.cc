@@ -4,6 +4,7 @@
 #include <tuple>
 
 #include "errors.hpp"
+#include "logger.hpp"
 
 int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg) {
     typedef std::tuple<void *(*)(void*), void*> data_t;
@@ -14,10 +15,11 @@ int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_
         auto args = std::get<1>(*data);
         delete data;
         void* res = f(args);
-        return reinterpret_cast<DWORD>(res);
+        return reinterpret_cast<DWORD>(res); // TODO ATN: void* doesn't fit in DWORD
     };
     HANDLE handle = CreateThread(nullptr, 0, go, static_cast<void*>(data), 0, nullptr);
     if (handle == NULL) {
+        logERR("CreateThread failed: %s", winerr_string(GetLastError()));
         return EINVAL; // TODO: check GetLastError()
     } else {
         *thread = handle;
@@ -33,7 +35,7 @@ int pthread_join(pthread_t other, void** retval) {
         if (retval != nullptr) {
             DWORD exit_code;
             guarantee_winerr(GetExitCodeThread(other, &exit_code));
-            *retval = reinterpret_cast<void*>(exit_code);
+            *retval = reinterpret_cast<void*>(exit_code); // TODO ATN: void* doesn't fit in DWORD
         }
         return 0;
     }

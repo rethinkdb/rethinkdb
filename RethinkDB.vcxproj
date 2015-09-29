@@ -46,7 +46,7 @@
       <ShowIncludes>false</ShowIncludes>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
       <MinimalRebuild>false</MinimalRebuild>
-      <DisableSpecificWarnings>4244;4101;4267</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4244;4101;4267;4127;4068;4624;4661</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>

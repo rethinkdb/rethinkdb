@@ -4,19 +4,45 @@
 #include "arch/io/event_watcher.hpp"
 #include "arch/runtime/thread_pool.hpp"
 
+async_operation_t::async_operation_t(windows_event_watcher_t *ew) : event_watcher(ew) {
+    memset(&overlapped, 0, sizeof(overlapped));
+}
+
+async_operation_t::~async_operation_t() {
+    if (!completed.is_pulsed()) {
+        abort();
+    }
+}
+
+void async_operation_t::set_cancel() {
+    set_result(0, ERROR_CANCELLED);
+}
+
+void async_operation_t::abort() {
+    rassert(!completed.is_pulsed());
+    BOOL res = CancelIoEx(event_watcher->handle, &overlapped);
+    if (!res && GetLastError() == ERROR_NOT_FOUND) {
+        // TODO ATN: possible race condition?
+        set_result(0, ERROR_OPERATION_ABORTED);
+    } else if (!res) {
+        guarantee_winerr(res, "CancelIoEx failed");
+    } else {
+        completed.wait_lazily_unordered(); // TODO ATN: does completed get pulsed after being canceled?
+    }
+}
+
 void async_operation_t::set_result(size_t nb_bytes_, DWORD error_) {
-    debugf("ATN: %x->set_result\n", this);
     rassert(!completed.is_pulsed());
     nb_bytes = nb_bytes_;
     error = error_;
     if (error != NO_ERROR) {
-        error_handler->on_error(error);
+        event_watcher->on_error(error); // ATN TODO: what is the expected value of the argument to on_error
     }
     completed.pulse();
 }
 
-windows_event_watcher_t::windows_event_watcher_t(fd_t handle, event_callback_t *eh) :
-    error_handler (eh) {
+windows_event_watcher_t::windows_event_watcher_t(fd_t handle_, event_callback_t *eh) :
+    handle(handle_), error_handler(eh) {
     linux_thread_pool_t::get_thread()->queue.add_handle(handle);
 }
 

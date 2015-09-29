@@ -10,24 +10,33 @@
 #include "arch/runtime/event_queue_types.hpp"
 #include "arch/io/event_watcher.hpp"
 
+#include "backtrace.hpp" // TODO ATN: for debugging
+
 class windows_event_watcher_t;
 
 // An asynchronous operation
 struct async_operation_t {
-    async_operation_t(windows_event_watcher_t *ew) : error_handler(ew) {
-        debugf("ATN: %x->init async_operation_t\n", this);
-        memset(&overlapped, 0, sizeof(overlapped));
-    }
+    async_operation_t(windows_event_watcher_t *);
 
-    void reset() { completed.reset(); }
+    void reset() {
+        completed.reset();
+    }
 
     void set_result(size_t nb_bytes_, DWORD error_);
 
+    // Interrupt and abort a pending operation
+    void abort();
+
+    // Cancel an operation that is not pending
+    void set_cancel();
+
     OVERLAPPED overlapped;           // Used by Windows to track the queued operation
-    windows_event_watcher_t *error_handler; // On error, trigger this before signaling
-    cond_t completed;                 // Signaled when the operation completes or fails
+    windows_event_watcher_t *event_watcher; // event_watcher for the associated handle
+    cond_t completed;                // Signaled when the operation completes or fails
     size_t nb_bytes;                 // Number of bytes read or written
     DWORD error;                     // Success indicator
+
+    ~async_operation_t();
 
 private:
     DISABLE_COPYING(async_operation_t);
@@ -40,6 +49,8 @@ public:
     void stop_watching_for_errors();
     async_operation_t make_overlapped();
     void on_error(DWORD error);
+
+    const fd_t handle;
 
 private:
     event_callback_t *error_handler;

@@ -1372,8 +1372,7 @@ int main_rethinkdb_create(int argc, char *argv[]) {
 bool maybe_daemonize(const std::map<std::string, options::values_t> &opts) {
     if (exists_option(opts, "--daemon")) {
 #ifdef _WIN32
-		//ATN TODO
-		not_implemented();
+        crash("ATN TODO");
 #else
         pid_t pid = fork();
         if (pid < 0) {

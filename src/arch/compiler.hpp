@@ -7,7 +7,7 @@
 
 #define ATTR_ALIGNED(size) __declspec(align(size))
 #define ATTR_PACKED(...) __pragma(pack(push, 1)) __VA_ARGS__ __pragma(pack(pop))
-#define ATTR_FORMAT(x)
+#define ATTR_FORMAT(...)
 #define ATTR_NORETURN __declspec(noreturn)
 #define DECL_THREAD_LOCAL thread_local // ATN TODO which is better, this or __declspec(thread)?
 #define NOINLINE __declspec(noinline)

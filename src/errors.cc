@@ -241,12 +241,21 @@ LONG WINAPI windows_crash_handler(EXCEPTION_POINTERS *exception) {
     // This usually results in process termination
     return EXCEPTION_EXECUTE_HANDLER;
 }
+
+int windows_runtime_debug_failure_handler(int type, char *message, int *retval) {
+    logERR("run-time debug failure:\n%s", message);
+    logERR("backtrace:\n%s", format_backtrace().c_str());
+
+    return FALSE;
+}
+
 #endif
 
 void install_generic_crash_handler() {
 #ifdef _WIN32
     // TODO ATN: maybe call SetErrorMode
     SetUnhandledExceptionFilter(windows_crash_handler);
+    _CrtSetReportHook(windows_runtime_debug_failure_handler);
 #else
 #ifndef VALGRIND
     {
