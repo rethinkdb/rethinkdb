@@ -747,9 +747,10 @@ public class ReqlExpr extends ReqlAst {
         Arguments arguments = new Arguments(this);
         return new Zip(arguments);
     }
-    public InsertAt insertAt(Object exprA) {
+    public InsertAt insertAt(Object exprA, Object exprB) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAdd(exprB);
         return new InsertAt(arguments);
     }
     public DeleteAt deleteAt(Object exprA) {

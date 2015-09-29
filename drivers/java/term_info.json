@@ -484,7 +484,7 @@
     },
     "INSERT_AT": {
         "include_in": ["T_EXPR"],
-        "signatures": [["T_EXPR", "T_EXPR"]],
+        "signatures": [["T_EXPR", "T_EXPR", "T_EXPR"]],
         "id": 82
     },
     "DELETE_AT": {
