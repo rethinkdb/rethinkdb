@@ -883,6 +883,11 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(exprA);
         return new Default(arguments);
     }
+    public Default default_(ReqlFunction1 func1) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func1);
+        return new Default(arguments);
+    }
     public ToJsonString to_json() {
         Arguments arguments = new Arguments(this);
         return new ToJsonString(arguments);

@@ -60,7 +60,10 @@
         "include_in": [
             "T_TOP_LEVEL"
         ],
-        "signatures": [["T_EXPR"]],
+        "signatures": [
+            [],
+            ["T_EXPR"]
+        ],
         "id": 12
     },
     "IMPLICIT_VAR": {
@@ -836,7 +839,10 @@
     },
     "DEFAULT": {
         "include_in": ["T_EXPR"],
-        "signatures": [["T_EXPR", "T_EXPR"]],
+        "signatures": [
+            ["T_EXPR", "T_EXPR"],
+            ["T_EXPR", "T_FUNC1"]
+        ],
         "id": 92
     },
     "JSON": {
