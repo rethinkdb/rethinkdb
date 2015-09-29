@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 import java.util.concurrent.TimeoutException;
 import java.util.regex.Pattern;
 import java.util.Collections;
-import java.nio.charset.StandardCharsets
+import java.nio.charset.StandardCharsets;
 
 
 
@@ -39,8 +39,6 @@ public class ${module_name} {
     Connection<?> conn;
     public String hostname = "newton";
     public int port = 31157;
-
-    public ExpectedException expectedEx = ExpectedException.none();
 
     @Before
     public void setUp() throws Exception {
@@ -245,15 +243,10 @@ public class ${module_name} {
         }
 
         public boolean equals(Object other) {
-            try {
-                // do stuff with object
+            if(other.getClass() != clazz) {
                 return false;
-            } catch (Exception ex) {
-                if(ex.getClass() != clazz) {
-                    return false;
-                }
-                return ex.getMessage() == message;
             }
+            return message.equals(((Exception)other).getMessage());
         }
     }
 
@@ -279,15 +272,10 @@ public class ${module_name} {
         }
 
         public boolean equals(Object other) {
-            try {
-                // do stuff with object
+            if(other.getClass() != clazz) {
                 return false;
-            } catch (Exception ex) {
-                if(ex.getClass() != clazz) {
-                    return false;
-                }
-                return Pattern.matches(message_rgx, ex.getMessage());
             }
+            return Pattern.matches(message_rgx, ((Exception)other).getMessage());
         }
     }
 
@@ -295,8 +283,16 @@ public class ${module_name} {
         return new ErrRgx(classname, message_rgx);
     }
 
-    List fetch(RqlAst query, int values) {
+    List fetch(ReqlAst query, int values) {
         throw new RuntimeException("Not implemented!");
+    }
+
+    Object runOrCatch(Object query, OptArgs runopts) {
+        try {
+            return ((ReqlAst)query).run(conn, runopts);
+        } catch (Exception e) {
+            return e;
+        }
     }
 
     @Test
@@ -316,16 +312,14 @@ public class ${module_name} {
             // ${item.expected_line.original}
             ${item.expected_type} expected = ${item.expected_line.java};
             // ${item.line.original}
-            Object obtained = ${item.line.java}
+            Object obtained = runOrCatch(${item.line.java},
+                                          new OptArgs()
             %if item.runopts:
-                .run(conn, new OptArgs()
               %for key, val in item.runopts.items():
-                    .with("${key}", ${val})
+                                          .with("${key}", ${val})
               %endfor
-                );
-            %else:
-                .run(conn);
             %endif
+                                          );
             assertEquals(expected, obtained);
         }
         %endif

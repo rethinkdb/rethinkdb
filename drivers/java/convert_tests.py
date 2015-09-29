@@ -327,9 +327,13 @@ class JavaVisitor(ast.NodeVisitor):
                 self.write(sep)
             self.visit(item)
 
-    def to_str(self, string):
+    def to_str(self, s):
+        try:
+            escaped = s.replace('"', '\\"')
+        except TypeError:
+            escaped = repr(s)[1:-1]  # Can't convert bytes, just ignore it
         self.write('"')
-        self.write(repr(string)[1:-1])  # trim off quotes
+        self.write(escaped)
         self.write('"')
 
     def to_args(self, args, optargs=[]):
@@ -407,11 +411,26 @@ class JavaVisitor(ast.NodeVisitor):
     def visit_Index(self, node):
         self.visit(node.value)
 
+    def skip_if_arity_check(self, node):
+        '''Throws out tests for arity'''
+        rgx = re.compile('Expected .* arguments')
+        try:
+            if node.func.id == 'err' and rgx.match(node.args[1].s):
+                raise Skip("Arity checks done by java type system")
+        except (AttributeError, TypeError):
+            pass
+
     def visit_Call(self, node):
         assert not node.kwargs
         assert not node.starargs
+        self.skip_if_arity_check(node)
         self.visit(node.func)
-        self.to_args(node.args, node.keywords)
+        # This weird special case is because sometimes the tests use
+        # r.error and sometimes they use r.error(). The java driver
+        # only supports r.error(), so we need to avoid emitting the
+        # parens since the self.visit(node.func) already did it
+        if type(node.func) != ast.Attribute or node.func.attr != 'error':
+            self.to_args(node.args, node.keywords)
 
     def visit_Dict(self, node):
         self.write("new MapObject()")
@@ -514,7 +533,7 @@ class ReQLVisitor(JavaVisitor):
         'monday', 'tuesday', 'wednesday', 'thursday', 'friday',
         'saturday', 'sunday', 'january', 'february', 'march', 'april',
         'may', 'june', 'july', 'august', 'september', 'october',
-        'november', 'december', 'minval', 'maxval',
+        'november', 'december', 'minval', 'maxval', 'error'
     }
 
     def visit_BinOp(self, node):
