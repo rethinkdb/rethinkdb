@@ -49,6 +49,10 @@ public class TopLevel {
         args.coerceAndAdd(expr);
         return new Http(args);
     }
+    public Error error(){
+        Arguments args = new Arguments();
+        return new Error(args);
+    }
     public Error error(Object expr){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
