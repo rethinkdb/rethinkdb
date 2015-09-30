@@ -21,6 +21,7 @@
 #include "protocol_api.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/datum.hpp"
+#include "rdb_protocol/datumspec.hpp"
 #include "rdb_protocol/shards.hpp"
 #include "region/region.hpp"
 #include "repli_timestamp.hpp"
@@ -124,7 +125,7 @@ struct keyspec_t {
         std::vector<transform_variant_t> transforms;
         boost::optional<std::string> sindex;
         sorting_t sorting;
-        datum_range_t range;
+        datumspec_t datumspec;
     };
     struct limit_t {
         range_t range;

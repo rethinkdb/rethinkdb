@@ -32,7 +32,7 @@ public:
         const std::string &get_all_sindex_id,
         ql::backtrace_id_t bt,
         const std::string &table_name,   /* the table's own name, for display purposes */
-        const ql::datum_range_t &range,
+        const ql::datumspec_t &datumspec,
         sorting_t sorting,
         read_mode_t read_mode);
     counted_t<ql::datum_stream_t> read_changes(

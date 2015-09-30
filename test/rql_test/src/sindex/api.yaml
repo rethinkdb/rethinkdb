@@ -204,11 +204,11 @@ tests:
   - rb: tbl.get_all(1,2,3, :index => :id).map{|x| x[:id]}.coerce_to("ARRAY")
     py: tbl.get_all(1,2,3, index='id').map(lambda x:x["id"]).coerce_to("ARRAY")
     js: tbl.getAll(1,2,3, {index:'id'}).map(function (x) { return x("id"); }).coerce_to("ARRAY")
-    ot: [1,2,3]
+    ot: bag([1,2,3])
   - rb: tbl.get_all(1,2,3).map{|x| x[:id]}.coerce_to("ARRAY")
     py: tbl.get_all(1,2,3).map(lambda x:x["id"]).coerce_to("ARRAY")
     js: tbl.getAll(1,2,3).map(function (x) { return x("id"); }).coerce_to("ARRAY")
-    ot: [1,2,3]
+    ot: bag([1,2,3])
   - rb: tbl.get_all(1, :index => :id).typeof
     py: tbl.get_all(1, index='id').type_of()
     js: tbl.getAll(1, {index:'id'}).typeOf()
