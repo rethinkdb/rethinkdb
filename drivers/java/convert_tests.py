@@ -226,6 +226,37 @@ def is_reql(t):
     return t.__module__ == 'rethinkdb.ast'
 
 
+def escape_string(s, ctx=None):
+    was_hex = [False]
+    if type(s) is str:
+        def string_escape(c, was_hex):
+            if c == '"':
+                return '\\"'
+            if c == '\\':
+                return '\\\\'
+            if c == '\n':
+                return '\\n'
+            else:
+                return c
+    elif type(s) is bytes:
+        def string_escape(c, was_hex):
+            if c < 32 or c > 127 or (
+                    was_hex[0] and chr(c) in "0123456789abcdefABCDEF"):
+                was_hex[0] = True
+                return '\\x' + ('0' + hex(c)[2:])[-2:]
+            was_hex[0] = False
+            if c == 34:
+                return '\\"'
+            if c == 92:
+                return '\\\\'
+            else:
+                return chr(c)
+    else:
+        raise Unhandled("string type: " + repr(type(s)))
+    e = ''.join([string_escape(c, was_hex) for c in s])
+    return e
+
+
 def def_to_java(item, reql_vars):
     if is_reql(item.term.type):
         reql_vars.add(item.varname)
@@ -328,10 +359,7 @@ class JavaVisitor(ast.NodeVisitor):
             self.visit(item)
 
     def to_str(self, s):
-        try:
-            escaped = s.replace('"', '\\"')
-        except TypeError:
-            escaped = repr(s)[1:-1]  # Can't convert bytes, just ignore it
+        escaped = escape_string(s)
         self.write('"')
         self.write(escaped)
         self.write('"')
@@ -630,6 +658,7 @@ class ReQLVisitor(JavaVisitor):
         self.write(".")
         initial = python_clashes.get(
             node.attr, metajava.dromedary(node.attr))
+        initial = metajava.java_term_info.METHOD_RENAMES.get(initial, initial)
         self.write(initial)
         if initial in metajava.java_term_info.JAVA_KEYWORDS or \
            initial in metajava.java_term_info.OBJECT_METHODS:

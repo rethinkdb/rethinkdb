@@ -258,11 +258,11 @@ public class ${module_name} {
         return err(classname, message);
     }
 
-    static class ErrRgx {
+    static class ErrRegex {
         public final Class clazz;
         public final String message_rgx;
 
-        public ErrRgx(String classname, String message_rgx) {
+        public ErrRegex(String classname, String message_rgx) {
             try {
                 this.clazz = Class.forName(classname);
             } catch (ClassNotFoundException cnfe) {
@@ -279,8 +279,8 @@ public class ${module_name} {
         }
     }
 
-    ErrRgx err_rgx(String classname, String message_rgx) {
-        return new ErrRgx(classname, message_rgx);
+    ErrRegex err_regex(String classname, String message_rgx) {
+        return new ErrRegex(classname, message_rgx);
     }
 
     List fetch(ReqlAst query, int values) {
