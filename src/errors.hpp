@@ -172,7 +172,7 @@ MUST_USE const std::string winerr_string(DWORD winerr);
 #define guarantee_xwinerr(cond, err, msg, ...) do {                     \
         if (!(cond)) {                                                  \
             DWORD guarantee_winerr_err = (err);                         \
-            crash_or_trap(format_assert_message("Guarantee", (cond)) "(error 0x%d - %s) " msg, guarantee_winerr_err, winerr_string(guarantee_winerr_err).c_str(), ##__VA_ARGS__); \
+            crash_or_trap(format_assert_message("Guarantee", (cond)) "(error 0x%x - %s) " msg, guarantee_winerr_err, winerr_string(guarantee_winerr_err).c_str(), ##__VA_ARGS__); \
         }                                                               \
     } while (0);
 

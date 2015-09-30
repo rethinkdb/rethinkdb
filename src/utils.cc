@@ -581,8 +581,23 @@ std::string errno_string(int errsv) {
 
 int remove_directory_helper(const char *path, ...) {
     logNTC("In recursion: removing file %s\n", path);
+#ifdef _WIN32
+    DWORD attrs = GetFileAttributes(path);
+    guarantee_winerr(attrs != INVALID_FILE_ATTRIBUTES);
+    BOOL res;
+    if (attrs & FILE_ATTRIBUTE_DIRECTORY) {
+        res = RemoveDirectory(path);
+    } else {
+        res = DeleteFile(path);
+    }
+    // guarantee_winerr(res, "failed to delete '%s'", path); // TODO ATN: this segfaults? 
+    if (!res) {
+        crash("failed to remove: %s: %s", path, winerr_string(GetLastError()).c_str());
+    }
+#else
     int res = ::remove(path);
     guarantee_err(res == 0, "Fatal error: failed to delete '%s'.", path);
+#endif
     return 0;
 }
 
@@ -598,14 +613,14 @@ void remove_directory_recursive(const char *dirpath) {
     int res = nftw(dirpath, remove_directory_helper, max_openfd, FTW_PHYS | FTW_MOUNT | FTW_DEPTH);
     guarantee_err(res == 0 || get_errno() == ENOENT, "Trouble while traversing and destroying temporary directory %s.", dirpath);
 #else // ATN TODO
-	using namespace std::tr2;
-	auto go = [](sys::path dir){
-		for (auto it : sys::directory_iterator(dir)) {
-			remove_directory_helper(it.path().string().c_str());
-		}
-		remove_directory_helper(dir.string().c_str());
-	};
-	go(dirpath);
+    using namespace std::tr2;
+    auto go = [](sys::path dir){
+        for (auto it : sys::directory_iterator(dir)) {
+            remove_directory_helper(it.path().string().c_str());
+        }
+        remove_directory_helper(dir.string().c_str());
+    };
+    go(dirpath);
 #endif
 }
 

@@ -387,7 +387,7 @@ bool is_coroutine_stack_overflow(void *addr) {
 
 bool has_n_bytes_free_stack_space(size_t n) {
 #ifdef _WIN32
-    crash("ATN TODO");
+    // ATN TODO
     return true;
 #else
     // We assume that `tester` is going to be allocated on the stack.

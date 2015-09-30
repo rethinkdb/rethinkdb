@@ -428,11 +428,13 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
         crash("Bad file access mode.");
     }
 
-    DWORD share_mode = FILE_SHARE_DELETE;
+    // TODO ATN: is all this sharing necessary?
+    DWORD share_mode = FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE;
 
     fd.reset(CreateFile(path, access_mode, share_mode, NULL, create_mode, FILE_ATTRIBUTE_NORMAL, NULL));
     if (fd.get() == INVALID_FD) {
-        return file_open_result_t(file_open_result_t::ERROR, get_errno());
+        logERR("CreateFile failed: %s: %s", path, winerr_string(GetLastError()).c_str());
+        return file_open_result_t(file_open_result_t::ERROR, EIO); // TODO: getlasterror -> errno
     }
 
 #else
